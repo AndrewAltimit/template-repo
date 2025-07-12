@@ -9,8 +9,8 @@ STAGE=${1:-format}
 EXTRA_ARGS="${@:2}"
 
 # Export user IDs for docker-compose
-export UID=$(id -u)
-export GID=$(id -g)
+export USER_ID=$(id -u)
+export GROUP_ID=$(id -g)
 
 # Build the CI image if needed
 echo "🔨 Building CI image..."

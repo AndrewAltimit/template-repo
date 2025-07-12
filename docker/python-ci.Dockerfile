@@ -31,6 +31,9 @@ ENV PYTHONUNBUFFERED=1
 # Configure pytest to not create cache with restrictive permissions
 ENV PYTEST_CACHE_DISABLE=1
 
+# Disable Python bytecode generation to avoid __pycache__ issues
+ENV PYTHONDONTWRITEBYTECODE=1
+
 # Create a non-root user that will be overridden by docker-compose
 RUN useradd -m -u 1000 ciuser
 

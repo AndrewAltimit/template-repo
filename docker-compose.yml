@@ -88,7 +88,7 @@ services:
       context: .
       dockerfile: docker/python-ci.Dockerfile
     container_name: python-ci
-    user: "${UID:-1000}:${GID:-1000}"
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - .:/workspace
     working_dir: /workspace

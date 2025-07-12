@@ -7,8 +7,8 @@ set -e
 STAGE=${1:-format}
 
 # Export user IDs for docker-compose
-export UID=$(id -u)
-export GID=$(id -g)
+export USER_ID=$(id -u)
+export GROUP_ID=$(id -g)
 
 # Initialize counters
 errors=0
