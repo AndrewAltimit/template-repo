@@ -25,22 +25,6 @@ jobs:
     runs-on: [self-hosted, linux]
     
     steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Clean workspace before checkout to avoid permission issues
-          if [ -d "${{ github.workspace }}" ]; then
-            echo "Cleaning workspace: ${{ github.workspace }}"
-            # Use docker with root to clean everything
-            docker run --rm -v "${{ github.workspace }}:/workspace" ubuntu:latest bash -c "
-              find /workspace -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
-              find /workspace -type f -name '*.pyc' -exec rm -f {} + 2>/dev/null || true
-              chmod -R 777 /workspace 2>/dev/null || true
-            " || echo "Docker cleanup completed with warnings"
-            # Also try local cleanup
-            find "${{ github.workspace }}" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-            find "${{ github.workspace }}" -type f -name "*.pyc" -delete 2>/dev/null || true
-          fi
-
       - name: Checkout code
         uses: actions/checkout@v4
         with:
