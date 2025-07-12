@@ -3,6 +3,7 @@
 Improved Gemini PR Review Script with better context handling
 """
 
+import hashlib
 import json
 import os
 import subprocess
@@ -10,7 +11,6 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
-import hashlib
 
 
 def check_gemini_cli() -> bool:
@@ -59,17 +59,17 @@ def get_file_stats() -> Dict[str, int]:
             text=True,
             check=True,
         )
-        
+
         stats = {"additions": 0, "deletions": 0, "files": 0}
-        for line in result.stdout.split('\n'):
-            if 'files changed' in line:
-                parts = line.split(',')
+        for line in result.stdout.split("\n"):
+            if "files changed" in line:
+                parts = line.split(",")
                 for part in parts:
-                    if 'insertion' in part:
+                    if "insertion" in part:
                         stats["additions"] = int(part.strip().split()[0])
-                    elif 'deletion' in part:
+                    elif "deletion" in part:
                         stats["deletions"] = int(part.strip().split()[0])
-                    elif 'file' in part:
+                    elif "file" in part:
                         stats["files"] = int(part.strip().split()[0])
         return stats
     except:
@@ -110,23 +110,23 @@ def chunk_diff_by_files(diff: str) -> List[Tuple[str, str]]:
     chunks = []
     current_file = None
     current_chunk = []
-    
-    for line in diff.split('\n'):
-        if line.startswith('diff --git'):
+
+    for line in diff.split("\n"):
+        if line.startswith("diff --git"):
             if current_file and current_chunk:
-                chunks.append((current_file, '\n'.join(current_chunk)))
+                chunks.append((current_file, "\n".join(current_chunk)))
             # Extract filename from diff header
             parts = line.split()
             if len(parts) >= 3:
-                current_file = parts[2].replace('a/', '').replace('b/', '')
+                current_file = parts[2].replace("a/", "").replace("b/", "")
             current_chunk = [line]
         elif current_chunk is not None:
             current_chunk.append(line)
-    
+
     # Don't forget the last chunk
     if current_file and current_chunk:
-        chunks.append((current_file, '\n'.join(current_chunk)))
-    
+        chunks.append((current_file, "\n".join(current_chunk)))
+
     return chunks
 
 
@@ -149,56 +149,58 @@ def analyze_large_pr(
     diff: str, changed_files: List[str], pr_info: Dict[str, Any]
 ) -> str:
     """Analyze large PRs by breaking them down into manageable chunks"""
-    
+
     project_context = get_project_context()
     file_stats = get_file_stats()
     diff_size = len(diff)
-    
+
     # If diff is small enough, use single analysis
     if diff_size < 50000:  # 50KB threshold
-        return analyze_complete_diff(diff, changed_files, pr_info, project_context, file_stats)
-    
+        return analyze_complete_diff(
+            diff, changed_files, pr_info, project_context, file_stats
+        )
+
     # For large diffs, analyze by file groups
     print(f"📦 Large diff detected ({diff_size:,} chars), using chunked analysis...")
-    
+
     file_chunks = chunk_diff_by_files(diff)
     analyses = []
-    
+
     # Group files by type for more coherent analysis
     file_groups = {
-        'workflows': [],
-        'python': [],
-        'docker': [],
-        'config': [],
-        'docs': [],
-        'other': []
+        "workflows": [],
+        "python": [],
+        "docker": [],
+        "config": [],
+        "docs": [],
+        "other": [],
     }
-    
+
     for filepath, file_diff in file_chunks:
-        if '.github/workflows' in filepath:
-            file_groups['workflows'].append((filepath, file_diff))
-        elif filepath.endswith('.py'):
-            file_groups['python'].append((filepath, file_diff))
-        elif 'docker' in filepath.lower() or filepath.endswith('Dockerfile'):
-            file_groups['docker'].append((filepath, file_diff))
-        elif filepath.endswith(('.yml', '.yaml', '.json', '.toml')):
-            file_groups['config'].append((filepath, file_diff))
-        elif filepath.endswith(('.md', '.rst', '.txt')):
-            file_groups['docs'].append((filepath, file_diff))
+        if ".github/workflows" in filepath:
+            file_groups["workflows"].append((filepath, file_diff))
+        elif filepath.endswith(".py"):
+            file_groups["python"].append((filepath, file_diff))
+        elif "docker" in filepath.lower() or filepath.endswith("Dockerfile"):
+            file_groups["docker"].append((filepath, file_diff))
+        elif filepath.endswith((".yml", ".yaml", ".json", ".toml")):
+            file_groups["config"].append((filepath, file_diff))
+        elif filepath.endswith((".md", ".rst", ".txt")):
+            file_groups["docs"].append((filepath, file_diff))
         else:
-            file_groups['other'].append((filepath, file_diff))
-    
+            file_groups["other"].append((filepath, file_diff))
+
     # Analyze each group
     for group_name, group_files in file_groups.items():
         if not group_files:
             continue
-            
+
         group_analysis = analyze_file_group(
             group_name, group_files, pr_info, project_context
         )
         if group_analysis:
             analyses.append(f"### {group_name.title()} Changes\n{group_analysis}")
-    
+
     # Combine analyses with overall summary
     combined_analysis = f"""## Overall Summary
 
@@ -210,26 +212,29 @@ def analyze_large_pr(
 
 Based on the comprehensive analysis above, this PR appears to be making significant changes across multiple areas of the codebase. Please ensure all changes are tested, especially given the container-first architecture of this project.
 """
-    
+
     return combined_analysis
 
 
 def analyze_file_group(
-    group_name: str, files: List[Tuple[str, str]], pr_info: Dict[str, Any], project_context: str
+    group_name: str,
+    files: List[Tuple[str, str]],
+    pr_info: Dict[str, Any],
+    project_context: str,
 ) -> str:
     """Analyze a group of related files"""
-    
+
     # Combine diffs for the group (limit to reasonable size)
     combined_diff = ""
     file_list = []
-    
+
     for filepath, file_diff in files[:10]:  # Max 10 files per group
         file_list.append(filepath)
         # Include first 2000 chars of each file diff
         combined_diff += f"\n\n=== {filepath} ===\n{file_diff[:2000]}"
         if len(file_diff) > 2000:
             combined_diff += f"\n... (truncated {len(file_diff) - 2000} chars)"
-    
+
     prompt = f"""Analyze this group of {group_name} changes from PR #{pr_info['number']}:
 
 **Files in this group:**
@@ -262,19 +267,22 @@ Keep response concise but thorough."""
 
 
 def analyze_complete_diff(
-    diff: str, changed_files: List[str], pr_info: Dict[str, Any], 
-    project_context: str, file_stats: Dict[str, int]
+    diff: str,
+    changed_files: List[str],
+    pr_info: Dict[str, Any],
+    project_context: str,
+    file_stats: Dict[str, int],
 ) -> str:
     """Analyze complete diff for smaller PRs"""
-    
+
     # For GitHub workflow files, include more complete content
     workflow_contents = {}
     for file in changed_files:
-        if '.github/workflows' in file and file.endswith('.yml'):
+        if ".github/workflows" in file and file.endswith(".yml"):
             content = get_file_content(file)
             if content and len(content) < 5000:  # Only include if reasonable size
                 workflow_contents[file] = content
-    
+
     prompt = f"""You are an expert code reviewer. Please analyze this pull request comprehensively.
 
 **PROJECT CONTEXT:**
@@ -330,11 +338,11 @@ def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:
     """Format workflow file contents for review"""
     if not workflow_contents:
         return ""
-    
+
     formatted = "\n**GITHUB WORKFLOW FILES (Full Content):**\n"
     for filepath, content in workflow_contents.items():
         formatted += f"\n--- {filepath} ---\n```yaml\n{content}\n```\n"
-    
+
     return formatted
 
 
@@ -375,7 +383,7 @@ def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
         )
 
         print("✅ Successfully posted Gemini review to PR")
-        
+
         # Clean up
         os.unlink(comment_file)
     except subprocess.CalledProcessError as e:
