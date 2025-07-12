@@ -321,10 +321,31 @@ jobs:
           pip install mcp pydantic aiofiles
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
+      - name: Start MCP server with Docker Compose
+        run: |
+          echo "🚀 Starting MCP server with Docker Compose..."
+          docker-compose up -d mcp-server
+          
+          # Wait for server to be ready
+          echo "⏳ Waiting for server to be healthy..."
+          timeout 60 bash -c 'until docker-compose exec -T mcp-server curl -s http://localhost:8000/health > /dev/null 2>&1; do sleep 1; done'
+          echo "✅ MCP server is ready!"
+
       - name: Test MCP server functionality
         run: |
           echo "🤖 Testing MCP server integration..."
           python scripts/test-mcp-server.py
+          
+      - name: View MCP server logs
+        if: failure()
+        run: |
+          echo "📋 MCP server logs:"
+          docker-compose logs mcp-server
+          
+      - name: Stop MCP server
+        if: always()
+        run: |
+          docker-compose down
 
   # Stage 7: Docker image validation
   docker-validation:
