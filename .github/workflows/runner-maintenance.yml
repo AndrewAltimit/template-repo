@@ -135,7 +135,7 @@ jobs:
               echo "❌ $tool: not installed"
             fi
           done
-        echo ""
+          echo ""
 
       - name: Runner Capabilities Test
         run: |
