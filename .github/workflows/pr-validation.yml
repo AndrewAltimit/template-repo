@@ -303,6 +303,28 @@ jobs:
             fi
           '
 
+  # Stage 4c: Comprehensive YAML linting (always run)
+  yaml-lint:
+    name: YAML Lint All Files
+    needs: [detect-changes, gemini-review]
+    if: always() && !cancelled()
+    runs-on: self-hosted
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      - name: Run YAML lint on all files
+        run: |
+          echo "🔍 Running comprehensive YAML linting..."
+          ./scripts/run-ci.sh yaml-lint
+
   # Stage 5: Test execution
   test-suite:
     name: Test Suite
@@ -452,7 +474,7 @@ jobs:
   # Final status and summary
   pr-status:
     name: PR Status Summary
-    needs: [detect-changes, gemini-review, python-validation, config-validation, workflow-validation, test-suite, mcp-validation, docker-validation]
+    needs: [detect-changes, gemini-review, python-validation, config-validation, workflow-validation, yaml-lint, test-suite, mcp-validation, docker-validation]
     if: always()
     runs-on: self-hosted
     steps:
@@ -472,6 +494,7 @@ jobs:
           echo "- Python Validation: ${{ needs.python-validation.result }}"
           echo "- Config Validation: ${{ needs.config-validation.result }}"
           echo "- Workflow Validation: ${{ needs.workflow-validation.result }}"
+          echo "- YAML Lint: ${{ needs.yaml-lint.result }}"
           echo "- Test Suite: ${{ needs.test-suite.result }}"
           echo "- MCP Validation: ${{ needs.mcp-validation.result }}"
           echo "- Docker Validation: ${{ needs.docker-validation.result }}"
@@ -481,6 +504,7 @@ jobs:
                 "${{ needs.python-validation.result }}" == "failure" ||
                 "${{ needs.config-validation.result }}" == "failure" ||
                 "${{ needs.workflow-validation.result }}" == "failure" ||
+                "${{ needs.yaml-lint.result }}" == "failure" ||
                 "${{ needs.test-suite.result }}" == "failure" ||
                 "${{ needs.mcp-validation.result }}" == "failure" ||
                 "${{ needs.docker-validation.result }}" == "failure" ]]; then
@@ -504,6 +528,7 @@ jobs:
               'python-validation': '${{ needs.python-validation.result }}',
               'config-validation': '${{ needs.config-validation.result }}',
               'workflow-validation': '${{ needs.workflow-validation.result }}',
+              'yaml-lint': '${{ needs.yaml-lint.result }}',
               'test-suite': '${{ needs.test-suite.result }}',
               'mcp-validation': '${{ needs.mcp-validation.result }}',
               'docker-validation': '${{ needs.docker-validation.result }}'
