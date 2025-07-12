@@ -28,5 +28,11 @@ WORKDIR /workspace
 # Set Python to run in unbuffered mode
 ENV PYTHONUNBUFFERED=1
 
+# Configure pytest to not create cache with restrictive permissions
+ENV PYTEST_CACHE_DISABLE=1
+
+# Create a non-root user that will be overridden by docker-compose
+RUN useradd -m -u 1000 ciuser
+
 # Default command
 CMD ["bash"]

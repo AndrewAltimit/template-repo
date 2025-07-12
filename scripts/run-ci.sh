@@ -48,7 +48,7 @@ case "$STAGE" in
     
   test)
     echo "=== Running tests ==="
-    docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && pytest tests/ -v --cov=. --cov-report=xml --cov-report=term $EXTRA_ARGS"
+    docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && pytest tests/ -v --cov=. --cov-report=xml --cov-report=term -p no:cacheprovider $EXTRA_ARGS"
     ;;
     
   yaml-lint)
