@@ -3,26 +3,24 @@
 Example: Creating animations with Manim through MCP
 """
 
-import json
-import requests
 import base64
+import json
+
+import requests
 
 
 def create_animation(script: str, output_format: str = "mp4"):
     """Create a Manim animation through MCP server"""
-    
+
     url = "http://localhost:8000/tools/execute"
-    
+
     payload = {
         "tool": "create_manim_animation",
-        "arguments": {
-            "script": script,
-            "output_format": output_format
-        }
+        "arguments": {"script": script, "output_format": output_format},
     }
-    
+
     response = requests.post(url, json=payload)
-    
+
     if response.status_code == 200:
         result = response.json()
         if result["success"]:
@@ -40,8 +38,8 @@ if __name__ == "__main__":
     # Example 1: Simple text animation
     print("Example 1: Text Animation")
     print("-" * 50)
-    
-    text_animation = '''
+
+    text_animation = """
 from manim import *
 
 class TextExample(Scene):
@@ -59,19 +57,19 @@ class TextExample(Scene):
         self.play(FadeIn(subtitle, shift=UP))
         self.wait(2)
         self.play(FadeOut(title), FadeOut(subtitle))
-    '''
-    
+    """
+
     result = create_animation(text_animation)
     if result:
         print(f"✅ Animation created: {result.get('output_path')}")
-    
+
     print("\n")
-    
+
     # Example 2: Mathematical visualization
     print("Example 2: Mathematical Visualization")
     print("-" * 50)
-    
-    math_animation = '''
+
+    math_animation = """
 from manim import *
 import numpy as np
 
@@ -98,19 +96,19 @@ class MathVisualization(Scene):
         self.wait()
         self.play(Create(derivative), Write(deriv_label))
         self.wait(2)
-    '''
-    
+    """
+
     result = create_animation(math_animation)
     if result:
         print(f"✅ Animation created: {result.get('output_path')}")
-    
+
     print("\n")
-    
+
     # Example 3: Algorithm visualization
     print("Example 3: Algorithm Visualization")
     print("-" * 50)
-    
-    algorithm_animation = '''
+
+    algorithm_animation = """
 from manim import *
 
 class BubbleSort(Scene):
@@ -170,12 +168,12 @@ class BubbleSort(Scene):
             run_time=1
         )
         self.wait(2)
-    '''
-    
+    """
+
     result = create_animation(algorithm_animation)
     if result:
         print(f"✅ Animation created: {result.get('output_path')}")
-    
+
     print("\n")
     print("🎬 All animations completed!")
     print("Note: Output files are saved in the MCP server's output directory")

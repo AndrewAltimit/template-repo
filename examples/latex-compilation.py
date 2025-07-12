@@ -4,24 +4,22 @@ Example: Compiling LaTeX documents through MCP
 """
 
 import json
+
 import requests
 
 
 def compile_latex(content: str, output_format: str = "pdf"):
     """Compile LaTeX document through MCP server"""
-    
+
     url = "http://localhost:8000/tools/execute"
-    
+
     payload = {
         "tool": "compile_latex",
-        "arguments": {
-            "content": content,
-            "format": output_format
-        }
+        "arguments": {"content": content, "format": output_format},
     }
-    
+
     response = requests.post(url, json=payload)
-    
+
     if response.status_code == 200:
         result = response.json()
         if result["success"]:
@@ -39,7 +37,7 @@ if __name__ == "__main__":
     # Example 1: Simple article
     print("Example 1: Simple Article")
     print("-" * 50)
-    
+
     simple_article = r"""
 \documentclass[12pt]{article}
 \usepackage{amsmath}
@@ -101,17 +99,17 @@ The MCP LaTeX integration provides a powerful way to generate professional docum
 
 \end{document}
     """
-    
+
     result = compile_latex(simple_article)
     if result:
         print(f"✅ PDF created: {result.get('output_path')}")
-    
+
     print("\n")
-    
+
     # Example 2: Technical report
     print("Example 2: Technical Report")
     print("-" * 50)
-    
+
     technical_report = r"""
 \documentclass[11pt,a4paper]{report}
 \usepackage{amsmath,amssymb}
@@ -215,17 +213,17 @@ compile\_latex & 850 & 920 & 1250 \\
 
 \end{document}
     """
-    
+
     result = compile_latex(technical_report)
     if result:
         print(f"✅ PDF created: {result.get('output_path')}")
-    
+
     print("\n")
-    
+
     # Example 3: Presentation slides (beamer)
     print("Example 3: Presentation Slides")
     print("-" * 50)
-    
+
     presentation = r"""
 \documentclass{beamer}
 \usetheme{Madrid}
@@ -324,11 +322,11 @@ POST /tools/execute
 
 \end{document}
     """
-    
+
     result = compile_latex(presentation)
     if result:
         print(f"✅ PDF created: {result.get('output_path')}")
-    
+
     print("\n")
     print("📄 All LaTeX documents compiled!")
     print("Note: Output files are saved in the MCP server's output directory")

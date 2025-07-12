@@ -4,29 +4,25 @@ Example: Using Gemini AI consultation through MCP
 """
 
 import json
+
 import requests
 
 
 def consult_gemini(question: str, context: str = None):
     """Consult Gemini AI through MCP server"""
-    
+
     # MCP server endpoint
     url = "http://localhost:8000/tools/execute"
-    
+
     # Prepare request
-    payload = {
-        "tool": "consult_gemini",
-        "arguments": {
-            "question": question
-        }
-    }
-    
+    payload = {"tool": "consult_gemini", "arguments": {"question": question}}
+
     if context:
         payload["arguments"]["context"] = context
-    
+
     # Make request
     response = requests.post(url, json=payload)
-    
+
     if response.status_code == 200:
         result = response.json()
         if result["success"]:
@@ -49,9 +45,9 @@ if __name__ == "__main__":
     )
     if response:
         print(response["response"][:500] + "...")
-    
+
     print("\n" * 2)
-    
+
     # Example 2: Code review with context
     print("Example 2: Code Review")
     print("-" * 50)
@@ -61,16 +57,16 @@ def calculate_fibonacci(n):
         return n
     return calculate_fibonacci(n-1) + calculate_fibonacci(n-2)
     """
-    
+
     response = consult_gemini(
         "Review this Fibonacci implementation and suggest improvements",
-        context=code_context
+        context=code_context,
     )
     if response:
         print(response["response"][:500] + "...")
-    
+
     print("\n" * 2)
-    
+
     # Example 3: Architecture design question
     print("Example 3: Architecture Design")
     print("-" * 50)
