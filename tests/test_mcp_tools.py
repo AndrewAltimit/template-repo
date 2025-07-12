@@ -6,7 +6,7 @@ Unit tests for MCP tools
 import json
 import os
 import sys
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch, mock_open
 
 import pytest
 
@@ -76,20 +76,23 @@ class TestMCPTools:
             with patch("subprocess.run") as mock_run:
                 with patch("os.path.exists") as mock_exists:
                     with patch("shutil.copy") as mock_copy:
-                        # Setup mocks
-                        mock_tmpdir.return_value.__enter__.return_value = "/tmp/test"
-                        mock_run.return_value = Mock(returncode=0)
-                        mock_exists.return_value = True
+                        with patch("os.makedirs") as mock_makedirs:
+                            with patch("builtins.open", mock_open()) as mock_file:
+                                # Setup mocks
+                                mock_tmpdir.return_value.__enter__.return_value = "/tmp/test"
+                                mock_run.return_value = Mock(returncode=0)
+                                mock_exists.return_value = True
+                                mock_makedirs.return_value = None
 
-                        # Test compilation
-                        latex_content = (
-                            r"\documentclass{article}\begin{document}Test\end{document}"
-                        )
-                        result = await MCPTools.compile_latex(latex_content, "pdf")
+                                # Test compilation
+                                latex_content = (
+                                    r"\documentclass{article}\begin{document}Test\end{document}"
+                                )
+                                result = await MCPTools.compile_latex(latex_content, "pdf")
 
-                        assert result["success"] is True
-                        assert result["format"] == "pdf"
-                        assert "output_path" in result
+                                assert result["success"] is True
+                                assert result["format"] == "pdf"
+                                assert "output_path" in result
 
     @pytest.mark.asyncio
     async def test_create_manim_animation(self):
@@ -98,20 +101,22 @@ class TestMCPTools:
             with patch("subprocess.run") as mock_run:
                 with patch("os.listdir") as mock_listdir:
                     with patch("os.unlink") as mock_unlink:
-                        # Setup mocks
-                        mock_tmp.return_value.__enter__.return_value.name = (
-                            "/tmp/test.py"
-                        )
-                        mock_run.return_value = Mock(returncode=0)
-                        mock_listdir.return_value = ["TestScene.mp4"]
+                        with patch("os.makedirs") as mock_makedirs:
+                            # Setup mocks
+                            mock_file = Mock()
+                            mock_file.name = "/tmp/test.py"
+                            mock_tmp.return_value.__enter__.return_value = mock_file
+                            mock_run.return_value = Mock(returncode=0)
+                            mock_listdir.return_value = ["TestScene.mp4"]
+                            mock_makedirs.return_value = None
 
-                        # Test animation
-                        script = "from manim import *\nclass TestScene(Scene): pass"
-                        result = await MCPTools.create_manim_animation(script)
+                            # Test animation
+                            script = "from manim import *\nclass TestScene(Scene): pass"
+                            result = await MCPTools.create_manim_animation(script)
 
-                        assert result["success"] is True
-                        assert result["format"] == "mp4"
-                        assert "output_path" in result
+                            assert result["success"] is True
+                            assert result["format"] == "mp4"
+                            assert "output_path" in result
 
 
 class TestMCPServer:
@@ -164,24 +169,25 @@ class TestMCPServer:
         assert response.status_code == 404
         assert "Tool not found" in response.json()["detail"]
 
-    @patch("tools.mcp.mcp_server.MCPTools.format_check")
-    def test_execute_tool_success(self, mock_format_check, client):
+    def test_execute_tool_success(self, client):
         """Test successful tool execution"""
-        # Mock the tool
-        mock_format_check.return_value = {"formatted": True}
+        # Create an async mock function
+        async def mock_format_check(*args, **kwargs):
+            return {"formatted": True}
+        
+        with patch("tools.mcp.mcp_server.TOOLS", {"format_check": mock_format_check}):
+            response = client.post(
+                "/tools/execute",
+                json={
+                    "tool": "format_check",
+                    "arguments": {"path": "test.py", "language": "python"},
+                },
+            )
 
-        response = client.post(
-            "/tools/execute",
-            json={
-                "tool": "format_check",
-                "arguments": {"path": "test.py", "language": "python"},
-            },
-        )
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
-        assert data["result"]["formatted"] is True
+            assert response.status_code == 200
+            data = response.json()
+            assert data["success"] is True
+            assert data["result"]["formatted"] is True
 
 
 if __name__ == "__main__":
