@@ -192,32 +192,47 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-  # Stage 3: Python linting and formatting
-  python-validation:
-    name: Python Linting & Formatting
+  # Stage 3a: Format check stage
+  format-check:
+    name: Python Format Check
     needs: [detect-changes, gemini-review]
     if: |
       needs.detect-changes.outputs.python_changed == 'true' ||
       needs.detect-changes.outputs.mcp_changed == 'true' ||
       !github.event.pull_request.draft
-    runs-on: self-hosted
-    timeout-minutes: 10
-    steps:
-      # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
+    uses: ./.github/workflows/lint-stages.yml
+    with:
+      stage: format
+      upload_artifacts: true
+    secrets: inherit
 
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          clean: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          ref: ${{ github.head_ref }}
-          lfs: true
+  # Stage 3b: Basic lint stage
+  basic-lint:
+    name: Python Basic Lint
+    needs: [detect-changes, gemini-review, format-check]
+    if: |
+      needs.detect-changes.outputs.python_changed == 'true' ||
+      needs.detect-changes.outputs.mcp_changed == 'true' ||
+      !github.event.pull_request.draft
+    uses: ./.github/workflows/lint-stages.yml
+    with:
+      stage: basic
+      upload_artifacts: true
+    secrets: inherit
 
-      - name: Run Python Linting
-        run: |
-          echo "🔍 Running Python linting and formatting checks..."
-          ./scripts/run-ci.sh lint-basic
+  # Stage 3c: Full lint stage (includes security & type checking)
+  full-lint:
+    name: Python Full Lint
+    needs: [detect-changes, gemini-review, format-check, basic-lint]
+    if: |
+      needs.detect-changes.outputs.python_changed == 'true' ||
+      needs.detect-changes.outputs.mcp_changed == 'true' ||
+      !github.event.pull_request.draft
+    uses: ./.github/workflows/lint-stages.yml
+    with:
+      stage: full
+      upload_artifacts: true
+    secrets: inherit
 
   # Stage 4: YAML/JSON validation
   config-validation:
@@ -328,7 +343,7 @@ jobs:
   # Stage 5: Test execution
   test-suite:
     name: Test Suite
-    needs: [detect-changes, gemini-review, python-validation]
+    needs: [detect-changes, gemini-review, format-check, basic-lint, full-lint]
     if: |
       (needs.detect-changes.outputs.python_changed == 'true' ||
        needs.detect-changes.outputs.mcp_changed == 'true') &&
@@ -474,7 +489,7 @@ jobs:
   # Final status and summary
   pr-status:
     name: PR Status Summary
-    needs: [detect-changes, gemini-review, python-validation, config-validation, workflow-validation, yaml-lint, test-suite, mcp-validation, docker-validation]
+    needs: [detect-changes, gemini-review, format-check, basic-lint, full-lint, config-validation, workflow-validation, yaml-lint, test-suite, mcp-validation, docker-validation]
     if: always()
     runs-on: self-hosted
     steps:
@@ -491,7 +506,9 @@ jobs:
           echo "**Validation Results:**"
           echo "- Change Detection: ${{ needs.detect-changes.result }}"
           echo "- Gemini AI Review: ${{ needs.gemini-review.result }}"
-          echo "- Python Validation: ${{ needs.python-validation.result }}"
+          echo "- Format Check: ${{ needs.format-check.result }}"
+          echo "- Basic Lint: ${{ needs.basic-lint.result }}"
+          echo "- Full Lint: ${{ needs.full-lint.result }}"
           echo "- Config Validation: ${{ needs.config-validation.result }}"
           echo "- Workflow Validation: ${{ needs.workflow-validation.result }}"
           echo "- YAML Lint: ${{ needs.yaml-lint.result }}"
@@ -501,7 +518,9 @@ jobs:
 
           # Check for failures
           if [[ "${{ needs.detect-changes.result }}" == "failure" ||
-                "${{ needs.python-validation.result }}" == "failure" ||
+                "${{ needs.format-check.result }}" == "failure" ||
+                "${{ needs.basic-lint.result }}" == "failure" ||
+                "${{ needs.full-lint.result }}" == "failure" ||
                 "${{ needs.config-validation.result }}" == "failure" ||
                 "${{ needs.workflow-validation.result }}" == "failure" ||
                 "${{ needs.yaml-lint.result }}" == "failure" ||
@@ -525,7 +544,9 @@ jobs:
             const results = {
               'change-detection': '${{ needs.detect-changes.result }}',
               'gemini-review': '${{ needs.gemini-review.result }}',
-              'python-validation': '${{ needs.python-validation.result }}',
+              'format-check': '${{ needs.format-check.result }}',
+              'basic-lint': '${{ needs.basic-lint.result }}',
+              'full-lint': '${{ needs.full-lint.result }}',
               'config-validation': '${{ needs.config-validation.result }}',
               'workflow-validation': '${{ needs.workflow-validation.result }}',
               'yaml-lint': '${{ needs.yaml-lint.result }}',

@@ -5,13 +5,10 @@ Provides automatic consultation with Gemini for second opinions and validation
 """
 
 import asyncio
-import json
 import logging
 import re
-import subprocess
 import time
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 # Setup logging
@@ -121,7 +118,7 @@ class GeminiIntegration:
                     {
                         "id": consultation_id,
                         "timestamp": datetime.now().isoformat(),
-                        "query": query[:200] + "..." if len(query) > 200 else query,
+                        "query": (query[:200] + "..." if len(query) > 200 else query),
                         "status": "success",
                         "execution_time": result.get("execution_time", 0),
                     }

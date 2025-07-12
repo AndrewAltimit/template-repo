@@ -4,7 +4,6 @@ Test script for MCP Server
 Tests all available tools and validates responses
 """
 
-import json
 import sys
 import time
 from typing import Any, Dict
@@ -68,9 +67,9 @@ class MCPServerTester:
         result = self.test_endpoint("GET", "/")
         self.print_test_result("Root endpoint", result)
         if result["success"]:
-            print(
-                f"   Server: {result['data'].get('name')} v{result['data'].get('version')}"
-            )
+            server_name = result["data"].get("name")
+            server_version = result["data"].get("version")
+            print(f"   Server: {server_name} v{server_version}")
 
         # Test 2: Health check
         print("\n2. Testing health check...")
@@ -182,7 +181,7 @@ def main():
             if response.status_code == 200:
                 print("✅ Server is ready!")
                 break
-        except:
+        except Exception:
             pass
 
         if i == max_retries - 1:

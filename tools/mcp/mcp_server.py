@@ -10,7 +10,7 @@ import logging
 import os
 import subprocess
 import tempfile
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import mcp.server.stdio
 import mcp.types as types
@@ -302,7 +302,11 @@ async def serve_mcp():
                     description=(
                         func.__doc__.strip() if func.__doc__ else "No description"
                     ),
-                    inputSchema={"type": "object", "properties": {}, "required": []},
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "required": [],
+                    },
                 )
             )
         return tools

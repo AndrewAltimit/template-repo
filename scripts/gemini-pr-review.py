@@ -3,12 +3,9 @@
 Improved Gemini PR Review Script with better context handling
 """
 
-import hashlib
-import json
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -72,7 +69,7 @@ def get_file_stats() -> Dict[str, int]:
                     elif "file" in part:
                         stats["files"] = int(part.strip().split()[0])
         return stats
-    except:
+    except Exception:
         return {"additions": 0, "deletions": 0, "files": 0}
 
 
@@ -101,7 +98,7 @@ def get_file_content(filepath: str) -> str:
             check=True,
         )
         return result.stdout
-    except:
+    except Exception:
         return f"Could not read {filepath}"
 
 
@@ -140,9 +137,12 @@ def get_project_context() -> str:
             print(f"Warning: Could not read project context: {e}")
 
     # Fallback context
-    return """This is a container-first project where all Python tools run in Docker containers.
-It's maintained by a single developer with self-hosted infrastructure.
-Focus on code quality, security, and container configurations."""
+    return (
+        "This is a container-first project where all Python tools run in "
+        "Docker containers. It's maintained by a single developer with "
+        "self-hosted infrastructure. Focus on code quality, security, and "
+        "container configurations."
+    )
 
 
 def analyze_large_pr(
@@ -204,13 +204,16 @@ def analyze_large_pr(
     # Combine analyses with overall summary
     combined_analysis = f"""## Overall Summary
 
-**PR Stats**: {file_stats['files']} files changed, +{file_stats['additions']}/-{file_stats['deletions']} lines
+**PR Stats**: {file_stats['files']} files changed, \
++{file_stats['additions']}/-{file_stats['deletions']} lines
 
 {chr(10).join(analyses)}
 
 ## Overall Assessment
 
-Based on the comprehensive analysis above, this PR appears to be making significant changes across multiple areas of the codebase. Please ensure all changes are tested, especially given the container-first architecture of this project.
+Based on the comprehensive analysis above, this PR appears to be making \
+significant changes across multiple areas of the codebase. Please ensure all \
+changes are tested, especially given the container-first architecture of this project.
 """
 
     return combined_analysis
@@ -235,23 +238,22 @@ def analyze_file_group(
         if len(file_diff) > 2000:
             combined_diff += f"\n... (truncated {len(file_diff) - 2000} chars)"
 
-    prompt = f"""Analyze this group of {group_name} changes from PR #{pr_info['number']}:
-
-**Files in this group:**
-{chr(10).join(f'- {f}' for f in file_list)}
-
-**Relevant diffs:**
-```diff
-{combined_diff[:15000]}
-```
-
-Focus on:
-1. Correctness and potential bugs
-2. Security implications
-3. Best practices for {group_name} files
-4. Consistency with project's container-first approach
-
-Keep response concise but thorough."""
+    prompt = (
+        f"Analyze this group of {group_name} changes from "
+        f"PR #{pr_info['number']}:\n\n"
+        f"**Files in this group:**\n"
+        f"{chr(10).join(f'- {f}' for f in file_list)}\n\n"
+        f"**Relevant diffs:**\n"
+        f"```diff\n"
+        f"{combined_diff[:15000]}\n"
+        f"```\n\n"
+        f"Focus on:\n"
+        f"1. Correctness and potential bugs\n"
+        f"2. Security implications\n"
+        f"3. Best practices for {group_name} files\n"
+        f"4. Consistency with project's container-first approach\n\n"
+        f"Keep response concise but thorough."
+    )
 
     try:
         result = subprocess.run(
@@ -262,7 +264,7 @@ Keep response concise but thorough."""
             check=True,
         )
         return result.stdout.strip()
-    except:
+    except Exception:
         return None
 
 
@@ -283,36 +285,41 @@ def analyze_complete_diff(
             if content and len(content) < 5000:  # Only include if reasonable size
                 workflow_contents[file] = content
 
-    prompt = f"""You are an expert code reviewer. Please analyze this pull request comprehensively.
+    prompt = (
+        "You are an expert code reviewer. Please analyze this pull request "
+        "comprehensively.\n\n"
+        f"**PROJECT CONTEXT:**\n"
+        f"{project_context}\n\n"
+        f"**PULL REQUEST INFORMATION:**\n"
+        f"- PR #{pr_info['number']}: {pr_info['title']}\n"
+        f"- Author: {pr_info['author']}\n"
+        f"- Description: {pr_info['body']}\n"
+        f"- Stats: {file_stats['files']} files, "
+        f"+{file_stats['additions']}/-{file_stats['deletions']} lines\n\n"
+        f"**CHANGED FILES ({len(changed_files)} total):**\n"
+        f"{chr(10).join(f'- {file}' for file in changed_files)}\n\n"
+        f"{format_workflow_contents(workflow_contents)}\n"
+        f"**COMPLETE DIFF:**\n"
+        f"```diff\n"
+        f"{diff[:75000]}  # Increased limit to 75KB\n"
+        f"```\n"
+    )
 
-**PROJECT CONTEXT:**
-{project_context}
+    # Add truncation message if needed
+    if len(diff) > 75000:
+        prompt += f"... (diff truncated, {len(diff) - 75000} chars omitted)\n\n"
+    else:
+        prompt += "\n"
 
-**PULL REQUEST INFORMATION:**
-- PR #{pr_info['number']}: {pr_info['title']}
-- Author: {pr_info['author']}
-- Description: {pr_info['body']}
-- Stats: {file_stats['files']} files, +{file_stats['additions']}/-{file_stats['deletions']} lines
-
-**CHANGED FILES ({len(changed_files)} total):**
-{chr(10).join(f'- {file}' for file in changed_files)}
-
-{format_workflow_contents(workflow_contents)}
-
-**COMPLETE DIFF:**
-```diff
-{diff[:75000]}  # Increased limit to 75KB
-```
-{f"... (diff truncated, {len(diff) - 75000} chars omitted)" if len(diff) > 75000 else ""}
-
-Please provide:
-1. **Summary**: What are the key changes?
-2. **Code Quality**: Any issues with style, structure, or best practices?
-3. **Potential Issues**: Bugs, security concerns, or logic errors?
-4. **Suggestions**: Specific improvements
-5. **Positive Aspects**: What's well done?
-
-Focus on actionable feedback considering the container-first architecture."""
+    prompt += (
+        "Please provide:\n"
+        "1. **Summary**: What are the key changes?\n"
+        "2. **Code Quality**: Any issues with style, structure, or best practices?\n"
+        "3. **Potential Issues**: Bugs, security concerns, or logic errors?\n"
+        "4. **Suggestions**: Specific improvements\n"
+        "5. **Positive Aspects**: What's well done?\n\n"
+        "Focus on actionable feedback considering the container-first architecture."
+    )
 
     try:
         result = subprocess.run(
@@ -330,8 +337,11 @@ Focus on actionable feedback considering the container-first architecture."""
                 ["gemini"], input=prompt, capture_output=True, text=True, check=True
             )
             return result.stdout.strip()
-        except:
-            return f"Error consulting Gemini: {e.stderr if hasattr(e, 'stderr') else str(e)}"
+        except Exception:
+            return (
+                f"Error consulting Gemini: "
+                f"{e.stderr if hasattr(e, 'stderr') else str(e)}"
+            )
 
 
 def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:
@@ -350,13 +360,16 @@ def format_github_comment(analysis: str, pr_info: Dict[str, Any]) -> str:
     """Format the analysis as a GitHub PR comment"""
     comment = f"""## 🤖 Gemini AI Code Review
 
-Hello @{pr_info['author']}! I've analyzed your pull request "{pr_info['title']}" and here's my comprehensive feedback:
+Hello @{pr_info['author']}! I've analyzed your pull request \
+"{pr_info['title']}" and here's my comprehensive feedback:
 
 {analysis}
 
 ---
-*This review was automatically generated by Gemini AI (v2.5 Pro) via CLI. This is supplementary feedback to human reviews.*
-*If the analysis seems incomplete, check the [workflow logs](../actions) for the full diff size.*
+*This review was automatically generated by Gemini AI (v2.5 Pro) via CLI. \
+This is supplementary feedback to human reviews.*
+*If the analysis seems incomplete, check the [workflow logs](../actions) \
+for the full diff size.*
 """
     return comment
 

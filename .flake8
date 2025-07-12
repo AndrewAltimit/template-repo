@@ -1,0 +1,6 @@
+[flake8]
+# E203 whitespace before ':' - conflicts with Black's formatting for slices
+# W503 line break before binary operator - conflicts with Black
+ignore = E203,W503
+max-line-length = 88
+exclude = .git,__pycache__,docs/,old,build,dist,.venv,venv

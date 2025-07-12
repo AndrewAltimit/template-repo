@@ -3,8 +3,6 @@
 Example: Compiling LaTeX documents through MCP
 """
 
-import json
-
 import requests
 
 
@@ -54,7 +52,8 @@ if __name__ == "__main__":
 
 \begin{abstract}
 This document demonstrates the LaTeX compilation capabilities of the MCP server.
-It showcases various LaTeX features including mathematical equations, lists, and formatting.
+It showcases various LaTeX features including mathematical equations, lists, and
+formatting.
 \end{abstract}
 
 \section{Introduction}
@@ -76,7 +75,8 @@ The quadratic formula is $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$.
     \nabla \cdot \mathbf{E} &= \frac{\rho}{\epsilon_0} \\
     \nabla \cdot \mathbf{B} &= 0 \\
     \nabla \times \mathbf{E} &= -\frac{\partial \mathbf{B}}{\partial t} \\
-    \nabla \times \mathbf{B} &= \mu_0 \mathbf{j} + \mu_0 \epsilon_0 \frac{\partial \mathbf{E}}{\partial t}
+    \nabla \times \mathbf{B} &= \mu_0 \mathbf{j} + \mu_0 \epsilon_0
+                                  \frac{\partial \mathbf{E}}{\partial t}
 \end{align}
 
 \section{Lists and Formatting}
@@ -95,7 +95,8 @@ The quadratic formula is $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$.
 \end{enumerate}
 
 \section{Conclusion}
-The MCP LaTeX integration provides a powerful way to generate professional documents programmatically.
+The MCP LaTeX integration provides a powerful way to generate professional
+documents programmatically.
 
 \end{document}
     """
@@ -139,10 +140,12 @@ The MCP LaTeX integration provides a powerful way to generate professional docum
 \chapter{System Overview}
 
 \section{Introduction}
-This report describes the architecture and implementation of the Model Context Protocol (MCP) server.
+This report describes the architecture and implementation of the Model Context
+Protocol (MCP) server.
 
 \section{Architecture}
-The MCP server follows a microservices architecture with the following components:
+The MCP server follows a microservices architecture with the following
+components:
 
 \begin{itemize}
     \item \textbf{Core Server}: Handles MCP protocol communication
@@ -159,7 +162,7 @@ The MCP server follows a microservices architecture with the following component
 \SetAlgoLined
 \KwData{Request $r$, Tool Registry $T$}
 \KwResult{Response $response$}
- 
+
  $tool \gets$ ExtractTool($r$)\;
  \If{$tool \in T$}{
     $params \gets$ ExtractParams($r$)\;
@@ -185,7 +188,7 @@ class MCPTool:
     def __init__(self, name: str, handler: Callable):
         self.name = name
         self.handler = handler
-    
+
     async def execute(self, params: dict) -> dict:
         try:
             result = await self.handler(**params)

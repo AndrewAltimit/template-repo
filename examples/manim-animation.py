@@ -3,9 +3,6 @@
 Example: Creating animations with Manim through MCP
 """
 
-import base64
-import json
-
 import requests
 
 
@@ -47,11 +44,11 @@ class TextExample(Scene):
         # Create text objects
         title = Text("MCP + Manim", font_size=72)
         subtitle = Text("Creating Beautiful Animations", font_size=36)
-        
+
         # Position them
         title.to_edge(UP, buff=1)
         subtitle.next_to(title, DOWN, buff=0.5)
-        
+
         # Animate
         self.play(Write(title))
         self.play(FadeIn(subtitle, shift=UP))
@@ -81,15 +78,15 @@ class MathVisualization(Scene):
             y_range=[-2, 2, 1],
             axis_config={"color": BLUE},
         )
-        
+
         # Create function
         func = axes.plot(lambda x: np.sin(x), color=YELLOW)
         func_label = axes.get_graph_label(func, label='\\sin(x)')
-        
+
         # Create derivative
         derivative = axes.plot(lambda x: np.cos(x), color=GREEN)
         deriv_label = axes.get_graph_label(derivative, label='\\cos(x)')
-        
+
         # Animate
         self.play(Create(axes))
         self.play(Create(func), Write(func_label))
@@ -116,7 +113,7 @@ class BubbleSort(Scene):
         # Create array of numbers
         numbers = [5, 2, 8, 1, 9, 3]
         bars = VGroup()
-        
+
         for i, num in enumerate(numbers):
             bar = Rectangle(
                 height=num * 0.5,
@@ -128,10 +125,10 @@ class BubbleSort(Scene):
             label = Text(str(num), font_size=24)
             label.move_to(bar.get_center())
             bars.add(VGroup(bar, label))
-        
+
         self.play(Create(bars))
         self.wait()
-        
+
         # Bubble sort animation
         n = len(numbers)
         for i in range(n):
@@ -143,25 +140,25 @@ class BubbleSort(Scene):
                         bars[j+1][0].animate.set_color(RED),
                         run_time=0.5
                     )
-                    
+
                     # Swap
                     self.play(
                         bars[j].animate.shift(RIGHT * 1.2),
                         bars[j+1].animate.shift(LEFT * 1.2),
                         run_time=0.5
                     )
-                    
+
                     # Update internal state
                     bars[j], bars[j+1] = bars[j+1], bars[j]
                     numbers[j], numbers[j+1] = numbers[j+1], numbers[j]
-                    
+
                     # Reset colors
                     self.play(
                         bars[j][0].animate.set_color(BLUE),
                         bars[j+1][0].animate.set_color(BLUE),
                         run_time=0.3
                     )
-        
+
         # Final celebration
         self.play(
             *[bar[0].animate.set_color(GREEN) for bar in bars],

@@ -10,7 +10,7 @@ This demonstrates a full development workflow including:
 
 import json
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import requests
 
@@ -163,36 +163,36 @@ class ArchitectureDiagram(Scene):
         title = Text("System Architecture", font_size=48)
         title.to_edge(UP)
         self.play(Write(title))
-        
+
         # Create components
         api_box = Rectangle(width=3, height=2, color=BLUE)
         api_text = Text("API Gateway", font_size=24)
         api_group = VGroup(api_box, api_text)
-        
+
         mcp_box = Rectangle(width=3, height=2, color=GREEN)
         mcp_text = Text("MCP Server", font_size=24)
         mcp_group = VGroup(mcp_box, mcp_text)
-        
+
         tools_box = Rectangle(width=3, height=2, color=ORANGE)
         tools_text = Text("Tools", font_size=24)
         tools_group = VGroup(tools_box, tools_text)
-        
+
         # Position components
         api_group.shift(UP * 1.5)
         mcp_group.shift(DOWN * 0.5)
         tools_group.shift(DOWN * 2.5)
-        
+
         # Create connections
         arrow1 = Arrow(api_group.get_bottom(), mcp_group.get_top())
         arrow2 = Arrow(mcp_group.get_bottom(), tools_group.get_top())
-        
+
         # Animate
         self.play(Create(api_group))
         self.play(Create(arrow1))
         self.play(Create(mcp_group))
         self.play(Create(arrow2))
         self.play(Create(tools_group))
-        
+
         self.wait(2)
         """
 
@@ -224,8 +224,13 @@ def main():
     project_info = {
         "name": "MCP Template Project",
         "author": "Development Team",
-        "description": "A comprehensive template for MCP-enabled projects with self-hosted runners.",
-        "architecture": "Microservices architecture with Docker containers and MCP tools.",
+        "description": (
+            "A comprehensive template for MCP-enabled projects "
+            "with self-hosted runners."
+        ),
+        "architecture": (
+            "Microservices architecture with Docker containers " "and MCP tools."
+        ),
         "api": "RESTful API with comprehensive tool endpoints.",
     }
 
@@ -249,8 +254,14 @@ def main():
     ai_structure = workflow.execute_tool(
         "consult_gemini",
         {
-            "question": "What's the best project structure for a Python microservice with MCP integration?",
-            "context": "The service needs to handle HTTP requests, execute MCP tools, and maintain state.",
+            "question": (
+                "What's the best project structure for a Python "
+                "microservice with MCP integration?"
+            ),
+            "context": (
+                "The service needs to handle HTTP requests, "
+                "execute MCP tools, and maintain state."
+            ),
         },
     )
 

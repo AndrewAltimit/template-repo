@@ -3,8 +3,6 @@
 Example: Using Gemini AI consultation through MCP
 """
 
-import json
-
 import requests
 
 
@@ -72,7 +70,8 @@ def calculate_fibonacci(n):
     print("-" * 50)
     response = consult_gemini(
         "Design a scalable microservices architecture for an e-commerce platform. "
-        "Include considerations for payment processing, inventory management, and user authentication."
+        "Include considerations for payment processing, inventory management, "
+        "and user authentication."
     )
     if response:
         print(response["response"][:500] + "...")
