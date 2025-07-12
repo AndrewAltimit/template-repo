@@ -14,7 +14,7 @@ import requests
 class MCPServerTester:
     """Test harness for MCP Server"""
 
-    def __init__(self, base_url: str = "http://localhost:8000"):
+    def __init__(self, base_url: str = "http://localhost:8005"):
         self.base_url = base_url
         self.results = {"passed": 0, "failed": 0, "errors": []}
 
@@ -170,7 +170,7 @@ class TestScene(Scene):
 def main():
     """Main test function"""
     # Check if server URL is provided
-    server_url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
+    server_url = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8005"
 
     # Wait for server to be ready
     print(f"🔄 Waiting for MCP server at {server_url}...")

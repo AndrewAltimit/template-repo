@@ -150,23 +150,30 @@ jobs:
           docker-compose run --rm python-ci bash -c "
           pip install -r requirements.txt && python3 -c '
           import sys
-          sys.path.append("tools/mcp")
+          sys.path.insert(0, \".\")
 
           # Test import
           try:
-              from mcp_server import MCPServer
-              print("✅ MCP server module imported successfully")
+              from tools.mcp.mcp_server import app, MCPTools, TOOLS
+              print(\"✅ MCP server module imported successfully\")
           except ImportError as e:
-              print(f"❌ Failed to import MCP server: {e}")
+              print(f\"❌ Failed to import MCP server: {e}\")
               exit(1)
 
           # Test basic functionality
           try:
-              server = MCPServer(".")
-              print("✅ MCP server initialized")
-              print(f"✅ Tools available: {len(server.tools)}")
+              # Check if app is initialized
+              assert app is not None
+              print(\"✅ FastAPI app initialized\")
+              
+              # Check if tools are available
+              print(f\"✅ Tools available: {len(TOOLS)}\")
+              
+              # List available tools
+              for tool_name in TOOLS:
+                  print(f\"   - {tool_name}\")
           except Exception as e:
-              print(f"❌ MCP server initialization failed: {e}")
+              print(f\"❌ MCP server initialization failed: {e}\")
               exit(1)
           '
           "
