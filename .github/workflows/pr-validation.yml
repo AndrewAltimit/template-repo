@@ -127,10 +127,7 @@ jobs:
             git diff --name-only origin/${{ github.base_ref }}...HEAD > changed_files.txt
           fi
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+      # Skip Python setup on self-hosted runner - use system Python
 
       - name: Setup Node.js with nvm
         shell: bash
@@ -184,10 +181,9 @@ jobs:
           ref: ${{ github.head_ref }}
 
       - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: 'pip'
+        run: |
+          # Check if Python is available
+          python3 --version || python --version
 
       - name: Install dependencies
         run: |
@@ -275,10 +271,9 @@ jobs:
           ref: ${{ github.head_ref }}
 
       - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: 'pip'
+        run: |
+          # Check if Python is available
+          python3 --version || python --version
 
       - name: Install dependencies
         run: |
@@ -317,10 +312,9 @@ jobs:
           ref: ${{ github.head_ref }}
 
       - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: 'pip'
+        run: |
+          # Check if Python is available
+          python3 --version || python --version
 
       - name: Install MCP dependencies
         run: |
