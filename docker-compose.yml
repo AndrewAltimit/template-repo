@@ -7,6 +7,8 @@ services:
       context: .
       dockerfile: docker/mcp.Dockerfile
     container_name: mcp-server
+    ports:
+      - "8000:8000"
     volumes:
       - ./tools/mcp:/app/tools/mcp
       - ./mcp-config.json:/app/mcp-config.json
@@ -20,7 +22,7 @@ services:
     networks:
       - mcp-network
     restart: unless-stopped
-    command: python -m tools.mcp.mcp-server
+    command: python -m tools.mcp.mcp_server
 
   # ComfyUI MCP HTTP Bridge (for remote ComfyUI)
   mcp-comfyui-http:

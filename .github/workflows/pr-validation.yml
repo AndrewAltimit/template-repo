@@ -329,7 +329,8 @@ jobs:
           
           # Wait for server to be ready
           echo "⏳ Waiting for server to be healthy..."
-          timeout 60 bash -c 'until docker-compose exec -T mcp-server curl -s http://localhost:8000/health > /dev/null 2>&1; do sleep 1; done'
+          timeout 60 bash -c 'until curl -s http://localhost:8000/health > /dev/null 2>&1; do echo -n "."; sleep 1; done'
+          echo ""
           echo "✅ MCP server is ready!"
 
       - name: Test MCP server functionality
