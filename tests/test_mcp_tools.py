@@ -13,11 +13,11 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Mock the imports that aren't available in test environment
-sys.modules['mcp'] = Mock()
-sys.modules['mcp.server'] = Mock()
-sys.modules['mcp.server.stdio'] = Mock()
-sys.modules['mcp.types'] = Mock()
-sys.modules['fastapi'] = Mock()
+sys.modules["mcp"] = Mock()
+sys.modules["mcp.server"] = Mock()
+sys.modules["mcp.server.stdio"] = Mock()
+sys.modules["mcp.types"] = Mock()
+sys.modules["fastapi"] = Mock()
 
 from tools.mcp.mcp_server import MCPTools  # noqa: E402
 
@@ -143,8 +143,8 @@ class TestMCPTools:
 
 
 @pytest.mark.skipif(
-    not hasattr(sys.modules['fastapi'], 'testclient'),
-    reason="FastAPI not properly installed for integration tests"
+    not hasattr(sys.modules["fastapi"], "testclient"),
+    reason="FastAPI not properly installed for integration tests",
 )
 class TestMCPServer:
     """Test MCP server endpoints"""
@@ -154,7 +154,9 @@ class TestMCPServer:
         """Create test client"""
         try:
             from fastapi.testclient import TestClient
+
             from tools.mcp.mcp_server import app
+
             return TestClient(app)
         except (ImportError, AttributeError):
             pytest.skip("FastAPI testclient not available")
