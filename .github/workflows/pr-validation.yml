@@ -1,3 +1,4 @@
+---
 name: Pull Request Validation
 
 on:
@@ -58,7 +59,7 @@ jobs:
         id: changes
         run: |
           echo "Analyzing changes..."
-          
+
           # Handle different trigger types
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "PR trigger - comparing with base branch: ${{ github.base_ref }}"
@@ -70,7 +71,7 @@ jobs:
             echo "Manual trigger - comparing with main branch"
             git diff --name-only origin/main...HEAD > changed_files.txt || git diff --name-only HEAD~5..HEAD > changed_files.txt
           fi
-          
+
           # Count different types of changes
           python_count=$(grep -E '\.(py)$' changed_files.txt | wc -l || echo "0")
           yaml_count=$(grep -E '\.(ya?ml|json)$' changed_files.txt | wc -l || echo "0")
@@ -78,18 +79,18 @@ jobs:
           mcp_count=$(grep -E '(mcp|MCP|tools/)' changed_files.txt | wc -l || echo "0")
           docs_count=$(grep -E '\.(md|rst|txt)$' changed_files.txt | wc -l || echo "0")
           total_files=$(cat changed_files.txt | wc -l)
-          
+
           # Set outputs
           echo "python_changed=$([[ $python_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
-          echo "yaml_changed=$([[ $yaml_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT  
+          echo "yaml_changed=$([[ $yaml_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "docker_changed=$([[ $docker_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "mcp_changed=$([[ $mcp_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "docs_changed=$([[ $docs_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "files_changed=$total_files" >> $GITHUB_OUTPUT
-          
+
           echo "[INFO] Change Summary:"
           echo "  Python files: $python_count"
-          echo "  YAML/JSON files: $yaml_count" 
+          echo "  YAML/JSON files: $yaml_count"
           echo "  Docker files: $docker_count"
           echo "  MCP files: $mcp_count"
           echo "  Documentation: $docs_count"
@@ -138,11 +139,11 @@ jobs:
           # Source nvm if available
           export NVM_DIR="$HOME/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-          
+
           # Use Node.js 22.16.0
           nvm use 22.16.0
           echo "Node.js version: $(node --version)"
-          
+
           # Verify Gemini CLI is available
           which gemini || echo "Gemini CLI not found in PATH"
 
@@ -155,7 +156,7 @@ jobs:
           else
             echo "Found PROJECT_CONTEXT.md - Gemini will have full project context"
           fi
-          
+
       - name: Clear Gemini conversation history
         continue-on-error: true
         run: |
@@ -163,13 +164,13 @@ jobs:
           # Start MCP server if not running
           docker-compose up -d mcp-server
           sleep 5
-          
+
           # Call the clear history endpoint via MCP server
           curl -X POST http://localhost:8005/tools/execute \
             -H "Content-Type: application/json" \
             -d '{"tool": "clear_gemini_history", "arguments": {}}' \
             || echo "Warning: Could not clear Gemini history"
-      
+
       - name: Run Gemini review
         continue-on-error: true  # Don't fail the PR if Gemini review fails
         shell: bash
@@ -178,7 +179,7 @@ jobs:
           export NVM_DIR="$HOME/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           nvm use 22.16.0
-          
+
           # Run the Gemini review script
           python3 scripts/gemini-pr-review.py
 
@@ -196,7 +197,7 @@ jobs:
     name: Python Linting & Formatting
     needs: [detect-changes, gemini-review]
     if: |
-      needs.detect-changes.outputs.python_changed == 'true' || 
+      needs.detect-changes.outputs.python_changed == 'true' ||
       needs.detect-changes.outputs.mcp_changed == 'true' ||
       !github.event.pull_request.draft
     runs-on: self-hosted
@@ -243,12 +244,71 @@ jobs:
           ./scripts/run-ci.sh yaml-lint
           ./scripts/run-ci.sh json-lint
 
+  # Stage 4b: Workflow file validation (always run)
+  workflow-validation:
+    name: Workflow File Validation
+    needs: [detect-changes, gemini-review]
+    if: always() && !cancelled()
+    runs-on: self-hosted
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      - name: Validate workflow files
+        run: |
+          echo "🔍 Validating GitHub Actions workflow files..."
+
+          # Build the CI image if needed
+          docker-compose build python-ci
+
+          # Validate all workflow files
+          docker-compose run --rm python-ci bash -c '
+            echo "Checking workflow files in .github/workflows/..."
+            workflow_errors=0
+
+            for file in .github/workflows/*.yml .github/workflows/*.yaml; do
+              if [ -f "$file" ]; then
+                echo "Validating: $file"
+
+                # Run yamllint with specific config for workflows
+                if yamllint -d "{extends: default, rules: {line-length: {max: 200}, document-start: disable}}" "$file"; then
+                  :
+                else
+                  echo "❌ YAML lint failed for $file"
+                  workflow_errors=$((workflow_errors + 1))
+                fi
+
+                # Validate YAML can be parsed
+                if python3 -c "import yaml; yaml.safe_load(open(\"$file\")); print(\"✅ Valid YAML structure: $file\")"; then
+                  :
+                else
+                  echo "❌ YAML parse failed for $file"
+                  workflow_errors=$((workflow_errors + 1))
+                fi
+              fi
+            done
+
+            if [ $workflow_errors -gt 0 ]; then
+              echo "❌ Found $workflow_errors workflow file error(s)"
+              exit 1
+            else
+              echo "✅ All workflow files are valid!"
+            fi
+          '
+
   # Stage 5: Test execution
   test-suite:
     name: Test Suite
     needs: [detect-changes, gemini-review, python-validation]
     if: |
-      (needs.detect-changes.outputs.python_changed == 'true' || 
+      (needs.detect-changes.outputs.python_changed == 'true' ||
        needs.detect-changes.outputs.mcp_changed == 'true') &&
       !github.event.inputs.skip_tests
     runs-on: self-hosted
@@ -307,7 +367,7 @@ jobs:
         run: |
           echo "🚀 Starting MCP server with Docker Compose..."
           docker-compose up -d mcp-server
-          
+
           # Wait for server to be ready
           echo "⏳ Waiting for server to be healthy..."
           timeout 60 bash -c 'until curl -s http://localhost:8005/health > /dev/null 2>&1; do echo -n "."; sleep 1; done'
@@ -321,13 +381,13 @@ jobs:
           docker-compose build python-ci
           # Install requirements and run test
           docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && python scripts/test-mcp-server.py http://mcp-server:8000"
-          
+
       - name: View MCP server logs
         if: failure()
         run: |
           echo "📋 MCP server logs:"
           docker-compose logs mcp-server
-          
+
       - name: Stop MCP server
         if: always()
         run: |
@@ -360,39 +420,39 @@ jobs:
       - name: Validate Docker builds
         run: |
           echo "🐳 Validating Docker image builds..."
-          
+
           # Test main MCP Dockerfile
           if [ -f "docker/mcp.Dockerfile" ]; then
             echo "Building MCP image..."
             docker build -f docker/mcp.Dockerfile -t mcp-test:${{ github.run_id }} .
           fi
-          
+
           # Test MCP HTTP bridge Dockerfile
           if [ -f "docker/mcp-http-bridge.Dockerfile" ]; then
             echo "Building MCP HTTP bridge image..."
             docker build -f docker/mcp-http-bridge.Dockerfile -t mcp-http-bridge-test:${{ github.run_id }} .
           fi
-          
+
           echo "✅ Docker image validation passed"
 
       - name: Test Docker Compose
         run: |
           echo "🐳 Validating docker-compose configuration..."
           docker-compose config
-          
+
           echo "🐳 Testing service startup..."
           docker-compose up -d
           sleep 10
           docker-compose ps
           docker-compose logs
           docker-compose down
-          
+
           echo "✅ Docker Compose validation passed"
 
   # Final status and summary
   pr-status:
     name: PR Status Summary
-    needs: [detect-changes, gemini-review, python-validation, config-validation, test-suite, mcp-validation, docker-validation]
+    needs: [detect-changes, gemini-review, python-validation, config-validation, workflow-validation, test-suite, mcp-validation, docker-validation]
     if: always()
     runs-on: self-hosted
     steps:
@@ -411,14 +471,16 @@ jobs:
           echo "- Gemini AI Review: ${{ needs.gemini-review.result }}"
           echo "- Python Validation: ${{ needs.python-validation.result }}"
           echo "- Config Validation: ${{ needs.config-validation.result }}"
+          echo "- Workflow Validation: ${{ needs.workflow-validation.result }}"
           echo "- Test Suite: ${{ needs.test-suite.result }}"
           echo "- MCP Validation: ${{ needs.mcp-validation.result }}"
           echo "- Docker Validation: ${{ needs.docker-validation.result }}"
-          
+
           # Check for failures
-          if [[ "${{ needs.detect-changes.result }}" == "failure" || 
+          if [[ "${{ needs.detect-changes.result }}" == "failure" ||
                 "${{ needs.python-validation.result }}" == "failure" ||
                 "${{ needs.config-validation.result }}" == "failure" ||
+                "${{ needs.workflow-validation.result }}" == "failure" ||
                 "${{ needs.test-suite.result }}" == "failure" ||
                 "${{ needs.mcp-validation.result }}" == "failure" ||
                 "${{ needs.docker-validation.result }}" == "failure" ]]; then
@@ -426,7 +488,7 @@ jobs:
             echo "❌ PR validation failed - please review the failed checks"
             exit 1
           fi
-          
+
           echo ""
           echo "✅ PR validation completed successfully!"
 
@@ -441,33 +503,34 @@ jobs:
               'gemini-review': '${{ needs.gemini-review.result }}',
               'python-validation': '${{ needs.python-validation.result }}',
               'config-validation': '${{ needs.config-validation.result }}',
+              'workflow-validation': '${{ needs.workflow-validation.result }}',
               'test-suite': '${{ needs.test-suite.result }}',
               'mcp-validation': '${{ needs.mcp-validation.result }}',
               'docker-validation': '${{ needs.docker-validation.result }}'
             };
-            
+
             const filesChanged = '${{ needs.detect-changes.outputs.files_changed }}';
             const isDraft = context.payload.pull_request.draft;
-            
+
             let comment = '## 🔍 PR Validation Results\n\n';
             comment += `**Files changed:** ${filesChanged}\n\n`;
             comment += '| Check | Status |\n|-------|--------|\n';
-            
+
             Object.entries(results).forEach(([check, status]) => {
-              let icon = status === 'success' ? '✅' : 
-                        status === 'failure' ? '❌' : 
+              let icon = status === 'success' ? '✅' :
+                        status === 'failure' ? '❌' :
                         status === 'skipped' ? '⏭️' : '🔄';
-              
+
               let displayName = check.charAt(0).toUpperCase() + check.slice(1).replace('-', ' ');
               comment += `| ${displayName} | ${icon} |\n`;
             });
-            
+
             if (isDraft) {
               comment += '\n> 💡 **Draft PR** - Some validations may be skipped.\n';
             }
-            
+
             comment += '\n🤖 *Generated by automated PR validation*';
-            
+
             try {
               await github.rest.issues.createComment({
                 issue_number: context.issue.number,
