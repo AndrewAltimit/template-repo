@@ -153,7 +153,7 @@ jobs:
           nvm use 22.16.0
           
           # Run the Gemini review script
-          python scripts/gemini-pr-review.py
+          python3 scripts/gemini-pr-review.py
 
       - name: Upload review artifact
         if: always()
@@ -187,9 +187,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install black flake8 mypy pylint pytest
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          python3 -m pip install --upgrade pip
+          pip3 install black flake8 mypy pylint pytest
+          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
 
       - name: Format with Black
         run: |
@@ -277,9 +277,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-cov pytest-asyncio
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          python3 -m pip install --upgrade pip
+          pip3 install pytest pytest-cov pytest-asyncio
+          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
 
       - name: Run tests
         run: |
@@ -318,9 +318,9 @@ jobs:
 
       - name: Install MCP dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install mcp pydantic aiofiles
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          python3 -m pip install --upgrade pip
+          pip3 install mcp pydantic aiofiles
+          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
 
       - name: Start MCP server with Docker Compose
         run: |
@@ -335,7 +335,7 @@ jobs:
       - name: Test MCP server functionality
         run: |
           echo "🤖 Testing MCP server integration..."
-          python scripts/test-mcp-server.py
+          python3 scripts/test-mcp-server.py
           
       - name: View MCP server logs
         if: failure()
