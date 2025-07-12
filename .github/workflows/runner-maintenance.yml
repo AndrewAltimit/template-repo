@@ -485,53 +485,53 @@ jobs:
     steps:
       - name: Generate Summary
         run: |
-        cat > maintenance-summary.md << 'EOF'
-        # 🔧 Runner Maintenance Summary
+          cat > maintenance-summary.md << 'EOF'
+          # 🔧 Runner Maintenance Summary
 
-        **Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-        **Trigger**: ${{ github.event_name == 'schedule' && 'Scheduled Maintenance' || 'Manual Trigger' }}
-        **Repository**: ${{ github.repository }}
+          **Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Trigger**: ${{ github.event_name == 'schedule' && 'Scheduled Maintenance' || 'Manual Trigger' }}
+          **Repository**: ${{ github.repository }}
 
-        ## 📋 Maintenance Results
+          ## 📋 Maintenance Results
 
-        | Task | Status | Notes |
-        |------|--------|-------|
-        | Health Check | ${{ needs.runner-health-check.result == 'success' && '✅ Completed' || needs.runner-health-check.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} | System health verification |
-        | Cleanup | ${{ needs.runner-cleanup.result == 'success' && '✅ Completed' || needs.runner-cleanup.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} | Cache and resource cleanup |
-        | Image Updates | ${{ needs.update-images.result == 'success' && '✅ Completed' || needs.update-images.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} | Container image updates |
+          | Task | Status | Notes |
+          |------|--------|-------|
+          | Health Check | ${{ needs.runner-health-check.result == 'success' && '✅ Completed' || needs.runner-health-check.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} | System health verification |
+          | Cleanup | ${{ needs.runner-cleanup.result == 'success' && '✅ Completed' || needs.runner-cleanup.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} | Cache and resource cleanup |
+          | Image Updates | ${{ needs.update-images.result == 'success' && '✅ Completed' || needs.update-images.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} | Container image updates |
 
-        ## 🎯 Next Steps
+          ## 🎯 Next Steps
 
-        1. Review the health check reports for any issues
-        2. Monitor storage usage trends
-        3. Update dependencies if needed
+          1. Review the health check reports for any issues
+          2. Monitor storage usage trends
+          3. Update dependencies if needed
 
-        ## 🔧 Manual Maintenance Commands
+          ## 🔧 Manual Maintenance Commands
 
-        ```bash
-        # Check system status
-        df -h
-        docker system df
+          ```bash
+          # Check system status
+          df -h
+          docker system df
 
-        # Clean Python cache
-        python3 -m pip cache purge
-        find . -type d -name "__pycache__" -exec rm -rf {} +
+          # Clean Python cache
+          python3 -m pip cache purge
+          find . -type d -name "__pycache__" -exec rm -rf {} +
 
-        # Clean Docker resources
-        docker system prune -af
-        docker volume prune -f
+          # Clean Docker resources
+          docker system prune -af
+          docker volume prune -f
 
-        # Update all pip packages
-        pip list --outdated
-        ```
+          # Update all pip packages
+          pip list --outdated
+          ```
 
-        ## 📅 Next Scheduled Maintenance
+          ## 📅 Next Scheduled Maintenance
 
-        Next Sunday at 3:00 AM UTC
+          Next Sunday at 3:00 AM UTC
 
-        ---
-        *Automated maintenance completed*
-        EOF
+          ---
+          *Automated maintenance completed*
+          EOF
 
       - name: Upload Summary
         uses: actions/upload-artifact@v4
