@@ -20,6 +20,7 @@ RUN pip install --no-cache-dir \
     pytest \
     pytest-asyncio \
     pytest-cov \
+    pytest-timeout \
     yamllint
 
 # Create working directory
