@@ -47,4 +47,4 @@ ENV PYTHONUNBUFFERED=1
 ENV MCP_MODE=server
 
 # Default command
-CMD ["python", "-m", "tools.mcp.mcp-server"]
+CMD ["python", "-m", "tools.mcp.mcp_server"]

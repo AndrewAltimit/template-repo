@@ -285,7 +285,7 @@ async def my_custom_tool(param1: str, param2: int = 10) -> Dict[str, Any]:
 
 2. **Register in MCP server:**
 ```python
-# tools/mcp/mcp-server.py
+# tools/mcp/mcp_server.py
 TOOLS = {
     # ... existing tools
     "my_custom_tool": custom_tools.my_custom_tool,
