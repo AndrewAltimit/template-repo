@@ -340,7 +340,9 @@ jobs:
           context: .
           file: docker/mcp.Dockerfile
           push: ${{ github.event.inputs.skip_docker_push != 'true' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-mcp
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-mcp-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -351,7 +353,21 @@ jobs:
           context: .
           file: docker/mcp-http-bridge.Dockerfile
           push: ${{ github.event.inputs.skip_docker_push != 'true' }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-mcp-http-bridge:main
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-mcp-http-bridge
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-mcp-http-bridge-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Python CI image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/python-ci.Dockerfile
+          push: ${{ github.event.inputs.skip_docker_push != 'true' }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-python-ci
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-python-ci-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
