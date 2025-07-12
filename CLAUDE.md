@@ -10,6 +10,18 @@ This is a **single-maintainer project** by @AndrewAltimit with a **container-fir
 - Designed for maximum portability - works on any Linux system with Docker
 - No contributors model - optimized for individual developer efficiency
 
+## AI Agent Collaboration
+
+You are working alongside two other AI agents:
+1. **Gemini CLI** - Handles automated PR code reviews
+2. **GitHub Copilot** - Provides code review suggestions in PRs
+
+Your role as Claude Code is the primary development assistant, handling:
+- Architecture decisions and implementation
+- Complex refactoring and debugging
+- Documentation and test writing
+- CI/CD pipeline development
+
 ## Commands
 
 ### Running Tests

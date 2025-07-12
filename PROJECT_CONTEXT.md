@@ -3,6 +3,14 @@
 ## Project Overview
 This is a **container-first, self-hosted project template** maintained by a single developer (@AndrewAltimit). It uses Model Context Protocol (MCP) tools with zero-cost infrastructure.
 
+## AI Agent Ecosystem
+This project uses three AI agents:
+1. **Claude Code** - Primary development (architecture, implementation, docs)
+2. **Gemini CLI** - Automated PR reviews (you are reviewing as Gemini)
+3. **GitHub Copilot** - Code review suggestions in pull requests
+
+As the PR reviewer, focus on security, containers, and project standards.
+
 ## Core Design Principles
 
 ### 1. Container-First Philosophy

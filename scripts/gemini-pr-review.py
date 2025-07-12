@@ -74,7 +74,7 @@ def get_project_context() -> str:
             return context_file.read_text()
         except Exception as e:
             print(f"Warning: Could not read project context: {e}")
-    
+
     # Fallback context if file doesn't exist
     return """This is a container-first project where all Python tools run in Docker containers.
 It's maintained by a single developer with self-hosted infrastructure.
@@ -85,7 +85,7 @@ def analyze_code_changes(
     diff: str, changed_files: List[str], pr_info: Dict[str, Any]
 ) -> str:
     """Use Gemini CLI to analyze code changes"""
-    
+
     # Get project context
     project_context = get_project_context()
 

@@ -11,6 +11,25 @@ This project follows a **container-first approach**:
 - **Self-hosted infrastructure** - no cloud costs, full control over runners
 - **Single maintainer design** - optimized for individual developer productivity
 
+## AI Agents
+
+This repository leverages **three AI agents** for development and automation:
+
+1. **Claude Code** (Primary Development)
+   - Main development assistant via claude.ai/code
+   - Handles code implementation, refactoring, and documentation
+   - Follows guidelines in CLAUDE.md
+
+2. **Gemini CLI** (PR Code Review)
+   - Automatically reviews all pull requests
+   - Provides security, quality, and architecture feedback
+   - Runs on self-hosted runners with project context
+
+3. **GitHub Copilot** (Code Review)
+   - Reviews code changes and suggests improvements
+   - Provides inline review comments in pull requests
+   - Complements Gemini's automated reviews
+
 ## Features
 
 - **MCP Server Integration** - Local MCP server with multiple tool categories
@@ -22,6 +41,7 @@ This project follows a **container-first approach**:
 - **LaTeX Compilation** - Document generation
 - **Self-Hosted Runners** - GitHub Actions with local infrastructure
 - **Docker Compose** - Containerized services
+- **AI-Powered Development** - Three AI agents working in harmony
 
 ## Quick Start
 
@@ -92,6 +112,13 @@ For AI code review on pull requests:
 3. Authenticate: Run `gemini` command once
 
 See [setup guide](docs/GEMINI_SETUP.md) for details.
+
+### AI Agents Configuration
+
+This project uses three AI agents. See [AI Agents Documentation](docs/AI_AGENTS.md) for details on:
+- Claude Code (primary development)
+- Gemini CLI (automated PR reviews)
+- GitHub Copilot (code review suggestions)
 
 ### MCP Configuration
 
