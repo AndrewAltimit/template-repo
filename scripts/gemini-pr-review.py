@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Gemini PR Review Script using CLI
-Consults Gemini AI for code review insights on pull requests using the Gemini CLI
+Improved Gemini PR Review Script with better context handling
 """
 
 import json
@@ -10,13 +9,13 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
+import hashlib
 
 
 def check_gemini_cli() -> bool:
     """Check if Gemini CLI is available"""
     try:
-        # Check if gemini command exists
         result = subprocess.run(["which", "gemini"], capture_output=True, text=True)
         return result.returncode == 0
     except Exception:
@@ -50,10 +49,36 @@ def get_changed_files() -> List[str]:
     return []
 
 
-def get_pr_diff() -> str:
-    """Get the actual diff of the PR"""
+def get_file_stats() -> Dict[str, int]:
+    """Get statistics about changed files"""
     try:
-        # Get the diff between base and head
+        base_branch = os.environ.get("BASE_BRANCH", "main")
+        result = subprocess.run(
+            ["git", "diff", "--stat", f"origin/{base_branch}...HEAD"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        
+        stats = {"additions": 0, "deletions": 0, "files": 0}
+        for line in result.stdout.split('\n'):
+            if 'files changed' in line:
+                parts = line.split(',')
+                for part in parts:
+                    if 'insertion' in part:
+                        stats["additions"] = int(part.strip().split()[0])
+                    elif 'deletion' in part:
+                        stats["deletions"] = int(part.strip().split()[0])
+                    elif 'file' in part:
+                        stats["files"] = int(part.strip().split()[0])
+        return stats
+    except:
+        return {"additions": 0, "deletions": 0, "files": 0}
+
+
+def get_pr_diff() -> str:
+    """Get the full diff of the PR"""
+    try:
         base_branch = os.environ.get("BASE_BRANCH", "main")
         result = subprocess.run(
             ["git", "diff", f"origin/{base_branch}...HEAD"],
@@ -66,6 +91,45 @@ def get_pr_diff() -> str:
         return "Could not generate diff"
 
 
+def get_file_content(filepath: str) -> str:
+    """Get the content of a specific file"""
+    try:
+        result = subprocess.run(
+            ["git", "show", f"HEAD:{filepath}"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout
+    except:
+        return f"Could not read {filepath}"
+
+
+def chunk_diff_by_files(diff: str) -> List[Tuple[str, str]]:
+    """Split diff into per-file chunks"""
+    chunks = []
+    current_file = None
+    current_chunk = []
+    
+    for line in diff.split('\n'):
+        if line.startswith('diff --git'):
+            if current_file and current_chunk:
+                chunks.append((current_file, '\n'.join(current_chunk)))
+            # Extract filename from diff header
+            parts = line.split()
+            if len(parts) >= 3:
+                current_file = parts[2].replace('a/', '').replace('b/', '')
+            current_chunk = [line]
+        elif current_chunk is not None:
+            current_chunk.append(line)
+    
+    # Don't forget the last chunk
+    if current_file and current_chunk:
+        chunks.append((current_file, '\n'.join(current_chunk)))
+    
+    return chunks
+
+
 def get_project_context() -> str:
     """Get project context for better code review"""
     context_file = Path("PROJECT_CONTEXT.md")
@@ -75,90 +139,216 @@ def get_project_context() -> str:
         except Exception as e:
             print(f"Warning: Could not read project context: {e}")
 
-    # Fallback context if file doesn't exist
+    # Fallback context
     return """This is a container-first project where all Python tools run in Docker containers.
 It's maintained by a single developer with self-hosted infrastructure.
 Focus on code quality, security, and container configurations."""
 
 
-def analyze_code_changes(
+def analyze_large_pr(
     diff: str, changed_files: List[str], pr_info: Dict[str, Any]
 ) -> str:
-    """Use Gemini CLI to analyze code changes"""
-
-    # Get project context
+    """Analyze large PRs by breaking them down into manageable chunks"""
+    
     project_context = get_project_context()
+    file_stats = get_file_stats()
+    diff_size = len(diff)
+    
+    # If diff is small enough, use single analysis
+    if diff_size < 50000:  # 50KB threshold
+        return analyze_complete_diff(diff, changed_files, pr_info, project_context, file_stats)
+    
+    # For large diffs, analyze by file groups
+    print(f"📦 Large diff detected ({diff_size:,} chars), using chunked analysis...")
+    
+    file_chunks = chunk_diff_by_files(diff)
+    analyses = []
+    
+    # Group files by type for more coherent analysis
+    file_groups = {
+        'workflows': [],
+        'python': [],
+        'docker': [],
+        'config': [],
+        'docs': [],
+        'other': []
+    }
+    
+    for filepath, file_diff in file_chunks:
+        if '.github/workflows' in filepath:
+            file_groups['workflows'].append((filepath, file_diff))
+        elif filepath.endswith('.py'):
+            file_groups['python'].append((filepath, file_diff))
+        elif 'docker' in filepath.lower() or filepath.endswith('Dockerfile'):
+            file_groups['docker'].append((filepath, file_diff))
+        elif filepath.endswith(('.yml', '.yaml', '.json', '.toml')):
+            file_groups['config'].append((filepath, file_diff))
+        elif filepath.endswith(('.md', '.rst', '.txt')):
+            file_groups['docs'].append((filepath, file_diff))
+        else:
+            file_groups['other'].append((filepath, file_diff))
+    
+    # Analyze each group
+    for group_name, group_files in file_groups.items():
+        if not group_files:
+            continue
+            
+        group_analysis = analyze_file_group(
+            group_name, group_files, pr_info, project_context
+        )
+        if group_analysis:
+            analyses.append(f"### {group_name.title()} Changes\n{group_analysis}")
+    
+    # Combine analyses with overall summary
+    combined_analysis = f"""## Overall Summary
 
-    # Prepare the prompt
-    prompt = f"""You are an expert code reviewer. Please analyze the following pull request with the project context in mind.
+**PR Stats**: {file_stats['files']} files changed, +{file_stats['additions']}/-{file_stats['deletions']} lines
 
-**PROJECT CONTEXT:**
-{project_context}
+{chr(10).join(analyses)}
 
-**PULL REQUEST TO REVIEW:**
+## Overall Assessment
 
-**Pull Request Information:**
-- Title: {pr_info['title']}
-- Author: {pr_info['author']}
-- Description: {pr_info['body']}
-- Base Branch: {pr_info['base_branch']}
-- Changed Files: {len(changed_files)} files
+Based on the comprehensive analysis above, this PR appears to be making significant changes across multiple areas of the codebase. Please ensure all changes are tested, especially given the container-first architecture of this project.
+"""
+    
+    return combined_analysis
 
-**Changed Files:**
-{chr(10).join(f'- {file}' for file in changed_files[:20])}  # Limit to first 20 files
 
-**Code Diff (truncated if too long):**
+def analyze_file_group(
+    group_name: str, files: List[Tuple[str, str]], pr_info: Dict[str, Any], project_context: str
+) -> str:
+    """Analyze a group of related files"""
+    
+    # Combine diffs for the group (limit to reasonable size)
+    combined_diff = ""
+    file_list = []
+    
+    for filepath, file_diff in files[:10]:  # Max 10 files per group
+        file_list.append(filepath)
+        # Include first 2000 chars of each file diff
+        combined_diff += f"\n\n=== {filepath} ===\n{file_diff[:2000]}"
+        if len(file_diff) > 2000:
+            combined_diff += f"\n... (truncated {len(file_diff) - 2000} chars)"
+    
+    prompt = f"""Analyze this group of {group_name} changes from PR #{pr_info['number']}:
+
+**Files in this group:**
+{chr(10).join(f'- {f}' for f in file_list)}
+
+**Relevant diffs:**
 ```diff
-{diff[:10000]}  # Limit diff to 10k characters
+{combined_diff[:15000]}
 ```
 
-Please provide:
-1. **Summary**: Brief overview of the changes
-2. **Key Observations**: What are the main changes?
-3. **Potential Issues**: Any bugs, security concerns, or code quality issues?
-4. **Suggestions**: Specific improvements or recommendations
-5. **Positive Aspects**: What's done well in this PR?
+Focus on:
+1. Correctness and potential bugs
+2. Security implications
+3. Best practices for {group_name} files
+4. Consistency with project's container-first approach
 
-Keep your response concise but thorough. Focus on actionable feedback based on the project's container-first philosophy and single-maintainer design."""
+Keep response concise but thorough."""
 
     try:
-        # Use piping to send prompt to Gemini CLI
         result = subprocess.run(
-            [
-                "gemini",
-                "-m",
-                "gemini-2.5-pro",
-            ],  # Use the pro model for better code review
+            ["gemini", "-m", "gemini-2.5-pro"],
             input=prompt,
             capture_output=True,
             text=True,
             check=True,
         )
+        return result.stdout.strip()
+    except:
+        return None
 
+
+def analyze_complete_diff(
+    diff: str, changed_files: List[str], pr_info: Dict[str, Any], 
+    project_context: str, file_stats: Dict[str, int]
+) -> str:
+    """Analyze complete diff for smaller PRs"""
+    
+    # For GitHub workflow files, include more complete content
+    workflow_contents = {}
+    for file in changed_files:
+        if '.github/workflows' in file and file.endswith('.yml'):
+            content = get_file_content(file)
+            if content and len(content) < 5000:  # Only include if reasonable size
+                workflow_contents[file] = content
+    
+    prompt = f"""You are an expert code reviewer. Please analyze this pull request comprehensively.
+
+**PROJECT CONTEXT:**
+{project_context}
+
+**PULL REQUEST INFORMATION:**
+- PR #{pr_info['number']}: {pr_info['title']}
+- Author: {pr_info['author']}
+- Description: {pr_info['body']}
+- Stats: {file_stats['files']} files, +{file_stats['additions']}/-{file_stats['deletions']} lines
+
+**CHANGED FILES ({len(changed_files)} total):**
+{chr(10).join(f'- {file}' for file in changed_files)}
+
+{format_workflow_contents(workflow_contents)}
+
+**COMPLETE DIFF:**
+```diff
+{diff[:75000]}  # Increased limit to 75KB
+```
+{f"... (diff truncated, {len(diff) - 75000} chars omitted)" if len(diff) > 75000 else ""}
+
+Please provide:
+1. **Summary**: What are the key changes?
+2. **Code Quality**: Any issues with style, structure, or best practices?
+3. **Potential Issues**: Bugs, security concerns, or logic errors?
+4. **Suggestions**: Specific improvements
+5. **Positive Aspects**: What's well done?
+
+Focus on actionable feedback considering the container-first architecture."""
+
+    try:
+        result = subprocess.run(
+            ["gemini", "-m", "gemini-2.5-pro"],
+            input=prompt,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
-        # If it fails, try without model specification
+        # Fallback to basic model
         try:
             result = subprocess.run(
                 ["gemini"], input=prompt, capture_output=True, text=True, check=True
             )
             return result.stdout.strip()
-        except subprocess.CalledProcessError as e2:
-            return f"Error consulting Gemini CLI: {e2.stderr}"
-    except Exception as e:
-        return f"Error consulting Gemini: {str(e)}"
+        except:
+            return f"Error consulting Gemini: {e.stderr if hasattr(e, 'stderr') else str(e)}"
+
+
+def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:
+    """Format workflow file contents for review"""
+    if not workflow_contents:
+        return ""
+    
+    formatted = "\n**GITHUB WORKFLOW FILES (Full Content):**\n"
+    for filepath, content in workflow_contents.items():
+        formatted += f"\n--- {filepath} ---\n```yaml\n{content}\n```\n"
+    
+    return formatted
 
 
 def format_github_comment(analysis: str, pr_info: Dict[str, Any]) -> str:
     """Format the analysis as a GitHub PR comment"""
     comment = f"""## 🤖 Gemini AI Code Review
 
-Hello @{pr_info['author']}! I've analyzed your pull request and here's my feedback:
+Hello @{pr_info['author']}! I've analyzed your pull request "{pr_info['title']}" and here's my comprehensive feedback:
 
 {analysis}
 
 ---
-*This review was automatically generated by Gemini AI via CLI. Please consider this as supplementary feedback to human reviews.*
+*This review was automatically generated by Gemini AI (v2.5 Pro) via CLI. This is supplementary feedback to human reviews.*
+*If the analysis seems incomplete, check the [workflow logs](../actions) for the full diff size.*
 """
     return comment
 
@@ -166,8 +356,9 @@ Hello @{pr_info['author']}! I've analyzed your pull request and here's my feedba
 def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
     """Post the comment to the PR using GitHub CLI"""
     try:
-        # Save comment to temporary file to avoid shell escaping issues
-        with open("/tmp/gemini_comment.md", "w") as f:
+        # Save comment to temporary file
+        comment_file = f"/tmp/gemini_comment_{pr_info['number']}.md"
+        with open(comment_file, "w") as f:
             f.write(comment)
 
         # Use gh CLI to post comment
@@ -178,15 +369,18 @@ def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
                 "comment",
                 pr_info["number"],
                 "--body-file",
-                "/tmp/gemini_comment.md",
+                comment_file,
             ],
             check=True,
         )
 
         print("✅ Successfully posted Gemini review to PR")
+        
+        # Clean up
+        os.unlink(comment_file)
     except subprocess.CalledProcessError as e:
         print(f"❌ Failed to post comment: {e}")
-        # Still save the comment locally
+        # Save locally as backup
         with open("gemini-review.md", "w") as f:
             f.write(comment)
         print("💾 Review saved to gemini-review.md")
@@ -194,18 +388,16 @@ def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
 
 def main():
     """Main function"""
-    print("🤖 Starting Gemini PR Review (CLI version)...")
+    print("🤖 Starting Improved Gemini PR Review...")
 
     # Check if Gemini CLI is available
     if not check_gemini_cli():
         print("❌ Gemini CLI not found")
-        print("To set up Gemini CLI:")
-        print("1. Install Node.js 18+ (recommended 22.16.0): nvm use 22.16.0")
-        print("2. Install Gemini CLI: npm install -g @google/gemini-cli")
-        print(
-            "3. Run 'gemini' command to authenticate (happens automatically on first use)"
-        )
-        sys.exit(0)  # Exit gracefully since this is optional
+        print("Setup instructions:")
+        print("1. Install Node.js 18+")
+        print("2. npm install -g @google/gemini-cli")
+        print("3. Run 'gemini' to authenticate")
+        sys.exit(0)
 
     # Get PR information
     pr_info = get_pr_info()
@@ -220,12 +412,13 @@ def main():
     print(f"📁 Found {len(changed_files)} changed files")
 
     # Get PR diff
-    print("🔍 Getting PR diff...")
+    print("🔍 Getting complete PR diff...")
     diff = get_pr_diff()
+    print(f"📏 Diff size: {len(diff):,} characters")
 
     # Analyze with Gemini
-    print("🧠 Consulting Gemini AI via CLI...")
-    analysis = analyze_code_changes(diff, changed_files, pr_info)
+    print("🧠 Consulting Gemini AI...")
+    analysis = analyze_large_pr(diff, changed_files, pr_info)
 
     # Format as GitHub comment
     comment = format_github_comment(analysis, pr_info)
@@ -233,7 +426,7 @@ def main():
     # Post to PR
     post_pr_comment(comment, pr_info)
 
-    # Also save to step summary
+    # Save to step summary
     with open(os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"), "a") as f:
         f.write("\n\n" + comment)
 

@@ -245,9 +245,9 @@ jobs:
       - name: Upload Health Report
         uses: actions/upload-artifact@v4
         with:
-        name: runner-health-report-${{ matrix.runner }}-${{ github.run_id }}
-        path: runner-health-report.md
-        retention-days: 30
+          name: runner-health-report-${{ matrix.runner }}-${{ github.run_id }}
+          path: runner-health-report.md
+          retention-days: 30
 
   # Container and cache cleanup
   runner-cleanup:
@@ -496,9 +496,9 @@ jobs:
 
           | Task | Status | Notes |
           |------|--------|-------|
-          | Health Check | ${{ needs.runner-health-check.result == 'success' && '✅ Completed' || needs.runner-health-check.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} | System health verification |
-          | Cleanup | ${{ needs.runner-cleanup.result == 'success' && '✅ Completed' || needs.runner-cleanup.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} | Cache and resource cleanup |
-          | Image Updates | ${{ needs.update-images.result == 'success' && '✅ Completed' || needs.update-images.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} | Container image updates |
+          | Health Check | ${{ needs.runner-health-check.result == 'success' && '✅' || needs.runner-health-check.result == 'skipped' && '⏭️' || '❌' }} | System health verification |
+          | Cleanup | ${{ needs.runner-cleanup.result == 'success' && '✅' || needs.runner-cleanup.result == 'skipped' && '⏭️' || '❌' }} | Cache and resource cleanup |
+          | Image Updates | ${{ needs.update-images.result == 'success' && '✅' || needs.update-images.result == 'skipped' && '⏭️' || '❌' }} | Container image updates |
 
           ## 🎯 Next Steps
 
@@ -536,9 +536,9 @@ jobs:
       - name: Upload Summary
         uses: actions/upload-artifact@v4
         with:
-        name: maintenance-summary-${{ github.run_id }}
-        path: maintenance-summary.md
-        retention-days: 90
+          name: maintenance-summary-${{ github.run_id }}
+          path: maintenance-summary.md
+          retention-days: 90
 
       - name: Create Issue if Failed
         if: |
