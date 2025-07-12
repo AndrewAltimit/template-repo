@@ -1,0 +1,179 @@
+# Self-Hosted Runner Setup Guide
+
+This guide documents the requirements and setup process for self-hosted GitHub Actions runners used with this project.
+
+## System Requirements
+
+### Operating System
+- **Tested on**: Zorin OS 17 (Ubuntu-based)
+- **Supported**: Ubuntu 20.04+, Debian 11+, or compatible Linux distributions
+
+### Required Software
+
+1. **Docker** (v20.10+)
+   ```bash
+   # Install Docker
+   curl -fsSL https://get.docker.com -o get-docker.sh
+   sudo sh get-docker.sh
+   
+   # Add user to docker group
+   sudo usermod -aG docker $USER
+   # Log out and back in for group changes to take effect
+   ```
+
+2. **Docker Compose** (v2.0+)
+   ```bash
+   # Docker Compose v2 is included with Docker Desktop
+   # For standalone installation:
+   sudo apt-get update
+   sudo apt-get install docker-compose-plugin
+   ```
+
+3. **Git** (v2.25+)
+   ```bash
+   sudo apt-get update
+   sudo apt-get install git
+   ```
+
+4. **Node.js** (v22.16.0) via nvm
+   ```bash
+   # Install nvm
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+   source ~/.bashrc
+   
+   # Install Node.js
+   nvm install 22.16.0
+   nvm use 22.16.0
+   ```
+
+5. **Gemini CLI** (pre-authenticated)
+   ```bash
+   # Install Gemini CLI
+   npm install -g @google/generative-ai-cli
+   
+   # Authenticate (one-time setup)
+   gemini auth login
+   ```
+
+6. **Python** (v3.10+)
+   ```bash
+   # Usually pre-installed on Ubuntu/Debian
+   python3 --version
+   ```
+
+## GitHub Actions Runner Installation
+
+1. **Download and Configure Runner**
+   ```bash
+   # Create a directory for the runner
+   mkdir ~/actions-runner && cd ~/actions-runner
+   
+   # Download the latest runner package
+   curl -o actions-runner-linux-x64-2.311.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.311.0/actions-runner-linux-x64-2.311.0.tar.gz
+   
+   # Extract the installer
+   tar xzf ./actions-runner-linux-x64-2.311.0.tar.gz
+   ```
+
+2. **Configure the Runner**
+   ```bash
+   # Run the configuration script
+   ./config.sh --url https://github.com/YOUR_ORG/YOUR_REPO --token YOUR_TOKEN
+   ```
+
+3. **Install as a Service**
+   ```bash
+   # Install the runner as a service
+   sudo ./svc.sh install
+   sudo ./svc.sh start
+   
+   # Check service status
+   sudo ./svc.sh status
+   ```
+
+## Environment Configuration
+
+### User Permissions
+The CI/CD pipeline runs Docker containers with the current user's UID/GID to avoid permission issues:
+
+```bash
+# These are automatically set by the scripts
+export UID=$(id -u)
+export GID=$(id -g)
+```
+
+### Docker Configuration
+Ensure Docker can be run without sudo:
+```bash
+# Test Docker access
+docker run hello-world
+```
+
+### Disk Space Requirements
+- **Minimum**: 20GB free space
+- **Recommended**: 50GB+ free space
+- Docker images and build cache can consume significant space
+
+### Network Requirements
+- Access to Docker Hub for pulling base images
+- Access to PyPI for Python packages
+- Access to GitHub for cloning repositories
+
+## Maintenance
+
+### Regular Cleanup
+To prevent disk space issues, regularly clean Docker resources:
+
+```bash
+# Remove unused containers, networks, images
+docker system prune -a
+
+# Remove unused volumes
+docker volume prune
+
+# Check disk usage
+docker system df
+```
+
+### Runner Updates
+Keep the GitHub Actions runner updated:
+```bash
+cd ~/actions-runner
+sudo ./svc.sh stop
+./config.sh remove
+# Download and install new version
+sudo ./svc.sh install
+sudo ./svc.sh start
+```
+
+## Troubleshooting
+
+### Permission Issues
+If you encounter permission errors:
+1. Ensure your user is in the `docker` group
+2. Verify the UID/GID environment variables are set correctly
+3. Check that the workspace directory has proper permissions
+
+### Docker Build Failures
+1. Check available disk space: `df -h`
+2. Clean Docker cache: `docker builder prune`
+3. Verify network connectivity to Docker Hub
+
+### Runner Connection Issues
+1. Check runner service logs: `sudo journalctl -u actions.runner.YOUR_REPO.YOUR_RUNNER_NAME -f`
+2. Verify GitHub token hasn't expired
+3. Ensure firewall allows outbound HTTPS connections
+
+## Security Considerations
+
+1. **Never run runners with root privileges**
+2. **Use dedicated runner machines** when possible
+3. **Regularly update all software** components
+4. **Monitor runner logs** for suspicious activity
+5. **Restrict repository access** to trusted contributors only
+
+## Additional Resources
+
+- [GitHub Actions Self-Hosted Runners Documentation](https://docs.github.com/en/actions/hosting-your-own-runners)
+- [Docker Security Best Practices](https://docs.docker.com/engine/security/)
+- [Linux Security Hardening Guide](https://www.debian.org/doc/manuals/securing-debian-manual/)

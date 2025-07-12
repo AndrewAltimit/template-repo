@@ -51,21 +51,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 20
     steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Clean workspace before checkout to avoid permission issues
-          if [ -d "${{ github.workspace }}" ]; then
-            echo "Cleaning workspace: ${{ github.workspace }}"
-            # Use docker with root to clean everything
-            docker run --rm -v "${{ github.workspace }}:/workspace" ubuntu:latest bash -c "
-              find /workspace -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
-              find /workspace -type f -name '*.pyc' -exec rm -f {} + 2>/dev/null || true
-              chmod -R 777 /workspace 2>/dev/null || true
-            " || echo "Docker cleanup completed with warnings"
-            # Also try local cleanup
-            find "${{ github.workspace }}" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-            find "${{ github.workspace }}" -type f -name "*.pyc" -delete 2>/dev/null || true
-          fi
+      # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -76,15 +62,10 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
-      - name: Run tests with Docker
+      - name: Run tests
         run: |
-          echo "🧪 Running test suite with Docker..."
-          
-          # Build the CI image if needed
-          docker-compose build python-ci
-          
-          # Run tests with coverage
-          docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && pytest tests/ -v --cov=. --cov-report=xml --cov-report=term --cov-report=html --timeout=300 --junitxml=test-results.xml"
+          echo "🧪 Running test suite..."
+          ./scripts/run-ci.sh test --cov-report=html --timeout=300 --junitxml=test-results.xml
 
       - name: Upload test results
         if: always()
@@ -259,15 +240,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run security scans with Docker
+      - name: Run security scans
         run: |
-          echo "🔒 Running security scans with Docker..."
-          
-          # Build the CI image if needed
-          docker-compose build python-ci
-          
-          # Run Bandit security scan
-          docker-compose run --rm python-ci bash -c "bandit -r . -f json -o bandit-report.json || true"
+          echo "🔒 Running security scans..."
+          ./scripts/run-ci.sh security
           
           # Display summary
           if [ -f bandit-report.json ]; then
@@ -287,17 +263,14 @@ jobs:
           " >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Check dependency vulnerabilities with Docker
+      - name: Check dependency vulnerabilities
         run: |
           echo "🔍 Checking dependency vulnerabilities..."
+          # Security scan already includes safety check
           
-          # Run safety check
-          if [ -f requirements.txt ]; then
-            docker-compose run --rm python-ci bash -c "safety check --json --output safety-report.json || true"
-            
-            if [ -f safety-report.json ] && [ -s safety-report.json ]; then
-              echo "### Dependency Vulnerabilities" >> $GITHUB_STEP_SUMMARY
-              docker-compose run --rm python-ci python3 -c "
+          if [ -f safety-report.json ] && [ -s safety-report.json ]; then
+            echo "### Dependency Vulnerabilities" >> $GITHUB_STEP_SUMMARY
+            docker-compose run --rm python-ci python3 -c "
           import json
           with open('safety-report.json') as f:
               vulns = json.load(f)
@@ -306,7 +279,6 @@ jobs:
           else:
               print('✅ No known vulnerabilities found')
           " >> $GITHUB_STEP_SUMMARY
-            fi
           fi
           
           # Run pip-audit
