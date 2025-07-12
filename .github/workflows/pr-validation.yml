@@ -212,7 +212,6 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 10
     steps:
-    steps:
       - name: Pre-checkout cleanup
         run: |
           # Clean workspace before checkout to avoid permission issues
@@ -238,39 +237,34 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
-      - name: Set up Python
+      - name: Run Python Linting with Docker
         run: |
-          # Check if Python is available
-          python3 --version || python --version
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip3 install black flake8 mypy pylint pytest
-          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
-
-      - name: Format with Black
-        run: |
-          echo "🔍 Checking Python formatting with Black..."
-          black --check --diff .
+          echo "🔍 Running Python linting and formatting checks..."
+          
+          # Build the CI image if needed
+          docker-compose build python-ci
+          
+          # Run Black formatting check
+          echo "📝 Checking Python formatting with Black..."
+          docker-compose run --rm python-ci black --check --diff .
 
       - name: Lint with Flake8
         run: |
           echo "🔍 Running Flake8 linter..."
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          docker-compose run --rm python-ci flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          docker-compose run --rm python-ci flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
       - name: Type check with MyPy
         continue-on-error: true
         run: |
           echo "🔍 Running MyPy type checker..."
-          mypy . --ignore-missing-imports || true
+          docker-compose run --rm python-ci mypy . --ignore-missing-imports || true
 
       - name: Lint with Pylint
         continue-on-error: true
         run: |
           echo "🔍 Running Pylint..."
-          find . -name "*.py" -not -path "./venv/*" | xargs pylint --exit-zero
+          docker-compose run --rm python-ci bash -c "find . -name '*.py' -not -path './venv/*' | xargs pylint --exit-zero"
 
   # Stage 4: YAML/JSON validation
   config-validation:
@@ -305,32 +299,31 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
-      - name: Validate YAML files
+      - name: Validate YAML and JSON files with Docker
         run: |
-          echo "🔍 Validating YAML files..."
-          # Install yamllint
-          pip install yamllint
+          echo "🔍 Validating configuration files..."
           
-          # Validate workflow YAML files
-          for file in .github/workflows/*.yml; do
-            echo "Validating $file..."
-            yamllint -c .yamllint "$file" || true
-            python3 -c "import yaml; yaml.safe_load(open('$file')); print('✅ Valid YAML')"
-          done
+          # Build CI image if needed
+          docker-compose build python-ci
           
-          # Validate other YAML files
-          find . -name "*.yml" -o -name "*.yaml" | grep -v ".github" | while read file; do
-            echo "Validating $file..."
-            python3 -c "import yaml; yaml.safe_load(open('$file')); print('✅ Valid YAML')"
-          done
-
-      - name: Validate JSON files
-        run: |
-          echo "🔍 Validating JSON files..."
-          find . -name "*.json" | while read file; do
-            echo "Validating $file..."
-            python3 -m json.tool "$file" > /dev/null && echo "✅ Valid JSON" || echo "❌ Invalid JSON"
-          done
+          # Validate YAML files
+          echo "📋 Validating YAML files..."
+          docker-compose run --rm python-ci bash -c '
+            for file in $(find . -name "*.yml" -o -name "*.yaml"); do
+              echo "Checking $file..."
+              yamllint "$file" || true
+              python3 -c "import yaml; yaml.safe_load(open(\"$file\")); print(\"✅ Valid YAML: $file\")" || echo "❌ Invalid YAML: $file"
+            done
+          '
+          
+          # Validate JSON files
+          echo "📋 Validating JSON files..."
+          docker-compose run --rm python-ci bash -c '
+            for file in $(find . -name "*.json"); do
+              echo "Checking $file..."
+              python3 -m json.tool "$file" > /dev/null && echo "✅ Valid JSON: $file" || echo "❌ Invalid JSON: $file"
+            done
+          '
 
   # Stage 5: Test execution
   test-suite:
@@ -368,21 +361,15 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
-      - name: Set up Python
+      - name: Run tests with Docker
         run: |
-          # Check if Python is available
-          python3 --version || python --version
-
-      - name: Install dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip3 install pytest pytest-cov pytest-asyncio
-          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
-
-      - name: Run tests
-        run: |
-          echo "🧪 Running test suite..."
-          pytest tests/ -v --cov=. --cov-report=xml --cov-report=term
+          echo "🧪 Running test suite with Docker..."
+          
+          # Build the CI image if needed
+          docker-compose build python-ci
+          
+          # Run tests with coverage
+          docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && pytest tests/ -v --cov=. --cov-report=xml --cov-report=term"
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v3
@@ -429,16 +416,7 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
-      - name: Set up Python
-        run: |
-          # Check if Python is available
-          python3 --version || python --version
-
-      - name: Install MCP dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          pip3 install mcp pydantic aiofiles
-          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+      # No need to install Python or dependencies - Docker handles it
 
       - name: Start MCP server with Docker Compose
         run: |
@@ -454,7 +432,10 @@ jobs:
       - name: Test MCP server functionality
         run: |
           echo "🤖 Testing MCP server integration..."
-          python3 scripts/test-mcp-server.py
+          # Build python-ci if needed
+          docker-compose build python-ci
+          # Install requirements and run test
+          docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && python scripts/test-mcp-server.py"
           
       - name: View MCP server logs
         if: failure()

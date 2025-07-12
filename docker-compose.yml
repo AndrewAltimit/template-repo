@@ -82,6 +82,20 @@ services:
     profiles:
       - development
 
+  # CI/CD Python container
+  python-ci:
+    build:
+      context: .
+      dockerfile: docker/python-ci.Dockerfile
+    container_name: python-ci
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    networks:
+      - mcp-network
+    profiles:
+      - ci
+
 networks:
   mcp-network:
     driver: bridge

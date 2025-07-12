@@ -76,29 +76,15 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Install dependencies
+      - name: Run tests with Docker
         run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-cov pytest-asyncio pytest-timeout
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
-      - name: Run tests with coverage
-        run: |
-          echo "🧪 Running test suite with coverage..."
-          pytest tests/ \
-            -v \
-            --cov=. \
-            --cov-report=xml \
-            --cov-report=term \
-            --cov-report=html \
-            --timeout=300 \
-            --junitxml=test-results.xml
+          echo "🧪 Running test suite with Docker..."
+          
+          # Build the CI image if needed
+          docker-compose build python-ci
+          
+          # Run tests with coverage
+          docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && pytest tests/ -v --cov=. --cov-report=xml --cov-report=term --cov-report=html --timeout=300 --junitxml=test-results.xml"
 
       - name: Upload test results
         if: always()
@@ -173,61 +159,54 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Install MCP dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install mcp pydantic aiofiles httpx
-
-      - name: Test MCP server
+      - name: Test MCP server with Docker
         run: |
           echo "🤖 Testing MCP server functionality..."
           
+          # Build the CI image if needed
+          docker-compose build python-ci
+          
           # Test MCP server initialization
-          python3 -c "
+          docker-compose run --rm python-ci bash -c "
+          pip install -r requirements.txt && python3 -c '
           import sys
-          sys.path.append('tools/mcp')
+          sys.path.append("tools/mcp")
           
           # Test import
           try:
               from mcp_server import MCPServer
-              print('✅ MCP server module imported successfully')
+              print("✅ MCP server module imported successfully")
           except ImportError as e:
-              print(f'❌ Failed to import MCP server: {e}')
+              print(f"❌ Failed to import MCP server: {e}")
               exit(1)
           
           # Test basic functionality
           try:
-              server = MCPServer('.')
-              print('✅ MCP server initialized')
-              print(f'✅ Tools available: {len(server.tools)}')
+              server = MCPServer(".")
+              print("✅ MCP server initialized")
+              print(f"✅ Tools available: {len(server.tools)}")
           except Exception as e:
-              print(f'❌ MCP server initialization failed: {e}')
+              print(f"❌ MCP server initialization failed: {e}")
               exit(1)
+          '
           "
 
-      - name: Test MCP HTTP bridge
+      - name: Test MCP HTTP bridge with Docker
         if: always()
         run: |
           echo "🌐 Testing MCP HTTP bridge..."
           
-          # Start the HTTP bridge in background
-          python scripts/mcp-http-bridge.py &
-          BRIDGE_PID=$!
+          # Start the MCP server with docker-compose
+          docker-compose up -d mcp-server
           
           # Wait for it to start
           sleep 5
           
-          # Test the bridge
+          # Test the bridge health
           curl -s http://localhost:8000/health || echo "Health check failed"
           
-          # Stop the bridge
-          kill $BRIDGE_PID || true
+          # Stop the services
+          docker-compose down
 
   # Stage 6: Documentation build
   docs-build:
@@ -238,11 +217,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
 
       - name: Validate documentation
         run: |
@@ -285,25 +259,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: Install security tools
+      - name: Run security scans with Docker
         run: |
-          python -m pip install --upgrade pip
-          pip install bandit safety pip-audit
-
-      - name: Run Bandit security scan
-        run: |
-          echo "🔒 Running Bandit security scan..."
-          bandit -r . -f json -o bandit-report.json || true
+          echo "🔒 Running security scans with Docker..."
+          
+          # Build the CI image if needed
+          docker-compose build python-ci
+          
+          # Run Bandit security scan
+          docker-compose run --rm python-ci bash -c "bandit -r . -f json -o bandit-report.json || true"
           
           # Display summary
           if [ -f bandit-report.json ]; then
-            python3 -c "
+            docker-compose run --rm python-ci python3 -c "
           import json
           with open('bandit-report.json') as f:
               data = json.load(f)
@@ -311,25 +279,25 @@ jobs:
           results = data.get('results', [])
           
           print('### Bandit Security Scan Results')
-          print(f\"Total issues: {len(results)}\")
+          print(f'Total issues: {len(results)}')
           for severity in ['HIGH', 'MEDIUM', 'LOW']:
               count = sum(1 for r in results if r['issue_severity'] == severity)
               if count > 0:
-                  print(f\"- {severity}: {count}\")
+                  print(f'- {severity}: {count}')
           " >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Check dependency vulnerabilities
+      - name: Check dependency vulnerabilities with Docker
         run: |
           echo "🔍 Checking dependency vulnerabilities..."
           
           # Run safety check
           if [ -f requirements.txt ]; then
-            safety check --json --output safety-report.json || true
+            docker-compose run --rm python-ci bash -c "safety check --json --output safety-report.json || true"
             
             if [ -f safety-report.json ] && [ -s safety-report.json ]; then
               echo "### Dependency Vulnerabilities" >> $GITHUB_STEP_SUMMARY
-              python3 -c "
+              docker-compose run --rm python-ci python3 -c "
           import json
           with open('safety-report.json') as f:
               vulns = json.load(f)
@@ -342,7 +310,7 @@ jobs:
           fi
           
           # Run pip-audit
-          pip-audit --desc || true
+          docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && pip-audit --desc || true"
 
       - name: Upload security reports
         if: always()
