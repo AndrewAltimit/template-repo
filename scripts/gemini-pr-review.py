@@ -66,13 +66,36 @@ def get_pr_diff() -> str:
         return "Could not generate diff"
 
 
+def get_project_context() -> str:
+    """Get project context for better code review"""
+    context_file = Path("PROJECT_CONTEXT.md")
+    if context_file.exists():
+        try:
+            return context_file.read_text()
+        except Exception as e:
+            print(f"Warning: Could not read project context: {e}")
+    
+    # Fallback context if file doesn't exist
+    return """This is a container-first project where all Python tools run in Docker containers.
+It's maintained by a single developer with self-hosted infrastructure.
+Focus on code quality, security, and container configurations."""
+
+
 def analyze_code_changes(
     diff: str, changed_files: List[str], pr_info: Dict[str, Any]
 ) -> str:
     """Use Gemini CLI to analyze code changes"""
+    
+    # Get project context
+    project_context = get_project_context()
 
     # Prepare the prompt
-    prompt = f"""You are an expert code reviewer. Please analyze the following pull request and provide constructive feedback.
+    prompt = f"""You are an expert code reviewer. Please analyze the following pull request with the project context in mind.
+
+**PROJECT CONTEXT:**
+{project_context}
+
+**PULL REQUEST TO REVIEW:**
 
 **Pull Request Information:**
 - Title: {pr_info['title']}
@@ -96,7 +119,7 @@ Please provide:
 4. **Suggestions**: Specific improvements or recommendations
 5. **Positive Aspects**: What's done well in this PR?
 
-Keep your response concise but thorough. Focus on actionable feedback."""
+Keep your response concise but thorough. Focus on actionable feedback based on the project's container-first philosophy and single-maintainer design."""
 
     try:
         # Use piping to send prompt to Gemini CLI

@@ -41,17 +41,30 @@ That's it! The next time you open a pull request, Gemini will automatically revi
 ## How It Works
 
 1. When a PR is opened or updated, the Gemini review job runs
-2. It analyzes:
+2. **Conversation history is cleared** to ensure fresh review
+3. **Project context is loaded** from PROJECT_CONTEXT.md
+4. It analyzes:
+   - Project-specific context and philosophy
    - Changed files
    - Code diff
    - PR title and description
-3. Gemini provides feedback on:
-   - Code quality
+5. Gemini provides feedback on:
+   - Container configurations and security
+   - Code quality (with project standards in mind)
    - Potential bugs
-   - Security concerns
-   - Suggestions for improvement
+   - Project-specific concerns
    - Positive aspects
-4. The review is posted as a comment on the PR
+6. The review is posted as a comment on the PR
+
+## Project Context
+
+Gemini receives detailed project context from `PROJECT_CONTEXT.md`, which includes:
+- Container-first philosophy
+- Single-maintainer design
+- What to prioritize in reviews
+- Project-specific patterns and standards
+
+This ensures Gemini "hits the ground running" with relevant, actionable feedback.
 
 ## CLI Usage
 

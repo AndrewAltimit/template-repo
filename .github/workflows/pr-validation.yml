@@ -146,6 +146,16 @@ jobs:
           # Verify Gemini CLI is available
           which gemini || echo "Gemini CLI not found in PATH"
 
+      - name: Prepare Gemini review context
+        run: |
+          echo "📋 Preparing review context..."
+          # Ensure PROJECT_CONTEXT.md is available
+          if [ ! -f "PROJECT_CONTEXT.md" ]; then
+            echo "Warning: PROJECT_CONTEXT.md not found - Gemini will use fallback context"
+          else
+            echo "Found PROJECT_CONTEXT.md - Gemini will have full project context"
+          fi
+          
       - name: Clear Gemini conversation history
         continue-on-error: true
         run: |

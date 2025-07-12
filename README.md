@@ -53,7 +53,8 @@ This project follows a **container-first approach**:
 ├── scripts/               # Utility scripts
 ├── examples/              # Example usage
 ├── tests/                 # Test files
-└── docs/                  # Documentation
+├── docs/                  # Documentation
+└── PROJECT_CONTEXT.md     # Context for AI code reviewers
 ```
 
 ## MCP Tools Available
