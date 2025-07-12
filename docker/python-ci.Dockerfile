@@ -17,13 +17,6 @@ COPY requirements.txt ./
 # Install all dependencies from the requirements file
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install additional CI/CD specific tools not in requirements.txt
-RUN pip install --no-cache-dir \
-    isort \
-    bandit \
-    safety \
-    yamllint
-
 # Python environment configuration to prevent cache issues
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
