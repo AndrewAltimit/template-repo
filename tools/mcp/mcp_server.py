@@ -118,11 +118,11 @@ class MCPTools:
 
             # Clear the conversation history
             result = gemini.clear_conversation_history()
-            
+
             return {
                 "status": "success",
                 "message": result.get("message", "Conversation history cleared"),
-                "cleared_entries": result.get("cleared_entries", 0)
+                "cleared_entries": result.get("cleared_entries", 0),
             }
         except Exception as e:
             return {"error": f"Failed to clear Gemini history: {str(e)}"}
