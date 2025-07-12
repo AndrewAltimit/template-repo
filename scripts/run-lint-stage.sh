@@ -88,9 +88,11 @@ case "$STAGE" in
     # Dependency security check with Safety
     echo "🔍 Checking dependency security..."
     if [ -f requirements.txt ]; then
-      docker-compose run --rm python-ci safety check --json --output safety-report.json 2>&1 | tee -a lint-output.txt || true
-      if [ -f safety-report.json ]; then
-        safety_issues=$(docker-compose run --rm python-ci python3 -c "import json; data=json.load(open('safety-report.json')); print(len(data))" || echo 0)
+      safety_output=$(docker-compose run --rm python-ci safety check --json 2>&1 || true)
+      echo "$safety_output" | tee -a lint-output.txt
+      if [[ "$safety_output" == *"["* ]]; then
+        # Valid JSON output, count issues
+        safety_issues=$(echo "$safety_output" | docker-compose run --rm python-ci python3 -c "import sys, json; data=json.load(sys.stdin); print(len(data))" || echo 0)
         warnings=$((warnings + safety_issues))
       fi
     fi
