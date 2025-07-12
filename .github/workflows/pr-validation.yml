@@ -106,6 +106,7 @@ jobs:
       PR_AUTHOR: ${{ github.event.pull_request.user.login }}
       BASE_BRANCH: ${{ github.base_ref }}
       HEAD_BRANCH: ${{ github.head_ref }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
