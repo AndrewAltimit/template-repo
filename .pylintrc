@@ -1,0 +1,15 @@
+[MESSAGES CONTROL]
+# Disable import errors for packages not installed in CI
+disable=import-error,no-name-in-module
+
+[FORMAT]
+# Maximum number of characters on a single line.
+max-line-length=88
+
+[BASIC]
+# Good variable names which should always be accepted
+good-names=i,j,k,e,f,_
+
+[DESIGN]
+# Maximum number of instance attributes for a class
+max-attributes=15
