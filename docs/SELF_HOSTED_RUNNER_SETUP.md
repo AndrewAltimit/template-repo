@@ -1,6 +1,14 @@
 # Self-Hosted Runner Setup Guide
 
-This guide documents the requirements and setup process for self-hosted GitHub Actions runners used with this project.
+This guide documents the setup process for self-hosted GitHub Actions runners used in this container-first project.
+
+## Philosophy
+
+This project uses **self-hosted runners exclusively** to:
+- Maintain zero infrastructure costs
+- Have full control over the build environment
+- Enable caching of Docker images for faster builds
+- Support the container-first approach without cloud limitations
 
 ## System Requirements
 
@@ -54,10 +62,13 @@ This guide documents the requirements and setup process for self-hosted GitHub A
    # Authenticate (happens automatically on first use)
    gemini
    ```
+   
+   Note: Gemini CLI cannot be containerized as it may need to invoke Docker commands.
 
 6. **Python** (v3.10+)
    ```bash
-   # Usually pre-installed on Ubuntu/Debian
+   # Only needed for running scripts, not for CI/CD
+   # All Python CI/CD operations run in containers
    python3 --version
    ```
 

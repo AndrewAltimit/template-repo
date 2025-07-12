@@ -1,14 +1,22 @@
 # Containerized CI/CD Documentation
 
-This document explains the containerized CI/CD approach used in this project, which ensures consistent environments across all development and CI operations.
+This document explains the container-first philosophy that drives this project's architecture.
 
-## Overview
+## Container-First Philosophy
 
-All Python CI/CD operations run in Docker containers to:
-- Ensure consistent environments across developers and CI runners
-- Avoid dependency conflicts
-- Prevent permission issues with file creation
-- Enable easy updates and maintenance
+This project embraces a **container-first approach** as a core design principle:
+- **Everything that can be containerized, is containerized**
+- **Zero local tool installation required** (except Docker itself)
+- **Maximum portability** - runs identically on any Linux system
+- **Self-hosted infrastructure** - no cloud dependencies or costs
+
+## Why Container-First?
+
+1. **Portability**: Works on any Linux system with Docker - no other setup needed
+2. **Consistency**: Eliminates "works on my machine" problems forever
+3. **Simplicity**: No complex dependency management or version conflicts
+4. **Isolation**: Each tool runs in its own environment
+5. **Cost-effective**: Designed for self-hosted runners with zero cloud costs
 
 ## Architecture
 
@@ -161,18 +169,41 @@ DOCKER_BUILDKIT=1 docker-compose build python-ci
 docker image prune -f
 ```
 
+## What's Containerized vs What's Not
+
+### Containerized ✅
+- **All Python tools**: Black, isort, flake8, pylint, mypy, pytest
+- **MCP server**: Runs in its own container with all dependencies
+- **CI/CD operations**: All pipeline steps use containers
+- **Development tools**: Any tool that doesn't need Docker access
+
+### Not Containerized ❌
+- **Gemini CLI**: Needs to potentially invoke Docker (would require Docker-in-Docker)
+- **Docker Compose**: Obviously needs to run on the host
+- **GitHub Actions runner**: Needs system-level access
+
 ## Benefits
 
-1. **Consistency**: Same environment everywhere
-2. **Isolation**: No system pollution
-3. **Maintainability**: Easy updates via Dockerfile
-4. **Security**: Controlled dependencies
-5. **Speed**: Cached layers and images
+1. **Zero Setup Time**: Clone and run - no installation guides needed
+2. **Perfect Reproducibility**: Same environment for solo developer across all machines
+3. **No Version Conflicts**: Each container has exactly what it needs
+4. **Easy Updates**: Just rebuild the container
+5. **Self-Hosted Friendly**: Optimized for personal infrastructure
 
 ## Best Practices
 
 1. Always use helper scripts for common operations
 2. Keep containers lightweight - only install necessary tools
 3. Use specific versions in Dockerfile for reproducibility
-4. Regular updates of base images and dependencies
-5. Monitor container sizes and clean up regularly
+4. Leverage Docker layer caching on self-hosted runners
+5. Design for single-maintainer efficiency
+
+## Philosophy in Practice
+
+This container-first approach means:
+- **No README sections about installing dependencies**
+- **No version compatibility matrices**
+- **No "please install X, Y, Z first" instructions**
+- **Just Docker, and everything works**
+
+Perfect for individual developers who want professional infrastructure without the complexity.

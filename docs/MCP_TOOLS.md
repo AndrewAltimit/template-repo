@@ -1,6 +1,14 @@
 # MCP Tools Documentation
 
-This document provides detailed information about the available MCP (Model Context Protocol) tools and how to use them.
+This document provides detailed information about the containerized MCP (Model Context Protocol) tools in this project.
+
+## Container-First Design
+
+All MCP tools run in Docker containers as part of this project's philosophy:
+- **Zero local dependencies** - just Docker
+- **Consistent execution** - same results on any Linux system
+- **Easy deployment** - works identically on self-hosted runners
+- **Single maintainer friendly** - no complex setup or coordination needed
 
 ## Table of Contents
 

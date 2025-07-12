@@ -1,6 +1,15 @@
 # MCP-Enabled Project Template
 
-A comprehensive template for projects using Model Context Protocol (MCP) tools with GitHub Actions self-hosted runners.
+A container-first, self-hosted project template using Model Context Protocol (MCP) tools with zero-cost infrastructure.
+
+## Project Philosophy
+
+This project follows a **container-first approach**:
+- **All Python tools and CI/CD operations run in Docker containers** for maximum portability
+- **MCP tools are containerized** except where Docker-in-Docker would be required (e.g., Gemini CLI)
+- **Zero external dependencies** - runs on any Linux system with Docker
+- **Self-hosted infrastructure** - no cloud costs, full control over runners
+- **Single maintainer design** - optimized for individual developer productivity
 
 ## Features
 
@@ -16,27 +25,21 @@ A comprehensive template for projects using Model Context Protocol (MCP) tools w
 
 ## Quick Start
 
-1. **Clone this template**
+1. **Prerequisites**
+   - Linux system (Ubuntu/Debian recommended)
+   - Docker and Docker Compose installed
+   - No other dependencies required!
+
+2. **Clone and start**
    ```bash
-   git clone <your-repo-url>
-   cd <your-repo>
+   git clone https://github.com/AndrewAltimit/template-repo
+   cd template-repo
+   docker-compose up -d
    ```
 
-2. **Configure environment**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-3. **Start MCP server**
-   ```bash
-   docker-compose up -d mcp-server
-   ```
-
-4. **Set up self-hosted runner**
-   ```bash
-   ./scripts/setup-runner.sh
-   ```
+3. **For CI/CD (optional)**
+   - Set up a self-hosted runner following [this guide](docs/SELF_HOSTED_RUNNER_SETUP.md)
+   - All CI operations run in containers - no local tool installation needed
 
 ## Project Structure
 
@@ -106,9 +109,11 @@ This template includes workflows for:
 - **Automated Testing** - Unit and integration tests
 - **Runner Maintenance** - Automated cleanup and health checks
 
-All workflows run on self-hosted runners with Docker containerization for consistent environments. Python CI/CD operations run in containers to avoid dependency conflicts.
+All workflows run on self-hosted runners maintained by @AndrewAltimit. The infrastructure is designed for zero-cost operation while maintaining professional CI/CD capabilities.
 
-## Development
+## Container-First Development
+
+This project is designed to be **fully portable** using containers:
 
 ### CI/CD Operations
 All Python CI/CD operations are containerized. Use the helper scripts:
@@ -127,11 +132,27 @@ All Python CI/CD operations are containerized. Use the helper scripts:
 ./scripts/run-ci.sh autoformat
 ```
 
+### Why Containers?
+
+- **Zero setup** - No need to install Python, linters, or any tools locally
+- **Consistency** - Same environment on every machine
+- **Isolation** - No conflicts with system packages
+- **Portability** - Works on any Linux system with Docker
+
 ### Running Tests
 ```bash
-# Using Docker Compose directly
-docker-compose run --rm python-ci pytest tests/ -v
-
-# Using the CI script
+# Everything runs in containers - no local Python needed!
 ./scripts/run-ci.sh test
+```
+
+### Local Development
+```bash
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Run any Python command in the CI container
+docker-compose run --rm python-ci python --version
 ```
