@@ -33,17 +33,6 @@ jobs:
       errors: ${{ steps.result.outputs.errors }}
       warnings: ${{ steps.result.outputs.warnings }}
     steps:
-      - name: Clean workspace before checkout
-        run: |
-          # Prevent checkout failures due to permission issues with __pycache__ files
-          if [ -d "${{ github.workspace }}" ]; then
-            # Try standard cleanup first
-            find "${{ github.workspace }}" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-            find "${{ github.workspace }}" -type f -name "*.pyc" -delete 2>/dev/null || true
-            # Use Docker for stubborn files created with different permissions
-            docker run --rm -v "${{ github.workspace }}:/workspace" --user root alpine:latest sh -c "find /workspace -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true; find /workspace -type f -name '*.pyc' -exec rm -f {} + 2>/dev/null || true" || true
-          fi
-          
       - name: Checkout code
         uses: actions/checkout@v4
         with:

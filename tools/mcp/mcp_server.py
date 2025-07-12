@@ -108,6 +108,26 @@ class MCPTools:
             return {"error": f"Gemini consultation failed: {str(e)}"}
 
     @staticmethod
+    async def clear_gemini_history() -> Dict[str, Any]:
+        """Clear Gemini conversation history"""
+        try:
+            # Import Gemini integration
+            from tools.gemini.gemini_integration import GeminiIntegration
+
+            gemini = GeminiIntegration()
+
+            # Clear the conversation history
+            result = gemini.clear_conversation_history()
+            
+            return {
+                "status": "success",
+                "message": result.get("message", "Conversation history cleared"),
+                "cleared_entries": result.get("cleared_entries", 0)
+            }
+        except Exception as e:
+            return {"error": f"Failed to clear Gemini history: {str(e)}"}
+
+    @staticmethod
     async def create_manim_animation(
         script: str, output_format: str = "mp4"
     ) -> Dict[str, Any]:
@@ -223,6 +243,7 @@ TOOLS = {
     "format_check": MCPTools.format_check,
     "lint": MCPTools.lint,
     "consult_gemini": MCPTools.consult_gemini,
+    "clear_gemini_history": MCPTools.clear_gemini_history,
     "create_manim_animation": MCPTools.create_manim_animation,
     "compile_latex": MCPTools.compile_latex,
 }

@@ -146,6 +146,20 @@ jobs:
           # Verify Gemini CLI is available
           which gemini || echo "Gemini CLI not found in PATH"
 
+      - name: Clear Gemini conversation history
+        continue-on-error: true
+        run: |
+          echo "🧹 Clearing Gemini conversation history..."
+          # Start MCP server if not running
+          docker-compose up -d mcp-server
+          sleep 5
+          
+          # Call the clear history endpoint via MCP server
+          curl -X POST http://localhost:8005/tools/execute \
+            -H "Content-Type: application/json" \
+            -d '{"tool": "clear_gemini_history", "arguments": {}}' \
+            || echo "Warning: Could not clear Gemini history"
+      
       - name: Run Gemini review
         continue-on-error: true  # Don't fail the PR if Gemini review fails
         shell: bash
