@@ -8,7 +8,7 @@ services:
       dockerfile: docker/mcp.Dockerfile
     container_name: mcp-server
     ports:
-      - "8000:8000"
+      - "8005:8000"
     volumes:
       - ./tools/mcp:/app/tools/mcp
       - ./mcp-config.json:/app/mcp-config.json

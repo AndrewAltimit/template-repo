@@ -425,7 +425,7 @@ jobs:
           
           # Wait for server to be ready
           echo "⏳ Waiting for server to be healthy..."
-          timeout 60 bash -c 'until curl -s http://localhost:8000/health > /dev/null 2>&1; do echo -n "."; sleep 1; done'
+          timeout 60 bash -c 'until curl -s http://localhost:8005/health > /dev/null 2>&1; do echo -n "."; sleep 1; done'
           echo ""
           echo "✅ MCP server is ready!"
 
@@ -435,7 +435,7 @@ jobs:
           # Build python-ci if needed
           docker-compose build python-ci
           # Install requirements and run test
-          docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && python scripts/test-mcp-server.py"
+          docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && python scripts/test-mcp-server.py http://mcp-server:8000"
           
       - name: View MCP server logs
         if: failure()

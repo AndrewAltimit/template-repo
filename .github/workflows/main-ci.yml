@@ -203,7 +203,7 @@ jobs:
           sleep 5
           
           # Test the bridge health
-          curl -s http://localhost:8000/health || echo "Health check failed"
+          curl -s http://localhost:8005/health || echo "Health check failed"
           
           # Stop the services
           docker-compose down
