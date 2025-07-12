@@ -425,48 +425,70 @@ jobs:
     if: github.event.inputs.action == 'update-images' || github.event.inputs.action == 'full-maintenance'
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Update Base Images
-      run: |
-        if command -v docker &> /dev/null; then
-          echo "📥 Updating Base Images"
-          echo "======================="
-          echo ""
-          
-          # Common base images
-          echo "Updating common base images..."
-          for image in ubuntu:22.04 python:3.11-slim alpine:latest; do
-            echo "Pulling $image..."
-            docker pull $image || echo "Failed to pull $image"
-          done
-          
-          echo "✅ Base images updated"
-        else
-          echo "⚠️ Docker not available"
-        fi
-        echo ""
+      - name: Pre-checkout cleanup
+        run: |
+          # Clean workspace before checkout to avoid permission issues
+          if [ -d "${{ github.workspace }}" ]; then
+            echo "Cleaning workspace: ${{ github.workspace }}"
+            # Use docker with root to clean everything
+            docker run --rm -v "${{ github.workspace }}:/workspace" ubuntu:latest bash -c "
+              find /workspace -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
+              find /workspace -type f -name '*.pyc' -exec rm -f {} + 2>/dev/null || true
+              chmod -R 777 /workspace 2>/dev/null || true
+            " || echo "Docker cleanup completed with warnings"
+            # Also try local cleanup
+            find "${{ github.workspace }}" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+            find "${{ github.workspace }}" -type f -name "*.pyc" -delete 2>/dev/null || true
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
         
-    - name: Build Project Images
-      run: |
-        if command -v docker &> /dev/null && [ -f "docker-compose.yml" ]; then
-          echo "🔨 Building Project Images"
-          echo "========================"
+      - name: Update Base Images
+        run: |
+          if command -v docker &> /dev/null; then
+            echo "📥 Updating Base Images"
+            echo "======================="
+            echo ""
+            
+            # Common base images
+            echo "Updating common base images..."
+            for image in ubuntu:22.04 python:3.11-slim alpine:latest; do
+              echo "Pulling $image..."
+              docker pull $image || echo "Failed to pull $image"
+            done
+            
+            echo "✅ Base images updated"
+          else
+            echo "⚠️ Docker not available"
+          fi
           echo ""
           
-          echo "Building images defined in docker-compose.yml..."
-          docker-compose build --no-cache || echo "Some images failed to build"
-          
+      - name: Build Project Images
+        run: |
+          if command -v docker &> /dev/null && [ -f "docker-compose.yml" ]; then
+            echo "🔨 Building Project Images"
+            echo "========================"
+            echo ""
+            
+            echo "Building images defined in docker-compose.yml..."
+            docker-compose build --no-cache || echo "Some images failed to build"
+            
+            echo ""
+            echo "📋 Built images:"
+            docker-compose images || docker images | grep -i "${{ github.event.repository.name }}"
+            
+            echo "✅ Project images built"
+          else
+            echo "⚠️ Docker or docker-compose.yml not available"
+          fi
           echo ""
-          echo "📋 Built images:"
-          docker-compose images || docker images | grep -i "${{ github.event.repository.name }}"
-          
-          echo "✅ Project images built"
-        else
-          echo "⚠️ Docker or docker-compose.yml not available"
-        fi
-        echo ""
 
   # Generate maintenance summary
   maintenance-summary:
