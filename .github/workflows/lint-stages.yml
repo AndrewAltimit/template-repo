@@ -1,3 +1,4 @@
+---
 name: Lint Stages (dynamic)
 
 on:
@@ -47,14 +48,8 @@ jobs:
       - name: Run linting stage
         id: lint
         shell: bash
-        run: ./scripts/run-lint-stage.sh ${{ inputs.stage }}
-              
-            basic)
-              echo "=== Running basic linting ==="
-              
-              # Format checks
-              echo "🔍 Checking formatting..."
-              docker-compose run --rm python-ci black --check . 2>&1 | tee -a lint-output.txt || true
+        run: |
+          ./scripts/run-lint-stage.sh ${{ inputs.stage }}
           # Script handles all the logic and exports errors/warnings to GITHUB_ENV
 
       - name: Parse results
@@ -65,11 +60,11 @@ jobs:
           # Get error and warning counts from environment
           errors="${errors:-0}"
           warnings="${warnings:-0}"
-          
+
           echo "errors=$errors" >> $GITHUB_OUTPUT
           echo "warnings=$warnings" >> $GITHUB_OUTPUT
           echo "status=${{ job.status }}" >> $GITHUB_OUTPUT
-          
+
           # Generate summary
           echo "## Lint Results - ${{ inputs.stage }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -78,7 +73,7 @@ jobs:
           echo "| Errors | $errors |" >> $GITHUB_STEP_SUMMARY
           echo "| Warnings | $warnings |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           if [[ $errors -eq 0 && $warnings -eq 0 ]]; then
             echo "✅ No issues found!" >> $GITHUB_STEP_SUMMARY
           elif [[ $errors -eq 0 ]]; then
