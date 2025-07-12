@@ -33,7 +33,12 @@ jobs:
       errors: ${{ steps.result.outputs.errors }}
       warnings: ${{ steps.result.outputs.warnings }}
     steps:
-      # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
+      - name: Clean Docker-created files
+        run: |
+          # Remove Docker-created files that might have permission issues
+          sudo rm -rf .pytest_cache __pycache__ .coverage htmlcov .mypy_cache 2>/dev/null || true
+          find . -type d -name "__pycache__" -exec sudo rm -rf {} + 2>/dev/null || true
+          find . -type f -name "*.pyc" -exec sudo rm -f {} + 2>/dev/null || true
 
       - name: Checkout code
         uses: actions/checkout@v4
