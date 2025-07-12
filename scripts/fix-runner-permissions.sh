@@ -25,7 +25,7 @@ failed_count=0
 # Use sudo if available, otherwise try without
 if command -v sudo &> /dev/null; then
     echo "Using sudo to fix permissions..."
-    
+
     # Fix directory permissions
     if sudo find "$RUNNER_WORKSPACE" -type d -name "__pycache__" -exec chmod -R 755 {} + 2>/dev/null; then
         ((fixed_count++))
@@ -33,7 +33,7 @@ if command -v sudo &> /dev/null; then
         echo "⚠️  Some __pycache__ directories couldn't be fixed"
         ((failed_count++))
     fi
-    
+
     # Fix file permissions
     if sudo find "$RUNNER_WORKSPACE" -type f -name "*.pyc" -exec chmod 644 {} + 2>/dev/null; then
         ((fixed_count++))
@@ -41,7 +41,7 @@ if command -v sudo &> /dev/null; then
         echo "⚠️  Some .pyc files couldn't be fixed"
         ((failed_count++))
     fi
-    
+
     # Fix ownership
     if sudo chown -R $USER:$USER "$RUNNER_WORKSPACE" 2>/dev/null; then
         echo "✅ Ownership fixed"
@@ -52,7 +52,7 @@ if command -v sudo &> /dev/null; then
 else
     echo "Attempting to fix permissions without sudo..."
     echo "⚠️  This may not work for files owned by other users"
-    
+
     find "$RUNNER_WORKSPACE" -type d -name "__pycache__" -user "$USER" -exec chmod -R 755 {} + 2>/dev/null
     find "$RUNNER_WORKSPACE" -type f -name "*.pyc" -user "$USER" -exec chmod 644 {} + 2>/dev/null
 fi

@@ -19,6 +19,7 @@ The workflow will attempt to install Gemini CLI automatically if Node.js is avai
 ### For Self-Hosted Runners
 
 1. **Install Node.js 18+** (recommended version 22.16.0)
+
    ```bash
    # Using nvm
    nvm install 22.16.0
@@ -26,11 +27,13 @@ The workflow will attempt to install Gemini CLI automatically if Node.js is avai
    ```
 
 2. **Install Gemini CLI**
+
    ```bash
    npm install -g @google/gemini-cli
    ```
 
 3. **Authenticate** (happens automatically on first use)
+
    ```bash
    # Run the gemini command - it will prompt for authentication
    gemini
@@ -59,6 +62,7 @@ That's it! The next time you open a pull request, Gemini will automatically revi
 ## Project Context
 
 Gemini receives detailed project context from `PROJECT_CONTEXT.md`, which includes:
+
 - Container-first philosophy
 - Single-maintainer design
 - What to prioritize in reviews
@@ -81,6 +85,7 @@ echo "Technical question" | gemini -m gemini-2.5-pro
 ## Rate Limits
 
 Free tier limits:
+
 - 60 requests per minute
 - 1,000 requests per day
 

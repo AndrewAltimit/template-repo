@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Context
 
 This is a **single-maintainer project** by @AndrewAltimit with a **container-first philosophy**:
+
 - All Python operations run in Docker containers
 - Self-hosted infrastructure for zero-cost operation
 - Designed for maximum portability - works on any Linux system with Docker
@@ -13,10 +14,12 @@ This is a **single-maintainer project** by @AndrewAltimit with a **container-fir
 ## AI Agent Collaboration
 
 You are working alongside two other AI agents:
+
 1. **Gemini CLI** - Handles automated PR code reviews
 2. **GitHub Copilot** - Provides code review suggestions in PRs
 
 Your role as Claude Code is the primary development assistant, handling:
+
 - Architecture decisions and implementation
 - Complex refactoring and debugging
 - Documentation and test writing
@@ -25,6 +28,7 @@ Your role as Claude Code is the primary development assistant, handling:
 ## Commands
 
 ### Running Tests
+
 ```bash
 # Run all tests with coverage
 pytest tests/ -v --cov=. --cov-report=xml
@@ -37,6 +41,7 @@ pytest -k "test_format" -v
 ```
 
 ### Code Quality
+
 ```bash
 # Using containerized CI scripts (recommended)
 ./scripts/run-ci.sh format      # Check formatting
@@ -54,6 +59,7 @@ docker-compose run --rm python-ci mypy . --ignore-missing-imports
 ```
 
 ### Development
+
 ```bash
 # Start MCP server via Docker (recommended)
 docker-compose up -d mcp-server
@@ -74,6 +80,7 @@ python tools/mcp/mcp_server.py
 ```
 
 ### Docker Operations
+
 ```bash
 # Build and start all services
 docker-compose up -d
@@ -91,6 +98,7 @@ docker-compose build python-ci
 ```
 
 ### Helper Scripts
+
 ```bash
 # CI/CD operations script
 ./scripts/run-ci.sh [stage]
@@ -107,6 +115,7 @@ docker-compose build python-ci
 ## Architecture
 
 ### MCP Server Architecture
+
 The project centers around a Model Context Protocol (MCP) server that provides various AI and development tools:
 
 1. **FastAPI Server** (`tools/mcp/mcp_server.py`): Main HTTP API on port 8005
@@ -123,14 +132,17 @@ The project centers around a Model Context Protocol (MCP) server that provides v
 4. **Configuration** (`mcp-config.json`): Defines available tools, security settings, and rate limits
 
 ### GitHub Actions Integration
+
 The repository includes comprehensive CI/CD workflows:
+
 - **PR Validation**: Automatic Gemini AI code review with history clearing
-- **Testing Pipeline**: Containerized pytest with coverage reporting  
+- **Testing Pipeline**: Containerized pytest with coverage reporting
 - **Code Quality**: Multi-stage linting in Docker containers
 - **Self-hosted Runners**: All workflows run on self-hosted infrastructure
 - **Runner Maintenance**: Automated cleanup and health checks
 
 ### Container Architecture Philosophy
+
 1. **Everything Containerized**:
    - Python CI/CD tools run in `python-ci` container
    - MCP server runs in its own container
@@ -147,7 +159,8 @@ The repository includes comprehensive CI/CD workflows:
    - Full control over build environment
 
 ### Key Integration Points
-1. **AI Services**: 
+
+1. **AI Services**:
    - Gemini API for code review (runs on host due to Docker requirements)
    - Support for Claude and OpenAI integrations
    - Remote ComfyUI workflows for image generation
@@ -163,6 +176,7 @@ The repository includes comprehensive CI/CD workflows:
    - Environment-based configuration
 
 ### Security Considerations
+
 - API key management via environment variables
 - Rate limiting configured in mcp-config.json
 - Docker network isolation for services

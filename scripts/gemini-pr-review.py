@@ -145,9 +145,7 @@ def get_project_context() -> str:
     )
 
 
-def analyze_large_pr(
-    diff: str, changed_files: List[str], pr_info: Dict[str, Any]
-) -> str:
+def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any]) -> str:
     """Analyze large PRs by breaking them down into manageable chunks"""
 
     project_context = get_project_context()
@@ -156,9 +154,7 @@ def analyze_large_pr(
 
     # If diff is small enough, use single analysis
     if diff_size < 50000:  # 50KB threshold
-        return analyze_complete_diff(
-            diff, changed_files, pr_info, project_context, file_stats
-        )
+        return analyze_complete_diff(diff, changed_files, pr_info, project_context, file_stats)
 
     # For large diffs, analyze by file groups
     print(f"📦 Large diff detected ({diff_size:,} chars), using chunked analysis...")
@@ -195,9 +191,7 @@ def analyze_large_pr(
         if not group_files:
             continue
 
-        group_analysis = analyze_file_group(
-            group_name, group_files, pr_info, project_context
-        )
+        group_analysis = analyze_file_group(group_name, group_files, pr_info, project_context)
         if group_analysis:
             analyses.append(f"### {group_name.title()} Changes\n{group_analysis}")
 
@@ -333,15 +327,10 @@ def analyze_complete_diff(
     except subprocess.CalledProcessError as e:
         # Fallback to basic model
         try:
-            result = subprocess.run(
-                ["gemini"], input=prompt, capture_output=True, text=True, check=True
-            )
+            result = subprocess.run(["gemini"], input=prompt, capture_output=True, text=True, check=True)
             return result.stdout.strip()
         except Exception:
-            return (
-                f"Error consulting Gemini: "
-                f"{e.stderr if hasattr(e, 'stderr') else str(e)}"
-            )
+            return f"Error consulting Gemini: " f"{e.stderr if hasattr(e, 'stderr') else str(e)}"
 
 
 def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:

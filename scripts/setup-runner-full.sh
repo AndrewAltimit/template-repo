@@ -44,21 +44,21 @@ validate_environment() {
     echo ""
     echo "📋 Validating Runner Environment"
     echo "================================"
-    
+
     # Check system info
     print_status "System Information:"
     echo "  OS: $(uname -s) $(uname -r)"
     echo "  Architecture: $(uname -m)"
     echo "  Hostname: $(hostname)"
-    
+
     # Check disk space
     print_status "Disk Space:"
     df -h | grep -E '^/dev|Filesystem'
-    
+
     # Check memory
     print_status "Memory:"
     free -h 2>/dev/null || echo "Memory info not available"
-    
+
     # Check network connectivity
     print_status "Network Connectivity:"
     if curl -s https://api.github.com/zen > /dev/null; then
@@ -74,11 +74,11 @@ check_prerequisites() {
     echo ""
     echo "📦 Checking Prerequisites"
     echo "========================"
-    
+
     # Check for required commands
     local required_commands=("curl" "tar" "git" "sudo" "jq")
     local missing_commands=()
-    
+
     for cmd in "${required_commands[@]}"; do
         if ! command -v $cmd &> /dev/null; then
             missing_commands+=($cmd)
@@ -86,7 +86,7 @@ check_prerequisites() {
             print_status "✅ $cmd is installed"
         fi
     done
-    
+
     # Install missing commands if on Linux
     if [ ${#missing_commands[@]} -gt 0 ] && [ "$RUNNER_OS" = "linux" ]; then
         print_warning "Installing missing commands: ${missing_commands[*]}"
@@ -97,7 +97,7 @@ check_prerequisites() {
         echo "Please install them manually and re-run this script."
         exit 1
     fi
-    
+
     # Check Python
     if command -v python3 &> /dev/null; then
         print_status "✅ Python3 is installed: $(python3 --version)"
@@ -110,7 +110,7 @@ check_prerequisites() {
             exit 1
         fi
     fi
-    
+
     # Check Docker
     if ! command -v docker &> /dev/null; then
         echo ""
@@ -124,7 +124,7 @@ check_prerequisites() {
         fi
     else
         print_status "✅ Docker is installed: $(docker --version)"
-        
+
         # Check Docker Compose
         if docker compose version &> /dev/null; then
             print_status "✅ Docker Compose V2 is installed"
@@ -139,14 +139,14 @@ check_prerequisites() {
 # Function to install Docker
 install_docker() {
     print_status "Installing Docker..."
-    
+
     if [ "$RUNNER_OS" = "linux" ]; then
         # Install Docker using official script
         curl -fsSL https://get.docker.com | sudo sh
-        
+
         # Add current user to docker group
         sudo usermod -aG docker $USER
-        
+
         print_status "✅ Docker installed"
         print_warning "⚠️  You need to log out and back in for group changes to take effect"
     else
@@ -158,7 +158,7 @@ install_docker() {
 # Function to install Docker Compose
 install_docker_compose() {
     print_status "Installing Docker Compose..."
-    
+
     if [ "$RUNNER_OS" = "linux" ]; then
         sudo apt-get update
         sudo apt-get install -y docker-compose-plugin
@@ -171,11 +171,11 @@ install_dependencies() {
     echo ""
     echo "📦 Installing System Dependencies"
     echo "================================"
-    
+
     if [ "$RUNNER_OS" = "linux" ]; then
         print_status "Updating package list..."
         sudo apt-get update
-        
+
         print_status "Installing essential packages..."
         sudo apt-get install -y \
             build-essential \
@@ -190,7 +190,7 @@ install_dependencies() {
             ca-certificates \
             gnupg \
             lsb-release
-        
+
         print_status "✅ System dependencies installed"
     else
         print_warning "Please ensure build tools are installed for your OS"
@@ -202,9 +202,9 @@ create_runner_directory() {
     echo ""
     echo "📁 Setting Up Runner Directory"
     echo "============================="
-    
+
     RUNNER_DIR="$HOME/actions-runner"
-    
+
     if [ -d "$RUNNER_DIR" ]; then
         print_warning "Runner directory already exists at $RUNNER_DIR"
         echo "Would you like to remove it and start fresh? (y/n)"
@@ -215,13 +215,13 @@ create_runner_directory() {
             echo "Using existing directory..."
         fi
     fi
-    
+
     mkdir -p "$RUNNER_DIR"
     cd "$RUNNER_DIR"
-    
+
     # Create workspace directories
     mkdir -p _work _temp _logs
-    
+
     print_status "✅ Created runner directory at $RUNNER_DIR"
 }
 
@@ -230,17 +230,17 @@ download_runner() {
     echo ""
     echo "📥 Downloading GitHub Actions Runner"
     echo "==================================="
-    
+
     print_status "Downloading runner v${RUNNER_VERSION}..."
-    
+
     # Determine download URL based on OS and architecture
     local download_url="https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-${RUNNER_OS}-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz"
-    
+
     # Download and extract
     curl -O -L "$download_url"
     tar xzf "./actions-runner-${RUNNER_OS}-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz"
     rm "./actions-runner-${RUNNER_OS}-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz"
-    
+
     print_status "✅ Runner downloaded and extracted"
 }
 
@@ -263,7 +263,7 @@ get_runner_token() {
     echo "Enter your registration token:"
     read -s RUNNER_TOKEN
     echo ""
-    
+
     if [ -z "$RUNNER_TOKEN" ]; then
         print_error "❌ No token provided. Exiting."
         exit 1
@@ -275,22 +275,22 @@ configure_runner() {
     echo ""
     echo "⚙️  Configuring Runner"
     echo "===================="
-    
+
     # Get repository or organization URL
     echo "Enter the repository or organization URL:"
     echo "Example: https://github.com/owner/repo or https://github.com/org"
     read -r REPO_URL
-    
+
     # Get runner name
     echo "Enter a name for this runner (default: $(hostname)):"
     read -r RUNNER_NAME
     RUNNER_NAME=${RUNNER_NAME:-$(hostname)}
-    
+
     # Get runner labels
     echo "Enter additional labels for this runner (comma-separated, default: self-hosted,$RUNNER_OS):"
     read -r RUNNER_LABELS
     RUNNER_LABELS=${RUNNER_LABELS:-"self-hosted,$RUNNER_OS"}
-    
+
     # Configure the runner
     ./config.sh \
         --url "$REPO_URL" \
@@ -299,7 +299,7 @@ configure_runner() {
         --labels "$RUNNER_LABELS" \
         --unattended \
         --replace
-    
+
     print_status "✅ Runner configured successfully"
 }
 
@@ -308,12 +308,12 @@ setup_mcp_environment() {
     echo ""
     echo "🤖 Setting Up MCP Environment"
     echo "============================"
-    
+
     # Create MCP directories
     MCP_HOME="$HOME/.mcp"
     mkdir -p "$MCP_HOME/configs"
     mkdir -p "$MCP_HOME/logs"
-    
+
     # Copy MCP configuration if available
     if [ -f "../mcp-config.json" ]; then
         cp ../mcp-config.json "$MCP_HOME/configs/"
@@ -324,7 +324,7 @@ setup_mcp_environment() {
     else
         print_warning "⚠️  No mcp-config.json found. You'll need to configure MCP manually."
     fi
-    
+
     # Create environment file
     if [ ! -f "$MCP_HOME/.env" ]; then
         cat > "$MCP_HOME/.env" << 'EOF'
@@ -344,7 +344,7 @@ AI_TOOLKIT_SERVER_URL=http://192.168.0.152:8190
 EOF
         print_warning "⚠️  Please update $MCP_HOME/.env with your actual values"
     fi
-    
+
     print_status "✅ MCP environment setup complete"
 }
 
@@ -353,7 +353,7 @@ configure_log_rotation() {
     echo ""
     echo "📝 Configuring Log Rotation"
     echo "=========================="
-    
+
     if [ "$RUNNER_OS" = "linux" ]; then
         sudo tee /etc/logrotate.d/github-runner << EOF
 $HOME/actions-runner/_logs/*.log {
@@ -377,15 +377,15 @@ install_service() {
     echo ""
     echo "🔧 Service Installation"
     echo "======================"
-    
+
     echo "Would you like to install the runner as a systemd service? (y/n)"
     read -r response
-    
+
     if [[ "$response" =~ ^[Yy]$ ]]; then
         print_status "Installing runner service..."
         sudo ./svc.sh install
         sudo ./svc.sh start
-        
+
         print_status "✅ Runner installed as service"
         echo ""
         print_status "Service commands:"
@@ -406,19 +406,19 @@ test_mcp_server() {
     echo ""
     echo "🧪 Testing MCP Server"
     echo "===================="
-    
+
     if command -v docker &> /dev/null && [ -f "../docker-compose.yml" ]; then
         print_status "Starting MCP server for testing..."
         cd ..
         docker-compose up -d mcp-server
         sleep 10
-        
+
         print_status "MCP server logs:"
         docker-compose logs --tail=20 mcp-server
-        
+
         print_status "Stopping MCP server..."
         docker-compose down
-        
+
         cd "$RUNNER_DIR"
         print_status "✅ MCP server test complete"
     else
@@ -458,7 +458,7 @@ main() {
     # Parse command line arguments
     SKIP_DOCKER=false
     SKIP_RUNNER_DOWNLOAD=false
-    
+
     while [[ $# -gt 0 ]]; do
         case $1 in
             --skip-docker)
@@ -483,19 +483,19 @@ main() {
                 ;;
         esac
     done
-    
+
     # Run setup steps
     validate_environment
     check_prerequisites
     install_dependencies
     create_runner_directory
-    
+
     if [ "$SKIP_RUNNER_DOWNLOAD" = false ]; then
         download_runner
         get_runner_token
         configure_runner
     fi
-    
+
     setup_mcp_environment
     configure_log_rotation
     install_service

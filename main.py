@@ -16,9 +16,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -86,9 +84,7 @@ async def example_workflow():
 
     if result.get("success"):
         formatted = result["result"].get("formatted", False)
-        logger.info(
-            f"Code formatting: {'✅ Correct' if formatted else '⚠️  Needs formatting'}"
-        )
+        logger.info(f"Code formatting: {'✅ Correct' if formatted else '⚠️  Needs formatting'}")
 
     # Example 2: Consult AI
     logger.info("\n--- Consulting AI ---")
@@ -118,9 +114,7 @@ This document was generated using MCP tools.
 \end{document}
     """
 
-    result = client.execute_tool(
-        "compile_latex", {"content": latex_content, "format": "pdf"}
-    )
+    result = client.execute_tool("compile_latex", {"content": latex_content, "format": "pdf"})
 
     if result.get("success"):
         output_path = result["result"].get("output_path", "")

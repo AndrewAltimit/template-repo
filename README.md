@@ -5,6 +5,7 @@ A container-first, self-hosted project template using Model Context Protocol (MC
 ## Project Philosophy
 
 This project follows a **container-first approach**:
+
 - **All Python tools and CI/CD operations run in Docker containers** for maximum portability
 - **MCP tools are containerized** except where Docker-in-Docker would be required (e.g., Gemini CLI)
 - **Zero external dependencies** - runs on any Linux system with Docker
@@ -51,6 +52,7 @@ This repository leverages **three AI agents** for development and automation:
    - No other dependencies required!
 
 2. **Clone and start**
+
    ```bash
    git clone https://github.com/AndrewAltimit/template-repo
    cd template-repo
@@ -80,18 +82,21 @@ This repository leverages **three AI agents** for development and automation:
 ## MCP Tools Available
 
 ### Code Quality
+
 - `format_check` - Check code formatting
-- `lint` - Run linting  
+- `lint` - Run linting
 - `analyze` - Static analysis
 - `full_ci` - Complete CI pipeline
 
 ### AI Integration
+
 - `consult_gemini` - Get AI assistance
 - `clear_gemini_history` - Clear conversation history
 - `create_manim_animation` - Create animations
 - `compile_latex` - Generate documents
 
 ### Remote Services
+
 - ComfyUI workflows
 - AI Toolkit LoRA training
 
@@ -100,6 +105,7 @@ This repository leverages **three AI agents** for development and automation:
 ### Environment Variables
 
 See `.env.example` for all available options:
+
 - `GITHUB_TOKEN` - GitHub access token
 - `COMFYUI_SERVER_URL` - ComfyUI server endpoint
 - `AI_TOOLKIT_SERVER_URL` - AI Toolkit server endpoint
@@ -107,6 +113,7 @@ See `.env.example` for all available options:
 ### Gemini AI Setup
 
 For AI code review on pull requests:
+
 1. Install Node.js 18+ (recommended: 22.16.0)
 2. Install Gemini CLI: `npm install -g @google/gemini-cli`
 3. Authenticate: Run `gemini` command once
@@ -116,6 +123,7 @@ See [setup guide](docs/GEMINI_SETUP.md) for details.
 ### AI Agents Configuration
 
 This project uses three AI agents. See [AI Agents Documentation](docs/AI_AGENTS.md) for details on:
+
 - Claude Code (primary development)
 - Gemini CLI (automated PR reviews)
 - GitHub Copilot (code review suggestions)
@@ -131,8 +139,9 @@ All Python CI/CD operations run in Docker containers. See [Containerized CI Docu
 ## GitHub Actions
 
 This template includes workflows for:
+
 - **Pull Request Validation** - Automatic code review with Gemini AI
-- **Continuous Integration** - Full CI pipeline on main branch  
+- **Continuous Integration** - Full CI pipeline on main branch
 - **Code Quality Checks** - Linting and formatting (containerized)
 - **Automated Testing** - Unit and integration tests
 - **Runner Maintenance** - Automated cleanup and health checks
@@ -144,6 +153,7 @@ All workflows run on self-hosted runners maintained by @AndrewAltimit. The infra
 This project is designed to be **fully portable** using containers:
 
 ### CI/CD Operations
+
 All Python CI/CD operations are containerized. Use the helper scripts:
 
 ```bash
@@ -168,12 +178,14 @@ All Python CI/CD operations are containerized. Use the helper scripts:
 - **Portability** - Works on any Linux system with Docker
 
 ### Running Tests
+
 ```bash
 # Everything runs in containers - no local Python needed!
 ./scripts/run-ci.sh test
 ```
 
 ### Local Development
+
 ```bash
 # Start all services
 docker-compose up -d

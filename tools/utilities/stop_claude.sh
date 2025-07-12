@@ -27,10 +27,10 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     # Kill the processes
     echo "Terminating Claude Code processes..."
     pkill -f "claude"
-    
+
     # Wait a moment
     sleep 1
-    
+
     # Check if any processes remain
     REMAINING=$(pgrep -f "claude" 2>/dev/null || true)
     if [ -z "$REMAINING" ]; then

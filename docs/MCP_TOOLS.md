@@ -5,6 +5,7 @@ This document provides detailed information about the containerized MCP (Model C
 ## Container-First Design
 
 All MCP tools run in Docker containers as part of this project's philosophy:
+
 - **Zero local dependencies** - just Docker
 - **Consistent execution** - same results on any Linux system
 - **Easy deployment** - works identically on self-hosted runners
@@ -46,10 +47,12 @@ curl -X POST http://localhost:8005/tools/execute \
 Check code formatting according to language-specific standards.
 
 **Parameters:**
+
 - `path` (string): Path to the file or directory to check
 - `language` (string): Programming language (python, javascript, typescript, go, rust)
 
 **Example:**
+
 ```python
 {
   "tool": "format_check",
@@ -61,6 +64,7 @@ Check code formatting according to language-specific standards.
 ```
 
 **Response:**
+
 ```json
 {
   "formatted": true,
@@ -73,10 +77,12 @@ Check code formatting according to language-specific standards.
 Run static code analysis to find potential issues.
 
 **Parameters:**
+
 - `path` (string): Path to analyze
 - `config` (string, optional): Path to linting configuration file
 
 **Example:**
+
 ```python
 {
   "tool": "lint",
@@ -88,6 +94,7 @@ Run static code analysis to find potential issues.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -102,10 +109,12 @@ Run static code analysis to find potential issues.
 Perform deep static analysis using advanced tools.
 
 **Parameters:**
+
 - `path` (string): Path to analyze
 - `depth` (integer): Analysis depth level (1-5)
 
 **Example:**
+
 ```python
 {
   "tool": "analyze",
@@ -123,10 +132,12 @@ Perform deep static analysis using advanced tools.
 Get AI assistance from Google's Gemini model for technical questions, code review, and suggestions.
 
 **Parameters:**
+
 - `question` (string): The question or request
 - `context` (string, optional): Additional context or code
 
 **Example:**
+
 ```python
 {
   "tool": "consult_gemini",
@@ -138,6 +149,7 @@ Get AI assistance from Google's Gemini model for technical questions, code revie
 ```
 
 **Response:**
+
 ```json
 {
   "response": "The current implementation has exponential time complexity. Here's an optimized version using memoization...",
@@ -151,9 +163,11 @@ Get AI assistance from Google's Gemini model for technical questions, code revie
 Clear Gemini's conversation history to ensure fresh responses without cached context.
 
 **Parameters:**
+
 - None
 
 **Example:**
+
 ```python
 {
   "tool": "clear_gemini_history",
@@ -162,6 +176,7 @@ Clear Gemini's conversation history to ensure fresh responses without cached con
 ```
 
 **Response:**
+
 ```json
 {
   "status": "success",
@@ -171,6 +186,7 @@ Clear Gemini's conversation history to ensure fresh responses without cached con
 ```
 
 **Use Cases:**
+
 - Before PR reviews to ensure fresh analysis
 - When switching between different contexts
 - To reset after errors or incorrect responses
@@ -180,21 +196,25 @@ Clear Gemini's conversation history to ensure fresh responses without cached con
 The Gemini integration supports several specialized functions:
 
 1. **Code Analysis**
+
    ```python
    gemini.analyze_code(code, language="python")
    ```
 
 2. **Error Explanation**
+
    ```python
    gemini.explain_error(error_message, code_context)
    ```
 
 3. **Documentation Generation**
+
    ```python
    gemini.generate_documentation(code, style="google")
    ```
 
 4. **Test Suggestion**
+
    ```python
    gemini.suggest_tests(code, framework="pytest")
    ```
@@ -206,10 +226,12 @@ The Gemini integration supports several specialized functions:
 Create mathematical and technical animations using Manim.
 
 **Parameters:**
+
 - `script` (string): Manim Python script
 - `output_format` (string): Output format (mp4, gif, webm)
 
 **Example:**
+
 ```python
 {
   "tool": "create_manim_animation",
@@ -221,6 +243,7 @@ Create mathematical and technical animations using Manim.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -234,10 +257,12 @@ Create mathematical and technical animations using Manim.
 Compile LaTeX documents to various formats.
 
 **Parameters:**
+
 - `content` (string): LaTeX document content
 - `format` (string): Output format (pdf, dvi, ps)
 
 **Example:**
+
 ```python
 {
   "tool": "compile_latex",
@@ -249,6 +274,7 @@ Compile LaTeX documents to various formats.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -264,11 +290,13 @@ Compile LaTeX documents to various formats.
 Access ComfyUI workflows for image generation.
 
 **Available Tools:**
+
 - `generate_image`: Generate images using workflows
 - `list_workflows`: List available workflows
 - `execute_workflow`: Execute specific workflow
 
 **Configuration:**
+
 ```bash
 COMFYUI_SERVER_URL=http://192.168.0.152:8189
 ```
@@ -278,6 +306,7 @@ COMFYUI_SERVER_URL=http://192.168.0.152:8189
 Train LoRA models using AI Toolkit.
 
 **Available Tools:**
+
 - `upload_dataset`: Upload training dataset
 - `create_training_config`: Configure training parameters
 - `start_training`: Begin training job
@@ -285,6 +314,7 @@ Train LoRA models using AI Toolkit.
 - `list_models`: List trained models
 
 **Configuration:**
+
 ```bash
 AI_TOOLKIT_SERVER_URL=http://192.168.0.152:8190
 ```
@@ -294,22 +324,23 @@ AI_TOOLKIT_SERVER_URL=http://192.168.0.152:8190
 ### Creating a New Tool
 
 1. **Define the tool function:**
+
 ```python
 # tools/mcp/custom_tools.py
 async def my_custom_tool(param1: str, param2: int = 10) -> Dict[str, Any]:
     """
     My custom tool description.
-    
+
     Args:
         param1: Description of param1
         param2: Description of param2
-        
+
     Returns:
         Dictionary with results
     """
     # Tool implementation
     result = process_data(param1, param2)
-    
+
     return {
         "success": True,
         "result": result,
@@ -321,6 +352,7 @@ async def my_custom_tool(param1: str, param2: int = 10) -> Dict[str, Any]:
 ```
 
 2. **Register in MCP server:**
+
 ```python
 # tools/mcp/mcp_server.py
 TOOLS = {
@@ -330,6 +362,7 @@ TOOLS = {
 ```
 
 3. **Update configuration:**
+
 ```json
 // mcp-config.json
 {
@@ -385,7 +418,7 @@ from tools.mcp.custom_tools import my_custom_tool
 @pytest.mark.asyncio
 async def test_my_custom_tool():
     result = await my_custom_tool("test", 42)
-    
+
     assert result["success"] is True
     assert result["result"] is not None
     assert result["metadata"]["param1"] == "test"
@@ -452,12 +485,14 @@ async def test_my_custom_tool():
 ### Debug Mode
 
 Enable debug logging:
+
 ```bash
 export LOG_LEVEL=DEBUG
 docker-compose up mcp-server
 ```
 
 View logs:
+
 ```bash
 docker-compose logs -f mcp-server
 ```

@@ -9,6 +9,7 @@ This project utilizes three AI agents working in harmony to accelerate developme
 **Role**: Main development partner for complex tasks
 
 **Responsibilities**:
+
 - Architecture design and implementation
 - Complex refactoring and debugging
 - Writing comprehensive documentation
@@ -19,6 +20,7 @@ This project utilizes three AI agents working in harmony to accelerate developme
 **Access**: claude.ai/code
 
 **Key Features**:
+
 - Deep understanding of entire codebase
 - Can execute commands and modify multiple files
 - Follows container-first philosophy
@@ -29,6 +31,7 @@ This project utilizes three AI agents working in harmony to accelerate developme
 **Role**: Quality gatekeeper for all code changes
 
 **Responsibilities**:
+
 - Automatically reviews every pull request
 - Focuses on security vulnerabilities
 - Checks container configurations
@@ -38,6 +41,7 @@ This project utilizes three AI agents working in harmony to accelerate developme
 **Setup**: Runs on self-hosted runners via Node.js
 
 **Key Features**:
+
 - Conversation history cleared before each review
 - Receives PROJECT_CONTEXT.md for targeted feedback
 - Non-blocking (PR can proceed if review fails)
@@ -48,6 +52,7 @@ This project utilizes three AI agents working in harmony to accelerate developme
 **Role**: Additional code review perspective
 
 **Responsibilities**:
+
 - Reviews code changes in pull requests
 - Suggests improvements and optimizations
 - Identifies potential issues
@@ -56,6 +61,7 @@ This project utilizes three AI agents working in harmony to accelerate developme
 **Access**: GitHub pull request interface
 
 **Key Features**:
+
 - Complements Gemini's automated reviews
 - Provides inline suggestions
 - Focuses on code quality and best practices
@@ -64,7 +70,7 @@ This project utilizes three AI agents working in harmony to accelerate developme
 
 ### Development Flow
 
-1. **Planning Phase**: 
+1. **Planning Phase**:
    - Claude Code helps design architecture
    - Creates implementation plan
    - Sets up project structure
@@ -94,19 +100,22 @@ This project utilizes three AI agents working in harmony to accelerate developme
 
 ## Best Practices
 
-### For Claude Code:
+### For Claude Code
+
 - Provide clear CLAUDE.md guidelines
 - Use for complex, multi-file changes
 - Leverage for documentation and tests
 - Ask to follow container-first approach
 
-### For Gemini Reviews:
+### For Gemini Reviews
+
 - Keep PROJECT_CONTEXT.md updated
 - Clear history before reviews
 - Focus feedback on security and standards
 - Don't block PR on review failures
 
-### For Copilot:
+### For Copilot
+
 - Enable for pull request reviews
 - Consider all suggestions carefully
 - Provides different perspective from Gemini
@@ -114,18 +123,21 @@ This project utilizes three AI agents working in harmony to accelerate developme
 
 ## Configuration
 
-### Claude Code Setup:
+### Claude Code Setup
+
 - Follows CLAUDE.md guidelines
 - Has access to all project commands
 - Understands container-first philosophy
 
-### Gemini CLI Setup:
+### Gemini CLI Setup
+
 ```bash
 npm install -g @google/gemini-cli
 gemini  # Authenticate on first use
 ```
 
-### Copilot Setup:
+### Copilot Setup
+
 - Enable in repository settings
 - Configure for pull request reviews
 - Set review preferences

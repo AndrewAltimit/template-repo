@@ -5,6 +5,7 @@ This document explains the container-first philosophy that drives this project's
 ## Container-First Philosophy
 
 This project embraces a **container-first approach** as a core design principle:
+
 - **Everything that can be containerized, is containerized**
 - **Zero local tool installation required** (except Docker itself)
 - **Maximum portability** - runs identically on any Linux system
@@ -23,6 +24,7 @@ This project embraces a **container-first approach** as a core design principle:
 ### Python CI Container
 
 The Python CI container (`docker/python-ci.Dockerfile`) includes all necessary tools:
+
 - **Formatters**: Black, isort
 - **Linters**: flake8, pylint, mypy
 - **Testing**: pytest, pytest-cov, pytest-asyncio
@@ -44,6 +46,7 @@ python-ci:
 ```
 
 Key features:
+
 - Runs as current user to avoid permission issues
 - Python cache prevention enabled
 - Mounts current directory as working directory
@@ -114,6 +117,7 @@ GitHub Actions workflows use the containerized approach:
 ```
 
 This ensures:
+
 - Consistent behavior between local and CI environments
 - No need to install Python dependencies on runners
 - Faster execution with cached Docker images
@@ -123,11 +127,13 @@ This ensures:
 To add a new Python tool:
 
 1. Update `docker/python-ci.Dockerfile`:
+
    ```dockerfile
    RUN pip install --no-cache-dir new-tool
    ```
 
 2. Add to `run-ci.sh` if needed:
+
    ```bash
    new-stage)
      echo "=== Running new tool ==="
@@ -136,6 +142,7 @@ To add a new Python tool:
    ```
 
 3. Rebuild the container:
+
    ```bash
    docker-compose build python-ci
    ```
@@ -143,6 +150,7 @@ To add a new Python tool:
 ## Troubleshooting
 
 ### Container Build Issues
+
 ```bash
 # Force rebuild without cache
 docker-compose build --no-cache python-ci
@@ -152,6 +160,7 @@ docker-compose build python-ci 2>&1 | tee build.log
 ```
 
 ### Permission Issues
+
 ```bash
 # Verify user IDs
 echo "USER_ID=$(id -u) GROUP_ID=$(id -g)"
@@ -161,6 +170,7 @@ USER_ID=$(id -u) GROUP_ID=$(id -g) docker-compose run --rm python-ci command
 ```
 
 ### Performance Optimization
+
 ```bash
 # Use BuildKit for faster builds
 DOCKER_BUILDKIT=1 docker-compose build python-ci
@@ -172,12 +182,14 @@ docker image prune -f
 ## What's Containerized vs What's Not
 
 ### Containerized ✅
+
 - **All Python tools**: Black, isort, flake8, pylint, mypy, pytest
 - **MCP server**: Runs in its own container with all dependencies
 - **CI/CD operations**: All pipeline steps use containers
 - **Development tools**: Any tool that doesn't need Docker access
 
 ### Not Containerized ❌
+
 - **Gemini CLI**: Needs to potentially invoke Docker (would require Docker-in-Docker)
 - **Docker Compose**: Obviously needs to run on the host
 - **GitHub Actions runner**: Needs system-level access
@@ -201,6 +213,7 @@ docker image prune -f
 ## Philosophy in Practice
 
 This container-first approach means:
+
 - **No README sections about installing dependencies**
 - **No version compatibility matrices**
 - **No "please install X, Y, Z first" instructions**

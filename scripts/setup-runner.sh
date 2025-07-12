@@ -27,7 +27,7 @@ fi
 # Function to check prerequisites
 check_prerequisites() {
     echo "📋 Checking prerequisites..."
-    
+
     # Check for required commands
     local required_commands=("curl" "tar" "git" "sudo")
     for cmd in "${required_commands[@]}"; do
@@ -37,7 +37,7 @@ check_prerequisites() {
             exit 1
         fi
     done
-    
+
     # Check Docker
     if ! command -v docker &> /dev/null; then
         echo "⚠️  Docker is not installed. Would you like to install it? (y/n)"
@@ -50,20 +50,20 @@ check_prerequisites() {
     else
         echo "✅ Docker is installed"
     fi
-    
+
     echo "✅ All prerequisites checked"
 }
 
 # Function to install Docker
 install_docker() {
     echo "📦 Installing Docker..."
-    
+
     # Install Docker
     curl -fsSL https://get.docker.com | sudo sh
-    
+
     # Add current user to docker group
     sudo usermod -aG docker $USER
-    
+
     echo "✅ Docker installed"
     echo "⚠️  You need to log out and back in for group changes to take effect"
 }
@@ -71,7 +71,7 @@ install_docker() {
 # Function to create runner directory
 create_runner_directory() {
     RUNNER_DIR="$HOME/actions-runner"
-    
+
     if [ -d "$RUNNER_DIR" ]; then
         echo "⚠️  Runner directory already exists at $RUNNER_DIR"
         echo "Would you like to remove it and start fresh? (y/n)"
@@ -82,7 +82,7 @@ create_runner_directory() {
             echo "Using existing directory..."
         fi
     fi
-    
+
     mkdir -p "$RUNNER_DIR"
     cd "$RUNNER_DIR"
     echo "✅ Created runner directory at $RUNNER_DIR"
@@ -91,15 +91,15 @@ create_runner_directory() {
 # Function to download runner
 download_runner() {
     echo "📥 Downloading GitHub Actions runner v${RUNNER_VERSION}..."
-    
+
     # Determine download URL based on OS and architecture
     local download_url="https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-${RUNNER_OS}-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz"
-    
+
     # Download and extract
     curl -O -L "$download_url"
     tar xzf "./actions-runner-${RUNNER_OS}-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz"
     rm "./actions-runner-${RUNNER_OS}-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz"
-    
+
     echo "✅ Runner downloaded and extracted"
 }
 
@@ -122,7 +122,7 @@ get_runner_token() {
     echo "Enter your registration token:"
     read -s RUNNER_TOKEN
     echo ""
-    
+
     if [ -z "$RUNNER_TOKEN" ]; then
         echo "❌ No token provided. Exiting."
         exit 1
@@ -132,22 +132,22 @@ get_runner_token() {
 # Function to configure runner
 configure_runner() {
     echo "⚙️  Configuring runner..."
-    
+
     # Get repository or organization URL
     echo "Enter the repository or organization URL:"
     echo "Example: https://github.com/owner/repo or https://github.com/org"
     read -r REPO_URL
-    
+
     # Get runner name
     echo "Enter a name for this runner (default: $(hostname)):"
     read -r RUNNER_NAME
     RUNNER_NAME=${RUNNER_NAME:-$(hostname)}
-    
+
     # Get runner labels
     echo "Enter additional labels for this runner (comma-separated, default: self-hosted,linux):"
     read -r RUNNER_LABELS
     RUNNER_LABELS=${RUNNER_LABELS:-"self-hosted,linux"}
-    
+
     # Configure the runner
     ./config.sh \
         --url "$REPO_URL" \
@@ -156,7 +156,7 @@ configure_runner() {
         --labels "$RUNNER_LABELS" \
         --unattended \
         --replace
-    
+
     echo "✅ Runner configured successfully"
 }
 
@@ -166,12 +166,12 @@ install_service() {
     echo "🔧 Service Installation"
     echo "Would you like to install the runner as a systemd service? (y/n)"
     read -r response
-    
+
     if [[ "$response" =~ ^[Yy]$ ]]; then
         echo "Installing runner service..."
         sudo ./svc.sh install
         sudo ./svc.sh start
-        
+
         echo "✅ Runner installed as service"
         echo ""
         echo "Service commands:"
@@ -191,16 +191,16 @@ install_service() {
 setup_mcp_environment() {
     echo ""
     echo "🤖 Setting up MCP environment..."
-    
+
     # Create MCP directories
     mkdir -p "$HOME/.mcp/configs"
-    
+
     # Copy configurations if available
     if [ -f "../mcp-config.json" ]; then
         cp ../mcp-config.json "$HOME/.mcp/configs/"
         echo "✅ Copied MCP configuration"
     fi
-    
+
     echo "✅ MCP environment setup complete"
 }
 
@@ -221,7 +221,7 @@ main() {
     echo ""
     setup_mcp_environment
     echo ""
-    
+
     echo "🎉 Setup complete!"
     echo ""
     echo "Next steps:"

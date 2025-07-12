@@ -14,7 +14,13 @@
             "language": {
               "type": "string",
               "description": "Programming language",
-              "enum": ["python", "javascript", "typescript", "go", "rust"]
+              "enum": [
+                "python",
+                "javascript",
+                "typescript",
+                "go",
+                "rust"
+              ]
             }
           }
         },
@@ -66,7 +72,11 @@
             },
             "output_format": {
               "type": "string",
-              "enum": ["mp4", "gif", "webm"],
+              "enum": [
+                "mp4",
+                "gif",
+                "webm"
+              ],
               "default": "mp4"
             }
           }
@@ -80,7 +90,11 @@
             },
             "format": {
               "type": "string",
-              "enum": ["pdf", "dvi", "ps"],
+              "enum": [
+                "pdf",
+                "dvi",
+                "ps"
+              ],
               "default": "pdf"
             }
           }
@@ -135,7 +149,9 @@
   },
   "security": {
     "require_auth": false,
-    "allowed_origins": ["*"],
+    "allowed_origins": [
+      "*"
+    ],
     "rate_limit": {
       "enabled": true,
       "requests_per_minute": 60
