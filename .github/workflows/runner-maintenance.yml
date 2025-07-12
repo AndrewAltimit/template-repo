@@ -34,13 +34,9 @@ jobs:
   # Runner health check
   runner-health-check:
     name: Runner Health Check
-    runs-on: ${{ matrix.runner }}
+    runs-on: self-hosted
     if: github.event.inputs.action == 'health-check' || github.event.inputs.action == 'full-maintenance' || github.event_name == 'schedule'
-    strategy:
-      matrix:
-        runner: [ubuntu-latest]
-        # Add self-hosted runners if available: [ubuntu-latest, self-hosted]
-    
+
     steps:
     - name: System Information
       run: |
@@ -255,12 +251,8 @@ jobs:
   # Container and cache cleanup
   runner-cleanup:
     name: Runner Cleanup
-    runs-on: ${{ matrix.runner }}
+    runs-on: self-hosted
     if: github.event.inputs.action == 'cleanup' || github.event.inputs.action == 'full-maintenance' || github.event_name == 'schedule'
-    strategy:
-      matrix:
-        runner: [ubuntu-latest]
-        # Add self-hosted runners if available
     
     steps:
     - name: Pre-cleanup Status
@@ -429,12 +421,8 @@ jobs:
   # Update container images
   update-images:
     name: Update Container Images
-    runs-on: ${{ matrix.runner }}
+    runs-on: self-hosted
     if: github.event.inputs.action == 'update-images' || github.event.inputs.action == 'full-maintenance'
-    strategy:
-      matrix:
-        runner: [ubuntu-latest]
-        # Add self-hosted runners if available
     
     steps:
     - name: Checkout code
@@ -483,7 +471,7 @@ jobs:
   # Generate maintenance summary
   maintenance-summary:
     name: Generate Maintenance Summary
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: [runner-health-check, runner-cleanup, update-images]
     if: always() && (github.event.inputs.action == 'full-maintenance' || github.event_name == 'schedule')
     
