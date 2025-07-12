@@ -20,7 +20,7 @@ MCP tools are functions that can be executed through the MCP server to perform v
 All tools can be executed via POST request to `/tools/execute`:
 
 ```bash
-curl -X POST http://localhost:8000/tools/execute \
+curl -X POST http://localhost:8005/tools/execute \
   -H "Content-Type: application/json" \
   -d '{
     "tool": "tool_name",
@@ -137,6 +137,35 @@ Get AI assistance from Google's Gemini model for technical questions, code revie
   "tokens_used": 245
 }
 ```
+
+### clear_gemini_history
+
+Clear Gemini's conversation history to ensure fresh responses without cached context.
+
+**Parameters:**
+- None
+
+**Example:**
+```python
+{
+  "tool": "clear_gemini_history",
+  "arguments": {}
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Cleared 5 conversation entries",
+  "cleared_entries": 5
+}
+```
+
+**Use Cases:**
+- Before PR reviews to ensure fresh analysis
+- When switching between different contexts
+- To reset after errors or incorrect responses
 
 ### Advanced Gemini Features
 

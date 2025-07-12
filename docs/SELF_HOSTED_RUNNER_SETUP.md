@@ -49,10 +49,10 @@ This guide documents the requirements and setup process for self-hosted GitHub A
 5. **Gemini CLI** (pre-authenticated)
    ```bash
    # Install Gemini CLI
-   npm install -g @google/generative-ai-cli
+   npm install -g @google/gemini-cli
    
-   # Authenticate (one-time setup)
-   gemini auth login
+   # Authenticate (happens automatically on first use)
+   gemini
    ```
 
 6. **Python** (v3.10+)
@@ -98,9 +98,11 @@ The CI/CD pipeline runs Docker containers with the current user's UID/GID to avo
 
 ```bash
 # These are automatically set by the scripts
-export UID=$(id -u)
-export GID=$(id -g)
+export USER_ID=$(id -u)
+export GROUP_ID=$(id -g)
 ```
+
+Note: We use `USER_ID` and `GROUP_ID` instead of `UID` and `GID` because `UID` is a readonly variable in some shells.
 
 ### Docker Configuration
 Ensure Docker can be run without sudo:
@@ -153,6 +155,13 @@ If you encounter permission errors:
 1. Ensure your user is in the `docker` group
 2. Verify the UID/GID environment variables are set correctly
 3. Check that the workspace directory has proper permissions
+4. Use the fix script: `./scripts/fix-runner-permissions.sh`
+
+**Python Cache Prevention:**
+The CI/CD system prevents Python cache issues by:
+- Setting `PYTHONDONTWRITEBYTECODE=1` in all containers
+- Disabling pytest cache in `pytest.ini`
+- Running containers with proper user permissions
 
 ### Docker Build Failures
 1. Check available disk space: `df -h`

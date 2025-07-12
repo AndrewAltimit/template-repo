@@ -18,36 +18,39 @@ pytest -k "test_format" -v
 
 ### Code Quality
 ```bash
-# Format code with Black
-black .
+# Using containerized CI scripts (recommended)
+./scripts/run-ci.sh format      # Check formatting
+./scripts/run-ci.sh lint-basic   # Basic linting
+./scripts/run-ci.sh lint-full    # Full linting suite
+./scripts/run-ci.sh autoformat   # Auto-format code
 
-# Check formatting without making changes
-black --check .
+# Direct Docker Compose commands
+docker-compose run --rm python-ci black --check .
+docker-compose run --rm python-ci flake8 .
+docker-compose run --rm python-ci pylint tools/ scripts/
+docker-compose run --rm python-ci mypy . --ignore-missing-imports
 
-# Run linting
-flake8 .
-pylint tools/ scripts/
-
-# Type checking
-mypy . --ignore-missing-imports
+# Note: All Python CI/CD tools run in containers to ensure consistency
 ```
 
 ### Development
 ```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Start MCP server locally
-python tools/mcp/mcp_server.py
-
-# Start MCP server via Docker
+# Start MCP server via Docker (recommended)
 docker-compose up -d mcp-server
+
+# View MCP server logs
+docker-compose logs -f mcp-server
+
+# Test MCP server (port 8005)
+curl http://localhost:8005/health
+python scripts/test-mcp-server.py
 
 # Run the main application
 python main.py
 
-# Test MCP server
-python scripts/test-mcp-server.py
+# For local development without Docker
+pip install -r requirements.txt
+python tools/mcp/mcp_server.py
 ```
 
 ### Docker Operations
@@ -57,12 +60,28 @@ docker-compose up -d
 
 # View logs
 docker-compose logs -f mcp-server
+docker-compose logs -f python-ci
 
 # Stop services
 docker-compose down
 
 # Rebuild after changes
 docker-compose build mcp-server
+docker-compose build python-ci
+```
+
+### Helper Scripts
+```bash
+# CI/CD operations script
+./scripts/run-ci.sh [stage]
+# Stages: format, lint-basic, lint-full, security, test, yaml-lint, json-lint, autoformat
+
+# Lint stage helper (used in workflows)
+./scripts/run-lint-stage.sh [stage]
+# Stages: format, basic, full
+
+# Fix runner permission issues
+./scripts/fix-runner-permissions.sh
 ```
 
 ## Architecture
@@ -70,21 +89,26 @@ docker-compose build mcp-server
 ### MCP Server Architecture
 The project centers around a Model Context Protocol (MCP) server that provides various AI and development tools:
 
-1. **FastAPI Server** (`tools/mcp/mcp_server.py`): Main HTTP API exposing MCP tools
+1. **FastAPI Server** (`tools/mcp/mcp_server.py`): Main HTTP API on port 8005
 2. **Tool Categories**:
    - **Code Quality**: format_check, lint, analyze, full_ci
-   - **AI Integration**: consult_gemini, create_manim_animation, compile_latex
+   - **AI Integration**: consult_gemini, clear_gemini_history, create_manim_animation, compile_latex
    - **Remote Services**: ComfyUI (image generation), AI Toolkit (LoRA training)
 
-3. **HTTP Bridges** (`scripts/mcp-http-bridge.py`): Connects remote services to MCP server
+3. **Containerized CI/CD**:
+   - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools (Black, isort, flake8, pylint, mypy, pytest)
+   - **Helper Scripts**: Centralized CI operations to reduce workflow complexity
+   - **Cache Prevention**: PYTHONDONTWRITEBYTECODE=1, pytest cache disabled
+
 4. **Configuration** (`mcp-config.json`): Defines available tools, security settings, and rate limits
 
 ### GitHub Actions Integration
 The repository includes comprehensive CI/CD workflows:
-- **PR Validation**: Automatic Gemini AI code review on pull requests
-- **Testing Pipeline**: pytest with coverage reporting
-- **Code Quality**: Multi-stage linting (Black, Flake8, MyPy, Pylint)
-- **Self-hosted Runners**: Scripts for setting up local GitHub Actions runners
+- **PR Validation**: Automatic Gemini AI code review with history clearing
+- **Testing Pipeline**: Containerized pytest with coverage reporting  
+- **Code Quality**: Multi-stage linting in Docker containers
+- **Self-hosted Runners**: All workflows run on self-hosted infrastructure
+- **Runner Maintenance**: Automated cleanup and health checks
 
 ### Key Integration Points
 1. **AI Services**: 

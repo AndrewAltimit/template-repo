@@ -57,12 +57,13 @@ A comprehensive template for projects using Model Context Protocol (MCP) tools w
 
 ### Code Quality
 - `format_check` - Check code formatting
-- `lint` - Run linting
+- `lint` - Run linting  
 - `analyze` - Static analysis
 - `full_ci` - Complete CI pipeline
 
 ### AI Integration
 - `consult_gemini` - Get AI assistance
+- `clear_gemini_history` - Clear conversation history
 - `create_manim_animation` - Create animations
 - `compile_latex` - Generate documents
 
@@ -92,20 +93,45 @@ See [setup guide](docs/GEMINI_SETUP.md) for details.
 
 Edit `mcp-config.json` to customize available tools and their settings.
 
+### CI/CD Configuration
+
+All Python CI/CD operations run in Docker containers. See [Containerized CI Documentation](docs/CONTAINERIZED_CI.md) for details.
+
 ## GitHub Actions
 
 This template includes workflows for:
 - **Pull Request Validation** - Automatic code review with Gemini AI
-- **Continuous Integration** - Full CI pipeline on main branch
-- **Code Quality Checks** - Linting and formatting
+- **Continuous Integration** - Full CI pipeline on main branch  
+- **Code Quality Checks** - Linting and formatting (containerized)
 - **Automated Testing** - Unit and integration tests
-- **Deployment Pipelines** - Container builds and deployment
+- **Runner Maintenance** - Automated cleanup and health checks
 
-All workflows support both GitHub-hosted and self-hosted runners.
+All workflows run on self-hosted runners with Docker containerization for consistent environments. Python CI/CD operations run in containers to avoid dependency conflicts.
 
 ## Development
 
+### CI/CD Operations
+All Python CI/CD operations are containerized. Use the helper scripts:
+
+```bash
+# Run formatting checks
+./scripts/run-ci.sh format
+
+# Run linting
+./scripts/run-ci.sh lint-basic
+
+# Run tests
+./scripts/run-ci.sh test
+
+# Auto-format code
+./scripts/run-ci.sh autoformat
+```
+
 ### Running Tests
 ```bash
-docker-compose run --rm mcp-server python -m pytest
+# Using Docker Compose directly
+docker-compose run --rm python-ci pytest tests/ -v
+
+# Using the CI script
+./scripts/run-ci.sh test
 ```
