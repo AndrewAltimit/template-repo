@@ -6,7 +6,7 @@ Unit tests for MCP tools
 import json
 import os
 import sys
-from unittest.mock import AsyncMock, Mock, patch, mock_open
+from unittest.mock import AsyncMock, Mock, mock_open, patch
 
 import pytest
 
@@ -79,16 +79,18 @@ class TestMCPTools:
                         with patch("os.makedirs") as mock_makedirs:
                             with patch("builtins.open", mock_open()) as mock_file:
                                 # Setup mocks
-                                mock_tmpdir.return_value.__enter__.return_value = "/tmp/test"
+                                mock_tmpdir.return_value.__enter__.return_value = (
+                                    "/tmp/test"
+                                )
                                 mock_run.return_value = Mock(returncode=0)
                                 mock_exists.return_value = True
                                 mock_makedirs.return_value = None
 
                                 # Test compilation
-                                latex_content = (
-                                    r"\documentclass{article}\begin{document}Test\end{document}"
+                                latex_content = r"\documentclass{article}\begin{document}Test\end{document}"
+                                result = await MCPTools.compile_latex(
+                                    latex_content, "pdf"
                                 )
-                                result = await MCPTools.compile_latex(latex_content, "pdf")
 
                                 assert result["success"] is True
                                 assert result["format"] == "pdf"
@@ -171,10 +173,11 @@ class TestMCPServer:
 
     def test_execute_tool_success(self, client):
         """Test successful tool execution"""
+
         # Create an async mock function
         async def mock_format_check(*args, **kwargs):
             return {"formatted": True}
-        
+
         with patch("tools.mcp.mcp_server.TOOLS", {"format_check": mock_format_check}):
             response = client.post(
                 "/tools/execute",
