@@ -132,23 +132,30 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Check Node.js and install Gemini CLI
+      - name: Setup Node.js with nvm
+        shell: bash
         run: |
-          # Check if Node.js is available
-          if command -v node &> /dev/null; then
-            echo "Node.js version: $(node --version)"
-            # Install Gemini CLI if not already installed
-            if ! command -v gemini &> /dev/null; then
-              echo "Installing Gemini CLI..."
-              npm install -g @google/gemini-cli || echo "Failed to install Gemini CLI"
-            fi
-          else
-            echo "Node.js not found. Skipping Gemini CLI installation."
-          fi
+          # Source nvm if available
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          
+          # Use Node.js 22.16.0
+          nvm use 22.16.0
+          echo "Node.js version: $(node --version)"
+          
+          # Verify Gemini CLI is available
+          which gemini || echo "Gemini CLI not found in PATH"
 
       - name: Run Gemini review
         continue-on-error: true  # Don't fail the PR if Gemini review fails
+        shell: bash
         run: |
+          # Source nvm and use correct Node version
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          nvm use 22.16.0
+          
+          # Run the Gemini review script
           python scripts/gemini-pr-review.py
 
       - name: Upload review artifact
