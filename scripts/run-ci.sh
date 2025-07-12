@@ -61,7 +61,7 @@ case "$STAGE" in
       -e PYTHONDONTWRITEBYTECODE=1 \
       -e PYTEST_CACHE_DISABLE=1 \
       -e PYTHONPYCACHEPREFIX=/tmp/pycache \
-      python-ci bash -c "pip install -r requirements.txt && pytest tests/ -v --cov=. --cov-report=xml --cov-report=term -p no:cacheprovider --cache-clear $EXTRA_ARGS"
+      python-ci bash -c "pip install -r requirements.txt && pytest tests/ -v --cov=. --cov-report=xml --cov-report=term $EXTRA_ARGS"
     ;;
     
   yaml-lint)
