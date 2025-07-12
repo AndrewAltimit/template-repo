@@ -18,6 +18,7 @@ services:
     environment:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
       - MCP_SERVER_NAME=mcp-server
     networks:
       - mcp-network
@@ -94,6 +95,8 @@ services:
     working_dir: /workspace
     environment:
       - HOME=/tmp
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
     networks:
       - mcp-network
     profiles:

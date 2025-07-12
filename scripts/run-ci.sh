@@ -12,6 +12,15 @@ EXTRA_ARGS="${@:2}"
 export USER_ID=$(id -u)
 export GROUP_ID=$(id -g)
 
+# Export Python cache prevention variables
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPYCACHEPREFIX=/tmp/pycache
+export PYTEST_CACHE_DISABLE=1
+
+# Ensure Python doesn't create bytecode files
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPYCACHEPREFIX=/tmp/pycache
+
 # Build the CI image if needed
 echo "🔨 Building CI image..."
 docker-compose build python-ci
@@ -48,7 +57,11 @@ case "$STAGE" in
     
   test)
     echo "=== Running tests ==="
-    docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && pytest tests/ -v --cov=. --cov-report=xml --cov-report=term -p no:cacheprovider $EXTRA_ARGS"
+    docker-compose run --rm \
+      -e PYTHONDONTWRITEBYTECODE=1 \
+      -e PYTEST_CACHE_DISABLE=1 \
+      -e PYTHONPYCACHEPREFIX=/tmp/pycache \
+      python-ci bash -c "pip install -r requirements.txt && pytest tests/ -v --cov=. --cov-report=xml --cov-report=term -p no:cacheprovider --cache-clear $EXTRA_ARGS"
     ;;
     
   yaml-lint)

@@ -25,14 +25,12 @@ RUN pip install --no-cache-dir \
 # Create working directory
 WORKDIR /workspace
 
-# Set Python to run in unbuffered mode
-ENV PYTHONUNBUFFERED=1
-
-# Configure pytest to not create cache with restrictive permissions
-ENV PYTEST_CACHE_DISABLE=1
-
-# Disable Python bytecode generation to avoid __pycache__ issues
-ENV PYTHONDONTWRITEBYTECODE=1
+# Python environment configuration to prevent cache issues
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPYCACHEPREFIX=/tmp/pycache \
+    PYTEST_CACHE_DISABLE=1 \
+    PYTHONUTF8=1
 
 # Create a non-root user that will be overridden by docker-compose
 RUN useradd -m -u 1000 ciuser
