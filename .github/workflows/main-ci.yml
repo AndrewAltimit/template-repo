@@ -48,7 +48,7 @@ jobs:
   test-suite:
     name: Test Suite
     needs: basic-lint
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 20
     steps:
       - name: Checkout code
@@ -145,7 +145,7 @@ jobs:
   mcp-validation:
     name: MCP Server Validation
     needs: basic-lint
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 10
     steps:
       - name: Checkout code
@@ -211,7 +211,7 @@ jobs:
   docs-build:
     name: Documentation Build
     needs: basic-lint
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 10
     steps:
       - name: Checkout code
@@ -257,7 +257,7 @@ jobs:
   security-scan:
     name: Security Scanning
     needs: basic-lint
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 15
     steps:
       - name: Checkout code
@@ -336,7 +336,7 @@ jobs:
   build-images:
     name: Build Docker Images
     needs: [format-check, basic-lint, full-lint, test-suite, mcp-validation]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 30
     permissions:
       contents: read
@@ -392,7 +392,7 @@ jobs:
     name: Integration Tests
     needs: build-images
     if: success()
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 20
     steps:
       - name: Checkout code
@@ -428,7 +428,7 @@ jobs:
     name: Deploy to Production
     needs: [build-images, integration-tests, security-scan]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     environment: production
     steps:
       - name: Deploy application
@@ -452,7 +452,7 @@ jobs:
       build-images, integration-tests, deploy
     ]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Generate CI Summary
         run: |

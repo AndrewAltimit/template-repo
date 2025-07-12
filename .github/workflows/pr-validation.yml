@@ -35,7 +35,7 @@ jobs:
   # Stage 1: Quick validation and change detection
   detect-changes:
     name: Change Detection & Quick Validation
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 5
     outputs:
       python_changed: ${{ steps.changes.outputs.python_changed }}
@@ -97,7 +97,7 @@ jobs:
     name: Gemini AI Code Review
     needs: detect-changes
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 5
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -175,7 +175,7 @@ jobs:
       needs.detect-changes.outputs.python_changed == 'true' || 
       needs.detect-changes.outputs.mcp_changed == 'true' ||
       !github.event.pull_request.draft
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 10
     steps:
       - name: Checkout code
@@ -223,7 +223,7 @@ jobs:
     name: Config File Validation
     needs: [detect-changes, gemini-review]
     if: needs.detect-changes.outputs.yaml_changed == 'true'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 5
     steps:
       - name: Checkout code
@@ -266,7 +266,7 @@ jobs:
       (needs.detect-changes.outputs.python_changed == 'true' || 
        needs.detect-changes.outputs.mcp_changed == 'true') &&
       !github.event.inputs.skip_tests
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 15
     steps:
       - name: Checkout code
@@ -305,7 +305,7 @@ jobs:
     if: |
       needs.detect-changes.outputs.mcp_changed == 'true' ||
       !github.event.pull_request.draft
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 10
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -361,7 +361,7 @@ jobs:
     if: |
       needs.detect-changes.outputs.docker_changed == 'true' ||
       github.event.inputs.force_docker_validation
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 15
     steps:
       - name: Checkout code
@@ -409,7 +409,7 @@ jobs:
     name: PR Status Summary
     needs: [detect-changes, gemini-review, python-validation, config-validation, test-suite, mcp-validation, docker-validation]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - name: Generate status summary
         run: |

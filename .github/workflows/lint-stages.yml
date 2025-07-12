@@ -26,7 +26,7 @@ on:
 jobs:
   lint:
     name: Lint Stage - ${{ inputs.stage }}
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: ${{ inputs.stage == 'format' && 5 || inputs.stage == 'basic' && 10 || 20 }}
     outputs:
       status: ${{ steps.result.outputs.status }}
