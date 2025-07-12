@@ -1,3 +1,4 @@
+---
 name: Runner Maintenance
 
 on:
@@ -9,10 +10,10 @@ on:
         default: 'health-check'
         type: choice
         options:
-        - health-check
-        - cleanup
-        - update-images
-        - full-maintenance
+          - health-check
+          - cleanup
+          - update-images
+          - full-maintenance
       force_cleanup:
         description: 'Force cleanup of all containers and images'
         required: false
@@ -38,18 +39,18 @@ jobs:
     if: github.event.inputs.action == 'health-check' || github.event.inputs.action == 'full-maintenance' || github.event_name == 'schedule'
 
     steps:
-    - name: System Information
-      run: |
+      - name: System Information
+        run: |
         echo "🖥️ Runner System Information"
         echo "==========================================="
         echo ""
-        
+
         echo "📋 Basic System Info:"
         echo "Runner: ${{ matrix.runner }}"
         echo "OS: $(uname -s)"
         echo "Kernel: $(uname -r)"
         echo "Architecture: $(uname -m)"
-        
+
         if [[ "$OSTYPE" == "linux-gnu"* ]]; then
           echo "Distribution: $(cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2 || echo 'Unknown')"
           echo "Uptime: $(uptime -p || uptime)"
@@ -58,11 +59,11 @@ jobs:
           echo "Uptime: $(uptime)"
         fi
         echo ""
-        
+
         echo "💾 Storage:"
         df -h | grep -E '^/dev|Filesystem|/$' | head -10
         echo ""
-        
+
         echo "🧠 Memory:"
         if command -v free &> /dev/null; then
           free -h
@@ -70,38 +71,38 @@ jobs:
           echo "Memory info not available on this system"
         fi
         echo ""
-        
+
         echo "⚡ CPU:"
         if command -v nproc &> /dev/null; then
           echo "CPU Cores: $(nproc --all)"
         elif command -v sysctl &> /dev/null; then
           echo "CPU Cores: $(sysctl -n hw.ncpu)"
         fi
-        
+
         if command -v lscpu &> /dev/null; then
           lscpu | grep -E '^CPU\(s\)|^Model name|^CPU MHz' || true
         fi
         echo ""
-        
-    - name: Docker Environment Health
-      run: |
+
+      - name: Docker Environment Health
+        run: |
         echo "🐳 Docker Environment Health"
         echo "=============================="
         echo ""
-        
+
         if command -v docker &> /dev/null; then
           echo "📋 Docker Version:"
           docker version --format 'Client: {{.Client.Version}} | Server: {{.Server.Version}}' || docker --version
           echo ""
-          
+
           echo "📊 Docker System Info:"
           docker system df || echo "Docker system df not available"
           echo ""
-          
+
           echo "🏃 Running Containers:"
           docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}" || echo "No running containers"
           echo ""
-          
+
           if command -v docker-compose &> /dev/null; then
             echo "🚀 Docker Compose Version:"
             docker-compose --version || docker compose version
@@ -110,21 +111,21 @@ jobs:
           echo "⚠️ Docker is not installed on this runner"
         fi
         echo ""
-        
-    - name: Python Environment Health
-      run: |
+
+      - name: Python Environment Health
+        run: |
         echo "🐍 Python Environment Health"
         echo "============================"
         echo ""
-        
+
         echo "📋 Python Version:"
         python3 --version || python --version || echo "Python not found"
         echo ""
-        
+
         echo "📦 Pip Version:"
         python3 -m pip --version || pip --version || echo "Pip not found"
         echo ""
-        
+
         echo "🔧 Key Python Tools:"
         for tool in black flake8 pylint mypy pytest; do
           if python3 -m pip show $tool &> /dev/null; then
@@ -135,60 +136,60 @@ jobs:
           fi
         done
         echo ""
-        
-    - name: Runner Capabilities Test
-      run: |
+
+      - name: Runner Capabilities Test
+        run: |
         echo "🧪 Runner Capabilities Test"
         echo "============================"
         echo ""
-        
+
         echo "🔧 Development Tools:"
         echo -n "Git: "; git --version || echo "❌ Not available"
         echo -n "Python3: "; python3 --version || echo "❌ Not available"
         echo -n "Node.js: "; node --version 2>/dev/null || echo "⚠️ Not available (optional)"
         echo -n "Make: "; make --version 2>/dev/null | head -1 || echo "⚠️ Not available (optional)"
         echo ""
-        
+
         echo "📁 Environment Variables:"
         echo "HOME: $HOME"
         echo "RUNNER_TEMP: ${RUNNER_TEMP:-Not set}"
         echo "GITHUB_WORKSPACE: ${GITHUB_WORKSPACE:-Not set}"
         echo "GITHUB_ACTIONS: ${GITHUB_ACTIONS:-Not set}"
-        
+
         if [[ -n "$GITHUB_WORKSPACE" ]] && [[ -d "$GITHUB_WORKSPACE" ]]; then
           echo "Available space in workspace: $(df -h "$GITHUB_WORKSPACE" | tail -1 | awk '{print $4}')"
         fi
         echo ""
-        
-    - name: Network Connectivity Test
-      run: |
+
+      - name: Network Connectivity Test
+        run: |
         echo "🌐 Network Connectivity Test"
         echo "============================"
         echo ""
-        
+
         echo "Testing connectivity to common endpoints:"
-        
+
         # Test GitHub
         if curl -s -o /dev/null -w "%{http_code}" https://api.github.com | grep -q "200"; then
           echo "✅ GitHub API: Connected"
         else
           echo "❌ GitHub API: Failed"
         fi
-        
+
         # Test PyPI
         if curl -s -o /dev/null -w "%{http_code}" https://pypi.org/simple/ | grep -q "200"; then
           echo "✅ PyPI: Connected"
         else
           echo "❌ PyPI: Failed"
         fi
-        
+
         # Test Docker Hub
         if curl -s -o /dev/null -w "%{http_code}" https://hub.docker.com/v2/ | grep -q "200\|401"; then
           echo "✅ Docker Hub: Connected"
         else
           echo "❌ Docker Hub: Failed"
         fi
-        
+
         # Test npm registry
         if curl -s -o /dev/null -w "%{http_code}" https://registry.npmjs.org/ | grep -q "200"; then
           echo "✅ npm Registry: Connected"
@@ -196,18 +197,18 @@ jobs:
           echo "⚠️ npm Registry: Failed (optional)"
         fi
         echo ""
-        
-    - name: Generate Health Report
-      run: |
+
+      - name: Generate Health Report
+        run: |
         cat > runner-health-report.md << 'EOF'
         # 🖥️ Runner Health Report
-        
-        **Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")  
-        **Runner**: ${{ matrix.runner }}  
+
+        **Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        **Runner**: ${{ matrix.runner }}
         **Repository**: ${{ github.repository }}
-        
+
         ## ✅ System Status
-        
+
         | Component | Status | Details |
         |-----------|--------|---------|
         | Operating System | ✅ Healthy | $(uname -s) $(uname -r) |
@@ -215,15 +216,15 @@ jobs:
         | Docker | $(docker --version &> /dev/null && echo "✅ Available" || echo "⚠️ Not found") | $(docker --version 2>/dev/null | cut -d' ' -f3 || echo "N/A") |
         | Git | ✅ Available | $(git --version | cut -d' ' -f3) |
         | Network | ✅ Connected | GitHub API accessible |
-        
+
         ## 🚀 Performance Metrics
-        
+
         - **CPU Cores**: $(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo "Unknown")
         - **Architecture**: $(uname -m)
         - **Available Storage**: $(df -h / | tail -1 | awk '{print $4}')
-        
+
         ## 🔧 Installed Tools
-        
+
         ### Python Packages
         $(for pkg in black flake8 pylint mypy pytest; do
           if python3 -m pip show $pkg &> /dev/null; then
@@ -232,18 +233,18 @@ jobs:
             echo "- ❌ $pkg (not installed)"
           fi
         done)
-        
+
         ### Container Tools
         - Docker: $(docker --version &> /dev/null && echo "✅ Installed" || echo "❌ Not installed")
         - Docker Compose: $(docker-compose --version &> /dev/null && echo "✅ Installed" || echo "❌ Not installed")
-        
+
         ---
         *Generated by automated runner health check*
         EOF
-        
-    - name: Upload Health Report
-      uses: actions/upload-artifact@v4
-      with:
+
+      - name: Upload Health Report
+        uses: actions/upload-artifact@v4
+        with:
         name: runner-health-report-${{ matrix.runner }}-${{ github.run_id }}
         path: runner-health-report.md
         retention-days: 30
@@ -253,169 +254,169 @@ jobs:
     name: Runner Cleanup
     runs-on: self-hosted
     if: github.event.inputs.action == 'cleanup' || github.event.inputs.action == 'full-maintenance' || github.event_name == 'schedule'
-    
+
     steps:
-    - name: Pre-cleanup Status
-      run: |
+      - name: Pre-cleanup Status
+        run: |
         echo "🧹 Pre-Cleanup Status"
         echo "===================="
         echo ""
-        
+
         echo "💾 Storage Before Cleanup:"
         df -h | head -10
         echo ""
-        
+
         if command -v docker &> /dev/null; then
           echo "🐳 Docker Usage Before:"
           docker system df || true
           echo ""
-          
+
           echo "📊 Container Count:"
           echo "Running: $(docker ps -q | wc -l || echo 0)"
           echo "Stopped: $(docker ps -aq --filter status=exited | wc -l || echo 0)"
           echo "Total: $(docker ps -aq | wc -l || echo 0)"
           echo ""
-          
+
           echo "🖼️ Image Count:"
           echo "Total images: $(docker images -q | wc -l || echo 0)"
           echo "Dangling images: $(docker images -f dangling=true -q | wc -l || echo 0)"
         fi
         echo ""
-        
-    - name: Clean Python Cache
-      run: |
+
+      - name: Clean Python Cache
+        run: |
         echo "🐍 Cleaning Python Cache"
         echo "======================="
         echo ""
-        
+
         # Clean pip cache
         echo "Cleaning pip cache..."
         python3 -m pip cache purge 2>/dev/null || pip cache purge 2>/dev/null || echo "Pip cache purge not available"
-        
+
         # Clean Python cache directories
         echo "Cleaning Python cache directories..."
         find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
         find . -type f -name "*.pyc" -delete 2>/dev/null || true
         find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
         find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
-        
+
         echo "✅ Python cache cleaned"
         echo ""
-        
-    - name: Clean Docker Resources
-      if: github.event.inputs.force_cleanup != 'true'
-      run: |
+
+      - name: Clean Docker Resources
+        if: github.event.inputs.force_cleanup != 'true'
+        run: |
         if command -v docker &> /dev/null; then
           echo "🐳 Cleaning Docker Resources"
           echo "==========================="
           echo ""
-          
+
           # Stop all containers related to this repo
           echo "Stopping repository containers..."
           docker ps --format '{{.Names}}' | grep -i "${{ github.event.repository.name }}" | xargs -r docker stop || true
-          
+
           # Remove stopped containers
           echo "Removing stopped containers..."
           docker container prune -f || true
-          
+
           # Remove dangling images
           echo "Removing dangling images..."
           docker image prune -f || true
-          
+
           # Remove unused networks
           echo "Removing unused networks..."
           docker network prune -f || true
-          
+
           # Remove unused volumes (careful with this)
           echo "Removing unused volumes..."
           docker volume prune -f || true
-          
+
           # Clean build cache
           echo "Cleaning build cache..."
           docker builder prune -f --filter "until=24h" || true
-          
+
           echo "✅ Docker cleanup completed"
         else
           echo "⚠️ Docker not available, skipping Docker cleanup"
         fi
         echo ""
-        
-    - name: Force Clean Docker Resources
-      if: github.event.inputs.force_cleanup == 'true'
-      run: |
+
+      - name: Force Clean Docker Resources
+        if: github.event.inputs.force_cleanup == 'true'
+        run: |
         if command -v docker &> /dev/null; then
           echo "🚨 FORCE CLEANING Docker Resources"
           echo "=================================="
           echo ""
-          
+
           echo "⚠️ WARNING: Force cleanup will remove ALL Docker resources!"
-          
+
           # Stop all containers
           echo "Stopping ALL containers..."
           docker stop $(docker ps -aq) 2>/dev/null || true
-          
+
           # Remove all containers
           echo "Removing ALL containers..."
           docker rm $(docker ps -aq) 2>/dev/null || true
-          
+
           # Remove all images
           echo "Removing ALL images..."
           docker rmi $(docker images -aq) -f 2>/dev/null || true
-          
+
           # System prune with all
           echo "Running system prune..."
           docker system prune -af --volumes || true
-          
+
           echo "✅ Force cleanup completed"
         else
           echo "⚠️ Docker not available"
         fi
         echo ""
-        
-    - name: Clean GitHub Actions Cache
-      run: |
+
+      - name: Clean GitHub Actions Cache
+        run: |
         echo "📦 Cleaning GitHub Actions Cache"
         echo "=============================="
         echo ""
-        
+
         # Clean workflow logs (if accessible)
         echo "Note: Workflow run logs are managed by GitHub and cannot be cleaned from here."
-        
+
         # Clean temporary files
         if [[ -n "${RUNNER_TEMP}" ]] && [[ -d "${RUNNER_TEMP}" ]]; then
           echo "Cleaning runner temp directory..."
           find "${RUNNER_TEMP}" -type f -mtime +1 -delete 2>/dev/null || true
           find "${RUNNER_TEMP}" -type d -empty -delete 2>/dev/null || true
         fi
-        
+
         echo "✅ GitHub Actions cache cleanup completed"
         echo ""
-        
-    - name: Post-cleanup Status
-      run: |
+
+      - name: Post-cleanup Status
+        run: |
         echo "📊 Post-Cleanup Status"
         echo "===================="
         echo ""
-        
+
         echo "💾 Storage After Cleanup:"
         df -h | head -10
         echo ""
-        
+
         if command -v docker &> /dev/null; then
           echo "🐳 Docker Usage After:"
           docker system df || true
           echo ""
-          
+
           echo "📊 Final Container Count:"
           echo "Running: $(docker ps -q | wc -l || echo 0)"
           echo "Total: $(docker ps -aq | wc -l || echo 0)"
           echo ""
-          
+
           echo "🖼️ Final Image Count:"
           echo "Total images: $(docker images -q | wc -l || echo 0)"
         fi
         echo ""
-        
+
         echo "✅ Cleanup operation completed!"
 
   # Update container images
@@ -423,7 +424,7 @@ jobs:
     name: Update Container Images
     runs-on: self-hosted
     if: github.event.inputs.action == 'update-images' || github.event.inputs.action == 'full-maintenance'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -433,41 +434,41 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
-        
+
       - name: Update Base Images
         run: |
           if command -v docker &> /dev/null; then
             echo "📥 Updating Base Images"
             echo "======================="
             echo ""
-            
+
             # Common base images
             echo "Updating common base images..."
             for image in ubuntu:22.04 python:3.11-slim alpine:latest; do
               echo "Pulling $image..."
               docker pull $image || echo "Failed to pull $image"
             done
-            
+
             echo "✅ Base images updated"
           else
             echo "⚠️ Docker not available"
           fi
           echo ""
-          
+
       - name: Build Project Images
         run: |
           if command -v docker &> /dev/null && [ -f "docker-compose.yml" ]; then
             echo "🔨 Building Project Images"
             echo "========================"
             echo ""
-            
+
             echo "Building images defined in docker-compose.yml..."
             docker-compose build --no-cache || echo "Some images failed to build"
-            
+
             echo ""
             echo "📋 Built images:"
             docker-compose images || docker images | grep -i "${{ github.event.repository.name }}"
-            
+
             echo "✅ Project images built"
           else
             echo "⚠️ Docker or docker-compose.yml not available"
@@ -480,87 +481,87 @@ jobs:
     runs-on: self-hosted
     needs: [runner-health-check, runner-cleanup, update-images]
     if: always() && (github.event.inputs.action == 'full-maintenance' || github.event_name == 'schedule')
-    
+
     steps:
-    - name: Generate Summary
-      run: |
+      - name: Generate Summary
+        run: |
         cat > maintenance-summary.md << 'EOF'
         # 🔧 Runner Maintenance Summary
-        
-        **Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")  
-        **Trigger**: ${{ github.event_name == 'schedule' && 'Scheduled Maintenance' || 'Manual Trigger' }}  
+
+        **Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        **Trigger**: ${{ github.event_name == 'schedule' && 'Scheduled Maintenance' || 'Manual Trigger' }}
         **Repository**: ${{ github.repository }}
-        
+
         ## 📋 Maintenance Results
-        
+
         | Task | Status | Notes |
         |------|--------|-------|
         | Health Check | ${{ needs.runner-health-check.result == 'success' && '✅ Completed' || needs.runner-health-check.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} | System health verification |
         | Cleanup | ${{ needs.runner-cleanup.result == 'success' && '✅ Completed' || needs.runner-cleanup.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} | Cache and resource cleanup |
         | Image Updates | ${{ needs.update-images.result == 'success' && '✅ Completed' || needs.update-images.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} | Container image updates |
-        
+
         ## 🎯 Next Steps
-        
+
         1. Review the health check reports for any issues
         2. Monitor storage usage trends
         3. Update dependencies if needed
-        
+
         ## 🔧 Manual Maintenance Commands
-        
+
         ```bash
         # Check system status
         df -h
         docker system df
-        
+
         # Clean Python cache
         python3 -m pip cache purge
         find . -type d -name "__pycache__" -exec rm -rf {} +
-        
+
         # Clean Docker resources
         docker system prune -af
         docker volume prune -f
-        
+
         # Update all pip packages
         pip list --outdated
         ```
-        
+
         ## 📅 Next Scheduled Maintenance
-        
+
         Next Sunday at 3:00 AM UTC
-        
+
         ---
         *Automated maintenance completed*
         EOF
-        
-    - name: Upload Summary
-      uses: actions/upload-artifact@v4
-      with:
+
+      - name: Upload Summary
+        uses: actions/upload-artifact@v4
+        with:
         name: maintenance-summary-${{ github.run_id }}
         path: maintenance-summary.md
         retention-days: 90
-        
-    - name: Create Issue if Failed
-      if: |
-        needs.runner-health-check.result == 'failure' ||
-        needs.runner-cleanup.result == 'failure' ||
-        needs.update-images.result == 'failure'
-      uses: actions/github-script@v7
-      with:
+
+      - name: Create Issue if Failed
+        if: |
+          needs.runner-health-check.result == 'failure' ||
+          needs.runner-cleanup.result == 'failure' ||
+          needs.update-images.result == 'failure'
+        uses: actions/github-script@v7
+        with:
         script: |
           const title = '🚨 Runner Maintenance Failed';
           const body = `## Runner Maintenance Failure Report
-          
+
           **Date**: ${new Date().toISOString()}
           **Run**: [#${context.runNumber}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
-          
+
           ### Failed Tasks:
           ${context.needs['runner-health-check'].result === 'failure' ? '- ❌ Health Check\n' : ''}
           ${context.needs['runner-cleanup'].result === 'failure' ? '- ❌ Cleanup\n' : ''}
           ${context.needs['update-images'].result === 'failure' ? '- ❌ Image Updates\n' : ''}
-          
+
           Please investigate the failed tasks and run manual maintenance if needed.
           `;
-          
+
           await github.rest.issues.create({
             owner: context.repo.owner,
             repo: context.repo.repo,
