@@ -2,7 +2,7 @@
 name: Main CI
 # Comprehensive CI for main branch with all validation stages
 
-on:
+'on':
   push:
     branches: [main]
   workflow_dispatch:
@@ -165,10 +165,10 @@ jobs:
               # Check if app is initialized
               assert app is not None
               print(\"✅ FastAPI app initialized\")
-              
+
               # Check if tools are available
               print(f\"✅ Tools available: {len(TOOLS)}\")
-              
+
               # List available tools
               for tool_name in TOOLS:
                   print(f\"   - {tool_name}\")
