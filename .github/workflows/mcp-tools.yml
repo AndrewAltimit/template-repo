@@ -35,10 +35,13 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
-      - name: Start MCP server
-        run: |
-          docker-compose up -d mcp-server
-          sleep 10
+      - name: Start MCP server with health check
+        uses: ./.github/actions/docker-compose-health-check
+        with:
+          services: 'mcp-server'
+          health-endpoint: 'http://localhost:8005/health'
+          timeout: '30'
+          build: 'false'  # Don't rebuild since this is for manual execution
 
       - name: Execute MCP tool
         id: mcp_tool
@@ -96,6 +99,10 @@ jobs:
               repo: context.repo.repo,
               body: comment
             });
+
+      - name: Stop MCP server
+        if: always()
+        run: docker-compose down
 
   gemini-consultation:
     name: Gemini AI Consultation

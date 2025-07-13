@@ -157,19 +157,27 @@ jobs:
             echo "Found PROJECT_CONTEXT.md - Gemini will have full project context"
           fi
 
+      - name: Start MCP server for Gemini history clear
+        continue-on-error: true
+        uses: ./.github/actions/docker-compose-health-check
+        with:
+          services: 'mcp-server'
+          health-endpoint: 'http://localhost:8005/health'
+          timeout: '30'
+          build: 'true'
+
       - name: Clear Gemini conversation history
         continue-on-error: true
         run: |
           echo "🧹 Clearing Gemini conversation history..."
-          # Start MCP server if not running
-          docker-compose up --build -d mcp-server
-          sleep 5
-
           # Call the clear history endpoint via MCP server
           curl -X POST http://localhost:8005/tools/execute \
             -H "Content-Type: application/json" \
             -d '{"tool": "clear_gemini_history", "arguments": {}}' \
             || echo "Warning: Could not clear Gemini history"
+
+          # Stop the server after clearing history
+          docker-compose down
 
       - name: Run Gemini review
         continue-on-error: true  # Don't fail the PR if Gemini review fails
