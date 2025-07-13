@@ -184,7 +184,7 @@ jobs:
           echo "🌐 Testing MCP HTTP bridge..."
 
           # Start the MCP server with docker-compose
-          docker-compose up -d mcp-server
+          docker-compose up --build -d mcp-server
 
           # Wait for it to start
           sleep 5
@@ -377,8 +377,8 @@ jobs:
           echo "🐳 Validating docker-compose configuration..."
           docker-compose config
 
-          echo "🐳 Testing service startup..."
-          docker-compose up -d
+          echo "🐳 Building images and testing service startup..."
+          docker-compose up --build -d
 
           # Wait for services to be healthy with timeout
           echo "⏳ Waiting for services to be healthy..."
@@ -426,8 +426,8 @@ jobs:
         run: |
           echo "🧪 Running integration tests..."
 
-          # Start services
-          docker-compose up -d
+          # Build and start services
+          docker-compose up --build -d
 
           # Wait for services to be healthy
           echo "⏳ Waiting for services to be ready..."

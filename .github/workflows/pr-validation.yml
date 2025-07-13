@@ -162,7 +162,7 @@ jobs:
         run: |
           echo "🧹 Clearing Gemini conversation history..."
           # Start MCP server if not running
-          docker-compose up -d mcp-server
+          docker-compose up --build -d mcp-server
           sleep 5
 
           # Call the clear history endpoint via MCP server
@@ -403,7 +403,7 @@ jobs:
       - name: Start MCP server with Docker Compose
         run: |
           echo "🚀 Starting MCP server with Docker Compose..."
-          docker-compose up -d mcp-server
+          docker-compose up --build -d mcp-server
 
           # Wait for server to be ready
           echo "⏳ Waiting for server to be healthy..."
@@ -509,8 +509,8 @@ jobs:
           echo "🐳 Validating docker-compose configuration..."
           docker-compose config
 
-          echo "🐳 Testing service startup..."
-          docker-compose up -d
+          echo "🐳 Building images and testing service startup..."
+          docker-compose up --build -d
 
           # Wait for services to be healthy with timeout
           echo "⏳ Waiting for services to be healthy..."
