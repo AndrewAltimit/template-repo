@@ -178,41 +178,25 @@ jobs:
           '
           "
 
-      - name: Test MCP HTTP bridge with Docker
+      - name: Start MCP server for HTTP bridge test
+        if: always()
+        uses: ./.github/actions/docker-compose-health-check
+        with:
+          services: 'mcp-server'
+          health-endpoint: 'http://localhost:8005/health'
+          timeout: '30'
+          build: 'true'
+
+      - name: Test MCP HTTP bridge
         if: always()
         run: |
           echo "🌐 Testing MCP HTTP bridge..."
-
-          # Start the MCP server with docker-compose
-          docker-compose up --build -d mcp-server
-
-          # Wait for service to be healthy
-          echo "⏳ Waiting for MCP server to be healthy..."
-          timeout=30
-          elapsed=0
-          while [ $elapsed -lt $timeout ]; do
-            if curl -s http://localhost:8005/health > /dev/null 2>&1; then
-              echo "✅ MCP server is healthy!"
-              break
-            fi
-            echo -n "."
-            sleep 1
-            elapsed=$((elapsed + 1))
-          done
-
-          if [ $elapsed -ge $timeout ]; then
-            echo "❌ Timeout waiting for MCP server"
-            docker-compose ps
-            docker-compose logs mcp-server
-            docker-compose down
-            exit 1
-          fi
-
           # Test the bridge health
           curl -s http://localhost:8005/health || echo "Health check failed"
 
-          # Stop the services
-          docker-compose down
+      - name: Stop MCP server
+        if: always()
+        run: docker-compose down
 
   # Stage 6: Documentation build
   docs-build:
@@ -388,40 +372,17 @@ jobs:
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-python-ci
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-python-ci-${{ github.sha }}
 
-      - name: Test Docker Compose
-        run: |
-          echo "🐳 Validating docker-compose configuration..."
-          docker-compose config
+      - name: Test Docker Compose with health check
+        uses: ./.github/actions/docker-compose-health-check
+        with:
+          services: ''  # all services
+          health-endpoint: 'http://localhost:8005/health'
+          timeout: '60'
+          build: 'true'
 
-          echo "🐳 Building images and testing service startup..."
-          docker-compose up --build -d
-
-          # Wait for services to be healthy with timeout
-          echo "⏳ Waiting for services to be healthy..."
-          timeout=60
-          elapsed=0
-          while [ $elapsed -lt $timeout ]; do
-            if curl -s http://localhost:8005/health > /dev/null 2>&1; then
-              echo "✅ MCP server is healthy!"
-              break
-            fi
-            echo -n "."
-            sleep 2
-            elapsed=$((elapsed + 2))
-          done
-
-          if [ $elapsed -ge $timeout ]; then
-            echo "❌ Timeout waiting for services to be healthy"
-            docker-compose ps
-            docker-compose logs
-            docker-compose down
-            exit 1
-          fi
-
-          docker-compose ps
-          docker-compose down
-
-          echo "✅ Docker Compose validation passed"
+      - name: Stop services
+        if: always()
+        run: docker-compose down
 
   # Stage 9: Integration tests
   integration-tests:
@@ -438,45 +399,25 @@ jobs:
         run: |
           docker-compose version
 
-      - name: Run integration tests
+      - name: Start services for integration tests
+        uses: ./.github/actions/docker-compose-health-check
+        with:
+          services: ''  # all services
+          health-endpoint: 'http://localhost:8005/health'
+          timeout: '60'
+          build: 'true'
+
+      - name: Run integration test suite
         run: |
           echo "🧪 Running integration tests..."
-
-          # Build and start services
-          docker-compose up --build -d
-
-          # Wait for services to be healthy
-          echo "⏳ Waiting for services to be ready..."
-          timeout=60
-          elapsed=0
-          while [ $elapsed -lt $timeout ]; do
-            if curl -s http://localhost:8005/health > /dev/null 2>&1; then
-              echo "✅ Services are ready!"
-              break
-            fi
-            echo -n "."
-            sleep 2
-            elapsed=$((elapsed + 2))
-          done
-
-          if [ $elapsed -ge $timeout ]; then
-            echo "❌ Timeout waiting for services"
-            docker-compose ps
-            docker-compose logs
-            docker-compose down
-            exit 1
-          fi
-
-          # Check services are running
-          docker-compose ps
-
           # Run integration test suite if available
           if [ -f "tests/integration_test.py" ]; then
             docker-compose exec -T mcp-server pytest tests/integration_test.py -v
           fi
 
-          # Clean up
-          docker-compose down
+      - name: Clean up services
+        if: always()
+        run: docker-compose down
 
   # Stage 10: Deploy (placeholder)
   deploy:

@@ -400,16 +400,13 @@ jobs:
 
       # No need to install Python or dependencies - Docker handles it
 
-      - name: Start MCP server with Docker Compose
-        run: |
-          echo "🚀 Starting MCP server with Docker Compose..."
-          docker-compose up --build -d mcp-server
-
-          # Wait for server to be ready
-          echo "⏳ Waiting for server to be healthy..."
-          timeout 60 bash -c 'until curl -s http://localhost:8005/health > /dev/null 2>&1; do echo -n "."; sleep 1; done'
-          echo ""
-          echo "✅ MCP server is ready!"
+      - name: Start MCP server with health check
+        uses: ./.github/actions/docker-compose-health-check
+        with:
+          services: 'mcp-server'
+          health-endpoint: 'http://localhost:8005/health'
+          timeout: '60'
+          build: 'true'
 
       - name: Test MCP server functionality
         run: |
@@ -501,40 +498,17 @@ jobs:
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-python-ci-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Test Docker Compose
-        run: |
-          echo "🐳 Validating docker-compose configuration..."
-          docker-compose config
+      - name: Test Docker Compose with health check
+        uses: ./.github/actions/docker-compose-health-check
+        with:
+          services: ''  # all services
+          health-endpoint: 'http://localhost:8005/health'
+          timeout: '60'
+          build: 'true'
 
-          echo "🐳 Building images and testing service startup..."
-          docker-compose up --build -d
-
-          # Wait for services to be healthy with timeout
-          echo "⏳ Waiting for services to be healthy..."
-          timeout=60
-          elapsed=0
-          while [ $elapsed -lt $timeout ]; do
-            if curl -s http://localhost:8005/health > /dev/null 2>&1; then
-              echo "✅ MCP server is healthy!"
-              break
-            fi
-            echo -n "."
-            sleep 2
-            elapsed=$((elapsed + 2))
-          done
-
-          if [ $elapsed -ge $timeout ]; then
-            echo "❌ Timeout waiting for services to be healthy"
-            docker-compose ps
-            docker-compose logs
-            docker-compose down
-            exit 1
-          fi
-
-          docker-compose ps
-          docker-compose down
-
-          echo "✅ Docker Compose validation passed"
+      - name: Stop services
+        if: always()
+        run: docker-compose down
 
   # Final status and summary
   pr-status:
