@@ -379,9 +379,30 @@ jobs:
 
           echo "🐳 Testing service startup..."
           docker-compose up -d
-          sleep 10
+
+          # Wait for services to be healthy with timeout
+          echo "⏳ Waiting for services to be healthy..."
+          timeout=60
+          elapsed=0
+          while [ $elapsed -lt $timeout ]; do
+            if curl -s http://localhost:8005/health > /dev/null 2>&1; then
+              echo "✅ MCP server is healthy!"
+              break
+            fi
+            echo -n "."
+            sleep 2
+            elapsed=$((elapsed + 2))
+          done
+
+          if [ $elapsed -ge $timeout ]; then
+            echo "❌ Timeout waiting for services to be healthy"
+            docker-compose ps
+            docker-compose logs
+            docker-compose down
+            exit 1
+          fi
+
           docker-compose ps
-          docker-compose logs
           docker-compose down
 
           echo "✅ Docker Compose validation passed"
@@ -408,8 +429,26 @@ jobs:
           # Start services
           docker-compose up -d
 
-          # Wait for services to be ready
-          sleep 10
+          # Wait for services to be healthy
+          echo "⏳ Waiting for services to be ready..."
+          timeout=60
+          elapsed=0
+          while [ $elapsed -lt $timeout ]; do
+            if curl -s http://localhost:8005/health > /dev/null 2>&1; then
+              echo "✅ Services are ready!"
+              break
+            fi
+            echo -n "."
+            sleep 2
+            elapsed=$((elapsed + 2))
+          done
+
+          if [ $elapsed -ge $timeout ]; then
+            echo "❌ Timeout waiting for services"
+            docker-compose ps
+            docker-compose logs
+            exit 1
+          fi
 
           # Check services are running
           docker-compose ps
