@@ -296,8 +296,7 @@ Access ComfyUI workflows for image generation.
 
 **Setup Instructions:**
 
-For detailed setup instructions for the ComfyUI MCP server, see:
-https://gist.github.com/AndrewAltimit/f2a21b1a075cc8c9a151483f89e0f11e
+For detailed setup instructions, see the [ComfyUI MCP Server Setup Guide](https://gist.github.com/AndrewAltimit/f2a21b1a075cc8c9a151483f89e0f11e).
 
 **Available Tools:**
 
@@ -317,8 +316,7 @@ Train LoRA models using AI Toolkit.
 
 **Setup Instructions:**
 
-For detailed setup instructions for the AI Toolkit MCP server, see:
-https://gist.github.com/AndrewAltimit/2703c551eb5737de5a4c6767d3626cb8
+For detailed setup instructions, see the [AI Toolkit MCP Server Setup Guide](https://gist.github.com/AndrewAltimit/2703c551eb5737de5a4c6767d3626cb8).
 
 **Available Tools:**
 
