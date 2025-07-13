@@ -97,8 +97,8 @@ This repository leverages **three AI agents** for development and automation:
 
 ### Remote Services
 
-- ComfyUI workflows
-- AI Toolkit LoRA training
+- **ComfyUI workflows** - [Setup guide](https://gist.github.com/AndrewAltimit/f2a21b1a075cc8c9a151483f89e0f11e)
+- **AI Toolkit LoRA training** - [Setup guide](https://gist.github.com/AndrewAltimit/2703c551eb5737de5a4c6767d3626cb8)
 
 ## Configuration
 
