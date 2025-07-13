@@ -82,6 +82,16 @@ class MCPTools:
     async def consult_gemini(question: str, context: Optional[str] = None) -> Dict[str, Any]:
         """Consult Gemini AI for assistance"""
         try:
+            # Check if running in container
+            import os
+
+            if os.getenv("MCP_MODE") == "server" and os.path.exists("/.dockerenv"):
+                return {
+                    "error": "Gemini CLI is not available in containerized environment. "
+                    "Please use the host system's Gemini integration or configure "
+                    "an API-based Gemini integration for containerized usage."
+                }
+
             # Import Gemini integration
             from tools.gemini.gemini_integration import GeminiIntegration
 
@@ -93,12 +103,17 @@ class MCPTools:
                 prompt = f"Context: {context}\n\nQuestion: {question}"
 
             # Get response
-            response = gemini.consult(prompt)
+            result = await gemini.consult_gemini(prompt)
+
+            # Extract response from result
+            response = result.get("response", "")
+            if not response and "error" in result:
+                return {"error": f"Gemini error: {result['error']}"}
 
             return {
                 "response": response,
-                "model": "gemini-pro",
-                "tokens_used": len(prompt.split()) + len(response.split()),
+                "model": result.get("model", "gemini-pro"),
+                "tokens_used": result.get("tokens_used", len(prompt.split()) + len(response.split())),
             }
         except Exception as e:
             return {"error": f"Gemini consultation failed: {str(e)}"}
