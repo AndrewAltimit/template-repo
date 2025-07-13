@@ -236,4 +236,4 @@ When working with the remote MCP servers (AI Toolkit and ComfyUI):
    - Check the gist source directly for complete tool list
    - Chunked upload tools exist even if not shown
 
-See `AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md` for comprehensive details.
+See `docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md` for comprehensive details.

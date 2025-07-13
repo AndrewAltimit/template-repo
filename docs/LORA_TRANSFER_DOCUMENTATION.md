@@ -100,7 +100,7 @@ Once the LoRA is available in ComfyUI's models directory, it can be used in work
 2. **Strength**: Use 1.0 for full effect, lower values for subtle influence
 3. **Trigger Words**: Include the trigger word (e.g., "pixel_cat") in prompts
 4. **Verification**: Use list-loras tool to verify the model is available after transfer
-5. **FLUX Workflows**: Require different structure - see AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md
+5. **FLUX Workflows**: Require different structure - see docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md
 
 ## Error Prevention
 
