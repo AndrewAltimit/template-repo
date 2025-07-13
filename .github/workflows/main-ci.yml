@@ -372,6 +372,20 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Test Docker Compose
+        run: |
+          echo "🐳 Validating docker-compose configuration..."
+          docker-compose config
+
+          echo "🐳 Testing service startup..."
+          docker-compose up -d
+          sleep 10
+          docker-compose ps
+          docker-compose logs
+          docker-compose down
+
+          echo "✅ Docker Compose validation passed"
+
   # Stage 9: Integration tests
   integration-tests:
     name: Integration Tests

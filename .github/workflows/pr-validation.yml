@@ -433,12 +433,14 @@ jobs:
   # Stage 7: Docker image validation
   docker-validation:
     name: Docker Image Validation
-    needs: [detect-changes, gemini-review]
+    needs: [detect-changes, gemini-review, format-check, basic-lint, full-lint]
     if: |
       needs.detect-changes.outputs.docker_changed == 'true' ||
-      github.event.inputs.force_docker_validation
+      needs.detect-changes.outputs.python_changed == 'true' ||
+      github.event.inputs.force_docker_validation ||
+      !github.event.pull_request.draft
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       # No pre-checkout cleanup needed - actions/checkout with clean: true handles this
 
@@ -454,23 +456,53 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Validate Docker builds
-        run: |
-          echo "🐳 Validating Docker image builds..."
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=pr
+            type=sha,prefix=pr-${{ github.event.pull_request.number }}-
 
-          # Test main MCP Dockerfile
-          if [ -f "docker/mcp.Dockerfile" ]; then
-            echo "Building MCP image..."
-            docker build -f docker/mcp.Dockerfile -t mcp-test:${{ github.run_id }} .
-          fi
+      - name: Build MCP image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/mcp.Dockerfile
+          push: false
+          tags: |
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-          # Test MCP HTTP bridge Dockerfile
-          if [ -f "docker/mcp-http-bridge.Dockerfile" ]; then
-            echo "Building MCP HTTP bridge image..."
-            docker build -f docker/mcp-http-bridge.Dockerfile -t mcp-http-bridge-test:${{ github.run_id }} .
-          fi
+      - name: Build MCP HTTP Bridge image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/mcp-http-bridge.Dockerfile
+          push: false
+          tags: |
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-http-bridge
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-http-bridge-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-          echo "✅ Docker image validation passed"
+      - name: Build Python CI image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/python-ci.Dockerfile
+          push: false
+          tags: |
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-python-ci
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-python-ci-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Test Docker Compose
         run: |
