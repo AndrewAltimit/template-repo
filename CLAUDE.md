@@ -214,3 +214,26 @@ The repository includes comprehensive CI/CD workflows:
 - Always follow the container-first philosophy - use Docker for all Python operations
 - Remember that Gemini CLI cannot be containerized (needs Docker access)
 - Use pytest fixtures and mocks for testing external dependencies
+
+## AI Toolkit & ComfyUI Integration Notes
+
+When working with the remote MCP servers (AI Toolkit and ComfyUI):
+
+1. **Dataset Paths**: Always use absolute paths in AI Toolkit configs:
+   - ✅ `/ai-toolkit/datasets/dataset_name`
+   - ❌ `dataset_name` (will fail with "No such file or directory")
+
+2. **LoRA Transfer**: For files >100MB, use chunked upload:
+   - See `transfer_lora_between_services.py` for working implementation
+   - Parameters: `upload_id` (provide UUID), `total_size` (bytes), `chunk` (not `chunk_data`)
+
+3. **FLUX Workflows**: Different from SD workflows:
+   - Use FluxGuidance node (guidance ~3.5)
+   - KSampler: cfg=1.0, sampler="heunpp2", scheduler="simple"
+   - Negative prompt cannot be null (use empty string)
+
+4. **MCP Tool Discovery**: The `/mcp/tools` endpoint may not list all tools
+   - Check the gist source directly for complete tool list
+   - Chunked upload tools exist even if not shown
+
+See `AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md` for comprehensive details.
