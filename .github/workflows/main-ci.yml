@@ -186,8 +186,27 @@ jobs:
           # Start the MCP server with docker-compose
           docker-compose up --build -d mcp-server
 
-          # Wait for it to start
-          sleep 5
+          # Wait for service to be healthy
+          echo "⏳ Waiting for MCP server to be healthy..."
+          timeout=30
+          elapsed=0
+          while [ $elapsed -lt $timeout ]; do
+            if curl -s http://localhost:8005/health > /dev/null 2>&1; then
+              echo "✅ MCP server is healthy!"
+              break
+            fi
+            echo -n "."
+            sleep 1
+            elapsed=$((elapsed + 1))
+          done
+
+          if [ $elapsed -ge $timeout ]; then
+            echo "❌ Timeout waiting for MCP server"
+            docker-compose ps
+            docker-compose logs mcp-server
+            docker-compose down
+            exit 1
+          fi
 
           # Test the bridge health
           curl -s http://localhost:8005/health || echo "Health check failed"
@@ -447,6 +466,7 @@ jobs:
             echo "❌ Timeout waiting for services"
             docker-compose ps
             docker-compose logs
+            docker-compose down
             exit 1
           fi
 
