@@ -32,9 +32,10 @@ As the PR reviewer, focus on security, containers, and project standards.
 ### 3. Architecture
 
 - **MCP Server** (FastAPI) runs on port 8005 in Docker container
-- **Python CI Container** includes all development tools
+- **Python CI Container** includes all development tools (Python 3.11)
 - **Docker Compose** orchestrates all services
 - **No aggressive cleanup** - Python cache prevention via environment variables
+- **Multi-stage CI/CD** - format, lint-basic, lint-full, security, test stages
 
 ## Review Focus Areas
 
@@ -63,14 +64,20 @@ As the PR reviewer, focus on security, containers, and project standards.
 - Python code should handle async/await properly
 - No `chmod 777` or overly permissive operations
 - Helper scripts should be simple wrappers around docker-compose
+- Use `./scripts/run-ci.sh` for all CI operations
+- Mock external dependencies in tests (subprocess, requests)
+- Clear Gemini history before PR reviews
 
 ## Technical Standards
 
+- Python 3.11 in all containers
 - Python code is auto-formatted with Black and isort
 - All Python tools run in containers with user permissions (no root)
 - Environment variables: `PYTHONDONTWRITEBYTECODE=1`, `USER_ID/GROUP_ID`
 - Tests use pytest with mocking for external dependencies
 - No `chmod 777` or aggressive cleanup steps
+- Coverage reporting with pytest-cov
+- Security scanning with bandit and safety
 
 ## Project Structure
 
@@ -96,3 +103,35 @@ As the PR reviewer, focus on security, containers, and project standards.
 3. **.github/workflows/*.yml** - Must use self-hosted runners
 4. **scripts/*.sh** - Shell script correctness and permissions
 5. **tools/mcp/mcp_server.py** - Core MCP functionality
+6. **scripts/run-ci.sh** - Main CI/CD entry point
+7. **mcp-config.json** - Tool configuration and rate limits
+
+## Code Review Examples
+
+### Good Patterns
+```bash
+# ✅ Correct user ID handling
+export USER_ID=$(id -u)
+export GROUP_ID=$(id -g)
+
+# ✅ Using helper scripts
+./scripts/run-ci.sh format
+
+# ✅ Container with user permissions
+docker-compose run --rm --user "${USER_ID}:${GROUP_ID}" python-ci command
+```
+
+### Bad Patterns
+```bash
+# ❌ Wrong variable names
+export UID=$(id -u)  # UID is readonly in some shells
+
+# ❌ Running as root
+docker run --rm python-ci command  # No user specified
+
+# ❌ Overly permissive
+chmod 777 output/  # Never use 777
+
+# ❌ Direct tool invocation
+black .  # Should use containerized version
+```

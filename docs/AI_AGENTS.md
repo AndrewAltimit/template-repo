@@ -42,10 +42,12 @@ This project utilizes three AI agents working in harmony to accelerate developme
 
 **Key Features**:
 
-- Conversation history cleared before each review
+- Conversation history automatically cleared via MCP tool before each review
 - Receives PROJECT_CONTEXT.md for targeted feedback
 - Non-blocking (PR can proceed if review fails)
 - Focuses on project-specific concerns
+- Reviews containerization, security, and code quality
+- Provides actionable feedback within 3-5 minutes
 
 ### 3. GitHub Copilot (Code Review)
 
@@ -74,17 +76,40 @@ This project utilizes three AI agents working in harmony to accelerate developme
    - Claude Code helps design architecture
    - Creates implementation plan
    - Sets up project structure
+   - Uses TodoWrite tool to track tasks
 
 2. **Implementation Phase**:
    - Claude Code handles complex logic
+   - Runs containerized CI/CD checks: `./scripts/run-ci.sh full`
    - Focus on architecture and design
-   - Test-driven development
+   - Test-driven development with pytest
 
 3. **Review Phase**:
-   - Gemini automatically reviews PR
+   - Gemini automatically reviews PR (history cleared first)
    - Copilot provides additional review suggestions
    - Claude Code addresses review comments
    - Two-layer review ensures quality
+
+### Real-World Example
+
+```bash
+# Claude Code implements a new feature
+./scripts/run-ci.sh format  # Check formatting
+./scripts/run-ci.sh test    # Run tests
+
+# Create PR
+git commit -m "feat: add new MCP tool"
+git push origin feature-branch
+
+# Gemini reviews within 3-5 minutes
+# - Checks container security
+# - Validates Python 3.11 compatibility
+# - Reviews async/await patterns
+# - Suggests improvements
+
+# Copilot adds inline suggestions
+# Claude Code addresses all feedback
+```
 
 ### Division of Labor
 
@@ -128,6 +153,8 @@ This project utilizes three AI agents working in harmony to accelerate developme
 - Follows CLAUDE.md guidelines
 - Has access to all project commands
 - Understands container-first philosophy
+- Uses Python 3.11 environment in containers
+- Runs all CI/CD operations via `./scripts/run-ci.sh`
 
 ### Gemini CLI Setup
 
@@ -147,8 +174,10 @@ gemini  # Authenticate on first use
 1. **Complementary Strengths**: Each agent excels at different tasks
 2. **Two-Layer Review**: Both Gemini and Copilot review PRs
 3. **Quality Assurance**: Multiple perspectives on code quality
-4. **Efficiency**: Automated reviews catch issues early
+4. **Efficiency**: Automated reviews catch issues early (3-5 minutes)
 5. **Learning**: Agents provide different insights
+6. **Consistency**: Container-first approach ensures reproducible results
+7. **Zero Setup**: Self-hosted infrastructure with no external dependencies
 
 ## Future Possibilities
 

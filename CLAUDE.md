@@ -30,14 +30,17 @@ Your role as Claude Code is the primary development assistant, handling:
 ### Running Tests
 
 ```bash
-# Run all tests with coverage
-pytest tests/ -v --cov=. --cov-report=xml
+# Run all tests with coverage (containerized)
+docker-compose run --rm python-ci pytest tests/ -v --cov=. --cov-report=xml
 
 # Run a specific test file
-pytest tests/test_mcp_tools.py -v
+docker-compose run --rm python-ci pytest tests/test_mcp_tools.py -v
 
 # Run tests with specific test name pattern
-pytest -k "test_format" -v
+docker-compose run --rm python-ci pytest -k "test_format" -v
+
+# Quick test run using helper script
+./scripts/run-ci.sh test
 ```
 
 ### Code Quality
@@ -56,6 +59,9 @@ docker-compose run --rm python-ci pylint tools/ scripts/
 docker-compose run --rm python-ci mypy . --ignore-missing-imports
 
 # Note: All Python CI/CD tools run in containers to ensure consistency
+
+# Run all checks at once
+./scripts/run-ci.sh full
 ```
 
 ### Development
@@ -120,8 +126,14 @@ The project centers around a Model Context Protocol (MCP) server that provides v
 
 1. **FastAPI Server** (`tools/mcp/mcp_server.py`): Main HTTP API on port 8005
 2. **Tool Categories**:
-   - **Code Quality**: format_check, lint, analyze, full_ci
-   - **AI Integration**: consult_gemini, clear_gemini_history, create_manim_animation, compile_latex
+   - **Code Quality**:
+     - `format_check` - Check code formatting (Python, JS, TS, Go, Rust)
+     - `lint` - Run static analysis with optional config
+   - **AI Integration**:
+     - `consult_gemini` - Get AI assistance for technical questions
+     - `clear_gemini_history` - Clear conversation history for fresh responses
+     - `create_manim_animation` - Create mathematical/technical animations
+     - `compile_latex` - Generate PDF/DVI/PS documents from LaTeX
    - **Remote Services**: ComfyUI (image generation), AI Toolkit (LoRA training)
 
 3. **Containerized CI/CD**:
@@ -144,9 +156,10 @@ The repository includes comprehensive CI/CD workflows:
 ### Container Architecture Philosophy
 
 1. **Everything Containerized**:
-   - Python CI/CD tools run in `python-ci` container
+   - Python CI/CD tools run in `python-ci` container (Python 3.11)
    - MCP server runs in its own container
    - Only exception: Gemini CLI (would require Docker-in-Docker)
+   - All containers run with user permissions (non-root)
 
 2. **Zero Local Dependencies**:
    - No need to install Python, Node.js, or any tools locally
@@ -166,9 +179,11 @@ The repository includes comprehensive CI/CD workflows:
    - Remote ComfyUI workflows for image generation
 
 2. **Testing Strategy**:
-   - All tests run in containers
+   - All tests run in containers with Python 3.11
    - Mock external dependencies (subprocess, HTTP calls)
    - Async test support with pytest-asyncio
+   - Coverage reporting with pytest-cov
+   - No pytest cache to avoid permission issues
 
 3. **Client Pattern** (`main.py`):
    - MCPClient class for interacting with MCP server
@@ -182,3 +197,20 @@ The repository includes comprehensive CI/CD workflows:
 - Docker network isolation for services
 - No hardcoded credentials in codebase
 - Containers run as non-root user
+
+## Development Reminders
+
+- IMPORTANT: When you have completed a task, you MUST run the lint and quality checks:
+  ```bash
+  # Run full CI checks
+  ./scripts/run-ci.sh full
+
+  # Or individual checks
+  ./scripts/run-ci.sh format
+  ./scripts/run-ci.sh lint-basic
+  ./scripts/run-ci.sh lint-full
+  ```
+- NEVER commit changes unless the user explicitly asks you to
+- Always follow the container-first philosophy - use Docker for all Python operations
+- Remember that Gemini CLI cannot be containerized (needs Docker access)
+- Use pytest fixtures and mocks for testing external dependencies

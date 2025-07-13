@@ -72,11 +72,11 @@ This project uses **self-hosted runners exclusively** to:
 
    Note: Gemini CLI cannot be containerized as it may need to invoke Docker commands.
 
-6. **Python** (v3.10+)
+6. **Python** (v3.11+)
 
    ```bash
-   # Only needed for running scripts, not for CI/CD
-   # All Python CI/CD operations run in containers
+   # Only needed for running helper scripts
+   # All Python CI/CD operations run in containers with Python 3.11
    python3 --version
    ```
 
@@ -88,11 +88,11 @@ This project uses **self-hosted runners exclusively** to:
    # Create a directory for the runner
    mkdir ~/actions-runner && cd ~/actions-runner
 
-   # Download the latest runner package
-   curl -o actions-runner-linux-x64-2.311.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.311.0/actions-runner-linux-x64-2.311.0.tar.gz
+   # Download the latest runner package (v2.326.0 as of January 2025)
+   curl -o actions-runner-linux-x64-2.326.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.326.0/actions-runner-linux-x64-2.326.0.tar.gz
 
    # Extract the installer
-   tar xzf ./actions-runner-linux-x64-2.311.0.tar.gz
+   tar xzf ./actions-runner-linux-x64-2.326.0.tar.gz
    ```
 
 2. **Configure the Runner**
@@ -155,14 +155,17 @@ docker run hello-world
 To prevent disk space issues, regularly clean Docker resources:
 
 ```bash
-# Remove unused containers, networks, images
-docker system prune -a
+# Remove unused containers, networks, images (keep last 7 days)
+docker system prune -a --filter "until=168h"
 
 # Remove unused volumes
 docker volume prune
 
 # Check disk usage
 docker system df
+
+# Clean runner work directory (if safe)
+rm -rf ~/actions-runner/_work/*/*/_temp
 ```
 
 ### Runner Updates
@@ -172,8 +175,14 @@ Keep the GitHub Actions runner updated:
 ```bash
 cd ~/actions-runner
 sudo ./svc.sh stop
-./config.sh remove
-# Download and install new version
+./config.sh remove --token YOUR_REMOVAL_TOKEN
+
+# Download new version (check latest at github.com/actions/runner/releases)
+curl -o actions-runner-linux-x64-X.X.X.tar.gz -L https://github.com/actions/runner/releases/download/vX.X.X/actions-runner-linux-x64-X.X.X.tar.gz
+tar xzf ./actions-runner-linux-x64-X.X.X.tar.gz
+
+# Reconfigure and start
+./config.sh --url https://github.com/YOUR_ORG/YOUR_REPO --token YOUR_TOKEN
 sudo ./svc.sh install
 sudo ./svc.sh start
 ```
@@ -193,8 +202,10 @@ If you encounter permission errors:
 The CI/CD system prevents Python cache issues by:
 
 - Setting `PYTHONDONTWRITEBYTECODE=1` in all containers
-- Disabling pytest cache in `pytest.ini`
+- Setting `PYTHONPYCACHEPREFIX=/tmp/pycache` to redirect cache
+- Disabling pytest cache with `PYTEST_CACHE_DISABLE=1`
 - Running containers with proper user permissions
+- Using Python 3.11 slim base image for consistency
 
 ### Docker Build Failures
 
@@ -207,6 +218,29 @@ The CI/CD system prevents Python cache issues by:
 1. Check runner service logs: `sudo journalctl -u actions.runner.YOUR_REPO.YOUR_RUNNER_NAME -f`
 2. Verify GitHub token hasn't expired
 3. Ensure firewall allows outbound HTTPS connections
+
+### Container-Specific Issues
+
+1. **"Cannot connect to Docker daemon"**:
+   ```bash
+   # Ensure user is in docker group
+   sudo usermod -aG docker $USER
+   # Log out and back in
+   ```
+
+2. **Permission denied on files created by containers**:
+   ```bash
+   # Use the fix script
+   ./scripts/fix-runner-permissions.sh
+   ```
+
+3. **Out of space errors**:
+   ```bash
+   # Check Docker space usage
+   docker system df
+   # Clean up old images
+   docker system prune -a --filter "until=168h"
+   ```
 
 ## Security Considerations
 

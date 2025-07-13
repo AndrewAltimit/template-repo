@@ -48,7 +48,7 @@ This repository leverages **three AI agents** for development and automation:
 
 1. **Prerequisites**
    - Linux system (Ubuntu/Debian recommended)
-   - Docker and Docker Compose installed
+   - Docker (v20.10+) and Docker Compose (v2.0+) installed
    - No other dependencies required!
 
 2. **Clone and start**
@@ -140,17 +140,22 @@ All Python CI/CD operations run in Docker containers. See [Containerized CI Docu
 
 This template includes workflows for:
 
-- **Pull Request Validation** - Automatic code review with Gemini AI
+- **Pull Request Validation** - Automatic code review with Gemini AI (with history clearing)
 - **Continuous Integration** - Full CI pipeline on main branch
-- **Code Quality Checks** - Linting and formatting (containerized)
-- **Automated Testing** - Unit and integration tests
+- **Code Quality Checks** - Multi-stage linting and formatting (containerized)
+- **Automated Testing** - Unit and integration tests with coverage reporting
 - **Runner Maintenance** - Automated cleanup and health checks
+- **Security Scanning** - Bandit and safety checks for Python dependencies
 
 All workflows run on self-hosted runners maintained by @AndrewAltimit. The infrastructure is designed for zero-cost operation while maintaining professional CI/CD capabilities.
 
 ## Container-First Development
 
 This project is designed to be **fully portable** using containers:
+
+- **Python 3.11** environment in all CI/CD containers
+- **All dependencies pre-installed** in the python-ci image
+- **User permission handling** to avoid file ownership issues
 
 ### CI/CD Operations
 
@@ -168,6 +173,9 @@ All Python CI/CD operations are containerized. Use the helper scripts:
 
 # Auto-format code
 ./scripts/run-ci.sh autoformat
+
+# Full CI pipeline
+./scripts/run-ci.sh full
 ```
 
 ### Why Containers?
@@ -182,6 +190,12 @@ All Python CI/CD operations are containerized. Use the helper scripts:
 ```bash
 # Everything runs in containers - no local Python needed!
 ./scripts/run-ci.sh test
+
+# Run specific test files
+docker-compose run --rm python-ci pytest tests/test_mcp_tools.py -v
+
+# Run with coverage report
+docker-compose run --rm python-ci pytest tests/ -v --cov=. --cov-report=xml
 ```
 
 ### Local Development

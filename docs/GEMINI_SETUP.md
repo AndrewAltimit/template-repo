@@ -5,10 +5,12 @@ This repository includes automatic AI-powered code review for pull requests usin
 ## Features
 
 - Automatic code review on every pull request
+- **Conversation history cleared before each review** for fresh, unbiased analysis
 - Analyzes code changes and provides constructive feedback
 - Posts review comments directly to the PR
 - Non-blocking - won't fail your PR if the CLI is unavailable
 - Uses official Gemini CLI with automatic authentication
+- Receives project-specific context from PROJECT_CONTEXT.md
 
 ## Setup Instructions
 
@@ -44,7 +46,7 @@ That's it! The next time you open a pull request, Gemini will automatically revi
 ## How It Works
 
 1. When a PR is opened or updated, the Gemini review job runs
-2. **Conversation history is cleared** to ensure fresh review
+2. **Conversation history is automatically cleared** using the `clear_gemini_history` MCP tool to ensure fresh, unbiased review
 3. **Project context is loaded** from PROJECT_CONTEXT.md
 4. It analyzes:
    - Project-specific context and philosophy
@@ -58,6 +60,14 @@ That's it! The next time you open a pull request, Gemini will automatically revi
    - Project-specific concerns
    - Positive aspects
 6. The review is posted as a comment on the PR
+
+### Why Clear History?
+
+Clearing conversation history before each review ensures:
+- No bias from previous reviews
+- Fresh perspective on each PR
+- Consistent quality of feedback
+- No confusion from unrelated context
 
 ## Project Context
 
@@ -88,6 +98,9 @@ Free tier limits:
 
 - 60 requests per minute
 - 1,000 requests per day
+- 4 million tokens per day
+
+For most single-maintainer projects, these limits are more than sufficient.
 
 ## Customization
 
@@ -101,11 +114,20 @@ You can customize the review behavior by editing `scripts/gemini-pr-review.py`:
 
 If Gemini reviews aren't working:
 
-1. Check that Node.js 18+ is installed: `node --version`
-2. Verify Gemini CLI is installed: `which gemini`
-3. Test authentication: `echo "test" | gemini`
-4. Check the workflow logs for errors
-5. Ensure the repository has proper permissions for PR comments
+1. **Check Node.js version**: `node --version` (must be 18+)
+2. **Verify Gemini CLI installation**: `which gemini`
+3. **Test authentication**: `echo "test" | gemini`
+4. **Check workflow logs** in GitHub Actions tab
+5. **Ensure repository permissions** for PR comments
+6. **Verify MCP server** is accessible if using clear history feature
+7. **Check rate limits** - free tier has 60 requests/minute
+
+### Common Issues
+
+- **"Command not found"**: Gemini CLI not installed or not in PATH
+- **Authentication errors**: Run `gemini` directly to re-authenticate
+- **Rate limit exceeded**: Wait a few minutes and retry
+- **No review posted**: Check if PR has proper permissions
 
 ## Privacy Note
 

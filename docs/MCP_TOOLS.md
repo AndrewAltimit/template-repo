@@ -7,9 +7,10 @@ This document provides detailed information about the containerized MCP (Model C
 All MCP tools run in Docker containers as part of this project's philosophy:
 
 - **Zero local dependencies** - just Docker
-- **Consistent execution** - same results on any Linux system
+- **Consistent execution** - same results on any Linux system with Python 3.11
 - **Easy deployment** - works identically on self-hosted runners
 - **Single maintainer friendly** - no complex setup or coordination needed
+- **User permission handling** - containers run as current user to avoid permission issues
 
 ## Table of Contents
 
@@ -23,6 +24,12 @@ All MCP tools run in Docker containers as part of this project's philosophy:
 ## Overview
 
 MCP tools are functions that can be executed through the MCP server to perform various development and content creation tasks. They are accessible via HTTP API or through the MCP protocol.
+
+**Server Details:**
+- **Framework**: FastAPI with Python 3.11
+- **Port**: 8005 (containerized)
+- **Protocol**: HTTP/REST and MCP
+- **Container**: Runs in `mcp-server` Docker container
 
 ### Tool Execution
 
@@ -104,26 +111,23 @@ Run static code analysis to find potential issues.
 }
 ```
 
-### analyze
+### Running CI/CD Pipeline
 
-Perform deep static analysis using advanced tools.
+While not a direct MCP tool, the full CI/CD pipeline can be executed via:
 
-**Parameters:**
+```bash
+# Run complete CI pipeline
+./scripts/run-ci.sh full
 
-- `path` (string): Path to analyze
-- `depth` (integer): Analysis depth level (1-5)
-
-**Example:**
-
-```python
-{
-  "tool": "analyze",
-  "arguments": {
-    "path": "./src",
-    "depth": 3
-  }
-}
+# Individual stages
+./scripts/run-ci.sh format
+./scripts/run-ci.sh lint-basic
+./scripts/run-ci.sh lint-full
+./scripts/run-ci.sh security
+./scripts/run-ci.sh test
 ```
+
+These scripts leverage the containerized Python CI environment.
 
 ## AI Integration Tools
 
@@ -187,9 +191,10 @@ Clear Gemini's conversation history to ensure fresh responses without cached con
 
 **Use Cases:**
 
-- Before PR reviews to ensure fresh analysis
+- **Automatically called before PR reviews** to ensure fresh analysis
 - When switching between different contexts
 - To reset after errors or incorrect responses
+- Prevents bias from previous conversations
 
 ### Advanced Gemini Features
 
@@ -323,11 +328,13 @@ AI_TOOLKIT_SERVER_URL=http://192.168.0.152:8190
 
 ### Creating a New Tool
 
-1. **Define the tool function:**
+1. **Define the tool function in mcp_server.py:**
 
 ```python
-# tools/mcp/custom_tools.py
-async def my_custom_tool(param1: str, param2: int = 10) -> Dict[str, Any]:
+# tools/mcp/mcp_server.py
+class MCPTools:
+    @staticmethod
+    async def my_custom_tool(param1: str, param2: int = 10) -> Dict[str, Any]:
     """
     My custom tool description.
 
@@ -351,14 +358,15 @@ async def my_custom_tool(param1: str, param2: int = 10) -> Dict[str, Any]:
     }
 ```
 
-2. **Register in MCP server:**
+2. **Handle in execute_tool endpoint:**
 
 ```python
 # tools/mcp/mcp_server.py
-TOOLS = {
-    # ... existing tools
-    "my_custom_tool": custom_tools.my_custom_tool,
-}
+@app.post("/tools/execute")
+async def execute_tool(request: ToolRequest):
+    # ... existing code
+    elif tool_name == "my_custom_tool":
+        result = await MCPTools.my_custom_tool(**request.arguments)
 ```
 
 3. **Update configuration:**
@@ -392,21 +400,25 @@ TOOLS = {
    - Always return structured responses
    - Include error details in response
    - Use try-except blocks
+   - Log errors for debugging
 
 2. **Async Operations:**
    - Use `async/await` for I/O operations
    - Handle timeouts appropriately
    - Consider concurrent execution
+   - Mock subprocess calls in tests
 
 3. **Input Validation:**
    - Validate all parameters
    - Provide helpful error messages
-   - Use type hints
+   - Use type hints (Python 3.11 features)
+   - Sanitize file paths
 
 4. **Output Format:**
    - Return consistent structure
    - Include success status
    - Provide meaningful metadata
+   - Use proper JSON serialization
 
 ### Testing Tools
 
