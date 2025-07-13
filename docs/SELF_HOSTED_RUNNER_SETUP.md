@@ -88,7 +88,8 @@ This project uses **self-hosted runners exclusively** to:
    # Create a directory for the runner
    mkdir ~/actions-runner && cd ~/actions-runner
 
-   # Download the latest runner package (v2.326.0 as of January 2025)
+   # Download the latest runner package (v2.326.0 as of July 2025)
+   # Check https://github.com/actions/runner/releases for the latest version
    curl -o actions-runner-linux-x64-2.326.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.326.0/actions-runner-linux-x64-2.326.0.tar.gz
 
    # Extract the installer
@@ -99,6 +100,7 @@ This project uses **self-hosted runners exclusively** to:
 
    ```bash
    # Run the configuration script
+   # Note: Get your token from GitHub: Settings > Actions > Runners > New self-hosted runner
    ./config.sh --url https://github.com/YOUR_ORG/YOUR_REPO --token YOUR_TOKEN
    ```
 
@@ -175,13 +177,15 @@ Keep the GitHub Actions runner updated:
 ```bash
 cd ~/actions-runner
 sudo ./svc.sh stop
+
+# Remove the runner (get removal token from GitHub: Settings > Actions > Runners > ... > Remove)
 ./config.sh remove --token YOUR_REMOVAL_TOKEN
 
 # Download new version (check latest at github.com/actions/runner/releases)
 curl -o actions-runner-linux-x64-X.X.X.tar.gz -L https://github.com/actions/runner/releases/download/vX.X.X/actions-runner-linux-x64-X.X.X.tar.gz
 tar xzf ./actions-runner-linux-x64-X.X.X.tar.gz
 
-# Reconfigure and start
+# Reconfigure and start (get new token from GitHub: Settings > Actions > Runners > New self-hosted runner)
 ./config.sh --url https://github.com/YOUR_ORG/YOUR_REPO --token YOUR_TOKEN
 sudo ./svc.sh install
 sudo ./svc.sh start
