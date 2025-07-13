@@ -1,0 +1,72 @@
+name: 'Docker Compose Health Check'
+description: 'Start Docker Compose services and wait for them to be healthy'
+inputs:
+  services:
+    description: 'Services to start (default: all)'
+    required: false
+    default: ''
+  health-endpoint:
+    description: 'Health check endpoint URL'
+    required: false
+    default: 'http://localhost:8005/health'
+  timeout:
+    description: 'Timeout in seconds'
+    required: false
+    default: '60'
+  build:
+    description: 'Whether to build images'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Validate docker-compose configuration
+      shell: bash
+      run: |
+        echo "🐳 Validating docker-compose configuration..."
+        docker-compose config
+
+    - name: Start services
+      shell: bash
+      run: |
+        if [ "${{ inputs.build }}" = "true" ]; then
+          echo "🐳 Building images and starting services..."
+          docker-compose up --build -d ${{ inputs.services }}
+        else
+          echo "🐳 Starting services..."
+          docker-compose up -d ${{ inputs.services }}
+        fi
+
+    - name: Wait for services to be healthy
+      shell: bash
+      run: |
+        echo "⏳ Waiting for services to be healthy..."
+        timeout=${{ inputs.timeout }}
+        elapsed=0
+        while [ $elapsed -lt $timeout ]; do
+          if curl -s ${{ inputs.health-endpoint }} > /dev/null 2>&1; then
+            echo "✅ Services are healthy!"
+            break
+          fi
+          echo -n "."
+          sleep 2
+          elapsed=$((elapsed + 2))
+        done
+
+        if [ $elapsed -ge $timeout ]; then
+          echo "❌ Timeout waiting for services to be healthy"
+          docker-compose ps
+          docker-compose logs
+          docker-compose down
+          exit 1
+        fi
+
+        docker-compose ps
+
+    - name: Clean up on failure
+      if: failure()
+      shell: bash
+      run: |
+        echo "🧹 Cleaning up services..."
+        docker-compose down

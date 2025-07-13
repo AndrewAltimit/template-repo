@@ -465,6 +465,9 @@ jobs:
             type=ref,event=pr
             type=sha,prefix=pr-${{ github.event.pull_request.number }}-
 
+      # Note: Docker builds intentionally do not use GitHub Actions cache (cache-from/cache-to)
+      # to avoid cache service availability issues. The self-hosted runner's local Docker
+      # cache provides sufficient caching for our needs.
       - name: Build MCP image
         uses: docker/build-push-action@v5
         with:
