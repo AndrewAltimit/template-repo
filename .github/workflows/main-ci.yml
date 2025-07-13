@@ -364,8 +364,6 @@ jobs:
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Build and push MCP HTTP Bridge image
         uses: docker/build-push-action@v5

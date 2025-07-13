@@ -475,8 +475,6 @@ jobs:
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Build MCP HTTP Bridge image
         uses: docker/build-push-action@v5
@@ -488,8 +486,6 @@ jobs:
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-http-bridge
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-http-bridge-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Build Python CI image
         uses: docker/build-push-action@v5
@@ -501,8 +497,6 @@ jobs:
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-python-ci
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-python-ci-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Test Docker Compose
         run: |
