@@ -106,10 +106,9 @@ To prevent permission issues with Python cache files:
 1. **Environment Variables**:
    - `PYTHONDONTWRITEBYTECODE=1` - Prevents .pyc file creation
    - `PYTHONPYCACHEPREFIX=/tmp/pycache` - Redirects cache to temp directory
-   - `PYTEST_CACHE_DISABLE=1` - Disables pytest cache
 
 2. **Configuration Files**:
-   - `pytest.ini` includes `-p no:cacheprovider`
+   - `pytest.ini` includes `-p no:cacheprovider` to disable pytest cache
 
 3. **Container User Permissions**:
    - Containers run as current user (USER_ID:GROUP_ID)

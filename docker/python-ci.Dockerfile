@@ -21,7 +21,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPYCACHEPREFIX=/tmp/pycache \
-    PYTEST_CACHE_DISABLE=1 \
     PYTHONUTF8=1
 
 # Create a non-root user that will be overridden by docker-compose

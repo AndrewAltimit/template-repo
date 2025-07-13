@@ -207,7 +207,7 @@ The CI/CD system prevents Python cache issues by:
 
 - Setting `PYTHONDONTWRITEBYTECODE=1` in all containers
 - Setting `PYTHONPYCACHEPREFIX=/tmp/pycache` to redirect cache
-- Disabling pytest cache with `PYTEST_CACHE_DISABLE=1`
+- Disabling pytest cache via `pytest.ini` configuration (`-p no:cacheprovider`)
 - Running containers with proper user permissions
 - Using Python 3.11 slim base image for consistency
 
