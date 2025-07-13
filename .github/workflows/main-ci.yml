@@ -374,8 +374,6 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-http-bridge
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-http-bridge-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Build and push Python CI image
         uses: docker/build-push-action@v5
@@ -386,8 +384,6 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-python-ci
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-python-ci-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Test Docker Compose
         run: |
