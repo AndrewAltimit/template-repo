@@ -104,7 +104,7 @@ As the PR reviewer, focus on security, containers, and project standards.
 4. **scripts/*.sh** - Shell script correctness and permissions
 5. **tools/mcp/mcp_server.py** - Core MCP functionality
 6. **scripts/run-ci.sh** - Main CI/CD entry point
-7. **mcp-config.json** - Tool configuration and rate limits
+7. **.mcp.json** - Tool configuration and rate limits
 
 ## Code Review Examples
 

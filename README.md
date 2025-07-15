@@ -130,7 +130,7 @@ This project uses three AI agents. See [AI Agents Documentation](docs/AI_AGENTS.
 
 ### MCP Configuration
 
-Edit `mcp-config.json` to customize available tools and their settings.
+Edit `.mcp.json` to customize available tools and their settings.
 
 ### CI/CD Configuration
 

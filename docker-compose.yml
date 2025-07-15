@@ -11,7 +11,7 @@ services:
       - "8005:8000"
     volumes:
       - ./tools/mcp:/app/tools/mcp
-      - ./mcp-config.json:/app/mcp-config.json
+      - ./.mcp.json:/app/.mcp.json
       - ./scripts:/app/scripts
       - /var/run/docker.sock:/var/run/docker.sock
       - ${HOME}/.config/github-copilot/hosts.json:/root/.config/github-copilot/hosts.json:ro

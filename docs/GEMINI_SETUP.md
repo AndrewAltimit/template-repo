@@ -92,6 +92,72 @@ echo "Your question here" | gemini
 echo "Technical question" | gemini -m gemini-2.5-pro
 ```
 
+## Configuration
+
+Gemini CLI stores its configuration in `~/.gemini/settings.json`. This file is automatically created after authentication. For MCP integration with this project, configure it as follows:
+
+```json
+{
+  "mcpServers": {
+    "local-tools": {
+      "command": "npx",
+      "args": ["-y", "mcp-server-local-tools"],
+      "env": {
+        "SERVER_URL": "http://localhost:8000"
+      }
+    },
+    "comfyui": {
+      "command": "npx",
+      "args": ["-y", "mcp-server-comfyui"],
+      "env": {
+        "COMFYUI_URL": "http://localhost:8189",
+        "COMFYUI_SERVER_URL": "${COMFYUI_SERVER_URL}"
+      }
+    },
+    "ai-toolkit": {
+      "command": "npx",
+      "args": ["-y", "mcp-server-ai-toolkit"],
+      "env": {
+        "AI_TOOLKIT_URL": "http://localhost:8190",
+        "AI_TOOLKIT_SERVER_URL": "${AI_TOOLKIT_SERVER_URL}"
+      }
+    }
+  },
+  "model": "gemini-2.5-pro",
+  "temperature": 0.7,
+  "maxTokens": 8192,
+  "logLevel": "INFO",
+  "cache": {
+    "enabled": true,
+    "ttl": 3600
+  }
+}
+```
+
+### Configuration Options
+
+- **mcpServers**: MCP server configurations for various tools
+  - **local-tools**: Local MCP server for development tools
+  - **comfyui**: ComfyUI integration for image generation
+  - **ai-toolkit**: AI Toolkit for LoRA training
+- **model**: Default model to use (e.g., "gemini-2.5-pro", "gemini-1.5-flash")
+- **temperature**: Controls randomness (0.0-1.0, default 0.7)
+- **maxTokens**: Maximum response length (default 8192)
+- **logLevel**: Logging verbosity (DEBUG, INFO, WARN, ERROR)
+- **cache**: Response caching configuration
+  - **enabled**: Enable/disable caching
+  - **ttl**: Cache time-to-live in seconds
+
+You can manually edit this file to change defaults, or use command-line flags to override:
+
+```bash
+# Override model
+echo "Question" | gemini -m gemini-1.5-flash
+
+# Override temperature
+echo "Question" | gemini --temperature 0.5
+```
+
 ## Rate Limits
 
 Free tier limits:

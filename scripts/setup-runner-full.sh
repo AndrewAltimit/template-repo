@@ -315,14 +315,14 @@ setup_mcp_environment() {
     mkdir -p "$MCP_HOME/logs"
 
     # Copy MCP configuration if available
-    if [ -f "../mcp-config.json" ]; then
-        cp ../mcp-config.json "$MCP_HOME/configs/"
+    if [ -f "../.mcp.json" ]; then
+        cp ../.mcp.json "$MCP_HOME/configs/"
         print_status "✅ Copied MCP configuration"
-    elif [ -f "mcp-config.json" ]; then
-        cp mcp-config.json "$MCP_HOME/configs/"
+    elif [ -f ".mcp.json" ]; then
+        cp .mcp.json "$MCP_HOME/configs/"
         print_status "✅ Copied MCP configuration"
     else
-        print_warning "⚠️  No mcp-config.json found. You'll need to configure MCP manually."
+        print_warning "⚠️  No .mcp.json found. You'll need to configure MCP manually."
     fi
 
     # Create environment file

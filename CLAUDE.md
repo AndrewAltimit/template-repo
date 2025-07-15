@@ -141,7 +141,7 @@ The project centers around a Model Context Protocol (MCP) server that provides v
    - **Helper Scripts**: Centralized CI operations to reduce workflow complexity
    - **Cache Prevention**: PYTHONDONTWRITEBYTECODE=1, pytest cache disabled
 
-4. **Configuration** (`mcp-config.json`): Defines available tools, security settings, and rate limits
+4. **Configuration** (`.mcp.json`): Defines available tools, security settings, and rate limits
 
 ### GitHub Actions Integration
 
@@ -193,7 +193,7 @@ The repository includes comprehensive CI/CD workflows:
 ### Security Considerations
 
 - API key management via environment variables
-- Rate limiting configured in mcp-config.json
+- Rate limiting configured in .mcp.json
 - Docker network isolation for services
 - No hardcoded credentials in codebase
 - Containers run as non-root user

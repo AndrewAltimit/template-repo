@@ -380,7 +380,7 @@ async def execute_tool(request: ToolRequest):
 3. **Update configuration:**
 
 ```json
-// mcp-config.json
+// .mcp.json
 {
   "tools": {
     "my_custom_tool": {
