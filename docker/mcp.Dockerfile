@@ -37,7 +37,7 @@ RUN pip install --no-cache-dir manim
 # Copy application code
 COPY tools/ ./tools/
 COPY scripts/ ./scripts/
-COPY .mcp.json .
+COPY .mcp.json ./.mcp.json
 
 # Create necessary directories
 RUN mkdir -p /app/output /app/temp /app/logs

@@ -199,6 +199,9 @@ setup_mcp_environment() {
     if [ -f "../.mcp.json" ]; then
         cp ../.mcp.json "$HOME/.mcp/configs/"
         echo "✅ Copied MCP configuration"
+    elif [ -f ".mcp.json" ]; then
+        cp .mcp.json "$HOME/.mcp/configs/"
+        echo "✅ Copied MCP configuration"
     fi
 
     echo "✅ MCP environment setup complete"
