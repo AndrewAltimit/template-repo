@@ -3,8 +3,20 @@ set -e
 # Start Gemini MCP server in background
 echo "Starting Gemini MCP server on port 8006..."
 nohup python3 tools/mcp/gemini_mcp_server.py > /tmp/gemini-mcp.log 2>&1 &
-echo $! > /tmp/gemini-mcp.pid
-echo "Server started with PID $(cat /tmp/gemini-mcp.pid)"
+PID=$!
+echo $PID > /tmp/gemini-mcp.pid
+echo "Server started with PID $PID"
 echo "Logs: /tmp/gemini-mcp.log"
-sleep 2
-curl -s http://localhost:8006/health | jq || echo "Server not ready yet"
+
+echo "Waiting for server to become healthy..."
+for i in {1..10}; do
+    if curl -s http://localhost:8006/health | grep -q "healthy"; then
+        echo "✅ Server is healthy."
+        curl -s http://localhost:8006/health | jq
+        exit 0
+    fi
+    sleep 1
+done
+
+echo "❌ Server did not become healthy after 10 seconds."
+exit 1

@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
     # Run on port 8006 to avoid conflict with main MCP server
     port = int(os.environ.get("GEMINI_MCP_PORT", "8006"))
-    host = os.environ.get("GEMINI_MCP_HOST", "0.0.0.0")
+    host = os.environ.get("GEMINI_MCP_HOST", "127.0.0.1")
 
     print(f"Starting Gemini MCP Server on {host}:{port}")
     print("NOTE: This server must run on the host system, not in a container")
