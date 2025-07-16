@@ -75,10 +75,10 @@
         }
       }
     },
-    "gemini-tools": {
-      "name": "Gemini MCP Server",
+    "gemini-tools-http": {
+      "name": "Gemini MCP Server (HTTP mode - testing only)",
       "url": "http://localhost:8006",
-      "note": "Must run on host system, not in container",
+      "note": "For testing only. Must run on host system with: ./scripts/start-gemini-mcp.sh --http",
       "tools": {
         "consult_gemini": {
           "description": "Get AI assistance from Gemini",
@@ -95,6 +95,62 @@
               "type": "integer",
               "description": "Maximum retry attempts",
               "default": 3
+            }
+          }
+        },
+        "clear_gemini_history": {
+          "description": "Clear Gemini conversation history",
+          "parameters": {}
+        }
+      }
+    },
+    "gemini-tools-stdio": {
+      "name": "Gemini MCP Server (stdio mode - recommended)",
+      "type": "stdio",
+      "command": "python3",
+      "args": [
+        "tools/mcp/gemini_mcp_server.py"
+      ],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+        "GEMINI_MODEL": "gemini-2.5-flash",
+        "GEMINI_TIMEOUT": "60"
+      },
+      "note": "Recommended for production. Must run on host system, not in container",
+      "tools": {
+        "consult_gemini": {
+          "description": "Get AI assistance from Gemini with streaming support",
+          "parameters": {
+            "query": {
+              "type": "string",
+              "description": "Technical question or code to review"
+            },
+            "context": {
+              "type": "string",
+              "description": "Additional context"
+            },
+            "comparison_mode": {
+              "type": "boolean",
+              "description": "Enable comparison mode for second opinions",
+              "default": true
+            },
+            "force": {
+              "type": "boolean",
+              "description": "Force consultation even if disabled",
+              "default": false
+            }
+          }
+        },
+        "gemini_status": {
+          "description": "Get Gemini integration status and statistics",
+          "parameters": {}
+        },
+        "toggle_gemini_auto_consult": {
+          "description": "Toggle automatic Gemini consultation on uncertainty detection",
+          "parameters": {
+            "enable": {
+              "type": "boolean",
+              "description": "Enable or disable auto-consultation (null to toggle)"
             }
           }
         },
