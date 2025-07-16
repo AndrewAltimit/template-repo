@@ -50,7 +50,9 @@ def test_gemini_mcp_server():
         }
 
         response = requests.post(
-            f"{base_url}/tools/consult_gemini", json=test_request, headers={"Content-Type": "application/json"}
+            f"{base_url}/tools/consult_gemini",
+            json=test_request,
+            headers={"Content-Type": "application/json"},
         )
 
         if response.status_code == 200:

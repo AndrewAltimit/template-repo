@@ -5,6 +5,7 @@ Gemini MCP Server - Standalone server for Gemini CLI integration.
 This server MUST run on the host system, not in a container, as the Gemini CLI
 requires Docker access and would need complex Docker-in-Docker setup otherwise.
 """
+import json
 import os
 import subprocess
 import sys
@@ -89,12 +90,17 @@ async def consult_gemini(request: ConsultGeminiRequest):
     """
     try:
         # Use the existing GeminiIntegration
-        # Convert context dict to string if provided
+        # Convert context dict to JSON string if provided
         context_str = ""
         if request.context:
-            context_str = str(request.context)
+            context_str = json.dumps(request.context, indent=2)
 
-        result = await gemini.consult_gemini(request.prompt, context=context_str, comparison_mode=True, force_consult=False)
+        result = await gemini.consult_gemini(
+            request.prompt,
+            context=context_str,
+            comparison_mode=True,
+            force_consult=False,
+        )
 
         return ConsultGeminiResponse(
             response=result.get("response", ""),
