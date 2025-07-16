@@ -12,7 +12,12 @@ echo "Waiting for server to become healthy..."
 for i in {1..10}; do
     if curl -s http://localhost:8006/health | grep -q "healthy"; then
         echo "✅ Server is healthy."
-        curl -s http://localhost:8006/health | jq
+        HEALTH_JSON=$(curl -s http://localhost:8006/health)
+        if command -v jq &> /dev/null; then
+            echo "$HEALTH_JSON" | jq
+        else
+            echo "$HEALTH_JSON"
+        fi
         exit 0
     fi
     sleep 1
