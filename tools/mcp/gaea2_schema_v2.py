@@ -1,0 +1,1253 @@
+#!/usr/bin/env python3
+"""Gaea 2 node schema and validation functions - Version 2
+
+This module provides comprehensive validation for Gaea 2 project files,
+based on deep analysis of the official Gaea 2 documentation.
+Updated with accurate node types, properties, and validation rules.
+"""
+
+from typing import Any, Dict, List, Tuple
+
+# Complete node types extracted from Gaea 2 documentation
+# Organized by category for better understanding and validation
+NODE_CATEGORIES = {
+    "primitive": [
+        "Cellular",
+        "Cellular3D",
+        "Cone",
+        "Constant",
+        "Cracks",
+        "CutNoise",
+        "DotNoise",
+        "Draw",
+        "DriftNoise",
+        "File",
+        "Gabor",
+        "Hemisphere",
+        "LinearGradient",
+        "LineNoise",
+        "MultiFractal",
+        "Noise",
+        "Object",
+        "Pattern",
+        "Perlin",
+        "RadialGradient",
+        "Shape",
+        "TileInput",
+        "Voronoi",
+        "WaveShine",
+    ],
+    "terrain": [
+        "Canyon",
+        "Crater",
+        "CraterField",
+        "DuneSea",
+        "Island",
+        "Mountain",
+        "MountainRange",
+        "MountainSide",
+        "Plates",
+        "Ridge",
+        "Rugged",
+        "Slump",
+        "Uplift",
+        "Volcano",
+    ],
+    "modify": [
+        "Adjust",
+        "Aperture",
+        "Autolevel",
+        "BlobRemover",
+        "Blur",
+        "Clamp",
+        "Clip",
+        "Curve",
+        "Deflate",
+        "Denoise",
+        "Dilate",
+        "DirectionalWarp",
+        "Distance",
+        "Equalize",
+        "Extend",
+        "Filter",
+        "Flip",
+        "Fold",
+        "GraphicEQ",
+        "Heal",
+        "Match",
+        "Median",
+        "Meshify",
+        "Origami",
+        "Pixelate",
+        "Recurve",
+        "Shaper",
+        "Sharpen",
+        "SlopeBlur",
+        "SlopeWarp",
+        "SoftClip",
+        "Swirl",
+        "ThermalShaper",
+        "Threshold",
+        "Transform",
+        "Transform3D",
+        "Transpose",
+        "TriplanarDisplacement",
+        "VariableBlur",
+        "Warp",
+        "Whorl",
+    ],
+    "surface": [
+        "Bomber",
+        "Bulbous",
+        "Contours",
+        "Craggy",
+        "Distress",
+        "FractalTerraces",
+        "Grid",
+        "GroundTexture",
+        "Outcrops",
+        "Pockmarks",
+        "RockNoise",
+        "Rockscape",
+        "Roughen",
+        "Sand",
+        "Sandstone",
+        "Shatter",
+        "Shear",
+        "Steps",
+        "Stones",
+        "Stratify",
+        "Terraces",
+    ],
+    "simulate": [
+        "Anastomosis",
+        "Crumble",
+        "Debris",
+        "Dusting",
+        "EasyErosion",
+        "Erosion",
+        "Erosion2",
+        "Glacier",
+        "Hillify",
+        "HydroFix",
+        "IceFloe",
+        "Lake",
+        "Lichtenberg",
+        "Rivers",
+        "Scree",
+        "Sea",
+        "Sediments",
+        "Shrubs",
+        "Snow",
+        "Snowfield",
+        "Thermal",
+        "Thermal2",
+        "Trees",
+        "Wizard",
+        "Wizard2",
+    ],
+    "derive": [
+        "Angle",
+        "Curvature",
+        "FlowMap",
+        "FlowMapClassic",
+        "Height",
+        "Normals",
+        "Occlusion",
+        "Peaks",
+        "RockMap",
+        "Slope",
+        "Soil",
+        "TextureBase",
+        "Texturizer",
+    ],
+    "colorize": [
+        "CLUTer",
+        "ColorErosion",
+        "Gamma",
+        "HSL",
+        "RGBMerge",
+        "RGBSplit",
+        "SatMap",
+        "Splat",
+        "SuperColor",
+        "Synth",
+        "Tint",
+        "WaterColor",
+        "Weathering",
+    ],
+    "output": [
+        "AO",
+        "Cartography",
+        "Export",
+        "Halftone",
+        "LightX",
+        "Mesher",
+        "PointCloud",
+        "Shade",
+        "Sunlight",
+        "TextureBaker",
+        "Unity",
+        "Unreal",
+        "VFX",
+    ],
+    "utility": [
+        "Accumulator",
+        "Chokepoint",
+        "Combine",
+        "Compare",
+        "Construction",
+        "DataExtractor",
+        "Edge",
+        "Gate",
+        "Layers",
+        "LoopBegin",
+        "LoopEnd",
+        "Mask",
+        "Math",
+        "Mixer",
+        "Portal",
+        "PortalReceive",
+        "PortalTransmit",
+        "Repeat",
+        "Reseed",
+        "Route",
+        "Seamless",
+        "Switch",
+        "Var",
+    ],
+}
+
+# Flatten all node types into a single set for validation
+VALID_NODE_TYPES = set()
+for category_nodes in NODE_CATEGORIES.values():
+    VALID_NODE_TYPES.update(category_nodes)
+
+# Common node properties with their types and typical ranges
+# Based on analysis of 185 nodes from documentation
+COMMON_NODE_PROPERTIES = {
+    # Most common properties (used in 10+ nodes)
+    "Seed": {
+        "type": "int",
+        "default": 0,
+        "range": {"min": 0, "max": 999999},
+        "description": "Randomization seed for the node's process",
+    },
+    "Scale": {
+        "type": "float",
+        "default": 1.0,
+        "range": {"min": 0.01, "max": 10.0},
+        "description": "Perceptual scale of the effect",
+    },
+    "Height": {
+        "type": "float",
+        "default": 0.5,
+        "range": {"min": 0.0, "max": 1.0},
+        "description": "Height or intensity of the effect",
+    },
+    "Size": {
+        "type": "float",
+        "default": 0.5,
+        "range": {"min": 0.0, "max": 1.0},
+        "description": "Size of features",
+    },
+    "Density": {
+        "type": "float",
+        "default": 0.5,
+        "range": {"min": 0.0, "max": 1.0},
+        "description": "Density of features",
+    },
+    "Octaves": {
+        "type": "int",
+        "default": 8,
+        "range": {"min": 1, "max": 16},
+        "description": "Number of noise octaves",
+    },
+    "Strength": {
+        "type": "float",
+        "default": 0.5,
+        "range": {"min": 0.0, "max": 2.0},
+        "description": "Strength of the effect",
+    },
+    "X": {
+        "type": "float",
+        "default": 0.0,
+        "range": {"min": -1000.0, "max": 1000.0},
+        "description": "X position or offset",
+    },
+    "Y": {
+        "type": "float",
+        "default": 0.0,
+        "range": {"min": -1000.0, "max": 1000.0},
+        "description": "Y position or offset",
+    },
+}
+
+# Node-specific property definitions
+# These override or extend the common properties
+NODE_PROPERTY_DEFINITIONS = {
+    "Mountain": {
+        "Scale": {"default": 1.0, "range": {"min": 0.1, "max": 5.0}},
+        "Height": {"default": 0.7, "range": {"min": 0.0, "max": 1.0}},
+        "Style": {
+            "type": "enum",
+            "options": ["Basic", "Eroded", "Old", "Alpine", "Strata"],
+            "default": "Basic",
+        },
+        "Bulk": {
+            "type": "enum",
+            "options": ["Low", "Medium", "High"],
+            "default": "Medium",
+        },
+        "ReduceDetails": {"type": "bool", "default": False},
+    },
+    "Erosion": {
+        "Duration": {
+            "type": "float",
+            "default": 0.04,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Duration of erosion simulation",
+        },
+        "RockSoftness": {
+            "type": "float",
+            "default": 0.4,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Softness of rock material",
+        },
+        "Strength": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 2.0},
+            "description": "Strength of fluvial erosion",
+        },
+        "Downcutting": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": 0.0, "max": 1.0},
+        },
+        "Inhibition": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": 0.0, "max": 1.0},
+        },
+        "BaseLevel": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": 0.0, "max": 1.0},
+        },
+        "FeatureScale": {
+            "type": "int",
+            "default": 2000,
+            "range": {"min": 50, "max": 10000},
+            "description": "Size of erosion features in meters",
+        },
+        "AggressiveMode": {"type": "bool", "default": False},
+        "Deterministic": {"type": "bool", "default": False},
+    },
+    "Combine": {
+        "Mode": {
+            "type": "enum",
+            "options": [
+                "Blend",
+                "Add",
+                "Screen",
+                "Subtract",
+                "Difference",
+                "Multiply",
+                "Divide",
+                "Divide2",
+                "Max",
+                "Min",
+                "Hypotenuse",
+                "Overlay",
+                "Power",
+                "Exclusion",
+                "Dodge",
+                "Burn",
+                "SoftLight",
+                "HardLight",
+                "PinLight",
+                "GrainMerge",
+                "GrainExtract",
+                "Reflect",
+                "Glow",
+                "Phoenix",
+            ],
+            "default": "Blend",
+        },
+        "Ratio": {"type": "float", "default": 0.5, "range": {"min": 0.0, "max": 1.0}},
+        "ClampOutput": {"type": "bool", "default": True},
+    },
+    "SatMap": {
+        "Library": {
+            "type": "enum",
+            "options": ["Mountain", "Desert", "Forest", "Arctic", "Volcanic"],
+            "default": "Mountain",
+        },
+        "LibraryItem": {"type": "string", "default": "Swiss Alps"},
+        "Enhance": {"type": "float", "default": 0.5, "range": {"min": 0.0, "max": 1.0}},
+    },
+    "Rivers": {
+        "Water": {"type": "float", "default": 0.3, "range": {"min": 0.0, "max": 1.0}},
+        "Width": {"type": "float", "default": 0.5, "range": {"min": 0.0, "max": 1.0}},
+        "Depth": {"type": "float", "default": 0.5, "range": {"min": 0.0, "max": 1.0}},
+        "Headwaters": {
+            "type": "int",
+            "default": 100,
+            "range": {"min": 10, "max": 1000},
+        },
+    },
+    "Snow": {
+        "Coverage": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+        },
+        "Altitude": {
+            "type": "float",
+            "default": 0.7,
+            "range": {"min": 0.0, "max": 1.0},
+        },
+        "Thickness": {
+            "type": "float",
+            "default": 0.3,
+            "range": {"min": 0.0, "max": 1.0},
+        },
+    },
+    "Portal": {
+        "PortalName": {
+            "type": "string",
+            "default": "Portal_1",
+            "description": "Unique identifier for this portal connection",
+        },
+        "Direction": {
+            "type": "enum",
+            "options": ["Transmit", "Receive"],
+            "default": "Transmit",
+            "description": "Whether this portal sends or receives data",
+        },
+    },
+    "PortalTransmit": {
+        "PortalName": {
+            "type": "string",
+            "default": "Portal_1",
+            "description": "Unique identifier for this portal connection",
+        },
+    },
+    "PortalReceive": {
+        "PortalName": {
+            "type": "string",
+            "default": "Portal_1",
+            "description": "Unique identifier for this portal connection",
+        },
+    },
+    "Stratify": {
+        "Layers": {
+            "type": "int",
+            "default": 12,
+            "range": {"min": 2, "max": 50},
+            "description": "Number of stratification layers",
+        },
+        "Strength": {
+            "type": "float",
+            "default": 0.6,
+            "range": {"min": 0.0, "max": 1.0},
+        },
+        "Spacing": {"type": "float", "default": 0.5, "range": {"min": 0.0, "max": 1.0}},
+    },
+    "FractalTerraces": {
+        "Levels": {
+            "type": "int",
+            "default": 8,
+            "range": {"min": 2, "max": 20},
+            "description": "Number of terrace levels",
+        },
+        "Strength": {
+            "type": "float",
+            "default": 0.4,
+            "range": {"min": 0.0, "max": 1.0},
+        },
+    },
+    "Terraces": {
+        "Terraces": {
+            "type": "int",
+            "default": 10,
+            "range": {"min": 2, "max": 50},
+            "description": "Number of terraces",
+        },
+        "Uniformity": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+        },
+        "Steepness": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+        },
+    },
+    "Steps": {
+        "Steps": {
+            "type": "int",
+            "default": 5,
+            "range": {"min": 2, "max": 20},
+            "description": "Number of steps",
+        },
+        "Height": {"type": "float", "default": 0.5, "range": {"min": 0.0, "max": 1.0}},
+    },
+    "Pixelate": {
+        "PixelSize": {
+            "type": "int",
+            "default": 16,
+            "range": {"min": 2, "max": 128},
+            "description": "Size of pixels",
+        },
+    },
+    "Trees": {
+        "Count": {
+            "type": "int",
+            "default": 1000,
+            "range": {"min": 10, "max": 10000},
+            "description": "Number of trees (in thousands)",
+        },
+        "Seed": {"type": "int", "default": 0, "range": {"min": 0, "max": 999999}},
+    },
+    "Shrubs": {
+        "Count": {
+            "type": "int",
+            "default": 1000,
+            "range": {"min": 10, "max": 10000},
+            "description": "Number of shrubs (in thousands)",
+        },
+        "Seed": {"type": "int", "default": 0, "range": {"min": 0, "max": 999999}},
+    },
+    "Grid": {
+        "GridSmallCount": {
+            "type": "int",
+            "default": 10,
+            "range": {"min": 1, "max": 50},
+            "description": "Small grid count",
+        },
+        "GridLargeCount": {
+            "type": "int",
+            "default": 5,
+            "range": {"min": 1, "max": 20},
+            "description": "Large grid count",
+        },
+    },
+    "Aperture": {
+        "Vertices": {
+            "type": "int",
+            "default": 6,
+            "range": {"min": 3, "max": 12},
+            "description": "Number of aperture vertices",
+        },
+    },
+}
+
+# Port definitions and compatibility rules
+# Based on node categories and typical connections
+PORT_TYPES = {
+    "heightfield": "Primary terrain or mask data",
+    "color": "RGB color data",
+    "mask": "Grayscale mask data",
+    "data": "Analysis data (flow, wear, etc.)",
+    "vector": "Vector field data",
+}
+
+# Port compatibility matrix
+# Defines which output port types can connect to which input port types
+PORT_COMPATIBILITY = {
+    "heightfield": ["heightfield", "mask"],  # Heightfields can be used as masks
+    "color": ["color"],  # Colors only connect to colors
+    "mask": ["heightfield", "mask"],  # Masks are interchangeable with heightfields
+    "data": ["mask"],  # Data maps can be used as masks
+    "vector": ["vector"],  # Vectors only connect to vectors
+}
+
+# Node port definitions by category
+NODE_PORT_DEFINITIONS = {
+    # Generators have no inputs, only outputs
+    "primitive": {"inputs": [], "outputs": [{"name": "Out", "type": "heightfield"}]},
+    "terrain": {"inputs": [], "outputs": [{"name": "Out", "type": "heightfield"}]},
+    # Modifiers have input and output
+    "modify": {
+        "inputs": [{"name": "In", "type": "heightfield"}],
+        "outputs": [{"name": "Out", "type": "heightfield"}],
+    },
+    "surface": {
+        "inputs": [{"name": "In", "type": "heightfield"}],
+        "outputs": [{"name": "Out", "type": "heightfield"}],
+    },
+    "simulate": {
+        "inputs": [{"name": "In", "type": "heightfield"}],
+        "outputs": [
+            {"name": "Out", "type": "heightfield"},
+            {"name": "Wear", "type": "data"},
+            {"name": "Flow", "type": "data"},
+            {"name": "Deposits", "type": "data"},
+        ],
+    },
+    # Analyzers output data maps
+    "derive": {
+        "inputs": [{"name": "In", "type": "heightfield"}],
+        "outputs": [{"name": "Out", "type": "data"}],
+    },
+    # Colorizers work with color data
+    "colorize": {
+        "inputs": [
+            {"name": "In", "type": "heightfield"},
+            {"name": "Mask", "type": "mask", "optional": True},
+        ],
+        "outputs": [{"name": "Out", "type": "color"}],
+    },
+    # Special cases
+    "combine": {
+        "inputs": [
+            {"name": "Input1", "type": "heightfield"},
+            {"name": "Input2", "type": "heightfield"},
+            {"name": "Mask", "type": "mask", "optional": True},
+        ],
+        "outputs": [
+            {"name": "Out", "type": "heightfield"},
+            {"name": "Separation", "type": "mask"},
+        ],
+    },
+    "portal": {
+        "inputs": [{"name": "In", "type": "heightfield"}],
+        "outputs": [],  # Portal only stores data for later retrieval
+    },
+    "portaltransmit": {
+        "inputs": [{"name": "In", "type": "heightfield"}],
+        "outputs": [],  # Transmit portal doesn't have direct outputs
+    },
+    "portalreceive": {
+        "inputs": [],  # Receive portal doesn't have direct inputs
+        "outputs": [{"name": "Out", "type": "heightfield"}],
+    },
+}
+
+# Enhanced workflow templates based on documentation examples
+WORKFLOW_TEMPLATES = {
+    "basic_terrain": [
+        {
+            "type": "Mountain",
+            "name": "BaseTerrain",
+            "properties": {"Scale": 1.0, "Height": 0.7, "Style": "Alpine"},
+        },
+        {
+            "type": "Erosion",
+            "name": "NaturalErosion",
+            "properties": {"Duration": 0.04, "RockSoftness": 0.4, "Strength": 0.5},
+        },
+        {"type": "TextureBase", "name": "BaseTexture", "properties": {}},
+        {
+            "type": "SatMap",
+            "name": "ColorMap",
+            "properties": {"Library": "Mountain", "LibraryItem": "Swiss Alps"},
+        },
+    ],
+    "detailed_mountain": [
+        {
+            "type": "Mountain",
+            "name": "PrimaryMountain",
+            "properties": {
+                "Scale": 1.5,
+                "Height": 0.85,
+                "Style": "Alpine",
+                "Bulk": "High",
+            },
+        },
+        {
+            "type": "Mountain",
+            "name": "SecondaryPeaks",
+            "properties": {"Scale": 0.8, "Height": 0.6, "Style": "Rocky"},
+        },
+        {
+            "type": "Combine",
+            "name": "MergePeaks",
+            "properties": {"Mode": "Max", "Ratio": 0.7},
+        },
+        {
+            "type": "Erosion",
+            "name": "InitialErosion",
+            "properties": {
+                "Duration": 0.05,
+                "RockSoftness": 0.35,
+                "Strength": 0.6,
+                "FeatureScale": 2000,
+            },
+        },
+        {
+            "type": "Rivers",
+            "name": "MountainStreams",
+            "properties": {"Water": 0.3, "Width": 0.5, "Depth": 0.4},
+        },
+        {
+            "type": "Snow",
+            "name": "SnowCaps",
+            "properties": {"Coverage": 0.6, "Altitude": 0.75},
+        },
+        {
+            "type": "SatMap",
+            "name": "RealisticColors",
+            "properties": {"Library": "Mountain", "Enhance": 0.7},
+        },
+    ],
+    "volcanic_terrain": [
+        {
+            "type": "Volcano",
+            "name": "MainVolcano",
+            "properties": {"Scale": 1.2, "Height": 0.8, "Mouth": 0.3},
+        },
+        {
+            "type": "Island",
+            "name": "VolcanicIsland",
+            "properties": {"Scale": 2.0, "Height": 0.4},
+        },
+        {
+            "type": "Combine",
+            "name": "MergeVolcano",
+            "properties": {"Mode": "Add", "Ratio": 0.8},
+        },
+        {
+            "type": "Erosion",
+            "name": "LavaErosion",
+            "properties": {"Duration": 0.03, "RockSoftness": 0.6, "Strength": 0.4},
+        },
+        {
+            "type": "Thermal",
+            "name": "ThermalWeathering",
+            "properties": {"Strength": 0.5, "Angle": 35.0},
+        },
+        {
+            "type": "SatMap",
+            "name": "VolcanicColors",
+            "properties": {"Library": "Volcanic", "LibraryItem": "Basalt"},
+        },
+    ],
+    "desert_canyon": [
+        {
+            "type": "Canyon",
+            "name": "MainCanyon",
+            "properties": {"Scale": 1.5, "Depth": 0.7},
+        },
+        {
+            "type": "Stratify",
+            "name": "RockLayers",
+            "properties": {"Layers": 12, "Strength": 0.6},
+        },
+        {
+            "type": "FractalTerraces",
+            "name": "TerraceFormation",
+            "properties": {"Levels": 8, "Strength": 0.4},
+        },
+        {
+            "type": "Erosion",
+            "name": "WindErosion",
+            "properties": {"Duration": 0.02, "RockSoftness": 0.3, "Strength": 0.3},
+        },
+        {
+            "type": "Sand",
+            "name": "SandAccumulation",
+            "properties": {"Amount": 0.4, "Scale": 0.5},
+        },
+        {
+            "type": "SatMap",
+            "name": "DesertColors",
+            "properties": {"Library": "Desert", "LibraryItem": "Red Rock"},
+        },
+    ],
+    "modular_portal_terrain": [
+        {
+            "type": "Mountain",
+            "name": "PrimaryShape",
+            "properties": {"Scale": 1.2, "Height": 0.8, "Style": "Alpine"},
+        },
+        {
+            "type": "PortalTransmit",
+            "name": "ShapePortal",
+            "properties": {"PortalName": "Primary_Shape"},
+        },
+        {
+            "type": "PortalReceive",
+            "name": "ShapeForErosion",
+            "properties": {"PortalName": "Primary_Shape"},
+        },
+        {
+            "type": "Erosion",
+            "name": "DetailedErosion",
+            "properties": {
+                "Duration": 0.06,
+                "RockSoftness": 0.4,
+                "Strength": 0.7,
+                "FeatureScale": 3000,
+            },
+        },
+        {
+            "type": "PortalTransmit",
+            "name": "ErodedPortal",
+            "properties": {"PortalName": "Eroded_Terrain"},
+        },
+        {
+            "type": "PortalReceive",
+            "name": "ShapeForAnalysis",
+            "properties": {"PortalName": "Primary_Shape"},
+        },
+        {
+            "type": "Slope",
+            "name": "SlopeAnalysis",
+            "properties": {},
+        },
+        {
+            "type": "PortalReceive",
+            "name": "FinalTerrain",
+            "properties": {"PortalName": "Eroded_Terrain"},
+        },
+        {
+            "type": "SatMap",
+            "name": "TerrainColors",
+            "properties": {"Library": "Mountain", "LibraryItem": "Alps Summer"},
+        },
+    ],
+}
+
+
+def get_node_category(node_type: str) -> str:
+    """Get the category of a node type."""
+    for category, nodes in NODE_CATEGORIES.items():
+        if node_type in nodes:
+            return category
+    return "unknown"
+
+
+def get_node_ports(node_type: str) -> Dict[str, List[Dict[str, Any]]]:
+    """Get the port definitions for a node type."""
+    # Special cases first
+    if node_type == "Combine":
+        return NODE_PORT_DEFINITIONS["combine"]
+    elif node_type in ["Portal", "PortalTransmit", "PortalReceive"]:
+        return NODE_PORT_DEFINITIONS[node_type.lower()]
+
+    # Get by category
+    category = get_node_category(node_type)
+    if category in NODE_PORT_DEFINITIONS:
+        return NODE_PORT_DEFINITIONS[category]
+
+    # Default: one input, one output
+    return {
+        "inputs": [{"name": "In", "type": "heightfield"}],
+        "outputs": [{"name": "Out", "type": "heightfield"}],
+    }
+
+
+def validate_node_properties(node_type: str, properties: Dict[str, Any]) -> Tuple[List[str], List[str]]:
+    """Validate node properties against known definitions.
+
+    Returns:
+        Tuple of (errors, warnings)
+    """
+    errors = []
+    warnings = []
+
+    # Get property definitions for this node type
+    if node_type in NODE_PROPERTY_DEFINITIONS:
+        prop_defs = NODE_PROPERTY_DEFINITIONS[node_type]
+    else:
+        prop_defs = {}
+
+    # Validate each property
+    for prop_name, prop_value in properties.items():
+        # Check if property is defined for this node
+        if prop_name in prop_defs:
+            prop_def = prop_defs[prop_name]
+        elif prop_name in COMMON_NODE_PROPERTIES:
+            prop_def = COMMON_NODE_PROPERTIES[prop_name]
+        else:
+            warnings.append(f"Unknown property '{prop_name}' for node type {node_type}")
+            continue
+
+        # Type validation
+        expected_type = prop_def.get("type", "float")
+
+        if expected_type == "float":
+            if not isinstance(prop_value, (int, float)):
+                errors.append(f"Property '{prop_name}' should be numeric, got {type(prop_value).__name__}")
+            elif "range" in prop_def:
+                min_val = prop_def["range"].get("min", float("-inf"))
+                max_val = prop_def["range"].get("max", float("inf"))
+                if not min_val <= prop_value <= max_val:
+                    warnings.append(
+                        f"Property '{prop_name}' value {prop_value} outside " f"recommended range [{min_val}, {max_val}]"
+                    )
+
+        elif expected_type == "int":
+            if not isinstance(prop_value, int):
+                errors.append(f"Property '{prop_name}' should be integer, got {type(prop_value).__name__}")
+
+        elif expected_type == "bool":
+            if not isinstance(prop_value, bool):
+                errors.append(f"Property '{prop_name}' should be boolean, got {type(prop_value).__name__}")
+
+        elif expected_type == "enum":
+            options = prop_def.get("options", [])
+            if prop_value not in options:
+                errors.append(f"Property '{prop_name}' value '{prop_value}' not in " f"valid options: {', '.join(options)}")
+
+        elif expected_type == "string":
+            if not isinstance(prop_value, str):
+                errors.append(f"Property '{prop_name}' should be string, got {type(prop_value).__name__}")
+
+    return errors, warnings
+
+
+def validate_connection(from_node: Dict[str, Any], to_node: Dict[str, Any], from_port: str, to_port: str) -> Tuple[bool, str]:
+    """Validate a connection between two nodes.
+
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
+    # Get port definitions
+    from_ports = get_node_ports(from_node["type"])
+    to_ports = get_node_ports(to_node["type"])
+
+    # Find the output port
+    output_port = None
+    for port in from_ports.get("outputs", []):
+        if port["name"] == from_port:
+            output_port = port
+            break
+
+    if not output_port:
+        return False, f"Node {from_node['name']} has no output port '{from_port}'"
+
+    # Find the input port
+    input_port = None
+    for port in to_ports.get("inputs", []):
+        if port["name"] == to_port:
+            input_port = port
+            break
+
+    if not input_port:
+        return False, f"Node {to_node['name']} has no input port '{to_port}'"
+
+    # Check type compatibility
+    output_type = output_port.get("type", "heightfield")
+    input_type = input_port.get("type", "heightfield")
+
+    compatible_types = PORT_COMPATIBILITY.get(output_type, [output_type])
+    if input_type not in compatible_types:
+        return False, (
+            f"Port type mismatch: {from_node['name']}.{from_port} "
+            f"({output_type}) cannot connect to {to_node['name']}.{to_port} "
+            f"({input_type})"
+        )
+
+    return True, ""
+
+
+def apply_default_properties(node_type: str, properties: Dict[str, Any]) -> Dict[str, Any]:
+    """Apply default values for missing properties."""
+    result = properties.copy()
+
+    # Get property definitions for this node type
+    if node_type in NODE_PROPERTY_DEFINITIONS:
+        prop_defs = NODE_PROPERTY_DEFINITIONS[node_type]
+
+        # Add defaults for missing properties
+        for prop_name, prop_def in prop_defs.items():
+            if prop_name not in result and "default" in prop_def:
+                result[prop_name] = prop_def["default"]
+
+    # Add common defaults (only if not already present)
+    if node_type in VALID_NODE_TYPES:
+        # Seed is common to most nodes
+        if "Seed" not in result and get_node_category(node_type) in [
+            "primitive",
+            "terrain",
+            "surface",
+        ]:
+            result["Seed"] = 0
+
+    return result
+
+
+def create_workflow_from_template(
+    template_name: str, start_position: Tuple[float, float] = (25000, 26000)
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Create nodes and connections from a workflow template.
+
+    Args:
+        template_name: Name of the workflow template
+        start_position: Starting position for node layout
+
+    Returns:
+        Tuple of (nodes, connections)
+    """
+    if template_name not in WORKFLOW_TEMPLATES:
+        raise ValueError(f"Unknown template: {template_name}")
+
+    template = WORKFLOW_TEMPLATES[template_name]
+    nodes = []
+    connections = []
+
+    # Create nodes with automatic positioning
+    x_offset = 0
+    for i, node_template in enumerate(template):
+        node_id = 100 + i
+
+        # Apply default properties
+        properties = apply_default_properties(node_template["type"], node_template.get("properties", {}))
+
+        node = {
+            "id": node_id,
+            "type": node_template["type"],
+            "name": node_template["name"],
+            "position": {"x": start_position[0] + x_offset, "y": start_position[1]},
+            "properties": properties,
+        }
+        nodes.append(node)
+
+        # Create connection to previous node (skip for Portal nodes)
+        if i > 0:
+            prev_node = nodes[i - 1]
+
+            # Skip connections for Portal nodes - they don't follow linear flow
+            if node["type"] in [
+                "PortalTransmit",
+                "PortalReceive",
+                "Portal",
+            ] or prev_node[
+                "type"
+            ] in ["PortalTransmit", "PortalReceive", "Portal"]:
+                continue
+
+            # Handle special connection cases
+            if node["type"] == "Combine" and "Input2" not in [c.get("to_port") for c in connections]:
+                # Second input to Combine
+                connections.append(
+                    {
+                        "from_node": prev_node["id"],
+                        "to_node": node["id"],
+                        "from_port": "Out",
+                        "to_port": "Input2",
+                    }
+                )
+            else:
+                # Normal connection
+                connections.append(
+                    {
+                        "from_node": prev_node["id"],
+                        "to_node": node["id"],
+                        "from_port": "Out",
+                        "to_port": "In" if node["type"] != "Combine" else "Input1",
+                    }
+                )
+
+        x_offset += 500  # Space nodes horizontally
+
+    # Handle manual connections for Portal-based templates
+    if template_name == "modular_portal_terrain":
+        # Find node IDs by name for Portal connections
+        node_map = {node["name"]: node["id"] for node in nodes}
+
+        # Manual connections for the portal workflow
+        portal_connections = [
+            # Mountain -> Portal Transmit
+            {
+                "from_node": node_map["PrimaryShape"],
+                "to_node": node_map["ShapePortal"],
+                "from_port": "Out",
+                "to_port": "In",
+            },
+            # Portal Receive -> Erosion
+            {
+                "from_node": node_map["ShapeForErosion"],
+                "to_node": node_map["DetailedErosion"],
+                "from_port": "Out",
+                "to_port": "In",
+            },
+            # Erosion -> Portal Transmit
+            {
+                "from_node": node_map["DetailedErosion"],
+                "to_node": node_map["ErodedPortal"],
+                "from_port": "Out",
+                "to_port": "In",
+            },
+            # Portal Receive -> Slope
+            {
+                "from_node": node_map["ShapeForAnalysis"],
+                "to_node": node_map["SlopeAnalysis"],
+                "from_port": "Out",
+                "to_port": "In",
+            },
+            # Portal Receive -> SatMap
+            {
+                "from_node": node_map["FinalTerrain"],
+                "to_node": node_map["TerrainColors"],
+                "from_port": "Out",
+                "to_port": "In",
+            },
+        ]
+        connections.extend(portal_connections)
+
+    return nodes, connections
+
+
+def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Comprehensive validation of a Gaea 2 project structure.
+
+    Returns:
+        Dictionary with validation results including:
+        - valid: bool
+        - errors: List[str]
+        - warnings: List[str]
+        - node_count: int
+        - connection_count: int
+        - suggestions: List[str]
+    """
+    errors = []
+    warnings = []
+    suggestions = []
+
+    # Check basic structure
+    if "$id" not in project_data:
+        errors.append("Missing required field: $id")
+
+    if "Assets" not in project_data:
+        errors.append("Missing required field: Assets")
+        return {
+            "valid": False,
+            "errors": errors,
+            "warnings": warnings,
+            "suggestions": suggestions,
+            "node_count": 0,
+            "connection_count": 0,
+        }
+
+    # Navigate to terrain data
+    try:
+        terrain = project_data["Assets"]["$values"][0]["Terrain"]
+    except (KeyError, IndexError, TypeError):
+        errors.append("Invalid project structure: Cannot find Terrain data")
+        return {
+            "valid": False,
+            "errors": errors,
+            "warnings": warnings,
+            "suggestions": suggestions,
+            "node_count": 0,
+            "connection_count": 0,
+        }
+
+    # Validate nodes
+    nodes = terrain.get("Nodes", {})
+    node_count = 0
+    node_ids = set()
+    node_types_used = set()
+
+    for node_id, node_data in nodes.items():
+        if not isinstance(node_data, dict):
+            continue
+
+        node_count += 1
+        node_ids.add(int(node_id))
+
+        # Extract node type
+        type_field = node_data.get("$type", "")
+        if type_field:
+            # Format: "QuadSpinner.Gaea.Nodes.Mountain, Gaea.Nodes"
+            parts = type_field.split(".")
+            if len(parts) >= 4:
+                node_type = parts[3].split(",")[0]
+                node_types_used.add(node_type)
+
+                # Validate node type
+                if node_type not in VALID_NODE_TYPES:
+                    warnings.append(f"Unknown node type: {node_type}")
+
+                # Validate properties
+                props = {}
+                for key, value in node_data.items():
+                    if not key.startswith("$") and key not in [
+                        "Name",
+                        "Position",
+                        "Ports",
+                        "Modifiers",
+                        "SnapIns",
+                    ]:
+                        props[key] = value
+
+                prop_errors, prop_warnings = validate_node_properties(node_type, props)
+                errors.extend(prop_errors)
+                warnings.extend(prop_warnings)
+
+    # Validate connections
+    connection_count = 0
+    connections_found = []
+
+    # Look for connections in port records
+    for node_id, node_data in nodes.items():
+        if isinstance(node_data, dict) and "Ports" in node_data:
+            ports = node_data["Ports"]
+            if isinstance(ports, dict) and "$values" in ports:
+                for port in ports["$values"]:
+                    if isinstance(port, dict) and "Record" in port:
+                        record = port["Record"]
+                        if isinstance(record, dict):
+                            connection_count += 1
+                            connections_found.append(
+                                {
+                                    "from": record.get("From"),
+                                    "to": record.get("To"),
+                                    "from_port": record.get("FromPort", "Out"),
+                                    "to_port": record.get("ToPort", "In"),
+                                }
+                            )
+
+    # Validate connection references
+    for conn in connections_found:
+        if conn["from"] not in node_ids:
+            errors.append(f"Connection references non-existent node: {conn['from']}")
+        if conn["to"] not in node_ids:
+            errors.append(f"Connection references non-existent node: {conn['to']}")
+
+    # Generate suggestions
+    if node_count == 0:
+        suggestions.append("Add some nodes to create terrain")
+    elif "Mountain" not in node_types_used and "Terrain" not in node_types_used:
+        suggestions.append("Consider adding a terrain generator node (Mountain, Island, etc.)")
+
+    if "Erosion" not in node_types_used and node_count > 0:
+        suggestions.append("Add an Erosion node for more realistic terrain")
+
+    if connection_count == 0 and node_count > 1:
+        suggestions.append("Connect your nodes to create a processing flow")
+
+    # Determine overall validity
+    valid = len(errors) == 0
+
+    return {
+        "valid": valid,
+        "errors": errors,
+        "warnings": warnings,
+        "suggestions": suggestions,
+        "node_count": node_count,
+        "connection_count": connection_count,
+        "node_types": list(node_types_used),
+    }
+
+
+# Export all public functions and constants
+__all__ = [
+    "VALID_NODE_TYPES",
+    "NODE_CATEGORIES",
+    "NODE_PROPERTY_DEFINITIONS",
+    "WORKFLOW_TEMPLATES",
+    "validate_node_properties",
+    "validate_connection",
+    "validate_gaea2_project",
+    "apply_default_properties",
+    "create_workflow_from_template",
+    "get_node_category",
+    "get_node_ports",
+]
