@@ -11,6 +11,7 @@ This project follows a **container-first approach**:
 - **Zero external dependencies** - runs on any Linux system with Docker
 - **Self-hosted infrastructure** - no cloud costs, full control over runners
 - **Single maintainer design** - optimized for individual developer productivity
+- **Separated MCP servers** - Main MCP server (port 8005) and Gemini MCP server (port 8006)
 
 ## AI Agents
 
@@ -33,10 +34,10 @@ This repository leverages **three AI agents** for development and automation:
 
 ## Features
 
-- **MCP Server Integration** - Local MCP server with multiple tool categories
+- **MCP Server Integration** - Multiple MCP servers for different tool categories
 - **ComfyUI Integration** - Image generation workflows
 - **AI Toolkit** - LoRA training capabilities
-- **Gemini AI Consultation** - Second opinions and technical assistance
+- **Gemini AI Consultation** - Standalone MCP server for AI assistance (host-only)
 - **AI Code Review** - Automatic Gemini-powered PR reviews
 - **Manim Animations** - Mathematical and technical animations
 - **LaTeX Compilation** - Document generation
@@ -56,7 +57,12 @@ This repository leverages **three AI agents** for development and automation:
    ```bash
    git clone https://github.com/AndrewAltimit/template-repo
    cd template-repo
-   docker-compose up -d
+
+   # Start main MCP server (containerized)
+   docker-compose up -d mcp-server
+
+   # Start Gemini MCP server (must run on host)
+   python3 tools/mcp/gemini_mcp_server.py
    ```
 
 3. **For CI/CD (optional)**
@@ -81,19 +87,23 @@ This repository leverages **three AI agents** for development and automation:
 
 ## MCP Tools Available
 
-### Code Quality
+### Main MCP Server (Port 8005)
 
+**Code Quality:**
 - `format_check` - Check code formatting
 - `lint` - Run linting
-- `analyze` - Static analysis
-- `full_ci` - Complete CI pipeline
 
-### AI Integration
-
-- `consult_gemini` - Get AI assistance
-- `clear_gemini_history` - Clear conversation history
+**Content Creation:**
 - `create_manim_animation` - Create animations
 - `compile_latex` - Generate documents
+
+### Gemini MCP Server (Port 8006)
+
+**AI Integration (Host-only):**
+- `consult_gemini` - Get AI assistance
+- `clear_gemini_history` - Clear conversation history
+
+**Note:** The Gemini MCP server must run on the host system due to Docker requirements.
 
 ### Remote Services
 
@@ -112,11 +122,18 @@ See `.env.example` for all available options:
 
 ### Gemini AI Setup
 
-For AI code review on pull requests:
+The Gemini integration is split into two components:
 
-1. Install Node.js 18+ (recommended: 22.16.0)
-2. Install Gemini CLI: `npm install -g @google/gemini-cli`
-3. Authenticate: Run `gemini` command once
+1. **Gemini MCP Server** (for development assistance):
+   ```bash
+   # Must run on host system (not in container)
+   python3 tools/mcp/gemini_mcp_server.py
+   ```
+
+2. **Gemini CLI** (for automated PR reviews):
+   - Install Node.js 18+ (recommended: 22.16.0)
+   - Install Gemini CLI: `npm install -g @google/gemini-cli`
+   - Authenticate: Run `gemini` command once
 
 See [setup guide](docs/GEMINI_SETUP.md) for details.
 

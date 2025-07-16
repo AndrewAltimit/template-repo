@@ -79,66 +79,6 @@ class MCPTools:
             return {"error": str(e)}
 
     @staticmethod
-    async def consult_gemini(question: str, context: Optional[str] = None) -> Dict[str, Any]:
-        """Consult Gemini AI for assistance"""
-        try:
-            # Check if running in container
-            import os
-
-            if os.getenv("MCP_MODE") == "server" and os.path.exists("/.dockerenv"):
-                return {
-                    "error": "Gemini CLI is not available in containerized environment. "
-                    "Please use the host system's Gemini integration or configure "
-                    "an API-based Gemini integration for containerized usage."
-                }
-
-            # Import Gemini integration
-            from tools.gemini.gemini_integration import GeminiIntegration
-
-            gemini = GeminiIntegration()
-
-            # Prepare prompt
-            prompt = question
-            if context:
-                prompt = f"Context: {context}\n\nQuestion: {question}"
-
-            # Get response
-            result = await gemini.consult_gemini(prompt)
-
-            # Extract response from result
-            response = result.get("response", "")
-            if not response and "error" in result:
-                return {"error": f"Gemini error: {result['error']}"}
-
-            return {
-                "response": response,
-                "model": result.get("model", "gemini-pro"),
-                "tokens_used": result.get("tokens_used", len(prompt.split()) + len(response.split())),
-            }
-        except Exception as e:
-            return {"error": f"Gemini consultation failed: {str(e)}"}
-
-    @staticmethod
-    async def clear_gemini_history() -> Dict[str, Any]:
-        """Clear Gemini conversation history"""
-        try:
-            # Import Gemini integration
-            from tools.gemini.gemini_integration import GeminiIntegration
-
-            gemini = GeminiIntegration()
-
-            # Clear the conversation history
-            result = gemini.clear_conversation_history()
-
-            return {
-                "status": "success",
-                "message": result.get("message", "Conversation history cleared"),
-                "cleared_entries": result.get("cleared_entries", 0),
-            }
-        except Exception as e:
-            return {"error": f"Failed to clear Gemini history: {str(e)}"}
-
-    @staticmethod
     async def create_manim_animation(script: str, output_format: str = "mp4") -> Dict[str, Any]:
         """Create Manim animation from script"""
         try:
@@ -245,8 +185,6 @@ class MCPTools:
 TOOLS = {
     "format_check": MCPTools.format_check,
     "lint": MCPTools.lint,
-    "consult_gemini": MCPTools.consult_gemini,
-    "clear_gemini_history": MCPTools.clear_gemini_history,
     "create_manim_animation": MCPTools.create_manim_animation,
     "compile_latex": MCPTools.compile_latex,
 }

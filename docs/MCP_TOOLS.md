@@ -4,13 +4,15 @@ This document provides detailed information about the containerized MCP (Model C
 
 ## Container-First Design
 
-All MCP tools run in Docker containers as part of this project's philosophy:
+Most MCP tools run in Docker containers as part of this project's philosophy:
 
 - **Zero local dependencies** - just Docker
 - **Consistent execution** - same results on any Linux system with Python 3.11
 - **Easy deployment** - works identically on self-hosted runners
 - **Single maintainer friendly** - no complex setup or coordination needed
 - **User permission handling** - containers run as current user to avoid permission issues
+
+**Exception**: The Gemini MCP server runs on the host system due to Docker-in-Docker limitations.
 
 ## Table of Contents
 
@@ -25,11 +27,21 @@ All MCP tools run in Docker containers as part of this project's philosophy:
 
 MCP tools are functions that can be executed through the MCP server to perform various development and content creation tasks. They are accessible via HTTP API or through the MCP protocol.
 
-**Server Details:**
-- **Framework**: FastAPI with Python 3.11
-- **Port**: 8005 (containerized)
-- **Protocol**: HTTP/REST and MCP
-- **Container**: Runs in `mcp-server` Docker container
+**Server Architecture:**
+
+The MCP functionality is split across two servers:
+
+1. **Main MCP Server**
+   - **Port**: 8005 (containerized)
+   - **Container**: `mcp-server`
+   - **Tools**: Code quality, content creation
+
+2. **Gemini MCP Server**
+   - **Port**: 8006 (host-only)
+   - **Container**: Cannot run in container
+   - **Tools**: AI consultation, history management
+
+See [MCP Servers Documentation](MCP_SERVERS.md) for detailed information.
 
 ### Tool Execution
 

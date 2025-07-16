@@ -2,7 +2,7 @@
   "mcpServers": {
     "local-tools": {
       "name": "Local MCP Tools",
-      "url": "http://localhost:8000",
+      "url": "http://localhost:8005",
       "tools": {
         "format_check": {
           "description": "Check code formatting",
@@ -34,32 +34,6 @@
             "config": {
               "type": "string",
               "description": "Linting configuration file"
-            }
-          }
-        },
-        "analyze": {
-          "description": "Run static code analysis",
-          "parameters": {
-            "path": {
-              "type": "string",
-              "description": "Path to analyze"
-            },
-            "depth": {
-              "type": "integer",
-              "description": "Analysis depth"
-            }
-          }
-        },
-        "consult_gemini": {
-          "description": "Get AI assistance from Gemini",
-          "parameters": {
-            "question": {
-              "type": "string",
-              "description": "Technical question or code to review"
-            },
-            "context": {
-              "type": "string",
-              "description": "Additional context"
             }
           }
         },
@@ -98,6 +72,35 @@
               "default": "pdf"
             }
           }
+        }
+      }
+    },
+    "gemini-tools": {
+      "name": "Gemini MCP Server",
+      "url": "http://localhost:8006",
+      "note": "Must run on host system, not in container",
+      "tools": {
+        "consult_gemini": {
+          "description": "Get AI assistance from Gemini",
+          "parameters": {
+            "prompt": {
+              "type": "string",
+              "description": "Technical question or code to review"
+            },
+            "context": {
+              "type": "object",
+              "description": "Additional context"
+            },
+            "max_retries": {
+              "type": "integer",
+              "description": "Maximum retry attempts",
+              "default": 3
+            }
+          }
+        },
+        "clear_gemini_history": {
+          "description": "Clear Gemini conversation history",
+          "parameters": {}
         }
       }
     },

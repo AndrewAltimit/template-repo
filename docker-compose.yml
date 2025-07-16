@@ -25,6 +25,21 @@ services:
     restart: unless-stopped
     command: python -m tools.mcp.mcp_server
 
+  # Gemini MCP Server - MUST RUN ON HOST
+  # This service will immediately exit with an error message
+  gemini-mcp-server:
+    build:
+      context: .
+      dockerfile: docker/mcp.Dockerfile
+    container_name: gemini-mcp-server
+    environment:
+      - CONTAINER_ENV=1  # Force container detection
+    command: python tools/mcp/gemini_mcp_server.py
+    restart: "no"
+    networks:
+      - mcp-network
+    # This will always exit immediately with instructions
+
   # ComfyUI MCP HTTP Bridge (for remote ComfyUI)
   mcp-comfyui-http:
     build:

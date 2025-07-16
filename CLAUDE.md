@@ -77,6 +77,12 @@ docker-compose logs -f mcp-server
 curl http://localhost:8005/health
 python scripts/test-mcp-server.py
 
+# Start Gemini MCP server (MUST run on host, not in container)
+python tools/mcp/gemini_mcp_server.py
+
+# Test Gemini MCP server (port 8006)
+curl http://localhost:8006/health
+
 # Run the main application
 python main.py
 
@@ -122,21 +128,26 @@ docker-compose build python-ci
 
 ### MCP Server Architecture
 
-The project centers around a Model Context Protocol (MCP) server that provides various AI and development tools:
+The project uses multiple Model Context Protocol (MCP) servers to provide various AI and development tools:
 
-1. **FastAPI Server** (`tools/mcp/mcp_server.py`): Main HTTP API on port 8005
-2. **Tool Categories**:
+1. **Main MCP Server** (`tools/mcp/mcp_server.py`): HTTP API on port 8005
    - **Code Quality**:
      - `format_check` - Check code formatting (Python, JS, TS, Go, Rust)
      - `lint` - Run static analysis with optional config
+   - **Content Creation**:
+     - `create_manim_animation` - Create mathematical/technical animations
+     - `compile_latex` - Generate PDF/DVI/PS documents from LaTeX
+
+2. **Gemini MCP Server** (`tools/mcp/gemini_mcp_server.py`): HTTP API on port 8006
+   - **MUST run on host system** (not in container) due to Docker requirements
    - **AI Integration**:
      - `consult_gemini` - Get AI assistance for technical questions
      - `clear_gemini_history` - Clear conversation history for fresh responses
-     - `create_manim_animation` - Create mathematical/technical animations
-     - `compile_latex` - Generate PDF/DVI/PS documents from LaTeX
-   - **Remote Services**: ComfyUI (image generation), AI Toolkit (LoRA training)
+   - Automatically exits with error if launched in container
 
-3. **Containerized CI/CD**:
+3. **Remote Services**: ComfyUI (image generation), AI Toolkit (LoRA training)
+
+4. **Containerized CI/CD**:
    - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools (Black, isort, flake8, pylint, mypy, pytest)
    - **Helper Scripts**: Centralized CI operations to reduce workflow complexity
    - **Cache Prevention**: PYTHONDONTWRITEBYTECODE=1, pytest cache disabled
