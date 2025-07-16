@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Test script for Gemini MCP Server"""
 
+import os
 import sys
 
 import requests
@@ -8,7 +9,9 @@ import requests
 
 def test_gemini_mcp_server():
     """Test the Gemini MCP server endpoints"""
-    base_url = "http://localhost:8006"
+    # Use environment variable for port with default
+    port = os.environ.get("GEMINI_MCP_PORT", "8006")
+    base_url = f"http://localhost:{port}"
 
     print("Testing Gemini MCP Server...")
     print("-" * 50)
@@ -23,7 +26,7 @@ def test_gemini_mcp_server():
             print(f"❌ Health check failed: {response.status_code}")
             return False
     except requests.exceptions.ConnectionError:
-        print("❌ Cannot connect to Gemini MCP server on port 8006")
+        print(f"❌ Cannot connect to Gemini MCP server on port {port}")
         print("   Please start it with: python tools/mcp/gemini_mcp_server.py")
         return False
 
