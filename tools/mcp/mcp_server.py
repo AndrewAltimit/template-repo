@@ -21,23 +21,25 @@ from pydantic import BaseModel
 
 try:
     from gaea2_knowledge_graph import enhance_workflow_with_knowledge, knowledge_graph
-    from gaea2_schema_v2 import (
+    from gaea2_schema import (
         VALID_NODE_TYPES,
         WORKFLOW_TEMPLATES,
         apply_default_properties,
         create_workflow_from_template,
         validate_gaea2_project,
     )
+    from gaea2_validation import create_validator
 except ImportError:
     # If running as a module
     from tools.mcp.gaea2_knowledge_graph import enhance_workflow_with_knowledge, knowledge_graph
-    from tools.mcp.gaea2_schema_v2 import (
+    from tools.mcp.gaea2_schema import (
         VALID_NODE_TYPES,
         WORKFLOW_TEMPLATES,
         apply_default_properties,
         create_workflow_from_template,
         validate_gaea2_project,
     )
+    from tools.mcp.gaea2_validation import create_validator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -64,7 +66,7 @@ class MCPTools:
     @staticmethod
     def _ensure_property_types(node_type: str, properties: Dict[str, Any]) -> Dict[str, Any]:
         """Ensure properties have the correct data types based on node definitions"""
-        from tools.mcp.gaea2_schema_v2 import COMMON_NODE_PROPERTIES, NODE_PROPERTY_DEFINITIONS
+        from tools.mcp.gaea2_schema import COMMON_NODE_PROPERTIES, NODE_PROPERTY_DEFINITIONS
 
         corrected = properties.copy()
 
@@ -85,6 +87,26 @@ class MCPTools:
                     corrected[prop_name] = float(prop_value)
                 elif expected_type == "bool" and not isinstance(prop_value, bool):
                     corrected[prop_name] = bool(prop_value)
+                elif expected_type == "float2":
+                    # Handle Float2 type conversion
+                    if isinstance(prop_value, (int, float)):
+                        # Convert single value to Float2
+                        corrected[prop_name] = {
+                            "X": float(prop_value),
+                            "Y": float(prop_value),
+                        }
+                    elif isinstance(prop_value, dict) and "X" in prop_value and "Y" in prop_value:
+                        # Ensure X and Y are floats
+                        corrected[prop_name] = {
+                            "X": float(prop_value["X"]),
+                            "Y": float(prop_value["Y"]),
+                        }
+                    elif isinstance(prop_value, list) and len(prop_value) >= 2:
+                        # Convert list to Float2
+                        corrected[prop_name] = {
+                            "X": float(prop_value[0]),
+                            "Y": float(prop_value[1]),
+                        }
 
         return corrected
 
@@ -240,6 +262,22 @@ class MCPTools:
     ) -> Dict[str, Any]:
         """Create a Gaea 2 project file with nodes and connections"""
         try:
+            # Validate nodes before creating project
+            validator = create_validator()
+            validation_result = validator.validate_workflow(nodes, connections)
+
+            if not validation_result["valid"]:
+                return {
+                    "success": False,
+                    "error": "Validation failed",
+                    "validation_errors": validation_result["errors"],
+                    "warnings": validation_result["warnings"],
+                }
+
+            # Log warnings if any
+            if validation_result["warnings"]:
+                logger.warning(f"Validation warnings: {validation_result['warnings']}")
+
             # Initialize project structure
             project_id = str(uuid.uuid4())
             terrain_id = str(uuid.uuid4())
@@ -459,18 +497,15 @@ class MCPTools:
             if nodes:
                 project["Assets"]["$values"][0]["State"]["SelectedNode"] = nodes[0].get("id", 100)
 
-            # Save the project file
-            if output_path is None:
-                output_dir = "/app/output/gaea2"
-                os.makedirs(output_dir, exist_ok=True)
-                output_path = os.path.join(output_dir, f"{project_name}_{os.getpid()}.terrain")
-
-            with open(output_path, "w") as f:
-                json.dump(project, f, separators=(",", ":"))
+            # Save the project file if output_path is provided
+            if output_path:
+                with open(output_path, "w") as f:
+                    json.dump(project, f, separators=(",", ":"))
 
             return {
                 "success": True,
-                "output_path": output_path,
+                "project_data": project,  # Return the JSON data directly
+                "output_path": output_path if output_path else None,
                 "project_id": project_id,
                 "terrain_id": terrain_id,
                 "node_count": len(nodes),

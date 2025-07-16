@@ -287,8 +287,8 @@ COMMON_NODE_PROPERTIES = {
 # These override or extend the common properties
 NODE_PROPERTY_DEFINITIONS = {
     "Mountain": {
-        "Scale": {"default": 1.0, "range": {"min": 0.1, "max": 5.0}},
-        "Height": {"default": 0.7, "range": {"min": 0.0, "max": 1.0}},
+        "Scale": {"type": "float", "default": 1.0, "range": {"min": 0.1, "max": 5.0}},
+        "Height": {"type": "float", "default": 0.7, "range": {"min": 0.0, "max": 1.0}},
         "Style": {
             "type": "enum",
             "options": ["Basic", "Eroded", "Old", "Alpine", "Strata"],
@@ -299,16 +299,28 @@ NODE_PROPERTY_DEFINITIONS = {
             "options": ["Low", "Medium", "High"],
             "default": "Medium",
         },
-        "ReduceDetails": {"type": "bool", "default": False},
+        "Reduce Details": {"type": "bool", "default": False},
+        "Seed": {"type": "int", "default": 0, "range": {"min": 0, "max": 999999}},
+        "X": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": -1000.0, "max": 1000.0},
+        },
+        "Y": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": -1000.0, "max": 1000.0},
+        },
     },
     "Erosion": {
+        # Erosion section
         "Duration": {
             "type": "float",
             "default": 0.04,
             "range": {"min": 0.0, "max": 1.0},
             "description": "Duration of erosion simulation",
         },
-        "RockSoftness": {
+        "Rock Softness": {
             "type": "float",
             "default": 0.4,
             "range": {"min": 0.0, "max": 1.0},
@@ -320,6 +332,7 @@ NODE_PROPERTY_DEFINITIONS = {
             "range": {"min": 0.0, "max": 2.0},
             "description": "Strength of fluvial erosion",
         },
+        # Downcutting section
         "Downcutting": {
             "type": "float",
             "default": 0.0,
@@ -330,18 +343,22 @@ NODE_PROPERTY_DEFINITIONS = {
             "default": 0.0,
             "range": {"min": 0.0, "max": 1.0},
         },
-        "BaseLevel": {
+        "Base Level": {
             "type": "float",
             "default": 0.0,
             "range": {"min": 0.0, "max": 1.0},
         },
-        "FeatureScale": {
+        # Scale section
+        "Feature Scale": {
             "type": "int",
             "default": 2000,
             "range": {"min": 50, "max": 10000},
             "description": "Size of erosion features in meters",
         },
-        "AggressiveMode": {"type": "bool", "default": False},
+        "Real Scale": {"type": "bool", "default": False},
+        # Other Settings section
+        "Seed": {"type": "int", "default": 0, "range": {"min": 0, "max": 999999}},
+        "Aggressive Mode": {"type": "bool", "default": False},
         "Deterministic": {"type": "bool", "default": False},
     },
     "Combine": {
@@ -379,40 +396,135 @@ NODE_PROPERTY_DEFINITIONS = {
         "ClampOutput": {"type": "bool", "default": True},
     },
     "SatMap": {
+        # Main properties
         "Library": {
             "type": "enum",
-            "options": ["Mountain", "Desert", "Forest", "Arctic", "Volcanic"],
-            "default": "Mountain",
+            "options": ["New", "Rock", "Sand", "Green", "Blue", "Color"],
+            "default": "Rock",
         },
-        "LibraryItem": {"type": "string", "default": "Swiss Alps"},
-        "Enhance": {"type": "float", "default": 0.5, "range": {"min": 0.0, "max": 1.0}},
+        "Randomize": {"type": "bool", "default": False},
+        "Library Item": {"type": "int", "default": 0, "range": {"min": 0, "max": 50}},
+        "Range": {
+            "type": "float2",
+            "default": {"X": 0.5, "Y": 0.5},
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Range values for X and Y",
+        },
+        "Bias": {"type": "float", "default": 0.5, "range": {"min": 0.0, "max": 1.0}},
+        # Processing section
+        "Enhance": {
+            "type": "enum",
+            "options": ["None", "Autolevel", "Equalize"],
+            "default": "None",
+        },
+        "Reverse": {"type": "bool", "default": False},
+        "Rough": {
+            "type": "enum",
+            "options": ["None", "Low", "Med", "High", "Ultra"],
+            "default": "None",
+        },
+        "Hue": {"type": "float", "default": 0.0, "range": {"min": -1.0, "max": 1.0}},
+        "Saturation": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": -1.0, "max": 1.0},
+        },
+        "Lightness": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": -1.0, "max": 1.0},
+        },
     },
     "Rivers": {
         "Water": {"type": "float", "default": 0.3, "range": {"min": 0.0, "max": 1.0}},
         "Width": {"type": "float", "default": 0.5, "range": {"min": 0.0, "max": 1.0}},
         "Depth": {"type": "float", "default": 0.5, "range": {"min": 0.0, "max": 1.0}},
+        "Downcutting": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": 0.0, "max": 1.0},
+        },
+        "River Valley Width": {
+            "type": "enum",
+            "options": ["minus4", "minus2", "zero", "plus2", "plus4"],
+            "default": "zero",
+        },
         "Headwaters": {
             "type": "int",
             "default": 100,
             "range": {"min": 10, "max": 1000},
         },
+        "Render Surface": {"type": "bool", "default": False},
+        "Seed": {"type": "int", "default": 0, "range": {"min": 0, "max": 999999}},
     },
     "Snow": {
-        "Coverage": {
+        # Snow section
+        "Duration": {
             "type": "float",
             "default": 0.5,
             "range": {"min": 0.0, "max": 1.0},
         },
-        "Altitude": {
+        "Intensity": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+        },
+        "Settle Duration": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+        },
+        # Melt section
+        "Melt Type": {
+            "type": "enum",
+            "options": ["Uniform", "Directional"],
+            "default": "Uniform",
+        },
+        "Melt": {"type": "float", "default": 0.0, "range": {"min": 0.0, "max": 1.0}},
+        "Melt Remnants": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": 0.0, "max": 1.0},
+        },
+        "Direction": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": 0.0, "max": 360.0},
+        },
+        "Snow Line": {
             "type": "float",
             "default": 0.7,
             "range": {"min": 0.0, "max": 1.0},
         },
-        "Thickness": {
+        # Advanced section
+        "Slip-off angle": {
             "type": "float",
-            "default": 0.3,
-            "range": {"min": 0.0, "max": 1.0},
+            "default": 35.0,
+            "range": {"min": 0.0, "max": 90.0},
         },
+        "Real Scale": {"type": "bool", "default": False},
+    },
+    "Volcano": {
+        "Scale": {"type": "float", "default": 1.0, "range": {"min": 0.1, "max": 5.0}},
+        "Height": {"type": "float", "default": 0.8, "range": {"min": 0.0, "max": 1.0}},
+        "Mouth": {"type": "float", "default": 0.3, "range": {"min": 0.0, "max": 1.0}},
+        "Bulk": {"type": "float", "default": 0.5, "range": {"min": 0.0, "max": 1.0}},
+        "Surface": {
+            "type": "enum",
+            "options": ["Smooth", "Eroded"],
+            "default": "Smooth",
+        },
+        "X": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": -1000.0, "max": 1000.0},
+        },
+        "Y": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": -1000.0, "max": 1000.0},
+        },
+        "Seed": {"type": "int", "default": 0, "range": {"min": 0, "max": 999999}},
     },
     "Portal": {
         "PortalName": {
@@ -638,13 +750,13 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Erosion",
             "name": "NaturalErosion",
-            "properties": {"Duration": 0.04, "RockSoftness": 0.4, "Strength": 0.5},
+            "properties": {"Duration": 0.04, "Rock Softness": 0.4, "Strength": 0.5},
         },
         {"type": "TextureBase", "name": "BaseTexture", "properties": {}},
         {
             "type": "SatMap",
             "name": "ColorMap",
-            "properties": {"Library": "Mountain", "LibraryItem": "Swiss Alps"},
+            "properties": {"Library": "Rock", "Library Item": 0},
         },
     ],
     "detailed_mountain": [
@@ -661,7 +773,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Mountain",
             "name": "SecondaryPeaks",
-            "properties": {"Scale": 0.8, "Height": 0.6, "Style": "Rocky"},
+            "properties": {"Scale": 0.8, "Height": 0.6, "Style": "Eroded"},
         },
         {
             "type": "Combine",
@@ -673,9 +785,9 @@ WORKFLOW_TEMPLATES = {
             "name": "InitialErosion",
             "properties": {
                 "Duration": 0.05,
-                "RockSoftness": 0.35,
+                "Rock Softness": 0.35,
                 "Strength": 0.6,
-                "FeatureScale": 2000,
+                "Feature Scale": 2000,
             },
         },
         {
@@ -686,12 +798,12 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Snow",
             "name": "SnowCaps",
-            "properties": {"Coverage": 0.6, "Altitude": 0.75},
+            "properties": {"Duration": 0.6, "Snow Line": 0.75},
         },
         {
             "type": "SatMap",
             "name": "RealisticColors",
-            "properties": {"Library": "Mountain", "Enhance": 0.7},
+            "properties": {"Library": "Rock", "Enhance": "Autolevel"},
         },
     ],
     "volcanic_terrain": [
@@ -713,7 +825,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Erosion",
             "name": "LavaErosion",
-            "properties": {"Duration": 0.03, "RockSoftness": 0.6, "Strength": 0.4},
+            "properties": {"Duration": 0.03, "Rock Softness": 0.6, "Strength": 0.4},
         },
         {
             "type": "Thermal",
@@ -723,7 +835,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "SatMap",
             "name": "VolcanicColors",
-            "properties": {"Library": "Volcanic", "LibraryItem": "Basalt"},
+            "properties": {"Library": "Rock", "Library Item": 1},
         },
     ],
     "desert_canyon": [
@@ -745,7 +857,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Erosion",
             "name": "WindErosion",
-            "properties": {"Duration": 0.02, "RockSoftness": 0.3, "Strength": 0.3},
+            "properties": {"Duration": 0.02, "Rock Softness": 0.3, "Strength": 0.3},
         },
         {
             "type": "Sand",
@@ -755,7 +867,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "SatMap",
             "name": "DesertColors",
-            "properties": {"Library": "Desert", "LibraryItem": "Red Rock"},
+            "properties": {"Library": "Sand", "Library Item": 0},
         },
     ],
     "modular_portal_terrain": [
@@ -779,9 +891,9 @@ WORKFLOW_TEMPLATES = {
             "name": "DetailedErosion",
             "properties": {
                 "Duration": 0.06,
-                "RockSoftness": 0.4,
+                "Rock Softness": 0.4,
                 "Strength": 0.7,
-                "FeatureScale": 3000,
+                "Feature Scale": 3000,
             },
         },
         {
@@ -807,7 +919,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "SatMap",
             "name": "TerrainColors",
-            "properties": {"Library": "Mountain", "LibraryItem": "Alps Summer"},
+            "properties": {"Library": "Rock", "Library Item": 2},
         },
     ],
 }
