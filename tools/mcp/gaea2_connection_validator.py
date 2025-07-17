@@ -219,7 +219,12 @@ class Gaea2ConnectionValidator:
 
         return cycles
 
-    def _check_workflow_patterns(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]], warnings: List[str]):
+    def _check_workflow_patterns(
+        self,
+        nodes: List[Dict[str, Any]],
+        connections: List[Dict[str, Any]],
+        warnings: List[str],
+    ):
         """Check for missing common workflow patterns"""
         node_types = [n["type"] for n in nodes]
 
@@ -239,7 +244,12 @@ class Gaea2ConnectionValidator:
             warnings.append("No export node found - add Export node to save terrain")
 
     def _find_paths_to_type(
-        self, start: int, target_type: str, adjacency: Dict[int, List[int]], node_types: Dict[int, str], max_length: int = 10
+        self,
+        start: int,
+        target_type: str,
+        adjacency: Dict[int, List[int]],
+        node_types: Dict[int, str],
+        max_length: int = 10,
     ) -> List[List[int]]:
         """Find all paths from start node to any node of target type"""
         paths = []

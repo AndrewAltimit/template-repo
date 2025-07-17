@@ -13,7 +13,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def extract_workflow(project_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def extract_workflow(
+    project_data: Dict[str, Any],
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Extract nodes and connections from project data"""
     nodes = []
     connections = []
@@ -40,14 +42,23 @@ def extract_workflow(project_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any]]
 
         node = {
             "id": node_data.get("Id", int(node_id) if node_id.isdigit() else 0),
-            "type": node_data.get("$type", "").split(".")[-2] if "$type" in node_data else "Unknown",
+            "type": (node_data.get("$type", "").split(".")[-2] if "$type" in node_data else "Unknown"),
             "name": node_data.get("Name", ""),
             "properties": {},
         }
 
         # Extract properties
         for key, value in node_data.items():
-            if key not in ["$id", "$type", "Id", "Name", "Position", "Ports", "Modifiers", "SnapIns"]:
+            if key not in [
+                "$id",
+                "$type",
+                "Id",
+                "Name",
+                "Position",
+                "Ports",
+                "Modifiers",
+                "SnapIns",
+            ]:
                 node["properties"][key] = value
 
         nodes.append(node)
@@ -139,9 +150,15 @@ def analyze_projects():
                                 visited.add(current["id"])
 
                                 # Find next
-                                next_conn = next((c for c in connections if c["from_node"] == current["id"]), None)
+                                next_conn = next(
+                                    (c for c in connections if c["from_node"] == current["id"]),
+                                    None,
+                                )
                                 if next_conn:
-                                    current = next((n for n in nodes if n["id"] == next_conn["to_node"]), None)
+                                    current = next(
+                                        (n for n in nodes if n["id"] == next_conn["to_node"]),
+                                        None,
+                                    )
                                 else:
                                     current = None
 

@@ -50,7 +50,10 @@ async def test_workflow_analyzer():
     print("\n=== Testing Workflow Analyzer ===\n")
 
     # Test with a simple workflow
-    test_nodes = [{"type": "Mountain", "name": "Mountain1"}, {"type": "Erosion2", "name": "Erosion1"}]
+    test_nodes = [
+        {"type": "Mountain", "name": "Mountain1"},
+        {"type": "Erosion2", "name": "Erosion1"},
+    ]
 
     result = await MCPTools.analyze_workflow_patterns(current_workflow=test_nodes)
 
@@ -156,7 +159,12 @@ async def test_template_with_knowledge():
         connections = []
         for i in range(len(nodes) - 1):
             connections.append(
-                {"from_node": nodes[i]["id"], "to_node": nodes[i + 1]["id"], "from_port": "Out", "to_port": "In"}
+                {
+                    "from_node": nodes[i]["id"],
+                    "to_node": nodes[i + 1]["id"],
+                    "from_port": "Out",
+                    "to_port": "In",
+                }
             )
 
         # Create the project

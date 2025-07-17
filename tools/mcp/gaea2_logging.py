@@ -139,7 +139,13 @@ class Gaea2Logger:
 
         self.logger.log(level, msg, extra=extra)
 
-    def log_validation_error(self, error_type: str, node_type: str, details: str, node_id: Optional[int] = None):
+    def log_validation_error(
+        self,
+        error_type: str,
+        node_type: str,
+        details: str,
+        node_id: Optional[int] = None,
+    ):
         """Log validation error"""
         extra = {"error_type": error_type, "node_type": node_type}
 

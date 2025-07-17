@@ -237,7 +237,14 @@ class Gaea2ErrorHandler:
         errors = []
 
         # Count heavy nodes
-        heavy_node_types = ["Erosion", "Erosion2", "Wizard", "Rivers", "Snow", "Thermal2"]
+        heavy_node_types = [
+            "Erosion",
+            "Erosion2",
+            "Wizard",
+            "Rivers",
+            "Snow",
+            "Thermal2",
+        ]
         heavy_nodes = [n for n in nodes if n.get("type") in heavy_node_types]
 
         if len(heavy_nodes) > 5:
@@ -273,7 +280,10 @@ class Gaea2ErrorHandler:
         return errors
 
     def _trace_erosion_chain(
-        self, start_node_id: int, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+        self,
+        start_node_id: int,
+        nodes: List[Dict[str, Any]],
+        connections: List[Dict[str, Any]],
     ) -> List[int]:
         """Trace erosion chain from a starting node"""
         chain = [start_node_id]
@@ -297,7 +307,10 @@ class Gaea2ErrorHandler:
         return chain
 
     def auto_fix_errors(
-        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]], schema: Dict[str, Any]
+        self,
+        nodes: List[Dict[str, Any]],
+        connections: List[Dict[str, Any]],
+        schema: Dict[str, Any],
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[str]]:
         """Attempt to auto-fix errors where possible"""
         fixes_applied = []

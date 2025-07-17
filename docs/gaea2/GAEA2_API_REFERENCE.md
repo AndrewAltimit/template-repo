@@ -20,7 +20,7 @@ The main interface for interacting with Gaea2 functionality through MCP.
 
 ### create_gaea2_project
 
-Create a custom Gaea2 terrain project.
+Create a custom Gaea2 terrain project with **automatic validation and error correction**.
 
 ```python
 async def create_gaea2_project(
@@ -32,7 +32,8 @@ async def create_gaea2_project(
     modifiers: Optional[List[Dict[str, Any]]] = None,
     automation_variables: Optional[List[Dict[str, Any]]] = None,
     viewport_config: Optional[Dict[str, Any]] = None,
-    build_config: Optional[Dict[str, Any]] = None
+    build_config: Optional[Dict[str, Any]] = None,
+    auto_validate: bool = True  # NEW: Automatic validation (default: True)
 ) -> Dict[str, Any]
 ```
 
@@ -46,21 +47,42 @@ async def create_gaea2_project(
 - `automation_variables`: Automation variable definitions
 - `viewport_config`: Viewport settings
 - `build_config`: Build configuration
+- `auto_validate`: **NEW** - Enable automatic validation and fixing (default: `True`)
+  - Validates all nodes and properties
+  - Fixes invalid property values
+  - Adds missing Export/SatMap nodes
+  - Repairs connections
+  - Ensures Gaea2 compatibility
 
 **Returns:**
 ```python
 {
     "success": bool,
     "output_path": str,
+    "project_id": str,        # Unique project ID
+    "terrain_id": str,        # Unique terrain ID
     "node_count": int,
     "connection_count": int,
-    "validation": {
+    "validation": {           # Only present if auto_validate=True
         "valid": bool,
         "errors": List[str],
-        "warnings": List[str]
+        "warnings": List[str],
+        "fixes_applied": List[str],
+        "quality_score": float  # 0-100
     }
 }
 ```
+
+**Automatic Validation Features (when `auto_validate=True`):**
+- ✅ All node types validated against complete schema
+- ✅ Property values corrected to valid ranges
+- ✅ Missing Export node automatically added
+- ✅ Missing color node (SatMap/ColorMap) automatically added
+- ✅ Duplicate connections removed
+- ✅ Invalid connections repaired
+- ✅ Orphaned nodes connected or removed
+- ✅ Performance-heavy properties optimized
+- ✅ File format guaranteed to be Gaea2-compatible
 
 ### validate_and_fix_workflow
 

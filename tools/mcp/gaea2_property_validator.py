@@ -205,7 +205,15 @@ class Gaea2PropertyValidator:
 
         # Method validation
         if "Method" in fixed:
-            valid_methods = ["Add", "Subtract", "Multiply", "Max", "Min", "Average", "Blend"]
+            valid_methods = [
+                "Add",
+                "Subtract",
+                "Multiply",
+                "Max",
+                "Min",
+                "Average",
+                "Blend",
+            ]
             if fixed["Method"] not in valid_methods:
                 fixed["Method"] = "Blend"
                 warnings.append("Invalid Combine Method, set to 'Blend'")

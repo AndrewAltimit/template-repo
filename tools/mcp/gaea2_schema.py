@@ -393,7 +393,11 @@ NODE_PROPERTY_DEFINITIONS = {
             "default": "Blend",
         },
         "Ratio": {"type": "float", "default": 0.5, "range": {"min": 0.0, "max": 1.0}},
-        "Clamp": {"type": "enum", "default": "Clamp", "options": ["None", "Clamp", "Normalize"]},
+        "Clamp": {
+            "type": "enum",
+            "default": "Clamp",
+            "options": ["None", "Clamp", "Normalize"],
+        },
     },
     "SatMap": {
         # Main properties

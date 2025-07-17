@@ -1,14 +1,25 @@
 # Gaea2 MCP Quick Reference
 
+## 🔥 Important: Automatic Validation is Built-in!
+
+**All projects created with `create_gaea2_project` automatically include:**
+- ✅ Property validation and fixing
+- ✅ Missing Export/SatMap nodes added
+- ✅ Connection validation and repair
+- ✅ Performance optimization
+- ✅ Guaranteed Gaea2 compatibility
+
+**Set `auto_validate=False` only if you need to bypass validation.**
+
 ## Essential Tools
 
 | Tool | Purpose | Key Parameters |
 |------|---------|----------------|
-| `create_gaea2_project` | Create terrain projects | `nodes`, `connections`, `output_path` |
-| `validate_and_fix_workflow` | Validate & repair | `nodes`, `auto_fix=True`, `aggressive=False` |
+| `create_gaea2_project` | Create terrain projects | `nodes`, `connections`, `output_path`, `auto_validate=True` |
+| `validate_and_fix_workflow` | Manual validation & repair | `nodes`, `auto_fix=True`, `aggressive=False` |
 | `create_gaea2_from_template` | Use templates | `template_name`, `project_name` |
 | `analyze_workflow_patterns` | Get suggestions | `current_workflow` |
-| `repair_gaea2_project` | Fix projects | `project_path` or `project_data` |
+| `repair_gaea2_project` | Fix existing projects | `project_path` or `project_data` |
 
 ## Available Templates
 
@@ -37,20 +48,21 @@
 
 ## Quick Examples
 
-### Create Simple Terrain
+### Create Simple Terrain (Automatic Validation)
 ```python
+# Minimal example - Export and SatMap are added automatically!
 result = await MCPTools.create_gaea2_project(
     project_name="Simple Mountain",
     nodes=[
         {"type": "Mountain", "id": 100},
-        {"type": "Erosion2", "id": 101},
-        {"type": "SatMap", "id": 102}
+        {"type": "Erosion2", "id": 101}
+        # No need for Export or SatMap!
     ],
     connections=[
-        {"from_node": 100, "to_node": 101},
-        {"from_node": 101, "to_node": 102}
+        {"from_node": 100, "to_node": 101}
     ]
 )
+# Result will have 4 nodes: Mountain, Erosion2, SatMap (auto), Export (auto)
 ```
 
 ### Use Template
@@ -89,11 +101,11 @@ analysis = await MCPTools.analyze_workflow_patterns(
 - `Seed`: Any integer
 
 ### Erosion2
-- `Duration`: 0.01-0.2 (default: 0.07)
+- `Duration`: 0.01-0.1 (auto-capped for performance)
 - `Scale`: 1-100000 (default: 10000)
 
 ### Rivers
-- `Headwaters`: 10-300 (default: 100)
+- `Headwaters`: 10-200 (auto-capped for performance)
 
 ### SatMap
 - `Preset`: "Rocky", "Desert", "Alpine", "Volcanic", "Custom"

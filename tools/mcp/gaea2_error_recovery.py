@@ -24,7 +24,10 @@ class Gaea2ErrorRecovery:
         self.fix_log = []
 
     def auto_fix_project(
-        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]], aggressive: bool = False
+        self,
+        nodes: List[Dict[str, Any]],
+        connections: List[Dict[str, Any]],
+        aggressive: bool = False,
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[str]]:
         """
         Automatically fix common issues in a project
@@ -72,7 +75,12 @@ class Gaea2ErrorRecovery:
         duplicates = 0
 
         for conn in connections:
-            key = (conn["from_node"], conn["to_node"], conn.get("from_port", "Out"), conn.get("to_port", "In"))
+            key = (
+                conn["from_node"],
+                conn["to_node"],
+                conn.get("from_port", "Out"),
+                conn.get("to_port", "In"),
+            )
             if key not in seen:
                 seen.add(key)
                 fixed.append(conn)
@@ -132,7 +140,14 @@ class Gaea2ErrorRecovery:
             texture_id = next(n["id"] for n in nodes if n["type"] == "TextureBase")
             satmap_id = next(n["id"] for n in nodes if n["type"] == "SatMap")
 
-            connections.append({"from_node": texture_id, "to_node": satmap_id, "from_port": "Out", "to_port": "In"})
+            connections.append(
+                {
+                    "from_node": texture_id,
+                    "to_node": satmap_id,
+                    "from_port": "Out",
+                    "to_port": "In",
+                }
+            )
 
             self.fixes_applied.append(f"Added missing colorization nodes: {', '.join(nodes_added)}")
 
@@ -151,14 +166,22 @@ class Gaea2ErrorRecovery:
                     # Insert erosion between
                     conn["to_node"] = erosion_node["id"]
                     connections.append(
-                        {"from_node": erosion_node["id"], "to_node": rivers_id, "from_port": "Out", "to_port": "In"}
+                        {
+                            "from_node": erosion_node["id"],
+                            "to_node": rivers_id,
+                            "from_port": "Out",
+                            "to_port": "In",
+                        }
                     )
                     break
 
         return nodes, connections
 
     def _fix_orphaned_nodes(
-        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]], aggressive: bool = False
+        self,
+        nodes: List[Dict[str, Any]],
+        connections: List[Dict[str, Any]],
+        aggressive: bool = False,
     ) -> List[Dict[str, Any]]:
         """Connect orphaned nodes based on patterns"""
         # Find orphaned nodes
@@ -191,7 +214,12 @@ class Gaea2ErrorRecovery:
                 if target_nodes:
                     # Connect to first available
                     connections.append(
-                        {"from_node": orphan["id"], "to_node": target_nodes[0]["id"], "from_port": "Out", "to_port": "In"}
+                        {
+                            "from_node": orphan["id"],
+                            "to_node": target_nodes[0]["id"],
+                            "from_port": "Out",
+                            "to_port": "In",
+                        }
                     )
                     self.fixes_applied.append(f"Connected orphaned {orphan['name']} to {target_nodes[0]['name']}")
                     break
@@ -204,7 +232,12 @@ class Gaea2ErrorRecovery:
                     node_suggestions = get_next_node_suggestions(node["type"])
                     if any(s["node"] == orphan_type for s in node_suggestions):
                         connections.append(
-                            {"from_node": node["id"], "to_node": orphan["id"], "from_port": "Out", "to_port": "In"}
+                            {
+                                "from_node": node["id"],
+                                "to_node": orphan["id"],
+                                "from_port": "Out",
+                                "to_port": "In",
+                            }
                         )
                         self.fixes_applied.append(f"Connected {node['name']} to orphaned {orphan['name']}")
                         break
@@ -237,7 +270,12 @@ class Gaea2ErrorRecovery:
                 if not has_erosion_input and erosion_nodes:
                     # Connect nearest erosion to river
                     connections.append(
-                        {"from_node": erosion_nodes[0]["id"], "to_node": river_id, "from_port": "Out", "to_port": "In"}
+                        {
+                            "from_node": erosion_nodes[0]["id"],
+                            "to_node": river_id,
+                            "from_port": "Out",
+                            "to_port": "In",
+                        }
                     )
                     self.fixes_applied.append("Connected Erosion2 to Rivers for proper water flow")
 
@@ -308,18 +346,42 @@ class Gaea2ErrorRecovery:
         is_valid, errors, warnings = self.connection_validator.validate_connections(nodes, connections)
 
         for error in errors:
-            suggestions.append({"type": "connection_error", "error": error, "fix": "Fix connection references"})
+            suggestions.append(
+                {
+                    "type": "connection_error",
+                    "error": error,
+                    "fix": "Fix connection references",
+                }
+            )
 
         for warning in warnings:
-            suggestions.append({"type": "connection_warning", "warning": warning, "fix": "Consider adjusting connections"})
+            suggestions.append(
+                {
+                    "type": "connection_warning",
+                    "warning": warning,
+                    "fix": "Consider adjusting connections",
+                }
+            )
 
         # Check for missing nodes
         node_types = [n["type"] for n in nodes]
 
         if not any(t in ["Export", "Unity", "Unreal"] for t in node_types):
-            suggestions.append({"type": "missing_node", "node_type": "Export", "fix": "Add Export node to save terrain"})
+            suggestions.append(
+                {
+                    "type": "missing_node",
+                    "node_type": "Export",
+                    "fix": "Add Export node to save terrain",
+                }
+            )
 
         if "SatMap" not in node_types:
-            suggestions.append({"type": "missing_node", "node_type": "SatMap", "fix": "Add SatMap for terrain colorization"})
+            suggestions.append(
+                {
+                    "type": "missing_node",
+                    "node_type": "SatMap",
+                    "fix": "Add SatMap for terrain colorization",
+                }
+            )
 
         return suggestions

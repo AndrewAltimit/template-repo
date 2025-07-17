@@ -50,15 +50,40 @@ async def test_workflow_validation():
 
     # Create test workflow with issues
     nodes = [
-        {"id": 100, "type": "Mountain", "name": "Mountain1", "properties": {"Scale": "wrong"}},
-        {"id": 101, "type": "Rivers", "name": "Rivers1", "properties": {"Headwaters": 500}},  # Too high
-        {"id": 102, "type": "Erosion2", "name": "Erosion1", "properties": {}},  # Missing properties
+        {
+            "id": 100,
+            "type": "Mountain",
+            "name": "Mountain1",
+            "properties": {"Scale": "wrong"},
+        },
+        {
+            "id": 101,
+            "type": "Rivers",
+            "name": "Rivers1",
+            "properties": {"Headwaters": 500},
+        },  # Too high
+        {
+            "id": 102,
+            "type": "Erosion2",
+            "name": "Erosion1",
+            "properties": {},
+        },  # Missing properties
         {"id": 103, "type": "SatMap", "name": "Colors", "properties": {}},  # Orphaned
     ]
 
     connections = [
-        {"from_node": 100, "to_node": 101, "from_port": "Out", "to_port": "In"},  # Wrong order
-        {"from_node": 100, "to_node": 101, "from_port": "Out", "to_port": "In"},  # Duplicate
+        {
+            "from_node": 100,
+            "to_node": 101,
+            "from_port": "Out",
+            "to_port": "In",
+        },  # Wrong order
+        {
+            "from_node": 100,
+            "to_node": 101,
+            "from_port": "Out",
+            "to_port": "In",
+        },  # Duplicate
     ]
 
     # Validate and fix
@@ -198,7 +223,9 @@ async def test_pattern_based_creation():
 
     # Create a desert canyon using patterns
     result = await MCPTools.create_gaea2_from_template(
-        template_name="desert_canyon", project_name="Pattern-Based Desert Canyon", output_path="test_pattern_canyon.terrain"
+        template_name="desert_canyon",
+        project_name="Pattern-Based Desert Canyon",
+        output_path="test_pattern_canyon.terrain",
     )
 
     if result["success"]:
@@ -232,10 +259,24 @@ async def stress_test_performance():
     # Create 50 nodes in a chain
     for i in range(50):
         node_type = ["Mountain", "Erosion2", "Rivers", "Combine", "SatMap"][i % 5]
-        nodes.append({"id": 100 + i, "type": node_type, "name": f"{node_type}_{i}", "properties": {}})
+        nodes.append(
+            {
+                "id": 100 + i,
+                "type": node_type,
+                "name": f"{node_type}_{i}",
+                "properties": {},
+            }
+        )
 
         if i > 0:
-            connections.append({"from_node": 100 + i - 1, "to_node": 100 + i, "from_port": "Out", "to_port": "In"})
+            connections.append(
+                {
+                    "from_node": 100 + i - 1,
+                    "to_node": 100 + i,
+                    "from_port": "Out",
+                    "to_port": "In",
+                }
+            )
 
     # Time validation
     start = time.time()

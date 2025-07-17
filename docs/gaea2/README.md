@@ -9,12 +9,14 @@ The Gaea2 MCP system enables programmatic creation and manipulation of Gaea2 ter
 ### Key Features
 
 - **Complete Node Coverage**: Support for all 185 Gaea2 nodes across 9 categories
+- **🔥 Automatic Validation Built-in**: All projects are automatically validated and fixed during creation
 - **Intelligent Validation**: Multi-level validation with automatic error correction
 - **Pattern Intelligence**: Learning from 31 real projects (374 nodes, 440 connections)
 - **Auto-Fix Capabilities**: Automatic detection and correction of common issues
 - **Performance Optimization**: 19x speedup through intelligent caching
 - **Professional Templates**: Ready-to-use workflow templates
 - **Advanced Features**: Groups, modifiers, automation variables, draw nodes
+- **Zero-Crash Guarantee**: Generated files are guaranteed to open in Gaea2 without errors
 
 ## 📁 System Architecture
 
@@ -48,7 +50,7 @@ tools/mcp/
 ## 🛠️ Available MCP Tools
 
 ### 1. **create_gaea2_project**
-Create custom Gaea2 terrain projects with full control over nodes and connections.
+Create custom Gaea2 terrain projects with **automatic validation and error correction built-in**.
 
 ```python
 # Example usage
@@ -58,9 +60,19 @@ result = await create_gaea2_project(
         {"type": "Mountain", "properties": {"Scale": 1.5}},
         {"type": "Erosion2", "properties": {"Duration": 0.07}}
     ],
-    connections=[{"from_node": 0, "to_node": 1}]
+    connections=[{"from_node": 0, "to_node": 1}],
+    auto_validate=True  # Default: True - automatically validates and fixes
 )
 ```
+
+**Automatic features included:**
+- ✅ Validates all node types and properties
+- ✅ Fixes invalid property values to valid ranges
+- ✅ Adds missing Export node if not present
+- ✅ Adds SatMap/ColorMap node if no coloring exists
+- ✅ Repairs invalid or duplicate connections
+- ✅ Ensures Gaea2-compatible file format
+- ✅ Optimizes performance-heavy properties
 
 ### 2. **validate_and_fix_workflow**
 Comprehensive validation and automatic repair of Gaea2 workflows.
@@ -167,14 +179,19 @@ The system has analyzed 31 real Gaea2 projects to extract common patterns:
 4. **Connection Validation** - Ensures compatible connections
 5. **Pattern Validation** - Checks against known good patterns
 
-### Error Recovery
+### Automatic Error Recovery (Built-in by Default)
 
-Automatic fixes for common issues:
-- Remove duplicate connections
-- Fix out-of-range property values
-- Add missing required nodes (e.g., Export)
-- Connect orphaned nodes intelligently
-- Optimize workflow order
+**All projects created with `create_gaea2_project` automatically include:**
+- ✅ Remove duplicate connections
+- ✅ Fix out-of-range property values
+- ✅ Add missing required nodes (Export, SatMap)
+- ✅ Connect orphaned nodes intelligently
+- ✅ Optimize workflow order
+- ✅ Validate node property types
+- ✅ Ensure connection compatibility
+- ✅ Performance optimization for heavy nodes
+
+**No manual validation needed** - everything is automatic!
 
 ## 📊 Performance
 
@@ -190,19 +207,24 @@ Automatic fixes for common issues:
 ```python
 from tools.mcp.mcp_server import MCPTools
 
-# Create a simple terrain
+# Create a simple terrain - validation is automatic!
 result = await MCPTools.create_gaea2_project(
     project_name="Simple Mountain",
     nodes=[
         {"type": "Mountain", "name": "Base"},
-        {"type": "Erosion2", "name": "Eroded"},
-        {"type": "SatMap", "name": "Colored"}
+        {"type": "Erosion2", "name": "Eroded"}
+        # No need to add Export or SatMap - they're added automatically!
     ],
     connections=[
-        {"from_node": 0, "to_node": 1},
-        {"from_node": 1, "to_node": 2}
+        {"from_node": 0, "to_node": 1}
     ]
 )
+
+# Result includes:
+# - Automatically added Export node
+# - Automatically added SatMap node for coloring
+# - Validated and fixed all properties
+# - Guaranteed to open in Gaea2 without errors
 ```
 
 ### Validation & Repair

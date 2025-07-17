@@ -230,6 +230,7 @@ class MCPTools:
         resolution: int = 2048,
         world_size: int = 5000,
         output_path: Optional[str] = None,
+        auto_validate: bool = True,
     ) -> Dict[str, Any]:
         """Create a Gaea 2 project file with nodes and connections"""
         try:
@@ -245,6 +246,62 @@ class MCPTools:
                         "success": False,
                         "error": f"Invalid node type: {node.get('type')}. See gaea2_complete_schema.json for valid types.",
                     }
+
+            # AUTOMATIC VALIDATION AND FIXING
+            if auto_validate:
+                logger.info("Running automatic validation and fixing for workflow...")
+                validation_result = await MCPTools.validate_and_fix_workflow(
+                    nodes=nodes,
+                    connections=connections,
+                    auto_fix=True,
+                    aggressive=True,  # Use aggressive fixing to ensure valid workflow
+                )
+
+                if not validation_result.get("success"):
+                    return {
+                        "success": False,
+                        "error": f"Workflow validation failed: {validation_result.get('error', 'Unknown error')}",
+                        "validation_details": validation_result,
+                    }
+
+                # Use fixed workflow if fixes were applied
+                if validation_result.get("fixed_workflow"):
+                    fixed_workflow = validation_result["fixed_workflow"]
+                    nodes = fixed_workflow["nodes"]
+                    connections = fixed_workflow["connections"]
+                    logger.info(f"Applied {len(validation_result['fixes']['applied'])} fixes to workflow")
+
+                # Log quality improvement
+                quality_scores = validation_result.get("quality_scores", {})
+                logger.info(f"Workflow quality score: {quality_scores.get('fixed', 0)}/100")
+
+                # Ensure we have at least minimum required nodes
+                node_types = [node["type"] for node in nodes]
+                if "Export" not in node_types:
+                    export_node = {
+                        "id": max([n.get("id", 100) for n in nodes]) + 1,
+                        "type": "Export",
+                        "name": "Export",
+                        "position": {"x": 26000, "y": 26000},
+                        "properties": {},
+                    }
+                    nodes.append(export_node)
+                    logger.info("Added missing Export node")
+
+                if "SatMap" not in node_types and "ColorMap" not in node_types:
+                    satmap_node = {
+                        "id": max([n.get("id", 100) for n in nodes]) + 1,
+                        "type": "SatMap",
+                        "name": "ColorMapping",
+                        "position": {"x": 25500, "y": 25500},
+                        "properties": {
+                            "SnowLine": 1500.0,
+                            "VegetationLine": 800.0,
+                            "UseAtmosphere": True,
+                        },
+                    }
+                    nodes.append(satmap_node)
+                    logger.info("Added SatMap node for coloring")
 
             project_id = str(uuid.uuid4())
             terrain_id = str(uuid.uuid4())
@@ -457,17 +514,40 @@ class MCPTools:
                                 ref_id_counter += 1
                                 break
 
-            # Assign nodes to the project
-            project["Assets"]["$values"][0]["Terrain"]["Nodes"] = nodes_dict
+            # Assign nodes to the project with proper structure
+            # IMPORTANT: Nodes in Gaea are stored as a flat dictionary with node IDs as keys
+            # Add nodes directly to the Nodes dictionary with their IDs as keys
+            for node_id, node_data in nodes_dict.items():
+                project["Assets"]["$values"][0]["Terrain"]["Nodes"][node_id] = node_data
 
             # Set selected node if any
             if nodes:
                 project["Assets"]["$values"][0]["State"]["SelectedNode"] = nodes[0].get("id", 100)
 
+            # FINAL VALIDATION before saving
+            if auto_validate:
+                logger.info("Running final validation before saving...")
+                final_validation = await MCPTools.validate_gaea2_project(project_data=project)
+
+                if not final_validation.get("valid", False):
+                    logger.warning(f"Final validation warnings: {final_validation.get('warnings', [])}")
+                    logger.error(f"Final validation errors: {final_validation.get('errors', [])}")
+
             # Save the project file if output_path is provided
             if output_path:
-                with open(output_path, "w") as f:
-                    json.dump(project, f, separators=(",", ":"))
+                # Ensure the file has .terrain extension
+                if not output_path.endswith(".terrain"):
+                    output_path += ".terrain"
+
+                with open(output_path, "w", encoding="utf-8") as f:
+                    # Use proper JSON formatting for Gaea
+                    json.dump(
+                        project,
+                        f,
+                        indent=None,
+                        separators=(",", ":"),
+                        ensure_ascii=False,
+                    )
 
             return {
                 "success": True,
@@ -735,7 +815,9 @@ class MCPTools:
 
     @staticmethod
     async def repair_gaea2_project(
-        project_file: Optional[str] = None, project_data: Optional[Dict[str, Any]] = None, auto_fix: bool = True
+        project_file: Optional[str] = None,
+        project_data: Optional[Dict[str, Any]] = None,
+        auto_fix: bool = True,
     ) -> Dict[str, Any]:
         """Repair and optimize a Gaea2 project"""
         try:
@@ -746,7 +828,10 @@ class MCPTools:
                 with open(project_file, "r") as f:
                     project_data = json.load(f)
             elif not project_data:
-                return {"success": False, "error": "Either project_file or project_data must be provided"}
+                return {
+                    "success": False,
+                    "error": "Either project_file or project_data must be provided",
+                }
 
             # Analyze and repair
             analysis = repair.analyze_project(project_data)
@@ -756,7 +841,7 @@ class MCPTools:
                 "success": True,
                 "analysis": analysis,
                 "repair_result": repair_result,
-                "health_score": analysis["analysis"]["health_score"] if analysis["success"] else 0,
+                "health_score": (analysis["analysis"]["health_score"] if analysis["success"] else 0),
             }
 
         except Exception as e:
@@ -764,7 +849,8 @@ class MCPTools:
 
     @staticmethod
     async def analyze_workflow_patterns(
-        directory_path: Optional[str] = None, current_workflow: Optional[List[Dict[str, Any]]] = None
+        directory_path: Optional[str] = None,
+        current_workflow: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """Analyze workflow patterns from real projects"""
         try:
@@ -777,7 +863,11 @@ class MCPTools:
                 # Save analysis for future use
                 analyzer.save_analysis("gaea2_workflow_analysis.json")
 
-                return {"success": True, "directory_analysis": analysis_result, "statistics": analyzer.get_statistics()}
+                return {
+                    "success": True,
+                    "directory_analysis": analysis_result,
+                    "statistics": analyzer.get_statistics(),
+                }
 
             # Get recommendations for current workflow
             elif current_workflow:
@@ -790,10 +880,17 @@ class MCPTools:
                 node_types = [node.get("type") for node in current_workflow]
                 recommendations = analyzer.get_recommendations(node_types)
 
-                return {"success": True, "recommendations": recommendations, "statistics": analyzer.get_statistics()}
+                return {
+                    "success": True,
+                    "recommendations": recommendations,
+                    "statistics": analyzer.get_statistics(),
+                }
 
             else:
-                return {"success": False, "error": "Either directory_path or current_workflow must be provided"}
+                return {
+                    "success": False,
+                    "error": "Either directory_path or current_workflow must be provided",
+                }
 
         except Exception as e:
             return {"error": str(e), "success": False}
@@ -862,7 +959,7 @@ class MCPTools:
                     "fixed": fixed_score,
                     "improvement": fixed_score - original_score,
                 },
-                "fixed_workflow": {"nodes": fixed_nodes, "connections": fixed_connections} if auto_fix else None,
+                "fixed_workflow": ({"nodes": fixed_nodes, "connections": fixed_connections} if auto_fix else None),
             }
 
         except Exception as e:

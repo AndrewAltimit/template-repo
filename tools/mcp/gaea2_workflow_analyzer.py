@@ -79,7 +79,11 @@ class Gaea2WorkflowAnalyzer:
             if pattern:
                 self._add_or_update_pattern(pattern)
 
-            return {"success": True, "nodes_analyzed": len(nodes), "connections_analyzed": len(connections)}
+            return {
+                "success": True,
+                "nodes_analyzed": len(nodes),
+                "connections_analyzed": len(connections),
+            }
 
         except Exception as e:
             logger.error(f"Failed to analyze {project_path}: {str(e)}")
@@ -103,7 +107,12 @@ class Gaea2WorkflowAnalyzer:
 
     def get_recommendations(self, current_nodes: List[str]) -> Dict[str, Any]:
         """Get recommendations based on learned patterns"""
-        recommendations = {"next_nodes": [], "missing_nodes": [], "property_suggestions": {}, "similar_patterns": []}
+        recommendations = {
+            "next_nodes": [],
+            "missing_nodes": [],
+            "property_suggestions": {},
+            "similar_patterns": [],
+        }
 
         # Find what typically follows the last node
         if current_nodes:
@@ -119,7 +128,12 @@ class Gaea2WorkflowAnalyzer:
             similarity = self._calculate_pattern_similarity(current_nodes, pattern.nodes)
             if similarity > 0.5:
                 recommendations["similar_patterns"].append(
-                    {"name": pattern.name, "similarity": similarity, "nodes": pattern.nodes, "frequency": pattern.frequency}
+                    {
+                        "name": pattern.name,
+                        "similarity": similarity,
+                        "nodes": pattern.nodes,
+                        "frequency": pattern.frequency,
+                    }
                 )
 
         # Sort by similarity
@@ -212,7 +226,16 @@ class Gaea2WorkflowAnalyzer:
 
             # Extract properties
             for key, value in node_data.items():
-                if key not in ["$id", "$type", "Id", "Name", "Position", "Ports", "Modifiers", "SnapIns"]:
+                if key not in [
+                    "$id",
+                    "$type",
+                    "Id",
+                    "Name",
+                    "Position",
+                    "Ports",
+                    "Modifiers",
+                    "SnapIns",
+                ]:
                     node["properties"][key] = value
 
             nodes.append(node)

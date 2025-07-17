@@ -16,16 +16,16 @@ Comprehensive examples demonstrating the Gaea2 MCP system capabilities.
 
 ## Basic Examples
 
-### 1. Simple Mountain Terrain
+### 1. Simple Mountain Terrain (With Automatic Validation)
 
-Create a basic mountain terrain with erosion and coloring.
+Create a basic mountain terrain - validation and fixing is automatic!
 
 ```python
 from tools.mcp.mcp_server import MCPTools
 import asyncio
 
 async def create_simple_mountain():
-    # Define nodes
+    # Define only the essential nodes - Export and SatMap are added automatically!
     nodes = [
         {
             "id": 100,
@@ -42,47 +42,43 @@ async def create_simple_mountain():
             "type": "Erosion2",
             "name": "Natural Erosion",
             "properties": {
-                "Duration": 0.07,
+                "Duration": 0.15,  # Will be auto-corrected to 0.1 max
                 "Scale": 10000,
                 "Detail": 0.8
             }
-        },
-        {
-            "id": 102,
-            "type": "SatMap",
-            "name": "Rocky Colors",
-            "properties": {
-                "Preset": "Rocky"
-            }
-        },
-        {
-            "id": 103,
-            "type": "Export",
-            "name": "Final Output"
         }
+        # No need to add Export or SatMap - they're added automatically!
     ]
 
     # Define connections
     connections = [
-        {"from_node": 100, "to_node": 101},
-        {"from_node": 101, "to_node": 102},
-        {"from_node": 102, "to_node": 103}
+        {"from_node": 100, "to_node": 101}
     ]
 
-    # Create project
+    # Create project with automatic validation (default behavior)
     result = await MCPTools.create_gaea2_project(
         project_name="Simple Mountain",
         nodes=nodes,
         connections=connections,
         output_path="simple_mountain.terrain"
+        # auto_validate=True is the default!
     )
 
     print(f"Created project: {result['output_path']}")
-    print(f"Validation: {result['validation']['valid']}")
+    print(f"Nodes after validation: {result['node_count']}")  # Will show 4 (added Export + SatMap)
+    print(f"Quality score: {result['validation']['quality_score']}/100")
+    print(f"Fixes applied: {result['validation']['fixes_applied']}")
 
 # Run the example
 asyncio.run(create_simple_mountain())
 ```
+
+**What happens automatically:**
+- ✅ Export node is added (required for Gaea2)
+- ✅ SatMap node is added for coloring
+- ✅ Erosion Duration reduced from 0.15 to 0.1 (performance optimization)
+- ✅ All connections are validated and created
+- ✅ File format is guaranteed to work in Gaea2
 
 ### 2. Using Templates
 

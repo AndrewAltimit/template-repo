@@ -40,13 +40,27 @@ WORKFLOW_TEMPLATES = {
         "tags": ["mountain", "erosion", "water", "realistic"],
     },
     "terraced_landscape": {
-        "nodes": ["Slump", "FractalTerraces", "Combine", "Shear", "Crumble", "Erosion2"],
+        "nodes": [
+            "Slump",
+            "FractalTerraces",
+            "Combine",
+            "Shear",
+            "Crumble",
+            "Erosion2",
+        ],
         "description": "Complex terraced landscapes with deformation",
         "tags": ["terraces", "geological", "complex"],
         "frequency": 9,  # Most common pattern
     },
     "desert_canyon": {
-        "nodes": ["Canyon", "Sandstone", "Stratify", "Erosion2", "TextureBase", "SatMap"],
+        "nodes": [
+            "Canyon",
+            "Sandstone",
+            "Stratify",
+            "Erosion2",
+            "TextureBase",
+            "SatMap",
+        ],
         "description": "Desert canyon with rock stratification",
         "tags": ["canyon", "desert", "stratified", "sedimentary"],
     },
@@ -75,11 +89,28 @@ WORKFLOW_TEMPLATES = {
 # Node connection probabilities based on real usage
 NODE_CONNECTION_FREQUENCY = {
     "Mountain": {"Erosion2": 0.8, "Outcrops": 0.2},
-    "Erosion2": {"Rivers": 0.26, "TextureBase": 0.23, "ColorErosion": 0.19, "Height": 0.13, "Erosion2": 0.10},
+    "Erosion2": {
+        "Rivers": 0.26,
+        "TextureBase": 0.23,
+        "ColorErosion": 0.19,
+        "Height": 0.13,
+        "Erosion2": 0.10,
+    },
     "Rivers": {"Adjust": 0.37, "Height": 0.33, "TextureBase": 0.30},
     "TextureBase": {"SatMap": 0.95, "Combine": 0.05},
-    "SatMap": {"Combine": 0.64, "ColorErosion": 0.14, "Mixer": 0.10, "Weathering": 0.08},
-    "Combine": {"Combine": 0.29, "Shear": 0.21, "Weathering": 0.10, "Erosion2": 0.04, "SatMap": 0.04},
+    "SatMap": {
+        "Combine": 0.64,
+        "ColorErosion": 0.14,
+        "Mixer": 0.10,
+        "Weathering": 0.08,
+    },
+    "Combine": {
+        "Combine": 0.29,
+        "Shear": 0.21,
+        "Weathering": 0.10,
+        "Erosion2": 0.04,
+        "SatMap": 0.04,
+    },
     "Crumble": {"Erosion2": 0.82, "Sandstone": 0.09, "Terraces": 0.09},
     "Slump": {"FractalTerraces": 1.0},
     "Island": {"Adjust": 0.67, "Blur": 0.33},
@@ -114,12 +145,30 @@ NODE_USAGE_FREQUENCY = {
 # Property recommendations based on patterns
 PROPERTY_RECOMMENDATIONS = {
     "Erosion2": {
-        "Duration": {"default": 0.07, "range": [0.04, 0.1], "note": "Lower values for better performance"},
-        "common_patterns": {"subtle": {"Duration": 0.04}, "moderate": {"Duration": 0.07}, "heavy": {"Duration": 0.1}},
+        "Duration": {
+            "default": 0.07,
+            "range": [0.04, 0.1],
+            "note": "Lower values for better performance",
+        },
+        "common_patterns": {
+            "subtle": {"Duration": 0.04},
+            "moderate": {"Duration": 0.07},
+            "heavy": {"Duration": 0.1},
+        },
     },
-    "Rivers": {"Headwaters": {"default": 100, "range": [50, 200], "note": "More headwaters = more detailed river networks"}},
+    "Rivers": {
+        "Headwaters": {
+            "default": 100,
+            "range": [50, 200],
+            "note": "More headwaters = more detailed river networks",
+        }
+    },
     "Combine": {
-        "Ratio": {"default": 0.5, "common_values": [0.3, 0.5, 0.7], "note": "0.5 for balanced blend, adjust for emphasis"}
+        "Ratio": {
+            "default": 0.5,
+            "common_values": [0.3, 0.5, 0.7],
+            "note": "0.5 for balanced blend, adjust for emphasis",
+        }
     },
     "Mountain": {"Scale": {"default": 1.0, "range": [0.5, 2.0]}},
     "SatMap": {"common_presets": ["Rocky", "Desert", "Alpine", "Volcanic"]},
@@ -136,7 +185,13 @@ def get_next_node_suggestions(current_node: str, top_n: int = 3) -> List[Dict[st
 
     suggestions = []
     for node, probability in sorted_nodes[:top_n]:
-        suggestions.append({"node": node, "probability": probability, "usage_count": NODE_USAGE_FREQUENCY.get(node, 0)})
+        suggestions.append(
+            {
+                "node": node,
+                "probability": probability,
+                "usage_count": NODE_USAGE_FREQUENCY.get(node, 0),
+            }
+        )
 
     return suggestions
 

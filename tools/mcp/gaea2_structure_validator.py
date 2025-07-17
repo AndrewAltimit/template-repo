@@ -251,7 +251,11 @@ class Gaea2StructureValidator:
                                     "Name": "Graph 1",
                                     "Color": "Brass",
                                     "ZoomFactor": 0.5,
-                                    "ViewportLocation": {"$id": "225", "X": 25000.0, "Y": 25000.0},
+                                    "ViewportLocation": {
+                                        "$id": "225",
+                                        "X": 25000.0,
+                                        "Y": 25000.0,
+                                    },
                                 }
                             ],
                         },

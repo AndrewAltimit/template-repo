@@ -101,7 +101,10 @@ class Gaea2Cache:
                         data_file = self.cache_dir / f"{key}.json"
                         if data_file.exists():
                             with open(data_file) as f:
-                                self.cache[key] = {"timestamp": meta["timestamp"], "data": json.load(f)}
+                                self.cache[key] = {
+                                    "timestamp": meta["timestamp"],
+                                    "data": json.load(f),
+                                }
             except Exception as e:
                 logger.warning(f"Failed to load cache: {e}")
 
@@ -123,7 +126,11 @@ class Gaea2Cache:
                 with open(index_file) as f:
                     index = json.load(f)
 
-            index[key] = {"operation": operation, "params": params, "timestamp": time.time()}
+            index[key] = {
+                "operation": operation,
+                "params": params,
+                "timestamp": time.time(),
+            }
 
             with open(index_file, "w") as f:
                 json.dump(index, f, indent=2)

@@ -286,10 +286,17 @@ docker-compose run --rm python-ci pytest tests/gaea2/ -v
 
 ### Development Tips
 
-1. **Pattern-Based Development**: Use `analyze_workflow_patterns` to get suggestions based on real projects
-2. **Automatic Repair**: Use `validate_and_fix_workflow` with `auto_fix=True` to fix common issues
-3. **Performance vs Quality**: Use `optimize_gaea2_properties` with appropriate mode
-4. **Templates First**: Start with templates for common terrain types, then customize
+1. **Automatic Validation**: All Gaea2 projects created through MCP have **automatic validation built-in by default**
+   - `create_gaea2_project` automatically validates and fixes workflows
+   - Missing essential nodes (Export, SatMap) are added automatically
+   - Invalid connections are repaired
+   - Property values are corrected to valid ranges
+   - Set `auto_validate=False` only if you need to bypass validation
+
+2. **Pattern-Based Development**: Use `analyze_workflow_patterns` to get suggestions based on real projects
+3. **Manual Validation**: Use `validate_and_fix_workflow` for existing projects or custom validation needs
+4. **Performance vs Quality**: Use `optimize_gaea2_properties` with appropriate mode
+5. **Templates First**: Start with templates for common terrain types, then customize
 
 ### Common Patterns (from 31 real projects)
 
@@ -297,14 +304,19 @@ docker-compose run --rm python-ci pytest tests/gaea2/ -v
 - Most used nodes: SatMap (47), Combine (38), Erosion2 (29)
 - Average project complexity: 12.1 nodes, 14.2 connections
 
-### Error Recovery
+### Automatic Error Recovery (Built-in)
 
-The system can automatically fix:
-- Duplicate connections
-- Out-of-range property values
-- Missing required nodes (Export, SatMap)
-- Orphaned nodes
-- Workflow optimization issues
+**All Gaea2 projects are automatically validated and fixed during creation:**
+- ✅ Duplicate connections are removed
+- ✅ Out-of-range property values are corrected
+- ✅ Missing required nodes (Export, SatMap) are added
+- ✅ Orphaned nodes are connected or removed
+- ✅ Workflow optimization issues are resolved
+- ✅ Invalid node properties are fixed
+- ✅ Connection validity is ensured
+- ✅ File format is guaranteed to be Gaea2-compatible
+
+**No manual intervention needed** - the MCP server handles all validation automatically!
 
 For complete documentation, see:
 - `docs/gaea2/README.md` - Main Gaea2 MCP documentation

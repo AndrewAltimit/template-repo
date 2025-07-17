@@ -57,7 +57,10 @@ class Gaea2ProjectRepair:
             return {"success": False, "error": str(e)}
 
     def repair_project(
-        self, project_data: Dict[str, Any], auto_fix: bool = True, create_backup: bool = True
+        self,
+        project_data: Dict[str, Any],
+        auto_fix: bool = True,
+        create_backup: bool = True,
     ) -> Dict[str, Any]:
         """Repair project issues"""
         try:
@@ -144,7 +147,11 @@ class Gaea2ProjectRepair:
             # Update project
             self._update_project_workflow(project_data, nodes, connections)
 
-            return {"success": True, "optimizations_applied": optimizations, "optimization_count": len(optimizations)}
+            return {
+                "success": True,
+                "optimizations_applied": optimizations,
+                "optimization_count": len(optimizations),
+            }
 
         except Exception as e:
             logger.error(f"Project optimization failed: {str(e)}")
@@ -180,7 +187,16 @@ class Gaea2ProjectRepair:
 
             # Extract properties
             for key, value in node_data.items():
-                if key not in ["$id", "$type", "Id", "Name", "Position", "Ports", "Modifiers", "SnapIns"]:
+                if key not in [
+                    "$id",
+                    "$type",
+                    "Id",
+                    "Name",
+                    "Position",
+                    "Ports",
+                    "Modifiers",
+                    "SnapIns",
+                ]:
                     node["properties"][key] = value
 
             nodes.append(node)
@@ -203,7 +219,10 @@ class Gaea2ProjectRepair:
         return nodes, connections
 
     def _update_project_workflow(
-        self, project_data: Dict[str, Any], nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+        self,
+        project_data: Dict[str, Any],
+        nodes: List[Dict[str, Any]],
+        connections: List[Dict[str, Any]],
     ):
         """Update project data with modified workflow"""
         # This is a simplified version - in reality would need to rebuild the full structure
