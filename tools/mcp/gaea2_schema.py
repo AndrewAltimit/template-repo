@@ -1207,6 +1207,35 @@ def create_workflow_from_template(
         ]
         connections.extend(portal_connections)
 
+    # Always add an Export node at the end if not present
+    has_export = any(node["type"] == "Export" for node in nodes)
+    if not has_export:
+        last_node = nodes[-1]
+        export_id = max(node["id"] for node in nodes) + 1
+
+        export_node = {
+            "id": export_id,
+            "type": "Export",
+            "name": "TerrainExport",
+            "position": {"x": last_node["position"]["x"] + 500, "y": last_node["position"]["y"]},
+            "properties": {
+                "filename": "terrain_output",
+                "format": "Terrain",
+                "enabled": True,
+            },
+        }
+        nodes.append(export_node)
+
+        # Connect the last node to the Export node
+        connections.append(
+            {
+                "from_node": last_node["id"],
+                "to_node": export_id,
+                "from_port": "Out",
+                "to_port": "In",
+            }
+        )
+
     return nodes, connections
 
 

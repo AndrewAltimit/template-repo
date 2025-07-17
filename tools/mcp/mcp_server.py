@@ -281,12 +281,16 @@ class MCPTools:
                     export_node = {
                         "id": max([n.get("id", 100) for n in nodes]) + 1,
                         "type": "Export",
-                        "name": "Export",
+                        "name": "TerrainExport",
                         "position": {"x": 26000, "y": 26000},
-                        "properties": {},
+                        "properties": {
+                            "filename": f"{project_name}",
+                            "format": "Terrain",
+                            "enabled": True,
+                        },
                     }
                     nodes.append(export_node)
-                    logger.info("Added missing Export node")
+                    logger.info("Added missing Export node configured for .terrain output")
 
                 if "SatMap" not in node_types and "ColorMap" not in node_types:
                     satmap_node = {
@@ -517,7 +521,8 @@ class MCPTools:
             # Assign nodes to the project with proper structure
             # IMPORTANT: Nodes in Gaea are stored as a flat dictionary with node IDs as keys
             # Add nodes directly to the Nodes dictionary with their IDs as keys
-            for node_id, node_data in nodes_dict.items():
+            # Create a list of items to avoid dictionary modification during iteration
+            for node_id, node_data in list(nodes_dict.items()):
                 project["Assets"]["$values"][0]["Terrain"]["Nodes"][node_id] = node_data
 
             # Set selected node if any

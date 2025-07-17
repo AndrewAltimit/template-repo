@@ -291,15 +291,43 @@ class Gaea2ErrorRecovery:
         return nodes, connections
 
     def _ensure_export_node(self, nodes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Ensure project has an export node"""
+        """Ensure project has an export node configured for .terrain output"""
         export_types = ["Export", "Unity", "Unreal"]
 
-        if not any(n["type"] in export_types for n in nodes):
-            # Add Export node
-            export_node = self._create_node("Export", len(nodes) + 200)
-            export_node["name"] = "FinalExport"
-            nodes.append(export_node)
-            self.fixes_applied.append("Added Export node for terrain output")
+        # Check if there's already an Export node configured for terrain
+        has_terrain_export = False
+        for node in nodes:
+            if node["type"] == "Export":
+                props = node.get("properties", {})
+                if props.get("format") == "Terrain":
+                    has_terrain_export = True
+                    break
+
+        if not has_terrain_export:
+            # Check if there's any export node at all
+            export_nodes = [n for n in nodes if n["type"] in export_types]
+
+            if not export_nodes:
+                # Add new Export node
+                export_node = self._create_node("Export", len(nodes) + 200)
+                export_node["name"] = "TerrainExport"
+                export_node["properties"] = {
+                    "filename": "terrain_output",
+                    "format": "Terrain",
+                    "enabled": True,
+                }
+                nodes.append(export_node)
+                self.fixes_applied.append("Added Export node configured for .terrain output")
+            else:
+                # Update existing Export node to output terrain
+                for node in export_nodes:
+                    if node["type"] == "Export":
+                        node["properties"]["format"] = "Terrain"
+                        node["properties"]["enabled"] = True
+                        if "filename" not in node["properties"]:
+                            node["properties"]["filename"] = "terrain_output"
+                        self.fixes_applied.append(f"Updated {node['name']} to export .terrain format")
+                        break
 
         return nodes
 
