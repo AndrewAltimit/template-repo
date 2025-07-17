@@ -1,0 +1,740 @@
+{
+  "projects_analyzed": 31,
+  "node_frequency": {
+    "Cellular, Gaea": 1,
+    "MountainSide, Gaea": 3,
+    "Combine, Gaea": 48,
+    "Erosion2, Gaea": 31,
+    "Stratify, Gaea": 8,
+    "Canyon, Gaea": 3,
+    "Outcrops, Gaea": 7,
+    "SatMap, Gaea": 50,
+    "TextureBase, Gaea": 20,
+    "Weathering, Gaea": 9,
+    "Median, Gaea": 1,
+    "Sandstone, Gaea": 6,
+    "Mountain, Gaea": 5,
+    "Craggy, Gaea": 1,
+    "Fold, Gaea": 1,
+    "RadialGradient, Gaea": 3,
+    "ColorErosion, Gaea": 12,
+    "Autolevel, Gaea": 1,
+    "Cellular3D, Gaea": 1,
+    "Warp, Gaea": 1,
+    "RockNoise, Gaea": 1,
+    "SuperColor, Gaea": 2,
+    "Curvature, Gaea": 2,
+    "Slope, Gaea": 1,
+    "Ridge, Gaea": 3,
+    "File, Gaea": 3,
+    "Plates, Gaea": 1,
+    "GraphicEQ, Gaea": 1,
+    "Crumble, Gaea": 11,
+    "Rugged, Gaea": 2,
+    "Debris, Gaea": 7,
+    "Height, Gaea": 14,
+    "CraterField, Gaea": 1,
+    "DotNoise, Gaea": 1,
+    "Texturizer, Gaea": 1,
+    "Rivers, Gaea": 10,
+    "Tint, Gaea": 3,
+    "Adjust, Gaea": 18,
+    "Mixer, Gaea": 2,
+    "Seamless, Gaea": 1,
+    "Trees, Gaea": 1,
+    "HydroFix, Gaea": 1,
+    "Sea, Gaea": 2,
+    "Noise, Gaea": 2,
+    "Dilate, Gaea": 1,
+    "WaveShine, Gaea": 1,
+    "DriftNoise, Gaea": 1,
+    "SlopeBlur, Gaea": 1,
+    "FractalTerraces, Gaea": 10,
+    "Thermal2, Gaea": 1,
+    "Accumulator, Gaea": 2,
+    "Volcano, Gaea": 1,
+    "Shear, Gaea": 10,
+    "Slump, Gaea": 9,
+    "Island, Gaea": 9,
+    "Blur, Gaea": 9,
+    "Terraces, Gaea": 7,
+    "Perlin, Gaea": 1,
+    "Dusting, Gaea": 1
+  },
+  "node_sequences": {
+    "MountainSide, Gaea": [
+      [
+        "Combine, Gaea",
+        2
+      ],
+      [
+        "Stratify, Gaea",
+        1
+      ]
+    ],
+    "Cellular, Gaea": [
+      [
+        "Combine, Gaea",
+        1
+      ]
+    ],
+    "Combine, Gaea": [
+      [
+        "Combine, Gaea",
+        14
+      ],
+      [
+        "Shear, Gaea",
+        10
+      ],
+      [
+        "Weathering, Gaea",
+        5
+      ],
+      [
+        "Erosion2, Gaea",
+        2
+      ],
+      [
+        "SatMap, Gaea",
+        2
+      ]
+    ],
+    "Erosion2, Gaea": [
+      [
+        "Rivers, Gaea",
+        8
+      ],
+      [
+        "TextureBase, Gaea",
+        7
+      ],
+      [
+        "ColorErosion, Gaea",
+        6
+      ],
+      [
+        "Height, Gaea",
+        4
+      ],
+      [
+        "Erosion2, Gaea",
+        3
+      ]
+    ],
+    "Canyon, Gaea": [
+      [
+        "Stratify, Gaea",
+        1
+      ],
+      [
+        "Sandstone, Gaea",
+        1
+      ],
+      [
+        "Erosion2, Gaea",
+        1
+      ]
+    ],
+    "Stratify, Gaea": [
+      [
+        "Stratify, Gaea",
+        2
+      ],
+      [
+        "SlopeBlur, Gaea",
+        2
+      ],
+      [
+        "Outcrops, Gaea",
+        1
+      ],
+      [
+        "Erosion2, Gaea",
+        1
+      ],
+      [
+        "RockNoise, Gaea",
+        1
+      ]
+    ],
+    "TextureBase, Gaea": [
+      [
+        "SatMap, Gaea",
+        41
+      ],
+      [
+        "Combine, Gaea",
+        1
+      ]
+    ],
+    "Median, Gaea": [
+      [
+        "TextureBase, Gaea",
+        1
+      ]
+    ],
+    "Outcrops, Gaea": [
+      [
+        "Outcrops, Gaea",
+        2
+      ],
+      [
+        "SatMap, Gaea",
+        1
+      ],
+      [
+        "Median, Gaea",
+        1
+      ],
+      [
+        "Craggy, Gaea",
+        1
+      ],
+      [
+        "Seamless, Gaea",
+        1
+      ]
+    ],
+    "SatMap, Gaea": [
+      [
+        "Combine, Gaea",
+        32
+      ],
+      [
+        "ColorErosion, Gaea",
+        7
+      ],
+      [
+        "Mixer, Gaea",
+        5
+      ],
+      [
+        "Weathering, Gaea",
+        4
+      ]
+    ],
+    "Sandstone, Gaea": [
+      [
+        "Stratify, Gaea",
+        3
+      ],
+      [
+        "TextureBase, Gaea",
+        1
+      ],
+      [
+        "Autolevel, Gaea",
+        1
+      ],
+      [
+        "SatMap, Gaea",
+        1
+      ],
+      [
+        "Erosion2, Gaea",
+        1
+      ]
+    ],
+    "Mountain, Gaea": [
+      [
+        "Erosion2, Gaea",
+        4
+      ],
+      [
+        "Outcrops, Gaea",
+        1
+      ]
+    ],
+    "Craggy, Gaea": [
+      [
+        "Combine, Gaea",
+        1
+      ]
+    ],
+    "Fold, Gaea": [
+      [
+        "Erosion2, Gaea",
+        1
+      ]
+    ],
+    "RadialGradient, Gaea": [
+      [
+        "Erosion2, Gaea",
+        2
+      ],
+      [
+        "GraphicEQ, Gaea",
+        1
+      ]
+    ],
+    "Autolevel, Gaea": [
+      [
+        "Combine, Gaea",
+        1
+      ]
+    ],
+    "Warp, Gaea": [
+      [
+        "Sandstone, Gaea",
+        1
+      ]
+    ],
+    "Cellular3D, Gaea": [
+      [
+        "Warp, Gaea",
+        1
+      ]
+    ],
+    "SuperColor, Gaea": [
+      [
+        "Combine, Gaea",
+        2
+      ]
+    ],
+    "Slope, Gaea": [
+      [
+        "Combine, Gaea",
+        1
+      ]
+    ],
+    "Curvature, Gaea": [
+      [
+        "Combine, Gaea",
+        2
+      ]
+    ],
+    "Ridge, Gaea": [
+      [
+        "Erosion2, Gaea",
+        2
+      ],
+      [
+        "Outcrops, Gaea",
+        1
+      ]
+    ],
+    "File, Gaea": [
+      [
+        "ColorErosion, Gaea",
+        3
+      ]
+    ],
+    "ColorErosion, Gaea": [
+      [
+        "Combine, Gaea",
+        7
+      ],
+      [
+        "ColorErosion, Gaea",
+        1
+      ],
+      [
+        "Seamless, Gaea",
+        1
+      ]
+    ],
+    "Plates, Gaea": [
+      [
+        "RadialGradient, Gaea",
+        1
+      ]
+    ],
+    "Crumble, Gaea": [
+      [
+        "Erosion2, Gaea",
+        9
+      ],
+      [
+        "Sandstone, Gaea",
+        1
+      ],
+      [
+        "Terraces, Gaea",
+        1
+      ]
+    ],
+    "GraphicEQ, Gaea": [
+      [
+        "Crumble, Gaea",
+        1
+      ]
+    ],
+    "Height, Gaea": [
+      [
+        "Combine, Gaea",
+        10
+      ],
+      [
+        "Debris, Gaea",
+        2
+      ],
+      [
+        "Rivers, Gaea",
+        1
+      ],
+      [
+        "Weathering, Gaea",
+        1
+      ]
+    ],
+    "Rugged, Gaea": [
+      [
+        "Erosion2, Gaea",
+        2
+      ]
+    ],
+    "Debris, Gaea": [
+      [
+        "Combine, Gaea",
+        7
+      ],
+      [
+        "Debris, Gaea",
+        4
+      ],
+      [
+        "SatMap, Gaea",
+        1
+      ],
+      [
+        "Noise, Gaea",
+        1
+      ],
+      [
+        "Curvature, Gaea",
+        1
+      ]
+    ],
+    "CraterField, Gaea": [
+      [
+        "Outcrops, Gaea",
+        1
+      ]
+    ],
+    "DotNoise, Gaea": [
+      [
+        "Erosion2, Gaea",
+        1
+      ]
+    ],
+    "Rivers, Gaea": [
+      [
+        "Adjust, Gaea",
+        10
+      ],
+      [
+        "Height, Gaea",
+        9
+      ],
+      [
+        "TextureBase, Gaea",
+        8
+      ],
+      [
+        "Weathering, Gaea",
+        2
+      ],
+      [
+        "Texturizer, Gaea",
+        1
+      ]
+    ],
+    "Texturizer, Gaea": [
+      [
+        "SatMap, Gaea",
+        1
+      ]
+    ],
+    "Adjust, Gaea": [
+      [
+        "Combine, Gaea",
+        10
+      ],
+      [
+        "Blur, Gaea",
+        6
+      ],
+      [
+        "Tint, Gaea",
+        2
+      ],
+      [
+        "Dilate, Gaea",
+        1
+      ]
+    ],
+    "Tint, Gaea": [
+      [
+        "Mixer, Gaea",
+        2
+      ],
+      [
+        "Combine, Gaea",
+        1
+      ]
+    ],
+    "Mixer, Gaea": [
+      [
+        "ColorErosion, Gaea",
+        1
+      ]
+    ],
+    "HydroFix, Gaea": [
+      [
+        "TextureBase, Gaea",
+        1
+      ],
+      [
+        "Sea, Gaea",
+        1
+      ]
+    ],
+    "Sea, Gaea": [
+      [
+        "Trees, Gaea",
+        2
+      ],
+      [
+        "Mixer, Gaea",
+        2
+      ],
+      [
+        "Adjust, Gaea",
+        1
+      ],
+      [
+        "TextureBase, Gaea",
+        1
+      ],
+      [
+        "Height, Gaea",
+        1
+      ]
+    ],
+    "Noise, Gaea": [
+      [
+        "SatMap, Gaea",
+        1
+      ],
+      [
+        "ColorErosion, Gaea",
+        1
+      ]
+    ],
+    "Dilate, Gaea": [
+      [
+        "Mixer, Gaea",
+        1
+      ]
+    ],
+    "Trees, Gaea": [
+      [
+        "Adjust, Gaea",
+        1
+      ]
+    ],
+    "DriftNoise, Gaea": [
+      [
+        "WaveShine, Gaea",
+        1
+      ]
+    ],
+    "WaveShine, Gaea": [
+      [
+        "Tint, Gaea",
+        1
+      ]
+    ],
+    "SlopeBlur, Gaea": [
+      [
+        "Combine, Gaea",
+        1
+      ]
+    ],
+    "Thermal2, Gaea": [
+      [
+        "Erosion2, Gaea",
+        1
+      ],
+      [
+        "Combine, Gaea",
+        1
+      ]
+    ],
+    "FractalTerraces, Gaea": [
+      [
+        "Combine, Gaea",
+        10
+      ],
+      [
+        "ColorErosion, Gaea",
+        1
+      ],
+      [
+        "Thermal2, Gaea",
+        1
+      ]
+    ],
+    "Weathering, Gaea": [
+      [
+        "Combine, Gaea",
+        5
+      ]
+    ],
+    "Accumulator, Gaea": [
+      [
+        "SatMap, Gaea",
+        1
+      ],
+      [
+        "Combine, Gaea",
+        1
+      ]
+    ],
+    "Volcano, Gaea": [
+      [
+        "Combine, Gaea",
+        1
+      ]
+    ],
+    "Shear, Gaea": [
+      [
+        "Crumble, Gaea",
+        5
+      ],
+      [
+        "Terraces, Gaea",
+        4
+      ],
+      [
+        "Stratify, Gaea",
+        1
+      ]
+    ],
+    "Slump, Gaea": [
+      [
+        "FractalTerraces, Gaea",
+        9
+      ]
+    ],
+    "Blur, Gaea": [
+      [
+        "Combine, Gaea",
+        9
+      ]
+    ],
+    "Terraces, Gaea": [
+      [
+        "Crumble, Gaea",
+        4
+      ],
+      [
+        "Rivers, Gaea",
+        2
+      ],
+      [
+        "Erosion2, Gaea",
+        1
+      ]
+    ],
+    "Island, Gaea": [
+      [
+        "Adjust, Gaea",
+        6
+      ],
+      [
+        "Blur, Gaea",
+        3
+      ]
+    ],
+    "Dusting, Gaea": [
+      [
+        "Combine, Gaea",
+        1
+      ]
+    ]
+  },
+  "workflow_patterns": [
+    {
+      "pattern": "Slump, Gaea\u2192FractalTerraces, Gaea\u2192Combine, Gaea\u2192Shear, Gaea",
+      "count": 9
+    },
+    {
+      "pattern": "Cellular, Gaea\u2192Combine, Gaea\u2192Erosion2, Gaea\u2192Erosion2, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "Canyon, Gaea\u2192Stratify, Gaea\u2192Outcrops, Gaea\u2192SatMap, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "Canyon, Gaea\u2192Sandstone, Gaea\u2192Stratify, Gaea\u2192Erosion2, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "Mountain, Gaea\u2192Erosion2, Gaea\u2192Combine, Gaea\u2192Erosion2, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "RadialGradient, Gaea\u2192Erosion2, Gaea\u2192Erosion2, Gaea\u2192Erosion2, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "Mountain, Gaea\u2192Erosion2, Gaea\u2192Sandstone, Gaea\u2192TextureBase, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "Cellular3D, Gaea\u2192Warp, Gaea\u2192Sandstone, Gaea\u2192Stratify, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "Mountain, Gaea\u2192Erosion2, Gaea\u2192SuperColor, Gaea\u2192Combine, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "Ridge, Gaea\u2192Erosion2, Gaea\u2192ColorErosion, Gaea\u2192ColorErosion, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "Plates, Gaea\u2192RadialGradient, Gaea\u2192GraphicEQ, Gaea\u2192Crumble, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "Rugged, Gaea\u2192Erosion2, Gaea\u2192Debris, Gaea\u2192SatMap, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "CraterField, Gaea\u2192Outcrops, Gaea\u2192Outcrops, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "DotNoise, Gaea\u2192Erosion2, Gaea\u2192Rivers, Gaea\u2192Texturizer, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "RadialGradient, Gaea\u2192Erosion2, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "Mountain, Gaea\u2192Erosion2, Gaea\u2192Sandstone, Gaea\u2192Erosion2, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "Mountain, Gaea\u2192Outcrops, Gaea\u2192Outcrops, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "Ridge, Gaea\u2192Erosion2, Gaea\u2192TextureBase, Gaea\u2192SatMap, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "Ridge, Gaea\u2192Outcrops, Gaea\u2192Seamless, Gaea",
+      "count": 1
+    },
+    {
+      "pattern": "Canyon, Gaea\u2192Erosion2, Gaea\u2192HydroFix, Gaea\u2192TextureBase, Gaea",
+      "count": 1
+    }
+  ]
+}

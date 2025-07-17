@@ -1,0 +1,269 @@
+{
+  "metadata": {
+    "source": "Analysis of 31 real Gaea2 projects",
+    "date_generated": "2025-07-17",
+    "total_nodes": 374,
+    "total_connections": 440,
+    "projects_analyzed": 31
+  },
+  "node_categories": {
+    "terrain_generators": [
+      "Mountain",
+      "Canyon",
+      "Ridge",
+      "Island",
+      "Volcano",
+      "Plates",
+      "Crater",
+      "CraterField"
+    ],
+    "erosion": [
+      "Erosion2",
+      "ColorErosion",
+      "Thermal2",
+      "Weathering",
+      "Crumble"
+    ],
+    "water": [
+      "Rivers",
+      "Sea",
+      "HydroFix"
+    ],
+    "modification": [
+      "Combine",
+      "Adjust",
+      "Height",
+      "Shear",
+      "Warp",
+      "Blur",
+      "Slump"
+    ],
+    "texture": [
+      "TextureBase",
+      "SatMap",
+      "Stratify",
+      "Sandstone",
+      "Outcrops",
+      "FractalTerraces",
+      "Terraces"
+    ],
+    "color": [
+      "SuperColor",
+      "Tint",
+      "Mixer",
+      "ColorErosion"
+    ],
+    "detail": [
+      "Debris",
+      "Trees",
+      "Dusting",
+      "Accumulator"
+    ],
+    "utility": [
+      "File",
+      "Seamless",
+      "Autolevel",
+      "GraphicEQ"
+    ]
+  },
+  "common_workflows": {
+    "realistic_mountain": {
+      "nodes": [
+        "Mountain",
+        "Erosion2",
+        "Rivers",
+        "Adjust",
+        "TextureBase",
+        "SatMap"
+      ],
+      "description": "Standard workflow for realistic mountain terrains with erosion"
+    },
+    "terraced_landscape": {
+      "nodes": [
+        "Slump",
+        "FractalTerraces",
+        "Combine",
+        "Shear",
+        "Crumble",
+        "Erosion2"
+      ],
+      "description": "Creates complex terraced landscapes with geological deformation",
+      "frequency": 9
+    },
+    "desert_canyon": {
+      "nodes": [
+        "Canyon",
+        "Sandstone",
+        "Stratify",
+        "Erosion2",
+        "TextureBase",
+        "SatMap"
+      ],
+      "description": "Desert canyon with stratified rock layers"
+    },
+    "volcanic_terrain": {
+      "nodes": [
+        "Volcano",
+        "Combine",
+        "Thermal2",
+        "Erosion2",
+        "Weathering",
+        "SatMap"
+      ],
+      "description": "Volcanic landscape with thermal erosion"
+    },
+    "water_carved": {
+      "nodes": [
+        "Mountain",
+        "Erosion2",
+        "Rivers",
+        "Adjust",
+        "Height",
+        "Combine"
+      ],
+      "description": "Water-carved terrain with river systems"
+    }
+  },
+  "node_connections": {
+    "Mountain": {
+      "most_common_next": "Erosion2",
+      "alternatives": [
+        "Outcrops"
+      ],
+      "frequency": {
+        "Erosion2": 4,
+        "Outcrops": 1
+      }
+    },
+    "Erosion2": {
+      "most_common_next": "Rivers",
+      "alternatives": [
+        "TextureBase",
+        "ColorErosion",
+        "Height",
+        "Erosion2"
+      ],
+      "frequency": {
+        "Rivers": 8,
+        "TextureBase": 7,
+        "ColorErosion": 6,
+        "Height": 4,
+        "Erosion2": 3
+      }
+    },
+    "Rivers": {
+      "most_common_next": "Adjust",
+      "alternatives": [
+        "Height",
+        "TextureBase",
+        "Weathering"
+      ],
+      "frequency": {
+        "Adjust": 10,
+        "Height": 9,
+        "TextureBase": 8,
+        "Weathering": 2
+      }
+    },
+    "TextureBase": {
+      "most_common_next": "SatMap",
+      "alternatives": [
+        "Combine"
+      ],
+      "frequency": {
+        "SatMap": 41,
+        "Combine": 1
+      }
+    },
+    "SatMap": {
+      "most_common_next": "Combine",
+      "alternatives": [
+        "ColorErosion",
+        "Mixer",
+        "Weathering"
+      ],
+      "frequency": {
+        "Combine": 32,
+        "ColorErosion": 7,
+        "Mixer": 5,
+        "Weathering": 4
+      }
+    },
+    "Combine": {
+      "most_common_next": "Combine",
+      "alternatives": [
+        "Shear",
+        "Weathering",
+        "Erosion2",
+        "SatMap"
+      ],
+      "frequency": {
+        "Combine": 14,
+        "Shear": 10,
+        "Weathering": 5,
+        "Erosion2": 2,
+        "SatMap": 2
+      }
+    }
+  },
+  "property_recommendations": {
+    "Erosion2": {
+      "Duration": {
+        "typical_range": [
+          0.04,
+          0.1
+        ],
+        "performance_note": "Lower values for better performance"
+      }
+    },
+    "Rivers": {
+      "Headwaters": {
+        "typical_range": [
+          50,
+          200
+        ],
+        "performance_note": "Higher values create more detailed river networks"
+      }
+    },
+    "Combine": {
+      "Ratio": {
+        "typical_value": 0.5,
+        "note": "0.5 provides balanced blending"
+      }
+    }
+  },
+  "best_practices": [
+    "Start with terrain generators (Mountain, Canyon, Ridge)",
+    "Apply Erosion2 early for realistic geological features",
+    "Use Rivers after erosion for proper water flow",
+    "Chain multiple erosions for detail (max 3)",
+    "Place heavy nodes (Erosion2, Rivers) early in workflow",
+    "Apply colorization (SatMap) as final step",
+    "Use Combine for blending multiple terrain features",
+    "Add Weathering for surface detail and realism"
+  ],
+  "performance_tips": [
+    "Limit erosion chains to 3 nodes maximum",
+    "Use lower Duration values (0.04-0.1) for Erosion nodes",
+    "Limit Rivers headwater count to 200 or less",
+    "Place computationally heavy nodes early in workflow",
+    "Apply texture and color operations last"
+  ],
+  "node_usage_frequency": {
+    "SatMap": 50,
+    "Combine": 48,
+    "Erosion2": 31,
+    "TextureBase": 20,
+    "Adjust": 18,
+    "Height": 14,
+    "ColorErosion": 12,
+    "Crumble": 11,
+    "Rivers": 10,
+    "FractalTerraces": 10,
+    "Shear": 10,
+    "Weathering": 9,
+    "Slump": 9,
+    "Island": 9,
+    "Blur": 9
+  }
+}

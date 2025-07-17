@@ -1,0 +1,396 @@
+{
+  "gaea_terrain_workflows": {
+    "standard_workflow_pattern": {
+      "description": "The most common workflow pattern in Gaea projects",
+      "stages": [
+        "Foundation (Mountain/Canyon/RadialGradient)",
+        "Primary Erosion (Erosion2)",
+        "Secondary Shaping (Sandstone/Stratify)",
+        "Surface Detail (TextureBase)",
+        "Color Mapping (SatMap)",
+        "Final Color Processing (ColorErosion/Mixer)"
+      ]
+    },
+    "node_types": {
+      "foundation_nodes": {
+        "Mountain": {
+          "purpose": "Standard terrain foundation",
+          "common_settings": {
+            "Scale": {
+              "min": 0.5,
+              "max": 0.85,
+              "typical": 0.7
+            },
+            "Height": {
+              "min": 2.2,
+              "max": 3.0,
+              "typical": 2.5
+            },
+            "Bulk": [
+              "Low",
+              "Medium",
+              "High"
+            ],
+            "Style": [
+              "Default",
+              "Old"
+            ],
+            "typical_bulk": "High"
+          }
+        },
+        "RadialGradient": {
+          "purpose": "Volcanic craters and circular features",
+          "common_settings": {
+            "Scale": 1.0,
+            "Height": {
+              "min": 0.5,
+              "max": 1.0
+            },
+            "X": 0.5,
+            "Y": 0.5
+          }
+        },
+        "Canyon": {
+          "purpose": "Canyon and valley formations",
+          "common_settings": {
+            "Style": "Eroded",
+            "Scale": 0.35,
+            "Slot": 0.36,
+            "Valley": {
+              "min": 0.5,
+              "max": 0.6
+            },
+            "Depth": 1.0
+          }
+        },
+        "MountainSide": {
+          "purpose": "Cliff faces and complex mountain sides",
+          "common_settings": {
+            "Detail": 0.25,
+            "Style": "Eroded"
+          }
+        }
+      },
+      "erosion_nodes": {
+        "Erosion2": {
+          "purpose": "Primary terrain erosion simulation",
+          "usage_patterns": {
+            "initial_pass": {
+              "Duration": {
+                "min": 40,
+                "max": 74,
+                "typical": 50
+              },
+              "Downcutting": {
+                "min": 0.05,
+                "max": 0.25,
+                "typical": 0.15
+              },
+              "purpose": "Large-scale erosion features"
+            },
+            "detail_pass": {
+              "Duration": {
+                "min": 10,
+                "max": 20,
+                "typical": 10
+              },
+              "Downcutting": {
+                "min": 0.01,
+                "max": 0.7,
+                "typical": 0.25
+              },
+              "purpose": "Fine detail erosion"
+            }
+          },
+          "common_settings": {
+            "ErosionScale": {
+              "min": 141,
+              "max": 16897,
+              "note": "Varies greatly by terrain scale"
+            },
+            "SuspendedLoadDischargeAngle": 24.0,
+            "BedLoadDischargeAngle": 15.0,
+            "CoarseSedimentsDischargeAngle": {
+              "min": 10.0,
+              "max": 35.5
+            },
+            "Shape": 0.2,
+            "ShapeSharpness": {
+              "min": 0.3,
+              "max": 0.6
+            },
+            "ShapeDetailScale": {
+              "min": 0.017,
+              "max": 0.611
+            }
+          }
+        }
+      },
+      "shaping_nodes": {
+        "Sandstone": {
+          "purpose": "Create stratified rock layers",
+          "common_settings": {
+            "Passes": {
+              "min": 1,
+              "max": 4,
+              "typical": 3
+            },
+            "Iterations": 10,
+            "Spacing": {
+              "min": 0.1,
+              "max": 0.81
+            },
+            "Intensity": 0.5,
+            "Tilt": {
+              "min": 0.23,
+              "max": 0.69
+            },
+            "Chaos": {
+              "min": 0.056,
+              "max": 0.323
+            },
+            "Chipped": true,
+            "Chipping": 0.45
+          }
+        },
+        "Stratify": {
+          "purpose": "Create horizontal stratification",
+          "common_settings": {
+            "Spacing": {
+              "min": 0.01,
+              "max": 0.32
+            },
+            "Octaves": {
+              "min": 9,
+              "max": 12
+            },
+            "Intensity": {
+              "min": 0.29,
+              "max": 0.58
+            },
+            "TiltAmount": {
+              "min": 0.47,
+              "max": 0.83
+            }
+          }
+        },
+        "Fold": {
+          "purpose": "Create folded terrain features",
+          "common_settings": {
+            "Waveform": "Triangle",
+            "Folds": {
+              "min": 0.5,
+              "max": 0.6
+            }
+          }
+        }
+      },
+      "detail_nodes": {
+        "TextureBase": {
+          "purpose": "Add surface texture detail",
+          "common_settings": {
+            "Slope": {
+              "min": 0.14,
+              "max": 0.68,
+              "typical": 0.25
+            },
+            "Scale": {
+              "min": 0.11,
+              "max": 0.92
+            },
+            "Soil": {
+              "min": 0.37,
+              "max": 0.68
+            },
+            "Patches": {
+              "min": 0.04,
+              "max": 1.0
+            },
+            "Chaos": {
+              "min": 0.1,
+              "max": 1.0
+            }
+          }
+        }
+      },
+      "color_nodes": {
+        "SatMap": {
+          "purpose": "Apply satellite-style color mapping",
+          "common_libraries": [
+            "Rock",
+            "Sand",
+            "Green"
+          ],
+          "common_settings": {
+            "Enhance": [
+              "Autolevel",
+              "Equalize"
+            ],
+            "Reverse": "Optional boolean"
+          }
+        },
+        "ColorErosion": {
+          "purpose": "Natural erosion-based coloring",
+          "common_settings": {
+            "TransportDistance": {
+              "min": 0.5,
+              "max": 1.45
+            },
+            "SedimentDensity": {
+              "min": 0.87,
+              "max": 1.0
+            },
+            "Blend": {
+              "min": 0.5,
+              "max": 1.0
+            },
+            "ColorHold": {
+              "min": 0.5,
+              "max": 1.0
+            }
+          }
+        },
+        "Mixer": {
+          "purpose": "Complex multi-layer color mixing",
+          "features": {
+            "PortCount": {
+              "min": 2,
+              "max": 6
+            },
+            "layer_masking": "Height-based",
+            "blend_modes": [
+              "Normal",
+              "Add",
+              "Difference"
+            ]
+          }
+        }
+      },
+      "utility_nodes": {
+        "Combine": {
+          "purpose": "Blend multiple terrain inputs",
+          "common_settings": {
+            "Ratio": {
+              "min": 0.5,
+              "max": 0.68
+            },
+            "Mode": [
+              "Normal",
+              "Difference"
+            ],
+            "Clamp": "Clamp"
+          }
+        },
+        "HydroFix": {
+          "purpose": "Fix water flow issues",
+          "common_settings": {
+            "Downcutting": 1.0
+          }
+        },
+        "Sea": {
+          "purpose": "Add water bodies with coastal erosion",
+          "common_settings": {
+            "Level": {
+              "min": 0.02,
+              "max": 0.1
+            },
+            "CoastalErosion": true,
+            "ShoreSize": {
+              "min": 0.4,
+              "max": 0.5
+            }
+          }
+        }
+      }
+    },
+    "workflow_templates": {
+      "basic_mountain": {
+        "nodes": [
+          "Mountain",
+          "Erosion2",
+          "TextureBase",
+          "SatMap"
+        ],
+        "description": "Simple mountain terrain"
+      },
+      "stratified_cliffs": {
+        "nodes": [
+          "Mountain",
+          "Erosion2",
+          "Sandstone",
+          "Erosion2",
+          "TextureBase",
+          "SatMap"
+        ],
+        "description": "Layered rock formations"
+      },
+      "complex_terrain": {
+        "nodes": [
+          "Mountain",
+          "Erosion2",
+          "Erosion2",
+          "Stratify",
+          "Sandstone",
+          "Combine",
+          "TextureBase",
+          "SatMap",
+          "ColorErosion"
+        ],
+        "description": "Multi-layered complex terrain"
+      },
+      "volcanic": {
+        "nodes": [
+          "RadialGradient",
+          "Erosion2",
+          "Erosion2",
+          "Erosion2",
+          "Fold",
+          "Erosion2",
+          "TextureBase",
+          "SatMap",
+          "ColorErosion"
+        ],
+        "description": "Volcanic crater terrain"
+      },
+      "canyon_river": {
+        "nodes": [
+          "Canyon",
+          "Erosion2",
+          "HydroFix",
+          "Sea",
+          "TextureBase",
+          "SatMap",
+          "Trees"
+        ],
+        "description": "Canyon with water features"
+      }
+    },
+    "best_practices": {
+      "erosion_strategy": {
+        "multiple_passes": "Use 2-4 erosion passes with different settings",
+        "progressive_refinement": "Start with large features, add detail progressively",
+        "parameter_variation": "Vary duration and downcutting between passes"
+      },
+      "modifier_usage": {
+        "Height": {
+          "purpose": "Restrict effects to elevation ranges",
+          "typical_falloff": 0.15
+        },
+        "Blur": {
+          "purpose": "Soften features",
+          "typical_factor": 0.94
+        },
+        "Warp": {
+          "purpose": "Add natural distortion",
+          "typical_size": 0.43,
+          "typical_strength": 0.57
+        }
+      },
+      "resolution_settings": {
+        "preview": 1024,
+        "bake": 2048,
+        "tile": 1024
+      }
+    }
+  }
+}

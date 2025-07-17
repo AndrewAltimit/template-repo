@@ -30,7 +30,11 @@ try:
     )
 except ImportError:
     # If running as a module
+    from tools.mcp.gaea2_connection_validator import Gaea2ConnectionValidator
+    from tools.mcp.gaea2_error_recovery import Gaea2ErrorRecovery
     from tools.mcp.gaea2_knowledge_graph import enhance_workflow_with_knowledge, knowledge_graph
+    from tools.mcp.gaea2_project_repair import Gaea2ProjectRepair
+    from tools.mcp.gaea2_property_validator import Gaea2PropertyValidator
     from tools.mcp.gaea2_schema import (
         VALID_NODE_TYPES,
         WORKFLOW_TEMPLATES,
@@ -38,6 +42,7 @@ except ImportError:
         create_workflow_from_template,
         validate_gaea2_project,
     )
+    from tools.mcp.gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -729,6 +734,141 @@ class MCPTools:
             return {"error": str(e), "success": False}
 
     @staticmethod
+    async def repair_gaea2_project(
+        project_file: Optional[str] = None, project_data: Optional[Dict[str, Any]] = None, auto_fix: bool = True
+    ) -> Dict[str, Any]:
+        """Repair and optimize a Gaea2 project"""
+        try:
+            repair = Gaea2ProjectRepair()
+
+            # Load project data if file path provided
+            if project_file and not project_data:
+                with open(project_file, "r") as f:
+                    project_data = json.load(f)
+            elif not project_data:
+                return {"success": False, "error": "Either project_file or project_data must be provided"}
+
+            # Analyze and repair
+            analysis = repair.analyze_project(project_data)
+            repair_result = repair.repair_project(project_data, auto_fix=auto_fix)
+
+            return {
+                "success": True,
+                "analysis": analysis,
+                "repair_result": repair_result,
+                "health_score": analysis["analysis"]["health_score"] if analysis["success"] else 0,
+            }
+
+        except Exception as e:
+            return {"error": str(e), "success": False}
+
+    @staticmethod
+    async def analyze_workflow_patterns(
+        directory_path: Optional[str] = None, current_workflow: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
+        """Analyze workflow patterns from real projects"""
+        try:
+            analyzer = Gaea2WorkflowAnalyzer()
+
+            # Analyze directory if provided
+            if directory_path:
+                analysis_result = analyzer.analyze_directory(directory_path)
+
+                # Save analysis for future use
+                analyzer.save_analysis("gaea2_workflow_analysis.json")
+
+                return {"success": True, "directory_analysis": analysis_result, "statistics": analyzer.get_statistics()}
+
+            # Get recommendations for current workflow
+            elif current_workflow:
+                # Load previous analysis if available
+                try:
+                    analyzer.load_analysis("gaea2_workflow_analysis.json")
+                except (FileNotFoundError, json.JSONDecodeError):
+                    pass
+
+                node_types = [node.get("type") for node in current_workflow]
+                recommendations = analyzer.get_recommendations(node_types)
+
+                return {"success": True, "recommendations": recommendations, "statistics": analyzer.get_statistics()}
+
+            else:
+                return {"success": False, "error": "Either directory_path or current_workflow must be provided"}
+
+        except Exception as e:
+            return {"error": str(e), "success": False}
+
+    @staticmethod
+    async def validate_and_fix_workflow(
+        nodes: List[Dict[str, Any]],
+        connections: Optional[List[Dict[str, Any]]] = None,
+        auto_fix: bool = True,
+        aggressive: bool = False,
+    ) -> Dict[str, Any]:
+        """Comprehensive workflow validation and fixing"""
+        try:
+            if connections is None:
+                connections = []
+
+            # Initialize validators
+            property_validator = Gaea2PropertyValidator()
+            connection_validator = Gaea2ConnectionValidator()
+            error_recovery = Gaea2ErrorRecovery()
+
+            # Validate properties
+            property_issues = []
+            for node in nodes:
+                is_valid, errors, fixed_props = property_validator.validate_properties(
+                    node["type"], node.get("properties", {})
+                )
+                if errors:
+                    property_issues.extend([{"node": node["name"], "type": node["type"], "errors": errors}])
+
+            # Validate connections
+            conn_valid, conn_errors, conn_warnings = connection_validator.validate_connections(nodes, connections)
+
+            # Get suggestions
+            connection_suggestions = connection_validator.suggest_connections(nodes, connections)
+
+            # Apply fixes if requested
+            fixed_nodes = nodes
+            fixed_connections = connections
+            fixes_applied = []
+
+            if auto_fix:
+                fixed_nodes, fixed_connections, fixes_applied = error_recovery.auto_fix_project(
+                    nodes, connections, aggressive=aggressive
+                )
+
+            # Calculate quality scores
+            original_score = connection_validator.get_connection_quality_score(nodes, connections)
+            fixed_score = connection_validator.get_connection_quality_score(fixed_nodes, fixed_connections)
+
+            return {
+                "success": True,
+                "validation": {
+                    "property_issues": property_issues,
+                    "connection_errors": conn_errors,
+                    "connection_warnings": conn_warnings,
+                    "suggestions": connection_suggestions,
+                },
+                "fixes": {
+                    "applied": fixes_applied,
+                    "nodes_fixed": len(fixed_nodes) - len(nodes),
+                    "connections_fixed": len(fixed_connections) - len(connections),
+                },
+                "quality_scores": {
+                    "original": original_score,
+                    "fixed": fixed_score,
+                    "improvement": fixed_score - original_score,
+                },
+                "fixed_workflow": {"nodes": fixed_nodes, "connections": fixed_connections} if auto_fix else None,
+            }
+
+        except Exception as e:
+            return {"error": str(e), "success": False}
+
+    @staticmethod
     async def optimize_gaea2_properties(nodes: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Optimize node properties based on knowledge graph constraints and relationships"""
         try:
@@ -793,6 +933,9 @@ TOOLS = {
     "analyze_gaea2_workflow": MCPTools.analyze_gaea2_workflow,
     "suggest_gaea2_nodes": MCPTools.suggest_gaea2_nodes,
     "optimize_gaea2_properties": MCPTools.optimize_gaea2_properties,
+    "repair_gaea2_project": MCPTools.repair_gaea2_project,
+    "analyze_workflow_patterns": MCPTools.analyze_workflow_patterns,
+    "validate_and_fix_workflow": MCPTools.validate_and_fix_workflow,
 }
 
 

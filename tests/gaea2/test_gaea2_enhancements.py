@@ -1,0 +1,194 @@
+#!/usr/bin/env python3
+"""
+Test script for Gaea2 MCP enhancements
+"""
+
+import asyncio
+import json
+
+from tools.mcp.gaea2_pattern_knowledge import (
+    get_next_node_suggestions,
+    get_workflow_for_terrain_type,
+    suggest_properties_for_node,
+)
+
+# Import our MCP tools
+from tools.mcp.mcp_server import MCPTools
+
+
+async def test_pattern_knowledge():
+    """Test pattern knowledge functions"""
+    print("=== Testing Pattern Knowledge ===\n")
+
+    # Test next node suggestions
+    print("1. Testing next node suggestions:")
+    print("   After Mountain node:")
+    suggestions = get_next_node_suggestions("Mountain")
+    for s in suggestions:
+        print(f"   - {s['node']}: {s['probability']:.0%} probability")
+
+    print("\n   After Erosion2 node:")
+    suggestions = get_next_node_suggestions("Erosion2")
+    for s in suggestions:
+        print(f"   - {s['node']}: {s['probability']:.0%} probability")
+
+    # Test workflow recommendations
+    print("\n2. Testing workflow recommendations:")
+    for terrain_type in ["mountain", "canyon", "volcano", "terraced"]:
+        workflow = get_workflow_for_terrain_type(terrain_type)
+        if workflow:
+            print(f"   {terrain_type}: {' → '.join(workflow['nodes'])}")
+
+    # Test property suggestions
+    print("\n3. Testing property suggestions:")
+    props = suggest_properties_for_node("Erosion2", {"performance_priority": True})
+    print(f"   Erosion2 (performance mode): {json.dumps(props, indent=2)}")
+
+
+async def test_workflow_analyzer():
+    """Test workflow analyzer with pattern knowledge"""
+    print("\n=== Testing Workflow Analyzer ===\n")
+
+    # Test with a simple workflow
+    test_nodes = [{"type": "Mountain", "name": "Mountain1"}, {"type": "Erosion2", "name": "Erosion1"}]
+
+    result = await MCPTools.analyze_workflow_patterns(current_workflow=test_nodes)
+
+    if result["success"]:
+        print("Workflow analysis successful!")
+        if "recommendations" in result:
+            recs = result["recommendations"]
+            print("\nRecommended next nodes:")
+            for node in recs.get("next_nodes", [])[:3]:
+                print(f"  - {node['node']} (used {node['frequency']} times)")
+    else:
+        print(f"Error: {result.get('error')}")
+
+
+async def test_project_repair():
+    """Test project repair functionality"""
+    print("\n=== Testing Project Repair ===\n")
+
+    # Create a test project with some issues
+    # test_project = {
+    #     "type": "Mountain",
+    #     "name": "TestMountain",
+    #     "properties": {"Scale": "wrong_type", "InvalidProp": 123},  # Should be float  # Invalid property
+    # }
+
+    # Create a minimal project structure
+    project_data = {
+        "$id": "1",
+        "Assets": {
+            "$id": "2",
+            "$values": [
+                {
+                    "$id": "3",
+                    "Terrain": {
+                        "$id": "4",
+                        "Nodes": {
+                            "100": {
+                                "$id": "7",
+                                "$type": "QuadSpinner.Gaea.Nodes.Mountain, Gaea.Nodes",
+                                "Id": 100,
+                                "Name": "TestMountain",
+                                "Scale": "wrong_type",
+                                "InvalidProp": 123,
+                                "Ports": {"$id": "8", "$values": []},
+                            }
+                        },
+                    },
+                }
+            ],
+        },
+    }
+
+    result = await MCPTools.repair_gaea2_project(project_data=project_data, auto_fix=True)
+
+    if result["success"]:
+        print("Project repair successful!")
+        analysis = result["analysis"]
+        print(f"Health Score: {analysis['analysis']['health_score']:.1f}/100")
+        print(f"Errors found: {analysis['analysis']['errors']['total_errors']}")
+
+        if "repair_result" in result:
+            fixes = result["repair_result"].get("fixes_applied", [])
+            print(f"\nFixes applied: {len(fixes)}")
+            for fix in fixes[:3]:
+                print(f"  - {fix}")
+    else:
+        print(f"Error: {result.get('error')}")
+
+
+async def test_template_with_knowledge():
+    """Test creating project from template with pattern knowledge"""
+    print("\n=== Testing Template Creation with Knowledge ===\n")
+
+    # Get a workflow template
+    workflow = get_workflow_for_terrain_type("mountain")
+    if workflow:
+        print(f"Using workflow: {workflow['description']}")
+        print(f"Nodes: {' → '.join(workflow['nodes'])}")
+
+        # Create nodes from the workflow
+        nodes = []
+        x_offset = 0
+        for i, node_type in enumerate(workflow["nodes"]):
+            node = {
+                "id": 100 + i,
+                "type": node_type,
+                "name": f"{node_type}_{i}",
+                "position": {"x": 25000 + x_offset, "y": 25000},
+            }
+
+            # Add suggested properties
+            props = suggest_properties_for_node(node_type)
+            if props:
+                node["properties"] = {}
+                for prop_name, prop_info in props.items():
+                    if isinstance(prop_info, dict) and "default" in prop_info:
+                        node["properties"][prop_name] = prop_info["default"]
+
+            nodes.append(node)
+            x_offset += 1500
+
+        # Create connections based on sequence
+        connections = []
+        for i in range(len(nodes) - 1):
+            connections.append(
+                {"from_node": nodes[i]["id"], "to_node": nodes[i + 1]["id"], "from_port": "Out", "to_port": "In"}
+            )
+
+        # Create the project
+        result = await MCPTools.create_gaea2_project(
+            project_name="Knowledge-Based Mountain",
+            nodes=nodes,
+            connections=connections,
+            output_path="test_knowledge_mountain.terrain",
+        )
+
+        if result["success"]:
+            print("\n✓ Project created successfully!")
+            print(f"  Nodes: {result['node_count']}")
+            print(f"  Connections: {result['connection_count']}")
+            print(f"  Output: {result['output_path']}")
+        else:
+            print(f"Error: {result.get('error')}")
+
+
+async def main():
+    """Run all tests"""
+    print("Testing Gaea2 MCP Enhancements\n")
+    print("=" * 50)
+
+    await test_pattern_knowledge()
+    await test_workflow_analyzer()
+    await test_project_repair()
+    await test_template_with_knowledge()
+
+    print("\n" + "=" * 50)
+    print("✅ All tests completed!")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
