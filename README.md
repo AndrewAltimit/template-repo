@@ -35,6 +35,7 @@ This repository leverages **three AI agents** for development and automation:
 ## Features
 
 - **MCP Server Integration** - Multiple MCP servers for different tool categories
+- **Gaea2 Terrain Generation** - Complete MCP integration for all 185 Gaea2 nodes with intelligent validation
 - **ComfyUI Integration** - Image generation workflows
 - **AI Toolkit** - LoRA training capabilities
 - **Gemini AI Consultation** - Standalone MCP server for AI assistance (host-only)
@@ -96,6 +97,14 @@ This repository leverages **three AI agents** for development and automation:
 **Content Creation:**
 - `create_manim_animation` - Create animations
 - `compile_latex` - Generate documents
+
+**Gaea2 Terrain Generation:**
+- `create_gaea2_project` - Create custom terrain projects
+- `validate_and_fix_workflow` - Validate and repair workflows
+- `create_gaea2_from_template` - Use professional templates
+- `analyze_workflow_patterns` - Get pattern-based suggestions
+- `repair_gaea2_project` - Fix damaged project files
+- Plus 5 more tools - see [Gaea2 documentation](docs/gaea2/README.md)
 
 ### Gemini MCP Server (Port 8006)
 

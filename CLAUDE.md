@@ -137,6 +137,15 @@ The project uses multiple Model Context Protocol (MCP) servers to provide variou
    - **Content Creation**:
      - `create_manim_animation` - Create mathematical/technical animations
      - `compile_latex` - Generate PDF/DVI/PS documents from LaTeX
+   - **Gaea2 Terrain Generation** (185 nodes supported):
+     - `create_gaea2_project` - Create custom terrain projects
+     - `validate_and_fix_workflow` - Comprehensive validation and repair
+     - `analyze_workflow_patterns` - Pattern-based workflow analysis
+     - `repair_gaea2_project` - Fix damaged project files
+     - `create_gaea2_from_template` - Use professional templates
+     - `optimize_gaea2_properties` - Performance/quality optimization
+     - `suggest_gaea2_nodes` - Intelligent node suggestions
+     - See `docs/gaea2/README.md` for complete Gaea2 MCP documentation
 
 2. **Gemini MCP Server** (`tools/mcp/gemini_mcp_server.py`): HTTP API on port 8006
    - **MUST run on host system** (not in container) due to Docker requirements
@@ -248,3 +257,56 @@ When working with the remote MCP servers (AI Toolkit and ComfyUI):
    - Chunked upload tools exist even if not shown
 
 See `docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md` for comprehensive details.
+
+## Gaea2 MCP Integration
+
+The repository includes a comprehensive Gaea2 terrain generation system with advanced features:
+
+### Key Capabilities
+
+1. **Complete Node Support**: All 185 documented Gaea2 nodes across 9 categories
+2. **Intelligent Validation**: Multi-level validation with automatic error correction
+3. **Pattern Intelligence**: Learning from 31 real projects (374 nodes, 440 connections)
+4. **Performance Optimization**: 19x speedup through intelligent caching
+5. **Professional Templates**: Ready-to-use workflows for common terrain types
+
+### Common Commands
+
+```bash
+# Test Gaea2 features
+python tests/gaea2/test_gaea2_enhancements.py
+python tests/gaea2/test_gaea2_robustness.py
+
+# Analyze real Gaea2 projects for patterns
+python scripts/analyze_gaea_projects.py
+
+# Run Gaea2-specific tests
+docker-compose run --rm python-ci pytest tests/gaea2/ -v
+```
+
+### Development Tips
+
+1. **Pattern-Based Development**: Use `analyze_workflow_patterns` to get suggestions based on real projects
+2. **Automatic Repair**: Use `validate_and_fix_workflow` with `auto_fix=True` to fix common issues
+3. **Performance vs Quality**: Use `optimize_gaea2_properties` with appropriate mode
+4. **Templates First**: Start with templates for common terrain types, then customize
+
+### Common Patterns (from 31 real projects)
+
+- Most common workflow: Slump → FractalTerraces → Combine → Shear
+- Most used nodes: SatMap (47), Combine (38), Erosion2 (29)
+- Average project complexity: 12.1 nodes, 14.2 connections
+
+### Error Recovery
+
+The system can automatically fix:
+- Duplicate connections
+- Out-of-range property values
+- Missing required nodes (Export, SatMap)
+- Orphaned nodes
+- Workflow optimization issues
+
+For complete documentation, see:
+- `docs/gaea2/README.md` - Main Gaea2 MCP documentation
+- `docs/gaea2/GAEA2_API_REFERENCE.md` - Complete API reference
+- `docs/gaea2/GAEA2_EXAMPLES.md` - Usage examples and patterns
