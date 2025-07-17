@@ -23,7 +23,7 @@ The Gaea2 MCP Server runs on Windows hosts where Gaea2 is installed and provides
    - Validate and fix workflows
    - Create projects from professional templates
 
-2. **CLI Automation** (NEW!)
+2. **CLI Automation**
    - Run Gaea2 projects from command line
    - Pass variables to control terrain generation
    - Capture verbose output and parse results
