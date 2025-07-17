@@ -25,20 +25,16 @@ services:
     restart: unless-stopped
     command: python -m tools.mcp.mcp_server
 
-  # Gemini MCP Server - MUST RUN ON HOST
-  # This service will immediately exit with an error message
-  gemini-mcp-server:
-    build:
-      context: .
-      dockerfile: docker/mcp.Dockerfile
-    container_name: gemini-mcp-server
-    environment:
-      - CONTAINER_ENV=1  # Force container detection
-    command: python tools/mcp/gemini_mcp_server.py
-    restart: "no"
-    networks:
-      - mcp-network
-    # This will always exit immediately with instructions
+  # NOTE: Some MCP servers MUST run on the host system, not in containers:
+  #
+  # 1. Gemini MCP Server (port 8006) - Needs Docker access for Gemini CLI
+  #    Run with: python tools/mcp/gemini_mcp_server.py
+  #
+  # 2. Gaea2 MCP Server (port 8007) - Needs access to Windows Gaea2 executable
+  #    Run with: python tools/mcp/gaea2_mcp_server.py
+  #    Set GAEA2_PATH environment variable to Gaea.Swarm.exe location
+  #
+  # These servers check if they're in a container and exit with instructions.
 
   # ComfyUI MCP HTTP Bridge (for remote ComfyUI)
   mcp-comfyui-http:

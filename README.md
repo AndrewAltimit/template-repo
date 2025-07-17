@@ -36,6 +36,7 @@ This repository leverages **three AI agents** for development and automation:
 
 - **MCP Server Integration** - Multiple MCP servers for different tool categories
 - **Gaea2 Terrain Generation** - Complete MCP integration for all 185 Gaea2 nodes with intelligent validation
+  - **NEW**: Standalone Gaea2 MCP server with CLI automation (Windows host-only)
 - **ComfyUI Integration** - Image generation workflows
 - **AI Toolkit** - LoRA training capabilities
 - **Gemini AI Consultation** - Standalone MCP server for AI assistance (host-only)
@@ -129,20 +130,30 @@ See `.env.example` for all available options:
 - `COMFYUI_SERVER_URL` - ComfyUI server endpoint
 - `AI_TOOLKIT_SERVER_URL` - AI Toolkit server endpoint
 
-### Gemini AI Setup
+### Host-Only MCP Servers
 
-The Gemini integration is split into two components:
+Some MCP servers must run on the host system (not in containers):
 
-1. **Gemini MCP Server** (for development assistance):
+1. **Gemini MCP Server** (port 8006) - AI development assistance:
    ```bash
-   # Must run on host system (not in container)
+   # Needs Docker access for Gemini CLI
    python3 tools/mcp/gemini_mcp_server.py
    ```
 
-2. **Gemini CLI** (for automated PR reviews):
-   - Install Node.js 18+ (recommended: 22.16.0)
-   - Install Gemini CLI: `npm install -g @google/gemini-cli`
-   - Authenticate: Run `gemini` command once
+2. **Gaea2 MCP Server** (port 8007) - Terrain generation with CLI automation:
+   ```bash
+   # Windows only - needs Gaea2 installed
+   set GAEA2_PATH=C:\Program Files\QuadSpinner\Gaea\Gaea.Swarm.exe
+   python tools/mcp/gaea2_mcp_server.py
+   ```
+   See [Gaea2 MCP Server docs](docs/gaea2/GAEA2_MCP_SERVER.md) for details.
+
+### Gemini CLI Setup
+
+For automated PR reviews:
+- Install Node.js 18+ (recommended: 22.16.0)
+- Install Gemini CLI: `npm install -g @google/gemini-cli`
+- Authenticate: Run `gemini` command once
 
 See [setup guide](docs/GEMINI_SETUP.md) for details.
 

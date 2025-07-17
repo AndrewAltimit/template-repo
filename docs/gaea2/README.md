@@ -6,6 +6,16 @@ A comprehensive, intelligent terrain generation toolkit for Gaea2, providing pro
 
 The Gaea2 MCP system enables programmatic creation and manipulation of Gaea2 terrain projects through the Model Context Protocol. It includes intelligent validation, automatic error recovery, pattern-based suggestions, and comprehensive node support for all 185 documented Gaea2 nodes.
 
+### 🆕 Standalone Gaea2 MCP Server
+
+**NEW**: A standalone HTTP server (`gaea2_mcp_server.py`) is now available that runs on Windows hosts with Gaea2 installed, providing:
+- All existing MCP features
+- **CLI automation** for running Gaea2 projects programmatically
+- Verbose logging and execution history
+- Real-time terrain generation with variable control
+
+See [GAEA2_MCP_SERVER.md](GAEA2_MCP_SERVER.md) for setup and usage.
+
 ### Key Features
 
 - **Complete Node Coverage**: Support for all 185 Gaea2 nodes across 9 categories

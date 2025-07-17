@@ -1217,7 +1217,10 @@ def create_workflow_from_template(
             "id": export_id,
             "type": "Export",
             "name": "TerrainExport",
-            "position": {"x": last_node["position"]["x"] + 500, "y": last_node["position"]["y"]},
+            "position": {
+                "x": last_node["position"]["x"] + 500,
+                "y": last_node["position"]["y"],
+            },
             "properties": {
                 "filename": "terrain_output",
                 "format": "Terrain",
