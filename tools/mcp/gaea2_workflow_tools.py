@@ -38,7 +38,11 @@ class Gaea2WorkflowTools:
                 node_types[node_type] = node_types.get(node_type, 0) + 1
 
                 # Track connections
-                node_connections[node_id] = {"inputs": [], "outputs": [], "type": node_type}
+                node_connections[node_id] = {
+                    "inputs": [],
+                    "outputs": [],
+                    "type": node_type,
+                }
 
                 # Identify special nodes
                 if node_type in ["Export", "Unity", "Unreal"]:
@@ -51,7 +55,10 @@ class Gaea2WorkflowTools:
                         record = port["Record"]
                         if port["Name"] in ["In", "Input"]:
                             node_connections[node_id]["inputs"].append(
-                                {"from": str(record["From"]), "port": record["FromPort"]}
+                                {
+                                    "from": str(record["From"]),
+                                    "port": record["FromPort"],
+                                }
                             )
                         else:
                             # Track as output in the source node
@@ -72,7 +79,11 @@ class Gaea2WorkflowTools:
 
                         for output in outputs:
                             to_node = output["to"]
-                            if node_connections.get(to_node, {}).get("type") in ["Erosion", "Erosion2", "Wizard"]:
+                            if node_connections.get(to_node, {}).get("type") in [
+                                "Erosion",
+                                "Erosion2",
+                                "Wizard",
+                            ]:
                                 next_erosion = to_node
                                 break
 
@@ -182,7 +193,12 @@ class Gaea2WorkflowTools:
                 "TileResolution": 1024,
                 "NumberOfTiles": 2,
                 "EdgeBlending": 0.25,
-                "export_formats": {"heightmap": "RAW16", "textures": "PNG", "normals": "PNG", "masks": "PNG8"},
+                "export_formats": {
+                    "heightmap": "RAW16",
+                    "textures": "PNG",
+                    "normals": "PNG",
+                    "masks": "PNG8",
+                },
                 "suggestions": [
                     "Use tiling for large worlds",
                     "Export normal maps for detail",
@@ -195,7 +211,12 @@ class Gaea2WorkflowTools:
                 "TileResolution": 2048,
                 "NumberOfTiles": 4,
                 "EdgeBlending": 0.5,
-                "export_formats": {"heightmap": "EXR", "textures": "EXR", "normals": "EXR", "masks": "EXR"},
+                "export_formats": {
+                    "heightmap": "EXR",
+                    "textures": "EXR",
+                    "normals": "EXR",
+                    "masks": "EXR",
+                },
                 "suggestions": [
                     "Use 32-bit formats for maximum precision",
                     "Enable all output maps",
@@ -208,7 +229,12 @@ class Gaea2WorkflowTools:
                 "TileResolution": 1024,
                 "NumberOfTiles": 2,
                 "EdgeBlending": 0.33,
-                "export_formats": {"heightmap": "PNG16", "textures": "PNG", "normals": "PNG", "masks": "PNG"},
+                "export_formats": {
+                    "heightmap": "PNG16",
+                    "textures": "PNG",
+                    "normals": "PNG",
+                    "masks": "PNG",
+                },
                 "suggestions": [
                     "Balance quality with performance",
                     "Use PNG for good compression",
@@ -221,7 +247,12 @@ class Gaea2WorkflowTools:
                 "TileResolution": 512,
                 "NumberOfTiles": 1,
                 "EdgeBlending": 0.1,
-                "export_formats": {"heightmap": "PNG", "textures": "PNG8", "normals": None, "masks": None},
+                "export_formats": {
+                    "heightmap": "PNG",
+                    "textures": "PNG8",
+                    "normals": None,
+                    "masks": None,
+                },
                 "suggestions": [
                     "Use low resolution for fast iteration",
                     "Minimal exports for quick testing",
@@ -261,7 +292,9 @@ class Gaea2WorkflowTools:
 
     @staticmethod
     async def batch_process_projects(
-        project_files: List[str], common_settings: Dict[str, Any], output_directory: Optional[str] = None
+        project_files: List[str],
+        common_settings: Dict[str, Any],
+        output_directory: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Process multiple Gaea projects with common settings
@@ -322,10 +355,22 @@ class Gaea2WorkflowTools:
                 with open(output_path, "w") as f:
                     json.dump(project, f, indent=2)
 
-                results.append({"project": project_name, "status": "success", "output_path": output_path})
+                results.append(
+                    {
+                        "project": project_name,
+                        "status": "success",
+                        "output_path": output_path,
+                    }
+                )
 
             except Exception as e:
-                results.append({"project": os.path.basename(project_file), "status": "failed", "error": str(e)})
+                results.append(
+                    {
+                        "project": os.path.basename(project_file),
+                        "status": "failed",
+                        "error": str(e),
+                    }
+                )
 
         success_count = sum(1 for r in results if r["status"] == "success")
 
@@ -411,7 +456,10 @@ class Gaea2WorkflowTools:
                 # Create new node with offset position
                 new_node = node.copy()
                 new_node["id"] = new_id
-                new_node["position"] = {"x": node["position"]["x"] + position["x"], "y": node["position"]["y"] + position["y"]}
+                new_node["position"] = {
+                    "x": node["position"]["x"] + position["x"],
+                    "y": node["position"]["y"] + position["y"],
+                }
 
                 imported_nodes.append(new_node)
 
@@ -427,7 +475,11 @@ class Gaea2WorkflowTools:
                 "success": True,
                 "nodes": imported_nodes,
                 "connections": imported_connections,
-                "preset_info": {"name": preset["name"], "category": preset["category"], "description": preset["description"]},
+                "preset_info": {
+                    "name": preset["name"],
+                    "category": preset["category"],
+                    "description": preset["description"],
+                },
             }
 
         except Exception as e:
@@ -478,13 +530,21 @@ class Gaea2WorkflowTools:
             for node_id in ids_b - ids_a:
                 node = nodes_b[node_id]
                 differences["added_nodes"].append(
-                    {"id": node_id, "type": node.get("$type", "").split(".")[-2], "name": node.get("Name", "")}
+                    {
+                        "id": node_id,
+                        "type": node.get("$type", "").split(".")[-2],
+                        "name": node.get("Name", ""),
+                    }
                 )
 
             for node_id in ids_a - ids_b:
                 node = nodes_a[node_id]
                 differences["removed_nodes"].append(
-                    {"id": node_id, "type": node.get("$type", "").split(".")[-2], "name": node.get("Name", "")}
+                    {
+                        "id": node_id,
+                        "type": node.get("$type", "").split(".")[-2],
+                        "name": node.get("Name", ""),
+                    }
                 )
 
             # Compare common nodes
@@ -522,7 +582,10 @@ class Gaea2WorkflowTools:
 
             for key in set(build_a.keys()) | set(build_b.keys()):
                 if build_a.get(key) != build_b.get(key):
-                    differences["build_settings"][key] = {"project_a": build_a.get(key), "project_b": build_b.get(key)}
+                    differences["build_settings"][key] = {
+                        "project_a": build_a.get(key),
+                        "project_b": build_b.get(key),
+                    }
 
             return {
                 "success": True,
@@ -630,7 +693,12 @@ class Gaea2WorkflowTools:
                 # Identify heavy nodes
                 if adjusted_weight > 8:
                     performance_analysis["heavy_nodes"].append(
-                        {"id": node_id, "type": node_type, "name": node.get("Name", node_type), "cost": adjusted_weight}
+                        {
+                            "id": node_id,
+                            "type": node_type,
+                            "name": node.get("Name", node_type),
+                            "cost": adjusted_weight,
+                        }
                     )
 
                 # Memory estimate (rough)

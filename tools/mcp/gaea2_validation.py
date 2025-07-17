@@ -37,8 +37,20 @@ class Gaea2Validator:
                     )
 
         elif prop_type == "int":
-            if not isinstance(prop_value, int):
+            # Accept both int and float for integer properties
+            # This matches Gaea's behavior where many whole numbers are stored as floats
+            if isinstance(prop_value, float):
+                # Check if float is actually a whole number
+                if prop_value.is_integer():
+                    prop_value = int(prop_value)
+                else:
+                    return (
+                        False,
+                        f"Expected integer value, got float {prop_value} with decimal part",
+                    )
+            elif not isinstance(prop_value, int):
                 return False, f"Expected integer value, got {type(prop_value).__name__}"
+
             # Check range if specified
             if "range" in prop_def:
                 min_val = prop_def["range"].get("min", 0)

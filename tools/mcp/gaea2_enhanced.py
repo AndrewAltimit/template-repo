@@ -119,7 +119,11 @@ class EnhancedGaea2Tools:
                                             "Name": "Graph 1",
                                             "Color": "Brass",
                                             "ZoomFactor": 0.5,
-                                            "ViewportLocation": {"$id": "11", "X": 25000.0, "Y": 25000.0},
+                                            "ViewportLocation": {
+                                                "$id": "11",
+                                                "X": 25000.0,
+                                                "Y": 25000.0,
+                                            },
                                         }
                                     ],
                                 },
@@ -190,7 +194,10 @@ class EnhancedGaea2Tools:
                         "Id": group_id,
                         "Name": group.get("name", "Group"),
                         "Color": group.get("color", "Gray"),
-                        "Children": {"$id": str(ref_id_counter + 1), "$values": group.get("children", [])},
+                        "Children": {
+                            "$id": str(ref_id_counter + 1),
+                            "$values": group.get("children", []),
+                        },
                         "Position": {
                             "$id": str(ref_id_counter + 2),
                             "X": float(group.get("position", {}).get("x", 25000)),
@@ -246,7 +253,11 @@ class EnhancedGaea2Tools:
             "$type": f"QuadSpinner.Gaea.Nodes.{node_type}, Gaea.Nodes",
             "Id": node_id,
             "Name": node_name,
-            "Position": {"$id": str(ref_id_counter + 1), "X": float(position["x"]), "Y": float(position["y"])},
+            "Position": {
+                "$id": str(ref_id_counter + 1),
+                "X": float(position["x"]),
+                "Y": float(position["y"]),
+            },
             "Ports": {"$id": str(ref_id_counter + 2), "$values": []},
             "Modifiers": {"$id": str(ref_id_counter + 3), "$values": []},
         }
@@ -258,7 +269,11 @@ class EnhancedGaea2Tools:
             # Handle special property types
             if isinstance(value, dict) and "x" in value and "y" in value:
                 # Vector2 property
-                node[prop] = {"$id": str(ref_id_counter), "X": float(value["x"]), "Y": float(value["y"])}
+                node[prop] = {
+                    "$id": str(ref_id_counter),
+                    "X": float(value["x"]),
+                    "Y": float(value["y"]),
+                }
                 ref_id_counter += 1
             elif prop == "StrokeData" and isinstance(value, str):
                 # Binary stroke data
@@ -267,12 +282,19 @@ class EnhancedGaea2Tools:
                 node[prop] = value
 
         # Create default ports
-        default_ports = [{"name": "In", "type": "PrimaryIn"}, {"name": "Out", "type": "PrimaryOut"}]
+        default_ports = [
+            {"name": "In", "type": "PrimaryIn"},
+            {"name": "Out", "type": "PrimaryOut"},
+        ]
 
         # Add node-specific ports
         if node_type == "Erosion2":
             default_ports.extend(
-                [{"name": "Flow", "type": "Out"}, {"name": "Wear", "type": "Out"}, {"name": "Deposits", "type": "Out"}]
+                [
+                    {"name": "Flow", "type": "Out"},
+                    {"name": "Wear", "type": "Out"},
+                    {"name": "Deposits", "type": "Out"},
+                ]
             )
         elif node_type == "Sandstone":
             default_ports.append({"name": "Layers", "type": "Out"})
@@ -281,7 +303,12 @@ class EnhancedGaea2Tools:
         elif node_type == "Unity":
             # Unity export node has many input/output pairs
             for i in range(1, 9):
-                default_ports.extend([{"name": f"Input{i}", "type": "In"}, {"name": f"Output{i}", "type": "Out"}])
+                default_ports.extend(
+                    [
+                        {"name": f"Input{i}", "type": "In"},
+                        {"name": f"Output{i}", "type": "Out"},
+                    ]
+                )
 
         # Override with custom ports if provided
         if ports:
@@ -318,7 +345,11 @@ class EnhancedGaea2Tools:
             if "properties" in modifier:
                 for prop, value in modifier["properties"].items():
                     if isinstance(value, dict) and "x" in value and "y" in value:
-                        mod_obj[prop] = {"$id": str(ref_id_counter + 1), "X": float(value["x"]), "Y": float(value["y"])}
+                        mod_obj[prop] = {
+                            "$id": str(ref_id_counter + 1),
+                            "X": float(value["x"]),
+                            "Y": float(value["y"]),
+                        }
                         ref_id_counter += 1
                     else:
                         mod_obj[prop] = value
@@ -388,7 +419,11 @@ class EnhancedGaea2Tools:
         return {"node": node, "next_ref_id": ref_id_counter}
 
     @staticmethod
-    async def _add_connections(connections: List[Dict[str, Any]], nodes_dict: Dict[str, Any], ref_id_counter: int) -> int:
+    async def _add_connections(
+        connections: List[Dict[str, Any]],
+        nodes_dict: Dict[str, Any],
+        ref_id_counter: int,
+    ) -> int:
         """Add connections between nodes with enhanced port handling"""
 
         for conn in connections:
@@ -457,7 +492,11 @@ class EnhancedGaea2Tools:
         Parameters:
         - layers: List of layer definitions with range, color, and order
         """
-        properties = {"PortCount": max(10, len(layers)), "ShowSimplified": True, "Version": 2}
+        properties = {
+            "PortCount": max(10, len(layers)),
+            "ShowSimplified": True,
+            "Version": 2,
+        }
 
         # Add layer definitions
         for i, layer in enumerate(layers, 1):
@@ -497,7 +536,11 @@ class EnhancedGaea2Tools:
 
     @staticmethod
     async def create_export_node(
-        node_id: int, position: Dict[str, float], filename: str, format: str = "PNG64", node_type: str = "Export"
+        node_id: int,
+        position: Dict[str, float],
+        filename: str,
+        format: str = "PNG64",
+        node_type: str = "Export",
     ) -> Dict[str, Any]:
         """
         Create an export node (Export or Unity)
@@ -513,7 +556,11 @@ class EnhancedGaea2Tools:
             "name": f"{filename} Export",
             "position": position,
             "properties": {"Format": format},
-            "save_definition": {"filename": filename, "format": format, "enabled": True},
+            "save_definition": {
+                "filename": filename,
+                "format": format,
+                "enabled": True,
+            },
             "node_size": "Standard" if node_type == "Export" else None,
         }
 

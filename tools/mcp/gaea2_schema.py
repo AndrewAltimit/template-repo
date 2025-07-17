@@ -317,7 +317,7 @@ NODE_PROPERTY_DEFINITIONS = {
         "Duration": {
             "type": "float",
             "default": 0.04,
-            "range": {"min": 0.0, "max": 1.0},
+            "range": {"min": 0.0, "max": 20.0},
             "description": "Duration of erosion simulation",
         },
         "Rock Softness": {
@@ -403,7 +403,7 @@ NODE_PROPERTY_DEFINITIONS = {
             "default": "Rock",
         },
         "Randomize": {"type": "bool", "default": False},
-        "Library Item": {"type": "int", "default": 0, "range": {"min": 0, "max": 50}},
+        "LibraryItem": {"type": "int", "default": 0, "range": {"min": 0, "max": 50}},
         "Range": {
             "type": "float2",
             "default": {"X": 0.5, "Y": 0.5},
@@ -756,7 +756,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "SatMap",
             "name": "ColorMap",
-            "properties": {"Library": "Rock", "Library Item": 0},
+            "properties": {"Library": "Rock", "LibraryItem": 0},
         },
     ],
     "detailed_mountain": [
@@ -835,7 +835,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "SatMap",
             "name": "VolcanicColors",
-            "properties": {"Library": "Rock", "Library Item": 1},
+            "properties": {"Library": "Rock", "LibraryItem": 1},
         },
     ],
     "desert_canyon": [
@@ -867,7 +867,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "SatMap",
             "name": "DesertColors",
-            "properties": {"Library": "Sand", "Library Item": 0},
+            "properties": {"Library": "Sand", "LibraryItem": 0},
         },
     ],
     "modular_portal_terrain": [
@@ -919,7 +919,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "SatMap",
             "name": "TerrainColors",
-            "properties": {"Library": "Rock", "Library Item": 2},
+            "properties": {"Library": "Rock", "LibraryItem": 2},
         },
     ],
 }

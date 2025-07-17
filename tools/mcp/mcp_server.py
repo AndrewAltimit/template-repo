@@ -28,7 +28,6 @@ try:
         create_workflow_from_template,
         validate_gaea2_project,
     )
-    from gaea2_validation import create_validator
 except ImportError:
     # If running as a module
     from tools.mcp.gaea2_knowledge_graph import enhance_workflow_with_knowledge, knowledge_graph
@@ -39,7 +38,6 @@ except ImportError:
         create_workflow_from_template,
         validate_gaea2_project,
     )
-    from tools.mcp.gaea2_validation import create_validator
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -66,47 +64,15 @@ class MCPTools:
     @staticmethod
     def _ensure_property_types(node_type: str, properties: Dict[str, Any]) -> Dict[str, Any]:
         """Ensure properties have the correct data types based on node definitions"""
-        from tools.mcp.gaea2_schema import COMMON_NODE_PROPERTIES, NODE_PROPERTY_DEFINITIONS
+        from tools.mcp.gaea2_accurate_validation import create_accurate_validator
 
-        corrected = properties.copy()
+        # Use the accurate validator based on documentation
+        validator = create_accurate_validator()
+        is_valid, errors, corrected = validator.validate_node(node_type, properties)
 
-        # Get property definitions for this node type
-        prop_defs = {}
-        if node_type in NODE_PROPERTY_DEFINITIONS:
-            prop_defs.update(NODE_PROPERTY_DEFINITIONS[node_type])
-        prop_defs.update(COMMON_NODE_PROPERTIES)
-
-        # Correct the types
-        for prop_name, prop_value in corrected.items():
-            if prop_name in prop_defs:
-                expected_type = prop_defs[prop_name].get("type", "float")
-
-                if expected_type == "int" and isinstance(prop_value, float):
-                    corrected[prop_name] = int(round(prop_value))
-                elif expected_type == "float" and isinstance(prop_value, int):
-                    corrected[prop_name] = float(prop_value)
-                elif expected_type == "bool" and not isinstance(prop_value, bool):
-                    corrected[prop_name] = bool(prop_value)
-                elif expected_type == "float2":
-                    # Handle Float2 type conversion
-                    if isinstance(prop_value, (int, float)):
-                        # Convert single value to Float2
-                        corrected[prop_name] = {
-                            "X": float(prop_value),
-                            "Y": float(prop_value),
-                        }
-                    elif isinstance(prop_value, dict) and "X" in prop_value and "Y" in prop_value:
-                        # Ensure X and Y are floats
-                        corrected[prop_name] = {
-                            "X": float(prop_value["X"]),
-                            "Y": float(prop_value["Y"]),
-                        }
-                    elif isinstance(prop_value, list) and len(prop_value) >= 2:
-                        # Convert list to Float2
-                        corrected[prop_name] = {
-                            "X": float(prop_value[0]),
-                            "Y": float(prop_value[1]),
-                        }
+        # Log any validation errors
+        for error in errors:
+            logger.error(f"Validation error: {error}")
 
         return corrected
 
@@ -262,23 +228,19 @@ class MCPTools:
     ) -> Dict[str, Any]:
         """Create a Gaea 2 project file with nodes and connections"""
         try:
-            # Validate nodes before creating project
-            validator = create_validator()
-            validation_result = validator.validate_workflow(nodes, connections)
+            # Validate all nodes first using the accurate validator
+            from tools.mcp.gaea2_accurate_validation import create_accurate_validator
 
-            if not validation_result["valid"]:
-                return {
-                    "success": False,
-                    "error": "Validation failed",
-                    "validation_errors": validation_result["errors"],
-                    "warnings": validation_result["warnings"],
-                }
+            validator = create_accurate_validator()
 
-            # Log warnings if any
-            if validation_result["warnings"]:
-                logger.warning(f"Validation warnings: {validation_result['warnings']}")
+            # Pre-validate node types
+            for node in nodes:
+                if not validator.validate_node_type(node.get("type", "")):
+                    return {
+                        "success": False,
+                        "error": f"Invalid node type: {node.get('type')}. See gaea2_complete_schema.json for valid types.",
+                    }
 
-            # Initialize project structure
             project_id = str(uuid.uuid4())
             terrain_id = str(uuid.uuid4())
             timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%SZ")

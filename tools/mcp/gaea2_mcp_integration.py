@@ -115,7 +115,10 @@ class Gaea2MCPIntegration:
                     "type": "object",
                     "properties": {
                         "project_file": {"type": "string"},
-                        "target_use_case": {"type": "string", "enum": ["game", "film", "visualization", "prototype"]},
+                        "target_use_case": {
+                            "type": "string",
+                            "enum": ["game", "film", "visualization", "prototype"],
+                        },
                     },
                     "required": ["project_file", "target_use_case"],
                 },
@@ -171,7 +174,10 @@ class Gaea2MCPIntegration:
                 "description": "Compare two Gaea projects and identify differences",
                 "input_schema": {
                     "type": "object",
-                    "properties": {"project_a": {"type": "string"}, "project_b": {"type": "string"}},
+                    "properties": {
+                        "project_a": {"type": "string"},
+                        "project_b": {"type": "string"},
+                    },
                     "required": ["project_a", "project_b"],
                 },
                 "handler": Gaea2WorkflowTools.compare_projects,
