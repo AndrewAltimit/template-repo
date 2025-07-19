@@ -188,27 +188,17 @@ class Gaea2MCPServer:
             node_type = node.get("type", "Mountain")
             gaea_type = node_type_mapping.get(node_type, f"QuadSpinner.Gaea.Nodes.{node_type}, Gaea.Nodes")
 
-            # Create Gaea node structure with sequential IDs
+            # Get node properties first
+            properties = node.get("properties", {})
+
+            # Create Gaea node structure with properties FIRST (after $id and $type)
             gaea_node = {
                 "$id": str(ref_id_counter),
                 "$type": gaea_type,
-                "Id": node_id,
-                "Name": node.get("name", node_type),
-                "Position": {
-                    "$id": str(ref_id_counter + 1),
-                    "X": float(node.get("position", {}).get("x", 24000 + i * 500)),
-                    "Y": float(node.get("position", {}).get("y", 26000)),
-                },
-                "Ports": {"$id": str(ref_id_counter + 2), "$values": []},
-                "Modifiers": {"$id": str(ref_id_counter + 3), "$values": []},
-                "SnapIns": {"$id": str(ref_id_counter + 4), "$values": []},
             }
 
             # Update counter for next elements
             ref_id_counter += 5
-
-            # Add node properties with type conversion and defaults
-            properties = node.get("properties", {})
 
             # Add default properties for common nodes
             if node_type == "Mountain" and len(properties) < 5:
@@ -234,7 +224,7 @@ class Gaea2MCPServer:
                     if key not in properties:
                         properties[key] = default_val
 
-            # Now add all properties with type conversion
+            # Add all properties with type conversion FIRST (after $id and $type)
             for prop, value in properties.items():
                 # Convert string numbers to appropriate numeric types
                 if isinstance(value, str):
@@ -249,6 +239,18 @@ class Gaea2MCPServer:
                         except ValueError:
                             pass  # Keep as string if conversion fails
                 gaea_node[prop] = value
+
+            # NOW add the standard node fields (these come AFTER properties)
+            gaea_node["Id"] = node_id
+            gaea_node["Name"] = node.get("name", node_type)
+            gaea_node["Position"] = {
+                "$id": str(ref_id_counter + 1),
+                "X": float(node.get("position", {}).get("x", 24000 + i * 500)),
+                "Y": float(node.get("position", {}).get("y", 26000)),
+            }
+            gaea_node["Ports"] = {"$id": str(ref_id_counter + 2), "$values": []}
+            gaea_node["Modifiers"] = {"$id": str(ref_id_counter + 3), "$values": []}
+            gaea_node["SnapIns"] = {"$id": str(ref_id_counter + 4), "$values": []}
 
             # Handle Export node SaveDefinition
             if node_type == "Export" and node.get("save_definition"):
