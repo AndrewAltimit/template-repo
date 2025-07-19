@@ -190,23 +190,10 @@ class Gaea2MCPServer:
             }
 
             # Add node properties
+            # Properties should already be validated and have correct names
             properties = node.get("properties", {})
             for prop, value in properties.items():
-                # Special handling for property names
-                if prop == "ReduceDetails":
-                    # Already in correct format
-                    gaea_prop = prop
-                elif prop == "Reduce Details":
-                    # Fix spacing issue
-                    gaea_prop = "ReduceDetails"
-                elif prop == "Rock Softness":
-                    # Already in correct format for Erosion nodes
-                    gaea_prop = prop
-                else:
-                    # For other properties, just use them as-is
-                    # The properties should already be validated and have correct names
-                    gaea_prop = prop
-                gaea_node[gaea_prop] = value
+                gaea_node[prop] = value
 
             # Handle Export node SaveDefinition
             if node_type == "Export" and node.get("save_definition"):
@@ -464,6 +451,28 @@ class Gaea2MCPServer:
             for node in nodes:
                 if "type" in node:
                     props = node.get("properties", {})
+
+                    # Normalize common property names
+                    # Handle lowercase versions of properties
+                    lowercase_to_proper = {
+                        "height": "Height",
+                        "scale": "Scale",
+                        "style": "Style",
+                        "bulk": "Bulk",
+                        "seed": "Seed",
+                        "strength": "Strength",
+                        "duration": "Duration",
+                        "downcutting": "Downcutting",
+                        "format": "Format",
+                        "enabled": "Enabled",
+                        "library": "Library",
+                        "libraryitem": "LibraryItem",
+                    }
+
+                    # First pass: rename lowercase properties
+                    for old_name, new_name in lowercase_to_proper.items():
+                        if old_name in props:
+                            props[new_name] = props.pop(old_name)
 
                     # Fix common property name issues
                     if node["type"] == "Erosion":
