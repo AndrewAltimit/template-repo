@@ -288,12 +288,15 @@ class Gaea2MCPServer:
 
             # Add all properties with type conversion FIRST (after $id and $type)
             for prop, value in properties.items():
+                # Ensure prop is a string for all comparisons
+                prop_str = str(prop) if not isinstance(prop, str) else prop
+
                 # Skip internal properties
-                if isinstance(prop, str) and prop.startswith("_"):
+                if prop_str.startswith("_"):
                     continue
 
                 # Special handling for Range properties - need their own $id
-                if prop == "Range" and isinstance(value, dict):
+                if prop_str == "Range" and isinstance(value, dict):
                     range_id = ref_id_counter
                     ref_id_counter += 1
                     value = {"$id": str(range_id), "X": float(value.get("X", 0.5)), "Y": float(value.get("Y", 0.5))}
@@ -309,7 +312,7 @@ class Gaea2MCPServer:
                                 value = float(value)
                         except ValueError:
                             pass  # Keep as string if conversion fails
-                gaea_node[prop] = value
+                gaea_node[prop_str] = value
 
             # NOW add the standard node fields (these come AFTER properties)
             gaea_node["Id"] = node_id
