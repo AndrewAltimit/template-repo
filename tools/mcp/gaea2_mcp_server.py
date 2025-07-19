@@ -597,7 +597,7 @@ class Gaea2MCPServer:
             "$id": str(ref_id_counter),
             "BakeResolution": 2048,
             "PreviewResolution": 512,
-            "SelectedNode": list(gaea_nodes.keys())[0] if gaea_nodes else 100,
+            "SelectedNode": int(list(gaea_nodes.keys())[0]) if gaea_nodes else 100,
             "LockedNode": None,
         }
         ref_id_counter += 1
