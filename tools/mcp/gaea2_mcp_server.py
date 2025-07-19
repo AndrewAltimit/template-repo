@@ -36,7 +36,7 @@ from tools.mcp.gaea2_knowledge_graph import knowledge_graph  # noqa: E402
 # Pattern knowledge is available as module functions, not a class
 from tools.mcp.gaea2_project_repair import Gaea2ProjectRepair  # noqa: E402
 from tools.mcp.gaea2_property_validator import Gaea2PropertyValidator  # noqa: E402
-from tools.mcp.gaea2_schema import apply_default_properties  # noqa: E402
+from tools.mcp.gaea2_schema import WORKFLOW_TEMPLATES, apply_default_properties, create_workflow_from_template  # noqa: E402
 from tools.mcp.gaea2_structure_validator import Gaea2StructureValidator  # noqa: E402
 from tools.mcp.gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer  # noqa: E402
 from tools.mcp.gaea2_workflow_tools import Gaea2WorkflowTools  # noqa: E402
@@ -380,6 +380,43 @@ class Gaea2MCPServer:
 
         return {"success": True, "analysis": analysis}
 
+    async def create_from_template(
+        self, template_name: str, project_name: str, customizations: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Create a Gaea2 project from a template"""
+        try:
+            # Check if template exists
+            if template_name not in WORKFLOW_TEMPLATES:
+                available = list(WORKFLOW_TEMPLATES.keys())
+                return {
+                    "success": False,
+                    "error": f"Unknown template: {template_name}. Available templates: {', '.join(available)}",
+                }
+
+            # Create workflow from template
+            nodes, connections = create_workflow_from_template(template_name)
+
+            # Apply customizations if provided
+            if customizations:
+                # Apply customizations to nodes
+                for node in nodes:
+                    if node["id"] in customizations.get("node_overrides", {}):
+                        node["properties"].update(customizations["node_overrides"][node["id"]])
+
+            # Create the project using the existing create_gaea2_project method
+            workflow = {"nodes": nodes, "connections": connections}
+
+            result = await self.create_gaea2_project(project_name=project_name, workflow=workflow, auto_validate=True)
+
+            if result.get("success"):
+                result["template_used"] = template_name
+                result["message"] = f"Project created from template '{template_name}'"
+
+            return result
+
+        except Exception as e:
+            return {"success": False, "error": f"Failed to create from template: {str(e)}"}
+
     async def handle_tools(self, request: web.Request) -> web.Response:
         """List available tools"""
         tools = [
@@ -481,7 +518,7 @@ class Gaea2MCPServer:
                 "run_gaea2_project": self.run_gaea2_project,
                 "validate_and_fix_workflow": self.validate_and_fix_workflow,
                 "analyze_execution_history": self.analyze_execution_history,
-                "create_gaea2_from_template": self.enhanced_tools.create_from_template,
+                "create_gaea2_from_template": self.create_from_template,
                 "analyze_workflow_patterns": self._analyze_workflow_patterns,
                 "suggest_gaea2_nodes": self._suggest_nodes,
                 "repair_gaea2_project": self._repair_project,
