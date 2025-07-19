@@ -43,24 +43,6 @@ from tools.mcp.gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer  # noqa: E40
 from tools.mcp.gaea2_workflow_tools import Gaea2WorkflowTools  # noqa: E402
 
 
-class Gaea2JSONEncoder(json.JSONEncoder):
-    """Custom JSON encoder for Gaea2 .terrain files that capitalizes booleans."""
-
-    def encode(self, o):
-        # First get the standard JSON string
-        json_str = super().encode(o)
-        # Replace lowercase booleans with capitalized versions
-        json_str = json_str.replace("true", "True").replace("false", "False")
-        return json_str
-
-    def iterencode(self, o, _one_shot=False):
-        """Encode the given object and yield each string representation as available."""
-        for chunk in super().iterencode(o, _one_shot):
-            # Replace lowercase booleans with capitalized versions
-            chunk = chunk.replace("true", "True").replace("false", "False")
-            yield chunk
-
-
 class Gaea2MCPServer:
     """Standalone Gaea2 MCP Server with CLI automation"""
 
@@ -595,8 +577,7 @@ class Gaea2MCPServer:
 
                         # Save the project as minified JSON to match Gaea2 format
                         # Convert to JSON string first to ensure proper formatting
-                        # Use custom encoder to capitalize booleans
-                        json_content = json.dumps(project, separators=(",", ":"), cls=Gaea2JSONEncoder)
+                        json_content = json.dumps(project, separators=(",", ":"))
 
                         # Write with Unix line endings (LF) and final newline
                         # Use binary mode to ensure no line ending conversion on Windows
