@@ -627,15 +627,15 @@ class Gaea2MCPServer:
                 }
 
             # Prepare command with resolved path
-            cmd = [str(self.gaea_path), "-filename", str(project_path)]
+            cmd = [str(self.gaea_path), "--Filename", str(project_path)]
 
             # Add optional parameters
             if verbose:
-                cmd.append("-verbose")
+                cmd.append("--verbose")
             if ignore_cache:
-                cmd.append("-ignorecache")
+                cmd.append("--ignorecache")
             if seed is not None:
-                cmd.extend(["-seed", str(seed)])
+                cmd.extend(["--seed", str(seed)])
 
             # Add variables
             if variables:
