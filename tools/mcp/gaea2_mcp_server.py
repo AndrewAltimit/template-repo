@@ -125,6 +125,7 @@ class Gaea2MCPServer:
             "Thermal": "QuadSpinner.Gaea.Nodes.Thermal, Gaea.Nodes",
             "Rivers": "QuadSpinner.Gaea.Nodes.Rivers, Gaea.Nodes",
             "FlowMap": "QuadSpinner.Gaea.Nodes.FlowMap, Gaea.Nodes",
+            "Snow": "QuadSpinner.Gaea.Nodes.Snow, Gaea.Nodes",
             "Snowfall": "QuadSpinner.Gaea.Nodes.Snowfall, Gaea.Nodes",
             "Stratify": "QuadSpinner.Gaea.Nodes.Stratify, Gaea.Nodes",
             "Slump": "QuadSpinner.Gaea.Nodes.Slump, Gaea.Nodes",
@@ -441,6 +442,10 @@ class Gaea2MCPServer:
                 # Legacy format support
                 nodes = workflow if isinstance(workflow, list) else []
                 connections = []
+
+            # Ensure nodes is a list
+            if not isinstance(nodes, list):
+                return {"success": False, "error": f"Invalid nodes format: expected list, got {type(nodes).__name__}"}
 
             # Apply default properties and fix property names
             for node in nodes:
