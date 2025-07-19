@@ -571,6 +571,7 @@ class Gaea2MCPServer:
                         # Use Unix line endings (LF) as Gaea2 expects
                         with open(save_path, "w", newline="\n") as f:
                             json.dump(project, f, separators=(",", ":"))
+                            f.write("\n")  # Add final newline as Gaea2 expects
 
                         saved_path = str(save_path)
                         self.logger.info(f"Project saved to: {saved_path}")
