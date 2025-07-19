@@ -32,7 +32,12 @@ sys.path.insert(0, project_root)
 from tools.mcp.gaea2_connection_validator import Gaea2ConnectionValidator  # noqa: E402
 from tools.mcp.gaea2_enhanced import EnhancedGaea2Tools  # noqa: E402
 from tools.mcp.gaea2_error_recovery import Gaea2ErrorRecovery  # noqa: E402
-from tools.mcp.gaea2_format_fixes import NODE_PROPERTIES, fix_property_names, generate_non_sequential_id  # noqa: E402
+from tools.mcp.gaea2_format_fixes import (  # noqa: E402
+    NODE_PROPERTIES,
+    apply_format_fixes,
+    fix_property_names,
+    generate_non_sequential_id,
+)
 from tools.mcp.gaea2_knowledge_graph import knowledge_graph  # noqa: E402
 
 # Pattern knowledge is available as module functions, not a class
@@ -333,16 +338,11 @@ class Gaea2MCPServer:
             gaea_node["SnapIns"] = {"$id": str(ref_id_counter), "$values": []}
             ref_id_counter += 1
 
-            # Handle Export node SaveDefinition
+            # Store export info for later SaveDefinition creation
             if node_type == "Export":
-                gaea_node["SaveDefinition"] = {
-                    "$id": str(ref_id_counter),
-                    "Node": node_id,
-                    "Filename": node.get("_export_filename", node.get("name", "Export")),
-                    "Format": node.get("_export_format", "EXR"),
-                    "IsEnabled": True,
-                }
-                ref_id_counter += 1
+                # Store export info in node for later extraction
+                node["_export_node_id"] = node_id
+                node["_export_enabled"] = True
 
             # Add ports based on node type
             node_str_id = node.get("id", f"node_{i}")
@@ -646,6 +646,28 @@ class Gaea2MCPServer:
             "DateLastSaved": timestamp,
         }
         ref_id_counter += 1
+
+        # Create SaveDefinitions for Export nodes
+        save_definitions = []
+        for node in nodes:
+            if node.get("type") == "Export" and "_export_node_id" in node:
+                save_def = {
+                    "$id": str(ref_id_counter),
+                    "Node": node["_export_node_id"],
+                    "Filename": node.get("_export_filename", "Export"),
+                    "Format": node.get("_export_format", "EXR"),
+                    "IsEnabled": node.get("_export_enabled", True),
+                }
+                ref_id_counter += 1
+                save_definitions.append(save_def)
+
+        # Add SaveDefinitions to the asset value if any
+        if save_definitions:
+            asset_value["SaveDefinitions"] = {"$id": str(ref_id_counter), "$values": save_definitions}
+            ref_id_counter += 1
+
+        # Apply additional format fixes
+        project = apply_format_fixes(project, nodes, connections)
 
         return project
 

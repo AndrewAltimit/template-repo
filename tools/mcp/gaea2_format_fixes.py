@@ -257,6 +257,52 @@ def create_proper_port_structure(node_id: int, node_type: str, ref_id_counter: i
     return ports, ref_id_counter
 
 
+def extract_and_fix_savedefinitions(project: Dict[str, Any], ref_counter: int) -> Tuple[List[Dict[str, Any]], int]:
+    """Extract SaveDefinitions from Export nodes and create them as separate objects"""
+    save_definitions = []
+    nodes = project["Assets"]["$values"][0]["Terrain"]["Nodes"]
+
+    # Find and extract SaveDefinitions from Export nodes
+    for node_id, node in nodes.items():
+        if "SaveDefinition" in node:
+            # Extract the SaveDefinition
+            save_def = node.pop("SaveDefinition")
+
+            # Create a proper SaveDefinition object
+            save_definition = {
+                "$id": str(ref_counter),
+                "Node": int(node_id),  # Reference to the node
+                "Filename": save_def.get("Filename", "Export"),
+                "Format": save_def.get("Format", "EXR"),
+                "IsEnabled": save_def.get("IsEnabled", True),
+            }
+            ref_counter += 1
+            save_definitions.append(save_definition)
+
+    return save_definitions, ref_counter
+
+
+def ensure_all_nodes_connected(project: Dict[str, Any]) -> None:
+    """Ensure all nodes that should have connections are properly connected"""
+    nodes = project["Assets"]["$values"][0]["Terrain"]["Nodes"]
+
+    # Find nodes without incoming connections
+    nodes_with_connections = set()
+    for node_id, node in nodes.items():
+        if "Ports" in node and "$values" in node["Ports"]:
+            for port in node["Ports"]["$values"]:
+                if "Record" in port:
+                    nodes_with_connections.add(node_id)
+
+    # Log disconnected nodes (for debugging)
+    for node_id, node in nodes.items():
+        if node_id not in nodes_with_connections:
+            node_type = node.get("$type", "").split(".")[-2] if "." in node.get("$type", "") else "Unknown"
+            # Note: We don't auto-connect as we don't know the intended workflow
+            # This should be handled by proper connection setup
+            print(f"Warning: Node {node_id} ({node_type}) has no incoming connections")
+
+
 def apply_format_fixes(
     project: Dict[str, Any],
     nodes: List[Dict[str, Any]],
@@ -277,5 +323,30 @@ def apply_format_fixes(
             tabs[0]["ViewportLocation"]["X"] = 25531.445
             tabs[0]["ViewportLocation"]["Y"] = 25791.812
             tabs[0]["ZoomFactor"] = 0.5338687202362516
+
+    # 3. Extract and fix SaveDefinitions
+    save_definitions, ref_counter = extract_and_fix_savedefinitions(project, ref_counter)
+
+    # 4. Add SaveDefinitions as a separate array in the project
+    if save_definitions:
+        # Add SaveDefinitions to the Assets value object
+        asset_value = project["Assets"]["$values"][0]
+        if "SaveDefinitions" not in asset_value:
+            asset_value["SaveDefinitions"] = {"$id": str(ref_counter), "$values": save_definitions}
+            ref_counter += 1
+
+    # 5. Ensure all nodes are properly connected
+    ensure_all_nodes_connected(project)
+
+    # 6. Fix node properties for all nodes
+    nodes_obj = project["Assets"]["$values"][0]["Terrain"]["Nodes"]
+    for node_id, node in nodes_obj.items():
+        # Get node type from $type
+        node_type_full = node.get("$type", "")
+        if "." in node_type_full:
+            node_type = node_type_full.split(".")[-2]
+
+            # Add node-specific properties
+            add_node_specific_properties(node_type, node)
 
     return project
