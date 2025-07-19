@@ -18,6 +18,15 @@ class Gaea2TestTemplates:
     """Collection of test templates for Gaea2 MCP validation"""
 
     @staticmethod
+    def _add_names_to_nodes(template: Dict[str, Any]) -> Dict[str, Any]:
+        """Add name field to nodes if missing"""
+        for node in template.get("nodes", []):
+            if "name" not in node and "id" in node:
+                # Convert id to a readable name
+                node["name"] = node["id"].replace("_", " ").title().replace("1", "")
+        return template
+
+    @staticmethod
     def create_basic_mountain_template() -> Dict[str, Any]:
         """Basic mountain terrain with erosion"""
         return {
@@ -50,9 +59,9 @@ class Gaea2TestTemplates:
                 },
             ],
             "connections": [
-                {"from": "mountain1", "from_port": "Out", "to": "erosion1", "to_port": "In"},
-                {"from": "erosion1", "from_port": "Out", "to": "satmap1", "to_port": "In"},
-                {"from": "satmap1", "from_port": "Out", "to": "export1", "to_port": "In"},
+                {"from_node": "mountain1", "from_port": "Out", "to_node": "erosion1", "to_port": "In"},
+                {"from_node": "erosion1", "from_port": "Out", "to_node": "satmap1", "to_port": "In"},
+                {"from_node": "satmap1", "from_port": "Out", "to_node": "export1", "to_port": "In"},
             ],
         }
 
@@ -65,13 +74,13 @@ class Gaea2TestTemplates:
             "nodes": [
                 {
                     "id": "ridges1",
-                    "type": "Ridges",
+                    "type": "Ridge",
                     "properties": {"Scale": 0.3, "Complexity": 0.7},
                     "position": {"x": 0, "y": 0},
                 },
                 {
                     "id": "terrace1",
-                    "type": "Terrace",
+                    "type": "FractalTerraces",
                     "properties": {"Levels": 8, "Uniformity": 0.3, "SlopeBias": 0.6},
                     "position": {"x": 200, "y": 0},
                 },
@@ -83,7 +92,7 @@ class Gaea2TestTemplates:
                 },
                 {
                     "id": "stratify1",
-                    "type": "Strata",
+                    "type": "Stratify",
                     "properties": {"Stratification": 12, "Depth": 0.4},
                     "position": {"x": 600, "y": 0},
                 },
@@ -96,11 +105,11 @@ class Gaea2TestTemplates:
                 },
             ],
             "connections": [
-                {"from": "ridges1", "from_port": "Out", "to": "terrace1", "to_port": "In"},
-                {"from": "terrace1", "from_port": "Out", "to": "erosion1", "to_port": "In"},
-                {"from": "erosion1", "from_port": "Out", "to": "stratify1", "to_port": "In"},
-                {"from": "stratify1", "from_port": "Out", "to": "colorizer1", "to_port": "In"},
-                {"from": "colorizer1", "from_port": "Out", "to": "export1", "to_port": "In"},
+                {"from_node": "ridges1", "from_port": "Out", "to_node": "terrace1", "to_port": "In"},
+                {"from_node": "terrace1", "from_port": "Out", "to_node": "erosion1", "to_port": "In"},
+                {"from_node": "erosion1", "from_port": "Out", "to_node": "stratify1", "to_port": "In"},
+                {"from_node": "stratify1", "from_port": "Out", "to_node": "colorizer1", "to_port": "In"},
+                {"from_node": "colorizer1", "from_port": "Out", "to_node": "export1", "to_port": "In"},
             ],
         }
 
@@ -137,7 +146,7 @@ class Gaea2TestTemplates:
                 },
                 {
                     "id": "thermal1",
-                    "type": "ThermalErosion",
+                    "type": "Thermal",
                     "properties": {"Strength": 0.4, "Iterations": 15},
                     "position": {"x": 700, "y": 100},
                 },
@@ -155,12 +164,12 @@ class Gaea2TestTemplates:
                 },
             ],
             "connections": [
-                {"from": "volcano1", "from_port": "Out", "to": "combine1", "to_port": "Input"},
-                {"from": "mountain1", "from_port": "Out", "to": "combine1", "to_port": "Input 2"},
-                {"from": "combine1", "from_port": "Out", "to": "flow1", "to_port": "In"},
-                {"from": "flow1", "from_port": "Out", "to": "thermal1", "to_port": "In"},
-                {"from": "thermal1", "from_port": "Out", "to": "satmap1", "to_port": "In"},
-                {"from": "satmap1", "from_port": "Out", "to": "export1", "to_port": "In"},
+                {"from_node": "volcano1", "from_port": "Out", "to_node": "combine1", "to_port": "Input"},
+                {"from_node": "mountain1", "from_port": "Out", "to_node": "combine1", "to_port": "Input2"},
+                {"from_node": "combine1", "from_port": "Out", "to_node": "flow1", "to_port": "In"},
+                {"from_node": "flow1", "from_port": "Out", "to_node": "thermal1", "to_port": "In"},
+                {"from_node": "thermal1", "from_port": "Out", "to_node": "satmap1", "to_port": "In"},
+                {"from_node": "satmap1", "from_port": "Out", "to_node": "export1", "to_port": "In"},
             ],
         }
 
@@ -178,7 +187,7 @@ class Gaea2TestTemplates:
                     "properties": {"Height": 0.7, "Scale": 1.0},
                     "position": {"x": 0, "y": 0},
                 },
-                {"id": "ridges1", "type": "Ridges", "properties": {"Scale": 0.5}, "position": {"x": 0, "y": 200}},
+                {"id": "ridges1", "type": "Ridge", "properties": {"Scale": 0.5}, "position": {"x": 0, "y": 200}},
                 {
                     "id": "perlin1",
                     "type": "Perlin",
@@ -207,29 +216,29 @@ class Gaea2TestTemplates:
                 },
                 {
                     "id": "thermal1",
-                    "type": "ThermalErosion",
+                    "type": "Thermal",
                     "properties": {"Strength": 0.3},
                     "position": {"x": 800, "y": 200},
                 },
                 {
                     "id": "hydraulic1",
-                    "type": "HydraulicErosion",
+                    "type": "Rivers",
                     "properties": {"Strength": 0.5},
                     "position": {"x": 1000, "y": 200},
                 },
                 # Details
-                {"id": "terrace1", "type": "Terrace", "properties": {"Levels": 16}, "position": {"x": 1200, "y": 100}},
+                {"id": "terrace1", "type": "FractalTerraces", "properties": {"Levels": 16}, "position": {"x": 1200, "y": 100}},
                 {"id": "warp1", "type": "Warp", "properties": {"Amount": 0.2}, "position": {"x": 1200, "y": 300}},
                 # Masks
                 {
                     "id": "slope1",
-                    "type": "SlopeSelector",
+                    "type": "Mask",
                     "properties": {"Min": 20, "Max": 60},
                     "position": {"x": 1400, "y": 0},
                 },
                 {
                     "id": "height1",
-                    "type": "HeightSelector",
+                    "type": "Mask",
                     "properties": {"Min": 0.3, "Max": 0.8},
                     "position": {"x": 1400, "y": 200},
                 },
@@ -245,28 +254,28 @@ class Gaea2TestTemplates:
             ],
             "connections": [
                 # Base terrain mixing
-                {"from": "mountain1", "from_port": "Out", "to": "combine1", "to_port": "Input"},
-                {"from": "ridges1", "from_port": "Out", "to": "combine1", "to_port": "Input 2"},
-                {"from": "combine1", "from_port": "Out", "to": "combine2", "to_port": "Input"},
-                {"from": "perlin1", "from_port": "Out", "to": "combine2", "to_port": "Input 2"},
+                {"from_node": "mountain1", "from_port": "Out", "to_node": "combine1", "to_port": "Input"},
+                {"from_node": "ridges1", "from_port": "Out", "to_node": "combine1", "to_port": "Input2"},
+                {"from_node": "combine1", "from_port": "Out", "to_node": "combine2", "to_port": "Input"},
+                {"from_node": "perlin1", "from_port": "Out", "to_node": "combine2", "to_port": "Input2"},
                 # Erosion chain
-                {"from": "combine2", "from_port": "Out", "to": "erosion1", "to_port": "In"},
-                {"from": "erosion1", "from_port": "Out", "to": "thermal1", "to_port": "In"},
-                {"from": "thermal1", "from_port": "Out", "to": "hydraulic1", "to_port": "In"},
+                {"from_node": "combine2", "from_port": "Out", "to_node": "erosion1", "to_port": "In"},
+                {"from_node": "erosion1", "from_port": "Out", "to_node": "thermal1", "to_port": "In"},
+                {"from_node": "thermal1", "from_port": "Out", "to_node": "hydraulic1", "to_port": "In"},
                 # Split for processing
-                {"from": "hydraulic1", "from_port": "Out", "to": "terrace1", "to_port": "In"},
-                {"from": "hydraulic1", "from_port": "Out", "to": "warp1", "to_port": "In"},
+                {"from_node": "hydraulic1", "from_port": "Out", "to_node": "terrace1", "to_port": "In"},
+                {"from_node": "hydraulic1", "from_port": "Out", "to_node": "warp1", "to_port": "In"},
                 # Masks
-                {"from": "hydraulic1", "from_port": "Out", "to": "slope1", "to_port": "In"},
-                {"from": "hydraulic1", "from_port": "Out", "to": "height1", "to_port": "In"},
+                {"from_node": "hydraulic1", "from_port": "Out", "to_node": "slope1", "to_port": "In"},
+                {"from_node": "hydraulic1", "from_port": "Out", "to_node": "height1", "to_port": "In"},
                 # Final mix
-                {"from": "terrace1", "from_port": "Out", "to": "mixer1", "to_port": "Input 1"},
-                {"from": "warp1", "from_port": "Out", "to": "mixer1", "to_port": "Input 2"},
-                {"from": "slope1", "from_port": "Out", "to": "mixer1", "to_port": "Mask 1"},
-                {"from": "height1", "from_port": "Out", "to": "mixer1", "to_port": "Mask 2"},
+                {"from_node": "terrace1", "from_port": "Out", "to_node": "mixer1", "to_port": "Input1"},
+                {"from_node": "warp1", "from_port": "Out", "to_node": "mixer1", "to_port": "Input2"},
+                {"from_node": "slope1", "from_port": "Out", "to_node": "mixer1", "to_port": "Mask1"},
+                {"from_node": "height1", "from_port": "Out", "to_node": "mixer1", "to_port": "Mask2"},
                 # Output
-                {"from": "mixer1", "from_port": "Out", "to": "satmap1", "to_port": "In"},
-                {"from": "satmap1", "from_port": "Out", "to": "export1", "to_port": "In"},
+                {"from_node": "mixer1", "from_port": "Out", "to_node": "satmap1", "to_port": "In"},
+                {"from_node": "satmap1", "from_port": "Out", "to_node": "export1", "to_port": "In"},
             ],
         }
 
@@ -299,7 +308,7 @@ class Gaea2TestTemplates:
                 },
                 {
                     "id": "terrace1",
-                    "type": "Terrace",
+                    "type": "FractalTerraces",
                     "properties": {
                         "Levels": 64,  # Very many levels
                         "Uniformity": 0.0,  # No uniformity
@@ -323,11 +332,11 @@ class Gaea2TestTemplates:
                 },
             ],
             "connections": [
-                {"from": "mountain1", "from_port": "Out", "to": "erosion1", "to_port": "In"},
-                {"from": "erosion1", "from_port": "Out", "to": "terrace1", "to_port": "In"},
-                {"from": "constant1", "from_port": "Out", "to": "abs1", "to_port": "In"},
-                {"from": "terrace1", "from_port": "Out", "to": "clamp1", "to_port": "In"},
-                {"from": "clamp1", "from_port": "Out", "to": "export1", "to_port": "In"},
+                {"from_node": "mountain1", "from_port": "Out", "to_node": "erosion1", "to_port": "In"},
+                {"from_node": "erosion1", "from_port": "Out", "to_node": "terrace1", "to_port": "In"},
+                {"from_node": "constant1", "from_port": "Out", "to_node": "abs1", "to_port": "In"},
+                {"from_node": "terrace1", "from_port": "Out", "to_node": "clamp1", "to_port": "In"},
+                {"from_node": "clamp1", "from_port": "Out", "to_node": "export1", "to_port": "In"},
             ],
         }
 
@@ -357,7 +366,7 @@ class Gaea2TestTemplates:
                 },
                 {
                     "id": "resample1",
-                    "type": "Resample",
+                    "type": "Transform",
                     "properties": {"Resolution": "512", "Method": "Bilinear"},  # Low resolution
                     "position": {"x": 400, "y": 0},
                 },
@@ -375,10 +384,10 @@ class Gaea2TestTemplates:
                 },
             ],
             "connections": [
-                {"from": "mountain1", "from_port": "Out", "to": "erosion1", "to_port": "In"},
-                {"from": "erosion1", "from_port": "Out", "to": "resample1", "to_port": "In"},
-                {"from": "resample1", "from_port": "Out", "to": "satmap1", "to_port": "In"},
-                {"from": "satmap1", "from_port": "Out", "to": "export1", "to_port": "In"},
+                {"from_node": "mountain1", "from_port": "Out", "to_node": "erosion1", "to_port": "In"},
+                {"from_node": "erosion1", "from_port": "Out", "to_node": "resample1", "to_port": "In"},
+                {"from_node": "resample1", "from_port": "Out", "to_node": "satmap1", "to_port": "In"},
+                {"from_node": "satmap1", "from_port": "Out", "to_node": "export1", "to_port": "In"},
             ],
         }
 
@@ -397,20 +406,20 @@ class Gaea2TestTemplates:
                 },
                 {
                     "id": "datamap1",
-                    "type": "DataMap",
+                    "type": "Data",
                     "properties": {"Type": "Normal", "Strength": 1.0},
                     "position": {"x": 200, "y": 0},
                 },
                 {"id": "mountain1", "type": "Mountain", "properties": {"Height": 0.5}, "position": {"x": 0, "y": 200}},
                 {
                     "id": "displace1",
-                    "type": "Displace",
+                    "type": "TriplanarDisplacement",
                     "properties": {"Amount": 0.3, "Direction": "Vertical"},
                     "position": {"x": 400, "y": 100},
                 },
                 {
                     "id": "fx1",
-                    "type": "Fx",
+                    "type": "FxMap",
                     "properties": {"Effect": "Sharpen", "Amount": 0.5},
                     "position": {"x": 600, "y": 100},
                 },
@@ -428,12 +437,12 @@ class Gaea2TestTemplates:
                 },
             ],
             "connections": [
-                {"from": "file1", "from_port": "Out", "to": "datamap1", "to_port": "In"},
-                {"from": "mountain1", "from_port": "Out", "to": "displace1", "to_port": "In"},
-                {"from": "datamap1", "from_port": "Out", "to": "displace1", "to_port": "Mask"},
-                {"from": "displace1", "from_port": "Out", "to": "fx1", "to_port": "In"},
-                {"from": "fx1", "from_port": "Out", "to": "export1", "to_port": "In"},
-                {"from": "datamap1", "from_port": "Out", "to": "export2", "to_port": "In"},
+                {"from_node": "file1", "from_port": "Out", "to_node": "datamap1", "to_port": "In"},
+                {"from_node": "mountain1", "from_port": "Out", "to_node": "displace1", "to_port": "In"},
+                {"from_node": "datamap1", "from_port": "Out", "to_node": "displace1", "to_port": "Mask"},
+                {"from_node": "displace1", "from_port": "Out", "to_node": "fx1", "to_port": "In"},
+                {"from_node": "fx1", "from_port": "Out", "to_node": "export1", "to_port": "In"},
+                {"from_node": "datamap1", "from_port": "Out", "to_node": "export2", "to_port": "In"},
             ],
         }
 
@@ -464,13 +473,13 @@ class Gaea2TestTemplates:
                 },
                 {
                     "id": "beach1",
-                    "type": "Beach",
+                    "type": "Sand",
                     "properties": {"Width": 0.2, "Smoothness": 0.7},
                     "position": {"x": 500, "y": 100},
                 },
                 {
                     "id": "erosion1",
-                    "type": "CoastalErosion",
+                    "type": "Erosion",
                     "properties": {"Strength": 0.4, "Iterations": 10},
                     "position": {"x": 700, "y": 100},
                 },
@@ -494,20 +503,20 @@ class Gaea2TestTemplates:
                 },
             ],
             "connections": [
-                {"from": "island1", "from_port": "Out", "to": "combine1", "to_port": "Input"},
-                {"from": "mountain1", "from_port": "Out", "to": "combine1", "to_port": "Input 2"},
-                {"from": "combine1", "from_port": "Out", "to": "beach1", "to_port": "In"},
-                {"from": "beach1", "from_port": "Out", "to": "erosion1", "to_port": "In"},
-                {"from": "erosion1", "from_port": "Out", "to": "satmap1", "to_port": "In"},
-                {"from": "satmap1", "from_port": "Out", "to": "water1", "to_port": "In"},
-                {"from": "water1", "from_port": "Out", "to": "export1", "to_port": "In"},
+                {"from_node": "island1", "from_port": "Out", "to_node": "combine1", "to_port": "Input"},
+                {"from_node": "mountain1", "from_port": "Out", "to_node": "combine1", "to_port": "Input2"},
+                {"from_node": "combine1", "from_port": "Out", "to_node": "beach1", "to_port": "In"},
+                {"from_node": "beach1", "from_port": "Out", "to_node": "erosion1", "to_port": "In"},
+                {"from_node": "erosion1", "from_port": "Out", "to_node": "satmap1", "to_port": "In"},
+                {"from_node": "satmap1", "from_port": "Out", "to_node": "water1", "to_port": "In"},
+                {"from_node": "water1", "from_port": "Out", "to_node": "export1", "to_port": "In"},
             ],
         }
 
     @staticmethod
     def get_all_templates() -> List[Dict[str, Any]]:
         """Get all test templates"""
-        return [
+        templates = [
             Gaea2TestTemplates.create_basic_mountain_template(),
             Gaea2TestTemplates.create_desert_canyon_template(),
             Gaea2TestTemplates.create_volcanic_terrain_template(),
@@ -517,6 +526,8 @@ class Gaea2TestTemplates:
             Gaea2TestTemplates.create_data_map_template(),
             Gaea2TestTemplates.create_island_template(),
         ]
+        # Add names to all nodes
+        return [Gaea2TestTemplates._add_names_to_nodes(t) for t in templates]
 
     @staticmethod
     def validate_template(template: Dict[str, Any]) -> Dict[str, Any]:
