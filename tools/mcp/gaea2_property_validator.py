@@ -134,6 +134,16 @@ class Gaea2PropertyValidator:
         # Duration check
         if "Duration" in fixed:
             duration = fixed["Duration"]
+            # Convert string to float if needed
+            if isinstance(duration, str):
+                try:
+                    duration = float(duration)
+                    fixed["Duration"] = duration
+                except ValueError:
+                    warnings.append(f"Invalid Duration value: {duration}, using default 0.07")
+                    duration = 0.07
+                    fixed["Duration"] = duration
+
             if isinstance(duration, (int, float)):
                 if duration > 0.15:
                     fixed["Duration"] = 0.1

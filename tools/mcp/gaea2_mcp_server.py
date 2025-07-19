@@ -575,7 +575,10 @@ class Gaea2MCPServer:
         """Run a Gaea2 project using the CLI"""
         try:
             if not os.path.exists(project_path):
-                return {"success": False, "error": f"Project file not found: {project_path}"}
+                return {
+                    "success": False,
+                    "error": f"Project file not found: {project_path}",
+                }
 
             # Prepare command
             cmd = [str(self.gaea_path), "--Filename", str(project_path)]
@@ -639,7 +642,7 @@ class Gaea2MCPServer:
 
     async def validate_and_fix_workflow(
         self,
-        workflow: Union[str, List[Dict[str, Any]]],
+        workflow: Union[str, List[Dict[str, Any]], Dict[str, Any]],
         fix_errors: bool = True,
         validate_connections: bool = True,
         validate_properties: bool = True,
@@ -648,11 +651,18 @@ class Gaea2MCPServer:
     ) -> Dict[str, Any]:
         """Comprehensive workflow validation and fixing"""
         try:
-            # Load workflow if it's a file path
+            # Handle different input types
             if isinstance(workflow, str):
+                # It's a file path
                 with open(workflow, "r") as f:
                     data = json.load(f)
                     workflow = data.get("workflow", data)
+            elif isinstance(workflow, dict):
+                # It's already a workflow dict with nodes and connections
+                pass
+            elif isinstance(workflow, list):
+                # It's just a list of nodes, wrap it
+                workflow = {"nodes": workflow, "connections": []}
 
             results = {
                 "original_workflow": workflow,
@@ -809,6 +819,7 @@ class Gaea2MCPServer:
         self,
         template_name: str,
         project_name: str,
+        output_path: Optional[str] = None,
         customizations: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Create a Gaea2 project from a template"""
@@ -834,7 +845,12 @@ class Gaea2MCPServer:
             # Create the project using the existing create_gaea2_project method
             workflow = {"nodes": nodes, "connections": connections}
 
-            result = await self.create_gaea2_project(project_name=project_name, workflow=workflow, auto_validate=True)
+            result = await self.create_gaea2_project(
+                project_name=project_name,
+                workflow=workflow,
+                output_path=output_path,
+                auto_validate=True,
+            )
 
             if result.get("success"):
                 result["template_used"] = template_name
