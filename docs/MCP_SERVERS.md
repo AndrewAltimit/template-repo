@@ -8,7 +8,7 @@ The MCP functionality is split across three servers:
 
 1. **Main MCP Server** (Port 8005) - Containerized, runs code quality, content creation, and Gaea2 terrain generation tools
 2. **Gemini MCP Server** (Port 8006) - Host-only, provides Gemini AI integration (requires Docker access)
-3. **Gaea2 MCP Server** (Port 8007) - Windows host-only, provides Gaea2 CLI automation (requires Gaea2 installation)
+3. **Gaea2 MCP Server** (Port 8007) - Remote server at 192.168.0.152:8007, provides Gaea2 CLI automation (requires Gaea2 installation)
 
 This separation ensures that most tools benefit from containerization while tools requiring host system access (Gemini CLI, Gaea2 executable) can function properly on their respective platforms.
 
@@ -151,9 +151,9 @@ response = requests.post("http://localhost:8006/tools/clear_gemini_history")
 print(f"Cleared {response.json()['cleared_count']} entries")
 ```
 
-## Gaea2 MCP Server (Port 8007) - Windows Only
+## Gaea2 MCP Server (Port 8007) - Remote Server
 
-The Gaea2 MCP Server is a standalone server that provides all Gaea2 terrain generation capabilities plus CLI automation for running Gaea2 projects programmatically. It **must run on a Windows host** where Gaea2 is installed.
+The Gaea2 MCP Server is a standalone server that provides all Gaea2 terrain generation capabilities plus CLI automation for running Gaea2 projects programmatically. It runs on a **remote Windows server at 192.168.0.152:8007** where Gaea2 is installed.
 
 ### Prerequisites
 
@@ -173,8 +173,8 @@ scripts\start-gaea2-mcp.bat
 # Or run directly
 python tools/mcp/gaea2_mcp_server.py
 
-# Test health
-curl http://localhost:8007/health
+# Test health (remote server)
+curl http://192.168.0.152:8007/health
 ```
 
 ### Additional Features
@@ -205,7 +205,7 @@ Beyond the Gaea2 tools available in the main MCP server, the standalone server p
 import requests
 
 # Create terrain project
-response = requests.post("http://localhost:8007/mcp/execute", json={
+response = requests.post("http://192.168.0.152:8007/mcp/execute", json={
     "tool": "create_gaea2_project",
     "parameters": {
         "project_name": "mountain_terrain",
@@ -215,7 +215,7 @@ response = requests.post("http://localhost:8007/mcp/execute", json={
 })
 
 # Run the project with variables
-response = requests.post("http://localhost:8007/mcp/execute", json={
+response = requests.post("http://192.168.0.152:8007/mcp/execute", json={
     "tool": "run_gaea2_project",
     "parameters": {
         "project_path": "mountain_terrain.terrain",
@@ -253,8 +253,8 @@ All three servers are configured in `.mcp.json`:
     },
     "gaea2-tools": {
       "name": "Gaea2 MCP Server",
-      "url": "http://localhost:8007",
-      "note": "Windows only, requires Gaea2 installation",
+      "url": "http://192.168.0.152:8007",
+      "note": "Remote Windows server, requires Gaea2 installation",
       "tools": { /* ... */ }
     }
   }
@@ -272,7 +272,7 @@ python3 scripts/test-mcp-server.py
 # Test Gemini MCP server
 python3 scripts/test-gemini-mcp-server.py
 
-# Test Gaea2 MCP server (Windows only)
+# Test Gaea2 MCP server (remote server)
 python3 scripts/test-gaea2-mcp-server.py
 
 # Test container detection (Gemini)
@@ -321,10 +321,10 @@ python3 scripts/test-gaea2-mcp-server.py
    - Check that Gaea.Swarm.exe exists at the specified location
    - Ensure you're running on Windows with Gaea2 installed
 
-2. **"Server must run on Windows"**
-   - The Gaea2 MCP server only works on Windows
-   - Gaea2 is a Windows-only application
-   - Use the main MCP server (port 8005) for Gaea2 project creation on other platforms
+2. **"Cannot connect to remote server"**
+   - The Gaea2 MCP server runs on remote server at 192.168.0.152:8007
+   - Ensure you have network connectivity to the remote server
+   - Check that the server is running on the remote Windows host
 
 3. **Port 8007 already in use**
    ```cmd

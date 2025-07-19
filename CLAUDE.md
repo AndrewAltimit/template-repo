@@ -83,6 +83,10 @@ python tools/mcp/gemini_mcp_server.py
 # Test Gemini MCP server (port 8006)
 curl http://localhost:8006/health
 
+# Test Gaea2 MCP server (remote server at 192.168.0.152:8007)
+curl http://192.168.0.152:8007/health
+python scripts/test-gaea2-mcp-server.py  # Note: Update script to use remote server
+
 # Run the main application
 python main.py
 
@@ -154,9 +158,14 @@ The project uses multiple Model Context Protocol (MCP) servers to provide variou
      - `clear_gemini_history` - Clear conversation history for fresh responses
    - Automatically exits with error if launched in container
 
-3. **Remote Services**: ComfyUI (image generation), AI Toolkit (LoRA training)
+3. **Gaea2 MCP Server**: **Runs on remote server at 192.168.0.152:8007**
+   - Provides all Gaea2 terrain generation tools
+   - Supports 185 Gaea2 nodes with validation and optimization
+   - See `docs/gaea2/README.md` for complete documentation
 
-4. **Containerized CI/CD**:
+4. **Remote Services**: ComfyUI (image generation), AI Toolkit (LoRA training)
+
+5. **Containerized CI/CD**:
    - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools (Black, isort, flake8, pylint, mypy, pytest)
    - **Helper Scripts**: Centralized CI operations to reduce workflow complexity
    - **Cache Prevention**: PYTHONDONTWRITEBYTECODE=1, pytest cache disabled

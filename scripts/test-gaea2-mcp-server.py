@@ -8,7 +8,7 @@ from pathlib import Path
 import requests
 
 # Configuration
-GAEA2_MCP_URL = "http://localhost:8007"
+GAEA2_MCP_URL = "http://192.168.0.152:8007"  # Remote Gaea2 MCP server
 TEST_PROJECT_DIR = Path("./test_gaea2_projects")
 
 
