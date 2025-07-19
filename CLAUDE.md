@@ -267,9 +267,9 @@ When working with the remote MCP servers (AI Toolkit and ComfyUI):
 
 See `docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md` for comprehensive details.
 
-## Gaea2 MCP Integration (✅ Fully Working)
+## Gaea2 MCP Integration (⚠️ Format Compatibility In Progress)
 
-The repository includes a comprehensive Gaea2 terrain generation system that is now fully functional with proper ID formatting and terrain file generation:
+The repository includes a comprehensive Gaea2 terrain generation system that is currently being refined for full file format compatibility:
 
 ### Key Capabilities
 
@@ -278,8 +278,36 @@ The repository includes a comprehensive Gaea2 terrain generation system that is 
 3. **Pattern Intelligence**: Learning from 31 real projects (374 nodes, 440 connections)
 4. **Performance Optimization**: 19x speedup through intelligent caching
 5. **Professional Templates**: Ready-to-use workflows for common terrain types
-6. **✅ Fixed ID Generation**: Proper sequential ID formatting for Gaea2 compatibility
-7. **✅ Working Terrain Files**: Successfully generates .terrain files that open in Gaea2
+6. **⚠️ ID Generation**: Working on proper non-sequential ID formatting
+7. **⚠️ Terrain Files**: Generated files need specific format improvements
+
+### Known Issues & Solutions
+
+1. **API Format**: The test script uses `workflow` array format, but actual API may differ
+2. **Property Names**: Must use exact Gaea2 format with spaces ("Rock Softness" not "RockSoftness")
+3. **Missing Properties**: Nodes need `PortCount`, `NodeSize`, `IsMaskable` properties
+4. **Range Format**: Range properties need their own `$id` values
+5. **Empty Objects**: Use `{"$id":"XX"}` format, not `{}`
+
+### Correct API Usage
+
+```bash
+# Using templates (most reliable)
+curl -X POST http://192.168.0.152:8007/mcp/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tool": "create_gaea2_from_template",
+    "parameters": {
+      "template_name": "mountain_range",
+      "project_name": "my_terrain"
+    }
+  }'
+
+# Available templates:
+# basic_terrain, detailed_mountain, volcanic_terrain, desert_canyon,
+# modular_portal_terrain, mountain_range, volcanic_island, canyon_system,
+# coastal_cliffs, arctic_terrain, river_valley
+```
 
 ### Common Commands
 

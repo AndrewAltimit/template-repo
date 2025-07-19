@@ -1,6 +1,6 @@
-# Gaea2 MCP (Model Context Protocol) System ✅ Fully Working
+# Gaea2 MCP (Model Context Protocol) System ⚠️ Format Refinement In Progress
 
-A comprehensive, intelligent terrain generation toolkit for Gaea2, providing programmatic control over terrain creation with advanced validation, error recovery, and pattern-based intelligence. **Now fully functional with proper ID generation and terrain file compatibility.**
+A comprehensive, intelligent terrain generation toolkit for Gaea2, providing programmatic control over terrain creation with advanced validation, error recovery, and pattern-based intelligence. **Currently refining terrain file format for full Gaea2 compatibility.**
 
 ## 🚀 Overview
 
@@ -20,15 +20,15 @@ See [GAEA2_MCP_SERVER.md](GAEA2_MCP_SERVER.md) for setup and usage.
 
 - **Complete Node Coverage**: Support for all 185 Gaea2 nodes across 9 categories
 - **🔥 Automatic Validation Built-in**: All projects are automatically validated and fixed during creation
-- **✅ Working ID Generation**: Fixed sequential ID formatting for proper Gaea2 compatibility
-- **✅ Valid Terrain Files**: Successfully generates .terrain files that open correctly in Gaea2
+- **⚠️ ID Generation**: Working on proper non-sequential ID formatting for full compatibility
+- **⚠️ Terrain Files**: Generated files work via templates, custom generation being refined
 - **Intelligent Validation**: Multi-level validation with automatic error correction
 - **Pattern Intelligence**: Learning from 31 real projects (374 nodes, 440 connections)
 - **Auto-Fix Capabilities**: Automatic detection and correction of common issues
 - **Performance Optimization**: 19x speedup through intelligent caching
-- **Professional Templates**: Ready-to-use workflow templates
+- **Professional Templates**: Ready-to-use workflow templates (most reliable method)
 - **Advanced Features**: Groups, modifiers, automation variables, draw nodes
-- **Zero-Crash Guarantee**: Generated files are guaranteed to open in Gaea2 without errors
+- **Template-Based Generation**: Templates produce working files, custom generation in progress
 
 ## 📁 System Architecture
 
@@ -375,6 +375,76 @@ The system provides comprehensive error handling with:
 3. **Follow Patterns**: Use analyzed patterns for better results
 4. **Optimize Properties**: Use optimization tools for better performance
 5. **Handle Errors**: Check error reports and apply suggested fixes
+
+## 🔍 Current Status & Known Issues
+
+### Remote Server Usage
+
+The Gaea2 MCP server runs on a remote Windows host at `http://192.168.0.152:8007`.
+
+### Working Methods
+
+1. **Template-Based Creation** (Most Reliable):
+```bash
+curl -X POST http://192.168.0.152:8007/mcp/execute \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tool": "create_gaea2_from_template",
+    "parameters": {
+      "template_name": "mountain_range",
+      "project_name": "my_terrain"
+    }
+  }'
+```
+
+Available templates:
+- `basic_terrain`
+- `detailed_mountain`
+- `volcanic_terrain`
+- `desert_canyon`
+- `modular_portal_terrain`
+- `mountain_range`
+- `volcanic_island`
+- `canyon_system`
+- `coastal_cliffs`
+- `arctic_terrain`
+- `river_valley`
+
+### Known Format Issues
+
+Generated terrain files may not open in Gaea2 due to:
+
+1. **Property Name Format**: Use spaces not camelCase
+   - ✅ `"Rock Softness": 0.3`
+   - ❌ `"RockSoftness": 0.3`
+
+2. **Missing Node Properties**:
+   - `PortCount: 2` on Combine nodes
+   - `NodeSize: "Small"` or `"Standard"`
+   - `IsMaskable: true` on most nodes
+
+3. **Range Property Format**:
+   - ✅ `{"$id": "103", "X": 0.5, "Y": 1.0}`
+   - ❌ `{"X": 0.5, "Y": 1.0}`
+
+4. **Empty Object Format**:
+   - ✅ `{"$id": "72"}`
+   - ❌ `{}`
+
+5. **ID Pattern**: Use non-sequential IDs (183, 668, 427) not sequential (100, 110, 120)
+
+### API Endpoint Format
+
+```bash
+# Correct format for MCP execute
+POST http://192.168.0.152:8007/mcp/execute
+{
+  "tool": "tool_name",
+  "parameters": {
+    // tool-specific parameters
+  }
+}
+```
 
 ## 🤝 Contributing
 

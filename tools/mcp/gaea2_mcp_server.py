@@ -220,7 +220,13 @@ class Gaea2MCPServer:
                         properties[key] = default_val
 
             elif node_type == "Erosion" and len(properties) < 3:
-                default_props = {"Duration": 10, "Intensity": 0.5, "RockSoftness": 0.5, "Downcutting": 0.5, "BaseLevel": 0.1}
+                default_props = {
+                    "Duration": 10,
+                    "Intensity": 0.5,
+                    "RockSoftness": 0.5,
+                    "Downcutting": 0.5,
+                    "BaseLevel": 0.1,
+                }
                 for key, default_val in default_props.items():
                     if key not in properties:
                         properties[key] = default_val
@@ -444,7 +450,10 @@ class Gaea2MCPServer:
         ref_id_counter += 1
 
         # GraphTabs
-        asset_value["Terrain"]["GraphTabs"] = {"$id": str(ref_id_counter), "$values": []}
+        asset_value["Terrain"]["GraphTabs"] = {
+            "$id": str(ref_id_counter),
+            "$values": [],
+        }
         ref_id_counter += 1
 
         graph_tab = {
@@ -474,13 +483,19 @@ class Gaea2MCPServer:
         }
         ref_id_counter += 1
 
-        asset_value["Automation"]["Bindings"] = {"$id": str(ref_id_counter), "$values": []}
+        asset_value["Automation"]["Bindings"] = {
+            "$id": str(ref_id_counter),
+            "$values": [],
+        }
         ref_id_counter += 1
 
         asset_value["Automation"]["Variables"] = {"$id": str(ref_id_counter)}
         ref_id_counter += 1
 
-        asset_value["Automation"]["BoundProperties"] = {"$id": str(ref_id_counter), "$values": []}
+        asset_value["Automation"]["BoundProperties"] = {
+            "$id": str(ref_id_counter),
+            "$values": [],
+        }
         ref_id_counter += 1
 
         # BuildDefinition
@@ -505,7 +520,10 @@ class Gaea2MCPServer:
         }
         ref_id_counter += 1
 
-        asset_value["BuildDefinition"]["Regions"] = {"$id": str(ref_id_counter), "$values": []}
+        asset_value["BuildDefinition"]["Regions"] = {
+            "$id": str(ref_id_counter),
+            "$values": [],
+        }
         ref_id_counter += 1
 
         # State
@@ -518,7 +536,10 @@ class Gaea2MCPServer:
         }
         ref_id_counter += 1
 
-        asset_value["State"]["NodeBookmarks"] = {"$id": str(ref_id_counter), "$values": []}
+        asset_value["State"]["NodeBookmarks"] = {
+            "$id": str(ref_id_counter),
+            "$values": [],
+        }
         ref_id_counter += 1
 
         asset_value["State"]["Viewport"] = {

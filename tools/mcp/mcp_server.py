@@ -20,6 +20,13 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 try:
+    from gaea2_format_fixes import (
+        add_node_specific_properties,
+        apply_format_fixes,
+        create_proper_port_structure,
+        fix_property_names,
+        generate_non_sequential_id,
+    )
     from gaea2_knowledge_graph import enhance_workflow_with_knowledge, knowledge_graph
     from gaea2_schema import (
         VALID_NODE_TYPES,
@@ -32,6 +39,13 @@ except ImportError:
     # If running as a module
     from tools.mcp.gaea2_connection_validator import Gaea2ConnectionValidator
     from tools.mcp.gaea2_error_recovery import Gaea2ErrorRecovery
+    from tools.mcp.gaea2_format_fixes import (
+        add_node_specific_properties,
+        apply_format_fixes,
+        create_proper_port_structure,
+        fix_property_names,
+        generate_non_sequential_id,
+    )
     from tools.mcp.gaea2_knowledge_graph import enhance_workflow_with_knowledge, knowledge_graph
     from tools.mcp.gaea2_project_repair import Gaea2ProjectRepair
     from tools.mcp.gaea2_property_validator import Gaea2PropertyValidator
@@ -384,7 +398,7 @@ class MCPTools:
                             "State": {
                                 "$id": "232",
                                 "BakeResolution": resolution,
-                                "PreviewResolution": resolution * 2,
+                                "PreviewResolution": min(resolution // 4, 512),
                                 "SelectedNode": None,
                                 "NodeBookmarks": {"$id": "233", "$values": []},
                                 "Viewport": {
@@ -424,11 +438,16 @@ class MCPTools:
 
             # Process nodes
             nodes_dict = {}
-            node_id_counter = 100
+            used_ids = []
             ref_id_counter = 7
 
-            for node_data in nodes:
-                node_id = node_data.get("id", node_id_counter)
+            for i, node_data in enumerate(nodes):
+                # Use non-sequential IDs for better Gaea2 compatibility
+                node_id = node_data.get("id")
+                if node_id is None:
+                    node_id = generate_non_sequential_id(100 + i * 50, used_ids)
+                used_ids.append(node_id)
+
                 node_type = node_data.get("type", "Mountain")
                 node_name = node_data.get("name", node_type)
                 position = node_data.get("position", {"x": 25000, "y": 25000})
@@ -440,8 +459,9 @@ class MCPTools:
                     # Continue anyway to allow experimentation
 
                 # Create node structure
+                node_ref_id = ref_id_counter
                 node = {
-                    "$id": str(ref_id_counter),
+                    "$id": str(node_ref_id),
                     "$type": f"QuadSpinner.Gaea.Nodes.{node_type}, Gaea.Nodes",
                     "Id": node_id,
                     "Name": node_name,
@@ -450,48 +470,62 @@ class MCPTools:
                         "X": float(position["x"]),
                         "Y": float(position["y"]),
                     },
-                    "Ports": {
-                        "$id": str(ref_id_counter + 2),
-                        "$values": [
-                            {
-                                "$id": str(ref_id_counter + 3),
-                                "Name": "In",
-                                "Type": "PrimaryIn",
-                                "IsExporting": True,
-                                "Parent": {"$ref": str(ref_id_counter)},
-                            },
-                            {
-                                "$id": str(ref_id_counter + 4),
-                                "Name": "Out",
-                                "Type": "PrimaryOut",
-                                "IsExporting": True,
-                                "Parent": {"$ref": str(ref_id_counter)},
-                            },
-                        ],
-                    },
-                    "Modifiers": {"$id": str(ref_id_counter + 5), "$values": []},
-                    "SnapIns": {"$id": str(ref_id_counter + 6), "$values": []},
                 }
+                ref_id_counter += 2
+
+                # Create proper port structure based on node type
+                ports, ref_id_counter = create_proper_port_structure(node_ref_id, node_type, ref_id_counter)
+                node["Ports"] = ports
+
+                # Add modifiers and snapins
+                node["Modifiers"] = {"$id": str(ref_id_counter), "$values": []}
+                node["SnapIns"] = {"$id": str(ref_id_counter + 1), "$values": []}
+                ref_id_counter += 2
 
                 # Apply default properties first
                 default_props = apply_default_properties(node_type, properties)
 
-                # Ensure correct data types
-                corrected_props = MCPTools._ensure_property_types(node_type, default_props)
+                # Fix property names to match Gaea2 format
+                fixed_props = fix_property_names(default_props)
 
-                # Add all properties (user-specified override defaults)
+                # Ensure correct data types
+                corrected_props = MCPTools._ensure_property_types(node_type, fixed_props)
+
+                # Add all properties to the node
                 for prop, value in corrected_props.items():
-                    if prop not in node:
+                    if prop not in [
+                        "Id",
+                        "Name",
+                        "Position",
+                        "Ports",
+                        "Modifiers",
+                        "SnapIns",
+                        "$id",
+                        "$type",
+                    ]:
                         node[prop] = value
 
-                # Add user-specified properties (these override defaults)
-                user_props = MCPTools._ensure_property_types(node_type, properties)
-                for prop, value in user_props.items():
-                    node[prop] = value
+                # Apply user properties with fixed names (these override defaults)
+                user_fixed_props = fix_property_names(properties)
+                user_corrected_props = MCPTools._ensure_property_types(node_type, user_fixed_props)
+                for prop, value in user_corrected_props.items():
+                    if prop not in [
+                        "Id",
+                        "Name",
+                        "Position",
+                        "Ports",
+                        "Modifiers",
+                        "SnapIns",
+                        "$id",
+                        "$type",
+                    ]:
+                        node[prop] = value
+
+                # Add node-specific properties (PortCount, NodeSize, IsMaskable, etc.)
+                add_node_specific_properties(node_type, node)
 
                 nodes_dict[str(node_id)] = node
-                node_id_counter += 1
-                ref_id_counter += 10
+                ref_id_counter += 5
 
             # Add connections
             if connections:
@@ -528,6 +562,9 @@ class MCPTools:
             # Set selected node if any
             if nodes:
                 project["Assets"]["$values"][0]["State"]["SelectedNode"] = nodes[0].get("id", 100)
+
+            # Apply final format fixes for Gaea2 compatibility
+            project = apply_format_fixes(project, nodes, connections)
 
             # FINAL VALIDATION before saving
             if auto_validate:
