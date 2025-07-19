@@ -4,16 +4,17 @@ This project uses multiple Model Context Protocol (MCP) servers to provide vario
 
 ## Architecture Overview
 
-The MCP functionality is split across two servers:
+The MCP functionality is split across three servers:
 
-1. **Main MCP Server** - Containerized, runs all tools that don't require host access
-2. **Gemini MCP Server** - Host-only, provides Gemini AI integration
+1. **Main MCP Server** (Port 8005) - Containerized, runs code quality, content creation, and Gaea2 terrain generation tools
+2. **Gemini MCP Server** (Port 8006) - Host-only, provides Gemini AI integration (requires Docker access)
+3. **Gaea2 MCP Server** (Port 8007) - Windows host-only, provides Gaea2 CLI automation (requires Gaea2 installation)
 
-This separation ensures that most tools benefit from containerization while tools requiring Docker access (like Gemini CLI) can still function properly.
+This separation ensures that most tools benefit from containerization while tools requiring host system access (Gemini CLI, Gaea2 executable) can function properly on their respective platforms.
 
 ## Main MCP Server (Port 8005)
 
-The main MCP server runs in a Docker container and provides code quality and content creation tools.
+The main MCP server runs in a Docker container and provides code quality, content creation, and Gaea2 terrain generation tools.
 
 ### Starting the Server
 
@@ -37,6 +38,43 @@ curl http://localhost:8005/health
 #### Content Creation Tools
 - **create_manim_animation** - Create mathematical and technical animations using Manim
 - **compile_latex** - Compile LaTeX documents to PDF, DVI, or PostScript formats
+
+#### Gaea2 Terrain Generation Tools (185 nodes supported)
+- **create_gaea2_project** - Create custom terrain projects with automatic validation and error correction
+  - Supports all 185 documented Gaea2 nodes across 9 categories
+  - Automatic validation and fix built-in by default
+  - Adds missing Export and coloring nodes automatically
+  - Guarantees Gaea2-compatible output files
+
+- **validate_and_fix_workflow** - Comprehensive validation and automatic repair of Gaea2 workflows
+  - Multi-level validation (structure, nodes, properties, connections, patterns)
+  - Automatic error recovery and fixing
+  - Conservative and aggressive repair modes
+
+- **analyze_workflow_patterns** - Pattern-based workflow analysis using knowledge from 31 real projects
+  - Get intelligent node suggestions based on current workflow
+  - Performance analysis and bottleneck detection
+  - Similarity matching with known good patterns
+
+- **repair_gaea2_project** - Repair damaged or invalid Gaea2 project files
+  - Analyzes project health and identifies issues
+  - Automatic fixing of common problems
+  - Detailed error reports with fix suggestions
+
+- **create_gaea2_from_template** - Create projects using professional workflow templates
+  - Templates: basic_terrain, detailed_mountain, volcanic_terrain, desert_canyon
+  - Pre-configured workflows for common terrain types
+  - Customizable parameters
+
+- **optimize_gaea2_properties** - Optimize node properties for performance or quality
+  - Performance mode for faster rendering
+  - Quality mode for best visual results
+  - Intelligent property adjustments based on node type
+
+- **suggest_gaea2_nodes** - Get intelligent node suggestions based on terrain type and context
+  - Context-aware suggestions
+  - Based on patterns from real projects
+  - Considers existing workflow nodes
 
 ### API Endpoints
 
@@ -113,9 +151,91 @@ response = requests.post("http://localhost:8006/tools/clear_gemini_history")
 print(f"Cleared {response.json()['cleared_count']} entries")
 ```
 
+## Gaea2 MCP Server (Port 8007) - Windows Only
+
+The Gaea2 MCP Server is a standalone server that provides all Gaea2 terrain generation capabilities plus CLI automation for running Gaea2 projects programmatically. It **must run on a Windows host** where Gaea2 is installed.
+
+### Prerequisites
+
+- Windows 10/11 with Gaea2 installed
+- Python 3.8+ with aiohttp and aiofiles packages
+- GAEA2_PATH environment variable set to Gaea.Swarm.exe location
+
+### Starting the Server
+
+```bash
+# Set environment variable (Windows)
+set GAEA2_PATH=C:\Program Files\QuadSpinner\Gaea\Gaea.Swarm.exe
+
+# Start server using helper scripts
+scripts\start-gaea2-mcp.bat
+
+# Or run directly
+python tools/mcp/gaea2_mcp_server.py
+
+# Test health
+curl http://localhost:8007/health
+```
+
+### Additional Features
+
+Beyond the Gaea2 tools available in the main MCP server, the standalone server provides:
+
+#### CLI Automation
+- **run_gaea2_project** - Execute terrain generation via Gaea's command line interface
+  - Pass variables to control terrain generation dynamically
+  - Capture verbose output and parse results
+  - Track execution history for debugging
+  - Supports all Gaea.Swarm.exe command line options
+
+- **analyze_execution_history** - Learn from previous terrain generation runs
+  - View past executions and their results
+  - Identify common errors or patterns
+  - Optimize future runs based on history
+
+### API Endpoints
+
+- `GET /health` - Health check and Gaea2 path verification
+- `GET /mcp/tools` - List available tools
+- `POST /mcp/execute` - Execute a tool with parameters
+
+### Example: Create and Run Terrain
+
+```python
+import requests
+
+# Create terrain project
+response = requests.post("http://localhost:8007/mcp/execute", json={
+    "tool": "create_gaea2_project",
+    "parameters": {
+        "project_name": "mountain_terrain",
+        "workflow": [...],  # Node definitions
+        "auto_validate": True
+    }
+})
+
+# Run the project with variables
+response = requests.post("http://localhost:8007/mcp/execute", json={
+    "tool": "run_gaea2_project",
+    "parameters": {
+        "project_path": "mountain_terrain.terrain",
+        "verbose": True,
+        "variables": {
+            "erosion_strength": 0.5,
+            "detail_level": 2
+        }
+    }
+})
+```
+
+For complete Gaea2 MCP documentation, see:
+- [Gaea2 MCP Overview](gaea2/README.md)
+- [Gaea2 MCP Server Guide](gaea2/GAEA2_MCP_SERVER.md)
+- [API Reference](gaea2/GAEA2_API_REFERENCE.md)
+
 ## Configuration
 
-Both servers are configured in `.mcp.json`:
+All three servers are configured in `.mcp.json`:
 
 ```json
 {
@@ -130,6 +250,12 @@ Both servers are configured in `.mcp.json`:
       "url": "http://localhost:8006",
       "note": "Must run on host system, not in container",
       "tools": { /* ... */ }
+    },
+    "gaea2-tools": {
+      "name": "Gaea2 MCP Server",
+      "url": "http://localhost:8007",
+      "note": "Windows only, requires Gaea2 installation",
+      "tools": { /* ... */ }
     }
   }
 }
@@ -137,7 +263,7 @@ Both servers are configured in `.mcp.json`:
 
 ## Testing
 
-Test scripts are provided for both servers:
+Test scripts are provided for all servers:
 
 ```bash
 # Test main MCP server
@@ -146,7 +272,10 @@ python3 scripts/test-mcp-server.py
 # Test Gemini MCP server
 python3 scripts/test-gemini-mcp-server.py
 
-# Test container detection
+# Test Gaea2 MCP server (Windows only)
+python3 scripts/test-gaea2-mcp-server.py
+
+# Test container detection (Gemini)
 ./scripts/test-gemini-container-exit.sh
 ```
 
@@ -185,10 +314,32 @@ python3 scripts/test-gemini-mcp-server.py
    kill $(cat /tmp/gemini-mcp.pid)
    ```
 
+### Gaea2 MCP Server Issues
+
+1. **"Gaea2 executable not found"**
+   - Verify GAEA2_PATH environment variable is set correctly
+   - Check that Gaea.Swarm.exe exists at the specified location
+   - Ensure you're running on Windows with Gaea2 installed
+
+2. **"Server must run on Windows"**
+   - The Gaea2 MCP server only works on Windows
+   - Gaea2 is a Windows-only application
+   - Use the main MCP server (port 8005) for Gaea2 project creation on other platforms
+
+3. **Port 8007 already in use**
+   ```cmd
+   # Windows: Check for existing process
+   netstat -an | findstr 8007
+   # Kill the process if needed
+   taskkill /F /PID <process_id>
+   ```
+
 ## Development Notes
 
 - The main MCP server can be extended with new tools by adding methods to the `MCPTools` class
 - The Gemini MCP server uses the existing `GeminiIntegration` class from `tools/gemini/`
-- Both servers use FastAPI for the HTTP API
-- Container detection is performed immediately on startup for the Gemini server
+- The Gaea2 MCP server extends the main server with CLI automation capabilities
+- All servers use FastAPI for the HTTP API
+- Container detection is performed immediately on startup for Gemini and Gaea2 servers
 - All tools return JSON responses with consistent error handling
+- Gaea2 tools include automatic validation and error recovery by default
