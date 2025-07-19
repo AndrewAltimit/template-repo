@@ -448,7 +448,7 @@ NODE_PROPERTY_DEFINITIONS = {
             "default": 0.0,
             "range": {"min": 0.0, "max": 1.0},
         },
-        "River Valley Width": {
+        "RiverValleyWidth": {
             "type": "enum",
             "options": ["minus4", "minus2", "zero", "plus2", "plus4"],
             "default": "zero",
@@ -458,7 +458,7 @@ NODE_PROPERTY_DEFINITIONS = {
             "default": 100,
             "range": {"min": 10, "max": 1000},
         },
-        "Render Surface": {"type": "bool", "default": False},
+        "RenderSurface": {"type": "bool", "default": False},
         "Seed": {"type": "int", "default": 0, "range": {"min": 0, "max": 999999}},
     },
     "Snow": {

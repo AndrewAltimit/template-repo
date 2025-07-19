@@ -7,15 +7,15 @@
         "$id": "3",
         "Terrain": {
           "$id": "4",
-          "Id": "b54f85e3-e27a-497e-84ba-798475605c66",
+          "Id": "ed2e4567-ee75-400c-920b-4ba6900c0e83",
           "Metadata": {
             "$id": "5",
-            "Name": "test_mountain",
+            "Name": "test_fixed_terrain",
             "Description": "Created by Gaea2 MCP Server",
             "Version": "2.0.6.0",
-            "DateCreated": "2025-07-19 16:42:52Z",
-            "DateLastBuilt": "2025-07-19 16:42:52Z",
-            "DateLastSaved": "2025-07-19 16:42:52Z",
+            "DateCreated": "2025-07-19 16:59:49Z",
+            "DateLastBuilt": "2025-07-19 16:59:49Z",
+            "DateLastSaved": "2025-07-19 16:59:49Z",
             "ModifiedVersion": "2.0.6.0"
           },
           "Nodes": {
@@ -26,6 +26,7 @@
               "Seed": 42,
               "Scale": 1.0,
               "Height": 1.0,
+              "Rock Softness": 0.5,
               "Octaves": 8,
               "Complexity": 0.5,
               "RidgeWeight": 0.5,
@@ -73,7 +74,6 @@
             "668": {
               "$id": "14",
               "$type": "QuadSpinner.Gaea.Nodes.Erosion, Gaea.Nodes",
-              "Downcutting": 0.25,
               "Duration": 0.1,
               "Intensity": 0.5,
               "Rock Softness": 0.5,
@@ -127,10 +127,10 @@
             },
             "427": {
               "$id": "22",
-              "$type": "QuadSpinner.Gaea.Nodes.Export, Gaea.Nodes",
+              "$type": "QuadSpinner.Gaea.Nodes.SatMap, Gaea.Nodes",
               "NodeSize": "Standard",
               "Id": 427,
-              "Name": "Export",
+              "Name": "AutoSatMap",
               "Position": {
                 "$id": "23",
                 "X": 400.0,
@@ -140,7 +140,7 @@
                 "$id": "24",
                 "$values": [
                   {
-                    "$id": "28",
+                    "$id": "27",
                     "Name": "In",
                     "Type": "PrimaryIn, Required",
                     "IsExporting": true,
@@ -148,7 +148,7 @@
                       "$ref": "22"
                     },
                     "Record": {
-                      "$id": "29",
+                      "$id": "28",
                       "From": 668,
                       "To": 427,
                       "FromPort": "Out",
@@ -157,7 +157,7 @@
                     }
                   },
                   {
-                    "$id": "30",
+                    "$id": "29",
                     "Name": "Out",
                     "Type": "PrimaryOut",
                     "IsExporting": true,
@@ -174,75 +174,25 @@
               "SnapIns": {
                 "$id": "26",
                 "$values": []
-              },
-              "SaveDefinition": {
-                "$id": "27",
-                "Node": 427,
-                "Filename": "mountain_test",
-                "Format": "PNG",
-                "IsEnabled": true
-              }
-            },
-            "281": {
-              "$id": "31",
-              "$type": "QuadSpinner.Gaea.Nodes.SatMap, Gaea.Nodes",
-              "NodeSize": "Standard",
-              "Id": 281,
-              "Name": "AutoSatMap",
-              "Position": {
-                "$id": "32",
-                "X": 800.0,
-                "Y": 0.0
-              },
-              "Ports": {
-                "$id": "33",
-                "$values": [
-                  {
-                    "$id": "36",
-                    "Name": "In",
-                    "Type": "PrimaryIn, Required",
-                    "IsExporting": true,
-                    "Parent": {
-                      "$ref": "31"
-                    }
-                  },
-                  {
-                    "$id": "37",
-                    "Name": "Out",
-                    "Type": "PrimaryOut",
-                    "IsExporting": true,
-                    "Parent": {
-                      "$ref": "31"
-                    }
-                  }
-                ]
-              },
-              "Modifiers": {
-                "$id": "34",
-                "$values": []
-              },
-              "SnapIns": {
-                "$id": "35",
-                "$values": []
               }
             }
           },
           "Groups": {
-            "$id": "38"
+            "$id": "30"
           },
           "Notes": {
-            "$id": "39"
+            "$id": "31"
           },
           "GraphTabs": {
-            "$id": "40",
+            "$id": "32",
             "$values": [
               {
-                "$id": "41",
+                "$id": "33",
                 "Name": "Graph 1",
                 "Color": "Brass",
                 "ZoomFactor": 0.5,
                 "ViewportLocation": {
-                  "$id": "42",
+                  "$id": "34",
                   "X": 25000.0,
                   "Y": 26000.0
                 }
@@ -254,21 +204,21 @@
           "Ratio": 0.5
         },
         "Automation": {
-          "$id": "43",
+          "$id": "35",
           "Bindings": {
-            "$id": "44",
+            "$id": "36",
             "$values": []
           },
           "Variables": {
-            "$id": "45"
+            "$id": "37"
           },
           "BoundProperties": {
-            "$id": "46",
+            "$id": "38",
             "$values": []
           }
         },
         "BuildDefinition": {
-          "$id": "47",
+          "$id": "39",
           "Destination": "<Builds>\\[Filename]\\[+++]",
           "Resolution": 2048,
           "BakeResolution": 2048,
@@ -286,22 +236,22 @@
           "OrganizeFiles": "NodeSubFolder",
           "PostBuildScript": "",
           "Regions": {
-            "$id": "48",
+            "$id": "40",
             "$values": []
           }
         },
         "State": {
-          "$id": "49",
+          "$id": "41",
           "BakeResolution": 2048,
           "PreviewResolution": 512,
           "SelectedNode": 183,
           "LockedNode": null,
           "NodeBookmarks": {
-            "$id": "50",
+            "$id": "42",
             "$values": []
           },
           "Viewport": {
-            "$id": "51",
+            "$id": "43",
             "RenderMode": "Realistic",
             "SunAltitude": 33.0,
             "SunAzimuth": 45.0,
@@ -316,23 +266,23 @@
             "Haze": 1.0,
             "Ozone": 1.0,
             "Camera": {
-              "$id": "52"
+              "$id": "44"
             }
           }
         }
       }
     ]
   },
-  "Id": "b54f85e3",
+  "Id": "ed2e4567",
   "Branch": 1,
   "Metadata": {
-    "$id": "53",
-    "Name": "test_mountain",
+    "$id": "45",
+    "Name": "test_fixed_terrain",
     "Description": "Created by Gaea2 MCP Server",
     "Version": "2.0.6.0",
     "Owner": "",
-    "DateCreated": "2025-07-19 16:42:52Z",
-    "DateLastBuilt": "2025-07-19 16:42:52Z",
-    "DateLastSaved": "2025-07-19 16:42:52Z"
+    "DateCreated": "2025-07-19 16:59:49Z",
+    "DateLastBuilt": "2025-07-19 16:59:49Z",
+    "DateLastSaved": "2025-07-19 16:59:49Z"
   }
 }

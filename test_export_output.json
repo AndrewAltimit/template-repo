@@ -7,15 +7,15 @@
         "$id": "3",
         "Terrain": {
           "$id": "4",
-          "Id": "b54f85e3-e27a-497e-84ba-798475605c66",
+          "Id": "2576f73d-6a2d-46e2-b62e-e2ab3b236f0d",
           "Metadata": {
             "$id": "5",
-            "Name": "test_mountain",
+            "Name": "test_mountain_with_export",
             "Description": "Created by Gaea2 MCP Server",
             "Version": "2.0.6.0",
-            "DateCreated": "2025-07-19 16:42:52Z",
-            "DateLastBuilt": "2025-07-19 16:42:52Z",
-            "DateLastSaved": "2025-07-19 16:42:52Z",
+            "DateCreated": "2025-07-19 17:06:47Z",
+            "DateLastBuilt": "2025-07-19 17:06:47Z",
+            "DateLastSaved": "2025-07-19 17:06:47Z",
             "ModifiedVersion": "2.0.6.0"
           },
           "Nodes": {
@@ -140,7 +140,7 @@
                 "$id": "24",
                 "$values": [
                   {
-                    "$id": "28",
+                    "$id": "27",
                     "Name": "In",
                     "Type": "PrimaryIn, Required",
                     "IsExporting": true,
@@ -148,7 +148,7 @@
                       "$ref": "22"
                     },
                     "Record": {
-                      "$id": "29",
+                      "$id": "28",
                       "From": 668,
                       "To": 427,
                       "FromPort": "Out",
@@ -157,7 +157,7 @@
                     }
                   },
                   {
-                    "$id": "30",
+                    "$id": "29",
                     "Name": "Out",
                     "Type": "PrimaryOut",
                     "IsExporting": true,
@@ -174,36 +174,37 @@
               "SnapIns": {
                 "$id": "26",
                 "$values": []
-              },
-              "SaveDefinition": {
-                "$id": "27",
-                "Node": 427,
-                "Filename": "mountain_test",
-                "Format": "PNG",
-                "IsEnabled": true
               }
             },
             "281": {
-              "$id": "31",
+              "$id": "30",
               "$type": "QuadSpinner.Gaea.Nodes.SatMap, Gaea.Nodes",
               "NodeSize": "Standard",
               "Id": 281,
               "Name": "AutoSatMap",
               "Position": {
-                "$id": "32",
-                "X": 800.0,
+                "$id": "31",
+                "X": 600.0,
                 "Y": 0.0
               },
               "Ports": {
-                "$id": "33",
+                "$id": "32",
                 "$values": [
                   {
-                    "$id": "36",
+                    "$id": "35",
                     "Name": "In",
                     "Type": "PrimaryIn, Required",
                     "IsExporting": true,
                     "Parent": {
-                      "$ref": "31"
+                      "$ref": "30"
+                    },
+                    "Record": {
+                      "$id": "36",
+                      "From": 668,
+                      "To": 281,
+                      "FromPort": "Out",
+                      "ToPort": "In",
+                      "IsValid": true
                     }
                   },
                   {
@@ -212,17 +213,17 @@
                     "Type": "PrimaryOut",
                     "IsExporting": true,
                     "Parent": {
-                      "$ref": "31"
+                      "$ref": "30"
                     }
                   }
                 ]
               },
               "Modifiers": {
-                "$id": "34",
+                "$id": "33",
                 "$values": []
               },
               "SnapIns": {
-                "$id": "35",
+                "$id": "34",
                 "$values": []
               }
             }
@@ -240,11 +241,11 @@
                 "$id": "41",
                 "Name": "Graph 1",
                 "Color": "Brass",
-                "ZoomFactor": 0.5,
+                "ZoomFactor": 0.5338687202362516,
                 "ViewportLocation": {
                   "$id": "42",
-                  "X": 25000.0,
-                  "Y": 26000.0
+                  "X": 25531.445,
+                  "Y": 25791.812
                 }
               }
             ]
@@ -319,20 +320,32 @@
               "$id": "52"
             }
           }
+        },
+        "SaveDefinitions": {
+          "$id": "55",
+          "$values": [
+            {
+              "$id": "54",
+              "Node": 427,
+              "Filename": "mountain_test",
+              "Format": "PNG",
+              "IsEnabled": true
+            }
+          ]
         }
       }
     ]
   },
-  "Id": "b54f85e3",
+  "Id": "2576f73d",
   "Branch": 1,
   "Metadata": {
     "$id": "53",
-    "Name": "test_mountain",
+    "Name": "test_mountain_with_export",
     "Description": "Created by Gaea2 MCP Server",
     "Version": "2.0.6.0",
     "Owner": "",
-    "DateCreated": "2025-07-19 16:42:52Z",
-    "DateLastBuilt": "2025-07-19 16:42:52Z",
-    "DateLastSaved": "2025-07-19 16:42:52Z"
+    "DateCreated": "2025-07-19 17:06:47Z",
+    "DateLastBuilt": "2025-07-19 17:06:47Z",
+    "DateLastSaved": "2025-07-19 17:06:47Z"
   }
 }

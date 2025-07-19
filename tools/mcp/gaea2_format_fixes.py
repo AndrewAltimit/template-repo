@@ -19,6 +19,12 @@ PROPERTY_NAME_MAPPING = {
     "BaseLevel": "Base Level",  # Handle both cases
     "colorProduction": "Color Production",
     "reduceDetails": "ReduceDetails",
+    # Rivers properties - remove spaces!
+    "River Valley Width": "RiverValleyWidth",
+    "RiverValleyWidth": "RiverValleyWidth",  # Handle both versions
+    "Render Surface": "RenderSurface",
+    "RenderSurface": "RenderSurface",  # Handle both versions
+    "Sediment Removal": "SedimentRemoval",
     # Keep exact names that are already correct
     "Scale": "Scale",
     "Height": "Height",
@@ -32,6 +38,10 @@ PROPERTY_NAME_MAPPING = {
     "Enhance": "Enhance",
     "Style": "Style",
     "Format": "Format",
+    "Water": "Water",
+    "Width": "Width",
+    "Depth": "Depth",
+    "Headwaters": "Headwaters",
 }
 
 # Node types that should have specific additional properties
@@ -136,6 +146,12 @@ def fix_property_names(properties: Dict[str, Any]) -> Dict[str, Any]:
                 "X": float(value.get("X", 0.5)),
                 "Y": float(value.get("Y", 1.0)),
             }
+        # Fix enum values to lowercase for RiverValleyWidth
+        elif mapped_key == "RiverValleyWidth" and isinstance(value, str):
+            fixed[mapped_key] = value.lower()
+        # Fix boolean properties that might come as strings
+        elif mapped_key in ["RenderSurface", "IsMaskable"] and isinstance(value, str):
+            fixed[mapped_key] = value.lower() == "true"
         else:
             fixed[mapped_key] = value
 
