@@ -428,6 +428,88 @@ class Gaea2MCPServer:
                 )
                 ref_id_counter += 1
 
+            elif node_type == "Erosion2":
+                # Erosion2 has In port and multiple output ports
+                # In port first
+                port_in = {
+                    "$id": str(ref_id_counter),
+                    "Name": "In",
+                    "Type": "PrimaryIn",
+                    "IsExporting": True,
+                    "Parent": {"$ref": node_ref_id},
+                }
+                ref_id_counter += 1
+
+                # Check for connection
+                if node_str_id in node_connections and "In" in node_connections[node_str_id]:
+                    conn = node_connections[node_str_id]["In"]
+                    from_id = node_id_map.get(conn.get("from_node"))
+                    if from_id:
+                        port_in["Record"] = {
+                            "$id": str(ref_id_counter),
+                            "From": from_id,
+                            "To": node_id,
+                            "FromPort": conn.get("from_port", "Out"),
+                            "ToPort": "In",
+                            "IsValid": True,
+                        }
+                        ref_id_counter += 1
+
+                gaea_node["Ports"]["$values"].append(port_in)
+
+                # Multiple output ports for Erosion2
+                for port_name in ["Out", "Flow", "Wear", "Deposits", "Mask"]:
+                    port = {
+                        "$id": str(ref_id_counter),
+                        "Name": port_name,
+                        "Type": "PrimaryOut" if port_name == "Out" else "Out",
+                        "IsExporting": True,
+                        "Parent": {"$ref": node_ref_id},
+                    }
+                    ref_id_counter += 1
+                    gaea_node["Ports"]["$values"].append(port)
+
+            elif node_type == "Rivers":
+                # Rivers has In port and multiple output ports
+                # In port first
+                port_in = {
+                    "$id": str(ref_id_counter),
+                    "Name": "In",
+                    "Type": "PrimaryIn",
+                    "IsExporting": True,
+                    "Parent": {"$ref": node_ref_id},
+                }
+                ref_id_counter += 1
+
+                # Check for connection
+                if node_str_id in node_connections and "In" in node_connections[node_str_id]:
+                    conn = node_connections[node_str_id]["In"]
+                    from_id = node_id_map.get(conn.get("from_node"))
+                    if from_id:
+                        port_in["Record"] = {
+                            "$id": str(ref_id_counter),
+                            "From": from_id,
+                            "To": node_id,
+                            "FromPort": conn.get("from_port", "Out"),
+                            "ToPort": "In",
+                            "IsValid": True,
+                        }
+                        ref_id_counter += 1
+
+                gaea_node["Ports"]["$values"].append(port_in)
+
+                # Multiple output ports for Rivers
+                for port_name in ["Out", "Rivers", "Depth", "Surface", "Direction", "Mask"]:
+                    port = {
+                        "$id": str(ref_id_counter),
+                        "Name": port_name,
+                        "Type": "PrimaryOut" if port_name == "Out" else "Out",
+                        "IsExporting": True,
+                        "Parent": {"$ref": node_ref_id},
+                    }
+                    ref_id_counter += 1
+                    gaea_node["Ports"]["$values"].append(port)
+
             else:
                 # Standard nodes have In and Out
                 # In port
