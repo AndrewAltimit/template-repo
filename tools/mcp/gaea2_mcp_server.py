@@ -95,24 +95,95 @@ class Gaea2MCPServer:
     async def create_gaea2_project(
         self,
         project_name: str,
-        workflow: List[Dict[str, Any]],
+        workflow: Dict[str, Any],
         auto_validate: bool = True,
+        save_to_disk: bool = True,
     ) -> Dict[str, Any]:
-        """Create a Gaea2 project file with automatic validation"""
+        """Create a Gaea2 project file with automatic validation and save to disk"""
         try:
-            # Apply default properties
-            for node in workflow:
+            # Ensure workflow has nodes and connections keys
+            if isinstance(workflow, dict):
+                nodes = workflow.get("nodes", [])
+                connections = workflow.get("connections", [])
+            else:
+                # Legacy format support
+                nodes = workflow if isinstance(workflow, list) else []
+                connections = []
+
+            # Apply default properties and fix property names
+            for node in nodes:
                 if "type" in node:
+                    props = node.get("properties", {})
+
+                    # Fix common property name issues
+                    if node["type"] == "Erosion" and "RockSoftness" in props:
+                        props["Rock Softness"] = props.pop("RockSoftness")
+                    elif node["type"] == "Erosion2":
+                        # Erosion2 uses RockSoftness (no space)
+                        if "Rock Softness" in props:
+                            props["RockSoftness"] = props.pop("Rock Softness")
+                        if "ChannelDepth" in props:
+                            # This property doesn't exist in Erosion2
+                            props.pop("ChannelDepth")
+
+                    # Remove invalid properties
+                    if node["type"] == "Export":
+                        props.pop("Format", None)
+                        props.pop("Resolution", None)
+
+                    if node["type"] == "SatMap":
+                        # Convert Style to Library if needed
+                        if "Style" in props and "Library" not in props:
+                            style = props.pop("Style")
+                            if style == "Realistic":
+                                props["Library"] = "Rock"
+                        props.pop("Contrast", None)
+                        props.pop("Brightness", None)
+
+                    if node["type"] == "Combine":
+                        if "Method" in props:
+                            props["Mode"] = props.pop("Method")
+
+                    if node["type"] == "Mountain":
+                        # Mountain doesn't have Complexity property
+                        props.pop("Complexity", None)
+
+                    if node["type"] == "Perlin":
+                        # Perlin doesn't have Octaves property
+                        props.pop("Octaves", None)
+                        # Ensure it has Scale property
+                        if "Scale" not in props:
+                            props["Scale"] = 1.0
+
+                    if node["type"] == "FractalTerraces":
+                        # FractalTerraces doesn't have Randomness
+                        props.pop("Randomness", None)
+                        # It has Uniformity and SlopeBias instead
+                        if "Uniformity" not in props:
+                            props["Uniformity"] = 0.3
+
+                    if node["type"] == "Slump":
+                        # Slump doesn't have Detail property
+                        props.pop("Detail", None)
+
+                    if node["type"] == "Shear":
+                        # Shear doesn't have Direction property
+                        props.pop("Direction", None)
+
+                    # Update node properties
+                    node["properties"] = props
+
+                    # Apply defaults
                     node["properties"] = apply_default_properties(node["type"], node.get("properties", {}))
                 if "properties" in node:
                     node["properties"] = self._ensure_property_types(node["properties"])
 
+            # Update workflow with cleaned nodes
+            workflow_dict = {"nodes": nodes, "connections": connections}
+
             # Auto-validate and fix workflow
             if auto_validate:
                 validator = create_accurate_validator()
-                # Extract nodes and connections from workflow
-                nodes = workflow.get("nodes", [])
-                connections = workflow.get("connections", [])
 
                 # Validate using the correct method
                 validation_result = validator.validate_project(nodes, connections)
@@ -123,14 +194,14 @@ class Gaea2MCPServer:
                     error_recovery = Gaea2ErrorRecovery()
                     fixed_project = error_recovery.auto_fix_project(nodes, connections)
                     if fixed_project.get("success"):
-                        workflow["nodes"] = fixed_project.get("nodes", nodes)
-                        workflow["connections"] = fixed_project.get("connections", connections)
+                        workflow_dict["nodes"] = fixed_project.get("nodes", nodes)
+                        workflow_dict["connections"] = fixed_project.get("connections", connections)
                     else:
                         # Use original if fix failed
                         self.logger.warning(f"Auto-fix failed: {fixed_project.get('message', 'Unknown error')}")
 
                     # Validate again
-                    validation_result = validator.validate_project(workflow["nodes"], workflow["connections"])
+                    validation_result = validator.validate_project(workflow_dict["nodes"], workflow_dict["connections"])
                     if not validation_result.get("valid", False):
                         return {
                             "success": False,
@@ -141,13 +212,47 @@ class Gaea2MCPServer:
             project = {
                 "version": "1.0",
                 "name": project_name,
-                "workflow": workflow,
+                "workflow": workflow_dict,
                 "created": datetime.now().isoformat(),
                 "metadata": {
                     "created_by": "Gaea2 MCP Server",
                     "auto_validated": auto_validate,
                 },
             }
+
+            # Save to disk if requested
+            if save_to_disk:
+                # Determine save path - try multiple locations
+                saved_path = None
+                project_filename = f"{project_name}.terrain"
+
+                # Try to save in order of preference
+                save_locations = [
+                    Path.cwd() / project_filename,  # Current directory
+                    Path(os.path.expanduser("~")) / "Documents" / "Gaea" / project_filename,
+                    Path(os.path.expanduser("~")) / "Gaea Projects" / project_filename,
+                ]
+
+                for save_path in save_locations:
+                    try:
+                        # Create directory if needed
+                        save_path.parent.mkdir(parents=True, exist_ok=True)
+
+                        # Save the project
+                        with open(save_path, "w") as f:
+                            json.dump(project, f, indent=2)
+
+                        saved_path = str(save_path)
+                        self.logger.info(f"Project saved to: {saved_path}")
+                        break
+                    except Exception as e:
+                        self.logger.warning(f"Failed to save to {save_path}: {e}")
+                        continue
+
+                if saved_path:
+                    project["file_path"] = saved_path
+                else:
+                    self.logger.warning("Could not save project to any location")
 
             return {"success": True, "project": project}
 
