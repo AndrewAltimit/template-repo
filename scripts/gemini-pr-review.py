@@ -145,8 +145,11 @@ def get_project_context() -> str:
     )
 
 
-def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any]) -> str:
-    """Analyze large PRs by breaking them down into manageable chunks"""
+def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any]) -> Tuple[str, str]:
+    """Analyze large PRs by breaking them down into manageable chunks
+
+    Returns: (analysis, model_used)
+    """
 
     project_context = get_project_context()
     file_stats = get_file_stats()
@@ -161,6 +164,7 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
 
     file_chunks = chunk_diff_by_files(diff)
     analyses = []
+    model_used = "gemini-2.5-pro"  # Default assumption
 
     # Group files by type for more coherent analysis
     file_groups = {
@@ -191,9 +195,12 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
         if not group_files:
             continue
 
-        group_analysis = analyze_file_group(group_name, group_files, pr_info, project_context)
+        group_analysis, group_model = analyze_file_group(group_name, group_files, pr_info, project_context)
         if group_analysis:
             analyses.append(f"### {group_name.title()} Changes\n{group_analysis}")
+            # Track if any analysis used Flash model
+            if "flash" in group_model:
+                model_used = "gemini-2.5-flash"
 
     # Combine analyses with overall summary
     combined_analysis = f"""## Overall Summary
@@ -210,7 +217,7 @@ significant changes across multiple areas of the codebase. Please ensure all \
 changes are tested, especially given the container-first architecture of this project.
 """
 
-    return combined_analysis
+    return combined_analysis, model_used
 
 
 def analyze_file_group(
@@ -218,8 +225,11 @@ def analyze_file_group(
     files: List[Tuple[str, str]],
     pr_info: Dict[str, Any],
     project_context: str,
-) -> str:
-    """Analyze a group of related files"""
+) -> Tuple[str, str]:
+    """Analyze a group of related files
+
+    Returns: (analysis, model_used)
+    """
 
     # Combine diffs for the group (limit to reasonable size)
     combined_diff = ""
@@ -249,6 +259,7 @@ def analyze_file_group(
         f"Keep response concise but thorough."
     )
 
+    # Try with Pro model first
     try:
         result = subprocess.run(
             ["gemini", "-m", "gemini-2.5-pro"],
@@ -256,10 +267,46 @@ def analyze_file_group(
             capture_output=True,
             text=True,
             check=True,
+            timeout=30,  # 30 second timeout
         )
-        return result.stdout.strip()
+        return result.stdout.strip(), "gemini-2.5-pro"
+    except subprocess.TimeoutExpired:
+        print("⏱️  Pro model timed out (likely quota issue), falling back to Flash...")
+        # Timeout often indicates quota issue with interactive prompt
+        try:
+            result = subprocess.run(
+                ["gemini", "-m", "gemini-2.5-flash"],
+                input=prompt,
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=30,
+            )
+            return result.stdout.strip(), "gemini-2.5-flash"
+        except Exception as flash_error:
+            print(f"❌ Flash model also failed: {flash_error}")
+            return None, ""
+    except subprocess.CalledProcessError as e:
+        # Check if it's a quota limit error
+        if e.stderr and ("quota limit" in e.stderr.lower() or "API Error" in e.stderr or "quota exceeded" in e.stderr.lower()):
+            print("⚡ Quota limit reached for Pro model, falling back to Flash...")
+            try:
+                result = subprocess.run(
+                    ["gemini", "-m", "gemini-2.5-flash"],
+                    input=prompt,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    timeout=30,
+                )
+                return result.stdout.strip(), "gemini-2.5-flash"
+            except Exception as flash_error:
+                print(f"❌ Flash model also failed: {flash_error}")
+                return None, ""
+        else:
+            return None, ""
     except Exception:
-        return None
+        return None, ""
 
 
 def analyze_complete_diff(
@@ -268,8 +315,11 @@ def analyze_complete_diff(
     pr_info: Dict[str, Any],
     project_context: str,
     file_stats: Dict[str, int],
-) -> str:
-    """Analyze complete diff for smaller PRs"""
+) -> Tuple[str, str]:
+    """Analyze complete diff for smaller PRs
+
+    Returns: (analysis, model_used)
+    """
 
     # For GitHub workflow files, include more complete content
     workflow_contents = {}
@@ -315,6 +365,7 @@ def analyze_complete_diff(
         "Focus on actionable feedback considering the container-first architecture."
     )
 
+    # Try with Pro model first
     try:
         result = subprocess.run(
             ["gemini", "-m", "gemini-2.5-pro"],
@@ -322,15 +373,44 @@ def analyze_complete_diff(
             capture_output=True,
             text=True,
             check=True,
+            timeout=30,  # 30 second timeout
         )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError as e:
-        # Fallback to basic model
+        return result.stdout.strip(), "gemini-2.5-pro"
+    except subprocess.TimeoutExpired:
+        print("⏱️  Pro model timed out (likely quota issue), falling back to Flash...")
+        # Timeout often indicates quota issue with interactive prompt
         try:
-            result = subprocess.run(["gemini"], input=prompt, capture_output=True, text=True, check=True)
-            return result.stdout.strip()
-        except Exception:
-            return f"Error consulting Gemini: " f"{e.stderr if hasattr(e, 'stderr') else str(e)}"
+            result = subprocess.run(
+                ["gemini", "-m", "gemini-2.5-flash"],
+                input=prompt,
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=30,
+            )
+            return result.stdout.strip(), "gemini-2.5-flash"
+        except Exception as flash_error:
+            err_msg = flash_error.stderr if hasattr(flash_error, "stderr") else str(flash_error)
+            return (f"Error consulting Gemini Flash model: {err_msg}"), ""
+    except subprocess.CalledProcessError as e:
+        # Check if it's a quota limit error
+        if e.stderr and ("quota limit" in e.stderr.lower() or "API Error" in e.stderr or "quota exceeded" in e.stderr.lower()):
+            print("⚡ Quota limit reached for Pro model, falling back to Flash...")
+            try:
+                result = subprocess.run(
+                    ["gemini", "-m", "gemini-2.5-flash"],
+                    input=prompt,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    timeout=30,
+                )
+                return result.stdout.strip(), "gemini-2.5-flash"
+            except Exception as flash_error:
+                err_msg = flash_error.stderr if hasattr(flash_error, "stderr") else str(flash_error)
+                return (f"Error consulting Gemini Flash model: {err_msg}"), ""
+        else:
+            return (f"Error consulting Gemini: " f"{e.stderr if hasattr(e, 'stderr') else str(e)}"), ""
 
 
 def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:
@@ -345,8 +425,9 @@ def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:
     return formatted
 
 
-def format_github_comment(analysis: str, pr_info: Dict[str, Any]) -> str:
+def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: str = "gemini-2.5-pro") -> str:
     """Format the analysis as a GitHub PR comment"""
+    model_display = "v2.5 Pro" if "pro" in model_used else "v2.5 Flash"
     comment = f"""## 🤖 Gemini AI Code Review
 
 Hello @{pr_info['author']}! I've analyzed your pull request \
@@ -355,7 +436,7 @@ Hello @{pr_info['author']}! I've analyzed your pull request \
 {analysis}
 
 ---
-*This review was automatically generated by Gemini AI (v2.5 Pro) via CLI. \
+*This review was automatically generated by Gemini AI ({model_display}) via CLI. \
 This is supplementary feedback to human reviews.*
 *If the analysis seems incomplete, check the [workflow logs](../actions) \
 for the full diff size.*
@@ -428,10 +509,10 @@ def main():
 
     # Analyze with Gemini
     print("🧠 Consulting Gemini AI...")
-    analysis = analyze_large_pr(diff, changed_files, pr_info)
+    analysis, model_used = analyze_large_pr(diff, changed_files, pr_info)
 
     # Format as GitHub comment
-    comment = format_github_comment(analysis, pr_info)
+    comment = format_github_comment(analysis, pr_info, model_used)
 
     # Post to PR
     post_pr_comment(comment, pr_info)
