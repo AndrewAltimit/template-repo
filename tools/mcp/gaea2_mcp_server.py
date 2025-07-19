@@ -43,6 +43,24 @@ from tools.mcp.gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer  # noqa: E40
 from tools.mcp.gaea2_workflow_tools import Gaea2WorkflowTools  # noqa: E402
 
 
+class Gaea2JSONEncoder(json.JSONEncoder):
+    """Custom JSON encoder for Gaea2 .terrain files that capitalizes booleans."""
+
+    def encode(self, o):
+        # First get the standard JSON string
+        json_str = super().encode(o)
+        # Replace lowercase booleans with capitalized versions
+        json_str = json_str.replace("true", "True").replace("false", "False")
+        return json_str
+
+    def iterencode(self, o, _one_shot=False):
+        """Encode the given object and yield each string representation as available."""
+        for chunk in super().iterencode(o, _one_shot):
+            # Replace lowercase booleans with capitalized versions
+            chunk = chunk.replace("true", "True").replace("false", "False")
+            yield chunk
+
+
 class Gaea2MCPServer:
     """Standalone Gaea2 MCP Server with CLI automation"""
 
@@ -192,8 +210,16 @@ class Gaea2MCPServer:
             # Add node properties
             properties = node.get("properties", {})
             for prop, value in properties.items():
-                # Convert property names to Gaea format (capitalize first letter)
-                gaea_prop = prop[0].upper() + prop[1:] if prop else prop
+                # Special handling for property names
+                if prop == "ReduceDetails":
+                    # Already in correct format
+                    gaea_prop = prop
+                elif prop == "Reduce Details":
+                    # Fix spacing issue
+                    gaea_prop = "ReduceDetails"
+                else:
+                    # Convert property names to Gaea format (capitalize first letter)
+                    gaea_prop = prop[0].upper() + prop[1:] if prop else prop
                 gaea_node[gaea_prop] = value
 
             # Handle Export node SaveDefinition
@@ -568,10 +594,15 @@ class Gaea2MCPServer:
                         save_path.parent.mkdir(parents=True, exist_ok=True)
 
                         # Save the project as minified JSON to match Gaea2 format
-                        # Use Unix line endings (LF) as Gaea2 expects
-                        with open(save_path, "w", newline="\n") as f:
-                            json.dump(project, f, separators=(",", ":"))
-                            f.write("\n")  # Add final newline as Gaea2 expects
+                        # Convert to JSON string first to ensure proper formatting
+                        # Use custom encoder to capitalize booleans
+                        json_content = json.dumps(project, separators=(",", ":"), cls=Gaea2JSONEncoder)
+
+                        # Write with Unix line endings (LF) and final newline
+                        # Use binary mode to ensure no line ending conversion on Windows
+                        with open(save_path, "wb") as f:
+                            f.write(json_content.encode("utf-8"))
+                            f.write(b"\n")  # Add final newline as Gaea2 expects
 
                         saved_path = str(save_path)
                         self.logger.info(f"Project saved to: {saved_path}")

@@ -299,7 +299,7 @@ NODE_PROPERTY_DEFINITIONS = {
             "options": ["Low", "Medium", "High"],
             "default": "Medium",
         },
-        "Reduce Details": {"type": "bool", "default": False},
+        "ReduceDetails": {"type": "bool", "default": False},
         "Seed": {"type": "int", "default": 0, "range": {"min": 0, "max": 999999}},
         "X": {
             "type": "float",
