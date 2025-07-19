@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Tuple
 # Model constants
 PRO_MODEL = "gemini-2.5-pro"
 FLASH_MODEL = "gemini-2.5-flash"
+NO_MODEL = ""  # Indicates no model was successfully used
 PRO_MODEL_TIMEOUT = 90  # seconds
 FLASH_MODEL_TIMEOUT = 60  # seconds
 
@@ -58,13 +59,13 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
             else:
                 # Non-quota error from Pro model - surface the error
                 err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
-                return f"❌ Pro model failed with error: {err_msg}", ""
+                return f"❌ Pro model failed with error: {err_msg}", NO_MODEL
         else:
             # No stderr, return the error
-            return f"❌ Pro model failed with error: {str(e)}", ""
+            return f"❌ Pro model failed with error: {str(e)}", NO_MODEL
     except Exception as e:
         # Unexpected error
-        return f"❌ Unexpected error with Pro model: {str(e)}", ""
+        return f"❌ Unexpected error with Pro model: {str(e)}", NO_MODEL
 
     # Fallback to Flash model
     try:
@@ -79,10 +80,18 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
         )
         output = clean_output(result.stdout.strip())
         return output.strip(), FLASH_MODEL
-    except Exception as flash_error:
-        err_msg = flash_error.stderr if hasattr(flash_error, "stderr") and flash_error.stderr else str(flash_error)
-        print(f"❌ Flash model also failed: {err_msg}")
-        return f"❌ Both Pro and Flash models failed. Flash error: {err_msg}", ""
+    except subprocess.TimeoutExpired:
+        err_msg = f"Flash model timed out after {FLASH_MODEL_TIMEOUT}s"
+        print(f"❌ {err_msg}")
+        return f"❌ Both Pro and Flash models failed. {err_msg}", NO_MODEL
+    except subprocess.CalledProcessError as e:
+        err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
+        print(f"❌ Flash model failed: {err_msg}")
+        return f"❌ Both Pro and Flash models failed. Flash error: {err_msg}", NO_MODEL
+    except Exception as e:
+        err_msg = f"Unexpected error: {str(e)}"
+        print(f"❌ {err_msg}")
+        return f"❌ Both Pro and Flash models failed. {err_msg}", NO_MODEL
 
 
 def check_gemini_cli() -> bool:
@@ -239,7 +248,8 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
 
     file_chunks = chunk_diff_by_files(diff)
     analyses = []
-    model_used = PRO_MODEL  # Default assumption
+    model_used = NO_MODEL  # Start with no model, will be updated if any analysis succeeds
+    successful_models = []  # Track which models were successfully used
 
     # Group files by type for more coherent analysis
     file_groups = {
@@ -271,11 +281,17 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
             continue
 
         group_analysis, group_model = analyze_file_group(group_name, group_files, pr_info, project_context)
-        if group_analysis:
+        if group_analysis and group_model != NO_MODEL:
             analyses.append(f"### {group_name.title()} Changes\n{group_analysis}")
-            # Track if any analysis used Flash model
-            if group_model == FLASH_MODEL:
-                model_used = FLASH_MODEL
+            successful_models.append(group_model)
+
+    # Determine which model was predominantly used
+    if successful_models:
+        # If any analysis used Flash, report Flash (as it's the fallback)
+        model_used = FLASH_MODEL if FLASH_MODEL in successful_models else PRO_MODEL
+    else:
+        # No successful analyses
+        model_used = NO_MODEL
 
     # Combine analyses with overall summary
     combined_analysis = f"""## Overall Summary
@@ -412,7 +428,12 @@ def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:
 
 def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: str = PRO_MODEL) -> str:
     """Format the analysis as a GitHub PR comment"""
-    model_display = "v2.5 Pro" if model_used == PRO_MODEL else "v2.5 Flash"
+    if model_used == PRO_MODEL:
+        model_display = "v2.5 Pro"
+    elif model_used == FLASH_MODEL:
+        model_display = "v2.5 Flash"
+    else:
+        model_display = "Error - No model available"
     comment = f"""## 🤖 Gemini AI Code Review
 
 Hello @{pr_info['author']}! I've analyzed your pull request \
