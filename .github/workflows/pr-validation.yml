@@ -102,7 +102,7 @@ jobs:
     needs: detect-changes
     if: github.event_name == 'pull_request'
     runs-on: self-hosted
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       PR_NUMBER: ${{ github.event.pull_request.number }}
       PR_TITLE: ${{ github.event.pull_request.title }}
