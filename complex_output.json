@@ -7,15 +7,15 @@
         "$id": "3",
         "Terrain": {
           "$id": "4",
-          "Id": "436c9216-9484-48a5-8b63-10bfd0aa3ac3",
+          "Id": "adefee1c-6455-447e-ac72-5baf481fe7d4",
           "Metadata": {
             "$id": "5",
             "Name": "complex_terrain_workflow",
             "Description": "Created by Gaea2 MCP Server",
             "Version": "2.0.6.0",
-            "DateCreated": "2025-07-19 18:00:18Z",
-            "DateLastBuilt": "2025-07-19 18:00:18Z",
-            "DateLastSaved": "2025-07-19 18:00:18Z",
+            "DateCreated": "2025-07-19 18:23:42Z",
+            "DateLastBuilt": "2025-07-19 18:23:42Z",
+            "DateLastSaved": "2025-07-19 18:23:42Z",
             "ModifiedVersion": "2.0.6.0"
           },
           "Nodes": {
@@ -459,7 +459,7 @@
                 "$id": "67",
                 "$values": [
                   {
-                    "$id": "70",
+                    "$id": "71",
                     "Name": "In",
                     "Type": "PrimaryIn, Required",
                     "IsExporting": true,
@@ -467,7 +467,7 @@
                       "$ref": "65"
                     },
                     "Record": {
-                      "$id": "71",
+                      "$id": "72",
                       "From": 294,
                       "To": 483,
                       "FromPort": "Out",
@@ -476,7 +476,7 @@
                     }
                   },
                   {
-                    "$id": "72",
+                    "$id": "73",
                     "Name": "Out",
                     "Type": "PrimaryOut",
                     "IsExporting": true,
@@ -493,33 +493,40 @@
               "SnapIns": {
                 "$id": "69",
                 "$values": []
+              },
+              "SaveDefinition": {
+                "$id": "70",
+                "Node": 483,
+                "Filename": "complex_height",
+                "Format": "EXR",
+                "IsEnabled": true
               }
             },
             "800": {
-              "$id": "73",
+              "$id": "74",
               "$type": "QuadSpinner.Gaea.Nodes.Export, Gaea.Nodes",
               "channel": "Rivers",
               "NodeSize": "Standard",
               "Id": 800,
               "Name": "Rivers Export",
               "Position": {
-                "$id": "74",
+                "$id": "75",
                 "X": 800.0,
                 "Y": 400.0
               },
               "Ports": {
-                "$id": "75",
+                "$id": "76",
                 "$values": [
                   {
-                    "$id": "78",
+                    "$id": "80",
                     "Name": "In",
                     "Type": "PrimaryIn, Required",
                     "IsExporting": true,
                     "Parent": {
-                      "$ref": "73"
+                      "$ref": "74"
                     },
                     "Record": {
-                      "$id": "79",
+                      "$id": "81",
                       "From": 294,
                       "To": 800,
                       "FromPort": "Rivers",
@@ -528,42 +535,49 @@
                     }
                   },
                   {
-                    "$id": "80",
+                    "$id": "82",
                     "Name": "Out",
                     "Type": "PrimaryOut",
                     "IsExporting": true,
                     "Parent": {
-                      "$ref": "73"
+                      "$ref": "74"
                     }
                   }
                 ]
               },
               "Modifiers": {
-                "$id": "76",
+                "$id": "77",
                 "$values": []
               },
               "SnapIns": {
-                "$id": "77",
+                "$id": "78",
                 "$values": []
+              },
+              "SaveDefinition": {
+                "$id": "79",
+                "Node": 800,
+                "Filename": "complex_rivers",
+                "Format": "PNG",
+                "IsEnabled": true
               }
             }
           },
           "Groups": {
-            "$id": "81"
+            "$id": "83"
           },
           "Notes": {
-            "$id": "82"
+            "$id": "84"
           },
           "GraphTabs": {
-            "$id": "83",
+            "$id": "85",
             "$values": [
               {
-                "$id": "84",
+                "$id": "86",
                 "Name": "Graph 1",
                 "Color": "Brass",
                 "ZoomFactor": 0.5338687202362516,
                 "ViewportLocation": {
-                  "$id": "85",
+                  "$id": "87",
                   "X": 25531.445,
                   "Y": 25791.812
                 }
@@ -575,21 +589,21 @@
           "Ratio": 0.5
         },
         "Automation": {
-          "$id": "86",
+          "$id": "88",
           "Bindings": {
-            "$id": "87",
+            "$id": "89",
             "$values": []
           },
           "Variables": {
-            "$id": "88"
+            "$id": "90"
           },
           "BoundProperties": {
-            "$id": "89",
+            "$id": "91",
             "$values": []
           }
         },
         "BuildDefinition": {
-          "$id": "90",
+          "$id": "92",
           "Destination": "<Builds>\\[Filename]\\[+++]",
           "Resolution": 2048,
           "BakeResolution": 2048,
@@ -607,22 +621,22 @@
           "OrganizeFiles": "NodeSubFolder",
           "PostBuildScript": "",
           "Regions": {
-            "$id": "91",
+            "$id": "93",
             "$values": []
           }
         },
         "State": {
-          "$id": "92",
+          "$id": "94",
           "BakeResolution": 2048,
           "PreviewResolution": 512,
           "SelectedNode": 183,
           "LockedNode": null,
           "NodeBookmarks": {
-            "$id": "93",
+            "$id": "95",
             "$values": []
           },
           "Viewport": {
-            "$id": "94",
+            "$id": "96",
             "RenderMode": "Realistic",
             "SunAltitude": 33.0,
             "SunAzimuth": 45.0,
@@ -637,42 +651,23 @@
             "Haze": 1.0,
             "Ozone": 1.0,
             "Camera": {
-              "$id": "95"
+              "$id": "97"
             }
           }
-        },
-        "SaveDefinitions": {
-          "$id": "99",
-          "$values": [
-            {
-              "$id": "97",
-              "Node": 483,
-              "Filename": "complex_height",
-              "Format": "EXR",
-              "IsEnabled": true
-            },
-            {
-              "$id": "98",
-              "Node": 800,
-              "Filename": "complex_rivers",
-              "Format": "PNG",
-              "IsEnabled": true
-            }
-          ]
         }
       }
     ]
   },
-  "Id": "436c9216",
+  "Id": "adefee1c",
   "Branch": 1,
   "Metadata": {
-    "$id": "96",
+    "$id": "98",
     "Name": "complex_terrain_workflow",
     "Description": "Created by Gaea2 MCP Server",
     "Version": "2.0.6.0",
     "Owner": "",
-    "DateCreated": "2025-07-19 18:00:18Z",
-    "DateLastBuilt": "2025-07-19 18:00:18Z",
-    "DateLastSaved": "2025-07-19 18:00:18Z"
+    "DateCreated": "2025-07-19 18:23:42Z",
+    "DateLastBuilt": "2025-07-19 18:23:42Z",
+    "DateLastSaved": "2025-07-19 18:23:42Z"
   }
 }

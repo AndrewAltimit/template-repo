@@ -212,11 +212,20 @@ class Gaea2MCPServer:
             node_ref_id = str(ref_id_counter)
             ref_id_counter += 1
 
-            # Add node-specific properties (NodeSize, PortCount, IsMaskable)
+            # Extract node-specific properties to add at the correct position
+            node_size = None
+            is_maskable = None
+            port_count = None
+
             if node_type in NODE_PROPERTIES:
-                for prop_name, prop_value in NODE_PROPERTIES[node_type].items():
-                    if prop_name not in properties:
-                        properties[prop_name] = prop_value
+                node_props = NODE_PROPERTIES[node_type]
+                if "NodeSize" in node_props:
+                    node_size = node_props["NodeSize"]
+                if "IsMaskable" in node_props:
+                    is_maskable = node_props["IsMaskable"]
+                if "PortCount" in node_props:
+                    port_count = node_props["PortCount"]
+                    properties["PortCount"] = port_count  # This one stays in properties
 
             # Add default properties for common nodes (only if not already present)
             if node_type == "Mountain":
@@ -289,6 +298,11 @@ class Gaea2MCPServer:
             # NOW add the standard node fields (these come AFTER properties)
             gaea_node["Id"] = node_id
             gaea_node["Name"] = node.get("name", node_type)
+
+            # Add NodeSize after Name (if applicable)
+            if node_size:
+                gaea_node["NodeSize"] = node_size
+
             gaea_node["Position"] = {
                 "$id": str(ref_id_counter),
                 "X": float(node.get("position", {}).get("x", 24000 + i * 500)),
@@ -296,16 +310,7 @@ class Gaea2MCPServer:
             }
             ref_id_counter += 1
 
-            gaea_node["Ports"] = {"$id": str(ref_id_counter), "$values": []}
-            ref_id_counter += 1
-
-            gaea_node["Modifiers"] = {"$id": str(ref_id_counter), "$values": []}
-            ref_id_counter += 1
-
-            gaea_node["SnapIns"] = {"$id": str(ref_id_counter), "$values": []}
-            ref_id_counter += 1
-
-            # Embed SaveDefinition directly in Export nodes
+            # Embed SaveDefinition after Position but before Ports (if applicable)
             if node_type == "Export":
                 # Create SaveDefinition embedded in the node
                 gaea_node["SaveDefinition"] = {
@@ -332,6 +337,18 @@ class Gaea2MCPServer:
                     # Remove the export/save flags
                     properties.pop("export", None)
                     properties.pop("save", None)
+
+            gaea_node["Ports"] = {"$id": str(ref_id_counter), "$values": []}
+            ref_id_counter += 1
+
+            # Add IsMaskable after Ports (if applicable)
+            if is_maskable:
+                gaea_node["IsMaskable"] = is_maskable
+
+            gaea_node["Modifiers"] = {"$id": str(ref_id_counter), "$values": []}
+            ref_id_counter += 1
+
+            gaea_node["SnapIns"] = {"$id": str(ref_id_counter), "$values": []}
 
             # Add ports based on node type
             node_str_id = node.get("id", f"node_{i}")
@@ -459,8 +476,8 @@ class Gaea2MCPServer:
                     gaea_node["Ports"]["$values"].append(port)
 
             elif node_type == "Rivers":
-                # Rivers has In port and multiple output ports
-                # In port first
+                # Rivers has multiple ports - some inputs, some outputs
+                # Primary input port
                 port_in = {
                     "$id": str(ref_id_counter),
                     "Name": "In",
@@ -487,12 +504,24 @@ class Gaea2MCPServer:
 
                 gaea_node["Ports"]["$values"].append(port_in)
 
-                # Multiple output ports for Rivers
-                for port_name in ["Out", "Rivers", "Depth", "Surface", "Direction", "Mask"]:
+                # Output ports
+                for port_name in ["Out", "Rivers", "Depth", "Surface", "Direction"]:
                     port = {
                         "$id": str(ref_id_counter),
                         "Name": port_name,
                         "Type": "PrimaryOut" if port_name == "Out" else "Out",
+                        "IsExporting": True,
+                        "Parent": {"$ref": node_ref_id},
+                    }
+                    ref_id_counter += 1
+                    gaea_node["Ports"]["$values"].append(port)
+
+                # Input ports (Headwaters and Mask)
+                for port_name in ["Headwaters", "Mask"]:
+                    port = {
+                        "$id": str(ref_id_counter),
+                        "Name": port_name,
+                        "Type": "In",
                         "IsExporting": True,
                         "Parent": {"$ref": node_ref_id},
                     }

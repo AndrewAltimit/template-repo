@@ -161,13 +161,19 @@ def analyze_complex_structure(project):
     for node_type, count in sorted(node_types.items()):
         print(f"   - {node_type}: {count}")
 
-    # Check SaveDefinitions
-    print("\n2. SaveDefinitions:")
-    if "SaveDefinitions" in asset_value:
-        save_defs = asset_value["SaveDefinitions"]["$values"]
-        print(f"   ✓ Found {len(save_defs)} SaveDefinitions")
-        for sd in save_defs:
-            print(f"     - Node {sd['Node']}: {sd['Filename']}.{sd['Format']}")
+    # Check SaveDefinitions (now embedded in nodes)
+    print("\n2. SaveDefinitions (embedded in nodes):")
+    save_def_count = 0
+    for node_id, node in nodes.items():
+        if isinstance(node, str):
+            continue
+        if "SaveDefinition" in node:
+            save_def_count += 1
+            sd = node["SaveDefinition"]
+            print(f"   ✓ Node {node_id}: {sd['Filename']}.{sd['Format']}")
+
+    if save_def_count > 0:
+        print(f"   Total: {save_def_count} SaveDefinitions found")
     else:
         print("   ❌ No SaveDefinitions found")
 

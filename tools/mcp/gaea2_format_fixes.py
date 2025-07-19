@@ -232,27 +232,34 @@ def create_proper_port_structure(node_id: int, node_type: str, ref_id_counter: i
         ref_id_counter += 2
 
     elif node_type == "Rivers":
-        # Rivers node has multiple output ports
-        additional_ports = [
-            "Headwaters",
-            "Rivers",
-            "Depth",
-            "Surface",
-            "Direction",
-            "Mask",
-        ]
-        for i, port_name in enumerate(additional_ports):
-            port_type = "In" if port_name in ["Headwaters", "Mask"] else "Out"
+        # Rivers node has multiple ports - some inputs, some outputs
+        # Output ports first
+        output_ports = ["Rivers", "Depth", "Surface", "Direction"]
+        for i, port_name in enumerate(output_ports):
             ports["$values"].append(
                 {
                     "$id": str(ref_id_counter + i),
                     "Name": port_name,
-                    "Type": port_type,
+                    "Type": "Out",
                     "IsExporting": True,
                     "Parent": {"$ref": str(node_id)},
                 }
             )
-        ref_id_counter += len(additional_ports)
+        ref_id_counter += len(output_ports)
+
+        # Then input ports
+        input_ports = ["Headwaters", "Mask"]
+        for i, port_name in enumerate(input_ports):
+            ports["$values"].append(
+                {
+                    "$id": str(ref_id_counter + i),
+                    "Name": port_name,
+                    "Type": "In",
+                    "IsExporting": True,
+                    "Parent": {"$ref": str(node_id)},
+                }
+            )
+        ref_id_counter += len(input_ports)
 
     elif node_type == "Erosion2":
         # Erosion2 has additional output ports
