@@ -22,22 +22,23 @@ from typing import Any, Dict, List, Optional, Union
 
 from aiohttp import web
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add project root to path for imports
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, project_root)
 
 # Import all Gaea2 modules
-from gaea2_accurate_validation import create_accurate_validator  # noqa: E402
-from gaea2_connection_validator import Gaea2ConnectionValidator  # noqa: E402
-from gaea2_enhanced import EnhancedGaea2Tools  # noqa: E402
-from gaea2_error_recovery import Gaea2ErrorRecovery  # noqa: E402
-from gaea2_knowledge_graph import knowledge_graph  # noqa: E402
-from gaea2_pattern_knowledge import PatternKnowledge  # noqa: E402
-from gaea2_project_repair import Gaea2ProjectRepair  # noqa: E402
-from gaea2_property_validator import Gaea2PropertyValidator  # noqa: E402
-from gaea2_schema import apply_default_properties  # noqa: E402
-from gaea2_structure_validator import Gaea2StructureValidator  # noqa: E402
-from gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer  # noqa: E402
-from gaea2_workflow_tools import Gaea2WorkflowTools  # noqa: E402
+from tools.mcp.gaea2_accurate_validation import create_accurate_validator  # noqa: E402
+from tools.mcp.gaea2_connection_validator import Gaea2ConnectionValidator  # noqa: E402
+from tools.mcp.gaea2_enhanced import EnhancedGaea2Tools  # noqa: E402
+from tools.mcp.gaea2_error_recovery import Gaea2ErrorRecovery  # noqa: E402
+from tools.mcp.gaea2_knowledge_graph import knowledge_graph  # noqa: E402
+from tools.mcp.gaea2_pattern_knowledge import PatternKnowledge  # noqa: E402
+from tools.mcp.gaea2_project_repair import Gaea2ProjectRepair  # noqa: E402
+from tools.mcp.gaea2_property_validator import Gaea2PropertyValidator  # noqa: E402
+from tools.mcp.gaea2_schema import apply_default_properties  # noqa: E402
+from tools.mcp.gaea2_structure_validator import Gaea2StructureValidator  # noqa: E402
+from tools.mcp.gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer  # noqa: E402
+from tools.mcp.gaea2_workflow_tools import Gaea2WorkflowTools  # noqa: E402
 
 
 class Gaea2MCPServer:
