@@ -110,19 +110,27 @@ class Gaea2MCPServer:
             # Auto-validate and fix workflow
             if auto_validate:
                 validator = create_accurate_validator()
-                is_valid, errors = validator.validate_workflow(workflow)
+                # Extract nodes and connections from workflow
+                nodes = workflow.get("nodes", [])
+                connections = workflow.get("connections", [])
+
+                # Validate using the correct method
+                validation_result = validator.validate_project(nodes, connections)
+                is_valid = validation_result.get("valid", False)
 
                 if not is_valid:
-                    # Try to fix the workflow
-                    fixed_workflow = validator.fix_workflow(workflow)
-                    workflow = fixed_workflow
+                    # Try to fix the workflow using error recovery
+                    error_recovery = Gaea2ErrorRecovery()
+                    fixed_workflow = error_recovery.auto_fix_workflow({"nodes": nodes, "connections": connections})
+                    workflow["nodes"] = fixed_workflow.get("nodes", nodes)
+                    workflow["connections"] = fixed_workflow.get("connections", connections)
 
                     # Validate again
-                    is_valid, remaining_errors = validator.validate_workflow(workflow)
-                    if not is_valid:
+                    validation_result = validator.validate_project(workflow["nodes"], workflow["connections"])
+                    if not validation_result.get("valid", False):
                         return {
                             "success": False,
-                            "error": f"Validation failed after auto-fix: {remaining_errors}",
+                            "error": f"Validation failed after auto-fix: {validation_result.get('errors', [])}",
                         }
 
             # Create project structure
@@ -314,7 +322,19 @@ class Gaea2MCPServer:
             # Run all validators
             all_valid = True
             for name, validator in validators:
-                is_valid, errors = validator.validate_workflow(workflow)
+                # Different validators have different methods
+                if hasattr(validator, "validate_workflow"):
+                    is_valid, errors = validator.validate_workflow(workflow)
+                elif hasattr(validator, "validate_project"):
+                    # AccurateGaea2Validator uses validate_project
+                    validation_result = validator.validate_project(workflow.get("nodes", []), workflow.get("connections", []))
+                    is_valid = validation_result.get("valid", False)
+                    errors = validation_result.get("errors", [])
+                else:
+                    # Fallback for other validators
+                    is_valid = True
+                    errors = []
+
                 results["validation_results"][name] = {
                     "valid": is_valid,
                     "errors": errors,
@@ -537,24 +557,47 @@ class Gaea2MCPServer:
         except Exception as e:
             return web.json_response({"error": str(e), "success": False}, status=500)
 
-    async def _analyze_workflow_patterns(self, workflow_or_directory: str, include_suggestions: bool = True) -> Dict[str, Any]:
+    async def _analyze_workflow_patterns(
+        self, workflow_or_directory: Union[str, Dict[str, Any]], include_suggestions: bool = True
+    ) -> Dict[str, Any]:
         """Analyze workflow patterns"""
         analyzer = Gaea2WorkflowAnalyzer()
 
-        if os.path.isdir(workflow_or_directory):
-            results = analyzer.analyze_directory(workflow_or_directory)
+        if isinstance(workflow_or_directory, str):
+            if os.path.isdir(workflow_or_directory):
+                results = analyzer.analyze_directory(workflow_or_directory)
+            else:
+                # Load workflow from file
+                with open(workflow_or_directory, "r") as f:
+                    workflow = json.load(f)
+                results = analyzer.analyze_workflow(workflow.get("workflow", workflow))
         else:
-            # Load workflow
-            with open(workflow_or_directory, "r") as f:
-                workflow = json.load(f)
-            results = analyzer.analyze_workflow(workflow.get("workflow", workflow))
+            # Direct workflow dict
+            workflow = workflow_or_directory
+            results = analyzer.analyze_workflow(workflow)
 
         return {"success": True, "analysis": results}
 
     async def _suggest_nodes(self, current_nodes: List[str], context: Optional[str] = None, limit: int = 5) -> Dict[str, Any]:
         """Get node suggestions"""
-        suggestions = knowledge_graph.suggest_next_nodes(current_nodes, context, limit)
-        return {"success": True, "suggestions": suggestions}
+        # Get suggestions from knowledge graph
+        all_suggestions = knowledge_graph.get_suggested_next_nodes(current_nodes)
+
+        # Sort by score and limit
+        suggestions = [node for node, score in all_suggestions[:limit]]
+
+        # Add context-based filtering if provided
+        if context:
+            # Simple context filtering based on keywords
+            context_lower = context.lower()
+            if "realistic" in context_lower or "erosion" in context_lower:
+                # Prioritize erosion and detail nodes
+                priority_nodes = ["Erosion2", "SatMap", "Texture", "Details"]
+                suggestions = [n for n in suggestions if n in priority_nodes] + [
+                    n for n in suggestions if n not in priority_nodes
+                ]
+
+        return {"success": True, "suggestions": suggestions[:limit]}
 
     async def _repair_project(self, project_path: str, backup: bool = True, aggressive: bool = False) -> Dict[str, Any]:
         """Repair project"""
@@ -590,20 +633,45 @@ class Gaea2MCPServer:
                 data = json.load(f)
                 workflow = data.get("workflow", data)
 
-        # Use workflow tools for optimization
-        if optimization_mode == "performance":
-            optimized = self.workflow_tools.optimize_for_performance(workflow)
-        elif optimization_mode == "quality":
-            optimized = self.workflow_tools.optimize_for_quality(workflow)
-        else:
-            # Balanced mode - moderate settings
-            optimized = workflow
-            for node in optimized:
-                if node["type"] == "Erosion" and "properties" in node:
-                    node["properties"]["iterations"] = 15
-                    node["properties"]["downcutting"] = 0.3
+        # Optimize based on mode
+        optimized = {"nodes": workflow.get("nodes", []), "connections": workflow.get("connections", [])}
 
-        return {"success": True, "optimized_workflow": optimized}
+        for node in optimized["nodes"]:
+            if "properties" not in node:
+                continue
+
+            node_type = node.get("type", "")
+            props = node["properties"]
+
+            if optimization_mode == "performance":
+                # Reduce quality settings for better performance
+                if node_type == "Erosion2":
+                    props["iterations"] = min(props.get("iterations", 20), 10)
+                    props["detail"] = min(props.get("detail", 0.5), 0.3)
+                elif node_type == "Terrace":
+                    props["levels"] = min(props.get("levels", 16), 8)
+                elif node_type == "SatMap":
+                    props["quality"] = "Fast"
+
+            elif optimization_mode == "quality":
+                # Increase quality settings
+                if node_type == "Erosion2":
+                    props["iterations"] = max(props.get("iterations", 20), 30)
+                    props["detail"] = max(props.get("detail", 0.5), 0.8)
+                elif node_type == "Terrace":
+                    props["levels"] = max(props.get("levels", 16), 32)
+                elif node_type == "SatMap":
+                    props["quality"] = "High"
+
+            else:  # balanced
+                # Moderate settings
+                if node_type == "Erosion2":
+                    props["iterations"] = 20
+                    props["detail"] = 0.5
+                elif node_type == "Terrace":
+                    props["levels"] = 16
+
+        return {"success": True, "optimized_workflow": optimized, "mode": optimization_mode}
 
     async def handle_health(self, request: web.Request) -> web.Response:
         """Health check endpoint"""
