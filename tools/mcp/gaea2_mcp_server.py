@@ -32,6 +32,7 @@ sys.path.insert(0, project_root)
 from tools.mcp.gaea2_connection_validator import Gaea2ConnectionValidator  # noqa: E402
 from tools.mcp.gaea2_enhanced import EnhancedGaea2Tools  # noqa: E402
 from tools.mcp.gaea2_error_recovery import Gaea2ErrorRecovery  # noqa: E402
+from tools.mcp.gaea2_format_fixes import NODE_PROPERTIES, fix_property_names, generate_non_sequential_id  # noqa: E402
 from tools.mcp.gaea2_knowledge_graph import knowledge_graph  # noqa: E402
 
 # Pattern knowledge is available as module functions, not a class
@@ -176,12 +177,14 @@ class Gaea2MCPServer:
         }
 
         # Process nodes
-        node_id_base = 100
+        used_ids = []  # Track used IDs for non-sequential generation
         node_id_map = {}  # Map from our IDs to Gaea numeric IDs
         gaea_nodes = {}
 
         for i, node in enumerate(nodes):
-            node_id = node_id_base + i * 10
+            # Generate non-sequential IDs for better Gaea2 compatibility
+            node_id = generate_non_sequential_id(100 + i * 50, used_ids)
+            used_ids.append(node_id)
             node_id_map[node.get("id", f"node_{i}")] = node_id
 
             # Get node type
@@ -190,6 +193,9 @@ class Gaea2MCPServer:
 
             # Get node properties first
             properties = node.get("properties", {})
+
+            # Fix property names to match Gaea2 format
+            properties = fix_property_names(properties)
 
             # Create Gaea node structure with properties FIRST (after $id and $type)
             gaea_node = {
@@ -200,6 +206,12 @@ class Gaea2MCPServer:
             # Save the node's $id for reference
             node_ref_id = str(ref_id_counter)
             ref_id_counter += 1
+
+            # Add node-specific properties (NodeSize, PortCount, IsMaskable)
+            if node_type in NODE_PROPERTIES:
+                for prop_name, prop_value in NODE_PROPERTIES[node_type].items():
+                    if prop_name not in properties:
+                        properties[prop_name] = prop_value
 
             # Add default properties for common nodes
             if node_type == "Mountain" and len(properties) < 5:
@@ -233,8 +245,13 @@ class Gaea2MCPServer:
 
             # Add all properties with type conversion FIRST (after $id and $type)
             for prop, value in properties.items():
+                # Special handling for Range properties - need their own $id
+                if prop == "Range" and isinstance(value, dict):
+                    range_id = ref_id_counter
+                    ref_id_counter += 1
+                    value = {"$id": str(range_id), "X": float(value.get("X", 0.5)), "Y": float(value.get("Y", 0.5))}
                 # Convert string numbers to appropriate numeric types
-                if isinstance(value, str):
+                elif isinstance(value, str):
                     # Try to convert to number if it looks like one
                     if value.replace(".", "").replace("-", "").isdigit():
                         try:
@@ -531,7 +548,7 @@ class Gaea2MCPServer:
             "$id": str(ref_id_counter),
             "BakeResolution": 2048,
             "PreviewResolution": 512,
-            "SelectedNode": node_id_base if nodes else 100,
+            "SelectedNode": list(gaea_nodes.keys())[0] if gaea_nodes else 100,
             "LockedNode": None,
         }
         ref_id_counter += 1
@@ -626,16 +643,35 @@ class Gaea2MCPServer:
     async def create_gaea2_project(
         self,
         project_name: str,
-        workflow: Dict[str, Any],
+        workflow: Optional[Dict[str, Any]] = None,
+        nodes: Optional[List[Dict]] = None,
+        connections: Optional[List[Dict]] = None,
         output_path: Optional[str] = None,
         auto_validate: bool = True,
         save_to_disk: bool = True,
     ) -> Dict[str, Any]:
-        """Create a Gaea2 project from workflow definition"""
+        """Create a Gaea2 project from workflow definition
+
+        Supports two parameter formats:
+        1. workflow parameter containing nodes and connections
+        2. nodes and connections as separate parameters
+        """
         try:
-            # Extract nodes and connections
-            nodes = workflow.get("nodes", [])
-            connections = workflow.get("connections", [])
+            # Handle both parameter formats
+            if workflow is not None:
+                # Extract from workflow dict
+                nodes = workflow.get("nodes", [])
+                connections = workflow.get("connections", [])
+            elif nodes is None:
+                # Neither format provided
+                return {"success": False, "error": "Either 'workflow' or 'nodes' parameter must be provided"}
+
+            # Ensure we have lists
+            nodes = nodes or []
+            connections = connections or []
+
+            # Create workflow dict for validation
+            workflow = {"nodes": nodes, "connections": connections}
 
             # Validate and fix workflow if requested
             if auto_validate:
