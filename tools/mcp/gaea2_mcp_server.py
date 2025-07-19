@@ -105,7 +105,7 @@ class Gaea2MCPServer:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%SZ")
 
         # Initialize sequential ID counter starting from 1
-        ref_id_counter = 1
+        ref_id_counter = 7  # Start at 7 because project structure uses 1-6
 
         # Pre-process connections to know which nodes need Records
         node_connections = {}
@@ -197,8 +197,9 @@ class Gaea2MCPServer:
                 "$type": gaea_type,
             }
 
-            # Update counter for next elements
-            ref_id_counter += 5
+            # Save the node's $id for reference
+            node_ref_id = str(ref_id_counter)
+            ref_id_counter += 1
 
             # Add default properties for common nodes
             if node_type == "Mountain" and len(properties) < 5:
@@ -244,13 +245,20 @@ class Gaea2MCPServer:
             gaea_node["Id"] = node_id
             gaea_node["Name"] = node.get("name", node_type)
             gaea_node["Position"] = {
-                "$id": str(ref_id_counter + 1),
+                "$id": str(ref_id_counter),
                 "X": float(node.get("position", {}).get("x", 24000 + i * 500)),
                 "Y": float(node.get("position", {}).get("y", 26000)),
             }
-            gaea_node["Ports"] = {"$id": str(ref_id_counter + 2), "$values": []}
-            gaea_node["Modifiers"] = {"$id": str(ref_id_counter + 3), "$values": []}
-            gaea_node["SnapIns"] = {"$id": str(ref_id_counter + 4), "$values": []}
+            ref_id_counter += 1
+
+            gaea_node["Ports"] = {"$id": str(ref_id_counter), "$values": []}
+            ref_id_counter += 1
+
+            gaea_node["Modifiers"] = {"$id": str(ref_id_counter), "$values": []}
+            ref_id_counter += 1
+
+            gaea_node["SnapIns"] = {"$id": str(ref_id_counter), "$values": []}
+            ref_id_counter += 1
 
             # Handle Export node SaveDefinition
             if node_type == "Export" and node.get("save_definition"):
@@ -274,7 +282,7 @@ class Gaea2MCPServer:
                     "Name": "In",
                     "Type": "PrimaryIn, Required",
                     "IsExporting": True,
-                    "Parent": {"$ref": gaea_node["$id"]},
+                    "Parent": {"$ref": node_ref_id},
                 }
                 ref_id_counter += 1
 
@@ -302,7 +310,7 @@ class Gaea2MCPServer:
                         "Name": "Out",
                         "Type": "PrimaryOut",
                         "IsExporting": True,
-                        "Parent": {"$ref": gaea_node["$id"]},
+                        "Parent": {"$ref": node_ref_id},
                     }
                 )
                 ref_id_counter += 1
@@ -315,7 +323,7 @@ class Gaea2MCPServer:
                         "Name": port_name,
                         "Type": "PrimaryIn" if port_name == "In" else "In",
                         "IsExporting": True,
-                        "Parent": {"$ref": gaea_node["$id"]},
+                        "Parent": {"$ref": node_ref_id},
                     }
                     ref_id_counter += 1
 
@@ -343,7 +351,7 @@ class Gaea2MCPServer:
                         "Name": "Out",
                         "Type": "PrimaryOut",
                         "IsExporting": True,
-                        "Parent": {"$ref": gaea_node["$id"]},
+                        "Parent": {"$ref": node_ref_id},
                     }
                 )
                 ref_id_counter += 1
@@ -356,7 +364,7 @@ class Gaea2MCPServer:
                     "Name": "In",
                     "Type": "PrimaryIn",
                     "IsExporting": True,
-                    "Parent": {"$ref": gaea_node["$id"]},
+                    "Parent": {"$ref": node_ref_id},
                 }
                 ref_id_counter += 1
 
@@ -384,7 +392,7 @@ class Gaea2MCPServer:
                         "Name": "Out",
                         "Type": "PrimaryOut",
                         "IsExporting": True,
-                        "Parent": {"$ref": gaea_node["$id"]},
+                        "Parent": {"$ref": node_ref_id},
                     }
                 )
                 ref_id_counter += 1
@@ -392,124 +400,170 @@ class Gaea2MCPServer:
             gaea_nodes[str(node_id)] = gaea_node
 
         # Create the full project structure with sequential IDs
+        # Use IDs 1-6 for the project structure (before nodes)
         project = {
-            "$id": str(ref_id_counter),
-            "Assets": {
-                "$id": str(ref_id_counter + 1),
-                "$values": [
-                    {
-                        "$id": str(ref_id_counter + 2),
-                        "Terrain": {
-                            "$id": str(ref_id_counter + 3),
-                            "Id": project_id,
-                            "Metadata": {
-                                "$id": str(ref_id_counter + 4),
-                                "Name": project_name,
-                                "Description": "Created by Gaea2 MCP Server",
-                                "Version": "2.0.6.0",
-                                "DateCreated": timestamp,
-                                "DateLastBuilt": timestamp,
-                                "DateLastSaved": timestamp,
-                                "ModifiedVersion": "2.0.6.0",
-                            },
-                            "Nodes": {
-                                "$id": str(ref_id_counter + 5),
-                                **gaea_nodes,  # Add nodes directly as properties
-                            },
-                            "Groups": {"$id": str(ref_id_counter + 6)},
-                            "Notes": {"$id": str(ref_id_counter + 7)},
-                            "GraphTabs": {
-                                "$id": str(ref_id_counter + 8),
-                                "$values": [
-                                    {
-                                        "$id": str(ref_id_counter + 9),
-                                        "Name": "Graph 1",
-                                        "Color": "Brass",
-                                        "ZoomFactor": 0.5,
-                                        "ViewportLocation": {
-                                            "$id": str(ref_id_counter + 10),
-                                            "X": 25000.0,
-                                            "Y": 26000.0,
-                                        },
-                                    }
-                                ],
-                            },
-                            "Width": 5000.0,
-                            "Height": 2500.0,
-                            "Ratio": 0.5,
-                        },
-                        "Automation": {
-                            "$id": str(ref_id_counter + 11),
-                            "Bindings": {"$id": str(ref_id_counter + 12), "$values": []},
-                            "Variables": {"$id": str(ref_id_counter + 13)},
-                            "BoundProperties": {"$id": str(ref_id_counter + 14), "$values": []},
-                        },
-                        "BuildDefinition": {
-                            "$id": str(ref_id_counter + 15),
-                            "Destination": "<Builds>\\[Filename]\\[+++]",
-                            "Resolution": 2048,
-                            "BakeResolution": 2048,
-                            "TileResolution": 1024,
-                            "BucketResolution": 2048,
-                            "BucketCount": 1,
-                            "WorldResolution": 2048,
-                            "NumberOfTiles": 1,
-                            "TotalTiles": 1,
-                            "BucketSizeWithMargin": 3072,
-                            "EdgeBlending": 0.25,
-                            "EdgeSize": 512,
-                            "TileZeroIndex": True,
-                            "TilePattern": "",
-                            "OrganizeFiles": "NodeSubFolder",
-                            "Regions": {"$id": str(ref_id_counter + 16), "$values": []},
-                            "PostBuildScript": "",
-                        },
-                        "State": {
-                            "$id": str(ref_id_counter + 17),
-                            "BakeResolution": 2048,
-                            "PreviewResolution": 512,
-                            "SelectedNode": node_id_base if nodes else 100,
-                            "NodeBookmarks": {"$id": str(ref_id_counter + 18), "$values": []},
-                            "Viewport": {
-                                "$id": str(ref_id_counter + 19),
-                                "Camera": {"$id": str(ref_id_counter + 20)},
-                                "RenderMode": "Realistic",
-                                "SunAltitude": 33.0,
-                                "SunAzimuth": 45.0,
-                                "SunIntensity": 1.0,
-                                "AmbientOcclusion": True,
-                                "Shadows": True,
-                                "AirDensity": 1.0,
-                                "AmbientIntensity": 1.0,
-                                "Exposure": 1.0,
-                                "FogDensity": 0.2,
-                                "GroundBrightness": 0.8,
-                                "Haze": 1.0,
-                                "Ozone": 1.0,
-                            },
-                            "LockedNode": None,
-                        },
-                    }
-                ],
-            },
-            "Id": project_id[:8],  # Short version
-            "Branch": 1,
-            "Metadata": {
-                "$id": str(ref_id_counter + 21),
-                "Name": project_name,
-                "Description": "Created by Gaea2 MCP Server",
-                "Version": "2.0.6.0",
-                "Owner": "",
-                "DateCreated": timestamp,
-                "DateLastBuilt": timestamp,
-                "DateLastSaved": timestamp,
-            },
+            "$id": "1",
         }
+
+        project["Assets"] = {"$id": "2", "$values": []}
+
+        asset_value = {
+            "$id": "3",
+        }
+
+        # Terrain
+        asset_value["Terrain"] = {
+            "$id": "4",
+            "Id": project_id,
+        }
+
+        # Metadata
+        asset_value["Terrain"]["Metadata"] = {
+            "$id": "5",
+            "Name": project_name,
+            "Description": "Created by Gaea2 MCP Server",
+            "Version": "2.0.6.0",
+            "DateCreated": timestamp,
+            "DateLastBuilt": timestamp,
+            "DateLastSaved": timestamp,
+            "ModifiedVersion": "2.0.6.0",
+        }
+
+        # Nodes
+        asset_value["Terrain"]["Nodes"] = {
+            "$id": "6",
+            **gaea_nodes,
+        }
+
+        # Groups
+        asset_value["Terrain"]["Groups"] = {"$id": str(ref_id_counter)}
+        ref_id_counter += 1
+
+        # Notes
+        asset_value["Terrain"]["Notes"] = {"$id": str(ref_id_counter)}
+        ref_id_counter += 1
+
+        # GraphTabs
+        asset_value["Terrain"]["GraphTabs"] = {"$id": str(ref_id_counter), "$values": []}
+        ref_id_counter += 1
+
+        graph_tab = {
+            "$id": str(ref_id_counter),
+            "Name": "Graph 1",
+            "Color": "Brass",
+            "ZoomFactor": 0.5,
+        }
+        ref_id_counter += 1
+
+        graph_tab["ViewportLocation"] = {
+            "$id": str(ref_id_counter),
+            "X": 25000.0,
+            "Y": 26000.0,
+        }
+        ref_id_counter += 1
+
+        asset_value["Terrain"]["GraphTabs"]["$values"].append(graph_tab)
+
+        asset_value["Terrain"]["Width"] = 5000.0
+        asset_value["Terrain"]["Height"] = 2500.0
+        asset_value["Terrain"]["Ratio"] = 0.5
+
+        # Automation
+        asset_value["Automation"] = {
+            "$id": str(ref_id_counter),
+        }
+        ref_id_counter += 1
+
+        asset_value["Automation"]["Bindings"] = {"$id": str(ref_id_counter), "$values": []}
+        ref_id_counter += 1
+
+        asset_value["Automation"]["Variables"] = {"$id": str(ref_id_counter)}
+        ref_id_counter += 1
+
+        asset_value["Automation"]["BoundProperties"] = {"$id": str(ref_id_counter), "$values": []}
+        ref_id_counter += 1
+
+        # BuildDefinition
+        asset_value["BuildDefinition"] = {
+            "$id": str(ref_id_counter),
+            "Destination": "<Builds>\\[Filename]\\[+++]",
+            "Resolution": 2048,
+            "BakeResolution": 2048,
+            "TileResolution": 1024,
+            "BucketResolution": 2048,
+            "BucketCount": 1,
+            "WorldResolution": 2048,
+            "NumberOfTiles": 1,
+            "TotalTiles": 1,
+            "BucketSizeWithMargin": 3072,
+            "EdgeBlending": 0.25,
+            "EdgeSize": 512,
+            "TileZeroIndex": True,
+            "TilePattern": "",
+            "OrganizeFiles": "NodeSubFolder",
+            "PostBuildScript": "",
+        }
+        ref_id_counter += 1
+
+        asset_value["BuildDefinition"]["Regions"] = {"$id": str(ref_id_counter), "$values": []}
+        ref_id_counter += 1
+
+        # State
+        asset_value["State"] = {
+            "$id": str(ref_id_counter),
+            "BakeResolution": 2048,
+            "PreviewResolution": 512,
+            "SelectedNode": node_id_base if nodes else 100,
+            "LockedNode": None,
+        }
+        ref_id_counter += 1
+
+        asset_value["State"]["NodeBookmarks"] = {"$id": str(ref_id_counter), "$values": []}
+        ref_id_counter += 1
+
+        asset_value["State"]["Viewport"] = {
+            "$id": str(ref_id_counter),
+            "RenderMode": "Realistic",
+            "SunAltitude": 33.0,
+            "SunAzimuth": 45.0,
+            "SunIntensity": 1.0,
+            "AmbientOcclusion": True,
+            "Shadows": True,
+            "AirDensity": 1.0,
+            "AmbientIntensity": 1.0,
+            "Exposure": 1.0,
+            "FogDensity": 0.2,
+            "GroundBrightness": 0.8,
+            "Haze": 1.0,
+            "Ozone": 1.0,
+        }
+        ref_id_counter += 1
+
+        asset_value["State"]["Viewport"]["Camera"] = {"$id": str(ref_id_counter)}
+        ref_id_counter += 1
+
+        # Add the asset value to Assets
+        project["Assets"]["$values"].append(asset_value)
+
+        # Top-level metadata
+        project["Id"] = project_id[:8]
+        project["Branch"] = 1
+        project["Metadata"] = {
+            "$id": str(ref_id_counter),
+            "Name": project_name,
+            "Description": "Created by Gaea2 MCP Server",
+            "Version": "2.0.6.0",
+            "Owner": "",
+            "DateCreated": timestamp,
+            "DateLastBuilt": timestamp,
+            "DateLastSaved": timestamp,
+        }
+        ref_id_counter += 1
 
         return project
 
     def _parse_gaea_output(self, output: str) -> Dict[str, Any]:
-        """Parse Gaea2 verbose output for useful information"""
+        """Parse Gaea2 command output for useful information"""
         parsed = {
             "nodes_processed": [],
             "errors": [],
