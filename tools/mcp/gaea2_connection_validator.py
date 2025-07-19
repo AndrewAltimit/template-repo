@@ -67,6 +67,12 @@ class Gaea2ConnectionValidator:
                 else:
                     # Connection exists but might be rare
                     probability = valid_targets[to_type]
+                    # Ensure probability is numeric for comparison
+                    if isinstance(probability, str):
+                        try:
+                            probability = float(probability)
+                        except ValueError:
+                            probability = 0.5  # Default if conversion fails
                     if probability < 0.1:
                         warnings.append(f"Rare connection: {from_type} → {to_type} " f"(only {probability:.0%} of cases)")
 
@@ -287,6 +293,12 @@ class Gaea2ConnectionValidator:
             if from_type and to_type and from_type in NODE_CONNECTION_FREQUENCY:
                 if to_type in NODE_CONNECTION_FREQUENCY[from_type]:
                     probability = NODE_CONNECTION_FREQUENCY[from_type][to_type]
+                    # Ensure probability is numeric
+                    if isinstance(probability, str):
+                        try:
+                            probability = float(probability)
+                        except ValueError:
+                            probability = 0.5
                     if probability < 0.1:
                         score -= 5  # Rare connection
                 else:

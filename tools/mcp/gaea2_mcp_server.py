@@ -207,9 +207,47 @@ class Gaea2MCPServer:
             # Update counter for next elements
             ref_id_counter += 5
 
-            # Add node properties
+            # Add node properties with type conversion and defaults
             properties = node.get("properties", {})
+
+            # Add default properties for common nodes
+            if node_type == "Mountain" and len(properties) < 5:
+                # Mountain should have these properties
+                default_props = {
+                    "Octaves": 8,
+                    "Height": 1000.0,
+                    "Scale": 1.0,
+                    "Seed": 1,
+                    "Complexity": 0.5,
+                    "RidgeWeight": 0.5,
+                    "Persistence": 0.5,
+                    "Lacunarity": 2.0,
+                }
+                # Only add missing properties
+                for key, default_val in default_props.items():
+                    if key not in properties:
+                        properties[key] = default_val
+
+            elif node_type == "Erosion" and len(properties) < 3:
+                default_props = {"Duration": 10, "Intensity": 0.5, "RockSoftness": 0.5, "Downcutting": 0.5, "BaseLevel": 0.1}
+                for key, default_val in default_props.items():
+                    if key not in properties:
+                        properties[key] = default_val
+
+            # Now add all properties with type conversion
             for prop, value in properties.items():
+                # Convert string numbers to appropriate numeric types
+                if isinstance(value, str):
+                    # Try to convert to number if it looks like one
+                    if value.replace(".", "").replace("-", "").isdigit():
+                        try:
+                            # Try int first
+                            if "." not in value:
+                                value = int(value)
+                            else:
+                                value = float(value)
+                        except ValueError:
+                            pass  # Keep as string if conversion fails
                 gaea_node[prop] = value
 
             # Handle Export node SaveDefinition
