@@ -12,6 +12,7 @@ Must be run on the host system with access to Gaea2 executable.
 
 import asyncio
 import json
+import logging
 import os
 import platform
 import shutil
@@ -53,6 +54,9 @@ class Gaea2MCPServer:
             gaea_path: Path to Gaea2 executable (Gaea.Swarm.exe).
                       If not provided, will look for GAEA2_PATH env var.
         """
+        # Set up logging
+        self.logger = logging.getLogger(__name__)
+
         self.gaea_path = gaea_path or os.environ.get("GAEA2_PATH")
         if self.gaea_path:
             self.gaea_path = Path(self.gaea_path)
