@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Tuple
 # Model constants
 PRO_MODEL = "gemini-2.5-pro"
 FLASH_MODEL = "gemini-2.5-flash"
+PRO_MODEL_TIMEOUT = 90  # seconds
+FLASH_MODEL_TIMEOUT = 60  # seconds
 
 
 def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
@@ -40,21 +42,26 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
             capture_output=True,
             text=True,
             check=True,
-            timeout=90,  # 90 second timeout for Pro model in CI environments
+            timeout=PRO_MODEL_TIMEOUT,
         )
         output = clean_output(result.stdout.strip())
         return output.strip(), PRO_MODEL
     except subprocess.TimeoutExpired:
-        print("⏱️  Pro model timed out after 90s, trying Flash model...")
+        print(f"⏱️  Pro model timed out after {PRO_MODEL_TIMEOUT}s, trying Flash model...")
         print("   (This is likely due to network latency in CI, not a quota issue)")
     except subprocess.CalledProcessError as e:
         # Check if it's a quota limit error
-        if e.stderr and ("quota limit" in e.stderr.lower() or "API Error" in e.stderr or "quota exceeded" in e.stderr.lower()):
-            print("⚡ Quota limit reached for Pro model, falling back to Flash...")
+        if e.stderr:
+            error_text = e.stderr.lower()
+            if "quota limit" in error_text or "api error" in error_text or "quota exceeded" in error_text:
+                print("⚡ Quota limit reached for Pro model, falling back to Flash...")
+            else:
+                # Non-quota error from Pro model - surface the error
+                err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
+                return f"❌ Pro model failed with error: {err_msg}", ""
         else:
-            # Non-quota error from Pro model - surface the error
-            err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
-            return f"❌ Pro model failed with error: {err_msg}", ""
+            # No stderr, return the error
+            return f"❌ Pro model failed with error: {str(e)}", ""
     except Exception as e:
         # Unexpected error
         return f"❌ Unexpected error with Pro model: {str(e)}", ""
@@ -68,7 +75,7 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
             capture_output=True,
             text=True,
             check=True,
-            timeout=60,  # 60s for Flash model
+            timeout=FLASH_MODEL_TIMEOUT,
         )
         output = clean_output(result.stdout.strip())
         return output.strip(), FLASH_MODEL
