@@ -32,7 +32,8 @@ from tools.mcp.gaea2_connection_validator import Gaea2ConnectionValidator  # noq
 from tools.mcp.gaea2_enhanced import EnhancedGaea2Tools  # noqa: E402
 from tools.mcp.gaea2_error_recovery import Gaea2ErrorRecovery  # noqa: E402
 from tools.mcp.gaea2_knowledge_graph import knowledge_graph  # noqa: E402
-from tools.mcp.gaea2_pattern_knowledge import PatternKnowledge  # noqa: E402
+
+# Pattern knowledge is available as module functions, not a class
 from tools.mcp.gaea2_project_repair import Gaea2ProjectRepair  # noqa: E402
 from tools.mcp.gaea2_property_validator import Gaea2PropertyValidator  # noqa: E402
 from tools.mcp.gaea2_schema import apply_default_properties  # noqa: E402
@@ -65,7 +66,6 @@ class Gaea2MCPServer:
         # Initialize enhanced tools
         self.enhanced_tools = EnhancedGaea2Tools()
         self.workflow_tools = Gaea2WorkflowTools()
-        self.pattern_knowledge = PatternKnowledge()
 
         # Execution history for debugging
         self.execution_history = []
@@ -335,8 +335,9 @@ class Gaea2MCPServer:
 
             # Optimize if requested
             if optimize_workflow:
-                # Use pattern knowledge for optimization
-                analysis = self.pattern_knowledge.analyze_workflow(workflow)
+                # Use workflow analyzer for optimization suggestions
+                analyzer = Gaea2WorkflowAnalyzer()
+                analysis = analyzer.analyze_workflow(workflow)
                 if analysis.get("suggestions"):
                     results["optimization_suggestions"] = analysis["suggestions"]
 
