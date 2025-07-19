@@ -199,9 +199,13 @@ class Gaea2MCPServer:
                 elif prop == "Reduce Details":
                     # Fix spacing issue
                     gaea_prop = "ReduceDetails"
+                elif prop == "Rock Softness":
+                    # Already in correct format for Erosion nodes
+                    gaea_prop = prop
                 else:
-                    # Convert property names to Gaea format (capitalize first letter)
-                    gaea_prop = prop[0].upper() + prop[1:] if prop else prop
+                    # For other properties, just use them as-is
+                    # The properties should already be validated and have correct names
+                    gaea_prop = prop
                 gaea_node[gaea_prop] = value
 
             # Handle Export node SaveDefinition
@@ -462,8 +466,15 @@ class Gaea2MCPServer:
                     props = node.get("properties", {})
 
                     # Fix common property name issues
-                    if node["type"] == "Erosion" and "RockSoftness" in props:
-                        props["Rock Softness"] = props.pop("RockSoftness")
+                    if node["type"] == "Erosion":
+                        # Erosion uses "Rock Softness" (with space)
+                        # Don't create duplicates - remove the camelCase version
+                        if "rockSoftness" in props:
+                            value = props.pop("rockSoftness")
+                            props["Rock Softness"] = value
+                        elif "RockSoftness" in props:
+                            value = props.pop("RockSoftness")
+                            props["Rock Softness"] = value
                     elif node["type"] == "Erosion2":
                         # Erosion2 uses RockSoftness (no space)
                         if "Rock Softness" in props:
