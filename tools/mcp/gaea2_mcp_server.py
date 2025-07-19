@@ -102,7 +102,8 @@ class Gaea2MCPServer:
         try:
             # Apply default properties
             for node in workflow:
-                apply_default_properties(node)
+                if "type" in node:
+                    node["properties"] = apply_default_properties(node["type"], node.get("properties", {}))
                 if "properties" in node:
                     node["properties"] = self._ensure_property_types(node["properties"])
 
