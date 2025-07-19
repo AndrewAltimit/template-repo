@@ -261,6 +261,7 @@ def analyze_file_group(
 
     # Try with Pro model first with longer timeout
     try:
+        print("🔍 Attempting analysis with Gemini 2.5 Pro model...")
         result = subprocess.run(
             ["gemini", "-m", "gemini-2.5-pro"],
             input=prompt,
@@ -279,6 +280,7 @@ def analyze_file_group(
         print("⏱️  Pro model timed out after 90s, trying Flash model...")
         print("   (This is likely due to network latency in CI, not a quota issue)")
         try:
+            print("🔍 Attempting analysis with Gemini 2.5 Flash model...")
             result = subprocess.run(
                 ["gemini", "-m", "gemini-2.5-flash"],
                 input=prompt,
@@ -293,13 +295,15 @@ def analyze_file_group(
                 output = "\n".join(line for line in lines if "Loaded cached credentials" not in line)
             return output.strip(), "gemini-2.5-flash"
         except Exception as flash_error:
-            print(f"❌ Flash model also failed: {flash_error}")
-            return None, ""
+            err_msg = str(flash_error)
+            print(f"❌ Flash model also failed: {err_msg}")
+            return f"❌ Both Pro and Flash models failed. Flash error: {err_msg}", ""
     except subprocess.CalledProcessError as e:
         # Check if it's a quota limit error
         if e.stderr and ("quota limit" in e.stderr.lower() or "API Error" in e.stderr or "quota exceeded" in e.stderr.lower()):
             print("⚡ Quota limit reached for Pro model, falling back to Flash...")
             try:
+                print("🔍 Attempting analysis with Gemini 2.5 Flash model...")
                 result = subprocess.run(
                     ["gemini", "-m", "gemini-2.5-flash"],
                     input=prompt,
@@ -314,12 +318,19 @@ def analyze_file_group(
                     output = "\n".join(line for line in lines if "Loaded cached credentials" not in line)
                 return output.strip(), "gemini-2.5-flash"
             except Exception as flash_error:
-                print(f"❌ Flash model also failed: {flash_error}")
-                return None, ""
+                err_msg = str(flash_error)
+                print(f"❌ Flash model also failed: {err_msg}")
+                return (
+                    f"❌ Both Pro and Flash models failed. Flash error: {err_msg}",
+                    "",
+                )
         else:
-            return None, ""
-    except Exception:
-        return None, ""
+            # Non-quota error from Pro model
+            err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
+            return f"❌ Pro model failed with error: {err_msg}", ""
+    except Exception as e:
+        # Unexpected error
+        return f"❌ Unexpected error in analyze_file_group: {str(e)}", ""
 
 
 def analyze_complete_diff(
@@ -380,6 +391,7 @@ def analyze_complete_diff(
 
     # Try with Pro model first with longer timeout
     try:
+        print("🔍 Attempting complete diff analysis with Gemini 2.5 Pro model...")
         result = subprocess.run(
             ["gemini", "-m", "gemini-2.5-pro"],
             input=prompt,
@@ -398,6 +410,7 @@ def analyze_complete_diff(
         print("⏱️  Pro model timed out after 90s, trying Flash model...")
         print("   (This is likely due to network latency in CI, not a quota issue)")
         try:
+            print("🔍 Attempting complete diff analysis with Gemini 2.5 Flash model...")
             result = subprocess.run(
                 ["gemini", "-m", "gemini-2.5-flash"],
                 input=prompt,
@@ -413,12 +426,14 @@ def analyze_complete_diff(
             return output.strip(), "gemini-2.5-flash"
         except Exception as flash_error:
             err_msg = flash_error.stderr if hasattr(flash_error, "stderr") else str(flash_error)
-            return (f"Error consulting Gemini Flash model: {err_msg}"), ""
+            print(f"❌ Flash model also failed: {err_msg}")
+            return f"❌ Both Pro and Flash models failed. Flash error: {err_msg}", ""
     except subprocess.CalledProcessError as e:
         # Check if it's a quota limit error
         if e.stderr and ("quota limit" in e.stderr.lower() or "API Error" in e.stderr or "quota exceeded" in e.stderr.lower()):
             print("⚡ Quota limit reached for Pro model, falling back to Flash...")
             try:
+                print("🔍 Attempting complete diff analysis with Gemini 2.5 Flash model...")
                 result = subprocess.run(
                     ["gemini", "-m", "gemini-2.5-flash"],
                     input=prompt,
@@ -434,9 +449,18 @@ def analyze_complete_diff(
                 return output.strip(), "gemini-2.5-flash"
             except Exception as flash_error:
                 err_msg = flash_error.stderr if hasattr(flash_error, "stderr") else str(flash_error)
-                return (f"Error consulting Gemini Flash model: {err_msg}"), ""
+                print(f"❌ Flash model also failed: {err_msg}")
+                return (
+                    f"❌ Both Pro and Flash models failed. Flash error: {err_msg}",
+                    "",
+                )
         else:
-            return (f"Error consulting Gemini: " f"{e.stderr if hasattr(e, 'stderr') else str(e)}"), ""
+            # Non-quota error from Pro model
+            err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
+            return f"❌ Pro model failed with error: {err_msg}", ""
+    except Exception as e:
+        # Unexpected error
+        return f"❌ Unexpected error in analyze_complete_diff: {str(e)}", ""
 
 
 def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:
