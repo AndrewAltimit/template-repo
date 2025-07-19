@@ -7,7 +7,7 @@ import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 
-from .gaea2_pattern_knowledge import COMMON_NODE_SEQUENCES, NODE_CONNECTION_FREQUENCY, WORKFLOW_TEMPLATES
+from tools.mcp.gaea2_pattern_knowledge import COMMON_NODE_SEQUENCES, NODE_CONNECTION_FREQUENCY, WORKFLOW_TEMPLATES
 
 logger = logging.getLogger(__name__)
 

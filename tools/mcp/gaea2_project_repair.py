@@ -7,8 +7,8 @@ import json
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-from .gaea2_accurate_validation import create_accurate_validator
-from .gaea2_error_handler import ErrorCategory, ErrorSeverity, Gaea2Error, Gaea2ErrorHandler
+from tools.mcp.gaea2_accurate_validation import create_accurate_validator
+from tools.mcp.gaea2_error_handler import ErrorCategory, ErrorSeverity, Gaea2Error, Gaea2ErrorHandler
 
 logger = logging.getLogger(__name__)
 

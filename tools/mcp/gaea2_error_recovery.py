@@ -7,9 +7,9 @@ import logging
 from copy import deepcopy
 from typing import Any, Dict, List, Tuple
 
-from .gaea2_connection_validator import Gaea2ConnectionValidator
-from .gaea2_pattern_knowledge import get_next_node_suggestions, suggest_properties_for_node
-from .gaea2_property_validator import Gaea2PropertyValidator
+from tools.mcp.gaea2_connection_validator import Gaea2ConnectionValidator
+from tools.mcp.gaea2_pattern_knowledge import get_next_node_suggestions, suggest_properties_for_node
+from tools.mcp.gaea2_property_validator import Gaea2PropertyValidator
 
 logger = logging.getLogger(__name__)
 

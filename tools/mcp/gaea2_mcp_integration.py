@@ -5,8 +5,8 @@ This module shows how to integrate the enhanced tools into the existing MCP serv
 
 from typing import Any, Dict, List
 
-from .gaea2_enhanced import EnhancedGaea2Tools
-from .gaea2_workflow_tools import Gaea2WorkflowTools
+from tools.mcp.gaea2_enhanced import EnhancedGaea2Tools
+from tools.mcp.gaea2_workflow_tools import Gaea2WorkflowTools
 
 
 class Gaea2MCPIntegration:
