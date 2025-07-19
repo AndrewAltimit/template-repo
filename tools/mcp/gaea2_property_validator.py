@@ -99,15 +99,37 @@ class Gaea2PropertyValidator:
             if prop_name in node_patterns:
                 pattern = node_patterns[prop_name]
 
-                # Range validation
-                if "range" in pattern and isinstance(prop_value, (int, float)):
+                # Range validation with type safety
+                if "range" in pattern:
                     min_val, max_val = pattern["range"]
-                    if prop_value < min_val:
-                        fixed_properties[prop_name] = min_val
-                        warnings.append(f"{prop_name} value {prop_value} below minimum {min_val}, set to {min_val}")
-                    elif prop_value > max_val:
-                        fixed_properties[prop_name] = max_val
-                        warnings.append(f"{prop_name} value {prop_value} above maximum {max_val}, set to {max_val}")
+
+                    # Ensure we can compare values
+                    try:
+                        # Convert string numbers to appropriate type
+                        if isinstance(prop_value, str) and prop_value.replace(".", "").replace("-", "").isdigit():
+                            prop_value = float(prop_value)
+                            if prop_value == int(prop_value):
+                                prop_value = int(prop_value)
+
+                        # Ensure min/max are same type as value for comparison
+                        if isinstance(prop_value, (int, float)):
+                            # Convert min/max to match value type if needed
+                            if isinstance(prop_value, int) and isinstance(min_val, float):
+                                if min_val == int(min_val):
+                                    min_val = int(min_val)
+                            if isinstance(prop_value, int) and isinstance(max_val, float):
+                                if max_val == int(max_val):
+                                    max_val = int(max_val)
+
+                            if prop_value < min_val:
+                                fixed_properties[prop_name] = min_val
+                                warnings.append(f"{prop_name} value {prop_value} below minimum {min_val}, set to {min_val}")
+                            elif prop_value > max_val:
+                                fixed_properties[prop_name] = max_val
+                                warnings.append(f"{prop_name} value {prop_value} above maximum {max_val}, set to {max_val}")
+                    except (TypeError, ValueError) as e:
+                        # If comparison fails, log warning but don't crash
+                        warnings.append(f"Could not validate range for {prop_name}: {str(e)}")
 
                 # Enum validation
                 if "options" in pattern and prop_value not in pattern["options"]:

@@ -536,10 +536,25 @@ class Gaea2MCPServer:
 
             # Save to disk if requested
             saved_path = None
-            if save_to_disk and output_path:
+            if save_to_disk:
+                # Use provided path or create default
+                if not output_path:
+                    # Create default projects directory
+                    if platform.system() == "Windows":
+                        default_dir = Path("C:/Gaea2/MCP_Projects")
+                    else:
+                        default_dir = Path.home() / "gaea2_projects"
+
+                    default_dir.mkdir(parents=True, exist_ok=True)
+                    output_path = str(default_dir / f"{project_name}.terrain")
+                    self.logger.info(f"No output path provided, using default: {output_path}")
+
                 # Ensure .terrain extension
                 if not output_path.endswith(".terrain"):
                     output_path += ".terrain"
+
+                # Create directory if needed
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
                 # Save as minified JSON with Unix line endings
                 json_content = json.dumps(project_structure, separators=(",", ":"))
@@ -558,7 +573,9 @@ class Gaea2MCPServer:
                 "node_count": len(nodes),
                 "connection_count": len(connections),
                 "saved_path": saved_path,
-                "project_structure": project_structure if not save_to_disk else None,
+                "project_path": saved_path,  # Include both for compatibility
+                "project_structure": project_structure,  # Always include the structure
+                "validation_result": validation_result if auto_validate else None,
             }
 
         except Exception as e:
@@ -657,12 +674,15 @@ class Gaea2MCPServer:
                 with open(workflow, "r") as f:
                     data = json.load(f)
                     workflow = data.get("workflow", data)
-            elif isinstance(workflow, dict):
-                # It's already a workflow dict with nodes and connections
-                pass
             elif isinstance(workflow, list):
-                # It's just a list of nodes, wrap it
+                # It's a list of nodes - convert to workflow dict
                 workflow = {"nodes": workflow, "connections": []}
+            elif isinstance(workflow, dict):
+                # It's already a workflow dict - ensure it has required keys
+                if "nodes" not in workflow:
+                    workflow["nodes"] = []
+                if "connections" not in workflow:
+                    workflow["connections"] = []
 
             results = {
                 "original_workflow": workflow,
