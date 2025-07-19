@@ -259,7 +259,7 @@ def analyze_file_group(
         f"Keep response concise but thorough."
     )
 
-    # Try with Pro model first
+    # Try with Pro model first with longer timeout
     try:
         result = subprocess.run(
             ["gemini", "-m", "gemini-2.5-pro"],
@@ -267,12 +267,17 @@ def analyze_file_group(
             capture_output=True,
             text=True,
             check=True,
-            timeout=30,  # 30 second timeout
+            timeout=90,  # 90 second timeout for Pro model in CI environments
         )
-        return result.stdout.strip(), "gemini-2.5-pro"
+        # Clean stdout by removing any credential messages
+        output = result.stdout.strip()
+        if "Loaded cached credentials" in output:
+            lines = output.split("\n")
+            output = "\n".join(line for line in lines if "Loaded cached credentials" not in line)
+        return output.strip(), "gemini-2.5-pro"
     except subprocess.TimeoutExpired:
-        print("⏱️  Pro model timed out (likely quota issue), falling back to Flash...")
-        # Timeout often indicates quota issue with interactive prompt
+        print("⏱️  Pro model timed out after 90s, trying Flash model...")
+        print("   (This is likely due to network latency in CI, not a quota issue)")
         try:
             result = subprocess.run(
                 ["gemini", "-m", "gemini-2.5-flash"],
@@ -280,9 +285,13 @@ def analyze_file_group(
                 capture_output=True,
                 text=True,
                 check=True,
-                timeout=30,
+                timeout=60,  # 60s for Flash model
             )
-            return result.stdout.strip(), "gemini-2.5-flash"
+            output = result.stdout.strip()
+            if "Loaded cached credentials" in output:
+                lines = output.split("\n")
+                output = "\n".join(line for line in lines if "Loaded cached credentials" not in line)
+            return output.strip(), "gemini-2.5-flash"
         except Exception as flash_error:
             print(f"❌ Flash model also failed: {flash_error}")
             return None, ""
@@ -297,9 +306,13 @@ def analyze_file_group(
                     capture_output=True,
                     text=True,
                     check=True,
-                    timeout=30,
+                    timeout=60,  # 60s for Flash model
                 )
-                return result.stdout.strip(), "gemini-2.5-flash"
+                output = result.stdout.strip()
+                if "Loaded cached credentials" in output:
+                    lines = output.split("\n")
+                    output = "\n".join(line for line in lines if "Loaded cached credentials" not in line)
+                return output.strip(), "gemini-2.5-flash"
             except Exception as flash_error:
                 print(f"❌ Flash model also failed: {flash_error}")
                 return None, ""
@@ -365,7 +378,7 @@ def analyze_complete_diff(
         "Focus on actionable feedback considering the container-first architecture."
     )
 
-    # Try with Pro model first
+    # Try with Pro model first with longer timeout
     try:
         result = subprocess.run(
             ["gemini", "-m", "gemini-2.5-pro"],
@@ -373,12 +386,17 @@ def analyze_complete_diff(
             capture_output=True,
             text=True,
             check=True,
-            timeout=30,  # 30 second timeout
+            timeout=90,  # 90 second timeout for Pro model in CI environments
         )
-        return result.stdout.strip(), "gemini-2.5-pro"
+        # Clean stdout by removing any credential messages
+        output = result.stdout.strip()
+        if "Loaded cached credentials" in output:
+            lines = output.split("\n")
+            output = "\n".join(line for line in lines if "Loaded cached credentials" not in line)
+        return output.strip(), "gemini-2.5-pro"
     except subprocess.TimeoutExpired:
-        print("⏱️  Pro model timed out (likely quota issue), falling back to Flash...")
-        # Timeout often indicates quota issue with interactive prompt
+        print("⏱️  Pro model timed out after 90s, trying Flash model...")
+        print("   (This is likely due to network latency in CI, not a quota issue)")
         try:
             result = subprocess.run(
                 ["gemini", "-m", "gemini-2.5-flash"],
@@ -386,9 +404,13 @@ def analyze_complete_diff(
                 capture_output=True,
                 text=True,
                 check=True,
-                timeout=30,
+                timeout=60,  # 60s for Flash model
             )
-            return result.stdout.strip(), "gemini-2.5-flash"
+            output = result.stdout.strip()
+            if "Loaded cached credentials" in output:
+                lines = output.split("\n")
+                output = "\n".join(line for line in lines if "Loaded cached credentials" not in line)
+            return output.strip(), "gemini-2.5-flash"
         except Exception as flash_error:
             err_msg = flash_error.stderr if hasattr(flash_error, "stderr") else str(flash_error)
             return (f"Error consulting Gemini Flash model: {err_msg}"), ""
@@ -403,9 +425,13 @@ def analyze_complete_diff(
                     capture_output=True,
                     text=True,
                     check=True,
-                    timeout=30,
+                    timeout=60,  # 60s for Flash model
                 )
-                return result.stdout.strip(), "gemini-2.5-flash"
+                output = result.stdout.strip()
+                if "Loaded cached credentials" in output:
+                    lines = output.split("\n")
+                    output = "\n".join(line for line in lines if "Loaded cached credentials" not in line)
+                return output.strip(), "gemini-2.5-flash"
             except Exception as flash_error:
                 err_msg = flash_error.stderr if hasattr(flash_error, "stderr") else str(flash_error)
                 return (f"Error consulting Gemini Flash model: {err_msg}"), ""
