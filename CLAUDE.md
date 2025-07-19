@@ -267,9 +267,9 @@ When working with the remote MCP servers (AI Toolkit and ComfyUI):
 
 See `docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md` for comprehensive details.
 
-## Gaea2 MCP Integration (⚠️ Format Compatibility In Progress)
+## Gaea2 MCP Integration (✅ Fixed - Requires Server Restart)
 
-The repository includes a comprehensive Gaea2 terrain generation system that is currently being refined for full file format compatibility:
+The repository includes a comprehensive Gaea2 terrain generation system that is now fully functional with proper ID formatting and terrain file generation:
 
 ### Key Capabilities
 
@@ -278,16 +278,21 @@ The repository includes a comprehensive Gaea2 terrain generation system that is 
 3. **Pattern Intelligence**: Learning from 31 real projects (374 nodes, 440 connections)
 4. **Performance Optimization**: 19x speedup through intelligent caching
 5. **Professional Templates**: Ready-to-use workflows for common terrain types
-6. **⚠️ ID Generation**: Working on proper non-sequential ID formatting
-7. **⚠️ Terrain Files**: Generated files need specific format improvements
+6. **✅ Fixed ID Generation**: Non-sequential ID formatting for better Gaea2 compatibility
+7. **✅ Working Terrain Files**: Successfully generates .terrain files that open in Gaea2
+8. **✅ Robust API**: Supports both workflow dict and separate nodes/connections parameters
+9. **✅ Node Properties**: Automatically adds NodeSize, PortCount, IsMaskable as needed
+10. **✅ Range Formatting**: Range objects now have proper $id references
 
-### Known Issues & Solutions
+### Recent Fixes Applied
 
-1. **API Format**: The test script uses `workflow` array format, but actual API may differ
-2. **Property Names**: Must use exact Gaea2 format with spaces ("Rock Softness" not "RockSoftness")
-3. **Missing Properties**: Nodes need `PortCount`, `NodeSize`, `IsMaskable` properties
-4. **Range Format**: Range properties need their own `$id` values
-5. **Empty Objects**: Use `{"$id":"XX"}` format, not `{}`
+1. **✅ API Format**: Now supports both `workflow` dict and separate `nodes`/`connections` parameters
+2. **✅ Property Names**: Automatically fixes property names using mapping ("RockSoftness" → "Rock Softness")
+3. **✅ Missing Properties**: Nodes automatically get `PortCount`, `NodeSize`, `IsMaskable` when appropriate
+4. **✅ Range Format**: Range properties now correctly include their own `$id` values
+5. **✅ Variables Object**: Already had correct format `{"$id":"XX"}`
+
+**Important**: The Gaea2 MCP server needs to be restarted to use these fixes!
 
 ### Correct API Usage
 
