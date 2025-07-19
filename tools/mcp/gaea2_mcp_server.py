@@ -121,9 +121,13 @@ class Gaea2MCPServer:
                 if not is_valid:
                     # Try to fix the workflow using error recovery
                     error_recovery = Gaea2ErrorRecovery()
-                    fixed_workflow = error_recovery.auto_fix_workflow({"nodes": nodes, "connections": connections})
-                    workflow["nodes"] = fixed_workflow.get("nodes", nodes)
-                    workflow["connections"] = fixed_workflow.get("connections", connections)
+                    fixed_project = error_recovery.auto_fix_project(nodes, connections)
+                    if fixed_project.get("success"):
+                        workflow["nodes"] = fixed_project.get("nodes", nodes)
+                        workflow["connections"] = fixed_project.get("connections", connections)
+                    else:
+                        # Use original if fix failed
+                        self.logger.warning(f"Auto-fix failed: {fixed_project.get('message', 'Unknown error')}")
 
                     # Validate again
                     validation_result = validator.validate_project(workflow["nodes"], workflow["connections"])
@@ -167,8 +171,29 @@ class Gaea2MCPServer:
             }
 
         try:
-            # Prepare command
-            cmd = [str(self.gaea_path), "-filename", project_path]
+            # Resolve project path to absolute path
+            if not os.path.isabs(project_path):
+                # If relative path, look in common locations
+                possible_paths = [
+                    os.path.abspath(project_path),
+                    os.path.join(os.getcwd(), project_path),
+                    os.path.join(os.path.expanduser("~"), "Documents", "Gaea", project_path),
+                    os.path.join(os.path.expanduser("~"), "Gaea Projects", project_path),
+                ]
+
+                for path in possible_paths:
+                    if os.path.exists(path):
+                        project_path = path
+                        break
+                else:
+                    return {"success": False, "error": f"Project file not found: {project_path}. Searched in {possible_paths}"}
+
+            # Ensure path exists
+            if not os.path.exists(project_path):
+                return {"success": False, "error": f"Project file does not exist: {project_path}"}
+
+            # Prepare command with resolved path
+            cmd = [str(self.gaea_path), "-filename", str(project_path)]
 
             # Add optional parameters
             if verbose:
@@ -345,22 +370,68 @@ class Gaea2MCPServer:
             # Apply fixes if requested
             if fix_errors and not all_valid:
                 recovery = Gaea2ErrorRecovery()
-                fixed_workflow, fixes = recovery.fix_workflow(workflow)
-                results["fixes_applied"] = fixes
-                workflow = fixed_workflow
+                # Get nodes and connections from workflow
+                nodes = workflow.get("nodes", [])
+                connections = workflow.get("connections", [])
+
+                # Apply fixes
+                fixed_result = recovery.auto_fix_project(nodes, connections)
+                if fixed_result.get("success"):
+                    workflow["nodes"] = fixed_result.get("nodes", nodes)
+                    workflow["connections"] = fixed_result.get("connections", connections)
+                    results["fixes_applied"] = fixed_result.get("fixes", [])
+                else:
+                    results["fix_errors"] = fixed_result.get("message", "Failed to fix")
 
             # Add missing essential nodes
             if add_missing_nodes:
-                validator = create_accurate_validator()
-                workflow = validator.fix_workflow(workflow)
+                # Check for essential nodes like Export and SatMap
+                nodes = workflow.get("nodes", [])
+                node_types = [node.get("type") for node in nodes]
+
+                if "Export" not in node_types:
+                    # Add Export node
+                    export_node = {
+                        "id": max([n.get("id", 0) for n in nodes] + [0]) + 1,
+                        "type": "Export",
+                        "name": "AutoExport",
+                        "properties": {"format": "png", "enabled": True},
+                        "position": {"x": 1000, "y": 0},
+                    }
+                    workflow["nodes"].append(export_node)
+                    results.setdefault("added_nodes", []).append("Export")
+
+                if "SatMap" not in node_types and any(t in node_types for t in ["Mountain", "Erosion", "Erosion2"]):
+                    # Add SatMap for visualization
+                    satmap_node = {
+                        "id": max([n.get("id", 0) for n in nodes] + [0]) + 2,
+                        "type": "SatMap",
+                        "name": "AutoSatMap",
+                        "properties": {},
+                        "position": {"x": 800, "y": 0},
+                    }
+                    workflow["nodes"].append(satmap_node)
+                    results.setdefault("added_nodes", []).append("SatMap")
 
             # Optimize if requested
             if optimize_workflow:
-                # Use workflow analyzer for optimization suggestions
-                analyzer = Gaea2WorkflowAnalyzer()
-                analysis = analyzer.analyze_workflow(workflow)
-                if analysis.get("suggestions"):
-                    results["optimization_suggestions"] = analysis["suggestions"]
+                # Generate optimization suggestions based on workflow
+                suggestions = []
+                for node in workflow.get("nodes", []):
+                    if node.get("type") == "Erosion2" and node.get("properties", {}).get("iterations", 20) > 30:
+                        suggestions.append(
+                            {
+                                "node": node.get("name", node.get("id")),
+                                "suggestion": "Consider reducing iterations for better performance",
+                            }
+                        )
+                    elif node.get("type") == "SatMap" and not node.get("properties", {}).get("quality"):
+                        suggestions.append(
+                            {"node": node.get("name", node.get("id")), "suggestion": "Set quality mode for better results"}
+                        )
+
+                if suggestions:
+                    results["optimization_suggestions"] = suggestions
 
             results["final_workflow"] = workflow
             results["is_valid"] = all_valid or fix_errors
@@ -567,14 +638,23 @@ class Gaea2MCPServer:
             if os.path.isdir(workflow_or_directory):
                 results = analyzer.analyze_directory(workflow_or_directory)
             else:
-                # Load workflow from file
-                with open(workflow_or_directory, "r") as f:
-                    workflow = json.load(f)
-                results = analyzer.analyze_workflow(workflow.get("workflow", workflow))
+                # Analyze single project file
+                results = analyzer.analyze_project(workflow_or_directory)
         else:
-            # Direct workflow dict
+            # Direct workflow dict - analyze it in memory
             workflow = workflow_or_directory
-            results = analyzer.analyze_workflow(workflow)
+            # Extract nodes and connections
+            nodes = workflow.get("nodes", [])
+            connections = workflow.get("connections", [])
+
+            # Create a temporary analysis result
+            results = {
+                "node_count": len(nodes),
+                "connection_count": len(connections),
+                "node_types": list(set(node.get("type", "Unknown") for node in nodes)),
+                "complexity": len(connections) / max(len(nodes), 1),
+                "recommendations": analyzer.get_recommendations([node.get("type") for node in nodes]),
+            }
 
         return {"success": True, "analysis": results}
 
