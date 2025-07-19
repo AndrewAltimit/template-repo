@@ -305,11 +305,33 @@ class Gaea2MCPServer:
             gaea_node["SnapIns"] = {"$id": str(ref_id_counter), "$values": []}
             ref_id_counter += 1
 
-            # Store export info for later SaveDefinition creation
+            # Embed SaveDefinition directly in Export nodes
             if node_type == "Export":
-                # Store export info in node for later extraction
-                node["_export_node_id"] = node_id
-                node["_export_enabled"] = True
+                # Create SaveDefinition embedded in the node
+                gaea_node["SaveDefinition"] = {
+                    "$id": str(ref_id_counter),
+                    "Node": node_id,
+                    "Filename": node.get("_export_filename", node.get("name", "Export")),
+                    "Format": node.get("_export_format", "EXR"),
+                    "IsEnabled": True,
+                }
+                ref_id_counter += 1
+
+            # Check if any node has export properties (like Rivers nodes in reference files)
+            elif "export" in properties or "save" in properties:
+                # Some nodes like Rivers can have embedded SaveDefinitions
+                if properties.get("export", False) or properties.get("save", False):
+                    gaea_node["SaveDefinition"] = {
+                        "$id": str(ref_id_counter),
+                        "Node": node_id,
+                        "Filename": properties.pop("filename", node.get("name", node_type)),
+                        "Format": properties.pop("format", "EXR").upper(),
+                        "IsEnabled": True,
+                    }
+                    ref_id_counter += 1
+                    # Remove the export/save flags
+                    properties.pop("export", None)
+                    properties.pop("save", None)
 
             # Add ports based on node type
             node_str_id = node.get("id", f"node_{i}")
@@ -696,24 +718,8 @@ class Gaea2MCPServer:
         }
         ref_id_counter += 1
 
-        # Create SaveDefinitions for Export nodes
-        save_definitions = []
-        for node in nodes:
-            if node.get("type") == "Export" and "_export_node_id" in node:
-                save_def = {
-                    "$id": str(ref_id_counter),
-                    "Node": node["_export_node_id"],
-                    "Filename": node.get("_export_filename", "Export"),
-                    "Format": node.get("_export_format", "EXR"),
-                    "IsEnabled": node.get("_export_enabled", True),
-                }
-                ref_id_counter += 1
-                save_definitions.append(save_def)
-
-        # Add SaveDefinitions to the asset value if any
-        if save_definitions:
-            asset_value["SaveDefinitions"] = {"$id": str(ref_id_counter), "$values": save_definitions}
-            ref_id_counter += 1
+        # DO NOT create separate SaveDefinitions array - they should be embedded in Export nodes
+        # Based on reference files, SaveDefinitions must remain within Export nodes
 
         # Apply additional format fixes
         project = apply_format_fixes(project, nodes, connections)

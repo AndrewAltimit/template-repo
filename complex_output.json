@@ -7,15 +7,15 @@
         "$id": "3",
         "Terrain": {
           "$id": "4",
-          "Id": "65c9be72-f65c-48ab-b702-48a5bd1c61b8",
+          "Id": "436c9216-9484-48a5-8b63-10bfd0aa3ac3",
           "Metadata": {
             "$id": "5",
             "Name": "complex_terrain_workflow",
             "Description": "Created by Gaea2 MCP Server",
             "Version": "2.0.6.0",
-            "DateCreated": "2025-07-19 17:29:05Z",
-            "DateLastBuilt": "2025-07-19 17:29:05Z",
-            "DateLastSaved": "2025-07-19 17:29:05Z",
+            "DateCreated": "2025-07-19 18:00:18Z",
+            "DateLastBuilt": "2025-07-19 18:00:18Z",
+            "DateLastSaved": "2025-07-19 18:00:18Z",
             "ModifiedVersion": "2.0.6.0"
           },
           "Nodes": {
@@ -201,7 +201,7 @@
               "Duration": 0.2,
               "Downcutting": 0.3,
               "Rock Softness": 0.6,
-              "Sediment Removal": 0.5,
+              "SedimentRemoval": 0.5,
               "Intensity": 0.5,
               "Base Level": 0.1,
               "Id": 281,
@@ -294,9 +294,9 @@
               "Width": 0.5,
               "Depth": 0.5,
               "Downcutting": 0.2,
-              "River Valley Width": "zero",
+              "RiverValleyWidth": "zero",
               "Headwaters": 100,
-              "Render Surface": false,
+              "RenderSurface": false,
               "Seed": 42,
               "NodeSize": "Standard",
               "IsMaskable": true,
@@ -663,7 +663,7 @@
       }
     ]
   },
-  "Id": "65c9be72",
+  "Id": "436c9216",
   "Branch": 1,
   "Metadata": {
     "$id": "96",
@@ -671,8 +671,8 @@
     "Description": "Created by Gaea2 MCP Server",
     "Version": "2.0.6.0",
     "Owner": "",
-    "DateCreated": "2025-07-19 17:29:05Z",
-    "DateLastBuilt": "2025-07-19 17:29:05Z",
-    "DateLastSaved": "2025-07-19 17:29:05Z"
+    "DateCreated": "2025-07-19 18:00:18Z",
+    "DateLastBuilt": "2025-07-19 18:00:18Z",
+    "DateLastSaved": "2025-07-19 18:00:18Z"
   }
 }

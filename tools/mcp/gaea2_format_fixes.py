@@ -352,16 +352,17 @@ def apply_format_fixes(
             tabs[0]["ViewportLocation"]["Y"] = 25791.812
             tabs[0]["ZoomFactor"] = 0.5338687202362516
 
-    # 3. Extract and fix SaveDefinitions
-    save_definitions, ref_counter = extract_and_fix_savedefinitions(project, ref_counter)
+    # 3. DO NOT extract SaveDefinitions - they should remain embedded in nodes
+    # Based on reference files analysis, SaveDefinitions must stay within the nodes
+    # save_definitions, ref_counter = extract_and_fix_savedefinitions(project, ref_counter)
 
-    # 4. Add SaveDefinitions as a separate array in the project
-    if save_definitions:
-        # Add SaveDefinitions to the Assets value object
-        asset_value = project["Assets"]["$values"][0]
-        if "SaveDefinitions" not in asset_value:
-            asset_value["SaveDefinitions"] = {"$id": str(ref_counter), "$values": save_definitions}
-            ref_counter += 1
+    # 4. DO NOT add SaveDefinitions as a separate array
+    # if save_definitions:
+    #     # Add SaveDefinitions to the Assets value object
+    #     asset_value = project["Assets"]["$values"][0]
+    #     if "SaveDefinitions" not in asset_value:
+    #         asset_value["SaveDefinitions"] = {"$id": str(ref_counter), "$values": save_definitions}
+    #         ref_counter += 1
 
     # 5. Ensure all nodes are properly connected
     ensure_all_nodes_connected(project)
