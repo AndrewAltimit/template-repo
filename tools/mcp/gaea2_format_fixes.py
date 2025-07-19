@@ -122,11 +122,14 @@ def fix_property_names(properties: Dict[str, Any]) -> Dict[str, Any]:
     fixed = {}
 
     for key, value in properties.items():
+        # Ensure key is a string
+        key_str = str(key) if not isinstance(key, str) else key
+
         # Check if we have a mapping for this property
-        mapped_key = PROPERTY_NAME_MAPPING.get(key, key)
+        mapped_key = PROPERTY_NAME_MAPPING.get(key_str, key_str)
 
         # Special handling for Range properties
-        if key == "Range" and isinstance(value, dict) and "X" in value and "Y" in value:
+        if key_str == "Range" and isinstance(value, dict) and "X" in value and "Y" in value:
             # Range should have its own $id
             fixed[mapped_key] = {
                 "$id": str(random.randint(100, 200)),
