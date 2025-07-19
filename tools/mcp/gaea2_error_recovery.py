@@ -298,8 +298,20 @@ class Gaea2ErrorRecovery:
         has_terrain_export = False
         for node in nodes:
             if node["type"] == "Export":
+                # Check both old and new property structures
                 props = node.get("properties", {})
-                if props.get("format") == "Terrain":
+                save_def = node.get("save_definition", {})
+
+                # Check new structure (Format in properties)
+                if props.get("Format") == "Terrain":
+                    has_terrain_export = True
+                    break
+                # Check old structure (format in properties)
+                elif props.get("format") == "Terrain":
+                    has_terrain_export = True
+                    break
+                # Check save_definition
+                elif save_def.get("format") == "Terrain":
                     has_terrain_export = True
                     break
 
@@ -308,10 +320,13 @@ class Gaea2ErrorRecovery:
             export_nodes = [n for n in nodes if n["type"] in export_types]
 
             if not export_nodes:
-                # Add new Export node
+                # Add new Export node with updated structure
                 export_node = self._create_node("Export", len(nodes) + 200)
                 export_node["name"] = "TerrainExport"
                 export_node["properties"] = {
+                    "Format": "Terrain",  # Use new property name
+                }
+                export_node["save_definition"] = {
                     "filename": "terrain_output",
                     "format": "Terrain",
                     "enabled": True,
@@ -322,11 +337,27 @@ class Gaea2ErrorRecovery:
                 # Update existing Export node to output terrain
                 for node in export_nodes:
                     if node["type"] == "Export":
-                        node["properties"]["format"] = "Terrain"
-                        node["properties"]["enabled"] = True
-                        if "filename" not in node["properties"]:
-                            node["properties"]["filename"] = "terrain_output"
-                        self.fixes_applied.append(f"Updated {node['name']} to export .terrain format")
+                        # Update to new structure
+                        node["properties"]["Format"] = "Terrain"
+
+                        # Ensure save_definition exists
+                        if "save_definition" not in node:
+                            node["save_definition"] = {}
+
+                        node["save_definition"]["format"] = "Terrain"
+                        node["save_definition"]["enabled"] = True
+                        if "filename" not in node["save_definition"]:
+                            node["save_definition"]["filename"] = "terrain_output"
+
+                        # Clean up old properties if they exist
+                        if "format" in node["properties"]:
+                            del node["properties"]["format"]
+                        if "filename" in node["properties"]:
+                            del node["properties"]["filename"]
+                        if "enabled" in node["properties"]:
+                            del node["properties"]["enabled"]
+
+                        self.fixes_applied.append(f"Updated {node['name']} to export .terrain format with new structure")
                         break
 
         return nodes

@@ -13,7 +13,7 @@ from main import MCPClient  # noqa: E402
 
 def test_export_node():
     """Test Export node with corrected format"""
-    client = MCPClient(base_url="http://192.168.0.152:8005")
+    client = MCPClient(base_url="http://192.168.0.152:8000")
 
     # Check server health
     if not client.health_check():

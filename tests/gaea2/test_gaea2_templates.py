@@ -20,7 +20,7 @@ class Gaea2TemplateTester:
 
     def __init__(self):
         # Use remote Gaea2 MCP server
-        self.client = MCPClient(base_url="http://192.168.0.152:8005")
+        self.client = MCPClient(base_url="http://192.168.0.152:8000")
         self.results = []
         self.test_dir = "test_outputs/gaea2_templates"
         os.makedirs(self.test_dir, exist_ok=True)
@@ -29,7 +29,7 @@ class Gaea2TemplateTester:
         """Initialize the MCP client."""
         # Check if server is healthy
         if not self.client.health_check():
-            raise RuntimeError("MCP server is not available at http://192.168.0.152:8005")
+            raise RuntimeError("MCP server is not available at http://192.168.0.152:8000")
         print("✅ Remote Gaea2 MCP server is healthy")
 
     def cleanup(self):
