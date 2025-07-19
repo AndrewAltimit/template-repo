@@ -192,10 +192,39 @@ class Gaea2MCPServer:
             gaea_type = node_type_mapping.get(node_type, f"QuadSpinner.Gaea.Nodes.{node_type}, Gaea.Nodes")
 
             # Get node properties first
-            properties = node.get("properties", {})
+            raw_properties = node.get("properties", {})
 
-            # Fix property names to match Gaea2 format
-            properties = fix_property_names(properties)
+            # Create a case-insensitive lookup for properties to avoid duplicates
+            properties = {}
+            processed_keys = set()
+
+            # First, fix property names and handle case conflicts
+            for key, value in raw_properties.items():
+                # Check if we've already processed a variant of this key
+                key_lower = key.lower()
+                if key_lower in processed_keys:
+                    continue
+                processed_keys.add(key_lower)
+
+                # Fix the property name
+                fixed_key = fix_property_names({key: value}).get(key, key)
+                if fixed_key != key:
+                    # Use the fixed key
+                    properties[fixed_key] = value
+                else:
+                    # For properties that don't need fixing, use proper casing
+                    if key_lower == "seed":
+                        properties["Seed"] = value
+                    elif key_lower == "scale":
+                        properties["Scale"] = value
+                    elif key_lower == "height":
+                        properties["Height"] = value
+                    elif key_lower == "duration":
+                        properties["Duration"] = value
+                    elif key_lower == "downcutting":
+                        properties["Downcutting"] = value
+                    else:
+                        properties[key] = value
 
             # Create Gaea node structure with properties FIRST (after $id and $type)
             gaea_node = {
@@ -213,38 +242,52 @@ class Gaea2MCPServer:
                     if prop_name not in properties:
                         properties[prop_name] = prop_value
 
-            # Add default properties for common nodes
-            if node_type == "Mountain" and len(properties) < 5:
+            # Add default properties for common nodes (only if not already present)
+            if node_type == "Mountain":
                 # Mountain should have these properties
                 default_props = {
                     "Octaves": 8,
-                    "Height": 1000.0,
-                    "Scale": 1.0,
-                    "Seed": 1,
                     "Complexity": 0.5,
                     "RidgeWeight": 0.5,
                     "Persistence": 0.5,
                     "Lacunarity": 2.0,
                 }
-                # Only add missing properties
+                # Only add missing properties (don't override existing ones)
                 for key, default_val in default_props.items():
                     if key not in properties:
                         properties[key] = default_val
 
-            elif node_type == "Erosion" and len(properties) < 3:
+            elif node_type == "Erosion":
+                # Map common property names to Gaea2 names
+                if "iterations" in raw_properties:
+                    # Convert iterations to Duration
+                    properties["Duration"] = float(raw_properties["iterations"]) / 100.0  # Scale down
+                    properties.pop("iterations", None)
+
                 default_props = {
-                    "Duration": 10,
                     "Intensity": 0.5,
-                    "RockSoftness": 0.5,
-                    "Downcutting": 0.5,
-                    "BaseLevel": 0.1,
+                    "Rock Softness": 0.5,  # Note the space!
+                    "Base Level": 0.1,
                 }
                 for key, default_val in default_props.items():
-                    if key not in properties:
+                    if key not in properties and key.replace(" ", "") not in properties:
                         properties[key] = default_val
+
+            # Handle Export node differently - properties go in SaveDefinition
+            if node_type == "Export":
+                # Don't add format/filename as direct properties
+                export_format = properties.pop("format", "EXR").upper()
+                export_filename = properties.pop("filename", node.get("name", "Export"))
+                # Store for later use in SaveDefinition
+                node["_export_format"] = export_format
+                node["_export_filename"] = export_filename
 
             # Add all properties with type conversion FIRST (after $id and $type)
             for prop, value in properties.items():
+                # Skip internal properties
+                if prop.startswith("_"):
+                    continue
+
                 # Special handling for Range properties - need their own $id
                 if prop == "Range" and isinstance(value, dict):
                     range_id = ref_id_counter
@@ -284,14 +327,13 @@ class Gaea2MCPServer:
             ref_id_counter += 1
 
             # Handle Export node SaveDefinition
-            if node_type == "Export" and node.get("save_definition"):
-                save_def = node["save_definition"]
+            if node_type == "Export":
                 gaea_node["SaveDefinition"] = {
                     "$id": str(ref_id_counter),
                     "Node": node_id,
-                    "Filename": save_def.get("filename", node.get("name", "Export")),
-                    "Format": save_def.get("format", "EXR").upper(),
-                    "IsEnabled": save_def.get("enabled", True),
+                    "Filename": node.get("_export_filename", node.get("name", "Export")),
+                    "Format": node.get("_export_format", "EXR"),
+                    "IsEnabled": True,
                 }
                 ref_id_counter += 1
 

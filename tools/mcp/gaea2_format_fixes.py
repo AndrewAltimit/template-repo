@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 PROPERTY_NAME_MAPPING = {
     # Common property mappings
     "rockSoftness": "Rock Softness",
+    "RockSoftness": "Rock Softness",  # Also handle camelCase variant
     "snowLine": "Snow Line",
     "settleDuration": "Settle Duration",
     "meltType": "Melt Type",
@@ -15,6 +16,7 @@ PROPERTY_NAME_MAPPING = {
     "realScale": "Real Scale",
     "erosionScale": "Erosion Scale",
     "baseLevel": "Base Level",
+    "BaseLevel": "Base Level",  # Handle both cases
     "colorProduction": "Color Production",
     "reduceDetails": "ReduceDetails",
     # Keep exact names that are already correct
