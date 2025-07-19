@@ -508,6 +508,135 @@ class Gaea2MCPServer:
 
         return parsed
 
+    async def create_gaea2_project(
+        self,
+        project_name: str,
+        workflow: Dict[str, Any],
+        output_path: Optional[str] = None,
+        auto_validate: bool = True,
+        save_to_disk: bool = True,
+    ) -> Dict[str, Any]:
+        """Create a Gaea2 project from workflow definition"""
+        try:
+            # Extract nodes and connections
+            nodes = workflow.get("nodes", [])
+            connections = workflow.get("connections", [])
+
+            # Validate and fix workflow if requested
+            if auto_validate:
+                validation_result = await self.validate_and_fix_workflow(workflow, auto_fix=True, add_missing_nodes=True)
+                if validation_result.get("success"):
+                    # Use fixed workflow
+                    workflow = validation_result.get("fixed_workflow", workflow)
+                    nodes = workflow.get("nodes", [])
+                    connections = workflow.get("connections", [])
+
+            # Create project structure with sequential IDs
+            project_structure = self._create_gaea2_project_structure(project_name, nodes, connections)
+
+            # Save to disk if requested
+            saved_path = None
+            if save_to_disk and output_path:
+                # Ensure .terrain extension
+                if not output_path.endswith(".terrain"):
+                    output_path += ".terrain"
+
+                # Save as minified JSON with Unix line endings
+                json_content = json.dumps(project_structure, separators=(",", ":"))
+
+                # Write with Unix line endings
+                with open(output_path, "wb") as f:
+                    f.write(json_content.encode("utf-8"))
+                    f.write(b"\n")  # Add final newline
+
+                saved_path = output_path
+                self.logger.info(f"Saved project to: {saved_path}")
+
+            return {
+                "success": True,
+                "project_name": project_name,
+                "node_count": len(nodes),
+                "connection_count": len(connections),
+                "saved_path": saved_path,
+                "project_structure": project_structure if not save_to_disk else None,
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error creating project: {str(e)}")
+            return {"success": False, "error": str(e)}
+
+    async def run_gaea2_project(
+        self,
+        project_path: str,
+        output_dir: Optional[str] = None,
+        verbose: bool = True,
+        timeout: int = 300,
+    ) -> Dict[str, Any]:
+        """Run a Gaea2 project using the CLI"""
+        try:
+            if not os.path.exists(project_path):
+                return {"success": False, "error": f"Project file not found: {project_path}"}
+
+            # Prepare command
+            cmd = [str(self.gaea_path), "--Filename", str(project_path)]
+
+            if output_dir:
+                cmd.extend(["--OutputDirectory", str(output_dir)])
+
+            if verbose:
+                cmd.append("--verbose")
+
+            # Run the command
+            self.logger.info(f"Running Gaea2 CLI: {' '.join(cmd)}")
+
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+
+            try:
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+            except asyncio.TimeoutError:
+                process.kill()
+                return {
+                    "success": False,
+                    "error": f"Execution timed out after {timeout} seconds",
+                }
+
+            # Parse output
+            output_str = stdout.decode("utf-8", errors="replace")
+            error_str = stderr.decode("utf-8", errors="replace")
+
+            # Parse verbose output
+            parsed_output = self._parse_gaea_output(output_str)
+
+            # Store in history
+            execution_record = {
+                "timestamp": datetime.now().isoformat(),
+                "project_path": project_path,
+                "success": process.returncode == 0,
+                "returncode": process.returncode,
+                "stdout": output_str,
+                "stderr": error_str,
+                "parsed": parsed_output,
+                "command": cmd,
+            }
+            self.execution_history.append(execution_record)
+
+            return {
+                "success": process.returncode == 0,
+                "returncode": process.returncode,
+                "output": output_str,
+                "error": error_str if process.returncode != 0 else None,
+                "parsed": parsed_output,
+                "execution_time": execution_record.get("execution_time"),
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error running project: {str(e)}")
+            return {"success": False, "error": str(e)}
+
     async def validate_and_fix_workflow(
         self,
         workflow: Union[str, List[Dict[str, Any]]],
