@@ -524,7 +524,7 @@ class Gaea2MCPServer:
 
             # Validate and fix workflow if requested
             if auto_validate:
-                validation_result = await self.validate_and_fix_workflow(workflow, auto_fix=True, add_missing_nodes=True)
+                validation_result = await self.validate_and_fix_workflow(workflow, fix_errors=True, add_missing_nodes=True)
                 if validation_result.get("success"):
                     # Use fixed workflow
                     workflow = validation_result.get("fixed_workflow", workflow)
