@@ -181,8 +181,8 @@ class Gaea2MCPServer:
                 "Name": node.get("name", node_type),
                 "Position": {
                     "$id": str(node_id + 2),
-                    "X": node.get("position", {}).get("x", 24000 + i * 300),
-                    "Y": node.get("position", {}).get("y", 26000),
+                    "X": float(node.get("position", {}).get("x", 24000 + i * 500)),
+                    "Y": float(node.get("position", {}).get("y", 26000)),
                 },
                 "Ports": {"$id": str(node_id + 3), "$values": []},
                 "Modifiers": {"$id": str(node_id + 4), "$values": []},
@@ -274,7 +274,8 @@ class Gaea2MCPServer:
             gaea_nodes[str(node_id)] = gaea_node
 
         # Process connections and add them to ports
-        for conn in connections:
+        record_id_base = 1000
+        for idx, conn in enumerate(connections):
             from_node = conn.get("from_node")
             to_node = conn.get("to_node")
             from_port = conn.get("from_port", "Out")
@@ -290,7 +291,7 @@ class Gaea2MCPServer:
                 for port in target_node["Ports"]["$values"]:
                     if port["Name"] == to_port:
                         port["Record"] = {
-                            "$id": str(node_id_base + 1000 + len(connections)),
+                            "$id": str(record_id_base + idx),
                             "From": from_id,
                             "To": to_id,
                             "FromPort": from_port,
@@ -566,9 +567,9 @@ class Gaea2MCPServer:
                         # Create directory if needed
                         save_path.parent.mkdir(parents=True, exist_ok=True)
 
-                        # Save the project
+                        # Save the project as minified JSON to match Gaea2 format
                         with open(save_path, "w") as f:
-                            json.dump(project, f, indent=2)
+                            json.dump(project, f, separators=(",", ":"))
 
                         saved_path = str(save_path)
                         self.logger.info(f"Project saved to: {saved_path}")
