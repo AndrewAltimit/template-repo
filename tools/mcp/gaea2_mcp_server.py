@@ -200,16 +200,19 @@ class Gaea2MCPServer:
 
             # First, fix property names and handle case conflicts
             for key, value in raw_properties.items():
+                # Ensure key is a string
+                key_str = str(key)
+
                 # Check if we've already processed a variant of this key
-                key_lower = key.lower()
+                key_lower = key_str.lower()
                 if key_lower in processed_keys:
                     continue
                 processed_keys.add(key_lower)
 
                 # Fix the property name
-                fixed_props = fix_property_names({key: value})
-                fixed_key = list(fixed_props.keys())[0] if fixed_props else key
-                if fixed_key != key:
+                fixed_props = fix_property_names({key_str: value})
+                fixed_key = list(fixed_props.keys())[0] if fixed_props else key_str
+                if fixed_key != key_str:
                     # Use the fixed key
                     properties[fixed_key] = value
                 else:
@@ -225,7 +228,7 @@ class Gaea2MCPServer:
                     elif key_lower == "downcutting":
                         properties["Downcutting"] = value
                     else:
-                        properties[key] = value
+                        properties[key_str] = value
 
             # Create Gaea node structure with properties FIRST (after $id and $type)
             gaea_node = {
