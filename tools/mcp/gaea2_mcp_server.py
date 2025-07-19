@@ -28,7 +28,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 sys.path.insert(0, project_root)
 
 # Import all Gaea2 modules
-from tools.mcp.gaea2_accurate_validation import create_accurate_validator  # noqa: E402
+# Removed unused import: create_accurate_validator
 from tools.mcp.gaea2_connection_validator import Gaea2ConnectionValidator  # noqa: E402
 from tools.mcp.gaea2_enhanced import EnhancedGaea2Tools  # noqa: E402
 from tools.mcp.gaea2_error_recovery import Gaea2ErrorRecovery  # noqa: E402
@@ -37,7 +37,7 @@ from tools.mcp.gaea2_knowledge_graph import knowledge_graph  # noqa: E402
 # Pattern knowledge is available as module functions, not a class
 from tools.mcp.gaea2_project_repair import Gaea2ProjectRepair  # noqa: E402
 from tools.mcp.gaea2_property_validator import Gaea2PropertyValidator  # noqa: E402
-from tools.mcp.gaea2_schema import WORKFLOW_TEMPLATES, apply_default_properties, create_workflow_from_template  # noqa: E402
+from tools.mcp.gaea2_schema import WORKFLOW_TEMPLATES, create_workflow_from_template  # noqa: E402
 from tools.mcp.gaea2_structure_validator import Gaea2StructureValidator  # noqa: E402
 from tools.mcp.gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer  # noqa: E402
 from tools.mcp.gaea2_workflow_tools import Gaea2WorkflowTools  # noqa: E402
@@ -99,12 +99,23 @@ class Gaea2MCPServer:
     def _create_gaea2_project_structure(self, project_name: str, nodes: List[Dict], connections: List[Dict]) -> Dict[str, Any]:
         """Create a Gaea2 project structure in the correct .terrain format"""
         import uuid
-        from datetime import datetime
 
-        # Generate node IDs starting from a base number
-        node_id_base = 100
-        node_id_map = {}  # Map from our IDs to Gaea numeric IDs
-        gaea_nodes = {}
+        # Generate IDs
+        project_id = str(uuid.uuid4())
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%SZ")
+
+        # Initialize sequential ID counter starting from 1
+        ref_id_counter = 1
+
+        # Pre-process connections to know which nodes need Records
+        node_connections = {}
+        if connections:
+            for conn in connections:
+                to_id = conn.get("to_node")
+                to_port = conn.get("to_port", "In")
+                if to_id not in node_connections:
+                    node_connections[to_id] = {}
+                node_connections[to_id][to_port] = conn
 
         # Node type mapping to Gaea2 .NET types
         node_type_mapping = {
@@ -165,6 +176,10 @@ class Gaea2MCPServer:
         }
 
         # Process nodes
+        node_id_base = 100
+        node_id_map = {}  # Map from our IDs to Gaea numeric IDs
+        gaea_nodes = {}
+
         for i, node in enumerate(nodes):
             node_id = node_id_base + i * 10
             node_id_map[node.get("id", f"node_{i}")] = node_id
@@ -173,24 +188,26 @@ class Gaea2MCPServer:
             node_type = node.get("type", "Mountain")
             gaea_type = node_type_mapping.get(node_type, f"QuadSpinner.Gaea.Nodes.{node_type}, Gaea.Nodes")
 
-            # Create Gaea node structure
+            # Create Gaea node structure with sequential IDs
             gaea_node = {
-                "$id": str(node_id + 1),
+                "$id": str(ref_id_counter),
                 "$type": gaea_type,
                 "Id": node_id,
                 "Name": node.get("name", node_type),
                 "Position": {
-                    "$id": str(node_id + 2),
+                    "$id": str(ref_id_counter + 1),
                     "X": float(node.get("position", {}).get("x", 24000 + i * 500)),
                     "Y": float(node.get("position", {}).get("y", 26000)),
                 },
-                "Ports": {"$id": str(node_id + 3), "$values": []},
-                "Modifiers": {"$id": str(node_id + 4), "$values": []},
-                "SnapIns": {"$id": str(node_id + 5), "$values": []},
+                "Ports": {"$id": str(ref_id_counter + 2), "$values": []},
+                "Modifiers": {"$id": str(ref_id_counter + 3), "$values": []},
+                "SnapIns": {"$id": str(ref_id_counter + 4), "$values": []},
             }
 
+            # Update counter for next elements
+            ref_id_counter += 5
+
             # Add node properties
-            # Properties should already be validated and have correct names
             properties = node.get("properties", {})
             for prop, value in properties.items():
                 gaea_node[prop] = value
@@ -199,143 +216,178 @@ class Gaea2MCPServer:
             if node_type == "Export" and node.get("save_definition"):
                 save_def = node["save_definition"]
                 gaea_node["SaveDefinition"] = {
-                    "$id": str(node_id + 20),
+                    "$id": str(ref_id_counter),
                     "Node": node_id,
                     "Filename": save_def.get("filename", node.get("name", "Export")),
                     "Format": save_def.get("format", "EXR").upper(),
                     "IsEnabled": save_def.get("enabled", True),
                 }
+                ref_id_counter += 1
 
             # Add ports based on node type
-            port_id_offset = 6
+            node_str_id = node.get("id", f"node_{i}")
+
             if node_type in ["Export", "SatMap"]:
+                # In port
+                port_in = {
+                    "$id": str(ref_id_counter),
+                    "Name": "In",
+                    "Type": "PrimaryIn, Required",
+                    "IsExporting": True,
+                    "Parent": {"$ref": gaea_node["$id"]},
+                }
+                ref_id_counter += 1
+
+                # Check if this port has an incoming connection
+                if node_str_id in node_connections and "In" in node_connections[node_str_id]:
+                    conn = node_connections[node_str_id]["In"]
+                    from_id = node_id_map.get(conn.get("from_node"))
+                    if from_id:
+                        port_in["Record"] = {
+                            "$id": str(ref_id_counter),
+                            "From": from_id,
+                            "To": node_id,
+                            "FromPort": conn.get("from_port", "Out"),
+                            "ToPort": "In",
+                            "IsValid": True,
+                        }
+                        ref_id_counter += 1
+
+                gaea_node["Ports"]["$values"].append(port_in)
+
+                # Out port
                 gaea_node["Ports"]["$values"].append(
                     {
-                        "$id": str(node_id + port_id_offset),
-                        "Name": "In",
-                        "Type": "PrimaryIn, Required",
-                        "IsExporting": True,
-                        "Parent": {"$ref": str(node_id + 1)},
-                    }
-                )
-                gaea_node["Ports"]["$values"].append(
-                    {
-                        "$id": str(node_id + port_id_offset + 1),
+                        "$id": str(ref_id_counter),
                         "Name": "Out",
                         "Type": "PrimaryOut",
                         "IsExporting": True,
-                        "Parent": {"$ref": str(node_id + 1)},
+                        "Parent": {"$ref": gaea_node["$id"]},
                     }
                 )
+                ref_id_counter += 1
+
             elif node_type == "Combine":
                 # Combine has multiple inputs
                 for port_name in ["In", "Input2", "Mask"]:
-                    gaea_node["Ports"]["$values"].append(
-                        {
-                            "$id": str(node_id + port_id_offset),
-                            "Name": port_name,
-                            "Type": "PrimaryIn" if port_name == "In" else "In",
-                            "IsExporting": True,
-                            "Parent": {"$ref": str(node_id + 1)},
-                        }
-                    )
-                    port_id_offset += 1
+                    port = {
+                        "$id": str(ref_id_counter),
+                        "Name": port_name,
+                        "Type": "PrimaryIn" if port_name == "In" else "In",
+                        "IsExporting": True,
+                        "Parent": {"$ref": gaea_node["$id"]},
+                    }
+                    ref_id_counter += 1
+
+                    # Check for connection
+                    if node_str_id in node_connections and port_name in node_connections[node_str_id]:
+                        conn = node_connections[node_str_id][port_name]
+                        from_id = node_id_map.get(conn.get("from_node"))
+                        if from_id:
+                            port["Record"] = {
+                                "$id": str(ref_id_counter),
+                                "From": from_id,
+                                "To": node_id,
+                                "FromPort": conn.get("from_port", "Out"),
+                                "ToPort": port_name,
+                                "IsValid": True,
+                            }
+                            ref_id_counter += 1
+
+                    gaea_node["Ports"]["$values"].append(port)
+
+                # Out port
                 gaea_node["Ports"]["$values"].append(
                     {
-                        "$id": str(node_id + port_id_offset),
+                        "$id": str(ref_id_counter),
                         "Name": "Out",
                         "Type": "PrimaryOut",
                         "IsExporting": True,
-                        "Parent": {"$ref": str(node_id + 1)},
+                        "Parent": {"$ref": gaea_node["$id"]},
                     }
                 )
+                ref_id_counter += 1
+
             else:
                 # Standard nodes have In and Out
+                # In port
+                port_in = {
+                    "$id": str(ref_id_counter),
+                    "Name": "In",
+                    "Type": "PrimaryIn",
+                    "IsExporting": True,
+                    "Parent": {"$ref": gaea_node["$id"]},
+                }
+                ref_id_counter += 1
+
+                # Check for connection
+                if node_str_id in node_connections and "In" in node_connections[node_str_id]:
+                    conn = node_connections[node_str_id]["In"]
+                    from_id = node_id_map.get(conn.get("from_node"))
+                    if from_id:
+                        port_in["Record"] = {
+                            "$id": str(ref_id_counter),
+                            "From": from_id,
+                            "To": node_id,
+                            "FromPort": conn.get("from_port", "Out"),
+                            "ToPort": "In",
+                            "IsValid": True,
+                        }
+                        ref_id_counter += 1
+
+                gaea_node["Ports"]["$values"].append(port_in)
+
+                # Out port
                 gaea_node["Ports"]["$values"].append(
                     {
-                        "$id": str(node_id + port_id_offset),
-                        "Name": "In",
-                        "Type": "PrimaryIn",
-                        "IsExporting": True,
-                        "Parent": {"$ref": str(node_id + 1)},
-                    }
-                )
-                gaea_node["Ports"]["$values"].append(
-                    {
-                        "$id": str(node_id + port_id_offset + 1),
+                        "$id": str(ref_id_counter),
                         "Name": "Out",
                         "Type": "PrimaryOut",
                         "IsExporting": True,
-                        "Parent": {"$ref": str(node_id + 1)},
+                        "Parent": {"$ref": gaea_node["$id"]},
                     }
                 )
+                ref_id_counter += 1
 
             gaea_nodes[str(node_id)] = gaea_node
 
-        # Process connections and add them to ports
-        record_id_base = 1000
-        for idx, conn in enumerate(connections):
-            from_node = conn.get("from_node")
-            to_node = conn.get("to_node")
-            from_port = conn.get("from_port", "Out")
-            to_port = conn.get("to_port", "In")
-
-            # Get numeric IDs
-            from_id = node_id_map.get(from_node)
-            to_id = node_id_map.get(to_node)
-
-            if from_id and to_id and str(to_id) in gaea_nodes:
-                # Find the target port and add the connection record
-                target_node = gaea_nodes[str(to_id)]
-                for port in target_node["Ports"]["$values"]:
-                    if port["Name"] == to_port:
-                        port["Record"] = {
-                            "$id": str(record_id_base + idx),
-                            "From": from_id,
-                            "To": to_id,
-                            "FromPort": from_port,
-                            "ToPort": to_port,
-                            "IsValid": True,
-                        }
-                        break
-
-        # Create the full project structure
-        now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%SZ")
-        terrain_id = str(uuid.uuid4())
-
+        # Create the full project structure with sequential IDs
         project = {
-            "$id": "1",
+            "$id": str(ref_id_counter),
             "Assets": {
-                "$id": "2",
+                "$id": str(ref_id_counter + 1),
                 "$values": [
                     {
-                        "$id": "3",
+                        "$id": str(ref_id_counter + 2),
                         "Terrain": {
-                            "$id": "4",
-                            "Id": terrain_id,
+                            "$id": str(ref_id_counter + 3),
+                            "Id": project_id,
                             "Metadata": {
-                                "$id": "5",
+                                "$id": str(ref_id_counter + 4),
                                 "Name": project_name,
                                 "Description": "Created by Gaea2 MCP Server",
                                 "Version": "2.0.6.0",
-                                "DateCreated": now,
-                                "DateLastBuilt": now,
-                                "DateLastSaved": now,
+                                "DateCreated": timestamp,
+                                "DateLastBuilt": timestamp,
+                                "DateLastSaved": timestamp,
                                 "ModifiedVersion": "2.0.6.0",
                             },
-                            "Nodes": {"$id": "6", **gaea_nodes},
-                            "Groups": {"$id": str(node_id_base + 2000)},
-                            "Notes": {"$id": str(node_id_base + 2001)},
+                            "Nodes": {
+                                "$id": str(ref_id_counter + 5),
+                                **gaea_nodes,  # Add nodes directly as properties
+                            },
+                            "Groups": {"$id": str(ref_id_counter + 6)},
+                            "Notes": {"$id": str(ref_id_counter + 7)},
                             "GraphTabs": {
-                                "$id": str(node_id_base + 2002),
+                                "$id": str(ref_id_counter + 8),
                                 "$values": [
                                     {
-                                        "$id": str(node_id_base + 2003),
+                                        "$id": str(ref_id_counter + 9),
                                         "Name": "Graph 1",
                                         "Color": "Brass",
                                         "ZoomFactor": 0.5,
                                         "ViewportLocation": {
-                                            "$id": str(node_id_base + 2004),
+                                            "$id": str(ref_id_counter + 10),
                                             "X": 25000.0,
                                             "Y": 26000.0,
                                         },
@@ -349,32 +401,26 @@ class Gaea2MCPServer:
                     }
                 ],
             },
-            "Id": terrain_id[:8],
+            "Id": project_id[:8],  # Short version
             "Branch": 1,
             "Metadata": {
-                "$id": str(node_id_base + 6000),
+                "$id": str(ref_id_counter + 11),
                 "Name": project_name,
                 "Description": "Created by Gaea2 MCP Server",
                 "Version": "2.0.6.0",
                 "Owner": "",
-                "DateCreated": now,
-                "DateLastBuilt": now,
-                "DateLastSaved": now,
+                "DateCreated": timestamp,
+                "DateLastBuilt": timestamp,
+                "DateLastSaved": timestamp,
             },
             "Automation": {
-                "$id": str(node_id_base + 3000),
-                "Bindings": {
-                    "$id": str(node_id_base + 3001),
-                    "$values": [],
-                },
-                "Variables": {"$id": str(node_id_base + 3002)},
-                "BoundProperties": {
-                    "$id": str(node_id_base + 3003),
-                    "$values": [],
-                },
+                "$id": str(ref_id_counter + 12),
+                "Bindings": {"$id": str(ref_id_counter + 13), "$values": []},
+                "Variables": {"$id": str(ref_id_counter + 14)},
+                "BoundProperties": {"$id": str(ref_id_counter + 15), "$values": []},
             },
             "BuildDefinition": {
-                "$id": str(node_id_base + 4000),
+                "$id": str(ref_id_counter + 16),
                 "Destination": "<Builds>\\[Filename]\\[+++]",
                 "Resolution": 2048,
                 "BakeResolution": 2048,
@@ -390,21 +436,18 @@ class Gaea2MCPServer:
                 "TileZeroIndex": True,
                 "TilePattern": "",
                 "OrganizeFiles": "NodeSubFolder",
-                "Regions": {"$id": str(node_id_base + 4001), "$values": []},
+                "Regions": {"$id": str(ref_id_counter + 17), "$values": []},
                 "PostBuildScript": "",
             },
             "State": {
-                "$id": str(node_id_base + 5000),
+                "$id": str(ref_id_counter + 18),
                 "BakeResolution": 2048,
                 "PreviewResolution": 512,
-                "SelectedNode": node_id_base,
-                "NodeBookmarks": {
-                    "$id": str(node_id_base + 5001),
-                    "$values": [],
-                },
+                "SelectedNode": node_id_base if nodes else 100,
+                "NodeBookmarks": {"$id": str(ref_id_counter + 19), "$values": []},
                 "Viewport": {
-                    "$id": str(node_id_base + 5002),
-                    "Camera": {"$id": str(node_id_base + 5003)},
+                    "$id": str(ref_id_counter + 20),
+                    "Camera": {"$id": str(ref_id_counter + 21)},
                     "RenderMode": "Realistic",
                     "SunAltitude": 33.0,
                     "SunAzimuth": 45.0,
@@ -424,322 +467,6 @@ class Gaea2MCPServer:
         }
 
         return project
-
-    async def create_gaea2_project(
-        self,
-        project_name: str,
-        workflow: Dict[str, Any],
-        auto_validate: bool = True,
-        save_to_disk: bool = True,
-    ) -> Dict[str, Any]:
-        """Create a Gaea2 project file with automatic validation and save to disk"""
-        try:
-            # Ensure workflow has nodes and connections keys
-            if isinstance(workflow, dict):
-                nodes = workflow.get("nodes", [])
-                connections = workflow.get("connections", [])
-            else:
-                # Legacy format support
-                nodes = workflow if isinstance(workflow, list) else []
-                connections = []
-
-            # Ensure nodes is a list
-            if not isinstance(nodes, list):
-                return {"success": False, "error": f"Invalid nodes format: expected list, got {type(nodes).__name__}"}
-
-            # Apply default properties and fix property names
-            for node in nodes:
-                if "type" in node:
-                    props = node.get("properties", {})
-
-                    # Normalize common property names
-                    # Handle lowercase versions of properties
-                    lowercase_to_proper = {
-                        "height": "Height",
-                        "scale": "Scale",
-                        "style": "Style",
-                        "bulk": "Bulk",
-                        "seed": "Seed",
-                        "strength": "Strength",
-                        "duration": "Duration",
-                        "downcutting": "Downcutting",
-                        "format": "Format",
-                        "enabled": "Enabled",
-                        "library": "Library",
-                        "libraryitem": "LibraryItem",
-                    }
-
-                    # First pass: rename lowercase properties
-                    for old_name, new_name in lowercase_to_proper.items():
-                        if old_name in props:
-                            props[new_name] = props.pop(old_name)
-
-                    # Fix common property name issues
-                    if node["type"] == "Erosion":
-                        # Erosion uses "Rock Softness" (with space)
-                        # Don't create duplicates - remove the camelCase version
-                        if "rockSoftness" in props:
-                            value = props.pop("rockSoftness")
-                            props["Rock Softness"] = value
-                        elif "RockSoftness" in props:
-                            value = props.pop("RockSoftness")
-                            props["Rock Softness"] = value
-                    elif node["type"] == "Erosion2":
-                        # Erosion2 uses RockSoftness (no space)
-                        if "Rock Softness" in props:
-                            props["RockSoftness"] = props.pop("Rock Softness")
-                        if "ChannelDepth" in props:
-                            # This property doesn't exist in Erosion2
-                            props.pop("ChannelDepth")
-
-                    # Remove invalid properties
-                    if node["type"] == "Export":
-                        props.pop("Format", None)
-                        props.pop("Resolution", None)
-
-                    if node["type"] == "SatMap":
-                        # Convert Style to Library if needed
-                        if "Style" in props and "Library" not in props:
-                            style = props.pop("Style")
-                            if style == "Realistic":
-                                props["Library"] = "Rock"
-                        props.pop("Contrast", None)
-                        props.pop("Brightness", None)
-
-                    if node["type"] == "Combine":
-                        if "Method" in props:
-                            props["Mode"] = props.pop("Method")
-
-                    if node["type"] == "Mountain":
-                        # Mountain doesn't have Complexity property
-                        props.pop("Complexity", None)
-
-                    if node["type"] == "Perlin":
-                        # Perlin doesn't have Octaves property
-                        props.pop("Octaves", None)
-                        # Ensure it has Scale property
-                        if "Scale" not in props:
-                            props["Scale"] = 1.0
-
-                    if node["type"] == "FractalTerraces":
-                        # FractalTerraces doesn't have Randomness
-                        props.pop("Randomness", None)
-                        # It has Uniformity and SlopeBias instead
-                        if "Uniformity" not in props:
-                            props["Uniformity"] = 0.3
-
-                    if node["type"] == "Slump":
-                        # Slump doesn't have Detail property
-                        props.pop("Detail", None)
-
-                    if node["type"] == "Shear":
-                        # Shear doesn't have Direction property
-                        props.pop("Direction", None)
-
-                    # Update node properties
-                    node["properties"] = props
-
-                    # Apply defaults
-                    node["properties"] = apply_default_properties(node["type"], node.get("properties", {}))
-                if "properties" in node:
-                    node["properties"] = self._ensure_property_types(node["properties"])
-
-            # Update workflow with cleaned nodes
-            workflow_dict = {"nodes": nodes, "connections": connections}
-
-            # Auto-validate and fix workflow
-            if auto_validate:
-                validator = create_accurate_validator()
-
-                # Validate using the correct method
-                validation_result = validator.validate_project(nodes, connections)
-                is_valid = validation_result.get("valid", False)
-
-                if not is_valid:
-                    # Try to fix the workflow using error recovery
-                    error_recovery = Gaea2ErrorRecovery()
-                    fixed_project = error_recovery.auto_fix_project(nodes, connections)
-                    if fixed_project.get("success"):
-                        workflow_dict["nodes"] = fixed_project.get("nodes", nodes)
-                        workflow_dict["connections"] = fixed_project.get("connections", connections)
-                    else:
-                        # Use original if fix failed
-                        self.logger.warning(f"Auto-fix failed: {fixed_project.get('message', 'Unknown error')}")
-
-                    # Validate again
-                    validation_result = validator.validate_project(workflow_dict["nodes"], workflow_dict["connections"])
-                    if not validation_result.get("valid", False):
-                        return {
-                            "success": False,
-                            "error": f"Validation failed after auto-fix: {validation_result.get('errors', [])}",
-                        }
-
-            # Create project structure in Gaea2 format
-            project = self._create_gaea2_project_structure(project_name, nodes, connections)
-
-            # Save to disk if requested
-            if save_to_disk:
-                # Determine save path - try multiple locations
-                saved_path = None
-                project_filename = f"{project_name}.terrain"
-
-                # Try to save in order of preference
-                save_locations = [
-                    Path.cwd() / project_filename,  # Current directory
-                    Path(os.path.expanduser("~")) / "Documents" / "Gaea" / project_filename,
-                    Path(os.path.expanduser("~")) / "Gaea Projects" / project_filename,
-                ]
-
-                for save_path in save_locations:
-                    try:
-                        # Create directory if needed
-                        save_path.parent.mkdir(parents=True, exist_ok=True)
-
-                        # Save the project as minified JSON to match Gaea2 format
-                        # Convert to JSON string first to ensure proper formatting
-                        json_content = json.dumps(project, separators=(",", ":"))
-
-                        # Write with Unix line endings (LF) and final newline
-                        # Use binary mode to ensure no line ending conversion on Windows
-                        with open(save_path, "wb") as f:
-                            f.write(json_content.encode("utf-8"))
-                            f.write(b"\n")  # Add final newline as Gaea2 expects
-
-                        saved_path = str(save_path)
-                        self.logger.info(f"Project saved to: {saved_path}")
-                        break
-                    except Exception as e:
-                        self.logger.warning(f"Failed to save to {save_path}: {e}")
-                        continue
-
-                if saved_path:
-                    project["file_path"] = saved_path
-                else:
-                    self.logger.warning("Could not save project to any location")
-
-            return {"success": True, "project": project}
-
-        except Exception as e:
-            return {"success": False, "error": str(e)}
-
-    async def run_gaea2_project(
-        self,
-        project_path: str,
-        output_dir: Optional[str] = None,
-        variables: Optional[Dict[str, Any]] = None,
-        verbose: bool = True,
-        ignore_cache: bool = False,
-        seed: Optional[int] = None,
-    ) -> Dict[str, Any]:
-        """Run a Gaea2 project using CLI automation"""
-        if not self.gaea_path:
-            return {
-                "success": False,
-                "error": "Gaea2 executable path not configured. Set GAEA2_PATH environment variable.",
-            }
-
-        try:
-            # Resolve project path to absolute path
-            if not os.path.isabs(project_path):
-                # If relative path, look in common locations
-                possible_paths = [
-                    os.path.abspath(project_path),
-                    os.path.join(os.getcwd(), project_path),
-                    os.path.join(os.path.expanduser("~"), "Documents", "Gaea", project_path),
-                    os.path.join(os.path.expanduser("~"), "Gaea Projects", project_path),
-                ]
-
-                for path in possible_paths:
-                    if os.path.exists(path):
-                        project_path = path
-                        break
-                else:
-                    return {
-                        "success": False,
-                        "error": f"Project file not found: {project_path}. Searched in {possible_paths}",
-                    }
-
-            # Ensure path exists
-            if not os.path.exists(project_path):
-                return {
-                    "success": False,
-                    "error": f"Project file does not exist: {project_path}",
-                }
-
-            # Prepare command with resolved path
-            cmd = [str(self.gaea_path), "--Filename", str(project_path)]
-
-            # Add optional parameters
-            if verbose:
-                cmd.append("--verbose")
-            if ignore_cache:
-                cmd.append("--ignorecache")
-            if seed is not None:
-                cmd.extend(["--seed", str(seed)])
-
-            # Add variables
-            if variables:
-                for key, value in variables.items():
-                    cmd.extend(["-v", f"{key}={value}"])
-
-            # Create output directory if specified
-            if output_dir:
-                os.makedirs(output_dir, exist_ok=True)
-                # Note: Gaea2 may need specific export nodes configured
-                # to output to a specific directory
-
-            # Log execution
-            execution_log = {
-                "timestamp": datetime.now().isoformat(),
-                "command": " ".join(cmd),
-                "project": project_path,
-                "variables": variables,
-            }
-
-            # Run Gaea2
-            print(f"Executing Gaea2: {' '.join(cmd)}")
-
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=os.path.dirname(project_path) if output_dir is None else output_dir,
-            )
-
-            stdout, stderr = await process.communicate()
-
-            # Decode output
-            stdout_text = stdout.decode("utf-8", errors="replace")
-            stderr_text = stderr.decode("utf-8", errors="replace")
-
-            execution_log.update(
-                {
-                    "return_code": process.returncode,
-                    "stdout": stdout_text,
-                    "stderr": stderr_text,
-                    "success": process.returncode == 0,
-                }
-            )
-
-            # Store in history
-            self.execution_history.append(execution_log)
-
-            # Parse output for useful information
-            result = {
-                "success": process.returncode == 0,
-                "return_code": process.returncode,
-                "command": " ".join(cmd),
-                "output": {"stdout": stdout_text, "stderr": stderr_text},
-            }
-
-            # Try to extract useful information from verbose output
-            if verbose and stdout_text:
-                result["parsed_output"] = self._parse_gaea_output(stdout_text)
-
-            return result
-
-        except Exception as e:
-            return {"success": False, "error": str(e)}
 
     def _parse_gaea_output(self, output: str) -> Dict[str, Any]:
         """Parse Gaea2 verbose output for useful information"""

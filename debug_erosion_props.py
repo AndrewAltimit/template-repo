@@ -16,7 +16,10 @@ response = requests.post(
                         "id": "erosion1",
                         "type": "Erosion",
                         "name": "TestErosion",
-                        "properties": {"strength": 0.7, "rockSoftness": 0.5},  # camelCase input
+                        "properties": {
+                            "strength": 0.7,
+                            "rockSoftness": 0.5,
+                        },  # camelCase input
                         "position": {"x": 0, "y": 0},
                     }
                 ],
@@ -34,7 +37,16 @@ if result.get("success"):
     erosion_node = result["project"]["Assets"]["$values"][0]["Terrain"]["Nodes"]["100"]
     print("\nErosion node properties:")
     for key, value in erosion_node.items():
-        if key not in ["$id", "$type", "Id", "Name", "Position", "Ports", "Modifiers", "SnapIns"]:
+        if key not in [
+            "$id",
+            "$type",
+            "Id",
+            "Name",
+            "Position",
+            "Ports",
+            "Modifiers",
+            "SnapIns",
+        ]:
             print(f"  {key}: {value}")
 else:
     print(f"Failed: {result.get('error')}")

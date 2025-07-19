@@ -12,7 +12,13 @@ response = requests.post(
             "project_name": "minimal_debug",
             "workflow": {
                 "nodes": [
-                    {"id": "mountain1", "type": "Mountain", "name": "Mountain", "properties": {}, "position": {"x": 0, "y": 0}}
+                    {
+                        "id": "mountain1",
+                        "type": "Mountain",
+                        "name": "Mountain",
+                        "properties": {},
+                        "position": {"x": 0, "y": 0},
+                    }
                 ],
                 "connections": [],
             },

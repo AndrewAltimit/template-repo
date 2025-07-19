@@ -31,7 +31,12 @@ def test_line_endings():
         f.write(b"Line 2\n")
 
     # Check the actual bytes in each file
-    for filename in ["test_default.txt", "test_newline_lf.txt", "test_newline_empty.txt", "test_binary.txt"]:
+    for filename in [
+        "test_default.txt",
+        "test_newline_lf.txt",
+        "test_newline_empty.txt",
+        "test_binary.txt",
+    ]:
         with open(filename, "rb") as f:
             content = f.read()
             print(f"\n{filename}:")
@@ -42,7 +47,12 @@ def test_line_endings():
             print(f"  Has LF only: {has_lf_only}")
 
     # Cleanup
-    for filename in ["test_default.txt", "test_newline_lf.txt", "test_newline_empty.txt", "test_binary.txt"]:
+    for filename in [
+        "test_default.txt",
+        "test_newline_lf.txt",
+        "test_newline_empty.txt",
+        "test_binary.txt",
+    ]:
         os.remove(filename)
 
 
