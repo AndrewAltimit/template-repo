@@ -9,6 +9,90 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+# Model constants
+PRO_MODEL = "gemini-2.5-pro"
+FLASH_MODEL = "gemini-2.5-flash"
+NO_MODEL = ""  # Indicates no model was successfully used
+PRO_MODEL_TIMEOUT = 90  # seconds
+FLASH_MODEL_TIMEOUT = 60  # seconds
+
+
+def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
+    """Calls the Gemini API with a fallback from Pro to Flash model.
+
+    Args:
+        prompt: The prompt to send to Gemini
+
+    Returns:
+        (analysis, model_used) - The analysis result and which model was used
+    """
+
+    # Helper function to clean credential messages from output
+    def clean_output(output: str) -> str:
+        if "Loaded cached credentials" in output:
+            lines = output.split("\n")
+            return "\n".join(line for line in lines if "Loaded cached credentials" not in line)
+        return output
+
+    # Try with Pro model first
+    try:
+        print("🔍 Attempting analysis with Gemini 2.5 Pro model...")
+        result = subprocess.run(
+            ["gemini", "-m", PRO_MODEL],
+            input=prompt,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=PRO_MODEL_TIMEOUT,
+        )
+        output = clean_output(result.stdout.strip())
+        return output.strip(), PRO_MODEL
+    except subprocess.TimeoutExpired:
+        print(f"⏱️  Pro model timed out after {PRO_MODEL_TIMEOUT}s, trying Flash model...")
+        print("   (This is likely due to network latency in CI, not a quota issue)")
+    except subprocess.CalledProcessError as e:
+        # Check if it's a quota limit error
+        if e.stderr:
+            error_text = e.stderr.lower()
+            if "quota limit" in error_text or "api error" in error_text or "quota exceeded" in error_text:
+                print("⚡ Quota limit reached for Pro model, falling back to Flash...")
+            else:
+                # Non-quota error from Pro model - surface the error
+                err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
+                return f"❌ Pro model failed with error: {err_msg}", NO_MODEL
+        else:
+            # No stderr, return the error
+            return f"❌ Pro model failed with error: {str(e)}", NO_MODEL
+    except Exception as e:
+        # Unexpected error
+        return f"❌ Unexpected error with Pro model: {str(e)}", NO_MODEL
+
+    # Fallback to Flash model
+    try:
+        print("🔍 Attempting analysis with Gemini 2.5 Flash model...")
+        result = subprocess.run(
+            ["gemini", "-m", FLASH_MODEL],
+            input=prompt,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=FLASH_MODEL_TIMEOUT,
+        )
+        output = clean_output(result.stdout.strip())
+        return output.strip(), FLASH_MODEL
+    except subprocess.TimeoutExpired:
+        err_msg = f"Flash model timed out after {FLASH_MODEL_TIMEOUT}s"
+        print(f"❌ {err_msg}")
+        return f"❌ Both Pro and Flash models failed. {err_msg}", NO_MODEL
+    except subprocess.CalledProcessError as e:
+        err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
+        print(f"❌ Flash model failed: {err_msg}")
+        return f"❌ Both Pro and Flash models failed. Flash error: {err_msg}", NO_MODEL
+    except Exception as e:
+        err_msg = f"Unexpected error: {str(e)}"
+        print(f"❌ {err_msg}")
+        return f"❌ Both Pro and Flash models failed. {err_msg}", NO_MODEL
+
 
 def check_gemini_cli() -> bool:
     """Check if Gemini CLI is available"""
@@ -145,8 +229,11 @@ def get_project_context() -> str:
     )
 
 
-def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any]) -> str:
-    """Analyze large PRs by breaking them down into manageable chunks"""
+def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any]) -> Tuple[str, str]:
+    """Analyze large PRs by breaking them down into manageable chunks
+
+    Returns: (analysis, model_used)
+    """
 
     project_context = get_project_context()
     file_stats = get_file_stats()
@@ -161,6 +248,8 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
 
     file_chunks = chunk_diff_by_files(diff)
     analyses = []
+    model_used = NO_MODEL  # Start with no model, will be updated if any analysis succeeds
+    successful_models = []  # Track which models were successfully used
 
     # Group files by type for more coherent analysis
     file_groups = {
@@ -191,9 +280,18 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
         if not group_files:
             continue
 
-        group_analysis = analyze_file_group(group_name, group_files, pr_info, project_context)
-        if group_analysis:
+        group_analysis, group_model = analyze_file_group(group_name, group_files, pr_info, project_context)
+        if group_analysis and group_model != NO_MODEL:
             analyses.append(f"### {group_name.title()} Changes\n{group_analysis}")
+            successful_models.append(group_model)
+
+    # Determine which model was predominantly used
+    if successful_models:
+        # If any analysis used Flash, report Flash (as it's the fallback)
+        model_used = FLASH_MODEL if FLASH_MODEL in successful_models else PRO_MODEL
+    else:
+        # No successful analyses
+        model_used = NO_MODEL
 
     # Combine analyses with overall summary
     combined_analysis = f"""## Overall Summary
@@ -210,7 +308,7 @@ significant changes across multiple areas of the codebase. Please ensure all \
 changes are tested, especially given the container-first architecture of this project.
 """
 
-    return combined_analysis
+    return combined_analysis, model_used
 
 
 def analyze_file_group(
@@ -218,8 +316,11 @@ def analyze_file_group(
     files: List[Tuple[str, str]],
     pr_info: Dict[str, Any],
     project_context: str,
-) -> str:
-    """Analyze a group of related files"""
+) -> Tuple[str, str]:
+    """Analyze a group of related files
+
+    Returns: (analysis, model_used)
+    """
 
     # Combine diffs for the group (limit to reasonable size)
     combined_diff = ""
@@ -249,17 +350,8 @@ def analyze_file_group(
         f"Keep response concise but thorough."
     )
 
-    try:
-        result = subprocess.run(
-            ["gemini", "-m", "gemini-2.5-pro"],
-            input=prompt,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.stdout.strip()
-    except Exception:
-        return None
+    # Use the helper function for Gemini API calls with fallback
+    return _call_gemini_with_fallback(prompt)
 
 
 def analyze_complete_diff(
@@ -268,8 +360,11 @@ def analyze_complete_diff(
     pr_info: Dict[str, Any],
     project_context: str,
     file_stats: Dict[str, int],
-) -> str:
-    """Analyze complete diff for smaller PRs"""
+) -> Tuple[str, str]:
+    """Analyze complete diff for smaller PRs
+
+    Returns: (analysis, model_used)
+    """
 
     # For GitHub workflow files, include more complete content
     workflow_contents = {}
@@ -315,22 +410,8 @@ def analyze_complete_diff(
         "Focus on actionable feedback considering the container-first architecture."
     )
 
-    try:
-        result = subprocess.run(
-            ["gemini", "-m", "gemini-2.5-pro"],
-            input=prompt,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError as e:
-        # Fallback to basic model
-        try:
-            result = subprocess.run(["gemini"], input=prompt, capture_output=True, text=True, check=True)
-            return result.stdout.strip()
-        except Exception:
-            return f"Error consulting Gemini: " f"{e.stderr if hasattr(e, 'stderr') else str(e)}"
+    # Use the helper function for Gemini API calls with fallback
+    return _call_gemini_with_fallback(prompt)
 
 
 def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:
@@ -345,8 +426,14 @@ def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:
     return formatted
 
 
-def format_github_comment(analysis: str, pr_info: Dict[str, Any]) -> str:
+def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: str = PRO_MODEL) -> str:
     """Format the analysis as a GitHub PR comment"""
+    if model_used == PRO_MODEL:
+        model_display = "v2.5 Pro"
+    elif model_used == FLASH_MODEL:
+        model_display = "v2.5 Flash"
+    else:
+        model_display = "Error - No model available"
     comment = f"""## 🤖 Gemini AI Code Review
 
 Hello @{pr_info['author']}! I've analyzed your pull request \
@@ -355,7 +442,7 @@ Hello @{pr_info['author']}! I've analyzed your pull request \
 {analysis}
 
 ---
-*This review was automatically generated by Gemini AI (v2.5 Pro) via CLI. \
+*This review was automatically generated by Gemini AI ({model_display}) via CLI. \
 This is supplementary feedback to human reviews.*
 *If the analysis seems incomplete, check the [workflow logs](../actions) \
 for the full diff size.*
@@ -428,10 +515,10 @@ def main():
 
     # Analyze with Gemini
     print("🧠 Consulting Gemini AI...")
-    analysis = analyze_large_pr(diff, changed_files, pr_info)
+    analysis, model_used = analyze_large_pr(diff, changed_files, pr_info)
 
     # Format as GitHub comment
-    comment = format_github_comment(analysis, pr_info)
+    comment = format_github_comment(analysis, pr_info, model_used)
 
     # Post to PR
     post_pr_comment(comment, pr_info)
