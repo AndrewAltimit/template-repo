@@ -571,19 +571,7 @@ NODE_PROPERTY_DEFINITIONS = {
         },
         "Spacing": {"type": "float", "default": 0.5, "range": {"min": 0.0, "max": 1.0}},
     },
-    "FractalTerraces": {
-        "Levels": {
-            "type": "int",
-            "default": 8,
-            "range": {"min": 2, "max": 20},
-            "description": "Number of terrace levels",
-        },
-        "Strength": {
-            "type": "float",
-            "default": 0.4,
-            "range": {"min": 0.0, "max": 1.0},
-        },
-    },
+    # Removed duplicate FractalTerraces - keeping the more complete one below
     "Terraces": {
         "Terraces": {
             "type": "int",
@@ -659,6 +647,323 @@ NODE_PROPERTY_DEFINITIONS = {
             "description": "Number of aperture vertices",
         },
     },
+    # Priority 1: Most frequently used nodes
+    "Erosion2": {
+        "Strength": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 2.0},
+            "description": "Overall erosion strength",
+        },
+        "Detail": {
+            "type": "float",
+            "default": 0.6,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Level of detail in erosion patterns",
+        },
+        "Iterations": {
+            "type": "int",
+            "default": 20,
+            "range": {"min": 1, "max": 100},
+            "description": "Number of erosion iterations",
+        },
+        "Downcutting": {
+            "type": "float",
+            "default": 0.2,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Vertical erosion strength",
+        },
+        "Duration": {
+            "type": "float",
+            "default": 0.07,
+            "range": {"min": 0.01, "max": 0.15},
+            "description": "Simulation duration (affects performance)",
+        },
+        "RockSoftness": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Rock softness factor",
+        },
+    },
+    "FractalTerraces": {
+        "Levels": {
+            "type": "int",
+            "default": 8,
+            "range": {"min": 1, "max": 64},
+            "description": "Number of terrace levels",
+        },
+        "Uniformity": {
+            "type": "float",
+            "default": 0.3,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Uniformity of terrace heights",
+        },
+        "SlopeBias": {
+            "type": "float",
+            "default": 0.6,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Bias towards steeper or shallower slopes",
+        },
+        "Octaves": {
+            "type": "int",
+            "default": 4,
+            "range": {"min": 1, "max": 8},
+            "description": "Number of noise octaves",
+        },
+    },
+    # Priority 2: Commonly used nodes
+    "Island": {
+        "Size": {
+            "type": "float",
+            "default": 0.6,
+            "range": {"min": 0.1, "max": 1.0},
+            "description": "Island size relative to terrain",
+        },
+        "Height": {
+            "type": "float",
+            "default": 0.7,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Maximum island height",
+        },
+        "Beaches": {
+            "type": "float",
+            "default": 0.8,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Beach area extent",
+        },
+        "Seed": {"type": "int", "default": 0, "range": {"min": 0, "max": 999999}},
+    },
+    # Priority 3: Less common but important nodes
+    "Crater": {
+        "Radius": {
+            "type": "float",
+            "default": 0.4,
+            "range": {"min": 0.1, "max": 1.0},
+            "description": "Crater radius",
+        },
+        "Depth": {
+            "type": "float",
+            "default": 0.8,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Crater depth",
+        },
+        "Inner Slope": {
+            "type": "float",
+            "default": 0.7,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Inner crater wall slope",
+        },
+        "Outer Slope": {
+            "type": "float",
+            "default": 0.3,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Outer crater rim slope",
+        },
+    },
+    "Thermal": {
+        "Strength": {
+            "type": "float",
+            "default": 0.4,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Thermal erosion strength",
+        },
+        "Iterations": {
+            "type": "int",
+            "default": 15,
+            "range": {"min": 1, "max": 50},
+            "description": "Number of thermal iterations",
+        },
+        "Angle": {
+            "type": "float",
+            "default": 35.0,
+            "range": {"min": 0.0, "max": 90.0},
+            "description": "Repose angle in degrees",
+        },
+        "Intensity": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Thermal erosion intensity",
+        },
+    },
+    "Fluvial": {
+        "Amount": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Fluvial erosion amount",
+        },
+        "Depth": {
+            "type": "float",
+            "default": 0.3,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Channel depth",
+        },
+        "Detail": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Detail level",
+        },
+    },
+    "Sediment": {
+        "Amount": {
+            "type": "float",
+            "default": 0.3,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Sediment deposition amount",
+        },
+        "Spread": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Sediment spread distance",
+        },
+    },
+    # Water-related nodes
+    "SeaLevel": {
+        "Level": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": -1.0, "max": 1.0},
+            "description": "Sea level height",
+        },
+        "Precision": {
+            "type": "float",
+            "default": 0.9,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Water mask precision",
+        },
+    },
+    "Beach": {
+        "Width": {
+            "type": "float",
+            "default": 100.0,
+            "range": {"min": 10.0, "max": 500.0},
+            "description": "Beach width in meters",
+        },
+        "Slope": {
+            "type": "float",
+            "default": 0.1,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Beach slope angle",
+        },
+    },
+    "Coast": {
+        "Erosion": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Coastal erosion strength",
+        },
+        "Detail": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Coastline detail level",
+        },
+    },
+    "Lakes": {
+        "Count": {
+            "type": "int",
+            "default": 3,
+            "range": {"min": 1, "max": 20},
+            "description": "Number of lakes",
+        },
+        "Size": {
+            "type": "float",
+            "default": 0.3,
+            "range": {"min": 0.1, "max": 1.0},
+            "description": "Average lake size",
+        },
+    },
+    # Removed duplicate Rivers - keeping the more complete one above
+    # Special effect nodes
+    "LavaFlow": {
+        "Temperature": {
+            "type": "float",
+            "default": 1200.0,
+            "range": {"min": 800.0, "max": 1500.0},
+            "description": "Lava temperature in Celsius",
+        },
+        "Viscosity": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Lava viscosity",
+        },
+    },
+    "ThermalShatter": {
+        "Intensity": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Thermal shattering intensity",
+        },
+        "Scale": {
+            "type": "float",
+            "default": 0.3,
+            "range": {"min": 0.1, "max": 1.0},
+            "description": "Shatter pattern scale",
+        },
+    },
+    # Selector nodes
+    "HeightSelector": {
+        "Min": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": -1000.0, "max": 10000.0},
+            "description": "Minimum height",
+        },
+        "Max": {
+            "type": "float",
+            "default": 500.0,
+            "range": {"min": -1000.0, "max": 10000.0},
+            "description": "Maximum height",
+        },
+        "Falloff": {
+            "type": "float",
+            "default": 0.1,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Selection falloff",
+        },
+    },
+    "SlopeSelector": {
+        "MinAngle": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": 0.0, "max": 90.0},
+            "description": "Minimum slope angle in degrees",
+        },
+        "MaxAngle": {
+            "type": "float",
+            "default": 30.0,
+            "range": {"min": 0.0, "max": 90.0},
+            "description": "Maximum slope angle in degrees",
+        },
+        "Falloff": {
+            "type": "float",
+            "default": 0.1,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Selection falloff",
+        },
+    },
+    # Composition nodes
+    "Layers": {
+        "BlendMode": {
+            "type": "enum",
+            "options": ["Normal", "Multiply", "Add", "Subtract", "Max", "Min"],
+            "default": "Normal",
+            "description": "Layer blending mode",
+        },
+        "Opacity": {
+            "type": "float",
+            "default": 1.0,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Layer opacity",
+        },
+    },
     # Export node properties
     "Export": {
         "Format": {
@@ -667,7 +972,12 @@ NODE_PROPERTY_DEFINITIONS = {
             "default": "PNG",
             "description": "Export file format",
         },
-        "BitDepth": {"type": "enum", "options": ["8", "16", "32"], "default": "16", "description": "Bit depth for export"},
+        "BitDepth": {
+            "type": "enum",
+            "options": ["8", "16", "32"],
+            "default": "16",
+            "description": "Bit depth for export",
+        },
         # Note: filename, format, and enabled are typically in save_definition, not properties
     },
 }
@@ -935,6 +1245,249 @@ WORKFLOW_TEMPLATES = {
             "type": "SatMap",
             "name": "TerrainColors",
             "properties": {"Library": "Rock", "LibraryItem": 2},
+        },
+    ],
+    # Alias for test compatibility
+    "mountain_range": [
+        {
+            "type": "Mountain",
+            "name": "MainRange",
+            "properties": {
+                "Scale": 2.0,
+                "Height": 0.9,
+                "Style": "Alpine",
+                "Bulk": "High",
+                "Seed": 12345,
+            },
+        },
+        {
+            "type": "Ridge",
+            "name": "RidgeDetail",
+            "properties": {"Scale": 0.5, "Complexity": 0.7},
+        },
+        {
+            "type": "Combine",
+            "name": "MergeRidge",
+            "properties": {"Mode": "Add", "Ratio": 0.3},
+        },
+        {
+            "type": "Erosion2",
+            "name": "AdvancedErosion",
+            "properties": {
+                "Strength": 0.6,
+                "Detail": 0.7,
+                "Iterations": 25,
+                "Downcutting": 0.3,
+                "RockSoftness": 0.4,
+            },
+        },
+        {
+            "type": "Snow",
+            "name": "SnowLine",
+            "properties": {"Duration": 0.7, "Snow Line": 0.7, "Melt": 0.2},
+        },
+        {
+            "type": "SatMap",
+            "name": "MountainColors",
+            "properties": {
+                "Library": "Rock",
+                "Enhance": "Autolevel",
+                "Style": "Terrain",
+            },
+        },
+    ],
+    "volcanic_island": [
+        {
+            "type": "Island",
+            "name": "BaseIsland",
+            "properties": {"Size": 0.8, "Height": 0.5, "Beaches": 0.7},
+        },
+        {
+            "type": "Volcano",
+            "name": "CentralVolcano",
+            "properties": {"Scale": 0.6, "Height": 1.0, "Mouth": 0.35},
+        },
+        {
+            "type": "Combine",
+            "name": "MergeVolcano",
+            "properties": {"Mode": "Max", "Ratio": 0.9},
+        },
+        {
+            "type": "LavaFlow",
+            "name": "LavaChannels",
+            "properties": {"Temperature": 1200.0, "Viscosity": 0.6},
+        },
+        {
+            "type": "ThermalShatter",
+            "name": "ThermalBreakdown",
+            "properties": {"Intensity": 0.7, "Scale": 0.4},
+        },
+        {
+            "type": "Beach",
+            "name": "CoastalBeaches",
+            "properties": {"Width": 150.0, "Slope": 0.15},
+        },
+        {
+            "type": "SatMap",
+            "name": "VolcanicColors",
+            "properties": {"Library": "Desert", "Style": "Volcanic"},
+        },
+    ],
+    "canyon_system": [
+        {
+            "type": "Strata",
+            "name": "RockLayers",
+            "properties": {"Scale": 1.5, "Layers": 12, "Variation": 0.3},
+        },
+        {
+            "type": "Voronoi",
+            "name": "CanyonPattern",
+            "properties": {"Scale": 0.8, "Jitter": 0.7, "Style": "Euclidean"},
+        },
+        {
+            "type": "Combine",
+            "name": "CarveCanyons",
+            "properties": {"Mode": "Subtract", "Ratio": 0.6},
+        },
+        {
+            "type": "Fluvial",
+            "name": "RiverErosion",
+            "properties": {"Amount": 0.8, "Depth": 0.5, "Detail": 0.6},
+        },
+        {
+            "type": "Thermal",
+            "name": "RockfallErosion",
+            "properties": {"Strength": 0.3, "Iterations": 20, "Angle": 38.0},
+        },
+        {
+            "type": "Sediment",
+            "name": "ValleyFill",
+            "properties": {"Amount": 0.4, "Spread": 0.6},
+        },
+        {
+            "type": "SatMap",
+            "name": "CanyonColors",
+            "properties": {"Library": "Desert", "Enhance": "Equalize"},
+        },
+    ],
+    "coastal_cliffs": [
+        {
+            "type": "Mountain",
+            "name": "CoastalTerrain",
+            "properties": {"Scale": 1.0, "Height": 0.6, "Style": "Eroded"},
+        },
+        {
+            "type": "SeaLevel",
+            "name": "OceanLevel",
+            "properties": {"Level": 0.0, "Precision": 0.95},
+        },
+        {
+            "type": "Coast",
+            "name": "Coastline",
+            "properties": {"Erosion": 0.7, "Detail": 0.8},
+        },
+        {
+            "type": "Terrace",
+            "name": "CliffTerraces",
+            "properties": {"Levels": 5, "Uniformity": 0.2, "Sharp": 0.8},
+        },
+        {
+            "type": "Beach",
+            "name": "SandyBeaches",
+            "properties": {"Width": 200.0, "Slope": 0.1},
+        },
+        {
+            "type": "Erosion",
+            "name": "CoastalErosion",
+            "properties": {
+                "Duration": 0.04,
+                "Rock Softness": 0.5,
+                "Strength": 0.4,
+                "Downcutting": 0.1,
+            },
+        },
+        {
+            "type": "SatMap",
+            "name": "CoastalColors",
+            "properties": {"Library": "Rock", "Style": "Coastal"},
+        },
+    ],
+    "arctic_terrain": [
+        {
+            "type": "Mountain",
+            "name": "ArcticMountains",
+            "properties": {"Scale": 1.5, "Height": 0.7, "Style": "Old"},
+        },
+        {
+            "type": "Glacier",
+            "name": "IceFlow",
+            "properties": {"Scale": 2.0, "Depth": 0.6, "Flow": 0.4},
+        },
+        {
+            "type": "Combine",
+            "name": "GlacialCarving",
+            "properties": {"Mode": "Subtract", "Ratio": 0.4},
+        },
+        {
+            "type": "Snow",
+            "name": "SnowCover",
+            "properties": {"Duration": 0.9, "Snow Line": 0.1, "Melt": 0.05},
+        },
+        {
+            "type": "Thermal",
+            "name": "FrostShatter",
+            "properties": {"Strength": 0.6, "Iterations": 30, "Angle": 32.0},
+        },
+        {
+            "type": "Lakes",
+            "name": "GlacialLakes",
+            "properties": {"Count": 5, "Size": 0.2},
+        },
+        {
+            "type": "SatMap",
+            "name": "ArcticColors",
+            "properties": {"Library": "Snow", "Enhance": "Autolevel"},
+        },
+    ],
+    "river_valley": [
+        {
+            "type": "Mountain",
+            "name": "ValleyBase",
+            "properties": {"Scale": 1.2, "Height": 0.5, "Style": "Basic"},
+        },
+        {
+            "type": "Rivers",
+            "name": "MainRiver",
+            "properties": {"Count": 1, "Width": 0.4, "Depth": 0.6},
+        },
+        {
+            "type": "Fluvial",
+            "name": "RiverCarving",
+            "properties": {"Amount": 0.9, "Depth": 0.7, "Detail": 0.8},
+        },
+        {
+            "type": "Sediment",
+            "name": "Floodplain",
+            "properties": {"Amount": 0.5, "Spread": 0.8},
+        },
+        {
+            "type": "FractalTerraces",
+            "name": "RiverTerraces",
+            "properties": {"Levels": 6, "Uniformity": 0.4, "SlopeBias": 0.3},
+        },
+        {
+            "type": "Erosion",
+            "name": "ValleyErosion",
+            "properties": {
+                "Duration": 0.03,
+                "Rock Softness": 0.6,
+                "Strength": 0.3,
+            },
+        },
+        {
+            "type": "SatMap",
+            "name": "ValleyColors",
+            "properties": {"Library": "Rock", "LibraryItem": 3, "Style": "Terrain"},
         },
     ],
 }
@@ -1268,6 +1821,15 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
         - connection_count: int
         - suggestions: List[str]
     """
+    # Try to use optimized validator for better performance
+    try:
+        from .gaea2_optimized_validator import get_optimized_validator
+
+        use_optimized = True
+        optimized_validator = get_optimized_validator()
+    except ImportError:
+        use_optimized = False
+
     errors = []
     warnings = []
     suggestions = []
@@ -1307,6 +1869,10 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
     node_ids = set()
     node_types_used = set()
 
+    # Prepare nodes for batch validation if using optimized validator
+    if use_optimized:
+        nodes_for_validation = []
+
     for node_id, node_data in nodes.items():
         if not isinstance(node_data, dict):
             continue
@@ -1327,7 +1893,7 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
                 if node_type not in VALID_NODE_TYPES:
                     warnings.append(f"Unknown node type: {node_type}")
 
-                # Validate properties
+                # Extract properties
                 props = {}
                 for key, value in node_data.items():
                     if not key.startswith("$") and key not in [
@@ -1339,9 +1905,21 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
                     ]:
                         props[key] = value
 
-                prop_errors, prop_warnings = validate_node_properties(node_type, props)
-                errors.extend(prop_errors)
-                warnings.extend(prop_warnings)
+                if use_optimized:
+                    # Collect node for batch validation
+                    nodes_for_validation.append(
+                        {
+                            "id": int(node_id),
+                            "type": node_type,
+                            "name": node_data.get("Name", f"Node_{node_id}"),
+                            "properties": props,
+                        }
+                    )
+                else:
+                    # Use regular validation
+                    prop_errors, prop_warnings = validate_node_properties(node_type, props)
+                    errors.extend(prop_errors)
+                    warnings.extend(prop_warnings)
 
     # Validate connections
     connection_count = 0
@@ -1359,19 +1937,31 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
                             connection_count += 1
                             connections_found.append(
                                 {
-                                    "from": record.get("From"),
-                                    "to": record.get("To"),
+                                    "from_node": record.get("From"),
+                                    "to_node": record.get("To"),
                                     "from_port": record.get("FromPort", "Out"),
                                     "to_port": record.get("ToPort", "In"),
                                 }
                             )
 
-    # Validate connection references
-    for conn in connections_found:
-        if conn["from"] not in node_ids:
-            errors.append(f"Connection references non-existent node: {conn['from']}")
-        if conn["to"] not in node_ids:
-            errors.append(f"Connection references non-existent node: {conn['to']}")
+    # Perform batch validation if using optimized validator
+    if use_optimized and nodes_for_validation:
+        # Run optimized validation
+        validation_result = optimized_validator.validate_workflow(nodes_for_validation, connections_found)
+        errors.extend(validation_result.get("errors", []))
+        warnings.extend(validation_result.get("warnings", []))
+
+        # Update with fixed nodes if any
+        if validation_result.get("fixed_nodes"):
+            # Store fixed nodes for potential future use
+            pass
+    else:
+        # Regular connection validation
+        for conn in connections_found:
+            if conn["from_node"] not in node_ids:
+                errors.append(f"Connection references non-existent node: {conn['from_node']}")
+            if conn["to_node"] not in node_ids:
+                errors.append(f"Connection references non-existent node: {conn['to_node']}")
 
     # Generate suggestions
     if node_count == 0:
@@ -1388,7 +1978,7 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
     # Determine overall validity
     valid = len(errors) == 0
 
-    return {
+    result = {
         "valid": valid,
         "errors": errors,
         "warnings": warnings,
@@ -1397,6 +1987,12 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
         "connection_count": connection_count,
         "node_types": list(node_types_used),
     }
+
+    # Add performance stats if using optimized validator
+    if use_optimized and hasattr(optimized_validator, "_get_cache_stats"):
+        result["performance_stats"] = optimized_validator._get_cache_stats()
+
+    return result
 
 
 # Export all public functions and constants

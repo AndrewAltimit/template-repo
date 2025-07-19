@@ -186,11 +186,17 @@ class Gaea2MCPServer:
                         project_path = path
                         break
                 else:
-                    return {"success": False, "error": f"Project file not found: {project_path}. Searched in {possible_paths}"}
+                    return {
+                        "success": False,
+                        "error": f"Project file not found: {project_path}. Searched in {possible_paths}",
+                    }
 
             # Ensure path exists
             if not os.path.exists(project_path):
-                return {"success": False, "error": f"Project file does not exist: {project_path}"}
+                return {
+                    "success": False,
+                    "error": f"Project file does not exist: {project_path}",
+                }
 
             # Prepare command with resolved path
             cmd = [str(self.gaea_path), "-filename", str(project_path)]
@@ -427,7 +433,10 @@ class Gaea2MCPServer:
                         )
                     elif node.get("type") == "SatMap" and not node.get("properties", {}).get("quality"):
                         suggestions.append(
-                            {"node": node.get("name", node.get("id")), "suggestion": "Set quality mode for better results"}
+                            {
+                                "node": node.get("name", node.get("id")),
+                                "suggestion": "Set quality mode for better results",
+                            }
                         )
 
                 if suggestions:
@@ -473,7 +482,10 @@ class Gaea2MCPServer:
         return {"success": True, "analysis": analysis}
 
     async def create_from_template(
-        self, template_name: str, project_name: str, customizations: Optional[Dict[str, Any]] = None
+        self,
+        template_name: str,
+        project_name: str,
+        customizations: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Create a Gaea2 project from a template"""
         try:
@@ -507,7 +519,10 @@ class Gaea2MCPServer:
             return result
 
         except Exception as e:
-            return {"success": False, "error": f"Failed to create from template: {str(e)}"}
+            return {
+                "success": False,
+                "error": f"Failed to create from template: {str(e)}",
+            }
 
     async def handle_tools(self, request: web.Request) -> web.Response:
         """List available tools"""
@@ -629,7 +644,9 @@ class Gaea2MCPServer:
             return web.json_response({"error": str(e), "success": False}, status=500)
 
     async def _analyze_workflow_patterns(
-        self, workflow_or_directory: Union[str, Dict[str, Any]], include_suggestions: bool = True
+        self,
+        workflow_or_directory: Union[str, Dict[str, Any]],
+        include_suggestions: bool = True,
     ) -> Dict[str, Any]:
         """Analyze workflow patterns"""
         analyzer = Gaea2WorkflowAnalyzer()
@@ -714,7 +731,10 @@ class Gaea2MCPServer:
                 workflow = data.get("workflow", data)
 
         # Optimize based on mode
-        optimized = {"nodes": workflow.get("nodes", []), "connections": workflow.get("connections", [])}
+        optimized = {
+            "nodes": workflow.get("nodes", []),
+            "connections": workflow.get("connections", []),
+        }
 
         for node in optimized["nodes"]:
             if "properties" not in node:
@@ -751,7 +771,11 @@ class Gaea2MCPServer:
                 elif node_type == "Terrace":
                     props["levels"] = 16
 
-        return {"success": True, "optimized_workflow": optimized, "mode": optimization_mode}
+        return {
+            "success": True,
+            "optimized_workflow": optimized,
+            "mode": optimization_mode,
+        }
 
     async def handle_health(self, request: web.Request) -> web.Response:
         """Health check endpoint"""

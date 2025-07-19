@@ -29,7 +29,12 @@ test_cases = [
     ("Format property (valid)", {"Format": "PNG"}, 0, 0),
     ("BitDepth property (valid)", {"BitDepth": "16"}, 0, 0),
     ("Both valid properties", {"Format": "EXR", "BitDepth": "32"}, 0, 0),
-    ("Old properties (should warn)", {"filename": "test", "format": "PNG", "enabled": True}, 0, 3),
+    (
+        "Old properties (should warn)",
+        {"filename": "test", "format": "PNG", "enabled": True},
+        0,
+        3,
+    ),
     ("Mixed old and new", {"Format": "PNG", "filename": "test"}, 0, 1),
 ]
 

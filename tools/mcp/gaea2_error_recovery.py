@@ -42,9 +42,11 @@ class Gaea2ErrorRecovery:
             - Fixed connections
             - List of fixes applied
         """
+        from .gaea2_connection_utils import normalize_connections
+
         self.fixes_applied = []
         fixed_nodes = deepcopy(nodes)
-        fixed_connections = deepcopy(connections)
+        fixed_connections = normalize_connections(deepcopy(connections))
 
         # Fix 1: Remove duplicate connections
         fixed_connections = self._fix_duplicate_connections(fixed_connections)
@@ -111,7 +113,7 @@ class Gaea2ErrorRecovery:
                 suggestions = self.property_validator.suggest_missing_properties(node_type, {})
                 if suggestions:
                     node["properties"] = suggestions
-                    self.fixes_applied.append(f"Added default properties to {node['name']} ({node_type})")
+                    self.fixes_applied.append(f"Added default properties to {node.get('name', 'Unnamed')} ({node_type})")
 
         return nodes
 
@@ -357,7 +359,9 @@ class Gaea2ErrorRecovery:
                         if "enabled" in node["properties"]:
                             del node["properties"]["enabled"]
 
-                        self.fixes_applied.append(f"Updated {node['name']} to export .terrain format with new structure")
+                        self.fixes_applied.append(
+                            f"Updated {node.get('name', 'Export')} to export .terrain format with new structure"
+                        )
                         break
 
         return nodes

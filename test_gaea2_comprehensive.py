@@ -35,7 +35,9 @@ class Gaea2ComprehensiveTester:
         """Call an MCP tool and return the result"""
         try:
             response = requests.post(
-                f"{self.server_url}/mcp/execute", json={"tool": tool_name, "parameters": parameters}, timeout=30
+                f"{self.server_url}/mcp/execute",
+                json={"tool": tool_name, "parameters": parameters},
+                timeout=30,
             )
             return response.json()
         except Exception as e:
@@ -89,7 +91,10 @@ class Gaea2ComprehensiveTester:
                 "create_gaea2_project",
                 {
                     "project_name": f"Test_{template['name']}",
-                    "workflow": {"nodes": template["nodes"], "connections": template["connections"]},
+                    "workflow": {
+                        "nodes": template["nodes"],
+                        "connections": template["connections"],
+                    },
                     "auto_validate": True,
                 },
             )
@@ -98,7 +103,13 @@ class Gaea2ComprehensiveTester:
             # Test validation only
             val_result = self.call_mcp_tool(
                 "validate_and_fix_workflow",
-                {"workflow": {"nodes": template["nodes"], "connections": template["connections"]}, "fix_errors": False},
+                {
+                    "workflow": {
+                        "nodes": template["nodes"],
+                        "connections": template["connections"],
+                    },
+                    "fix_errors": False,
+                },
             )
             self.add_test_result(f"Validate {template['name']}", val_result)
 
@@ -116,7 +127,11 @@ class Gaea2ComprehensiveTester:
 
         for template_name in template_names:
             result = self.call_mcp_tool(
-                "create_gaea2_from_template", {"template_name": template_name, "project_name": f"BuiltIn_{template_name}"}
+                "create_gaea2_from_template",
+                {
+                    "template_name": template_name,
+                    "project_name": f"BuiltIn_{template_name}",
+                },
             )
             # Expect failure for invalid template
             expected = template_name != "invalid_template"
@@ -130,13 +145,20 @@ class Gaea2ComprehensiveTester:
         error_cases = [
             {
                 "name": "Missing Export Node",
-                "workflow": {"nodes": [{"id": "m1", "type": "Mountain", "properties": {}}], "connections": []},
+                "workflow": {
+                    "nodes": [{"id": "m1", "type": "Mountain", "properties": {}}],
+                    "connections": [],
+                },
             },
             {
                 "name": "Invalid Property Values",
                 "workflow": {
                     "nodes": [
-                        {"id": "m1", "type": "Mountain", "properties": {"Height": 5.0}},  # Out of range
+                        {
+                            "id": "m1",
+                            "type": "Mountain",
+                            "properties": {"Height": 5.0},
+                        },  # Out of range
                         {"id": "e1", "type": "Export", "properties": {}},
                     ],
                     "connections": [{"from": "m1", "to": "e1"}],
@@ -173,7 +195,12 @@ class Gaea2ComprehensiveTester:
         for case in error_cases:
             # Test with auto-fix enabled
             result = self.call_mcp_tool(
-                "validate_and_fix_workflow", {"workflow": case["workflow"], "fix_errors": True, "add_missing_nodes": True}
+                "validate_and_fix_workflow",
+                {
+                    "workflow": case["workflow"],
+                    "fix_errors": True,
+                    "add_missing_nodes": True,
+                },
             )
             self.add_test_result(f"Fix errors: {case['name']}", result)
 
@@ -188,9 +215,17 @@ class Gaea2ComprehensiveTester:
                 {
                     "id": "e1",
                     "type": "Erosion2",
-                    "properties": {"Strength": 0.9, "Iterations": 50, "Detail": 0.9},  # High value  # High value
+                    "properties": {
+                        "Strength": 0.9,
+                        "Iterations": 50,
+                        "Detail": 0.9,
+                    },  # High value  # High value
                 },
-                {"id": "t1", "type": "Terrace", "properties": {"Levels": 64}},  # High value
+                {
+                    "id": "t1",
+                    "type": "Terrace",
+                    "properties": {"Levels": 64},
+                },  # High value
                 {"id": "s1", "type": "SatMap", "properties": {}},
                 {"id": "ex1", "type": "Export", "properties": {}},
             ],
@@ -204,7 +239,10 @@ class Gaea2ComprehensiveTester:
 
         # Test different optimization modes
         for mode in ["performance", "quality", "balanced"]:
-            result = self.call_mcp_tool("optimize_gaea2_properties", {"workflow": workflow, "optimization_mode": mode})
+            result = self.call_mcp_tool(
+                "optimize_gaea2_properties",
+                {"workflow": workflow, "optimization_mode": mode},
+            )
             self.add_test_result(f"Optimize for {mode}", result)
 
     def test_node_suggestions(self):
@@ -212,15 +250,32 @@ class Gaea2ComprehensiveTester:
         print("\n=== Testing Node Suggestions ===")
 
         test_cases = [
-            {"name": "After Mountain", "nodes": ["Mountain"], "context": "realistic terrain"},
-            {"name": "After Erosion", "nodes": ["Mountain", "Erosion2"], "context": "detailed terrain"},
-            {"name": "Complex Chain", "nodes": ["Mountain", "Erosion2", "Terrace", "SatMap"], "context": "final output"},
+            {
+                "name": "After Mountain",
+                "nodes": ["Mountain"],
+                "context": "realistic terrain",
+            },
+            {
+                "name": "After Erosion",
+                "nodes": ["Mountain", "Erosion2"],
+                "context": "detailed terrain",
+            },
+            {
+                "name": "Complex Chain",
+                "nodes": ["Mountain", "Erosion2", "Terrace", "SatMap"],
+                "context": "final output",
+            },
             {"name": "Empty Workflow", "nodes": [], "context": "starting new terrain"},
         ]
 
         for case in test_cases:
             result = self.call_mcp_tool(
-                "suggest_gaea2_nodes", {"current_nodes": case["nodes"], "context": case["context"], "limit": 5}
+                "suggest_gaea2_nodes",
+                {
+                    "current_nodes": case["nodes"],
+                    "context": case["context"],
+                    "limit": 5,
+                },
             )
             self.add_test_result(f"Suggest nodes: {case['name']}", result)
 
@@ -233,7 +288,11 @@ class Gaea2ComprehensiveTester:
             {
                 "name": "Simple Linear",
                 "workflow": {
-                    "nodes": [{"id": "1", "type": "Mountain"}, {"id": "2", "type": "Erosion2"}, {"id": "3", "type": "Export"}],
+                    "nodes": [
+                        {"id": "1", "type": "Mountain"},
+                        {"id": "2", "type": "Erosion2"},
+                        {"id": "3", "type": "Export"},
+                    ],
                     "connections": [{"from": "1", "to": "2"}, {"from": "2", "to": "3"}],
                 },
             },
@@ -260,7 +319,11 @@ class Gaea2ComprehensiveTester:
 
         for case in workflows:
             result = self.call_mcp_tool(
-                "analyze_workflow_patterns", {"workflow_or_directory": case["workflow"], "include_suggestions": True}
+                "analyze_workflow_patterns",
+                {
+                    "workflow_or_directory": case["workflow"],
+                    "include_suggestions": True,
+                },
             )
             self.add_test_result(f"Analyze pattern: {case['name']}", result)
 
@@ -270,7 +333,11 @@ class Gaea2ComprehensiveTester:
 
         # Test empty workflow
         result = self.call_mcp_tool(
-            "create_gaea2_project", {"project_name": "EmptyProject", "workflow": {"nodes": [], "connections": []}}
+            "create_gaea2_project",
+            {
+                "project_name": "EmptyProject",
+                "workflow": {"nodes": [], "connections": []},
+            },
         )
         self.add_test_result("Empty workflow", result, expected_success=False)
 
@@ -278,19 +345,37 @@ class Gaea2ComprehensiveTester:
         nodes = []
         connections = []
         for i in range(50):
-            nodes.append({"id": f"node{i}", "type": "Mountain" if i % 2 == 0 else "Erosion2", "properties": {}})
+            nodes.append(
+                {
+                    "id": f"node{i}",
+                    "type": "Mountain" if i % 2 == 0 else "Erosion2",
+                    "properties": {},
+                }
+            )
             if i > 0:
                 connections.append({"from": f"node{i-1}", "to": f"node{i}"})
 
         result = self.call_mcp_tool(
-            "validate_and_fix_workflow", {"workflow": {"nodes": nodes, "connections": connections}, "fix_errors": True}
+            "validate_and_fix_workflow",
+            {
+                "workflow": {"nodes": nodes, "connections": connections},
+                "fix_errors": True,
+            },
         )
         self.add_test_result("Very long node chain", result)
 
         # Test circular dependency
         circular_workflow = {
-            "nodes": [{"id": "a", "type": "Mountain"}, {"id": "b", "type": "Erosion2"}, {"id": "c", "type": "Terrace"}],
-            "connections": [{"from": "a", "to": "b"}, {"from": "b", "to": "c"}, {"from": "c", "to": "a"}],  # Circular
+            "nodes": [
+                {"id": "a", "type": "Mountain"},
+                {"id": "b", "type": "Erosion2"},
+                {"id": "c", "type": "Terrace"},
+            ],
+            "connections": [
+                {"from": "a", "to": "b"},
+                {"from": "b", "to": "c"},
+                {"from": "c", "to": "a"},
+            ],  # Circular
         }
 
         result = self.call_mcp_tool("validate_and_fix_workflow", {"workflow": circular_workflow})
@@ -303,7 +388,8 @@ class Gaea2ComprehensiveTester:
         # Time template creation
         start = time.time()
         result = self.call_mcp_tool(
-            "create_gaea2_from_template", {"template_name": "basic_terrain", "project_name": "PerformanceTest"}
+            "create_gaea2_from_template",
+            {"template_name": "basic_terrain", "project_name": "PerformanceTest"},
         )
         elapsed = time.time() - start
 
@@ -314,7 +400,12 @@ class Gaea2ComprehensiveTester:
         start = time.time()
         result = self.call_mcp_tool(
             "validate_and_fix_workflow",
-            {"workflow": {"nodes": complex_template["nodes"], "connections": complex_template["connections"]}},
+            {
+                "workflow": {
+                    "nodes": complex_template["nodes"],
+                    "connections": complex_template["connections"],
+                }
+            },
         )
         elapsed = time.time() - start
 

@@ -32,20 +32,29 @@ def test_export_node():
                 "id": "n4",
                 "type": "Export",
                 "properties": {"Format": "PNG"},
-                "save_definition": {"filename": "export_test", "format": "PNG", "enabled": True},
+                "save_definition": {
+                    "filename": "export_test",
+                    "format": "PNG",
+                    "enabled": True,
+                },
             },
         ],
         "connections": [
-            {"from": {"node_id": "n1", "port": "out"}, "to": {"node_id": "n2", "port": "in"}},
-            {"from": {"node_id": "n2", "port": "out"}, "to": {"node_id": "n3", "port": "in"}},
-            {"from": {"node_id": "n2", "port": "out"}, "to": {"node_id": "n4", "port": "in"}},
+            {"from_node": "n1", "from_port": "Out", "to_node": "n2", "to_port": "In"},
+            {"from_node": "n2", "from_port": "Out", "to_node": "n3", "to_port": "In"},
+            {"from_node": "n2", "from_port": "Out", "to_node": "n4", "to_port": "In"},
         ],
     }
 
     print("\nTesting Export node with correct format...")
     result = client.execute_tool(
         "create_gaea2_project",
-        {"project_name": "export_fix_test", "workflow": workflow, "output_path": "test_outputs", "auto_validate": True},
+        {
+            "project_name": "export_fix_test",
+            "workflow": workflow,
+            "output_path": "test_outputs",
+            "auto_validate": True,
+        },
     )
 
     if result.get("success"):

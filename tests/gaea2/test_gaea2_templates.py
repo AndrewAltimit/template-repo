@@ -115,18 +115,46 @@ class Gaea2TemplateTester:
                     "id": "n5",
                     "type": "Export",
                     "properties": {"Format": "PNG"},
-                    "save_definition": {"filename": "basic_terrain", "format": "PNG", "enabled": True},
+                    "save_definition": {
+                        "filename": "basic_terrain",
+                        "format": "PNG",
+                        "enabled": True,
+                    },
                 },
             ],
             "connections": [
-                {"from": {"node_id": "n1", "port": "out"}, "to": {"node_id": "n2", "port": "in"}},
-                {"from": {"node_id": "n2", "port": "out"}, "to": {"node_id": "n3", "port": "in"}},
-                {"from": {"node_id": "n3", "port": "out"}, "to": {"node_id": "n4", "port": "in"}},
-                {"from": {"node_id": "n3", "port": "out"}, "to": {"node_id": "n5", "port": "in"}},
+                {
+                    "from_node": "n1",
+                    "from_port": "Out",
+                    "to_node": "n2",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n2",
+                    "from_port": "Out",
+                    "to_node": "n3",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n3",
+                    "from_port": "Out",
+                    "to_node": "n4",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n3",
+                    "from_port": "Out",
+                    "to_node": "n5",
+                    "to_port": "In",
+                },
             ],
         }
 
-        return self.create_template("basic_terrain", workflow, "Basic terrain with gradient, terraces, and erosion")
+        return self.create_template(
+            "basic_terrain",
+            workflow,
+            "Basic terrain with gradient, terraces, and erosion",
+        )
 
     def test_complex_multibiome(self):
         """Test 2: Complex multi-biome terrain."""
@@ -137,8 +165,16 @@ class Gaea2TemplateTester:
                 {"id": "n2", "type": "Primitive", "properties": {"Type": "Perlin"}},
                 {"id": "n3", "type": "Combine", "properties": {"Method": "Add"}},
                 # Biome masks
-                {"id": "n4", "type": "SlopeSelector", "properties": {"MinAngle": 0, "MaxAngle": 30}},
-                {"id": "n5", "type": "HeightSelector", "properties": {"Min": 0, "Max": 500}},
+                {
+                    "id": "n4",
+                    "type": "SlopeSelector",
+                    "properties": {"MinAngle": 0, "MaxAngle": 30},
+                },
+                {
+                    "id": "n5",
+                    "type": "HeightSelector",
+                    "properties": {"Min": 0, "Max": 500},
+                },
                 {"id": "n6", "type": "Combine", "properties": {"Method": "Multiply"}},
                 # Erosion variants
                 {"id": "n7", "type": "Erosion2", "properties": {"RockSoftness": 0.5}},
@@ -151,65 +187,185 @@ class Gaea2TemplateTester:
                     "id": "n12",
                     "type": "Export",
                     "properties": {"Format": "EXR"},
-                    "save_definition": {"filename": "multibiome", "format": "EXR", "enabled": True},
+                    "save_definition": {
+                        "filename": "multibiome",
+                        "format": "EXR",
+                        "enabled": True,
+                    },
                 },
             ],
             "connections": [
                 # Height network
-                {"from": {"node_id": "n1", "port": "out"}, "to": {"node_id": "n3", "port": "in1"}},
-                {"from": {"node_id": "n2", "port": "out"}, "to": {"node_id": "n3", "port": "in2"}},
+                {
+                    "from_node": "n1",
+                    "from_port": "Out",
+                    "to_node": "n3",
+                    "to_port": "in1",
+                },
+                {
+                    "from_node": "n2",
+                    "from_port": "Out",
+                    "to_node": "n3",
+                    "to_port": "in2",
+                },
                 # Biome mask network
-                {"from": {"node_id": "n3", "port": "out"}, "to": {"node_id": "n4", "port": "in"}},
-                {"from": {"node_id": "n3", "port": "out"}, "to": {"node_id": "n5", "port": "in"}},
-                {"from": {"node_id": "n4", "port": "out"}, "to": {"node_id": "n6", "port": "in1"}},
-                {"from": {"node_id": "n5", "port": "out"}, "to": {"node_id": "n6", "port": "in2"}},
+                {
+                    "from_node": "n3",
+                    "from_port": "Out",
+                    "to_node": "n4",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n3",
+                    "from_port": "Out",
+                    "to_node": "n5",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n4",
+                    "from_port": "Out",
+                    "to_node": "n6",
+                    "to_port": "in1",
+                },
+                {
+                    "from_node": "n5",
+                    "from_port": "Out",
+                    "to_node": "n6",
+                    "to_port": "in2",
+                },
                 # Erosion application
-                {"from": {"node_id": "n3", "port": "out"}, "to": {"node_id": "n7", "port": "in"}},
-                {"from": {"node_id": "n7", "port": "out"}, "to": {"node_id": "n8", "port": "in"}},
-                {"from": {"node_id": "n8", "port": "out"}, "to": {"node_id": "n9", "port": "in"}},
+                {
+                    "from_node": "n3",
+                    "from_port": "Out",
+                    "to_node": "n7",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n7",
+                    "from_port": "Out",
+                    "to_node": "n8",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n8",
+                    "from_port": "Out",
+                    "to_node": "n9",
+                    "to_port": "In",
+                },
                 # Final composition
-                {"from": {"node_id": "n9", "port": "out"}, "to": {"node_id": "n10", "port": "in"}},
-                {"from": {"node_id": "n6", "port": "out"}, "to": {"node_id": "n10", "port": "mask"}},
-                {"from": {"node_id": "n10", "port": "out"}, "to": {"node_id": "n11", "port": "in"}},
-                {"from": {"node_id": "n10", "port": "out"}, "to": {"node_id": "n12", "port": "in"}},
+                {
+                    "from_node": "n9",
+                    "from_port": "Out",
+                    "to_node": "n10",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n6",
+                    "from_port": "Out",
+                    "to_node": "n10",
+                    "to_port": "mask",
+                },
+                {
+                    "from_node": "n10",
+                    "from_port": "Out",
+                    "to_node": "n11",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n10",
+                    "from_port": "Out",
+                    "to_node": "n12",
+                    "to_port": "In",
+                },
             ],
         }
 
         return self.create_template(
-            "complex_multibiome", workflow, "Complex multi-biome terrain with layered erosion and masking"
+            "complex_multibiome",
+            workflow,
+            "Complex multi-biome terrain with layered erosion and masking",
         )
 
     def test_volcanic_terrain(self):
         """Test 3: Volcanic terrain with lava flows."""
         workflow = {
             "nodes": [
-                {"id": "n1", "type": "Crater", "properties": {"Radius": 500, "Depth": 300}},
+                {
+                    "id": "n1",
+                    "type": "Crater",
+                    "properties": {"Radius": 500, "Depth": 300},
+                },
                 {"id": "n2", "type": "Mountain", "properties": {"Height": 3000}},
                 {"id": "n3", "type": "Combine", "properties": {"Method": "Max"}},
                 {"id": "n4", "type": "LavaFlow", "properties": {"Temperature": 1200}},
-                {"id": "n5", "type": "ThermalShatter", "properties": {"Intensity": 0.8}},
+                {
+                    "id": "n5",
+                    "type": "ThermalShatter",
+                    "properties": {"Intensity": 0.8},
+                },
                 {"id": "n6", "type": "Sediment", "properties": {"Amount": 0.3}},
                 {"id": "n7", "type": "SatMap", "properties": {"Style": "Volcanic"}},
                 {
                     "id": "n8",
                     "type": "Export",
                     "properties": {"Format": "PNG"},
-                    "save_definition": {"filename": "volcanic", "format": "PNG", "enabled": True},
+                    "save_definition": {
+                        "filename": "volcanic",
+                        "format": "PNG",
+                        "enabled": True,
+                    },
                 },
             ],
             "connections": [
-                {"from": {"node_id": "n1", "port": "out"}, "to": {"node_id": "n3", "port": "in1"}},
-                {"from": {"node_id": "n2", "port": "out"}, "to": {"node_id": "n3", "port": "in2"}},
-                {"from": {"node_id": "n3", "port": "out"}, "to": {"node_id": "n4", "port": "in"}},
-                {"from": {"node_id": "n4", "port": "out"}, "to": {"node_id": "n5", "port": "in"}},
-                {"from": {"node_id": "n5", "port": "out"}, "to": {"node_id": "n6", "port": "in"}},
-                {"from": {"node_id": "n6", "port": "out"}, "to": {"node_id": "n7", "port": "in"}},
-                {"from": {"node_id": "n6", "port": "out"}, "to": {"node_id": "n8", "port": "in"}},
+                {
+                    "from_node": "n1",
+                    "from_port": "Out",
+                    "to_node": "n3",
+                    "to_port": "in1",
+                },
+                {
+                    "from_node": "n2",
+                    "from_port": "Out",
+                    "to_node": "n3",
+                    "to_port": "in2",
+                },
+                {
+                    "from_node": "n3",
+                    "from_port": "Out",
+                    "to_node": "n4",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n4",
+                    "from_port": "Out",
+                    "to_node": "n5",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n5",
+                    "from_port": "Out",
+                    "to_node": "n6",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n6",
+                    "from_port": "Out",
+                    "to_node": "n7",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n6",
+                    "from_port": "Out",
+                    "to_node": "n8",
+                    "to_port": "In",
+                },
             ],
         }
 
         return self.create_template(
-            "volcanic_terrain", workflow, "Volcanic terrain with crater, lava flows, and thermal effects"
+            "volcanic_terrain",
+            workflow,
+            "Volcanic terrain with crater, lava flows, and thermal effects",
         )
 
     def test_coastal_water(self):
@@ -228,23 +384,76 @@ class Gaea2TemplateTester:
                     "id": "n9",
                     "type": "Export",
                     "properties": {"Format": "PNG"},
-                    "save_definition": {"filename": "coastal", "format": "PNG", "enabled": True},
+                    "save_definition": {
+                        "filename": "coastal",
+                        "format": "PNG",
+                        "enabled": True,
+                    },
                 },
             ],
             "connections": [
-                {"from": {"node_id": "n1", "port": "out"}, "to": {"node_id": "n2", "port": "in"}},
-                {"from": {"node_id": "n2", "port": "out"}, "to": {"node_id": "n3", "port": "in"}},
-                {"from": {"node_id": "n3", "port": "out"}, "to": {"node_id": "n4", "port": "in"}},
-                {"from": {"node_id": "n4", "port": "out"}, "to": {"node_id": "n5", "port": "in"}},
-                {"from": {"node_id": "n5", "port": "out"}, "to": {"node_id": "n6", "port": "in"}},
-                {"from": {"node_id": "n6", "port": "out"}, "to": {"node_id": "n7", "port": "in1"}},
-                {"from": {"node_id": "n3", "port": "water"}, "to": {"node_id": "n7", "port": "in2"}},
-                {"from": {"node_id": "n7", "port": "out"}, "to": {"node_id": "n8", "port": "in"}},
-                {"from": {"node_id": "n7", "port": "out"}, "to": {"node_id": "n9", "port": "in"}},
+                {
+                    "from_node": "n1",
+                    "from_port": "Out",
+                    "to_node": "n2",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n2",
+                    "from_port": "Out",
+                    "to_node": "n3",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n3",
+                    "from_port": "Out",
+                    "to_node": "n4",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n4",
+                    "from_port": "Out",
+                    "to_node": "n5",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n5",
+                    "from_port": "Out",
+                    "to_node": "n6",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n6",
+                    "from_port": "Out",
+                    "to_node": "n7",
+                    "to_port": "in1",
+                },
+                {
+                    "from_node": "n3",
+                    "from_port": "water",
+                    "to_node": "n7",
+                    "to_port": "in2",
+                },
+                {
+                    "from_node": "n7",
+                    "from_port": "Out",
+                    "to_node": "n8",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n7",
+                    "from_port": "Out",
+                    "to_node": "n9",
+                    "to_port": "In",
+                },
             ],
         }
 
-        return self.create_template("coastal_water", workflow, "Coastal terrain with beaches, water bodies, and erosion")
+        return self.create_template(
+            "coastal_water",
+            workflow,
+            "Coastal terrain with beaches, water bodies, and erosion",
+        )
 
     def test_edge_cases(self):
         """Test 5: Edge cases to stress-test validation."""
@@ -260,48 +469,117 @@ class Gaea2TemplateTester:
                     "id": "n3",
                     "type": "Export",
                     "properties": {"Format": "PNG"},
-                    "save_definition": {"filename": "edge_test", "format": "PNG", "enabled": True},
+                    "save_definition": {
+                        "filename": "edge_test",
+                        "format": "PNG",
+                        "enabled": True,
+                    },
                 },
             ],
             "connections": [
-                {"from": {"node_id": "n1", "port": "out"}, "to": {"node_id": "n2", "port": "in"}},
-                {"from": {"node_id": "n1", "port": "out"}, "to": {"node_id": "n2", "port": "in"}},  # Duplicate!
-                {"from": {"node_id": "n2", "port": "out"}, "to": {"node_id": "n3", "port": "in"}},
+                {
+                    "from_node": "n1",
+                    "from_port": "Out",
+                    "to_node": "n2",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n1",
+                    "from_port": "Out",
+                    "to_node": "n2",
+                    "to_port": "In",
+                },  # Duplicate!
+                {
+                    "from_node": "n2",
+                    "from_port": "Out",
+                    "to_node": "n3",
+                    "to_port": "In",
+                },
             ],
         }
-        edge_cases.append(("edge_duplicate_connections", workflow1, "Workflow with duplicate connections"))
+        edge_cases.append(
+            (
+                "edge_duplicate_connections",
+                workflow1,
+                "Workflow with duplicate connections",
+            )
+        )
 
         # Edge case 2: Missing essential nodes
         workflow2 = {
             "nodes": [
                 {"id": "n1", "type": "Mountain", "properties": {}},
-                {"id": "n2", "type": "Erosion", "properties": {}}
+                {"id": "n2", "type": "Erosion", "properties": {}},
                 # Missing Export and SatMap!
             ],
-            "connections": [{"from": {"node_id": "n1", "port": "out"}, "to": {"node_id": "n2", "port": "in"}}],
+            "connections": [
+                {
+                    "from_node": "n1",
+                    "from_port": "Out",
+                    "to_node": "n2",
+                    "to_port": "In",
+                }
+            ],
         }
         edge_cases.append(("edge_missing_essentials", workflow2, "Workflow missing essential nodes"))
 
         # Edge case 3: Invalid property values
         workflow3 = {
             "nodes": [
-                {"id": "n1", "type": "Primitive", "properties": {"Type": "InvalidType"}},
-                {"id": "n2", "type": "Erosion", "properties": {"Duration": -50}},  # Negative duration!
-                {"id": "n3", "type": "Mountain", "properties": {"Height": 999999}},  # Extreme height!
+                {
+                    "id": "n1",
+                    "type": "Primitive",
+                    "properties": {"Type": "InvalidType"},
+                },
+                {
+                    "id": "n2",
+                    "type": "Erosion",
+                    "properties": {"Duration": -50},
+                },  # Negative duration!
+                {
+                    "id": "n3",
+                    "type": "Mountain",
+                    "properties": {"Height": 999999},
+                },  # Extreme height!
                 {
                     "id": "n4",
                     "type": "Export",
                     "properties": {"Format": "PNG"},
-                    "save_definition": {"filename": "edge_invalid", "format": "PNG", "enabled": True},
+                    "save_definition": {
+                        "filename": "edge_invalid",
+                        "format": "PNG",
+                        "enabled": True,
+                    },
                 },
             ],
             "connections": [
-                {"from": {"node_id": "n1", "port": "out"}, "to": {"node_id": "n2", "port": "in"}},
-                {"from": {"node_id": "n2", "port": "out"}, "to": {"node_id": "n3", "port": "in"}},
-                {"from": {"node_id": "n3", "port": "out"}, "to": {"node_id": "n4", "port": "in"}},
+                {
+                    "from_node": "n1",
+                    "from_port": "Out",
+                    "to_node": "n2",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n2",
+                    "from_port": "Out",
+                    "to_node": "n3",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n3",
+                    "from_port": "Out",
+                    "to_node": "n4",
+                    "to_port": "In",
+                },
             ],
         }
-        edge_cases.append(("edge_invalid_properties", workflow3, "Workflow with invalid property values"))
+        edge_cases.append(
+            (
+                "edge_invalid_properties",
+                workflow3,
+                "Workflow with invalid property values",
+            )
+        )
 
         # Edge case 4: Circular dependencies
         workflow4 = {
@@ -312,13 +590,32 @@ class Gaea2TemplateTester:
                     "id": "n3",
                     "type": "Export",
                     "properties": {"Format": "PNG"},
-                    "save_definition": {"filename": "edge_test", "format": "PNG", "enabled": True},
+                    "save_definition": {
+                        "filename": "edge_test",
+                        "format": "PNG",
+                        "enabled": True,
+                    },
                 },
             ],
             "connections": [
-                {"from": {"node_id": "n1", "port": "out"}, "to": {"node_id": "n2", "port": "in"}},
-                {"from": {"node_id": "n2", "port": "out"}, "to": {"node_id": "n1", "port": "in1"}},  # Circular!
-                {"from": {"node_id": "n2", "port": "out"}, "to": {"node_id": "n3", "port": "in"}},
+                {
+                    "from_node": "n1",
+                    "from_port": "Out",
+                    "to_node": "n2",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n2",
+                    "from_port": "Out",
+                    "to_node": "n1",
+                    "to_port": "in1",
+                },  # Circular!
+                {
+                    "from_node": "n2",
+                    "from_port": "Out",
+                    "to_node": "n3",
+                    "to_port": "In",
+                },
             ],
         }
         edge_cases.append(("edge_circular_deps", workflow4, "Workflow with circular dependencies"))
@@ -332,12 +629,26 @@ class Gaea2TemplateTester:
                     "id": "n3",
                     "type": "Export",
                     "properties": {"Format": "PNG"},
-                    "save_definition": {"filename": "edge_test", "format": "PNG", "enabled": True},
+                    "save_definition": {
+                        "filename": "edge_test",
+                        "format": "PNG",
+                        "enabled": True,
+                    },
                 },
             ],
             "connections": [
-                {"from": {"node_id": "n1", "port": "out"}, "to": {"node_id": "n2", "port": "in"}},
-                {"from": {"node_id": "n2", "port": "out"}, "to": {"node_id": "n3", "port": "in"}},
+                {
+                    "from_node": "n1",
+                    "from_port": "Out",
+                    "to_node": "n2",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "n2",
+                    "from_port": "Out",
+                    "to_node": "n3",
+                    "to_port": "In",
+                },
             ],
         }
         edge_cases.append(("edge_unknown_nodes", workflow5, "Workflow with unknown node types"))
@@ -348,7 +659,13 @@ class Gaea2TemplateTester:
 
     def test_from_templates(self):
         """Test creating projects from built-in templates."""
-        templates = ["mountain_range", "volcanic_island", "canyon_system", "coastal_cliffs", "arctic_terrain"]
+        templates = [
+            "mountain_range",
+            "volcanic_island",
+            "canyon_system",
+            "coastal_cliffs",
+            "arctic_terrain",
+        ]
 
         for template in templates:
             print(f"\n{'='*60}")
@@ -358,7 +675,11 @@ class Gaea2TemplateTester:
             try:
                 result = self.client.execute_tool(
                     "create_gaea2_from_template",
-                    {"template_name": template, "project_name": f"test_{template}", "output_path": self.test_dir},
+                    {
+                        "template_name": template,
+                        "project_name": f"test_{template}",
+                        "output_path": self.test_dir,
+                    },
                 )
 
                 self.results.append(

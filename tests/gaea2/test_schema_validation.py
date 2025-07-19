@@ -41,7 +41,11 @@ def test_export_node_validation():
     print("\n\nTesting Export node validation...")
 
     test_cases = [
-        {"name": "Valid Export with Format", "properties": {"Format": "PNG"}, "expected_warnings": 0},
+        {
+            "name": "Valid Export with Format",
+            "properties": {"Format": "PNG"},
+            "expected_warnings": 0,
+        },
         {
             "name": "Export with invalid properties (old style)",
             "properties": {"filename": "test", "format": "PNG", "enabled": True},
@@ -52,7 +56,11 @@ def test_export_node_validation():
             "properties": {"Format": "EXR", "filename": "test"},
             "expected_warnings": 1,  # Only filename should be unknown
         },
-        {"name": "Export with BitDepth", "properties": {"Format": "TIF", "BitDepth": "16"}, "expected_warnings": 0},
+        {
+            "name": "Export with BitDepth",
+            "properties": {"Format": "TIF", "BitDepth": "16"},
+            "expected_warnings": 0,
+        },
     ]
 
     for test in test_cases:
@@ -86,13 +94,17 @@ def test_workflow_with_export():
                 "id": "n4",
                 "type": "Export",
                 "properties": {"Format": "PNG"},
-                "save_definition": {"filename": "test_export", "format": "PNG", "enabled": True},
+                "save_definition": {
+                    "filename": "test_export",
+                    "format": "PNG",
+                    "enabled": True,
+                },
             },
         ],
         "connections": [
-            {"from": {"node_id": "n1", "port": "out"}, "to": {"node_id": "n2", "port": "in"}},
-            {"from": {"node_id": "n2", "port": "out"}, "to": {"node_id": "n3", "port": "in"}},
-            {"from": {"node_id": "n2", "port": "out"}, "to": {"node_id": "n4", "port": "in"}},
+            {"from_node": "n1", "from_port": "Out", "to_node": "n2", "to_port": "In"},
+            {"from_node": "n2", "from_port": "Out", "to_node": "n3", "to_port": "In"},
+            {"from_node": "n2", "from_port": "Out", "to_node": "n4", "to_port": "In"},
         ],
     }
 
@@ -132,7 +144,7 @@ def test_automatic_export_addition():
             {"id": "n1", "type": "Mountain", "properties": {"Height": 1000}},
             {"id": "n2", "type": "Erosion", "properties": {}},
         ],
-        "connections": [{"from": {"node_id": "n1", "port": "out"}, "to": {"node_id": "n2", "port": "in"}}],
+        "connections": [{"from_node": "n1", "from_port": "Out", "to_node": "n2", "to_port": "In"}],
     }
 
     print("  Original workflow: 2 nodes, no Export")
@@ -179,9 +191,17 @@ def test_error_recovery_export_fix():
         "name": "test_export_fix",
         "nodes": [
             {"id": "n1", "type": "Mountain", "properties": {}},
-            {"id": "n2", "type": "Export", "properties": {"filename": "old_style", "format": "PNG", "enabled": True}},
+            {
+                "id": "n2",
+                "type": "Export",
+                "properties": {
+                    "filename": "old_style",
+                    "format": "PNG",
+                    "enabled": True,
+                },
+            },
         ],
-        "connections": [{"from": {"node_id": "n1", "port": "out"}, "to": {"node_id": "n2", "port": "in"}}],
+        "connections": [{"from_node": "n1", "from_port": "Out", "to_node": "n2", "to_port": "In"}],
     }
 
     print("  Testing project with old-style Export node...")

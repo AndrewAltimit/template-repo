@@ -36,13 +36,23 @@ class Gaea2TestTemplates:
                 {
                     "id": "mountain1",
                     "type": "Mountain",
-                    "properties": {"Height": 0.8, "Scale": 1.0, "Style": "Alpine", "Seed": 12345},
+                    "properties": {
+                        "Height": 0.8,
+                        "Scale": 1.0,
+                        "Style": "Alpine",
+                        "Seed": 12345,
+                    },
                     "position": {"x": 0, "y": 0},
                 },
                 {
                     "id": "erosion1",
                     "type": "Erosion2",
-                    "properties": {"Strength": 0.5, "Detail": 0.6, "Iterations": 20, "Downcutting": 0.2},
+                    "properties": {
+                        "Strength": 0.5,
+                        "Detail": 0.6,
+                        "Iterations": 20,
+                        "Downcutting": 0.2,
+                    },
                     "position": {"x": 200, "y": 0},
                 },
                 {
@@ -59,9 +69,24 @@ class Gaea2TestTemplates:
                 },
             ],
             "connections": [
-                {"from_node": "mountain1", "from_port": "Out", "to_node": "erosion1", "to_port": "In"},
-                {"from_node": "erosion1", "from_port": "Out", "to_node": "satmap1", "to_port": "In"},
-                {"from_node": "satmap1", "from_port": "Out", "to_node": "export1", "to_port": "In"},
+                {
+                    "from_node": "mountain1",
+                    "from_port": "Out",
+                    "to_node": "erosion1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "erosion1",
+                    "from_port": "Out",
+                    "to_node": "satmap1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "satmap1",
+                    "from_port": "Out",
+                    "to_node": "export1",
+                    "to_port": "In",
+                },
             ],
         }
 
@@ -87,7 +112,12 @@ class Gaea2TestTemplates:
                 {
                     "id": "erosion1",
                     "type": "Erosion",
-                    "properties": {"Duration": 0.03, "Rock Softness": 0.6, "Downcutting": 0.4, "Feature Scale": 1500},
+                    "properties": {
+                        "Duration": 0.03,
+                        "Rock Softness": 0.6,
+                        "Downcutting": 0.4,
+                        "Feature Scale": 1500,
+                    },
                     "position": {"x": 400, "y": 0},
                 },
                 {
@@ -96,7 +126,12 @@ class Gaea2TestTemplates:
                     "properties": {"Stratification": 12, "Depth": 0.4},
                     "position": {"x": 600, "y": 0},
                 },
-                {"id": "colorizer1", "type": "CLUTer", "properties": {"Mode": "Altitude"}, "position": {"x": 800, "y": 0}},
+                {
+                    "id": "colorizer1",
+                    "type": "CLUTer",
+                    "properties": {"Mode": "Altitude"},
+                    "position": {"x": 800, "y": 0},
+                },
                 {
                     "id": "export1",
                     "type": "Export",
@@ -105,11 +140,36 @@ class Gaea2TestTemplates:
                 },
             ],
             "connections": [
-                {"from_node": "ridges1", "from_port": "Out", "to_node": "terrace1", "to_port": "In"},
-                {"from_node": "terrace1", "from_port": "Out", "to_node": "erosion1", "to_port": "In"},
-                {"from_node": "erosion1", "from_port": "Out", "to_node": "stratify1", "to_port": "In"},
-                {"from_node": "stratify1", "from_port": "Out", "to_node": "colorizer1", "to_port": "In"},
-                {"from_node": "colorizer1", "from_port": "Out", "to_node": "export1", "to_port": "In"},
+                {
+                    "from_node": "ridges1",
+                    "from_port": "Out",
+                    "to_node": "terrace1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "terrace1",
+                    "from_port": "Out",
+                    "to_node": "erosion1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "erosion1",
+                    "from_port": "Out",
+                    "to_node": "stratify1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "stratify1",
+                    "from_port": "Out",
+                    "to_node": "colorizer1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "colorizer1",
+                    "from_port": "Out",
+                    "to_node": "export1",
+                    "to_port": "In",
+                },
             ],
         }
 
@@ -123,7 +183,12 @@ class Gaea2TestTemplates:
                 {
                     "id": "volcano1",
                     "type": "Crater",
-                    "properties": {"Radius": 0.4, "Depth": 0.8, "Inner Slope": 0.7, "Outer Slope": 0.3},
+                    "properties": {
+                        "Radius": 0.4,
+                        "Depth": 0.8,
+                        "Inner Slope": 0.7,
+                        "Outer Slope": 0.3,
+                    },
                     "position": {"x": 0, "y": 0},
                 },
                 {
@@ -153,7 +218,12 @@ class Gaea2TestTemplates:
                 {
                     "id": "satmap1",
                     "type": "SatMap",
-                    "properties": {"Library": "Volcanic", "LibraryItem": 0, "Hue": -0.1, "Saturation": 0.2},
+                    "properties": {
+                        "Library": "Volcanic",
+                        "LibraryItem": 0,
+                        "Hue": -0.1,
+                        "Saturation": 0.2,
+                    },
                     "position": {"x": 900, "y": 100},
                 },
                 {
@@ -164,12 +234,42 @@ class Gaea2TestTemplates:
                 },
             ],
             "connections": [
-                {"from_node": "volcano1", "from_port": "Out", "to_node": "combine1", "to_port": "Input"},
-                {"from_node": "mountain1", "from_port": "Out", "to_node": "combine1", "to_port": "Input2"},
-                {"from_node": "combine1", "from_port": "Out", "to_node": "flow1", "to_port": "In"},
-                {"from_node": "flow1", "from_port": "Out", "to_node": "thermal1", "to_port": "In"},
-                {"from_node": "thermal1", "from_port": "Out", "to_node": "satmap1", "to_port": "In"},
-                {"from_node": "satmap1", "from_port": "Out", "to_node": "export1", "to_port": "In"},
+                {
+                    "from_node": "volcano1",
+                    "from_port": "Out",
+                    "to_node": "combine1",
+                    "to_port": "Input",
+                },
+                {
+                    "from_node": "mountain1",
+                    "from_port": "Out",
+                    "to_node": "combine1",
+                    "to_port": "Input2",
+                },
+                {
+                    "from_node": "combine1",
+                    "from_port": "Out",
+                    "to_node": "flow1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "flow1",
+                    "from_port": "Out",
+                    "to_node": "thermal1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "thermal1",
+                    "from_port": "Out",
+                    "to_node": "satmap1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "satmap1",
+                    "from_port": "Out",
+                    "to_node": "export1",
+                    "to_port": "In",
+                },
             ],
         }
 
@@ -187,7 +287,12 @@ class Gaea2TestTemplates:
                     "properties": {"Height": 0.7, "Scale": 1.0},
                     "position": {"x": 0, "y": 0},
                 },
-                {"id": "ridges1", "type": "Ridge", "properties": {"Scale": 0.5}, "position": {"x": 0, "y": 200}},
+                {
+                    "id": "ridges1",
+                    "type": "Ridge",
+                    "properties": {"Scale": 0.5},
+                    "position": {"x": 0, "y": 200},
+                },
                 {
                     "id": "perlin1",
                     "type": "Perlin",
@@ -227,8 +332,18 @@ class Gaea2TestTemplates:
                     "position": {"x": 1000, "y": 200},
                 },
                 # Details
-                {"id": "terrace1", "type": "FractalTerraces", "properties": {"Levels": 16}, "position": {"x": 1200, "y": 100}},
-                {"id": "warp1", "type": "Warp", "properties": {"Amount": 0.2}, "position": {"x": 1200, "y": 300}},
+                {
+                    "id": "terrace1",
+                    "type": "FractalTerraces",
+                    "properties": {"Levels": 16},
+                    "position": {"x": 1200, "y": 100},
+                },
+                {
+                    "id": "warp1",
+                    "type": "Warp",
+                    "properties": {"Amount": 0.2},
+                    "position": {"x": 1200, "y": 300},
+                },
                 # Masks
                 {
                     "id": "slope1",
@@ -243,8 +358,18 @@ class Gaea2TestTemplates:
                     "position": {"x": 1400, "y": 200},
                 },
                 # Final processing
-                {"id": "mixer1", "type": "Mixer", "properties": {}, "position": {"x": 1600, "y": 100}},
-                {"id": "satmap1", "type": "SatMap", "properties": {"Library": "Alps"}, "position": {"x": 1800, "y": 100}},
+                {
+                    "id": "mixer1",
+                    "type": "Mixer",
+                    "properties": {},
+                    "position": {"x": 1600, "y": 100},
+                },
+                {
+                    "id": "satmap1",
+                    "type": "SatMap",
+                    "properties": {"Library": "Alps"},
+                    "position": {"x": 1800, "y": 100},
+                },
                 {
                     "id": "export1",
                     "type": "Export",
@@ -254,28 +379,113 @@ class Gaea2TestTemplates:
             ],
             "connections": [
                 # Base terrain mixing
-                {"from_node": "mountain1", "from_port": "Out", "to_node": "combine1", "to_port": "Input"},
-                {"from_node": "ridges1", "from_port": "Out", "to_node": "combine1", "to_port": "Input2"},
-                {"from_node": "combine1", "from_port": "Out", "to_node": "combine2", "to_port": "Input"},
-                {"from_node": "perlin1", "from_port": "Out", "to_node": "combine2", "to_port": "Input2"},
+                {
+                    "from_node": "mountain1",
+                    "from_port": "Out",
+                    "to_node": "combine1",
+                    "to_port": "Input",
+                },
+                {
+                    "from_node": "ridges1",
+                    "from_port": "Out",
+                    "to_node": "combine1",
+                    "to_port": "Input2",
+                },
+                {
+                    "from_node": "combine1",
+                    "from_port": "Out",
+                    "to_node": "combine2",
+                    "to_port": "Input",
+                },
+                {
+                    "from_node": "perlin1",
+                    "from_port": "Out",
+                    "to_node": "combine2",
+                    "to_port": "Input2",
+                },
                 # Erosion chain
-                {"from_node": "combine2", "from_port": "Out", "to_node": "erosion1", "to_port": "In"},
-                {"from_node": "erosion1", "from_port": "Out", "to_node": "thermal1", "to_port": "In"},
-                {"from_node": "thermal1", "from_port": "Out", "to_node": "hydraulic1", "to_port": "In"},
+                {
+                    "from_node": "combine2",
+                    "from_port": "Out",
+                    "to_node": "erosion1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "erosion1",
+                    "from_port": "Out",
+                    "to_node": "thermal1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "thermal1",
+                    "from_port": "Out",
+                    "to_node": "hydraulic1",
+                    "to_port": "In",
+                },
                 # Split for processing
-                {"from_node": "hydraulic1", "from_port": "Out", "to_node": "terrace1", "to_port": "In"},
-                {"from_node": "hydraulic1", "from_port": "Out", "to_node": "warp1", "to_port": "In"},
+                {
+                    "from_node": "hydraulic1",
+                    "from_port": "Out",
+                    "to_node": "terrace1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "hydraulic1",
+                    "from_port": "Out",
+                    "to_node": "warp1",
+                    "to_port": "In",
+                },
                 # Masks
-                {"from_node": "hydraulic1", "from_port": "Out", "to_node": "slope1", "to_port": "In"},
-                {"from_node": "hydraulic1", "from_port": "Out", "to_node": "height1", "to_port": "In"},
+                {
+                    "from_node": "hydraulic1",
+                    "from_port": "Out",
+                    "to_node": "slope1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "hydraulic1",
+                    "from_port": "Out",
+                    "to_node": "height1",
+                    "to_port": "In",
+                },
                 # Final mix
-                {"from_node": "terrace1", "from_port": "Out", "to_node": "mixer1", "to_port": "Input1"},
-                {"from_node": "warp1", "from_port": "Out", "to_node": "mixer1", "to_port": "Input2"},
-                {"from_node": "slope1", "from_port": "Out", "to_node": "mixer1", "to_port": "Mask1"},
-                {"from_node": "height1", "from_port": "Out", "to_node": "mixer1", "to_port": "Mask2"},
+                {
+                    "from_node": "terrace1",
+                    "from_port": "Out",
+                    "to_node": "mixer1",
+                    "to_port": "Input1",
+                },
+                {
+                    "from_node": "warp1",
+                    "from_port": "Out",
+                    "to_node": "mixer1",
+                    "to_port": "Input2",
+                },
+                {
+                    "from_node": "slope1",
+                    "from_port": "Out",
+                    "to_node": "mixer1",
+                    "to_port": "Mask1",
+                },
+                {
+                    "from_node": "height1",
+                    "from_port": "Out",
+                    "to_node": "mixer1",
+                    "to_port": "Mask2",
+                },
                 # Output
-                {"from_node": "mixer1", "from_port": "Out", "to_node": "satmap1", "to_port": "In"},
-                {"from_node": "satmap1", "from_port": "Out", "to_node": "export1", "to_port": "In"},
+                {
+                    "from_node": "mixer1",
+                    "from_port": "Out",
+                    "to_node": "satmap1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "satmap1",
+                    "from_port": "Out",
+                    "to_node": "export1",
+                    "to_port": "In",
+                },
             ],
         }
 
@@ -322,21 +532,59 @@ class Gaea2TestTemplates:
                     "properties": {"Value": -1.0},  # Negative value
                     "position": {"x": 0, "y": 200},
                 },
-                {"id": "abs1", "type": "Abs", "properties": {}, "position": {"x": 200, "y": 200}},
-                {"id": "clamp1", "type": "Clamp", "properties": {"Min": 0.1, "Max": 0.9}, "position": {"x": 600, "y": 100}},
+                {
+                    "id": "abs1",
+                    "type": "Abs",
+                    "properties": {},
+                    "position": {"x": 200, "y": 200},
+                },
+                {
+                    "id": "clamp1",
+                    "type": "Clamp",
+                    "properties": {"Min": 0.1, "Max": 0.9},
+                    "position": {"x": 600, "y": 100},
+                },
                 {
                     "id": "export1",
                     "type": "Export",
-                    "properties": {"format": "pfm", "filename": "edge_case_terrain"},  # Less common format
+                    "properties": {
+                        "format": "pfm",
+                        "filename": "edge_case_terrain",
+                    },  # Less common format
                     "position": {"x": 800, "y": 100},
                 },
             ],
             "connections": [
-                {"from_node": "mountain1", "from_port": "Out", "to_node": "erosion1", "to_port": "In"},
-                {"from_node": "erosion1", "from_port": "Out", "to_node": "terrace1", "to_port": "In"},
-                {"from_node": "constant1", "from_port": "Out", "to_node": "abs1", "to_port": "In"},
-                {"from_node": "terrace1", "from_port": "Out", "to_node": "clamp1", "to_port": "In"},
-                {"from_node": "clamp1", "from_port": "Out", "to_node": "export1", "to_port": "In"},
+                {
+                    "from_node": "mountain1",
+                    "from_port": "Out",
+                    "to_node": "erosion1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "erosion1",
+                    "from_port": "Out",
+                    "to_node": "terrace1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "constant1",
+                    "from_port": "Out",
+                    "to_node": "abs1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "terrace1",
+                    "from_port": "Out",
+                    "to_node": "clamp1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "clamp1",
+                    "from_port": "Out",
+                    "to_node": "export1",
+                    "to_port": "In",
+                },
             ],
         }
 
@@ -367,27 +615,57 @@ class Gaea2TestTemplates:
                 {
                     "id": "resample1",
                     "type": "Transform",
-                    "properties": {"Resolution": "512", "Method": "Bilinear"},  # Low resolution
+                    "properties": {
+                        "Resolution": "512",
+                        "Method": "Bilinear",
+                    },  # Low resolution
                     "position": {"x": 400, "y": 0},
                 },
                 {
                     "id": "satmap1",
                     "type": "SatMap",
-                    "properties": {"Quality": "Fast", "Library": "Rock"},  # Performance mode
+                    "properties": {
+                        "Quality": "Fast",
+                        "Library": "Rock",
+                    },  # Performance mode
                     "position": {"x": 600, "y": 0},
                 },
                 {
                     "id": "export1",
                     "type": "Export",
-                    "properties": {"format": "jpg", "quality": 80, "filename": "performance_test"},  # Compressed format
+                    "properties": {
+                        "format": "jpg",
+                        "quality": 80,
+                        "filename": "performance_test",
+                    },  # Compressed format
                     "position": {"x": 800, "y": 0},
                 },
             ],
             "connections": [
-                {"from_node": "mountain1", "from_port": "Out", "to_node": "erosion1", "to_port": "In"},
-                {"from_node": "erosion1", "from_port": "Out", "to_node": "resample1", "to_port": "In"},
-                {"from_node": "resample1", "from_port": "Out", "to_node": "satmap1", "to_port": "In"},
-                {"from_node": "satmap1", "from_port": "Out", "to_node": "export1", "to_port": "In"},
+                {
+                    "from_node": "mountain1",
+                    "from_port": "Out",
+                    "to_node": "erosion1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "erosion1",
+                    "from_port": "Out",
+                    "to_node": "resample1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "resample1",
+                    "from_port": "Out",
+                    "to_node": "satmap1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "satmap1",
+                    "from_port": "Out",
+                    "to_node": "export1",
+                    "to_port": "In",
+                },
             ],
         }
 
@@ -410,7 +688,12 @@ class Gaea2TestTemplates:
                     "properties": {"Type": "Normal", "Strength": 1.0},
                     "position": {"x": 200, "y": 0},
                 },
-                {"id": "mountain1", "type": "Mountain", "properties": {"Height": 0.5}, "position": {"x": 0, "y": 200}},
+                {
+                    "id": "mountain1",
+                    "type": "Mountain",
+                    "properties": {"Height": 0.5},
+                    "position": {"x": 0, "y": 200},
+                },
                 {
                     "id": "displace1",
                     "type": "TriplanarDisplacement",
@@ -437,12 +720,42 @@ class Gaea2TestTemplates:
                 },
             ],
             "connections": [
-                {"from_node": "file1", "from_port": "Out", "to_node": "datamap1", "to_port": "In"},
-                {"from_node": "mountain1", "from_port": "Out", "to_node": "displace1", "to_port": "In"},
-                {"from_node": "datamap1", "from_port": "Out", "to_node": "displace1", "to_port": "Mask"},
-                {"from_node": "displace1", "from_port": "Out", "to_node": "fx1", "to_port": "In"},
-                {"from_node": "fx1", "from_port": "Out", "to_node": "export1", "to_port": "In"},
-                {"from_node": "datamap1", "from_port": "Out", "to_node": "export2", "to_port": "In"},
+                {
+                    "from_node": "file1",
+                    "from_port": "Out",
+                    "to_node": "datamap1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "mountain1",
+                    "from_port": "Out",
+                    "to_node": "displace1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "datamap1",
+                    "from_port": "Out",
+                    "to_node": "displace1",
+                    "to_port": "Mask",
+                },
+                {
+                    "from_node": "displace1",
+                    "from_port": "Out",
+                    "to_node": "fx1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "fx1",
+                    "from_port": "Out",
+                    "to_node": "export1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "datamap1",
+                    "from_port": "Out",
+                    "to_node": "export2",
+                    "to_port": "In",
+                },
             ],
         }
 
@@ -503,13 +816,48 @@ class Gaea2TestTemplates:
                 },
             ],
             "connections": [
-                {"from_node": "island1", "from_port": "Out", "to_node": "combine1", "to_port": "Input"},
-                {"from_node": "mountain1", "from_port": "Out", "to_node": "combine1", "to_port": "Input2"},
-                {"from_node": "combine1", "from_port": "Out", "to_node": "beach1", "to_port": "In"},
-                {"from_node": "beach1", "from_port": "Out", "to_node": "erosion1", "to_port": "In"},
-                {"from_node": "erosion1", "from_port": "Out", "to_node": "satmap1", "to_port": "In"},
-                {"from_node": "satmap1", "from_port": "Out", "to_node": "water1", "to_port": "In"},
-                {"from_node": "water1", "from_port": "Out", "to_node": "export1", "to_port": "In"},
+                {
+                    "from_node": "island1",
+                    "from_port": "Out",
+                    "to_node": "combine1",
+                    "to_port": "Input",
+                },
+                {
+                    "from_node": "mountain1",
+                    "from_port": "Out",
+                    "to_node": "combine1",
+                    "to_port": "Input2",
+                },
+                {
+                    "from_node": "combine1",
+                    "from_port": "Out",
+                    "to_node": "beach1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "beach1",
+                    "from_port": "Out",
+                    "to_node": "erosion1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "erosion1",
+                    "from_port": "Out",
+                    "to_node": "satmap1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "satmap1",
+                    "from_port": "Out",
+                    "to_node": "water1",
+                    "to_port": "In",
+                },
+                {
+                    "from_node": "water1",
+                    "from_port": "Out",
+                    "to_node": "export1",
+                    "to_port": "In",
+                },
             ],
         }
 
@@ -609,7 +957,11 @@ def main():
         json.dump(
             {
                 "templates": templates,
-                "metadata": {"version": "1.0", "created": "2024-01-19", "purpose": "Gaea2 MCP validation and testing"},
+                "metadata": {
+                    "version": "1.0",
+                    "created": "2024-01-19",
+                    "purpose": "Gaea2 MCP validation and testing",
+                },
             },
             f,
             indent=2,

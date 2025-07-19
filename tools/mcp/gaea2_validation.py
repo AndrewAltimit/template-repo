@@ -156,6 +156,12 @@ class Gaea2Validator:
         Returns:
             Dictionary with comprehensive validation results
         """
+        from .gaea2_connection_utils import normalize_connections
+
+        # Normalize connections to standard format
+        if connections:
+            connections = normalize_connections(connections)
+
         all_errors = []
         all_warnings = []
         fixed_nodes = []
