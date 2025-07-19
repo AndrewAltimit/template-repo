@@ -285,7 +285,7 @@ class Gaea2MCPServer:
             # Add all properties with type conversion FIRST (after $id and $type)
             for prop, value in properties.items():
                 # Skip internal properties
-                if prop.startswith("_"):
+                if isinstance(prop, str) and prop.startswith("_"):
                     continue
 
                 # Special handling for Range properties - need their own $id
