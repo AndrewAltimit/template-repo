@@ -261,7 +261,7 @@ class Gaea2MCPServer:
                     if key not in properties:
                         properties[key] = default_val
 
-            elif node_type == "Erosion":
+            elif node_type in ["Erosion", "Erosion2"]:
                 # Map common property names to Gaea2 names
                 if "iterations" in raw_properties:
                     # Convert iterations to Duration
