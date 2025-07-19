@@ -1,0 +1,486 @@
+{
+  "$id": "1",
+  "Assets": {
+    "$id": "2",
+    "$values": [
+      {
+        "$id": "3",
+        "Terrain": {
+          "$id": "4",
+          "Id": "fa2e878b-5f51-4a5f-8db7-f12831f03f30",
+          "Metadata": {
+            "$id": "5",
+            "Name": "",
+            "Description": "",
+            "Version": "2.0.6.0",
+            "DateCreated": "2024-12-29 03:13:17Z",
+            "DateLastBuilt": "2024-12-29 03:13:17Z",
+            "DateLastSaved": "2024-12-29 03:13:17Z",
+            "ModifiedVersion": "2.0.6.0"
+          },
+          "Nodes": {
+            "$id": "6",
+            "317": {
+              "$id": "7",
+              "$type": "QuadSpinner.Gaea.Nodes.Plates, Gaea.Nodes",
+              "Scale": 0.5,
+              "Range": 0.5,
+              "Falloff": 0.5,
+              "Warp": 0.5,
+              "Seed": 54877,
+              "Id": 317,
+              "Name": "Plates",
+              "Position": {
+                "$id": "8",
+                "X": 26587.592,
+                "Y": 26211.365
+              },
+              "Ports": {
+                "$id": "9",
+                "$values": [
+                  {
+                    "$id": "10",
+                    "Name": "In",
+                    "Type": "PrimaryIn",
+                    "IsExporting": true,
+                    "Parent": {
+                      "$ref": "7"
+                    }
+                  },
+                  {
+                    "$id": "11",
+                    "Name": "Out",
+                    "Type": "PrimaryOut",
+                    "IsExporting": true,
+                    "Parent": {
+                      "$ref": "7"
+                    }
+                  }
+                ]
+              },
+              "Modifiers": {
+                "$id": "12",
+                "$values": [
+                  {
+                    "$id": "13",
+                    "$type": "QuadSpinner.Gaea.Nodes.Modifiers.Invert, Gaea.Nodes",
+                    "Name": "Invert",
+                    "Parent": {
+                      "$ref": "7"
+                    },
+                    "Intrinsic": true
+                  }
+                ]
+              }
+            },
+            "774": {
+              "$id": "14",
+              "$type": "QuadSpinner.Gaea.Nodes.RadialGradient, Gaea.Nodes",
+              "Scale": 1.0,
+              "Height": 1.0,
+              "X": 0.5,
+              "Y": 0.5,
+              "Id": 774,
+              "Name": "RadialGradient",
+              "Position": {
+                "$id": "15",
+                "X": 26887.592,
+                "Y": 26211.365
+              },
+              "Ports": {
+                "$id": "16",
+                "$values": [
+                  {
+                    "$id": "17",
+                    "Name": "In",
+                    "Type": "PrimaryIn",
+                    "Record": {
+                      "$id": "18",
+                      "From": 317,
+                      "To": 774,
+                      "FromPort": "Out",
+                      "ToPort": "In",
+                      "IsValid": true
+                    },
+                    "IsExporting": true,
+                    "Parent": {
+                      "$ref": "14"
+                    }
+                  },
+                  {
+                    "$id": "19",
+                    "Name": "Out",
+                    "Type": "PrimaryOut",
+                    "IsExporting": true,
+                    "Parent": {
+                      "$ref": "14"
+                    }
+                  }
+                ]
+              },
+              "Modifiers": {
+                "$id": "20",
+                "$values": []
+              }
+            },
+            "385": {
+              "$id": "21",
+              "$type": "QuadSpinner.Gaea.Nodes.Sandstone, Gaea.Nodes",
+              "Passes": 5,
+              "Iterations": 10,
+              "Spacing": 0.46522275,
+              "Intensity": 0.5,
+              "Tilt": 0.5,
+              "Chaos": 0.14906874,
+              "Seed": 30085,
+              "Chipped": true,
+              "Chipping": 0.45,
+              "Id": 385,
+              "Name": "Sandstone",
+              "Position": {
+                "$id": "22",
+                "X": 27787.592,
+                "Y": 26211.365
+              },
+              "Ports": {
+                "$id": "23",
+                "$values": [
+                  {
+                    "$id": "24",
+                    "Name": "In",
+                    "Type": "PrimaryIn, Required",
+                    "Record": {
+                      "$id": "25",
+                      "From": 894,
+                      "To": 385,
+                      "FromPort": "Out",
+                      "ToPort": "In",
+                      "IsValid": true
+                    },
+                    "IsExporting": true,
+                    "Parent": {
+                      "$ref": "21"
+                    }
+                  },
+                  {
+                    "$id": "26",
+                    "Name": "Out",
+                    "Type": "PrimaryOut",
+                    "IsExporting": true,
+                    "Parent": {
+                      "$ref": "21"
+                    }
+                  },
+                  {
+                    "$id": "27",
+                    "Name": "Layers",
+                    "Type": "Out",
+                    "IsExporting": true,
+                    "Parent": {
+                      "$ref": "21"
+                    }
+                  }
+                ]
+              },
+              "IsMaskable": true,
+              "Modifiers": {
+                "$id": "28",
+                "$values": []
+              }
+            },
+            "513": {
+              "$id": "29",
+              "$type": "QuadSpinner.Gaea.Nodes.GraphicEQ, Gaea.Nodes",
+              "Band1": 1.0,
+              "Band2": 2.0,
+              "Band3": 2.0,
+              "Band4": 2.0,
+              "Band5": 2.0,
+              "Band6": 2.0,
+              "Band7": 2.0,
+              "Id": 513,
+              "Name": "GraphicEQ",
+              "Position": {
+                "$id": "30",
+                "X": 27187.592,
+                "Y": 26211.365
+              },
+              "Ports": {
+                "$id": "31",
+                "$values": [
+                  {
+                    "$id": "32",
+                    "Name": "In",
+                    "Type": "PrimaryIn, Required",
+                    "Record": {
+                      "$id": "33",
+                      "From": 774,
+                      "To": 513,
+                      "FromPort": "Out",
+                      "ToPort": "In",
+                      "IsValid": true
+                    },
+                    "IsExporting": true,
+                    "Parent": {
+                      "$ref": "29"
+                    }
+                  },
+                  {
+                    "$id": "34",
+                    "Name": "Out",
+                    "Type": "PrimaryOut",
+                    "IsExporting": true,
+                    "Parent": {
+                      "$ref": "29"
+                    }
+                  }
+                ]
+              },
+              "IsMaskable": true,
+              "Modifiers": {
+                "$id": "35",
+                "$values": [
+                  {
+                    "$id": "36",
+                    "$type": "QuadSpinner.Gaea.Nodes.Modifiers.Shaper, Gaea.Nodes",
+                    "Shape": -0.19290873,
+                    "Name": "Shaper",
+                    "Parent": {
+                      "$ref": "29"
+                    },
+                    "HasUI": true,
+                    "Intrinsic": true
+                  }
+                ]
+              }
+            },
+            "894": {
+              "$id": "37",
+              "$type": "QuadSpinner.Gaea.Nodes.Crumble, Gaea.Nodes",
+              "Duration": 1.0,
+              "Strength": 0.9858568,
+              "Coverage": 0.75,
+              "Horizontal": 0.50211805,
+              "RockHardness": 0.45,
+              "Edge": 0.94896144,
+              "Downcutting": 1.0,
+              "Depth": 0.2,
+              "Id": 894,
+              "Name": "Crumble",
+              "Position": {
+                "$id": "38",
+                "X": 27487.592,
+                "Y": 26211.365
+              },
+              "Ports": {
+                "$id": "39",
+                "$values": [
+                  {
+                    "$id": "40",
+                    "Name": "In",
+                    "Type": "PrimaryIn, Required",
+                    "Record": {
+                      "$id": "41",
+                      "From": 513,
+                      "To": 894,
+                      "FromPort": "Out",
+                      "ToPort": "In",
+                      "IsValid": true
+                    },
+                    "IsExporting": true,
+                    "Parent": {
+                      "$ref": "37"
+                    }
+                  },
+                  {
+                    "$id": "42",
+                    "Name": "Out",
+                    "Type": "PrimaryOut",
+                    "IsExporting": true,
+                    "Parent": {
+                      "$ref": "37"
+                    }
+                  },
+                  {
+                    "$id": "43",
+                    "Name": "AreaMask",
+                    "Type": "In",
+                    "IsExporting": true,
+                    "Parent": {
+                      "$ref": "37"
+                    }
+                  },
+                  {
+                    "$id": "44",
+                    "Name": "Wear",
+                    "Type": "Out",
+                    "IsExporting": true,
+                    "Parent": {
+                      "$ref": "37"
+                    }
+                  }
+                ]
+              },
+              "IsMaskable": true,
+              "Modifiers": {
+                "$id": "45",
+                "$values": []
+              }
+            },
+            "464": {
+              "$id": "46",
+              "$type": "QuadSpinner.Gaea.Nodes.SatMap, Gaea.Nodes",
+              "Library": "Rock",
+              "LibraryItem": 586,
+              "Enhance": "Equalize",
+              "Id": 464,
+              "Name": "SatMap",
+              "Position": {
+                "$id": "47",
+                "X": 28087.592,
+                "Y": 26211.365
+              },
+              "Ports": {
+                "$id": "48",
+                "$values": [
+                  {
+                    "$id": "49",
+                    "Name": "In",
+                    "Type": "PrimaryIn, Required",
+                    "Record": {
+                      "$id": "50",
+                      "From": 385,
+                      "To": 464,
+                      "FromPort": "Layers",
+                      "ToPort": "In",
+                      "IsValid": true
+                    },
+                    "IsExporting": true,
+                    "Parent": {
+                      "$ref": "46"
+                    }
+                  },
+                  {
+                    "$id": "51",
+                    "Name": "Out",
+                    "Type": "PrimaryOut",
+                    "IsExporting": true,
+                    "Parent": {
+                      "$ref": "46"
+                    }
+                  }
+                ]
+              },
+              "Modifiers": {
+                "$id": "52",
+                "$values": []
+              }
+            }
+          },
+          "Groups": {
+            "$id": "53"
+          },
+          "Notes": {
+            "$id": "54"
+          },
+          "GraphTabs": {
+            "$id": "55",
+            "$values": [
+              {
+                "$id": "56",
+                "Name": "Graph 1",
+                "Color": "Brass",
+                "ZoomFactor": 0.5542874396135269,
+                "ViewportLocation": {
+                  "$id": "57",
+                  "X": 26958.273,
+                  "Y": 25933.209
+                }
+              }
+            ]
+          },
+          "Width": 5000.0,
+          "Height": 2500.0,
+          "Ratio": 0.5
+        },
+        "Automation": {
+          "$id": "58",
+          "Bindings": {
+            "$id": "59",
+            "$values": []
+          },
+          "Variables": {
+            "$id": "60"
+          },
+          "BoundProperties": {
+            "$id": "61",
+            "$values": []
+          }
+        },
+        "BuildDefinition": {
+          "$id": "62",
+          "Resolution": 2048,
+          "BakeResolution": 2048,
+          "TileResolution": 1024,
+          "BucketResolution": 2048,
+          "BucketCount": 1,
+          "WorldResolution": 2048,
+          "NumberOfTiles": 3,
+          "TotalTiles": 9,
+          "BucketSizeWithMargin": 3072,
+          "EdgeBlending": 0.25,
+          "EdgeSize": 512,
+          "TileZeroIndex": true,
+          "TilePattern": "_y%Y%_x%X%",
+          "OrganizeFiles": "NodeSubFolder",
+          "Regions": {
+            "$id": "63",
+            "$values": []
+          }
+        },
+        "State": {
+          "$id": "64",
+          "BakeResolution": 2048,
+          "PreviewResolution": 1024,
+          "SelectedNode": 464,
+          "NodeBookmarks": {
+            "$id": "65",
+            "$values": []
+          },
+          "Viewport": {
+            "$id": "66",
+            "Camera": {
+              "$id": "67"
+            },
+            "RenderMode": "Realistic",
+            "SunAltitude": 33.0,
+            "SunAzimuth": 45.0,
+            "SunIntensity": 1.0,
+            "AmbientOcclusion": true,
+            "Shadows": true,
+            "AirDensity": 1.0,
+            "AmbientIntensity": 1.0,
+            "Exposure": 1.0,
+            "FogDensity": 0.2,
+            "GroundBrightness": 0.8,
+            "Haze": 1.0,
+            "Ozone": 1.0
+          }
+        }
+      }
+    ]
+  },
+  "Id": "099b8eed",
+  "Branch": 1,
+  "Metadata": {
+    "$id": "68",
+    "Name": "",
+    "Description": "",
+    "Version": "2.0.6.0",
+    "Owner": "",
+    "DateCreated": "2024-12-29 03:13:17Z",
+    "DateLastBuilt": "2024-12-29 03:13:17Z",
+    "DateLastSaved": "2024-12-29 03:13:17Z",
+    "ModifiedVersion": "2.0.6.0"
+  }
+}

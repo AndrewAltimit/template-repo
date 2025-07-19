@@ -96,6 +96,334 @@ class Gaea2MCPServer:
 
         return result
 
+    def _create_gaea2_project_structure(self, project_name: str, nodes: List[Dict], connections: List[Dict]) -> Dict[str, Any]:
+        """Create a Gaea2 project structure in the correct .terrain format"""
+        import uuid
+        from datetime import datetime
+
+        # Generate node IDs starting from a base number
+        node_id_base = 100
+        node_id_map = {}  # Map from our IDs to Gaea numeric IDs
+        gaea_nodes = {}
+
+        # Node type mapping to Gaea2 .NET types
+        node_type_mapping = {
+            # Terrain
+            "Mountain": "QuadSpinner.Gaea.Nodes.Mountain, Gaea.Nodes",
+            "Ridge": "QuadSpinner.Gaea.Nodes.Ridge, Gaea.Nodes",
+            "Primitive": "QuadSpinner.Gaea.Nodes.Primitive, Gaea.Nodes",
+            "Perlin": "QuadSpinner.Gaea.Nodes.Perlin, Gaea.Nodes",
+            "Canyon": "QuadSpinner.Gaea.Nodes.Canyon, Gaea.Nodes",
+            "Dunes": "QuadSpinner.Gaea.Nodes.Dunes, Gaea.Nodes",
+            "Fault": "QuadSpinner.Gaea.Nodes.Fault, Gaea.Nodes",
+            "Crater": "QuadSpinner.Gaea.Nodes.Crater, Gaea.Nodes",
+            "Volcano": "QuadSpinner.Gaea.Nodes.Volcano, Gaea.Nodes",
+            "Island": "QuadSpinner.Gaea.Nodes.Island, Gaea.Nodes",
+            # Erosion
+            "Erosion": "QuadSpinner.Gaea.Nodes.Erosion, Gaea.Nodes",
+            "Erosion2": "QuadSpinner.Gaea.Nodes.Erosion2, Gaea.Nodes",
+            "Thermal": "QuadSpinner.Gaea.Nodes.Thermal, Gaea.Nodes",
+            "Rivers": "QuadSpinner.Gaea.Nodes.Rivers, Gaea.Nodes",
+            "FlowMap": "QuadSpinner.Gaea.Nodes.FlowMap, Gaea.Nodes",
+            "Snowfall": "QuadSpinner.Gaea.Nodes.Snowfall, Gaea.Nodes",
+            "Stratify": "QuadSpinner.Gaea.Nodes.Stratify, Gaea.Nodes",
+            "Slump": "QuadSpinner.Gaea.Nodes.Slump, Gaea.Nodes",
+            "Shear": "QuadSpinner.Gaea.Nodes.Shear, Gaea.Nodes",
+            "Crumble": "QuadSpinner.Gaea.Nodes.Crumble, Gaea.Nodes",
+            # Water
+            "Sea": "QuadSpinner.Gaea.Nodes.Sea, Gaea.Nodes",
+            "Lakes": "QuadSpinner.Gaea.Nodes.Lakes, Gaea.Nodes",
+            "Water": "QuadSpinner.Gaea.Nodes.Water, Gaea.Nodes",
+            "Coast": "QuadSpinner.Gaea.Nodes.Coast, Gaea.Nodes",
+            # Adjustment
+            "Combine": "QuadSpinner.Gaea.Nodes.Combine, Gaea.Nodes",
+            "FractalTerraces": "QuadSpinner.Gaea.Nodes.FractalTerraces, Gaea.Nodes",
+            "Adjust": "QuadSpinner.Gaea.Nodes.Adjust, Gaea.Nodes",
+            "Transform": "QuadSpinner.Gaea.Nodes.Transform, Gaea.Nodes",
+            "Blur": "QuadSpinner.Gaea.Nodes.Blur, Gaea.Nodes",
+            "Warp": "QuadSpinner.Gaea.Nodes.Warp, Gaea.Nodes",
+            "Clamp": "QuadSpinner.Gaea.Nodes.Clamp, Gaea.Nodes",
+            # Color
+            "SatMap": "QuadSpinner.Gaea.Nodes.SatMap, Gaea.Nodes",
+            "TextureBase": "QuadSpinner.Gaea.Nodes.TextureBase, Gaea.Nodes",
+            "Texture": "QuadSpinner.Gaea.Nodes.Texture, Gaea.Nodes",
+            "CLUTer": "QuadSpinner.Gaea.Nodes.CLUTer, Gaea.Nodes",
+            # Data and Output
+            "Export": "QuadSpinner.Gaea.Nodes.Export, Gaea.Nodes",
+            "Unity": "QuadSpinner.Gaea.Nodes.Unity, Gaea.Nodes",
+            "Unreal": "QuadSpinner.Gaea.Nodes.Unreal, Gaea.Nodes",
+            "Data": "QuadSpinner.Gaea.Nodes.Data, Gaea.Nodes",
+            "File": "QuadSpinner.Gaea.Nodes.File, Gaea.Nodes",
+            # Selectors
+            "Mask": "QuadSpinner.Gaea.Nodes.Mask, Gaea.Nodes",
+            "Height": "QuadSpinner.Gaea.Nodes.Height, Gaea.Nodes",
+            "Slope": "QuadSpinner.Gaea.Nodes.Slope, Gaea.Nodes",
+            "HeightSelector": "QuadSpinner.Gaea.Nodes.HeightSelector, Gaea.Nodes",
+            "SlopeSelector": "QuadSpinner.Gaea.Nodes.SlopeSelector, Gaea.Nodes",
+            # Add more as discovered
+        }
+
+        # Process nodes
+        for i, node in enumerate(nodes):
+            node_id = node_id_base + i * 10
+            node_id_map[node.get("id", f"node_{i}")] = node_id
+
+            # Get node type
+            node_type = node.get("type", "Mountain")
+            gaea_type = node_type_mapping.get(node_type, f"QuadSpinner.Gaea.Nodes.{node_type}, Gaea.Nodes")
+
+            # Create Gaea node structure
+            gaea_node = {
+                "$id": str(node_id + 1),
+                "$type": gaea_type,
+                "Id": node_id,
+                "Name": node.get("name", node_type),
+                "Position": {
+                    "$id": str(node_id + 2),
+                    "X": node.get("position", {}).get("x", 24000 + i * 300),
+                    "Y": node.get("position", {}).get("y", 26000),
+                },
+                "Ports": {"$id": str(node_id + 3), "$values": []},
+                "Modifiers": {"$id": str(node_id + 4), "$values": []},
+                "SnapIns": {"$id": str(node_id + 5), "$values": []},
+            }
+
+            # Add node properties
+            properties = node.get("properties", {})
+            for prop, value in properties.items():
+                # Convert property names to Gaea format (capitalize first letter)
+                gaea_prop = prop[0].upper() + prop[1:] if prop else prop
+                gaea_node[gaea_prop] = value
+
+            # Handle Export node SaveDefinition
+            if node_type == "Export" and node.get("save_definition"):
+                save_def = node["save_definition"]
+                gaea_node["SaveDefinition"] = {
+                    "$id": str(node_id + 20),
+                    "Node": node_id,
+                    "Filename": save_def.get("filename", node.get("name", "Export")),
+                    "Format": save_def.get("format", "EXR").upper(),
+                    "IsEnabled": save_def.get("enabled", True),
+                }
+
+            # Add ports based on node type
+            port_id_offset = 6
+            if node_type in ["Export", "SatMap"]:
+                gaea_node["Ports"]["$values"].append(
+                    {
+                        "$id": str(node_id + port_id_offset),
+                        "Name": "In",
+                        "Type": "PrimaryIn, Required",
+                        "IsExporting": True,
+                        "Parent": {"$ref": str(node_id + 1)},
+                    }
+                )
+                gaea_node["Ports"]["$values"].append(
+                    {
+                        "$id": str(node_id + port_id_offset + 1),
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": True,
+                        "Parent": {"$ref": str(node_id + 1)},
+                    }
+                )
+            elif node_type == "Combine":
+                # Combine has multiple inputs
+                for port_name in ["In", "Input2", "Mask"]:
+                    gaea_node["Ports"]["$values"].append(
+                        {
+                            "$id": str(node_id + port_id_offset),
+                            "Name": port_name,
+                            "Type": "PrimaryIn" if port_name == "In" else "In",
+                            "IsExporting": True,
+                            "Parent": {"$ref": str(node_id + 1)},
+                        }
+                    )
+                    port_id_offset += 1
+                gaea_node["Ports"]["$values"].append(
+                    {
+                        "$id": str(node_id + port_id_offset),
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": True,
+                        "Parent": {"$ref": str(node_id + 1)},
+                    }
+                )
+            else:
+                # Standard nodes have In and Out
+                gaea_node["Ports"]["$values"].append(
+                    {
+                        "$id": str(node_id + port_id_offset),
+                        "Name": "In",
+                        "Type": "PrimaryIn",
+                        "IsExporting": True,
+                        "Parent": {"$ref": str(node_id + 1)},
+                    }
+                )
+                gaea_node["Ports"]["$values"].append(
+                    {
+                        "$id": str(node_id + port_id_offset + 1),
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": True,
+                        "Parent": {"$ref": str(node_id + 1)},
+                    }
+                )
+
+            gaea_nodes[str(node_id)] = gaea_node
+
+        # Process connections and add them to ports
+        for conn in connections:
+            from_node = conn.get("from_node")
+            to_node = conn.get("to_node")
+            from_port = conn.get("from_port", "Out")
+            to_port = conn.get("to_port", "In")
+
+            # Get numeric IDs
+            from_id = node_id_map.get(from_node)
+            to_id = node_id_map.get(to_node)
+
+            if from_id and to_id and str(to_id) in gaea_nodes:
+                # Find the target port and add the connection record
+                target_node = gaea_nodes[str(to_id)]
+                for port in target_node["Ports"]["$values"]:
+                    if port["Name"] == to_port:
+                        port["Record"] = {
+                            "$id": str(node_id_base + 1000 + len(connections)),
+                            "From": from_id,
+                            "To": to_id,
+                            "FromPort": from_port,
+                            "ToPort": to_port,
+                            "IsValid": True,
+                        }
+                        break
+
+        # Create the full project structure
+        now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%SZ")
+        terrain_id = str(uuid.uuid4())
+
+        project = {
+            "$id": "1",
+            "Assets": {
+                "$id": "2",
+                "$values": [
+                    {
+                        "$id": "3",
+                        "Terrain": {
+                            "$id": "4",
+                            "Id": terrain_id,
+                            "Metadata": {
+                                "$id": "5",
+                                "Name": project_name,
+                                "Description": "Created by Gaea2 MCP Server",
+                                "Version": "2.0.6.0",
+                                "DateCreated": now,
+                                "DateLastBuilt": now,
+                                "DateLastSaved": now,
+                                "ModifiedVersion": "2.0.6.0",
+                            },
+                            "Nodes": {"$id": "6", **gaea_nodes},
+                            "Groups": {"$id": str(node_id_base + 2000)},
+                            "Notes": {"$id": str(node_id_base + 2001)},
+                            "GraphTabs": {
+                                "$id": str(node_id_base + 2002),
+                                "$values": [
+                                    {
+                                        "$id": str(node_id_base + 2003),
+                                        "Name": "Graph 1",
+                                        "Color": "Brass",
+                                        "ZoomFactor": 0.5,
+                                        "ViewportLocation": {
+                                            "$id": str(node_id_base + 2004),
+                                            "X": 25000.0,
+                                            "Y": 26000.0,
+                                        },
+                                    }
+                                ],
+                            },
+                            "Width": 5000.0,
+                            "Height": 2500.0,
+                            "Ratio": 0.5,
+                        },
+                        "Automation": {
+                            "$id": str(node_id_base + 3000),
+                            "Bindings": {
+                                "$id": str(node_id_base + 3001),
+                                "$values": [],
+                            },
+                            "Variables": {"$id": str(node_id_base + 3002)},
+                            "BoundProperties": {
+                                "$id": str(node_id_base + 3003),
+                                "$values": [],
+                            },
+                        },
+                        "BuildDefinition": {
+                            "$id": str(node_id_base + 4000),
+                            "Destination": "<Builds>\\[Filename]\\[+++]",
+                            "Resolution": 2048,
+                            "BakeResolution": 2048,
+                            "TileResolution": 1024,
+                            "BucketResolution": 2048,
+                            "BucketCount": 1,
+                            "WorldResolution": 2048,
+                            "NumberOfTiles": 1,
+                            "TotalTiles": 1,
+                            "BucketSizeWithMargin": 3072,
+                            "EdgeBlending": 0.25,
+                            "EdgeSize": 512,
+                            "TileZeroIndex": True,
+                            "TilePattern": "",
+                            "OrganizeFiles": "NodeSubFolder",
+                            "Regions": {"$id": str(node_id_base + 4001), "$values": []},
+                            "PostBuildScript": "",
+                        },
+                        "State": {
+                            "$id": str(node_id_base + 5000),
+                            "BakeResolution": 2048,
+                            "PreviewResolution": 512,
+                            "SelectedNode": node_id_base,
+                            "NodeBookmarks": {
+                                "$id": str(node_id_base + 5001),
+                                "$values": [],
+                            },
+                            "Viewport": {
+                                "$id": str(node_id_base + 5002),
+                                "Camera": {"$id": str(node_id_base + 5003)},
+                                "RenderMode": "Realistic",
+                                "SunAltitude": 33.0,
+                                "SunAzimuth": 45.0,
+                                "SunIntensity": 1.0,
+                                "AmbientOcclusion": True,
+                                "Shadows": True,
+                                "AirDensity": 1.0,
+                                "AmbientIntensity": 1.0,
+                                "Exposure": 1.0,
+                                "FogDensity": 0.2,
+                                "GroundBrightness": 0.8,
+                                "Haze": 1.0,
+                                "Ozone": 1.0,
+                            },
+                            "LockedNode": None,
+                        },
+                    }
+                ],
+            },
+            "Id": terrain_id[:8],
+            "Branch": 1,
+            "Metadata": {
+                "$id": str(node_id_base + 6000),
+                "Name": project_name,
+                "Description": "Created by Gaea2 MCP Server",
+                "Version": "2.0.6.0",
+                "Owner": "",
+                "DateCreated": now,
+                "DateLastBuilt": now,
+                "DateLastSaved": now,
+            },
+        }
+
+        return project
+
     async def create_gaea2_project(
         self,
         project_name: str,
@@ -212,17 +540,8 @@ class Gaea2MCPServer:
                             "error": f"Validation failed after auto-fix: {validation_result.get('errors', [])}",
                         }
 
-            # Create project structure
-            project = {
-                "version": "1.0",
-                "name": project_name,
-                "workflow": workflow_dict,
-                "created": datetime.now().isoformat(),
-                "metadata": {
-                    "created_by": "Gaea2 MCP Server",
-                    "auto_validated": auto_validate,
-                },
-            }
+            # Create project structure in Gaea2 format
+            project = self._create_gaea2_project_structure(project_name, nodes, connections)
 
             # Save to disk if requested
             if save_to_disk:

@@ -167,3 +167,7 @@ scratch/
 *.gif
 *.webm
 generated/
+
+# Large reference files
+reference projects/**/*.resource
+reference projects/**/*.jpg
