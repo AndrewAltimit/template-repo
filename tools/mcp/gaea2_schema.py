@@ -659,6 +659,17 @@ NODE_PROPERTY_DEFINITIONS = {
             "description": "Number of aperture vertices",
         },
     },
+    # Export node properties
+    "Export": {
+        "Format": {
+            "type": "enum",
+            "options": ["PNG", "TIF", "EXR", "RAW", "Terrain", "Build"],
+            "default": "PNG",
+            "description": "Export file format",
+        },
+        "BitDepth": {"type": "enum", "options": ["8", "16", "32"], "default": "16", "description": "Bit depth for export"},
+        # Note: filename, format, and enabled are typically in save_definition, not properties
+    },
 }
 
 # Port definitions and compatibility rules
@@ -1222,8 +1233,11 @@ def create_workflow_from_template(
                 "y": last_node["position"]["y"],
             },
             "properties": {
+                "Format": "PNG",  # Use proper property name
+            },
+            "save_definition": {
                 "filename": "terrain_output",
-                "format": "Terrain",
+                "format": "PNG",
                 "enabled": True,
             },
         }

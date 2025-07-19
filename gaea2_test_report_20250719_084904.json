@@ -1,0 +1,3782 @@
+{
+  "timestamp": "2025-07-19T08:49:04.804630",
+  "tests": [
+    {
+      "name": "Server Health Check",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true
+      },
+      "timestamp": "2025-07-19T08:49:04.806574"
+    },
+    {
+      "name": "Built-in template: basic_terrain",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "project": {
+          "version": "1.0",
+          "name": "BuiltIn_basic_terrain",
+          "workflow": {
+            "nodes": [
+              {
+                "id": 100,
+                "type": "Mountain",
+                "name": "BaseTerrain",
+                "position": {
+                  "x": 25000,
+                  "y": 26000
+                },
+                "properties": {
+                  "Scale": 1.0,
+                  "Height": 0.7,
+                  "Style": "Alpine",
+                  "Bulk": "Medium",
+                  "Reduce Details": false,
+                  "Seed": 0,
+                  "X": 0.0,
+                  "Y": 0.0
+                }
+              },
+              {
+                "id": 101,
+                "type": "Erosion",
+                "name": "NaturalErosion",
+                "position": {
+                  "x": 25500,
+                  "y": 26000
+                },
+                "properties": {
+                  "Duration": 0.04,
+                  "Rock Softness": 0.4,
+                  "Strength": 0.5,
+                  "Downcutting": 0.0,
+                  "Inhibition": 0.0,
+                  "Base Level": 0.0,
+                  "Feature Scale": 2000,
+                  "Real Scale": false,
+                  "Seed": 0,
+                  "Aggressive Mode": false,
+                  "Deterministic": false
+                }
+              },
+              {
+                "id": 102,
+                "type": "TextureBase",
+                "name": "BaseTexture",
+                "position": {
+                  "x": 26000,
+                  "y": 26000
+                },
+                "properties": {}
+              },
+              {
+                "id": 103,
+                "type": "SatMap",
+                "name": "ColorMap",
+                "position": {
+                  "x": 26500,
+                  "y": 26000
+                },
+                "properties": {
+                  "Library": "Rock",
+                  "LibraryItem": 0,
+                  "Randomize": false,
+                  "Range": {
+                    "X": 0.5,
+                    "Y": 0.5
+                  },
+                  "Bias": 0.5,
+                  "Enhance": "None",
+                  "Reverse": false,
+                  "Rough": "None",
+                  "Hue": 0.0,
+                  "Saturation": 0.0,
+                  "Lightness": 0.0
+                }
+              },
+              {
+                "id": 104,
+                "type": "Export",
+                "name": "TerrainExport",
+                "position": {
+                  "x": 27000,
+                  "y": 26000
+                },
+                "properties": {
+                  "filename": "terrain_output",
+                  "format": "Terrain",
+                  "enabled": true
+                }
+              }
+            ],
+            "connections": [
+              {
+                "from_node": 100,
+                "to_node": 101,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 101,
+                "to_node": 102,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 102,
+                "to_node": 103,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 103,
+                "to_node": 104,
+                "from_port": "Out",
+                "to_port": "In"
+              }
+            ]
+          },
+          "created": "2025-07-19T08:49:05.607412",
+          "metadata": {
+            "created_by": "Gaea2 MCP Server",
+            "auto_validated": true
+          }
+        },
+        "template_used": "basic_terrain",
+        "message": "Project created from template 'basic_terrain'"
+      },
+      "timestamp": "2025-07-19T08:49:04.808698"
+    },
+    {
+      "name": "Built-in template: detailed_mountain",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "project": {
+          "version": "1.0",
+          "name": "BuiltIn_detailed_mountain",
+          "workflow": {
+            "nodes": [
+              {
+                "id": 100,
+                "type": "Mountain",
+                "name": "PrimaryMountain",
+                "position": {
+                  "x": 25000,
+                  "y": 26000
+                },
+                "properties": {
+                  "Scale": 1.5,
+                  "Height": 0.85,
+                  "Style": "Alpine",
+                  "Bulk": "High",
+                  "Reduce Details": false,
+                  "Seed": 0,
+                  "X": 0.0,
+                  "Y": 0.0
+                }
+              },
+              {
+                "id": 101,
+                "type": "Mountain",
+                "name": "SecondaryPeaks",
+                "position": {
+                  "x": 25500,
+                  "y": 26000
+                },
+                "properties": {
+                  "Scale": 0.8,
+                  "Height": 0.6,
+                  "Style": "Eroded",
+                  "Bulk": "Medium",
+                  "Reduce Details": false,
+                  "Seed": 0,
+                  "X": 0.0,
+                  "Y": 0.0
+                }
+              },
+              {
+                "id": 102,
+                "type": "Combine",
+                "name": "MergePeaks",
+                "position": {
+                  "x": 26000,
+                  "y": 26000
+                },
+                "properties": {
+                  "Mode": "Max",
+                  "Ratio": 0.7,
+                  "Clamp": "Clamp"
+                }
+              },
+              {
+                "id": 103,
+                "type": "Erosion",
+                "name": "InitialErosion",
+                "position": {
+                  "x": 26500,
+                  "y": 26000
+                },
+                "properties": {
+                  "Duration": 0.05,
+                  "Rock Softness": 0.35,
+                  "Strength": 0.6,
+                  "Feature Scale": 2000,
+                  "Downcutting": 0.0,
+                  "Inhibition": 0.0,
+                  "Base Level": 0.0,
+                  "Real Scale": false,
+                  "Seed": 0,
+                  "Aggressive Mode": false,
+                  "Deterministic": false
+                }
+              },
+              {
+                "id": 104,
+                "type": "Rivers",
+                "name": "MountainStreams",
+                "position": {
+                  "x": 27000,
+                  "y": 26000
+                },
+                "properties": {
+                  "Water": 0.3,
+                  "Width": 0.5,
+                  "Depth": 0.4,
+                  "Downcutting": 0.0,
+                  "River Valley Width": "zero",
+                  "Headwaters": 100,
+                  "Render Surface": false,
+                  "Seed": 0
+                }
+              },
+              {
+                "id": 105,
+                "type": "Snow",
+                "name": "SnowCaps",
+                "position": {
+                  "x": 27500,
+                  "y": 26000
+                },
+                "properties": {
+                  "Duration": 0.6,
+                  "Snow Line": 0.75,
+                  "Intensity": 0.5,
+                  "Settle Duration": 0.5,
+                  "Melt Type": "Uniform",
+                  "Melt": 0.0,
+                  "Melt Remnants": 0.0,
+                  "Direction": 0.0,
+                  "Slip-off angle": 35.0,
+                  "Real Scale": false
+                }
+              },
+              {
+                "id": 106,
+                "type": "SatMap",
+                "name": "RealisticColors",
+                "position": {
+                  "x": 28000,
+                  "y": 26000
+                },
+                "properties": {
+                  "Library": "Rock",
+                  "Enhance": "Autolevel",
+                  "Randomize": false,
+                  "LibraryItem": 0,
+                  "Range": {
+                    "X": 0.5,
+                    "Y": 0.5
+                  },
+                  "Bias": 0.5,
+                  "Reverse": false,
+                  "Rough": "None",
+                  "Hue": 0.0,
+                  "Saturation": 0.0,
+                  "Lightness": 0.0
+                }
+              },
+              {
+                "id": 107,
+                "type": "Export",
+                "name": "TerrainExport",
+                "position": {
+                  "x": 28500,
+                  "y": 26000
+                },
+                "properties": {
+                  "filename": "terrain_output",
+                  "format": "Terrain",
+                  "enabled": true
+                }
+              }
+            ],
+            "connections": [
+              {
+                "from_node": 100,
+                "to_node": 101,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 101,
+                "to_node": 102,
+                "from_port": "Out",
+                "to_port": "Input2"
+              },
+              {
+                "from_node": 102,
+                "to_node": 103,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 103,
+                "to_node": 104,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 104,
+                "to_node": 105,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 105,
+                "to_node": 106,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 106,
+                "to_node": 107,
+                "from_port": "Out",
+                "to_port": "In"
+              }
+            ]
+          },
+          "created": "2025-07-19T08:49:05.609268",
+          "metadata": {
+            "created_by": "Gaea2 MCP Server",
+            "auto_validated": true
+          }
+        },
+        "template_used": "detailed_mountain",
+        "message": "Project created from template 'detailed_mountain'"
+      },
+      "timestamp": "2025-07-19T08:49:04.810573"
+    },
+    {
+      "name": "Built-in template: volcanic_terrain",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "project": {
+          "version": "1.0",
+          "name": "BuiltIn_volcanic_terrain",
+          "workflow": {
+            "nodes": [
+              {
+                "id": 100,
+                "type": "Volcano",
+                "name": "MainVolcano",
+                "position": {
+                  "x": 25000,
+                  "y": 26000
+                },
+                "properties": {
+                  "Scale": 1.2,
+                  "Height": 0.8,
+                  "Mouth": 0.3,
+                  "Bulk": 0.5,
+                  "Surface": "Smooth",
+                  "X": 0.0,
+                  "Y": 0.0,
+                  "Seed": 0
+                }
+              },
+              {
+                "id": 101,
+                "type": "Island",
+                "name": "VolcanicIsland",
+                "position": {
+                  "x": 25500,
+                  "y": 26000
+                },
+                "properties": {
+                  "Scale": 2.0,
+                  "Height": 0.4,
+                  "Seed": 0
+                }
+              },
+              {
+                "id": 102,
+                "type": "Combine",
+                "name": "MergeVolcano",
+                "position": {
+                  "x": 26000,
+                  "y": 26000
+                },
+                "properties": {
+                  "Mode": "Add",
+                  "Ratio": 0.8,
+                  "Clamp": "Clamp"
+                }
+              },
+              {
+                "id": 103,
+                "type": "Erosion",
+                "name": "LavaErosion",
+                "position": {
+                  "x": 26500,
+                  "y": 26000
+                },
+                "properties": {
+                  "Duration": 0.03,
+                  "Rock Softness": 0.6,
+                  "Strength": 0.4,
+                  "Downcutting": 0.0,
+                  "Inhibition": 0.0,
+                  "Base Level": 0.0,
+                  "Feature Scale": 2000,
+                  "Real Scale": false,
+                  "Seed": 0,
+                  "Aggressive Mode": false,
+                  "Deterministic": false
+                }
+              },
+              {
+                "id": 104,
+                "type": "Thermal",
+                "name": "ThermalWeathering",
+                "position": {
+                  "x": 27000,
+                  "y": 26000
+                },
+                "properties": {
+                  "Strength": 0.5,
+                  "Angle": 35.0
+                }
+              },
+              {
+                "id": 105,
+                "type": "SatMap",
+                "name": "VolcanicColors",
+                "position": {
+                  "x": 27500,
+                  "y": 26000
+                },
+                "properties": {
+                  "Library": "Rock",
+                  "LibraryItem": 1,
+                  "Randomize": false,
+                  "Range": {
+                    "X": 0.5,
+                    "Y": 0.5
+                  },
+                  "Bias": 0.5,
+                  "Enhance": "None",
+                  "Reverse": false,
+                  "Rough": "None",
+                  "Hue": 0.0,
+                  "Saturation": 0.0,
+                  "Lightness": 0.0
+                }
+              },
+              {
+                "id": 106,
+                "type": "Export",
+                "name": "TerrainExport",
+                "position": {
+                  "x": 28000,
+                  "y": 26000
+                },
+                "properties": {
+                  "filename": "terrain_output",
+                  "format": "Terrain",
+                  "enabled": true
+                }
+              }
+            ],
+            "connections": [
+              {
+                "from_node": 100,
+                "to_node": 101,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 101,
+                "to_node": 102,
+                "from_port": "Out",
+                "to_port": "Input2"
+              },
+              {
+                "from_node": 102,
+                "to_node": 103,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 103,
+                "to_node": 104,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 104,
+                "to_node": 105,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 105,
+                "to_node": 106,
+                "from_port": "Out",
+                "to_port": "In"
+              }
+            ]
+          },
+          "created": "2025-07-19T08:49:05.611028",
+          "metadata": {
+            "created_by": "Gaea2 MCP Server",
+            "auto_validated": true
+          }
+        },
+        "template_used": "volcanic_terrain",
+        "message": "Project created from template 'volcanic_terrain'"
+      },
+      "timestamp": "2025-07-19T08:49:04.812332"
+    },
+    {
+      "name": "Built-in template: desert_canyon",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "project": {
+          "version": "1.0",
+          "name": "BuiltIn_desert_canyon",
+          "workflow": {
+            "nodes": [
+              {
+                "id": 100,
+                "type": "Canyon",
+                "name": "MainCanyon",
+                "position": {
+                  "x": 25000,
+                  "y": 26000
+                },
+                "properties": {
+                  "Scale": 1.5,
+                  "Depth": 0.7,
+                  "Seed": 0
+                }
+              },
+              {
+                "id": 101,
+                "type": "Stratify",
+                "name": "RockLayers",
+                "position": {
+                  "x": 25500,
+                  "y": 26000
+                },
+                "properties": {
+                  "Layers": 12,
+                  "Strength": 0.6,
+                  "Spacing": 0.5,
+                  "Seed": 0
+                }
+              },
+              {
+                "id": 102,
+                "type": "FractalTerraces",
+                "name": "TerraceFormation",
+                "position": {
+                  "x": 26000,
+                  "y": 26000
+                },
+                "properties": {
+                  "Levels": 8,
+                  "Strength": 0.4,
+                  "Seed": 0
+                }
+              },
+              {
+                "id": 103,
+                "type": "Erosion",
+                "name": "WindErosion",
+                "position": {
+                  "x": 26500,
+                  "y": 26000
+                },
+                "properties": {
+                  "Duration": 0.02,
+                  "Rock Softness": 0.3,
+                  "Strength": 0.3,
+                  "Downcutting": 0.0,
+                  "Inhibition": 0.0,
+                  "Base Level": 0.0,
+                  "Feature Scale": 2000,
+                  "Real Scale": false,
+                  "Seed": 0,
+                  "Aggressive Mode": false,
+                  "Deterministic": false
+                }
+              },
+              {
+                "id": 104,
+                "type": "Sand",
+                "name": "SandAccumulation",
+                "position": {
+                  "x": 27000,
+                  "y": 26000
+                },
+                "properties": {
+                  "Amount": 0.4,
+                  "Scale": 0.5,
+                  "Seed": 0
+                }
+              },
+              {
+                "id": 105,
+                "type": "SatMap",
+                "name": "DesertColors",
+                "position": {
+                  "x": 27500,
+                  "y": 26000
+                },
+                "properties": {
+                  "Library": "Sand",
+                  "LibraryItem": 0,
+                  "Randomize": false,
+                  "Range": {
+                    "X": 0.5,
+                    "Y": 0.5
+                  },
+                  "Bias": 0.5,
+                  "Enhance": "None",
+                  "Reverse": false,
+                  "Rough": "None",
+                  "Hue": 0.0,
+                  "Saturation": 0.0,
+                  "Lightness": 0.0
+                }
+              },
+              {
+                "id": 106,
+                "type": "Export",
+                "name": "TerrainExport",
+                "position": {
+                  "x": 28000,
+                  "y": 26000
+                },
+                "properties": {
+                  "filename": "terrain_output",
+                  "format": "Terrain",
+                  "enabled": true
+                }
+              }
+            ],
+            "connections": [
+              {
+                "from_node": 100,
+                "to_node": 101,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 101,
+                "to_node": 102,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 102,
+                "to_node": 103,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 103,
+                "to_node": 104,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 104,
+                "to_node": 105,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 105,
+                "to_node": 106,
+                "from_port": "Out",
+                "to_port": "In"
+              }
+            ]
+          },
+          "created": "2025-07-19T08:49:05.612968",
+          "metadata": {
+            "created_by": "Gaea2 MCP Server",
+            "auto_validated": true
+          }
+        },
+        "template_used": "desert_canyon",
+        "message": "Project created from template 'desert_canyon'"
+      },
+      "timestamp": "2025-07-19T08:49:04.814283"
+    },
+    {
+      "name": "Built-in template: invalid_template",
+      "passed": true,
+      "expected_success": false,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "Unknown template: invalid_template. Available templates: basic_terrain, detailed_mountain, volcanic_terrain, desert_canyon, modular_portal_terrain"
+      },
+      "timestamp": "2025-07-19T08:49:04.815464"
+    },
+    {
+      "name": "Create BasicMountain (direct)",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "project": {
+          "version": "1.0",
+          "name": "Test_BasicMountain",
+          "workflow": {
+            "nodes": [
+              {
+                "id": "mountain1",
+                "type": "Mountain",
+                "properties": {
+                  "Height": 0.8,
+                  "Scale": 1.0,
+                  "Style": "Alpine",
+                  "Seed": 12345
+                },
+                "position": {
+                  "x": 0,
+                  "y": 0
+                },
+                "name": "Mountain"
+              },
+              {
+                "id": "erosion1",
+                "type": "Erosion2",
+                "properties": {
+                  "Strength": 0.5,
+                  "Detail": 0.6,
+                  "Iterations": 20,
+                  "Downcutting": 0.2
+                },
+                "position": {
+                  "x": 200,
+                  "y": 0
+                },
+                "name": "Erosion"
+              },
+              {
+                "id": "satmap1",
+                "type": "SatMap",
+                "properties": {
+                  "Library": "Rock",
+                  "LibraryItem": 0
+                },
+                "position": {
+                  "x": 400,
+                  "y": 0
+                },
+                "name": "Satmap"
+              },
+              {
+                "id": "export1",
+                "type": "Export",
+                "properties": {
+                  "format": "png",
+                  "filename": "basic_mountain"
+                },
+                "position": {
+                  "x": 600,
+                  "y": 0
+                },
+                "name": "Export"
+              }
+            ],
+            "connections": [
+              {
+                "from_node": "mountain1",
+                "from_port": "Out",
+                "to_node": "erosion1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "erosion1",
+                "from_port": "Out",
+                "to_node": "satmap1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "satmap1",
+                "from_port": "Out",
+                "to_node": "export1",
+                "to_port": "In"
+              }
+            ]
+          },
+          "created": "2025-07-19T08:49:05.616098",
+          "metadata": {
+            "created_by": "Gaea2 MCP Server",
+            "auto_validated": true
+          }
+        }
+      },
+      "timestamp": "2025-07-19T08:49:04.817544"
+    },
+    {
+      "name": "Validate BasicMountain",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "results": {
+          "original_workflow": {
+            "nodes": [
+              {
+                "id": "mountain1",
+                "type": "Mountain",
+                "properties": {
+                  "Height": 0.8,
+                  "Scale": 1.0,
+                  "Style": "Alpine",
+                  "Seed": 12345
+                },
+                "position": {
+                  "x": 0,
+                  "y": 0
+                },
+                "name": "Mountain"
+              },
+              {
+                "id": "erosion1",
+                "type": "Erosion2",
+                "properties": {
+                  "Strength": 0.5,
+                  "Detail": 0.6,
+                  "Iterations": 20,
+                  "Downcutting": 0.2
+                },
+                "position": {
+                  "x": 200,
+                  "y": 0
+                },
+                "name": "Erosion"
+              },
+              {
+                "id": "satmap1",
+                "type": "SatMap",
+                "properties": {
+                  "Library": "Rock",
+                  "LibraryItem": 0
+                },
+                "position": {
+                  "x": 400,
+                  "y": 0
+                },
+                "name": "Satmap"
+              },
+              {
+                "id": "export1",
+                "type": "Export",
+                "properties": {
+                  "format": "png",
+                  "filename": "basic_mountain"
+                },
+                "position": {
+                  "x": 600,
+                  "y": 0
+                },
+                "name": "Export"
+              }
+            ],
+            "connections": [
+              {
+                "from_node": "mountain1",
+                "from_port": "Out",
+                "to_node": "erosion1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "erosion1",
+                "from_port": "Out",
+                "to_node": "satmap1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "satmap1",
+                "from_port": "Out",
+                "to_node": "export1",
+                "to_port": "In"
+              }
+            ]
+          },
+          "validation_results": {
+            "properties": {
+              "valid": true,
+              "errors": []
+            },
+            "connections": {
+              "valid": true,
+              "errors": []
+            },
+            "structure": {
+              "valid": true,
+              "errors": []
+            }
+          },
+          "fixes_applied": [],
+          "final_workflow": {
+            "nodes": [
+              {
+                "id": "mountain1",
+                "type": "Mountain",
+                "properties": {
+                  "Height": 0.8,
+                  "Scale": 1.0,
+                  "Style": "Alpine",
+                  "Seed": 12345
+                },
+                "position": {
+                  "x": 0,
+                  "y": 0
+                },
+                "name": "Mountain"
+              },
+              {
+                "id": "erosion1",
+                "type": "Erosion2",
+                "properties": {
+                  "Strength": 0.5,
+                  "Detail": 0.6,
+                  "Iterations": 20,
+                  "Downcutting": 0.2
+                },
+                "position": {
+                  "x": 200,
+                  "y": 0
+                },
+                "name": "Erosion"
+              },
+              {
+                "id": "satmap1",
+                "type": "SatMap",
+                "properties": {
+                  "Library": "Rock",
+                  "LibraryItem": 0
+                },
+                "position": {
+                  "x": 400,
+                  "y": 0
+                },
+                "name": "Satmap"
+              },
+              {
+                "id": "export1",
+                "type": "Export",
+                "properties": {
+                  "format": "png",
+                  "filename": "basic_mountain"
+                },
+                "position": {
+                  "x": 600,
+                  "y": 0
+                },
+                "name": "Export"
+              }
+            ],
+            "connections": [
+              {
+                "from_node": "mountain1",
+                "from_port": "Out",
+                "to_node": "erosion1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "erosion1",
+                "from_port": "Out",
+                "to_node": "satmap1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "satmap1",
+                "from_port": "Out",
+                "to_node": "export1",
+                "to_port": "In"
+              }
+            ]
+          },
+          "is_valid": true
+        }
+      },
+      "timestamp": "2025-07-19T08:49:04.818945"
+    },
+    {
+      "name": "Create DesertCanyon (direct)",
+      "passed": false,
+      "expected_success": true,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "'tuple' object has no attribute 'get'"
+      },
+      "timestamp": "2025-07-19T08:49:04.820840"
+    },
+    {
+      "name": "Validate DesertCanyon",
+      "passed": false,
+      "expected_success": true,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "'>' not supported between instances of 'int' and 'str'"
+      },
+      "timestamp": "2025-07-19T08:49:04.822127"
+    },
+    {
+      "name": "Create VolcanicTerrain (direct)",
+      "passed": false,
+      "expected_success": true,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "'tuple' object has no attribute 'get'"
+      },
+      "timestamp": "2025-07-19T08:49:04.824144"
+    },
+    {
+      "name": "Validate VolcanicTerrain",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "results": {
+          "original_workflow": {
+            "nodes": [
+              {
+                "id": "volcano1",
+                "type": "Crater",
+                "properties": {
+                  "Radius": 0.4,
+                  "Depth": 0.8,
+                  "Inner Slope": 0.7,
+                  "Outer Slope": 0.3
+                },
+                "position": {
+                  "x": 0,
+                  "y": 0
+                },
+                "name": "Volcano"
+              },
+              {
+                "id": "mountain1",
+                "type": "Mountain",
+                "properties": {
+                  "Height": 0.6,
+                  "Scale": 0.8,
+                  "Style": "Rugged"
+                },
+                "position": {
+                  "x": 0,
+                  "y": 200
+                },
+                "name": "Mountain"
+              },
+              {
+                "id": "combine1",
+                "type": "Combine",
+                "properties": {
+                  "Method": "Max",
+                  "Strength": 0.8
+                },
+                "position": {
+                  "x": 300,
+                  "y": 100
+                },
+                "name": "Combine"
+              },
+              {
+                "id": "flow1",
+                "type": "FlowMap",
+                "properties": {
+                  "Intensity": 0.7,
+                  "Contrast": 0.5
+                },
+                "position": {
+                  "x": 500,
+                  "y": 100
+                },
+                "name": "Flow"
+              },
+              {
+                "id": "thermal1",
+                "type": "ThermalErosion",
+                "properties": {
+                  "Strength": 0.4,
+                  "Iterations": 15
+                },
+                "position": {
+                  "x": 700,
+                  "y": 100
+                },
+                "name": "Thermal"
+              },
+              {
+                "id": "satmap1",
+                "type": "SatMap",
+                "properties": {
+                  "Library": "Volcanic",
+                  "LibraryItem": 0,
+                  "Hue": -0.1,
+                  "Saturation": 0.2
+                },
+                "position": {
+                  "x": 900,
+                  "y": 100
+                },
+                "name": "Satmap"
+              },
+              {
+                "id": "export1",
+                "type": "Export",
+                "properties": {
+                  "format": "tiff",
+                  "filename": "volcanic_terrain"
+                },
+                "position": {
+                  "x": 1100,
+                  "y": 100
+                },
+                "name": "Export"
+              }
+            ],
+            "connections": [
+              {
+                "from_node": "volcano1",
+                "from_port": "Out",
+                "to_node": "combine1",
+                "to_port": "Input"
+              },
+              {
+                "from_node": "mountain1",
+                "from_port": "Out",
+                "to_node": "combine1",
+                "to_port": "Input 2"
+              },
+              {
+                "from_node": "combine1",
+                "from_port": "Out",
+                "to_node": "flow1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "flow1",
+                "from_port": "Out",
+                "to_node": "thermal1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "thermal1",
+                "from_port": "Out",
+                "to_node": "satmap1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "satmap1",
+                "from_port": "Out",
+                "to_node": "export1",
+                "to_port": "In"
+              }
+            ]
+          },
+          "validation_results": {
+            "properties": {
+              "valid": true,
+              "errors": []
+            },
+            "connections": {
+              "valid": true,
+              "errors": []
+            },
+            "structure": {
+              "valid": true,
+              "errors": []
+            }
+          },
+          "fixes_applied": [],
+          "final_workflow": {
+            "nodes": [
+              {
+                "id": "volcano1",
+                "type": "Crater",
+                "properties": {
+                  "Radius": 0.4,
+                  "Depth": 0.8,
+                  "Inner Slope": 0.7,
+                  "Outer Slope": 0.3
+                },
+                "position": {
+                  "x": 0,
+                  "y": 0
+                },
+                "name": "Volcano"
+              },
+              {
+                "id": "mountain1",
+                "type": "Mountain",
+                "properties": {
+                  "Height": 0.6,
+                  "Scale": 0.8,
+                  "Style": "Rugged"
+                },
+                "position": {
+                  "x": 0,
+                  "y": 200
+                },
+                "name": "Mountain"
+              },
+              {
+                "id": "combine1",
+                "type": "Combine",
+                "properties": {
+                  "Method": "Max",
+                  "Strength": 0.8
+                },
+                "position": {
+                  "x": 300,
+                  "y": 100
+                },
+                "name": "Combine"
+              },
+              {
+                "id": "flow1",
+                "type": "FlowMap",
+                "properties": {
+                  "Intensity": 0.7,
+                  "Contrast": 0.5
+                },
+                "position": {
+                  "x": 500,
+                  "y": 100
+                },
+                "name": "Flow"
+              },
+              {
+                "id": "thermal1",
+                "type": "ThermalErosion",
+                "properties": {
+                  "Strength": 0.4,
+                  "Iterations": 15
+                },
+                "position": {
+                  "x": 700,
+                  "y": 100
+                },
+                "name": "Thermal"
+              },
+              {
+                "id": "satmap1",
+                "type": "SatMap",
+                "properties": {
+                  "Library": "Volcanic",
+                  "LibraryItem": 0,
+                  "Hue": -0.1,
+                  "Saturation": 0.2
+                },
+                "position": {
+                  "x": 900,
+                  "y": 100
+                },
+                "name": "Satmap"
+              },
+              {
+                "id": "export1",
+                "type": "Export",
+                "properties": {
+                  "format": "tiff",
+                  "filename": "volcanic_terrain"
+                },
+                "position": {
+                  "x": 1100,
+                  "y": 100
+                },
+                "name": "Export"
+              }
+            ],
+            "connections": [
+              {
+                "from_node": "volcano1",
+                "from_port": "Out",
+                "to_node": "combine1",
+                "to_port": "Input"
+              },
+              {
+                "from_node": "mountain1",
+                "from_port": "Out",
+                "to_node": "combine1",
+                "to_port": "Input 2"
+              },
+              {
+                "from_node": "combine1",
+                "from_port": "Out",
+                "to_node": "flow1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "flow1",
+                "from_port": "Out",
+                "to_node": "thermal1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "thermal1",
+                "from_port": "Out",
+                "to_node": "satmap1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "satmap1",
+                "from_port": "Out",
+                "to_node": "export1",
+                "to_port": "In"
+              }
+            ]
+          },
+          "is_valid": true
+        }
+      },
+      "timestamp": "2025-07-19T08:49:04.825513"
+    },
+    {
+      "name": "Create ComplexTerrain (direct)",
+      "passed": false,
+      "expected_success": true,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "'tuple' object has no attribute 'get'"
+      },
+      "timestamp": "2025-07-19T08:49:04.827665"
+    },
+    {
+      "name": "Validate ComplexTerrain",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "results": {
+          "original_workflow": {
+            "nodes": [
+              {
+                "id": "mountain1",
+                "type": "Mountain",
+                "properties": {
+                  "Height": 0.7,
+                  "Scale": 1.0
+                },
+                "position": {
+                  "x": 0,
+                  "y": 0
+                },
+                "name": "Mountain"
+              },
+              {
+                "id": "ridges1",
+                "type": "Ridges",
+                "properties": {
+                  "Scale": 0.5
+                },
+                "position": {
+                  "x": 0,
+                  "y": 200
+                },
+                "name": "Ridges"
+              },
+              {
+                "id": "perlin1",
+                "type": "Perlin",
+                "properties": {
+                  "Scale": 2.0,
+                  "Octaves": 6
+                },
+                "position": {
+                  "x": 0,
+                  "y": 400
+                },
+                "name": "Perlin"
+              },
+              {
+                "id": "combine1",
+                "type": "Combine",
+                "properties": {
+                  "Method": "Add",
+                  "Strength": 0.5
+                },
+                "position": {
+                  "x": 300,
+                  "y": 100
+                },
+                "name": "Combine"
+              },
+              {
+                "id": "combine2",
+                "type": "Combine",
+                "properties": {
+                  "Method": "Multiply",
+                  "Strength": 0.7
+                },
+                "position": {
+                  "x": 300,
+                  "y": 300
+                },
+                "name": "Combine2"
+              },
+              {
+                "id": "erosion1",
+                "type": "Erosion2",
+                "properties": {
+                  "Strength": 0.4,
+                  "Iterations": 15
+                },
+                "position": {
+                  "x": 600,
+                  "y": 200
+                },
+                "name": "Erosion"
+              },
+              {
+                "id": "thermal1",
+                "type": "ThermalErosion",
+                "properties": {
+                  "Strength": 0.3
+                },
+                "position": {
+                  "x": 800,
+                  "y": 200
+                },
+                "name": "Thermal"
+              },
+              {
+                "id": "hydraulic1",
+                "type": "HydraulicErosion",
+                "properties": {
+                  "Strength": 0.5
+                },
+                "position": {
+                  "x": 1000,
+                  "y": 200
+                },
+                "name": "Hydraulic"
+              },
+              {
+                "id": "terrace1",
+                "type": "Terrace",
+                "properties": {
+                  "Levels": 16
+                },
+                "position": {
+                  "x": 1200,
+                  "y": 100
+                },
+                "name": "Terrace"
+              },
+              {
+                "id": "warp1",
+                "type": "Warp",
+                "properties": {
+                  "Amount": 0.2
+                },
+                "position": {
+                  "x": 1200,
+                  "y": 300
+                },
+                "name": "Warp"
+              },
+              {
+                "id": "slope1",
+                "type": "SlopeSelector",
+                "properties": {
+                  "Min": 20,
+                  "Max": 60
+                },
+                "position": {
+                  "x": 1400,
+                  "y": 0
+                },
+                "name": "Slope"
+              },
+              {
+                "id": "height1",
+                "type": "HeightSelector",
+                "properties": {
+                  "Min": 0.3,
+                  "Max": 0.8
+                },
+                "position": {
+                  "x": 1400,
+                  "y": 200
+                },
+                "name": "Height"
+              },
+              {
+                "id": "mixer1",
+                "type": "Mixer",
+                "properties": {},
+                "position": {
+                  "x": 1600,
+                  "y": 100
+                },
+                "name": "Mixer"
+              },
+              {
+                "id": "satmap1",
+                "type": "SatMap",
+                "properties": {
+                  "Library": "Alps"
+                },
+                "position": {
+                  "x": 1800,
+                  "y": 100
+                },
+                "name": "Satmap"
+              },
+              {
+                "id": "export1",
+                "type": "Export",
+                "properties": {
+                  "format": "raw",
+                  "filename": "complex_terrain"
+                },
+                "position": {
+                  "x": 2000,
+                  "y": 100
+                },
+                "name": "Export"
+              }
+            ],
+            "connections": [
+              {
+                "from_node": "mountain1",
+                "from_port": "Out",
+                "to_node": "combine1",
+                "to_port": "Input"
+              },
+              {
+                "from_node": "ridges1",
+                "from_port": "Out",
+                "to_node": "combine1",
+                "to_port": "Input 2"
+              },
+              {
+                "from_node": "combine1",
+                "from_port": "Out",
+                "to_node": "combine2",
+                "to_port": "Input"
+              },
+              {
+                "from_node": "perlin1",
+                "from_port": "Out",
+                "to_node": "combine2",
+                "to_port": "Input 2"
+              },
+              {
+                "from_node": "combine2",
+                "from_port": "Out",
+                "to_node": "erosion1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "erosion1",
+                "from_port": "Out",
+                "to_node": "thermal1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "thermal1",
+                "from_port": "Out",
+                "to_node": "hydraulic1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "hydraulic1",
+                "from_port": "Out",
+                "to_node": "terrace1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "hydraulic1",
+                "from_port": "Out",
+                "to_node": "warp1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "hydraulic1",
+                "from_port": "Out",
+                "to_node": "slope1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "hydraulic1",
+                "from_port": "Out",
+                "to_node": "height1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "terrace1",
+                "from_port": "Out",
+                "to_node": "mixer1",
+                "to_port": "Input 1"
+              },
+              {
+                "from_node": "warp1",
+                "from_port": "Out",
+                "to_node": "mixer1",
+                "to_port": "Input 2"
+              },
+              {
+                "from_node": "slope1",
+                "from_port": "Out",
+                "to_node": "mixer1",
+                "to_port": "Mask 1"
+              },
+              {
+                "from_node": "height1",
+                "from_port": "Out",
+                "to_node": "mixer1",
+                "to_port": "Mask 2"
+              },
+              {
+                "from_node": "mixer1",
+                "from_port": "Out",
+                "to_node": "satmap1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "satmap1",
+                "from_port": "Out",
+                "to_node": "export1",
+                "to_port": "In"
+              }
+            ]
+          },
+          "validation_results": {
+            "properties": {
+              "valid": true,
+              "errors": []
+            },
+            "connections": {
+              "valid": true,
+              "errors": []
+            },
+            "structure": {
+              "valid": true,
+              "errors": []
+            }
+          },
+          "fixes_applied": [],
+          "final_workflow": {
+            "nodes": [
+              {
+                "id": "mountain1",
+                "type": "Mountain",
+                "properties": {
+                  "Height": 0.7,
+                  "Scale": 1.0
+                },
+                "position": {
+                  "x": 0,
+                  "y": 0
+                },
+                "name": "Mountain"
+              },
+              {
+                "id": "ridges1",
+                "type": "Ridges",
+                "properties": {
+                  "Scale": 0.5
+                },
+                "position": {
+                  "x": 0,
+                  "y": 200
+                },
+                "name": "Ridges"
+              },
+              {
+                "id": "perlin1",
+                "type": "Perlin",
+                "properties": {
+                  "Scale": 2.0,
+                  "Octaves": 6
+                },
+                "position": {
+                  "x": 0,
+                  "y": 400
+                },
+                "name": "Perlin"
+              },
+              {
+                "id": "combine1",
+                "type": "Combine",
+                "properties": {
+                  "Method": "Add",
+                  "Strength": 0.5
+                },
+                "position": {
+                  "x": 300,
+                  "y": 100
+                },
+                "name": "Combine"
+              },
+              {
+                "id": "combine2",
+                "type": "Combine",
+                "properties": {
+                  "Method": "Multiply",
+                  "Strength": 0.7
+                },
+                "position": {
+                  "x": 300,
+                  "y": 300
+                },
+                "name": "Combine2"
+              },
+              {
+                "id": "erosion1",
+                "type": "Erosion2",
+                "properties": {
+                  "Strength": 0.4,
+                  "Iterations": 15
+                },
+                "position": {
+                  "x": 600,
+                  "y": 200
+                },
+                "name": "Erosion"
+              },
+              {
+                "id": "thermal1",
+                "type": "ThermalErosion",
+                "properties": {
+                  "Strength": 0.3
+                },
+                "position": {
+                  "x": 800,
+                  "y": 200
+                },
+                "name": "Thermal"
+              },
+              {
+                "id": "hydraulic1",
+                "type": "HydraulicErosion",
+                "properties": {
+                  "Strength": 0.5
+                },
+                "position": {
+                  "x": 1000,
+                  "y": 200
+                },
+                "name": "Hydraulic"
+              },
+              {
+                "id": "terrace1",
+                "type": "Terrace",
+                "properties": {
+                  "Levels": 16
+                },
+                "position": {
+                  "x": 1200,
+                  "y": 100
+                },
+                "name": "Terrace"
+              },
+              {
+                "id": "warp1",
+                "type": "Warp",
+                "properties": {
+                  "Amount": 0.2
+                },
+                "position": {
+                  "x": 1200,
+                  "y": 300
+                },
+                "name": "Warp"
+              },
+              {
+                "id": "slope1",
+                "type": "SlopeSelector",
+                "properties": {
+                  "Min": 20,
+                  "Max": 60
+                },
+                "position": {
+                  "x": 1400,
+                  "y": 0
+                },
+                "name": "Slope"
+              },
+              {
+                "id": "height1",
+                "type": "HeightSelector",
+                "properties": {
+                  "Min": 0.3,
+                  "Max": 0.8
+                },
+                "position": {
+                  "x": 1400,
+                  "y": 200
+                },
+                "name": "Height"
+              },
+              {
+                "id": "mixer1",
+                "type": "Mixer",
+                "properties": {},
+                "position": {
+                  "x": 1600,
+                  "y": 100
+                },
+                "name": "Mixer"
+              },
+              {
+                "id": "satmap1",
+                "type": "SatMap",
+                "properties": {
+                  "Library": "Alps"
+                },
+                "position": {
+                  "x": 1800,
+                  "y": 100
+                },
+                "name": "Satmap"
+              },
+              {
+                "id": "export1",
+                "type": "Export",
+                "properties": {
+                  "format": "raw",
+                  "filename": "complex_terrain"
+                },
+                "position": {
+                  "x": 2000,
+                  "y": 100
+                },
+                "name": "Export"
+              }
+            ],
+            "connections": [
+              {
+                "from_node": "mountain1",
+                "from_port": "Out",
+                "to_node": "combine1",
+                "to_port": "Input"
+              },
+              {
+                "from_node": "ridges1",
+                "from_port": "Out",
+                "to_node": "combine1",
+                "to_port": "Input 2"
+              },
+              {
+                "from_node": "combine1",
+                "from_port": "Out",
+                "to_node": "combine2",
+                "to_port": "Input"
+              },
+              {
+                "from_node": "perlin1",
+                "from_port": "Out",
+                "to_node": "combine2",
+                "to_port": "Input 2"
+              },
+              {
+                "from_node": "combine2",
+                "from_port": "Out",
+                "to_node": "erosion1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "erosion1",
+                "from_port": "Out",
+                "to_node": "thermal1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "thermal1",
+                "from_port": "Out",
+                "to_node": "hydraulic1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "hydraulic1",
+                "from_port": "Out",
+                "to_node": "terrace1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "hydraulic1",
+                "from_port": "Out",
+                "to_node": "warp1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "hydraulic1",
+                "from_port": "Out",
+                "to_node": "slope1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "hydraulic1",
+                "from_port": "Out",
+                "to_node": "height1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "terrace1",
+                "from_port": "Out",
+                "to_node": "mixer1",
+                "to_port": "Input 1"
+              },
+              {
+                "from_node": "warp1",
+                "from_port": "Out",
+                "to_node": "mixer1",
+                "to_port": "Input 2"
+              },
+              {
+                "from_node": "slope1",
+                "from_port": "Out",
+                "to_node": "mixer1",
+                "to_port": "Mask 1"
+              },
+              {
+                "from_node": "height1",
+                "from_port": "Out",
+                "to_node": "mixer1",
+                "to_port": "Mask 2"
+              },
+              {
+                "from_node": "mixer1",
+                "from_port": "Out",
+                "to_node": "satmap1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "satmap1",
+                "from_port": "Out",
+                "to_node": "export1",
+                "to_port": "In"
+              }
+            ]
+          },
+          "is_valid": true
+        }
+      },
+      "timestamp": "2025-07-19T08:49:04.829228"
+    },
+    {
+      "name": "Create EdgeCaseTerrain (direct)",
+      "passed": false,
+      "expected_success": true,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "'tuple' object has no attribute 'get'"
+      },
+      "timestamp": "2025-07-19T08:49:04.831254"
+    },
+    {
+      "name": "Validate EdgeCaseTerrain",
+      "passed": false,
+      "expected_success": true,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "'>' not supported between instances of 'int' and 'str'"
+      },
+      "timestamp": "2025-07-19T08:49:04.832643"
+    },
+    {
+      "name": "Create PerformanceTest (direct)",
+      "passed": false,
+      "expected_success": true,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "'tuple' object has no attribute 'get'"
+      },
+      "timestamp": "2025-07-19T08:49:04.834689"
+    },
+    {
+      "name": "Validate PerformanceTest",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "results": {
+          "original_workflow": {
+            "nodes": [
+              {
+                "id": "mountain1",
+                "type": "Mountain",
+                "properties": {
+                  "Height": 0.7,
+                  "Scale": 1.0,
+                  "Style": "Alpine"
+                },
+                "position": {
+                  "x": 0,
+                  "y": 0
+                },
+                "name": "Mountain"
+              },
+              {
+                "id": "erosion1",
+                "type": "Erosion2",
+                "properties": {
+                  "Strength": 0.5,
+                  "Iterations": 10,
+                  "Detail": 0.3,
+                  "Downcutting": 0.2
+                },
+                "position": {
+                  "x": 200,
+                  "y": 0
+                },
+                "name": "Erosion"
+              },
+              {
+                "id": "resample1",
+                "type": "Resample",
+                "properties": {
+                  "Resolution": "512",
+                  "Method": "Bilinear"
+                },
+                "position": {
+                  "x": 400,
+                  "y": 0
+                },
+                "name": "Resample"
+              },
+              {
+                "id": "satmap1",
+                "type": "SatMap",
+                "properties": {
+                  "Quality": "Fast",
+                  "Library": "Rock"
+                },
+                "position": {
+                  "x": 600,
+                  "y": 0
+                },
+                "name": "Satmap"
+              },
+              {
+                "id": "export1",
+                "type": "Export",
+                "properties": {
+                  "format": "jpg",
+                  "quality": 80,
+                  "filename": "performance_test"
+                },
+                "position": {
+                  "x": 800,
+                  "y": 0
+                },
+                "name": "Export"
+              }
+            ],
+            "connections": [
+              {
+                "from_node": "mountain1",
+                "from_port": "Out",
+                "to_node": "erosion1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "erosion1",
+                "from_port": "Out",
+                "to_node": "resample1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "resample1",
+                "from_port": "Out",
+                "to_node": "satmap1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "satmap1",
+                "from_port": "Out",
+                "to_node": "export1",
+                "to_port": "In"
+              }
+            ]
+          },
+          "validation_results": {
+            "properties": {
+              "valid": true,
+              "errors": []
+            },
+            "connections": {
+              "valid": true,
+              "errors": []
+            },
+            "structure": {
+              "valid": true,
+              "errors": []
+            }
+          },
+          "fixes_applied": [],
+          "final_workflow": {
+            "nodes": [
+              {
+                "id": "mountain1",
+                "type": "Mountain",
+                "properties": {
+                  "Height": 0.7,
+                  "Scale": 1.0,
+                  "Style": "Alpine"
+                },
+                "position": {
+                  "x": 0,
+                  "y": 0
+                },
+                "name": "Mountain"
+              },
+              {
+                "id": "erosion1",
+                "type": "Erosion2",
+                "properties": {
+                  "Strength": 0.5,
+                  "Iterations": 10,
+                  "Detail": 0.3,
+                  "Downcutting": 0.2
+                },
+                "position": {
+                  "x": 200,
+                  "y": 0
+                },
+                "name": "Erosion"
+              },
+              {
+                "id": "resample1",
+                "type": "Resample",
+                "properties": {
+                  "Resolution": "512",
+                  "Method": "Bilinear"
+                },
+                "position": {
+                  "x": 400,
+                  "y": 0
+                },
+                "name": "Resample"
+              },
+              {
+                "id": "satmap1",
+                "type": "SatMap",
+                "properties": {
+                  "Quality": "Fast",
+                  "Library": "Rock"
+                },
+                "position": {
+                  "x": 600,
+                  "y": 0
+                },
+                "name": "Satmap"
+              },
+              {
+                "id": "export1",
+                "type": "Export",
+                "properties": {
+                  "format": "jpg",
+                  "quality": 80,
+                  "filename": "performance_test"
+                },
+                "position": {
+                  "x": 800,
+                  "y": 0
+                },
+                "name": "Export"
+              }
+            ],
+            "connections": [
+              {
+                "from_node": "mountain1",
+                "from_port": "Out",
+                "to_node": "erosion1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "erosion1",
+                "from_port": "Out",
+                "to_node": "resample1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "resample1",
+                "from_port": "Out",
+                "to_node": "satmap1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "satmap1",
+                "from_port": "Out",
+                "to_node": "export1",
+                "to_port": "In"
+              }
+            ]
+          },
+          "is_valid": true
+        }
+      },
+      "timestamp": "2025-07-19T08:49:04.836309"
+    },
+    {
+      "name": "Create DataMapTerrain (direct)",
+      "passed": false,
+      "expected_success": true,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "'tuple' object has no attribute 'get'"
+      },
+      "timestamp": "2025-07-19T08:49:04.838396"
+    },
+    {
+      "name": "Validate DataMapTerrain",
+      "passed": false,
+      "expected_success": true,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "'>' not supported between instances of 'int' and 'str'"
+      },
+      "timestamp": "2025-07-19T08:49:04.839795"
+    },
+    {
+      "name": "Create IslandTerrain (direct)",
+      "passed": false,
+      "expected_success": true,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "'tuple' object has no attribute 'get'"
+      },
+      "timestamp": "2025-07-19T08:49:04.841743"
+    },
+    {
+      "name": "Validate IslandTerrain",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "results": {
+          "original_workflow": {
+            "nodes": [
+              {
+                "id": "island1",
+                "type": "Island",
+                "properties": {
+                  "Size": 0.6,
+                  "Height": 0.7,
+                  "Beaches": 0.8
+                },
+                "position": {
+                  "x": 0,
+                  "y": 0
+                },
+                "name": "Island"
+              },
+              {
+                "id": "mountain1",
+                "type": "Mountain",
+                "properties": {
+                  "Height": 0.4,
+                  "Scale": 0.3,
+                  "Style": "Rounded"
+                },
+                "position": {
+                  "x": 0,
+                  "y": 200
+                },
+                "name": "Mountain"
+              },
+              {
+                "id": "combine1",
+                "type": "Combine",
+                "properties": {
+                  "Method": "Add",
+                  "Strength": 0.6
+                },
+                "position": {
+                  "x": 300,
+                  "y": 100
+                },
+                "name": "Combine"
+              },
+              {
+                "id": "beach1",
+                "type": "Beach",
+                "properties": {
+                  "Width": 0.2,
+                  "Smoothness": 0.7
+                },
+                "position": {
+                  "x": 500,
+                  "y": 100
+                },
+                "name": "Beach"
+              },
+              {
+                "id": "erosion1",
+                "type": "CoastalErosion",
+                "properties": {
+                  "Strength": 0.4,
+                  "Iterations": 10
+                },
+                "position": {
+                  "x": 700,
+                  "y": 100
+                },
+                "name": "Erosion"
+              },
+              {
+                "id": "satmap1",
+                "type": "SatMap",
+                "properties": {
+                  "Library": "Tropical",
+                  "LibraryItem": 0
+                },
+                "position": {
+                  "x": 900,
+                  "y": 100
+                },
+                "name": "Satmap"
+              },
+              {
+                "id": "water1",
+                "type": "Water",
+                "properties": {
+                  "Level": 0.0,
+                  "Color": "#006994"
+                },
+                "position": {
+                  "x": 1100,
+                  "y": 100
+                },
+                "name": "Water"
+              },
+              {
+                "id": "export1",
+                "type": "Export",
+                "properties": {
+                  "format": "png",
+                  "filename": "island_terrain"
+                },
+                "position": {
+                  "x": 1300,
+                  "y": 100
+                },
+                "name": "Export"
+              }
+            ],
+            "connections": [
+              {
+                "from_node": "island1",
+                "from_port": "Out",
+                "to_node": "combine1",
+                "to_port": "Input"
+              },
+              {
+                "from_node": "mountain1",
+                "from_port": "Out",
+                "to_node": "combine1",
+                "to_port": "Input 2"
+              },
+              {
+                "from_node": "combine1",
+                "from_port": "Out",
+                "to_node": "beach1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "beach1",
+                "from_port": "Out",
+                "to_node": "erosion1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "erosion1",
+                "from_port": "Out",
+                "to_node": "satmap1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "satmap1",
+                "from_port": "Out",
+                "to_node": "water1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "water1",
+                "from_port": "Out",
+                "to_node": "export1",
+                "to_port": "In"
+              }
+            ]
+          },
+          "validation_results": {
+            "properties": {
+              "valid": true,
+              "errors": []
+            },
+            "connections": {
+              "valid": true,
+              "errors": []
+            },
+            "structure": {
+              "valid": true,
+              "errors": []
+            }
+          },
+          "fixes_applied": [],
+          "final_workflow": {
+            "nodes": [
+              {
+                "id": "island1",
+                "type": "Island",
+                "properties": {
+                  "Size": 0.6,
+                  "Height": 0.7,
+                  "Beaches": 0.8
+                },
+                "position": {
+                  "x": 0,
+                  "y": 0
+                },
+                "name": "Island"
+              },
+              {
+                "id": "mountain1",
+                "type": "Mountain",
+                "properties": {
+                  "Height": 0.4,
+                  "Scale": 0.3,
+                  "Style": "Rounded"
+                },
+                "position": {
+                  "x": 0,
+                  "y": 200
+                },
+                "name": "Mountain"
+              },
+              {
+                "id": "combine1",
+                "type": "Combine",
+                "properties": {
+                  "Method": "Add",
+                  "Strength": 0.6
+                },
+                "position": {
+                  "x": 300,
+                  "y": 100
+                },
+                "name": "Combine"
+              },
+              {
+                "id": "beach1",
+                "type": "Beach",
+                "properties": {
+                  "Width": 0.2,
+                  "Smoothness": 0.7
+                },
+                "position": {
+                  "x": 500,
+                  "y": 100
+                },
+                "name": "Beach"
+              },
+              {
+                "id": "erosion1",
+                "type": "CoastalErosion",
+                "properties": {
+                  "Strength": 0.4,
+                  "Iterations": 10
+                },
+                "position": {
+                  "x": 700,
+                  "y": 100
+                },
+                "name": "Erosion"
+              },
+              {
+                "id": "satmap1",
+                "type": "SatMap",
+                "properties": {
+                  "Library": "Tropical",
+                  "LibraryItem": 0
+                },
+                "position": {
+                  "x": 900,
+                  "y": 100
+                },
+                "name": "Satmap"
+              },
+              {
+                "id": "water1",
+                "type": "Water",
+                "properties": {
+                  "Level": 0.0,
+                  "Color": "#006994"
+                },
+                "position": {
+                  "x": 1100,
+                  "y": 100
+                },
+                "name": "Water"
+              },
+              {
+                "id": "export1",
+                "type": "Export",
+                "properties": {
+                  "format": "png",
+                  "filename": "island_terrain"
+                },
+                "position": {
+                  "x": 1300,
+                  "y": 100
+                },
+                "name": "Export"
+              }
+            ],
+            "connections": [
+              {
+                "from_node": "island1",
+                "from_port": "Out",
+                "to_node": "combine1",
+                "to_port": "Input"
+              },
+              {
+                "from_node": "mountain1",
+                "from_port": "Out",
+                "to_node": "combine1",
+                "to_port": "Input 2"
+              },
+              {
+                "from_node": "combine1",
+                "from_port": "Out",
+                "to_node": "beach1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "beach1",
+                "from_port": "Out",
+                "to_node": "erosion1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "erosion1",
+                "from_port": "Out",
+                "to_node": "satmap1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "satmap1",
+                "from_port": "Out",
+                "to_node": "water1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "water1",
+                "from_port": "Out",
+                "to_node": "export1",
+                "to_port": "In"
+              }
+            ]
+          },
+          "is_valid": true
+        }
+      },
+      "timestamp": "2025-07-19T08:49:04.843283"
+    },
+    {
+      "name": "Fix errors: Missing Export Node",
+      "passed": false,
+      "expected_success": true,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "'>' not supported between instances of 'int' and 'str'"
+      },
+      "timestamp": "2025-07-19T08:49:04.848609"
+    },
+    {
+      "name": "Fix errors: Invalid Property Values",
+      "passed": false,
+      "expected_success": true,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "'>' not supported between instances of 'int' and 'str'"
+      },
+      "timestamp": "2025-07-19T08:49:04.850161"
+    },
+    {
+      "name": "Fix errors: Duplicate Connections",
+      "passed": false,
+      "expected_success": true,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "'>' not supported between instances of 'int' and 'str'"
+      },
+      "timestamp": "2025-07-19T08:49:04.851491"
+    },
+    {
+      "name": "Fix errors: Orphaned Nodes",
+      "passed": false,
+      "expected_success": true,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "'>' not supported between instances of 'int' and 'str'"
+      },
+      "timestamp": "2025-07-19T08:49:04.852900"
+    },
+    {
+      "name": "Optimize for performance",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "optimized_workflow": {
+          "nodes": [
+            {
+              "id": "m1",
+              "type": "Mountain",
+              "properties": {
+                "Height": 0.8
+              }
+            },
+            {
+              "id": "e1",
+              "type": "Erosion2",
+              "properties": {
+                "Strength": 0.9,
+                "Iterations": 50,
+                "Detail": 0.9,
+                "iterations": 10,
+                "detail": 0.3
+              }
+            },
+            {
+              "id": "t1",
+              "type": "Terrace",
+              "properties": {
+                "Levels": 64,
+                "levels": 8
+              }
+            },
+            {
+              "id": "s1",
+              "type": "SatMap",
+              "properties": {
+                "quality": "Fast"
+              }
+            },
+            {
+              "id": "ex1",
+              "type": "Export",
+              "properties": {}
+            }
+          ],
+          "connections": [
+            {
+              "from": "m1",
+              "to": "e1"
+            },
+            {
+              "from": "e1",
+              "to": "t1"
+            },
+            {
+              "from": "t1",
+              "to": "s1"
+            },
+            {
+              "from": "s1",
+              "to": "ex1"
+            }
+          ]
+        },
+        "mode": "performance"
+      },
+      "timestamp": "2025-07-19T08:49:04.854138"
+    },
+    {
+      "name": "Optimize for quality",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "optimized_workflow": {
+          "nodes": [
+            {
+              "id": "m1",
+              "type": "Mountain",
+              "properties": {
+                "Height": 0.8
+              }
+            },
+            {
+              "id": "e1",
+              "type": "Erosion2",
+              "properties": {
+                "Strength": 0.9,
+                "Iterations": 50,
+                "Detail": 0.9,
+                "iterations": 30,
+                "detail": 0.8
+              }
+            },
+            {
+              "id": "t1",
+              "type": "Terrace",
+              "properties": {
+                "Levels": 64,
+                "levels": 32
+              }
+            },
+            {
+              "id": "s1",
+              "type": "SatMap",
+              "properties": {
+                "quality": "High"
+              }
+            },
+            {
+              "id": "ex1",
+              "type": "Export",
+              "properties": {}
+            }
+          ],
+          "connections": [
+            {
+              "from": "m1",
+              "to": "e1"
+            },
+            {
+              "from": "e1",
+              "to": "t1"
+            },
+            {
+              "from": "t1",
+              "to": "s1"
+            },
+            {
+              "from": "s1",
+              "to": "ex1"
+            }
+          ]
+        },
+        "mode": "quality"
+      },
+      "timestamp": "2025-07-19T08:49:04.855394"
+    },
+    {
+      "name": "Optimize for balanced",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "optimized_workflow": {
+          "nodes": [
+            {
+              "id": "m1",
+              "type": "Mountain",
+              "properties": {
+                "Height": 0.8
+              }
+            },
+            {
+              "id": "e1",
+              "type": "Erosion2",
+              "properties": {
+                "Strength": 0.9,
+                "Iterations": 50,
+                "Detail": 0.9,
+                "iterations": 20,
+                "detail": 0.5
+              }
+            },
+            {
+              "id": "t1",
+              "type": "Terrace",
+              "properties": {
+                "Levels": 64,
+                "levels": 16
+              }
+            },
+            {
+              "id": "s1",
+              "type": "SatMap",
+              "properties": {}
+            },
+            {
+              "id": "ex1",
+              "type": "Export",
+              "properties": {}
+            }
+          ],
+          "connections": [
+            {
+              "from": "m1",
+              "to": "e1"
+            },
+            {
+              "from": "e1",
+              "to": "t1"
+            },
+            {
+              "from": "t1",
+              "to": "s1"
+            },
+            {
+              "from": "s1",
+              "to": "ex1"
+            }
+          ]
+        },
+        "mode": "balanced"
+      },
+      "timestamp": "2025-07-19T08:49:04.859263"
+    },
+    {
+      "name": "Suggest nodes: After Mountain",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "suggestions": [
+          "SatMap",
+          "Erosion",
+          "Wizard",
+          "TextureBase",
+          "Rivers"
+        ]
+      },
+      "timestamp": "2025-07-19T08:49:04.865542"
+    },
+    {
+      "name": "Suggest nodes: After Erosion",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "suggestions": [
+          "Erosion",
+          "Wizard"
+        ]
+      },
+      "timestamp": "2025-07-19T08:49:04.870252"
+    },
+    {
+      "name": "Suggest nodes: Complex Chain",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "suggestions": [
+          "Erosion",
+          "Wizard"
+        ]
+      },
+      "timestamp": "2025-07-19T08:49:04.875539"
+    },
+    {
+      "name": "Suggest nodes: Empty Workflow",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "suggestions": [
+          "Mountain",
+          "Erosion",
+          "TextureBase",
+          "SatMap",
+          "Rivers"
+        ]
+      },
+      "timestamp": "2025-07-19T08:49:04.881732"
+    },
+    {
+      "name": "Analyze pattern: Simple Linear",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "analysis": {
+          "node_count": 3,
+          "connection_count": 2,
+          "node_types": [
+            "Erosion2",
+            "Mountain",
+            "Export"
+          ],
+          "complexity": 0.6666666666666666,
+          "recommendations": {
+            "next_nodes": [],
+            "missing_nodes": [],
+            "property_suggestions": {},
+            "similar_patterns": []
+          }
+        }
+      },
+      "timestamp": "2025-07-19T08:49:04.884893"
+    },
+    {
+      "name": "Analyze pattern: Branching",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "analysis": {
+          "node_count": 5,
+          "connection_count": 5,
+          "node_types": [
+            "Mountain",
+            "Export",
+            "Terrace",
+            "Combine",
+            "Erosion2"
+          ],
+          "complexity": 1.0,
+          "recommendations": {
+            "next_nodes": [],
+            "missing_nodes": [],
+            "property_suggestions": {},
+            "similar_patterns": []
+          }
+        }
+      },
+      "timestamp": "2025-07-19T08:49:04.886261"
+    },
+    {
+      "name": "Empty workflow",
+      "passed": false,
+      "expected_success": false,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "project": {
+          "version": "1.0",
+          "name": "EmptyProject",
+          "workflow": {
+            "nodes": [],
+            "connections": []
+          },
+          "created": "2025-07-19T08:49:05.690446",
+          "metadata": {
+            "created_by": "Gaea2 MCP Server",
+            "auto_validated": true
+          }
+        }
+      },
+      "timestamp": "2025-07-19T08:49:04.891660"
+    },
+    {
+      "name": "Very long node chain",
+      "passed": false,
+      "expected_success": true,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "'>' not supported between instances of 'int' and 'str'"
+      },
+      "timestamp": "2025-07-19T08:49:04.893254"
+    },
+    {
+      "name": "Circular dependency",
+      "passed": true,
+      "expected_success": false,
+      "actual_success": false,
+      "result": {
+        "success": false,
+        "error": "'>' not supported between instances of 'int' and 'str'"
+      },
+      "timestamp": "2025-07-19T08:49:04.894494"
+    },
+    {
+      "name": "Template creation time (0.01s)",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "project": {
+          "version": "1.0",
+          "name": "PerformanceTest",
+          "workflow": {
+            "nodes": [
+              {
+                "id": 100,
+                "type": "Mountain",
+                "name": "BaseTerrain",
+                "position": {
+                  "x": 25000,
+                  "y": 26000
+                },
+                "properties": {
+                  "Scale": 1.0,
+                  "Height": 0.7,
+                  "Style": "Alpine",
+                  "Bulk": "Medium",
+                  "Reduce Details": false,
+                  "Seed": 0,
+                  "X": 0.0,
+                  "Y": 0.0
+                }
+              },
+              {
+                "id": 101,
+                "type": "Erosion",
+                "name": "NaturalErosion",
+                "position": {
+                  "x": 25500,
+                  "y": 26000
+                },
+                "properties": {
+                  "Duration": 0.04,
+                  "Rock Softness": 0.4,
+                  "Strength": 0.5,
+                  "Downcutting": 0.0,
+                  "Inhibition": 0.0,
+                  "Base Level": 0.0,
+                  "Feature Scale": 2000,
+                  "Real Scale": false,
+                  "Seed": 0,
+                  "Aggressive Mode": false,
+                  "Deterministic": false
+                }
+              },
+              {
+                "id": 102,
+                "type": "TextureBase",
+                "name": "BaseTexture",
+                "position": {
+                  "x": 26000,
+                  "y": 26000
+                },
+                "properties": {}
+              },
+              {
+                "id": 103,
+                "type": "SatMap",
+                "name": "ColorMap",
+                "position": {
+                  "x": 26500,
+                  "y": 26000
+                },
+                "properties": {
+                  "Library": "Rock",
+                  "LibraryItem": 0,
+                  "Randomize": false,
+                  "Range": {
+                    "X": 0.5,
+                    "Y": 0.5
+                  },
+                  "Bias": 0.5,
+                  "Enhance": "None",
+                  "Reverse": false,
+                  "Rough": "None",
+                  "Hue": 0.0,
+                  "Saturation": 0.0,
+                  "Lightness": 0.0
+                }
+              },
+              {
+                "id": 104,
+                "type": "Export",
+                "name": "TerrainExport",
+                "position": {
+                  "x": 27000,
+                  "y": 26000
+                },
+                "properties": {
+                  "filename": "terrain_output",
+                  "format": "Terrain",
+                  "enabled": true
+                }
+              }
+            ],
+            "connections": [
+              {
+                "from_node": 100,
+                "to_node": 101,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 101,
+                "to_node": 102,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 102,
+                "to_node": 103,
+                "from_port": "Out",
+                "to_port": "In"
+              },
+              {
+                "from_node": 103,
+                "to_node": 104,
+                "from_port": "Out",
+                "to_port": "In"
+              }
+            ]
+          },
+          "created": "2025-07-19T08:49:05.698924",
+          "metadata": {
+            "created_by": "Gaea2 MCP Server",
+            "auto_validated": true
+          }
+        },
+        "template_used": "basic_terrain",
+        "message": "Project created from template 'basic_terrain'"
+      },
+      "timestamp": "2025-07-19T08:49:04.900262"
+    },
+    {
+      "name": "Complex validation time (0.00s)",
+      "passed": true,
+      "expected_success": true,
+      "actual_success": true,
+      "result": {
+        "success": true,
+        "results": {
+          "original_workflow": {
+            "nodes": [
+              {
+                "id": "mountain1",
+                "type": "Mountain",
+                "properties": {
+                  "Height": 0.7,
+                  "Scale": 1.0
+                },
+                "position": {
+                  "x": 0,
+                  "y": 0
+                }
+              },
+              {
+                "id": "ridges1",
+                "type": "Ridges",
+                "properties": {
+                  "Scale": 0.5
+                },
+                "position": {
+                  "x": 0,
+                  "y": 200
+                }
+              },
+              {
+                "id": "perlin1",
+                "type": "Perlin",
+                "properties": {
+                  "Scale": 2.0,
+                  "Octaves": 6
+                },
+                "position": {
+                  "x": 0,
+                  "y": 400
+                }
+              },
+              {
+                "id": "combine1",
+                "type": "Combine",
+                "properties": {
+                  "Method": "Add",
+                  "Strength": 0.5
+                },
+                "position": {
+                  "x": 300,
+                  "y": 100
+                }
+              },
+              {
+                "id": "combine2",
+                "type": "Combine",
+                "properties": {
+                  "Method": "Multiply",
+                  "Strength": 0.7
+                },
+                "position": {
+                  "x": 300,
+                  "y": 300
+                }
+              },
+              {
+                "id": "erosion1",
+                "type": "Erosion2",
+                "properties": {
+                  "Strength": 0.4,
+                  "Iterations": 15
+                },
+                "position": {
+                  "x": 600,
+                  "y": 200
+                }
+              },
+              {
+                "id": "thermal1",
+                "type": "ThermalErosion",
+                "properties": {
+                  "Strength": 0.3
+                },
+                "position": {
+                  "x": 800,
+                  "y": 200
+                }
+              },
+              {
+                "id": "hydraulic1",
+                "type": "HydraulicErosion",
+                "properties": {
+                  "Strength": 0.5
+                },
+                "position": {
+                  "x": 1000,
+                  "y": 200
+                }
+              },
+              {
+                "id": "terrace1",
+                "type": "Terrace",
+                "properties": {
+                  "Levels": 16
+                },
+                "position": {
+                  "x": 1200,
+                  "y": 100
+                }
+              },
+              {
+                "id": "warp1",
+                "type": "Warp",
+                "properties": {
+                  "Amount": 0.2
+                },
+                "position": {
+                  "x": 1200,
+                  "y": 300
+                }
+              },
+              {
+                "id": "slope1",
+                "type": "SlopeSelector",
+                "properties": {
+                  "Min": 20,
+                  "Max": 60
+                },
+                "position": {
+                  "x": 1400,
+                  "y": 0
+                }
+              },
+              {
+                "id": "height1",
+                "type": "HeightSelector",
+                "properties": {
+                  "Min": 0.3,
+                  "Max": 0.8
+                },
+                "position": {
+                  "x": 1400,
+                  "y": 200
+                }
+              },
+              {
+                "id": "mixer1",
+                "type": "Mixer",
+                "properties": {},
+                "position": {
+                  "x": 1600,
+                  "y": 100
+                }
+              },
+              {
+                "id": "satmap1",
+                "type": "SatMap",
+                "properties": {
+                  "Library": "Alps"
+                },
+                "position": {
+                  "x": 1800,
+                  "y": 100
+                }
+              },
+              {
+                "id": "export1",
+                "type": "Export",
+                "properties": {
+                  "format": "raw",
+                  "filename": "complex_terrain"
+                },
+                "position": {
+                  "x": 2000,
+                  "y": 100
+                }
+              }
+            ],
+            "connections": [
+              {
+                "from_node": "mountain1",
+                "from_port": "Out",
+                "to_node": "combine1",
+                "to_port": "Input"
+              },
+              {
+                "from_node": "ridges1",
+                "from_port": "Out",
+                "to_node": "combine1",
+                "to_port": "Input 2"
+              },
+              {
+                "from_node": "combine1",
+                "from_port": "Out",
+                "to_node": "combine2",
+                "to_port": "Input"
+              },
+              {
+                "from_node": "perlin1",
+                "from_port": "Out",
+                "to_node": "combine2",
+                "to_port": "Input 2"
+              },
+              {
+                "from_node": "combine2",
+                "from_port": "Out",
+                "to_node": "erosion1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "erosion1",
+                "from_port": "Out",
+                "to_node": "thermal1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "thermal1",
+                "from_port": "Out",
+                "to_node": "hydraulic1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "hydraulic1",
+                "from_port": "Out",
+                "to_node": "terrace1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "hydraulic1",
+                "from_port": "Out",
+                "to_node": "warp1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "hydraulic1",
+                "from_port": "Out",
+                "to_node": "slope1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "hydraulic1",
+                "from_port": "Out",
+                "to_node": "height1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "terrace1",
+                "from_port": "Out",
+                "to_node": "mixer1",
+                "to_port": "Input 1"
+              },
+              {
+                "from_node": "warp1",
+                "from_port": "Out",
+                "to_node": "mixer1",
+                "to_port": "Input 2"
+              },
+              {
+                "from_node": "slope1",
+                "from_port": "Out",
+                "to_node": "mixer1",
+                "to_port": "Mask 1"
+              },
+              {
+                "from_node": "height1",
+                "from_port": "Out",
+                "to_node": "mixer1",
+                "to_port": "Mask 2"
+              },
+              {
+                "from_node": "mixer1",
+                "from_port": "Out",
+                "to_node": "satmap1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "satmap1",
+                "from_port": "Out",
+                "to_node": "export1",
+                "to_port": "In"
+              }
+            ]
+          },
+          "validation_results": {
+            "properties": {
+              "valid": true,
+              "errors": []
+            },
+            "connections": {
+              "valid": true,
+              "errors": []
+            },
+            "structure": {
+              "valid": true,
+              "errors": []
+            }
+          },
+          "fixes_applied": [],
+          "final_workflow": {
+            "nodes": [
+              {
+                "id": "mountain1",
+                "type": "Mountain",
+                "properties": {
+                  "Height": 0.7,
+                  "Scale": 1.0
+                },
+                "position": {
+                  "x": 0,
+                  "y": 0
+                }
+              },
+              {
+                "id": "ridges1",
+                "type": "Ridges",
+                "properties": {
+                  "Scale": 0.5
+                },
+                "position": {
+                  "x": 0,
+                  "y": 200
+                }
+              },
+              {
+                "id": "perlin1",
+                "type": "Perlin",
+                "properties": {
+                  "Scale": 2.0,
+                  "Octaves": 6
+                },
+                "position": {
+                  "x": 0,
+                  "y": 400
+                }
+              },
+              {
+                "id": "combine1",
+                "type": "Combine",
+                "properties": {
+                  "Method": "Add",
+                  "Strength": 0.5
+                },
+                "position": {
+                  "x": 300,
+                  "y": 100
+                }
+              },
+              {
+                "id": "combine2",
+                "type": "Combine",
+                "properties": {
+                  "Method": "Multiply",
+                  "Strength": 0.7
+                },
+                "position": {
+                  "x": 300,
+                  "y": 300
+                }
+              },
+              {
+                "id": "erosion1",
+                "type": "Erosion2",
+                "properties": {
+                  "Strength": 0.4,
+                  "Iterations": 15
+                },
+                "position": {
+                  "x": 600,
+                  "y": 200
+                }
+              },
+              {
+                "id": "thermal1",
+                "type": "ThermalErosion",
+                "properties": {
+                  "Strength": 0.3
+                },
+                "position": {
+                  "x": 800,
+                  "y": 200
+                }
+              },
+              {
+                "id": "hydraulic1",
+                "type": "HydraulicErosion",
+                "properties": {
+                  "Strength": 0.5
+                },
+                "position": {
+                  "x": 1000,
+                  "y": 200
+                }
+              },
+              {
+                "id": "terrace1",
+                "type": "Terrace",
+                "properties": {
+                  "Levels": 16
+                },
+                "position": {
+                  "x": 1200,
+                  "y": 100
+                }
+              },
+              {
+                "id": "warp1",
+                "type": "Warp",
+                "properties": {
+                  "Amount": 0.2
+                },
+                "position": {
+                  "x": 1200,
+                  "y": 300
+                }
+              },
+              {
+                "id": "slope1",
+                "type": "SlopeSelector",
+                "properties": {
+                  "Min": 20,
+                  "Max": 60
+                },
+                "position": {
+                  "x": 1400,
+                  "y": 0
+                }
+              },
+              {
+                "id": "height1",
+                "type": "HeightSelector",
+                "properties": {
+                  "Min": 0.3,
+                  "Max": 0.8
+                },
+                "position": {
+                  "x": 1400,
+                  "y": 200
+                }
+              },
+              {
+                "id": "mixer1",
+                "type": "Mixer",
+                "properties": {},
+                "position": {
+                  "x": 1600,
+                  "y": 100
+                }
+              },
+              {
+                "id": "satmap1",
+                "type": "SatMap",
+                "properties": {
+                  "Library": "Alps"
+                },
+                "position": {
+                  "x": 1800,
+                  "y": 100
+                }
+              },
+              {
+                "id": "export1",
+                "type": "Export",
+                "properties": {
+                  "format": "raw",
+                  "filename": "complex_terrain"
+                },
+                "position": {
+                  "x": 2000,
+                  "y": 100
+                }
+              }
+            ],
+            "connections": [
+              {
+                "from_node": "mountain1",
+                "from_port": "Out",
+                "to_node": "combine1",
+                "to_port": "Input"
+              },
+              {
+                "from_node": "ridges1",
+                "from_port": "Out",
+                "to_node": "combine1",
+                "to_port": "Input 2"
+              },
+              {
+                "from_node": "combine1",
+                "from_port": "Out",
+                "to_node": "combine2",
+                "to_port": "Input"
+              },
+              {
+                "from_node": "perlin1",
+                "from_port": "Out",
+                "to_node": "combine2",
+                "to_port": "Input 2"
+              },
+              {
+                "from_node": "combine2",
+                "from_port": "Out",
+                "to_node": "erosion1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "erosion1",
+                "from_port": "Out",
+                "to_node": "thermal1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "thermal1",
+                "from_port": "Out",
+                "to_node": "hydraulic1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "hydraulic1",
+                "from_port": "Out",
+                "to_node": "terrace1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "hydraulic1",
+                "from_port": "Out",
+                "to_node": "warp1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "hydraulic1",
+                "from_port": "Out",
+                "to_node": "slope1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "hydraulic1",
+                "from_port": "Out",
+                "to_node": "height1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "terrace1",
+                "from_port": "Out",
+                "to_node": "mixer1",
+                "to_port": "Input 1"
+              },
+              {
+                "from_node": "warp1",
+                "from_port": "Out",
+                "to_node": "mixer1",
+                "to_port": "Input 2"
+              },
+              {
+                "from_node": "slope1",
+                "from_port": "Out",
+                "to_node": "mixer1",
+                "to_port": "Mask 1"
+              },
+              {
+                "from_node": "height1",
+                "from_port": "Out",
+                "to_node": "mixer1",
+                "to_port": "Mask 2"
+              },
+              {
+                "from_node": "mixer1",
+                "from_port": "Out",
+                "to_node": "satmap1",
+                "to_port": "In"
+              },
+              {
+                "from_node": "satmap1",
+                "from_port": "Out",
+                "to_node": "export1",
+                "to_port": "In"
+              }
+            ]
+          },
+          "is_valid": true
+        }
+      },
+      "timestamp": "2025-07-19T08:49:04.901798"
+    }
+  ],
+  "summary": {
+    "total": 40,
+    "passed": 24,
+    "failed": 16,
+    "warnings": 0
+  }
+}
