@@ -1,6 +1,6 @@
-# Gaea2 MCP Server
+# Gaea2 MCP Server ✅ Fully Working
 
-A standalone HTTP server that provides Model Context Protocol (MCP) tools for Gaea2 terrain generation, including CLI automation capabilities.
+A standalone HTTP server that provides Model Context Protocol (MCP) tools for Gaea2 terrain generation, including CLI automation capabilities. **Now fully functional with proper ID generation and terrain file compatibility.**
 
 ## Overview
 
@@ -19,6 +19,8 @@ The Gaea2 MCP Server runs on Windows hosts where Gaea2 is installed and provides
 
 1. **Project Management**
    - Create Gaea2 projects with automatic validation
+   - ✅ Fixed sequential ID generation for proper Gaea2 compatibility
+   - ✅ Generates valid .terrain files that open correctly
    - Repair damaged project files
    - Validate and fix workflows
    - Create projects from professional templates
