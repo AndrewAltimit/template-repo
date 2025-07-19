@@ -264,6 +264,10 @@ def extract_and_fix_savedefinitions(project: Dict[str, Any], ref_counter: int) -
 
     # Find and extract SaveDefinitions from Export nodes
     for node_id, node in nodes.items():
+        # Skip string references
+        if isinstance(node, str):
+            continue
+
         if "SaveDefinition" in node:
             # Extract the SaveDefinition
             save_def = node.pop("SaveDefinition")
@@ -289,6 +293,10 @@ def ensure_all_nodes_connected(project: Dict[str, Any]) -> None:
     # Find nodes without incoming connections
     nodes_with_connections = set()
     for node_id, node in nodes.items():
+        # Skip string references
+        if isinstance(node, str):
+            continue
+
         if "Ports" in node and "$values" in node["Ports"]:
             for port in node["Ports"]["$values"]:
                 if "Record" in port:
@@ -296,6 +304,10 @@ def ensure_all_nodes_connected(project: Dict[str, Any]) -> None:
 
     # Log disconnected nodes (for debugging)
     for node_id, node in nodes.items():
+        # Skip string references
+        if isinstance(node, str):
+            continue
+
         if node_id not in nodes_with_connections:
             node_type = node.get("$type", "").split(".")[-2] if "." in node.get("$type", "") else "Unknown"
             # Note: We don't auto-connect as we don't know the intended workflow
@@ -341,6 +353,10 @@ def apply_format_fixes(
     # 6. Fix node properties for all nodes
     nodes_obj = project["Assets"]["$values"][0]["Terrain"]["Nodes"]
     for node_id, node in nodes_obj.items():
+        # Skip if node is just a string reference (like "$id": "6")
+        if isinstance(node, str):
+            continue
+
         # Get node type from $type
         node_type_full = node.get("$type", "")
         if "." in node_type_full:
