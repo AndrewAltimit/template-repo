@@ -568,7 +568,8 @@ class Gaea2MCPServer:
                         save_path.parent.mkdir(parents=True, exist_ok=True)
 
                         # Save the project as minified JSON to match Gaea2 format
-                        with open(save_path, "w") as f:
+                        # Use Unix line endings (LF) as Gaea2 expects
+                        with open(save_path, "w", newline="\n") as f:
                             json.dump(project, f, separators=(",", ":"))
 
                         saved_path = str(save_path)
