@@ -9,6 +9,74 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+# Model constants
+PRO_MODEL = "gemini-2.5-pro"
+FLASH_MODEL = "gemini-2.5-flash"
+
+
+def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
+    """Calls the Gemini API with a fallback from Pro to Flash model.
+
+    Args:
+        prompt: The prompt to send to Gemini
+
+    Returns:
+        (analysis, model_used) - The analysis result and which model was used
+    """
+
+    # Helper function to clean credential messages from output
+    def clean_output(output: str) -> str:
+        if "Loaded cached credentials" in output:
+            lines = output.split("\n")
+            return "\n".join(line for line in lines if "Loaded cached credentials" not in line)
+        return output
+
+    # Try with Pro model first
+    try:
+        print("🔍 Attempting analysis with Gemini 2.5 Pro model...")
+        result = subprocess.run(
+            ["gemini", "-m", PRO_MODEL],
+            input=prompt,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=90,  # 90 second timeout for Pro model in CI environments
+        )
+        output = clean_output(result.stdout.strip())
+        return output.strip(), PRO_MODEL
+    except subprocess.TimeoutExpired:
+        print("⏱️  Pro model timed out after 90s, trying Flash model...")
+        print("   (This is likely due to network latency in CI, not a quota issue)")
+    except subprocess.CalledProcessError as e:
+        # Check if it's a quota limit error
+        if e.stderr and ("quota limit" in e.stderr.lower() or "API Error" in e.stderr or "quota exceeded" in e.stderr.lower()):
+            print("⚡ Quota limit reached for Pro model, falling back to Flash...")
+        else:
+            # Non-quota error from Pro model - surface the error
+            err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
+            return f"❌ Pro model failed with error: {err_msg}", ""
+    except Exception as e:
+        # Unexpected error
+        return f"❌ Unexpected error with Pro model: {str(e)}", ""
+
+    # Fallback to Flash model
+    try:
+        print("🔍 Attempting analysis with Gemini 2.5 Flash model...")
+        result = subprocess.run(
+            ["gemini", "-m", FLASH_MODEL],
+            input=prompt,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=60,  # 60s for Flash model
+        )
+        output = clean_output(result.stdout.strip())
+        return output.strip(), FLASH_MODEL
+    except Exception as flash_error:
+        err_msg = flash_error.stderr if hasattr(flash_error, "stderr") and flash_error.stderr else str(flash_error)
+        print(f"❌ Flash model also failed: {err_msg}")
+        return f"❌ Both Pro and Flash models failed. Flash error: {err_msg}", ""
+
 
 def check_gemini_cli() -> bool:
     """Check if Gemini CLI is available"""
@@ -164,7 +232,7 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
 
     file_chunks = chunk_diff_by_files(diff)
     analyses = []
-    model_used = "gemini-2.5-pro"  # Default assumption
+    model_used = PRO_MODEL  # Default assumption
 
     # Group files by type for more coherent analysis
     file_groups = {
@@ -199,8 +267,8 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
         if group_analysis:
             analyses.append(f"### {group_name.title()} Changes\n{group_analysis}")
             # Track if any analysis used Flash model
-            if "flash" in group_model:
-                model_used = "gemini-2.5-flash"
+            if group_model == FLASH_MODEL:
+                model_used = FLASH_MODEL
 
     # Combine analyses with overall summary
     combined_analysis = f"""## Overall Summary
@@ -259,78 +327,8 @@ def analyze_file_group(
         f"Keep response concise but thorough."
     )
 
-    # Try with Pro model first with longer timeout
-    try:
-        print("🔍 Attempting analysis with Gemini 2.5 Pro model...")
-        result = subprocess.run(
-            ["gemini", "-m", "gemini-2.5-pro"],
-            input=prompt,
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=90,  # 90 second timeout for Pro model in CI environments
-        )
-        # Clean stdout by removing any credential messages
-        output = result.stdout.strip()
-        if "Loaded cached credentials" in output:
-            lines = output.split("\n")
-            output = "\n".join(line for line in lines if "Loaded cached credentials" not in line)
-        return output.strip(), "gemini-2.5-pro"
-    except subprocess.TimeoutExpired:
-        print("⏱️  Pro model timed out after 90s, trying Flash model...")
-        print("   (This is likely due to network latency in CI, not a quota issue)")
-        try:
-            print("🔍 Attempting analysis with Gemini 2.5 Flash model...")
-            result = subprocess.run(
-                ["gemini", "-m", "gemini-2.5-flash"],
-                input=prompt,
-                capture_output=True,
-                text=True,
-                check=True,
-                timeout=60,  # 60s for Flash model
-            )
-            output = result.stdout.strip()
-            if "Loaded cached credentials" in output:
-                lines = output.split("\n")
-                output = "\n".join(line for line in lines if "Loaded cached credentials" not in line)
-            return output.strip(), "gemini-2.5-flash"
-        except Exception as flash_error:
-            err_msg = str(flash_error)
-            print(f"❌ Flash model also failed: {err_msg}")
-            return f"❌ Both Pro and Flash models failed. Flash error: {err_msg}", ""
-    except subprocess.CalledProcessError as e:
-        # Check if it's a quota limit error
-        if e.stderr and ("quota limit" in e.stderr.lower() or "API Error" in e.stderr or "quota exceeded" in e.stderr.lower()):
-            print("⚡ Quota limit reached for Pro model, falling back to Flash...")
-            try:
-                print("🔍 Attempting analysis with Gemini 2.5 Flash model...")
-                result = subprocess.run(
-                    ["gemini", "-m", "gemini-2.5-flash"],
-                    input=prompt,
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                    timeout=60,  # 60s for Flash model
-                )
-                output = result.stdout.strip()
-                if "Loaded cached credentials" in output:
-                    lines = output.split("\n")
-                    output = "\n".join(line for line in lines if "Loaded cached credentials" not in line)
-                return output.strip(), "gemini-2.5-flash"
-            except Exception as flash_error:
-                err_msg = str(flash_error)
-                print(f"❌ Flash model also failed: {err_msg}")
-                return (
-                    f"❌ Both Pro and Flash models failed. Flash error: {err_msg}",
-                    "",
-                )
-        else:
-            # Non-quota error from Pro model
-            err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
-            return f"❌ Pro model failed with error: {err_msg}", ""
-    except Exception as e:
-        # Unexpected error
-        return f"❌ Unexpected error in analyze_file_group: {str(e)}", ""
+    # Use the helper function for Gemini API calls with fallback
+    return _call_gemini_with_fallback(prompt)
 
 
 def analyze_complete_diff(
@@ -389,78 +387,8 @@ def analyze_complete_diff(
         "Focus on actionable feedback considering the container-first architecture."
     )
 
-    # Try with Pro model first with longer timeout
-    try:
-        print("🔍 Attempting complete diff analysis with Gemini 2.5 Pro model...")
-        result = subprocess.run(
-            ["gemini", "-m", "gemini-2.5-pro"],
-            input=prompt,
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=90,  # 90 second timeout for Pro model in CI environments
-        )
-        # Clean stdout by removing any credential messages
-        output = result.stdout.strip()
-        if "Loaded cached credentials" in output:
-            lines = output.split("\n")
-            output = "\n".join(line for line in lines if "Loaded cached credentials" not in line)
-        return output.strip(), "gemini-2.5-pro"
-    except subprocess.TimeoutExpired:
-        print("⏱️  Pro model timed out after 90s, trying Flash model...")
-        print("   (This is likely due to network latency in CI, not a quota issue)")
-        try:
-            print("🔍 Attempting complete diff analysis with Gemini 2.5 Flash model...")
-            result = subprocess.run(
-                ["gemini", "-m", "gemini-2.5-flash"],
-                input=prompt,
-                capture_output=True,
-                text=True,
-                check=True,
-                timeout=60,  # 60s for Flash model
-            )
-            output = result.stdout.strip()
-            if "Loaded cached credentials" in output:
-                lines = output.split("\n")
-                output = "\n".join(line for line in lines if "Loaded cached credentials" not in line)
-            return output.strip(), "gemini-2.5-flash"
-        except Exception as flash_error:
-            err_msg = flash_error.stderr if hasattr(flash_error, "stderr") else str(flash_error)
-            print(f"❌ Flash model also failed: {err_msg}")
-            return f"❌ Both Pro and Flash models failed. Flash error: {err_msg}", ""
-    except subprocess.CalledProcessError as e:
-        # Check if it's a quota limit error
-        if e.stderr and ("quota limit" in e.stderr.lower() or "API Error" in e.stderr or "quota exceeded" in e.stderr.lower()):
-            print("⚡ Quota limit reached for Pro model, falling back to Flash...")
-            try:
-                print("🔍 Attempting complete diff analysis with Gemini 2.5 Flash model...")
-                result = subprocess.run(
-                    ["gemini", "-m", "gemini-2.5-flash"],
-                    input=prompt,
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                    timeout=60,  # 60s for Flash model
-                )
-                output = result.stdout.strip()
-                if "Loaded cached credentials" in output:
-                    lines = output.split("\n")
-                    output = "\n".join(line for line in lines if "Loaded cached credentials" not in line)
-                return output.strip(), "gemini-2.5-flash"
-            except Exception as flash_error:
-                err_msg = flash_error.stderr if hasattr(flash_error, "stderr") else str(flash_error)
-                print(f"❌ Flash model also failed: {err_msg}")
-                return (
-                    f"❌ Both Pro and Flash models failed. Flash error: {err_msg}",
-                    "",
-                )
-        else:
-            # Non-quota error from Pro model
-            err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
-            return f"❌ Pro model failed with error: {err_msg}", ""
-    except Exception as e:
-        # Unexpected error
-        return f"❌ Unexpected error in analyze_complete_diff: {str(e)}", ""
+    # Use the helper function for Gemini API calls with fallback
+    return _call_gemini_with_fallback(prompt)
 
 
 def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:
@@ -475,9 +403,9 @@ def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:
     return formatted
 
 
-def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: str = "gemini-2.5-pro") -> str:
+def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: str = PRO_MODEL) -> str:
     """Format the analysis as a GitHub PR comment"""
-    model_display = "v2.5 Pro" if "pro" in model_used else "v2.5 Flash"
+    model_display = "v2.5 Pro" if model_used == PRO_MODEL else "v2.5 Flash"
     comment = f"""## 🤖 Gemini AI Code Review
 
 Hello @{pr_info['author']}! I've analyzed your pull request \
