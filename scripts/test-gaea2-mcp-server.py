@@ -55,31 +55,33 @@ def test_create_project():
     # Create test directory
     TEST_PROJECT_DIR.mkdir(exist_ok=True)
 
-    # Simple mountain workflow
-    workflow = [
-        {
-            "id": "mountain_1",
-            "type": "Mountain",
-            "position": {"x": 0, "y": 0},
-            "properties": {"seed": 42, "scale": 1.0, "height": 1.0},
-        },
-        {
-            "id": "erosion_1",
-            "type": "Erosion",
-            "position": {"x": 200, "y": 0},
-            "properties": {"iterations": 10, "downcutting": 0.25},
-        },
-        {
-            "id": "export_1",
-            "type": "Export",
-            "position": {"x": 400, "y": 0},
-            "properties": {"format": "png", "filename": "mountain_test"},
-        },
-    ]
-
-    # Add connections
-    workflow[1]["inputs"] = {"input": {"node": "mountain_1", "output": "output"}}
-    workflow[2]["inputs"] = {"input": {"node": "erosion_1", "output": "output"}}
+    # Simple mountain workflow with proper format
+    workflow = {
+        "nodes": [
+            {
+                "id": 183,
+                "type": "Mountain",
+                "position": {"x": 0, "y": 0},
+                "properties": {"seed": 42, "scale": 1.0, "height": 1.0},
+            },
+            {
+                "id": 294,
+                "type": "Erosion",
+                "position": {"x": 200, "y": 0},
+                "properties": {"iterations": 10, "downcutting": 0.25},
+            },
+            {
+                "id": 427,
+                "type": "Export",
+                "position": {"x": 400, "y": 0},
+                "properties": {"format": "png", "filename": "mountain_test"},
+            },
+        ],
+        "connections": [
+            {"from_node": 183, "to_node": 294, "from_port": "Out", "to_port": "In"},
+            {"from_node": 294, "to_node": 427, "from_port": "Out", "to_port": "In"},
+        ],
+    }
 
     request_data = {
         "tool": "create_gaea2_project",
@@ -99,9 +101,13 @@ def test_create_project():
 
                 # Save project for testing
                 project_path = TEST_PROJECT_DIR / "test_mountain.terrain"
-                with open(project_path, "w") as f:
-                    json.dump(result["project"], f, indent=2)
-                print(f"✓ Saved to {project_path}")
+                project_structure = result.get("project_structure") or result.get("project")
+                if project_structure:
+                    with open(project_path, "w") as f:
+                        json.dump(project_structure, f, indent=2)
+                    print(f"✓ Saved to {project_path}")
+                else:
+                    print("⚠ No project structure in response")
 
                 return True, str(project_path)
             else:
@@ -119,32 +125,32 @@ def test_validate_workflow():
     """Test workflow validation and fixing"""
     print("\nTesting workflow validation...")
 
-    # Create a workflow with intentional issues
-    bad_workflow = [
-        {
-            "id": "mountain_1",
-            "type": "Mountain",
-            "position": {"x": 0, "y": 0},
-            "properties": {
-                "seed": 42,
-                "scale": 5.0,  # Out of range (should be 0-2)
-                "height": -1.0,  # Negative height
+    # Create a workflow with intentional issues using proper format
+    bad_workflow = {
+        "nodes": [
+            {
+                "id": 100,
+                "type": "Mountain",
+                "position": {"x": 0, "y": 0},
+                "properties": {
+                    "seed": 42,
+                    "scale": 5.0,  # Out of range (should be 0-2)
+                    "height": -1.0,  # Negative height
+                },
             },
-        },
-        {
-            "id": "erosion_1",
-            "type": "Erosion",
-            "position": {"x": 200, "y": 0},
-            "properties": {
-                "iterations": 1000,  # Too high
-                "downcutting": 2.0,  # Out of range
+            {
+                "id": 200,
+                "type": "Erosion",
+                "position": {"x": 200, "y": 0},
+                "properties": {
+                    "iterations": 1000,  # Too high
+                    "downcutting": 2.0,  # Out of range
+                },
             },
-        },
-        # Missing Export node
-    ]
-
-    # Add invalid connection
-    bad_workflow[1]["inputs"] = {"input": {"node": "mountain_1", "output": "invalid_port"}}
+            # Missing Export node
+        ],
+        "connections": [{"from_node": 100, "to_node": 200, "from_port": "invalid_port", "to_port": "In"}],  # Invalid port
+    }
 
     request_data = {
         "tool": "validate_and_fix_workflow",
