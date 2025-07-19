@@ -207,7 +207,8 @@ class Gaea2MCPServer:
                 processed_keys.add(key_lower)
 
                 # Fix the property name
-                fixed_key = fix_property_names({key: value}).get(key, key)
+                fixed_props = fix_property_names({key: value})
+                fixed_key = list(fixed_props.keys())[0] if fixed_props else key
                 if fixed_key != key:
                     # Use the fixed key
                     properties[fixed_key] = value
