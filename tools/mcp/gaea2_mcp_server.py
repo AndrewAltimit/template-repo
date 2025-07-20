@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import platform
+import random
 import shutil
 import sys
 from datetime import datetime
@@ -199,8 +200,8 @@ class Gaea2MCPServer:
             # Get node properties first
             raw_properties = node.get("properties", {})
 
-            # Fix all property names at once
-            properties = fix_property_names(raw_properties)
+            # Fix all property names at once based on node type
+            properties = fix_property_names(raw_properties, node_type)
 
             # Create Gaea node structure with properties FIRST (after $id and $type)
             gaea_node = {
@@ -242,20 +243,26 @@ class Gaea2MCPServer:
                     if key not in properties:
                         properties[key] = default_val
 
-            elif node_type in ["Erosion", "Erosion2"]:
-                # Map common property names to Gaea2 names
-                if "iterations" in raw_properties:
-                    # Convert iterations to Duration
-                    properties["Duration"] = float(raw_properties["iterations"]) / 100.0  # Scale down
-                    properties.pop("iterations", None)
-
+            elif node_type == "Erosion2":
+                # Erosion2 uses different properties than regular Erosion
+                # Based on reference files analysis
+                default_props = {
+                    "Duration": properties.get("Duration", 0.15),
+                    "Downcutting": properties.get("Downcutting", 0.3),
+                    "ErosionScale": properties.get("ErosionScale", 5000.0),
+                    "Seed": properties.get("Seed", random.randint(1000, 30000)),
+                }
+                # Replace properties with correct ones
+                properties = default_props
+            elif node_type == "Erosion":
+                # Regular Erosion node (different from Erosion2)
                 default_props = {
                     "Intensity": 0.5,
-                    "Rock Softness": 0.5,  # Note the space!
-                    "Base Level": 0.1,
+                    "RockSoftness": 0.5,  # No space for regular Erosion
+                    "BaseLevel": 0.1,  # No space
                 }
                 for key, default_val in default_props.items():
-                    if key not in properties and key.replace(" ", "") not in properties:
+                    if key not in properties:
                         properties[key] = default_val
 
             # Handle Export node differently - properties go in SaveDefinition
@@ -463,8 +470,8 @@ class Gaea2MCPServer:
 
                 gaea_node["Ports"]["$values"].append(port_in)
 
-                # Multiple output ports for Erosion2
-                for port_name in ["Out", "Flow", "Wear", "Deposits", "Mask"]:
+                # Output ports for Erosion2
+                for port_name in ["Out", "Flow", "Wear", "Deposits"]:
                     port = {
                         "$id": str(ref_id_counter),
                         "Name": port_name,
@@ -474,6 +481,17 @@ class Gaea2MCPServer:
                     }
                     ref_id_counter += 1
                     gaea_node["Ports"]["$values"].append(port)
+
+                # Mask is an INPUT port for Erosion2
+                port_mask = {
+                    "$id": str(ref_id_counter),
+                    "Name": "Mask",
+                    "Type": "In",
+                    "IsExporting": True,
+                    "Parent": {"$ref": node_ref_id},
+                }
+                ref_id_counter += 1
+                gaea_node["Ports"]["$values"].append(port_mask)
 
             elif node_type == "Rivers":
                 # Rivers has multiple ports - some inputs, some outputs

@@ -3,45 +3,57 @@
 import random
 from typing import Any, Dict, List, Optional, Tuple
 
-# Property name mapping: Python-friendly names to Gaea2 exact names
-PROPERTY_NAME_MAPPING = {
-    # Common property mappings
-    "rockSoftness": "Rock Softness",
-    "RockSoftness": "Rock Softness",  # Also handle camelCase variant
-    "snowLine": "Snow Line",
-    "settleDuration": "Settle Duration",
-    "meltType": "Melt Type",
-    "meltRemnants": "Melt Remnants",
-    "slipOffAngle": "Slip-off angle",
-    "realScale": "Real Scale",
-    "erosionScale": "Erosion Scale",
-    "baseLevel": "Base Level",
-    "BaseLevel": "Base Level",  # Handle both cases
-    "colorProduction": "Color Production",
-    "reduceDetails": "ReduceDetails",
-    # Rivers properties - remove spaces!
-    "River Valley Width": "RiverValleyWidth",
-    "RiverValleyWidth": "RiverValleyWidth",  # Handle both versions
-    "Render Surface": "RenderSurface",
-    "RenderSurface": "RenderSurface",  # Handle both versions
-    "Sediment Removal": "SedimentRemoval",
-    # Keep exact names that are already correct
-    "Scale": "Scale",
-    "Height": "Height",
-    "Seed": "Seed",
-    "Duration": "Duration",
-    "Downcutting": "Downcutting",
-    "Strength": "Strength",
-    "Detail": "Detail",
-    "Iterations": "Iterations",
-    "Library": "Library",
-    "Enhance": "Enhance",
-    "Style": "Style",
-    "Format": "Format",
-    "Water": "Water",
-    "Width": "Width",
-    "Depth": "Depth",
-    "Headwaters": "Headwaters",
+# Node-specific property name mappings
+# Based on analysis of reference terrain files
+NODE_PROPERTY_MAPPINGS = {
+    # Erosion2 properties - NO SPACES (from reference files)
+    "Erosion2": {
+        "erosionScale": "ErosionScale",
+        "Erosion Scale": "ErosionScale",  # Fix if wrongly spaced
+        "erosion scale": "ErosionScale",
+        # Keep these as-is (no spaces)
+        "Duration": "Duration",
+        "Downcutting": "Downcutting",
+        "ErosionScale": "ErosionScale",
+        "Seed": "Seed",
+        "Shape": "Shape",
+        "ShapeDetailScale": "ShapeDetailScale",
+        "ShapeSharpness": "ShapeSharpness",
+        # Remove invalid properties
+        "Rock Softness": None,  # Invalid for Erosion2
+        "RockSoftness": None,  # Invalid for Erosion2
+        "Base Level": None,  # Invalid for Erosion2
+        "BaseLevel": None,  # Invalid for Erosion2
+        "Intensity": None,  # Invalid for Erosion2
+    },
+    # Rivers properties - NO SPACES (from reference files)
+    "Rivers": {
+        "River Valley Width": "RiverValleyWidth",
+        "river valley width": "RiverValleyWidth",
+        "Render Surface": "RenderSurface",
+        "render surface": "RenderSurface",
+        "Sediment Removal": "SedimentRemoval",
+        # Keep these as-is
+        "Water": "Water",
+        "Width": "Width",
+        "Depth": "Depth",
+        "Downcutting": "Downcutting",
+        "RiverValleyWidth": "RiverValleyWidth",
+        "Headwaters": "Headwaters",
+        "RenderSurface": "RenderSurface",
+        "Seed": "Seed",
+    },
+    # Generic mappings for other nodes
+    "default": {
+        "rockSoftness": "RockSoftness",
+        "snowLine": "SnowLine",
+        "settleDuration": "SettleDuration",
+        "meltType": "MeltType",
+        "slipOffAngle": "SlipOffAngle",
+        "realScale": "RealScale",
+        "baseLevel": "BaseLevel",
+        "colorProduction": "ColorProduction",
+    },
 }
 
 # Node types that should have specific additional properties
@@ -127,16 +139,26 @@ def generate_non_sequential_id(base: int = 100, used_ids: Optional[List[int]] = 
     return base + len(used_ids) * 10
 
 
-def fix_property_names(properties: Dict[str, Any]) -> Dict[str, Any]:
-    """Fix property names to match Gaea2's exact format"""
+def fix_property_names(properties: Dict[str, Any], node_type: str = "default") -> Dict[str, Any]:
+    """Fix property names to match Gaea2's exact format based on node type"""
     fixed = {}
+
+    # Get the appropriate mapping for this node type
+    mappings = NODE_PROPERTY_MAPPINGS.get(node_type, NODE_PROPERTY_MAPPINGS["default"])
 
     for key, value in properties.items():
         # Ensure key is a string
         key_str = str(key) if not isinstance(key, str) else key
 
         # Check if we have a mapping for this property
-        mapped_key = PROPERTY_NAME_MAPPING.get(key_str, key_str)
+        if key_str in mappings:
+            mapped_key = mappings[key_str]
+            # Skip if mapped to None (invalid property)
+            if mapped_key is None:
+                continue
+        else:
+            # Keep unmapped properties as-is
+            mapped_key = key_str
 
         # Special handling for Range properties
         if key_str == "Range" and isinstance(value, dict) and "X" in value and "Y" in value:
