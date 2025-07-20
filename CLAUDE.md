@@ -291,6 +291,9 @@ The repository includes a comprehensive Gaea2 terrain generation system that is 
 3. **✅ Missing Properties**: Nodes automatically get `PortCount`, `NodeSize`, `IsMaskable` when appropriate
 4. **✅ Range Format**: Range properties now correctly include their own `$id` values
 5. **✅ Variables Object**: Already had correct format `{"$id":"XX"}`
+6. **✅ Connection Handling**: Fixed critical node ID mapping issue where connections failed when target nodes appeared before source nodes in the node list
+7. **✅ Type Consistency**: All node IDs are now handled as strings internally to prevent type mismatch issues
+8. **✅ Connection Records**: Connections are properly embedded in port definitions with Record objects
 
 **Important**: The Gaea2 MCP server needs to be restarted to use these fixes!
 
@@ -327,6 +330,38 @@ python scripts/analyze_gaea_projects.py
 # Run Gaea2-specific tests
 docker-compose run --rm python-ci pytest tests/gaea2/ -v
 ```
+
+### Connection System Details
+
+**Critical**: Understanding how Gaea2 handles connections is essential for successful terrain generation:
+
+1. **Connection Storage**: Unlike the API format, Gaea2 stores connections within port definitions as `Record` objects
+2. **Node ID Mapping**: The server builds a complete node_id_map before processing connections to ensure all IDs are available
+3. **Port Types**: Different nodes have different port configurations:
+   - Standard nodes: Usually have "In" and "Out" ports
+   - Combine nodes: Have "In", "Input2", and "Mask" ports
+   - Rivers nodes: Have special output ports like "Rivers", "Depth", "Surface"
+   - Sea nodes: Have output ports like "Water", "Shore", "Depth"
+
+### Debugging Connections
+
+If connections are missing in generated terrain files:
+
+```bash
+# Test specific connections
+python scripts/test-progressive-connections.py
+
+# Debug node ID mapping
+python scripts/debug-node-id-mapping.py
+
+# Compare with reference files
+python scripts/analyze-connections-detail.py
+```
+
+Common issues:
+- **Node ordering**: Ensure node IDs are mapped before processing connections
+- **Port names**: Use exact port names (case-sensitive)
+- **Type consistency**: All node IDs should be strings in the API
 
 ### Development Tips
 

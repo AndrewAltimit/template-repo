@@ -80,7 +80,66 @@ asyncio.run(create_simple_mountain())
 - ✅ All connections are validated and created
 - ✅ File format is guaranteed to work in Gaea2
 
-### 2. Using Templates
+### 2. Multi-Port Connections (Combine Nodes)
+
+Example showing how to properly connect nodes with multiple input ports.
+
+```python
+async def create_multi_port_terrain():
+    # Define nodes including Combine nodes with multiple inputs
+    nodes = [
+        {"id": 100, "type": "Mountain", "name": "Primary"},
+        {"id": 101, "type": "Mountain", "name": "Secondary"},
+        {"id": 102, "type": "Combine", "name": "Mix Mountains"},
+        {"id": 103, "type": "Erosion2", "name": "Erode"},
+        {"id": 104, "type": "Rivers", "name": "Add Rivers"},
+        {"id": 105, "type": "Sea", "name": "Add Sea"},
+        {"id": 106, "type": "Combine", "name": "Final Mix"},
+        {"id": 107, "type": "Height", "name": "Height Mask"},
+        {"id": 108, "type": "SatMap", "name": "Color"}
+    ]
+
+    # Define connections with specific ports
+    connections = [
+        # Connect two mountains to Combine
+        {"from_node": 100, "to_node": 102, "from_port": "Out", "to_port": "In"},
+        {"from_node": 101, "to_node": 102, "from_port": "Out", "to_port": "Input2"},
+
+        # Continue processing
+        {"from_node": 102, "to_node": 103, "from_port": "Out", "to_port": "In"},
+        {"from_node": 103, "to_node": 104, "from_port": "Out", "to_port": "In"},
+        {"from_node": 104, "to_node": 105, "from_port": "Out", "to_port": "In"},
+
+        # Complex multi-port connection to final Combine
+        {"from_node": 105, "to_node": 106, "from_port": "Out", "to_port": "In"},
+        {"from_node": 108, "to_node": 106, "from_port": "Out", "to_port": "Input2"},
+        {"from_node": 107, "to_node": 106, "from_port": "Out", "to_port": "Mask"},
+
+        # Use special output ports
+        {"from_node": 105, "to_node": 107, "from_port": "Out", "to_port": "In"},
+        {"from_node": 104, "to_node": 108, "from_port": "Rivers", "to_port": "In"}
+    ]
+
+    # Create project
+    result = await MCPTools.create_gaea2_project(
+        project_name="Multi-Port Example",
+        nodes=nodes,
+        connections=connections
+    )
+
+    print(f"Created {result['connection_count']} connections successfully!")
+
+asyncio.run(create_multi_port_terrain())
+```
+
+**Important Connection Notes:**
+- **Combine nodes** have ports: "In", "Input2", "Mask", "Out"
+- **Rivers nodes** have special outputs: "Rivers", "Depth", "Surface", "Direction"
+- **Sea nodes** have outputs: "Water", "Shore", "Depth", "Surface"
+- Always specify both `from_port` and `to_port` for clarity
+- Node IDs must exist before they can be referenced in connections
+
+### 3. Using Templates
 
 Create terrain using predefined templates.
 

@@ -608,6 +608,7 @@ class Gaea2ErrorHandler:
 
 ### Connection Definition
 
+**API Format** (used when creating projects):
 ```python
 {
     "from_node": int,             # Source node ID
@@ -617,6 +618,42 @@ class Gaea2ErrorHandler:
     "order": int                  # Optional: connection order
 }
 ```
+
+**Important**: Connections in the actual .terrain file are stored differently:
+- Connections are embedded within port definitions as `Record` objects
+- Each port that receives a connection contains the connection information
+- Connection IDs are handled as strings internally to prevent type mismatches
+
+**Terrain File Format** (how connections are actually stored):
+```json
+{
+    "Ports": {
+        "$values": [
+            {
+                "Name": "In",
+                "Type": "PrimaryIn",
+                "Record": {
+                    "$id": "123",
+                    "From": 490,
+                    "To": 174,
+                    "FromPort": "Out",
+                    "ToPort": "In",
+                    "IsValid": true
+                }
+            }
+        ]
+    }
+}
+```
+
+**Common Port Names by Node Type:**
+- **Standard nodes**: "In", "Out"
+- **Combine**: "In", "Input2", "Mask", "Out"
+- **Rivers**: "In", "Out", "Rivers", "Depth", "Surface", "Direction", "Headwaters", "Mask"
+- **Sea**: "In", "Out", "Water", "Depth", "Shore", "Surface"
+- **TextureBase**: "In", "Out"
+- **Height**: "In", "Out"
+- **SatMap**: "In", "Out"
 
 ### Group Definition
 

@@ -444,6 +444,42 @@ Generated terrain files may not open in Gaea2 due to:
 
 5. **ID Pattern**: Use non-sequential IDs (183, 668, 427) not sequential (100, 110, 120)
 
+### Connection Troubleshooting
+
+If connections are missing in your generated terrain files:
+
+1. **Node ID Mapping**: The server must build a complete node_id_map before processing connections
+   - All nodes must be defined before connections reference them
+   - Node IDs are converted to strings internally to prevent type mismatches
+
+2. **Port Names Must Match Exactly**:
+   - Combine nodes: `"In"`, `"Input2"`, `"Mask"` (not "in", "input2", "mask")
+   - Rivers: Use `"Rivers"` output port (not "River" or "rivers")
+   - Sea: Has `"Water"`, `"Shore"`, `"Depth"` output ports
+
+3. **Connection Storage in Terrain Files**:
+   - Connections are stored as `Record` objects within port definitions
+   - Each receiving port contains its connection information
+   - Not stored as a separate connections array
+
+4. **Debug Scripts Available**:
+   ```bash
+   # Test progressive connections
+   python scripts/test-progressive-connections.py
+
+   # Debug specific node connections
+   python scripts/debug-node-id-mapping.py
+
+   # Compare with reference files
+   python scripts/analyze-connections-detail.py
+   ```
+
+5. **Common Connection Patterns**:
+   - Mountain → Erosion → Rivers → Sea
+   - TextureBase → Multiple SatMaps
+   - Multiple inputs → Combine → Output
+   - Rivers "Rivers" port → Masks or visualization
+
 ### API Endpoint Format
 
 ```bash
