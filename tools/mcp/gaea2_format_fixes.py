@@ -26,6 +26,24 @@ NODE_PROPERTY_MAPPINGS = {
         "BaseLevel": None,  # Invalid for Erosion2
         "Intensity": None,  # Invalid for Erosion2
     },
+    # Erosion (legacy) - redirect to Erosion2 properties
+    "Erosion": {
+        # Map all old Erosion properties to Erosion2 equivalents
+        "Rock Softness": None,  # Remove - not valid
+        "RockSoftness": None,  # Remove - not valid
+        "Base Level": None,  # Remove - not valid
+        "BaseLevel": None,  # Remove - not valid
+        "Feature Scale": "ErosionScale",  # Map to ErosionScale
+        "Real Scale": None,  # Remove - not valid
+        "Aggressive Mode": None,  # Remove - not valid
+        "Intensity": None,  # Remove - not valid
+        "Strength": None,  # Remove - not valid
+        # Valid properties
+        "Duration": "Duration",
+        "Downcutting": "Downcutting",
+        "Seed": "Seed",
+        "ErosionScale": "ErosionScale",
+    },
     # Rivers properties - NO SPACES (from reference files)
     "Rivers": {
         "River Valley Width": "RiverValleyWidth",

@@ -137,8 +137,8 @@ class Gaea2MCPServer:
             "Crater": "QuadSpinner.Gaea.Nodes.Crater, Gaea.Nodes",
             "Volcano": "QuadSpinner.Gaea.Nodes.Volcano, Gaea.Nodes",
             "Island": "QuadSpinner.Gaea.Nodes.Island, Gaea.Nodes",
-            # Erosion
-            "Erosion": "QuadSpinner.Gaea.Nodes.Erosion, Gaea.Nodes",
+            # Erosion - redirect to Erosion2 (Erosion doesn't exist in reference files)
+            "Erosion": "QuadSpinner.Gaea.Nodes.Erosion2, Gaea.Nodes",
             "Erosion2": "QuadSpinner.Gaea.Nodes.Erosion2, Gaea.Nodes",
             "Thermal": "QuadSpinner.Gaea.Nodes.Thermal, Gaea.Nodes",
             "Rivers": "QuadSpinner.Gaea.Nodes.Rivers, Gaea.Nodes",
@@ -627,11 +627,11 @@ class Gaea2MCPServer:
         }
 
         # Groups
-        asset_value["Terrain"]["Groups"] = {"$id": str(ref_id_counter)}
+        asset_value["Terrain"]["Groups"] = {"$id": str(ref_id_counter), "$values": []}
         ref_id_counter += 1
 
         # Notes
-        asset_value["Terrain"]["Notes"] = {"$id": str(ref_id_counter)}
+        asset_value["Terrain"]["Notes"] = {"$id": str(ref_id_counter), "$values": []}
         ref_id_counter += 1
 
         # GraphTabs

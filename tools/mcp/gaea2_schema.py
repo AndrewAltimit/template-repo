@@ -1476,12 +1476,13 @@ WORKFLOW_TEMPLATES = {
             "properties": {"Levels": 6, "Uniformity": 0.4, "SlopeBias": 0.3},
         },
         {
-            "type": "Erosion",
+            "type": "Erosion2",
             "name": "ValleyErosion",
             "properties": {
                 "Duration": 0.03,
-                "Rock Softness": 0.6,
-                "Strength": 0.3,
+                "Downcutting": 0.3,
+                "ErosionScale": 5000.0,
+                "Seed": 12345,
             },
         },
         {

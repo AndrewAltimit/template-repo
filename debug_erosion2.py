@@ -17,7 +17,7 @@ for node_id, node in nodes.items():
         for i, (key, value) in enumerate(node.items()):
             if key not in ["Ports", "Modifiers", "SnapIns"]:  # Skip large objects
                 print(f"  {i+1}. {key}: {value}")
-        
+
         print("\n❌ INVALID PROPERTIES FOUND:")
         invalid_props = ["Rock Softness", "Base Level", "Intensity"]
         for prop in invalid_props:
