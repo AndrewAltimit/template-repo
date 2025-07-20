@@ -649,67 +649,145 @@ NODE_PROPERTY_DEFINITIONS = {
     },
     # Priority 1: Most frequently used nodes
     "Erosion2": {
-        "Strength": {
+        "Duration": {
             "type": "float",
-            "default": 0.5,
-            "range": {"min": 0.0, "max": 2.0},
-            "description": "Overall erosion strength",
-        },
-        "Detail": {
-            "type": "float",
-            "default": 0.6,
-            "range": {"min": 0.0, "max": 1.0},
-            "description": "Level of detail in erosion patterns",
-        },
-        "Iterations": {
-            "type": "int",
-            "default": 20,
-            "range": {"min": 1, "max": 100},
-            "description": "Number of erosion iterations",
+            "default": 0.04,
+            "range": {"min": 0.01, "max": 0.15},
+            "description": "Simulation duration",
         },
         "Downcutting": {
             "type": "float",
-            "default": 0.2,
+            "default": 0.3,
             "range": {"min": 0.0, "max": 1.0},
             "description": "Vertical erosion strength",
         },
-        "Duration": {
+        "ErosionScale": {
             "type": "float",
-            "default": 0.07,
-            "range": {"min": 0.01, "max": 0.15},
-            "description": "Simulation duration (affects performance)",
+            "default": 5000.0,
+            "range": {"min": 1000.0, "max": 20000.0},
+            "description": "Erosion scale in meters",
         },
-        "RockSoftness": {
+        "Seed": {
+            "type": "int",
+            "default": 0,
+            "range": {"min": 0, "max": 999999},
+            "description": "Random seed",
+        },
+        "BedLoadDischargeAmount": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Bed load discharge amount",
+        },
+        "BedLoadDischargeAngle": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": 0.0, "max": 360.0},
+            "description": "Bed load discharge angle",
+        },
+        "CoarseSedimentsDischargeAmount": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Coarse sediments discharge amount",
+        },
+        "CoarseSedimentsDischargeAngle": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": 0.0, "max": 360.0},
+            "description": "Coarse sediments discharge angle",
+        },
+        "SuspendedLoadDischargeAmount": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Suspended load discharge amount",
+        },
+        "SuspendedLoadDischargeAngle": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": 0.0, "max": 360.0},
+            "description": "Suspended load discharge angle",
+        },
+        "Shape": {
             "type": "float",
             "default": 0.5,
             "range": {"min": 0.0, "max": 1.0},
-            "description": "Rock softness factor",
+            "description": "Erosion shape",
+        },
+        "ShapeDetailScale": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Shape detail scale",
+        },
+        "ShapeSharpness": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Shape sharpness",
         },
     },
     "FractalTerraces": {
-        "Levels": {
-            "type": "int",
-            "default": 8,
-            "range": {"min": 1, "max": 64},
-            "description": "Number of terrace levels",
-        },
-        "Uniformity": {
+        "Intensity": {
             "type": "float",
-            "default": 0.3,
+            "default": 0.5,
             "range": {"min": 0.0, "max": 1.0},
-            "description": "Uniformity of terrace heights",
+            "description": "Terrace intensity",
         },
-        "SlopeBias": {
+        "Spacing": {
             "type": "float",
-            "default": 0.6,
-            "range": {"min": 0.0, "max": 1.0},
-            "description": "Bias towards steeper or shallower slopes",
+            "default": 0.2,
+            "range": {"min": 0.1, "max": 0.4},
+            "description": "Terrace spacing",
         },
         "Octaves": {
             "type": "int",
-            "default": 4,
-            "range": {"min": 1, "max": 8},
+            "default": 12,
+            "range": {"min": 1, "max": 16},
             "description": "Number of noise octaves",
+        },
+        "MacroOctaves": {
+            "type": "int",
+            "default": 5,
+            "range": {"min": 1, "max": 8},
+            "description": "Number of macro octaves",
+        },
+        "StrataDetails": {
+            "type": "float",
+            "default": 0.6,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Strata detail level",
+        },
+        "TiltAmount": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Tilt amount",
+        },
+        "TiltSeed": {
+            "type": "int",
+            "default": 12345,
+            "range": {"min": 0, "max": 999999},
+            "description": "Tilt randomization seed",
+        },
+        "WarpAmount": {
+            "type": "float",
+            "default": 0.33,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Warp amount",
+        },
+        "WarpSize": {
+            "type": "float",
+            "default": 0.33,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Warp size",
+        },
+        "Seed": {
+            "type": "int",
+            "default": 0,
+            "range": {"min": 0, "max": 999999},
+            "description": "Random seed",
         },
     },
     # Priority 2: Commonly used nodes
@@ -719,6 +797,12 @@ NODE_PROPERTY_DEFINITIONS = {
             "default": 0.6,
             "range": {"min": 0.1, "max": 1.0},
             "description": "Island size relative to terrain",
+        },
+        "Chaos": {
+            "type": "float",
+            "default": 0.3,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Island shape complexity",
         },
         "Height": {
             "type": "float",
@@ -787,38 +871,36 @@ NODE_PROPERTY_DEFINITIONS = {
             "description": "Thermal erosion intensity",
         },
     },
-    "Fluvial": {
-        "Amount": {
+    "Sediments": {
+        "Passes": {
+            "type": "int",
+            "default": 3,
+            "range": {"min": 1, "max": 10},
+            "description": "Number of sediment passes",
+        },
+        "Scale": {
+            "type": "float",
+            "default": 0.028,
+            "range": {"min": 0.01, "max": 0.1},
+            "description": "Sediment scale",
+        },
+        "Deposition": {
             "type": "float",
             "default": 0.5,
             "range": {"min": 0.0, "max": 1.0},
-            "description": "Fluvial erosion amount",
+            "description": "Deposition amount",
         },
-        "Depth": {
+        "Sediments": {
             "type": "float",
             "default": 0.3,
             "range": {"min": 0.0, "max": 1.0},
-            "description": "Channel depth",
+            "description": "Sediment intensity",
         },
-        "Detail": {
-            "type": "float",
-            "default": 0.5,
-            "range": {"min": 0.0, "max": 1.0},
-            "description": "Detail level",
-        },
-    },
-    "Sediment": {
-        "Amount": {
-            "type": "float",
-            "default": 0.3,
-            "range": {"min": 0.0, "max": 1.0},
-            "description": "Sediment deposition amount",
-        },
-        "Spread": {
-            "type": "float",
-            "default": 0.5,
-            "range": {"min": 0.0, "max": 1.0},
-            "description": "Sediment spread distance",
+        "Seed": {
+            "type": "int",
+            "default": 0,
+            "range": {"min": 0, "max": 999999},
+            "description": "Random seed",
         },
     },
     # Water-related nodes
@@ -1140,7 +1222,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Island",
             "name": "VolcanicIsland",
-            "properties": {"Scale": 2.0, "Height": 0.4},
+            "properties": {"Size": 0.5, "Chaos": 0.3, "Seed": 12345},
         },
         {
             "type": "Combine",
@@ -1177,7 +1259,14 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "FractalTerraces",
             "name": "TerraceFormation",
-            "properties": {"Levels": 8, "Strength": 0.4},
+            "properties": {
+                "Intensity": 0.5,
+                "Spacing": 0.2,
+                "Octaves": 12,
+                "MacroOctaves": 5,
+                "StrataDetails": 0.6,
+                "Seed": 54321,
+            },
         },
         {
             "type": "Erosion",
@@ -1274,11 +1363,10 @@ WORKFLOW_TEMPLATES = {
             "type": "Erosion2",
             "name": "AdvancedErosion",
             "properties": {
-                "Strength": 0.6,
-                "Detail": 0.7,
-                "Iterations": 25,
+                "Duration": 0.04,
                 "Downcutting": 0.3,
-                "RockSoftness": 0.4,
+                "ErosionScale": 7000.0,
+                "Seed": 54321,
             },
         },
         {
@@ -1289,11 +1377,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "SatMap",
             "name": "MountainColors",
-            "properties": {
-                "Library": "Rock",
-                "Enhance": "Autolevel",
-                "Style": "Terrain",
-            },
+            "properties": {"Library": "Rock", "LibraryItem": 1, "Enhance": "Autolevel"},
         },
     ],
     "volcanic_island": [
@@ -1330,7 +1414,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "SatMap",
             "name": "VolcanicColors",
-            "properties": {"Library": "Desert", "Style": "Volcanic"},
+            "properties": {"Library": "Rock", "LibraryItem": 3, "Bias": 0.2},
         },
     ],
     "canyon_system": [
@@ -1350,9 +1434,9 @@ WORKFLOW_TEMPLATES = {
             "properties": {"Mode": "Subtract", "Ratio": 0.6},
         },
         {
-            "type": "Fluvial",
+            "type": "Erosion2",
             "name": "RiverErosion",
-            "properties": {"Amount": 0.8, "Depth": 0.5, "Detail": 0.6},
+            "properties": {"Duration": 0.05, "Downcutting": 0.5, "ErosionScale": 6000.0, "Seed": 98765},
         },
         {
             "type": "Thermal",
@@ -1360,9 +1444,9 @@ WORKFLOW_TEMPLATES = {
             "properties": {"Strength": 0.3, "Iterations": 20, "Angle": 38.0},
         },
         {
-            "type": "Sediment",
+            "type": "Sediments",
             "name": "ValleyFill",
-            "properties": {"Amount": 0.4, "Spread": 0.6},
+            "properties": {"Deposition": 0.4, "Sediments": 0.2, "Seed": 24680},
         },
         {
             "type": "SatMap",
@@ -1409,7 +1493,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "SatMap",
             "name": "CoastalColors",
-            "properties": {"Library": "Rock", "Style": "Coastal"},
+            "properties": {"Library": "Blue", "LibraryItem": 4, "Reverse": True},
         },
     ],
     "arctic_terrain": [
@@ -1458,22 +1542,33 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Rivers",
             "name": "MainRiver",
-            "properties": {"Count": 1, "Width": 0.4, "Depth": 0.6},
+            "properties": {
+                "Width": 0.4,
+                "Depth": 0.6,
+                "Downcutting": 0.3,
+                "Headwaters": 100,
+                "RiverValleyWidth": "plus2",
+                "RenderSurface": False,
+                "Water": 0.3,
+                "Seed": 12345,
+            },
         },
         {
-            "type": "Fluvial",
-            "name": "RiverCarving",
-            "properties": {"Amount": 0.9, "Depth": 0.7, "Detail": 0.8},
-        },
-        {
-            "type": "Sediment",
+            "type": "Sediments",
             "name": "Floodplain",
-            "properties": {"Amount": 0.5, "Spread": 0.8},
+            "properties": {"Deposition": 0.5, "Sediments": 0.3, "Seed": 67890},
         },
         {
             "type": "FractalTerraces",
             "name": "RiverTerraces",
-            "properties": {"Levels": 6, "Uniformity": 0.4, "SlopeBias": 0.3},
+            "properties": {
+                "Intensity": 0.5,
+                "Spacing": 0.25,
+                "Octaves": 12,
+                "MacroOctaves": 5,
+                "StrataDetails": 0.6,
+                "Seed": 98765,
+            },
         },
         {
             "type": "Erosion2",
@@ -1488,7 +1583,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "SatMap",
             "name": "ValleyColors",
-            "properties": {"Library": "Rock", "LibraryItem": 3, "Style": "Terrain"},
+            "properties": {"Library": "Green", "LibraryItem": 2, "Enhance": "Autolevel"},
         },
     ],
 }
