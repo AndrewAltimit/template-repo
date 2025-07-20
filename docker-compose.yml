@@ -1,40 +1,77 @@
-version: '3.8'
 
 services:
-  # Main MCP Server
-  mcp-server:
+  # Code Quality MCP Server
+  mcp-code-quality:
     build:
       context: .
-      dockerfile: docker/mcp.Dockerfile
-    container_name: mcp-server
+      dockerfile: docker/mcp-code-quality.Dockerfile
+    container_name: mcp-code-quality
     ports:
-      - "8005:8000"
+      - "8010:8010"
     volumes:
       - ./tools/mcp:/app/tools/mcp
-      - ./.mcp.json:/app/.mcp.json
-      - ./scripts:/app/scripts
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ${HOME}/.config/github-copilot/hosts.json:/root/.config/github-copilot/hosts.json:ro
+      - ./output:/app/output
     environment:
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-      - MCP_SERVER_NAME=mcp-server
+      - MCP_CODE_QUALITY_PORT=8010
     networks:
       - mcp-network
     restart: unless-stopped
-    command: python -m tools.mcp.mcp_server
+    command: python -m tools.mcp.code_quality.server --mode http
+
+  # Content Creation MCP Server (Manim & LaTeX)
+  mcp-content-creation:
+    build:
+      context: .
+      dockerfile: docker/mcp-content.Dockerfile
+    container_name: mcp-content-creation
+    ports:
+      - "8011:8011"
+    volumes:
+      - ./tools/mcp:/app/tools/mcp
+      - ./output:/app/output
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - MCP_CONTENT_PORT=8011
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    command: python -m tools.mcp.content_creation.server --mode http
+
+  # Gaea2 MCP Server (without CLI features - those require Windows host)
+  mcp-gaea2:
+    build:
+      context: .
+      dockerfile: docker/mcp-gaea2.Dockerfile
+    container_name: mcp-gaea2
+    ports:
+      - "8007:8007"
+    volumes:
+      - ./tools/mcp:/app/tools/mcp
+      - ./output:/app/output
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - MCP_GAEA2_PORT=8007
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    command: python -m tools.mcp.gaea2.server --mode http
 
   # NOTE: Some MCP servers MUST run on the host system, not in containers:
   #
   # 1. Gemini MCP Server (port 8006) - Needs Docker access for Gemini CLI
-  #    Run with: python tools/mcp/gemini_mcp_server.py
+  #    Run with: python -m tools.mcp.gemini.server --mode http
+  #    Or use: ./tools/mcp/gemini/scripts/start_server.sh
   #
-  # 2. Gaea2 MCP Server (port 8007) - Needs access to Windows Gaea2 executable
-  #    Run with: python tools/mcp/gaea2_mcp_server.py
-  #    Set GAEA2_PATH environment variable to Gaea.Swarm.exe location
+  # 2. Gaea2 MCP Server with CLI features - Needs Windows Gaea2 executable
+  #    The containerized version above only provides project creation/validation
+  #    For CLI automation, run on Windows host with:
+  #    python -m tools.mcp.gaea2.server --gaea-path "C:\Path\To\Gaea.Swarm.exe"
   #
-  # These servers check if they're in a container and exit with instructions.
+  # These servers check if they're in a container and provide instructions.
 
   # ComfyUI MCP HTTP Bridge (for remote ComfyUI)
   mcp-comfyui-http:

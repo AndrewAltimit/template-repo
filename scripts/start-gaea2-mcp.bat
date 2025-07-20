@@ -33,6 +33,6 @@ echo Press Ctrl+C to stop the server
 echo.
 
 cd /d "%~dp0\.."
-python tools\mcp\gaea2_mcp_server.py %*
+python -m tools.mcp.gaea2.server --mode http %*
 
 pause

@@ -6,14 +6,30 @@ Test script for Gaea2 MCP enhancements
 import asyncio
 import json
 
+# Import Gaea2 MCP server
+from tools.mcp.gaea2_mcp_server import Gaea2MCPServer
 from tools.mcp.gaea2_pattern_knowledge import (
     get_next_node_suggestions,
     get_workflow_for_terrain_type,
     suggest_properties_for_node,
 )
 
-# Import our MCP tools
-from tools.mcp.mcp_server import MCPTools
+
+# Create a mock MCPTools class for backward compatibility
+class MCPTools:
+    server = Gaea2MCPServer()
+
+    @classmethod
+    async def analyze_workflow_patterns(cls, **kwargs):
+        return await cls.server.analyze_workflow_patterns(**kwargs)
+
+    @classmethod
+    async def repair_gaea2_project(cls, **kwargs):
+        return await cls.server.repair_gaea2_project(**kwargs)
+
+    @classmethod
+    async def create_gaea2_project(cls, **kwargs):
+        return await cls.server.create_gaea2_project(**kwargs)
 
 
 async def test_pattern_knowledge():

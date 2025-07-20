@@ -10,7 +10,16 @@ from pathlib import Path
 
 sys.path.append(".")
 from scripts.generate_gaea2_schema import validate_gaea_project, validate_property  # noqa: E402
-from tools.mcp.mcp_server import MCPTools  # noqa: E402
+from tools.mcp.gaea2_mcp_server import Gaea2MCPServer  # noqa: E402
+
+
+# Create a mock MCPTools class for backward compatibility
+class MCPTools:
+    server = Gaea2MCPServer()
+
+    @classmethod
+    async def create_gaea2_project(cls, **kwargs):
+        return await cls.server.create_gaea2_project(**kwargs)
 
 
 def test_valid_projects():

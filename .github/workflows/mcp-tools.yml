@@ -35,13 +35,45 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
-      - name: Start MCP server with health check
+      - name: Determine which MCP server to start
+        id: determine_server
+        run: |
+          # Map tools to their respective servers
+          case "${{ github.event.inputs.tool_name }}" in
+            format_check|lint)
+              echo "server=mcp-code-quality" >> $GITHUB_OUTPUT
+              echo "port=8010" >> $GITHUB_OUTPUT
+              ;;
+            create_manim_animation|compile_latex)
+              echo "server=mcp-content-creation" >> $GITHUB_OUTPUT
+              echo "port=8011" >> $GITHUB_OUTPUT
+              ;;
+            consult_gemini)
+              echo "server=gemini" >> $GITHUB_OUTPUT
+              echo "port=8006" >> $GITHUB_OUTPUT
+              echo "host_only=true" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "server=mcp-code-quality" >> $GITHUB_OUTPUT
+              echo "port=8010" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Start appropriate MCP server
+        if: steps.determine_server.outputs.host_only != 'true'
         uses: ./.github/actions/docker-compose-health-check
         with:
-          services: 'mcp-server'
-          health-endpoint: 'http://localhost:8005/health'
+          services: '${{ steps.determine_server.outputs.server }}'
+          health-endpoint: 'http://localhost:${{ steps.determine_server.outputs.port }}/health'
           timeout: '30'
-          build: 'false'  # Don't rebuild since this is for manual execution
+          build: 'false'
+
+      - name: Start Gemini server on host
+        if: steps.determine_server.outputs.host_only == 'true'
+        run: |
+          python -m tools.mcp.gemini.server --mode http &
+          echo $! > gemini.pid
+          sleep 5
 
       - name: Execute MCP tool
         id: mcp_tool
@@ -52,9 +84,10 @@ jobs:
 
           tool_name = '${{ github.event.inputs.tool_name }}'
           tool_args = json.loads('${{ github.event.inputs.tool_args }}')
+          port = '${{ steps.determine_server.outputs.port }}'
 
           response = requests.post(
-              'http://localhost:8000/tools/execute',
+              f'http://localhost:{port}/mcp/execute',
               json={
                   'tool': tool_name,
                   'arguments': tool_args
@@ -102,7 +135,12 @@ jobs:
 
       - name: Stop MCP server
         if: always()
-        run: docker-compose down
+        run: |
+          if [ -f gemini.pid ]; then
+            kill $(cat gemini.pid) || true
+            rm gemini.pid
+          fi
+          docker-compose down
 
   gemini-consultation:
     name: Gemini AI Consultation
@@ -122,15 +160,18 @@ jobs:
 
       - name: Consult Gemini about changes
         run: |
+          # Start Gemini MCP server on host
+          python -m tools.mcp.gemini.server --mode http &
+          GEMINI_PID=$!
+          sleep 5
+
+          # Use the MCP server to consult Gemini
           python -c "
-          import os
           import json
-          from tools.gemini.gemini_integration import GeminiIntegration
+          import requests
 
           with open('pr_changes.diff', 'r') as f:
               changes = f.read()
-
-          gemini = GeminiIntegration()
 
           prompt = f'''Review these code changes and provide feedback:
 
@@ -143,11 +184,26 @@ jobs:
           4. Security considerations
           '''
 
-          response = gemini.consult(prompt)
+          response = requests.post(
+              'http://localhost:8006/mcp/execute',
+              json={
+                  'tool': 'consult_gemini',
+                  'arguments': {
+                      'query': prompt,
+                      'context': 'Pull request code review'
+                  }
+              }
+          )
+
+          result = response.json()
+          review_text = result.get('result', {}).get('result', 'No review available')
 
           with open('gemini_review.md', 'w') as f:
-              f.write(f'## Gemini AI Code Review\\n\\n{response}')
+              f.write(f'## Gemini AI Code Review\\n\\n{review_text}')
           "
+
+          # Stop Gemini server
+          kill $GEMINI_PID || true
 
       - name: Post Gemini review
         uses: actions/github-script@v7

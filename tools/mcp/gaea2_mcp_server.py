@@ -312,7 +312,11 @@ class Gaea2MCPServer:
                 if prop_str == "Range" and isinstance(value, dict):
                     range_id = ref_id_counter
                     ref_id_counter += 1
-                    value = {"$id": str(range_id), "X": float(value.get("X", 0.5)), "Y": float(value.get("Y", 0.5))}
+                    value = {
+                        "$id": str(range_id),
+                        "X": float(value.get("X", 0.5)),
+                        "Y": float(value.get("Y", 0.5)),
+                    }
                 # Convert string numbers to appropriate numeric types
                 elif isinstance(value, str):
                     # Try to convert to number if it looks like one
@@ -972,7 +976,10 @@ class Gaea2MCPServer:
                 connections = workflow.get("connections", [])
             elif nodes is None:
                 # Neither format provided
-                return {"success": False, "error": "Either 'workflow' or 'nodes' parameter must be provided"}
+                return {
+                    "success": False,
+                    "error": "Either 'workflow' or 'nodes' parameter must be provided",
+                }
 
             # Ensure we have lists
             nodes = nodes or []

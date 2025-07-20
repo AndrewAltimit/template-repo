@@ -149,7 +149,14 @@ def test_validate_workflow():
             },
             # Missing Export node
         ],
-        "connections": [{"from_node": 100, "to_node": 200, "from_port": "invalid_port", "to_port": "In"}],  # Invalid port
+        "connections": [
+            {
+                "from_node": 100,
+                "to_node": 200,
+                "from_port": "invalid_port",
+                "to_port": "In",
+            }
+        ],  # Invalid port
     }
 
     request_data = {

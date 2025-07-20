@@ -112,7 +112,8 @@ async def test_stdio_server():
         # Start the server process
         process = await asyncio.create_subprocess_exec(
             sys.executable,
-            "tools/mcp/gemini_mcp_server.py",
+            "-m",
+            "tools.mcp.gemini.server",
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -174,7 +175,7 @@ async def test_stdio_server():
         return True
 
     except FileNotFoundError:
-        print("❌ Could not find gemini_mcp_server.py")
+        print("❌ Could not find tools.mcp.gemini.server module")
         return False
     except Exception as e:
         print(f"❌ Error testing stdio server: {e}")

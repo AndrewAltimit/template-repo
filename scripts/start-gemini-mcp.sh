@@ -9,7 +9,7 @@ if [[ "$1" == "--http" ]]; then
     # Start Gemini MCP server in HTTP mode (for testing)
     echo "Starting Gemini MCP server in HTTP mode on port $GEMINI_PORT..."
     echo "WARNING: HTTP mode is for testing only. Use stdio mode for production."
-    nohup python3 tools/mcp/gemini_mcp_server.py --port $GEMINI_PORT > /tmp/gemini-mcp.log 2>&1 &
+    nohup python3 -m tools.mcp.gemini.server --mode http --port $GEMINI_PORT > /tmp/gemini-mcp.log 2>&1 &
     PID=$!
     echo $PID > /tmp/gemini-mcp.pid
     echo "Server started with PID $PID"
@@ -40,7 +40,7 @@ else
     echo "The stdio server needs to be connected to an MCP client."
     echo ""
     echo "Option 1: Direct execution (for testing)"
-    echo "  python3 tools/mcp/gemini_mcp_server.py --project-root ."
+    echo "  python3 -m tools.mcp.gemini.server --project-root ."
     echo ""
     echo "Option 2: Configure with an MCP client (recommended)"
     echo ""
@@ -52,7 +52,7 @@ else
     "mcpServers": {
       "gemini": {
         "command": "python3",
-        "args": ["'$(pwd)'/tools/mcp/gemini_mcp_server.py"],
+        "args": ["-m", "tools.mcp.gemini.server"],
         "env": {
           "GEMINI_API_KEY": "your-key-here"
         }

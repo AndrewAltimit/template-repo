@@ -1157,7 +1157,12 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Erosion2",
             "name": "NaturalErosion",
-            "properties": {"Duration": 0.04, "Downcutting": 0.3, "ErosionScale": 5000.0, "Seed": 12345},
+            "properties": {
+                "Duration": 0.04,
+                "Downcutting": 0.3,
+                "ErosionScale": 5000.0,
+                "Seed": 12345,
+            },
         },
         {"type": "TextureBase", "name": "BaseTexture", "properties": {}},
         {
@@ -1190,7 +1195,12 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Erosion2",
             "name": "InitialErosion",
-            "properties": {"Duration": 0.05, "Downcutting": 0.35, "ErosionScale": 6000.0, "Seed": 23456},
+            "properties": {
+                "Duration": 0.05,
+                "Downcutting": 0.35,
+                "ErosionScale": 6000.0,
+                "Seed": 23456,
+            },
         },
         {
             "type": "Rivers",
@@ -1227,7 +1237,12 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Erosion2",
             "name": "LavaErosion",
-            "properties": {"Duration": 0.03, "Downcutting": 0.4, "ErosionScale": 4000.0, "Seed": 34567},
+            "properties": {
+                "Duration": 0.03,
+                "Downcutting": 0.4,
+                "ErosionScale": 4000.0,
+                "Seed": 34567,
+            },
         },
         {
             "type": "Thermal",
@@ -1266,7 +1281,12 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Erosion2",
             "name": "WindErosion",
-            "properties": {"Duration": 0.02, "Downcutting": 0.2, "ErosionScale": 3000.0, "Seed": 45678},
+            "properties": {
+                "Duration": 0.02,
+                "Downcutting": 0.2,
+                "ErosionScale": 3000.0,
+                "Seed": 45678,
+            },
         },
         {
             "type": "Sand",
@@ -1298,7 +1318,12 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Erosion2",
             "name": "DetailedErosion",
-            "properties": {"Duration": 0.06, "Downcutting": 0.4, "ErosionScale": 8000.0, "Seed": 56789},
+            "properties": {
+                "Duration": 0.06,
+                "Downcutting": 0.4,
+                "ErosionScale": 8000.0,
+                "Seed": 56789,
+            },
         },
         {
             "type": "PortalTransmit",
@@ -1426,7 +1451,12 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Erosion2",
             "name": "RiverErosion",
-            "properties": {"Duration": 0.05, "Downcutting": 0.5, "ErosionScale": 6000.0, "Seed": 98765},
+            "properties": {
+                "Duration": 0.05,
+                "Downcutting": 0.5,
+                "ErosionScale": 6000.0,
+                "Seed": 98765,
+            },
         },
         {
             "type": "Thermal",
@@ -1473,7 +1503,12 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Erosion2",
             "name": "CoastalErosion",
-            "properties": {"Duration": 0.04, "Downcutting": 0.1, "ErosionScale": 5000.0, "Seed": 67890},
+            "properties": {
+                "Duration": 0.04,
+                "Downcutting": 0.1,
+                "ErosionScale": 5000.0,
+                "Seed": 67890,
+            },
         },
         {
             "type": "SatMap",
@@ -1568,7 +1603,11 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "SatMap",
             "name": "ValleyColors",
-            "properties": {"Library": "Green", "LibraryItem": 2, "Enhance": "Autolevel"},
+            "properties": {
+                "Library": "Green",
+                "LibraryItem": 2,
+                "Enhance": "Autolevel",
+            },
         },
     ],
 }

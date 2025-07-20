@@ -39,4 +39,4 @@ $repoRoot = Split-Path -Parent $scriptPath
 Set-Location $repoRoot
 
 # Start the server
-python tools\mcp\gaea2_mcp_server.py $args
+python -m tools.mcp.gaea2.server --mode http $args

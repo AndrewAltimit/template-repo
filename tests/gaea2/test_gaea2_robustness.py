@@ -10,10 +10,31 @@ from pathlib import Path
 
 from tools.mcp.gaea2_cache import get_cache
 from tools.mcp.gaea2_logging import get_logger, log_operation
+
+# Import Gaea2 MCP server
+from tools.mcp.gaea2_mcp_server import Gaea2MCPServer
 from tools.mcp.gaea2_structure_validator import Gaea2StructureValidator
 
-# Import our enhanced MCP tools
-from tools.mcp.mcp_server import MCPTools
+
+# Create a mock MCPTools class for backward compatibility
+class MCPTools:
+    server = Gaea2MCPServer()
+
+    @classmethod
+    async def validate_and_fix_workflow(cls, **kwargs):
+        return await cls.server.validate_and_fix_workflow(**kwargs)
+
+    @classmethod
+    async def repair_gaea2_project(cls, **kwargs):
+        return await cls.server.repair_gaea2_project(**kwargs)
+
+    @classmethod
+    async def create_gaea2_from_template(cls, **kwargs):
+        return await cls.server.create_gaea2_from_template(**kwargs)
+
+    @classmethod
+    async def validate_gaea2_project(cls, **kwargs):
+        return await cls.server.validate_gaea2_project(**kwargs)
 
 
 async def test_structure_validation():

@@ -157,27 +157,26 @@ jobs:
             echo "Found PROJECT_CONTEXT.md - Gemini will have full project context"
           fi
 
-      - name: Start MCP server for Gemini history clear
-        continue-on-error: true
-        uses: ./.github/actions/docker-compose-health-check
-        with:
-          services: 'mcp-server'
-          health-endpoint: 'http://localhost:8005/health'
-          timeout: '30'
-          build: 'true'
-
       - name: Clear Gemini conversation history
         continue-on-error: true
         run: |
           echo "🧹 Clearing Gemini conversation history..."
-          # Call the clear history endpoint via MCP server
-          curl -X POST http://localhost:8005/tools/execute \
+          # Gemini MCP server must run on host (not in container)
+          # Start Gemini MCP server in background
+          python -m tools.mcp.gemini.server --mode http &
+          GEMINI_PID=$!
+
+          # Wait for server to start
+          sleep 5
+
+          # Call the clear history endpoint via Gemini MCP server
+          curl -X POST http://localhost:8006/mcp/execute \
             -H "Content-Type: application/json" \
             -d '{"tool": "clear_gemini_history", "arguments": {}}' \
             || echo "Warning: Could not clear Gemini history"
 
-          # Stop the server after clearing history
-          docker-compose down
+          # Stop the Gemini server
+          kill $GEMINI_PID || true
 
       - name: Run Gemini review
         continue-on-error: true  # Don't fail the PR if Gemini review fails
@@ -408,21 +407,26 @@ jobs:
 
       # No need to install Python or dependencies - Docker handles it
 
-      - name: Start MCP server with health check
+      - name: Start modular MCP servers with health check
         uses: ./.github/actions/docker-compose-health-check
         with:
-          services: 'mcp-server'
-          health-endpoint: 'http://localhost:8005/health'
+          services: 'mcp-code-quality mcp-content-creation mcp-gaea2'
+          health-endpoint: 'http://localhost:8010/health'
           timeout: '60'
           build: 'true'
 
-      - name: Test MCP server functionality
+      - name: Test MCP servers functionality
         run: |
-          echo "🤖 Testing MCP server integration..."
-          # Build python-ci if needed
-          docker-compose build python-ci
-          # Install requirements and run test
-          docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && python scripts/test-mcp-server.py http://mcp-server:8000"
+          echo "🤖 Testing modular MCP servers..."
+          # Test Code Quality MCP (port 8010)
+          curl -f http://localhost:8010/health || exit 1
+          # Test Content Creation MCP (port 8011)
+          curl -f http://localhost:8011/health || exit 1
+          # Test Gaea2 MCP (port 8007)
+          curl -f http://localhost:8007/health || exit 1
+
+          # Run comprehensive tests
+          docker-compose run --rm python-ci python scripts/mcp/test_all_servers.py --quick
 
       - name: View MCP server logs
         if: failure()
@@ -473,15 +477,37 @@ jobs:
       # Note: Docker builds intentionally do not use GitHub Actions cache (cache-from/cache-to)
       # to avoid cache service availability issues. The self-hosted runner's local Docker
       # cache provides sufficient caching for our needs.
-      - name: Build MCP image
+      - name: Build Code Quality MCP image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: docker/mcp.Dockerfile
+          file: docker/mcp-code-quality.Dockerfile
           push: false
           tags: |
-            ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp
-            ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-${{ github.sha }}
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-code-quality
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-code-quality-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Build Content Creation MCP image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/mcp-content.Dockerfile
+          push: false
+          tags: |
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-content
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-content-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Build Gaea2 MCP image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/mcp-gaea2.Dockerfile
+          push: false
+          tags: |
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-gaea2
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-gaea2-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Build MCP HTTP Bridge image
@@ -510,7 +536,7 @@ jobs:
         uses: ./.github/actions/docker-compose-health-check
         with:
           services: ''  # all services
-          health-endpoint: 'http://localhost:8005/health'
+          health-endpoint: 'http://localhost:8010/health'
           timeout: '60'
           build: 'true'
 

@@ -29,7 +29,9 @@ fastapi_mock.HTTPException = Mock()
 sys.modules["fastapi"] = fastapi_mock
 sys.modules["fastapi.testclient"] = testclient_mock
 
-from tools.mcp.mcp_server import MCPTools  # noqa: E402
+# Import tools from modular servers
+from tools.mcp.code_quality.tools import format_check, lint  # noqa: E402
+from tools.mcp.content_creation.tools import compile_latex, create_manim_animation  # noqa: E402
 
 
 class TestMCPTools:
@@ -42,7 +44,7 @@ class TestMCPTools:
             # Mock successful format check
             mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
 
-            result = await MCPTools.format_check("test.py", "python")
+            result = await format_check(path="test.py", language="python")
 
             assert result["formatted"] is True
             mock_run.assert_called_once_with(["black", "--check", "test.py"], capture_output=True, text=True)
@@ -50,7 +52,7 @@ class TestMCPTools:
     @pytest.mark.asyncio
     async def test_format_check_unsupported_language(self):
         """Test format check with unsupported language"""
-        result = await MCPTools.format_check("test.xyz", "xyz")
+        result = await format_check(path="test.xyz", language="xyz")
 
         assert "error" in result
         assert "Unsupported language" in result["error"]
@@ -62,7 +64,7 @@ class TestMCPTools:
             # Mock successful lint
             mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
 
-            result = await MCPTools.lint("test.py")
+            result = await lint(path="test.py")
 
             assert result["success"] is True
             assert result["issues"] == []
@@ -78,7 +80,7 @@ class TestMCPTools:
                 stderr="",
             )
 
-            result = await MCPTools.lint("test.py")
+            result = await lint(path="test.py")
 
             assert result["success"] is False
             assert len(result["issues"]) == 2
@@ -100,7 +102,7 @@ class TestMCPTools:
 
                                 # Test compilation
                                 latex_content = r"\documentclass{article}" r"\begin{document}Test\end{document}"
-                                result = await MCPTools.compile_latex(latex_content, "pdf")
+                                result = await compile_latex(content=latex_content, format="pdf")
 
                                 assert result["success"] is True
                                 assert result["format"] == "pdf"
@@ -129,7 +131,7 @@ class TestMCPTools:
 
                             # Test animation
                             script = "from manim import *\n" "class TestScene(Scene): pass"
-                            result = await MCPTools.create_manim_animation(script)
+                            result = await create_manim_animation(script=script)
 
                             assert result["success"] is True
                             assert result["format"] == "mp4"

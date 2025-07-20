@@ -73,19 +73,35 @@ def create_level1_terrain():
             "id": 483,
             "type": "TextureBase",
             "position": {"x": 26398.227, "y": 25987.605},
-            "properties": {"Slope": 0.48291308, "Scale": 0.15, "Soil": 0.6, "Patches": 0.4, "Chaos": 0.1, "Seed": 48091},
+            "properties": {
+                "Slope": 0.48291308,
+                "Scale": 0.15,
+                "Soil": 0.6,
+                "Patches": 0.4,
+                "Chaos": 0.1,
+                "Seed": 48091,
+            },
         },
         {
             "id": 800,
             "type": "SatMap",
             "position": {"x": 26730.877, "y": 25991.234},
-            "properties": {"Library": "Rock", "LibraryItem": 33, "Enhance": "Autolevel"},
+            "properties": {
+                "Library": "Rock",
+                "LibraryItem": 33,
+                "Enhance": "Autolevel",
+            },
         },
         {
             "id": 375,
             "type": "SatMap",
             "position": {"x": 26730.877, "y": 26127.748},
-            "properties": {"Library": "Color", "LibraryItem": 1, "Enhance": "Autolevel", "Reverse": True},
+            "properties": {
+                "Library": "Color",
+                "LibraryItem": 1,
+                "Enhance": "Autolevel",
+                "Reverse": True,
+            },
         },
         {
             "id": 245,
@@ -107,7 +123,11 @@ def create_level1_terrain():
             "properties": {"Ratio": 1.0, "Clamp": "Clamp"},
             "is_locked": True,
             "render_intent_override": "Color",
-            "save_definition": {"filename": "Combine", "format": "EXR", "enabled": True},
+            "save_definition": {
+                "filename": "Combine",
+                "format": "EXR",
+                "enabled": True,
+            },
         },
         {
             "id": 258,
@@ -139,7 +159,13 @@ def create_level1_terrain():
             "id": 639,
             "type": "Stratify",
             "position": {"x": 25087.084, "y": 25988.941},
-            "properties": {"Spacing": 0.1, "Octaves": 12, "Intensity": 0.5, "Seed": 28787, "TiltAmount": 0.5},
+            "properties": {
+                "Spacing": 0.1,
+                "Octaves": 12,
+                "Intensity": 0.5,
+                "Seed": 28787,
+                "TiltAmount": 0.5,
+            },
         },
         {
             "id": 514,
@@ -187,7 +213,11 @@ def create_level1_terrain():
             "id": 340,
             "type": "SatMap",
             "position": {"x": 26730.877, "y": 25873.07},
-            "properties": {"Library": "Blue", "LibraryItem": 66, "Enhance": "Autolevel"},
+            "properties": {
+                "Library": "Blue",
+                "LibraryItem": 66,
+                "Enhance": "Autolevel",
+            },
         },
     ]
 

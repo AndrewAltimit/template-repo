@@ -67,32 +67,42 @@ docker-compose run --rm python-ci mypy . --ignore-missing-imports
 ### Development
 
 ```bash
-# Start MCP server via Docker (recommended)
-docker-compose up -d mcp-server
+# NEW MODULAR MCP SERVERS (Recommended approach)
 
-# View MCP server logs
-docker-compose logs -f mcp-server
+# Start individual MCP servers
+python -m tools.mcp.code_quality.server      # Port 8010 - Code formatting/linting
+python -m tools.mcp.content_creation.server  # Port 8011 - Manim & LaTeX
+python -m tools.mcp.gemini.server            # Port 8006 - AI integration (host only)
+python -m tools.mcp.gaea2.server             # Port 8007 - Terrain generation
 
-# Test MCP server (port 8005)
-curl http://localhost:8005/health
-python scripts/test-mcp-server.py
+# Test all MCP servers at once
+python scripts/mcp/test_all_servers.py
 
-# Start Gemini MCP server (MUST run on host, not in container)
-python tools/mcp/gemini_mcp_server.py
+# Quick test of running servers
+python scripts/mcp/test_all_servers.py --quick
 
-# Test Gemini MCP server (port 8006)
-curl http://localhost:8006/health
+# Start servers in Docker (except Gemini)
+docker-compose up -d mcp-code-quality
+docker-compose up -d mcp-content-creation
+docker-compose up -d mcp-gaea2  # Note: CLI features require Windows host
 
-# Test Gaea2 MCP server (remote server at 192.168.0.152:8007)
-curl http://192.168.0.152:8007/health
-python scripts/test-gaea2-mcp-server.py  # Note: Update script to use remote server
+# View logs for specific servers
+docker-compose logs -f mcp-code-quality
+
+# Test individual servers
+python tools/mcp/code_quality/scripts/test_server.py
+python tools/mcp/content_creation/scripts/test_server.py
+python tools/mcp/gemini/scripts/test_server.py
+python tools/mcp/gaea2/scripts/test_server.py
+
+# For Gemini (MUST run on host)
+./tools/mcp/gemini/scripts/start_server.sh --mode http
 
 # Run the main application
 python main.py
 
 # For local development without Docker
 pip install -r requirements.txt
-python tools/mcp/mcp_server.py
 ```
 
 ### Docker Operations
@@ -130,47 +140,59 @@ docker-compose build python-ci
 
 ## Architecture
 
-### MCP Server Architecture
+### MCP Server Architecture (Modular Design)
 
-The project uses multiple Model Context Protocol (MCP) servers to provide various AI and development tools:
+The project uses a modular collection of Model Context Protocol (MCP) servers, each specialized for specific functionality:
 
-1. **Main MCP Server** (`tools/mcp/mcp_server.py`): HTTP API on port 8005
-   - **Code Quality**:
+1. **Code Quality MCP Server** (`tools/mcp/code_quality/`): HTTP API on port 8010
+   - **Code Formatting & Linting**:
      - `format_check` - Check code formatting (Python, JS, TS, Go, Rust)
-     - `lint` - Run static analysis with optional config
-   - **Content Creation**:
+     - `lint` - Run static analysis with multiple linters
+     - `autoformat` - Automatically format code files
+   - See `tools/mcp/code_quality/docs/README.md` for documentation
+
+2. **Content Creation MCP Server** (`tools/mcp/content_creation/`): HTTP API on port 8011
+   - **Manim & LaTeX Tools**:
      - `create_manim_animation` - Create mathematical/technical animations
      - `compile_latex` - Generate PDF/DVI/PS documents from LaTeX
-   - **Gaea2 Terrain Generation** (185 nodes supported):
-     - `create_gaea2_project` - Create custom terrain projects
-     - `validate_and_fix_workflow` - Comprehensive validation and repair
-     - `analyze_workflow_patterns` - Pattern-based workflow analysis
-     - `repair_gaea2_project` - Fix damaged project files
-     - `create_gaea2_from_template` - Use professional templates
-     - `optimize_gaea2_properties` - Performance/quality optimization
-     - `suggest_gaea2_nodes` - Intelligent node suggestions
-     - See `docs/gaea2/README.md` for complete Gaea2 MCP documentation
+     - `render_tikz` - Render TikZ diagrams as standalone images
+   - See `tools/mcp/content_creation/docs/README.md` for documentation
 
-2. **Gemini MCP Server** (`tools/mcp/gemini_mcp_server.py`): HTTP API on port 8006
+3. **Gemini MCP Server** (`tools/mcp/gemini/`): HTTP API on port 8006
    - **MUST run on host system** (not in container) due to Docker requirements
    - **AI Integration**:
      - `consult_gemini` - Get AI assistance for technical questions
      - `clear_gemini_history` - Clear conversation history for fresh responses
-   - Automatically exits with error if launched in container
+     - `gemini_status` - Get integration status and statistics
+     - `toggle_gemini_auto_consult` - Control auto-consultation
+   - See `tools/mcp/gemini/docs/README.md` for documentation
 
-3. **Gaea2 MCP Server**: **Runs on remote server at 192.168.0.152:8007**
-   - Provides all Gaea2 terrain generation tools
-   - Supports 185 Gaea2 nodes with validation and optimization
-   - See `docs/gaea2/README.md` for complete documentation
+4. **Gaea2 MCP Server** (`tools/mcp/gaea2/`): HTTP API on port 8007
+   - **Terrain Generation** (185 nodes supported):
+     - `create_gaea2_project` - Create custom terrain projects
+     - `create_gaea2_from_template` - Use professional templates
+     - `validate_and_fix_workflow` - Comprehensive validation and repair
+     - `analyze_workflow_patterns` - Pattern-based workflow analysis
+     - `optimize_gaea2_properties` - Performance/quality optimization
+     - `suggest_gaea2_nodes` - Intelligent node suggestions
+     - `repair_gaea2_project` - Fix damaged project files
+     - `run_gaea2_project` - CLI automation (Windows only)
+   - Can run locally or on remote server (192.168.0.152:8007)
+   - See `tools/mcp/gaea2/docs/README.md` for complete documentation
 
-4. **Remote Services**: ComfyUI (image generation), AI Toolkit (LoRA training)
+5. **Remote Services**: ComfyUI (image generation), AI Toolkit (LoRA training)
 
-5. **Containerized CI/CD**:
-   - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools (Black, isort, flake8, pylint, mypy, pytest)
-   - **Helper Scripts**: Centralized CI operations to reduce workflow complexity
-   - **Cache Prevention**: PYTHONDONTWRITEBYTECODE=1, pytest cache disabled
+6. **Shared Core Components** (`tools/mcp/core/`):
+   - `BaseMCPServer` - Base class for all MCP servers
+   - `HTTPBridge` - Bridge for remote MCP servers
+   - Common utilities and helpers
 
-4. **Configuration** (`.mcp.json`): Defines available tools, security settings, and rate limits
+7. **Containerized CI/CD**:
+   - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools
+   - **Helper Scripts**: Centralized CI operations
+   - **Individual MCP Containers**: Each server can run in its own optimized container
+
+8. **Configuration**: Each server has its own configuration options
 
 ### GitHub Actions Integration
 
@@ -229,6 +251,7 @@ The repository includes comprehensive CI/CD workflows:
 
 ## Development Reminders
 
+- **MCP Servers**: The project uses modular MCP servers. See `docs/mcp/README.md` for architecture details.
 - IMPORTANT: When you have completed a task, you MUST run the lint and quality checks:
   ```bash
   # Run full CI checks

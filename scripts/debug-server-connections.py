@@ -17,7 +17,11 @@ def main():
             "project_name": "debug_connections",
             "nodes": [
                 {"id": 287, "type": "Sea", "position": {"x": 26090, "y": 25997}},
-                {"id": 483, "type": "TextureBase", "position": {"x": 26398, "y": 25987}},
+                {
+                    "id": 483,
+                    "type": "TextureBase",
+                    "position": {"x": 26398, "y": 25987},
+                },
                 {"id": 949, "type": "Rivers", "position": {"x": 25814, "y": 26000}},
                 {"id": 427, "type": "Adjust", "position": {"x": 26481, "y": 26068}},
                 {"id": 514, "type": "Erosion2", "position": {"x": 25584, "y": 25997}},
@@ -27,7 +31,12 @@ def main():
             ],
             "connections": [
                 {"from_node": 287, "to_node": 483, "from_port": "Out", "to_port": "In"},
-                {"from_node": 949, "to_node": 427, "from_port": "Rivers", "to_port": "In"},
+                {
+                    "from_node": 949,
+                    "to_node": 427,
+                    "from_port": "Rivers",
+                    "to_port": "In",
+                },
                 {"from_node": 514, "to_node": 949, "from_port": "Out", "to_port": "In"},
                 {"from_node": 639, "to_node": 975, "from_port": "Out", "to_port": "In"},
                 {"from_node": 287, "to_node": 958, "from_port": "Out", "to_port": "In"},

@@ -7,7 +7,9 @@ import json
 from typing import Dict, List, Tuple
 
 
-def extract_connections_from_terrain(terrain_data: Dict) -> List[Tuple[int, int, str, str]]:
+def extract_connections_from_terrain(
+    terrain_data: Dict,
+) -> List[Tuple[int, int, str, str]]:
     """Extract all connections from a terrain file structure"""
     connections = []
 
