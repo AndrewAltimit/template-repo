@@ -1,4 +1,0 @@
-{
-  "error": "Gaea2MCPServer.create_gaea2_project() got an unexpected keyword argument 'nodes'",
-  "success": false
-}

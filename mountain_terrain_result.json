@@ -1,4 +1,0 @@
-{
-  "error": "Gaea2MCPServer.create_gaea2_project() missing 2 required positional arguments: 'project_name' and 'workflow'",
-  "success": false
-}
