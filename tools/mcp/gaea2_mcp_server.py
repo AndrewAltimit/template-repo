@@ -195,6 +195,9 @@ class Gaea2MCPServer:
 
             # Get node type
             node_type = node.get("type", "Mountain")
+            # Clean node type - remove any existing ", Gaea" suffix
+            if ", Gaea" in node_type:
+                node_type = node_type.split(", Gaea")[0]
             gaea_type = node_type_mapping.get(node_type, f"QuadSpinner.Gaea.Nodes.{node_type}, Gaea.Nodes")
 
             # Get node properties first
@@ -217,6 +220,8 @@ class Gaea2MCPServer:
             node_size = None
             is_maskable = None
             port_count = None
+            is_locked = node.get("is_locked", False)
+            render_intent_override = node.get("render_intent_override", None)
 
             if node_type in NODE_PROPERTIES:
                 node_props = NODE_PROPERTIES[node_type]
@@ -226,7 +231,7 @@ class Gaea2MCPServer:
                     is_maskable = node_props["IsMaskable"]
                 if "PortCount" in node_props:
                     port_count = node_props["PortCount"]
-                    properties["PortCount"] = port_count  # This one stays in properties
+                    # PortCount is NOT added to properties - it's added directly to node later
 
             # Add default properties for common nodes (only if not already present)
             if node_type == "Mountain":
@@ -298,6 +303,10 @@ class Gaea2MCPServer:
                             pass  # Keep as string if conversion fails
                 gaea_node[prop_str] = value
 
+            # Add PortCount after properties but before Id (if applicable)
+            if port_count is not None:
+                gaea_node["PortCount"] = port_count
+
             # NOW add the standard node fields (these come AFTER properties)
             gaea_node["Id"] = node_id
             gaea_node["Name"] = node.get("name", node_type)
@@ -313,7 +322,15 @@ class Gaea2MCPServer:
             }
             ref_id_counter += 1
 
-            # Embed SaveDefinition after Position but before Ports (if applicable)
+            # Add IsLocked after Position (if applicable)
+            if is_locked:
+                gaea_node["IsLocked"] = True
+
+            # Add RenderIntentOverride after IsLocked (if applicable)
+            if render_intent_override:
+                gaea_node["RenderIntentOverride"] = render_intent_override
+
+            # Embed SaveDefinition after Position/IsLocked/RenderIntentOverride but before Ports (if applicable)
             if node_type == "Export":
                 # Create SaveDefinition embedded in the node
                 gaea_node["SaveDefinition"] = {
@@ -325,6 +342,17 @@ class Gaea2MCPServer:
                 }
                 ref_id_counter += 1
 
+            # Check if node has save_definition in workflow
+            elif node.get("save_definition"):
+                save_def = node["save_definition"]
+                gaea_node["SaveDefinition"] = {
+                    "$id": str(ref_id_counter),
+                    "Node": node_id,
+                    "Filename": save_def.get("filename", node.get("name", node_type)),
+                    "Format": save_def.get("format", "EXR").upper(),
+                    "IsEnabled": save_def.get("enabled", True),
+                }
+                ref_id_counter += 1
             # Check if any node has export properties (like Rivers nodes in reference files)
             elif "export" in properties or "save" in properties:
                 # Some nodes like Rivers can have embedded SaveDefinitions
