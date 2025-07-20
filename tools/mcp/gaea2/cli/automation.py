@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from ..exceptions import Gaea2FileError, Gaea2RuntimeError, Gaea2TimeoutError
+from ..exceptions import Gaea2FileError
 
 
 class Gaea2CLIAutomation:

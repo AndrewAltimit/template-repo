@@ -9,10 +9,10 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-import pytest
 
 from scripts.generate_gaea2_schema import validate_gaea_project, validate_property  # noqa: E402
 from tools.mcp.gaea2_mcp_server import Gaea2MCPServer  # noqa: E402

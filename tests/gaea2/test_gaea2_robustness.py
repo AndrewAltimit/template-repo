@@ -10,17 +10,17 @@ import sys
 import time
 from pathlib import Path
 
+import pytest
+
 # Add project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-import pytest
-
-from tools.mcp.gaea2_cache import get_cache
-from tools.mcp.gaea2_logging import get_logger, log_operation
+from tools.mcp.gaea2_cache import get_cache  # noqa: E402
+from tools.mcp.gaea2_logging import get_logger  # noqa: E402
 
 # Import Gaea2 MCP server
-from tools.mcp.gaea2_mcp_server import Gaea2MCPServer
-from tools.mcp.gaea2_structure_validator import Gaea2StructureValidator
+from tools.mcp.gaea2_mcp_server import Gaea2MCPServer  # noqa: E402
+from tools.mcp.gaea2_structure_validator import Gaea2StructureValidator  # noqa: E402
 
 
 # Create a mock MCPTools class for backward compatibility
@@ -135,24 +135,28 @@ async def test_workflow_validation():
     ]
 
     # Validate and fix
-    result = await MCPTools.validate_and_fix_workflow(nodes=nodes, connections=connections, auto_fix=True, aggressive=True)
+    result = await MCPTools.validate_and_fix_workflow(
+        workflow={"nodes": nodes, "connections": connections},
+        fix_errors=True,
+        validate_connections=True,
+        validate_properties=True,
+        add_missing_nodes=True,
+    )
 
     if result["success"]:
+        results = result["results"]
         print("Validation Results:")
-        print(f"  Property issues: {len(result['validation']['property_issues'])}")
-        print(f"  Connection errors: {len(result['validation']['connection_errors'])}")
-        print(f"  Connection warnings: {len(result['validation']['connection_warnings'])}")
+        print(f"  Valid: {results['is_valid']}")
+        print("  Validation errors:")
+        for validator, val_result in results["validation_results"].items():
+            if not val_result["valid"]:
+                print(f"    - {validator}: {len(val_result['errors'])} errors")
 
-        print(f"\nFixes Applied: {len(result['fixes']['applied'])}")
-        for fix in result["fixes"]["applied"][:5]:
+        print(f"\nFixes Applied: {len(results['fixes_applied'])}")
+        for fix in results["fixes_applied"][:5]:
             print(f"  - {fix}")
 
-        print("\nQuality Scores:")
-        print(f"  Original: {result['quality_scores']['original']:.1f}")
-        print(f"  Fixed: {result['quality_scores']['fixed']:.1f}")
-        print(f"  Improvement: {result['quality_scores']['improvement']:.1f}")
-
-        return result["fixed_workflow"]
+        return results["final_workflow"]
     else:
         print(f"Error: {result['error']}")
         return None
@@ -177,7 +181,10 @@ async def test_caching():
     # result2 = cached_validator.cached_validate_node("Mountain", {"Scale": 1.0})
     time2 = time.time() - start
     print(f"Cached validation: {time2:.4f}s")
-    print(f"Speedup: {time1/time2:.1f}x")
+    if time2 > 0:
+        print(f"Speedup: {time1/time2:.1f}x")
+    else:
+        print("Speedup: N/A (cache test disabled)")
 
     # Test 3: Workflow analysis caching
     # workflow = ["Mountain", "Erosion2", "Rivers"]
@@ -190,7 +197,10 @@ async def test_caching():
     # analysis2 = cached_validator.cached_workflow_analysis(workflow)
     time2 = time.time() - start
 
-    print(f"\nWorkflow analysis speedup: {time1/time2:.1f}x")
+    if time2 > 0:
+        print(f"\nWorkflow analysis speedup: {time1/time2:.1f}x")
+    else:
+        print("\nWorkflow analysis speedup: N/A (cache test disabled)")
 
     # Clear cache
     cache.clear()
@@ -235,36 +245,67 @@ async def test_logging():
 
 
 @pytest.mark.asyncio
-@log_operation("test_real_project_repair")
 async def test_real_project_repair():
     """Test with a real project file"""
     print("\n=== Testing Real Project Repair ===\n")
 
     # Load a real project
-    project_path = Path("/home/miku/Documents/references/Real Projects/Official Gaea Projects/High Mountain Peak.terrain")
+    project_path = (
+        Path(
+            os.environ.get(
+                "GAEA_OFFICIAL_PROJECTS_DIR",
+                os.path.join(os.path.expanduser("~"), "Documents", "references", "Real Projects", "Official Gaea Projects"),
+            )
+        )
+        / "High Mountain Peak.terrain"
+    )
 
     if not project_path.exists():
-        print("Test project not found")
-        return
+        print("Test project not found, using mock data")
+        # Use mock project data for testing
+        project_data = {
+            "Assets": {
+                "$values": [
+                    {
+                        "Terrain": {
+                            "Nodes": {"100": {"$type": "QuadSpinner.Gaea.Mountain, Gaea", "Name": "Mountain1", "Scale": 1.0}}
+                        }
+                    }
+                ]
+            }
+        }
+    else:
+        with open(project_path) as f:
+            project_data = json.load(f)
 
-    with open(project_path) as f:
-        project_data = json.load(f)
+    # Save to temporary file for repair
+    import tempfile
 
-    # Analyze and repair
-    result = await MCPTools.repair_gaea2_project(project_data=project_data, auto_fix=True)
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".terrain", delete=False) as tmp:
+        json.dump(project_data, tmp, indent=2)
+        temp_path = tmp.name
 
-    if result["success"] and "analysis" in result:
-        analysis = result["analysis"]["analysis"]
-        print("Project Analysis:")
-        print(f"  Health Score: {analysis['health_score']:.1f}/100")
-        print(f"  Node Count: {analysis['node_count']}")
-        print(f"  Connection Count: {analysis['connection_count']}")
-        print(f"  Total Errors: {analysis['errors']['total_errors']}")
-        print(f"  Auto-fixable: {analysis['errors']['auto_fixable']}")
+    try:
+        # Analyze and repair
+        result = await MCPTools.repair_gaea2_project(project_path=temp_path, backup=False)
+    finally:
+        # Clean up
+        Path(temp_path).unlink(missing_ok=True)
 
-        if result["repair_result"]["fixes_applied"]:
+    if result["success"]:
+        print("Repair Results:")
+        print(f"  Repaired: {result.get('repaired', False)}")
+        print(f"  Issues Found: {len(result.get('issues_found', []))}")
+        print(f"  Fixes Applied: {len(result.get('fixes_applied', []))}")
+
+        if result.get("issues_found"):
+            print("\nIssues Found:")
+            for issue in result["issues_found"][:5]:
+                print(f"  - {issue}")
+
+        if result.get("fixes_applied"):
             print("\nFixes Applied:")
-            for fix in result["repair_result"]["fixes_applied"][:5]:
+            for fix in result["fixes_applied"][:5]:
                 print(f"  - {fix}")
 
 
@@ -333,7 +374,7 @@ async def stress_test_performance():
 
     # Time validation
     start = time.time()
-    result = await MCPTools.validate_and_fix_workflow(nodes=nodes, connections=connections, auto_fix=True)
+    result = await MCPTools.validate_and_fix_workflow(workflow={"nodes": nodes, "connections": connections}, fix_errors=True)
     duration = time.time() - start
 
     print(f"Validated and fixed {len(nodes)} nodes in {duration:.3f}s")

@@ -21,7 +21,7 @@ import os
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Dict
+# No imports needed from typing
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))

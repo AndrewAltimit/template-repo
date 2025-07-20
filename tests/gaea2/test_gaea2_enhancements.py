@@ -8,14 +8,14 @@ import json
 import os
 import sys
 
+import pytest
+
 # Add project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-import pytest
-
 # Import Gaea2 MCP server
-from tools.mcp.gaea2_mcp_server import Gaea2MCPServer
-from tools.mcp.gaea2_pattern_knowledge import (
+from tools.mcp.gaea2_mcp_server import Gaea2MCPServer  # noqa: E402
+from tools.mcp.gaea2_pattern_knowledge import (  # noqa: E402
     get_next_node_suggestions,
     get_workflow_for_terrain_type,
     suggest_properties_for_node,

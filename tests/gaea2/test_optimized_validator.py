@@ -9,8 +9,8 @@ from typing import Any, Dict
 
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from tools.mcp.gaea2_optimized_validator import get_optimized_validator
-from tools.mcp.gaea2_schema import create_workflow_from_template, validate_gaea2_project
+from tools.mcp.gaea2_optimized_validator import get_optimized_validator  # noqa: E402
+from tools.mcp.gaea2_schema import create_workflow_from_template, validate_gaea2_project  # noqa: E402
 
 
 def create_large_workflow(num_nodes: int) -> Dict[str, Any]:
