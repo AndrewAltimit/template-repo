@@ -213,8 +213,12 @@ def add_node_specific_properties(node_type: str, node: Dict[str, Any]) -> None:
 def fix_empty_objects(project: Dict[str, Any], ref_counter: int) -> int:
     """Fix empty objects to use {"$id": "XX"} format"""
     # Fix Variables object
-    if "Automation" in project.get("Assets", {}).get("$values", [{}])[0]:
-        automation = project["Assets"]["$values"][0]["Automation"]
+    assets_values = project.get("Assets", {}).get("$values", [])
+    if not assets_values:
+        return ref_counter
+
+    if "Automation" in assets_values[0]:
+        automation = assets_values[0]["Automation"]
         if "Variables" in automation and automation["Variables"] == {}:
             automation["Variables"] = {"$id": str(ref_counter)}
             ref_counter += 1
@@ -323,7 +327,11 @@ def create_proper_port_structure(node_id: int, node_type: str, ref_id_counter: i
 def extract_and_fix_savedefinitions(project: Dict[str, Any], ref_counter: int) -> Tuple[List[Dict[str, Any]], int]:
     """Extract SaveDefinitions from Export nodes and create them as separate objects"""
     save_definitions = []
-    nodes = project["Assets"]["$values"][0]["Terrain"]["Nodes"]
+    assets_values = project.get("Assets", {}).get("$values", [])
+    if not assets_values or "Terrain" not in assets_values[0]:
+        return save_definitions, ref_counter
+
+    nodes = assets_values[0]["Terrain"]["Nodes"]
 
     # Find and extract SaveDefinitions from Export nodes
     for node_id, node in nodes.items():
@@ -351,7 +359,11 @@ def extract_and_fix_savedefinitions(project: Dict[str, Any], ref_counter: int) -
 
 def ensure_all_nodes_connected(project: Dict[str, Any]) -> None:
     """Ensure all nodes that should have connections are properly connected"""
-    nodes = project["Assets"]["$values"][0]["Terrain"]["Nodes"]
+    assets_values = project.get("Assets", {}).get("$values", [])
+    if not assets_values or "Terrain" not in assets_values[0]:
+        return
+
+    nodes = assets_values[0]["Terrain"]["Nodes"]
 
     # Find nodes without incoming connections
     nodes_with_connections = set()
@@ -392,8 +404,9 @@ def apply_format_fixes(
     ref_counter = fix_empty_objects(project, ref_counter)
 
     # 2. Update GraphTabs with proper viewport location
-    if "GraphTabs" in project["Assets"]["$values"][0]["Terrain"]:
-        tabs = project["Assets"]["$values"][0]["Terrain"]["GraphTabs"]["$values"]
+    assets_values = project.get("Assets", {}).get("$values", [])
+    if assets_values and "Terrain" in assets_values[0] and "GraphTabs" in assets_values[0]["Terrain"]:
+        tabs = assets_values[0]["Terrain"]["GraphTabs"]["$values"]
         if tabs and len(tabs) > 0:
             tabs[0]["ViewportLocation"]["X"] = 25531.445
             tabs[0]["ViewportLocation"]["Y"] = 25791.812
@@ -415,7 +428,10 @@ def apply_format_fixes(
     ensure_all_nodes_connected(project)
 
     # 6. Fix node properties for all nodes
-    nodes_obj = project["Assets"]["$values"][0]["Terrain"]["Nodes"]
+    if not assets_values or "Terrain" not in assets_values[0]:
+        return project
+
+    nodes_obj = assets_values[0]["Terrain"]["Nodes"]
     for node_id, node in nodes_obj.items():
         # Skip if node is just a string reference (like "$id": "6")
         if isinstance(node, str):

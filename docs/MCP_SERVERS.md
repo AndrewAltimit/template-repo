@@ -322,7 +322,7 @@ python3 scripts/test-gaea2-mcp-server.py
    - Ensure you're running on Windows with Gaea2 installed
 
 2. **"Cannot connect to remote server"**
-   - The Gaea2 MCP server runs on remote server at 192.168.0.152:8007
+   - If using a remote Gaea2 server, ensure GAEA2_REMOTE_URL is set correctly
    - Ensure you have network connectivity to the remote server
    - Check that the server is running on the remote Windows host
 

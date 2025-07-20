@@ -166,8 +166,21 @@ jobs:
           python -m tools.mcp.gemini.server --mode http &
           GEMINI_PID=$!
 
-          # Wait for server to start
-          sleep 5
+          # Wait for server to be ready with health check polling
+          echo "⏳ Waiting for Gemini server to be ready..."
+          for i in {1..30}; do
+            if curl -f -s http://localhost:8006/health > /dev/null 2>&1; then
+              echo "✅ Gemini server is ready"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "❌ Gemini server failed to start after 30 seconds"
+              kill $GEMINI_PID || true
+              exit 1
+            fi
+            echo "  Attempt $i/30..."
+            sleep 1
+          done
 
           # Call the clear history endpoint via Gemini MCP server
           curl -X POST http://localhost:8006/mcp/execute \

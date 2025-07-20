@@ -11,7 +11,13 @@ def extract_connections_from_response(json_str: str):
     data = json.loads(json_str) if isinstance(json_str, str) else json_str
 
     connections = []
-    nodes = data.get("project_structure", {}).get("Assets", {}).get("$values", [{}])[0].get("Terrain", {}).get("Nodes", {})
+    assets_values = data.get("project_structure", {}).get("Assets", {}).get("$values", [])
+    if not assets_values:
+        print("Warning: No assets found in project structure")
+        return connections
+
+    terrain = assets_values[0].get("Terrain", {})
+    nodes = terrain.get("Nodes", {})
 
     for node_id, node_data in nodes.items():
         if not isinstance(node_data, dict):
