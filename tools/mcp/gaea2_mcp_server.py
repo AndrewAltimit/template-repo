@@ -610,6 +610,49 @@ class Gaea2MCPServer:
                     ref_id_counter += 1
                     gaea_node["Ports"]["$values"].append(port)
 
+            elif node_type == "Rivers":
+                # Rivers has In, Out, and special outputs like Rivers, Depth, Surface, Direction
+                # It also has optional Headwaters and Mask inputs
+                # Input ports
+                for port_name in ["In", "Headwaters", "Mask"]:
+                    port = {
+                        "$id": str(ref_id_counter),
+                        "Name": port_name,
+                        "Type": "PrimaryIn" if port_name == "In" else "In",
+                        "IsExporting": True,
+                        "Parent": {"$ref": node_ref_id},
+                    }
+                    ref_id_counter += 1
+
+                    # Check for connection
+                    if node_str_id in node_connections and port_name in node_connections[node_str_id]:
+                        conn = node_connections[node_str_id][port_name]
+                        from_id = node_id_map.get(conn.get("from_node"))
+                        if from_id:
+                            port["Record"] = {
+                                "$id": str(ref_id_counter),
+                                "From": from_id,
+                                "To": node_id,
+                                "FromPort": conn.get("from_port", "Out"),
+                                "ToPort": port_name,
+                                "IsValid": True,
+                            }
+                            ref_id_counter += 1
+
+                    gaea_node["Ports"]["$values"].append(port)
+
+                # Output ports
+                for port_name in ["Out", "Rivers", "Depth", "Surface", "Direction"]:
+                    port = {
+                        "$id": str(ref_id_counter),
+                        "Name": port_name,
+                        "Type": "PrimaryOut" if port_name == "Out" else "Out",
+                        "IsExporting": True,
+                        "Parent": {"$ref": node_ref_id},
+                    }
+                    ref_id_counter += 1
+                    gaea_node["Ports"]["$values"].append(port)
+
             else:
                 # Standard nodes have In and Out
                 # In port
