@@ -37,11 +37,7 @@ class Gaea2CLIAutomation:
 
         project_path = Path(project_path)
         if not project_path.exists():
-            raise Gaea2FileError(
-                f"Project file not found: {project_path}",
-                file_path=str(project_path)
-            )
-            }
+            raise Gaea2FileError(f"Project file not found: {project_path}", file_path=str(project_path))
 
         try:
             # Prepare output directory

@@ -8,8 +8,6 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-from tools.mcp.gaea2.exceptions import Gaea2StructureError
-
 logger = logging.getLogger(__name__)
 
 

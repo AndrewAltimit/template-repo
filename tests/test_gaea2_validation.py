@@ -9,7 +9,11 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.append(".")
+# Add project root to Python path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import pytest
+
 from scripts.generate_gaea2_schema import validate_gaea_project, validate_property  # noqa: E402
 from tools.mcp.gaea2_mcp_server import Gaea2MCPServer  # noqa: E402
 
@@ -31,6 +35,7 @@ class MCPTools:
     @classmethod
     async def create_gaea2_project(cls, **kwargs):
         server = cls._get_server()
+        # Call the method directly (not private)
         return await server.create_gaea2_project(**kwargs)
 
 
@@ -244,6 +249,7 @@ def test_property_coercion():
     print("✓ Unknown property allowed with warning")
 
 
+@pytest.mark.asyncio
 async def test_mcp_integration():
     """Test integration with MCP server"""
 

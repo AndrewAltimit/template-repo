@@ -17,7 +17,9 @@ class WorkflowExtractor:
     """Extracts workflow information from Gaea2 project data"""
 
     @staticmethod
-    def extract_workflow(project_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    def extract_workflow(
+        project_data: Dict[str, Any],
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         Extract nodes and connections from project data.
 
@@ -60,7 +62,7 @@ class WorkflowExtractor:
         """Navigate project structure to find terrain data"""
         if not isinstance(project_data, dict):
             raise Gaea2StructureError("Project data must be a dictionary")
-            
+
         # Try to get Assets
         assets = project_data.get("Assets", {})
 

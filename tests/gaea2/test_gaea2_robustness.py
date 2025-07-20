@@ -6,8 +6,14 @@ Comprehensive test of Gaea2 MCP robustness improvements
 import asyncio
 import json
 import os
+import sys
 import time
 from pathlib import Path
+
+# Add project root to Python path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+import pytest
 
 from tools.mcp.gaea2_cache import get_cache
 from tools.mcp.gaea2_logging import get_logger, log_operation
@@ -34,24 +40,29 @@ class MCPTools:
     @classmethod
     async def validate_and_fix_workflow(cls, **kwargs):
         server = cls._get_server()
+        # Call the method directly (not private)
         return await server.validate_and_fix_workflow(**kwargs)
 
     @classmethod
     async def repair_gaea2_project(cls, **kwargs):
         server = cls._get_server()
-        return await server.repair_gaea2_project(**kwargs)
+        # Call the private method directly
+        return await server._repair_project(**kwargs)
 
     @classmethod
     async def create_gaea2_from_template(cls, **kwargs):
         server = cls._get_server()
-        return await server.create_gaea2_from_template(**kwargs)
+        # Call the method directly (mapped to create_from_template)
+        return await server.create_from_template(**kwargs)
 
     @classmethod
     async def validate_gaea2_project(cls, **kwargs):
         server = cls._get_server()
+        # Call the method directly
         return await server.validate_gaea2_project(**kwargs)
 
 
+@pytest.mark.asyncio
 async def test_structure_validation():
     """Test structure validation and fixing"""
     print("\n=== Testing Structure Validation ===\n")
@@ -80,6 +91,7 @@ async def test_structure_validation():
     return fixed
 
 
+@pytest.mark.asyncio
 async def test_workflow_validation():
     """Test comprehensive workflow validation"""
     print("\n=== Testing Workflow Validation ===\n")
@@ -146,6 +158,7 @@ async def test_workflow_validation():
         return None
 
 
+@pytest.mark.asyncio
 async def test_caching():
     """Test caching system"""
     print("\n=== Testing Cache System ===\n")
@@ -184,6 +197,7 @@ async def test_caching():
     print("\nCache cleared")
 
 
+@pytest.mark.asyncio
 async def test_logging():
     """Test logging system"""
     print("\n=== Testing Logging System ===\n")
@@ -220,6 +234,7 @@ async def test_logging():
                     print(f"  [{log_entry['level']}] {log_entry['message']}")
 
 
+@pytest.mark.asyncio
 @log_operation("test_real_project_repair")
 async def test_real_project_repair():
     """Test with a real project file"""
@@ -253,6 +268,7 @@ async def test_real_project_repair():
                 print(f"  - {fix}")
 
 
+@pytest.mark.asyncio
 async def test_pattern_based_creation():
     """Test creating project with pattern knowledge"""
     print("\n=== Testing Pattern-Based Project Creation ===\n")
@@ -284,6 +300,7 @@ async def test_pattern_based_creation():
         Path("test_pattern_canyon.terrain").unlink(missing_ok=True)
 
 
+@pytest.mark.asyncio
 async def stress_test_performance():
     """Stress test with large workflow"""
     print("\n=== Performance Stress Test ===\n")

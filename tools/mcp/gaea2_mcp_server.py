@@ -1505,26 +1505,45 @@ class Gaea2MCPServer:
 
     async def _repair_project(self, project_path: str, backup: bool = True, aggressive: bool = False) -> Dict[str, Any]:
         """Repair project"""
-        repair = Gaea2ProjectRepair()
 
-        # Load project
-        project = repair.load_project(project_path)
-        if not project:
-            return {"success": False, "error": "Failed to load project"}
+        try:
+            # Create backup if requested
+            if backup:
+                backup_path = f"{project_path}.backup"
+                shutil.copy2(project_path, backup_path)
 
-        # Create backup if requested
-        if backup:
-            backup_path = f"{project_path}.backup"
-            shutil.copy2(project_path, backup_path)
+            # Load project
+            with open(project_path, "r") as f:
+                project_data = json.load(f)
 
-        # Repair
-        repaired, report = repair.repair_project(project, aggressive)
+            # Create repair instance and analyze
+            repair = Gaea2ProjectRepair()
+            analysis = repair.analyze_project(project_data)
 
-        # Save
-        if repair.save_project(repaired, project_path):
-            return {"success": True, "report": report}
-        else:
-            return {"success": False, "error": "Failed to save repaired project"}
+            # Repair if needed
+            if not analysis["success"]:
+                return analysis
+
+            # Perform repair
+            repair_result = repair.repair_project(
+                project_data,
+                auto_fix=True,
+                create_backup=False,  # We already created backup
+            )
+
+            # Save repaired project
+            if repair_result["success"]:
+                with open(project_path, "w") as f:
+                    json.dump(project_data, f, indent=2)
+
+            return {
+                "success": True,
+                "analysis": analysis,
+                "repair_result": repair_result,
+            }
+
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def _optimize_properties(
         self,

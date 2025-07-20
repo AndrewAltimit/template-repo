@@ -6,6 +6,12 @@ Test script for Gaea2 MCP enhancements
 import asyncio
 import json
 import os
+import sys
+
+# Add project root to Python path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+import pytest
 
 # Import Gaea2 MCP server
 from tools.mcp.gaea2_mcp_server import Gaea2MCPServer
@@ -33,19 +39,23 @@ class MCPTools:
     @classmethod
     async def analyze_workflow_patterns(cls, **kwargs):
         server = cls._get_server()
-        return await server.analyze_workflow_patterns(**kwargs)
+        # Call the private method directly
+        return await server._analyze_workflow_patterns(**kwargs)
 
     @classmethod
     async def repair_gaea2_project(cls, **kwargs):
         server = cls._get_server()
-        return await server.repair_gaea2_project(**kwargs)
+        # Call the private method directly
+        return await server._repair_project(**kwargs)
 
     @classmethod
     async def create_gaea2_project(cls, **kwargs):
         server = cls._get_server()
+        # Call the method directly (not private)
         return await server.create_gaea2_project(**kwargs)
 
 
+@pytest.mark.asyncio
 async def test_pattern_knowledge():
     """Test pattern knowledge functions"""
     print("=== Testing Pattern Knowledge ===\n")
@@ -75,6 +85,7 @@ async def test_pattern_knowledge():
     print(f"   Erosion2 (performance mode): {json.dumps(props, indent=2)}")
 
 
+@pytest.mark.asyncio
 async def test_workflow_analyzer():
     """Test workflow analyzer with pattern knowledge"""
     print("\n=== Testing Workflow Analyzer ===\n")
@@ -85,7 +96,9 @@ async def test_workflow_analyzer():
         {"type": "Erosion2", "name": "Erosion1"},
     ]
 
-    result = await MCPTools.analyze_workflow_patterns(current_workflow=test_nodes)
+    # Create a workflow dict with nodes
+    test_workflow = {"nodes": test_nodes, "connections": []}
+    result = await MCPTools.analyze_workflow_patterns(workflow_or_directory=test_workflow)
 
     if result["success"]:
         print("Workflow analysis successful!")
@@ -98,6 +111,7 @@ async def test_workflow_analyzer():
         print(f"Error: {result.get('error')}")
 
 
+@pytest.mark.asyncio
 async def test_project_repair():
     """Test project repair functionality"""
     print("\n=== Testing Project Repair ===\n")
@@ -136,7 +150,18 @@ async def test_project_repair():
         },
     }
 
-    result = await MCPTools.repair_gaea2_project(project_data=project_data, auto_fix=True)
+    # Write project to a temporary file
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".terrain", delete=False) as f:
+        json.dump(project_data, f)
+        temp_path = f.name
+
+    try:
+        result = await MCPTools.repair_gaea2_project(project_path=temp_path, backup=True)
+    finally:
+        # Clean up temp file
+        os.unlink(temp_path)
 
     if result["success"]:
         print("Project repair successful!")
@@ -153,6 +178,7 @@ async def test_project_repair():
         print(f"Error: {result.get('error')}")
 
 
+@pytest.mark.asyncio
 async def test_template_with_knowledge():
     """Test creating project from template with pattern knowledge"""
     print("\n=== Testing Template Creation with Knowledge ===\n")
