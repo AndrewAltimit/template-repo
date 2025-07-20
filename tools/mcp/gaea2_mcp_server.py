@@ -356,6 +356,7 @@ class Gaea2MCPServer:
             ref_id_counter += 1
 
             gaea_node["SnapIns"] = {"$id": str(ref_id_counter), "$values": []}
+            ref_id_counter += 1  # FIX: Increment counter to avoid duplicate IDs
 
             # Add ports based on node type
             node_str_id = node.get("id", f"node_{i}")

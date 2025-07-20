@@ -7,15 +7,15 @@
         "$id": "3",
         "Terrain": {
           "$id": "4",
-          "Id": "fa2524f8-f7dc-40fc-b82e-f00dd444781f",
+          "Id": "c4b5e8d0-0f29-41de-b916-da0c0614b33c",
           "Metadata": {
             "$id": "5",
             "Name": "complex_terrain_workflow",
             "Description": "Created by Gaea2 MCP Server",
             "Version": "2.0.6.0",
-            "DateCreated": "2025-07-20 01:30:19Z",
-            "DateLastBuilt": "2025-07-20 01:30:19Z",
-            "DateLastSaved": "2025-07-20 01:30:19Z",
+            "DateCreated": "2025-07-20 01:47:30Z",
+            "DateLastBuilt": "2025-07-20 01:47:30Z",
+            "DateLastSaved": "2025-07-20 01:47:30Z",
             "ModifiedVersion": "2.0.6.0"
           },
           "Nodes": {
@@ -200,10 +200,8 @@
               "$type": "QuadSpinner.Gaea.Nodes.Erosion2, Gaea.Nodes",
               "Duration": 0.2,
               "Downcutting": 0.3,
-              "Rock Softness": 0.6,
-              "SedimentRemoval": 0.5,
-              "Intensity": 0.5,
-              "Base Level": 0.1,
+              "ErosionScale": 5000.0,
+              "Seed": 12686,
               "Id": 281,
               "Name": "Advanced Erosion",
               "Position": {
@@ -270,7 +268,7 @@
                   {
                     "$id": "39",
                     "Name": "Mask",
-                    "Type": "Out",
+                    "Type": "In",
                     "IsExporting": true,
                     "Parent": {
                       "$ref": "29"
@@ -667,7 +665,7 @@
       }
     ]
   },
-  "Id": "fa2524f8",
+  "Id": "c4b5e8d0",
   "Branch": 1,
   "Metadata": {
     "$id": "91",
@@ -675,8 +673,8 @@
     "Description": "Created by Gaea2 MCP Server",
     "Version": "2.0.6.0",
     "Owner": "",
-    "DateCreated": "2025-07-20 01:30:19Z",
-    "DateLastBuilt": "2025-07-20 01:30:19Z",
-    "DateLastSaved": "2025-07-20 01:30:19Z"
+    "DateCreated": "2025-07-20 01:47:30Z",
+    "DateLastBuilt": "2025-07-20 01:47:30Z",
+    "DateLastSaved": "2025-07-20 01:47:30Z"
   }
 }
