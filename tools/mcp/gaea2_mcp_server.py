@@ -1065,35 +1065,16 @@ class Gaea2MCPServer:
                 else:
                     results["fix_errors"] = fixed_result.get("message", "Failed to fix")
 
-            # Add missing essential nodes
+            # CRITICAL FIX: Do NOT add Export or SatMap nodes!
+            # Reference files that work have NO Export nodes
+            # Export functionality is handled by SaveDefinition, not Export nodes
+            # Disconnected nodes prevent files from opening
             if add_missing_nodes:
-                # Check for essential nodes like Export and SatMap
-                nodes = workflow.get("nodes", [])
-                node_types = [node.get("type") for node in nodes]
-
-                if "Export" not in node_types:
-                    # Add Export node
-                    export_node = {
-                        "id": max([n.get("id", 0) for n in nodes] + [0]) + 1,
-                        "type": "Export",
-                        "name": "AutoExport",
-                        "properties": {"format": "png", "enabled": True},
-                        "position": {"x": 1000, "y": 0},
-                    }
-                    workflow["nodes"].append(export_node)
-                    results.setdefault("added_nodes", []).append("Export")
-
-                if "SatMap" not in node_types and any(t in node_types for t in ["Mountain", "Erosion", "Erosion2"]):
-                    # Add SatMap for visualization
-                    satmap_node = {
-                        "id": max([n.get("id", 0) for n in nodes] + [0]) + 2,
-                        "type": "SatMap",
-                        "name": "AutoSatMap",
-                        "properties": {},
-                        "position": {"x": 800, "y": 0},
-                    }
-                    workflow["nodes"].append(satmap_node)
-                    results.setdefault("added_nodes", []).append("SatMap")
+                # Based on Gemini consultation and reference file analysis:
+                # 1. Export nodes should NOT be in the main graph
+                # 2. Disconnected nodes (like auto-added SatMap) prevent opening
+                # 3. SaveDefinition handles export functionality
+                pass  # Do not add any nodes automatically!
 
             # Optimize if requested
             if optimize_workflow:
