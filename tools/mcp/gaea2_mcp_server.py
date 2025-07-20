@@ -188,9 +188,10 @@ class Gaea2MCPServer:
         gaea_nodes = {}
 
         for i, node in enumerate(nodes):
-            # Generate non-sequential IDs for better Gaea2 compatibility
-            node_id = generate_non_sequential_id(100 + i * 50, used_ids)
-            used_ids.append(node_id)
+            # Use original node IDs to maintain consistency
+            node_id = node.get("id", generate_non_sequential_id(100 + i * 50, used_ids))
+            if node_id not in used_ids:
+                used_ids.append(node_id)
             node_id_map[node.get("id", f"node_{i}")] = node_id
 
             # Get node type
