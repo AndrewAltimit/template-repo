@@ -6,6 +6,7 @@ services:
       context: .
       dockerfile: docker/mcp-code-quality.Dockerfile
     container_name: mcp-code-quality
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8010:8010"
     volumes:
@@ -26,6 +27,7 @@ services:
       context: .
       dockerfile: docker/mcp-content.Dockerfile
     container_name: mcp-content-creation
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8011:8011"
     volumes:
@@ -46,6 +48,7 @@ services:
       context: .
       dockerfile: docker/mcp-gaea2.Dockerfile
     container_name: mcp-gaea2
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8007:8007"
     volumes:

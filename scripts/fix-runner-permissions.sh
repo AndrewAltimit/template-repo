@@ -84,10 +84,76 @@ if [ "$pyc_count" -gt 0 ]; then
     fi
 fi
 
+# Fix output directories
+echo ""
+echo "🔧 Fixing output directories..."
+output_dirs=$(find "$RUNNER_WORKSPACE" -type d -name "output" 2>/dev/null | head -20)
+
+if [ -n "$output_dirs" ]; then
+    echo "Found output directories:"
+    echo "$output_dirs"
+
+    for dir in $output_dirs; do
+        echo "Processing: $dir"
+
+        # Try to fix permissions first
+        if command -v sudo &> /dev/null; then
+            # Change ownership to current user
+            if sudo chown -R $USER:$USER "$dir" 2>/dev/null; then
+                echo "✅ Fixed ownership: $dir"
+                # Then try to remove it
+                if rm -rf "$dir" 2>/dev/null; then
+                    echo "✅ Removed: $dir"
+                    ((removed_count++))
+                fi
+            else
+                # If can't fix ownership, try to remove with sudo
+                if sudo rm -rf "$dir" 2>/dev/null; then
+                    echo "✅ Removed with sudo: $dir"
+                    ((removed_count++))
+                else
+                    echo "❌ Could not fix or remove: $dir"
+                fi
+            fi
+        else
+            # No sudo available, try normal removal
+            if rm -rf "$dir" 2>/dev/null; then
+                echo "✅ Removed: $dir"
+                ((removed_count++))
+            else
+                echo "❌ Could not remove (no sudo available): $dir"
+            fi
+        fi
+    done
+else
+    echo "No output directories found"
+fi
+
+echo ""
+echo "🔧 Configuring git safe directories..."
+# Add workspace to git safe directories to prevent ownership issues
+if command -v git &> /dev/null; then
+    # Add the runner workspace to safe directories
+    git config --global --add safe.directory "$RUNNER_WORKSPACE" 2>/dev/null || true
+    git config --global --add safe.directory "$RUNNER_WORKSPACE/template-repo" 2>/dev/null || true
+    git config --global --add safe.directory "$RUNNER_WORKSPACE/template-repo/template-repo" 2>/dev/null || true
+    echo "✅ Git safe directories configured"
+else
+    echo "⚠️  Git not found, skipping safe directory configuration"
+fi
+
+echo ""
 echo "✅ Permission fix complete!"
+echo ""
+echo "📌 Summary:"
+echo "- Removed/fixed: $removed_count items"
+echo "- Failed: $failed_count items"
 echo ""
 echo "📌 Next steps:"
 echo "1. Try running your GitHub Actions workflow again"
 echo "2. If issues persist, you may need to manually remove the workspace:"
-echo "   rm -rf $RUNNER_WORKSPACE/template-repo"
-echo "3. The prevention measures in place should prevent this from happening again"
+echo "   sudo rm -rf $RUNNER_WORKSPACE/template-repo"
+echo "3. The prevention measures now in place should prevent this from happening again:"
+echo "   - MCP containers run with proper user permissions"
+echo "   - Output directories are cleaned before each run"
+echo "   - Git safe directories are configured"

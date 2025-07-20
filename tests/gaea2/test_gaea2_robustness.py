@@ -254,7 +254,13 @@ async def test_real_project_repair():
         Path(
             os.environ.get(
                 "GAEA_OFFICIAL_PROJECTS_DIR",
-                os.path.join(os.path.expanduser("~"), "Documents", "references", "Real Projects", "Official Gaea Projects"),
+                os.path.join(
+                    os.path.expanduser("~"),
+                    "Documents",
+                    "references",
+                    "Real Projects",
+                    "Official Gaea Projects",
+                ),
             )
         )
         / "High Mountain Peak.terrain"
@@ -268,7 +274,13 @@ async def test_real_project_repair():
                 "$values": [
                     {
                         "Terrain": {
-                            "Nodes": {"100": {"$type": "QuadSpinner.Gaea.Mountain, Gaea", "Name": "Mountain1", "Scale": 1.0}}
+                            "Nodes": {
+                                "100": {
+                                    "$type": "QuadSpinner.Gaea.Mountain, Gaea",
+                                    "Name": "Mountain1",
+                                    "Scale": 1.0,
+                                }
+                            }
                         }
                     }
                 ]

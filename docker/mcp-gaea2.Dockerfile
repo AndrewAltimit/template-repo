@@ -20,8 +20,8 @@ RUN pip install --no-cache-dir \
 # Create app directory
 WORKDIR /app
 
-# Create output directory for terrain files
-RUN mkdir -p /app/output/gaea2
+# Note: Output directory will be created at runtime with proper permissions
+# Do not create it in the Dockerfile to avoid permission issues
 
 # Copy MCP server code
 COPY tools/mcp /app/tools/mcp

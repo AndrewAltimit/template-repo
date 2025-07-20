@@ -50,9 +50,6 @@ RUN pip install --no-cache-dir \
 # Create app directory
 WORKDIR /app
 
-# Create output directory
-RUN mkdir -p /app/output
-
 # Copy MCP server code
 COPY tools/mcp /app/tools/mcp
 

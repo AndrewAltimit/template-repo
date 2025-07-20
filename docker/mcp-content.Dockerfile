@@ -37,9 +37,6 @@ RUN pip install --no-cache-dir \
 # Create app directory
 WORKDIR /app
 
-# Create output directories
-RUN mkdir -p /app/output/manim /app/output/latex
-
 # Copy MCP server code
 COPY tools/mcp /app/tools/mcp
 

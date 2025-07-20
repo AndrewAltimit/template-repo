@@ -303,6 +303,46 @@ jobs:
           echo "✅ Python cache cleaned"
           echo ""
 
+      - name: Clean Output Directories
+        run: |
+          echo "📁 Cleaning Output Directories"
+          echo "============================"
+          echo ""
+
+          # Clean output directories that may have permission issues
+          # This is especially important for directories created by Docker containers
+          echo "Searching for output directories..."
+
+          # Find all output directories in the workspace
+          output_dirs=$(find . -type d -name "output" 2>/dev/null | head -20)
+
+          if [ -z "$output_dirs" ]; then
+            echo "No output directories found"
+          else
+            echo "Found output directories:"
+            echo "$output_dirs"
+            echo ""
+
+            for dir in $output_dirs; do
+              echo "Cleaning: $dir"
+              if rm -rf "$dir" 2>/dev/null; then
+                echo "✅ Cleaned: $dir"
+              else
+                # Try with sudo if available
+                if command -v sudo &> /dev/null; then
+                  echo "⚠️  Permission issues, trying with sudo: $dir"
+                  sudo rm -rf "$dir" && echo "✅ Cleaned with sudo: $dir" || echo "❌ Could not remove: $dir"
+                else
+                  echo "❌ Could not remove (permission denied): $dir"
+                fi
+              fi
+            done
+          fi
+
+          echo ""
+          echo "✅ Output directory cleanup completed"
+          echo ""
+
       - name: Clean Docker Resources
         if: github.event.inputs.force_cleanup != 'true'
         run: |
