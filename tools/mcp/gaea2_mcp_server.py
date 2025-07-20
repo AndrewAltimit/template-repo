@@ -204,8 +204,9 @@ class Gaea2MCPServer:
             if node_id not in used_ids:
                 used_ids.append(node_id)
 
-            node_id_map[original_id] = node_id
-            self.logger.debug(f"Added to node_id_map: {original_id} -> {node_id}")
+            # Store with string key to ensure consistent lookups
+            node_id_map[str(original_id)] = node_id
+            self.logger.debug(f"Added to node_id_map: {str(original_id)} -> {node_id}")
 
             # Get node type
             node_type = node.get("type", "Mountain")
@@ -419,7 +420,9 @@ class Gaea2MCPServer:
                 # Check if this port has an incoming connection
                 if node_str_id in node_connections and "In" in node_connections[node_str_id]:
                     conn = node_connections[node_str_id]["In"]
-                    from_id = node_id_map.get(conn.get("from_node"))
+                    # Convert from_node to string for lookup
+                    from_node = conn.get("from_node")
+                    from_id = node_id_map.get(str(from_node)) if from_node is not None else None
                     if from_id:
                         port_in["Record"] = {
                             "$id": str(ref_id_counter),
@@ -460,7 +463,9 @@ class Gaea2MCPServer:
                     # Check for connection
                     if node_str_id in node_connections and port_name in node_connections[node_str_id]:
                         conn = node_connections[node_str_id][port_name]
-                        from_id = node_id_map.get(conn.get("from_node"))
+                        # Convert from_node to string for lookup
+                        from_node = conn.get("from_node")
+                        from_id = node_id_map.get(str(from_node)) if from_node is not None else None
                         if from_id:
                             port["Record"] = {
                                 "$id": str(ref_id_counter),
@@ -501,7 +506,9 @@ class Gaea2MCPServer:
                 # Check for connection
                 if node_str_id in node_connections and "In" in node_connections[node_str_id]:
                     conn = node_connections[node_str_id]["In"]
-                    from_id = node_id_map.get(conn.get("from_node"))
+                    # Convert from_node to string for lookup
+                    from_node = conn.get("from_node")
+                    from_id = node_id_map.get(str(from_node)) if from_node is not None else None
                     if from_id:
                         port_in["Record"] = {
                             "$id": str(ref_id_counter),
@@ -538,59 +545,6 @@ class Gaea2MCPServer:
                 ref_id_counter += 1
                 gaea_node["Ports"]["$values"].append(port_mask)
 
-            elif node_type == "Rivers":
-                # Rivers has multiple ports - some inputs, some outputs
-                # Primary input port
-                port_in = {
-                    "$id": str(ref_id_counter),
-                    "Name": "In",
-                    "Type": "PrimaryIn",
-                    "IsExporting": True,
-                    "Parent": {"$ref": node_ref_id},
-                }
-                ref_id_counter += 1
-
-                # Check for connection
-                if node_str_id in node_connections and "In" in node_connections[node_str_id]:
-                    conn = node_connections[node_str_id]["In"]
-                    from_id = node_id_map.get(conn.get("from_node"))
-                    if from_id:
-                        port_in["Record"] = {
-                            "$id": str(ref_id_counter),
-                            "From": from_id,
-                            "To": node_id,
-                            "FromPort": conn.get("from_port", "Out"),
-                            "ToPort": "In",
-                            "IsValid": True,
-                        }
-                        ref_id_counter += 1
-
-                gaea_node["Ports"]["$values"].append(port_in)
-
-                # Output ports
-                for port_name in ["Out", "Rivers", "Depth", "Surface", "Direction"]:
-                    port = {
-                        "$id": str(ref_id_counter),
-                        "Name": port_name,
-                        "Type": "PrimaryOut" if port_name == "Out" else "Out",
-                        "IsExporting": True,
-                        "Parent": {"$ref": node_ref_id},
-                    }
-                    ref_id_counter += 1
-                    gaea_node["Ports"]["$values"].append(port)
-
-                # Input ports (Headwaters and Mask)
-                for port_name in ["Headwaters", "Mask"]:
-                    port = {
-                        "$id": str(ref_id_counter),
-                        "Name": port_name,
-                        "Type": "In",
-                        "IsExporting": True,
-                        "Parent": {"$ref": node_ref_id},
-                    }
-                    ref_id_counter += 1
-                    gaea_node["Ports"]["$values"].append(port)
-
             elif node_type == "Sea":
                 # Sea has In, Out, and special outputs like Water, Depth, Shore, Surface
                 # In port
@@ -605,7 +559,9 @@ class Gaea2MCPServer:
                 # Check for connection
                 if node_str_id in node_connections and "In" in node_connections[node_str_id]:
                     conn = node_connections[node_str_id]["In"]
-                    from_id = node_id_map.get(conn.get("from_node"))
+                    # Convert from_node to string for lookup
+                    from_node = conn.get("from_node")
+                    from_id = node_id_map.get(str(from_node)) if from_node is not None else None
                     if from_id:
                         port_in["Record"] = {
                             "$id": str(ref_id_counter),
@@ -647,7 +603,9 @@ class Gaea2MCPServer:
                     # Check for connection
                     if node_str_id in node_connections and port_name in node_connections[node_str_id]:
                         conn = node_connections[node_str_id][port_name]
-                        from_id = node_id_map.get(conn.get("from_node"))
+                        # Convert from_node to string for lookup
+                        from_node = conn.get("from_node")
+                        from_id = node_id_map.get(str(from_node)) if from_node is not None else None
                         if from_id:
                             port["Record"] = {
                                 "$id": str(ref_id_counter),
@@ -688,7 +646,9 @@ class Gaea2MCPServer:
                 # Check for connection
                 if node_str_id in node_connections and "In" in node_connections[node_str_id]:
                     conn = node_connections[node_str_id]["In"]
-                    from_id = node_id_map.get(conn.get("from_node"))
+                    # Convert from_node to string for lookup
+                    from_node = conn.get("from_node")
+                    from_id = node_id_map.get(str(from_node)) if from_node is not None else None
                     if from_id:
                         self.logger.debug(
                             f"Standard node {node_str_id}: Found connection from {conn['from_node']} (mapped to {from_id})"
@@ -724,6 +684,28 @@ class Gaea2MCPServer:
                 ref_id_counter += 1
 
             gaea_nodes[str(node_id)] = gaea_node
+
+        # Log final connection summary
+        self.logger.info("=== Connection Processing Summary ===")
+        self.logger.info(f"Total nodes processed: {len(nodes)}")
+        self.logger.info(f"Total connections expected: {len(connections)}")
+
+        # Count actual connections created
+        actual_connections = 0
+        for node_id, node_data in gaea_nodes.items():
+            if "Ports" in node_data and "$values" in node_data["Ports"]:
+                for port in node_data["Ports"]["$values"]:
+                    if "Record" in port:
+                        actual_connections += 1
+                        record = port["Record"]
+                        self.logger.debug(
+                            f"Found connection: {record['From']} -> {record['To']} "
+                            f"({record['FromPort']} -> {record['ToPort']})"
+                        )
+
+        self.logger.info(f"Total connections created: {actual_connections}")
+        if actual_connections < len(connections):
+            self.logger.warning(f"Missing {len(connections) - actual_connections} connections!")
 
         # Create the full project structure with sequential IDs
         # Use IDs 1-6 for the project structure (before nodes)
