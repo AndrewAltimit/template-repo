@@ -8,6 +8,8 @@ from Gaea2 project data, reducing code duplication across the codebase.
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
+from ..exceptions import Gaea2ParseError, Gaea2StructureError
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,13 +48,19 @@ class WorkflowExtractor:
 
             return nodes, connections
 
+        except Gaea2ParseError:
+            # Re-raise parse errors
+            raise
         except Exception as e:
             logger.error(f"Failed to extract workflow: {str(e)}")
-            return nodes, connections
+            raise Gaea2ParseError(f"Failed to extract workflow: {str(e)}") from e
 
     @staticmethod
     def _get_terrain_data(project_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Navigate project structure to find terrain data"""
+        if not isinstance(project_data, dict):
+            raise Gaea2StructureError("Project data must be a dictionary")
+            
         # Try to get Assets
         assets = project_data.get("Assets", {})
 

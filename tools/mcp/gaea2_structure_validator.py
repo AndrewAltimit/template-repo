@@ -8,6 +8,8 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
+from tools.mcp.gaea2.exceptions import Gaea2StructureError
+
 logger = logging.getLogger(__name__)
 
 
@@ -92,7 +94,10 @@ class Gaea2StructureValidator:
         """Validate top-level structure"""
         for key in self.REQUIRED_KEYS:
             if key not in project_data:
-                self.errors.append(f"Missing required top-level key: {key}")
+                error_msg = f"Missing required top-level key: {key}"
+                self.errors.append(error_msg)
+                # Could raise exception here if desired
+                # raise Gaea2StructureError(error_msg, missing_key=key)
 
         # Check types
         if "$id" in project_data and not isinstance(project_data["$id"], str):

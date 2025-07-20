@@ -9,6 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from ..exceptions import Gaea2FileError, Gaea2RuntimeError, Gaea2TimeoutError
+
 
 class Gaea2CLIAutomation:
     """Automate Gaea2 via command line interface"""
@@ -35,9 +37,10 @@ class Gaea2CLIAutomation:
 
         project_path = Path(project_path)
         if not project_path.exists():
-            return {
-                "success": False,
-                "error": f"Project file not found: {project_path}",
+            raise Gaea2FileError(
+                f"Project file not found: {project_path}",
+                file_path=str(project_path)
+            )
             }
 
         try:
