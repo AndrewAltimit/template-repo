@@ -627,11 +627,11 @@ class Gaea2MCPServer:
         }
 
         # Groups
-        asset_value["Terrain"]["Groups"] = {"$id": str(ref_id_counter), "$values": []}
+        asset_value["Terrain"]["Groups"] = {"$id": str(ref_id_counter)}
         ref_id_counter += 1
 
         # Notes
-        asset_value["Terrain"]["Notes"] = {"$id": str(ref_id_counter), "$values": []}
+        asset_value["Terrain"]["Notes"] = {"$id": str(ref_id_counter)}
         ref_id_counter += 1
 
         # GraphTabs

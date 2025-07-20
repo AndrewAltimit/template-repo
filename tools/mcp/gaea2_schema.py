@@ -320,7 +320,7 @@ NODE_PROPERTY_DEFINITIONS = {
             "range": {"min": 0.0, "max": 20.0},
             "description": "Duration of erosion simulation",
         },
-        "Rock Softness": {
+        "RockSoftness": {
             "type": "float",
             "default": 0.4,
             "range": {"min": 0.0, "max": 1.0},
@@ -343,22 +343,22 @@ NODE_PROPERTY_DEFINITIONS = {
             "default": 0.0,
             "range": {"min": 0.0, "max": 1.0},
         },
-        "Base Level": {
+        "BaseLevel": {
             "type": "float",
             "default": 0.0,
             "range": {"min": 0.0, "max": 1.0},
         },
         # Scale section
-        "Feature Scale": {
+        "FeatureScale": {
             "type": "int",
             "default": 2000,
             "range": {"min": 50, "max": 10000},
             "description": "Size of erosion features in meters",
         },
-        "Real Scale": {"type": "bool", "default": False},
+        "RealScale": {"type": "bool", "default": False},
         # Other Settings section
         "Seed": {"type": "int", "default": 0, "range": {"min": 0, "max": 999999}},
-        "Aggressive Mode": {"type": "bool", "default": False},
+        "AggressiveMode": {"type": "bool", "default": False},
         "Deterministic": {"type": "bool", "default": False},
     },
     "Combine": {
@@ -473,19 +473,19 @@ NODE_PROPERTY_DEFINITIONS = {
             "default": 0.5,
             "range": {"min": 0.0, "max": 1.0},
         },
-        "Settle Duration": {
+        "SettleDuration": {
             "type": "float",
             "default": 0.5,
             "range": {"min": 0.0, "max": 1.0},
         },
         # Melt section
-        "Melt Type": {
+        "MeltType": {
             "type": "enum",
             "options": ["Uniform", "Directional"],
             "default": "Uniform",
         },
         "Melt": {"type": "float", "default": 0.0, "range": {"min": 0.0, "max": 1.0}},
-        "Melt Remnants": {
+        "MeltRemnants": {
             "type": "float",
             "default": 0.0,
             "range": {"min": 0.0, "max": 1.0},
@@ -495,18 +495,18 @@ NODE_PROPERTY_DEFINITIONS = {
             "default": 0.0,
             "range": {"min": 0.0, "max": 360.0},
         },
-        "Snow Line": {
+        "SnowLine": {
             "type": "float",
             "default": 0.7,
             "range": {"min": 0.0, "max": 1.0},
         },
         # Advanced section
-        "Slip-off angle": {
+        "SlipOffAngle": {
             "type": "float",
             "default": 35.0,
             "range": {"min": 0.0, "max": 90.0},
         },
-        "Real Scale": {"type": "bool", "default": False},
+        "RealScale": {"type": "bool", "default": False},
     },
     "Volcano": {
         "Scale": {"type": "float", "default": 1.0, "range": {"min": 0.1, "max": 5.0}},
@@ -832,13 +832,13 @@ NODE_PROPERTY_DEFINITIONS = {
             "range": {"min": 0.0, "max": 1.0},
             "description": "Crater depth",
         },
-        "Inner Slope": {
+        "InnerSlope": {
             "type": "float",
             "default": 0.7,
             "range": {"min": 0.0, "max": 1.0},
             "description": "Inner crater wall slope",
         },
-        "Outer Slope": {
+        "OuterSlope": {
             "type": "float",
             "default": 0.3,
             "range": {"min": 0.0, "max": 1.0},
@@ -1155,9 +1155,9 @@ WORKFLOW_TEMPLATES = {
             "properties": {"Scale": 1.0, "Height": 0.7, "Style": "Alpine"},
         },
         {
-            "type": "Erosion",
+            "type": "Erosion2",
             "name": "NaturalErosion",
-            "properties": {"Duration": 0.04, "Rock Softness": 0.4, "Strength": 0.5},
+            "properties": {"Duration": 0.04, "Downcutting": 0.3, "ErosionScale": 5000.0, "Seed": 12345},
         },
         {"type": "TextureBase", "name": "BaseTexture", "properties": {}},
         {
@@ -1188,14 +1188,9 @@ WORKFLOW_TEMPLATES = {
             "properties": {"Mode": "Max", "Ratio": 0.7},
         },
         {
-            "type": "Erosion",
+            "type": "Erosion2",
             "name": "InitialErosion",
-            "properties": {
-                "Duration": 0.05,
-                "Rock Softness": 0.35,
-                "Strength": 0.6,
-                "Feature Scale": 2000,
-            },
+            "properties": {"Duration": 0.05, "Downcutting": 0.35, "ErosionScale": 6000.0, "Seed": 23456},
         },
         {
             "type": "Rivers",
@@ -1205,7 +1200,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Snow",
             "name": "SnowCaps",
-            "properties": {"Duration": 0.6, "Snow Line": 0.75},
+            "properties": {"Duration": 0.6, "SnowLine": 0.75},
         },
         {
             "type": "SatMap",
@@ -1230,9 +1225,9 @@ WORKFLOW_TEMPLATES = {
             "properties": {"Mode": "Add", "Ratio": 0.8},
         },
         {
-            "type": "Erosion",
+            "type": "Erosion2",
             "name": "LavaErosion",
-            "properties": {"Duration": 0.03, "Rock Softness": 0.6, "Strength": 0.4},
+            "properties": {"Duration": 0.03, "Downcutting": 0.4, "ErosionScale": 4000.0, "Seed": 34567},
         },
         {
             "type": "Thermal",
@@ -1269,9 +1264,9 @@ WORKFLOW_TEMPLATES = {
             },
         },
         {
-            "type": "Erosion",
+            "type": "Erosion2",
             "name": "WindErosion",
-            "properties": {"Duration": 0.02, "Rock Softness": 0.3, "Strength": 0.3},
+            "properties": {"Duration": 0.02, "Downcutting": 0.2, "ErosionScale": 3000.0, "Seed": 45678},
         },
         {
             "type": "Sand",
@@ -1301,14 +1296,9 @@ WORKFLOW_TEMPLATES = {
             "properties": {"PortalName": "Primary_Shape"},
         },
         {
-            "type": "Erosion",
+            "type": "Erosion2",
             "name": "DetailedErosion",
-            "properties": {
-                "Duration": 0.06,
-                "Rock Softness": 0.4,
-                "Strength": 0.7,
-                "Feature Scale": 3000,
-            },
+            "properties": {"Duration": 0.06, "Downcutting": 0.4, "ErosionScale": 8000.0, "Seed": 56789},
         },
         {
             "type": "PortalTransmit",
@@ -1372,7 +1362,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Snow",
             "name": "SnowLine",
-            "properties": {"Duration": 0.7, "Snow Line": 0.7, "Melt": 0.2},
+            "properties": {"Duration": 0.7, "SnowLine": 0.7, "Melt": 0.2},
         },
         {
             "type": "SatMap",
@@ -1481,14 +1471,9 @@ WORKFLOW_TEMPLATES = {
             "properties": {"Width": 200.0, "Slope": 0.1},
         },
         {
-            "type": "Erosion",
+            "type": "Erosion2",
             "name": "CoastalErosion",
-            "properties": {
-                "Duration": 0.04,
-                "Rock Softness": 0.5,
-                "Strength": 0.4,
-                "Downcutting": 0.1,
-            },
+            "properties": {"Duration": 0.04, "Downcutting": 0.1, "ErosionScale": 5000.0, "Seed": 67890},
         },
         {
             "type": "SatMap",
@@ -1515,7 +1500,7 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Snow",
             "name": "SnowCover",
-            "properties": {"Duration": 0.9, "Snow Line": 0.1, "Melt": 0.05},
+            "properties": {"Duration": 0.9, "SnowLine": 0.1, "Melt": 0.05},
         },
         {
             "type": "Thermal",
