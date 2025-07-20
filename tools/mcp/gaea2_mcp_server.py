@@ -121,10 +121,12 @@ class Gaea2MCPServer:
             for conn in connections:
                 to_id = conn.get("to_node")
                 to_port = conn.get("to_port", "In")
-                if to_id not in node_connections:
-                    node_connections[to_id] = {}
-                node_connections[to_id][to_port] = conn
-                self.logger.debug(f"Added connection: {conn['from_node']} -> {to_id}:{to_port}")
+                # Ensure to_id is stored as string to match node_str_id later
+                to_id_str = str(to_id) if to_id is not None else None
+                if to_id_str not in node_connections:
+                    node_connections[to_id_str] = {}
+                node_connections[to_id_str][to_port] = conn
+                self.logger.debug(f"Added connection: {conn['from_node']} -> {to_id_str}:{to_port}")
             self.logger.info(f"Node connections dict keys: {list(node_connections.keys())}")
 
         # Node type mapping to Gaea2 .NET types
@@ -387,8 +389,12 @@ class Gaea2MCPServer:
             ref_id_counter += 1  # FIX: Increment counter to avoid duplicate IDs
 
             # Add ports based on node type
-            node_str_id = node.get("id", f"node_{i}")
+            node_str_id = str(node.get("id", f"node_{i}"))
             self.logger.debug(f"Processing node {node_str_id} (type: {node_type}), looking for connections")
+            if node_str_id in node_connections:
+                self.logger.debug(f"  Found connections for {node_str_id}: {list(node_connections[node_str_id].keys())}")
+            else:
+                self.logger.debug(f"  No connections found for {node_str_id} in {list(node_connections.keys())[:10]}...")
 
             if node_type in ["Export", "SatMap"]:
                 # In port
