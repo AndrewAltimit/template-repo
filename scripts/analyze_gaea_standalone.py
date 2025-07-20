@@ -1,10 +1,23 @@
 #!/usr/bin/env python3
 """
 Standalone Gaea2 project analyzer
+
+Usage:
+    python analyze_gaea_standalone.py
+
+Environment variables:
+    GAEA_OFFICIAL_PROJECTS_DIR: Path to official Gaea projects directory
+    GAEA_USER_PROJECTS_DIR: Path to user projects directory
+
+Example:
+    export GAEA_OFFICIAL_PROJECTS_DIR="/path/to/official/projects"
+    export GAEA_USER_PROJECTS_DIR="/path/to/user/projects"
+    python analyze_gaea_standalone.py
 """
 
 import json
 import logging
+import os
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
@@ -96,11 +109,42 @@ def analyze_projects():
     workflow_patterns = []
     projects_analyzed = 0
 
-    # Analyze directories
-    directories = [
-        "/home/miku/Documents/references/Real Projects/Official Gaea Projects",
-        "/home/miku/Documents/references/Real Projects/mikus files",
-    ]
+    # Get project directories from environment or use defaults
+    default_official_dir = os.path.join(
+        os.path.expanduser("~"),
+        "Documents",
+        "references",
+        "Real Projects",
+        "Official Gaea Projects",
+    )
+    default_user_dir = os.path.join(
+        os.path.expanduser("~"),
+        "Documents",
+        "references",
+        "Real Projects",
+        "user files",
+    )
+
+    official_dir = os.environ.get("GAEA_OFFICIAL_PROJECTS_DIR", default_official_dir)
+    user_dir = os.environ.get("GAEA_USER_PROJECTS_DIR", default_user_dir)
+
+    # Build list of directories that exist
+    directories = []
+    if os.path.exists(official_dir):
+        directories.append(official_dir)
+    else:
+        print(f"Warning: Official projects directory not found: {official_dir}")
+        print("Set GAEA_OFFICIAL_PROJECTS_DIR environment variable to specify the correct path")
+
+    if os.path.exists(user_dir):
+        directories.append(user_dir)
+    else:
+        print(f"Warning: User projects directory not found: {user_dir}")
+        print("Set GAEA_USER_PROJECTS_DIR environment variable to specify the correct path")
+
+    if not directories:
+        print("\nNo project directories found. Please set environment variables.")
+        return
 
     for directory in directories:
         print(f"\nAnalyzing projects in: {directory}")

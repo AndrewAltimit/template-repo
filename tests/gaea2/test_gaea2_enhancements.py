@@ -5,6 +5,7 @@ Test script for Gaea2 MCP enhancements
 
 import asyncio
 import json
+import os
 
 # Import Gaea2 MCP server
 from tools.mcp.gaea2_mcp_server import Gaea2MCPServer
@@ -17,19 +18,32 @@ from tools.mcp.gaea2_pattern_knowledge import (
 
 # Create a mock MCPTools class for backward compatibility
 class MCPTools:
-    server = Gaea2MCPServer()
+    server = None
+
+    @classmethod
+    def _get_server(cls):
+        if cls.server is None:
+            # Mock the environment check for testing
+            import unittest.mock
+
+            with unittest.mock.patch.dict(os.environ, {"GAEA2_TEST_MODE": "1"}):
+                cls.server = Gaea2MCPServer()
+        return cls.server
 
     @classmethod
     async def analyze_workflow_patterns(cls, **kwargs):
-        return await cls.server.analyze_workflow_patterns(**kwargs)
+        server = cls._get_server()
+        return await server.analyze_workflow_patterns(**kwargs)
 
     @classmethod
     async def repair_gaea2_project(cls, **kwargs):
-        return await cls.server.repair_gaea2_project(**kwargs)
+        server = cls._get_server()
+        return await server.repair_gaea2_project(**kwargs)
 
     @classmethod
     async def create_gaea2_project(cls, **kwargs):
-        return await cls.server.create_gaea2_project(**kwargs)
+        server = cls._get_server()
+        return await server.create_gaea2_project(**kwargs)
 
 
 async def test_pattern_knowledge():

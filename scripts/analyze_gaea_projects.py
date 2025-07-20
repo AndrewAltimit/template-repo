@@ -1,10 +1,23 @@
 #!/usr/bin/env python3
 """
 Analyze real Gaea2 projects to learn patterns and best practices
+
+Usage:
+    python analyze_gaea_projects.py
+
+Environment variables:
+    GAEA_OFFICIAL_PROJECTS_DIR: Path to official Gaea projects directory
+    GAEA_USER_PROJECTS_DIR: Path to user projects directory
+
+Example:
+    export GAEA_OFFICIAL_PROJECTS_DIR="/path/to/official/projects"
+    export GAEA_USER_PROJECTS_DIR="/path/to/user/projects"
+    python analyze_gaea_projects.py
 """
 
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -22,19 +35,44 @@ async def analyze_real_projects():
     # Initialize analyzer
     analyzer = Gaea2WorkflowAnalyzer()
 
-    # Analyze official projects
-    official_dir = "/home/miku/Documents/references/Real Projects/Official Gaea Projects"
-    print(f"Analyzing official projects in: {official_dir}")
+    # Get project directories from environment or use defaults
+    default_official_dir = os.path.join(
+        os.path.expanduser("~"),
+        "Documents",
+        "references",
+        "Real Projects",
+        "Official Gaea Projects",
+    )
+    default_user_dir = os.path.join(
+        os.path.expanduser("~"),
+        "Documents",
+        "references",
+        "Real Projects",
+        "user files",
+    )
 
-    official_results = analyzer.analyze_directory(official_dir)
-    print(f"✓ Analyzed {official_results['projects_analyzed']} official projects")
+    official_dir = os.environ.get("GAEA_OFFICIAL_PROJECTS_DIR", default_official_dir)
+    user_dir = os.environ.get("GAEA_USER_PROJECTS_DIR", default_user_dir)
+
+    # Check if directories exist
+    if not os.path.exists(official_dir):
+        print(f"Warning: Official projects directory not found: {official_dir}")
+        print("Set GAEA_OFFICIAL_PROJECTS_DIR environment variable to specify the correct path")
+        official_results = {"projects_analyzed": 0}
+    else:
+        print(f"Analyzing official projects in: {official_dir}")
+        official_results = analyzer.analyze_directory(official_dir)
+        print(f"✓ Analyzed {official_results['projects_analyzed']} official projects")
 
     # Analyze user projects
-    user_dir = "/home/miku/Documents/references/Real Projects/mikus files"
-    print(f"\nAnalyzing user projects in: {user_dir}")
-
-    user_results = analyzer.analyze_directory(user_dir)
-    print(f"✓ Analyzed {user_results['projects_analyzed'] - official_results['projects_analyzed']} user projects")
+    if not os.path.exists(user_dir):
+        print(f"\nWarning: User projects directory not found: {user_dir}")
+        print("Set GAEA_USER_PROJECTS_DIR environment variable to specify the correct path")
+        user_results = {"projects_analyzed": official_results["projects_analyzed"]}
+    else:
+        print(f"\nAnalyzing user projects in: {user_dir}")
+        user_results = analyzer.analyze_directory(user_dir)
+        print(f"✓ Analyzed {user_results['projects_analyzed'] - official_results['projects_analyzed']} user projects")
 
     # Get overall statistics
     stats = analyzer.get_statistics()
@@ -77,9 +115,10 @@ async def analyze_real_projects():
 
     # Find a project to test
     test_project = None
-    for file_path in Path(official_dir).glob("*.terrain"):
-        test_project = str(file_path)
-        break
+    if os.path.exists(official_dir):
+        for file_path in Path(official_dir).glob("*.terrain"):
+            test_project = str(file_path)
+            break
 
     if test_project:
         print(f"\nAnalyzing project: {Path(test_project).name}")

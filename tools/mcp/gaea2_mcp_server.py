@@ -81,8 +81,8 @@ class Gaea2MCPServer:
         # Execution history for debugging
         self.execution_history = []
 
-        # Check if running in container
-        if os.path.exists("/.dockerenv") or os.environ.get("DOCKER_CONTAINER"):
+        # Check if running in container (skip in test mode)
+        if not os.environ.get("GAEA2_TEST_MODE") and (os.path.exists("/.dockerenv") or os.environ.get("DOCKER_CONTAINER")):
             print("ERROR: Gaea2 MCP server must run on host system with Gaea2 installed")
             print("This server needs direct access to the Gaea2 executable")
             sys.exit(1)
