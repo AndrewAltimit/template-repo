@@ -457,12 +457,49 @@ jobs:
       - name: Test MCP servers functionality
         run: |
           echo "🤖 Testing modular MCP servers..."
-          # Test Code Quality MCP (port 8010)
-          curl -f http://localhost:8010/health || exit 1
-          # Test Content Creation MCP (port 8011)
-          curl -f http://localhost:8011/health || exit 1
-          # Test Gaea2 MCP (port 8007)
-          curl -f http://localhost:8007/health || exit 1
+
+          # Test each server with retries
+          echo "Testing Code Quality MCP (port 8010)..."
+          for i in {1..15}; do
+            if curl -f http://localhost:8010/health 2>/dev/null; then
+              echo "✅ Code Quality MCP is ready"
+              break
+            fi
+            if [ $i -eq 15 ]; then
+              echo "❌ Code Quality MCP failed to respond"
+              exit 1
+            fi
+            echo "  Retry $i/15..."
+            sleep 2
+          done
+
+          echo "Testing Content Creation MCP (port 8011)..."
+          for i in {1..15}; do
+            if curl -f http://localhost:8011/health 2>/dev/null; then
+              echo "✅ Content Creation MCP is ready"
+              break
+            fi
+            if [ $i -eq 15 ]; then
+              echo "❌ Content Creation MCP failed to respond"
+              exit 1
+            fi
+            echo "  Retry $i/15..."
+            sleep 2
+          done
+
+          echo "Testing Gaea2 MCP (port 8007)..."
+          for i in {1..15}; do
+            if curl -f http://localhost:8007/health 2>/dev/null; then
+              echo "✅ Gaea2 MCP is ready"
+              break
+            fi
+            if [ $i -eq 15 ]; then
+              echo "❌ Gaea2 MCP failed to respond"
+              exit 1
+            fi
+            echo "  Retry $i/15..."
+            sleep 2
+          done
 
           # Run comprehensive tests
           docker-compose run --rm python-ci python scripts/mcp/test_all_servers.py --quick
@@ -471,7 +508,7 @@ jobs:
         if: failure()
         run: |
           echo "📋 MCP server logs:"
-          docker-compose logs mcp-server
+          docker-compose logs mcp-code-quality mcp-content-creation mcp-gaea2
 
       - name: Stop MCP server
         if: always()
