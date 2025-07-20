@@ -61,6 +61,101 @@ NODE_PROPERTY_MAPPINGS = {
         "RenderSurface": "RenderSurface",
         "Seed": "Seed",
     },
+    # Sea node properties - NO SPACES
+    "Sea": {
+        "coastalErosion": "CoastalErosion",
+        "coastal_erosion": "CoastalErosion",
+        "Coastal Erosion": "CoastalErosion",
+        "shoreSize": "ShoreSize",
+        "shore_size": "ShoreSize",
+        "Shore Size": "ShoreSize",
+        "shoreHeight": "ShoreHeight",
+        "shore_height": "ShoreHeight",
+        "Shore Height": "ShoreHeight",
+        "uniformVariations": "UniformVariations",
+        "uniform_variations": "UniformVariations",
+        "Uniform Variations": "UniformVariations",
+        "extraCliffDetails": "ExtraCliffDetails",
+        "extra_cliff_details": "ExtraCliffDetails",
+        "Extra Cliff Details": "ExtraCliffDetails",
+        "renderSurface": "RenderSurface",
+        "render_surface": "RenderSurface",
+        "Render Surface": "RenderSurface",
+        # Keep as-is
+        "Level": "Level",
+        "Variation": "Variation",
+    },
+    # Volcano properties
+    "Volcano": {
+        "Surface": "Surface",  # Enum property, keep as-is
+        "Mouth": "Mouth",
+        "Bulk": "Bulk",
+    },
+    # MountainSide properties
+    "MountainSide": {
+        "Detail": "Detail",
+        "Style": "Style",  # Enum property
+        "Seed": "Seed",
+    },
+    # Weathering properties
+    "Weathering": {
+        "Scale": "Scale",
+        "Creep": "Creep",
+        "Dirt": "Dirt",
+    },
+    # Dusting properties
+    "Dusting": {
+        "snowline": "Snowline",
+        "snow_line": "Snowline",
+        "Snow Line": "Snowline",
+        "Snowline": "Snowline",
+        "Falloff": "Falloff",
+        "Coverage": "Coverage",
+        "Flow": "Flow",
+        "Melt": "Melt",
+        "Gritty": "Gritty",
+        "Seed": "Seed",
+    },
+    # Stratify properties
+    "Stratify": {
+        "Spacing": "Spacing",
+        "Octaves": "Octaves",
+        "Intensity": "Intensity",
+        "Seed": "Seed",
+        "tiltAmount": "TiltAmount",
+        "tilt_amount": "TiltAmount",
+        "Tilt Amount": "TiltAmount",
+        "TiltAmount": "TiltAmount",
+    },
+    # Perlin properties
+    "Perlin": {
+        "Type": "Type",  # Enum property
+        "Scale": "Scale",
+        "Octaves": "Octaves",
+        "Gain": "Gain",
+        "Clamp": "Clamp",
+        "Seed": "Seed",
+        "warpType": "WarpType",
+        "warp_type": "WarpType",
+        "Warp Type": "WarpType",
+        "WarpType": "WarpType",
+        "Frequency": "Frequency",
+        "Amplitude": "Amplitude",
+        "warpOctaves": "WarpOctaves",
+        "warp_octaves": "WarpOctaves",
+        "Warp Octaves": "WarpOctaves",
+        "WarpOctaves": "WarpOctaves",
+        "scaleX": "ScaleX",
+        "scale_x": "ScaleX",
+        "Scale X": "ScaleX",
+        "ScaleX": "ScaleX",
+        "scaleY": "ScaleY",
+        "scale_y": "ScaleY",
+        "Scale Y": "ScaleY",
+        "ScaleY": "ScaleY",
+        "X": "X",
+        "Y": "Y",
+    },
     # Generic mappings for other nodes
     "default": {
         "rockSoftness": "RockSoftness",
@@ -94,6 +189,53 @@ NODE_PROPERTIES = {
     },
     "SatMap": {
         "NodeSize": "Standard",
+    },
+    "Sea": {
+        "NodeSize": "Standard",
+        "IsMaskable": True,
+    },
+    "Weathering": {
+        "NodeSize": "Small",
+        "IsMaskable": True,
+    },
+    "Volcano": {
+        "IsMaskable": True,
+    },
+    "MountainSide": {
+        "IsMaskable": True,
+    },
+    "Stratify": {
+        "IsMaskable": True,
+    },
+    "Perlin": {
+        "IsMaskable": False,  # Perlin typically doesn't use masks
+    },
+    "Dusting": {
+        "IsMaskable": True,
+    },
+    "TextureBase": {
+        "IsMaskable": True,
+    },
+    "FractalTerraces": {
+        "IsMaskable": True,
+    },
+    "Height": {
+        "IsMaskable": True,
+    },
+    "Crumble": {
+        "IsMaskable": True,
+    },
+    "Shear": {
+        "IsMaskable": True,
+    },
+    "Slump": {
+        "IsMaskable": False,  # Primary generators typically don't use masks
+    },
+    "Island": {
+        "IsMaskable": False,  # Primary generators typically don't use masks
+    },
+    "Blur": {
+        "IsMaskable": True,
     },
 }
 
@@ -320,6 +462,116 @@ def create_proper_port_structure(node_id: int, node_type: str, ref_id_counter: i
                 }
             )
         ref_id_counter += len(additional_ports)
+
+    elif node_type == "Sea":
+        # Sea node has multiple output ports and input ports
+        # Output ports
+        output_ports = ["Water", "Depth", "Shore", "Surface"]
+        for i, port_name in enumerate(output_ports):
+            ports["$values"].append(
+                {
+                    "$id": str(ref_id_counter + i),
+                    "Name": port_name,
+                    "Type": "Out",
+                    "IsExporting": True,
+                    "Parent": {"$ref": str(node_id)},
+                }
+            )
+        ref_id_counter += len(output_ports)
+
+        # Input ports
+        input_ports = ["Edge", "Mask"]
+        for i, port_name in enumerate(input_ports):
+            ports["$values"].append(
+                {
+                    "$id": str(ref_id_counter + i),
+                    "Name": port_name,
+                    "Type": "In",
+                    "IsExporting": True,
+                    "Parent": {"$ref": str(node_id)},
+                }
+            )
+        ref_id_counter += len(input_ports)
+
+    elif node_type == "FractalTerraces":
+        # FractalTerraces has Layers output and Modulation input
+        ports["$values"].extend(
+            [
+                {
+                    "$id": str(ref_id_counter),
+                    "Name": "Layers",
+                    "Type": "Out",
+                    "IsExporting": True,
+                    "Parent": {"$ref": str(node_id)},
+                },
+                {
+                    "$id": str(ref_id_counter + 1),
+                    "Name": "Modulation",
+                    "Type": "In",
+                    "IsExporting": True,
+                    "Parent": {"$ref": str(node_id)},
+                },
+                {
+                    "$id": str(ref_id_counter + 2),
+                    "Name": "Mask",
+                    "Type": "In",
+                    "IsExporting": True,
+                    "Parent": {"$ref": str(node_id)},
+                },
+            ]
+        )
+        ref_id_counter += 3
+
+    elif node_type == "Stratify":
+        # Stratify has Layers output
+        ports["$values"].extend(
+            [
+                {
+                    "$id": str(ref_id_counter),
+                    "Name": "Layers",
+                    "Type": "Out",
+                    "IsExporting": True,
+                    "Parent": {"$ref": str(node_id)},
+                },
+                {
+                    "$id": str(ref_id_counter + 1),
+                    "Name": "Mask",
+                    "Type": "In",
+                    "IsExporting": True,
+                    "Parent": {"$ref": str(node_id)},
+                },
+            ]
+        )
+        ref_id_counter += 2
+
+    elif node_type == "Crumble":
+        # Crumble has Wear output and AreaMask input
+        ports["$values"].extend(
+            [
+                {
+                    "$id": str(ref_id_counter),
+                    "Name": "Wear",
+                    "Type": "Out",
+                    "IsExporting": True,
+                    "Parent": {"$ref": str(node_id)},
+                },
+                {
+                    "$id": str(ref_id_counter + 1),
+                    "Name": "AreaMask",
+                    "Type": "In",
+                    "IsExporting": True,
+                    "Parent": {"$ref": str(node_id)},
+                },
+                {
+                    "$id": str(ref_id_counter + 2),
+                    "Name": "Mask",
+                    "Type": "In",
+                    "IsExporting": True,
+                    "Parent": {"$ref": str(node_id)},
+                },
+            ]
+        )
+        ref_id_counter += 3
 
     return ports, ref_id_counter
 

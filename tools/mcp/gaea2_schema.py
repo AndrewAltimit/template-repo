@@ -1062,6 +1062,401 @@ NODE_PROPERTY_DEFINITIONS = {
         },
         # Note: filename, format, and enabled are typically in save_definition, not properties
     },
+    # Sea node with comprehensive properties from real projects
+    "Sea": {
+        "Level": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": -1.0, "max": 1.0},
+            "description": "Sea level height",
+        },
+        "CoastalErosion": {
+            "type": "bool",
+            "default": False,
+            "description": "Enable coastal erosion effects",
+        },
+        "ShoreSize": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Size of the shore area",
+        },
+        "ShoreHeight": {
+            "type": "float",
+            "default": 0.1,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Height of shore features",
+        },
+        "Variation": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Shore variation amount",
+        },
+        "UniformVariations": {
+            "type": "bool",
+            "default": False,
+            "description": "Use uniform variations",
+        },
+        "ExtraCliffDetails": {
+            "type": "bool",
+            "default": False,
+            "description": "Add extra cliff details",
+        },
+        "RenderSurface": {
+            "type": "bool",
+            "default": False,
+            "description": "Render water surface",
+        },
+    },
+    # MountainSide node
+    "MountainSide": {
+        "Detail": {
+            "type": "float",
+            "default": 0.25,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Level of detail",
+        },
+        "Style": {
+            "type": "enum",
+            "options": ["Smooth", "Eroded", "Rocky"],
+            "default": "Smooth",
+            "description": "Mountain side style",
+        },
+        "Seed": {
+            "type": "int",
+            "default": 0,
+            "range": {"min": 0, "max": 999999},
+            "description": "Random seed",
+        },
+    },
+    # Weathering node
+    "Weathering": {
+        "Scale": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Weathering scale",
+        },
+        "Creep": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Material creep amount",
+        },
+        "Dirt": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Dirt accumulation",
+        },
+    },
+    # Dusting node
+    "Dusting": {
+        "Snowline": {
+            "type": "float",
+            "default": 0.7,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Snow/dust line height",
+        },
+        "Falloff": {
+            "type": "float",
+            "default": 0.2,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Falloff amount",
+        },
+        "Coverage": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Coverage amount",
+        },
+        "Flow": {
+            "type": "float",
+            "default": 0.3,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Flow amount",
+        },
+        "Melt": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Melt amount",
+        },
+        "Gritty": {
+            "type": "bool",
+            "default": False,
+            "description": "Add gritty texture",
+        },
+        "Seed": {
+            "type": "int",
+            "default": 0,
+            "range": {"min": 0, "max": 999999},
+            "description": "Random seed",
+        },
+    },
+    # Comprehensive Perlin node
+    "Perlin": {
+        "Type": {
+            "type": "enum",
+            "options": ["Default", "Ridged", "Billowy"],
+            "default": "Default",
+            "description": "Perlin noise type",
+        },
+        "Scale": {
+            "type": "float",
+            "default": 1.0,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Base scale",
+        },
+        "Octaves": {
+            "type": "int",
+            "default": 8,
+            "range": {"min": 1, "max": 10},
+            "description": "Number of octaves",
+        },
+        "Gain": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Gain amount",
+        },
+        "Clamp": {
+            "type": "float",
+            "default": 1.0,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Clamp value",
+        },
+        "Seed": {
+            "type": "int",
+            "default": 0,
+            "range": {"min": 0, "max": 999999},
+            "description": "Random seed",
+        },
+        "WarpType": {
+            "type": "enum",
+            "options": ["None", "Simple", "Complex"],
+            "default": "None",
+            "description": "Warp type",
+        },
+        "Frequency": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Warp frequency",
+        },
+        "Amplitude": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Warp amplitude",
+        },
+        "WarpOctaves": {
+            "type": "int",
+            "default": 4,
+            "range": {"min": 1, "max": 10},
+            "description": "Warp octaves",
+        },
+        "ScaleX": {
+            "type": "float",
+            "default": 1.0,
+            "range": {"min": 0.1, "max": 10.0},
+            "description": "X scale multiplier",
+        },
+        "ScaleY": {
+            "type": "float",
+            "default": 1.0,
+            "range": {"min": 0.1, "max": 10.0},
+            "description": "Y scale multiplier",
+        },
+        "X": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": -1000.0, "max": 1000.0},
+            "description": "X position",
+        },
+        "Y": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": -1000.0, "max": 1000.0},
+            "description": "Y position",
+        },
+    },
+    # TextureBase node
+    "TextureBase": {
+        "Slope": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Slope influence",
+        },
+        "Scale": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Texture scale",
+        },
+        "Soil": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Soil coverage",
+        },
+        "Patches": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Patch variation",
+        },
+        "Chaos": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Chaos amount",
+        },
+        "Seed": {
+            "type": "int",
+            "default": 0,
+            "range": {"min": 0, "max": 999999},
+            "description": "Random seed",
+        },
+    },
+    # Height node
+    "Height": {
+        "Range": {
+            "type": "float2",
+            "default": {"X": 0.0, "Y": 1.0},
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Height range (min, max)",
+        },
+        "Falloff": {
+            "type": "float",
+            "default": 0.1,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Edge falloff",
+        },
+    },
+    # Adjust node
+    "Adjust": {
+        "Multiply": {
+            "type": "float",
+            "default": 1.0,
+            "range": {"min": 0.0, "max": 10.0},
+            "description": "Multiplication factor",
+        },
+        "Add": {
+            "type": "float",
+            "default": 0.0,
+            "range": {"min": -1.0, "max": 1.0},
+            "description": "Addition value",
+        },
+        "Shaper": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Shape adjustment",
+        },
+        "Clamp": {
+            "type": "float2",
+            "default": {"X": 0.0, "Y": 1.0},
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Clamp range",
+        },
+        "Equalize": {
+            "type": "bool",
+            "default": False,
+            "description": "Apply equalization",
+        },
+        "Invert": {
+            "type": "bool",
+            "default": False,
+            "description": "Invert values",
+        },
+    },
+    # Slump node
+    "Slump": {
+        "Scale": {
+            "type": "float",
+            "default": 1.0,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Slump scale",
+        },
+        "Seed": {
+            "type": "int",
+            "default": 0,
+            "range": {"min": 0, "max": 999999},
+            "description": "Random seed",
+        },
+    },
+    # Blur node
+    "Blur": {
+        "Radius": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Blur radius",
+        },
+    },
+    # Shear node
+    "Shear": {
+        "Strength": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Shear strength",
+        },
+        "Seed": {
+            "type": "int",
+            "default": 0,
+            "range": {"min": 0, "max": 999999},
+            "description": "Random seed",
+        },
+    },
+    # Crumble node
+    "Crumble": {
+        "Duration": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Crumble duration",
+        },
+        "Strength": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Crumble strength",
+        },
+        "Coverage": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Coverage area",
+        },
+        "Horizontal": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Horizontal spread",
+        },
+        "RockHardness": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Rock hardness",
+        },
+        "Edge": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Edge preservation",
+        },
+        "Depth": {
+            "type": "float",
+            "default": 0.5,
+            "range": {"min": 0.0, "max": 1.0},
+            "description": "Crumble depth",
+        },
+    },
 }
 
 # Port definitions and compatibility rules
@@ -1143,6 +1538,78 @@ NODE_PORT_DEFINITIONS = {
     "portalreceive": {
         "inputs": [],  # Receive portal doesn't have direct inputs
         "outputs": [{"name": "Out", "type": "heightfield"}],
+    },
+    # Multi-output nodes discovered from real projects
+    "sea": {
+        "inputs": [
+            {"name": "In", "type": "heightfield"},
+            {"name": "Edge", "type": "mask", "optional": True},
+            {"name": "Mask", "type": "mask", "optional": True},
+        ],
+        "outputs": [
+            {"name": "Out", "type": "heightfield"},
+            {"name": "Water", "type": "mask"},
+            {"name": "Shore", "type": "mask"},
+            {"name": "Depth", "type": "data"},
+            {"name": "Surface", "type": "data"},
+        ],
+    },
+    "rivers": {
+        "inputs": [
+            {"name": "In", "type": "heightfield"},
+            {"name": "Mask", "type": "mask", "optional": True},
+        ],
+        "outputs": [
+            {"name": "Out", "type": "heightfield"},
+            {"name": "Rivers", "type": "mask"},
+            {"name": "Depth", "type": "data"},
+            {"name": "Surface", "type": "data"},
+            {"name": "Direction", "type": "vector"},
+        ],
+    },
+    "fractalterraces": {
+        "inputs": [
+            {"name": "In", "type": "heightfield"},
+            {"name": "Modulation", "type": "heightfield", "optional": True},
+            {"name": "Mask", "type": "mask", "optional": True},
+        ],
+        "outputs": [
+            {"name": "Out", "type": "heightfield"},
+            {"name": "Layers", "type": "mask"},
+        ],
+    },
+    "stratify": {
+        "inputs": [
+            {"name": "In", "type": "heightfield"},
+            {"name": "Mask", "type": "mask", "optional": True},
+        ],
+        "outputs": [
+            {"name": "Out", "type": "heightfield"},
+            {"name": "Layers", "type": "mask"},
+        ],
+    },
+    "crumble": {
+        "inputs": [
+            {"name": "In", "type": "heightfield"},
+            {"name": "AreaMask", "type": "mask", "optional": True},
+            {"name": "Mask", "type": "mask", "optional": True},
+        ],
+        "outputs": [
+            {"name": "Out", "type": "heightfield"},
+            {"name": "Wear", "type": "data"},
+        ],
+    },
+    "erosion2": {
+        "inputs": [
+            {"name": "In", "type": "heightfield"},
+            {"name": "Mask", "type": "mask", "optional": True},
+        ],
+        "outputs": [
+            {"name": "Out", "type": "heightfield"},
+            {"name": "Flow", "type": "data"},
+            {"name": "Wear", "type": "data"},
+            {"name": "Deposits", "type": "data"},
+        ],
     },
 }
 
@@ -1623,11 +2090,28 @@ def get_node_category(node_type: str) -> str:
 
 def get_node_ports(node_type: str) -> Dict[str, List[Dict[str, Any]]]:
     """Get the port definitions for a node type."""
-    # Special cases first
+    # Special cases first - check in lowercase
+    node_type_lower = node_type.lower()
+    if node_type_lower in NODE_PORT_DEFINITIONS:
+        return NODE_PORT_DEFINITIONS[node_type_lower]
+
+    # Special cases with specific names
     if node_type == "Combine":
         return NODE_PORT_DEFINITIONS["combine"]
     elif node_type in ["Portal", "PortalTransmit", "PortalReceive"]:
         return NODE_PORT_DEFINITIONS[node_type.lower()]
+    elif node_type == "Sea":
+        return NODE_PORT_DEFINITIONS["sea"]
+    elif node_type == "Rivers":
+        return NODE_PORT_DEFINITIONS["rivers"]
+    elif node_type == "FractalTerraces":
+        return NODE_PORT_DEFINITIONS["fractalterraces"]
+    elif node_type == "Stratify":
+        return NODE_PORT_DEFINITIONS["stratify"]
+    elif node_type == "Crumble":
+        return NODE_PORT_DEFINITIONS["crumble"]
+    elif node_type == "Erosion2":
+        return NODE_PORT_DEFINITIONS["erosion2"]
 
     # Get by category
     category = get_node_category(node_type)

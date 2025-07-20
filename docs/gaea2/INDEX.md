@@ -26,6 +26,15 @@ This directory contains all documentation related to the Gaea2 MCP (Model Contex
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and changes
 - **[LEGACY_COMPREHENSIVE_GUIDE.md](LEGACY_COMPREHENSIVE_GUIDE.md)** - Legacy documentation (for reference)
 
+## Analysis & Research (NEW - January 2025)
+
+- **[ANALYSIS_INDEX.md](ANALYSIS_INDEX.md)** - Index for all analysis documents
+- **[GAEA2_ANALYSIS_EXECUTIVE_SUMMARY.md](GAEA2_ANALYSIS_EXECUTIVE_SUMMARY.md)** - Executive summary of findings
+- **[GAEA2_PROJECT_ANALYSIS.md](GAEA2_PROJECT_ANALYSIS.md)** - Deep analysis of 10 real Gaea2 projects
+- **[GAEA2_GAP_ANALYSIS.md](GAEA2_GAP_ANALYSIS.md)** - Gap analysis vs current implementation
+- **[GAEA2_ADVANCED_PATTERNS.md](GAEA2_ADVANCED_PATTERNS.md)** - Advanced workflow patterns discovered
+- **[GAEA2_NODE_PROPERTIES_EXTENDED.md](GAEA2_NODE_PROPERTIES_EXTENDED.md)** - Complete node property documentation
+
 ## Quick Links
 
 ### For Users
@@ -37,6 +46,8 @@ This directory contains all documentation related to the Gaea2 MCP (Model Contex
 1. Review [CONNECTION_ARCHITECTURE.md](CONNECTION_ARCHITECTURE.md) for internals
 2. Check [GAEA2_API_REFERENCE.md](GAEA2_API_REFERENCE.md) for complete API
 3. See [GAEA2_MCP_ROBUSTNESS.md](GAEA2_MCP_ROBUSTNESS.md) for testing
+4. **NEW**: Read [GAEA2_GAP_ANALYSIS.md](GAEA2_GAP_ANALYSIS.md) for implementation priorities
+5. **NEW**: Use [GAEA2_NODE_PROPERTIES_EXTENDED.md](GAEA2_NODE_PROPERTIES_EXTENDED.md) for complete property specs
 
 ### For Server Setup
 1. Follow [GAEA2_MCP_SERVER.md](GAEA2_MCP_SERVER.md) for standalone server
