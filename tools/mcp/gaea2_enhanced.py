@@ -102,7 +102,7 @@ class EnhancedGaea2Tools:
                                     "$id": "5",
                                     "Name": project_name,
                                     "Description": f"Enhanced project created by MCP on {timestamp}",
-                                    "Version": "2.0.6.0",
+                                    "Version": "",  # Empty string like working files
                                     "DateCreated": timestamp,
                                     "DateLastBuilt": timestamp,
                                     "DateLastSaved": timestamp,
@@ -157,7 +157,7 @@ class EnhancedGaea2Tools:
                     "$id": "22",
                     "Name": project_name,
                     "Description": "",
-                    "Version": "2.0.6.0",
+                    "Version": "",  # Empty string like working files
                     "Owner": "",
                     "DateCreated": timestamp,
                     "DateLastBuilt": timestamp,

@@ -613,11 +613,11 @@ class Gaea2MCPServer:
             "$id": "5",
             "Name": project_name,
             "Description": "Created by Gaea2 MCP Server",
-            "Version": "2.0.6.0",
+            "Version": "",  # Empty string like working Level1-10 files
             "DateCreated": timestamp,
             "DateLastBuilt": timestamp,
             "DateLastSaved": timestamp,
-            "ModifiedVersion": "2.0.6.0",
+            # NO ModifiedVersion - not in working files!
         }
 
         # Nodes
@@ -758,11 +758,12 @@ class Gaea2MCPServer:
             "$id": str(ref_id_counter),
             "Name": project_name,
             "Description": "Created by Gaea2 MCP Server",
-            "Version": "2.0.6.0",
+            "Version": "",  # Empty string like working Level1-10 files
             "Owner": "",
             "DateCreated": timestamp,
             "DateLastBuilt": timestamp,
             "DateLastSaved": timestamp,
+            # NO ModifiedVersion - not in working files!
         }
         ref_id_counter += 1
 
