@@ -230,18 +230,14 @@ class Gaea2MCPServer:
 
             # Add default properties for common nodes (only if not already present)
             if node_type == "Mountain":
-                # Mountain should have these properties
-                default_props = {
-                    "Octaves": 8,
-                    "Complexity": 0.5,
-                    "RidgeWeight": 0.5,
-                    "Persistence": 0.5,
-                    "Lacunarity": 2.0,
-                }
-                # Only add missing properties (don't override existing ones)
-                for key, default_val in default_props.items():
-                    if key not in properties:
-                        properties[key] = default_val
+                # Based on reference files, Mountain nodes should NOT have
+                # Octaves, Complexity, RidgeWeight, Persistence, Lacunarity
+                # These were causing files not to open!
+                # Just ensure X,Y are present with defaults
+                if "X" not in properties:
+                    properties["X"] = 0.0
+                if "Y" not in properties:
+                    properties["Y"] = 0.0
 
             elif node_type == "Erosion2":
                 # Erosion2 uses different properties than regular Erosion
