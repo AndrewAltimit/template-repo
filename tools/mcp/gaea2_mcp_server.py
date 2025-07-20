@@ -194,10 +194,18 @@ class Gaea2MCPServer:
 
         for i, node in enumerate(nodes):
             # Use original node IDs to maintain consistency
-            node_id = node.get("id", generate_non_sequential_id(100 + i * 50, used_ids))
+            original_id = node.get("id")
+            if original_id is None:
+                original_id = f"node_{i}"
+                node_id = generate_non_sequential_id(100 + i * 50, used_ids)
+            else:
+                node_id = original_id
+
             if node_id not in used_ids:
                 used_ids.append(node_id)
-            node_id_map[node.get("id", f"node_{i}")] = node_id
+
+            node_id_map[original_id] = node_id
+            self.logger.debug(f"Added to node_id_map: {original_id} -> {node_id}")
 
             # Get node type
             node_type = node.get("type", "Mountain")
@@ -389,7 +397,8 @@ class Gaea2MCPServer:
             ref_id_counter += 1  # FIX: Increment counter to avoid duplicate IDs
 
             # Add ports based on node type
-            node_str_id = str(node.get("id", f"node_{i}"))
+            # Use the same original_id that was used as key in node_id_map
+            node_str_id = str(original_id)
             self.logger.debug(f"Processing node {node_str_id} (type: {node_type}), looking for connections")
             if node_str_id in node_connections:
                 self.logger.debug(f"  Found connections for {node_str_id}: {list(node_connections[node_str_id].keys())}")
