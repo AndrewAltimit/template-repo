@@ -7,6 +7,7 @@ import json
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
+from tools.mcp.gaea2.utils.workflow_extractor import WorkflowExtractor
 from tools.mcp.gaea2_accurate_validation import create_accurate_validator
 from tools.mcp.gaea2_error_handler import ErrorCategory, ErrorSeverity, Gaea2Error, Gaea2ErrorHandler
 
@@ -24,7 +25,7 @@ class Gaea2ProjectRepair:
         """Comprehensive project analysis"""
         try:
             # Extract nodes and connections
-            nodes, connections = self._extract_workflow(project_data)
+            nodes, connections = WorkflowExtractor.extract_workflow(project_data)
 
             # Clear previous errors
             self.error_handler.clear_errors()
@@ -69,7 +70,7 @@ class Gaea2ProjectRepair:
                 backup_data = json.loads(json.dumps(project_data))
 
             # Extract workflow
-            nodes, connections = self._extract_workflow(project_data)
+            nodes, connections = WorkflowExtractor.extract_workflow(project_data)
 
             # Analyze first
             analysis = self.analyze_project(project_data)
@@ -113,7 +114,7 @@ class Gaea2ProjectRepair:
     def optimize_project(self, project_data: Dict[str, Any]) -> Dict[str, Any]:
         """Optimize project for better performance"""
         try:
-            nodes, connections = self._extract_workflow(project_data)
+            nodes, connections = WorkflowExtractor.extract_workflow(project_data)
             optimizations = []
 
             # Optimize property values
@@ -156,67 +157,6 @@ class Gaea2ProjectRepair:
         except Exception as e:
             logger.error(f"Project optimization failed: {str(e)}")
             return {"success": False, "error": str(e)}
-
-    def _extract_workflow(self, project_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-        """Extract nodes and connections from project data"""
-        nodes = []
-        connections = []
-
-        # Navigate the project structure
-        assets = project_data.get("Assets", {}).get("$values", [])
-        if not assets:
-            return nodes, connections
-
-        terrain = assets[0].get("Terrain", {})
-        nodes_dict = terrain.get("Nodes", {})
-
-        # Convert nodes dict to list
-        for node_id, node_data in nodes_dict.items():
-            # Extract node type from $type field
-            node_type = node_data.get("$type", "").split(".")[-2]
-            # Remove ", Gaea" suffix if present
-            if node_type.endswith(", Gaea"):
-                node_type = node_type[:-6]
-
-            node = {
-                "id": node_data.get("Id", int(node_id)),
-                "type": node_type,
-                "name": node_data.get("Name", ""),
-                "properties": {},
-            }
-
-            # Extract properties
-            for key, value in node_data.items():
-                if key not in [
-                    "$id",
-                    "$type",
-                    "Id",
-                    "Name",
-                    "Position",
-                    "Ports",
-                    "Modifiers",
-                    "SnapIns",
-                ]:
-                    node["properties"][key] = value
-
-            nodes.append(node)
-
-        # Extract connections from ports
-        for node_id, node_data in nodes_dict.items():
-            ports = node_data.get("Ports", {}).get("$values", [])
-            for port in ports:
-                if port.get("Record"):
-                    record = port["Record"]
-                    connections.append(
-                        {
-                            "from_node": record.get("From"),
-                            "to_node": record.get("To"),
-                            "from_port": record.get("FromPort", "Out"),
-                            "to_port": record.get("ToPort", "In"),
-                        }
-                    )
-
-        return nodes, connections
 
     def _update_project_workflow(
         self,

@@ -18,84 +18,22 @@ Example:
 import json
 import logging
 import os
+import sys
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
+
+# Add parent directory to path
+sys.path.append(str(Path(__file__).parent.parent))
+
+from tools.mcp.gaea2.utils.workflow_extractor import WorkflowExtractor  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def extract_workflow(
-    project_data: Dict[str, Any],
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """Extract nodes and connections from project data"""
-    nodes = []
-    connections = []
-
-    # Navigate the project structure
-    assets = project_data.get("Assets", {})
-
-    # Handle both direct assets and $values format
-    if "$values" in assets and isinstance(assets["$values"], list):
-        assets_list = assets["$values"]
-        if not assets_list or not isinstance(assets_list[0], dict):
-            return nodes, connections
-        terrain = assets_list[0].get("Terrain", {})
-    else:
-        # Some projects might have terrain directly
-        terrain = project_data.get("Terrain", {})
-    nodes_dict = terrain.get("Nodes", {})
-
-    # Convert nodes dict to list
-    for node_id, node_data in nodes_dict.items():
-        # Skip non-dict entries
-        if not isinstance(node_data, dict):
-            continue
-
-        node = {
-            "id": node_data.get("Id", int(node_id) if node_id.isdigit() else 0),
-            "type": (node_data.get("$type", "").split(".")[-2] if "$type" in node_data else "Unknown"),
-            "name": node_data.get("Name", ""),
-            "properties": {},
-        }
-
-        # Extract properties
-        for key, value in node_data.items():
-            if key not in [
-                "$id",
-                "$type",
-                "Id",
-                "Name",
-                "Position",
-                "Ports",
-                "Modifiers",
-                "SnapIns",
-            ]:
-                node["properties"][key] = value
-
-        nodes.append(node)
-
-    # Extract connections from ports
-    for node_id, node_data in nodes_dict.items():
-        # Skip non-dict entries
-        if not isinstance(node_data, dict):
-            continue
-
-        ports = node_data.get("Ports", {}).get("$values", [])
-        for port in ports:
-            if port.get("Record"):
-                record = port["Record"]
-                connections.append(
-                    {
-                        "from_node": record.get("From"),
-                        "to_node": record.get("To"),
-                        "from_port": record.get("FromPort", "Out"),
-                        "to_port": record.get("ToPort", "In"),
-                    }
-                )
-
-    return nodes, connections
+# Use the common workflow extractor
+extract_workflow = WorkflowExtractor.extract_workflow
 
 
 def analyze_projects():
@@ -155,7 +93,7 @@ def analyze_projects():
                 with open(file_path, "r") as f:
                     project_data = json.load(f)
 
-                nodes, connections = extract_workflow(project_data)
+                nodes, connections = WorkflowExtractor.extract_workflow(project_data)
 
                 if nodes:
                     projects_analyzed += 1

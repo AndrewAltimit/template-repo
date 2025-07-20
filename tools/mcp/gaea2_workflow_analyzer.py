@@ -7,7 +7,9 @@ import json
 import logging
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
+
+from tools.mcp.gaea2.utils.workflow_extractor import WorkflowExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +58,7 @@ class Gaea2WorkflowAnalyzer:
             with open(project_path, "r") as f:
                 project_data = json.load(f)
 
-            nodes, connections = self._extract_workflow(project_data)
+            nodes, connections = WorkflowExtractor.extract_workflow(project_data)
 
             if not nodes:
                 return {"success": False, "error": "No nodes found"}
@@ -195,67 +197,6 @@ class Gaea2WorkflowAnalyzer:
                 for p in sorted(self.patterns, key=lambda x: x.frequency, reverse=True)[:10]
             ],
         }
-
-    def _extract_workflow(self, project_data: Dict[str, Any]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-        """Extract nodes and connections from project data"""
-        nodes = []
-        connections = []
-
-        # Navigate the project structure
-        assets = project_data.get("Assets", {}).get("$values", [])
-        if not assets:
-            return nodes, connections
-
-        terrain = assets[0].get("Terrain", {})
-        nodes_dict = terrain.get("Nodes", {})
-
-        # Convert nodes dict to list
-        for node_id, node_data in nodes_dict.items():
-            # Extract node type from $type field
-            node_type = node_data.get("$type", "").split(".")[-2]
-            # Remove ", Gaea" suffix if present
-            if node_type.endswith(", Gaea"):
-                node_type = node_type[:-6]
-
-            node = {
-                "id": node_data.get("Id", int(node_id)),
-                "type": node_type,
-                "name": node_data.get("Name", ""),
-                "properties": {},
-            }
-
-            # Extract properties
-            for key, value in node_data.items():
-                if key not in [
-                    "$id",
-                    "$type",
-                    "Id",
-                    "Name",
-                    "Position",
-                    "Ports",
-                    "Modifiers",
-                    "SnapIns",
-                ]:
-                    node["properties"][key] = value
-
-            nodes.append(node)
-
-        # Extract connections from ports
-        for node_id, node_data in nodes_dict.items():
-            ports = node_data.get("Ports", {}).get("$values", [])
-            for port in ports:
-                if port.get("Record"):
-                    record = port["Record"]
-                    connections.append(
-                        {
-                            "from_node": record.get("From"),
-                            "to_node": record.get("To"),
-                            "from_port": record.get("FromPort", "Out"),
-                            "to_port": record.get("ToPort", "In"),
-                        }
-                    )
-
-        return nodes, connections
 
     def _analyze_sequences(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]):
         """Analyze node sequences"""
