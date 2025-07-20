@@ -187,11 +187,12 @@ class Gaea2MCPServer:
             # Add more as discovered
         }
 
-        # Process nodes
+        # First pass: Build complete node_id_map
         used_ids = []  # Track used IDs for non-sequential generation
         node_id_map = {}  # Map from our IDs to Gaea numeric IDs
         gaea_nodes = {}
 
+        # Build the complete node_id_map first
         for i, node in enumerate(nodes):
             # Use original node IDs to maintain consistency
             original_id = node.get("id")
@@ -207,6 +208,14 @@ class Gaea2MCPServer:
             # Store with string key to ensure consistent lookups
             node_id_map[str(original_id)] = node_id
             self.logger.debug(f"Added to node_id_map: {str(original_id)} -> {node_id}")
+
+        self.logger.info(f"Complete node_id_map built: {node_id_map}")
+
+        # Second pass: Process nodes with complete ID mapping available
+        for i, node in enumerate(nodes):
+            # Get the already-mapped node ID
+            original_id = node.get("id", f"node_{i}")
+            node_id = node_id_map[str(original_id)]
 
             # Get node type
             node_type = node.get("type", "Mountain")
@@ -450,6 +459,7 @@ class Gaea2MCPServer:
 
             elif node_type == "Combine":
                 # Combine has multiple inputs
+                self.logger.debug(f"Processing Combine node {node_str_id}")
                 for port_name in ["In", "Input2", "Mask"]:
                     port = {
                         "$id": str(ref_id_counter),
@@ -463,6 +473,7 @@ class Gaea2MCPServer:
                     # Check for connection
                     if node_str_id in node_connections and port_name in node_connections[node_str_id]:
                         conn = node_connections[node_str_id][port_name]
+                        self.logger.debug(f"Found connection for {node_str_id}:{port_name} - " f"from {conn.get('from_node')}")
                         # Convert from_node to string for lookup
                         from_node = conn.get("from_node")
                         from_id = node_id_map.get(str(from_node)) if from_node is not None else None
@@ -476,6 +487,11 @@ class Gaea2MCPServer:
                                 "IsValid": True,
                             }
                             ref_id_counter += 1
+                        else:
+                            self.logger.warning(
+                                f"Could not find from_id for from_node {from_node} "
+                                f"in node_id_map: {list(node_id_map.keys())}"
+                            )
 
                     gaea_node["Ports"]["$values"].append(port)
 
