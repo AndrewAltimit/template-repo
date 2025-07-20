@@ -421,6 +421,7 @@ Common issues:
 **No manual intervention needed** - the MCP server handles all validation automatically!
 
 For complete documentation, see:
+- `docs/gaea2/INDEX.md` - Complete Gaea2 documentation index
 - `docs/gaea2/README.md` - Main Gaea2 MCP documentation
 - `docs/gaea2/GAEA2_API_REFERENCE.md` - Complete API reference
 - `docs/gaea2/GAEA2_EXAMPLES.md` - Usage examples and patterns
