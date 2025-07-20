@@ -117,12 +117,15 @@ class Gaea2MCPServer:
         # Pre-process connections to know which nodes need Records
         node_connections = {}
         if connections:
+            self.logger.info(f"Processing {len(connections)} connections")
             for conn in connections:
                 to_id = conn.get("to_node")
                 to_port = conn.get("to_port", "In")
                 if to_id not in node_connections:
                     node_connections[to_id] = {}
                 node_connections[to_id][to_port] = conn
+                self.logger.debug(f"Added connection: {conn['from_node']} -> {to_id}:{to_port}")
+            self.logger.info(f"Node connections dict keys: {list(node_connections.keys())}")
 
         # Node type mapping to Gaea2 .NET types
         node_type_mapping = {
@@ -385,6 +388,7 @@ class Gaea2MCPServer:
 
             # Add ports based on node type
             node_str_id = node.get("id", f"node_{i}")
+            self.logger.debug(f"Processing node {node_str_id} (type: {node_type}), looking for connections")
 
             if node_type in ["Export", "SatMap"]:
                 # In port
@@ -671,6 +675,9 @@ class Gaea2MCPServer:
                     conn = node_connections[node_str_id]["In"]
                     from_id = node_id_map.get(conn.get("from_node"))
                     if from_id:
+                        self.logger.debug(
+                            f"Standard node {node_str_id}: Found connection from {conn['from_node']} (mapped to {from_id})"
+                        )
                         port_in["Record"] = {
                             "$id": str(ref_id_counter),
                             "From": from_id,
@@ -680,6 +687,12 @@ class Gaea2MCPServer:
                             "IsValid": True,
                         }
                         ref_id_counter += 1
+                    else:
+                        self.logger.warning(
+                            f"Standard node {node_str_id}: Could not map from_node {conn.get('from_node')} to Gaea ID"
+                        )
+                else:
+                    self.logger.debug(f"Standard node {node_str_id}: No connection found for In port")
 
                 gaea_node["Ports"]["$values"].append(port_in)
 
