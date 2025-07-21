@@ -34,6 +34,10 @@ This directory contains all documentation related to the Gaea2 MCP (Model Contex
 - **[GAEA2_GAP_ANALYSIS.md](GAEA2_GAP_ANALYSIS.md)** - Gap analysis vs current implementation
 - **[GAEA2_ADVANCED_PATTERNS.md](GAEA2_ADVANCED_PATTERNS.md)** - Advanced workflow patterns discovered
 - **[GAEA2_NODE_PROPERTIES_EXTENDED.md](GAEA2_NODE_PROPERTIES_EXTENDED.md)** - Complete node property documentation
+- **[GAEA2_MCP_VALIDATION_REPORT.md](GAEA2_MCP_VALIDATION_REPORT.md)** - MCP server validation against reference files
+- **[LEVEL1_MCP_RECREATION_REPORT.md](LEVEL1_MCP_RECREATION_REPORT.md)** - Detailed Level1.terrain recreation analysis
+- **[GAEA2_BUILD_ISSUE_REPORT.md](GAEA2_BUILD_ISSUE_REPORT.md)** - Build system compatibility findings
+- **[MCP_FORMAT_FIX_REQUIRED.md](MCP_FORMAT_FIX_REQUIRED.md)** - Critical format fixes needed for file opening
 
 ## Quick Links
 

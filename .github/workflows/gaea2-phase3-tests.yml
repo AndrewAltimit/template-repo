@@ -1,0 +1,229 @@
+name: Gaea2 Phase 3 Testing
+
+on:
+  push:
+    branches: [ gaea-mcp ]
+    paths:
+      - 'tools/mcp/gaea2/**'
+      - 'tests/gaea2/**'
+      - 'scripts/test_gaea_mcp_server.py'
+      - '.github/workflows/gaea2-phase3-tests.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'tools/mcp/gaea2/**'
+      - 'tests/gaea2/**'
+      - 'scripts/test_gaea_mcp_server.py'
+      - '.github/workflows/gaea2-phase3-tests.yml'
+  workflow_dispatch:
+    inputs:
+      server_url:
+        description: 'Gaea2 MCP Server URL'
+        required: false
+        default: 'http://192.168.0.152:8007'
+      run_regression:
+        description: 'Run regression tests'
+        required: false
+        default: 'true'
+        type: boolean
+      update_baselines:
+        description: 'Update regression baselines'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  # Phase 3 Testing - Following AI Agent Training Guide
+  phase3-testing:
+    name: Phase 3 - Interactive Learning & Validation
+    runs-on: self-hosted
+    timeout-minutes: 30
+    env:
+      GAEA2_MCP_URL: ${{ inputs.server_url || 'http://192.168.0.152:8007' }}
+      UPDATE_BASELINES: ${{ inputs.update_baselines || 'false' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+
+      - name: Build test container
+        run: |
+          echo "🔨 Building test container..."
+          docker-compose build python-ci
+
+      - name: Test 1 - Connectivity & Basic Operations
+        id: connectivity
+        run: |
+          echo "🌐 Testing MCP server connectivity..."
+          docker-compose run --rm \
+            -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
+            python-ci python scripts/test_gaea_mcp_server.py ${{ env.GAEA2_MCP_URL }}
+
+      - name: Test 2 - Successful Operations
+        id: successful-ops
+        if: success()
+        run: |
+          echo "✅ Testing successful operations..."
+          docker-compose run --rm \
+            -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
+            python-ci pytest tests/gaea2/test_gaea_operations.py -v --tb=short
+
+      - name: Test 3 - Expected Failures & Error Handling
+        id: failure-tests
+        if: success()
+        run: |
+          echo "❌ Testing expected failures and error handling..."
+          docker-compose run --rm \
+            -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
+            python-ci pytest tests/gaea2/test_gaea_failures.py -v --tb=short
+
+      - name: Test 4 - Edge Cases & Boundaries
+        id: edge-cases
+        if: success()
+        run: |
+          echo "🔍 Testing edge cases and boundary conditions..."
+          docker-compose run --rm \
+            -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
+            python-ci pytest tests/gaea2/test_framework_phase3.py::TestEdgeCases -v --tb=short
+
+      - name: Test 5 - Regression Testing
+        id: regression
+        if: success() && inputs.run_regression != 'false'
+        run: |
+          echo "📊 Running regression tests..."
+          docker-compose run --rm \
+            -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
+            -e UPDATE_BASELINES=${{ env.UPDATE_BASELINES }} \
+            python-ci pytest tests/gaea2/test_gaea_regression.py -v --tb=short
+
+      - name: Run Comprehensive Phase 3 Test Suite
+        id: full-suite
+        if: success()
+        run: |
+          echo "🚀 Running full Phase 3 test suite..."
+          docker-compose run --rm \
+            -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
+            python-ci python tests/gaea2/run_all_phase3_tests.py ${{ env.GAEA2_MCP_URL }}
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gaea2-phase3-results-${{ github.run_id }}
+          path: |
+            phase3_test_report_*.json
+            knowledge_base_update_*.json
+            gaea2_mcp_test_results_*.json
+            tests/gaea2/test_results.json
+            tests/gaea2/regression_baselines/
+          retention-days: 30
+
+      - name: Upload Performance Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gaea2-performance-logs-${{ github.run_id }}
+          path: tests/gaea2/performance_log.json
+          retention-days: 90
+          if-no-files-found: ignore
+
+      - name: Generate Test Summary
+        if: always()
+        run: |
+          echo "## 📊 Gaea2 Phase 3 Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Connectivity | ${{ steps.connectivity.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Successful Operations | ${{ steps.successful-ops.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Error Handling | ${{ steps.failure-tests.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Edge Cases | ${{ steps.edge-cases.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Regression | ${{ steps.regression.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Full Suite | ${{ steps.full-suite.outcome }} |" >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- **Server URL**: ${{ env.GAEA2_MCP_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Update Baselines**: ${{ env.UPDATE_BASELINES }}" >> $GITHUB_STEP_SUMMARY
+
+          # Extract key metrics if report exists
+          if [ -f phase3_test_report_*.json ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Key Metrics" >> $GITHUB_STEP_SUMMARY
+            # Parse JSON and extract metrics (simplified - in real implementation would use jq)
+            echo "See uploaded artifacts for detailed results." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const outcome = '${{ steps.full-suite.outcome }}';
+            const icon = outcome === 'success' ? '✅' : '❌';
+            const status = outcome === 'success' ? 'passed' : 'failed';
+
+            const comment = `## ${icon} Gaea2 Phase 3 Testing ${status}
+
+            **Test Results:**
+            - Connectivity: ${{ steps.connectivity.outcome }}
+            - Successful Operations: ${{ steps.successful-ops.outcome }}
+            - Error Handling: ${{ steps.failure-tests.outcome }}
+            - Edge Cases: ${{ steps.edge-cases.outcome }}
+            - Regression: ${{ steps.regression.outcome }}
+
+            View the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed results.`;
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+  # Knowledge Base Update Job
+  update-knowledge-base:
+    name: Update AI Agent Knowledge Base
+    needs: phase3-testing
+    if: success() && github.ref == 'refs/heads/main'
+    runs-on: self-hosted
+    steps:
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          name: gaea2-phase3-results-${{ github.run_id }}
+
+      - name: Process knowledge updates
+        run: |
+          echo "🧠 Processing knowledge base updates..."
+          # In a real implementation, this would:
+          # 1. Parse the knowledge_base_update_*.json files
+          # 2. Merge with existing knowledge base
+          # 3. Commit updates back to the repository
+          # 4. Trigger retraining or update procedures
+          echo "Knowledge base update processing would happen here"
+
+      - name: Create issue for failed patterns
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `Gaea2 Phase 3: Knowledge Base Update Required`;
+            const body = `The Phase 3 testing has identified new patterns that need to be incorporated into the AI agent's knowledge base.
+
+            Please review the test results and update the knowledge base accordingly.
+
+            Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: title,
+              body: body,
+              labels: ['gaea2', 'ai-training', 'knowledge-base']
+            });

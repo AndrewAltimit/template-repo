@@ -17,7 +17,11 @@ ADDITIONAL_NODE_PROPERTIES = {
     },
     "MountainSide": {
         "Detail": {"type": "float", "default": 0.25, "range": [0.0, 1.0]},
-        "Style": {"type": "enum", "default": "Eroded", "values": ["Smooth", "Eroded", "Rocky"]},
+        "Style": {
+            "type": "enum",
+            "default": "Eroded",
+            "values": ["Smooth", "Eroded", "Rocky"],
+        },
         "Seed": {"type": "int", "default": 0, "range": [0, 999999]},
     },
     "Weathering": {
@@ -42,13 +46,21 @@ ADDITIONAL_NODE_PROPERTIES = {
         "TiltAmount": {"type": "float", "default": 0.5, "range": [0.0, 1.0]},
     },
     "Perlin": {
-        "Type": {"type": "enum", "default": "Ridged", "values": ["Default", "Ridged", "Billowy"]},
+        "Type": {
+            "type": "enum",
+            "default": "Ridged",
+            "values": ["Default", "Ridged", "Billowy"],
+        },
         "Scale": {"type": "float", "default": 0.08, "range": [0.0, 1.0]},
         "Octaves": {"type": "int", "default": 2, "range": [1, 10]},
         "Gain": {"type": "float", "default": 0.6, "range": [0.0, 1.0]},
         "Clamp": {"type": "float", "default": 1.0, "range": [0.0, 1.0]},
         "Seed": {"type": "int", "default": 0, "range": [0, 999999]},
-        "WarpType": {"type": "enum", "default": "Complex", "values": ["None", "Simple", "Complex"]},
+        "WarpType": {
+            "type": "enum",
+            "default": "Complex",
+            "values": ["None", "Simple", "Complex"],
+        },
         "Frequency": {"type": "float", "default": 0.05, "range": [0.0, 1.0]},
         "Amplitude": {"type": "float", "default": 0.92, "range": [0.0, 1.0]},
         "WarpOctaves": {"type": "int", "default": 10, "range": [1, 10]},
@@ -63,14 +75,23 @@ ADDITIONAL_NODE_PROPERTIES = {
 PORT_DEFINITION_UPDATES = {
     "Rivers": {
         "inputs": ["In", "Headwaters", "Mask"],
-        "outputs": ["Out", "Rivers", "Depth", "Surface", "Direction"]
+        "outputs": ["Out", "Rivers", "Depth", "Surface", "Direction"],
         # Note: All 5 outputs confirmed from terrain analysis
     },
-    "Sea": {"inputs": ["In", "Edge", "Mask"], "outputs": ["Out", "Water", "Depth", "Shore", "Surface"]},
-    "FractalTerraces": {"inputs": ["In", "Modulation", "Mask"], "outputs": ["Out", "Layers"]},
+    "Sea": {
+        "inputs": ["In", "Edge", "Mask"],
+        "outputs": ["Out", "Water", "Depth", "Shore", "Surface"],
+    },
+    "FractalTerraces": {
+        "inputs": ["In", "Modulation", "Mask"],
+        "outputs": ["Out", "Layers"],
+    },
     "Stratify": {"inputs": ["In", "Mask"], "outputs": ["Out", "Layers"]},
     "Crumble": {"inputs": ["In", "AreaMask", "Mask"], "outputs": ["Out", "Wear"]},
-    "Erosion2": {"inputs": ["In", "Mask"], "outputs": ["Out", "Flow", "Wear", "Deposits"]},
+    "Erosion2": {
+        "inputs": ["In", "Mask"],
+        "outputs": ["Out", "Flow", "Wear", "Deposits"],
+    },
 }
 
 # Additional property name mappings discovered
@@ -140,9 +161,22 @@ WORKFLOW_PATTERNS = {
     "erosion_chain": {
         "description": "Standard erosion workflow",
         "nodes": [
-            {"type": "Crumble", "properties": {"Duration": 0.5, "Strength": 0.87, "Coverage": 0.75}},
-            {"type": "Erosion2", "properties": {"Duration": 1.635, "Downcutting": 0.81, "ErosionScale": 15620.922}},
-            {"type": "Rivers", "properties": {"Water": 0.5, "Width": 0.8, "RiverValleyWidth": "plus2"}},
+            {
+                "type": "Crumble",
+                "properties": {"Duration": 0.5, "Strength": 0.87, "Coverage": 0.75},
+            },
+            {
+                "type": "Erosion2",
+                "properties": {
+                    "Duration": 1.635,
+                    "Downcutting": 0.81,
+                    "ErosionScale": 15620.922,
+                },
+            },
+            {
+                "type": "Rivers",
+                "properties": {"Water": 0.5, "Width": 0.8, "RiverValleyWidth": "plus2"},
+            },
         ],
         "connections": [
             {"from_node": 0, "to_node": 1},
@@ -152,7 +186,15 @@ WORKFLOW_PATTERNS = {
     "volcanic_specialty": {
         "description": "Volcanic terrain pattern",
         "nodes": [
-            {"type": "Volcano", "properties": {"Scale": 1.0, "Height": 0.55, "Mouth": 0.85, "Surface": "Eroded"}},
+            {
+                "type": "Volcano",
+                "properties": {
+                    "Scale": 1.0,
+                    "Height": 0.55,
+                    "Mouth": 0.85,
+                    "Surface": "Eroded",
+                },
+            },
             {"type": "MountainSide", "properties": {"Detail": 0.25, "Style": "Eroded"}},
             {"type": "Combine", "properties": {"Ratio": 0.5}},
         ],

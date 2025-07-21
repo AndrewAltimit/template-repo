@@ -263,6 +263,59 @@ print(f"Fixes Applied: {len(result['fixes']['applied'])}")
 - [Knowledge Base](GAEA2_KNOWLEDGE_BASE.md) - Patterns from real projects
 - [API Reference](GAEA2_API_REFERENCE.md) - Detailed API documentation
 - [Examples](GAEA2_EXAMPLES.md) - Code examples and patterns
+- [AI Agent Training Guide](../mcp/AI_AGENT_TRAINING_GUIDE.md) - Framework for training AI agents on closed-source software
+
+## 🧪 Testing Framework (Phase 3)
+
+The Gaea2 MCP includes a comprehensive testing framework following the AI Agent Training Guide's Phase 3 requirements:
+
+### Test Suites
+
+1. **Framework Tests** (`test_framework_phase3.py`) - Core Phase 3 implementation
+   - Successful operations testing
+   - Expected failure scenarios
+   - Edge cases and boundaries
+   - Error handling verification
+   - Automated regression testing
+
+2. **Operations Tests** (`test_gaea_operations.py`) - Real-world scenarios
+   - Common workflow patterns from reference projects
+   - Multi-output node testing
+   - Complex property handling
+   - Template validation
+
+3. **Failure Tests** (`test_gaea_failures.py`) - Error handling
+   - Invalid node types and connections
+   - Missing required components
+   - Malformed requests
+   - Resource exhaustion
+
+4. **Regression Tests** (`test_gaea_regression.py`) - Knowledge preservation
+   - Template consistency
+   - Validation rule stability
+   - Performance monitoring
+   - Baseline comparisons
+
+### Running Tests
+
+```bash
+# Quick connectivity test
+python scripts/test_gaea_mcp_server.py
+
+# Run all Phase 3 tests autonomously
+python tests/gaea2/run_all_phase3_tests.py
+
+# Run specific test suite
+pytest tests/gaea2/test_gaea_operations.py -v
+```
+
+### Test Results
+
+Tests generate:
+- Detailed JSON reports with all test outcomes
+- Knowledge base updates for AI learning
+- Performance benchmarks
+- Regression baselines for comparison
 
 ## 🔧 Advanced Features
 
