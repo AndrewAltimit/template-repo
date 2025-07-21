@@ -66,8 +66,9 @@ class Gaea2ErrorRecovery:
         if aggressive:
             fixed_nodes, fixed_connections = self._optimize_workflow(fixed_nodes, fixed_connections)
 
-        # Fix 6: Add Export node if missing
-        fixed_nodes = self._ensure_export_node(fixed_nodes)
+        # Fix 6: Do NOT add Export node - they aren't needed for working files!
+        # Working Gaea2 files often have no Export node at all
+        # fixed_nodes = self._ensure_export_node(fixed_nodes)
 
         return fixed_nodes, fixed_connections, self.fixes_applied
 
@@ -398,7 +399,8 @@ class Gaea2ErrorRecovery:
         """Fix workflow issues automatically"""
         fixed_nodes = self._fix_node_properties(nodes)
         fixed_connections = self._fix_duplicate_connections(connections)
-        fixed_nodes = self._ensure_export_node(fixed_nodes)
+        # Do NOT add Export nodes - they aren't needed for working files
+        # fixed_nodes = self._ensure_export_node(fixed_nodes)
 
         fixes_applied = []
         if len(fixed_connections) != len(connections):

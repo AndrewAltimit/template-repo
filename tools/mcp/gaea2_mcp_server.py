@@ -15,7 +15,6 @@ import json
 import logging
 import os
 import platform
-import random
 import shutil
 import sys
 from datetime import datetime
@@ -262,8 +261,13 @@ class Gaea2MCPServer:
             # Get node properties first
             raw_properties = node.get("properties", {})
 
-            # Fix all property names at once based on node type
-            properties = fix_property_names(raw_properties, node_type)
+            # IMPORTANT: Working Gaea2 files have nodes with NO properties!
+            # Only use properties if explicitly provided, otherwise keep empty
+            if not raw_properties:
+                properties = {}
+            else:
+                # Fix all property names at once based on node type
+                properties = fix_property_names(raw_properties, node_type)
 
             # Create Gaea node structure with properties FIRST (after $id and $type)
             gaea_node = {
@@ -292,35 +296,9 @@ class Gaea2MCPServer:
                     port_count = node_props["PortCount"]
                     # PortCount is NOT added to properties - it's added directly to node later
 
-            # Add default properties for common nodes (only if not already present)
-            if node_type == "Mountain":
-                # Based on reference files, Mountain nodes should NOT have
-                # Octaves, Complexity, RidgeWeight, Persistence, Lacunarity
-                # These were causing files not to open!
-                # X and Y are handled by Position object, not as root properties
-                pass
-
-            elif node_type == "Erosion2":
-                # Erosion2 uses different properties than regular Erosion
-                # Based on reference files analysis
-                default_props = {
-                    "Duration": properties.get("Duration", 0.15),
-                    "Downcutting": properties.get("Downcutting", 0.3),
-                    "ErosionScale": properties.get("ErosionScale", 5000.0),
-                    "Seed": properties.get("Seed", random.randint(1000, 30000)),
-                }
-                # Replace properties with correct ones
-                properties = default_props
-            elif node_type == "Erosion":
-                # Regular Erosion node (different from Erosion2)
-                default_props = {
-                    "Intensity": 0.5,
-                    "RockSoftness": 0.5,  # No space for regular Erosion
-                    "BaseLevel": 0.1,  # No space
-                }
-                for key, default_val in default_props.items():
-                    if key not in properties:
-                        properties[key] = default_val
+            # DO NOT add default properties - working files have nodes with NO properties!
+            # Only use properties that were explicitly provided by the user
+            # Adding default properties was causing files not to open in Gaea2!
 
             # Handle Export node differently - properties go in SaveDefinition
             if node_type == "Export":
@@ -481,9 +459,7 @@ class Gaea2MCPServer:
                 gaea_node["Ports"]["$values"].append(port_in)
 
                 # Out port
-                port_out = self._create_port_dict(
-                    str(ref_id_counter), "Out", "PrimaryOut", node_ref_id
-                )
+                port_out = self._create_port_dict(str(ref_id_counter), "Out", "PrimaryOut", node_ref_id)
                 ref_id_counter += 1
                 gaea_node["Ports"]["$values"].append(port_out)
 
@@ -603,7 +579,7 @@ class Gaea2MCPServer:
                 # In port
                 port_id = str(ref_id_counter)
                 ref_id_counter += 1
-                
+
                 # Check for connection
                 record = None
                 if node_str_id in node_connections and "In" in node_connections[node_str_id]:
@@ -621,16 +597,14 @@ class Gaea2MCPServer:
                             "IsValid": True,
                         }
                         ref_id_counter += 1
-                        
+
                 port_in = self._create_port_dict(port_id, "In", "PrimaryIn", node_ref_id, record)
                 gaea_node["Ports"]["$values"].append(port_in)
 
                 # Output ports
                 for port_name in ["Out", "Water", "Depth", "Shore", "Surface"]:
                     port_type = "PrimaryOut" if port_name == "Out" else "Out"
-                    port = self._create_port_dict(
-                        str(ref_id_counter), port_name, port_type, node_ref_id
-                    )
+                    port = self._create_port_dict(str(ref_id_counter), port_name, port_type, node_ref_id)
                     ref_id_counter += 1
                     gaea_node["Ports"]["$values"].append(port)
 
@@ -667,9 +641,7 @@ class Gaea2MCPServer:
                 # Output ports
                 for port_name in ["Out", "Rivers", "Depth", "Surface", "Direction"]:
                     port_type = "PrimaryOut" if port_name == "Out" else "Out"
-                    port = self._create_port_dict(
-                        str(ref_id_counter), port_name, port_type, node_ref_id
-                    )
+                    port = self._create_port_dict(str(ref_id_counter), port_name, port_type, node_ref_id)
                     ref_id_counter += 1
                     gaea_node["Ports"]["$values"].append(port)
 
