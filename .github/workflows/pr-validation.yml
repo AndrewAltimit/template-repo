@@ -515,7 +515,20 @@ jobs:
         run: |
           docker-compose down
 
-  # Stage 7: Docker image validation
+  # Stage 7: Gaea2 MCP Integration Tests
+  gaea2-integration-tests:
+    name: Gaea2 MCP Integration Tests
+    needs: [detect-changes, mcp-validation]
+    if: |
+      needs.detect-changes.outputs.mcp_changed == 'true' &&
+      !github.event.pull_request.draft
+    uses: ./.github/workflows/gaea2-integration-tests.yml
+    with:
+      server_url: 'http://192.168.0.152:8007'
+      run_regression: true
+      update_baselines: false
+
+  # Stage 8: Docker image validation
   docker-validation:
     name: Docker Image Validation
     needs: [detect-changes, gemini-review, format-check, basic-lint, full-lint]
@@ -623,7 +636,7 @@ jobs:
   # Final status and summary
   pr-status:
     name: PR Status Summary
-    needs: [detect-changes, gemini-review, format-check, basic-lint, full-lint, config-validation, workflow-validation, yaml-lint, test-suite, mcp-validation, docker-validation]
+    needs: [detect-changes, gemini-review, format-check, basic-lint, full-lint, config-validation, workflow-validation, yaml-lint, test-suite, mcp-validation, gaea2-integration-tests, docker-validation]
     if: always()
     runs-on: self-hosted
     steps:
@@ -648,6 +661,7 @@ jobs:
           echo "- YAML Lint: ${{ needs.yaml-lint.result }}"
           echo "- Test Suite: ${{ needs.test-suite.result }}"
           echo "- MCP Validation: ${{ needs.mcp-validation.result }}"
+          echo "- Gaea2 Integration Tests: ${{ needs.gaea2-integration-tests.result }}"
           echo "- Docker Validation: ${{ needs.docker-validation.result }}"
 
           # Check for failures
@@ -660,6 +674,7 @@ jobs:
                 "${{ needs.yaml-lint.result }}" == "failure" ||
                 "${{ needs.test-suite.result }}" == "failure" ||
                 "${{ needs.mcp-validation.result }}" == "failure" ||
+                "${{ needs.gaea2-integration-tests.result }}" == "failure" ||
                 "${{ needs.docker-validation.result }}" == "failure" ]]; then
             echo ""
             echo "❌ PR validation failed - please review the failed checks"
@@ -686,6 +701,7 @@ jobs:
               'yaml-lint': '${{ needs.yaml-lint.result }}',
               'test-suite': '${{ needs.test-suite.result }}',
               'mcp-validation': '${{ needs.mcp-validation.result }}',
+              'gaea2-integration-tests': '${{ needs.gaea2-integration-tests.result }}',
               'docker-validation': '${{ needs.docker-validation.result }}'
             };
 

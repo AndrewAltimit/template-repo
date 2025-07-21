@@ -2,20 +2,23 @@
 name: Gaea2 MCP Integration Tests
 
 on:
-  push:
-    branches: [gaea-mcp]
-    paths:
-      - 'tools/mcp/gaea2/**'
-      - 'tests/gaea2/**'
-      - 'scripts/test_gaea_mcp_server.py'
-      - '.github/workflows/gaea2-integration-tests.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'tools/mcp/gaea2/**'
-      - 'tests/gaea2/**'
-      - 'scripts/test_gaea_mcp_server.py'
-      - '.github/workflows/gaea2-integration-tests.yml'
+  workflow_call:
+    inputs:
+      server_url:
+        description: 'Gaea2 MCP Server URL'
+        required: false
+        default: 'http://192.168.0.152:8007'
+        type: string
+      run_regression:
+        description: 'Run regression tests'
+        required: false
+        default: true
+        type: boolean
+      update_baselines:
+        description: 'Update regression baselines'
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       server_url:
@@ -34,8 +37,33 @@ on:
         type: boolean
 
 jobs:
+  check-server-availability:
+    name: Check Gaea2 Server Availability
+    runs-on: self-hosted
+    timeout-minutes: 2
+    outputs:
+      server_available: ${{ steps.check.outputs.available }}
+    steps:
+      - name: Check if Gaea2 MCP server is reachable
+        id: check
+        run: |
+          SERVER_URL="${{ inputs.server_url || 'http://192.168.0.152:8007' }}"
+          echo "🔍 Checking Gaea2 MCP server availability at: $SERVER_URL"
+
+          # Try to connect to the server with a 5 second timeout
+          if curl -f -s --connect-timeout 5 --max-time 10 "${SERVER_URL}/health" > /dev/null 2>&1; then
+            echo "✅ Gaea2 MCP server is available at $SERVER_URL"
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Gaea2 MCP server is not reachable at $SERVER_URL"
+            echo "⚠️  Tests will be skipped"
+            echo "available=false" >> $GITHUB_OUTPUT
+          fi
+
   gaea2-integration-tests:
     name: Gaea2 MCP Server Integration Tests
+    needs: check-server-availability
+    if: needs.check-server-availability.outputs.server_available == 'true'
     runs-on: self-hosted
     timeout-minutes: 30
     env:
@@ -195,8 +223,11 @@ jobs:
   # Knowledge Base Update Job
   update-knowledge-base:
     name: Update AI Agent Knowledge Base
-    needs: gaea2-integration-tests
-    if: success() && github.ref == 'refs/heads/main'
+    needs: [check-server-availability, gaea2-integration-tests]
+    if: |
+      needs.check-server-availability.outputs.server_available == 'true' &&
+      needs.gaea2-integration-tests.result == 'success' &&
+      github.ref == 'refs/heads/main'
     runs-on: self-hosted
     steps:
       - name: Download test results
