@@ -3,7 +3,7 @@ name: Pull Request Validation
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     branches: [main, develop]
   workflow_dispatch:
     inputs:
@@ -100,7 +100,7 @@ jobs:
   gemini-review:
     name: Gemini AI Code Review
     needs: detect-changes
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
     runs-on: self-hosted
     timeout-minutes: 10
     env:

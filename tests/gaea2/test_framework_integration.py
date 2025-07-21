@@ -1,8 +1,8 @@
 """
-Phase 3 Test Framework for Gaea2 MCP - Interactive Learning and Validation
+Integration Test Framework for Gaea2 MCP - Interactive Learning and Validation
 
 This test framework follows the AI Agent Training Guide for closed-source software,
-specifically implementing Phase 3 requirements for autonomous testing and validation.
+specifically implementing Integration requirements for autonomous testing and validation.
 """
 
 import asyncio
@@ -17,7 +17,7 @@ import pytest
 
 class Gaea2TestFramework:
     """
-    Comprehensive test framework for Gaea2 MCP following Phase 3 guidelines:
+    Comprehensive test framework for Gaea2 MCP following Integration guidelines:
     - Unit test development for successful operations
     - Expected failure scenarios
     - Edge cases and boundary conditions

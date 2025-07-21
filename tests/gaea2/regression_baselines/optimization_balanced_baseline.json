@@ -1,0 +1,64 @@
+{
+  "version": "20250721",
+  "timestamp": "2025-07-21T10:37:05.703644",
+  "result": {
+    "success": true,
+    "optimized_workflow": {
+      "nodes": [
+        {
+          "id": "1",
+          "node": "Mountain",
+          "position": {
+            "X": 0,
+            "Y": 0
+          }
+        },
+        {
+          "id": "2",
+          "node": "Blur",
+          "position": {
+            "X": 1,
+            "Y": 0
+          }
+        },
+        {
+          "id": "3",
+          "node": "Blur",
+          "position": {
+            "X": 2,
+            "Y": 0
+          }
+        },
+        {
+          "id": "4",
+          "node": "Export",
+          "position": {
+            "X": 3,
+            "Y": 0
+          }
+        }
+      ],
+      "connections": [
+        {
+          "source": "1",
+          "source_port": "Out",
+          "target": "2",
+          "target_port": "In"
+        },
+        {
+          "source": "2",
+          "source_port": "Out",
+          "target": "3",
+          "target_port": "In"
+        },
+        {
+          "source": "3",
+          "source_port": "Out",
+          "target": "4",
+          "target_port": "In"
+        }
+      ]
+    },
+    "mode": "balanced"
+  }
+}

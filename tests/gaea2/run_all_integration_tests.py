@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Comprehensive test runner for Phase 3 of Gaea2 MCP testing.
+Comprehensive test runner for Integration of Gaea2 MCP testing.
 This implements the autonomous testing approach from the AI Agent Training Guide.
 """
 
@@ -15,7 +15,7 @@ import pytest
 
 
 class Phase3TestRunner:
-    """Runs all Phase 3 tests autonomously and generates comprehensive reports."""
+    """Runs all Integration tests autonomously and generates comprehensive reports."""
 
     def __init__(self, mcp_url: str = "http://192.168.0.152:8007"):
         self.mcp_url = mcp_url
@@ -195,8 +195,8 @@ class Phase3TestRunner:
             return "unknown"
 
     async def run_all_tests(self):
-        """Run all Phase 3 tests autonomously."""
-        print("🚀 Starting Phase 3 Autonomous Testing for Gaea2 MCP")
+        """Run all Integration tests autonomously."""
+        print("🚀 Starting Integration Autonomous Testing for Gaea2 MCP")
         print(f"   Server URL: {self.mcp_url}")
         print(f"   Timestamp: {datetime.now()}")
         print("=" * 60)
@@ -210,9 +210,9 @@ class Phase3TestRunner:
             self.generate_report()
             return
 
-        # 2. Framework tests (Phase 3 comprehensive suite)
-        framework_results = self.run_pytest_suite("tests/gaea2/test_framework_phase3.py", "framework_phase3")
-        self.results["test_suites"]["framework_phase3"] = framework_results
+        # 2. Framework tests (Integration comprehensive suite)
+        framework_results = self.run_pytest_suite("tests/gaea2/test_framework_integration.py", "framework_integration")
+        self.results["test_suites"]["framework_integration"] = framework_results
 
         # 3. Operations tests (successful operations)
         operations_results = self.run_pytest_suite("tests/gaea2/test_gaea_operations.py", "operations")
@@ -267,7 +267,7 @@ class Phase3TestRunner:
             print(f"  {rec}")
 
         # Save detailed report
-        report_file = f"phase3_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        report_file = f"integration_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
         with open(report_file, "w") as f:
             json.dump(self.results, f, indent=2)
 
@@ -282,7 +282,7 @@ class Phase3TestRunner:
 
         # Exit code based on results
         if analysis["total_failed"] == 0:
-            print("\n🎉 All Phase 3 tests passed! The AI agent has successfully validated the Gaea2 MCP.")
+            print("\n🎉 All Integration tests passed! The AI agent has successfully validated the Gaea2 MCP.")
             sys.exit(0)
         else:
             print(f"\n⚠️  {analysis['total_failed']} tests failed. Review the detailed report for more information.")

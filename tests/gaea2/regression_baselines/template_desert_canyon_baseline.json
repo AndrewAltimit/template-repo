@@ -1,0 +1,942 @@
+{
+  "version": "20250721",
+  "timestamp": "2025-07-21T10:37:05.610231",
+  "result": {
+    "success": true,
+    "project_name": "regression_desert_canyon",
+    "node_count": 7,
+    "connection_count": 6,
+    "saved_path": "C:\\Gaea2\\MCP_Projects\\regression_desert_canyon.terrain",
+    "project_structure": {
+      "$id": "1",
+      "Assets": {
+        "$id": "2",
+        "$values": [
+          {
+            "$id": "3",
+            "Terrain": {
+              "$id": "4",
+              "Id": "8db1bbb3-1420-4224-8033-d978cd077f1f",
+              "Metadata": {
+                "$id": "5",
+                "Name": "regression_desert_canyon",
+                "Description": "Created by Gaea2 MCP Server",
+                "Version": "",
+                "DateCreated": "2025-07-21 06:37:06Z",
+                "DateLastBuilt": "2025-07-21 06:37:06Z",
+                "DateLastSaved": "2025-07-21 06:37:06Z"
+              },
+              "Nodes": {
+                "$id": "6",
+                "100": {
+                  "$id": "7",
+                  "$type": "QuadSpinner.Gaea.Nodes.Canyon, Gaea.Nodes",
+                  "Scale": 1.5,
+                  "Depth": 0.7,
+                  "Seed": 0,
+                  "Id": 100,
+                  "Name": "MainCanyon",
+                  "Position": {
+                    "$id": "8",
+                    "X": 25000.0,
+                    "Y": 26000.0
+                  },
+                  "Ports": {
+                    "$id": "9",
+                    "$values": [
+                      {
+                        "$id": "12",
+                        "Name": "In",
+                        "Type": "PrimaryIn",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "7"
+                        }
+                      },
+                      {
+                        "$id": "13",
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "7"
+                        }
+                      }
+                    ]
+                  },
+                  "Modifiers": {
+                    "$id": "10",
+                    "$values": []
+                  },
+                  "SnapIns": {
+                    "$id": "11",
+                    "$values": []
+                  }
+                },
+                "101": {
+                  "$id": "14",
+                  "$type": "QuadSpinner.Gaea.Nodes.Stratify, Gaea.Nodes",
+                  "Layers": 12,
+                  "Strength": 0.6,
+                  "Spacing": 0.5,
+                  "Seed": 0,
+                  "Id": 101,
+                  "Name": "RockLayers",
+                  "Position": {
+                    "$id": "15",
+                    "X": 25500.0,
+                    "Y": 26000.0
+                  },
+                  "Ports": {
+                    "$id": "16",
+                    "$values": [
+                      {
+                        "$id": "19",
+                        "Name": "In",
+                        "Type": "PrimaryIn",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "14"
+                        },
+                        "Record": {
+                          "$id": "20",
+                          "From": 100,
+                          "To": 101,
+                          "FromPort": "Out",
+                          "ToPort": "In",
+                          "IsValid": true
+                        }
+                      },
+                      {
+                        "$id": "21",
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "14"
+                        }
+                      }
+                    ]
+                  },
+                  "IsMaskable": true,
+                  "Modifiers": {
+                    "$id": "17",
+                    "$values": []
+                  },
+                  "SnapIns": {
+                    "$id": "18",
+                    "$values": []
+                  }
+                },
+                "102": {
+                  "$id": "22",
+                  "$type": "QuadSpinner.Gaea.Nodes.FractalTerraces, Gaea.Nodes",
+                  "Intensity": 0.5,
+                  "Spacing": 0.2,
+                  "Octaves": 12,
+                  "MacroOctaves": 5,
+                  "StrataDetails": 0.6,
+                  "Seed": 54321,
+                  "TiltAmount": 0.5,
+                  "TiltSeed": 12345,
+                  "WarpAmount": 0.33,
+                  "WarpSize": 0.33,
+                  "Id": 102,
+                  "Name": "TerraceFormation",
+                  "Position": {
+                    "$id": "23",
+                    "X": 26000.0,
+                    "Y": 26000.0
+                  },
+                  "Ports": {
+                    "$id": "24",
+                    "$values": [
+                      {
+                        "$id": "27",
+                        "Name": "In",
+                        "Type": "PrimaryIn",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "22"
+                        },
+                        "Record": {
+                          "$id": "28",
+                          "From": 101,
+                          "To": 102,
+                          "FromPort": "Out",
+                          "ToPort": "In",
+                          "IsValid": true
+                        }
+                      },
+                      {
+                        "$id": "29",
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "22"
+                        }
+                      }
+                    ]
+                  },
+                  "IsMaskable": true,
+                  "Modifiers": {
+                    "$id": "25",
+                    "$values": []
+                  },
+                  "SnapIns": {
+                    "$id": "26",
+                    "$values": []
+                  }
+                },
+                "103": {
+                  "$id": "30",
+                  "$type": "QuadSpinner.Gaea.Nodes.Erosion2, Gaea.Nodes",
+                  "Duration": 0.02,
+                  "Downcutting": 0.2,
+                  "ErosionScale": 3000.0,
+                  "Seed": 45678,
+                  "Id": 103,
+                  "Name": "WindErosion",
+                  "Position": {
+                    "$id": "31",
+                    "X": 26500.0,
+                    "Y": 26000.0
+                  },
+                  "Ports": {
+                    "$id": "32",
+                    "$values": [
+                      {
+                        "$id": "35",
+                        "Name": "In",
+                        "Type": "PrimaryIn",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "30"
+                        },
+                        "Record": {
+                          "$id": "36",
+                          "From": 102,
+                          "To": 103,
+                          "FromPort": "Out",
+                          "ToPort": "In",
+                          "IsValid": true
+                        }
+                      },
+                      {
+                        "$id": "37",
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "30"
+                        }
+                      },
+                      {
+                        "$id": "38",
+                        "Name": "Flow",
+                        "Type": "Out",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "30"
+                        }
+                      },
+                      {
+                        "$id": "39",
+                        "Name": "Wear",
+                        "Type": "Out",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "30"
+                        }
+                      },
+                      {
+                        "$id": "40",
+                        "Name": "Deposits",
+                        "Type": "Out",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "30"
+                        }
+                      },
+                      {
+                        "$id": "41",
+                        "Name": "Mask",
+                        "Type": "In",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "30"
+                        }
+                      }
+                    ]
+                  },
+                  "Modifiers": {
+                    "$id": "33",
+                    "$values": []
+                  },
+                  "SnapIns": {
+                    "$id": "34",
+                    "$values": []
+                  }
+                },
+                "104": {
+                  "$id": "42",
+                  "$type": "QuadSpinner.Gaea.Nodes.Sand, Gaea.Nodes",
+                  "Amount": 0.4,
+                  "Scale": 0.5,
+                  "Seed": 0,
+                  "Id": 104,
+                  "Name": "SandAccumulation",
+                  "Position": {
+                    "$id": "43",
+                    "X": 27000.0,
+                    "Y": 26000.0
+                  },
+                  "Ports": {
+                    "$id": "44",
+                    "$values": [
+                      {
+                        "$id": "47",
+                        "Name": "In",
+                        "Type": "PrimaryIn",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "42"
+                        },
+                        "Record": {
+                          "$id": "48",
+                          "From": 103,
+                          "To": 104,
+                          "FromPort": "Out",
+                          "ToPort": "In",
+                          "IsValid": true
+                        }
+                      },
+                      {
+                        "$id": "49",
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "42"
+                        }
+                      }
+                    ]
+                  },
+                  "Modifiers": {
+                    "$id": "45",
+                    "$values": []
+                  },
+                  "SnapIns": {
+                    "$id": "46",
+                    "$values": []
+                  }
+                },
+                "105": {
+                  "$id": "50",
+                  "$type": "QuadSpinner.Gaea.Nodes.SatMap, Gaea.Nodes",
+                  "Library": "Sand",
+                  "LibraryItem": 0,
+                  "Randomize": false,
+                  "Range": {
+                    "$id": "51",
+                    "X": 0.5,
+                    "Y": 0.5
+                  },
+                  "Bias": 0.5,
+                  "Enhance": "None",
+                  "Reverse": false,
+                  "Rough": "None",
+                  "Hue": 0.0,
+                  "Saturation": 0.0,
+                  "Lightness": 0.0,
+                  "Id": 105,
+                  "Name": "DesertColors",
+                  "NodeSize": "Standard",
+                  "Position": {
+                    "$id": "52",
+                    "X": 27500.0,
+                    "Y": 26000.0
+                  },
+                  "Ports": {
+                    "$id": "53",
+                    "$values": [
+                      {
+                        "$id": "56",
+                        "Name": "In",
+                        "Type": "PrimaryIn, Required",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "50"
+                        },
+                        "Record": {
+                          "$id": "57",
+                          "From": 104,
+                          "To": 105,
+                          "FromPort": "Out",
+                          "ToPort": "In",
+                          "IsValid": true
+                        }
+                      },
+                      {
+                        "$id": "58",
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "50"
+                        }
+                      }
+                    ]
+                  },
+                  "Modifiers": {
+                    "$id": "54",
+                    "$values": []
+                  },
+                  "SnapIns": {
+                    "$id": "55",
+                    "$values": []
+                  }
+                },
+                "106": {
+                  "$id": "59",
+                  "$type": "QuadSpinner.Gaea.Nodes.Export, Gaea.Nodes",
+                  "Format": "PNG",
+                  "Id": 106,
+                  "Name": "TerrainExport",
+                  "NodeSize": "Standard",
+                  "Position": {
+                    "$id": "60",
+                    "X": 28000.0,
+                    "Y": 26000.0
+                  },
+                  "SaveDefinition": {
+                    "$id": "61",
+                    "Node": 106,
+                    "Filename": "TerrainExport",
+                    "Format": "EXR",
+                    "IsEnabled": true
+                  },
+                  "Ports": {
+                    "$id": "62",
+                    "$values": [
+                      {
+                        "$id": "65",
+                        "Name": "In",
+                        "Type": "PrimaryIn, Required",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "59"
+                        },
+                        "Record": {
+                          "$id": "66",
+                          "From": 105,
+                          "To": 106,
+                          "FromPort": "Out",
+                          "ToPort": "In",
+                          "IsValid": true
+                        }
+                      },
+                      {
+                        "$id": "67",
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "59"
+                        }
+                      }
+                    ]
+                  },
+                  "Modifiers": {
+                    "$id": "63",
+                    "$values": []
+                  },
+                  "SnapIns": {
+                    "$id": "64",
+                    "$values": []
+                  }
+                }
+              },
+              "Groups": {
+                "$id": "68"
+              },
+              "Notes": {
+                "$id": "69"
+              },
+              "GraphTabs": {
+                "$id": "70",
+                "$values": [
+                  {
+                    "$id": "71",
+                    "Name": "Graph 1",
+                    "Color": "Brass",
+                    "ZoomFactor": 0.5338687202362516,
+                    "ViewportLocation": {
+                      "$id": "72",
+                      "X": 25531.445,
+                      "Y": 25791.812
+                    }
+                  }
+                ]
+              },
+              "Width": 5000.0,
+              "Height": 2500.0,
+              "Ratio": 0.5
+            },
+            "Automation": {
+              "$id": "73",
+              "Bindings": {
+                "$id": "74",
+                "$values": []
+              },
+              "Variables": {
+                "$id": "75"
+              },
+              "BoundProperties": {
+                "$id": "76",
+                "$values": []
+              }
+            },
+            "BuildDefinition": {
+              "$id": "77",
+              "Destination": "<Builds>\\[Filename]\\[+++]",
+              "Resolution": 2048,
+              "BakeResolution": 2048,
+              "TileResolution": 1024,
+              "BucketResolution": 2048,
+              "BucketCount": 1,
+              "WorldResolution": 2048,
+              "NumberOfTiles": 1,
+              "TotalTiles": 1,
+              "BucketSizeWithMargin": 3072,
+              "EdgeBlending": 0.25,
+              "EdgeSize": 512,
+              "TileZeroIndex": true,
+              "TilePattern": "",
+              "OrganizeFiles": "NodeSubFolder",
+              "PostBuildScript": "",
+              "Regions": {
+                "$id": "78",
+                "$values": []
+              }
+            },
+            "State": {
+              "$id": "79",
+              "BakeResolution": 2048,
+              "PreviewResolution": 512,
+              "SelectedNode": 100,
+              "LockedNode": null,
+              "NodeBookmarks": {
+                "$id": "80",
+                "$values": []
+              },
+              "Viewport": {
+                "$id": "81",
+                "RenderMode": "Realistic",
+                "SunAltitude": 33.0,
+                "SunAzimuth": 45.0,
+                "SunIntensity": 1.0,
+                "AmbientOcclusion": true,
+                "Shadows": true,
+                "AirDensity": 1.0,
+                "AmbientIntensity": 1.0,
+                "Exposure": 1.0,
+                "FogDensity": 0.2,
+                "GroundBrightness": 0.8,
+                "Haze": 1.0,
+                "Ozone": 1.0,
+                "Camera": {
+                  "$id": "82"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Id": "8db1bbb3",
+      "Branch": 1,
+      "Metadata": {
+        "$id": "83",
+        "Name": "regression_desert_canyon",
+        "Description": "Created by Gaea2 MCP Server",
+        "Version": "",
+        "Owner": "",
+        "DateCreated": "2025-07-21 06:37:06Z",
+        "DateLastBuilt": "2025-07-21 06:37:06Z",
+        "DateLastSaved": "2025-07-21 06:37:06Z"
+      }
+    },
+    "validation_result": {
+      "success": true,
+      "results": {
+        "original_workflow": {
+          "nodes": [
+            {
+              "id": 100,
+              "type": "Canyon",
+              "name": "MainCanyon",
+              "position": {
+                "x": 25000,
+                "y": 26000
+              },
+              "properties": {
+                "Scale": 1.5,
+                "Depth": 0.7,
+                "Seed": 0
+              }
+            },
+            {
+              "id": 101,
+              "type": "Stratify",
+              "name": "RockLayers",
+              "position": {
+                "x": 25500,
+                "y": 26000
+              },
+              "properties": {
+                "Layers": 12,
+                "Strength": 0.6,
+                "Spacing": 0.5,
+                "Seed": 0
+              }
+            },
+            {
+              "id": 102,
+              "type": "FractalTerraces",
+              "name": "TerraceFormation",
+              "position": {
+                "x": 26000,
+                "y": 26000
+              },
+              "properties": {
+                "Intensity": 0.5,
+                "Spacing": 0.2,
+                "Octaves": 12,
+                "MacroOctaves": 5,
+                "StrataDetails": 0.6,
+                "Seed": 54321,
+                "TiltAmount": 0.5,
+                "TiltSeed": 12345,
+                "WarpAmount": 0.33,
+                "WarpSize": 0.33
+              }
+            },
+            {
+              "id": 103,
+              "type": "Erosion2",
+              "name": "WindErosion",
+              "position": {
+                "x": 26500,
+                "y": 26000
+              },
+              "properties": {
+                "Duration": 0.02,
+                "Downcutting": 0.2,
+                "ErosionScale": 3000.0,
+                "Seed": 45678,
+                "BedLoadDischargeAmount": 0.0,
+                "BedLoadDischargeAngle": 0.0,
+                "CoarseSedimentsDischargeAmount": 0.0,
+                "CoarseSedimentsDischargeAngle": 0.0,
+                "SuspendedLoadDischargeAmount": 0.0,
+                "SuspendedLoadDischargeAngle": 0.0,
+                "Shape": 0.5,
+                "ShapeDetailScale": 0.5,
+                "ShapeSharpness": 0.5
+              }
+            },
+            {
+              "id": 104,
+              "type": "Sand",
+              "name": "SandAccumulation",
+              "position": {
+                "x": 27000,
+                "y": 26000
+              },
+              "properties": {
+                "Amount": 0.4,
+                "Scale": 0.5,
+                "Seed": 0
+              }
+            },
+            {
+              "id": 105,
+              "type": "SatMap",
+              "name": "DesertColors",
+              "position": {
+                "x": 27500,
+                "y": 26000
+              },
+              "properties": {
+                "Library": "Sand",
+                "LibraryItem": 0,
+                "Randomize": false,
+                "Range": {
+                  "X": 0.5,
+                  "Y": 0.5
+                },
+                "Bias": 0.5,
+                "Enhance": "None",
+                "Reverse": false,
+                "Rough": "None",
+                "Hue": 0.0,
+                "Saturation": 0.0,
+                "Lightness": 0.0
+              }
+            },
+            {
+              "id": 106,
+              "type": "Export",
+              "name": "TerrainExport",
+              "position": {
+                "x": 28000,
+                "y": 26000
+              },
+              "properties": {
+                "Format": "PNG"
+              },
+              "save_definition": {
+                "filename": "terrain_output",
+                "format": "PNG",
+                "enabled": true
+              },
+              "_export_format": "EXR",
+              "_export_filename": "TerrainExport"
+            }
+          ],
+          "connections": [
+            {
+              "from_node": 100,
+              "to_node": 101,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 101,
+              "to_node": 102,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 102,
+              "to_node": 103,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 103,
+              "to_node": 104,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 104,
+              "to_node": 105,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 105,
+              "to_node": 106,
+              "from_port": "Out",
+              "to_port": "In"
+            }
+          ]
+        },
+        "validation_results": {
+          "properties": {
+            "valid": true,
+            "errors": []
+          },
+          "connections": {
+            "valid": true,
+            "errors": []
+          },
+          "structure": {
+            "valid": true,
+            "errors": []
+          }
+        },
+        "fixes_applied": [],
+        "final_workflow": {
+          "nodes": [
+            {
+              "id": 100,
+              "type": "Canyon",
+              "name": "MainCanyon",
+              "position": {
+                "x": 25000,
+                "y": 26000
+              },
+              "properties": {
+                "Scale": 1.5,
+                "Depth": 0.7,
+                "Seed": 0
+              }
+            },
+            {
+              "id": 101,
+              "type": "Stratify",
+              "name": "RockLayers",
+              "position": {
+                "x": 25500,
+                "y": 26000
+              },
+              "properties": {
+                "Layers": 12,
+                "Strength": 0.6,
+                "Spacing": 0.5,
+                "Seed": 0
+              }
+            },
+            {
+              "id": 102,
+              "type": "FractalTerraces",
+              "name": "TerraceFormation",
+              "position": {
+                "x": 26000,
+                "y": 26000
+              },
+              "properties": {
+                "Intensity": 0.5,
+                "Spacing": 0.2,
+                "Octaves": 12,
+                "MacroOctaves": 5,
+                "StrataDetails": 0.6,
+                "Seed": 54321,
+                "TiltAmount": 0.5,
+                "TiltSeed": 12345,
+                "WarpAmount": 0.33,
+                "WarpSize": 0.33
+              }
+            },
+            {
+              "id": 103,
+              "type": "Erosion2",
+              "name": "WindErosion",
+              "position": {
+                "x": 26500,
+                "y": 26000
+              },
+              "properties": {
+                "Duration": 0.02,
+                "Downcutting": 0.2,
+                "ErosionScale": 3000.0,
+                "Seed": 45678,
+                "BedLoadDischargeAmount": 0.0,
+                "BedLoadDischargeAngle": 0.0,
+                "CoarseSedimentsDischargeAmount": 0.0,
+                "CoarseSedimentsDischargeAngle": 0.0,
+                "SuspendedLoadDischargeAmount": 0.0,
+                "SuspendedLoadDischargeAngle": 0.0,
+                "Shape": 0.5,
+                "ShapeDetailScale": 0.5,
+                "ShapeSharpness": 0.5
+              }
+            },
+            {
+              "id": 104,
+              "type": "Sand",
+              "name": "SandAccumulation",
+              "position": {
+                "x": 27000,
+                "y": 26000
+              },
+              "properties": {
+                "Amount": 0.4,
+                "Scale": 0.5,
+                "Seed": 0
+              }
+            },
+            {
+              "id": 105,
+              "type": "SatMap",
+              "name": "DesertColors",
+              "position": {
+                "x": 27500,
+                "y": 26000
+              },
+              "properties": {
+                "Library": "Sand",
+                "LibraryItem": 0,
+                "Randomize": false,
+                "Range": {
+                  "X": 0.5,
+                  "Y": 0.5
+                },
+                "Bias": 0.5,
+                "Enhance": "None",
+                "Reverse": false,
+                "Rough": "None",
+                "Hue": 0.0,
+                "Saturation": 0.0,
+                "Lightness": 0.0
+              }
+            },
+            {
+              "id": 106,
+              "type": "Export",
+              "name": "TerrainExport",
+              "position": {
+                "x": 28000,
+                "y": 26000
+              },
+              "properties": {
+                "Format": "PNG"
+              },
+              "save_definition": {
+                "filename": "terrain_output",
+                "format": "PNG",
+                "enabled": true
+              },
+              "_export_format": "EXR",
+              "_export_filename": "TerrainExport"
+            }
+          ],
+          "connections": [
+            {
+              "from_node": 100,
+              "to_node": 101,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 101,
+              "to_node": 102,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 102,
+              "to_node": 103,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 103,
+              "to_node": 104,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 104,
+              "to_node": 105,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 105,
+              "to_node": 106,
+              "from_port": "Out",
+              "to_port": "In"
+            }
+          ]
+        },
+        "is_valid": true
+      }
+    },
+    "template_used": "desert_canyon",
+    "message": "Project created from template 'desert_canyon'"
+  }
+}

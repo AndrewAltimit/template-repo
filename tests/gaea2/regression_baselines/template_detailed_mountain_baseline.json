@@ -1,0 +1,1152 @@
+{
+  "version": "20250721",
+  "timestamp": "2025-07-21T10:37:05.592657",
+  "result": {
+    "success": true,
+    "project_name": "regression_detailed_mountain",
+    "node_count": 8,
+    "connection_count": 7,
+    "saved_path": "C:\\Gaea2\\MCP_Projects\\regression_detailed_mountain.terrain",
+    "project_structure": {
+      "$id": "1",
+      "Assets": {
+        "$id": "2",
+        "$values": [
+          {
+            "$id": "3",
+            "Terrain": {
+              "$id": "4",
+              "Id": "3d773a10-9ead-431c-866d-c0c64c62bd81",
+              "Metadata": {
+                "$id": "5",
+                "Name": "regression_detailed_mountain",
+                "Description": "Created by Gaea2 MCP Server",
+                "Version": "",
+                "DateCreated": "2025-07-21 06:37:06Z",
+                "DateLastBuilt": "2025-07-21 06:37:06Z",
+                "DateLastSaved": "2025-07-21 06:37:06Z"
+              },
+              "Nodes": {
+                "$id": "6",
+                "100": {
+                  "$id": "7",
+                  "$type": "QuadSpinner.Gaea.Nodes.Mountain, Gaea.Nodes",
+                  "Scale": 1.5,
+                  "Height": 0.85,
+                  "Style": "Alpine",
+                  "Bulk": "High",
+                  "ReduceDetails": false,
+                  "Seed": 0,
+                  "X": 0.0,
+                  "Y": 0.0,
+                  "Id": 100,
+                  "Name": "PrimaryMountain",
+                  "Position": {
+                    "$id": "8",
+                    "X": 25000.0,
+                    "Y": 26000.0
+                  },
+                  "Ports": {
+                    "$id": "9",
+                    "$values": [
+                      {
+                        "$id": "12",
+                        "Name": "In",
+                        "Type": "PrimaryIn",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "7"
+                        }
+                      },
+                      {
+                        "$id": "13",
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "7"
+                        }
+                      }
+                    ]
+                  },
+                  "Modifiers": {
+                    "$id": "10",
+                    "$values": []
+                  },
+                  "SnapIns": {
+                    "$id": "11",
+                    "$values": []
+                  }
+                },
+                "101": {
+                  "$id": "14",
+                  "$type": "QuadSpinner.Gaea.Nodes.Mountain, Gaea.Nodes",
+                  "Scale": 0.8,
+                  "Height": 0.6,
+                  "Style": "Eroded",
+                  "Bulk": "Medium",
+                  "ReduceDetails": false,
+                  "Seed": 0,
+                  "X": 0.0,
+                  "Y": 0.0,
+                  "Id": 101,
+                  "Name": "SecondaryPeaks",
+                  "Position": {
+                    "$id": "15",
+                    "X": 25500.0,
+                    "Y": 26000.0
+                  },
+                  "Ports": {
+                    "$id": "16",
+                    "$values": [
+                      {
+                        "$id": "19",
+                        "Name": "In",
+                        "Type": "PrimaryIn",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "14"
+                        },
+                        "Record": {
+                          "$id": "20",
+                          "From": 100,
+                          "To": 101,
+                          "FromPort": "Out",
+                          "ToPort": "In",
+                          "IsValid": true
+                        }
+                      },
+                      {
+                        "$id": "21",
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "14"
+                        }
+                      }
+                    ]
+                  },
+                  "Modifiers": {
+                    "$id": "17",
+                    "$values": []
+                  },
+                  "SnapIns": {
+                    "$id": "18",
+                    "$values": []
+                  }
+                },
+                "102": {
+                  "$id": "22",
+                  "$type": "QuadSpinner.Gaea.Nodes.Combine, Gaea.Nodes",
+                  "Mode": "Max",
+                  "Ratio": 0.7,
+                  "Clamp": "Clamp",
+                  "PortCount": 2,
+                  "Id": 102,
+                  "Name": "MergePeaks",
+                  "NodeSize": "Small",
+                  "Position": {
+                    "$id": "23",
+                    "X": 26000.0,
+                    "Y": 26000.0
+                  },
+                  "Ports": {
+                    "$id": "24",
+                    "$values": [
+                      {
+                        "$id": "27",
+                        "Name": "In",
+                        "Type": "PrimaryIn",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "22"
+                        }
+                      },
+                      {
+                        "$id": "28",
+                        "Name": "Input2",
+                        "Type": "In",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "22"
+                        },
+                        "Record": {
+                          "$id": "29",
+                          "From": 101,
+                          "To": 102,
+                          "FromPort": "Out",
+                          "ToPort": "Input2",
+                          "IsValid": true
+                        }
+                      },
+                      {
+                        "$id": "30",
+                        "Name": "Mask",
+                        "Type": "In",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "22"
+                        }
+                      },
+                      {
+                        "$id": "31",
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "22"
+                        }
+                      }
+                    ]
+                  },
+                  "IsMaskable": true,
+                  "Modifiers": {
+                    "$id": "25",
+                    "$values": []
+                  },
+                  "SnapIns": {
+                    "$id": "26",
+                    "$values": []
+                  }
+                },
+                "103": {
+                  "$id": "32",
+                  "$type": "QuadSpinner.Gaea.Nodes.Erosion2, Gaea.Nodes",
+                  "Duration": 0.05,
+                  "Downcutting": 0.35,
+                  "ErosionScale": 6000.0,
+                  "Seed": 23456,
+                  "Id": 103,
+                  "Name": "InitialErosion",
+                  "Position": {
+                    "$id": "33",
+                    "X": 26500.0,
+                    "Y": 26000.0
+                  },
+                  "Ports": {
+                    "$id": "34",
+                    "$values": [
+                      {
+                        "$id": "37",
+                        "Name": "In",
+                        "Type": "PrimaryIn",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "32"
+                        },
+                        "Record": {
+                          "$id": "38",
+                          "From": 102,
+                          "To": 103,
+                          "FromPort": "Out",
+                          "ToPort": "In",
+                          "IsValid": true
+                        }
+                      },
+                      {
+                        "$id": "39",
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "32"
+                        }
+                      },
+                      {
+                        "$id": "40",
+                        "Name": "Flow",
+                        "Type": "Out",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "32"
+                        }
+                      },
+                      {
+                        "$id": "41",
+                        "Name": "Wear",
+                        "Type": "Out",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "32"
+                        }
+                      },
+                      {
+                        "$id": "42",
+                        "Name": "Deposits",
+                        "Type": "Out",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "32"
+                        }
+                      },
+                      {
+                        "$id": "43",
+                        "Name": "Mask",
+                        "Type": "In",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "32"
+                        }
+                      }
+                    ]
+                  },
+                  "Modifiers": {
+                    "$id": "35",
+                    "$values": []
+                  },
+                  "SnapIns": {
+                    "$id": "36",
+                    "$values": []
+                  }
+                },
+                "104": {
+                  "$id": "44",
+                  "$type": "QuadSpinner.Gaea.Nodes.Rivers, Gaea.Nodes",
+                  "Water": 0.3,
+                  "Width": 0.5,
+                  "Depth": 0.4,
+                  "Downcutting": 0.0,
+                  "RiverValleyWidth": "zero",
+                  "Headwaters": 100,
+                  "RenderSurface": false,
+                  "Seed": 0,
+                  "Id": 104,
+                  "Name": "MountainStreams",
+                  "NodeSize": "Standard",
+                  "Position": {
+                    "$id": "45",
+                    "X": 27000.0,
+                    "Y": 26000.0
+                  },
+                  "Ports": {
+                    "$id": "46",
+                    "$values": [
+                      {
+                        "$id": "49",
+                        "Name": "In",
+                        "Type": "PrimaryIn",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "44"
+                        },
+                        "Record": {
+                          "$id": "50",
+                          "From": 103,
+                          "To": 104,
+                          "FromPort": "Out",
+                          "ToPort": "In",
+                          "IsValid": true
+                        }
+                      },
+                      {
+                        "$id": "51",
+                        "Name": "Headwaters",
+                        "Type": "In",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "44"
+                        }
+                      },
+                      {
+                        "$id": "52",
+                        "Name": "Mask",
+                        "Type": "In",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "44"
+                        }
+                      },
+                      {
+                        "$id": "53",
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "44"
+                        }
+                      },
+                      {
+                        "$id": "54",
+                        "Name": "Rivers",
+                        "Type": "Out",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "44"
+                        }
+                      },
+                      {
+                        "$id": "55",
+                        "Name": "Depth",
+                        "Type": "Out",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "44"
+                        }
+                      },
+                      {
+                        "$id": "56",
+                        "Name": "Surface",
+                        "Type": "Out",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "44"
+                        }
+                      },
+                      {
+                        "$id": "57",
+                        "Name": "Direction",
+                        "Type": "Out",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "44"
+                        }
+                      }
+                    ]
+                  },
+                  "IsMaskable": true,
+                  "Modifiers": {
+                    "$id": "47",
+                    "$values": []
+                  },
+                  "SnapIns": {
+                    "$id": "48",
+                    "$values": []
+                  }
+                },
+                "105": {
+                  "$id": "58",
+                  "$type": "QuadSpinner.Gaea.Nodes.Snow, Gaea.Nodes",
+                  "Duration": 0.6,
+                  "SnowLine": 0.75,
+                  "Intensity": 0.5,
+                  "SettleDuration": 0.5,
+                  "MeltType": "Uniform",
+                  "Melt": 0.0,
+                  "MeltRemnants": 0.0,
+                  "Direction": 0.0,
+                  "SlipOffAngle": 35.0,
+                  "RealScale": false,
+                  "Id": 105,
+                  "Name": "SnowCaps",
+                  "Position": {
+                    "$id": "59",
+                    "X": 27500.0,
+                    "Y": 26000.0
+                  },
+                  "Ports": {
+                    "$id": "60",
+                    "$values": [
+                      {
+                        "$id": "63",
+                        "Name": "In",
+                        "Type": "PrimaryIn",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "58"
+                        },
+                        "Record": {
+                          "$id": "64",
+                          "From": 104,
+                          "To": 105,
+                          "FromPort": "Out",
+                          "ToPort": "In",
+                          "IsValid": true
+                        }
+                      },
+                      {
+                        "$id": "65",
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "58"
+                        }
+                      }
+                    ]
+                  },
+                  "Modifiers": {
+                    "$id": "61",
+                    "$values": []
+                  },
+                  "SnapIns": {
+                    "$id": "62",
+                    "$values": []
+                  }
+                },
+                "106": {
+                  "$id": "66",
+                  "$type": "QuadSpinner.Gaea.Nodes.SatMap, Gaea.Nodes",
+                  "Library": "Rock",
+                  "Enhance": "Autolevel",
+                  "Randomize": false,
+                  "LibraryItem": 0,
+                  "Range": {
+                    "$id": "67",
+                    "X": 0.5,
+                    "Y": 0.5
+                  },
+                  "Bias": 0.5,
+                  "Reverse": false,
+                  "Rough": "None",
+                  "Hue": 0.0,
+                  "Saturation": 0.0,
+                  "Lightness": 0.0,
+                  "Id": 106,
+                  "Name": "RealisticColors",
+                  "NodeSize": "Standard",
+                  "Position": {
+                    "$id": "68",
+                    "X": 28000.0,
+                    "Y": 26000.0
+                  },
+                  "Ports": {
+                    "$id": "69",
+                    "$values": [
+                      {
+                        "$id": "72",
+                        "Name": "In",
+                        "Type": "PrimaryIn, Required",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "66"
+                        },
+                        "Record": {
+                          "$id": "73",
+                          "From": 105,
+                          "To": 106,
+                          "FromPort": "Out",
+                          "ToPort": "In",
+                          "IsValid": true
+                        }
+                      },
+                      {
+                        "$id": "74",
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "66"
+                        }
+                      }
+                    ]
+                  },
+                  "Modifiers": {
+                    "$id": "70",
+                    "$values": []
+                  },
+                  "SnapIns": {
+                    "$id": "71",
+                    "$values": []
+                  }
+                },
+                "107": {
+                  "$id": "75",
+                  "$type": "QuadSpinner.Gaea.Nodes.Export, Gaea.Nodes",
+                  "Format": "PNG",
+                  "Id": 107,
+                  "Name": "TerrainExport",
+                  "NodeSize": "Standard",
+                  "Position": {
+                    "$id": "76",
+                    "X": 28500.0,
+                    "Y": 26000.0
+                  },
+                  "SaveDefinition": {
+                    "$id": "77",
+                    "Node": 107,
+                    "Filename": "TerrainExport",
+                    "Format": "EXR",
+                    "IsEnabled": true
+                  },
+                  "Ports": {
+                    "$id": "78",
+                    "$values": [
+                      {
+                        "$id": "81",
+                        "Name": "In",
+                        "Type": "PrimaryIn, Required",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "75"
+                        },
+                        "Record": {
+                          "$id": "82",
+                          "From": 106,
+                          "To": 107,
+                          "FromPort": "Out",
+                          "ToPort": "In",
+                          "IsValid": true
+                        }
+                      },
+                      {
+                        "$id": "83",
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "75"
+                        }
+                      }
+                    ]
+                  },
+                  "Modifiers": {
+                    "$id": "79",
+                    "$values": []
+                  },
+                  "SnapIns": {
+                    "$id": "80",
+                    "$values": []
+                  }
+                }
+              },
+              "Groups": {
+                "$id": "84"
+              },
+              "Notes": {
+                "$id": "85"
+              },
+              "GraphTabs": {
+                "$id": "86",
+                "$values": [
+                  {
+                    "$id": "87",
+                    "Name": "Graph 1",
+                    "Color": "Brass",
+                    "ZoomFactor": 0.5338687202362516,
+                    "ViewportLocation": {
+                      "$id": "88",
+                      "X": 25531.445,
+                      "Y": 25791.812
+                    }
+                  }
+                ]
+              },
+              "Width": 5000.0,
+              "Height": 2500.0,
+              "Ratio": 0.5
+            },
+            "Automation": {
+              "$id": "89",
+              "Bindings": {
+                "$id": "90",
+                "$values": []
+              },
+              "Variables": {
+                "$id": "91"
+              },
+              "BoundProperties": {
+                "$id": "92",
+                "$values": []
+              }
+            },
+            "BuildDefinition": {
+              "$id": "93",
+              "Destination": "<Builds>\\[Filename]\\[+++]",
+              "Resolution": 2048,
+              "BakeResolution": 2048,
+              "TileResolution": 1024,
+              "BucketResolution": 2048,
+              "BucketCount": 1,
+              "WorldResolution": 2048,
+              "NumberOfTiles": 1,
+              "TotalTiles": 1,
+              "BucketSizeWithMargin": 3072,
+              "EdgeBlending": 0.25,
+              "EdgeSize": 512,
+              "TileZeroIndex": true,
+              "TilePattern": "",
+              "OrganizeFiles": "NodeSubFolder",
+              "PostBuildScript": "",
+              "Regions": {
+                "$id": "94",
+                "$values": []
+              }
+            },
+            "State": {
+              "$id": "95",
+              "BakeResolution": 2048,
+              "PreviewResolution": 512,
+              "SelectedNode": 100,
+              "LockedNode": null,
+              "NodeBookmarks": {
+                "$id": "96",
+                "$values": []
+              },
+              "Viewport": {
+                "$id": "97",
+                "RenderMode": "Realistic",
+                "SunAltitude": 33.0,
+                "SunAzimuth": 45.0,
+                "SunIntensity": 1.0,
+                "AmbientOcclusion": true,
+                "Shadows": true,
+                "AirDensity": 1.0,
+                "AmbientIntensity": 1.0,
+                "Exposure": 1.0,
+                "FogDensity": 0.2,
+                "GroundBrightness": 0.8,
+                "Haze": 1.0,
+                "Ozone": 1.0,
+                "Camera": {
+                  "$id": "98"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Id": "3d773a10",
+      "Branch": 1,
+      "Metadata": {
+        "$id": "99",
+        "Name": "regression_detailed_mountain",
+        "Description": "Created by Gaea2 MCP Server",
+        "Version": "",
+        "Owner": "",
+        "DateCreated": "2025-07-21 06:37:06Z",
+        "DateLastBuilt": "2025-07-21 06:37:06Z",
+        "DateLastSaved": "2025-07-21 06:37:06Z"
+      }
+    },
+    "validation_result": {
+      "success": true,
+      "results": {
+        "original_workflow": {
+          "nodes": [
+            {
+              "id": 100,
+              "type": "Mountain",
+              "name": "PrimaryMountain",
+              "position": {
+                "x": 25000,
+                "y": 26000
+              },
+              "properties": {
+                "Scale": 1.5,
+                "Height": 0.85,
+                "Style": "Alpine",
+                "Bulk": "High",
+                "ReduceDetails": false,
+                "Seed": 0,
+                "X": 0.0,
+                "Y": 0.0
+              }
+            },
+            {
+              "id": 101,
+              "type": "Mountain",
+              "name": "SecondaryPeaks",
+              "position": {
+                "x": 25500,
+                "y": 26000
+              },
+              "properties": {
+                "Scale": 0.8,
+                "Height": 0.6,
+                "Style": "Eroded",
+                "Bulk": "Medium",
+                "ReduceDetails": false,
+                "Seed": 0,
+                "X": 0.0,
+                "Y": 0.0
+              }
+            },
+            {
+              "id": 102,
+              "type": "Combine",
+              "name": "MergePeaks",
+              "position": {
+                "x": 26000,
+                "y": 26000
+              },
+              "properties": {
+                "Mode": "Max",
+                "Ratio": 0.7,
+                "Clamp": "Clamp"
+              }
+            },
+            {
+              "id": 103,
+              "type": "Erosion2",
+              "name": "InitialErosion",
+              "position": {
+                "x": 26500,
+                "y": 26000
+              },
+              "properties": {
+                "Duration": 0.05,
+                "Downcutting": 0.35,
+                "ErosionScale": 6000.0,
+                "Seed": 23456,
+                "BedLoadDischargeAmount": 0.0,
+                "BedLoadDischargeAngle": 0.0,
+                "CoarseSedimentsDischargeAmount": 0.0,
+                "CoarseSedimentsDischargeAngle": 0.0,
+                "SuspendedLoadDischargeAmount": 0.0,
+                "SuspendedLoadDischargeAngle": 0.0,
+                "Shape": 0.5,
+                "ShapeDetailScale": 0.5,
+                "ShapeSharpness": 0.5
+              }
+            },
+            {
+              "id": 104,
+              "type": "Rivers",
+              "name": "MountainStreams",
+              "position": {
+                "x": 27000,
+                "y": 26000
+              },
+              "properties": {
+                "Water": 0.3,
+                "Width": 0.5,
+                "Depth": 0.4,
+                "Downcutting": 0.0,
+                "RiverValleyWidth": "zero",
+                "Headwaters": 100,
+                "RenderSurface": false,
+                "Seed": 0
+              }
+            },
+            {
+              "id": 105,
+              "type": "Snow",
+              "name": "SnowCaps",
+              "position": {
+                "x": 27500,
+                "y": 26000
+              },
+              "properties": {
+                "Duration": 0.6,
+                "SnowLine": 0.75,
+                "Intensity": 0.5,
+                "SettleDuration": 0.5,
+                "MeltType": "Uniform",
+                "Melt": 0.0,
+                "MeltRemnants": 0.0,
+                "Direction": 0.0,
+                "SlipOffAngle": 35.0,
+                "RealScale": false
+              }
+            },
+            {
+              "id": 106,
+              "type": "SatMap",
+              "name": "RealisticColors",
+              "position": {
+                "x": 28000,
+                "y": 26000
+              },
+              "properties": {
+                "Library": "Rock",
+                "Enhance": "Autolevel",
+                "Randomize": false,
+                "LibraryItem": 0,
+                "Range": {
+                  "X": 0.5,
+                  "Y": 0.5
+                },
+                "Bias": 0.5,
+                "Reverse": false,
+                "Rough": "None",
+                "Hue": 0.0,
+                "Saturation": 0.0,
+                "Lightness": 0.0
+              }
+            },
+            {
+              "id": 107,
+              "type": "Export",
+              "name": "TerrainExport",
+              "position": {
+                "x": 28500,
+                "y": 26000
+              },
+              "properties": {
+                "Format": "PNG"
+              },
+              "save_definition": {
+                "filename": "terrain_output",
+                "format": "PNG",
+                "enabled": true
+              },
+              "_export_format": "EXR",
+              "_export_filename": "TerrainExport"
+            }
+          ],
+          "connections": [
+            {
+              "from_node": 100,
+              "to_node": 101,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 101,
+              "to_node": 102,
+              "from_port": "Out",
+              "to_port": "Input2"
+            },
+            {
+              "from_node": 102,
+              "to_node": 103,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 103,
+              "to_node": 104,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 104,
+              "to_node": 105,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 105,
+              "to_node": 106,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 106,
+              "to_node": 107,
+              "from_port": "Out",
+              "to_port": "In"
+            }
+          ]
+        },
+        "validation_results": {
+          "properties": {
+            "valid": true,
+            "errors": []
+          },
+          "connections": {
+            "valid": true,
+            "errors": []
+          },
+          "structure": {
+            "valid": true,
+            "errors": []
+          }
+        },
+        "fixes_applied": [],
+        "final_workflow": {
+          "nodes": [
+            {
+              "id": 100,
+              "type": "Mountain",
+              "name": "PrimaryMountain",
+              "position": {
+                "x": 25000,
+                "y": 26000
+              },
+              "properties": {
+                "Scale": 1.5,
+                "Height": 0.85,
+                "Style": "Alpine",
+                "Bulk": "High",
+                "ReduceDetails": false,
+                "Seed": 0,
+                "X": 0.0,
+                "Y": 0.0
+              }
+            },
+            {
+              "id": 101,
+              "type": "Mountain",
+              "name": "SecondaryPeaks",
+              "position": {
+                "x": 25500,
+                "y": 26000
+              },
+              "properties": {
+                "Scale": 0.8,
+                "Height": 0.6,
+                "Style": "Eroded",
+                "Bulk": "Medium",
+                "ReduceDetails": false,
+                "Seed": 0,
+                "X": 0.0,
+                "Y": 0.0
+              }
+            },
+            {
+              "id": 102,
+              "type": "Combine",
+              "name": "MergePeaks",
+              "position": {
+                "x": 26000,
+                "y": 26000
+              },
+              "properties": {
+                "Mode": "Max",
+                "Ratio": 0.7,
+                "Clamp": "Clamp"
+              }
+            },
+            {
+              "id": 103,
+              "type": "Erosion2",
+              "name": "InitialErosion",
+              "position": {
+                "x": 26500,
+                "y": 26000
+              },
+              "properties": {
+                "Duration": 0.05,
+                "Downcutting": 0.35,
+                "ErosionScale": 6000.0,
+                "Seed": 23456,
+                "BedLoadDischargeAmount": 0.0,
+                "BedLoadDischargeAngle": 0.0,
+                "CoarseSedimentsDischargeAmount": 0.0,
+                "CoarseSedimentsDischargeAngle": 0.0,
+                "SuspendedLoadDischargeAmount": 0.0,
+                "SuspendedLoadDischargeAngle": 0.0,
+                "Shape": 0.5,
+                "ShapeDetailScale": 0.5,
+                "ShapeSharpness": 0.5
+              }
+            },
+            {
+              "id": 104,
+              "type": "Rivers",
+              "name": "MountainStreams",
+              "position": {
+                "x": 27000,
+                "y": 26000
+              },
+              "properties": {
+                "Water": 0.3,
+                "Width": 0.5,
+                "Depth": 0.4,
+                "Downcutting": 0.0,
+                "RiverValleyWidth": "zero",
+                "Headwaters": 100,
+                "RenderSurface": false,
+                "Seed": 0
+              }
+            },
+            {
+              "id": 105,
+              "type": "Snow",
+              "name": "SnowCaps",
+              "position": {
+                "x": 27500,
+                "y": 26000
+              },
+              "properties": {
+                "Duration": 0.6,
+                "SnowLine": 0.75,
+                "Intensity": 0.5,
+                "SettleDuration": 0.5,
+                "MeltType": "Uniform",
+                "Melt": 0.0,
+                "MeltRemnants": 0.0,
+                "Direction": 0.0,
+                "SlipOffAngle": 35.0,
+                "RealScale": false
+              }
+            },
+            {
+              "id": 106,
+              "type": "SatMap",
+              "name": "RealisticColors",
+              "position": {
+                "x": 28000,
+                "y": 26000
+              },
+              "properties": {
+                "Library": "Rock",
+                "Enhance": "Autolevel",
+                "Randomize": false,
+                "LibraryItem": 0,
+                "Range": {
+                  "X": 0.5,
+                  "Y": 0.5
+                },
+                "Bias": 0.5,
+                "Reverse": false,
+                "Rough": "None",
+                "Hue": 0.0,
+                "Saturation": 0.0,
+                "Lightness": 0.0
+              }
+            },
+            {
+              "id": 107,
+              "type": "Export",
+              "name": "TerrainExport",
+              "position": {
+                "x": 28500,
+                "y": 26000
+              },
+              "properties": {
+                "Format": "PNG"
+              },
+              "save_definition": {
+                "filename": "terrain_output",
+                "format": "PNG",
+                "enabled": true
+              },
+              "_export_format": "EXR",
+              "_export_filename": "TerrainExport"
+            }
+          ],
+          "connections": [
+            {
+              "from_node": 100,
+              "to_node": 101,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 101,
+              "to_node": 102,
+              "from_port": "Out",
+              "to_port": "Input2"
+            },
+            {
+              "from_node": 102,
+              "to_node": 103,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 103,
+              "to_node": 104,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 104,
+              "to_node": 105,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 105,
+              "to_node": 106,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 106,
+              "to_node": 107,
+              "from_port": "Out",
+              "to_port": "In"
+            }
+          ]
+        },
+        "is_valid": true
+      }
+    },
+    "template_used": "detailed_mountain",
+    "message": "Project created from template 'detailed_mountain'"
+  }
+}

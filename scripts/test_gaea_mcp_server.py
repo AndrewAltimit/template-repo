@@ -51,10 +51,28 @@ class Gaea2MCPTester:
                     timeout=aiohttp.ClientTimeout(total=10),
                 ) as response:
                     if response.status == 200:
-                        tools = await response.json()
+                        data = await response.json()
+                        # Handle both direct array and wrapped response formats
+                        if isinstance(data, list):
+                            tools = data
+                        elif isinstance(data, dict) and "tools" in data:
+                            tools = data["tools"]
+                        else:
+                            # If neither format, return error
+                            print(f"❌ Unexpected response format: {type(data)}")
+                            return {
+                                "success": False,
+                                "error": f"Expected list or dict with 'tools', got {type(data)}",
+                            }
+
                         print(f"✅ Found {len(tools)} tools:")
                         for tool in tools:
-                            print(f"   - {tool['name']}: {tool.get('description', 'No description')[:80]}...")
+                            if isinstance(tool, dict):
+                                print(
+                                    f"   - {tool.get('name', 'Unknown')}: {tool.get('description', 'No description')[:80]}..."
+                                )
+                            else:
+                                print(f"   - Unknown tool format: {type(tool)}")
                         return {"success": True, "tools": tools}
                     else:
                         error_text = await response.text()

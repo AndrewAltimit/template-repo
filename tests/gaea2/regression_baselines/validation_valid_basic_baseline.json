@@ -1,0 +1,81 @@
+{
+  "version": "20250721",
+  "timestamp": "2025-07-21T10:37:05.670931",
+  "result": {
+    "success": true,
+    "results": {
+      "original_workflow": {
+        "nodes": [
+          {
+            "id": "1",
+            "node": "Mountain",
+            "position": {
+              "X": 0,
+              "Y": 0
+            }
+          },
+          {
+            "id": "2",
+            "node": "Export",
+            "position": {
+              "X": 1,
+              "Y": 0
+            }
+          }
+        ],
+        "connections": [
+          {
+            "source": "1",
+            "source_port": "Out",
+            "target": "2",
+            "target_port": "In"
+          }
+        ]
+      },
+      "validation_results": {
+        "properties": {
+          "valid": true,
+          "errors": []
+        },
+        "connections": {
+          "valid": true,
+          "errors": []
+        },
+        "structure": {
+          "valid": true,
+          "errors": []
+        }
+      },
+      "fixes_applied": [],
+      "final_workflow": {
+        "nodes": [
+          {
+            "id": "1",
+            "node": "Mountain",
+            "position": {
+              "X": 0,
+              "Y": 0
+            }
+          },
+          {
+            "id": "2",
+            "node": "Export",
+            "position": {
+              "X": 1,
+              "Y": 0
+            }
+          }
+        ],
+        "connections": [
+          {
+            "source": "1",
+            "source_port": "Out",
+            "target": "2",
+            "target_port": "In"
+          }
+        ]
+      },
+      "is_valid": true
+    }
+  }
+}
