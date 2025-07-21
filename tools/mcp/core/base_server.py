@@ -17,7 +17,12 @@ class ToolRequest(BaseModel):
     """Model for tool execution requests"""
 
     tool: str
-    arguments: Dict[str, Any]
+    arguments: Optional[Dict[str, Any]] = None
+    parameters: Optional[Dict[str, Any]] = None
+
+    def get_args(self) -> Dict[str, Any]:
+        """Get arguments, supporting both 'arguments' and 'parameters' fields"""
+        return self.arguments or self.parameters or {}
 
 
 class ToolResponse(BaseModel):
@@ -76,7 +81,7 @@ class BaseMCPServer(ABC):
                 raise HTTPException(status_code=501, detail=f"Tool '{request.tool}' not implemented")
 
             # Execute the tool
-            result = await tool_func(**request.arguments)
+            result = await tool_func(**request.get_args())
 
             return ToolResponse(success=True, result=result)
 
