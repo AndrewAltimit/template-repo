@@ -1,12 +1,11 @@
 {
   "version": "20250721",
-  "timestamp": "2025-07-21T10:37:05.660657",
+  "timestamp": "2025-07-21T17:36:04.808929",
   "result": {
     "success": true,
     "project_name": "regression_river_valley",
     "node_count": 7,
     "connection_count": 6,
-    "saved_path": "C:\\Gaea2\\MCP_Projects\\regression_river_valley.terrain",
     "project_structure": {
       "$id": "1",
       "Assets": {
@@ -16,15 +15,12 @@
             "$id": "3",
             "Terrain": {
               "$id": "4",
-              "Id": "e6e7c6ca-57c3-4de8-ab46-8c5a6b4b465f",
+              "Id": "normalized-uuid",
               "Metadata": {
                 "$id": "5",
                 "Name": "regression_river_valley",
                 "Description": "Created by Gaea2 MCP Server",
-                "Version": "",
-                "DateCreated": "2025-07-21 06:37:06Z",
-                "DateLastBuilt": "2025-07-21 06:37:06Z",
-                "DateLastSaved": "2025-07-21 06:37:06Z"
+                "Version": ""
               },
               "Nodes": {
                 "$id": "6",
@@ -620,21 +616,208 @@
           }
         ]
       },
-      "Id": "e6e7c6ca",
+      "Id": "norm-id",
       "Branch": 1,
       "Metadata": {
         "$id": "89",
         "Name": "regression_river_valley",
         "Description": "Created by Gaea2 MCP Server",
         "Version": "",
-        "Owner": "",
-        "DateCreated": "2025-07-21 06:37:06Z",
-        "DateLastBuilt": "2025-07-21 06:37:06Z",
-        "DateLastSaved": "2025-07-21 06:37:06Z"
+        "Owner": ""
       }
     },
     "validation_result": {
       "success": true,
+      "result": {
+        "valid": true,
+        "fixes_applied": [],
+        "errors": [],
+        "workflow": {
+          "nodes": [
+            {
+              "id": 100,
+              "type": "Mountain",
+              "name": "ValleyBase",
+              "position": {
+                "x": 25000,
+                "y": 26000
+              },
+              "properties": {
+                "Scale": 1.2,
+                "Height": 0.5,
+                "Style": "Basic",
+                "Bulk": "Medium",
+                "ReduceDetails": false,
+                "Seed": 0,
+                "X": 0.0,
+                "Y": 0.0
+              }
+            },
+            {
+              "id": 101,
+              "type": "Rivers",
+              "name": "MainRiver",
+              "position": {
+                "x": 25500,
+                "y": 26000
+              },
+              "properties": {
+                "Width": 0.4,
+                "Depth": 0.6,
+                "Downcutting": 0.3,
+                "Headwaters": 100,
+                "RiverValleyWidth": "plus2",
+                "RenderSurface": false,
+                "Water": 0.3,
+                "Seed": 12345
+              }
+            },
+            {
+              "id": 102,
+              "type": "Sediments",
+              "name": "Floodplain",
+              "position": {
+                "x": 26000,
+                "y": 26000
+              },
+              "properties": {
+                "Deposition": 0.5,
+                "Sediments": 0.3,
+                "Seed": 67890,
+                "Passes": 3,
+                "Scale": 0.028
+              }
+            },
+            {
+              "id": 103,
+              "type": "FractalTerraces",
+              "name": "RiverTerraces",
+              "position": {
+                "x": 26500,
+                "y": 26000
+              },
+              "properties": {
+                "Intensity": 0.5,
+                "Spacing": 0.25,
+                "Octaves": 12,
+                "MacroOctaves": 5,
+                "StrataDetails": 0.6,
+                "Seed": 98765,
+                "TiltAmount": 0.5,
+                "TiltSeed": 12345,
+                "WarpAmount": 0.33,
+                "WarpSize": 0.33
+              }
+            },
+            {
+              "id": 104,
+              "type": "Erosion2",
+              "name": "ValleyErosion",
+              "position": {
+                "x": 27000,
+                "y": 26000
+              },
+              "properties": {
+                "Duration": 0.03,
+                "Downcutting": 0.3,
+                "ErosionScale": 5000.0,
+                "Seed": 12345,
+                "BedLoadDischargeAmount": 0.0,
+                "BedLoadDischargeAngle": 0.0,
+                "CoarseSedimentsDischargeAmount": 0.0,
+                "CoarseSedimentsDischargeAngle": 0.0,
+                "SuspendedLoadDischargeAmount": 0.0,
+                "SuspendedLoadDischargeAngle": 0.0,
+                "Shape": 0.5,
+                "ShapeDetailScale": 0.5,
+                "ShapeSharpness": 0.5
+              }
+            },
+            {
+              "id": 105,
+              "type": "SatMap",
+              "name": "ValleyColors",
+              "position": {
+                "x": 27500,
+                "y": 26000
+              },
+              "properties": {
+                "Library": "Green",
+                "LibraryItem": 2,
+                "Enhance": "Autolevel",
+                "Randomize": false,
+                "Range": {
+                  "X": 0.5,
+                  "Y": 0.5
+                },
+                "Bias": 0.5,
+                "Reverse": false,
+                "Rough": "None",
+                "Hue": 0.0,
+                "Saturation": 0.0,
+                "Lightness": 0.0
+              }
+            },
+            {
+              "id": 106,
+              "type": "Export",
+              "name": "TerrainExport",
+              "position": {
+                "x": 28000,
+                "y": 26000
+              },
+              "properties": {
+                "Format": "PNG"
+              },
+              "save_definition": {
+                "filename": "terrain_output",
+                "format": "PNG",
+                "enabled": true
+              },
+              "_export_format": "EXR",
+              "_export_filename": "TerrainExport"
+            }
+          ],
+          "connections": [
+            {
+              "from_node": 100,
+              "to_node": 101,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 101,
+              "to_node": 102,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 102,
+              "to_node": 103,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 103,
+              "to_node": 104,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 104,
+              "to_node": 105,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 105,
+              "to_node": 106,
+              "from_port": "Out",
+              "to_port": "In"
+            }
+          ]
+        }
+      },
       "results": {
         "original_workflow": {
           "nodes": [

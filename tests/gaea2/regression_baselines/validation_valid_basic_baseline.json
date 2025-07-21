@@ -1,8 +1,41 @@
 {
   "version": "20250721",
-  "timestamp": "2025-07-21T10:37:05.670931",
+  "timestamp": "2025-07-21T17:36:04.814598",
   "result": {
     "success": true,
+    "result": {
+      "valid": true,
+      "fixes_applied": [],
+      "errors": [],
+      "workflow": {
+        "nodes": [
+          {
+            "id": "1",
+            "node": "Mountain",
+            "position": {
+              "X": 0,
+              "Y": 0
+            }
+          },
+          {
+            "id": "2",
+            "node": "Export",
+            "position": {
+              "X": 1,
+              "Y": 0
+            }
+          }
+        ],
+        "connections": [
+          {
+            "from_node": "1",
+            "from_port": "Out",
+            "to_node": "2",
+            "to_port": "In"
+          }
+        ]
+      }
+    },
     "results": {
       "original_workflow": {
         "nodes": [
@@ -25,10 +58,10 @@
         ],
         "connections": [
           {
-            "source": "1",
-            "source_port": "Out",
-            "target": "2",
-            "target_port": "In"
+            "from_node": "1",
+            "from_port": "Out",
+            "to_node": "2",
+            "to_port": "In"
           }
         ]
       },
@@ -68,10 +101,10 @@
         ],
         "connections": [
           {
-            "source": "1",
-            "source_port": "Out",
-            "target": "2",
-            "target_port": "In"
+            "from_node": "1",
+            "from_port": "Out",
+            "to_node": "2",
+            "to_port": "In"
           }
         ]
       },

@@ -1,12 +1,11 @@
 {
   "version": "20250721",
-  "timestamp": "2025-07-21T10:37:05.602293",
+  "timestamp": "2025-07-21T17:36:04.770923",
   "result": {
     "success": true,
     "project_name": "regression_volcanic_terrain",
     "node_count": 7,
     "connection_count": 6,
-    "saved_path": "C:\\Gaea2\\MCP_Projects\\regression_volcanic_terrain.terrain",
     "project_structure": {
       "$id": "1",
       "Assets": {
@@ -16,15 +15,12 @@
             "$id": "3",
             "Terrain": {
               "$id": "4",
-              "Id": "cb93255f-abb7-4383-a829-dfded7012013",
+              "Id": "normalized-uuid",
               "Metadata": {
                 "$id": "5",
                 "Name": "regression_volcanic_terrain",
                 "Description": "Created by Gaea2 MCP Server",
-                "Version": "",
-                "DateCreated": "2025-07-21 06:37:06Z",
-                "DateLastBuilt": "2025-07-21 06:37:06Z",
-                "DateLastSaved": "2025-07-21 06:37:06Z"
+                "Version": ""
               },
               "Nodes": {
                 "$id": "6",
@@ -574,21 +570,197 @@
           }
         ]
       },
-      "Id": "cb93255f",
+      "Id": "norm-id",
       "Branch": 1,
       "Metadata": {
         "$id": "85",
         "Name": "regression_volcanic_terrain",
         "Description": "Created by Gaea2 MCP Server",
         "Version": "",
-        "Owner": "",
-        "DateCreated": "2025-07-21 06:37:06Z",
-        "DateLastBuilt": "2025-07-21 06:37:06Z",
-        "DateLastSaved": "2025-07-21 06:37:06Z"
+        "Owner": ""
       }
     },
     "validation_result": {
       "success": true,
+      "result": {
+        "valid": true,
+        "fixes_applied": [],
+        "errors": [],
+        "workflow": {
+          "nodes": [
+            {
+              "id": 100,
+              "type": "Volcano",
+              "name": "MainVolcano",
+              "position": {
+                "x": 25000,
+                "y": 26000
+              },
+              "properties": {
+                "Scale": 1.2,
+                "Height": 0.8,
+                "Mouth": 0.3,
+                "Bulk": 0.5,
+                "Surface": "Smooth",
+                "X": 0.0,
+                "Y": 0.0,
+                "Seed": 0
+              }
+            },
+            {
+              "id": 101,
+              "type": "Island",
+              "name": "VolcanicIsland",
+              "position": {
+                "x": 25500,
+                "y": 26000
+              },
+              "properties": {
+                "Size": 0.5,
+                "Chaos": 0.3,
+                "Seed": 12345,
+                "Height": 0.7,
+                "Beaches": 0.8
+              }
+            },
+            {
+              "id": 102,
+              "type": "Combine",
+              "name": "MergeVolcano",
+              "position": {
+                "x": 26000,
+                "y": 26000
+              },
+              "properties": {
+                "Mode": "Add",
+                "Ratio": 0.8,
+                "Clamp": "Clamp"
+              }
+            },
+            {
+              "id": 103,
+              "type": "Erosion2",
+              "name": "LavaErosion",
+              "position": {
+                "x": 26500,
+                "y": 26000
+              },
+              "properties": {
+                "Duration": 0.03,
+                "Downcutting": 0.4,
+                "ErosionScale": 4000.0,
+                "Seed": 34567,
+                "BedLoadDischargeAmount": 0.0,
+                "BedLoadDischargeAngle": 0.0,
+                "CoarseSedimentsDischargeAmount": 0.0,
+                "CoarseSedimentsDischargeAngle": 0.0,
+                "SuspendedLoadDischargeAmount": 0.0,
+                "SuspendedLoadDischargeAngle": 0.0,
+                "Shape": 0.5,
+                "ShapeDetailScale": 0.5,
+                "ShapeSharpness": 0.5
+              }
+            },
+            {
+              "id": 104,
+              "type": "Thermal",
+              "name": "ThermalWeathering",
+              "position": {
+                "x": 27000,
+                "y": 26000
+              },
+              "properties": {
+                "Strength": 0.5,
+                "Angle": 35.0,
+                "Iterations": 15,
+                "Intensity": 0.5
+              }
+            },
+            {
+              "id": 105,
+              "type": "SatMap",
+              "name": "VolcanicColors",
+              "position": {
+                "x": 27500,
+                "y": 26000
+              },
+              "properties": {
+                "Library": "Rock",
+                "LibraryItem": 1,
+                "Randomize": false,
+                "Range": {
+                  "X": 0.5,
+                  "Y": 0.5
+                },
+                "Bias": 0.5,
+                "Enhance": "None",
+                "Reverse": false,
+                "Rough": "None",
+                "Hue": 0.0,
+                "Saturation": 0.0,
+                "Lightness": 0.0
+              }
+            },
+            {
+              "id": 106,
+              "type": "Export",
+              "name": "TerrainExport",
+              "position": {
+                "x": 28000,
+                "y": 26000
+              },
+              "properties": {
+                "Format": "PNG"
+              },
+              "save_definition": {
+                "filename": "terrain_output",
+                "format": "PNG",
+                "enabled": true
+              },
+              "_export_format": "EXR",
+              "_export_filename": "TerrainExport"
+            }
+          ],
+          "connections": [
+            {
+              "from_node": 100,
+              "to_node": 101,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 101,
+              "to_node": 102,
+              "from_port": "Out",
+              "to_port": "Input2"
+            },
+            {
+              "from_node": 102,
+              "to_node": 103,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 103,
+              "to_node": 104,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 104,
+              "to_node": 105,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 105,
+              "to_node": 106,
+              "from_port": "Out",
+              "to_port": "In"
+            }
+          ]
+        }
+      },
       "results": {
         "original_workflow": {
           "nodes": [

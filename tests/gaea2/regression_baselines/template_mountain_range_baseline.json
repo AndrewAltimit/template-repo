@@ -1,12 +1,11 @@
 {
   "version": "20250721",
-  "timestamp": "2025-07-21T10:37:05.618217",
+  "timestamp": "2025-07-21T17:36:04.781462",
   "result": {
     "success": true,
     "project_name": "regression_mountain_range",
     "node_count": 7,
     "connection_count": 6,
-    "saved_path": "C:\\Gaea2\\MCP_Projects\\regression_mountain_range.terrain",
     "project_structure": {
       "$id": "1",
       "Assets": {
@@ -16,15 +15,12 @@
             "$id": "3",
             "Terrain": {
               "$id": "4",
-              "Id": "84f7b42f-1a3c-46ef-9854-39d1bb16f681",
+              "Id": "normalized-uuid",
               "Metadata": {
                 "$id": "5",
                 "Name": "regression_mountain_range",
                 "Description": "Created by Gaea2 MCP Server",
-                "Version": "",
-                "DateCreated": "2025-07-21 06:37:06Z",
-                "DateLastBuilt": "2025-07-21 06:37:06Z",
-                "DateLastSaved": "2025-07-21 06:37:06Z"
+                "Version": ""
               },
               "Nodes": {
                 "$id": "6",
@@ -577,21 +573,201 @@
           }
         ]
       },
-      "Id": "84f7b42f",
+      "Id": "norm-id",
       "Branch": 1,
       "Metadata": {
         "$id": "85",
         "Name": "regression_mountain_range",
         "Description": "Created by Gaea2 MCP Server",
         "Version": "",
-        "Owner": "",
-        "DateCreated": "2025-07-21 06:37:06Z",
-        "DateLastBuilt": "2025-07-21 06:37:06Z",
-        "DateLastSaved": "2025-07-21 06:37:06Z"
+        "Owner": ""
       }
     },
     "validation_result": {
       "success": true,
+      "result": {
+        "valid": true,
+        "fixes_applied": [],
+        "errors": [],
+        "workflow": {
+          "nodes": [
+            {
+              "id": 100,
+              "type": "Mountain",
+              "name": "MainRange",
+              "position": {
+                "x": 25000,
+                "y": 26000
+              },
+              "properties": {
+                "Scale": 2.0,
+                "Height": 0.9,
+                "Style": "Alpine",
+                "Bulk": "High",
+                "Seed": 12345,
+                "ReduceDetails": false,
+                "X": 0.0,
+                "Y": 0.0
+              }
+            },
+            {
+              "id": 101,
+              "type": "Ridge",
+              "name": "RidgeDetail",
+              "position": {
+                "x": 25500,
+                "y": 26000
+              },
+              "properties": {
+                "Scale": 0.5,
+                "Complexity": 0.7,
+                "Seed": 0
+              }
+            },
+            {
+              "id": 102,
+              "type": "Combine",
+              "name": "MergeRidge",
+              "position": {
+                "x": 26000,
+                "y": 26000
+              },
+              "properties": {
+                "Mode": "Add",
+                "Ratio": 0.3,
+                "Clamp": "Clamp"
+              }
+            },
+            {
+              "id": 103,
+              "type": "Erosion2",
+              "name": "AdvancedErosion",
+              "position": {
+                "x": 26500,
+                "y": 26000
+              },
+              "properties": {
+                "Duration": 0.04,
+                "Downcutting": 0.3,
+                "ErosionScale": 7000.0,
+                "Seed": 54321,
+                "BedLoadDischargeAmount": 0.0,
+                "BedLoadDischargeAngle": 0.0,
+                "CoarseSedimentsDischargeAmount": 0.0,
+                "CoarseSedimentsDischargeAngle": 0.0,
+                "SuspendedLoadDischargeAmount": 0.0,
+                "SuspendedLoadDischargeAngle": 0.0,
+                "Shape": 0.5,
+                "ShapeDetailScale": 0.5,
+                "ShapeSharpness": 0.5
+              }
+            },
+            {
+              "id": 104,
+              "type": "Snow",
+              "name": "SnowLine",
+              "position": {
+                "x": 27000,
+                "y": 26000
+              },
+              "properties": {
+                "Duration": 0.7,
+                "SnowLine": 0.7,
+                "Melt": 0.2,
+                "Intensity": 0.5,
+                "SettleDuration": 0.5,
+                "MeltType": "Uniform",
+                "MeltRemnants": 0.0,
+                "Direction": 0.0,
+                "SlipOffAngle": 35.0,
+                "RealScale": false
+              }
+            },
+            {
+              "id": 105,
+              "type": "SatMap",
+              "name": "MountainColors",
+              "position": {
+                "x": 27500,
+                "y": 26000
+              },
+              "properties": {
+                "Library": "Rock",
+                "LibraryItem": 1,
+                "Enhance": "Autolevel",
+                "Randomize": false,
+                "Range": {
+                  "X": 0.5,
+                  "Y": 0.5
+                },
+                "Bias": 0.5,
+                "Reverse": false,
+                "Rough": "None",
+                "Hue": 0.0,
+                "Saturation": 0.0,
+                "Lightness": 0.0
+              }
+            },
+            {
+              "id": 106,
+              "type": "Export",
+              "name": "TerrainExport",
+              "position": {
+                "x": 28000,
+                "y": 26000
+              },
+              "properties": {
+                "Format": "PNG"
+              },
+              "save_definition": {
+                "filename": "terrain_output",
+                "format": "PNG",
+                "enabled": true
+              },
+              "_export_format": "EXR",
+              "_export_filename": "TerrainExport"
+            }
+          ],
+          "connections": [
+            {
+              "from_node": 100,
+              "to_node": 101,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 101,
+              "to_node": 102,
+              "from_port": "Out",
+              "to_port": "Input2"
+            },
+            {
+              "from_node": 102,
+              "to_node": 103,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 103,
+              "to_node": 104,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 104,
+              "to_node": 105,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 105,
+              "to_node": 106,
+              "from_port": "Out",
+              "to_port": "In"
+            }
+          ]
+        }
+      },
       "results": {
         "original_workflow": {
           "nodes": [

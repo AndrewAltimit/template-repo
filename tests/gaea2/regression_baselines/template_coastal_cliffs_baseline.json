@@ -1,12 +1,11 @@
 {
   "version": "20250721",
-  "timestamp": "2025-07-21T10:37:05.643391",
+  "timestamp": "2025-07-21T17:36:04.798868",
   "result": {
     "success": true,
     "project_name": "regression_coastal_cliffs",
     "node_count": 8,
     "connection_count": 7,
-    "saved_path": "C:\\Gaea2\\MCP_Projects\\regression_coastal_cliffs.terrain",
     "project_structure": {
       "$id": "1",
       "Assets": {
@@ -16,15 +15,12 @@
             "$id": "3",
             "Terrain": {
               "$id": "4",
-              "Id": "7c1da4a9-3982-4a9a-980f-1d92d94f4b67",
+              "Id": "normalized-uuid",
               "Metadata": {
                 "$id": "5",
                 "Name": "regression_coastal_cliffs",
                 "Description": "Created by Gaea2 MCP Server",
-                "Version": "",
-                "DateCreated": "2025-07-21 06:37:06Z",
-                "DateLastBuilt": "2025-07-21 06:37:06Z",
-                "DateLastSaved": "2025-07-21 06:37:06Z"
+                "Version": ""
               },
               "Nodes": {
                 "$id": "6",
@@ -599,21 +595,211 @@
           }
         ]
       },
-      "Id": "7c1da4a9",
+      "Id": "norm-id",
       "Branch": 1,
       "Metadata": {
         "$id": "91",
         "Name": "regression_coastal_cliffs",
         "Description": "Created by Gaea2 MCP Server",
         "Version": "",
-        "Owner": "",
-        "DateCreated": "2025-07-21 06:37:06Z",
-        "DateLastBuilt": "2025-07-21 06:37:06Z",
-        "DateLastSaved": "2025-07-21 06:37:06Z"
+        "Owner": ""
       }
     },
     "validation_result": {
       "success": true,
+      "result": {
+        "valid": true,
+        "fixes_applied": [],
+        "errors": [],
+        "workflow": {
+          "nodes": [
+            {
+              "id": 100,
+              "type": "Mountain",
+              "name": "CoastalTerrain",
+              "position": {
+                "x": 25000,
+                "y": 26000
+              },
+              "properties": {
+                "Scale": 1.0,
+                "Height": 0.6,
+                "Style": "Eroded",
+                "Bulk": "Medium",
+                "ReduceDetails": false,
+                "Seed": 0,
+                "X": 0.0,
+                "Y": 0.0
+              }
+            },
+            {
+              "id": 101,
+              "type": "SeaLevel",
+              "name": "OceanLevel",
+              "position": {
+                "x": 25500,
+                "y": 26000
+              },
+              "properties": {
+                "Level": 0.0,
+                "Precision": 0.95
+              }
+            },
+            {
+              "id": 102,
+              "type": "Coast",
+              "name": "Coastline",
+              "position": {
+                "x": 26000,
+                "y": 26000
+              },
+              "properties": {
+                "Erosion": 0.7,
+                "Detail": 0.8
+              }
+            },
+            {
+              "id": 103,
+              "type": "Terrace",
+              "name": "CliffTerraces",
+              "position": {
+                "x": 26500,
+                "y": 26000
+              },
+              "properties": {
+                "Levels": 5,
+                "Uniformity": 0.2,
+                "Sharp": 0.8
+              }
+            },
+            {
+              "id": 104,
+              "type": "Beach",
+              "name": "SandyBeaches",
+              "position": {
+                "x": 27000,
+                "y": 26000
+              },
+              "properties": {
+                "Width": 200.0,
+                "Slope": 0.1
+              }
+            },
+            {
+              "id": 105,
+              "type": "Erosion2",
+              "name": "CoastalErosion",
+              "position": {
+                "x": 27500,
+                "y": 26000
+              },
+              "properties": {
+                "Duration": 0.04,
+                "Downcutting": 0.1,
+                "ErosionScale": 5000.0,
+                "Seed": 67890,
+                "BedLoadDischargeAmount": 0.0,
+                "BedLoadDischargeAngle": 0.0,
+                "CoarseSedimentsDischargeAmount": 0.0,
+                "CoarseSedimentsDischargeAngle": 0.0,
+                "SuspendedLoadDischargeAmount": 0.0,
+                "SuspendedLoadDischargeAngle": 0.0,
+                "Shape": 0.5,
+                "ShapeDetailScale": 0.5,
+                "ShapeSharpness": 0.5
+              }
+            },
+            {
+              "id": 106,
+              "type": "SatMap",
+              "name": "CoastalColors",
+              "position": {
+                "x": 28000,
+                "y": 26000
+              },
+              "properties": {
+                "Library": "Blue",
+                "LibraryItem": 4,
+                "Reverse": true,
+                "Randomize": false,
+                "Range": {
+                  "X": 0.5,
+                  "Y": 0.5
+                },
+                "Bias": 0.5,
+                "Enhance": "None",
+                "Rough": "None",
+                "Hue": 0.0,
+                "Saturation": 0.0,
+                "Lightness": 0.0
+              }
+            },
+            {
+              "id": 107,
+              "type": "Export",
+              "name": "TerrainExport",
+              "position": {
+                "x": 28500,
+                "y": 26000
+              },
+              "properties": {
+                "Format": "PNG"
+              },
+              "save_definition": {
+                "filename": "terrain_output",
+                "format": "PNG",
+                "enabled": true
+              },
+              "_export_format": "EXR",
+              "_export_filename": "TerrainExport"
+            }
+          ],
+          "connections": [
+            {
+              "from_node": 100,
+              "to_node": 101,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 101,
+              "to_node": 102,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 102,
+              "to_node": 103,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 103,
+              "to_node": 104,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 104,
+              "to_node": 105,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 105,
+              "to_node": 106,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 106,
+              "to_node": 107,
+              "from_port": "Out",
+              "to_port": "In"
+            }
+          ]
+        }
+      },
       "results": {
         "original_workflow": {
           "nodes": [

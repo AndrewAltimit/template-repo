@@ -1,12 +1,11 @@
 {
   "version": "20250721",
-  "timestamp": "2025-07-21T10:37:05.651749",
+  "timestamp": "2025-07-21T17:36:04.804068",
   "result": {
     "success": true,
     "project_name": "regression_arctic_terrain",
     "node_count": 8,
     "connection_count": 7,
-    "saved_path": "C:\\Gaea2\\MCP_Projects\\regression_arctic_terrain.terrain",
     "project_structure": {
       "$id": "1",
       "Assets": {
@@ -16,15 +15,12 @@
             "$id": "3",
             "Terrain": {
               "$id": "4",
-              "Id": "6fe7ddb0-9958-46c6-9fdf-cf6ad3b834a5",
+              "Id": "normalized-uuid",
               "Metadata": {
                 "$id": "5",
                 "Name": "regression_arctic_terrain",
                 "Description": "Created by Gaea2 MCP Server",
-                "Version": "",
-                "DateCreated": "2025-07-21 06:37:06Z",
-                "DateLastBuilt": "2025-07-21 06:37:06Z",
-                "DateLastSaved": "2025-07-21 06:37:06Z"
+                "Version": ""
               },
               "Nodes": {
                 "$id": "6",
@@ -593,21 +589,211 @@
           }
         ]
       },
-      "Id": "6fe7ddb0",
+      "Id": "norm-id",
       "Branch": 1,
       "Metadata": {
         "$id": "89",
         "Name": "regression_arctic_terrain",
         "Description": "Created by Gaea2 MCP Server",
         "Version": "",
-        "Owner": "",
-        "DateCreated": "2025-07-21 06:37:06Z",
-        "DateLastBuilt": "2025-07-21 06:37:06Z",
-        "DateLastSaved": "2025-07-21 06:37:06Z"
+        "Owner": ""
       }
     },
     "validation_result": {
       "success": true,
+      "result": {
+        "valid": true,
+        "fixes_applied": [],
+        "errors": [],
+        "workflow": {
+          "nodes": [
+            {
+              "id": 100,
+              "type": "Mountain",
+              "name": "ArcticMountains",
+              "position": {
+                "x": 25000,
+                "y": 26000
+              },
+              "properties": {
+                "Scale": 1.5,
+                "Height": 0.7,
+                "Style": "Old",
+                "Bulk": "Medium",
+                "ReduceDetails": false,
+                "Seed": 0,
+                "X": 0.0,
+                "Y": 0.0
+              }
+            },
+            {
+              "id": 101,
+              "type": "Glacier",
+              "name": "IceFlow",
+              "position": {
+                "x": 25500,
+                "y": 26000
+              },
+              "properties": {
+                "Scale": 2.0,
+                "Depth": 0.6,
+                "Flow": 0.4
+              }
+            },
+            {
+              "id": 102,
+              "type": "Combine",
+              "name": "GlacialCarving",
+              "position": {
+                "x": 26000,
+                "y": 26000
+              },
+              "properties": {
+                "Mode": "Subtract",
+                "Ratio": 0.4,
+                "Clamp": "Clamp"
+              }
+            },
+            {
+              "id": 103,
+              "type": "Snow",
+              "name": "SnowCover",
+              "position": {
+                "x": 26500,
+                "y": 26000
+              },
+              "properties": {
+                "Duration": 0.9,
+                "SnowLine": 0.1,
+                "Melt": 0.05,
+                "Intensity": 0.5,
+                "SettleDuration": 0.5,
+                "MeltType": "Uniform",
+                "MeltRemnants": 0.0,
+                "Direction": 0.0,
+                "SlipOffAngle": 35.0,
+                "RealScale": false
+              }
+            },
+            {
+              "id": 104,
+              "type": "Thermal",
+              "name": "FrostShatter",
+              "position": {
+                "x": 27000,
+                "y": 26000
+              },
+              "properties": {
+                "Strength": 0.6,
+                "Iterations": 30,
+                "Angle": 32.0,
+                "Intensity": 0.5
+              }
+            },
+            {
+              "id": 105,
+              "type": "Lakes",
+              "name": "GlacialLakes",
+              "position": {
+                "x": 27500,
+                "y": 26000
+              },
+              "properties": {
+                "Count": 5,
+                "Size": 0.2
+              }
+            },
+            {
+              "id": 106,
+              "type": "SatMap",
+              "name": "ArcticColors",
+              "position": {
+                "x": 28000,
+                "y": 26000
+              },
+              "properties": {
+                "Library": "Snow",
+                "Enhance": "Autolevel",
+                "Randomize": false,
+                "LibraryItem": 0,
+                "Range": {
+                  "X": 0.5,
+                  "Y": 0.5
+                },
+                "Bias": 0.5,
+                "Reverse": false,
+                "Rough": "None",
+                "Hue": 0.0,
+                "Saturation": 0.0,
+                "Lightness": 0.0
+              }
+            },
+            {
+              "id": 107,
+              "type": "Export",
+              "name": "TerrainExport",
+              "position": {
+                "x": 28500,
+                "y": 26000
+              },
+              "properties": {
+                "Format": "PNG"
+              },
+              "save_definition": {
+                "filename": "terrain_output",
+                "format": "PNG",
+                "enabled": true
+              },
+              "_export_format": "EXR",
+              "_export_filename": "TerrainExport"
+            }
+          ],
+          "connections": [
+            {
+              "from_node": 100,
+              "to_node": 101,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 101,
+              "to_node": 102,
+              "from_port": "Out",
+              "to_port": "Input2"
+            },
+            {
+              "from_node": 102,
+              "to_node": 103,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 103,
+              "to_node": 104,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 104,
+              "to_node": 105,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 105,
+              "to_node": 106,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 106,
+              "to_node": 107,
+              "from_port": "Out",
+              "to_port": "In"
+            }
+          ]
+        }
+      },
       "results": {
         "original_workflow": {
           "nodes": [

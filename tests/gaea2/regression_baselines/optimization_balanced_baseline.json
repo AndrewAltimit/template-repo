@@ -1,6 +1,6 @@
 {
   "version": "20250721",
-  "timestamp": "2025-07-21T10:37:05.703644",
+  "timestamp": "2025-07-21T17:36:04.853095",
   "result": {
     "success": true,
     "optimized_workflow": {
@@ -40,22 +40,22 @@
       ],
       "connections": [
         {
-          "source": "1",
-          "source_port": "Out",
-          "target": "2",
-          "target_port": "In"
+          "from_node": "1",
+          "from_port": "Out",
+          "to_node": "2",
+          "to_port": "In"
         },
         {
-          "source": "2",
-          "source_port": "Out",
-          "target": "3",
-          "target_port": "In"
+          "from_node": "2",
+          "from_port": "Out",
+          "to_node": "3",
+          "to_port": "In"
         },
         {
-          "source": "3",
-          "source_port": "Out",
-          "target": "4",
-          "target_port": "In"
+          "from_node": "3",
+          "from_port": "Out",
+          "to_node": "4",
+          "to_port": "In"
         }
       ]
     },

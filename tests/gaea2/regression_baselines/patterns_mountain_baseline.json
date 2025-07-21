@@ -1,6 +1,6 @@
 {
   "version": "20250721",
-  "timestamp": "2025-07-21T10:37:05.689592",
+  "timestamp": "2025-07-21T17:36:04.835845",
   "result": {
     "error": "Gaea2MCPServer._analyze_workflow_patterns() got an unexpected keyword argument 'workflow_type'",
     "success": false

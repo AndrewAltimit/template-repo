@@ -1,12 +1,11 @@
 {
   "version": "20250721",
-  "timestamp": "2025-07-21T10:37:05.610231",
+  "timestamp": "2025-07-21T17:36:04.775451",
   "result": {
     "success": true,
     "project_name": "regression_desert_canyon",
     "node_count": 7,
     "connection_count": 6,
-    "saved_path": "C:\\Gaea2\\MCP_Projects\\regression_desert_canyon.terrain",
     "project_structure": {
       "$id": "1",
       "Assets": {
@@ -16,15 +15,12 @@
             "$id": "3",
             "Terrain": {
               "$id": "4",
-              "Id": "8db1bbb3-1420-4224-8033-d978cd077f1f",
+              "Id": "normalized-uuid",
               "Metadata": {
                 "$id": "5",
                 "Name": "regression_desert_canyon",
                 "Description": "Created by Gaea2 MCP Server",
-                "Version": "",
-                "DateCreated": "2025-07-21 06:37:06Z",
-                "DateLastBuilt": "2025-07-21 06:37:06Z",
-                "DateLastSaved": "2025-07-21 06:37:06Z"
+                "Version": ""
               },
               "Nodes": {
                 "$id": "6",
@@ -554,21 +550,197 @@
           }
         ]
       },
-      "Id": "8db1bbb3",
+      "Id": "norm-id",
       "Branch": 1,
       "Metadata": {
         "$id": "83",
         "Name": "regression_desert_canyon",
         "Description": "Created by Gaea2 MCP Server",
         "Version": "",
-        "Owner": "",
-        "DateCreated": "2025-07-21 06:37:06Z",
-        "DateLastBuilt": "2025-07-21 06:37:06Z",
-        "DateLastSaved": "2025-07-21 06:37:06Z"
+        "Owner": ""
       }
     },
     "validation_result": {
       "success": true,
+      "result": {
+        "valid": true,
+        "fixes_applied": [],
+        "errors": [],
+        "workflow": {
+          "nodes": [
+            {
+              "id": 100,
+              "type": "Canyon",
+              "name": "MainCanyon",
+              "position": {
+                "x": 25000,
+                "y": 26000
+              },
+              "properties": {
+                "Scale": 1.5,
+                "Depth": 0.7,
+                "Seed": 0
+              }
+            },
+            {
+              "id": 101,
+              "type": "Stratify",
+              "name": "RockLayers",
+              "position": {
+                "x": 25500,
+                "y": 26000
+              },
+              "properties": {
+                "Layers": 12,
+                "Strength": 0.6,
+                "Spacing": 0.5,
+                "Seed": 0
+              }
+            },
+            {
+              "id": 102,
+              "type": "FractalTerraces",
+              "name": "TerraceFormation",
+              "position": {
+                "x": 26000,
+                "y": 26000
+              },
+              "properties": {
+                "Intensity": 0.5,
+                "Spacing": 0.2,
+                "Octaves": 12,
+                "MacroOctaves": 5,
+                "StrataDetails": 0.6,
+                "Seed": 54321,
+                "TiltAmount": 0.5,
+                "TiltSeed": 12345,
+                "WarpAmount": 0.33,
+                "WarpSize": 0.33
+              }
+            },
+            {
+              "id": 103,
+              "type": "Erosion2",
+              "name": "WindErosion",
+              "position": {
+                "x": 26500,
+                "y": 26000
+              },
+              "properties": {
+                "Duration": 0.02,
+                "Downcutting": 0.2,
+                "ErosionScale": 3000.0,
+                "Seed": 45678,
+                "BedLoadDischargeAmount": 0.0,
+                "BedLoadDischargeAngle": 0.0,
+                "CoarseSedimentsDischargeAmount": 0.0,
+                "CoarseSedimentsDischargeAngle": 0.0,
+                "SuspendedLoadDischargeAmount": 0.0,
+                "SuspendedLoadDischargeAngle": 0.0,
+                "Shape": 0.5,
+                "ShapeDetailScale": 0.5,
+                "ShapeSharpness": 0.5
+              }
+            },
+            {
+              "id": 104,
+              "type": "Sand",
+              "name": "SandAccumulation",
+              "position": {
+                "x": 27000,
+                "y": 26000
+              },
+              "properties": {
+                "Amount": 0.4,
+                "Scale": 0.5,
+                "Seed": 0
+              }
+            },
+            {
+              "id": 105,
+              "type": "SatMap",
+              "name": "DesertColors",
+              "position": {
+                "x": 27500,
+                "y": 26000
+              },
+              "properties": {
+                "Library": "Sand",
+                "LibraryItem": 0,
+                "Randomize": false,
+                "Range": {
+                  "X": 0.5,
+                  "Y": 0.5
+                },
+                "Bias": 0.5,
+                "Enhance": "None",
+                "Reverse": false,
+                "Rough": "None",
+                "Hue": 0.0,
+                "Saturation": 0.0,
+                "Lightness": 0.0
+              }
+            },
+            {
+              "id": 106,
+              "type": "Export",
+              "name": "TerrainExport",
+              "position": {
+                "x": 28000,
+                "y": 26000
+              },
+              "properties": {
+                "Format": "PNG"
+              },
+              "save_definition": {
+                "filename": "terrain_output",
+                "format": "PNG",
+                "enabled": true
+              },
+              "_export_format": "EXR",
+              "_export_filename": "TerrainExport"
+            }
+          ],
+          "connections": [
+            {
+              "from_node": 100,
+              "to_node": 101,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 101,
+              "to_node": 102,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 102,
+              "to_node": 103,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 103,
+              "to_node": 104,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 104,
+              "to_node": 105,
+              "from_port": "Out",
+              "to_port": "In"
+            },
+            {
+              "from_node": 105,
+              "to_node": 106,
+              "from_port": "Out",
+              "to_port": "In"
+            }
+          ]
+        }
+      },
       "results": {
         "original_workflow": {
           "nodes": [
