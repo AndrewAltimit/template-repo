@@ -310,9 +310,9 @@ class Gaea2MCPServer:
                 if prop_str.startswith("_"):
                     continue
 
-                # Skip X and Y as they belong in Position object, not root
-                if prop_str in ["X", "Y", "x", "y"]:
-                    continue
+                # IMPORTANT: Some nodes like Volcano DO have X/Y at root level
+                # These are normalized 0-1 values, different from Position X/Y
+                # Don't skip them!
 
                 # Special handling for Range properties - need their own $id
                 if prop_str == "Range" and isinstance(value, dict):
