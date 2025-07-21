@@ -764,11 +764,11 @@ class Gaea2MCPServer:
         }
 
         # Groups
-        asset_value["Terrain"]["Groups"] = {"$id": str(ref_id_counter)}
+        asset_value["Terrain"]["Groups"] = {"$id": str(ref_id_counter), "$values": []}
         ref_id_counter += 1
 
         # Notes
-        asset_value["Terrain"]["Notes"] = {"$id": str(ref_id_counter)}
+        asset_value["Terrain"]["Notes"] = {"$id": str(ref_id_counter), "$values": []}
         ref_id_counter += 1
 
         # GraphTabs
@@ -882,7 +882,12 @@ class Gaea2MCPServer:
         }
         ref_id_counter += 1
 
-        asset_value["State"]["Viewport"]["Camera"] = {"$id": str(ref_id_counter)}
+        asset_value["State"]["Viewport"]["Camera"] = {
+            "$id": str(ref_id_counter),
+            "Position": {"X": 0.0, "Y": 0.0, "Z": 1000.0},
+            "Rotation": {"Pitch": 45.0, "Yaw": 0.0, "Roll": 0.0},
+            "Distance": 1000.0,
+        }
         ref_id_counter += 1
 
         # Add the asset value to Assets
