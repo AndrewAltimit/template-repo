@@ -200,13 +200,18 @@ class Gaea2MCPServer:
                 original_id = f"node_{i}"
                 node_id = generate_non_sequential_id(100 + i * 50, used_ids)
             else:
-                node_id = original_id
+                # Ensure node_id is always an integer
+                try:
+                    node_id = int(original_id)
+                except (ValueError, TypeError):
+                    # If can't convert, generate a proper ID
+                    node_id = generate_non_sequential_id(100 + i * 50, used_ids)
 
             if node_id not in used_ids:
                 used_ids.append(node_id)
 
             # Store with string key to ensure consistent lookups
-            node_id_map[str(original_id)] = node_id
+            node_id_map[str(original_id)] = int(node_id) if isinstance(node_id, str) else node_id
             self.logger.debug(f"Added to node_id_map: {str(original_id)} -> {node_id}")
 
         self.logger.info(f"Complete node_id_map built: {node_id_map}")
@@ -262,11 +267,8 @@ class Gaea2MCPServer:
                 # Based on reference files, Mountain nodes should NOT have
                 # Octaves, Complexity, RidgeWeight, Persistence, Lacunarity
                 # These were causing files not to open!
-                # Just ensure X,Y are present with defaults
-                if "X" not in properties:
-                    properties["X"] = 0.0
-                if "Y" not in properties:
-                    properties["Y"] = 0.0
+                # X and Y are handled by Position object, not as root properties
+                pass
 
             elif node_type == "Erosion2":
                 # Erosion2 uses different properties than regular Erosion
@@ -306,6 +308,10 @@ class Gaea2MCPServer:
 
                 # Skip internal properties
                 if prop_str.startswith("_"):
+                    continue
+
+                # Skip X and Y as they belong in Position object, not root
+                if prop_str in ["X", "Y", "x", "y"]:
                     continue
 
                 # Special handling for Range properties - need their own $id
@@ -703,6 +709,7 @@ class Gaea2MCPServer:
                 )
                 ref_id_counter += 1
 
+            # Ensure node key is string but Id property is integer
             gaea_nodes[str(node_id)] = gaea_node
 
         # Log final connection summary
@@ -764,11 +771,11 @@ class Gaea2MCPServer:
         }
 
         # Groups
-        asset_value["Terrain"]["Groups"] = {"$id": str(ref_id_counter), "$values": []}
+        asset_value["Terrain"]["Groups"] = {"$id": str(ref_id_counter)}
         ref_id_counter += 1
 
         # Notes
-        asset_value["Terrain"]["Notes"] = {"$id": str(ref_id_counter), "$values": []}
+        asset_value["Terrain"]["Notes"] = {"$id": str(ref_id_counter)}
         ref_id_counter += 1
 
         # GraphTabs
@@ -882,12 +889,7 @@ class Gaea2MCPServer:
         }
         ref_id_counter += 1
 
-        asset_value["State"]["Viewport"]["Camera"] = {
-            "$id": str(ref_id_counter),
-            "Position": {"X": 0.0, "Y": 0.0, "Z": 1000.0},
-            "Rotation": {"Pitch": 45.0, "Yaw": 0.0, "Roll": 0.0},
-            "Distance": 1000.0,
-        }
+        asset_value["State"]["Viewport"]["Camera"] = {"$id": str(ref_id_counter)}
         ref_id_counter += 1
 
         # Add the asset value to Assets
