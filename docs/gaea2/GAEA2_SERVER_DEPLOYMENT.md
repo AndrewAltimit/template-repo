@@ -12,7 +12,7 @@ From the repository root (`D:\Unreal\Repos\template-repo`):
 # Run in HTTP mode (default)
 python -m tools.mcp.gaea2.server
 
-# Run with specific port
+# Run with specific port (default is 8007)
 python -m tools.mcp.gaea2.server --port 8007
 
 # Run with custom Gaea path

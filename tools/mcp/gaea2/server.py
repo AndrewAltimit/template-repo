@@ -26,7 +26,7 @@ from .validation import Gaea2Validator
 class Gaea2MCPServer(BaseMCPServer):
     """MCP Server for Gaea2 terrain generation with comprehensive tools"""
 
-    def __init__(self, gaea_path: Optional[str] = None, output_dir: str = "/app/output/gaea2"):
+    def __init__(self, gaea_path: Optional[str] = None, output_dir: str = "/app/output/gaea2", port: int = 8007):
         # Check if running in container
         if check_container_environment() and platform.system() != "Windows":
             print("WARNING: Gaea2 MCP server typically runs on Windows with Gaea2 installed")
@@ -35,7 +35,7 @@ class Gaea2MCPServer(BaseMCPServer):
         super().__init__(
             name="Gaea2 MCP Server",
             version="1.0.0",
-            port=8007,  # Standard Gaea2 MCP port
+            port=port,
         )
 
         self.logger = setup_logging("Gaea2MCP")
@@ -528,6 +528,12 @@ def main():
         default="/app/output/gaea2",
         help="Output directory for generated terrain files",
     )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8007,
+        help="Port to run the HTTP server on (default: 8007)",
+    )
     args = parser.parse_args()
 
     # For Windows, check common Gaea2 installation paths
@@ -543,7 +549,7 @@ def main():
                 print(f"Found Gaea2 at: {path}")
                 break
 
-    server = Gaea2MCPServer(gaea_path=args.gaea_path, output_dir=args.output_dir)
+    server = Gaea2MCPServer(gaea_path=args.gaea_path, output_dir=args.output_dir, port=args.port)
     server.run(mode=args.mode)
 
 
