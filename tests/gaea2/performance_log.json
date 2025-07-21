@@ -23,6 +23,24 @@
       "duration": 0.0016076379688456655,
       "success": true,
       "timestamp": "2025-07-21T17:37:16.688065"
+    },
+    {
+      "test": "validation_performance",
+      "duration": 0.0021165420184843242,
+      "success": true,
+      "timestamp": "2025-07-21T17:38:23.789160"
+    },
+    {
+      "test": "template_performance",
+      "duration": 0.00436910695862025,
+      "success": true,
+      "timestamp": "2025-07-21T17:38:46.289304"
+    },
+    {
+      "test": "validation_performance",
+      "duration": 0.001763078966178,
+      "success": true,
+      "timestamp": "2025-07-21T17:38:46.292686"
     }
   ]
 }

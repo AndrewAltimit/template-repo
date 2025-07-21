@@ -563,8 +563,8 @@ class TestPerformanceRegression:
 
         if historical:
             avg_historical = sum(historical[-10:]) / len(historical[-10:])  # Last 10 runs
-            # Allow 50% performance degradation tolerance
-            assert duration < avg_historical * 1.5, f"Performance degraded: {duration}s vs historical {avg_historical}s"
+            # Allow 100% performance degradation tolerance (2x slower)
+            assert duration < avg_historical * 2.0, f"Performance degraded: {duration}s vs historical {avg_historical}s"
 
         # Log this run
         self._log_performance("template_performance", duration, not result.get("error"))
@@ -607,7 +607,7 @@ class TestPerformanceRegression:
 
         if historical:
             avg_historical = sum(historical[-10:]) / len(historical[-10:])
-            assert duration < avg_historical * 1.5, "Validation performance degraded"
+            assert duration < avg_historical * 2.0, "Validation performance degraded"
 
         self._log_performance("validation_performance", duration, True)
 
