@@ -72,3 +72,14 @@ result.get("result", {}).get("valid")
 1. Coordinate with the team to update the remote Gaea2 MCP server
 2. Consider running tests against a local server instance for consistency
 3. Add server version detection to handle multiple API versions gracefully
+
+## Important Note on Server Deployment
+
+The remote server at 192.168.0.152:8007 appears to be running `tools/mcp/gaea2_mcp_server.py` which has old method mappings (e.g., `suggest_gaea2_nodes` → `_suggest_nodes`).
+
+**The correct file to deploy is: `tools/mcp/gaea2/server.py`**
+
+This is the new modular MCP server implementation that:
+- Uses correct method names matching the tool names
+- Has keyword-only arguments for all async methods
+- Is part of the new modular MCP architecture
