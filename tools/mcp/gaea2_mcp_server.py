@@ -303,8 +303,12 @@ class Gaea2MCPServer:
             # Handle Export node differently - properties go in SaveDefinition
             if node_type == "Export":
                 # Don't add format/filename as direct properties
-                export_format = properties.pop("format", "EXR").upper()
-                export_filename = properties.pop("filename", node.get("name", "Export"))
+                # Check for both lowercase and uppercase variations
+                export_format = properties.pop("format", properties.pop("Format", "EXR")).upper()
+                export_filename = properties.pop("filename", properties.pop("Filename", node.get("name", "Export")))
+                # Also remove any other format-related properties to avoid conflicts
+                properties.pop("FileFormat", None)
+                properties.pop("file_format", None)
                 # Store for later use in SaveDefinition
                 node["_export_format"] = export_format
                 node["_export_filename"] = export_filename

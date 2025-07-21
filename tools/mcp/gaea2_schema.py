@@ -651,8 +651,8 @@ NODE_PROPERTY_DEFINITIONS = {
     "Erosion2": {
         "Duration": {
             "type": "float",
-            "default": 0.04,
-            "range": {"min": 0.01, "max": 0.15},
+            "default": 0.15,
+            "range": {"min": 0.01, "max": 2.0},
             "description": "Simulation duration",
         },
         "Downcutting": {
@@ -1625,7 +1625,7 @@ WORKFLOW_TEMPLATES = {
             "type": "Erosion2",
             "name": "NaturalErosion",
             "properties": {
-                "Duration": 0.04,
+                "Duration": 0.15,
                 "Downcutting": 0.3,
                 "ErosionScale": 5000.0,
                 "Seed": 12345,
@@ -1663,7 +1663,7 @@ WORKFLOW_TEMPLATES = {
             "type": "Erosion2",
             "name": "InitialErosion",
             "properties": {
-                "Duration": 0.05,
+                "Duration": 0.15,
                 "Downcutting": 0.35,
                 "ErosionScale": 6000.0,
                 "Seed": 23456,
@@ -1705,7 +1705,7 @@ WORKFLOW_TEMPLATES = {
             "type": "Erosion2",
             "name": "LavaErosion",
             "properties": {
-                "Duration": 0.03,
+                "Duration": 0.15,
                 "Downcutting": 0.4,
                 "ErosionScale": 4000.0,
                 "Seed": 34567,
@@ -1749,7 +1749,7 @@ WORKFLOW_TEMPLATES = {
             "type": "Erosion2",
             "name": "WindErosion",
             "properties": {
-                "Duration": 0.02,
+                "Duration": 0.10,
                 "Downcutting": 0.2,
                 "ErosionScale": 3000.0,
                 "Seed": 45678,
@@ -1786,7 +1786,7 @@ WORKFLOW_TEMPLATES = {
             "type": "Erosion2",
             "name": "DetailedErosion",
             "properties": {
-                "Duration": 0.06,
+                "Duration": 0.20,
                 "Downcutting": 0.4,
                 "ErosionScale": 8000.0,
                 "Seed": 56789,
@@ -1845,7 +1845,7 @@ WORKFLOW_TEMPLATES = {
             "type": "Erosion2",
             "name": "AdvancedErosion",
             "properties": {
-                "Duration": 0.04,
+                "Duration": 0.15,
                 "Downcutting": 0.3,
                 "ErosionScale": 7000.0,
                 "Seed": 54321,
@@ -1919,7 +1919,7 @@ WORKFLOW_TEMPLATES = {
             "type": "Erosion2",
             "name": "RiverErosion",
             "properties": {
-                "Duration": 0.05,
+                "Duration": 0.15,
                 "Downcutting": 0.5,
                 "ErosionScale": 6000.0,
                 "Seed": 98765,
@@ -1971,7 +1971,7 @@ WORKFLOW_TEMPLATES = {
             "type": "Erosion2",
             "name": "CoastalErosion",
             "properties": {
-                "Duration": 0.04,
+                "Duration": 0.15,
                 "Downcutting": 0.1,
                 "ErosionScale": 5000.0,
                 "Seed": 67890,
@@ -2061,7 +2061,7 @@ WORKFLOW_TEMPLATES = {
             "type": "Erosion2",
             "name": "ValleyErosion",
             "properties": {
-                "Duration": 0.03,
+                "Duration": 0.15,
                 "Downcutting": 0.3,
                 "ErosionScale": 5000.0,
                 "Seed": 12345,
@@ -2406,11 +2406,11 @@ def create_workflow_from_template(
                 "y": last_node["position"]["y"],
             },
             "properties": {
-                "Format": "PNG",  # Use proper property name
+                # NO Format property here - only in save_definition to avoid conflicts
             },
             "save_definition": {
                 "filename": "terrain_output",
-                "format": "PNG",
+                "format": "EXR",  # Use EXR as default (more common in reference files)
                 "enabled": True,
             },
         }
