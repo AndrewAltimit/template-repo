@@ -13,7 +13,10 @@ def test_api_format(format_type="parameters"):
     # Simple test payload
     payload = {
         "tool": "suggest_gaea2_nodes",
-        format_type: {"current_nodes": ["Mountain", "Erosion"], "context": "add water features"},
+        format_type: {
+            "current_nodes": ["Mountain", "Erosion"],
+            "context": "add water features",
+        },
     }
 
     print(f"\nTesting with '{format_type}' field:")
