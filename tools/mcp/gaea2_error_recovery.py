@@ -106,8 +106,9 @@ class Gaea2ErrorRecovery:
 
                 if not is_valid or fixed_props != properties:
                     node["properties"] = fixed_props
+                    node_name = node.get("name", f'node_{node.get("id", "unknown")}')
                     self.fixes_applied.append(
-                        f"Fixed properties on {node['name']} ({node_type}): " f"{', '.join(self.property_validator.warnings)}"
+                        f"Fixed properties on {node_name} ({node_type}): {', '.join(self.property_validator.warnings)}"
                     )
             else:
                 # Add default properties
@@ -224,7 +225,9 @@ class Gaea2ErrorRecovery:
                             "to_port": "In",
                         }
                     )
-                    self.fixes_applied.append(f"Connected orphaned {orphan['name']} to {target_nodes[0]['name']}")
+                    orphan_name = orphan.get("name", f'node_{orphan.get("id", "unknown")}')
+                    target_name = target_nodes[0].get("name", f'node_{target_nodes[0].get("id", "unknown")}')
+                    self.fixes_applied.append(f"Connected orphaned {orphan_name} to {target_name}")
                     break
             else:
                 # No pattern match, try reverse connection
@@ -242,7 +245,9 @@ class Gaea2ErrorRecovery:
                                 "to_port": "In",
                             }
                         )
-                        self.fixes_applied.append(f"Connected {node['name']} to orphaned {orphan['name']}")
+                        node_name = node.get("name", f'node_{node.get("id", "unknown")}')
+                        orphan_name = orphan.get("name", f'node_{orphan.get("id", "unknown")}')
+                        self.fixes_applied.append(f"Connected {node_name} to orphaned {orphan_name}")
                         break
 
         return connections
@@ -289,7 +294,8 @@ class Gaea2ErrorRecovery:
                 optimized_props = self.property_validator.get_performance_optimized_properties(node["type"], original_props)
                 if optimized_props != original_props:
                     node["properties"] = optimized_props
-                    self.fixes_applied.append(f"Optimized {node['name']} properties for performance")
+                    node_name = node.get("name", f'node_{node.get("id", "unknown")}')
+                    self.fixes_applied.append(f"Optimized {node_name} properties for performance")
 
         return nodes, connections
 
