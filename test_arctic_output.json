@@ -7,15 +7,15 @@
         "$id": "3",
         "Terrain": {
           "$id": "4",
-          "Id": "4213f9f0-f411-4689-97cb-91d7b4896521",
+          "Id": "72c4055e-635b-4f9e-b327-65851a220617",
           "Metadata": {
             "$id": "5",
             "Name": "test_arctic_fixed",
             "Description": "Created by Gaea2 MCP Server",
             "Version": "",
-            "DateCreated": "2025-07-21 13:56:04Z",
-            "DateLastBuilt": "2025-07-21 13:56:04Z",
-            "DateLastSaved": "2025-07-21 13:56:04Z"
+            "DateCreated": "2025-07-21 14:09:36Z",
+            "DateLastBuilt": "2025-07-21 14:09:36Z",
+            "DateLastSaved": "2025-07-21 14:09:36Z"
           },
           "Nodes": {
             "$id": "6",
@@ -159,6 +159,15 @@
                   },
                   {
                     "$id": "29",
+                    "Name": "Out",
+                    "Type": "PrimaryOut",
+                    "IsExporting": true,
+                    "Parent": {
+                      "$ref": "22"
+                    }
+                  },
+                  {
+                    "$id": "30",
                     "Name": "Input2",
                     "Type": "In",
                     "IsExporting": true,
@@ -166,7 +175,7 @@
                       "$ref": "22"
                     },
                     "Record": {
-                      "$id": "30",
+                      "$id": "31",
                       "From": 101,
                       "To": 102,
                       "FromPort": "Out",
@@ -175,18 +184,9 @@
                     }
                   },
                   {
-                    "$id": "31",
+                    "$id": "32",
                     "Name": "Mask",
                     "Type": "In",
-                    "IsExporting": true,
-                    "Parent": {
-                      "$ref": "22"
-                    }
-                  },
-                  {
-                    "$id": "32",
-                    "Name": "Out",
-                    "Type": "PrimaryOut",
                     "IsExporting": true,
                     "Parent": {
                       "$ref": "22"
@@ -592,7 +592,7 @@
       }
     ]
   },
-  "Id": "4213f9f0",
+  "Id": "72c4055e",
   "Branch": 1,
   "Metadata": {
     "$id": "90",
@@ -600,8 +600,8 @@
     "Description": "Created by Gaea2 MCP Server",
     "Version": "",
     "Owner": "",
-    "DateCreated": "2025-07-21 13:56:04Z",
-    "DateLastBuilt": "2025-07-21 13:56:04Z",
-    "DateLastSaved": "2025-07-21 13:56:04Z"
+    "DateCreated": "2025-07-21 14:09:36Z",
+    "DateLastBuilt": "2025-07-21 14:09:36Z",
+    "DateLastSaved": "2025-07-21 14:09:36Z"
   }
 }

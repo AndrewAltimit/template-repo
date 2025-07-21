@@ -866,7 +866,7 @@ class Gaea2MCPServer:
         # BuildDefinition
         asset_value["BuildDefinition"] = {
             "$id": str(ref_id_counter),
-            "Destination": "<Builds>\\[Filename]\\[+++]",
+            "Destination": r"<Builds>\[Filename]\[+++]",
             "Resolution": 2048,
             "BakeResolution": 2048,
             "TileResolution": 1024,
@@ -879,7 +879,7 @@ class Gaea2MCPServer:
             "EdgeBlending": 0.25,
             "EdgeSize": 512,
             "TileZeroIndex": True,
-            "TilePattern": "",
+            "TilePattern": "_y%Y%_x%X%",
             "OrganizeFiles": "NodeSubFolder",
             "PostBuildScript": "",
         }
