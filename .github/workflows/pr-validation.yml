@@ -518,7 +518,7 @@ jobs:
   # Stage 7: Gaea2 MCP Integration Tests
   gaea2-integration-tests:
     name: Gaea2 MCP Integration Tests
-    needs: [detect-changes, mcp-validation]
+    needs: [detect-changes]
     if: needs.detect-changes.outputs.mcp_changed == 'true'
     uses: ./.github/workflows/gaea2-integration-tests.yml
     with:
