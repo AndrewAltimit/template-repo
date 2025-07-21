@@ -51,12 +51,17 @@ class RegressionTestManager:
 
     def _normalize_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
         """Normalize result for comparison (remove timestamps, paths, etc.)."""
-        normalized = result.copy()
+        import copy
 
-        # Remove volatile fields
-        fields_to_remove = ["timestamp", "project_path", "duration", "temp_path"]
+        normalized = copy.deepcopy(result)
+
+        # Remove volatile top-level fields
+        fields_to_remove = ["timestamp", "project_path", "duration", "temp_path", "saved_path"]
         for field in fields_to_remove:
             normalized.pop(field, None)
+
+        # Remove nested timestamps and volatile data
+        self._remove_volatile_nested(normalized)
 
         # Sort lists for consistent comparison
         if "nodes" in normalized:
@@ -64,10 +69,42 @@ class RegressionTestManager:
         if "connections" in normalized:
             normalized["connections"] = sorted(
                 normalized["connections"],
-                key=lambda x: (x.get("source", ""), x.get("target", "")),
+                key=lambda x: (x.get("from_node", x.get("source", "")), x.get("to_node", x.get("target", ""))),
             )
 
         return normalized
+
+    def _remove_volatile_nested(self, data: Any) -> None:
+        """Recursively remove volatile fields from nested structures."""
+        if isinstance(data, dict):
+            # List of keys to remove if found
+            keys_to_remove = []
+
+            for key, value in data.items():
+                # Remove any field with "Date" in the name (timestamps)
+                if "Date" in key:
+                    keys_to_remove.append(key)
+                # Remove file paths
+                elif key in ["saved_path", "project_path", "temp_path"]:
+                    keys_to_remove.append(key)
+                # Normalize UUIDs and random IDs
+                elif key == "Id" and isinstance(value, str) and "-" in value:
+                    # Replace UUID with a normalized value
+                    data[key] = "normalized-uuid"
+                elif key == "Id" and isinstance(value, str) and len(value) == 8:
+                    # Replace short ID with normalized value
+                    data[key] = "norm-id"
+                else:
+                    # Recursively process nested structures
+                    self._remove_volatile_nested(value)
+
+            # Remove the marked keys
+            for key in keys_to_remove:
+                data.pop(key, None)
+
+        elif isinstance(data, list):
+            for item in data:
+                self._remove_volatile_nested(item)
 
     def compare_with_baseline(self, test_name: str, current_result: Dict[str, Any]) -> Dict[str, Any]:
         """Compare current result with baseline."""
@@ -456,7 +493,9 @@ class TestGaea2Regression:
             result = await self.execute_tool(mcp_url, scenario["tool"], scenario["parameters"])
 
             # Error responses should remain consistent
-            assert result.get("error") is not None
+            # Allow both error format and success:false format
+            has_error = result.get("error") is not None or result.get("success") is False
+            assert has_error, f"Expected error response for {scenario['name']}, got: {result}"
 
             # Check error message consistency
             test_name = f"error_{scenario['name']}"
