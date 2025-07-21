@@ -388,6 +388,31 @@ class Gaea2ErrorRecovery:
 
         return node
 
+    def fix_workflow(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Fix workflow issues automatically"""
+        fixed_nodes = self._fix_node_properties(nodes)
+        fixed_connections = self._fix_duplicate_connections(connections)
+        fixed_nodes = self._ensure_export_node(fixed_nodes)
+
+        fixes_applied = []
+        if len(fixed_connections) != len(connections):
+            fixes_applied.append("Removed duplicate connections")
+        if len(fixed_nodes) != len(nodes):
+            fixes_applied.append("Added missing Export node")
+
+        # Check if properties were fixed
+        for i, node in enumerate(nodes):
+            if i < len(fixed_nodes) and node.get("properties", {}) != fixed_nodes[i].get("properties", {}):
+                fixes_applied.append(f"Fixed properties for {node.get('type', 'unknown')} node")
+                break
+
+        return {
+            "nodes": fixed_nodes,
+            "connections": fixed_connections,
+            "fixed": len(fixes_applied) > 0,
+            "fixes_applied": fixes_applied,
+        }
+
     def suggest_fixes(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Suggest fixes without applying them"""
         suggestions = []
