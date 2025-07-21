@@ -3,14 +3,13 @@
 import logging
 from typing import Any, Dict, List, Tuple
 
-# Use stubs for now
-from ..stubs import (
-    Gaea2ConnectionValidator,
-    Gaea2ErrorRecovery,
-    Gaea2PropertyValidator,
-    create_accurate_validator,
-    validate_gaea2_project,
-)
+from ...gaea2_accurate_validation import create_accurate_validator
+from ...gaea2_connection_validator import Gaea2ConnectionValidator
+
+# Import real implementations
+from ...gaea2_error_recovery import Gaea2ErrorRecovery
+from ...gaea2_property_validator import Gaea2PropertyValidator
+from ...gaea2_schema import validate_gaea2_project
 
 
 class Gaea2Validator:
@@ -23,7 +22,9 @@ class Gaea2Validator:
         self.property_validator = Gaea2PropertyValidator()
         self.error_recovery = Gaea2ErrorRecovery()
 
-    async def validate_and_fix(self, workflow: Dict[str, Any], strict_mode: bool = False) -> Dict[str, Any]:
+    async def validate_and_fix(
+        self, workflow: Dict[str, Any], strict_mode: bool = False
+    ) -> Dict[str, Any]:
         """Validate and automatically fix a workflow"""
 
         nodes = workflow.get("nodes", [])
@@ -61,13 +62,17 @@ class Gaea2Validator:
 
         errors = []
         for conn in connections:
-            is_valid, error = self.connection_validator.validate_connection(conn, node_map)
+            is_valid, error = self.connection_validator.validate_connection(
+                conn, node_map
+            )
             if not is_valid and error:
                 errors.append(error)
 
         return len(errors) == 0, errors
 
-    async def validate_properties(self, node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
+    async def validate_properties(
+        self, node_type: str, properties: Dict[str, Any]
+    ) -> Tuple[bool, List[str], Dict[str, Any]]:
         """Validate and correct node properties"""
 
         return self.property_validator.validate_properties(node_type, properties)
