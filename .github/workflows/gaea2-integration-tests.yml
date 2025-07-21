@@ -1,15 +1,16 @@
+---
 name: Gaea2 MCP Integration Tests
 
 on:
   push:
-    branches: [ gaea-mcp ]
+    branches: [gaea-mcp]
     paths:
       - 'tools/mcp/gaea2/**'
       - 'tests/gaea2/**'
       - 'scripts/test_gaea_mcp_server.py'
       - '.github/workflows/gaea2-integration-tests.yml'
   pull_request:
-    branches: [ main ]
+    branches: [main]
     paths:
       - 'tools/mcp/gaea2/**'
       - 'tests/gaea2/**'
@@ -178,7 +179,7 @@ jobs:
               - Edge Cases: ${{ steps.edge-cases.outcome }}
               - Regression: ${{ steps.regression.outcome }}
 
-              View the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed results.`;
+              [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
 
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
@@ -221,7 +222,7 @@ jobs:
           script: |
             try {
               const title = `Gaea2 MCP: Knowledge Base Update Required`;
-              const body = `The integration testing has identified new patterns that need to be incorporated into the AI agent's knowledge base.
+              const body = `New patterns need to be incorporated into the AI agent's knowledge base.
 
               Please review the test results and update the knowledge base accordingly.
 
