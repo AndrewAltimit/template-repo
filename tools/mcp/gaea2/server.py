@@ -352,7 +352,7 @@ class Gaea2MCPServer(BaseMCPServer):
             return {"success": False, "error": str(e)}
 
     async def create_gaea2_from_template(
-        self, template_name: str, project_name: str, output_path: Optional[str] = None
+        self, *, template_name: str, project_name: str, output_path: Optional[str] = None
     ) -> Dict[str, Any]:
         """Create a Gaea2 project from template"""
         try:

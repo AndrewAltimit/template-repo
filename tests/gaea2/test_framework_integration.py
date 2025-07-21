@@ -102,11 +102,11 @@ class TestSuccessfulOperations:
             {"template_name": "basic_terrain", "project_name": "test_basic"},
         )
 
-        assert not result.get("error"), f"Expected success but got error: {result.get('error')}"
-        assert "project_path" in result
+        assert result.get("success"), f"Expected success but got error: {result.get('error')}"
+        assert "project_path" in result.get("result", {})
         # API returns validation info differently - check for success indicators
-        assert result.get("node_count", 0) > 0
-        assert result.get("connection_count", 0) > 0
+        assert result.get("result", {}).get("node_count", 0) > 0
+        assert result.get("result", {}).get("connection_count", 0) > 0
 
     @pytest.mark.asyncio
     async def test_validate_workflow(self, framework):
@@ -114,37 +114,38 @@ class TestSuccessfulOperations:
         # Based on reference analysis: common workflow pattern
         workflow = {
             "nodes": [
-                {"id": "1", "node": "Slump", "position": {"X": 0, "Y": 0}},
-                {"id": "2", "node": "FractalTerraces", "position": {"X": 1, "Y": 0}},
-                {"id": "3", "node": "Combine", "position": {"X": 2, "Y": 0}},
-                {"id": "4", "node": "Export", "position": {"X": 3, "Y": 0}},
+                {"id": "1", "type": "Slump", "position": {"X": 0, "Y": 0}},
+                {"id": "2", "type": "FractalTerraces", "position": {"X": 1, "Y": 0}},
+                {"id": "3", "type": "Combine", "position": {"X": 2, "Y": 0}},
+                {"id": "4", "type": "Export", "position": {"X": 3, "Y": 0}},
             ],
             "connections": [
                 {
-                    "source": "1",
-                    "source_port": "Out",
-                    "target": "2",
-                    "target_port": "In",
+                    "from_node": "1",
+                    "from_port": "Out",
+                    "to_node": "2",
+                    "to_port": "In",
                 },
                 {
-                    "source": "2",
-                    "source_port": "Out",
-                    "target": "3",
-                    "target_port": "In",
+                    "from_node": "2",
+                    "from_port": "Out",
+                    "to_node": "3",
+                    "to_port": "In",
                 },
                 {
-                    "source": "3",
-                    "source_port": "Out",
-                    "target": "4",
-                    "target_port": "In",
+                    "from_node": "3",
+                    "from_port": "Out",
+                    "to_node": "4",
+                    "to_port": "In",
                 },
             ],
         }
 
         result = await framework.execute_mcp_tool("validate_and_fix_workflow", {"workflow": workflow})
 
-        assert result.get("results", {}).get("is_valid") is True
-        assert len(result.get("results", {}).get("validation_errors", [])) == 0
+        assert result.get("success"), f"Validation failed: {result.get('error')}"
+        assert result.get("result", {}).get("valid") is True
+        assert len(result.get("result", {}).get("errors", [])) == 0
 
     @pytest.mark.asyncio
     async def test_analyze_patterns(self, framework):
@@ -152,9 +153,9 @@ class TestSuccessfulOperations:
         # First create a workflow to analyze
         workflow = {
             "nodes": [
-                {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                {"id": "2", "node": "Erosion", "position": {"X": 1, "Y": 0}},
-                {"id": "3", "node": "Export", "position": {"X": 2, "Y": 0}},
+                {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                {"id": "2", "type": "Erosion", "position": {"X": 1, "Y": 0}},
+                {"id": "3", "type": "Export", "position": {"X": 2, "Y": 0}},
             ],
             "connections": [
                 {
@@ -174,17 +175,11 @@ class TestSuccessfulOperations:
 
         result = await framework.execute_mcp_tool("analyze_workflow_patterns", {"workflow_or_directory": workflow})
 
-        assert "common_patterns" in result or "common_patterns" in result.get("results", {})
-        assert "recommended_nodes" in result or "recommended_nodes" in result.get("results", {})
-        assert (
-            len(
-                result.get(
-                    "recommended_nodes",
-                    result.get("results", {}).get("recommended_nodes", []),
-                )
-            )
-            > 0
-        )
+        assert result.get("success"), f"Pattern analysis failed: {result.get('error')}"
+        assert "common_patterns" in result.get("result", {}) or "common_patterns" in result
+        assert "recommended_nodes" in result.get("result", {}) or "recommended_nodes" in result
+        recommended = result.get("result", {}).get("recommended_nodes", result.get("recommended_nodes", []))
+        assert len(recommended) > 0
 
     @pytest.mark.asyncio
     async def test_node_suggestions(self, framework):
@@ -197,11 +192,10 @@ class TestSuccessfulOperations:
             },
         )
 
-        assert "suggestions" in result or "suggestions" in result.get("results", {})
-        assert len(result.get("suggestions", result.get("results", {}).get("suggestions", []))) > 0
-        assert all(
-            "node" in s and "reason" in s for s in result.get("suggestions", result.get("results", {}).get("suggestions", []))
-        )
+        assert result.get("success"), f"Node suggestions failed: {result.get('error')}"
+        suggestions = result.get("result", {}).get("suggestions", result.get("suggestions", []))
+        assert len(suggestions) > 0
+        assert all("node" in s and "reason" in s for s in suggestions)
 
 
 class TestExpectedFailures:
@@ -226,7 +220,7 @@ class TestExpectedFailures:
     async def test_invalid_node_type(self, framework):
         """Test workflow with invalid node type."""
         workflow = {
-            "nodes": [{"id": "1", "node": "InvalidNodeType", "position": {"X": 0, "Y": 0}}],
+            "nodes": [{"id": "1", "type": "InvalidNodeType", "position": {"X": 0, "Y": 0}}],
             "connections": [],
         }
 
@@ -234,19 +228,23 @@ class TestExpectedFailures:
 
         # The server might be permissive and accept unknown node types
         # or it might fix them automatically
-        assert (
-            result.get("results", {}).get("is_valid") is False
-            or len(result.get("results", {}).get("fixes_applied", [])) > 0
-            or "InvalidNodeType" in str(result.get("results", {}).get("final_workflow", {}))
-        )
+        if result.get("success"):
+            # The server might be permissive and accept unknown node types or fix them
+            assert (
+                result.get("result", {}).get("valid") is False
+                or len(result.get("result", {}).get("fixes_applied", [])) > 0
+                or "InvalidNodeType" in str(result.get("result", {}).get("workflow", {}))
+            )
+        else:
+            assert "InvalidNodeType" in result.get("error", "")
 
     @pytest.mark.asyncio
     async def test_circular_connections(self, framework):
         """Test detection of circular dependencies."""
         workflow = {
             "nodes": [
-                {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                {"id": "2", "node": "Erosion", "position": {"X": 1, "Y": 0}},
+                {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                {"id": "2", "type": "Erosion", "position": {"X": 1, "Y": 0}},
             ],
             "connections": [
                 {
@@ -266,9 +264,10 @@ class TestExpectedFailures:
 
         result = await framework.execute_mcp_tool("validate_and_fix_workflow", {"workflow": workflow})
 
-        assert (
-            result.get("results", {}).get("is_valid") is False or len(result.get("results", {}).get("fixes_applied", [])) > 0
-        )
+        if result.get("success"):
+            assert result.get("result", {}).get("valid") is False or len(result.get("result", {}).get("fixes_applied", [])) > 0
+        else:
+            assert result.get("error") is not None
 
 
 class TestEdgeCases:
@@ -284,9 +283,11 @@ class TestEdgeCases:
         result = await framework.execute_mcp_tool("validate_and_fix_workflow", {"workflow": {"nodes": [], "connections": []}})
 
         # Should either fail or auto-fix by adding required nodes
-        assert (
-            result.get("results", {}).get("is_valid") is False or len(result.get("results", {}).get("fixes_applied", [])) > 0
-        )
+        if result.get("success"):
+            assert result.get("result", {}).get("valid") is False or len(result.get("result", {}).get("fixes_applied", [])) > 0
+        else:
+            # If there's an error, it should be meaningful
+            assert result.get("error") is not None
 
     @pytest.mark.asyncio
     async def test_maximum_complexity(self, framework):
@@ -299,7 +300,7 @@ class TestEdgeCases:
             nodes.append(
                 {
                     "id": str(i),
-                    "node": "Perlin" if i % 2 == 0 else "Gradient",
+                    "type": "Perlin" if i % 2 == 0 else "Gradient",
                     "position": {"X": i % 5, "Y": i // 5},
                 }
             )
@@ -337,7 +338,7 @@ class TestEdgeCases:
                 "create_gaea2_project",
                 {
                     "project_name": name,
-                    "nodes": [{"id": "1", "node": "Mountain"}],
+                    "nodes": [{"id": "1", "type": "Mountain"}],
                     "connections": [],
                 },
             )
@@ -363,7 +364,7 @@ class TestErrorHandling:
             {"workflow": {"nodes": [{"id": "1"}]}},  # Missing 'node' field
         )
 
-        assert result.get("error") is not None or result.get("results", {}).get("is_valid") is False
+        assert result.get("error") is not None or (result.get("success") and result.get("result", {}).get("valid") is False)
 
     @pytest.mark.asyncio
     async def test_connection_recovery(self, framework):
@@ -379,6 +380,7 @@ class TestErrorHandling:
         assert result.get("error") is not None
         assert result.get("error_type") in [
             "ClientConnectorError",
+            "ClientConnectorDNSError",
             "ClientError",
             "Exception",
         ]
@@ -387,7 +389,7 @@ class TestErrorHandling:
     async def test_timeout_handling(self, framework):
         """Test timeout handling for long operations."""
         # Create extremely complex workflow to trigger timeout
-        nodes = [{"id": str(i), "node": "Mountain"} for i in range(100)]
+        nodes = [{"id": str(i), "type": "Mountain"} for i in range(100)]
 
         result = await framework.execute_mcp_tool(
             "optimize_gaea2_properties",
@@ -452,15 +454,15 @@ class TestRegressionSuite:
                 "name": "valid_simple",
                 "workflow": {
                     "nodes": [
-                        {"id": "1", "node": "Mountain"},
-                        {"id": "2", "node": "Export"},
+                        {"id": "1", "type": "Mountain"},
+                        {"id": "2", "type": "Export"},
                     ],
                     "connections": [
                         {
-                            "source": "1",
-                            "source_port": "Out",
-                            "target": "2",
-                            "target_port": "In",
+                            "from_node": "1",
+                            "from_port": "Out",
+                            "to_node": "2",
+                            "to_port": "In",
                         }
                     ],
                 },
@@ -470,7 +472,7 @@ class TestRegressionSuite:
             {
                 "name": "missing_export",
                 "workflow": {
-                    "nodes": [{"id": "1", "node": "Mountain"}],
+                    "nodes": [{"id": "1", "type": "Mountain"}],
                     "connections": [],
                 },
                 "expected_valid": False,
@@ -482,11 +484,12 @@ class TestRegressionSuite:
 
             # If auto-fix is enabled, check fixed_issues instead
             if test_case["expected_valid"]:
-                assert result.get("results", {}).get("is_valid") is True
+                assert result.get("success") and result.get("result", {}).get("valid") is True
             else:
                 assert (
-                    result.get("results", {}).get("is_valid") is False
-                    or len(result.get("results", {}).get("fixes_applied", [])) > 0
+                    not result.get("success")
+                    or result.get("result", {}).get("valid") is False
+                    or len(result.get("result", {}).get("fixes_applied", [])) > 0
                 )
 
 
