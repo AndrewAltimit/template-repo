@@ -399,7 +399,7 @@ jobs:
     name: MCP Server Validation
     needs: [detect-changes, gemini-review]
     if: |
-      needs.detect-changes.outputs.mcp_changed == 'true' ||
+      needs.detect-changes.outputs.mcp_changed == 'true' &&
       !github.event.pull_request.draft
     runs-on: self-hosted
     timeout-minutes: 10
@@ -520,9 +520,9 @@ jobs:
     name: Docker Image Validation
     needs: [detect-changes, gemini-review, format-check, basic-lint, full-lint]
     if: |
-      needs.detect-changes.outputs.docker_changed == 'true' ||
-      needs.detect-changes.outputs.python_changed == 'true' ||
-      github.event.inputs.force_docker_validation ||
+      (needs.detect-changes.outputs.docker_changed == 'true' ||
+       needs.detect-changes.outputs.python_changed == 'true' ||
+       github.event.inputs.force_docker_validation) &&
       !github.event.pull_request.draft
     runs-on: self-hosted
     timeout-minutes: 20
