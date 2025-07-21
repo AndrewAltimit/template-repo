@@ -1433,7 +1433,8 @@ class Gaea2MCPServer:
         try:
             data = await request.json()
             tool_name = data.get("tool")
-            params = data.get("parameters", {})
+            # Accept both 'parameters' and 'arguments' for backward compatibility
+            params = data.get("parameters") or data.get("arguments", {})
 
             # Map tool names to methods
             tool_map = {
