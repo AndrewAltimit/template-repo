@@ -961,6 +961,7 @@ class Gaea2MCPServer:
 
     async def create_gaea2_project(
         self,
+        *,
         project_name: str,
         workflow: Optional[Dict[str, Any]] = None,
         nodes: Optional[List[Dict]] = None,
@@ -1132,6 +1133,7 @@ class Gaea2MCPServer:
 
     async def validate_and_fix_workflow(
         self,
+        *,
         workflow: Union[str, List[Dict[str, Any]], Dict[str, Any]],
         fix_errors: bool = True,
         validate_connections: bool = True,
@@ -1459,10 +1461,18 @@ class Gaea2MCPServer:
 
     async def _analyze_workflow_patterns(
         self,
-        workflow_or_directory: Union[str, Dict[str, Any]],
+        *,
+        workflow: Optional[Dict[str, Any]] = None,
+        workflow_or_directory: Optional[Union[str, Dict[str, Any]]] = None,
         include_suggestions: bool = True,
     ) -> Dict[str, Any]:
         """Analyze workflow patterns"""
+        # Handle both parameter names for backwards compatibility
+        if workflow is not None:
+            workflow_or_directory = workflow
+        elif workflow_or_directory is None:
+            return {"error": "Either workflow or workflow_or_directory must be provided"}
+
         analyzer = Gaea2WorkflowAnalyzer()
 
         if isinstance(workflow_or_directory, str):
@@ -1489,7 +1499,9 @@ class Gaea2MCPServer:
 
         return {"success": True, "analysis": results}
 
-    async def _suggest_nodes(self, current_nodes: List[str], context: Optional[str] = None, limit: int = 5) -> Dict[str, Any]:
+    async def _suggest_nodes(
+        self, *, current_nodes: List[str], context: Optional[str] = None, limit: int = 5
+    ) -> Dict[str, Any]:
         """Get node suggestions"""
         # Get suggestions from knowledge graph
         all_suggestions = knowledge_graph.get_suggested_next_nodes(current_nodes)
@@ -1510,7 +1522,7 @@ class Gaea2MCPServer:
 
         return {"success": True, "suggestions": suggestions[:limit]}
 
-    async def _repair_project(self, project_path: str, backup: bool = True, aggressive: bool = False) -> Dict[str, Any]:
+    async def _repair_project(self, *, project_path: str, backup: bool = True, aggressive: bool = False) -> Dict[str, Any]:
         """Repair project"""
 
         try:
@@ -1554,10 +1566,15 @@ class Gaea2MCPServer:
 
     async def _optimize_properties(
         self,
-        workflow: Union[str, List[Dict[str, Any]]],
+        *,
+        nodes: Optional[List[Dict[str, Any]]] = None,
+        workflow: Optional[Union[str, List[Dict[str, Any]]]] = None,
         optimization_mode: str = "balanced",
     ) -> Dict[str, Any]:
         """Optimize properties"""
+        # Handle both parameter names for backwards compatibility
+        if nodes is not None:
+            workflow = nodes
         if isinstance(workflow, str):
             with open(workflow, "r") as f:
                 data = json.load(f)

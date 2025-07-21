@@ -378,7 +378,7 @@ class Gaea2MCPServer(BaseMCPServer):
             self.logger.error(f"Failed to create from template: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def validate_and_fix_workflow(self, workflow: Dict[str, Any], strict_mode: bool = False) -> Dict[str, Any]:
+    async def validate_and_fix_workflow(self, *, workflow: Dict[str, Any], strict_mode: bool = False) -> Dict[str, Any]:
         """Validate and fix a Gaea2 workflow"""
         try:
             result = await self.validator.validate_and_fix(workflow, strict_mode=strict_mode)
@@ -396,7 +396,7 @@ class Gaea2MCPServer(BaseMCPServer):
             self.logger.error(f"Validation failed: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def analyze_workflow_patterns(self, workflow: Dict[str, Any], analysis_type: str = "all") -> Dict[str, Any]:
+    async def analyze_workflow_patterns(self, *, workflow: Dict[str, Any], analysis_type: str = "all") -> Dict[str, Any]:
         """Analyze workflow patterns"""
         try:
             analysis = await self.analyzer.analyze(workflow, analysis_type=analysis_type)
@@ -408,7 +408,7 @@ class Gaea2MCPServer(BaseMCPServer):
             return {"success": False, "error": str(e)}
 
     async def optimize_gaea2_properties(
-        self, nodes: List[Dict[str, Any]], optimization_mode: str = "balanced"
+        self, *, nodes: List[Dict[str, Any]], optimization_mode: str = "balanced"
     ) -> Dict[str, Any]:
         """Optimize node properties"""
         try:
@@ -424,7 +424,7 @@ class Gaea2MCPServer(BaseMCPServer):
             self.logger.error(f"Optimization failed: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def suggest_gaea2_nodes(self, current_nodes: List[str], context: Optional[str] = None) -> Dict[str, Any]:
+    async def suggest_gaea2_nodes(self, *, current_nodes: List[str], context: Optional[str] = None) -> Dict[str, Any]:
         """Get node suggestions"""
         try:
             suggestions = await self.analyzer.suggest_nodes(current_nodes, context=context)
@@ -435,7 +435,7 @@ class Gaea2MCPServer(BaseMCPServer):
             self.logger.error(f"Suggestion failed: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def repair_gaea2_project(self, project_path: str, backup: bool = True) -> Dict[str, Any]:
+    async def repair_gaea2_project(self, *, project_path: str, backup: bool = True) -> Dict[str, Any]:
         """Repair a Gaea2 project file"""
         try:
             result = await self.repairer.repair_project(project_path, backup=backup)
@@ -454,6 +454,7 @@ class Gaea2MCPServer(BaseMCPServer):
 
     async def run_gaea2_project(
         self,
+        *,
         project_path: str,
         resolution: str = "1024",
         format: str = "exr",
@@ -491,7 +492,7 @@ class Gaea2MCPServer(BaseMCPServer):
             self.logger.error(f"CLI execution failed: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def analyze_execution_history(self, last_n: int = 10) -> Dict[str, Any]:
+    async def analyze_execution_history(self, *, last_n: int = 10) -> Dict[str, Any]:
         """Analyze recent execution history"""
         try:
             recent = self.execution_history[-last_n:]

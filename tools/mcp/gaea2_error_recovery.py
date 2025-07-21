@@ -8,6 +8,7 @@ from copy import deepcopy
 from typing import Any, Dict, List, Tuple
 
 from tools.mcp.gaea2_connection_validator import Gaea2ConnectionValidator
+from tools.mcp.gaea2_format_fixes import generate_non_sequential_id
 from tools.mcp.gaea2_pattern_knowledge import get_next_node_suggestions, suggest_properties_for_node
 from tools.mcp.gaea2_property_validator import Gaea2PropertyValidator
 
@@ -323,7 +324,10 @@ class Gaea2ErrorRecovery:
 
             if not export_nodes:
                 # Add new Export node with updated structure
-                export_node = self._create_node("Export", len(nodes) + 200)
+                # Generate non-sequential ID for the Export node
+                used_ids = [int(n.get("id", 0)) for n in nodes if str(n.get("id", "0")).isdigit()]
+                export_id = generate_non_sequential_id(base=100, used_ids=used_ids)
+                export_node = self._create_node("Export", export_id)
                 export_node["name"] = "TerrainExport"
                 export_node["properties"] = {
                     "Format": "Terrain",  # Use new property name

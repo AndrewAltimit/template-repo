@@ -100,7 +100,7 @@ class WorkflowExtractor:
             node_type = WorkflowExtractor._extract_node_type(node_data)
 
             node = {
-                "id": node_data.get("Id", int(node_id) if node_id.isdigit() else 0),
+                "id": node_data.get("Id", int(node_id) if node_id.isdigit() else 1),
                 "type": node_type,
                 "name": node_data.get("Name", ""),
                 "properties": WorkflowExtractor._extract_properties(node_data),

@@ -14,18 +14,22 @@ class Gaea2WorkflowTools:
         return {"success": True, "project_data": {}}
 
 
-def generate_non_sequential_id():
-    """Generate a simple ID"""
-    import uuid
+def generate_non_sequential_id(base=100, used_ids=None):
+    """Use the real implementation from gaea2_format_fixes"""
+    from ...gaea2_format_fixes import generate_non_sequential_id as real_generate_id
 
-    return str(uuid.uuid4())[:8]
+    return real_generate_id(base=base, used_ids=used_ids)
 
 
 def apply_format_fixes(data):
-    """Stub for format fixes"""
-    return data
+    """Use the real implementation from gaea2_format_fixes"""
+    from ...gaea2_format_fixes import apply_format_fixes as real_apply_fixes
+
+    return real_apply_fixes(data)
 
 
-def fix_property_names(props):
-    """Stub for property name fixes"""
-    return props
+def fix_property_names(node_type, props):
+    """Use the real implementation from gaea2_format_fixes"""
+    from ...gaea2_format_fixes import fix_property_names as real_fix_names
+
+    return real_fix_names(node_type, props)
