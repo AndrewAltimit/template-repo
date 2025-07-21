@@ -469,12 +469,60 @@ class Gaea2MCPServer:
 
             elif node_type == "Combine":
                 # Combine has multiple inputs
+                # IMPORTANT: Port order must be In, Out, Input2, Mask (based on reference files)
                 self.logger.debug(f"Processing Combine node {node_str_id}")
-                for port_name in ["In", "Input2", "Mask"]:
+
+                # 1. In port
+                port = {
+                    "$id": str(ref_id_counter),
+                    "Name": "In",
+                    "Type": "PrimaryIn",
+                    "IsExporting": True,
+                    "Parent": {"$ref": node_ref_id},
+                }
+                ref_id_counter += 1
+
+                # Check for connection
+                if node_str_id in node_connections and "In" in node_connections[node_str_id]:
+                    conn = node_connections[node_str_id]["In"]
+                    self.logger.debug(f"Found connection for {node_str_id}:In - from {conn.get('from_node')}")
+                    # Convert from_node to string for lookup
+                    from_node = conn.get("from_node")
+                    from_id = node_id_map.get(str(from_node)) if from_node is not None else None
+                    if from_id:
+                        port["Record"] = {
+                            "$id": str(ref_id_counter),
+                            "From": from_id,
+                            "To": node_id,
+                            "FromPort": conn.get("from_port", "Out"),
+                            "ToPort": "In",
+                            "IsValid": True,
+                        }
+                        ref_id_counter += 1
+                    else:
+                        self.logger.warning(
+                            f"Could not find from_id for from_node {from_node} " f"in node_id_map: {list(node_id_map.keys())}"
+                        )
+                gaea_node["Ports"]["$values"].append(port)
+
+                # 2. Out port (must come second!)
+                gaea_node["Ports"]["$values"].append(
+                    {
+                        "$id": str(ref_id_counter),
+                        "Name": "Out",
+                        "Type": "PrimaryOut",
+                        "IsExporting": True,
+                        "Parent": {"$ref": node_ref_id},
+                    }
+                )
+                ref_id_counter += 1
+
+                # 3. Input2 and Mask ports
+                for port_name in ["Input2", "Mask"]:
                     port = {
                         "$id": str(ref_id_counter),
                         "Name": port_name,
-                        "Type": "PrimaryIn" if port_name == "In" else "In",
+                        "Type": "In",
                         "IsExporting": True,
                         "Parent": {"$ref": node_ref_id},
                     }
@@ -504,18 +552,6 @@ class Gaea2MCPServer:
                             )
 
                     gaea_node["Ports"]["$values"].append(port)
-
-                # Out port
-                gaea_node["Ports"]["$values"].append(
-                    {
-                        "$id": str(ref_id_counter),
-                        "Name": "Out",
-                        "Type": "PrimaryOut",
-                        "IsExporting": True,
-                        "Parent": {"$ref": node_ref_id},
-                    }
-                )
-                ref_id_counter += 1
 
             elif node_type == "Erosion2":
                 # Erosion2 has In port and multiple output ports

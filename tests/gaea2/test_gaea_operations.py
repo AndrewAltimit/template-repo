@@ -257,6 +257,42 @@ class TestGaea2Operations:
         assert all(r["validation_passed"] for r in results.values() if r["success"])
 
     @pytest.mark.asyncio
+    async def test_combine_node_connections(self, mcp_url):
+        """Test that Combine nodes in templates have both inputs properly connected."""
+        # Test arctic_terrain which we know has a Combine node
+        result = await self.execute_tool(
+            mcp_url,
+            "create_gaea2_from_template",
+            {"template_name": "arctic_terrain", "project_name": "test_combine_connections"},
+        )
+
+        assert result.get("success"), f"Failed to create project: {result.get('error')}"
+
+        # Check project structure for Combine node connections
+        if "project_structure" in result:
+            nodes = result["project_structure"]["Assets"]["$values"][0]["Terrain"]["Nodes"]
+
+            # Find Combine nodes and verify their connections
+            combine_nodes_found = 0
+            for node_id, node_data in nodes.items():
+                if isinstance(node_data, dict) and "Combine" in node_data.get("$type", ""):
+                    combine_nodes_found += 1
+
+                    # Check that both In and Input2 ports have connections
+                    ports = node_data.get("Ports", {}).get("$values", [])
+                    connected_ports = {}
+
+                    for port in ports:
+                        if "Record" in port:
+                            connected_ports[port["Name"]] = True
+
+                    # Verify both primary inputs are connected
+                    assert "In" in connected_ports, f"Combine node {node_id} missing 'In' connection"
+                    assert "Input2" in connected_ports, f"Combine node {node_id} missing 'Input2' connection"
+
+            assert combine_nodes_found > 0, "No Combine nodes found in arctic_terrain template"
+
+    @pytest.mark.asyncio
     async def test_workflow_optimization(self, mcp_url):
         """Test workflow optimization with different modes."""
         # Create a workflow that could benefit from optimization
