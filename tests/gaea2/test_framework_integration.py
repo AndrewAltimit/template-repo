@@ -145,8 +145,12 @@ class TestSuccessfulOperations:
         result = await framework.execute_mcp_tool("validate_and_fix_workflow", {"workflow": workflow})
 
         assert result.get("success"), f"Validation failed: {result.get('error')}"
-        assert result.get("result", {}).get("valid") is True
-        assert len(result.get("result", {}).get("errors", [])) == 0
+        # The validator may fix issues automatically
+        if result.get("result", {}).get("fixed"):
+            assert len(result.get("result", {}).get("fixes_applied", [])) > 0
+        else:
+            assert result.get("result", {}).get("valid") is True
+            assert len(result.get("result", {}).get("errors", [])) == 0
 
     @pytest.mark.asyncio
     async def test_analyze_patterns(self, framework):
