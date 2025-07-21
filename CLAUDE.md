@@ -320,6 +320,27 @@ The repository includes a comprehensive Gaea2 terrain generation system that is 
 
 **Important**: The Gaea2 MCP server needs to be restarted to use these fixes!
 
+### ⚠️ CRITICAL: Property Limitations for Certain Nodes
+
+Through extensive testing, we discovered that some Gaea2 nodes **fail to open** when they have too many properties:
+
+**Nodes that MUST have ≤ 3 properties:**
+- **Snow** (most problematic - appears in many templates)
+- Beach, Coast, Lakes, Glacier, SeaLevel
+- LavaFlow, ThermalShatter, Ridge, Strata, Voronoi, Terrace
+
+**Examples:**
+- Snow with 1-3 properties: ✅ Opens successfully
+- Snow with 8+ properties: ❌ File won't open in Gaea2
+
+**The fix:** Smart mode (`property_mode="smart"`) now limits these nodes to their essential properties only:
+- Snow: Duration, SnowLine, Melt (max 3)
+- Beach: Width, Slope (max 2)
+- Lakes: Count, Size (max 2)
+- etc.
+
+This is handled automatically when using templates or when `property_mode="smart"` is specified.
+
 ### Correct API Usage
 
 ```bash
