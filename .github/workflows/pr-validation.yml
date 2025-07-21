@@ -519,9 +519,7 @@ jobs:
   gaea2-integration-tests:
     name: Gaea2 MCP Integration Tests
     needs: [detect-changes, mcp-validation]
-    if: |
-      needs.detect-changes.outputs.mcp_changed == 'true' &&
-      !github.event.pull_request.draft
+    if: needs.detect-changes.outputs.mcp_changed == 'true'
     uses: ./.github/workflows/gaea2-integration-tests.yml
     with:
       server_url: 'http://192.168.0.152:8007'
