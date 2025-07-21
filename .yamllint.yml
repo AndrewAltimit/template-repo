@@ -1,0 +1,65 @@
+# yamllint configuration for the project
+# Optimized for GitHub Actions workflows and general YAML files
+
+extends: default
+
+rules:
+  # Allow longer lines for GitHub Actions workflows
+  # Many workflow expressions and commands are naturally long
+  line-length:
+    max: 150
+    level: warning
+    allow-non-breakable-words: true
+    allow-non-breakable-inline-mappings: true
+
+  # Require consistent indentation
+  indentation:
+    spaces: 2
+    indent-sequences: true
+    check-multi-line-strings: false
+
+  # Be flexible with braces spacing for readability
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
+    min-spaces-inside-empty: 0
+    max-spaces-inside-empty: 0
+
+  # Allow both quoted and unquoted strings
+  quoted-strings:
+    quote-type: any
+    required: false
+    allow-quoted-quotes: true
+
+  # Comments formatting
+  comments:
+    min-spaces-from-content: 1
+    require-starting-space: true
+
+  # Document start/end markers
+  document-start:
+    present: false  # Don't require --- at start
+  document-end:
+    present: false  # Don't require ... at end
+
+  # Allow empty values
+  empty-values: enable
+
+  # Truthy values - be explicit
+  truthy:
+    allowed-values: ['true', 'false', 'yes', 'no', 'on', 'off']
+    check-keys: false
+
+  # Key ordering is not enforced
+  key-ordering: disable
+
+# Ignore certain paths
+ignore: |
+  node_modules/
+  .venv/
+  venv/
+  .git/
+  dist/
+  build/
+  *.min.yml
+  *.min.yaml

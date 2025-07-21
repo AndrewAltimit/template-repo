@@ -1,6 +1,8 @@
 # Pre-commit hooks for code quality
 # Run manually: pre-commit run --all-files
 # Install hooks: pre-commit install
+# Skip specific hooks: SKIP=mypy,shellcheck git commit
+# Auto-update hooks: pre-commit autoupdate
 
 repos:
   # Python formatting
@@ -42,6 +44,45 @@ repos:
       - id: check-case-conflict
       - id: mixed-line-ending
         args: [--fix=lf]
+
+  # YAML linting
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.33.0
+    hooks:
+      - id: yamllint
+        args: [-c, .yamllint.yml]
+        types: [yaml]
+
+  # GitHub Actions workflow linting
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.6.26
+    hooks:
+      - id: actionlint
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.6
+    hooks:
+      - id: shellcheck
+        types: [shell]
+        args: [-x]  # Follow source statements
+
+  # Python type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        args: [--ignore-missing-imports, --no-error-summary, --explicit-package-bases]
+        additional_dependencies: [types-requests, types-PyYAML]
+        exclude: ^(docs/|tests/|scripts/)
+
+  # Python docstring checking (optional - uncomment if needed)
+  # - repo: https://github.com/pycqa/pydocstyle
+  #   rev: 6.3.0
+  #   hooks:
+  #     - id: pydocstyle
+  #       args: [--convention=google]
+  #       exclude: ^(tests/|scripts/)
 
   # Security checks (commented out for now - too many false positives)
   # - repo: https://github.com/pycqa/bandit
