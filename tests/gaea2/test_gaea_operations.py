@@ -21,7 +21,7 @@ class TestGaea2Operations:
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 f"{url}/mcp/execute",
-                json={"tool": tool, "parameters": parameters},
+                json={"tool": tool, "arguments": parameters},
                 timeout=aiohttp.ClientTimeout(total=300),
             ) as response:
                 return await response.json()
@@ -94,11 +94,26 @@ class TestGaea2Operations:
             {"project_name": "test_common_pattern", "workflow": workflow},
         )
 
-        assert not result.get("error"), f"Failed: {result.get('error')}"
-        # Check for success indicators - handle various response formats
-        assert result.get("success") is not False, "Operation should succeed"
-        # Either project_path, workflow, or results field should be present
-        assert any(key in result for key in ["project_path", "workflow", "results"]), "Response should contain project data"
+        # Debug print to see actual response
+        print(f"DEBUG: Response = {result}")
+
+        # Handle base server response format
+        if "result" in result and isinstance(result["result"], dict):
+            # Extract the actual result from the base server wrapper
+            actual_result = result["result"]
+            assert not actual_result.get("error"), f"Failed: {actual_result.get('error')}"
+            assert actual_result.get("success") is not False, "Operation should succeed"
+            # Either project_path, workflow, or results field should be present
+            assert any(
+                key in actual_result for key in ["project_path", "workflow", "results", "project_data"]
+            ), "Response should contain project data"
+        else:
+            # Direct response format (standalone server)
+            assert not result.get("error"), f"Failed: {result.get('error')}"
+            assert result.get("success") is not False, "Operation should succeed"
+            assert any(
+                key in result for key in ["project_path", "workflow", "results"]
+            ), "Response should contain project data"
 
     @pytest.mark.asyncio
     async def test_multi_output_nodes(self, mcp_url):
@@ -581,7 +596,7 @@ class TestEdgeCasesAndBoundaries:
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 f"{url}/mcp/execute",
-                json={"tool": tool, "parameters": parameters},
+                json={"tool": tool, "arguments": parameters},
                 timeout=aiohttp.ClientTimeout(total=300),
             ) as response:
                 return await response.json()
