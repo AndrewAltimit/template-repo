@@ -43,7 +43,12 @@ from tools.mcp.gaea2_knowledge_graph import knowledge_graph  # noqa: E402
 # Pattern knowledge is available as module functions, not a class
 from tools.mcp.gaea2_project_repair import Gaea2ProjectRepair  # noqa: E402
 from tools.mcp.gaea2_property_validator import Gaea2PropertyValidator  # noqa: E402
-from tools.mcp.gaea2_schema import WORKFLOW_TEMPLATES, apply_default_properties, create_workflow_from_template  # noqa: E402
+from tools.mcp.gaea2_schema import (  # noqa: E402
+    NODE_PROPERTY_DEFINITIONS,
+    WORKFLOW_TEMPLATES,
+    apply_default_properties,
+    create_workflow_from_template,
+)
 from tools.mcp.gaea2_structure_validator import Gaea2StructureValidator  # noqa: E402
 from tools.mcp.gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer  # noqa: E402
 from tools.mcp.gaea2_workflow_tools import Gaea2WorkflowTools  # noqa: E402
@@ -1235,6 +1240,29 @@ class Gaea2MCPServer:
                 "final_workflow": None,
                 "is_valid": False,
             }
+
+            # Validate node structure before other validations
+            nodes = workflow.get("nodes", [])
+            malformed_nodes = []
+            for i, node in enumerate(nodes):
+                if not isinstance(node, dict):
+                    malformed_nodes.append(f"Node at index {i} is not a dictionary")
+                elif "id" not in node:
+                    malformed_nodes.append(f"Node at index {i} is missing 'id' field")
+                elif "type" not in node and "node" not in node:
+                    # Some formats use 'node' instead of 'type'
+                    malformed_nodes.append(f"Node '{node.get('id', i)}' is missing 'type' field")
+
+            if malformed_nodes:
+                results["validation_results"]["structure"] = {
+                    "valid": False,
+                    "errors": malformed_nodes,
+                }
+                # Try to fix by converting 'node' to 'type' if present
+                for node in nodes:
+                    if "node" in node and "type" not in node:
+                        node["type"] = node.pop("node")
+                        results["fixes_applied"].append(f"Converted 'node' field to 'type' for node {node.get('id')}")
 
             # Multi-level validation
             validators = []

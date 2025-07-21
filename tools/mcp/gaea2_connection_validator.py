@@ -94,7 +94,8 @@ class Gaea2ConnectionValidator:
         cycles = self._detect_cycles(connections)
         if cycles:
             for cycle in cycles:
-                warnings.append(f"Cycle detected: {' → '.join(str(n) for n in cycle)}")
+                # Cycles are errors in Gaea2, not just warnings
+                errors.append(f"Circular dependency detected: {' → '.join(str(n) for n in cycle)}")
 
         # Check for missing common patterns
         self._check_workflow_patterns(nodes, connections, warnings)
