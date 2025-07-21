@@ -636,7 +636,19 @@ jobs:
   # Final status and summary
   pr-status:
     name: PR Status Summary
-    needs: [detect-changes, gemini-review, format-check, basic-lint, full-lint, config-validation, workflow-validation, yaml-lint, test-suite, mcp-validation, gaea2-integration-tests, docker-validation]
+    needs:
+      - detect-changes
+      - gemini-review
+      - format-check
+      - basic-lint
+      - full-lint
+      - config-validation
+      - workflow-validation
+      - yaml-lint
+      - test-suite
+      - mcp-validation
+      - gaea2-integration-tests
+      - docker-validation
     if: always()
     runs-on: self-hosted
     steps:

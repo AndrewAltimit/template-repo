@@ -37,8 +37,7 @@ rules:
     require-starting-space: true
 
   # Document start/end markers
-  document-start:
-    present: false  # Don't require --- at start
+  document-start: disable  # Allow but don't require --- at start
   document-end:
     present: false  # Don't require ... at end
 
