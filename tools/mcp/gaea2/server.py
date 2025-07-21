@@ -26,7 +26,12 @@ from .validation import Gaea2Validator
 class Gaea2MCPServer(BaseMCPServer):
     """MCP Server for Gaea2 terrain generation with comprehensive tools"""
 
-    def __init__(self, gaea_path: Optional[str] = None, output_dir: str = "/app/output/gaea2", port: int = 8007):
+    def __init__(
+        self,
+        gaea_path: Optional[str] = None,
+        output_dir: str = "/app/output/gaea2",
+        port: int = 8007,
+    ):
         # Check if running in container
         if check_container_environment() and platform.system() != "Windows":
             print("WARNING: Gaea2 MCP server typically runs on Windows with Gaea2 installed")
@@ -352,7 +357,11 @@ class Gaea2MCPServer(BaseMCPServer):
             return {"success": False, "error": str(e)}
 
     async def create_gaea2_from_template(
-        self, *, template_name: str, project_name: str, output_path: Optional[str] = None
+        self,
+        *,
+        template_name: str,
+        project_name: str,
+        output_path: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Create a Gaea2 project from template"""
         try:

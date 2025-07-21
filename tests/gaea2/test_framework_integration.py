@@ -115,10 +115,30 @@ class TestSuccessfulOperations:
         # Based on reference analysis: common workflow pattern
         workflow = {
             "nodes": [
-                {"id": "1", "type": "Slump", "position": {"X": 0, "Y": 0}, "properties": {}},
-                {"id": "2", "type": "FractalTerraces", "position": {"X": 1, "Y": 0}, "properties": {}},
-                {"id": "3", "type": "Combine", "position": {"X": 2, "Y": 0}, "properties": {}},
-                {"id": "4", "type": "Export", "position": {"X": 3, "Y": 0}, "properties": {}},
+                {
+                    "id": "1",
+                    "type": "Slump",
+                    "position": {"X": 0, "Y": 0},
+                    "properties": {},
+                },
+                {
+                    "id": "2",
+                    "type": "FractalTerraces",
+                    "position": {"X": 1, "Y": 0},
+                    "properties": {},
+                },
+                {
+                    "id": "3",
+                    "type": "Combine",
+                    "position": {"X": 2, "Y": 0},
+                    "properties": {},
+                },
+                {
+                    "id": "4",
+                    "type": "Export",
+                    "position": {"X": 3, "Y": 0},
+                    "properties": {},
+                },
             ],
             "connections": [
                 {
@@ -158,9 +178,24 @@ class TestSuccessfulOperations:
         # First create a workflow to analyze
         workflow = {
             "nodes": [
-                {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}, "properties": {}},
-                {"id": "2", "type": "Erosion", "position": {"X": 1, "Y": 0}, "properties": {}},
-                {"id": "3", "type": "Export", "position": {"X": 2, "Y": 0}, "properties": {}},
+                {
+                    "id": "1",
+                    "type": "Mountain",
+                    "position": {"X": 0, "Y": 0},
+                    "properties": {},
+                },
+                {
+                    "id": "2",
+                    "type": "Erosion",
+                    "position": {"X": 1, "Y": 0},
+                    "properties": {},
+                },
+                {
+                    "id": "3",
+                    "type": "Export",
+                    "position": {"X": 2, "Y": 0},
+                    "properties": {},
+                },
             ],
             "connections": [
                 {
@@ -248,8 +283,18 @@ class TestExpectedFailures:
         """Test detection of circular dependencies."""
         workflow = {
             "nodes": [
-                {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}, "properties": {}},
-                {"id": "2", "type": "Erosion", "position": {"X": 1, "Y": 0}, "properties": {}},
+                {
+                    "id": "1",
+                    "type": "Mountain",
+                    "position": {"X": 0, "Y": 0},
+                    "properties": {},
+                },
+                {
+                    "id": "2",
+                    "type": "Erosion",
+                    "position": {"X": 1, "Y": 0},
+                    "properties": {},
+                },
             ],
             "connections": [
                 {
