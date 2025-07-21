@@ -43,7 +43,7 @@ from tools.mcp.gaea2_knowledge_graph import knowledge_graph  # noqa: E402
 # Pattern knowledge is available as module functions, not a class
 from tools.mcp.gaea2_project_repair import Gaea2ProjectRepair  # noqa: E402
 from tools.mcp.gaea2_property_validator import Gaea2PropertyValidator  # noqa: E402
-from tools.mcp.gaea2_schema import WORKFLOW_TEMPLATES, create_workflow_from_template  # noqa: E402
+from tools.mcp.gaea2_schema import WORKFLOW_TEMPLATES, apply_default_properties, create_workflow_from_template  # noqa: E402
 from tools.mcp.gaea2_structure_validator import Gaea2StructureValidator  # noqa: E402
 from tools.mcp.gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer  # noqa: E402
 from tools.mcp.gaea2_workflow_tools import Gaea2WorkflowTools  # noqa: E402
@@ -132,7 +132,9 @@ class Gaea2MCPServer:
 
         return port
 
-    def _create_gaea2_project_structure(self, project_name: str, nodes: List[Dict], connections: List[Dict]) -> Dict[str, Any]:
+    def _create_gaea2_project_structure(
+        self, project_name: str, nodes: List[Dict], connections: List[Dict], property_mode: str = "minimal"
+    ) -> Dict[str, Any]:
         """Create a Gaea2 project structure in the correct .terrain format"""
         import uuid
 
@@ -261,13 +263,35 @@ class Gaea2MCPServer:
             # Get node properties first
             raw_properties = node.get("properties", {})
 
-            # IMPORTANT: Working Gaea2 files have nodes with NO properties!
-            # Only use properties if explicitly provided, otherwise keep empty
-            if not raw_properties:
-                properties = {}
+            # Handle property modes
+            if property_mode == "minimal":
+                # Only use provided properties (current behavior)
+                if not raw_properties:
+                    properties = {}
+                else:
+                    properties = fix_property_names(raw_properties, node_type)
+            elif property_mode == "full":
+                # Apply all default properties (like templates do)
+                properties = apply_default_properties(node_type, raw_properties)
+                properties = fix_property_names(properties, node_type)
+            elif property_mode == "smart":
+                # Apply defaults only for complex nodes that need them
+                complex_nodes = ["Erosion2", "Rivers", "Sea", "Snow", "Thermal"]
+                if node_type in complex_nodes:
+                    properties = apply_default_properties(node_type, raw_properties)
+                    properties = fix_property_names(properties, node_type)
+                else:
+                    # Simple nodes use minimal properties
+                    if not raw_properties:
+                        properties = {}
+                    else:
+                        properties = fix_property_names(raw_properties, node_type)
             else:
-                # Fix all property names at once based on node type
-                properties = fix_property_names(raw_properties, node_type)
+                # Default to minimal
+                if not raw_properties:
+                    properties = {}
+                else:
+                    properties = fix_property_names(raw_properties, node_type)
 
             # Create Gaea node structure with properties FIRST (after $id and $type)
             gaea_node = {
@@ -954,6 +978,7 @@ class Gaea2MCPServer:
         output_path: Optional[str] = None,
         auto_validate: bool = True,
         save_to_disk: bool = True,
+        property_mode: str = "minimal",  # "minimal", "full", or "smart"
     ) -> Dict[str, Any]:
         """Create a Gaea2 project from workflow definition
 
@@ -993,7 +1018,7 @@ class Gaea2MCPServer:
                     connections = workflow.get("connections", [])
 
             # Create project structure with sequential IDs
-            project_structure = self._create_gaea2_project_structure(project_name, nodes, connections)
+            project_structure = self._create_gaea2_project_structure(project_name, nodes, connections, property_mode)
 
             # Save to disk if requested
             saved_path = None
@@ -1329,6 +1354,7 @@ class Gaea2MCPServer:
                 workflow=workflow,
                 output_path=output_path,
                 auto_validate=True,
+                property_mode="full",  # Templates should use full properties
             )
 
             if result.get("success"):
