@@ -456,23 +456,18 @@ class Gaea2MCPServer:
 
             if node_type in ["Export", "SatMap"]:
                 # In port
-                port_in = {
-                    "$id": str(ref_id_counter),
-                    "Name": "In",
-                    "Type": "PrimaryIn, Required",
-                    "IsExporting": True,
-                    "Parent": {"$ref": node_ref_id},
-                }
+                port_id = str(ref_id_counter)
                 ref_id_counter += 1
 
                 # Check if this port has an incoming connection
+                record = None
                 if node_str_id in node_connections and "In" in node_connections[node_str_id]:
                     conn = node_connections[node_str_id]["In"]
                     # Convert from_node to string for lookup
                     from_node = conn.get("from_node")
                     from_id = node_id_map.get(str(from_node)) if from_node is not None else None
                     if from_id:
-                        port_in["Record"] = {
+                        record = {
                             "$id": str(ref_id_counter),
                             "From": from_id,
                             "To": node_id,
@@ -482,19 +477,15 @@ class Gaea2MCPServer:
                         }
                         ref_id_counter += 1
 
+                port_in = self._create_port_dict(port_id, "In", "PrimaryIn, Required", node_ref_id, record)
                 gaea_node["Ports"]["$values"].append(port_in)
 
                 # Out port
-                gaea_node["Ports"]["$values"].append(
-                    {
-                        "$id": str(ref_id_counter),
-                        "Name": "Out",
-                        "Type": "PrimaryOut",
-                        "IsExporting": True,
-                        "Parent": {"$ref": node_ref_id},
-                    }
+                port_out = self._create_port_dict(
+                    str(ref_id_counter), "Out", "PrimaryOut", node_ref_id
                 )
                 ref_id_counter += 1
+                gaea_node["Ports"]["$values"].append(port_out)
 
             elif node_type == "Combine":
                 # Combine has multiple inputs
@@ -610,22 +601,18 @@ class Gaea2MCPServer:
             elif node_type == "Sea":
                 # Sea has In, Out, and special outputs like Water, Depth, Shore, Surface
                 # In port
-                port_in = {
-                    "$id": str(ref_id_counter),
-                    "Name": "In",
-                    "Type": "PrimaryIn",
-                    "IsExporting": True,
-                    "Parent": {"$ref": node_ref_id},
-                }
+                port_id = str(ref_id_counter)
                 ref_id_counter += 1
+                
                 # Check for connection
+                record = None
                 if node_str_id in node_connections and "In" in node_connections[node_str_id]:
                     conn = node_connections[node_str_id]["In"]
                     # Convert from_node to string for lookup
                     from_node = conn.get("from_node")
                     from_id = node_id_map.get(str(from_node)) if from_node is not None else None
                     if from_id:
-                        port_in["Record"] = {
+                        record = {
                             "$id": str(ref_id_counter),
                             "From": from_id,
                             "To": node_id,
@@ -634,17 +621,16 @@ class Gaea2MCPServer:
                             "IsValid": True,
                         }
                         ref_id_counter += 1
+                        
+                port_in = self._create_port_dict(port_id, "In", "PrimaryIn", node_ref_id, record)
                 gaea_node["Ports"]["$values"].append(port_in)
 
                 # Output ports
                 for port_name in ["Out", "Water", "Depth", "Shore", "Surface"]:
-                    port = {
-                        "$id": str(ref_id_counter),
-                        "Name": port_name,
-                        "Type": "PrimaryOut" if port_name == "Out" else "Out",
-                        "IsExporting": True,
-                        "Parent": {"$ref": node_ref_id},
-                    }
+                    port_type = "PrimaryOut" if port_name == "Out" else "Out"
+                    port = self._create_port_dict(
+                        str(ref_id_counter), port_name, port_type, node_ref_id
+                    )
                     ref_id_counter += 1
                     gaea_node["Ports"]["$values"].append(port)
 
@@ -653,23 +639,19 @@ class Gaea2MCPServer:
                 # It also has optional Headwaters and Mask inputs
                 # Input ports
                 for port_name in ["In", "Headwaters", "Mask"]:
-                    port = {
-                        "$id": str(ref_id_counter),
-                        "Name": port_name,
-                        "Type": "PrimaryIn" if port_name == "In" else "In",
-                        "IsExporting": True,
-                        "Parent": {"$ref": node_ref_id},
-                    }
+                    port_id = str(ref_id_counter)
                     ref_id_counter += 1
+                    port_type = "PrimaryIn" if port_name == "In" else "In"
 
                     # Check for connection
+                    record = None
                     if node_str_id in node_connections and port_name in node_connections[node_str_id]:
                         conn = node_connections[node_str_id][port_name]
                         # Convert from_node to string for lookup
                         from_node = conn.get("from_node")
                         from_id = node_id_map.get(str(from_node)) if from_node is not None else None
                         if from_id:
-                            port["Record"] = {
+                            record = {
                                 "$id": str(ref_id_counter),
                                 "From": from_id,
                                 "To": node_id,
@@ -679,17 +661,15 @@ class Gaea2MCPServer:
                             }
                             ref_id_counter += 1
 
+                    port = self._create_port_dict(port_id, port_name, port_type, node_ref_id, record)
                     gaea_node["Ports"]["$values"].append(port)
 
                 # Output ports
                 for port_name in ["Out", "Rivers", "Depth", "Surface", "Direction"]:
-                    port = {
-                        "$id": str(ref_id_counter),
-                        "Name": port_name,
-                        "Type": "PrimaryOut" if port_name == "Out" else "Out",
-                        "IsExporting": True,
-                        "Parent": {"$ref": node_ref_id},
-                    }
+                    port_type = "PrimaryOut" if port_name == "Out" else "Out"
+                    port = self._create_port_dict(
+                        str(ref_id_counter), port_name, port_type, node_ref_id
+                    )
                     ref_id_counter += 1
                     gaea_node["Ports"]["$values"].append(port)
 

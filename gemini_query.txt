@@ -1,0 +1,47 @@
+I'm debugging Gaea2 terrain file format issues. Files won't open despite fixing many issues.
+
+WORKING REFERENCE PORT (from official file):
+{
+  "$id": "12",
+  "Name": "In", 
+  "Type": "PrimaryIn, Required",
+  "Record": {
+    "$id": "13",
+    "From": 812,
+    "To": 817,
+    "FromPort": "Out",
+    "ToPort": "In",
+    "IsValid": true
+  },
+  "IsExporting": true,
+  "Parent": {
+    "$ref": "7"
+  }
+}
+
+MY GENERATED PORT (doesn't work):
+{
+  "$id": "56",
+  "Name": "In",
+  "Type": "PrimaryIn, Required",
+  "Record": {
+    "$id": "57",
+    "From": 105,
+    "To": 106,
+    "FromPort": "Out",
+    "ToPort": "In",
+    "IsValid": true
+  },
+  "IsExporting": true,
+  "Parent": {
+    "$ref": "51"
+  }
+}
+
+Key observations:
+1. Key order looks identical
+2. Record is before IsExporting (correct)
+3. Type has ", Required" suffix (correct)
+4. Parent uses $ref (correct)
+
+But files still won't open. What subtle format issues might I be missing?
