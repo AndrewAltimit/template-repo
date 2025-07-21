@@ -2307,8 +2307,13 @@ def create_workflow_from_template(
                 continue
 
             # Handle special connection cases
-            if node["type"] == "Combine" and "Input2" not in [c.get("to_port") for c in connections]:
-                # Second input to Combine
+            if node["type"] == "Combine":
+                # Combine nodes need special handling
+                # For sequential templates, we assume:
+                # - Primary input (In) comes from node i-2 (the node before the previous)
+                # - Secondary input (Input2) comes from node i-1 (the previous node)
+
+                # Connect previous node to Input2
                 connections.append(
                     {
                         "from_node": prev_node["id"],
@@ -2317,6 +2322,17 @@ def create_workflow_from_template(
                         "to_port": "Input2",
                     }
                 )
+
+                # Connect node before previous to primary In (if it exists)
+                if i >= 2:
+                    connections.append(
+                        {
+                            "from_node": nodes[i - 2]["id"],
+                            "to_node": node["id"],
+                            "from_port": "Out",
+                            "to_port": "In",
+                        }
+                    )
             else:
                 # Normal connection
                 connections.append(
@@ -2324,7 +2340,7 @@ def create_workflow_from_template(
                         "from_node": prev_node["id"],
                         "to_node": node["id"],
                         "from_port": "Out",
-                        "to_port": "In" if node["type"] != "Combine" else "Input1",
+                        "to_port": "In",
                     }
                 )
 
