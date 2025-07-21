@@ -276,8 +276,65 @@ class Gaea2MCPServer:
                 properties = fix_property_names(properties, node_type)
             elif property_mode == "smart":
                 # Apply defaults only for complex nodes that need them
-                complex_nodes = ["Erosion2", "Rivers", "Sea", "Snow", "Thermal"]
-                if node_type in complex_nodes:
+                complex_nodes = ["Erosion2", "Rivers", "Sea", "Thermal"]
+
+                # NEW: Nodes that fail with too many properties
+                limited_property_nodes = [
+                    "Snow",
+                    "Beach",
+                    "Coast",
+                    "Lakes",
+                    "Glacier",
+                    "SeaLevel",
+                    "LavaFlow",
+                    "ThermalShatter",
+                    "Ridge",
+                    "Strata",
+                    "Voronoi",
+                    "Terrace",
+                ]
+
+                if node_type in limited_property_nodes:
+                    # These nodes can only have limited properties (max 3)
+                    essential_props = {
+                        "Snow": ["Duration", "SnowLine", "Melt"],
+                        "Beach": ["Width", "Slope"],
+                        "Coast": ["Erosion", "Detail"],
+                        "Lakes": ["Count", "Size"],
+                        "Glacier": ["Scale", "Depth", "Flow"],
+                        "SeaLevel": ["Level", "Precision"],
+                        "LavaFlow": ["Temperature", "Viscosity"],
+                        "ThermalShatter": ["Intensity", "Scale"],
+                        "Ridge": ["Scale", "Complexity"],
+                        "Strata": ["Scale", "Layers", "Variation"],
+                        "Voronoi": ["Scale", "Jitter", "Style"],
+                        "Terrace": ["Levels", "Uniformity", "Sharp"],
+                    }
+
+                    node_essentials = essential_props.get(node_type, [])
+                    properties = {}
+
+                    # Only include essential properties that were provided
+                    for prop in node_essentials:
+                        if prop in raw_properties:
+                            properties[prop] = raw_properties[prop]
+
+                    # If no properties provided, add defaults for essential properties
+                    if not properties:
+                        for prop in node_essentials[:3]:  # Max 3 properties
+                            if prop in NODE_PROPERTY_DEFINITIONS.get(node_type, {}):
+                                prop_def = NODE_PROPERTY_DEFINITIONS[node_type][prop]
+                                properties[prop] = prop_def.get("default", 0.5)
+
+                    # Ensure we don't exceed 3 properties
+                    if len(properties) > 3:
+                        # Take only the first 3 essential properties
+                        properties = dict(list(properties.items())[:3])
+
+                    properties = fix_property_names(properties, node_type)
+
+                elif node_type in complex_nodes:
+                    # These complex nodes still need full properties
                     properties = apply_default_properties(node_type, raw_properties)
                     properties = fix_property_names(properties, node_type)
                 else:
@@ -1325,6 +1382,7 @@ class Gaea2MCPServer:
         project_name: str,
         output_path: Optional[str] = None,
         customizations: Optional[Dict[str, Any]] = None,
+        save_to_disk: bool = True,
     ) -> Dict[str, Any]:
         """Create a Gaea2 project from a template"""
         try:
@@ -1354,7 +1412,8 @@ class Gaea2MCPServer:
                 workflow=workflow,
                 output_path=output_path,
                 auto_validate=True,
-                property_mode="full",  # Templates should use full properties
+                property_mode="smart",  # Use smart mode to limit problematic nodes
+                save_to_disk=save_to_disk,
             )
 
             if result.get("success"):
