@@ -1,0 +1,1402 @@
+{
+  "timestamp": "2025-07-22T15:15:56.788928",
+  "mcp_url": "http://192.168.0.152:8007",
+  "test_suites": {
+    "connectivity": {
+      "results": [],
+      "success": true,
+      "skipped": true,
+      "reason": "Connectivity test script was removed - functionality covered by integration tests"
+    },
+    "framework_integration": {
+      "exit_code": 0,
+      "total": 16,
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "duration": 8.265918970108032,
+      "tests": [
+        {
+          "nodeid": "tests/gaea2/test_framework_integration.py::TestSuccessfulOperations::test_create_basic_terrain",
+          "lineno": 105,
+          "outcome": "passed",
+          "keywords": [
+            "test_create_basic_terrain",
+            "asyncio",
+            "pytestmark",
+            "TestSuccessfulOperations",
+            "test_framework_integration.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0010514039895497262,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.003020767995622009,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.0003726049908436835,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_framework_integration.py::TestSuccessfulOperations::test_validate_workflow",
+          "lineno": 120,
+          "outcome": "passed",
+          "keywords": [
+            "test_validate_workflow",
+            "asyncio",
+            "pytestmark",
+            "TestSuccessfulOperations",
+            "test_framework_integration.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0002383230021223426,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.008484853024128824,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.0001962619717232883,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_framework_integration.py::TestSuccessfulOperations::test_analyze_patterns",
+          "lineno": 185,
+          "outcome": "passed",
+          "keywords": [
+            "test_analyze_patterns",
+            "asyncio",
+            "pytestmark",
+            "TestSuccessfulOperations",
+            "test_framework_integration.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00022998300846666098,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.0017253539990633726,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.0001987229916267097,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_framework_integration.py::TestSuccessfulOperations::test_node_suggestions",
+          "lineno": 246,
+          "outcome": "passed",
+          "keywords": [
+            "test_node_suggestions",
+            "asyncio",
+            "pytestmark",
+            "TestSuccessfulOperations",
+            "test_framework_integration.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00031412497628480196,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.0015493810060434043,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00021125300554558635,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_framework_integration.py::TestExpectedFailures::test_invalid_template_name",
+          "lineno": 277,
+          "outcome": "passed",
+          "keywords": [
+            "test_invalid_template_name",
+            "asyncio",
+            "pytestmark",
+            "TestExpectedFailures",
+            "test_framework_integration.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0002256130101159215,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.001524171035271138,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00018986302893608809,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_framework_integration.py::TestExpectedFailures::test_invalid_node_type",
+          "lineno": 288,
+          "outcome": "passed",
+          "keywords": [
+            "test_invalid_node_type",
+            "asyncio",
+            "pytestmark",
+            "TestExpectedFailures",
+            "test_framework_integration.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0002270640106871724,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.0015402769786305726,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00019116303883492947,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_framework_integration.py::TestExpectedFailures::test_circular_connections",
+          "lineno": 312,
+          "outcome": "passed",
+          "keywords": [
+            "test_circular_connections",
+            "asyncio",
+            "pytestmark",
+            "TestExpectedFailures",
+            "test_framework_integration.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00023791397688910365,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.001762967964168638,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.0002270030090585351,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_framework_integration.py::TestEdgeCases::test_empty_workflow",
+          "lineno": 364,
+          "outcome": "passed",
+          "keywords": [
+            "test_empty_workflow",
+            "asyncio",
+            "pytestmark",
+            "TestEdgeCases",
+            "test_framework_integration.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00023231300292536616,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.0016141419764608145,
+            "outcome": "passed",
+            "stdout": "Empty workflow validation result: {'success': True, 'valid': True, 'fixed': False, 'errors': [], 'fixes_applied': [], 'workflow': {'nodes': [], 'connections': []}}\n"
+          },
+          "teardown": {
+            "duration": 0.00020155298989266157,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_framework_integration.py::TestEdgeCases::test_maximum_complexity",
+          "lineno": 388,
+          "outcome": "passed",
+          "keywords": [
+            "test_maximum_complexity",
+            "asyncio",
+            "pytestmark",
+            "TestEdgeCases",
+            "test_framework_integration.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0002962540020234883,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.0020556339877657592,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00019388197688385844,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_framework_integration.py::TestEdgeCases::test_special_characters_in_names",
+          "lineno": 421,
+          "outcome": "passed",
+          "keywords": [
+            "test_special_characters_in_names",
+            "asyncio",
+            "pytestmark",
+            "TestEdgeCases",
+            "test_framework_integration.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00023364298976957798,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.00925032899249345,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00019552296726033092,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_framework_integration.py::TestErrorHandling::test_malformed_json_handling",
+          "lineno": 454,
+          "outcome": "passed",
+          "keywords": [
+            "test_malformed_json_handling",
+            "asyncio",
+            "pytestmark",
+            "TestErrorHandling",
+            "test_framework_integration.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00023130298359319568,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.0014750100090168417,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00024313299218192697,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_framework_integration.py::TestErrorHandling::test_connection_recovery",
+          "lineno": 471,
+          "outcome": "passed",
+          "keywords": [
+            "test_connection_recovery",
+            "asyncio",
+            "pytestmark",
+            "TestErrorHandling",
+            "test_framework_integration.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00023089302703738213,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 8.010164343984798,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.0006943899788893759,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_framework_integration.py::TestErrorHandling::test_timeout_handling",
+          "lineno": 490,
+          "outcome": "passed",
+          "keywords": [
+            "test_timeout_handling",
+            "asyncio",
+            "pytestmark",
+            "TestErrorHandling",
+            "test_framework_integration.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0003255839692428708,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.0033369369921274483,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.0001979320077225566,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_framework_integration.py::TestRegressionSuite::test_template_consistency",
+          "lineno": 521,
+          "outcome": "passed",
+          "keywords": [
+            "test_template_consistency",
+            "asyncio",
+            "pytestmark",
+            "TestRegressionSuite",
+            "test_framework_integration.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00027752399910241365,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.013142512005288154,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00022213300690054893,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_framework_integration.py::TestRegressionSuite::test_corrupted_templates",
+          "lineno": 552,
+          "outcome": "passed",
+          "keywords": [
+            "test_corrupted_templates",
+            "asyncio",
+            "pytestmark",
+            "TestRegressionSuite",
+            "test_framework_integration.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00046427600318565965,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.00921324803493917,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00020579301053658128,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_framework_integration.py::TestRegressionSuite::test_validation_consistency",
+          "lineno": 575,
+          "outcome": "passed",
+          "keywords": [
+            "test_validation_consistency",
+            "asyncio",
+            "pytestmark",
+            "TestRegressionSuite",
+            "test_framework_integration.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0002765439567156136,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.0032836460159160197,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.0003283440019004047,
+            "outcome": "passed"
+          }
+        }
+      ]
+    },
+    "operations": {
+      "exit_code": 0,
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0,
+      "duration": 0.2559981346130371,
+      "tests": [
+        {
+          "nodeid": "tests/gaea2/test_gaea_operations.py::TestGaea2Operations::test_common_workflow_pattern",
+          "lineno": 28,
+          "outcome": "passed",
+          "keywords": [
+            "test_common_workflow_pattern",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Operations",
+            "test_gaea_operations.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0004840070032514632,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.003268475004006177,
+            "outcome": "passed",
+            "stdout": "DEBUG: Response = {'success': True, 'result': {'success': True, 'project_path': '/app/output/gaea2\\\\test_common_pattern_20250722_111607.terrain', 'node_count': 8, 'connection_count': 7, 'validation_applied': True}, 'error': None}\n"
+          },
+          "teardown": {
+            "duration": 0.000357475015334785,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_operations.py::TestGaea2Operations::test_multi_output_nodes",
+          "lineno": 117,
+          "outcome": "passed",
+          "keywords": [
+            "test_multi_output_nodes",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Operations",
+            "test_gaea_operations.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0002549130003899336,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.0018673259764909744,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00019654195057228208,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_operations.py::TestGaea2Operations::test_complex_property_nodes",
+          "lineno": 182,
+          "outcome": "passed",
+          "keywords": [
+            "test_complex_property_nodes",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Operations",
+            "test_gaea_operations.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0002337329788133502,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.0019061759812757373,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00019606301793828607,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_operations.py::TestGaea2Operations::test_template_variations",
+          "lineno": 227,
+          "outcome": "passed",
+          "keywords": [
+            "test_template_variations",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Operations",
+            "test_gaea_operations.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00030094501562416553,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.01890640304191038,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.0001915820175781846,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_operations.py::TestGaea2Operations::test_combine_node_connections",
+          "lineno": 263,
+          "outcome": "passed",
+          "keywords": [
+            "test_combine_node_connections",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Operations",
+            "test_gaea_operations.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00023539300309494138,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.0018698130152188241,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00026450399309396744,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_operations.py::TestGaea2Operations::test_workflow_optimization",
+          "lineno": 302,
+          "outcome": "passed",
+          "keywords": [
+            "test_workflow_optimization",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Operations",
+            "test_gaea_operations.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00028557400219142437,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.004856976971495897,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00019350304501131177,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_operations.py::TestGaea2Operations::test_node_suggestions_context",
+          "lineno": 379,
+          "outcome": "passed",
+          "keywords": [
+            "test_node_suggestions_context",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Operations",
+            "test_gaea_operations.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00027607398806139827,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.004169388033915311,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.0001901029609143734,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_operations.py::TestGaea2Operations::test_workflow_repair",
+          "lineno": 465,
+          "outcome": "passed",
+          "keywords": [
+            "test_workflow_repair",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Operations",
+            "test_gaea_operations.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00027446303283795714,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.006461640004999936,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00029965402791276574,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_operations.py::TestGaea2Operations::test_pattern_analysis",
+          "lineno": 547,
+          "outcome": "passed",
+          "keywords": [
+            "test_pattern_analysis",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Operations",
+            "test_gaea_operations.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0002459140378050506,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.016145107976626605,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00019599305232986808,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_operations.py::TestGaea2Operations::test_variable_propagation",
+          "lineno": 589,
+          "outcome": "passed",
+          "keywords": [
+            "test_variable_propagation",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Operations",
+            "test_gaea_operations.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00023817300098016858,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.003770012001041323,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00024349294835701585,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_operations.py::TestEdgeCasesAndBoundaries::test_maximum_node_limit",
+          "lineno": 652,
+          "outcome": "passed",
+          "keywords": [
+            "test_maximum_node_limit",
+            "asyncio",
+            "pytestmark",
+            "TestEdgeCasesAndBoundaries",
+            "test_gaea_operations.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00023180298740044236,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.00438982096966356,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.0001876730239018798,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_operations.py::TestEdgeCasesAndBoundaries::test_deeply_nested_combines",
+          "lineno": 699,
+          "outcome": "passed",
+          "keywords": [
+            "test_deeply_nested_combines",
+            "asyncio",
+            "pytestmark",
+            "TestEdgeCasesAndBoundaries",
+            "test_gaea_operations.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00022429297678172588,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.003946142038330436,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.0001988629810512066,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_operations.py::TestEdgeCasesAndBoundaries::test_special_port_connections",
+          "lineno": 775,
+          "outcome": "passed",
+          "keywords": [
+            "test_special_port_connections",
+            "asyncio",
+            "pytestmark",
+            "TestEdgeCasesAndBoundaries",
+            "test_gaea_operations.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00023301300825551152,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.0034187300479970872,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00029351405100896955,
+            "outcome": "passed"
+          }
+        }
+      ]
+    },
+    "failures": {
+      "exit_code": 0,
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "duration": 0.23091387748718262,
+      "tests": [
+        {
+          "nodeid": "tests/gaea2/test_gaea_failures.py::TestGaea2Failures::test_invalid_node_types",
+          "lineno": 31,
+          "outcome": "passed",
+          "keywords": [
+            "test_invalid_node_types",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Failures",
+            "test_gaea_failures.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0005188669892959297,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.005914877983741462,
+            "outcome": "passed",
+            "stdout": "Note: Server accepted unknown node type in completely_invalid_node\nNote: Server accepted unknown node type in misspelled_node\nNote: Server accepted unknown node type in case_sensitive_error\n"
+          },
+          "teardown": {
+            "duration": 0.0003064750344492495,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_failures.py::TestGaea2Failures::test_invalid_connections",
+          "lineno": 129,
+          "outcome": "passed",
+          "keywords": [
+            "test_invalid_connections",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Failures",
+            "test_gaea_failures.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00024589302483946085,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.006189730018377304,
+            "outcome": "passed",
+            "stdout": "Note: Server accepted invalid_port_names - may support custom ports/nodes\n"
+          },
+          "teardown": {
+            "duration": 0.0002006929717026651,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_failures.py::TestGaea2Failures::test_missing_required_nodes",
+          "lineno": 248,
+          "outcome": "passed",
+          "keywords": [
+            "test_missing_required_nodes",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Failures",
+            "test_gaea_failures.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0002829040167853236,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.004569993005134165,
+            "outcome": "passed",
+            "stdout": "Server accepted no_export_node without changes\nServer accepted disconnected_export without changes\nServer accepted orphaned_nodes without changes\n"
+          },
+          "teardown": {
+            "duration": 0.00019527302356436849,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_failures.py::TestGaea2Failures::test_invalid_property_values",
+          "lineno": 341,
+          "outcome": "passed",
+          "keywords": [
+            "test_invalid_property_values",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Failures",
+            "test_gaea_failures.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0002476740046404302,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.004479912051465362,
+            "outcome": "passed",
+            "stdout": "Server accepted out_of_range_values (may have auto-corrected)\nServer accepted wrong_property_types (may have auto-corrected)\nServer accepted invalid_property_names (may have auto-corrected)\n"
+          },
+          "teardown": {
+            "duration": 0.0001958120265044272,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_failures.py::TestGaea2Failures::test_malformed_requests",
+          "lineno": 449,
+          "outcome": "passed",
+          "keywords": [
+            "test_malformed_requests",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Failures",
+            "test_gaea_failures.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00022887298837304115,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.006002002977766097,
+            "outcome": "passed",
+            "stdout": "Server handled malformed request: wrong_parameter_types\nServer handled malformed request: empty_workflow\nServer handled malformed request: null_workflow\n"
+          },
+          "teardown": {
+            "duration": 0.0002286930102854967,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_failures.py::TestGaea2Failures::test_template_errors",
+          "lineno": 494,
+          "outcome": "passed",
+          "keywords": [
+            "test_template_errors",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Failures",
+            "test_gaea_failures.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0002524529700167477,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.004179454001132399,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.0001998929656110704,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_failures.py::TestGaea2Failures::test_connection_type_mismatches",
+          "lineno": 526,
+          "outcome": "passed",
+          "keywords": [
+            "test_connection_type_mismatches",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Failures",
+            "test_gaea_failures.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00022995303152129054,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.0030182309565134346,
+            "outcome": "passed",
+            "stdout": "Server accepted mask_to_regular_input with 0 fixes\nServer accepted multiple_inputs_to_single_port with 0 fixes\n"
+          },
+          "teardown": {
+            "duration": 0.0002457739901728928,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_failures.py::TestGaea2Failures::test_resource_exhaustion",
+          "lineno": 619,
+          "outcome": "passed",
+          "keywords": [
+            "test_resource_exhaustion",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Failures",
+            "test_gaea_failures.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00022434297716245055,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.009874636947643012,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.000283904024399817,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_failures.py::TestErrorRecovery::test_workflow_auto_repair",
+          "lineno": 684,
+          "outcome": "passed",
+          "keywords": [
+            "test_workflow_auto_repair",
+            "asyncio",
+            "pytestmark",
+            "TestErrorRecovery",
+            "test_gaea_failures.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00028366403421387076,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.015491569007281214,
+            "outcome": "passed",
+            "stdout": "Note: missing_positions was likely auto-fixed during creation\nNote: broken_connections was likely auto-fixed during creation\n"
+          },
+          "teardown": {
+            "duration": 0.00024596299044787884,
+            "outcome": "passed"
+          }
+        }
+      ]
+    },
+    "regression": {
+      "exit_code": 0,
+      "total": 8,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 1,
+      "duration": 0.22949528694152832,
+      "tests": [
+        {
+          "nodeid": "tests/gaea2/test_gaea_regression.py::TestGaea2Regression::test_template_regression",
+          "lineno": 383,
+          "outcome": "passed",
+          "keywords": [
+            "test_template_regression",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Regression",
+            "test_gaea_regression.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0005152480443939567,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.022542488994076848,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.0002963539445772767,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_regression.py::TestGaea2Regression::test_validation_rules_regression",
+          "lineno": 502,
+          "outcome": "passed",
+          "keywords": [
+            "test_validation_rules_regression",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Regression",
+            "test_gaea_regression.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0003595349844545126,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.004822797025553882,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00019789300858974457,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_regression.py::TestGaea2Regression::test_node_behavior_regression",
+          "lineno": 577,
+          "outcome": "passed",
+          "keywords": [
+            "test_node_behavior_regression",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Regression",
+            "test_gaea_regression.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00034371501533314586,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.0072181239956989884,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00019817298743873835,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_regression.py::TestGaea2Regression::test_pattern_analysis_regression",
+          "lineno": 645,
+          "outcome": "passed",
+          "keywords": [
+            "test_pattern_analysis_regression",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Regression",
+            "test_gaea_regression.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00028271396877244115,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.01136767800198868,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00019555300241336226,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_regression.py::TestGaea2Regression::test_optimization_regression",
+          "lineno": 675,
+          "outcome": "passed",
+          "keywords": [
+            "test_optimization_regression",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Regression",
+            "test_gaea_regression.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.0003422349691390991,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.011241296015214175,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00020571297500282526,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_regression.py::TestGaea2Regression::test_error_handling_regression",
+          "lineno": 732,
+          "outcome": "skipped",
+          "keywords": [
+            "test_error_handling_regression",
+            "skip",
+            "asyncio",
+            "pytestmark",
+            "TestGaea2Regression",
+            "test_gaea_regression.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 9.315100032836199e-05,
+            "outcome": "skipped",
+            "longrepr": "('/workspace/tests/gaea2/test_gaea_regression.py', 733, 'Skipped: Server currently accepts invalid workflows - needs server-side fix')"
+          },
+          "teardown": {
+            "duration": 8.684099884703755e-05,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_regression.py::TestPerformanceRegression::test_template_performance",
+          "lineno": 816,
+          "outcome": "passed",
+          "keywords": [
+            "test_template_performance",
+            "asyncio",
+            "pytestmark",
+            "TestPerformanceRegression",
+            "test_gaea_regression.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.000321524974424392,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.002427864004857838,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.00020012300228700042,
+            "outcome": "passed"
+          }
+        },
+        {
+          "nodeid": "tests/gaea2/test_gaea_regression.py::TestPerformanceRegression::test_validation_performance",
+          "lineno": 842,
+          "outcome": "passed",
+          "keywords": [
+            "test_validation_performance",
+            "asyncio",
+            "pytestmark",
+            "TestPerformanceRegression",
+            "test_gaea_regression.py",
+            "gaea2",
+            "tests",
+            "workspace",
+            ""
+          ],
+          "setup": {
+            "duration": 0.00031236500944942236,
+            "outcome": "passed"
+          },
+          "call": {
+            "duration": 0.0024091540253721178,
+            "outcome": "passed"
+          },
+          "teardown": {
+            "duration": 0.0002912839991040528,
+            "outcome": "passed"
+          }
+        }
+      ]
+    }
+  },
+  "summary": {},
+  "analysis": {
+    "total_suites": 5,
+    "total_tests": 46,
+    "total_passed": 45,
+    "total_failed": 0,
+    "failed_tests": [],
+    "performance_metrics": {
+      "framework_integration": 8.265918970108032,
+      "operations": 0.2559981346130371,
+      "failures": 0.23091387748718262,
+      "regression": 0.22949528694152832
+    },
+    "common_failures": {},
+    "recommendations": [
+      "\u2705 All tests passed! The Gaea2 MCP is functioning correctly."
+    ]
+  },
+  "knowledge_update": {
+    "timestamp": "2025-07-22T15:16:08.441634",
+    "successful_patterns": [
+      {
+        "test": "tests/gaea2/test_framework_integration.py::TestSuccessfulOperations::test_validate_workflow",
+        "duration": 0
+      },
+      {
+        "test": "tests/gaea2/test_framework_integration.py::TestEdgeCases::test_empty_workflow",
+        "duration": 0
+      },
+      {
+        "test": "tests/gaea2/test_gaea_operations.py::TestGaea2Operations::test_common_workflow_pattern",
+        "duration": 0
+      },
+      {
+        "test": "tests/gaea2/test_gaea_operations.py::TestGaea2Operations::test_workflow_optimization",
+        "duration": 0
+      },
+      {
+        "test": "tests/gaea2/test_gaea_operations.py::TestGaea2Operations::test_workflow_repair",
+        "duration": 0
+      },
+      {
+        "test": "tests/gaea2/test_gaea_failures.py::TestErrorRecovery::test_workflow_auto_repair",
+        "duration": 0
+      }
+    ],
+    "failure_patterns": [],
+    "edge_cases_discovered": [],
+    "performance_benchmarks": {
+      "framework_integration": 8.265918970108032,
+      "operations": 0.2559981346130371,
+      "failures": 0.23091387748718262,
+      "regression": 0.22949528694152832
+    }
+  }
+}
