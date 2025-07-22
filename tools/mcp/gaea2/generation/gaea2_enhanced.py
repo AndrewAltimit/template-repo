@@ -60,6 +60,7 @@ class EnhancedGaea2Tools:
                 "PostBuildScript": "",
                 "OpenFolder": True,
                 "CopyTerrain": True,
+                "Regions": {"$id": "24", "$values": []},
             }
 
             if build_config:
@@ -138,6 +139,7 @@ class EnhancedGaea2Tools:
                                 "Expressions": {"$id": "15"},
                                 "VariablesEx": {"$id": "16"},
                                 "Variables": {"$id": "17"},
+                                "BoundProperties": {"$id": "23", "$values": []},
                             },
                             "BuildDefinition": {"$id": "18", **default_build_config},
                             "State": {
