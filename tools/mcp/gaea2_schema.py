@@ -2275,17 +2275,39 @@ def create_workflow_from_template(
     nodes = []
     connections = []
 
+    # Nodes that fail with too many properties
+    limited_property_nodes = [
+        "Snow",
+        "Beach",
+        "Coast",
+        "Lakes",
+        "Glacier",
+        "SeaLevel",
+        "LavaFlow",
+        "ThermalShatter",
+        "Ridge",
+        "Strata",
+        "Voronoi",
+        "Terrace",
+    ]
+
     # Create nodes with automatic positioning
     x_offset = 0
     for i, node_template in enumerate(template):
         node_id = 100 + i
+        node_type = node_template["type"]
 
-        # Apply default properties
-        properties = apply_default_properties(node_template["type"], node_template.get("properties", {}))
+        # Only apply default properties for nodes that can handle them
+        if node_type in limited_property_nodes:
+            # Use only the properties defined in the template
+            properties = node_template.get("properties", {}).copy()
+        else:
+            # Apply default properties for other nodes
+            properties = apply_default_properties(node_type, node_template.get("properties", {}))
 
         node = {
             "id": node_id,
-            "type": node_template["type"],
+            "type": node_type,
             "name": node_template["name"],
             "position": {"x": start_position[0] + x_offset, "y": start_position[1]},
             "properties": properties,
