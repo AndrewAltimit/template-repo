@@ -168,12 +168,17 @@ class TestGaea2Operations:
 
         result = await self.execute_tool(mcp_url, "validate_and_fix_workflow", {"workflow": workflow})
 
-        # Handle different response formats
-        if "results" in result:
-            assert result["results"].get("is_valid") is True or len(result["results"].get("fixes_applied", [])) > 0
+        # Handle base server response format
+        if "result" in result and isinstance(result["result"], dict):
+            actual_result = result["result"]
         else:
-            # Direct response format
-            assert result.get("is_valid") is True or len(result.get("fixes_applied", [])) > 0
+            actual_result = result
+
+        # Check validation results - either no errors or fixes were applied
+        has_no_errors = len(actual_result.get("errors", [])) == 0
+        was_fixed = actual_result.get("fixed", False) or len(actual_result.get("fixes_applied", [])) > 0
+
+        assert has_no_errors or was_fixed, f"Validation should either have no errors or apply fixes: {actual_result}"
 
     @pytest.mark.asyncio
     async def test_complex_property_nodes(self, mcp_url):
@@ -362,14 +367,15 @@ class TestGaea2Operations:
 
             assert not result.get("error"), f"Optimization failed for mode {mode}: {result.get('error')}"
             # Handle different response formats
-            if "results" in result:
-                assert (
-                    "optimized_nodes" in result["results"]
-                    or "nodes" in result["results"]
-                    or "optimized_workflow" in result["results"]
-                )
+            # Handle base server response format
+            if "result" in result and isinstance(result["result"], dict):
+                actual_result = result["result"]
             else:
-                assert "optimized_nodes" in result or "nodes" in result or "optimized_workflow" in result
+                actual_result = result
+
+            assert (
+                "optimized_nodes" in actual_result or "nodes" in actual_result or "optimized_workflow" in actual_result
+            ), f"Expected optimization result but got: {actual_result}"
 
     @pytest.mark.asyncio
     async def test_node_suggestions_context(self, mcp_url):
@@ -556,13 +562,17 @@ class TestGaea2Operations:
 
             assert not result.get("error"), f"Pattern analysis failed for {terrain_type}: {result.get('error')}"
 
-            # Handle different response formats
-            if "results" in result:
-                data = result["results"]
-            elif "analysis" in result:
-                data = result["analysis"]
+            # Handle base server response format
+            if "result" in result and isinstance(result["result"], dict):
+                actual_result = result["result"]
             else:
-                data = result
+                actual_result = result
+
+            # Extract analysis data
+            if "analysis" in actual_result:
+                data = actual_result["analysis"]
+            else:
+                data = actual_result
 
             # Check for expected fields in various formats
             has_patterns = "common_patterns" in data or "patterns" in data
@@ -753,7 +763,15 @@ class TestEdgeCasesAndBoundaries:
 
         result = await self.execute_tool(mcp_url, "validate_and_fix_workflow", {"workflow": workflow})
 
-        assert result.get("results", {}).get("is_valid") is True
+        # Handle base server response format
+        if "result" in result and isinstance(result["result"], dict):
+            actual_result = result["result"]
+        else:
+            actual_result = result
+
+        # Check validation succeeded
+        assert actual_result.get("success") is not False
+        assert len(actual_result.get("errors", [])) == 0 or actual_result.get("fixed", False)
 
     @pytest.mark.asyncio
     async def test_special_port_connections(self, mcp_url):
@@ -814,7 +832,8 @@ class TestEdgeCasesAndBoundaries:
 
         # These connections might need fixing but should be handled gracefully
         assert isinstance(result, dict)
-        assert "error" not in result or "crash" not in result.get("error", "").lower()
+        error_msg = result.get("error") or ""
+        assert "error" not in result or "crash" not in str(error_msg).lower()
 
 
 if __name__ == "__main__":

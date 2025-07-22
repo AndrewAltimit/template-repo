@@ -412,6 +412,7 @@ class Gaea2MCPServer(BaseMCPServer):
         workflow_or_directory: Optional[Union[Dict[str, Any], str]] = None,
         workflow_type: Optional[str] = None,
         analysis_type: str = "all",
+        include_suggestions: bool = False,
     ) -> Dict[str, Any]:
         """Analyze workflow patterns
 
