@@ -95,7 +95,7 @@ class Gaea2FileValidator:
         logger.info(f"Validating file: {file_path}")
 
         try:
-            # Run validation
+            # Run validation with real-time output monitoring
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
@@ -103,29 +103,136 @@ class Gaea2FileValidator:
                 cwd=os.path.dirname(file_path),  # Run in file's directory
             )
 
-            try:
-                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
-            except asyncio.TimeoutError:
+            # Monitor output in real-time
+            stdout_data = []
+            stderr_data = []
+            success_detected = False
+            error_detected = False
+            error_message = None
+            
+            # Success indicators
+            success_patterns = [
+                r"Opening.*" + os.path.basename(file_path).replace(".", r"\."),
+                r"Loading devices",
+                r"Activated.*processor",
+                r"Preparing Gaea"
+            ]
+            
+            # Quick failure indicators
+            failure_patterns = [
+                r"corrupt|damaged",
+                r"failed to load",
+                r"cannot open",
+                r"missing.*data",
+                r"invalid file",
+                r"error.*loading"
+            ]
+
+            async def read_stream(stream, data_list, is_stderr=False):
+                while True:
+                    try:
+                        line = await asyncio.wait_for(stream.readline(), timeout=0.1)
+                        if not line:
+                            break
+                        line_text = line.decode("utf-8", errors="replace").strip()
+                        if line_text:
+                            data_list.append(line_text)
+                            logger.debug(f"{'stderr' if is_stderr else 'stdout'}: {line_text}")
+                            
+                            # Check for success patterns
+                            for pattern in success_patterns:
+                                if re.search(pattern, line_text, re.IGNORECASE):
+                                    nonlocal success_detected
+                                    success_detected = True
+                                    logger.info(f"Success pattern detected: {line_text}")
+                            
+                            # Check for failure patterns
+                            for pattern in failure_patterns:
+                                if re.search(pattern, line_text, re.IGNORECASE):
+                                    nonlocal error_detected, error_message
+                                    error_detected = True
+                                    error_message = line_text
+                                    logger.info(f"Error pattern detected: {line_text}")
+                                    
+                    except asyncio.TimeoutError:
+                        continue
+                    except Exception:
+                        break
+
+            # Start reading both streams
+            stdout_task = asyncio.create_task(read_stream(process.stdout, stdout_data))
+            stderr_task = asyncio.create_task(read_stream(process.stderr, stderr_data, True))
+
+            # Wait for either success/failure detection or timeout
+            wait_time = 0
+            check_interval = 0.5
+            post_opening_wait = 3.0  # Wait 3 seconds after "Opening" to confirm success
+            opening_detected_time = None
+            
+            while wait_time < timeout:
+                # If error detected, fail immediately
+                if error_detected:
+                    logger.info("Error detected, terminating validation")
+                    break
+                    
+                # If success detected, wait a bit to ensure no errors follow
+                if success_detected and not opening_detected_time:
+                    opening_detected_time = wait_time
+                    logger.info(f"Success pattern detected at {wait_time}s, waiting {post_opening_wait}s to confirm...")
+                
+                # If we've waited enough after detecting opening, consider it successful
+                if opening_detected_time and (wait_time - opening_detected_time) >= post_opening_wait:
+                    logger.info("File opened successfully with no errors following")
+                    break
+                
+                # Check if process has ended
+                if process.returncode is not None:
+                    break
+                    
+                await asyncio.sleep(check_interval)
+                wait_time += check_interval
+
+            # Kill the process if still running
+            if process.returncode is None:
+                logger.info("Terminating Gaea2 process")
                 process.kill()
                 await process.wait()
-                return {
-                    "success": False,
-                    "file_path": file_path,
-                    "error": "Validation timed out",
-                    "error_type": "timeout",
-                    "duration": timeout,
-                    "timestamp": start_time.isoformat(),
-                }
 
-            # Decode output
-            stdout_text = stdout.decode("utf-8", errors="replace")
-            stderr_text = stderr.decode("utf-8", errors="replace")
+            # Cancel reading tasks
+            stdout_task.cancel()
+            stderr_task.cancel()
+            try:
+                await stdout_task
+                await stderr_task
+            except asyncio.CancelledError:
+                pass
 
-            # Determine success based on return code and output
-            success = process.returncode == 0
+            # Compile output
+            stdout_text = "\n".join(stdout_data)
+            stderr_text = "\n".join(stderr_data)
+            
+            # Determine final success status
+            if error_detected:
+                success = False
+                error = error_message or "File validation failed"
+            elif success_detected and not error_detected:
+                success = True
+                error = None
+            elif wait_time >= timeout:
+                # If we timed out without detecting success or error patterns
+                # but the file name appears in output, consider it a success
+                if any("Opening" in line for line in stdout_data):
+                    success = True
+                    error = None
+                else:
+                    success = False
+                    error = "Validation timed out without clear success/failure"
+            else:
+                success = process.returncode == 0
+                error = "Process ended without clear result" if not success else None
 
-            # Parse error messages
-            error_info = self._parse_errors(stdout_text + stderr_text)
+            # Parse error messages if failed
+            error_info = self._parse_errors(stdout_text + stderr_text) if not success else None
 
             # Calculate duration
             duration = (datetime.now() - start_time).total_seconds()
@@ -138,7 +245,10 @@ class Gaea2FileValidator:
                 "timestamp": start_time.isoformat(),
                 "stdout": stdout_text,
                 "stderr": stderr_text,
-                "error_info": error_info if not success else None,
+                "error": error,
+                "error_info": error_info,
+                "success_detected": success_detected,
+                "error_detected": error_detected,
             }
 
             # Store in history

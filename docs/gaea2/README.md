@@ -548,11 +548,13 @@ POST http://192.168.0.152:8007/mcp/execute
 
 ## 🔍 File Validation System
 
-The Gaea2 MCP server includes an automated validation system to test if generated terrain files actually open in Gaea2:
+The Gaea2 MCP server includes an automated validation system to test if generated terrain files actually open in Gaea2.
+
+**Version 2 Improvements**: The validation system now uses real-time output monitoring to correctly detect successful file openings, preventing false negatives from timeouts.
 
 ### Validation Tools
 
-1. **validate_gaea2_file** - Validate a single terrain file
+1. **validate_gaea2_file** - Validate a single terrain file (v2 - improved detection)
    ```bash
    {
      "tool": "validate_gaea2_file",
@@ -593,6 +595,24 @@ The Gaea2 MCP server includes an automated validation system to test if generate
 - **Timeout Handling**: Prevents hanging on problematic files
 - **Detailed Reporting**: Provides comprehensive error analysis
 - **Batch Processing**: Test multiple files efficiently
+
+### How Validation Works (v2)
+
+The improved validation system monitors Gaea2's output in real-time:
+
+1. **Real-time Monitoring**: Reads stdout/stderr as Gaea2 runs
+2. **Success Detection**: Looks for patterns like:
+   - `"Opening [filename]"` - File is being opened
+   - `"Loading devices"` - Gaea2 initializing
+   - `"Activated [processor]"` - Hardware detection
+3. **Error Detection**: Fails immediately on patterns like:
+   - `"corrupt"` or `"damaged"` - File corruption
+   - `"failed to load"` - Loading failure  
+   - `"missing data"` - Incomplete file
+4. **Smart Confirmation**: Waits 3 seconds after success detection to ensure no errors follow
+5. **Process Control**: Kills Gaea2 after determining result
+
+This approach correctly identifies successful file openings that previously timed out.
 
 ### Test Scripts
 
