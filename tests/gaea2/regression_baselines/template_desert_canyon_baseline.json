@@ -1,11 +1,11 @@
 {
-  "version": "20250721",
-  "timestamp": "2025-07-21T17:43:32.115822",
+  "version": "20250722",
+  "timestamp": "2025-07-22T11:49:03.480414",
   "result": {
     "success": true,
     "project_name": "regression_desert_canyon",
-    "node_count": 7,
-    "connection_count": 6,
+    "node_count": 6,
+    "connection_count": 5,
     "project_structure": {
       "$id": "1",
       "Assets": {
@@ -24,13 +24,13 @@
               },
               "Nodes": {
                 "$id": "6",
-                "100": {
+                "canyon_1": {
                   "$id": "7",
                   "$type": "QuadSpinner.Gaea.Nodes.Canyon, Gaea.Nodes",
                   "Scale": 1.5,
                   "Depth": 0.7,
                   "Seed": 0,
-                  "Id": 100,
+                  "Id": "norm-id",
                   "Name": "MainCanyon",
                   "Position": {
                     "$id": "8",
@@ -65,14 +65,14 @@
                     "$values": []
                   }
                 },
-                "101": {
+                "stratify_6": {
                   "$id": "13",
                   "$type": "QuadSpinner.Gaea.Nodes.Stratify, Gaea.Nodes",
                   "Layers": 12,
                   "Strength": 0.6,
                   "Spacing": 0.5,
                   "Seed": 0,
-                  "Id": 101,
+                  "Id": "stratify_6",
                   "Name": "RockLayers",
                   "Position": {
                     "$id": "14",
@@ -88,8 +88,8 @@
                         "Type": "PrimaryIn",
                         "Record": {
                           "$id": "18",
-                          "From": 100,
-                          "To": 101,
+                          "From": "canyon_1",
+                          "To": "stratify_6",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -116,7 +116,7 @@
                     "$values": []
                   }
                 },
-                "102": {
+                "fractalter_3": {
                   "$id": "20",
                   "$type": "QuadSpinner.Gaea.Nodes.FractalTerraces, Gaea.Nodes",
                   "Intensity": 0.5,
@@ -129,7 +129,7 @@
                   "TiltSeed": 12345,
                   "WarpAmount": 0.33,
                   "WarpSize": 0.33,
-                  "Id": 102,
+                  "Id": "fractalter_3",
                   "Name": "TerraceFormation",
                   "Position": {
                     "$id": "21",
@@ -145,8 +145,8 @@
                         "Type": "PrimaryIn",
                         "Record": {
                           "$id": "25",
-                          "From": 101,
-                          "To": 102,
+                          "From": "stratify_6",
+                          "To": "fractalter_3",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -173,7 +173,7 @@
                     "$values": []
                   }
                 },
-                "103": {
+                "erosion2_2": {
                   "$id": "27",
                   "$type": "QuadSpinner.Gaea.Nodes.Erosion2, Gaea.Nodes",
                   "Duration": 0.1,
@@ -189,7 +189,7 @@
                   "Shape": 0.5,
                   "ShapeDetailScale": 0.5,
                   "ShapeSharpness": 0.5,
-                  "Id": 103,
+                  "Id": "erosion2_2",
                   "Name": "WindErosion",
                   "Position": {
                     "$id": "28",
@@ -205,8 +205,8 @@
                         "Type": "PrimaryIn",
                         "Record": {
                           "$id": "32",
-                          "From": 102,
-                          "To": 103,
+                          "From": "fractalter_3",
+                          "To": "erosion2_2",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -268,13 +268,13 @@
                     "$values": []
                   }
                 },
-                "104": {
+                "sand_4": {
                   "$id": "38",
                   "$type": "QuadSpinner.Gaea.Nodes.Sand, Gaea.Nodes",
                   "Amount": 0.4,
                   "Scale": 0.5,
                   "Seed": 0,
-                  "Id": 104,
+                  "Id": "sand_4",
                   "Name": "SandAccumulation",
                   "Position": {
                     "$id": "39",
@@ -290,8 +290,8 @@
                         "Type": "PrimaryIn",
                         "Record": {
                           "$id": "43",
-                          "From": 103,
-                          "To": 104,
+                          "From": "erosion2_2",
+                          "To": "sand_4",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -317,7 +317,7 @@
                     "$values": []
                   }
                 },
-                "105": {
+                "satmap_5": {
                   "$id": "45",
                   "$type": "QuadSpinner.Gaea.Nodes.SatMap, Gaea.Nodes",
                   "Library": "Sand",
@@ -335,7 +335,7 @@
                   "Hue": 0.0,
                   "Saturation": 0.0,
                   "Lightness": 0.0,
-                  "Id": 105,
+                  "Id": "norm-id",
                   "Name": "DesertColors",
                   "NodeSize": "Standard",
                   "Position": {
@@ -349,11 +349,11 @@
                       {
                         "$id": "50",
                         "Name": "In",
-                        "Type": "PrimaryIn, Required",
+                        "Type": "PrimaryIn",
                         "Record": {
                           "$id": "51",
-                          "From": 104,
-                          "To": 105,
+                          "From": "sand_4",
+                          "To": "satmap_5",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -378,78 +378,24 @@
                     "$id": "49",
                     "$values": []
                   }
-                },
-                "106": {
-                  "$id": "53",
-                  "$type": "QuadSpinner.Gaea.Nodes.Export, Gaea.Nodes",
-                  "Id": 106,
-                  "Name": "TerrainExport",
-                  "NodeSize": "Standard",
-                  "Position": {
-                    "$id": "54",
-                    "X": 28000.0,
-                    "Y": 26000.0
-                  },
-                  "SaveDefinition": {
-                    "$id": "55",
-                    "Node": 106,
-                    "Filename": "TerrainExport",
-                    "Format": "EXR",
-                    "IsEnabled": true
-                  },
-                  "Ports": {
-                    "$id": "56",
-                    "$values": [
-                      {
-                        "$id": "58",
-                        "Name": "In",
-                        "Type": "PrimaryIn, Required",
-                        "Record": {
-                          "$id": "59",
-                          "From": 105,
-                          "To": 106,
-                          "FromPort": "Out",
-                          "ToPort": "In",
-                          "IsValid": true
-                        },
-                        "IsExporting": true,
-                        "Parent": {
-                          "$ref": "53"
-                        }
-                      },
-                      {
-                        "$id": "60",
-                        "Name": "Out",
-                        "Type": "PrimaryOut",
-                        "IsExporting": true,
-                        "Parent": {
-                          "$ref": "53"
-                        }
-                      }
-                    ]
-                  },
-                  "Modifiers": {
-                    "$id": "57",
-                    "$values": []
-                  }
                 }
               },
               "Groups": {
-                "$id": "61"
+                "$id": "53"
               },
               "Notes": {
-                "$id": "62"
+                "$id": "54"
               },
               "GraphTabs": {
-                "$id": "63",
+                "$id": "55",
                 "$values": [
                   {
-                    "$id": "64",
+                    "$id": "56",
                     "Name": "Graph 1",
                     "Color": "Brass",
                     "ZoomFactor": 0.5338687202362516,
                     "ViewportLocation": {
-                      "$id": "65",
+                      "$id": "57",
                       "X": 25531.445,
                       "Y": 25791.812
                     }
@@ -461,21 +407,21 @@
               "Ratio": 0.5
             },
             "Automation": {
-              "$id": "66",
+              "$id": "58",
               "Bindings": {
-                "$id": "67",
+                "$id": "59",
                 "$values": []
               },
               "Variables": {
-                "$id": "68"
+                "$id": "60"
               },
               "BoundProperties": {
-                "$id": "69",
+                "$id": "61",
                 "$values": []
               }
             },
             "BuildDefinition": {
-              "$id": "70",
+              "$id": "62",
               "Destination": "<Builds>\\[Filename]\\[+++]",
               "Resolution": 2048,
               "BakeResolution": 2048,
@@ -493,22 +439,22 @@
               "OrganizeFiles": "NodeSubFolder",
               "PostBuildScript": "",
               "Regions": {
-                "$id": "71",
+                "$id": "63",
                 "$values": []
               }
             },
             "State": {
-              "$id": "72",
+              "$id": "64",
               "BakeResolution": 2048,
               "PreviewResolution": 512,
-              "SelectedNode": 100,
+              "SelectedNode": "canyon_1",
               "LockedNode": null,
               "NodeBookmarks": {
-                "$id": "73",
+                "$id": "65",
                 "$values": []
               },
               "Viewport": {
-                "$id": "74",
+                "$id": "66",
                 "RenderMode": "Realistic",
                 "SunAltitude": 33.0,
                 "SunAzimuth": 45.0,
@@ -523,7 +469,7 @@
                 "Haze": 1.0,
                 "Ozone": 1.0,
                 "Camera": {
-                  "$id": "75"
+                  "$id": "67"
                 }
               }
             }
@@ -533,7 +479,7 @@
       "Id": "norm-id",
       "Branch": 1,
       "Metadata": {
-        "$id": "76",
+        "$id": "68",
         "Name": "regression_desert_canyon",
         "Description": "Created by Gaea2 MCP Server",
         "Version": "",
@@ -549,7 +495,7 @@
         "workflow": {
           "nodes": [
             {
-              "id": 100,
+              "id": "canyon_1",
               "type": "Canyon",
               "name": "MainCanyon",
               "position": {
@@ -563,7 +509,7 @@
               }
             },
             {
-              "id": 101,
+              "id": "stratify_6",
               "type": "Stratify",
               "name": "RockLayers",
               "position": {
@@ -578,7 +524,7 @@
               }
             },
             {
-              "id": 102,
+              "id": "fractalter_3",
               "type": "FractalTerraces",
               "name": "TerraceFormation",
               "position": {
@@ -599,7 +545,7 @@
               }
             },
             {
-              "id": 103,
+              "id": "erosion2_2",
               "type": "Erosion2",
               "name": "WindErosion",
               "position": {
@@ -623,7 +569,7 @@
               }
             },
             {
-              "id": 104,
+              "id": "sand_4",
               "type": "Sand",
               "name": "SandAccumulation",
               "position": {
@@ -637,7 +583,7 @@
               }
             },
             {
-              "id": 105,
+              "id": "satmap_5",
               "type": "SatMap",
               "name": "DesertColors",
               "position": {
@@ -660,59 +606,36 @@
                 "Saturation": 0.0,
                 "Lightness": 0.0
               }
-            },
-            {
-              "id": 106,
-              "type": "Export",
-              "name": "TerrainExport",
-              "position": {
-                "x": 28000,
-                "y": 26000
-              },
-              "properties": {},
-              "save_definition": {
-                "filename": "terrain_output",
-                "format": "EXR",
-                "enabled": true
-              },
-              "_export_format": "EXR",
-              "_export_filename": "TerrainExport"
             }
           ],
           "connections": [
             {
-              "from_node": 100,
-              "to_node": 101,
+              "from_node": "canyon_1",
+              "to_node": "stratify_6",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 101,
-              "to_node": 102,
+              "from_node": "stratify_6",
+              "to_node": "fractalter_3",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 102,
-              "to_node": 103,
+              "from_node": "fractalter_3",
+              "to_node": "erosion2_2",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 103,
-              "to_node": 104,
+              "from_node": "erosion2_2",
+              "to_node": "sand_4",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 104,
-              "to_node": 105,
-              "from_port": "Out",
-              "to_port": "In"
-            },
-            {
-              "from_node": 105,
-              "to_node": 106,
+              "from_node": "sand_4",
+              "to_node": "satmap_5",
               "from_port": "Out",
               "to_port": "In"
             }
@@ -723,7 +646,7 @@
         "original_workflow": {
           "nodes": [
             {
-              "id": 100,
+              "id": "canyon_1",
               "type": "Canyon",
               "name": "MainCanyon",
               "position": {
@@ -737,7 +660,7 @@
               }
             },
             {
-              "id": 101,
+              "id": "stratify_6",
               "type": "Stratify",
               "name": "RockLayers",
               "position": {
@@ -752,7 +675,7 @@
               }
             },
             {
-              "id": 102,
+              "id": "fractalter_3",
               "type": "FractalTerraces",
               "name": "TerraceFormation",
               "position": {
@@ -773,7 +696,7 @@
               }
             },
             {
-              "id": 103,
+              "id": "erosion2_2",
               "type": "Erosion2",
               "name": "WindErosion",
               "position": {
@@ -797,7 +720,7 @@
               }
             },
             {
-              "id": 104,
+              "id": "sand_4",
               "type": "Sand",
               "name": "SandAccumulation",
               "position": {
@@ -811,7 +734,7 @@
               }
             },
             {
-              "id": 105,
+              "id": "satmap_5",
               "type": "SatMap",
               "name": "DesertColors",
               "position": {
@@ -834,59 +757,36 @@
                 "Saturation": 0.0,
                 "Lightness": 0.0
               }
-            },
-            {
-              "id": 106,
-              "type": "Export",
-              "name": "TerrainExport",
-              "position": {
-                "x": 28000,
-                "y": 26000
-              },
-              "properties": {},
-              "save_definition": {
-                "filename": "terrain_output",
-                "format": "EXR",
-                "enabled": true
-              },
-              "_export_format": "EXR",
-              "_export_filename": "TerrainExport"
             }
           ],
           "connections": [
             {
-              "from_node": 100,
-              "to_node": 101,
+              "from_node": "canyon_1",
+              "to_node": "stratify_6",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 101,
-              "to_node": 102,
+              "from_node": "stratify_6",
+              "to_node": "fractalter_3",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 102,
-              "to_node": 103,
+              "from_node": "fractalter_3",
+              "to_node": "erosion2_2",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 103,
-              "to_node": 104,
+              "from_node": "erosion2_2",
+              "to_node": "sand_4",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 104,
-              "to_node": 105,
-              "from_port": "Out",
-              "to_port": "In"
-            },
-            {
-              "from_node": 105,
-              "to_node": 106,
+              "from_node": "sand_4",
+              "to_node": "satmap_5",
               "from_port": "Out",
               "to_port": "In"
             }
@@ -910,7 +810,7 @@
         "final_workflow": {
           "nodes": [
             {
-              "id": 100,
+              "id": "canyon_1",
               "type": "Canyon",
               "name": "MainCanyon",
               "position": {
@@ -924,7 +824,7 @@
               }
             },
             {
-              "id": 101,
+              "id": "stratify_6",
               "type": "Stratify",
               "name": "RockLayers",
               "position": {
@@ -939,7 +839,7 @@
               }
             },
             {
-              "id": 102,
+              "id": "fractalter_3",
               "type": "FractalTerraces",
               "name": "TerraceFormation",
               "position": {
@@ -960,7 +860,7 @@
               }
             },
             {
-              "id": 103,
+              "id": "erosion2_2",
               "type": "Erosion2",
               "name": "WindErosion",
               "position": {
@@ -984,7 +884,7 @@
               }
             },
             {
-              "id": 104,
+              "id": "sand_4",
               "type": "Sand",
               "name": "SandAccumulation",
               "position": {
@@ -998,7 +898,7 @@
               }
             },
             {
-              "id": 105,
+              "id": "satmap_5",
               "type": "SatMap",
               "name": "DesertColors",
               "position": {
@@ -1021,59 +921,36 @@
                 "Saturation": 0.0,
                 "Lightness": 0.0
               }
-            },
-            {
-              "id": 106,
-              "type": "Export",
-              "name": "TerrainExport",
-              "position": {
-                "x": 28000,
-                "y": 26000
-              },
-              "properties": {},
-              "save_definition": {
-                "filename": "terrain_output",
-                "format": "EXR",
-                "enabled": true
-              },
-              "_export_format": "EXR",
-              "_export_filename": "TerrainExport"
             }
           ],
           "connections": [
             {
-              "from_node": 100,
-              "to_node": 101,
+              "from_node": "canyon_1",
+              "to_node": "stratify_6",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 101,
-              "to_node": 102,
+              "from_node": "stratify_6",
+              "to_node": "fractalter_3",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 102,
-              "to_node": 103,
+              "from_node": "fractalter_3",
+              "to_node": "erosion2_2",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 103,
-              "to_node": 104,
+              "from_node": "erosion2_2",
+              "to_node": "sand_4",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 104,
-              "to_node": 105,
-              "from_port": "Out",
-              "to_port": "In"
-            },
-            {
-              "from_node": 105,
-              "to_node": 106,
+              "from_node": "sand_4",
+              "to_node": "satmap_5",
               "from_port": "Out",
               "to_port": "In"
             }

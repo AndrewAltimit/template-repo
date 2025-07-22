@@ -66,6 +66,17 @@ class RegressionTestManager:
         for field in fields_to_remove:
             normalized.pop(field, None)
 
+        # First pass: collect all nodes with their types and create mapping
+        node_info = {}
+        self._collect_node_info(normalized, node_info)
+
+        # Create normalized ID mapping based on node type and position
+        # This ensures consistent IDs across different runs
+        node_id_map = self._create_stable_id_mapping(node_info)
+
+        # Second pass: apply ID normalization throughout the structure
+        self._apply_node_id_normalization(normalized, node_id_map)
+
         # Remove nested timestamps and volatile data
         self._remove_volatile_nested(normalized)
 
@@ -114,6 +125,132 @@ class RegressionTestManager:
         elif isinstance(data, list):
             for item in data:
                 self._remove_volatile_nested(item)
+
+    def _collect_node_info(self, data: Any, node_info: Dict[Any, Dict]) -> None:
+        """Recursively collect node information (ID, type, position) from the structure."""
+        if isinstance(data, dict):
+            # Check for node structures in various locations
+            if "Nodes" in data and isinstance(data["Nodes"], dict):
+                # project_structure.Assets.$values[0].Terrain.Nodes format
+                for node_id, node_data in data["Nodes"].items():
+                    if node_id != "$id" and isinstance(node_data, dict):  # Skip metadata fields
+                        node_type = (
+                            node_data.get("$type", "").split(".")[-1]
+                            if "$type" in node_data
+                            else node_data.get("Name", "Unknown")
+                        )
+                        position = node_data.get("Position", {})
+                        try:
+                            node_id_int = int(node_id)
+                        except (ValueError, TypeError):
+                            node_id_int = node_id
+                        node_info[node_id_int] = {
+                            "type": node_type,
+                            "position": position,
+                            "name": node_data.get("Name", ""),
+                        }
+
+            # Check for nodes array format
+            if "nodes" in data and isinstance(data["nodes"], list):
+                for node in data["nodes"]:
+                    if "id" in node:
+                        node_info[node["id"]] = {
+                            "type": node.get("type", node.get("node", "Unknown")),
+                            "position": node.get("position", {}),
+                            "name": node.get("name", ""),
+                        }
+
+            # Recursively process nested structures
+            for value in data.values():
+                self._collect_node_info(value, node_info)
+
+        elif isinstance(data, list):
+            for item in data:
+                self._collect_node_info(item, node_info)
+
+    def _create_stable_id_mapping(self, node_info: Dict[Any, Dict]) -> Dict[Any, str]:
+        """Create a stable ID mapping based on node type and position."""
+        # Sort nodes by type, then by position to ensure consistent ordering
+        sorted_nodes = sorted(
+            node_info.items(),
+            key=lambda x: (
+                x[1]["type"],
+                x[1]["position"].get("X", x[1]["position"].get("x", 0)),
+                x[1]["position"].get("Y", x[1]["position"].get("y", 0)),
+                str(x[0]),  # Use original ID as final tiebreaker
+            ),
+        )
+
+        # Create mapping based on sorted order
+        node_id_map = {}
+        for idx, (old_id, info) in enumerate(sorted_nodes):
+            # Use type prefix for better readability
+            type_prefix = info["type"].replace("Nodes", "").replace(",", "").lower()
+            if len(type_prefix) > 10:
+                type_prefix = type_prefix[:10]
+            node_id_map[old_id] = f"{type_prefix}_{idx + 1}"
+
+        return node_id_map
+
+    def _apply_node_id_normalization(self, data: Any, node_id_map: Dict[Any, str]) -> None:
+        """Recursively apply node ID normalization throughout the structure."""
+        if isinstance(data, dict):
+            # Handle project_structure.Assets.$values[0].Terrain.Nodes format
+            if "Nodes" in data and isinstance(data["Nodes"], dict):
+                new_nodes = {}
+                for node_id, node_data in list(data["Nodes"].items()):
+                    if node_id == "$id":  # Keep metadata fields
+                        new_nodes[node_id] = node_data
+                    else:
+                        try:
+                            old_id = int(node_id)
+                            new_id = node_id_map.get(old_id, node_id)
+                            new_nodes[new_id] = node_data
+                            # Also update the Id field inside the node if present
+                            if isinstance(node_data, dict) and "Id" in node_data:
+                                node_data["Id"] = new_id
+                        except (ValueError, TypeError):
+                            new_id = node_id_map.get(node_id, node_id)
+                            new_nodes[new_id] = node_data
+                data["Nodes"] = new_nodes
+
+            # Handle nodes array format
+            if "nodes" in data and isinstance(data["nodes"], list):
+                for node in data["nodes"]:
+                    if "id" in node:
+                        node["id"] = node_id_map.get(node["id"], node["id"])
+
+            # Handle connections
+            if "connections" in data and isinstance(data["connections"], list):
+                for conn in data["connections"]:
+                    if "from_node" in conn:
+                        conn["from_node"] = node_id_map.get(conn["from_node"], conn["from_node"])
+                    if "to_node" in conn:
+                        conn["to_node"] = node_id_map.get(conn["to_node"], conn["to_node"])
+                    if "From" in conn:
+                        conn["From"] = node_id_map.get(conn["From"], conn["From"])
+                    if "To" in conn:
+                        conn["To"] = node_id_map.get(conn["To"], conn["To"])
+
+            # Handle Record objects (connections embedded in ports)
+            if "Record" in data and isinstance(data["Record"], dict):
+                record = data["Record"]
+                if "From" in record:
+                    record["From"] = node_id_map.get(record["From"], record["From"])
+                if "To" in record:
+                    record["To"] = node_id_map.get(record["To"], record["To"])
+
+            # Handle SelectedNode and similar fields
+            if "SelectedNode" in data:
+                data["SelectedNode"] = node_id_map.get(data["SelectedNode"], data["SelectedNode"])
+
+            # Recursively process nested structures
+            for key, value in data.items():
+                self._apply_node_id_normalization(value, node_id_map)
+
+        elif isinstance(data, list):
+            for item in data:
+                self._apply_node_id_normalization(item, node_id_map)
 
     def compare_with_baseline(self, test_name: str, current_result: Dict[str, Any]) -> Dict[str, Any]:
         """Compare current result with baseline."""
@@ -307,8 +444,8 @@ class TestGaea2Regression:
                 "name": "valid_basic",
                 "workflow": {
                     "nodes": [
-                        {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                        {"id": "2", "node": "Export", "position": {"X": 1, "Y": 0}},
+                        {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                        {"id": "2", "type": "Export", "position": {"X": 1, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -323,7 +460,7 @@ class TestGaea2Regression:
             {
                 "name": "missing_export",
                 "workflow": {
-                    "nodes": [{"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}}],
+                    "nodes": [{"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}}],
                     "connections": [],
                 },
             },
@@ -331,8 +468,8 @@ class TestGaea2Regression:
                 "name": "circular_dependency",
                 "workflow": {
                     "nodes": [
-                        {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                        {"id": "2", "node": "Erosion", "position": {"X": 1, "Y": 0}},
+                        {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                        {"id": "2", "type": "Erosion", "position": {"X": 1, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -371,20 +508,20 @@ class TestGaea2Regression:
     async def test_node_behavior_regression(self, mcp_url, regression_manager):
         """Ensure individual node behaviors remain consistent."""
         node_tests = [
-            {"name": "mountain_defaults", "node": "Mountain", "properties": {}},
+            {"name": "mountain_defaults", "type": "Mountain", "properties": {}},
             {
                 "name": "erosion_with_params",
-                "node": "Erosion",
+                "type": "Erosion",
                 "properties": {"Duration": 10, "Intensity": 0.5},
             },
             {
                 "name": "rivers_multi_output",
-                "node": "Rivers",
+                "type": "Rivers",
                 "properties": {"Depth": 0.3},
             },
             {
                 "name": "combine_blend_modes",
-                "node": "Combine",
+                "type": "Combine",
                 "properties": {"Method": "Add", "Ratio": 0.5},
             },
         ]
@@ -394,11 +531,11 @@ class TestGaea2Regression:
                 "nodes": [
                     {
                         "id": "1",
-                        "node": test_case["node"],
+                        "type": test_case["type"],
                         "position": {"X": 0, "Y": 0},
                         "properties": test_case["properties"],
                     },
-                    {"id": "2", "node": "Export", "position": {"X": 1, "Y": 0}},
+                    {"id": "2", "type": "Export", "position": {"X": 1, "Y": 0}},
                 ],
                 "connections": [
                     {
@@ -456,10 +593,10 @@ class TestGaea2Regression:
         """Ensure optimization behavior remains consistent."""
         test_workflow = {
             "nodes": [
-                {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                {"id": "2", "node": "Blur", "position": {"X": 1, "Y": 0}},
-                {"id": "3", "node": "Blur", "position": {"X": 2, "Y": 0}},  # Redundant
-                {"id": "4", "node": "Export", "position": {"X": 3, "Y": 0}},
+                {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                {"id": "2", "type": "Blur", "position": {"X": 1, "Y": 0}},
+                {"id": "3", "type": "Blur", "position": {"X": 2, "Y": 0}},  # Redundant
+                {"id": "4", "type": "Export", "position": {"X": 3, "Y": 0}},
             ],
             "connections": [
                 {
@@ -622,7 +759,7 @@ class TestPerformanceRegression:
             nodes.append(
                 {
                     "id": str(i),
-                    "node": "Perlin" if i % 2 == 0 else "Gradient",
+                    "type": "Perlin" if i % 2 == 0 else "Gradient",
                     "position": {"X": i % 5, "Y": i // 5},
                 }
             )
@@ -637,7 +774,7 @@ class TestPerformanceRegression:
                     }
                 )
 
-        nodes.append({"id": "20", "node": "Export", "position": {"X": 0, "Y": 4}})
+        nodes.append({"id": "20", "type": "Export", "position": {"X": 0, "Y": 4}})
         connections.append({"from_node": "19", "from_port": "Out", "to_node": "20", "to_port": "In"})
 
         workflow = {"nodes": nodes, "connections": connections}

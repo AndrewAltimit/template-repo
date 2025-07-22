@@ -33,14 +33,14 @@ class TestGaea2Operations:
         """
         workflow = {
             "nodes": [
-                {"id": "1", "node": "Slump", "position": {"X": 0, "Y": 0}},
-                {"id": "2", "node": "FractalTerraces", "position": {"X": 1, "Y": 0}},
-                {"id": "3", "node": "Combine", "position": {"X": 2, "Y": 0}},
-                {"id": "4", "node": "Shear", "position": {"X": 3, "Y": 0}},
-                {"id": "5", "node": "Crumble", "position": {"X": 4, "Y": 0}},
-                {"id": "6", "node": "Erosion2", "position": {"X": 5, "Y": 0}},
-                {"id": "7", "node": "Rivers", "position": {"X": 6, "Y": 0}},
-                {"id": "8", "node": "Export", "position": {"X": 7, "Y": 0}},
+                {"id": "1", "type": "Slump", "position": {"X": 0, "Y": 0}},
+                {"id": "2", "type": "FractalTerraces", "position": {"X": 1, "Y": 0}},
+                {"id": "3", "type": "Combine", "position": {"X": 2, "Y": 0}},
+                {"id": "4", "type": "Shear", "position": {"X": 3, "Y": 0}},
+                {"id": "5", "type": "Crumble", "position": {"X": 4, "Y": 0}},
+                {"id": "6", "type": "Erosion2", "position": {"X": 5, "Y": 0}},
+                {"id": "7", "type": "Rivers", "position": {"X": 6, "Y": 0}},
+                {"id": "8", "type": "Export", "position": {"X": 7, "Y": 0}},
             ],
             "connections": [
                 {
@@ -120,12 +120,12 @@ class TestGaea2Operations:
         """Test nodes with multiple outputs like Rivers (5 outputs), Sea (5 outputs)."""
         workflow = {
             "nodes": [
-                {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                {"id": "2", "node": "Rivers", "position": {"X": 1, "Y": 0}},
-                {"id": "3", "node": "Sea", "position": {"X": 2, "Y": 0}},
-                {"id": "4", "node": "Adjust", "position": {"X": 3, "Y": 0}},
-                {"id": "5", "node": "Height", "position": {"X": 3, "Y": 1}},
-                {"id": "6", "node": "Export", "position": {"X": 4, "Y": 0}},
+                {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                {"id": "2", "type": "Rivers", "position": {"X": 1, "Y": 0}},
+                {"id": "3", "type": "Sea", "position": {"X": 2, "Y": 0}},
+                {"id": "4", "type": "Adjust", "position": {"X": 3, "Y": 0}},
+                {"id": "5", "type": "Height", "position": {"X": 3, "Y": 1}},
+                {"id": "6", "type": "Export", "position": {"X": 4, "Y": 0}},
             ],
             "connections": [
                 # Mountain to Rivers
@@ -182,7 +182,7 @@ class TestGaea2Operations:
             "nodes": [
                 {
                     "id": "1",
-                    "node": "Mountain",
+                    "type": "Mountain",
                     "position": {"X": 0, "Y": 0},
                     "properties": {
                         "Scale": {"value": 5.0, "min": 1.0, "max": 10.0},
@@ -191,7 +191,7 @@ class TestGaea2Operations:
                 },
                 {
                     "id": "2",
-                    "node": "Export",
+                    "type": "Export",
                     "position": {"X": 1, "Y": 0},
                     "properties": {
                         "SaveDefinition": {
@@ -301,20 +301,20 @@ class TestGaea2Operations:
         # Create a workflow that could benefit from optimization
         workflow = {
             "nodes": [
-                {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                {"id": "2", "node": "Erosion", "position": {"X": 1, "Y": 0}},
+                {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                {"id": "2", "type": "Erosion", "position": {"X": 1, "Y": 0}},
                 {
                     "id": "3",
-                    "node": "Erosion",
+                    "type": "Erosion",
                     "position": {"X": 2, "Y": 0},
                 },  # Duplicate erosion
-                {"id": "4", "node": "Blur", "position": {"X": 3, "Y": 0}},
+                {"id": "4", "type": "Blur", "position": {"X": 3, "Y": 0}},
                 {
                     "id": "5",
-                    "node": "Blur",
+                    "type": "Blur",
                     "position": {"X": 4, "Y": 0},
                 },  # Duplicate blur
-                {"id": "6", "node": "Export", "position": {"X": 5, "Y": 0}},
+                {"id": "6", "type": "Export", "position": {"X": 5, "Y": 0}},
             ],
             "connections": [
                 {
@@ -463,13 +463,13 @@ class TestGaea2Operations:
         # Create a damaged workflow
         damaged_workflow = {
             "nodes": [
-                {"id": "1", "node": "Mountain"},  # Missing position
+                {"id": "1", "type": "Mountain"},  # Missing position
                 {
                     "id": "2",
-                    "node": "InvalidNode",
+                    "type": "InvalidNode",
                     "position": {"X": 1, "Y": 0},
                 },  # Invalid node
-                {"id": "3", "node": "Erosion", "position": {"X": 2, "Y": 0}},
+                {"id": "3", "type": "Erosion", "position": {"X": 2, "Y": 0}},
                 # Missing Export node
             ],
             "connections": [
@@ -584,17 +584,17 @@ class TestGaea2Operations:
             "nodes": [
                 {
                     "id": "1",
-                    "node": "Mountain",
+                    "type": "Mountain",
                     "position": {"X": 0, "Y": 0},
                     "properties": {"Seed": "@Seed"},  # Variable reference
                 },
                 {
                     "id": "2",
-                    "node": "Erosion",
+                    "type": "Erosion",
                     "position": {"X": 1, "Y": 0},
                     "properties": {"Seed": "@Seed"},  # Same variable
                 },
-                {"id": "3", "node": "Export", "position": {"X": 2, "Y": 0}},
+                {"id": "3", "type": "Export", "position": {"X": 2, "Y": 0}},
             ],
             "connections": [
                 {
@@ -669,7 +669,7 @@ class TestEdgeCasesAndBoundaries:
                 )
 
         # Add Export as final node
-        nodes.append({"id": "25", "node": "Export", "position": {"X": 0, "Y": 5}})
+        nodes.append({"id": "25", "type": "Export", "position": {"X": 0, "Y": 5}})
         connections.append({"from_node": "23", "from_port": "Out", "to_node": "25", "to_port": "In"})
 
         result = await self.execute_tool(
@@ -692,14 +692,14 @@ class TestEdgeCasesAndBoundaries:
         """Test deeply nested Combine nodes (common pattern in references)."""
         workflow = {
             "nodes": [
-                {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                {"id": "2", "node": "Perlin", "position": {"X": 0, "Y": 1}},
-                {"id": "3", "node": "Combine", "position": {"X": 1, "Y": 0}},
-                {"id": "4", "node": "Gradient", "position": {"X": 1, "Y": 1}},
-                {"id": "5", "node": "Combine", "position": {"X": 2, "Y": 0}},
-                {"id": "6", "node": "Voronoi", "position": {"X": 2, "Y": 1}},
-                {"id": "7", "node": "Combine", "position": {"X": 3, "Y": 0}},
-                {"id": "8", "node": "Export", "position": {"X": 4, "Y": 0}},
+                {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                {"id": "2", "type": "Perlin", "position": {"X": 0, "Y": 1}},
+                {"id": "3", "type": "Combine", "position": {"X": 1, "Y": 0}},
+                {"id": "4", "type": "Gradient", "position": {"X": 1, "Y": 1}},
+                {"id": "5", "type": "Combine", "position": {"X": 2, "Y": 0}},
+                {"id": "6", "type": "Voronoi", "position": {"X": 2, "Y": 1}},
+                {"id": "7", "type": "Combine", "position": {"X": 3, "Y": 0}},
+                {"id": "8", "type": "Export", "position": {"X": 4, "Y": 0}},
             ],
             "connections": [
                 # First combine
@@ -760,13 +760,13 @@ class TestEdgeCasesAndBoundaries:
         """Test all special port types found in references."""
         workflow = {
             "nodes": [
-                {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                {"id": "2", "node": "Rivers", "position": {"X": 1, "Y": 0}},
-                {"id": "3", "node": "Sea", "position": {"X": 2, "Y": 0}},
-                {"id": "4", "node": "Erosion2", "position": {"X": 3, "Y": 0}},
-                {"id": "5", "node": "Height", "position": {"X": 1, "Y": 1}},
-                {"id": "6", "node": "Adjust", "position": {"X": 2, "Y": 1}},
-                {"id": "7", "node": "Export", "position": {"X": 4, "Y": 0}},
+                {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                {"id": "2", "type": "Rivers", "position": {"X": 1, "Y": 0}},
+                {"id": "3", "type": "Sea", "position": {"X": 2, "Y": 0}},
+                {"id": "4", "type": "Erosion2", "position": {"X": 3, "Y": 0}},
+                {"id": "5", "type": "Height", "position": {"X": 1, "Y": 1}},
+                {"id": "6", "type": "Adjust", "position": {"X": 2, "Y": 1}},
+                {"id": "7", "type": "Export", "position": {"X": 4, "Y": 0}},
             ],
             "connections": [
                 # Standard connections

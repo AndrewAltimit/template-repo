@@ -1,6 +1,6 @@
 {
-  "version": "20250721",
-  "timestamp": "2025-07-21T17:36:04.828398",
+  "version": "20250722",
+  "timestamp": "2025-07-22T11:49:25.527637",
   "result": {
     "success": true,
     "project_name": "test_rivers_multi_output",
@@ -24,12 +24,13 @@
               },
               "Nodes": {
                 "$id": "6",
-                "1": {
+                "_2": {
                   "$id": "7",
-                  "$type": "QuadSpinner.Gaea.Nodes.Mountain, Gaea.Nodes",
+                  "$type": "QuadSpinner.Gaea.Nodes.Rivers, Gaea.Nodes",
                   "Depth": 0.3,
-                  "Id": 1,
-                  "Name": "Mountain",
+                  "Id": "_2",
+                  "Name": "Rivers",
+                  "NodeSize": "Standard",
                   "Position": {
                     "$id": "8",
                     "X": 24000.0,
@@ -39,9 +40,18 @@
                     "$id": "9",
                     "$values": [
                       {
-                        "$id": "12",
+                        "$id": "11",
                         "Name": "In",
                         "Type": "PrimaryIn",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "7"
+                        }
+                      },
+                      {
+                        "$id": "12",
+                        "Name": "Headwaters",
+                        "Type": "In",
                         "IsExporting": true,
                         "Parent": {
                           "$ref": "7"
@@ -49,8 +59,53 @@
                       },
                       {
                         "$id": "13",
+                        "Name": "Mask",
+                        "Type": "In",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "7"
+                        }
+                      },
+                      {
+                        "$id": "14",
                         "Name": "Out",
                         "Type": "PrimaryOut",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "7"
+                        }
+                      },
+                      {
+                        "$id": "15",
+                        "Name": "Rivers",
+                        "Type": "Out",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "7"
+                        }
+                      },
+                      {
+                        "$id": "16",
+                        "Name": "Depth",
+                        "Type": "Out",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "7"
+                        }
+                      },
+                      {
+                        "$id": "17",
+                        "Name": "Surface",
+                        "Type": "Out",
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "7"
+                        }
+                      },
+                      {
+                        "$id": "18",
+                        "Name": "Direction",
+                        "Type": "Out",
                         "IsExporting": true,
                         "Parent": {
                           "$ref": "7"
@@ -58,82 +113,83 @@
                       }
                     ]
                   },
+                  "IsMaskable": true,
                   "Modifiers": {
                     "$id": "10",
                     "$values": []
-                  },
-                  "SnapIns": {
-                    "$id": "11",
-                    "$values": []
                   }
                 },
-                "2": {
-                  "$id": "14",
-                  "$type": "QuadSpinner.Gaea.Nodes.Mountain, Gaea.Nodes",
-                  "Id": 2,
-                  "Name": "Mountain",
+                "_3": {
+                  "$id": "19",
+                  "$type": "QuadSpinner.Gaea.Nodes.Export, Gaea.Nodes",
+                  "Id": "_3",
+                  "Name": "Export",
+                  "NodeSize": "Standard",
                   "Position": {
-                    "$id": "15",
+                    "$id": "20",
                     "X": 24500.0,
                     "Y": 26000.0
                   },
+                  "SaveDefinition": {
+                    "$id": "21",
+                    "Node": 2,
+                    "Filename": "Export",
+                    "Format": "EXR",
+                    "IsEnabled": true
+                  },
                   "Ports": {
-                    "$id": "16",
+                    "$id": "22",
                     "$values": [
                       {
-                        "$id": "19",
+                        "$id": "24",
                         "Name": "In",
                         "Type": "PrimaryIn",
-                        "IsExporting": true,
-                        "Parent": {
-                          "$ref": "14"
-                        },
                         "Record": {
-                          "$id": "20",
-                          "From": 1,
-                          "To": 2,
+                          "$id": "25",
+                          "From": "_2",
+                          "To": "_3",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
+                        },
+                        "IsExporting": true,
+                        "Parent": {
+                          "$ref": "19"
                         }
                       },
                       {
-                        "$id": "21",
+                        "$id": "26",
                         "Name": "Out",
                         "Type": "PrimaryOut",
                         "IsExporting": true,
                         "Parent": {
-                          "$ref": "14"
+                          "$ref": "19"
                         }
                       }
                     ]
                   },
                   "Modifiers": {
-                    "$id": "17",
-                    "$values": []
-                  },
-                  "SnapIns": {
-                    "$id": "18",
+                    "$id": "23",
                     "$values": []
                   }
                 }
               },
               "Groups": {
-                "$id": "22"
+                "$id": "27"
               },
               "Notes": {
-                "$id": "23"
+                "$id": "28"
               },
               "GraphTabs": {
-                "$id": "24",
+                "$id": "29",
                 "$values": [
                   {
-                    "$id": "25",
+                    "$id": "30",
                     "Name": "Graph 1",
                     "Color": "Brass",
                     "ZoomFactor": 0.5338687202362516,
                     "ViewportLocation": {
-                      "$id": "26",
+                      "$id": "31",
                       "X": 25531.445,
                       "Y": 25791.812
                     }
@@ -145,21 +201,21 @@
               "Ratio": 0.5
             },
             "Automation": {
-              "$id": "27",
+              "$id": "32",
               "Bindings": {
-                "$id": "28",
+                "$id": "33",
                 "$values": []
               },
               "Variables": {
-                "$id": "29"
+                "$id": "34"
               },
               "BoundProperties": {
-                "$id": "30",
+                "$id": "35",
                 "$values": []
               }
             },
             "BuildDefinition": {
-              "$id": "31",
+              "$id": "36",
               "Destination": "<Builds>\\[Filename]\\[+++]",
               "Resolution": 2048,
               "BakeResolution": 2048,
@@ -173,26 +229,26 @@
               "EdgeBlending": 0.25,
               "EdgeSize": 512,
               "TileZeroIndex": true,
-              "TilePattern": "",
+              "TilePattern": "_y%Y%_x%X%",
               "OrganizeFiles": "NodeSubFolder",
               "PostBuildScript": "",
               "Regions": {
-                "$id": "32",
+                "$id": "37",
                 "$values": []
               }
             },
             "State": {
-              "$id": "33",
+              "$id": "38",
               "BakeResolution": 2048,
               "PreviewResolution": 512,
-              "SelectedNode": 1,
+              "SelectedNode": "_2",
               "LockedNode": null,
               "NodeBookmarks": {
-                "$id": "34",
+                "$id": "39",
                 "$values": []
               },
               "Viewport": {
-                "$id": "35",
+                "$id": "40",
                 "RenderMode": "Realistic",
                 "SunAltitude": 33.0,
                 "SunAzimuth": 45.0,
@@ -207,7 +263,7 @@
                 "Haze": 1.0,
                 "Ozone": 1.0,
                 "Camera": {
-                  "$id": "36"
+                  "$id": "41"
                 }
               }
             }
@@ -217,7 +273,7 @@
       "Id": "norm-id",
       "Branch": 1,
       "Metadata": {
-        "$id": "37",
+        "$id": "42",
         "Name": "test_rivers_multi_output",
         "Description": "Created by Gaea2 MCP Server",
         "Version": "",
@@ -233,8 +289,8 @@
         "workflow": {
           "nodes": [
             {
-              "id": "1",
-              "node": "Rivers",
+              "id": "rivers_4",
+              "type": "Rivers",
               "position": {
                 "X": 0,
                 "Y": 0
@@ -244,19 +300,21 @@
               }
             },
             {
-              "id": "2",
-              "node": "Export",
+              "id": "export_1",
+              "type": "Export",
               "position": {
                 "X": 1,
                 "Y": 0
-              }
+              },
+              "_export_format": "EXR",
+              "_export_filename": "Export"
             }
           ],
           "connections": [
             {
-              "from_node": "1",
+              "from_node": "rivers_4",
               "from_port": "Out",
-              "to_node": "2",
+              "to_node": "export_1",
               "to_port": "In"
             }
           ]
@@ -266,8 +324,8 @@
         "original_workflow": {
           "nodes": [
             {
-              "id": "1",
-              "node": "Rivers",
+              "id": "rivers_4",
+              "type": "Rivers",
               "position": {
                 "X": 0,
                 "Y": 0
@@ -277,19 +335,21 @@
               }
             },
             {
-              "id": "2",
-              "node": "Export",
+              "id": "export_1",
+              "type": "Export",
               "position": {
                 "X": 1,
                 "Y": 0
-              }
+              },
+              "_export_format": "EXR",
+              "_export_filename": "Export"
             }
           ],
           "connections": [
             {
-              "from_node": "1",
+              "from_node": "rivers_4",
               "from_port": "Out",
-              "to_node": "2",
+              "to_node": "export_1",
               "to_port": "In"
             }
           ]
@@ -312,8 +372,8 @@
         "final_workflow": {
           "nodes": [
             {
-              "id": "1",
-              "node": "Rivers",
+              "id": "rivers_4",
+              "type": "Rivers",
               "position": {
                 "X": 0,
                 "Y": 0
@@ -323,19 +383,21 @@
               }
             },
             {
-              "id": "2",
-              "node": "Export",
+              "id": "export_1",
+              "type": "Export",
               "position": {
                 "X": 1,
                 "Y": 0
-              }
+              },
+              "_export_format": "EXR",
+              "_export_filename": "Export"
             }
           ],
           "connections": [
             {
-              "from_node": "1",
+              "from_node": "rivers_4",
               "from_port": "Out",
-              "to_node": "2",
+              "to_node": "export_1",
               "to_port": "In"
             }
           ]

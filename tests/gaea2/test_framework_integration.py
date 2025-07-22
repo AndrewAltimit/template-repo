@@ -38,7 +38,7 @@ class Gaea2TestFramework:
             try:
                 async with session.post(
                     f"{self.server_url}/mcp/execute",
-                    json={"tool": tool, "arguments": parameters},
+                    json={"tool": tool, "parameters": parameters},
                     timeout=aiohttp.ClientTimeout(total=300),
                 ) as response:
                     result = await response.json()
@@ -106,8 +106,8 @@ class TestSuccessfulOperations:
         assert "project_path" in result
         # API returns validation info at top level
         assert result.get("node_count", 0) > 0
-        # Note: basic_terrain template has 4 connections
-        assert result.get("connection_count", 0) >= 4
+        # Note: basic_terrain template has 3 connections
+        assert result.get("connection_count", 0) >= 3
 
     @pytest.mark.asyncio
     async def test_validate_workflow(self, framework):
@@ -165,10 +165,12 @@ class TestSuccessfulOperations:
         result = await framework.execute_mcp_tool("validate_and_fix_workflow", {"workflow": workflow})
 
         assert result.get("success"), f"Validation failed: {result.get('error')}"
-        # The validator may fix issues automatically
-        if result.get("fixed"):
-            assert len(result.get("fixes_applied", [])) > 0
+        # Check the validation result structure
+        if "results" in result:
+            # New API structure
+            assert result["results"].get("is_valid") is True
         else:
+            # Old API structure
             assert result.get("valid") is True
             assert len(result.get("errors", [])) == 0
 
@@ -274,7 +276,8 @@ class TestExpectedFailures:
         assert result.get("success") is True  # Validation succeeds
         # The server might be permissive and accept unknown node types
         # This is actually okay - Gaea2 might support custom nodes we don't know about
-        assert "valid" in result  # Just ensure we get a validation result
+        # Just ensure we get a validation result (either API format works)
+        assert ("valid" in result.get("result", {})) or ("is_valid" in result.get("results", {}))
 
     @pytest.mark.asyncio
     async def test_circular_connections(self, framework):
@@ -314,9 +317,11 @@ class TestExpectedFailures:
 
         # Circular connections should be detected as errors now
         assert result.get("success") is True
-        val_result = result.get("result", {})
-        # With our fix, circular connections are errors
-        assert val_result.get("valid") is False
+        # Check validation result based on API structure
+        if "results" in result:
+            assert result["results"].get("is_valid") is False
+        else:
+            assert result.get("valid") is False
 
 
 class TestEdgeCases:
@@ -333,8 +338,11 @@ class TestEdgeCases:
 
         # Empty workflow should be invalid
         assert result.get("success") is True
-        # Empty workflow is invalid (no nodes)
-        assert result.get("valid") is False  # Server marks empty workflows as invalid
+        # Check validation result based on API structure
+        if "results" in result:
+            assert result["results"].get("is_valid") is False
+        else:
+            assert result.get("valid") is False
 
     @pytest.mark.asyncio
     async def test_maximum_complexity(self, framework):
@@ -413,9 +421,11 @@ class TestErrorHandling:
 
         # Malformed data should be handled gracefully
         assert result.get("success") is True
-        val_result = result.get("result", {})
-        # Missing 'type' field should be detected
-        assert val_result.get("valid") is False
+        # Check validation result based on API structure
+        if "results" in result:
+            assert result["results"].get("is_valid") is False
+        else:
+            assert result.get("valid") is False
 
     @pytest.mark.asyncio
     async def test_connection_recovery(self, framework):
@@ -560,9 +570,21 @@ class TestRegressionSuite:
 
             # If auto-fix is enabled, check fixed_issues instead
             if test_case["expected_valid"]:
-                assert result.get("success") and result.get("valid") is True
+                if "results" in result:
+                    assert result.get("success") and result["results"].get("is_valid") is True
+                else:
+                    assert result.get("success") and result.get("valid") is True
             else:
-                assert not result.get("success") or result.get("valid") is False or len(result.get("fixes_applied", [])) > 0
+                if "results" in result:
+                    assert (
+                        not result.get("success")
+                        or result["results"].get("is_valid") is False
+                        or len(result["results"].get("fixes_applied", [])) > 0
+                    )
+                else:
+                    assert (
+                        not result.get("success") or result.get("valid") is False or len(result.get("fixes_applied", [])) > 0
+                    )
 
 
 # Utility functions for test management

@@ -1,11 +1,11 @@
 {
-  "version": "20250721",
-  "timestamp": "2025-07-21T17:43:32.138830",
+  "version": "20250722",
+  "timestamp": "2025-07-22T11:49:03.490307",
   "result": {
     "success": true,
     "project_name": "regression_river_valley",
-    "node_count": 7,
-    "connection_count": 6,
+    "node_count": 6,
+    "connection_count": 5,
     "project_structure": {
       "$id": "1",
       "Assets": {
@@ -24,7 +24,7 @@
               },
               "Nodes": {
                 "$id": "6",
-                "100": {
+                "mountain_3": {
                   "$id": "7",
                   "$type": "QuadSpinner.Gaea.Nodes.Mountain, Gaea.Nodes",
                   "Scale": 1.2,
@@ -35,7 +35,7 @@
                   "Seed": 0,
                   "X": 0.0,
                   "Y": 0.0,
-                  "Id": 100,
+                  "Id": "mountain_3",
                   "Name": "ValleyBase",
                   "Position": {
                     "$id": "8",
@@ -70,7 +70,7 @@
                     "$values": []
                   }
                 },
-                "101": {
+                "rivers_4": {
                   "$id": "13",
                   "$type": "QuadSpinner.Gaea.Nodes.Rivers, Gaea.Nodes",
                   "Width": 0.4,
@@ -81,7 +81,7 @@
                   "RenderSurface": false,
                   "Water": 0.3,
                   "Seed": 12345,
-                  "Id": 101,
+                  "Id": "norm-id",
                   "Name": "MainRiver",
                   "NodeSize": "Standard",
                   "Position": {
@@ -98,8 +98,8 @@
                         "Type": "PrimaryIn",
                         "Record": {
                           "$id": "18",
-                          "From": 100,
-                          "To": 101,
+                          "From": "mountain_3",
+                          "To": "rivers_4",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -180,7 +180,7 @@
                     "$values": []
                   }
                 },
-                "102": {
+                "sediments_6": {
                   "$id": "26",
                   "$type": "QuadSpinner.Gaea.Nodes.Sediments, Gaea.Nodes",
                   "Deposition": 0.5,
@@ -188,7 +188,7 @@
                   "Seed": 67890,
                   "Passes": 3,
                   "Scale": 0.028,
-                  "Id": 102,
+                  "Id": "sediments_6",
                   "Name": "Floodplain",
                   "Position": {
                     "$id": "27",
@@ -204,8 +204,8 @@
                         "Type": "PrimaryIn",
                         "Record": {
                           "$id": "31",
-                          "From": 101,
-                          "To": 102,
+                          "From": "rivers_4",
+                          "To": "sediments_6",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -231,7 +231,7 @@
                     "$values": []
                   }
                 },
-                "103": {
+                "fractalter_2": {
                   "$id": "33",
                   "$type": "QuadSpinner.Gaea.Nodes.FractalTerraces, Gaea.Nodes",
                   "Intensity": 0.5,
@@ -244,7 +244,7 @@
                   "TiltSeed": 12345,
                   "WarpAmount": 0.33,
                   "WarpSize": 0.33,
-                  "Id": 103,
+                  "Id": "fractalter_2",
                   "Name": "RiverTerraces",
                   "Position": {
                     "$id": "34",
@@ -260,8 +260,8 @@
                         "Type": "PrimaryIn",
                         "Record": {
                           "$id": "38",
-                          "From": 102,
-                          "To": 103,
+                          "From": "sediments_6",
+                          "To": "fractalter_2",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -288,7 +288,7 @@
                     "$values": []
                   }
                 },
-                "104": {
+                "erosion2_1": {
                   "$id": "40",
                   "$type": "QuadSpinner.Gaea.Nodes.Erosion2, Gaea.Nodes",
                   "Duration": 0.15,
@@ -304,7 +304,7 @@
                   "Shape": 0.5,
                   "ShapeDetailScale": 0.5,
                   "ShapeSharpness": 0.5,
-                  "Id": 104,
+                  "Id": "erosion2_1",
                   "Name": "ValleyErosion",
                   "Position": {
                     "$id": "41",
@@ -320,8 +320,8 @@
                         "Type": "PrimaryIn",
                         "Record": {
                           "$id": "45",
-                          "From": 103,
-                          "To": 104,
+                          "From": "fractalter_2",
+                          "To": "erosion2_1",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -383,7 +383,7 @@
                     "$values": []
                   }
                 },
-                "105": {
+                "satmap_5": {
                   "$id": "51",
                   "$type": "QuadSpinner.Gaea.Nodes.SatMap, Gaea.Nodes",
                   "Library": "Green",
@@ -401,7 +401,7 @@
                   "Hue": 0.0,
                   "Saturation": 0.0,
                   "Lightness": 0.0,
-                  "Id": 105,
+                  "Id": "norm-id",
                   "Name": "ValleyColors",
                   "NodeSize": "Standard",
                   "Position": {
@@ -415,11 +415,11 @@
                       {
                         "$id": "56",
                         "Name": "In",
-                        "Type": "PrimaryIn, Required",
+                        "Type": "PrimaryIn",
                         "Record": {
                           "$id": "57",
-                          "From": 104,
-                          "To": 105,
+                          "From": "erosion2_1",
+                          "To": "satmap_5",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -444,78 +444,24 @@
                     "$id": "55",
                     "$values": []
                   }
-                },
-                "106": {
-                  "$id": "59",
-                  "$type": "QuadSpinner.Gaea.Nodes.Export, Gaea.Nodes",
-                  "Id": 106,
-                  "Name": "TerrainExport",
-                  "NodeSize": "Standard",
-                  "Position": {
-                    "$id": "60",
-                    "X": 28000.0,
-                    "Y": 26000.0
-                  },
-                  "SaveDefinition": {
-                    "$id": "61",
-                    "Node": 106,
-                    "Filename": "TerrainExport",
-                    "Format": "EXR",
-                    "IsEnabled": true
-                  },
-                  "Ports": {
-                    "$id": "62",
-                    "$values": [
-                      {
-                        "$id": "64",
-                        "Name": "In",
-                        "Type": "PrimaryIn, Required",
-                        "Record": {
-                          "$id": "65",
-                          "From": 105,
-                          "To": 106,
-                          "FromPort": "Out",
-                          "ToPort": "In",
-                          "IsValid": true
-                        },
-                        "IsExporting": true,
-                        "Parent": {
-                          "$ref": "59"
-                        }
-                      },
-                      {
-                        "$id": "66",
-                        "Name": "Out",
-                        "Type": "PrimaryOut",
-                        "IsExporting": true,
-                        "Parent": {
-                          "$ref": "59"
-                        }
-                      }
-                    ]
-                  },
-                  "Modifiers": {
-                    "$id": "63",
-                    "$values": []
-                  }
                 }
               },
               "Groups": {
-                "$id": "67"
+                "$id": "59"
               },
               "Notes": {
-                "$id": "68"
+                "$id": "60"
               },
               "GraphTabs": {
-                "$id": "69",
+                "$id": "61",
                 "$values": [
                   {
-                    "$id": "70",
+                    "$id": "62",
                     "Name": "Graph 1",
                     "Color": "Brass",
                     "ZoomFactor": 0.5338687202362516,
                     "ViewportLocation": {
-                      "$id": "71",
+                      "$id": "63",
                       "X": 25531.445,
                       "Y": 25791.812
                     }
@@ -527,21 +473,21 @@
               "Ratio": 0.5
             },
             "Automation": {
-              "$id": "72",
+              "$id": "64",
               "Bindings": {
-                "$id": "73",
+                "$id": "65",
                 "$values": []
               },
               "Variables": {
-                "$id": "74"
+                "$id": "66"
               },
               "BoundProperties": {
-                "$id": "75",
+                "$id": "67",
                 "$values": []
               }
             },
             "BuildDefinition": {
-              "$id": "76",
+              "$id": "68",
               "Destination": "<Builds>\\[Filename]\\[+++]",
               "Resolution": 2048,
               "BakeResolution": 2048,
@@ -559,22 +505,22 @@
               "OrganizeFiles": "NodeSubFolder",
               "PostBuildScript": "",
               "Regions": {
-                "$id": "77",
+                "$id": "69",
                 "$values": []
               }
             },
             "State": {
-              "$id": "78",
+              "$id": "70",
               "BakeResolution": 2048,
               "PreviewResolution": 512,
-              "SelectedNode": 100,
+              "SelectedNode": "mountain_3",
               "LockedNode": null,
               "NodeBookmarks": {
-                "$id": "79",
+                "$id": "71",
                 "$values": []
               },
               "Viewport": {
-                "$id": "80",
+                "$id": "72",
                 "RenderMode": "Realistic",
                 "SunAltitude": 33.0,
                 "SunAzimuth": 45.0,
@@ -589,7 +535,7 @@
                 "Haze": 1.0,
                 "Ozone": 1.0,
                 "Camera": {
-                  "$id": "81"
+                  "$id": "73"
                 }
               }
             }
@@ -599,7 +545,7 @@
       "Id": "norm-id",
       "Branch": 1,
       "Metadata": {
-        "$id": "82",
+        "$id": "74",
         "Name": "regression_river_valley",
         "Description": "Created by Gaea2 MCP Server",
         "Version": "",
@@ -615,7 +561,7 @@
         "workflow": {
           "nodes": [
             {
-              "id": 100,
+              "id": "mountain_3",
               "type": "Mountain",
               "name": "ValleyBase",
               "position": {
@@ -634,7 +580,7 @@
               }
             },
             {
-              "id": 101,
+              "id": "rivers_4",
               "type": "Rivers",
               "name": "MainRiver",
               "position": {
@@ -653,7 +599,7 @@
               }
             },
             {
-              "id": 102,
+              "id": "sediments_6",
               "type": "Sediments",
               "name": "Floodplain",
               "position": {
@@ -669,7 +615,7 @@
               }
             },
             {
-              "id": 103,
+              "id": "fractalter_2",
               "type": "FractalTerraces",
               "name": "RiverTerraces",
               "position": {
@@ -690,7 +636,7 @@
               }
             },
             {
-              "id": 104,
+              "id": "erosion2_1",
               "type": "Erosion2",
               "name": "ValleyErosion",
               "position": {
@@ -714,7 +660,7 @@
               }
             },
             {
-              "id": 105,
+              "id": "satmap_5",
               "type": "SatMap",
               "name": "ValleyColors",
               "position": {
@@ -737,59 +683,36 @@
                 "Saturation": 0.0,
                 "Lightness": 0.0
               }
-            },
-            {
-              "id": 106,
-              "type": "Export",
-              "name": "TerrainExport",
-              "position": {
-                "x": 28000,
-                "y": 26000
-              },
-              "properties": {},
-              "save_definition": {
-                "filename": "terrain_output",
-                "format": "EXR",
-                "enabled": true
-              },
-              "_export_format": "EXR",
-              "_export_filename": "TerrainExport"
             }
           ],
           "connections": [
             {
-              "from_node": 100,
-              "to_node": 101,
+              "from_node": "mountain_3",
+              "to_node": "rivers_4",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 101,
-              "to_node": 102,
+              "from_node": "rivers_4",
+              "to_node": "sediments_6",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 102,
-              "to_node": 103,
+              "from_node": "sediments_6",
+              "to_node": "fractalter_2",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 103,
-              "to_node": 104,
+              "from_node": "fractalter_2",
+              "to_node": "erosion2_1",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 104,
-              "to_node": 105,
-              "from_port": "Out",
-              "to_port": "In"
-            },
-            {
-              "from_node": 105,
-              "to_node": 106,
+              "from_node": "erosion2_1",
+              "to_node": "satmap_5",
               "from_port": "Out",
               "to_port": "In"
             }
@@ -800,7 +723,7 @@
         "original_workflow": {
           "nodes": [
             {
-              "id": 100,
+              "id": "mountain_3",
               "type": "Mountain",
               "name": "ValleyBase",
               "position": {
@@ -819,7 +742,7 @@
               }
             },
             {
-              "id": 101,
+              "id": "rivers_4",
               "type": "Rivers",
               "name": "MainRiver",
               "position": {
@@ -838,7 +761,7 @@
               }
             },
             {
-              "id": 102,
+              "id": "sediments_6",
               "type": "Sediments",
               "name": "Floodplain",
               "position": {
@@ -854,7 +777,7 @@
               }
             },
             {
-              "id": 103,
+              "id": "fractalter_2",
               "type": "FractalTerraces",
               "name": "RiverTerraces",
               "position": {
@@ -875,7 +798,7 @@
               }
             },
             {
-              "id": 104,
+              "id": "erosion2_1",
               "type": "Erosion2",
               "name": "ValleyErosion",
               "position": {
@@ -899,7 +822,7 @@
               }
             },
             {
-              "id": 105,
+              "id": "satmap_5",
               "type": "SatMap",
               "name": "ValleyColors",
               "position": {
@@ -922,59 +845,36 @@
                 "Saturation": 0.0,
                 "Lightness": 0.0
               }
-            },
-            {
-              "id": 106,
-              "type": "Export",
-              "name": "TerrainExport",
-              "position": {
-                "x": 28000,
-                "y": 26000
-              },
-              "properties": {},
-              "save_definition": {
-                "filename": "terrain_output",
-                "format": "EXR",
-                "enabled": true
-              },
-              "_export_format": "EXR",
-              "_export_filename": "TerrainExport"
             }
           ],
           "connections": [
             {
-              "from_node": 100,
-              "to_node": 101,
+              "from_node": "mountain_3",
+              "to_node": "rivers_4",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 101,
-              "to_node": 102,
+              "from_node": "rivers_4",
+              "to_node": "sediments_6",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 102,
-              "to_node": 103,
+              "from_node": "sediments_6",
+              "to_node": "fractalter_2",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 103,
-              "to_node": 104,
+              "from_node": "fractalter_2",
+              "to_node": "erosion2_1",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 104,
-              "to_node": 105,
-              "from_port": "Out",
-              "to_port": "In"
-            },
-            {
-              "from_node": 105,
-              "to_node": 106,
+              "from_node": "erosion2_1",
+              "to_node": "satmap_5",
               "from_port": "Out",
               "to_port": "In"
             }
@@ -998,7 +898,7 @@
         "final_workflow": {
           "nodes": [
             {
-              "id": 100,
+              "id": "mountain_3",
               "type": "Mountain",
               "name": "ValleyBase",
               "position": {
@@ -1017,7 +917,7 @@
               }
             },
             {
-              "id": 101,
+              "id": "rivers_4",
               "type": "Rivers",
               "name": "MainRiver",
               "position": {
@@ -1036,7 +936,7 @@
               }
             },
             {
-              "id": 102,
+              "id": "sediments_6",
               "type": "Sediments",
               "name": "Floodplain",
               "position": {
@@ -1052,7 +952,7 @@
               }
             },
             {
-              "id": 103,
+              "id": "fractalter_2",
               "type": "FractalTerraces",
               "name": "RiverTerraces",
               "position": {
@@ -1073,7 +973,7 @@
               }
             },
             {
-              "id": 104,
+              "id": "erosion2_1",
               "type": "Erosion2",
               "name": "ValleyErosion",
               "position": {
@@ -1097,7 +997,7 @@
               }
             },
             {
-              "id": 105,
+              "id": "satmap_5",
               "type": "SatMap",
               "name": "ValleyColors",
               "position": {
@@ -1120,59 +1020,36 @@
                 "Saturation": 0.0,
                 "Lightness": 0.0
               }
-            },
-            {
-              "id": 106,
-              "type": "Export",
-              "name": "TerrainExport",
-              "position": {
-                "x": 28000,
-                "y": 26000
-              },
-              "properties": {},
-              "save_definition": {
-                "filename": "terrain_output",
-                "format": "EXR",
-                "enabled": true
-              },
-              "_export_format": "EXR",
-              "_export_filename": "TerrainExport"
             }
           ],
           "connections": [
             {
-              "from_node": 100,
-              "to_node": 101,
+              "from_node": "mountain_3",
+              "to_node": "rivers_4",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 101,
-              "to_node": 102,
+              "from_node": "rivers_4",
+              "to_node": "sediments_6",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 102,
-              "to_node": 103,
+              "from_node": "sediments_6",
+              "to_node": "fractalter_2",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 103,
-              "to_node": 104,
+              "from_node": "fractalter_2",
+              "to_node": "erosion2_1",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 104,
-              "to_node": 105,
-              "from_port": "Out",
-              "to_port": "In"
-            },
-            {
-              "from_node": 105,
-              "to_node": 106,
+              "from_node": "erosion2_1",
+              "to_node": "satmap_5",
               "from_port": "Out",
               "to_port": "In"
             }

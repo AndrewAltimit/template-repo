@@ -1,6 +1,6 @@
 {
-  "version": "20250721",
-  "timestamp": "2025-07-21T17:36:04.816521",
+  "version": "20250722",
+  "timestamp": "2025-07-22T11:49:25.514838",
   "result": {
     "success": true,
     "result": {
@@ -10,8 +10,8 @@
       "workflow": {
         "nodes": [
           {
-            "id": "1",
-            "node": "Mountain",
+            "id": "mountain_1",
+            "type": "Mountain",
             "position": {
               "X": 0,
               "Y": 0
@@ -25,8 +25,8 @@
       "original_workflow": {
         "nodes": [
           {
-            "id": "1",
-            "node": "Mountain",
+            "id": "mountain_1",
+            "type": "Mountain",
             "position": {
               "X": 0,
               "Y": 0
@@ -53,8 +53,8 @@
       "final_workflow": {
         "nodes": [
           {
-            "id": "1",
-            "node": "Mountain",
+            "id": "mountain_1",
+            "type": "Mountain",
             "position": {
               "X": 0,
               "Y": 0

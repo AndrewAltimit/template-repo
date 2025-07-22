@@ -1,11 +1,11 @@
 {
-  "version": "20250721",
-  "timestamp": "2025-07-21T17:43:32.103991",
+  "version": "20250722",
+  "timestamp": "2025-07-22T11:49:03.465132",
   "result": {
     "success": true,
     "project_name": "regression_basic_terrain",
-    "node_count": 5,
-    "connection_count": 4,
+    "node_count": 4,
+    "connection_count": 3,
     "project_structure": {
       "$id": "1",
       "Assets": {
@@ -24,7 +24,7 @@
               },
               "Nodes": {
                 "$id": "6",
-                "100": {
+                "mountain_2": {
                   "$id": "7",
                   "$type": "QuadSpinner.Gaea.Nodes.Mountain, Gaea.Nodes",
                   "Scale": 1.0,
@@ -35,7 +35,7 @@
                   "Seed": 0,
                   "X": 0.0,
                   "Y": 0.0,
-                  "Id": 100,
+                  "Id": "mountain_2",
                   "Name": "BaseTerrain",
                   "Position": {
                     "$id": "8",
@@ -70,7 +70,7 @@
                     "$values": []
                   }
                 },
-                "101": {
+                "erosion2_1": {
                   "$id": "13",
                   "$type": "QuadSpinner.Gaea.Nodes.Erosion2, Gaea.Nodes",
                   "Duration": 0.15,
@@ -86,7 +86,7 @@
                   "Shape": 0.5,
                   "ShapeDetailScale": 0.5,
                   "ShapeSharpness": 0.5,
-                  "Id": 101,
+                  "Id": "erosion2_1",
                   "Name": "NaturalErosion",
                   "Position": {
                     "$id": "14",
@@ -102,8 +102,8 @@
                         "Type": "PrimaryIn",
                         "Record": {
                           "$id": "18",
-                          "From": 100,
-                          "To": 101,
+                          "From": "mountain_2",
+                          "To": "erosion2_1",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -165,7 +165,7 @@
                     "$values": []
                   }
                 },
-                "102": {
+                "texturebas_4": {
                   "$id": "24",
                   "$type": "QuadSpinner.Gaea.Nodes.TextureBase, Gaea.Nodes",
                   "Slope": 0.5,
@@ -174,7 +174,7 @@
                   "Patches": 0.5,
                   "Chaos": 0.5,
                   "Seed": 0,
-                  "Id": 102,
+                  "Id": "texturebas_4",
                   "Name": "BaseTexture",
                   "Position": {
                     "$id": "25",
@@ -190,8 +190,8 @@
                         "Type": "PrimaryIn",
                         "Record": {
                           "$id": "29",
-                          "From": 101,
-                          "To": 102,
+                          "From": "erosion2_1",
+                          "To": "texturebas_4",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -218,7 +218,7 @@
                     "$values": []
                   }
                 },
-                "103": {
+                "satmap_3": {
                   "$id": "31",
                   "$type": "QuadSpinner.Gaea.Nodes.SatMap, Gaea.Nodes",
                   "Library": "Rock",
@@ -236,7 +236,7 @@
                   "Hue": 0.0,
                   "Saturation": 0.0,
                   "Lightness": 0.0,
-                  "Id": 103,
+                  "Id": "norm-id",
                   "Name": "ColorMap",
                   "NodeSize": "Standard",
                   "Position": {
@@ -250,11 +250,11 @@
                       {
                         "$id": "36",
                         "Name": "In",
-                        "Type": "PrimaryIn, Required",
+                        "Type": "PrimaryIn",
                         "Record": {
                           "$id": "37",
-                          "From": 102,
-                          "To": 103,
+                          "From": "texturebas_4",
+                          "To": "satmap_3",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -279,78 +279,24 @@
                     "$id": "35",
                     "$values": []
                   }
-                },
-                "104": {
-                  "$id": "39",
-                  "$type": "QuadSpinner.Gaea.Nodes.Export, Gaea.Nodes",
-                  "Id": 104,
-                  "Name": "TerrainExport",
-                  "NodeSize": "Standard",
-                  "Position": {
-                    "$id": "40",
-                    "X": 27000.0,
-                    "Y": 26000.0
-                  },
-                  "SaveDefinition": {
-                    "$id": "41",
-                    "Node": 104,
-                    "Filename": "TerrainExport",
-                    "Format": "EXR",
-                    "IsEnabled": true
-                  },
-                  "Ports": {
-                    "$id": "42",
-                    "$values": [
-                      {
-                        "$id": "44",
-                        "Name": "In",
-                        "Type": "PrimaryIn, Required",
-                        "Record": {
-                          "$id": "45",
-                          "From": 103,
-                          "To": 104,
-                          "FromPort": "Out",
-                          "ToPort": "In",
-                          "IsValid": true
-                        },
-                        "IsExporting": true,
-                        "Parent": {
-                          "$ref": "39"
-                        }
-                      },
-                      {
-                        "$id": "46",
-                        "Name": "Out",
-                        "Type": "PrimaryOut",
-                        "IsExporting": true,
-                        "Parent": {
-                          "$ref": "39"
-                        }
-                      }
-                    ]
-                  },
-                  "Modifiers": {
-                    "$id": "43",
-                    "$values": []
-                  }
                 }
               },
               "Groups": {
-                "$id": "47"
+                "$id": "39"
               },
               "Notes": {
-                "$id": "48"
+                "$id": "40"
               },
               "GraphTabs": {
-                "$id": "49",
+                "$id": "41",
                 "$values": [
                   {
-                    "$id": "50",
+                    "$id": "42",
                     "Name": "Graph 1",
                     "Color": "Brass",
                     "ZoomFactor": 0.5338687202362516,
                     "ViewportLocation": {
-                      "$id": "51",
+                      "$id": "43",
                       "X": 25531.445,
                       "Y": 25791.812
                     }
@@ -362,21 +308,21 @@
               "Ratio": 0.5
             },
             "Automation": {
-              "$id": "52",
+              "$id": "44",
               "Bindings": {
-                "$id": "53",
+                "$id": "45",
                 "$values": []
               },
               "Variables": {
-                "$id": "54"
+                "$id": "46"
               },
               "BoundProperties": {
-                "$id": "55",
+                "$id": "47",
                 "$values": []
               }
             },
             "BuildDefinition": {
-              "$id": "56",
+              "$id": "48",
               "Destination": "<Builds>\\[Filename]\\[+++]",
               "Resolution": 2048,
               "BakeResolution": 2048,
@@ -394,22 +340,22 @@
               "OrganizeFiles": "NodeSubFolder",
               "PostBuildScript": "",
               "Regions": {
-                "$id": "57",
+                "$id": "49",
                 "$values": []
               }
             },
             "State": {
-              "$id": "58",
+              "$id": "50",
               "BakeResolution": 2048,
               "PreviewResolution": 512,
-              "SelectedNode": 100,
+              "SelectedNode": "mountain_2",
               "LockedNode": null,
               "NodeBookmarks": {
-                "$id": "59",
+                "$id": "51",
                 "$values": []
               },
               "Viewport": {
-                "$id": "60",
+                "$id": "52",
                 "RenderMode": "Realistic",
                 "SunAltitude": 33.0,
                 "SunAzimuth": 45.0,
@@ -424,7 +370,7 @@
                 "Haze": 1.0,
                 "Ozone": 1.0,
                 "Camera": {
-                  "$id": "61"
+                  "$id": "53"
                 }
               }
             }
@@ -434,7 +380,7 @@
       "Id": "norm-id",
       "Branch": 1,
       "Metadata": {
-        "$id": "62",
+        "$id": "54",
         "Name": "regression_basic_terrain",
         "Description": "Created by Gaea2 MCP Server",
         "Version": "",
@@ -450,7 +396,7 @@
         "workflow": {
           "nodes": [
             {
-              "id": 100,
+              "id": "mountain_2",
               "type": "Mountain",
               "name": "BaseTerrain",
               "position": {
@@ -469,7 +415,7 @@
               }
             },
             {
-              "id": 101,
+              "id": "erosion2_1",
               "type": "Erosion2",
               "name": "NaturalErosion",
               "position": {
@@ -493,7 +439,7 @@
               }
             },
             {
-              "id": 102,
+              "id": "texturebas_4",
               "type": "TextureBase",
               "name": "BaseTexture",
               "position": {
@@ -510,7 +456,7 @@
               }
             },
             {
-              "id": 103,
+              "id": "satmap_3",
               "type": "SatMap",
               "name": "ColorMap",
               "position": {
@@ -533,47 +479,24 @@
                 "Saturation": 0.0,
                 "Lightness": 0.0
               }
-            },
-            {
-              "id": 104,
-              "type": "Export",
-              "name": "TerrainExport",
-              "position": {
-                "x": 27000,
-                "y": 26000
-              },
-              "properties": {},
-              "save_definition": {
-                "filename": "terrain_output",
-                "format": "EXR",
-                "enabled": true
-              },
-              "_export_format": "EXR",
-              "_export_filename": "TerrainExport"
             }
           ],
           "connections": [
             {
-              "from_node": 100,
-              "to_node": 101,
+              "from_node": "mountain_2",
+              "to_node": "erosion2_1",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 101,
-              "to_node": 102,
+              "from_node": "erosion2_1",
+              "to_node": "texturebas_4",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 102,
-              "to_node": 103,
-              "from_port": "Out",
-              "to_port": "In"
-            },
-            {
-              "from_node": 103,
-              "to_node": 104,
+              "from_node": "texturebas_4",
+              "to_node": "satmap_3",
               "from_port": "Out",
               "to_port": "In"
             }
@@ -584,7 +507,7 @@
         "original_workflow": {
           "nodes": [
             {
-              "id": 100,
+              "id": "mountain_2",
               "type": "Mountain",
               "name": "BaseTerrain",
               "position": {
@@ -603,7 +526,7 @@
               }
             },
             {
-              "id": 101,
+              "id": "erosion2_1",
               "type": "Erosion2",
               "name": "NaturalErosion",
               "position": {
@@ -627,7 +550,7 @@
               }
             },
             {
-              "id": 102,
+              "id": "texturebas_4",
               "type": "TextureBase",
               "name": "BaseTexture",
               "position": {
@@ -644,7 +567,7 @@
               }
             },
             {
-              "id": 103,
+              "id": "satmap_3",
               "type": "SatMap",
               "name": "ColorMap",
               "position": {
@@ -667,47 +590,24 @@
                 "Saturation": 0.0,
                 "Lightness": 0.0
               }
-            },
-            {
-              "id": 104,
-              "type": "Export",
-              "name": "TerrainExport",
-              "position": {
-                "x": 27000,
-                "y": 26000
-              },
-              "properties": {},
-              "save_definition": {
-                "filename": "terrain_output",
-                "format": "EXR",
-                "enabled": true
-              },
-              "_export_format": "EXR",
-              "_export_filename": "TerrainExport"
             }
           ],
           "connections": [
             {
-              "from_node": 100,
-              "to_node": 101,
+              "from_node": "mountain_2",
+              "to_node": "erosion2_1",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 101,
-              "to_node": 102,
+              "from_node": "erosion2_1",
+              "to_node": "texturebas_4",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 102,
-              "to_node": 103,
-              "from_port": "Out",
-              "to_port": "In"
-            },
-            {
-              "from_node": 103,
-              "to_node": 104,
+              "from_node": "texturebas_4",
+              "to_node": "satmap_3",
               "from_port": "Out",
               "to_port": "In"
             }
@@ -731,7 +631,7 @@
         "final_workflow": {
           "nodes": [
             {
-              "id": 100,
+              "id": "mountain_2",
               "type": "Mountain",
               "name": "BaseTerrain",
               "position": {
@@ -750,7 +650,7 @@
               }
             },
             {
-              "id": 101,
+              "id": "erosion2_1",
               "type": "Erosion2",
               "name": "NaturalErosion",
               "position": {
@@ -774,7 +674,7 @@
               }
             },
             {
-              "id": 102,
+              "id": "texturebas_4",
               "type": "TextureBase",
               "name": "BaseTexture",
               "position": {
@@ -791,7 +691,7 @@
               }
             },
             {
-              "id": 103,
+              "id": "satmap_3",
               "type": "SatMap",
               "name": "ColorMap",
               "position": {
@@ -814,47 +714,24 @@
                 "Saturation": 0.0,
                 "Lightness": 0.0
               }
-            },
-            {
-              "id": 104,
-              "type": "Export",
-              "name": "TerrainExport",
-              "position": {
-                "x": 27000,
-                "y": 26000
-              },
-              "properties": {},
-              "save_definition": {
-                "filename": "terrain_output",
-                "format": "EXR",
-                "enabled": true
-              },
-              "_export_format": "EXR",
-              "_export_filename": "TerrainExport"
             }
           ],
           "connections": [
             {
-              "from_node": 100,
-              "to_node": 101,
+              "from_node": "mountain_2",
+              "to_node": "erosion2_1",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 101,
-              "to_node": 102,
+              "from_node": "erosion2_1",
+              "to_node": "texturebas_4",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 102,
-              "to_node": 103,
-              "from_port": "Out",
-              "to_port": "In"
-            },
-            {
-              "from_node": 103,
-              "to_node": 104,
+              "from_node": "texturebas_4",
+              "to_node": "satmap_3",
               "from_port": "Out",
               "to_port": "In"
             }

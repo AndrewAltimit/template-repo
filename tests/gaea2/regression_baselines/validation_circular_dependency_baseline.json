@@ -1,42 +1,76 @@
 {
-  "version": "20250721",
-  "timestamp": "2025-07-21T17:36:04.818349",
+  "version": "20250722",
+  "timestamp": "2025-07-22T11:49:25.516779",
   "result": {
     "success": true,
     "result": {
-      "valid": true,
-      "fixes_applied": [],
-      "errors": [],
+      "valid": false,
+      "fixes_applied": [
+        "Added default properties to Unnamed (Mountain)",
+        "Added missing colorization nodes: TextureBase, SatMap"
+      ],
+      "errors": [
+        "Circular dependency detected: 1 \u2192 2 \u2192 1"
+      ],
       "workflow": {
         "nodes": [
           {
-            "id": "1",
-            "node": "Mountain",
+            "id": "mountain_2",
+            "type": "Mountain",
             "position": {
               "X": 0,
               "Y": 0
+            },
+            "properties": {
+              "Scale": 1.0
             }
           },
           {
-            "id": "2",
-            "node": "Erosion",
+            "id": "erosion_1",
+            "type": "Erosion",
             "position": {
               "X": 1,
               "Y": 0
             }
+          },
+          {
+            "id": "texturebas_4",
+            "type": "TextureBase",
+            "name": "TextureBase",
+            "position": {
+              "x": 27000,
+              "y": 25000
+            },
+            "properties": {}
+          },
+          {
+            "id": "satmap_3",
+            "type": "SatMap",
+            "name": "SatMap",
+            "position": {
+              "x": 29000,
+              "y": 25000
+            },
+            "properties": {}
           }
         ],
         "connections": [
           {
-            "from_node": "1",
+            "from_node": "mountain_2",
             "from_port": "Out",
-            "to_node": "2",
+            "to_node": "erosion_1",
             "to_port": "In"
           },
           {
-            "from_node": "2",
+            "from_node": "erosion_1",
             "from_port": "Out",
-            "to_node": "1",
+            "to_node": "mountain_2",
+            "to_port": "In"
+          },
+          {
+            "from_node": "texturebas_4",
+            "to_node": "satmap_3",
+            "from_port": "Out",
             "to_port": "In"
           }
         ]
@@ -46,33 +80,62 @@
       "original_workflow": {
         "nodes": [
           {
-            "id": "1",
-            "node": "Mountain",
+            "id": "mountain_2",
+            "type": "Mountain",
             "position": {
               "X": 0,
               "Y": 0
+            },
+            "properties": {
+              "Scale": 1.0
             }
           },
           {
-            "id": "2",
-            "node": "Erosion",
+            "id": "erosion_1",
+            "type": "Erosion",
             "position": {
               "X": 1,
               "Y": 0
             }
+          },
+          {
+            "id": "texturebas_4",
+            "type": "TextureBase",
+            "name": "TextureBase",
+            "position": {
+              "x": 27000,
+              "y": 25000
+            },
+            "properties": {}
+          },
+          {
+            "id": "satmap_3",
+            "type": "SatMap",
+            "name": "SatMap",
+            "position": {
+              "x": 29000,
+              "y": 25000
+            },
+            "properties": {}
           }
         ],
         "connections": [
           {
-            "from_node": "1",
+            "from_node": "mountain_2",
             "from_port": "Out",
-            "to_node": "2",
+            "to_node": "erosion_1",
             "to_port": "In"
           },
           {
-            "from_node": "2",
+            "from_node": "erosion_1",
             "from_port": "Out",
-            "to_node": "1",
+            "to_node": "mountain_2",
+            "to_port": "In"
+          },
+          {
+            "from_node": "texturebas_4",
+            "to_node": "satmap_3",
+            "from_port": "Out",
             "to_port": "In"
           }
         ]
@@ -83,50 +146,84 @@
           "errors": []
         },
         "connections": {
-          "valid": true,
-          "errors": []
+          "valid": false,
+          "errors": [
+            "Circular dependency detected: 1 \u2192 2 \u2192 1"
+          ]
         },
         "structure": {
           "valid": true,
           "errors": []
         }
       },
-      "fixes_applied": [],
+      "fixes_applied": [
+        "Added default properties to Unnamed (Mountain)",
+        "Added missing colorization nodes: TextureBase, SatMap"
+      ],
       "final_workflow": {
         "nodes": [
           {
-            "id": "1",
-            "node": "Mountain",
+            "id": "mountain_2",
+            "type": "Mountain",
             "position": {
               "X": 0,
               "Y": 0
+            },
+            "properties": {
+              "Scale": 1.0
             }
           },
           {
-            "id": "2",
-            "node": "Erosion",
+            "id": "erosion_1",
+            "type": "Erosion",
             "position": {
               "X": 1,
               "Y": 0
             }
+          },
+          {
+            "id": "texturebas_4",
+            "type": "TextureBase",
+            "name": "TextureBase",
+            "position": {
+              "x": 27000,
+              "y": 25000
+            },
+            "properties": {}
+          },
+          {
+            "id": "satmap_3",
+            "type": "SatMap",
+            "name": "SatMap",
+            "position": {
+              "x": 29000,
+              "y": 25000
+            },
+            "properties": {}
           }
         ],
         "connections": [
           {
-            "from_node": "1",
+            "from_node": "mountain_2",
             "from_port": "Out",
-            "to_node": "2",
+            "to_node": "erosion_1",
             "to_port": "In"
           },
           {
-            "from_node": "2",
+            "from_node": "erosion_1",
             "from_port": "Out",
-            "to_node": "1",
+            "to_node": "mountain_2",
+            "to_port": "In"
+          },
+          {
+            "from_node": "texturebas_4",
+            "to_node": "satmap_3",
+            "from_port": "Out",
             "to_port": "In"
           }
         ]
       },
-      "is_valid": true
+      "is_valid": false
     }
   }
 }

@@ -1,6 +1,6 @@
 {
-  "version": "20250721",
-  "timestamp": "2025-07-21T17:36:04.814598",
+  "version": "20250722",
+  "timestamp": "2025-07-22T11:49:25.513118",
   "result": {
     "success": true,
     "result": {
@@ -10,16 +10,16 @@
       "workflow": {
         "nodes": [
           {
-            "id": "1",
-            "node": "Mountain",
+            "id": "mountain_2",
+            "type": "Mountain",
             "position": {
               "X": 0,
               "Y": 0
             }
           },
           {
-            "id": "2",
-            "node": "Export",
+            "id": "export_1",
+            "type": "Export",
             "position": {
               "X": 1,
               "Y": 0
@@ -28,9 +28,9 @@
         ],
         "connections": [
           {
-            "from_node": "1",
+            "from_node": "mountain_2",
             "from_port": "Out",
-            "to_node": "2",
+            "to_node": "export_1",
             "to_port": "In"
           }
         ]
@@ -40,16 +40,16 @@
       "original_workflow": {
         "nodes": [
           {
-            "id": "1",
-            "node": "Mountain",
+            "id": "mountain_2",
+            "type": "Mountain",
             "position": {
               "X": 0,
               "Y": 0
             }
           },
           {
-            "id": "2",
-            "node": "Export",
+            "id": "export_1",
+            "type": "Export",
             "position": {
               "X": 1,
               "Y": 0
@@ -58,9 +58,9 @@
         ],
         "connections": [
           {
-            "from_node": "1",
+            "from_node": "mountain_2",
             "from_port": "Out",
-            "to_node": "2",
+            "to_node": "export_1",
             "to_port": "In"
           }
         ]
@@ -83,16 +83,16 @@
       "final_workflow": {
         "nodes": [
           {
-            "id": "1",
-            "node": "Mountain",
+            "id": "mountain_2",
+            "type": "Mountain",
             "position": {
               "X": 0,
               "Y": 0
             }
           },
           {
-            "id": "2",
-            "node": "Export",
+            "id": "export_1",
+            "type": "Export",
             "position": {
               "X": 1,
               "Y": 0
@@ -101,9 +101,9 @@
         ],
         "connections": [
           {
-            "from_node": "1",
+            "from_node": "mountain_2",
             "from_port": "Out",
-            "to_node": "2",
+            "to_node": "export_1",
             "to_port": "In"
           }
         ]

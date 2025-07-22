@@ -1,11 +1,11 @@
 {
-  "version": "20250721",
-  "timestamp": "2025-07-21T17:43:32.107852",
+  "version": "20250722",
+  "timestamp": "2025-07-22T11:49:03.469958",
   "result": {
     "success": true,
     "project_name": "regression_detailed_mountain",
-    "node_count": 8,
-    "connection_count": 8,
+    "node_count": 7,
+    "connection_count": 7,
     "project_structure": {
       "$id": "1",
       "Assets": {
@@ -24,7 +24,7 @@
               },
               "Nodes": {
                 "$id": "6",
-                "100": {
+                "mountain_3": {
                   "$id": "7",
                   "$type": "QuadSpinner.Gaea.Nodes.Mountain, Gaea.Nodes",
                   "Scale": 1.5,
@@ -35,7 +35,7 @@
                   "Seed": 0,
                   "X": 0.0,
                   "Y": 0.0,
-                  "Id": 100,
+                  "Id": "mountain_3",
                   "Name": "PrimaryMountain",
                   "Position": {
                     "$id": "8",
@@ -70,7 +70,7 @@
                     "$values": []
                   }
                 },
-                "101": {
+                "mountain_4": {
                   "$id": "13",
                   "$type": "QuadSpinner.Gaea.Nodes.Mountain, Gaea.Nodes",
                   "Scale": 0.8,
@@ -81,7 +81,7 @@
                   "Seed": 0,
                   "X": 0.0,
                   "Y": 0.0,
-                  "Id": 101,
+                  "Id": "mountain_4",
                   "Name": "SecondaryPeaks",
                   "Position": {
                     "$id": "14",
@@ -97,8 +97,8 @@
                         "Type": "PrimaryIn",
                         "Record": {
                           "$id": "18",
-                          "From": 100,
-                          "To": 101,
+                          "From": "mountain_3",
+                          "To": "mountain_4",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -124,14 +124,14 @@
                     "$values": []
                   }
                 },
-                "102": {
+                "combine_1": {
                   "$id": "20",
                   "$type": "QuadSpinner.Gaea.Nodes.Combine, Gaea.Nodes",
                   "Mode": "Max",
                   "Ratio": 0.7,
                   "Clamp": "Clamp",
                   "PortCount": 2,
-                  "Id": 102,
+                  "Id": "combine_1",
                   "Name": "MergePeaks",
                   "NodeSize": "Small",
                   "Position": {
@@ -148,8 +148,8 @@
                         "Type": "PrimaryIn",
                         "Record": {
                           "$id": "25",
-                          "From": 100,
-                          "To": 102,
+                          "From": "mountain_3",
+                          "To": "combine_1",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -174,8 +174,8 @@
                         "Type": "In",
                         "Record": {
                           "$id": "28",
-                          "From": 101,
-                          "To": 102,
+                          "From": "mountain_4",
+                          "To": "combine_1",
                           "FromPort": "Out",
                           "ToPort": "Input2",
                           "IsValid": true
@@ -202,7 +202,7 @@
                     "$values": []
                   }
                 },
-                "103": {
+                "erosion2_2": {
                   "$id": "30",
                   "$type": "QuadSpinner.Gaea.Nodes.Erosion2, Gaea.Nodes",
                   "Duration": 0.15,
@@ -218,7 +218,7 @@
                   "Shape": 0.5,
                   "ShapeDetailScale": 0.5,
                   "ShapeSharpness": 0.5,
-                  "Id": 103,
+                  "Id": "erosion2_2",
                   "Name": "InitialErosion",
                   "Position": {
                     "$id": "31",
@@ -234,8 +234,8 @@
                         "Type": "PrimaryIn",
                         "Record": {
                           "$id": "35",
-                          "From": 102,
-                          "To": 103,
+                          "From": "combine_1",
+                          "To": "erosion2_2",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -297,7 +297,7 @@
                     "$values": []
                   }
                 },
-                "104": {
+                "rivers_5": {
                   "$id": "41",
                   "$type": "QuadSpinner.Gaea.Nodes.Rivers, Gaea.Nodes",
                   "Water": 0.3,
@@ -308,7 +308,7 @@
                   "Headwaters": 100,
                   "RenderSurface": false,
                   "Seed": 0,
-                  "Id": 104,
+                  "Id": "norm-id",
                   "Name": "MountainStreams",
                   "NodeSize": "Standard",
                   "Position": {
@@ -325,8 +325,8 @@
                         "Type": "PrimaryIn",
                         "Record": {
                           "$id": "46",
-                          "From": 103,
-                          "To": 104,
+                          "From": "erosion2_2",
+                          "To": "rivers_5",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -407,13 +407,12 @@
                     "$values": []
                   }
                 },
-                "105": {
+                "snow_7": {
                   "$id": "54",
                   "$type": "QuadSpinner.Gaea.Nodes.Snow, Gaea.Nodes",
                   "Duration": 0.6,
                   "SnowLine": 0.75,
-                  "Melt": 0.0,
-                  "Id": 105,
+                  "Id": "snow_7",
                   "Name": "SnowCaps",
                   "Position": {
                     "$id": "55",
@@ -429,8 +428,8 @@
                         "Type": "PrimaryIn",
                         "Record": {
                           "$id": "59",
-                          "From": 104,
-                          "To": 105,
+                          "From": "rivers_5",
+                          "To": "snow_7",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -456,7 +455,7 @@
                     "$values": []
                   }
                 },
-                "106": {
+                "satmap_6": {
                   "$id": "61",
                   "$type": "QuadSpinner.Gaea.Nodes.SatMap, Gaea.Nodes",
                   "Library": "Rock",
@@ -474,7 +473,7 @@
                   "Hue": 0.0,
                   "Saturation": 0.0,
                   "Lightness": 0.0,
-                  "Id": 106,
+                  "Id": "norm-id",
                   "Name": "RealisticColors",
                   "NodeSize": "Standard",
                   "Position": {
@@ -488,11 +487,11 @@
                       {
                         "$id": "66",
                         "Name": "In",
-                        "Type": "PrimaryIn, Required",
+                        "Type": "PrimaryIn",
                         "Record": {
                           "$id": "67",
-                          "From": 105,
-                          "To": 106,
+                          "From": "snow_7",
+                          "To": "satmap_6",
                           "FromPort": "Out",
                           "ToPort": "In",
                           "IsValid": true
@@ -517,78 +516,24 @@
                     "$id": "65",
                     "$values": []
                   }
-                },
-                "107": {
-                  "$id": "69",
-                  "$type": "QuadSpinner.Gaea.Nodes.Export, Gaea.Nodes",
-                  "Id": 107,
-                  "Name": "TerrainExport",
-                  "NodeSize": "Standard",
-                  "Position": {
-                    "$id": "70",
-                    "X": 28500.0,
-                    "Y": 26000.0
-                  },
-                  "SaveDefinition": {
-                    "$id": "71",
-                    "Node": 107,
-                    "Filename": "TerrainExport",
-                    "Format": "EXR",
-                    "IsEnabled": true
-                  },
-                  "Ports": {
-                    "$id": "72",
-                    "$values": [
-                      {
-                        "$id": "74",
-                        "Name": "In",
-                        "Type": "PrimaryIn, Required",
-                        "Record": {
-                          "$id": "75",
-                          "From": 106,
-                          "To": 107,
-                          "FromPort": "Out",
-                          "ToPort": "In",
-                          "IsValid": true
-                        },
-                        "IsExporting": true,
-                        "Parent": {
-                          "$ref": "69"
-                        }
-                      },
-                      {
-                        "$id": "76",
-                        "Name": "Out",
-                        "Type": "PrimaryOut",
-                        "IsExporting": true,
-                        "Parent": {
-                          "$ref": "69"
-                        }
-                      }
-                    ]
-                  },
-                  "Modifiers": {
-                    "$id": "73",
-                    "$values": []
-                  }
                 }
               },
               "Groups": {
-                "$id": "77"
+                "$id": "69"
               },
               "Notes": {
-                "$id": "78"
+                "$id": "70"
               },
               "GraphTabs": {
-                "$id": "79",
+                "$id": "71",
                 "$values": [
                   {
-                    "$id": "80",
+                    "$id": "72",
                     "Name": "Graph 1",
                     "Color": "Brass",
                     "ZoomFactor": 0.5338687202362516,
                     "ViewportLocation": {
-                      "$id": "81",
+                      "$id": "73",
                       "X": 25531.445,
                       "Y": 25791.812
                     }
@@ -600,21 +545,21 @@
               "Ratio": 0.5
             },
             "Automation": {
-              "$id": "82",
+              "$id": "74",
               "Bindings": {
-                "$id": "83",
+                "$id": "75",
                 "$values": []
               },
               "Variables": {
-                "$id": "84"
+                "$id": "76"
               },
               "BoundProperties": {
-                "$id": "85",
+                "$id": "77",
                 "$values": []
               }
             },
             "BuildDefinition": {
-              "$id": "86",
+              "$id": "78",
               "Destination": "<Builds>\\[Filename]\\[+++]",
               "Resolution": 2048,
               "BakeResolution": 2048,
@@ -632,22 +577,22 @@
               "OrganizeFiles": "NodeSubFolder",
               "PostBuildScript": "",
               "Regions": {
-                "$id": "87",
+                "$id": "79",
                 "$values": []
               }
             },
             "State": {
-              "$id": "88",
+              "$id": "80",
               "BakeResolution": 2048,
               "PreviewResolution": 512,
-              "SelectedNode": 100,
+              "SelectedNode": "mountain_3",
               "LockedNode": null,
               "NodeBookmarks": {
-                "$id": "89",
+                "$id": "81",
                 "$values": []
               },
               "Viewport": {
-                "$id": "90",
+                "$id": "82",
                 "RenderMode": "Realistic",
                 "SunAltitude": 33.0,
                 "SunAzimuth": 45.0,
@@ -662,7 +607,7 @@
                 "Haze": 1.0,
                 "Ozone": 1.0,
                 "Camera": {
-                  "$id": "91"
+                  "$id": "83"
                 }
               }
             }
@@ -672,7 +617,7 @@
       "Id": "norm-id",
       "Branch": 1,
       "Metadata": {
-        "$id": "92",
+        "$id": "84",
         "Name": "regression_detailed_mountain",
         "Description": "Created by Gaea2 MCP Server",
         "Version": "",
@@ -688,7 +633,7 @@
         "workflow": {
           "nodes": [
             {
-              "id": 100,
+              "id": "mountain_3",
               "type": "Mountain",
               "name": "PrimaryMountain",
               "position": {
@@ -707,7 +652,7 @@
               }
             },
             {
-              "id": 101,
+              "id": "mountain_4",
               "type": "Mountain",
               "name": "SecondaryPeaks",
               "position": {
@@ -726,7 +671,7 @@
               }
             },
             {
-              "id": 102,
+              "id": "combine_1",
               "type": "Combine",
               "name": "MergePeaks",
               "position": {
@@ -740,7 +685,7 @@
               }
             },
             {
-              "id": 103,
+              "id": "erosion2_2",
               "type": "Erosion2",
               "name": "InitialErosion",
               "position": {
@@ -764,7 +709,7 @@
               }
             },
             {
-              "id": 104,
+              "id": "rivers_5",
               "type": "Rivers",
               "name": "MountainStreams",
               "position": {
@@ -783,7 +728,7 @@
               }
             },
             {
-              "id": 105,
+              "id": "snow_7",
               "type": "Snow",
               "name": "SnowCaps",
               "position": {
@@ -792,19 +737,11 @@
               },
               "properties": {
                 "Duration": 0.6,
-                "SnowLine": 0.75,
-                "Intensity": 0.5,
-                "SettleDuration": 0.5,
-                "MeltType": "Uniform",
-                "Melt": 0.0,
-                "MeltRemnants": 0.0,
-                "Direction": 0.0,
-                "SlipOffAngle": 35.0,
-                "RealScale": false
+                "SnowLine": 0.75
               }
             },
             {
-              "id": 106,
+              "id": "satmap_6",
               "type": "SatMap",
               "name": "RealisticColors",
               "position": {
@@ -827,71 +764,48 @@
                 "Saturation": 0.0,
                 "Lightness": 0.0
               }
-            },
-            {
-              "id": 107,
-              "type": "Export",
-              "name": "TerrainExport",
-              "position": {
-                "x": 28500,
-                "y": 26000
-              },
-              "properties": {},
-              "save_definition": {
-                "filename": "terrain_output",
-                "format": "EXR",
-                "enabled": true
-              },
-              "_export_format": "EXR",
-              "_export_filename": "TerrainExport"
             }
           ],
           "connections": [
             {
-              "from_node": 100,
-              "to_node": 101,
+              "from_node": "mountain_3",
+              "to_node": "mountain_4",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 101,
-              "to_node": 102,
+              "from_node": "mountain_4",
+              "to_node": "combine_1",
               "from_port": "Out",
               "to_port": "Input2"
             },
             {
-              "from_node": 100,
-              "to_node": 102,
+              "from_node": "mountain_3",
+              "to_node": "combine_1",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 102,
-              "to_node": 103,
+              "from_node": "combine_1",
+              "to_node": "erosion2_2",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 103,
-              "to_node": 104,
+              "from_node": "erosion2_2",
+              "to_node": "rivers_5",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 104,
-              "to_node": 105,
+              "from_node": "rivers_5",
+              "to_node": "snow_7",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 105,
-              "to_node": 106,
-              "from_port": "Out",
-              "to_port": "In"
-            },
-            {
-              "from_node": 106,
-              "to_node": 107,
+              "from_node": "snow_7",
+              "to_node": "satmap_6",
               "from_port": "Out",
               "to_port": "In"
             }
@@ -902,7 +816,7 @@
         "original_workflow": {
           "nodes": [
             {
-              "id": 100,
+              "id": "mountain_3",
               "type": "Mountain",
               "name": "PrimaryMountain",
               "position": {
@@ -921,7 +835,7 @@
               }
             },
             {
-              "id": 101,
+              "id": "mountain_4",
               "type": "Mountain",
               "name": "SecondaryPeaks",
               "position": {
@@ -940,7 +854,7 @@
               }
             },
             {
-              "id": 102,
+              "id": "combine_1",
               "type": "Combine",
               "name": "MergePeaks",
               "position": {
@@ -954,7 +868,7 @@
               }
             },
             {
-              "id": 103,
+              "id": "erosion2_2",
               "type": "Erosion2",
               "name": "InitialErosion",
               "position": {
@@ -978,7 +892,7 @@
               }
             },
             {
-              "id": 104,
+              "id": "rivers_5",
               "type": "Rivers",
               "name": "MountainStreams",
               "position": {
@@ -997,7 +911,7 @@
               }
             },
             {
-              "id": 105,
+              "id": "snow_7",
               "type": "Snow",
               "name": "SnowCaps",
               "position": {
@@ -1006,19 +920,11 @@
               },
               "properties": {
                 "Duration": 0.6,
-                "SnowLine": 0.75,
-                "Intensity": 0.5,
-                "SettleDuration": 0.5,
-                "MeltType": "Uniform",
-                "Melt": 0.0,
-                "MeltRemnants": 0.0,
-                "Direction": 0.0,
-                "SlipOffAngle": 35.0,
-                "RealScale": false
+                "SnowLine": 0.75
               }
             },
             {
-              "id": 106,
+              "id": "satmap_6",
               "type": "SatMap",
               "name": "RealisticColors",
               "position": {
@@ -1041,71 +947,48 @@
                 "Saturation": 0.0,
                 "Lightness": 0.0
               }
-            },
-            {
-              "id": 107,
-              "type": "Export",
-              "name": "TerrainExport",
-              "position": {
-                "x": 28500,
-                "y": 26000
-              },
-              "properties": {},
-              "save_definition": {
-                "filename": "terrain_output",
-                "format": "EXR",
-                "enabled": true
-              },
-              "_export_format": "EXR",
-              "_export_filename": "TerrainExport"
             }
           ],
           "connections": [
             {
-              "from_node": 100,
-              "to_node": 101,
+              "from_node": "mountain_3",
+              "to_node": "mountain_4",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 101,
-              "to_node": 102,
+              "from_node": "mountain_4",
+              "to_node": "combine_1",
               "from_port": "Out",
               "to_port": "Input2"
             },
             {
-              "from_node": 100,
-              "to_node": 102,
+              "from_node": "mountain_3",
+              "to_node": "combine_1",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 102,
-              "to_node": 103,
+              "from_node": "combine_1",
+              "to_node": "erosion2_2",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 103,
-              "to_node": 104,
+              "from_node": "erosion2_2",
+              "to_node": "rivers_5",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 104,
-              "to_node": 105,
+              "from_node": "rivers_5",
+              "to_node": "snow_7",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 105,
-              "to_node": 106,
-              "from_port": "Out",
-              "to_port": "In"
-            },
-            {
-              "from_node": 106,
-              "to_node": 107,
+              "from_node": "snow_7",
+              "to_node": "satmap_6",
               "from_port": "Out",
               "to_port": "In"
             }
@@ -1129,7 +1012,7 @@
         "final_workflow": {
           "nodes": [
             {
-              "id": 100,
+              "id": "mountain_3",
               "type": "Mountain",
               "name": "PrimaryMountain",
               "position": {
@@ -1148,7 +1031,7 @@
               }
             },
             {
-              "id": 101,
+              "id": "mountain_4",
               "type": "Mountain",
               "name": "SecondaryPeaks",
               "position": {
@@ -1167,7 +1050,7 @@
               }
             },
             {
-              "id": 102,
+              "id": "combine_1",
               "type": "Combine",
               "name": "MergePeaks",
               "position": {
@@ -1181,7 +1064,7 @@
               }
             },
             {
-              "id": 103,
+              "id": "erosion2_2",
               "type": "Erosion2",
               "name": "InitialErosion",
               "position": {
@@ -1205,7 +1088,7 @@
               }
             },
             {
-              "id": 104,
+              "id": "rivers_5",
               "type": "Rivers",
               "name": "MountainStreams",
               "position": {
@@ -1224,7 +1107,7 @@
               }
             },
             {
-              "id": 105,
+              "id": "snow_7",
               "type": "Snow",
               "name": "SnowCaps",
               "position": {
@@ -1233,19 +1116,11 @@
               },
               "properties": {
                 "Duration": 0.6,
-                "SnowLine": 0.75,
-                "Intensity": 0.5,
-                "SettleDuration": 0.5,
-                "MeltType": "Uniform",
-                "Melt": 0.0,
-                "MeltRemnants": 0.0,
-                "Direction": 0.0,
-                "SlipOffAngle": 35.0,
-                "RealScale": false
+                "SnowLine": 0.75
               }
             },
             {
-              "id": 106,
+              "id": "satmap_6",
               "type": "SatMap",
               "name": "RealisticColors",
               "position": {
@@ -1268,71 +1143,48 @@
                 "Saturation": 0.0,
                 "Lightness": 0.0
               }
-            },
-            {
-              "id": 107,
-              "type": "Export",
-              "name": "TerrainExport",
-              "position": {
-                "x": 28500,
-                "y": 26000
-              },
-              "properties": {},
-              "save_definition": {
-                "filename": "terrain_output",
-                "format": "EXR",
-                "enabled": true
-              },
-              "_export_format": "EXR",
-              "_export_filename": "TerrainExport"
             }
           ],
           "connections": [
             {
-              "from_node": 100,
-              "to_node": 101,
+              "from_node": "mountain_3",
+              "to_node": "mountain_4",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 101,
-              "to_node": 102,
+              "from_node": "mountain_4",
+              "to_node": "combine_1",
               "from_port": "Out",
               "to_port": "Input2"
             },
             {
-              "from_node": 100,
-              "to_node": 102,
+              "from_node": "mountain_3",
+              "to_node": "combine_1",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 102,
-              "to_node": 103,
+              "from_node": "combine_1",
+              "to_node": "erosion2_2",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 103,
-              "to_node": 104,
+              "from_node": "erosion2_2",
+              "to_node": "rivers_5",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 104,
-              "to_node": 105,
+              "from_node": "rivers_5",
+              "to_node": "snow_7",
               "from_port": "Out",
               "to_port": "In"
             },
             {
-              "from_node": 105,
-              "to_node": 106,
-              "from_port": "Out",
-              "to_port": "In"
-            },
-            {
-              "from_node": 106,
-              "to_node": 107,
+              "from_node": "snow_7",
+              "to_node": "satmap_6",
               "from_port": "Out",
               "to_port": "In"
             }

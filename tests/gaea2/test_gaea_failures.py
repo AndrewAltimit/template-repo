@@ -39,10 +39,10 @@ class TestGaea2Failures:
                     "nodes": [
                         {
                             "id": "1",
-                            "node": "ThisNodeDoesNotExist",
+                            "type": "ThisNodeDoesNotExist",
                             "position": {"X": 0, "Y": 0},
                         },
-                        {"id": "2", "node": "Export", "position": {"X": 1, "Y": 0}},
+                        {"id": "2", "type": "Export", "position": {"X": 1, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -60,10 +60,10 @@ class TestGaea2Failures:
                     "nodes": [
                         {
                             "id": "1",
-                            "node": "Montain",
+                            "type": "Montain",
                             "position": {"X": 0, "Y": 0},
                         },  # Should be "Mountain"
-                        {"id": "2", "node": "Export", "position": {"X": 1, "Y": 0}},
+                        {"id": "2", "type": "Export", "position": {"X": 1, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -81,10 +81,10 @@ class TestGaea2Failures:
                     "nodes": [
                         {
                             "id": "1",
-                            "node": "mountain",
+                            "type": "mountain",
                             "position": {"X": 0, "Y": 0},
                         },  # Should be "Mountain"
-                        {"id": "2", "node": "Export", "position": {"X": 1, "Y": 0}},
+                        {"id": "2", "type": "Export", "position": {"X": 1, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -130,8 +130,8 @@ class TestGaea2Failures:
                 "name": "nonexistent_source_node",
                 "workflow": {
                     "nodes": [
-                        {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                        {"id": "2", "node": "Export", "position": {"X": 1, "Y": 0}},
+                        {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                        {"id": "2", "type": "Export", "position": {"X": 1, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -147,8 +147,8 @@ class TestGaea2Failures:
                 "name": "nonexistent_target_node",
                 "workflow": {
                     "nodes": [
-                        {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                        {"id": "2", "node": "Export", "position": {"X": 1, "Y": 0}},
+                        {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                        {"id": "2", "type": "Export", "position": {"X": 1, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -164,8 +164,8 @@ class TestGaea2Failures:
                 "name": "invalid_port_names",
                 "workflow": {
                     "nodes": [
-                        {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                        {"id": "2", "node": "Export", "position": {"X": 1, "Y": 0}},
+                        {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                        {"id": "2", "type": "Export", "position": {"X": 1, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -181,9 +181,9 @@ class TestGaea2Failures:
                 "name": "circular_dependency",
                 "workflow": {
                     "nodes": [
-                        {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                        {"id": "2", "node": "Erosion", "position": {"X": 1, "Y": 0}},
-                        {"id": "3", "node": "Blur", "position": {"X": 2, "Y": 0}},
+                        {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                        {"id": "2", "type": "Erosion", "position": {"X": 1, "Y": 0}},
+                        {"id": "3", "type": "Blur", "position": {"X": 2, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -223,7 +223,20 @@ class TestGaea2Failures:
                 print(f"Note: Server accepted workflow with {test_case['name']}")
             else:
                 # If invalid, should have validation errors
+                # The server may return errors in different locations
                 errors = result.get("results", {}).get("validation_errors", [])
+
+                # Also check result.result.errors
+                if len(errors) == 0 and result.get("result", {}).get("errors"):
+                    errors = result.get("result", {}).get("errors", [])
+
+                # Also check validation_results.connections.errors
+                if len(errors) == 0:
+                    validation_results = result.get("results", {}).get("validation_results", {})
+                    connection_errors = validation_results.get("connections", {}).get("errors", [])
+                    if connection_errors:
+                        errors = connection_errors
+
                 assert len(errors) > 0, f"Invalid but no errors for {test_case['name']}"
 
     @pytest.mark.asyncio
@@ -234,8 +247,8 @@ class TestGaea2Failures:
                 "name": "no_export_node",
                 "workflow": {
                     "nodes": [
-                        {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                        {"id": "2", "node": "Erosion", "position": {"X": 1, "Y": 0}},
+                        {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                        {"id": "2", "type": "Erosion", "position": {"X": 1, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -251,11 +264,11 @@ class TestGaea2Failures:
                 "name": "disconnected_export",
                 "workflow": {
                     "nodes": [
-                        {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                        {"id": "2", "node": "Erosion", "position": {"X": 1, "Y": 0}},
+                        {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                        {"id": "2", "type": "Erosion", "position": {"X": 1, "Y": 0}},
                         {
                             "id": "3",
-                            "node": "Export",
+                            "type": "Export",
                             "position": {"X": 2, "Y": 0},
                         },  # Not connected
                     ],
@@ -273,13 +286,13 @@ class TestGaea2Failures:
                 "name": "orphaned_nodes",
                 "workflow": {
                     "nodes": [
-                        {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
+                        {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
                         {
                             "id": "2",
-                            "node": "Perlin",
+                            "type": "Perlin",
                             "position": {"X": 0, "Y": 1},
                         },  # Orphaned
-                        {"id": "3", "node": "Export", "position": {"X": 1, "Y": 0}},
+                        {"id": "3", "type": "Export", "position": {"X": 1, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -323,14 +336,14 @@ class TestGaea2Failures:
                     "nodes": [
                         {
                             "id": "1",
-                            "node": "Mountain",
+                            "type": "Mountain",
                             "position": {"X": 0, "Y": 0},
                             "properties": {
                                 "Scale": -10,  # Negative scale
                                 "Height": 999999,  # Extremely high value
                             },
                         },
-                        {"id": "2", "node": "Export", "position": {"X": 1, "Y": 0}},
+                        {"id": "2", "type": "Export", "position": {"X": 1, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -348,14 +361,14 @@ class TestGaea2Failures:
                     "nodes": [
                         {
                             "id": "1",
-                            "node": "Erosion",
+                            "type": "Erosion",
                             "position": {"X": 0, "Y": 0},
                             "properties": {
                                 "Duration": "five",  # String instead of number
                                 "Intensity": None,  # Null value
                             },
                         },
-                        {"id": "2", "node": "Export", "position": {"X": 1, "Y": 0}},
+                        {"id": "2", "type": "Export", "position": {"X": 1, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -373,14 +386,14 @@ class TestGaea2Failures:
                     "nodes": [
                         {
                             "id": "1",
-                            "node": "Mountain",
+                            "type": "Mountain",
                             "position": {"X": 0, "Y": 0},
                             "properties": {
                                 "InvalidProperty": 10,
                                 "AnotherBadProp": "test",
                             },
                         },
-                        {"id": "2", "node": "Export", "position": {"X": 1, "Y": 0}},
+                        {"id": "2", "type": "Export", "position": {"X": 1, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -492,10 +505,10 @@ class TestGaea2Failures:
                 "name": "mask_to_regular_input",
                 "workflow": {
                     "nodes": [
-                        {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                        {"id": "2", "node": "Gradient", "position": {"X": 0, "Y": 1}},
-                        {"id": "3", "node": "Erosion", "position": {"X": 1, "Y": 0}},
-                        {"id": "4", "node": "Export", "position": {"X": 2, "Y": 0}},
+                        {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                        {"id": "2", "type": "Gradient", "position": {"X": 0, "Y": 1}},
+                        {"id": "3", "type": "Erosion", "position": {"X": 1, "Y": 0}},
+                        {"id": "4", "type": "Export", "position": {"X": 2, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -523,10 +536,10 @@ class TestGaea2Failures:
                 "name": "multiple_inputs_to_single_port",
                 "workflow": {
                     "nodes": [
-                        {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                        {"id": "2", "node": "Perlin", "position": {"X": 0, "Y": 1}},
-                        {"id": "3", "node": "Erosion", "position": {"X": 1, "Y": 0}},
-                        {"id": "4", "node": "Export", "position": {"X": 2, "Y": 0}},
+                        {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                        {"id": "2", "type": "Perlin", "position": {"X": 0, "Y": 1}},
+                        {"id": "3", "type": "Erosion", "position": {"X": 1, "Y": 0}},
+                        {"id": "4", "type": "Export", "position": {"X": 2, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -581,7 +594,7 @@ class TestGaea2Failures:
             nodes.append(
                 {
                     "id": str(i),
-                    "node": "Perlin" if i % 2 == 0 else "Gradient",
+                    "type": "Perlin" if i % 2 == 0 else "Gradient",
                     "position": {"X": i % 10, "Y": i // 10},
                 }
             )
@@ -642,9 +655,9 @@ class TestErrorRecovery:
                 "name": "missing_positions",
                 "workflow": {
                     "nodes": [
-                        {"id": "1", "node": "Mountain"},  # Missing position
-                        {"id": "2", "node": "Erosion"},  # Missing position
-                        {"id": "3", "node": "Export", "position": {"X": 2, "Y": 0}},
+                        {"id": "1", "type": "Mountain"},  # Missing position
+                        {"id": "2", "type": "Erosion"},  # Missing position
+                        {"id": "3", "type": "Export", "position": {"X": 2, "Y": 0}},
                     ],
                     "connections": [
                         {
@@ -666,9 +679,9 @@ class TestErrorRecovery:
                 "name": "broken_connections",
                 "workflow": {
                     "nodes": [
-                        {"id": "1", "node": "Mountain", "position": {"X": 0, "Y": 0}},
-                        {"id": "2", "node": "Erosion", "position": {"X": 1, "Y": 0}},
-                        {"id": "3", "node": "Export", "position": {"X": 2, "Y": 0}},
+                        {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
+                        {"id": "2", "type": "Erosion", "position": {"X": 1, "Y": 0}},
+                        {"id": "3", "type": "Export", "position": {"X": 2, "Y": 0}},
                     ],
                     "connections": [
                         {"from_node": "1", "to_node": "2"},  # Missing port info

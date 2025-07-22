@@ -117,7 +117,7 @@ class TestGaea2ValidationFindings:
             {"workflow": {"nodes": [], "connections": []}},
         )
         assert result.get("success")
-        assert result.get("valid") is False, "Empty workflow should be invalid"
+        assert result.get("results", {}).get("is_valid") is False, "Empty workflow should be invalid"
 
         # Circular dependencies are detected
         circular_workflow = {
@@ -133,7 +133,7 @@ class TestGaea2ValidationFindings:
 
         result = await self.execute_tool(mcp_url, "validate_and_fix_workflow", {"workflow": circular_workflow})
         assert result.get("success")
-        assert result.get("valid") is False, "Circular dependencies should be invalid"
+        assert result.get("results", {}).get("is_valid") is False, "Circular dependencies should be invalid"
 
         # Unknown node types are rejected by default
         unknown_workflow = {
