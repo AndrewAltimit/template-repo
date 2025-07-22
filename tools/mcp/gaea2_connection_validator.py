@@ -224,7 +224,7 @@ class Gaea2ConnectionValidator:
             rec_stack.add(node)
             path.append(node)
 
-            for neighbor in graph[node]:
+            for neighbor in graph.get(node, []):
                 if neighbor not in visited:
                     if dfs(neighbor, path.copy()):
                         return True
@@ -236,8 +236,8 @@ class Gaea2ConnectionValidator:
             rec_stack.remove(node)
             return False
 
-        # Check all nodes
-        for node in graph:
+        # Check all nodes - use list() to avoid dictionary size change during iteration
+        for node in list(graph.keys()):
             if node not in visited:
                 dfs(node, [])
 
