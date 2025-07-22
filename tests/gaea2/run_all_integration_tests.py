@@ -6,12 +6,12 @@ This implements the autonomous testing approach from the AI Agent Training Guide
 
 import asyncio
 import json
+import os
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
-
-import pytest
 
 
 class Phase3TestRunner:
@@ -30,16 +30,23 @@ class Phase3TestRunner:
         """Run a pytest test suite and capture results."""
         print(f"\n🧪 Running {suite_name}...")
 
-        # Run pytest with JSON report
-        result = pytest.main(
-            [
-                test_file,
-                "-v",
-                "--json-report",
-                f"--json-report-file=temp_{suite_name}.json",
-                "--tb=short",
-            ]
-        )
+        # Run pytest as a subprocess to avoid event loop conflicts
+        cmd = [
+            sys.executable,
+            "-m",
+            "pytest",
+            test_file,
+            "-v",
+            "--json-report",
+            f"--json-report-file=temp_{suite_name}.json",
+            "--tb=short",
+        ]
+
+        # Add MCP URL to environment
+        env = os.environ.copy()
+        env["GAEA2_MCP_URL"] = self.mcp_url
+
+        result = subprocess.run(cmd, capture_output=True, text=True, env=env)
 
         # Read the JSON report
         report_file = Path(f"temp_{suite_name}.json")
@@ -49,7 +56,7 @@ class Phase3TestRunner:
             report_file.unlink()  # Clean up
 
             return {
-                "exit_code": result,
+                "exit_code": result.returncode,
                 "total": report_data["summary"]["total"],
                 "passed": report_data["summary"].get("passed", 0),
                 "failed": report_data["summary"].get("failed", 0),
@@ -58,7 +65,7 @@ class Phase3TestRunner:
                 "tests": report_data["tests"],
             }
         else:
-            return {"exit_code": result, "error": "Failed to generate test report"}
+            return {"exit_code": result.returncode, "error": "Failed to generate test report", "stderr": result.stderr}
 
     async def run_connectivity_test(self) -> Dict[str, Any]:
         """Run the connectivity test script."""
@@ -297,8 +304,6 @@ async def main():
 
 if __name__ == "__main__":
     # Ensure we're in the right directory
-    import os
-
     os.chdir(Path(__file__).parent.parent.parent)
 
     asyncio.run(main())
