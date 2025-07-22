@@ -94,7 +94,7 @@ jobs:
         id: successful-ops
         if: success()
         run: |
-          echo "✅ Testing successful operations..."
+          echo "Testing expected successful operations..."
           docker-compose run --rm \
             -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
             python-ci pytest tests/gaea2/test_gaea_operations.py -v --tb=short
@@ -103,7 +103,7 @@ jobs:
         id: failure-tests
         if: success()
         run: |
-          echo "❌ Testing expected failures and error handling..."
+          echo "Testing expected failures and error handling..."
           docker-compose run --rm \
             -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
             python-ci pytest tests/gaea2/test_gaea_failures.py -v --tb=short
