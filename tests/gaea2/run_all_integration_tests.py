@@ -14,8 +14,8 @@ from pathlib import Path
 from typing import Any, Dict
 
 
-class Phase3TestRunner:
-    """Runs all Integration tests autonomously and generates comprehensive reports."""
+class IntegrationTestRunner:
+    """Runs all integration tests autonomously and generates comprehensive reports."""
 
     def __init__(self, mcp_url: str = "http://192.168.0.152:8007"):
         self.mcp_url = mcp_url
@@ -200,7 +200,7 @@ class Phase3TestRunner:
 
     async def run_all_tests(self):
         """Run all Integration tests autonomously."""
-        print("🚀 Starting Integration Autonomous Testing for Gaea2 MCP")
+        print("🚀 Starting Integration Testing for Gaea2 MCP")
         print(f"   Server URL: {self.mcp_url}")
         print(f"   Timestamp: {datetime.now()}")
         print("=" * 60)
@@ -214,7 +214,7 @@ class Phase3TestRunner:
             self.generate_report()
             return
 
-        # 2. Framework tests (Integration comprehensive suite)
+        # 2. Framework tests (comprehensive integration suite)
         framework_results = self.run_pytest_suite("tests/gaea2/test_framework_integration.py", "framework_integration")
         self.results["test_suites"]["framework_integration"] = framework_results
 
@@ -240,7 +240,7 @@ class Phase3TestRunner:
         """Generate comprehensive test report."""
         # Console summary
         print("\n" + "=" * 60)
-        print("📊 PHASE 3 TEST SUMMARY")
+        print("📊 INTEGRATION TEST SUMMARY")
         print("=" * 60)
 
         analysis = self.results.get("analysis", self.analyze_test_results())
@@ -286,7 +286,7 @@ class Phase3TestRunner:
 
         # Exit code based on results
         if analysis["total_failed"] == 0:
-            print("\n🎉 All Integration tests passed! The AI agent has successfully validated the Gaea2 MCP.")
+            print("\n🎉 All integration tests passed! The Gaea2 MCP has been successfully validated.")
             sys.exit(0)
         else:
             print(f"\n⚠️  {analysis['total_failed']} tests failed. Review the detailed report for more information.")
@@ -298,7 +298,7 @@ async def main():
     # Check if custom server URL is provided
     server_url = sys.argv[1] if len(sys.argv) > 1 else "http://192.168.0.152:8007"
 
-    runner = Phase3TestRunner(server_url)
+    runner = IntegrationTestRunner(server_url)
     await runner.run_all_tests()
 
 
