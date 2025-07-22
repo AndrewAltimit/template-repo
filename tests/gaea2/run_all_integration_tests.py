@@ -65,7 +65,11 @@ class IntegrationTestRunner:
                 "tests": report_data["tests"],
             }
         else:
-            return {"exit_code": result.returncode, "error": "Failed to generate test report", "stderr": result.stderr}
+            return {
+                "exit_code": result.returncode,
+                "error": "Failed to generate test report",
+                "stderr": result.stderr,
+            }
 
     async def run_connectivity_test(self) -> Dict[str, Any]:
         """Run the connectivity test script."""

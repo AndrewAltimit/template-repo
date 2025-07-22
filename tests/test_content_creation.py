@@ -74,7 +74,10 @@ class TestContentCreationTools:
                     with patch("builtins.open", mock_open()):
                         # Setup mocks
                         mock_tmpdir.return_value.__enter__.return_value = "/tmp/test"
-                        mock_run.return_value = Mock(returncode=1, stderr="LaTeX Error: Missing \\begin{document}")
+                        mock_run.return_value = Mock(
+                            returncode=1,
+                            stderr="LaTeX Error: Missing \\begin{document}",
+                        )
                         mock_makedirs.return_value = None
 
                         # Test compilation

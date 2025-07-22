@@ -101,7 +101,14 @@ class Gaea2WorkflowAnalyzer:
 
         # Basic compatibility rules for common nodes
         basic_compatibility = {
-            "Mountain": ["Erosion", "Erosion2", "TextureBase", "SatMap", "Rivers", "Snow"],
+            "Mountain": [
+                "Erosion",
+                "Erosion2",
+                "TextureBase",
+                "SatMap",
+                "Rivers",
+                "Snow",
+            ],
             "Erosion": ["TextureBase", "SatMap", "Adjust", "Terrace"],
             "Erosion2": ["TextureBase", "SatMap", "Rivers", "Adjust"],
             "Rivers": ["SatMap", "TextureBase", "Lakes"],
@@ -130,10 +137,20 @@ class Gaea2WorkflowAnalyzer:
         if context and "realistic" in context.lower():
             if "Erosion2" not in current_nodes and "Erosion" not in current_nodes:
                 suggestions.append(
-                    {"node_type": "Erosion2", "reason": "Recommended for realistic terrain", "category": "Erosion"}
+                    {
+                        "node_type": "Erosion2",
+                        "reason": "Recommended for realistic terrain",
+                        "category": "Erosion",
+                    }
                 )
             if "SatMap" not in current_nodes:
-                suggestions.append({"node_type": "SatMap", "reason": "Required for color output", "category": "ColorAndData"})
+                suggestions.append(
+                    {
+                        "node_type": "SatMap",
+                        "reason": "Required for color output",
+                        "category": "ColorAndData",
+                    }
+                )
 
         # Remove duplicates
         seen = set()

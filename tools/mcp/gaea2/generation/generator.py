@@ -7,14 +7,12 @@ from datetime import datetime  # noqa: F401
 from pathlib import Path  # noqa: F401
 from typing import Any, Dict, List, Optional  # noqa: F401
 
-# Use stub implementations for now to avoid circular dependencies
-from .stub_implementations import (  # noqa: F401
-    EnhancedGaea2Tools,
-    Gaea2WorkflowTools,
-    apply_format_fixes,
-    fix_property_names,
-    generate_non_sequential_id,
-)
+from ..utils.id_generator import generate_non_sequential_id
+from ..utils.property_utils import fix_property_names
+from ..validation.gaea2_format_fixes import apply_format_fixes
+
+# Import real implementations
+from .gaea2_enhanced import EnhancedGaea2Tools
 
 
 class Gaea2ProjectGenerator:
@@ -23,7 +21,7 @@ class Gaea2ProjectGenerator:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.enhanced_tools = EnhancedGaea2Tools()
-        self.workflow_tools = Gaea2WorkflowTools()
+        # No longer need workflow_tools since we're using enhanced_tools directly
 
     async def create_project(
         self,
@@ -33,15 +31,12 @@ class Gaea2ProjectGenerator:
     ) -> Dict[str, Any]:
         """Create a Gaea2 project structure"""
 
-        # Use existing implementation from workflow tools
-        result = await self.workflow_tools.create_gaea2_project(
+        # Use the real implementation from enhanced tools
+        project_data = await self.enhanced_tools.create_advanced_gaea2_project(
             project_name=project_name, nodes=nodes, connections=connections
         )
 
-        if result.get("success"):
-            return result["project_data"]
-        else:
-            raise Exception(result.get("error", "Failed to create project"))
+        return project_data
 
     def generate_node_id(self) -> str:
         """Generate a non-sequential node ID"""

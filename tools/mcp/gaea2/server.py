@@ -381,7 +381,9 @@ class Gaea2MCPServer(BaseMCPServer):
 
             # Generate project
             project_data = await self.generator.create_project(
-                project_name=project_name, nodes=nodes or [], connections=connections or []
+                project_name=project_name,
+                nodes=nodes or [],
+                connections=connections or [],
             )
 
             # Save to file
@@ -491,13 +493,19 @@ class Gaea2MCPServer(BaseMCPServer):
                 }
                 template_name = template_map.get(workflow_type, "basic_terrain")
                 template = await templates.get_template(template_name)
-                workflow_data = {"nodes": template["nodes"], "connections": template["connections"]}
+                workflow_data = {
+                    "nodes": template["nodes"],
+                    "connections": template["connections"],
+                }
             elif workflow_or_directory:
                 if isinstance(workflow_or_directory, dict):
                     workflow_data = workflow_or_directory
                 else:
                     # Load from directory if string path provided
-                    return {"success": False, "error": "Directory loading not implemented"}
+                    return {
+                        "success": False,
+                        "error": "Directory loading not implemented",
+                    }
             elif workflow:
                 workflow_data = workflow
             else:
