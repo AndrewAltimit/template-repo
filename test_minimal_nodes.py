@@ -52,7 +52,15 @@ if response.status_code == 200:
             # Check if properties were added
             prop_count = 0
             for key in mountain:
-                if key not in ["$id", "$type", "Id", "Name", "Position", "Ports", "Modifiers"]:
+                if key not in [
+                    "$id",
+                    "$type",
+                    "Id",
+                    "Name",
+                    "Position",
+                    "Ports",
+                    "Modifiers",
+                ]:
                     prop_count += 1
                     print(f"  Found property: {key} = {mountain[key]}")
 
@@ -76,7 +84,10 @@ response = requests.post(
     "http://192.168.0.152:8007/mcp/execute",
     json={
         "tool": "create_gaea2_from_template",
-        "parameters": {"template_name": "basic_terrain", "project_name": "test_minimal_template"},
+        "parameters": {
+            "template_name": "basic_terrain",
+            "project_name": "test_minimal_template",
+        },
     },
 )
 

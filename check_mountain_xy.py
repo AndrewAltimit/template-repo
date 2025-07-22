@@ -4,7 +4,10 @@
 import glob
 import json
 
-reference_files = glob.glob("/home/miku/Documents/repos/template-repo/gaea-references/**/*.terrain", recursive=True)
+reference_files = glob.glob(
+    "/home/miku/Documents/repos/template-repo/gaea-references/**/*.terrain",
+    recursive=True,
+)
 
 print("=== CHECKING X,Y PROPERTIES IN MOUNTAIN/VOLCANO NODES ===\n")
 

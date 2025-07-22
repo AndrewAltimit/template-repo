@@ -1689,7 +1689,13 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Volcano",
             "name": "MainVolcano",
-            "properties": {"Scale": 1.2, "Height": 0.8, "Mouth": 0.3},
+            "properties": {
+                "Scale": 1.2,
+                "Height": 0.8,
+                "Mouth": 0.3,
+                "X": 0.296276,
+                "Y": 0.5,
+            },
         },
         {
             "type": "Island",
@@ -1871,7 +1877,13 @@ WORKFLOW_TEMPLATES = {
         {
             "type": "Volcano",
             "name": "CentralVolcano",
-            "properties": {"Scale": 0.6, "Height": 1.0, "Mouth": 0.35},
+            "properties": {
+                "Scale": 0.6,
+                "Height": 1.0,
+                "Mouth": 0.35,
+                "X": 0.5,
+                "Y": 0.5,
+            },
         },
         {
             "type": "Combine",
@@ -2292,9 +2304,17 @@ def create_workflow_from_template(
     ]
 
     # Create nodes with automatic positioning
+    # Use non-sequential IDs like working Gaea2 files (e.g., 183, 668, 427, 281, 294, 949)
+    import random
+
+    used_ids = set()
     x_offset = 0
     for i, node_template in enumerate(template):
-        node_id = 100 + i
+        # Generate a random 3-digit ID that hasn't been used yet
+        node_id = random.randint(100, 999)
+        while node_id in used_ids:
+            node_id = random.randint(100, 999)
+        used_ids.add(node_id)
         node_type = node_template["type"]
 
         # Only apply default properties for nodes that can handle them
@@ -2413,40 +2433,7 @@ def create_workflow_from_template(
         ]
         connections.extend(portal_connections)
 
-    # Always add an Export node at the end if not present
-    has_export = any(node["type"] == "Export" for node in nodes)
-    if not has_export:
-        last_node = nodes[-1]
-        export_id = max(node["id"] for node in nodes) + 1
-
-        export_node = {
-            "id": export_id,
-            "type": "Export",
-            "name": "TerrainExport",
-            "position": {
-                "x": last_node["position"]["x"] + 500,
-                "y": last_node["position"]["y"],
-            },
-            "properties": {
-                # NO Format property here - only in save_definition to avoid conflicts
-            },
-            "save_definition": {
-                "filename": "terrain_output",
-                "format": "EXR",  # Use EXR as default (more common in reference files)
-                "enabled": True,
-            },
-        }
-        nodes.append(export_node)
-
-        # Connect the last node to the Export node
-        connections.append(
-            {
-                "from_node": last_node["id"],
-                "to_node": export_id,
-                "from_port": "Out",
-                "to_port": "In",
-            }
-        )
+    # Export nodes are not required - many working Gaea2 files don't have them
 
     return nodes, connections
 

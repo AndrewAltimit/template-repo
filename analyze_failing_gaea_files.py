@@ -36,7 +36,10 @@ def fetch_file_from_server(project_name):
     """Fetch a project file from the Gaea2 server"""
     try:
         # Try to fetch the file using the list projects endpoint
-        response = requests.post("http://192.168.0.152:8007/mcp/execute", json={"tool": "list_gaea2_projects"})
+        response = requests.post(
+            "http://192.168.0.152:8007/mcp/execute",
+            json={"tool": "list_gaea2_projects"},
+        )
 
         if response.status_code == 200:
             data = response.json()
@@ -152,7 +155,15 @@ for node_type in working_only:
 
 # Check for specific problematic nodes
 print("\nChecking for specific problematic nodes...")
-problematic_nodes = ["ColorSpace", "Rivers", "Lakes", "Sea", "Snow", "FractalTerraces", "Coast"]
+problematic_nodes = [
+    "ColorSpace",
+    "Rivers",
+    "Lakes",
+    "Sea",
+    "Snow",
+    "FractalTerraces",
+    "Coast",
+]
 for node in problematic_nodes:
     in_failing = failing_node_types.get(node, 0)
     in_working = working_node_types.get(node, 0)

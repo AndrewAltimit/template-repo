@@ -17,7 +17,10 @@ async def test_arctic_terrain():
             f"{url}/mcp/execute",
             json={
                 "tool": "create_gaea2_from_template",
-                "parameters": {"template_name": "arctic_terrain", "project_name": "test_arctic_fixed"},
+                "parameters": {
+                    "template_name": "arctic_terrain",
+                    "project_name": "test_arctic_fixed",
+                },
             },
             timeout=aiohttp.ClientTimeout(total=30),
         ) as response:

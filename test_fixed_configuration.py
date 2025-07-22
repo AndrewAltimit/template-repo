@@ -48,7 +48,14 @@ response = requests.post(
                     "type": "TextureBase",
                     "name": "BaseTexture",
                     "position": {"x": 26000, "y": 26000},
-                    "properties": {"Slope": 0.5, "Scale": 0.5, "Soil": 0.5, "Patches": 0.5, "Chaos": 0.5, "Seed": 0},
+                    "properties": {
+                        "Slope": 0.5,
+                        "Scale": 0.5,
+                        "Soil": 0.5,
+                        "Patches": 0.5,
+                        "Chaos": 0.5,
+                        "Seed": 0,
+                    },
                 },
                 {
                     "id": 103,
@@ -77,7 +84,11 @@ response = requests.post(
                     "properties": {
                         "Format": "PNG",  # This should be removed by our fix
                     },
-                    "save_definition": {"filename": "TerrainExport", "format": "EXR", "enabled": True},
+                    "save_definition": {
+                        "filename": "TerrainExport",
+                        "format": "EXR",
+                        "enabled": True,
+                    },
                 },
             ],
             "connections": [
@@ -155,7 +166,10 @@ if response.status_code == 200:
             "http://192.168.0.152:8007/mcp/execute",
             json={
                 "tool": "create_gaea2_from_template",
-                "parameters": {"template_name": "basic_terrain", "project_name": "test_fixed_template"},
+                "parameters": {
+                    "template_name": "basic_terrain",
+                    "project_name": "test_fixed_template",
+                },
             },
         )
 

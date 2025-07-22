@@ -27,7 +27,7 @@ base_config = {
                 # Only provide a few properties
                 "Downcutting": 0.3,
                 "ErosionScale": 5000.0,
-                "Seed": 12345
+                "Seed": 12345,
                 # Missing: Duration and many others
             },
         },
@@ -42,7 +42,8 @@ config2["project_name"] = "test_full_mode"
 config2["property_mode"] = "full"
 
 response2 = requests.post(
-    "http://192.168.0.152:8007/mcp/execute", json={"tool": "create_gaea2_project", "parameters": config2}
+    "http://192.168.0.152:8007/mcp/execute",
+    json={"tool": "create_gaea2_project", "parameters": config2},
 )
 
 print(f"   Status code: {response2.status_code}")
@@ -79,7 +80,8 @@ config3["project_name"] = "test_smart_mode"
 config3["property_mode"] = "smart"
 
 response3 = requests.post(
-    "http://192.168.0.152:8007/mcp/execute", json={"tool": "create_gaea2_project", "parameters": config3}
+    "http://192.168.0.152:8007/mcp/execute",
+    json={"tool": "create_gaea2_project", "parameters": config3},
 )
 
 print(f"   Status code: {response3.status_code}")
@@ -140,7 +142,11 @@ regression_config = {
             "name": "TerrainExport",
             "position": {"x": 26000, "y": 26000},
             "properties": {},
-            "save_definition": {"filename": "terrain_output", "format": "EXR", "enabled": True},
+            "save_definition": {
+                "filename": "terrain_output",
+                "format": "EXR",
+                "enabled": True,
+            },
         },
     ],
     "connections": [
@@ -150,7 +156,8 @@ regression_config = {
 }
 
 response4 = requests.post(
-    "http://192.168.0.152:8007/mcp/execute", json={"tool": "create_gaea2_project", "parameters": regression_config}
+    "http://192.168.0.152:8007/mcp/execute",
+    json={"tool": "create_gaea2_project", "parameters": regression_config},
 )
 
 print(f"   Status code: {response4.status_code}")

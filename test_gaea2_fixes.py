@@ -1,90 +1,55 @@
 #!/usr/bin/env python3
-"""Test that our Gaea2 fixes work correctly"""
+"""Test the comprehensive Gaea2 fixes"""
 
+import asyncio
 import json
+import os
 import sys
 
-print("Testing Gaea2 fixes...\n")
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Test 1: Check Export node format handling
-print("1. Testing Export node format handling:")
 from tools.mcp.gaea2_mcp_server import Gaea2MCPServer
 
-# Simulate Export node property handling
-test_properties = {
-    "Format": "PNG",  # This should be removed
-    "format": "TIFF",  # This should also be removed
-    "other_prop": "value",  # This should remain
-}
 
-# Simulate the property handling logic
-node_type = "Export"
-properties = test_properties.copy()
+async def test_fixes():
+    """Test the Gaea2 fixes"""
+    # Initialize the server
+    server = Gaea2MCPServer()
 
-if node_type == "Export":
-    export_format = properties.pop("format", properties.pop("Format", "EXR")).upper()
-    export_filename = properties.pop("filename", properties.pop("Filename", "Export"))
-    properties.pop("FileFormat", None)
-    properties.pop("file_format", None)
+    # Test generating a volcanic terrain
+    print("Testing volcanic terrain template with fixes...")
+    result = await server.create_from_template(template_name="volcanic_terrain", project_name="test_volcanic_fixes")
 
-    print(f"   Export format extracted: {export_format}")
-    print(f"   Remaining properties: {properties}")
-    print(f"   ✓ Format properties removed correctly")
+    if result.get("success"):
+        file_path = result.get("saved_path") or result.get("project_path")
+        print(f"✓ Generated file: {file_path}")
+        # Quick check of the generated file
+        with open(file_path, "r") as f:
+            data = json.load(f)
+        nodes = data["Assets"]["$values"][0]["Terrain"]["Nodes"]
+        print(f"✓ Generated {len(nodes)-1} nodes")
 
-# Test 2: Check Erosion2 Duration defaults
-print("\n2. Testing Erosion2 Duration defaults:")
-from tools.mcp.gaea2_schema import NODE_PROPERTIES
+        # Check node IDs
+        node_ids = []
+        for node_id, node in nodes.items():
+            if node_id != "$id" and isinstance(node, dict):
+                node_ids.append(node.get("Id"))
 
-erosion2_props = NODE_PROPERTIES.get("Erosion2", {})
-duration_info = erosion2_props.get("Duration", {})
+        sorted_ids = sorted(node_ids)
+        print(f"✓ Node IDs: {sorted_ids[:5]}...")
 
-print(f"   Duration default: {duration_info.get('default')}")
-print(f"   Duration range: {duration_info.get('range')}")
-
-if duration_info.get("default") >= 0.15:
-    print(f"   ✓ Duration default is reasonable (>= 0.15)")
-else:
-    print(f"   ✗ Duration default is too low")
-
-# Test 3: Check template Export nodes
-print("\n3. Testing template Export node generation:")
-
-# Simulate template processing
-nodes = [{"id": 1, "type": "Mountain", "position": {"x": 1000, "y": 1000}}]
-has_export = False
-
-if not has_export:
-    last_node = nodes[-1]
-    export_id = 2
-
-    export_node = {
-        "id": export_id,
-        "type": "Export",
-        "name": "TerrainExport",
-        "position": {
-            "x": last_node["position"]["x"] + 500,
-            "y": last_node["position"]["y"],
-        },
-        "properties": {
-            # Should be empty
-        },
-        "save_definition": {
-            "filename": "terrain_output",
-            "format": "EXR",
-            "enabled": True,
-        },
-    }
-
-    if not export_node["properties"]:
-        print("   ✓ Export node has no Format property")
+        # Check for Volcano X/Y
+        for node in nodes.values():
+            if isinstance(node, dict) and "Volcano" in node.get("$type", ""):
+                if "X" in node and "Y" in node:
+                    print(f"✓ Volcano has X/Y: X={node['X']}, Y={node['Y']}")
+                else:
+                    print("❌ Volcano missing X/Y properties")
+                break
     else:
-        print("   ✗ Export node has properties:", export_node["properties"])
+        error = result.get("error")
+        print(f"❌ Failed: {error}")
 
-    if export_node["save_definition"]["format"]:
-        print(f"   ✓ SaveDefinition has format: {export_node['save_definition']['format']}")
 
-print("\n4. Summary:")
-print("   - Export nodes no longer have conflicting Format properties")
-print("   - Erosion2 Duration defaults increased from 0.04 to 0.15")
-print("   - Export format handling is case-insensitive")
-print("\nAll fixes implemented successfully!")
+# Run the async test
+asyncio.run(test_fixes())

@@ -263,7 +263,10 @@ class TestGaea2Operations:
         result = await self.execute_tool(
             mcp_url,
             "create_gaea2_from_template",
-            {"template_name": "arctic_terrain", "project_name": "test_combine_connections"},
+            {
+                "template_name": "arctic_terrain",
+                "project_name": "test_combine_connections",
+            },
         )
 
         assert result.get("success"), f"Failed to create project: {result.get('error')}"

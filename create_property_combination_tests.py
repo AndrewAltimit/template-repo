@@ -10,13 +10,19 @@ print("Creating property combination tests based on reference files...\n")
 # Based on analysis, these are VALID combinations
 valid_snow_combinations = [
     # From reference file (tut-highMountain.terrain)
-    {"name": "snow_reference_combo", "properties": {"SettleThaw": 0.56441945, "Melt": 0.09700374}},
+    {
+        "name": "snow_reference_combo",
+        "properties": {"SettleThaw": 0.56441945, "Melt": 0.09700374},
+    },
     # Individual properties that work
     {"name": "snow_duration_only", "properties": {"Duration": 0.5}},
     {"name": "snow_snowline_only", "properties": {"SnowLine": 0.7}},
     # Small combinations that work
     {"name": "snow_basic_combo", "properties": {"Duration": 0.5, "SnowLine": 0.7}},
-    {"name": "snow_with_melt_combo", "properties": {"Duration": 0.5, "SnowLine": 0.7, "Melt": 0.1}},
+    {
+        "name": "snow_with_melt_combo",
+        "properties": {"Duration": 0.5, "SnowLine": 0.7, "Melt": 0.1},
+    },
 ]
 
 # Create test projects
@@ -49,7 +55,11 @@ for test_case in valid_snow_combinations:
                 "name": "Output",
                 "position": {"x": 26000, "y": 26000},
                 "properties": {},
-                "save_definition": {"filename": "output", "format": "EXR", "enabled": True},
+                "save_definition": {
+                    "filename": "output",
+                    "format": "EXR",
+                    "enabled": True,
+                },
             },
         ],
         "connections": [
@@ -59,7 +69,8 @@ for test_case in valid_snow_combinations:
     }
 
     response = requests.post(
-        "http://192.168.0.152:8007/mcp/execute", json={"tool": "create_gaea2_project", "parameters": config}
+        "http://192.168.0.152:8007/mcp/execute",
+        json={"tool": "create_gaea2_project", "parameters": config},
     )
 
     if response.status_code == 200:

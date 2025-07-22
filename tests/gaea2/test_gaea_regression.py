@@ -56,7 +56,13 @@ class RegressionTestManager:
         normalized = copy.deepcopy(result)
 
         # Remove volatile top-level fields
-        fields_to_remove = ["timestamp", "project_path", "duration", "temp_path", "saved_path"]
+        fields_to_remove = [
+            "timestamp",
+            "project_path",
+            "duration",
+            "temp_path",
+            "saved_path",
+        ]
         for field in fields_to_remove:
             normalized.pop(field, None)
 
@@ -69,7 +75,10 @@ class RegressionTestManager:
         if "connections" in normalized:
             normalized["connections"] = sorted(
                 normalized["connections"],
-                key=lambda x: (x.get("from_node", x.get("source", "")), x.get("to_node", x.get("target", ""))),
+                key=lambda x: (
+                    x.get("from_node", x.get("source", "")),
+                    x.get("to_node", x.get("target", "")),
+                ),
             )
 
         return normalized

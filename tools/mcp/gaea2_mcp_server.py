@@ -138,7 +138,11 @@ class Gaea2MCPServer:
         return port
 
     def _create_gaea2_project_structure(
-        self, project_name: str, nodes: List[Dict], connections: List[Dict], property_mode: str = "minimal"
+        self,
+        project_name: str,
+        nodes: List[Dict],
+        connections: List[Dict],
+        property_mode: str = "minimal",
     ) -> Dict[str, Any]:
         """Create a Gaea2 project structure in the correct .terrain format"""
         import uuid
@@ -269,7 +273,12 @@ class Gaea2MCPServer:
             raw_properties = node.get("properties", {})
 
             # Handle property modes
-            if property_mode == "minimal":
+            if property_mode == "none":
+                # Use NO properties unless explicitly provided in template
+                properties = raw_properties if raw_properties else {}
+                if properties:
+                    properties = fix_property_names(properties, node_type)
+            elif property_mode == "minimal":
                 # Only use provided properties (current behavior)
                 if not raw_properties:
                     properties = {}
@@ -324,12 +333,8 @@ class Gaea2MCPServer:
                         if prop in raw_properties:
                             properties[prop] = raw_properties[prop]
 
-                    # If no properties provided, add defaults for essential properties
-                    if not properties:
-                        for prop in node_essentials[:3]:  # Max 3 properties
-                            if prop in NODE_PROPERTY_DEFINITIONS.get(node_type, {}):
-                                prop_def = NODE_PROPERTY_DEFINITIONS[node_type][prop]
-                                properties[prop] = prop_def.get("default", 0.5)
+                    # Don't add defaults - only use what's explicitly provided
+                    # Working Gaea2 files show nodes with NO properties work fine
 
                     # Ensure we don't exceed 3 properties
                     if len(properties) > 3:
@@ -545,7 +550,7 @@ class Gaea2MCPServer:
                         }
                         ref_id_counter += 1
 
-                port_in = self._create_port_dict(port_id, "In", "PrimaryIn, Required", node_ref_id, record)
+                port_in = self._create_port_dict(port_id, "In", "PrimaryIn", node_ref_id, record)
                 gaea_node["Ports"]["$values"].append(port_in)
 
                 # Out port
@@ -1466,7 +1471,7 @@ class Gaea2MCPServer:
                 workflow=workflow,
                 output_path=output_path,
                 auto_validate=True,
-                property_mode="smart",  # Use smart mode to limit problematic nodes
+                property_mode="none",  # Use none mode - only explicit properties
                 save_to_disk=save_to_disk,
             )
 

@@ -11,7 +11,12 @@ base_config = {
     "project_name": "test_snow_prop",
     "property_mode": "minimal",
     "nodes": [
-        {"id": 1, "type": "Mountain", "name": "BaseTerrain", "position": {"x": 25000, "y": 26000}},
+        {
+            "id": 1,
+            "type": "Mountain",
+            "name": "BaseTerrain",
+            "position": {"x": 25000, "y": 26000},
+        },
         {
             "id": 2,
             "type": "Snow",
@@ -41,7 +46,7 @@ test_cases = [
             "Melt": 0.0,
             "MeltRemnants": 0.0,
             "Direction": 0.0,
-            "SlipOffAngle": 35.0
+            "SlipOffAngle": 35.0,
             # Excluding: MeltType (string), RealScale (boolean)
         },
     ),
@@ -56,7 +61,7 @@ test_cases = [
             "Melt": 0.0,
             "MeltRemnants": 0.0,
             "Direction": 0.0,
-            "SlipOffAngle": 35.0
+            "SlipOffAngle": 35.0,
             # Excluding: RealScale
         },
     ),
@@ -74,7 +79,8 @@ for test_name, properties in test_cases:
     config["nodes"][1]["properties"] = properties
 
     response = requests.post(
-        "http://192.168.0.152:8007/mcp/execute", json={"tool": "create_gaea2_project", "parameters": config}
+        "http://192.168.0.152:8007/mcp/execute",
+        json={"tool": "create_gaea2_project", "parameters": config},
     )
 
     if response.status_code == 200:

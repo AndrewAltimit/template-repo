@@ -65,6 +65,18 @@
       "duration": 0.0022595179616473615,
       "success": true,
       "timestamp": "2025-07-21T22:23:44.742115"
+    },
+    {
+      "test": "template_performance",
+      "duration": 0.0023793120053596795,
+      "success": true,
+      "timestamp": "2025-07-22T09:03:43.384885"
+    },
+    {
+      "test": "validation_performance",
+      "duration": 0.0022441850160248578,
+      "success": true,
+      "timestamp": "2025-07-22T09:03:43.389109"
     }
   ]
 }

@@ -83,12 +83,34 @@ print(f"\n3. Export node properties:")
 export_props_w = {
     k: v
     for k, v in export_w.items()
-    if k not in {"$id", "$type", "Id", "Name", "Position", "Ports", "Modifiers", "NodeSize", "SaveDefinition"}
+    if k
+    not in {
+        "$id",
+        "$type",
+        "Id",
+        "Name",
+        "Position",
+        "Ports",
+        "Modifiers",
+        "NodeSize",
+        "SaveDefinition",
+    }
 }
 export_props_f = {
     k: v
     for k, v in export_f.items()
-    if k not in {"$id", "$type", "Id", "Name", "Position", "Ports", "Modifiers", "NodeSize", "SaveDefinition"}
+    if k
+    not in {
+        "$id",
+        "$type",
+        "Id",
+        "Name",
+        "Position",
+        "Ports",
+        "Modifiers",
+        "NodeSize",
+        "SaveDefinition",
+    }
 }
 
 print(f"   Working Export props: {export_props_w}")

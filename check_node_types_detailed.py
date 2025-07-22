@@ -62,7 +62,16 @@ for node_type, files in sorted(node_occurrences.items()):
         print(f"{node_type}: appears in {len(files)} files")
 
 # Check specific problematic nodes
-problematic = ["Beach", "Coast", "Lakes", "Snow", "Glacier", "SeaLevel", "LavaFlow", "ThermalShatter"]
+problematic = [
+    "Beach",
+    "Coast",
+    "Lakes",
+    "Snow",
+    "Glacier",
+    "SeaLevel",
+    "LavaFlow",
+    "ThermalShatter",
+]
 print("\n=== CHECKING SPECIFIC PROBLEMATIC NODES ===")
 for prob in problematic:
     if prob in node_occurrences:
@@ -72,7 +81,11 @@ for prob in problematic:
 
 # Let's check the Snow node specifically since it appears in multiple failing files
 print("\n\n=== SNOW NODE DETAILED ANALYSIS ===")
-for filename in ["regression_mountain_range.json", "regression_detailed_mountain.json", "regression_arctic_terrain.json"]:
+for filename in [
+    "regression_mountain_range.json",
+    "regression_detailed_mountain.json",
+    "regression_arctic_terrain.json",
+]:
     try:
         with open(filename, "r") as f:
             data = json.load(f)
@@ -88,7 +101,18 @@ for filename in ["regression_mountain_range.json", "regression_detailed_mountain
             if node_type == "Snow":
                 print(f"\n{filename} - Snow node:")
                 properties = {
-                    k: v for k, v in node.items() if k not in ["$id", "$type", "Id", "Name", "Position", "Ports", "Modifiers"]
+                    k: v
+                    for k, v in node.items()
+                    if k
+                    not in [
+                        "$id",
+                        "$type",
+                        "Id",
+                        "Name",
+                        "Position",
+                        "Ports",
+                        "Modifiers",
+                    ]
                 }
                 print(f"  Properties ({len(properties)}):")
                 for k, v in properties.items():

@@ -57,7 +57,14 @@ response = requests.post(
                     "type": "TextureBase",
                     "name": "BaseTexture",
                     "position": {"x": 26000, "y": 26000},
-                    "properties": {"Slope": 0.5, "Scale": 0.5, "Soil": 0.5, "Patches": 0.5, "Chaos": 0.5, "Seed": 0},
+                    "properties": {
+                        "Slope": 0.5,
+                        "Scale": 0.5,
+                        "Soil": 0.5,
+                        "Patches": 0.5,
+                        "Chaos": 0.5,
+                        "Seed": 0,
+                    },
                 },
                 {
                     "id": 103,

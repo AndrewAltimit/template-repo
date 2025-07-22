@@ -50,7 +50,17 @@ gen_nodes = generated["Assets"]["$values"][0]["Terrain"]["Nodes"]
 # Working doesn't have Export, but let's check generated
 for node_id, node in gen_nodes.items():
     if node_id != "$id" and "Export" in node.get("$type", ""):
-        exclude = ["$id", "$type", "Id", "Name", "Position", "Ports", "Modifiers", "NodeSize", "SaveDefinition"]
+        exclude = [
+            "$id",
+            "$type",
+            "Id",
+            "Name",
+            "Position",
+            "Ports",
+            "Modifiers",
+            "NodeSize",
+            "SaveDefinition",
+        ]
         props = {k: v for k, v in node.items() if k not in exclude}
         print(f"Export node extra fields: {props}")
         break

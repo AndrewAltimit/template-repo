@@ -13,14 +13,25 @@ config1 = {
     "project_name": "test_snow_minimal",
     "property_mode": "minimal",
     "nodes": [
-        {"id": 1, "type": "Mountain", "name": "BaseTerrain", "position": {"x": 25000, "y": 26000}},
-        {"id": 2, "type": "Snow", "name": "SnowLayer", "position": {"x": 25500, "y": 26000}},
+        {
+            "id": 1,
+            "type": "Mountain",
+            "name": "BaseTerrain",
+            "position": {"x": 25000, "y": 26000},
+        },
+        {
+            "id": 2,
+            "type": "Snow",
+            "name": "SnowLayer",
+            "position": {"x": 25500, "y": 26000},
+        },
     ],
     "connections": [{"from_node": 1, "to_node": 2, "from_port": "Out", "to_port": "In"}],
 }
 
 response1 = requests.post(
-    "http://192.168.0.152:8007/mcp/execute", json={"tool": "create_gaea2_project", "parameters": config1}
+    "http://192.168.0.152:8007/mcp/execute",
+    json={"tool": "create_gaea2_project", "parameters": config1},
 )
 
 if response1.status_code == 200:
@@ -36,14 +47,25 @@ config2 = {
     "project_name": "test_snow_full",
     "property_mode": "full",
     "nodes": [
-        {"id": 1, "type": "Mountain", "name": "BaseTerrain", "position": {"x": 25000, "y": 26000}},
-        {"id": 2, "type": "Snow", "name": "SnowLayer", "position": {"x": 25500, "y": 26000}},
+        {
+            "id": 1,
+            "type": "Mountain",
+            "name": "BaseTerrain",
+            "position": {"x": 25000, "y": 26000},
+        },
+        {
+            "id": 2,
+            "type": "Snow",
+            "name": "SnowLayer",
+            "position": {"x": 25500, "y": 26000},
+        },
     ],
     "connections": [{"from_node": 1, "to_node": 2, "from_port": "Out", "to_port": "In"}],
 }
 
 response2 = requests.post(
-    "http://192.168.0.152:8007/mcp/execute", json={"tool": "create_gaea2_project", "parameters": config2}
+    "http://192.168.0.152:8007/mcp/execute",
+    json={"tool": "create_gaea2_project", "parameters": config2},
 )
 
 if response2.status_code == 200:
@@ -64,12 +86,20 @@ print("\n3. Creating control project without Snow...")
 config3 = {
     "project_name": "test_no_snow",
     "property_mode": "minimal",
-    "nodes": [{"id": 1, "type": "Mountain", "name": "BaseTerrain", "position": {"x": 25000, "y": 26000}}],
+    "nodes": [
+        {
+            "id": 1,
+            "type": "Mountain",
+            "name": "BaseTerrain",
+            "position": {"x": 25000, "y": 26000},
+        }
+    ],
     "connections": [],
 }
 
 response3 = requests.post(
-    "http://192.168.0.152:8007/mcp/execute", json={"tool": "create_gaea2_project", "parameters": config3}
+    "http://192.168.0.152:8007/mcp/execute",
+    json={"tool": "create_gaea2_project", "parameters": config3},
 )
 
 if response3.status_code == 200:

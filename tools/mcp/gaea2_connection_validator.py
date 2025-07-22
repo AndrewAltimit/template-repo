@@ -197,9 +197,20 @@ class Gaea2ConnectionValidator:
 
         # Look for long chains that could be shortened
         for start_node in nodes:
-            if start_node.get("type", "Unknown") in ["Mountain", "Canyon", "Ridge", "Island"]:
+            if start_node.get("type", "Unknown") in [
+                "Mountain",
+                "Canyon",
+                "Ridge",
+                "Island",
+            ]:
                 # These are typically starting nodes
-                paths = self._find_paths_to_type(start_node.get("id", ""), "SatMap", adjacency, node_types, max_length=6)
+                paths = self._find_paths_to_type(
+                    start_node.get("id", ""),
+                    "SatMap",
+                    adjacency,
+                    node_types,
+                    max_length=6,
+                )
 
                 if paths:
                     shortest = min(paths, key=len)

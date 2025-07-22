@@ -7,7 +7,10 @@ response = requests.post(
     "http://192.168.0.152:8007/mcp/execute",
     json={
         "tool": "create_gaea2_from_template",
-        "parameters": {"template_name": "arctic_terrain", "project_name": "test_final_fix"},
+        "parameters": {
+            "template_name": "arctic_terrain",
+            "project_name": "test_final_fix",
+        },
     },
 )
 

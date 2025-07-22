@@ -27,7 +27,7 @@ base_config = {
                 # Only provide a few properties
                 "Downcutting": 0.3,
                 "ErosionScale": 5000.0,
-                "Seed": 12345
+                "Seed": 12345,
                 # Missing: Duration and many others
             },
         },
@@ -37,7 +37,11 @@ base_config = {
             "name": "TerrainExport",
             "position": {"x": 26000, "y": 26000},
             "properties": {},
-            "save_definition": {"filename": "terrain_output", "format": "EXR", "enabled": True},
+            "save_definition": {
+                "filename": "terrain_output",
+                "format": "EXR",
+                "enabled": True,
+            },
         },
     ],
     "connections": [
@@ -52,7 +56,8 @@ config1 = base_config.copy()
 config1["project_name"] = "test_minimal_mode"
 
 response1 = requests.post(
-    "http://192.168.0.152:8007/mcp/execute", json={"tool": "create_gaea2_project", "parameters": config1}
+    "http://192.168.0.152:8007/mcp/execute",
+    json={"tool": "create_gaea2_project", "parameters": config1},
 )
 
 if response1.status_code == 200:
@@ -72,7 +77,8 @@ config2["project_name"] = "test_full_mode"
 config2["property_mode"] = "full"
 
 response2 = requests.post(
-    "http://192.168.0.152:8007/mcp/execute", json={"tool": "create_gaea2_project", "parameters": config2}
+    "http://192.168.0.152:8007/mcp/execute",
+    json={"tool": "create_gaea2_project", "parameters": config2},
 )
 
 if response2.status_code == 200:
@@ -97,7 +103,8 @@ config3["project_name"] = "test_smart_mode"
 config3["property_mode"] = "smart"
 
 response3 = requests.post(
-    "http://192.168.0.152:8007/mcp/execute", json={"tool": "create_gaea2_project", "parameters": config3}
+    "http://192.168.0.152:8007/mcp/execute",
+    json={"tool": "create_gaea2_project", "parameters": config3},
 )
 
 if response3.status_code == 200:

@@ -67,7 +67,11 @@ for terrain_file in terrain_files:
                 # Store the combination
                 prop_set = frozenset(properties)
                 node_property_combinations[node_type].append(
-                    {"file": os.path.basename(terrain_file), "properties": properties, "prop_count": len(properties)}
+                    {
+                        "file": os.path.basename(terrain_file),
+                        "properties": properties,
+                        "prop_count": len(properties),
+                    }
                 )
 
                 # Track which properties appear together
@@ -153,7 +157,11 @@ for node_type, combos in node_property_combinations.items():
     if combos:
         max_prop = max(combo["prop_count"] for combo in combos)
         avg_prop = sum(combo["prop_count"] for combo in combos) / len(combos)
-        max_properties[node_type] = {"max": max_prop, "avg": round(avg_prop, 1), "instances": len(combos)}
+        max_properties[node_type] = {
+            "max": max_prop,
+            "avg": round(avg_prop, 1),
+            "instances": len(combos),
+        }
 
 # Show nodes with most properties
 print("\nNodes with most properties in working files:")

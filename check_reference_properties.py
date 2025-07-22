@@ -5,7 +5,10 @@ import glob
 import json
 import os
 
-reference_files = glob.glob("/home/miku/Documents/repos/template-repo/gaea-references/**/*.terrain", recursive=True)
+reference_files = glob.glob(
+    "/home/miku/Documents/repos/template-repo/gaea-references/**/*.terrain",
+    recursive=True,
+)
 
 print(f"Checking {len(reference_files)} reference files...\n")
 

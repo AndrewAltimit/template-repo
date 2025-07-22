@@ -54,21 +54,37 @@ if response.status_code == 200:
                     "type": "Mountain",
                     "name": "ArcticMountains",
                     "position": {"x": 25000, "y": 26000},
-                    "properties": {"Scale": 3.0, "Height": 0.9, "Style": "Alpine", "Bulk": "High", "Seed": 67890},
+                    "properties": {
+                        "Scale": 3.0,
+                        "Height": 0.9,
+                        "Style": "Alpine",
+                        "Bulk": "High",
+                        "Seed": 67890,
+                    },
                 },
                 {
                     "id": 2,
                     "type": "Thermal",
                     "name": "FrostShatter",
                     "position": {"x": 25500, "y": 26000},
-                    "properties": {"Duration": 0.8, "Intensity": 0.6, "Slip": 0.3, "Seed": 11111},
+                    "properties": {
+                        "Duration": 0.8,
+                        "Intensity": 0.6,
+                        "Slip": 0.3,
+                        "Seed": 11111,
+                    },
                 },
                 {
                     "id": 3,
                     "type": "Erosion2",
                     "name": "GlacialErosion",
                     "position": {"x": 26000, "y": 26000},
-                    "properties": {"Duration": 0.20, "Downcutting": 0.2, "ErosionScale": 8000.0, "Seed": 22222},
+                    "properties": {
+                        "Duration": 0.20,
+                        "Downcutting": 0.2,
+                        "ErosionScale": 8000.0,
+                        "Seed": 22222,
+                    },
                 },
                 {
                     "id": 4,
@@ -83,7 +99,11 @@ if response.status_code == 200:
                     "name": "TerrainExport",
                     "position": {"x": 27000, "y": 26000},
                     "properties": {},
-                    "save_definition": {"filename": "arctic_terrain", "format": "EXR", "enabled": True},
+                    "save_definition": {
+                        "filename": "arctic_terrain",
+                        "format": "EXR",
+                        "enabled": True,
+                    },
                 },
             ],
             "connections": [
@@ -95,7 +115,8 @@ if response.status_code == 200:
         }
 
         response2 = requests.post(
-            "http://192.168.0.152:8007/mcp/execute", json={"tool": "create_gaea2_project", "parameters": modified_config}
+            "http://192.168.0.152:8007/mcp/execute",
+            json={"tool": "create_gaea2_project", "parameters": modified_config},
         )
 
         if response2.status_code == 200:
@@ -116,14 +137,24 @@ modified_mountain_config = {
             "type": "Mountain",
             "name": "MainMountain",
             "position": {"x": 25000, "y": 26000},
-            "properties": {"Scale": 2.0, "Height": 0.8, "Style": "Alpine", "Seed": 12345},
+            "properties": {
+                "Scale": 2.0,
+                "Height": 0.8,
+                "Style": "Alpine",
+                "Seed": 12345,
+            },
         },
         {
             "id": 2,
             "type": "Mountain",  # Replace Ridge with another Mountain
             "name": "SecondaryPeaks",
             "position": {"x": 25000, "y": 26500},
-            "properties": {"Scale": 1.5, "Height": 0.6, "Style": "Eroded", "Seed": 23456},
+            "properties": {
+                "Scale": 1.5,
+                "Height": 0.6,
+                "Style": "Eroded",
+                "Seed": 23456,
+            },
         },
         {
             "id": 3,
@@ -137,7 +168,11 @@ modified_mountain_config = {
             "type": "Erosion2",
             "name": "MountainErosion",
             "position": {"x": 26000, "y": 26250},
-            "properties": {"Duration": 0.15, "Downcutting": 0.4, "ErosionScale": 6000.0},
+            "properties": {
+                "Duration": 0.15,
+                "Downcutting": 0.4,
+                "ErosionScale": 6000.0,
+            },
         },
         {
             "id": 5,
@@ -152,7 +187,11 @@ modified_mountain_config = {
             "name": "TerrainExport",
             "position": {"x": 27000, "y": 26250},
             "properties": {},
-            "save_definition": {"filename": "mountain_range", "format": "EXR", "enabled": True},
+            "save_definition": {
+                "filename": "mountain_range",
+                "format": "EXR",
+                "enabled": True,
+            },
         },
     ],
     "connections": [
@@ -165,7 +204,8 @@ modified_mountain_config = {
 }
 
 response3 = requests.post(
-    "http://192.168.0.152:8007/mcp/execute", json={"tool": "create_gaea2_project", "parameters": modified_mountain_config}
+    "http://192.168.0.152:8007/mcp/execute",
+    json={"tool": "create_gaea2_project", "parameters": modified_mountain_config},
 )
 
 if response3.status_code == 200:

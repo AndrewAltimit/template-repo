@@ -4,14 +4,62 @@ import requests
 
 # Create arctic terrain but with NO properties
 nodes = [
-    {"id": 100, "type": "Mountain", "name": "ArcticMountains", "position": {"x": 25000, "y": 26000}, "properties": {}},
-    {"id": 101, "type": "Glacier", "name": "IceFlow", "position": {"x": 25500, "y": 26000}, "properties": {}},
-    {"id": 102, "type": "Combine", "name": "GlacialCarving", "position": {"x": 26000, "y": 26000}, "properties": {}},
-    {"id": 103, "type": "Snow", "name": "SnowCover", "position": {"x": 26500, "y": 26000}, "properties": {}},
-    {"id": 104, "type": "Thermal", "name": "FrostShatter", "position": {"x": 27000, "y": 26000}, "properties": {}},
-    {"id": 105, "type": "Lakes", "name": "GlacialLakes", "position": {"x": 27500, "y": 26000}, "properties": {}},
-    {"id": 106, "type": "SatMap", "name": "ArcticColors", "position": {"x": 28000, "y": 26000}, "properties": {}},
-    {"id": 107, "type": "Export", "name": "TerrainExport", "position": {"x": 28500, "y": 26000}, "properties": {}},
+    {
+        "id": 100,
+        "type": "Mountain",
+        "name": "ArcticMountains",
+        "position": {"x": 25000, "y": 26000},
+        "properties": {},
+    },
+    {
+        "id": 101,
+        "type": "Glacier",
+        "name": "IceFlow",
+        "position": {"x": 25500, "y": 26000},
+        "properties": {},
+    },
+    {
+        "id": 102,
+        "type": "Combine",
+        "name": "GlacialCarving",
+        "position": {"x": 26000, "y": 26000},
+        "properties": {},
+    },
+    {
+        "id": 103,
+        "type": "Snow",
+        "name": "SnowCover",
+        "position": {"x": 26500, "y": 26000},
+        "properties": {},
+    },
+    {
+        "id": 104,
+        "type": "Thermal",
+        "name": "FrostShatter",
+        "position": {"x": 27000, "y": 26000},
+        "properties": {},
+    },
+    {
+        "id": 105,
+        "type": "Lakes",
+        "name": "GlacialLakes",
+        "position": {"x": 27500, "y": 26000},
+        "properties": {},
+    },
+    {
+        "id": 106,
+        "type": "SatMap",
+        "name": "ArcticColors",
+        "position": {"x": 28000, "y": 26000},
+        "properties": {},
+    },
+    {
+        "id": 107,
+        "type": "Export",
+        "name": "TerrainExport",
+        "position": {"x": 28500, "y": 26000},
+        "properties": {},
+    },
 ]
 
 connections = [
@@ -29,7 +77,11 @@ response = requests.post(
     "http://192.168.0.152:8007/mcp/execute",
     json={
         "tool": "create_gaea2_project",
-        "parameters": {"project_name": "test_no_props", "nodes": nodes, "connections": connections},
+        "parameters": {
+            "project_name": "test_no_props",
+            "nodes": nodes,
+            "connections": connections,
+        },
     },
 )
 

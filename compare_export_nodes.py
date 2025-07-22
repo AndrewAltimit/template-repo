@@ -5,7 +5,10 @@ import glob
 import json
 
 # Find reference files with Export nodes
-reference_files = glob.glob("/home/miku/Documents/repos/template-repo/gaea-references/**/*.terrain", recursive=True)
+reference_files = glob.glob(
+    "/home/miku/Documents/repos/template-repo/gaea-references/**/*.terrain",
+    recursive=True,
+)
 
 print("=== LOOKING FOR EXPORT NODES IN REFERENCE FILES ===\n")
 
@@ -64,7 +67,13 @@ failing_export = {
     "Name": "TerrainExport",
     "NodeSize": "Standard",
     "Position": {"$id": "40", "X": 27000.0, "Y": 26000.0},
-    "SaveDefinition": {"$id": "41", "Node": 104, "Filename": "TerrainExport", "Format": "EXR", "IsEnabled": True},
+    "SaveDefinition": {
+        "$id": "41",
+        "Node": 104,
+        "Filename": "TerrainExport",
+        "Format": "EXR",
+        "IsEnabled": True,
+    },
     "Ports": {
         "$id": "42",
         "$values": [
@@ -72,11 +81,24 @@ failing_export = {
                 "$id": "44",
                 "Name": "In",
                 "Type": "PrimaryIn, Required",
-                "Record": {"$id": "45", "From": 103, "To": 104, "FromPort": "Out", "ToPort": "In", "IsValid": True},
+                "Record": {
+                    "$id": "45",
+                    "From": 103,
+                    "To": 104,
+                    "FromPort": "Out",
+                    "ToPort": "In",
+                    "IsValid": True,
+                },
                 "IsExporting": True,
                 "Parent": {"$ref": "39"},
             },
-            {"$id": "46", "Name": "Out", "Type": "PrimaryOut", "IsExporting": True, "Parent": {"$ref": "39"}},
+            {
+                "$id": "46",
+                "Name": "Out",
+                "Type": "PrimaryOut",
+                "IsExporting": True,
+                "Parent": {"$ref": "39"},
+            },
         ],
     },
     "Modifiers": {"$id": "43", "$values": []},

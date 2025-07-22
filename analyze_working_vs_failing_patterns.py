@@ -43,7 +43,15 @@ def analyze_file(filename):
             node_types[node_type] += 1
 
             # Store details for specific problematic nodes
-            if node_type in ["ColorSpace", "Rivers", "Lakes", "Sea", "Snow", "Coast", "FractalTerraces"]:
+            if node_type in [
+                "ColorSpace",
+                "Rivers",
+                "Lakes",
+                "Sea",
+                "Snow",
+                "Coast",
+                "FractalTerraces",
+            ]:
                 node_details[f"{node_type}_{node_id}"] = {
                     "type": node_type,
                     "id": node_id,
@@ -162,7 +170,11 @@ problematic_in_failing = defaultdict(list)
 for analysis in failing_analyses:
     for detail_key, detail in analysis["node_details"].items():
         problematic_in_failing[detail["type"]].append(
-            {"file": analysis["filename"], "prop_count": detail["prop_count"], "properties": detail["properties"]}
+            {
+                "file": analysis["filename"],
+                "prop_count": detail["prop_count"],
+                "properties": detail["properties"],
+            }
         )
 
 if problematic_in_failing:

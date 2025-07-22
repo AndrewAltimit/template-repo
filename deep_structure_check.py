@@ -125,7 +125,13 @@ failing_json = {
                                         "IsExporting": True,
                                         "Parent": {"$ref": "13"},
                                     },
-                                    {"$id": "23", "Name": "Mask", "Type": "In", "IsExporting": True, "Parent": {"$ref": "13"}},
+                                    {
+                                        "$id": "23",
+                                        "Name": "Mask",
+                                        "Type": "In",
+                                        "IsExporting": True,
+                                        "Parent": {"$ref": "13"},
+                                    },
                                 ],
                             },
                             "Modifiers": {"$id": "16", "$values": []},
@@ -274,7 +280,11 @@ failing_json = {
                                 "Name": "Graph 1",
                                 "Color": "Brass",
                                 "ZoomFactor": 0.5338687202362516,
-                                "ViewportLocation": {"$id": "51", "X": 25531.445, "Y": 25791.812},
+                                "ViewportLocation": {
+                                    "$id": "51",
+                                    "X": 25531.445,
+                                    "Y": 25791.812,
+                                },
                             }
                         ],
                     },

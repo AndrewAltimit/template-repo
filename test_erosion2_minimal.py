@@ -67,7 +67,14 @@ response2 = requests.post(
                     "type": "Mountain",
                     "name": "BaseTerrain",
                     "position": {"x": 25000, "y": 26000},
-                    "properties": {"Scale": 1.0, "Height": 0.7, "Style": "Alpine", "Bulk": "Medium", "X": 0.0, "Y": 0.0},
+                    "properties": {
+                        "Scale": 1.0,
+                        "Height": 0.7,
+                        "Style": "Alpine",
+                        "Bulk": "Medium",
+                        "X": 0.0,
+                        "Y": 0.0,
+                    },
                 },
                 {
                     "id": 101,
@@ -96,7 +103,14 @@ response2 = requests.post(
                     "type": "TextureBase",
                     "name": "BaseTexture",
                     "position": {"x": 26000, "y": 26000},
-                    "properties": {"Slope": 0.5, "Scale": 0.5, "Soil": 0.5, "Patches": 0.5, "Chaos": 0.5, "Seed": 0},
+                    "properties": {
+                        "Slope": 0.5,
+                        "Scale": 0.5,
+                        "Soil": 0.5,
+                        "Patches": 0.5,
+                        "Chaos": 0.5,
+                        "Seed": 0,
+                    },
                 },
                 {
                     "id": 103,

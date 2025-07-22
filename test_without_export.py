@@ -35,14 +35,23 @@ response = requests.post(
                     "type": "Erosion2",
                     "name": "Erosion",
                     "position": {"x": 25500, "y": 26000},
-                    "properties": {"Duration": 0.15, "Downcutting": 0.3, "ErosionScale": 5000.0, "Seed": 12345},
+                    "properties": {
+                        "Duration": 0.15,
+                        "Downcutting": 0.3,
+                        "ErosionScale": 5000.0,
+                        "Seed": 12345,
+                    },
                 },
                 {
                     "id": 3,
                     "type": "SatMap",
                     "name": "ColorMap",
                     "position": {"x": 26000, "y": 26000},
-                    "properties": {"Library": "Rock", "LibraryItem": 0, "Enhance": "None"},
+                    "properties": {
+                        "Library": "Rock",
+                        "LibraryItem": 0,
+                        "Enhance": "None",
+                    },
                 },
             ],
             "connections": [

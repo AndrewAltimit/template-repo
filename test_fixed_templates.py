@@ -26,7 +26,10 @@ for template_name in failing_templates:
         "http://192.168.0.152:8007/mcp/execute",
         json={
             "tool": "create_gaea2_from_template",
-            "parameters": {"template_name": template_name, "project_name": f"test_fixed_{template_name}"},
+            "parameters": {
+                "template_name": template_name,
+                "project_name": f"test_fixed_{template_name}",
+            },
         },
     )
 
