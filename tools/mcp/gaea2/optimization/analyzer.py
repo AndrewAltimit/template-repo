@@ -99,9 +99,23 @@ class Gaea2WorkflowAnalyzer:
 
         suggestions = []
 
-        # Use knowledge graph for suggestions
+        # Basic compatibility rules for common nodes
+        basic_compatibility = {
+            "Mountain": ["Erosion", "Erosion2", "TextureBase", "SatMap", "Rivers", "Snow"],
+            "Erosion": ["TextureBase", "SatMap", "Adjust", "Terrace"],
+            "Erosion2": ["TextureBase", "SatMap", "Rivers", "Adjust"],
+            "Rivers": ["SatMap", "TextureBase", "Lakes"],
+            "TextureBase": ["SatMap", "Export"],
+            "SatMap": ["Export"],
+        }
+
+        # Use knowledge graph for suggestions or fall back to basic rules
         for node_type in current_nodes:
             compatible = NODE_COMPATIBILITY.get(node_type, [])
+            if not compatible:
+                # Use basic compatibility if no knowledge graph data
+                compatible = basic_compatibility.get(node_type, [])
+
             for suggested in compatible[:3]:  # Top 3 suggestions
                 if suggested not in current_nodes:
                     suggestions.append(
@@ -111,6 +125,15 @@ class Gaea2WorkflowAnalyzer:
                             "category": knowledge_graph.get_node_category(suggested),
                         }
                     )
+
+        # Add context-based suggestions
+        if context and "realistic" in context.lower():
+            if "Erosion2" not in current_nodes and "Erosion" not in current_nodes:
+                suggestions.append(
+                    {"node_type": "Erosion2", "reason": "Recommended for realistic terrain", "category": "Erosion"}
+                )
+            if "SatMap" not in current_nodes:
+                suggestions.append({"node_type": "SatMap", "reason": "Required for color output", "category": "ColorAndData"})
 
         # Remove duplicates
         seen = set()

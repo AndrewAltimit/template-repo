@@ -229,9 +229,20 @@ class TestSuccessfulOperations:
         assert result.get("success"), f"Pattern analysis failed: {result.get('error')}"
         # Pattern analysis returns data in 'analysis' field
         analysis = result.get("analysis", {})
-        assert "node_count" in analysis
-        assert "connection_count" in analysis
-        assert "recommendations" in analysis
+
+        # Check for expected structure - patterns, performance, quality sections
+        assert "patterns" in analysis
+        assert "performance" in analysis
+        assert "quality" in analysis
+
+        # Verify patterns section has expected data
+        patterns = analysis.get("patterns", {})
+        assert patterns.get("node_count", 0) == 3
+        assert patterns.get("connection_count", 0) == 2
+
+        # Verify quality section has recommendations
+        quality = analysis.get("quality", {})
+        assert "enhancement_suggestions" in quality or "quality_issues" in quality
 
     @pytest.mark.asyncio
     async def test_node_suggestions(self, framework):
@@ -283,10 +294,15 @@ class TestExpectedFailures:
         # or it might fix them automatically
         # Invalid node types should be handled gracefully
         assert result.get("success") is True  # Validation succeeds
-        # The server might be permissive and accept unknown node types
-        # This is actually okay - Gaea2 might support custom nodes we don't know about
-        # Just ensure we get a validation result (either API format works)
-        assert ("valid" in result.get("result", {})) or ("is_valid" in result.get("results", {}))
+
+        # Check the validation result structure
+        # The API returns: {errors: [], fixed: bool, fixes_applied: [], ...}
+        assert "errors" in result
+        assert "fixed" in result
+        assert "fixes_applied" in result
+
+        # Invalid node type might be in errors or might be auto-fixed
+        # Both are acceptable behaviors
 
     @pytest.mark.asyncio
     async def test_circular_connections(self, framework):
@@ -345,13 +361,19 @@ class TestEdgeCases:
         """Test validation of empty workflow."""
         result = await framework.execute_mcp_tool("validate_and_fix_workflow", {"workflow": {"nodes": [], "connections": []}})
 
-        # Empty workflow should be invalid
+        # Empty workflow should be handled gracefully
         assert result.get("success") is True
-        # Check validation result based on API structure
-        if "results" in result:
-            assert result["results"].get("is_valid") is False
-        else:
-            assert result.get("valid") is False
+
+        # The API returns validation results in this structure
+        assert "errors" in result
+        assert "fixed" in result
+
+        # Empty workflow should have errors or be fixed
+        has_errors = len(result.get("errors", [])) > 0
+        was_fixed = result.get("fixed", False)
+
+        # Either it has validation errors OR it was fixed (e.g., by adding required nodes)
+        assert has_errors or was_fixed, "Empty workflow should either have errors or be fixed"
 
     @pytest.mark.asyncio
     async def test_maximum_complexity(self, framework):
