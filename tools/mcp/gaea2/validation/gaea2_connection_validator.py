@@ -53,8 +53,9 @@ class Gaea2ConnectionValidator:
 
         # Check basic connection validity
         for conn in connections:
-            from_id = conn.get("from_node")
-            to_id = conn.get("to_node")
+            # Handle both formats: from_node/to_node and source/target
+            from_id = conn.get("from_node") or conn.get("source")
+            to_id = conn.get("to_node") or conn.get("target")
 
             # Check if nodes exist
             if from_id not in node_map:
@@ -93,8 +94,11 @@ class Gaea2ConnectionValidator:
         # Check for orphaned nodes
         connected_ids = set()
         for conn in connections:
-            connected_ids.add(conn["from_node"])
-            connected_ids.add(conn["to_node"])
+            # Handle both formats
+            from_id = conn.get("from_node") or conn.get("source")
+            to_id = conn.get("to_node") or conn.get("target")
+            connected_ids.add(from_id)
+            connected_ids.add(to_id)
 
         for node in nodes:
             node_id = node.get("id", f"node_{nodes.index(node)}")
@@ -224,7 +228,10 @@ class Gaea2ConnectionValidator:
         # Build adjacency list
         graph = defaultdict(list)
         for conn in connections:
-            graph[conn["from_node"]].append(conn["to_node"])
+            # Handle both formats
+            from_node = conn.get("from_node") or conn.get("source")
+            to_node = conn.get("to_node") or conn.get("target")
+            graph[from_node].append(to_node)
 
         cycles = []
         visited = set()

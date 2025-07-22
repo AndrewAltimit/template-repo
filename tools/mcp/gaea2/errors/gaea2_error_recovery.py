@@ -79,12 +79,13 @@ class Gaea2ErrorRecovery:
         duplicates = 0
 
         for conn in connections:
-            key = (
-                conn["from_node"],
-                conn["to_node"],
-                conn.get("from_port", "Out"),
-                conn.get("to_port", "In"),
-            )
+            # Handle both formats: from_node/to_node and source/target
+            from_node = conn.get("from_node") or conn.get("source")
+            to_node = conn.get("to_node") or conn.get("target")
+            from_port = conn.get("from_port") or conn.get("source_port", "Out")
+            to_port = conn.get("to_port") or conn.get("target_port", "In")
+
+            key = (from_node, to_node, from_port, to_port)
             if key not in seen:
                 seen.add(key)
                 fixed.append(conn)
@@ -389,14 +390,68 @@ class Gaea2ErrorRecovery:
 
         # Add default properties
         props = suggest_properties_for_node(node_type)
+        node_properties = node["properties"]
+        assert isinstance(node_properties, dict)  # Type hint for mypy
         for prop_name, prop_info in props.items():
             if isinstance(prop_info, dict) and "default" in prop_info:
-                node["properties"][prop_name] = prop_info["default"]
+                node_properties[prop_name] = prop_info["default"]
 
         return node
 
+    def _get_essential_properties(self, node_type: str, properties: Dict[str, Any]) -> Dict[str, Any]:
+        """Get the most essential properties for a node type (max 3)"""
+        # Define essential properties for each limited node type
+        essential_props_map = {
+            "Snow": ["Duration", "SnowLine", "Melt"],
+            "Beach": ["Width", "Slope"],
+            "Coast": ["Width", "Height", "Slope"],
+            "Lakes": ["Count", "Size"],
+            "Glacier": ["Flow", "Depth", "Melt"],
+            "SeaLevel": ["Level", "Swell"],
+            "LavaFlow": ["Temperature", "Viscosity"],
+            "ThermalShatter": ["Intensity", "Scale"],
+            "Ridge": ["Scale", "Complexity"],
+            "Strata": ["Layers", "Scale", "Distortion"],
+            "Voronoi": ["Scale", "Cells", "Randomness"],
+            "Terrace": ["Steps", "Sharpness", "Uniformity"],
+        }
+
+        essential_keys = essential_props_map.get(node_type, [])
+
+        # If we have defined essential properties, use them
+        if essential_keys:
+            result = {}
+            for key in essential_keys:
+                if key in properties:
+                    result[key] = properties[key]
+            # If we have fewer than 3, add some other properties
+            if len(result) < 3:
+                for key, value in properties.items():
+                    if key not in result and len(result) < 3:
+                        result[key] = value
+            return result
+        else:
+            # For unknown nodes, just take the first 3 properties
+            return dict(list(properties.items())[:3])
+
     def fix_workflow(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Fix workflow issues automatically"""
+        # Nodes that must have <= 3 properties to open in Gaea2
+        PROPERTY_LIMITED_NODES = {
+            "Snow",
+            "Beach",
+            "Coast",
+            "Lakes",
+            "Glacier",
+            "SeaLevel",
+            "LavaFlow",
+            "ThermalShatter",
+            "Ridge",
+            "Strata",
+            "Voronoi",
+            "Terrace",
+        }
+
         fixed_nodes = self._fix_node_properties(nodes)
         fixed_connections = self._fix_duplicate_connections(connections)
         # Do NOT add Export nodes - they aren't needed for working files
@@ -413,6 +468,18 @@ class Gaea2ErrorRecovery:
             if i < len(fixed_nodes) and node.get("properties", {}) != fixed_nodes[i].get("properties", {}):
                 fixes_applied.append(f"Fixed properties for {node.get('type', 'unknown')} node")
                 break
+
+        # Fix property count limits for problematic nodes
+        for node in fixed_nodes:
+            node_type = node.get("type")
+            if node_type in PROPERTY_LIMITED_NODES:
+                props = node.get("properties", {})
+                if len(props) > 3:
+                    # Get the most important properties for this node type
+                    essential_props = self._get_essential_properties(node_type, props)
+                    node["properties"] = essential_props
+                    fixes_applied.append(f"Limited {node_type} node to 3 essential properties (had {len(props)})")
+                    logger.warning(f"Node {node_type} had {len(props)} properties, limited to 3 for Gaea2 compatibility")
 
         return {
             "nodes": fixed_nodes,
