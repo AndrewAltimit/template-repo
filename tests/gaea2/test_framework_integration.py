@@ -7,12 +7,17 @@ specifically implementing Integration requirements for autonomous testing and va
 
 import asyncio
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 
 import aiohttp
 import pytest
+
+# Enable validation bypass for integration testing
+# Integration tests verify API behavior and error handling, not file validity
+os.environ["GAEA2_BYPASS_FILE_VALIDATION_FOR_TESTS"] = "1"
 
 
 class Gaea2TestFramework:

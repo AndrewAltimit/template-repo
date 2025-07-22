@@ -1,0 +1,37 @@
+{
+  "timestamp": "2025-07-22T17:40:35.743089",
+  "successful_patterns": [
+    {
+      "test": "tests/gaea2/test_framework_integration.py::TestSuccessfulOperations::test_validate_workflow",
+      "duration": 0
+    },
+    {
+      "test": "tests/gaea2/test_framework_integration.py::TestEdgeCases::test_empty_workflow",
+      "duration": 0
+    },
+    {
+      "test": "tests/gaea2/test_gaea_operations.py::TestGaea2Operations::test_common_workflow_pattern",
+      "duration": 0
+    },
+    {
+      "test": "tests/gaea2/test_gaea_operations.py::TestGaea2Operations::test_workflow_optimization",
+      "duration": 0
+    },
+    {
+      "test": "tests/gaea2/test_gaea_operations.py::TestGaea2Operations::test_workflow_repair",
+      "duration": 0
+    },
+    {
+      "test": "tests/gaea2/test_gaea_failures.py::TestErrorRecovery::test_workflow_auto_repair",
+      "duration": 0
+    }
+  ],
+  "failure_patterns": [],
+  "edge_cases_discovered": [],
+  "performance_benchmarks": {
+    "framework_integration": 16.99950098991394,
+    "operations": 8.47020149230957,
+    "failures": 1.2719073295593262,
+    "regression": 8.426202058792114
+  }
+}
