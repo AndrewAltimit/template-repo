@@ -390,7 +390,14 @@ class TestGaea2Regression:
                 json={"tool": tool, "parameters": parameters},
                 timeout=aiohttp.ClientTimeout(total=300),
             ) as response:
-                return await response.json()
+                result = await response.json()
+
+                # Handle base server response format - unwrap if needed
+                if "result" in result and isinstance(result["result"], dict):
+                    # Return the inner result for consistency
+                    return result["result"]
+
+                return result
 
     @pytest.mark.asyncio
     async def test_template_regression(self, mcp_url, regression_manager):
@@ -770,7 +777,6 @@ class TestGaea2Regression:
                 assert "error" not in str(comparison["differences"]).lower()
 
     @pytest.mark.asyncio
-    @pytest.mark.skip(reason="Server currently accepts invalid workflows - needs server-side fix")
     async def test_error_handling_regression(self, mcp_url, regression_manager):
         """Ensure error handling remains consistent."""
         error_scenarios = [

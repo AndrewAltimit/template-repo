@@ -368,15 +368,22 @@ class Gaea2MCPServer(BaseMCPServer):
     ) -> Dict[str, Any]:
         """Create a new Gaea2 terrain project"""
         try:
-            # Handle both API formats
-            if workflow:
-                nodes = workflow.get("nodes", [])
-                connections = workflow.get("connections", [])
-            elif not nodes:
+            # Validate input parameters
+            if workflow is None and nodes is None:
                 return {
                     "success": False,
                     "error": "Either 'workflow' or 'nodes' must be provided",
                 }
+
+            # Handle both API formats
+            if workflow is not None:
+                if not isinstance(workflow, dict):
+                    return {
+                        "success": False,
+                        "error": "Workflow must be a dictionary with 'nodes' and 'connections'",
+                    }
+                nodes = workflow.get("nodes", [])
+                connections = workflow.get("connections", [])
 
             # Validate and fix if requested
             if auto_validate:
@@ -449,7 +456,7 @@ class Gaea2MCPServer(BaseMCPServer):
                     # If validation system fails, still fail the generation
                     try:
                         os.remove(output_path)
-                    except:
+                    except Exception:
                         pass
                     return {
                         "success": False,
@@ -509,6 +516,16 @@ class Gaea2MCPServer(BaseMCPServer):
     async def validate_and_fix_workflow(self, *, workflow: Dict[str, Any], strict_mode: bool = False) -> Dict[str, Any]:
         """Validate and fix a Gaea2 workflow"""
         try:
+            # Validate workflow structure
+            if not isinstance(workflow, dict):
+                return {"success": False, "error": "Workflow must be a dictionary"}
+
+            if "nodes" in workflow and not isinstance(workflow["nodes"], list):
+                return {"success": False, "error": "Workflow 'nodes' must be a list"}
+
+            if "connections" in workflow and not isinstance(workflow["connections"], list):
+                return {"success": False, "error": "Workflow 'connections' must be a list"}
+
             result = await self.validator.validate_and_fix(workflow, strict_mode=strict_mode)
 
             return {

@@ -65,6 +65,30 @@
       "duration": 0.002503130992408842,
       "success": true,
       "timestamp": "2025-07-22T17:40:35.684248"
+    },
+    {
+      "test": "template_performance",
+      "duration": 0.5152112260111608,
+      "success": true,
+      "timestamp": "2025-07-22T17:48:08.716432"
+    },
+    {
+      "test": "validation_performance",
+      "duration": 0.0021948239882476628,
+      "success": true,
+      "timestamp": "2025-07-22T17:48:08.720582"
+    },
+    {
+      "test": "template_performance",
+      "duration": 0.5197425140067935,
+      "success": true,
+      "timestamp": "2025-07-22T17:48:53.671259"
+    },
+    {
+      "test": "validation_performance",
+      "duration": 0.0023212049854919314,
+      "success": true,
+      "timestamp": "2025-07-22T17:48:53.675689"
     }
   ]
 }
