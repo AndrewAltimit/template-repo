@@ -322,6 +322,11 @@ async def validate_gaea2_file(
     "return_code": int,           # Gaea2 CLI exit code
     "duration": float,            # Validation time in seconds
     "timestamp": str,             # ISO timestamp
+    "success_detected": bool,     # v2: Whether success patterns found
+    "error_detected": bool,       # v2: Whether error patterns found
+    "error": str,                 # Error message if failed
+    "stdout": str,                # v2: Complete stdout output
+    "stderr": str,                # v2: Complete stderr output
     "error_info": {               # Present if validation failed
         "error_types": List[str],
         "error_messages": List[str],
@@ -330,6 +335,12 @@ async def validate_gaea2_file(
     }
 }
 ```
+
+**v2 Improvements:**
+- Real-time pattern detection for immediate results
+- Success confirmation with 3-second wait period
+- Process termination after determining result
+- Correctly identifies files that open successfully
 
 ### validate_gaea2_batch
 

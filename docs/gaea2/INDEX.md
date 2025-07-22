@@ -19,6 +19,7 @@ This directory contains all documentation related to the Gaea2 MCP (Model Contex
 - **[GAEA2_EXAMPLES.md](GAEA2_EXAMPLES.md)** - Code examples and usage patterns
 - **[GAEA2_MCP_SERVER.md](GAEA2_MCP_SERVER.md)** - Standalone server setup and usage
 - **[GAEA2_KNOWLEDGE_BASE.md](GAEA2_KNOWLEDGE_BASE.md)** - Pattern knowledge and best practices
+- **[VALIDATION_GUIDE.md](VALIDATION_GUIDE.md)** - Complete guide to the file validation system ✨
 
 ## Development Documentation
 
