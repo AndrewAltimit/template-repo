@@ -48,7 +48,7 @@ class TestContentCreationTools:
         with patch("tempfile.TemporaryDirectory") as mock_tmpdir:
             with patch("subprocess.run") as mock_run:
                 with patch("os.path.exists") as mock_exists:
-                    with patch("shutil.copy") as _mock_copy:
+                    with patch("shutil.copy"):
                         with patch("os.makedirs") as mock_makedirs:
                             with patch("builtins.open", mock_open()):
                                 # Setup mocks
@@ -119,7 +119,7 @@ class TestContentCreationTools:
         with patch("tempfile.NamedTemporaryFile") as mock_tmp:
             with patch("subprocess.run") as mock_run:
                 with patch("os.listdir") as mock_listdir:
-                    with patch("os.unlink") as mock_unlink:
+                    with patch("os.unlink"):
                         with patch("os.makedirs") as mock_makedirs:
                             # Setup mocks
                             mock_file = Mock()

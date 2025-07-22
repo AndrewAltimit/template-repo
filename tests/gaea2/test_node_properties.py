@@ -1,6 +1,6 @@
 """Unit tests for Gaea2 node property validation"""
 
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import pytest
 

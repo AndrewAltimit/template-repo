@@ -1,9 +1,6 @@
 """Unit tests based on Level1.terrain reference file format"""
 
-import json
-from typing import Any, Dict, List, Optional
-
-import pytest
+from typing import Any, Dict, List
 
 
 class TestReferenceFormat:

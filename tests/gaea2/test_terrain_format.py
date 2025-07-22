@@ -1,7 +1,6 @@
 """Unit tests for Gaea2 terrain file format validation"""
 
-import json
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import pytest
 
