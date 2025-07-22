@@ -4,7 +4,7 @@ Enhanced Gaea2 validation module with comprehensive type checking
 Based on accurate property definitions extracted from Gaea2 documentation
 """
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class Gaea2Validator:
@@ -149,7 +149,9 @@ class Gaea2Validator:
             "fixed_properties": fixed_properties,
         }
 
-    def validate_workflow(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def validate_workflow(
+        self, nodes: List[Dict[str, Any]], connections: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
         """
         Validate an entire workflow
 

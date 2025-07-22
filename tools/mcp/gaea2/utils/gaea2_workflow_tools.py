@@ -28,10 +28,10 @@ class Gaea2WorkflowTools:
             nodes = terrain.get("Nodes", {})
 
             # Analyze node types and their frequencies
-            node_types = {}
-            node_connections = {}
-            erosion_chains = []
-            export_nodes = []
+            node_types: Dict[str, int] = {}
+            node_connections: Dict[str, Dict[str, Any]] = {}
+            erosion_chains: List[List[str]] = []
+            export_nodes: List[str] = []
 
             for node_id, node in nodes.items():
                 node_type = node.get("$type", "").split(".")[-2]
@@ -187,7 +187,7 @@ class Gaea2WorkflowTools:
         - "prototype": Fast iteration (low res, minimal outputs)
         """
 
-        presets = {
+        presets: Dict[str, Dict[str, Any]] = {
             "game": {
                 "Resolution": 2048,
                 "TileResolution": 1024,
@@ -265,16 +265,21 @@ class Gaea2WorkflowTools:
         preset = presets.get(target_use_case, presets["game"])
 
         # Generate build configuration
+        resolution = int(preset["Resolution"])
+        tile_resolution = int(preset["TileResolution"])
+        num_tiles = int(preset["NumberOfTiles"])
+        edge_blending = float(preset["EdgeBlending"])
+
         build_config = {
             "Type": "Standard",
-            "Resolution": preset["Resolution"],
-            "BakeResolution": preset["Resolution"],
-            "TileResolution": preset["TileResolution"],
-            "NumberOfTiles": preset["NumberOfTiles"],
-            "TotalTiles": preset["NumberOfTiles"] ** 2,
-            "EdgeBlending": preset["EdgeBlending"],
-            "EdgeSize": int(preset["TileResolution"] * preset["EdgeBlending"]),
-            "TilePattern": "_y%Y%_x%X%" if preset["NumberOfTiles"] > 1 else "",
+            "Resolution": resolution,
+            "BakeResolution": resolution,
+            "TileResolution": tile_resolution,
+            "NumberOfTiles": num_tiles,
+            "TotalTiles": num_tiles**2,
+            "EdgeBlending": edge_blending,
+            "EdgeSize": int(tile_resolution * edge_blending),
+            "TilePattern": "_y%Y%_x%X%" if num_tiles > 1 else "",
             "OrganizeFiles": "NodeSubFolder",
             "export_formats": preset["export_formats"],
         }
@@ -285,8 +290,8 @@ class Gaea2WorkflowTools:
             "build_config": build_config,
             "suggestions": preset["suggestions"],
             "estimated_memory": {
-                "heightmap": f"{(preset['Resolution'] ** 2 * 4) / (1024 ** 3):.2f} GB",
-                "per_texture": f"{(preset['Resolution'] ** 2 * 3) / (1024 ** 3):.2f} GB",
+                "heightmap": f"{(resolution ** 2 * 4) / (1024 ** 3):.2f} GB",
+                "per_texture": f"{(resolution ** 2 * 3) / (1024 ** 3):.2f} GB",
             },
         }
 
@@ -510,7 +515,7 @@ class Gaea2WorkflowTools:
             nodes_b = terrain_b.get("Nodes", {})
 
             # Compare node counts
-            differences = {
+            differences: Dict[str, Any] = {
                 "node_count": {
                     "project_a": len(nodes_a),
                     "project_b": len(nodes_b),
@@ -647,8 +652,8 @@ class Gaea2WorkflowTools:
             terrain = project["Assets"]["$values"][0]["Terrain"]
             nodes = terrain.get("Nodes", {})
 
-            performance_analysis = {
-                "total_cost": 0,
+            performance_analysis: Dict[str, Any] = {
+                "total_cost": 0.0,
                 "heavy_nodes": [],
                 "optimization_suggestions": [],
                 "memory_estimate_mb": 0,
@@ -665,21 +670,21 @@ class Gaea2WorkflowTools:
                 base_weight = node_weights.get(node_type, 3)
 
                 # Adjust weight based on properties
-                adjusted_weight = base_weight
+                adjusted_weight = float(base_weight)
 
                 # Erosion nodes scale with duration/iterations
                 if node_type in ["Erosion", "Erosion2"]:
-                    duration = node.get("Duration", 10)
+                    duration = float(node.get("Duration", 10))
                     adjusted_weight *= duration / 10
 
                 # Iterative nodes scale with iterations
                 if "Iterations" in node:
-                    iterations = node.get("Iterations", 1)
+                    iterations = float(node.get("Iterations", 1))
                     adjusted_weight *= iterations / 10
 
                 # High resolution nodes
                 if "Resolution" in node:
-                    node_res = node.get("Resolution", 1)
+                    node_res = float(node.get("Resolution", 1))
                     adjusted_weight *= node_res / 1000
 
                 performance_analysis["node_costs"][node_id] = {

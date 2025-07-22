@@ -3,7 +3,7 @@ Optimized Gaea2 validation with caching and efficient data structures
 """
 
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .gaea2_cache import Gaea2Cache
 from .gaea2_connection_utils import normalize_connections
@@ -19,7 +19,9 @@ class OptimizedGaea2Validator:
         self._property_cache_hits = 0
         self._connection_cache_hits = 0
 
-    def validate_workflow(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def validate_workflow(
+        self, nodes: List[Dict[str, Any]], connections: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
         """
         Optimized workflow validation with caching and efficient lookups.
 

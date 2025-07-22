@@ -1090,7 +1090,7 @@ class Gaea2KnowledgeGraph:
         relation_type: RelationType,
         strength: float = 1.0,
         description: str = "",
-        conditions: Dict[str, Any] = None,
+        conditions: Optional[Dict[str, Any]] = None,
     ):
         """Add a relationship between nodes"""
         rel = NodeRelationship(
@@ -1109,7 +1109,7 @@ class Gaea2KnowledgeGraph:
         description: str,
         nodes: List[str],
         connections: List[Tuple[str, str]],
-        tags: List[str] = None,
+        tags: Optional[List[str]] = None,
     ):
         """Add a workflow pattern"""
         pattern = NodePattern(
@@ -1155,7 +1155,7 @@ class Gaea2KnowledgeGraph:
 
     def get_suggested_next_nodes(self, current_nodes: List[str]) -> List[Tuple[str, float]]:
         """Suggest next nodes based on current workflow"""
-        suggestions = {}
+        suggestions: Dict[str, float] = {}
 
         # Check what typically follows current nodes
         for node in current_nodes:

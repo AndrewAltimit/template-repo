@@ -210,7 +210,10 @@ def get_workflow_for_terrain_type(terrain_type: str) -> Optional[Dict[str, Any]]
 
     workflow_key = terrain_workflows.get(terrain_type.lower())
     if workflow_key and workflow_key in WORKFLOW_TEMPLATES:
-        return WORKFLOW_TEMPLATES[workflow_key]
+        template = WORKFLOW_TEMPLATES[workflow_key]
+        # Ensure we're returning a dict
+        if isinstance(template, dict):
+            return template
 
     return None
 
@@ -220,22 +223,27 @@ def suggest_properties_for_node(node_type: str, context: Optional[Dict[str, Any]
     if node_type not in PROPERTY_RECOMMENDATIONS:
         return {}
 
-    recommendations = PROPERTY_RECOMMENDATIONS[node_type].copy()
+    # Get recommendations and ensure it's a dict
+    base_recommendations = PROPERTY_RECOMMENDATIONS.get(node_type, {})
+    if not isinstance(base_recommendations, dict):
+        return {}
+
+    recommendations = base_recommendations.copy()
 
     # Context-aware adjustments
     if context:
         if context.get("performance_priority"):
             # Suggest lower values for performance
-            if node_type == "Erosion2":
+            if node_type == "Erosion2" and "Duration" in recommendations:
                 recommendations["Duration"]["suggested"] = 0.04
-            elif node_type == "Rivers":
+            elif node_type == "Rivers" and "Headwaters" in recommendations:
                 recommendations["Headwaters"]["suggested"] = 50
 
         if context.get("detail_priority"):
             # Suggest higher values for detail
-            if node_type == "Erosion2":
+            if node_type == "Erosion2" and "Duration" in recommendations:
                 recommendations["Duration"]["suggested"] = 0.1
-            elif node_type == "Rivers":
+            elif node_type == "Rivers" and "Headwaters" in recommendations:
                 recommendations["Headwaters"]["suggested"] = 200
 
     return recommendations

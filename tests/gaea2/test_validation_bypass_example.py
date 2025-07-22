@@ -6,14 +6,13 @@ when testing invalid terrain generation scenarios.
 import asyncio
 import os
 import sys
-import tempfile
 from pathlib import Path
+
+import requests
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
-
-import requests
 
 
 async def test_with_validation_bypass():
@@ -154,9 +153,9 @@ async def main():
         if response.status_code != 200:
             print("ERROR: Gaea2 MCP server not responding correctly")
             return
-    except Exception as e:
-        print(f"ERROR: Cannot connect to Gaea2 MCP server at localhost:8007")
-        print(f"Please start the server first: python -m tools.mcp.gaea2.server")
+    except Exception:
+        print("ERROR: Cannot connect to Gaea2 MCP server at localhost:8007")
+        print("Please start the server first: python -m tools.mcp.gaea2.server")
         return
 
     # Run test scenarios
