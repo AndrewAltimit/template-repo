@@ -299,6 +299,97 @@ async def suggest_gaea2_nodes(
 }
 ```
 
+### validate_gaea2_file
+
+Validate if a Gaea2 terrain file actually opens in Gaea2.
+
+```python
+async def validate_gaea2_file(
+    file_path: str,
+    timeout: int = 30
+) -> Dict[str, Any]
+```
+
+**Parameters:**
+- `file_path`: Path to the .terrain file to validate
+- `timeout`: Maximum time to wait for validation in seconds
+
+**Returns:**
+```python
+{
+    "success": bool,              # Whether the file opens successfully
+    "file_path": str,
+    "return_code": int,           # Gaea2 CLI exit code
+    "duration": float,            # Validation time in seconds
+    "timestamp": str,             # ISO timestamp
+    "error_info": {               # Present if validation failed
+        "error_types": List[str],
+        "error_messages": List[str],
+        "problematic_node": Optional[str],
+        "problematic_property": Optional[str]
+    }
+}
+```
+
+### validate_gaea2_batch
+
+Validate multiple Gaea2 terrain files concurrently.
+
+```python
+async def validate_gaea2_batch(
+    file_paths: List[str],
+    concurrent: int = 4
+) -> Dict[str, Any]
+```
+
+**Parameters:**
+- `file_paths`: List of .terrain file paths to validate
+- `concurrent`: Number of concurrent validations
+
+**Returns:**
+```python
+{
+    "total_files": int,
+    "validated": int,
+    "successful": int,
+    "failed": int,
+    "error_types": Dict[str, int],    # Error type frequency
+    "common_errors": List[Tuple[str, int]],  # Most common errors
+    "results": List[Dict]             # Individual file results
+}
+```
+
+### test_gaea2_template
+
+Test a template by generating and validating multiple variations.
+
+```python
+async def test_gaea2_template(
+    template_name: str,
+    variations: int = 5,
+    server_url: str = "http://localhost:8007"
+) -> Dict[str, Any]
+```
+
+**Parameters:**
+- `template_name`: Name of the template to test
+- `variations`: Number of variations to generate and test
+- `server_url`: MCP server URL for generating variations
+
+**Returns:**
+```python
+{
+    "success": bool,
+    "template_name": str,
+    "variations_tested": int,
+    "successful": int,
+    "failed": int,
+    "error_types": Dict[str, int],
+    "common_errors": List[Tuple[str, int]],
+    "results": List[Dict]             # Validation results per variation
+}
+```
+
 ---
 
 ## Core Modules

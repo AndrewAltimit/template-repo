@@ -546,6 +546,73 @@ POST http://192.168.0.152:8007/mcp/execute
 }
 ```
 
+## 🔍 File Validation System
+
+The Gaea2 MCP server includes an automated validation system to test if generated terrain files actually open in Gaea2:
+
+### Validation Tools
+
+1. **validate_gaea2_file** - Validate a single terrain file
+   ```bash
+   {
+     "tool": "validate_gaea2_file",
+     "parameters": {
+       "file_path": "/path/to/terrain.terrain",
+       "timeout": 30  # optional, defaults to 30 seconds
+     }
+   }
+   ```
+
+2. **validate_gaea2_batch** - Validate multiple files concurrently
+   ```bash
+   {
+     "tool": "validate_gaea2_batch",
+     "parameters": {
+       "file_paths": ["/path/to/file1.terrain", "/path/to/file2.terrain"],
+       "concurrent": 4  # optional, number of parallel validations
+     }
+   }
+   ```
+
+3. **test_gaea2_template** - Test a template with multiple variations
+   ```bash
+   {
+     "tool": "test_gaea2_template",
+     "parameters": {
+       "template_name": "mountain_range",
+       "variations": 5,  # optional, defaults to 5
+       "server_url": "http://localhost:8007"  # optional
+     }
+   }
+   ```
+
+### Validation Features
+
+- **Automated Testing**: Uses `Gaea.Swarm.exe --validate` to check if files open
+- **Error Pattern Detection**: Identifies common failure patterns
+- **Timeout Handling**: Prevents hanging on problematic files
+- **Detailed Reporting**: Provides comprehensive error analysis
+- **Batch Processing**: Test multiple files efficiently
+
+### Test Scripts
+
+```bash
+# Test all templates and generate report
+python scripts/test_gaea2_templates.py
+
+# Quick validation test
+python scripts/test_gaea2_validation.py
+
+# Validate specific file
+python tools/mcp/gaea2_file_validator.py /path/to/terrain.terrain
+```
+
+### Requirements
+
+- **Gaea2 Installation**: The server must have access to `Gaea.Swarm.exe`
+- **Environment Variable**: Set `GAEA2_PATH` to the Gaea2 executable path
+- **Windows Host**: Validation requires running on Windows with Gaea2 installed
+
 ## 🤝 Contributing
 
 The Gaea2 MCP system is actively maintained. For issues or contributions:

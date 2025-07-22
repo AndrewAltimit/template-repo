@@ -32,6 +32,9 @@ sys.path.insert(0, project_root)
 from tools.mcp.gaea2_connection_validator import Gaea2ConnectionValidator  # noqa: E402
 from tools.mcp.gaea2_enhanced import EnhancedGaea2Tools  # noqa: E402
 from tools.mcp.gaea2_error_recovery import Gaea2ErrorRecovery  # noqa: E402
+
+# Import file validation module
+from tools.mcp.gaea2_file_validator import Gaea2FileValidator  # noqa: E402
 from tools.mcp.gaea2_format_fixes import (  # noqa: E402
     NODE_PROPERTIES,
     apply_format_fixes,
@@ -43,12 +46,7 @@ from tools.mcp.gaea2_knowledge_graph import knowledge_graph  # noqa: E402
 # Pattern knowledge is available as module functions, not a class
 from tools.mcp.gaea2_project_repair import Gaea2ProjectRepair  # noqa: E402
 from tools.mcp.gaea2_property_validator import Gaea2PropertyValidator  # noqa: E402
-from tools.mcp.gaea2_schema import (  # noqa: E402
-    NODE_PROPERTY_DEFINITIONS,
-    WORKFLOW_TEMPLATES,
-    apply_default_properties,
-    create_workflow_from_template,
-)
+from tools.mcp.gaea2_schema import WORKFLOW_TEMPLATES, apply_default_properties, create_workflow_from_template  # noqa: E402
 from tools.mcp.gaea2_structure_validator import Gaea2StructureValidator  # noqa: E402
 from tools.mcp.gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer  # noqa: E402
 from tools.mcp.gaea2_workflow_tools import Gaea2WorkflowTools  # noqa: E402
@@ -56,6 +54,8 @@ from tools.mcp.gaea2_workflow_tools import Gaea2WorkflowTools  # noqa: E402
 
 class Gaea2MCPServer:
     """Standalone Gaea2 MCP Server with CLI automation"""
+
+    gaea_path: Optional[Path]
 
     def __init__(self, gaea_path: Optional[str] = None):
         """
@@ -1571,6 +1571,31 @@ class Gaea2MCPServer:
                     "optimization_mode": "Mode: 'performance', 'quality', or 'balanced'",
                 },
             },
+            {
+                "name": "validate_gaea2_file",
+                "description": "Validate if a Gaea2 terrain file actually opens in Gaea2",
+                "parameters": {
+                    "file_path": "Path to the .terrain file to validate",
+                    "timeout": "Timeout in seconds (default: 30)",
+                },
+            },
+            {
+                "name": "validate_gaea2_batch",
+                "description": "Validate multiple Gaea2 terrain files in batch",
+                "parameters": {
+                    "file_paths": "List of .terrain file paths to validate",
+                    "concurrent": "Number of concurrent validations (default: 4)",
+                },
+            },
+            {
+                "name": "test_gaea2_template",
+                "description": "Test a template by generating and validating multiple variations",
+                "parameters": {
+                    "template_name": "Name of the template to test",
+                    "variations": "Number of variations to test (default: 5)",
+                    "server_url": "MCP server URL (default: http://localhost:8007)",
+                },
+            },
         ]
 
         return web.json_response({"tools": tools})
@@ -1594,6 +1619,9 @@ class Gaea2MCPServer:
                 "suggest_gaea2_nodes": self._suggest_nodes,
                 "repair_gaea2_project": self._repair_project,
                 "optimize_gaea2_properties": self._optimize_properties,
+                "validate_gaea2_file": self._validate_gaea2_file,
+                "validate_gaea2_batch": self._validate_gaea2_batch,
+                "test_gaea2_template": self._test_gaea2_template,
             }
 
             if tool_name not in tool_map:
@@ -1774,6 +1802,42 @@ class Gaea2MCPServer:
             "optimized_workflow": optimized,
             "mode": optimization_mode,
         }
+
+    async def _validate_gaea2_file(self, *, file_path: str, timeout: int = 30) -> Dict[str, Any]:
+        """Validate a single Gaea2 file"""
+        try:
+            # Initialize validator
+            validator = Gaea2FileValidator(self.gaea_path)
+            result = await validator.validate_file(file_path, timeout)
+            return result
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    async def _validate_gaea2_batch(self, *, file_paths: List[str], concurrent: int = 4) -> Dict[str, Any]:
+        """Validate multiple Gaea2 files"""
+        try:
+            # Initialize validator
+            validator = Gaea2FileValidator(self.gaea_path)
+            result = await validator.validate_batch(file_paths, concurrent)
+            return result
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    async def _test_gaea2_template(
+        self,
+        *,
+        template_name: str,
+        variations: int = 5,
+        server_url: str = "http://localhost:8007",
+    ) -> Dict[str, Any]:
+        """Test a template by generating and validating variations"""
+        try:
+            # Initialize validator
+            validator = Gaea2FileValidator(self.gaea_path)
+            result = await validator.validate_template(template_name, server_url, variations)
+            return result
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     async def handle_health(self, request: web.Request) -> web.Response:
         """Health check endpoint"""
