@@ -1,0 +1,17 @@
+# Manim dependencies
+manim
+numpy
+scipy
+matplotlib
+pillow
+cairo-cffi
+pycairo
+
+# MCP server dependencies
+fastapi
+uvicorn
+httpx
+pydantic
+aiofiles
+aiohttp
+mcp

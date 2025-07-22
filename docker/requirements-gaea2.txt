@@ -1,0 +1,11 @@
+# MCP server dependencies
+fastapi
+uvicorn
+httpx
+pydantic
+aiofiles
+aiohttp
+mcp
+
+# Other dependencies
+numpy

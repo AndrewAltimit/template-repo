@@ -7,12 +7,11 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+# Copy requirements first for better layer caching
+COPY docker/requirements-http-bridge.txt /app/requirements.txt
+
 # Install Python dependencies
-RUN pip install --no-cache-dir \
-    fastapi \
-    uvicorn \
-    httpx \
-    pydantic
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy bridge script
 COPY scripts/mcp-http-bridge.py .

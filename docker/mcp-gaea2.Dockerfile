@@ -7,18 +7,14 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-RUN pip install --no-cache-dir \
-    fastapi \
-    uvicorn \
-    httpx \
-    pydantic \
-    aiohttp \
-    mcp \
-    numpy
-
 # Create app directory
 WORKDIR /app
+
+# Copy requirements first for better layer caching
+COPY docker/requirements-gaea2.txt /app/requirements.txt
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Note: Output directory will be created at runtime with proper permissions
 # Do not create it in the Dockerfile to avoid permission issues

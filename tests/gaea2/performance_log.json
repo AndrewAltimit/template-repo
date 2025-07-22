@@ -89,6 +89,12 @@
       "duration": 0.0023212049854919314,
       "success": true,
       "timestamp": "2025-07-22T17:48:53.675689"
+    },
+    {
+      "test": "validation_performance",
+      "duration": 0.004020282009150833,
+      "success": true,
+      "timestamp": "2025-07-22T22:55:02.684555"
     }
   ]
 }

@@ -8,7 +8,7 @@ The MCP functionality is split across three servers:
 
 1. **Main MCP Server** (Port 8005) - Containerized, runs code quality, content creation, and Gaea2 terrain generation tools
 2. **Gemini MCP Server** (Port 8006) - Host-only, provides Gemini AI integration (requires Docker access)
-3. **Gaea2 MCP Server** (Port 8007) - Remote server at 192.168.0.152:8007, provides Gaea2 CLI automation (requires Gaea2 installation)
+3. **Gaea2 MCP Server** (Port 8007) - Remote server (configure with GAEA2_REMOTE_URL environment variable), provides Gaea2 CLI automation (requires Gaea2 installation)
 
 This separation ensures that most tools benefit from containerization while tools requiring host system access (Gemini CLI, Gaea2 executable) can function properly on their respective platforms.
 
@@ -156,7 +156,7 @@ print(f"Cleared {response.json()['cleared_count']} entries")
 
 ## Gaea2 MCP Server (Port 8007) - Remote Server
 
-The Gaea2 MCP Server is a standalone server that provides all Gaea2 terrain generation capabilities plus CLI automation for running Gaea2 projects programmatically. It runs on a **remote Windows server at 192.168.0.152:8007** where Gaea2 is installed.
+The Gaea2 MCP Server is a standalone server that provides all Gaea2 terrain generation capabilities plus CLI automation for running Gaea2 projects programmatically. It runs on a **remote Windows server** where Gaea2 is installed. Configure the server URL using the GAEA2_REMOTE_URL environment variable (e.g., `GAEA2_REMOTE_URL=http://your-server:8007`).
 
 ### Prerequisites
 
@@ -177,7 +177,7 @@ scripts\start-gaea2-mcp.bat
 python tools/mcp/gaea2_mcp_server.py
 
 # Test health (remote server)
-curl http://192.168.0.152:8007/health
+curl $GAEA2_REMOTE_URL/health
 ```
 
 ### Additional Features
@@ -208,7 +208,9 @@ Beyond the Gaea2 tools available in the main MCP server, the standalone server p
 import requests
 
 # Create terrain project
-response = requests.post("http://192.168.0.152:8007/mcp/execute", json={
+import os
+gaea2_url = os.environ.get('GAEA2_REMOTE_URL', 'http://localhost:8007')
+response = requests.post(f"{gaea2_url}/mcp/execute", json={
     "tool": "create_gaea2_project",
     "parameters": {
         "project_name": "mountain_terrain",
@@ -218,7 +220,7 @@ response = requests.post("http://192.168.0.152:8007/mcp/execute", json={
 })
 
 # Run the project with variables
-response = requests.post("http://192.168.0.152:8007/mcp/execute", json={
+response = requests.post(f"{gaea2_url}/mcp/execute", json={
     "tool": "run_gaea2_project",
     "parameters": {
         "project_path": "mountain_terrain.terrain",
@@ -256,7 +258,7 @@ All three servers are configured in `.mcp.json`:
     },
     "gaea2-tools": {
       "name": "Gaea2 MCP Server",
-      "url": "http://192.168.0.152:8007",
+      "url": "${GAEA2_REMOTE_URL:-http://localhost:8007}",
       "note": "Remote Windows server, requires Gaea2 installation",
       "tools": { /* ... */ }
     }

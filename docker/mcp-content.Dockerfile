@@ -2,8 +2,12 @@ FROM python:3.11
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    # LaTeX packages
-    texlive-full \
+    # LaTeX packages - using smaller base package instead of texlive-full
+    texlive-latex-base \
+    texlive-fonts-recommended \
+    texlive-latex-extra \
+    texlive-science \
+    texlive-pictures \
     # PDF utilities
     poppler-utils \
     pdf2svg \
@@ -17,25 +21,14 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Manim and dependencies
-RUN pip install --no-cache-dir \
-    manim \
-    numpy \
-    scipy \
-    pillow \
-    pycairo
-
-# Install MCP server dependencies
-RUN pip install --no-cache-dir \
-    fastapi \
-    uvicorn \
-    httpx \
-    pydantic \
-    aiohttp \
-    mcp
-
 # Create app directory
 WORKDIR /app
+
+# Copy requirements first for better layer caching
+COPY docker/requirements-content.txt /app/requirements.txt
+
+# Install Manim and MCP server dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy MCP server code
 COPY tools/mcp /app/tools/mcp

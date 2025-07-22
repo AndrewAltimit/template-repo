@@ -15,14 +15,14 @@ RUN apt-get update && apt-get install -y \
     cargo \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python formatters and linters
-RUN pip install --no-cache-dir \
-    black \
-    flake8 \
-    pylint \
-    isort \
-    mypy \
-    autopep8
+# Create app directory
+WORKDIR /app
+
+# Copy requirements first for better layer caching
+COPY docker/requirements-code-quality.txt /app/requirements.txt
+
+# Install Python formatters, linters, and MCP dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Install JavaScript/TypeScript tools
 RUN npm install -g \
@@ -37,18 +37,6 @@ RUN npm install -g \
 
 # Install Rust formatter (skip - rustup not available in this image)
 # RUN rustup component add rustfmt clippy
-
-# Install Python dependencies for MCP server
-RUN pip install --no-cache-dir \
-    fastapi \
-    uvicorn \
-    httpx \
-    pydantic \
-    aiohttp \
-    mcp
-
-# Create app directory
-WORKDIR /app
 
 # Copy MCP server code
 COPY tools/mcp /app/tools/mcp
