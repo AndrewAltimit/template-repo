@@ -1,7 +1,9 @@
 """Stub implementations for Gaea2 dependencies"""
 
+from typing import Any, Dict, List, Tuple
+
 # Schema stubs
-WORKFLOW_TEMPLATES = {
+WORKFLOW_TEMPLATES: Dict[str, Dict[str, List[Any]]] = {
     "basic_terrain": {"nodes": [], "connections": []},
     "detailed_mountain": {"nodes": [], "connections": []},
     "volcanic_terrain": {"nodes": [], "connections": []},
@@ -16,50 +18,50 @@ WORKFLOW_TEMPLATES = {
 }
 
 
-def create_workflow_from_template(name):
+def create_workflow_from_template(name: str) -> Dict[str, List[Any]]:
     return WORKFLOW_TEMPLATES.get(name, {"nodes": [], "connections": []})
 
 
-def validate_gaea2_project(project):
+def validate_gaea2_project(project: Dict[str, Any]) -> Dict[str, Any]:
     return {"valid": True, "errors": []}
 
 
 # Pattern knowledge stubs
-COMMON_NODE_SEQUENCES = {}
-NODE_COMPATIBILITY = {}
-PROPERTY_RANGES = {}
+COMMON_NODE_SEQUENCES: Dict[str, List[str]] = {}
+NODE_COMPATIBILITY: Dict[str, List[str]] = {}
+PROPERTY_RANGES: Dict[str, Dict[str, Any]] = {}
 
 
 # Knowledge graph stub
 class KnowledgeGraph:
-    def get_node_category(self, node_type):
+    def get_node_category(self, node_type: str) -> str:
         return "Unknown"
 
 
-knowledge_graph = KnowledgeGraph()
+knowledge_graph: KnowledgeGraph = KnowledgeGraph()
 
 
 # Validator stubs
-def create_accurate_validator():
+def create_accurate_validator() -> "Validator":
     class Validator:
-        def validate_node(self, node_type, properties):
+        def validate_node(self, node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
             return True, [], properties
 
     return Validator()
 
 
 class Gaea2ConnectionValidator:
-    def validate_connection(self, conn, node_map):
+    def validate_connection(self, conn: Dict[str, Any], node_map: Dict[str, Any]) -> Tuple[bool, Any]:
         return True, None
 
 
 class Gaea2PropertyValidator:
-    def validate_properties(self, node_type, properties):
+    def validate_properties(self, node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
         return True, [], properties
 
 
 class Gaea2ErrorRecovery:
-    def fix_workflow(self, nodes, connections):
+    def fix_workflow(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> Dict[str, Any]:
         return {
             "nodes": nodes,
             "connections": connections,
@@ -77,10 +79,10 @@ class Gaea2WorkflowAnalyzer:
 
 
 class Gaea2ProjectRepair:
-    def repair_project(self, path, backup=True):
+    def repair_project(self, path: str, backup: bool = True) -> Dict[str, Any]:
         return {"success": True}
 
 
 class Gaea2StructureValidator:
-    def validate_structure(self, data):
+    def validate_structure(self, data: Dict[str, Any]) -> Dict[str, Any]:
         return {"valid": True, "errors": []}

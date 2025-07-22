@@ -3,7 +3,7 @@
 Gaea2 pattern knowledge extracted from real project analysis
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 # Extracted from analyzing 31 real Gaea2 projects
 COMMON_NODE_SEQUENCES = {
@@ -196,7 +196,7 @@ def get_next_node_suggestions(current_node: str, top_n: int = 3) -> List[Dict[st
     return suggestions
 
 
-def get_workflow_for_terrain_type(terrain_type: str) -> Dict[str, Any]:
+def get_workflow_for_terrain_type(terrain_type: str) -> Optional[Dict[str, Any]]:
     """Get recommended workflow for a terrain type"""
     terrain_workflows = {
         "mountain": "realistic_mountain",
@@ -215,7 +215,7 @@ def get_workflow_for_terrain_type(terrain_type: str) -> Dict[str, Any]:
     return None
 
 
-def suggest_properties_for_node(node_type: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
+def suggest_properties_for_node(node_type: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Suggest properties based on node type and context"""
     if node_type not in PROPERTY_RECOMMENDATIONS:
         return {}
