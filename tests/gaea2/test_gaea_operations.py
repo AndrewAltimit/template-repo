@@ -419,8 +419,8 @@ class TestGaea2Operations:
             elif "results" in result and "suggestions" in result["results"]:
                 suggestions = result["results"]["suggestions"]
 
-            # The old implementation might return empty suggestions, which is acceptable for now
-            # Just verify the call succeeded without error
+            # Empty suggestions are acceptable
+            # Verify the call succeeded without error
             assert result.get("success", True), "Suggestion call should succeed"
 
             # If we got suggestions, verify they make sense
@@ -431,9 +431,8 @@ class TestGaea2Operations:
                 if not suggested_nodes and suggestions:
                     suggested_nodes = [s for s in suggestions if isinstance(s, str)]
 
-                # The old implementation returns generic suggestions, not context-aware ones
-                # Just verify we got some valid node suggestions
-                # Common Gaea2 nodes include: Wizard, Thermal, Mask, TextureBase, SatMap, etc.
+                # Verify we received valid Gaea2 node suggestions
+                # Common Gaea2 nodes: Wizard, Thermal, Mask, TextureBase, etc.
                 valid_gaea_nodes = [
                     "wizard",
                     "thermal",
@@ -584,10 +583,8 @@ class TestGaea2Operations:
 
             assert has_patterns or has_nodes or has_connections or has_analysis, f"No useful data returned for {terrain_type}"
 
-            # Skip terrain-specific checks for the old implementation
-            # The old server doesn't analyze terrain types from empty workflows
-            # Just verify we got some analysis data
-            pass
+            # Pattern analysis on empty workflows returns general data
+            # Terrain-specific suggestions require actual workflow content
 
     @pytest.mark.asyncio
     async def test_variable_propagation(self, mcp_url):
@@ -661,7 +658,7 @@ class TestEdgeCasesAndBoundaries:
         connections = []
 
         # Create 25 nodes to test beyond observed maximum
-        node_types = ["Mountain", "Erosion", "Perlin", "Gradient", "Combine"]
+        node_types = ["Mountain", "Erosion", "Perlin", "LinearGradient", "Combine"]
 
         for i in range(25):
             nodes.append(
@@ -695,7 +692,7 @@ class TestEdgeCasesAndBoundaries:
             },
         )
 
-        # Should either succeed or provide meaningful error
+        # Expect success or meaningful error message
         if result.get("error"):
             assert "node" in result["error"].lower() or "limit" in result["error"].lower()
         else:
@@ -709,7 +706,7 @@ class TestEdgeCasesAndBoundaries:
                 {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}},
                 {"id": "2", "type": "Perlin", "position": {"X": 0, "Y": 1}},
                 {"id": "3", "type": "Combine", "position": {"X": 1, "Y": 0}},
-                {"id": "4", "type": "Gradient", "position": {"X": 1, "Y": 1}},
+                {"id": "4", "type": "LinearGradient", "position": {"X": 1, "Y": 1}},
                 {"id": "5", "type": "Combine", "position": {"X": 2, "Y": 0}},
                 {"id": "6", "type": "Voronoi", "position": {"X": 2, "Y": 1}},
                 {"id": "7", "type": "Combine", "position": {"X": 3, "Y": 0}},
@@ -834,7 +831,7 @@ class TestEdgeCasesAndBoundaries:
 
         result = await self.execute_tool(mcp_url, "validate_and_fix_workflow", {"workflow": workflow})
 
-        # These connections might need fixing but should be handled gracefully
+        # Special port connections are handled gracefully
         assert isinstance(result, dict)
         error_msg = result.get("error") or ""
         assert "error" not in result or "crash" not in str(error_msg).lower()
