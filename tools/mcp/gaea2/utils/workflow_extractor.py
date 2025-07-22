@@ -31,8 +31,8 @@ class WorkflowExtractor:
                 - nodes: List of node dictionaries with id, type, name, and properties
                 - connections: List of connection dictionaries with from/to nodes and ports
         """
-        nodes = []
-        connections = []
+        nodes: List[Dict[str, Any]] = []
+        connections: List[Dict[str, Any]] = []
 
         try:
             # Navigate the project structure
@@ -70,19 +70,23 @@ class WorkflowExtractor:
         if "$values" in assets and isinstance(assets["$values"], list):
             assets_list = assets["$values"]
             if assets_list and isinstance(assets_list[0], dict):
-                return assets_list[0].get("Terrain", {})
+                terrain = assets_list[0].get("Terrain", {})
+                return terrain if isinstance(terrain, dict) else {}
 
         # Some projects might have terrain directly
         terrain = project_data.get("Terrain", {})
-        if terrain:
-            return terrain
+        if terrain and isinstance(terrain, dict):
+            # Explicit type assertion for mypy
+            terrain_dict: Dict[str, Any] = terrain
+            return terrain_dict
 
         # Try legacy format
         if isinstance(assets, dict) and "$values" not in assets:
             # Look for first asset with Terrain
             for key, value in assets.items():
                 if isinstance(value, dict) and "Terrain" in value:
-                    return value["Terrain"]
+                    terrain_data = value["Terrain"]
+                    return terrain_data if isinstance(terrain_data, dict) else None
 
         return None
 
@@ -114,7 +118,8 @@ class WorkflowExtractor:
     @staticmethod
     def _extract_node_type(node_data: Dict[str, Any]) -> str:
         """Extract and clean node type from node data"""
-        node_type = node_data.get("$type", "")
+        node_type_raw = node_data.get("$type", "")
+        node_type = str(node_type_raw) if node_type_raw else ""
 
         if not node_type:
             return "Unknown"
@@ -206,7 +211,7 @@ class WorkflowExtractor:
                 - end_nodes: Nodes with no outgoing connections
                 - node_types: Count of each node type
         """
-        analysis = {
+        analysis: Dict[str, Any] = {
             "node_count": len(nodes),
             "connection_count": len(connections),
             "orphaned_nodes": [],
