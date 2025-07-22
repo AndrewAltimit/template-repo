@@ -59,6 +59,15 @@ class Gaea2TestFramework:
                     if test_record["success"]:
                         self._update_knowledge_base(tool, parameters, result)
 
+                    # Handle base server response format - unwrap if needed
+                    if "result" in result and isinstance(result["result"], dict):
+                        # Merge success status with unwrapped result
+                        unwrapped = result["result"]
+                        unwrapped["success"] = result.get("success", True)
+                        if "error" in result and result["error"]:
+                            unwrapped["error"] = result["error"]
+                        return unwrapped
+
                     return result
 
             except Exception as e:

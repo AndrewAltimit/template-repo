@@ -3,8 +3,8 @@
 import logging
 from typing import Any, Dict, List, Optional
 
-# Use stubs for now
-from ..stubs import WORKFLOW_TEMPLATES, create_workflow_from_template
+# Import from the real schema
+from ..schema.gaea2_schema import WORKFLOW_TEMPLATES, create_workflow_from_template
 
 
 class Gaea2Templates:
@@ -19,8 +19,13 @@ class Gaea2Templates:
         if template_name not in self.templates:
             return None
 
-        # Use existing implementation
-        return create_workflow_from_template(template_name)
+        # Use existing implementation - returns tuple of (nodes, connections)
+        try:
+            nodes, connections = create_workflow_from_template(template_name)
+            return {"nodes": nodes, "connections": connections}
+        except Exception as e:
+            self.logger.error(f"Failed to create template {template_name}: {e}")
+            return None
 
     def list_templates(self) -> List[str]:
         """List available template names"""
