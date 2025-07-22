@@ -7,9 +7,7 @@ from datetime import datetime  # noqa: F401
 from pathlib import Path  # noqa: F401
 from typing import Any, Dict, List, Optional  # noqa: F401
 
-from ..utils.id_generator import generate_non_sequential_id
-from ..utils.property_utils import fix_property_names
-from ..validation.gaea2_format_fixes import apply_format_fixes
+from ..validation.gaea2_format_fixes import generate_non_sequential_id
 
 # Import real implementations
 from .gaea2_enhanced import EnhancedGaea2Tools
