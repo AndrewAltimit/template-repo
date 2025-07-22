@@ -43,7 +43,7 @@ class Gaea2FileValidator:
             raise FileNotFoundError(f"Gaea2 executable not found at {self.gaea_path}")
 
         # Validation history
-        self.validation_history = []
+        self.validation_history: List[Dict[str, Any]] = []
 
         # Error patterns that indicate file loading failures
         self.error_patterns = {
@@ -104,8 +104,8 @@ class Gaea2FileValidator:
             )
 
             # Monitor output in real-time
-            stdout_data = []
-            stderr_data = []
+            stdout_data: List[str] = []
+            stderr_data: List[str] = []
             success_detected = False
             error_detected = False
             error_message = None
@@ -164,7 +164,7 @@ class Gaea2FileValidator:
             stderr_task = asyncio.create_task(read_stream(process.stderr, stderr_data, True))
 
             # Wait for either success/failure detection or timeout
-            wait_time = 0
+            wait_time = 0.0
             check_interval = 0.5
             post_opening_wait = 3.0  # Wait 3 seconds after "Opening" to confirm success
             opening_detected_time = None
@@ -269,7 +269,7 @@ class Gaea2FileValidator:
 
     def _parse_errors(self, output: str) -> Dict[str, Any]:
         """Parse error messages from Gaea2 output"""
-        error_info = {"error_types": [], "error_messages": [], "line_numbers": []}
+        error_info: Dict[str, Any] = {"error_types": [], "error_messages": [], "line_numbers": []}
 
         # Check for known error patterns
         for error_type, pattern in self.error_patterns.items():
@@ -348,7 +348,7 @@ class Gaea2FileValidator:
             results = [r for r in results if isinstance(r, dict)]
 
         # Generate summary
-        summary = {
+        summary: Dict[str, Any] = {
             "total_files": len(file_paths),
             "validated": len(results),
             "successful": sum(1 for r in results if r["success"]),
@@ -459,7 +459,7 @@ class Gaea2FileValidator:
             }
 
         # Analyze patterns
-        patterns = {
+        patterns: Dict[str, Any] = {
             "error_types": {},
             "problematic_nodes": [],
             "problematic_properties": [],

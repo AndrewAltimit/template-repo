@@ -301,10 +301,11 @@ def generate_non_sequential_id(base: int = 100, used_ids: Optional[List[int]] = 
 
 def fix_property_names(properties: Dict[str, Any], node_type: str = "default") -> Dict[str, Any]:
     """Fix property names to match Gaea2's exact format based on node type"""
-    fixed = {}
+    fixed: Dict[str, Any] = {}
 
     # Get the appropriate mapping for this node type
     mappings = NODE_PROPERTY_MAPPINGS.get(node_type, NODE_PROPERTY_MAPPINGS["default"])
+    assert isinstance(mappings, dict)  # Type assertion for mypy
 
     for key, value in properties.items():
         # Ensure key is a string
@@ -343,7 +344,9 @@ def fix_property_names(properties: Dict[str, Any], node_type: str = "default") -
 def add_node_specific_properties(node_type: str, node: Dict[str, Any]) -> None:
     """Add node-specific properties that are commonly missing"""
     if node_type in NODE_PROPERTIES:
-        for prop, value in NODE_PROPERTIES[node_type].items():
+        node_props = NODE_PROPERTIES[node_type]
+        assert isinstance(node_props, dict)  # Type assertion for mypy
+        for prop, value in node_props.items():
             if prop not in node:
                 node[prop] = value
 
@@ -370,7 +373,7 @@ def fix_empty_objects(project: Dict[str, Any], ref_counter: int) -> int:
 
 def create_proper_port_structure(node_id: int, node_type: str, ref_id_counter: int) -> Tuple[Dict[str, Any], int]:
     """Create proper port structure based on node type"""
-    ports = {"$id": str(ref_id_counter), "$values": []}
+    ports: Dict[str, Any] = {"$id": str(ref_id_counter), "$values": []}
     ref_id_counter += 1
 
     # Standard input/output ports
@@ -578,7 +581,7 @@ def create_proper_port_structure(node_id: int, node_type: str, ref_id_counter: i
 
 def extract_and_fix_savedefinitions(project: Dict[str, Any], ref_counter: int) -> Tuple[List[Dict[str, Any]], int]:
     """Extract SaveDefinitions from Export nodes and create them as separate objects"""
-    save_definitions = []
+    save_definitions: List[Dict[str, Any]] = []
     assets_values = project.get("Assets", {}).get("$values", [])
     if not assets_values or "Terrain" not in assets_values[0]:
         return save_definitions, ref_counter

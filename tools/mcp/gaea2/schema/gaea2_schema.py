@@ -2105,30 +2105,50 @@ def get_node_ports(node_type: str) -> Dict[str, List[Dict[str, Any]]]:
     # Special cases first - check in lowercase
     node_type_lower = node_type.lower()
     if node_type_lower in NODE_PORT_DEFINITIONS:
-        return NODE_PORT_DEFINITIONS[node_type_lower]
+        port_def = NODE_PORT_DEFINITIONS[node_type_lower]
+        assert isinstance(port_def, dict)  # Type assertion for mypy
+        return port_def
 
     # Special cases with specific names
     if node_type == "Combine":
-        return NODE_PORT_DEFINITIONS["combine"]
+        port_def = NODE_PORT_DEFINITIONS["combine"]
+        assert isinstance(port_def, dict)
+        return port_def
     elif node_type in ["Portal", "PortalTransmit", "PortalReceive"]:
-        return NODE_PORT_DEFINITIONS[node_type.lower()]
+        port_def = NODE_PORT_DEFINITIONS[node_type.lower()]
+        assert isinstance(port_def, dict)
+        return port_def
     elif node_type == "Sea":
-        return NODE_PORT_DEFINITIONS["sea"]
+        port_def = NODE_PORT_DEFINITIONS["sea"]
+        assert isinstance(port_def, dict)
+        return port_def
     elif node_type == "Rivers":
-        return NODE_PORT_DEFINITIONS["rivers"]
+        port_def = NODE_PORT_DEFINITIONS["rivers"]
+        assert isinstance(port_def, dict)
+        return port_def
     elif node_type == "FractalTerraces":
-        return NODE_PORT_DEFINITIONS["fractalterraces"]
+        port_def = NODE_PORT_DEFINITIONS["fractalterraces"]
+        assert isinstance(port_def, dict)
+        return port_def
     elif node_type == "Stratify":
-        return NODE_PORT_DEFINITIONS["stratify"]
+        port_def = NODE_PORT_DEFINITIONS["stratify"]
+        assert isinstance(port_def, dict)
+        return port_def
     elif node_type == "Crumble":
-        return NODE_PORT_DEFINITIONS["crumble"]
+        port_def = NODE_PORT_DEFINITIONS["crumble"]
+        assert isinstance(port_def, dict)
+        return port_def
     elif node_type == "Erosion2":
-        return NODE_PORT_DEFINITIONS["erosion2"]
+        port_def = NODE_PORT_DEFINITIONS["erosion2"]
+        assert isinstance(port_def, dict)
+        return port_def
 
     # Get by category
     category = get_node_category(node_type)
     if category in NODE_PORT_DEFINITIONS:
-        return NODE_PORT_DEFINITIONS[category]
+        port_def = NODE_PORT_DEFINITIONS[category]
+        assert isinstance(port_def, dict)
+        return port_def
 
     # Default: one input, one output
     return {
@@ -2143,12 +2163,13 @@ def validate_node_properties(node_type: str, properties: Dict[str, Any]) -> Tupl
     Returns:
         Tuple of (errors, warnings)
     """
-    errors = []
-    warnings = []
+    errors: List[str] = []
+    warnings: List[str] = []
 
     # Get property definitions for this node type
     if node_type in NODE_PROPERTY_DEFINITIONS:
         prop_defs = NODE_PROPERTY_DEFINITIONS[node_type]
+        assert isinstance(prop_defs, dict)  # Type assertion for mypy
     else:
         prop_defs = {}
 
@@ -2249,6 +2270,7 @@ def apply_default_properties(node_type: str, properties: Dict[str, Any]) -> Dict
     # Get property definitions for this node type
     if node_type in NODE_PROPERTY_DEFINITIONS:
         prop_defs = NODE_PROPERTY_DEFINITIONS[node_type]
+        assert isinstance(prop_defs, dict)  # Type assertion for mypy
 
         # Add defaults for missing properties
         for prop_name, prop_def in prop_defs.items():
@@ -2284,6 +2306,7 @@ def create_workflow_from_template(
         raise ValueError(f"Unknown template: {template_name}")
 
     template = WORKFLOW_TEMPLATES[template_name]
+    assert isinstance(template, list)  # Type assertion for mypy
     nodes = []
     connections = []
 
@@ -2316,14 +2339,19 @@ def create_workflow_from_template(
             node_id = random.randint(100, 999)
         used_ids.add(node_id)
         node_type = node_template["type"]
+        assert isinstance(node_type, str)  # Type assertion for mypy
 
         # Only apply default properties for nodes that can handle them
         if node_type in limited_property_nodes:
             # Use only the properties defined in the template
-            properties = node_template.get("properties", {}).copy()
+            template_props = node_template.get("properties", {})
+            assert isinstance(template_props, dict)  # Type assertion for mypy
+            properties = template_props.copy()
         else:
             # Apply default properties for other nodes
-            properties = apply_default_properties(node_type, node_template.get("properties", {}))
+            template_props = node_template.get("properties", {})
+            assert isinstance(template_props, dict)  # Type assertion for mypy
+            properties = apply_default_properties(node_type, template_props)
 
         node = {
             "id": node_id,
@@ -2459,9 +2487,9 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
     except ImportError:
         use_optimized = False
 
-    errors = []
-    warnings = []
-    suggestions = []
+    errors: List[str] = []
+    warnings: List[str] = []
+    suggestions: List[str] = []
 
     # Check basic structure
     if "$id" not in project_data:
