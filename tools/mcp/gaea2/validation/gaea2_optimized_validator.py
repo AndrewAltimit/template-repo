@@ -3,11 +3,11 @@ Optimized Gaea2 validation with caching and efficient data structures
 """
 
 from collections import defaultdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
+from ..schema.gaea2_schema import NODE_PROPERTY_DEFINITIONS, validate_node_properties
 from ..utils.gaea2_cache import Gaea2Cache
 from ..utils.gaea2_connection_utils import normalize_connections
-from .gaea2_schema import NODE_PROPERTY_DEFINITIONS, validate_node_properties
 
 
 class OptimizedGaea2Validator:
@@ -210,7 +210,7 @@ class OptimizedGaea2Validator:
             return properties
 
         # Only copy if we need to add defaults
-        prop_defs = NODE_PROPERTY_DEFINITIONS[node_type]
+        prop_defs = cast(Dict[str, Any], NODE_PROPERTY_DEFINITIONS[node_type])
         needs_update = False
 
         for prop_name, prop_def in prop_defs.items():
