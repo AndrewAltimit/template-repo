@@ -3,10 +3,15 @@ Test suite for expected failures and error handling in Gaea2 MCP.
 These tests verify that the system handles errors gracefully and provides meaningful feedback.
 """
 
+import os
 from typing import Any, Dict
 
 import aiohttp
 import pytest
+
+# Enable validation bypass for failure testing
+# This allows us to create invalid terrain files for testing error handling
+os.environ["GAEA2_BYPASS_FILE_VALIDATION_FOR_TESTS"] = "1"
 
 
 class TestGaea2Failures:

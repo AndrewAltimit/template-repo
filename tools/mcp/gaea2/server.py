@@ -35,6 +35,7 @@ class Gaea2MCPServer(BaseMCPServer):
         gaea_path: Optional[str] = None,
         output_dir: str = "/app/output/gaea2",
         port: int = 8007,
+        enforce_file_validation: bool = True,
     ):
         # Check if running in container
         if check_container_environment() and platform.system() != "Windows":
@@ -49,6 +50,11 @@ class Gaea2MCPServer(BaseMCPServer):
 
         self.logger = setup_logging("Gaea2MCP")
         self.output_dir = ensure_directory(output_dir)
+
+        # File validation enforcement - can be disabled via env var for tests
+        self.enforce_file_validation = (
+            enforce_file_validation and os.environ.get("GAEA2_BYPASS_FILE_VALIDATION_FOR_TESTS") != "1"
+        )
 
         # Initialize Gaea2 path
         self.gaea_path = gaea_path or os.environ.get("GAEA2_PATH")
@@ -398,12 +404,71 @@ class Gaea2MCPServer(BaseMCPServer):
             with open(output_path, "w") as f:
                 json.dump(project_data, f, indent=2)
 
+            # Perform file validation by opening in Gaea2
+            file_validation_performed = False
+            file_validation_passed = False
+            file_validation_error = None
+
+            # Check if we should bypass validation (for tests only)
+            bypass_for_tests = os.environ.get("GAEA2_BYPASS_FILE_VALIDATION_FOR_TESTS") == "1"
+
+            if self.enforce_file_validation and self.gaea_path and not bypass_for_tests:
+                try:
+                    from .validation.gaea2_file_validator import Gaea2FileValidator
+
+                    self.logger.info(f"Validating generated file in Gaea2: {output_path}")
+                    file_validator = Gaea2FileValidator(self.gaea_path)
+                    validation_result = await file_validator.validate_file(output_path, timeout=30)
+
+                    file_validation_performed = True
+                    file_validation_passed = validation_result["success"]
+
+                    if not file_validation_passed:
+                        file_validation_error = validation_result.get("error", "File failed to open in Gaea2")
+                        self.logger.error(f"File validation failed: {file_validation_error}")
+
+                        # Delete the invalid file
+                        try:
+                            os.remove(output_path)
+                            self.logger.info(f"Deleted invalid file: {output_path}")
+                        except Exception as e:
+                            self.logger.error(f"Failed to delete invalid file: {e}")
+
+                        # Return failure
+                        return {
+                            "success": False,
+                            "error": f"Generated file failed Gaea2 validation: {file_validation_error}",
+                            "validation_error": file_validation_error,
+                            "file_deleted": True,
+                        }
+                    else:
+                        self.logger.info(f"File validation passed: {output_path}")
+
+                except Exception as e:
+                    self.logger.error(f"File validation error: {str(e)}")
+                    # If validation system fails, still fail the generation
+                    try:
+                        os.remove(output_path)
+                    except:
+                        pass
+                    return {
+                        "success": False,
+                        "error": f"File validation system error: {str(e)}",
+                    }
+            elif bypass_for_tests:
+                self.logger.warning("File validation bypassed for testing")
+            elif not self.gaea_path:
+                self.logger.warning("File validation skipped: Gaea2 path not configured")
+
             return {
                 "success": True,
                 "project_path": output_path,
                 "node_count": len(nodes or []),
                 "connection_count": len(connections or []),
                 "validation_applied": auto_validate,
+                "file_validation_performed": file_validation_performed,
+                "file_validation_passed": file_validation_passed,
+                "bypass_for_tests": bypass_for_tests,
             }
 
         except Exception as e:
@@ -807,6 +872,11 @@ def main():
         default=8007,
         help="Port to run the HTTP server on (default: 8007)",
     )
+    parser.add_argument(
+        "--no-enforce-file-validation",
+        action="store_true",
+        help="Disable mandatory file validation (not recommended for production)",
+    )
     args = parser.parse_args()
 
     # For Windows, check common Gaea2 installation paths
@@ -822,7 +892,12 @@ def main():
                 print(f"Found Gaea2 at: {path}")
                 break
 
-    server = Gaea2MCPServer(gaea_path=args.gaea_path, output_dir=args.output_dir, port=args.port)
+    server = Gaea2MCPServer(
+        gaea_path=args.gaea_path,
+        output_dir=args.output_dir,
+        port=args.port,
+        enforce_file_validation=not args.no_enforce_file_validation,
+    )
     server.run(mode=args.mode)
 
 
