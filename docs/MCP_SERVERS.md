@@ -100,7 +100,10 @@ docker-compose run gemini-mcp-server
 
 ```bash
 # Must run on host system
-python3 tools/mcp/gemini_mcp_server.py
+python -m tools.mcp.gemini.server
+
+# Or use HTTP mode for testing
+python -m tools.mcp.gemini.server --mode http
 
 # Or use the helper script
 ./scripts/start-gemini-mcp.sh

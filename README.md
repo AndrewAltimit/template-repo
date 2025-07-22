@@ -65,7 +65,7 @@ This repository leverages **three AI agents** for development and automation:
    docker-compose up -d mcp-server
 
    # Start Gemini MCP server (must run on host)
-   python3 tools/mcp/gemini_mcp_server.py
+   python -m tools.mcp.gemini.server
    ```
 
 3. **For CI/CD (optional)**
@@ -138,7 +138,9 @@ Some MCP servers must run on the host system (not in containers):
 1. **Gemini MCP Server** (port 8006) - AI development assistance:
    ```bash
    # Needs Docker access for Gemini CLI
-   python3 tools/mcp/gemini_mcp_server.py
+   python -m tools.mcp.gemini.server
+   # Or use HTTP mode for testing:
+   python -m tools.mcp.gemini.server --mode http
    ```
 
 2. **Gaea2 MCP Server** (port 8007) - Terrain generation with CLI automation:
