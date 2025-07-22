@@ -7,40 +7,31 @@ This directory contains all documentation related to the Gaea2 MCP (Model Contex
 - **[README.md](README.md)** - Main documentation hub for Gaea2 MCP system
 - **[GAEA2_API_REFERENCE.md](GAEA2_API_REFERENCE.md)** - Complete API reference for all MCP tools
 - **[GAEA2_QUICK_REFERENCE.md](GAEA2_QUICK_REFERENCE.md)** - Quick reference guide for common operations
+- **[GAEA2_EXAMPLES.md](GAEA2_EXAMPLES.md)** - Code examples and usage patterns
 
 ## Technical Documentation
 
 - **[CONNECTION_ARCHITECTURE.md](CONNECTION_ARCHITECTURE.md)** - Deep dive into Gaea2's connection system
-- **[GAEA2_TERRAIN_FORMAT_ANALYSIS.md](GAEA2_TERRAIN_FORMAT_ANALYSIS.md)** - Analysis of the .terrain file format
-- **[gaea_terrain_analysis.md](gaea_terrain_analysis.md)** - Additional terrain format analysis
-
-## Usage Guides
-
-- **[GAEA2_EXAMPLES.md](GAEA2_EXAMPLES.md)** - Code examples and usage patterns
+- **[gaea_terrain_analysis.md](gaea_terrain_analysis.md)** - Workflow patterns and terrain format analysis
+- **[GAEA2_NODE_PROPERTIES_EXTENDED.md](GAEA2_NODE_PROPERTIES_EXTENDED.md)** - Complete node property documentation
 - **[GAEA2_MCP_SERVER.md](GAEA2_MCP_SERVER.md)** - Standalone server setup and usage
+
+## Usage & Best Practices
+
 - **[GAEA2_KNOWLEDGE_BASE.md](GAEA2_KNOWLEDGE_BASE.md)** - Pattern knowledge and best practices
+- **[GAEA2_ADVANCED_PATTERNS.md](GAEA2_ADVANCED_PATTERNS.md)** - Advanced workflow patterns discovered
 - **[VALIDATION_GUIDE.md](VALIDATION_GUIDE.md)** - Complete guide to the file validation system ✨
 
-## Development Documentation
+## Analysis Reports
 
-- **[GAEA2_MCP_ROBUSTNESS.md](GAEA2_MCP_ROBUSTNESS.md)** - Robustness improvements and testing
+- **[GAEA2_ANALYSIS_EXECUTIVE_SUMMARY.md](GAEA2_ANALYSIS_EXECUTIVE_SUMMARY.md)** - Executive summary of findings from terrain file analysis
+
+## Maintenance
+
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and changes
 - **[LEGACY_COMPREHENSIVE_GUIDE.md](LEGACY_COMPREHENSIVE_GUIDE.md)** - Legacy documentation (for reference)
 
-## Analysis & Research (NEW - January 2025)
-
-- **[ANALYSIS_INDEX.md](ANALYSIS_INDEX.md)** - Index for all analysis documents
-- **[GAEA2_ANALYSIS_EXECUTIVE_SUMMARY.md](GAEA2_ANALYSIS_EXECUTIVE_SUMMARY.md)** - Executive summary of findings
-- **[GAEA2_PROJECT_ANALYSIS.md](GAEA2_PROJECT_ANALYSIS.md)** - Deep analysis of 10 real Gaea2 projects
-- **[GAEA2_GAP_ANALYSIS.md](GAEA2_GAP_ANALYSIS.md)** - Gap analysis vs current implementation
-- **[GAEA2_ADVANCED_PATTERNS.md](GAEA2_ADVANCED_PATTERNS.md)** - Advanced workflow patterns discovered
-- **[GAEA2_NODE_PROPERTIES_EXTENDED.md](GAEA2_NODE_PROPERTIES_EXTENDED.md)** - Complete node property documentation
-- **[GAEA2_MCP_VALIDATION_REPORT.md](GAEA2_MCP_VALIDATION_REPORT.md)** - MCP server validation against reference files
-- **[LEVEL1_MCP_RECREATION_REPORT.md](LEVEL1_MCP_RECREATION_REPORT.md)** - Detailed Level1.terrain recreation analysis
-- **[GAEA2_BUILD_ISSUE_REPORT.md](GAEA2_BUILD_ISSUE_REPORT.md)** - Build system compatibility findings
-- **[MCP_FORMAT_FIX_REQUIRED.md](MCP_FORMAT_FIX_REQUIRED.md)** - Critical format fixes needed for file opening
-
-## Quick Links
+## Quick Start
 
 ### For Users
 1. Start with [README.md](README.md) for overview
@@ -50,9 +41,8 @@ This directory contains all documentation related to the Gaea2 MCP (Model Contex
 ### For Developers
 1. Review [CONNECTION_ARCHITECTURE.md](CONNECTION_ARCHITECTURE.md) for internals
 2. Check [GAEA2_API_REFERENCE.md](GAEA2_API_REFERENCE.md) for complete API
-3. See [GAEA2_MCP_ROBUSTNESS.md](GAEA2_MCP_ROBUSTNESS.md) for testing
-4. **NEW**: Read [GAEA2_GAP_ANALYSIS.md](GAEA2_GAP_ANALYSIS.md) for implementation priorities
-5. **NEW**: Use [GAEA2_NODE_PROPERTIES_EXTENDED.md](GAEA2_NODE_PROPERTIES_EXTENDED.md) for complete property specs
+3. Study [gaea_terrain_analysis.md](gaea_terrain_analysis.md) for workflow patterns
+4. Use [GAEA2_NODE_PROPERTIES_EXTENDED.md](GAEA2_NODE_PROPERTIES_EXTENDED.md) for property specs
 
 ### For Server Setup
 1. Follow [GAEA2_MCP_SERVER.md](GAEA2_MCP_SERVER.md) for standalone server
