@@ -361,15 +361,12 @@ curl -X POST http://192.168.0.152:8007/mcp/execute \
 # coastal_cliffs, arctic_terrain, river_valley
 ```
 
-### Common Commands
+##### Common Commands
 
 ```bash
 # Test Gaea2 features
 python tests/gaea2/test_gaea2_enhancements.py
 python tests/gaea2/test_gaea2_robustness.py
-
-# Analyze real Gaea2 projects for patterns
-python scripts/analyze_gaea_projects.py
 
 # Run Gaea2-specific tests
 docker-compose run --rm python-ci pytest tests/gaea2/ -v
@@ -389,18 +386,7 @@ docker-compose run --rm python-ci pytest tests/gaea2/ -v
 
 ### Debugging Connections
 
-If connections are missing in generated terrain files:
-
-```bash
-# Test specific connections
-python scripts/test-progressive-connections.py
-
-# Debug node ID mapping
-python scripts/debug-node-id-mapping.py
-
-# Compare with reference files
-python scripts/analyze-connections-detail.py
-```
+If connections are missing in generated terrain files, check:
 
 Common issues:
 - **Node ordering**: Ensure node IDs are mapped before processing connections
