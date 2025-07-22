@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Test the Gaea2 MCP server download functionality"""
-import base64
 import json
 
 import requests
@@ -48,7 +47,7 @@ def test_download():
         if our_file:
             print(f"   ✓ Found our file: {our_file['filename']} ({our_file['size']} bytes)")
         else:
-            print(f"   ❌ File not found in list")
+            print("   ❌ File not found in list")
 
     # 3. Download using MCP tool
     print("\n3. Downloading via MCP tool...")
@@ -63,7 +62,7 @@ def test_download():
     download_result = download_response.json()
     if download_result.get("success") and download_result.get("result", {}).get("success"):
         file_data = download_result["result"]["data"]
-        print(f"   ✓ Downloaded successfully")
+        print("   ✓ Downloaded successfully")
         print(f"   File size: {download_result['result']['size']} bytes")
         print(f"   Content preview: {json.dumps(file_data, indent=2)[:200]}...")
     else:
@@ -73,7 +72,7 @@ def test_download():
     print("\n4. Testing direct HTTP download...")
     direct_response = requests.get(f"{server_url}/download/{filename}")
     if direct_response.status_code == 200:
-        print(f"   ✓ Direct download successful")
+        print("   ✓ Direct download successful")
         print(f"   Content size: {len(direct_response.content)} bytes")
         print(f"   Content: {direct_response.text}")
     else:

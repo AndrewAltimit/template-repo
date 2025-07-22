@@ -3,8 +3,6 @@
 Download Gaea2 terrain file from remote server using the new download tool
 """
 import base64
-import os
-import sys
 
 import requests
 
@@ -102,7 +100,7 @@ def list_files(server_url="http://192.168.0.152:8007"):
                 if result["count"] > 10:
                     print(f"  ... and {result['count'] - 10} more files")
                 return
-    except:
+    except Exception:
         pass
 
     # Fallback to MCP tool
