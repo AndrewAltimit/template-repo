@@ -329,7 +329,7 @@ class Gaea2MCPServer(BaseMCPServer):
 
             # Generate project
             project_data = await self.generator.create_project(
-                project_name=project_name, nodes=nodes, connections=connections or []
+                project_name=project_name, nodes=nodes or [], connections=connections or []
             )
 
             # Save to file
@@ -347,7 +347,7 @@ class Gaea2MCPServer(BaseMCPServer):
             return {
                 "success": True,
                 "project_path": output_path,
-                "node_count": len(nodes),
+                "node_count": len(nodes or []),
                 "connection_count": len(connections or []),
                 "validation_applied": auto_validate,
             }
@@ -405,11 +405,52 @@ class Gaea2MCPServer(BaseMCPServer):
             self.logger.error(f"Validation failed: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def analyze_workflow_patterns(self, *, workflow: Dict[str, Any], analysis_type: str = "all") -> Dict[str, Any]:
-        """Analyze workflow patterns"""
-        try:
-            analysis = await self.analyzer.analyze(workflow, analysis_type=analysis_type)
+    async def analyze_workflow_patterns(
+        self,
+        *,
+        workflow: Optional[Dict[str, Any]] = None,
+        workflow_or_directory: Optional[Union[Dict[str, Any], str]] = None,
+        workflow_type: Optional[str] = None,
+        analysis_type: str = "all",
+    ) -> Dict[str, Any]:
+        """Analyze workflow patterns
 
+        Parameters:
+        - workflow: Direct workflow dict (legacy)
+        - workflow_or_directory: Workflow dict or directory path
+        - workflow_type: Terrain type for pattern analysis (e.g., 'mountain', 'desert')
+        - analysis_type: Type of analysis to perform
+        """
+        try:
+            # Handle different parameter formats
+            if workflow_type:
+                # For terrain type analysis, create a basic workflow
+                # This is used by regression tests
+                from .templates.templates import Gaea2Templates
+
+                templates = Gaea2Templates()
+                template_map = {
+                    "mountain": "mountain_range",
+                    "desert": "desert_canyon",
+                    "coastal": "coastal_cliffs",
+                    "volcanic": "volcanic_terrain",
+                    "arctic": "arctic_terrain",
+                }
+                template_name = template_map.get(workflow_type, "basic_terrain")
+                template = await templates.get_template(template_name)
+                workflow_data = {"nodes": template["nodes"], "connections": template["connections"]}
+            elif workflow_or_directory:
+                if isinstance(workflow_or_directory, dict):
+                    workflow_data = workflow_or_directory
+                else:
+                    # Load from directory if string path provided
+                    return {"success": False, "error": "Directory loading not implemented"}
+            elif workflow:
+                workflow_data = workflow
+            else:
+                return {"success": False, "error": "No workflow data provided"}
+
+            analysis = await self.analyzer.analyze(workflow_data, analysis_type=analysis_type)
             return {"success": True, "analysis": analysis}
 
         except Exception as e:
@@ -417,11 +458,29 @@ class Gaea2MCPServer(BaseMCPServer):
             return {"success": False, "error": str(e)}
 
     async def optimize_gaea2_properties(
-        self, *, nodes: List[Dict[str, Any]], optimization_mode: str = "balanced"
+        self,
+        *,
+        nodes: Optional[List[Dict[str, Any]]] = None,
+        workflow: Optional[Dict[str, Any]] = None,
+        optimization_mode: str = "balanced",
     ) -> Dict[str, Any]:
-        """Optimize node properties"""
+        """Optimize node properties
+
+        Parameters:
+        - nodes: List of nodes to optimize
+        - workflow: Workflow dict containing nodes (alternative format)
+        - optimization_mode: 'performance', 'quality', or 'balanced'
+        """
         try:
-            optimized_nodes = await self.optimizer.optimize_nodes(nodes, mode=optimization_mode)
+            # Handle different parameter formats
+            if workflow and "nodes" in workflow:
+                nodes_to_optimize = workflow["nodes"]
+            elif nodes:
+                nodes_to_optimize = nodes
+            else:
+                return {"success": False, "error": "No nodes provided for optimization"}
+
+            optimized_nodes = await self.optimizer.optimize_nodes(nodes_to_optimize, mode=optimization_mode)
 
             return {
                 "success": True,
