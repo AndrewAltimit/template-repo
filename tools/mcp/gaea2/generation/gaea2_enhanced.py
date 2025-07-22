@@ -170,10 +170,18 @@ class EnhancedGaea2Tools:
 
             # Add automation variables
             if variables:
-                project["Assets"]["$values"][0]["Automation"]["Variables"] = variables
+                assets_obj = project["Assets"]
+                assert isinstance(assets_obj, dict)
+                assets_values = assets_obj["$values"]
+                assert isinstance(assets_values, list) and len(assets_values) > 0
+                first_asset = assets_values[0]
+                assert isinstance(first_asset, dict)
+                automation = first_asset["Automation"]
+                assert isinstance(automation, dict)
+                automation["Variables"] = variables
 
             # Process nodes with enhanced features
-            nodes_dict = {}
+            nodes_dict: Dict[str, Any] = {}
             ref_id_counter = 23
 
             for node_data in nodes:
@@ -188,7 +196,7 @@ class EnhancedGaea2Tools:
 
             # Add groups
             if groups:
-                groups_dict = {}
+                groups_dict: Dict[str, Any] = {}
                 for group in groups:
                     group_id = group.get("id", 300 + len(groups_dict))
                     groups_dict[str(group_id)] = {
@@ -212,10 +220,26 @@ class EnhancedGaea2Tools:
                         },
                     }
                     ref_id_counter += 4
-                project["Assets"]["$values"][0]["Terrain"]["Groups"] = groups_dict
+                assets_obj = project["Assets"]
+                assert isinstance(assets_obj, dict)
+                assets_values = assets_obj["$values"]
+                assert isinstance(assets_values, list) and len(assets_values) > 0
+                first_asset = assets_values[0]
+                assert isinstance(first_asset, dict)
+                terrain = first_asset["Terrain"]
+                assert isinstance(terrain, dict)
+                terrain["Groups"] = groups_dict
 
             # Assign nodes to project
-            project["Assets"]["$values"][0]["Terrain"]["Nodes"] = nodes_dict
+            assets_obj = project["Assets"]
+            assert isinstance(assets_obj, dict)
+            assets_values = assets_obj["$values"]
+            assert isinstance(assets_values, list) and len(assets_values) > 0
+            first_asset = assets_values[0]
+            assert isinstance(first_asset, dict)
+            terrain = first_asset["Terrain"]
+            assert isinstance(terrain, dict)
+            terrain["Nodes"] = nodes_dict
 
             # Save project
             if output_path:
@@ -494,7 +518,7 @@ class EnhancedGaea2Tools:
         Parameters:
         - layers: List of layer definitions with range, color, and order
         """
-        properties = {
+        properties: Dict[str, Any] = {
             "PortCount": max(10, len(layers)),
             "ShowSimplified": True,
             "Version": 2,

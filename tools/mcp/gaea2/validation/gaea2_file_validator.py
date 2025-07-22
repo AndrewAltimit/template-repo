@@ -269,7 +269,11 @@ class Gaea2FileValidator:
 
     def _parse_errors(self, output: str) -> Dict[str, Any]:
         """Parse error messages from Gaea2 output"""
-        error_info: Dict[str, Any] = {"error_types": [], "error_messages": [], "line_numbers": []}
+        error_info: Dict[str, Any] = {
+            "error_types": [],
+            "error_messages": [],
+            "line_numbers": [],
+        }
 
         # Check for known error patterns
         for error_type, pattern in self.error_patterns.items():

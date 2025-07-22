@@ -35,19 +35,22 @@ class Gaea2CLIAutomation:
         if not self.gaea_path:
             return {"success": False, "error": "Gaea2 executable path not configured"}
 
-        project_path = Path(project_path)
-        if not project_path.exists():
-            raise Gaea2FileError(f"Project file not found: {project_path}", file_path=str(project_path))
+        project_path_obj = Path(project_path)
+        if not project_path_obj.exists():
+            raise Gaea2FileError(
+                f"Project file not found: {project_path_obj}",
+                file_path=str(project_path_obj),
+            )
 
         try:
             # Prepare output directory
-            output_dir = project_path.parent / f"output_{project_path.stem}"
+            output_dir = project_path_obj.parent / f"output_{project_path_obj.stem}"
             output_dir.mkdir(exist_ok=True)
 
             # Build command
             cmd = [
                 str(self.gaea_path),
-                str(project_path),
+                str(project_path_obj),
                 f"--resolution={resolution}",
                 f"--format={output_format}",
                 f"--output={output_dir}",

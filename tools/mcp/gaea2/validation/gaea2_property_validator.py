@@ -149,8 +149,8 @@ class Gaea2PropertyValidator:
 
     def _validate_erosion_properties(self, properties: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str], List[str]]:
         """Validate Erosion2 node properties"""
-        errors = []
-        warnings = []
+        errors: List[str] = []
+        warnings: List[str] = []
         fixed = properties.copy()
 
         # Duration check
@@ -191,8 +191,8 @@ class Gaea2PropertyValidator:
 
     def _validate_rivers_properties(self, properties: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str], List[str]]:
         """Validate Rivers node properties"""
-        errors = []
-        warnings = []
+        errors: List[str] = []
+        warnings: List[str] = []
         fixed = properties.copy()
 
         # Headwaters check
@@ -216,8 +216,8 @@ class Gaea2PropertyValidator:
 
     def _validate_combine_properties(self, properties: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str], List[str]]:
         """Validate Combine node properties"""
-        errors = []
-        warnings = []
+        errors: List[str] = []
+        warnings: List[str] = []
         fixed = properties.copy()
 
         # Ratio check
@@ -254,8 +254,8 @@ class Gaea2PropertyValidator:
 
     def _validate_satmap_properties(self, properties: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str], List[str]]:
         """Validate SatMap node properties"""
-        errors = []
-        warnings = []
+        errors: List[str] = []
+        warnings: List[str] = []
         fixed = properties.copy()
 
         # Common presets

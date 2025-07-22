@@ -190,7 +190,7 @@ class Gaea2ErrorHandler:
 
     def validate_property_ranges(self, node_type: str, properties: Dict[str, Any], schema: Dict[str, Any]) -> List[Gaea2Error]:
         """Validate property values against schema ranges"""
-        errors = []
+        errors: List[Gaea2Error] = []
 
         if node_type not in schema.get("node_properties", {}):
             return errors
@@ -262,9 +262,11 @@ class Gaea2ErrorHandler:
         erosion_chains = []
         for node in nodes:
             if node.get("type") in ["Erosion", "Erosion2"]:
-                chain = self._trace_erosion_chain(node.get("id"), nodes, connections)
-                if len(chain) > 3:
-                    erosion_chains.append(chain)
+                node_id = node.get("id")
+                if node_id is not None:
+                    chain = self._trace_erosion_chain(node_id, nodes, connections)
+                    if len(chain) > 3:
+                        erosion_chains.append(chain)
 
         for chain in erosion_chains:
             error = Gaea2Error(
@@ -296,6 +298,9 @@ class Gaea2ErrorHandler:
                 break
 
             next_id = next_conn.get("to_node")
+            if next_id is None:
+                break
+
             next_node = next((n for n in nodes if n.get("id") == next_id), None)
 
             if next_node and next_node.get("type") in ["Erosion", "Erosion2"]:
@@ -313,7 +318,7 @@ class Gaea2ErrorHandler:
         schema: Dict[str, Any],
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[str]]:
         """Attempt to auto-fix errors where possible"""
-        fixes_applied = []
+        fixes_applied: List[str] = []
 
         if not self.auto_fix_enabled:
             return nodes, connections, fixes_applied

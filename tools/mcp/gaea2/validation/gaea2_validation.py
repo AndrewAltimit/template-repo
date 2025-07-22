@@ -150,7 +150,9 @@ class Gaea2Validator:
         }
 
     def validate_workflow(
-        self, nodes: List[Dict[str, Any]], connections: Optional[List[Dict[str, Any]]] = None
+        self,
+        nodes: List[Dict[str, Any]],
+        connections: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """
         Validate an entire workflow

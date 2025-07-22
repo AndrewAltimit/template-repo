@@ -22,6 +22,12 @@ class Gaea2Optimizer:
 
         for node in nodes:
             node_type = node.get("type", node.get("node_type"))
+            if not node_type:
+                # Skip nodes without a type
+                self.logger.warning("Node without type found, skipping optimization")
+                optimized_nodes.append(node.copy())
+                continue
+
             properties = node.get("properties", {})
 
             # Optimize based on mode
@@ -74,4 +80,7 @@ class Gaea2Optimizer:
         """Balance between performance and quality"""
         # For now, just validate and correct properties
         _, _, corrected = self.property_validator.validate_properties(node_type, properties)
+        # Ensure we're returning a dict
+        if not isinstance(corrected, dict):
+            return properties.copy()
         return corrected

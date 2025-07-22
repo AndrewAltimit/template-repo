@@ -24,7 +24,7 @@ class Gaea2Cache:
             cache_dir: Directory for persistent cache (optional)
             ttl: Time to live in seconds (default 1 hour)
         """
-        self.cache = {}
+        self.cache: Dict[str, Dict[str, Any]] = {}
         self.ttl = ttl
         self.cache_dir = Path(cache_dir) if cache_dir else None
 
@@ -144,8 +144,8 @@ class CachedValidator:
 
     def __init__(self, cache: Optional[Gaea2Cache] = None):
         self.cache = cache or Gaea2Cache()
-        self._schema_cache = {}
-        self._pattern_cache = {}
+        self._schema_cache: Dict[str, Any] = {}
+        self._pattern_cache: Dict[str, Any] = {}
 
     def cached_validate_node(self, node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
         """Cached node validation"""
@@ -153,6 +153,8 @@ class CachedValidator:
         params = {"node_type": node_type, "properties": properties}
         cached = self.cache.get("validate_node", params)
         if cached:
+            # Ensure proper typing for cached result
+            assert isinstance(cached, tuple) and len(cached) == 3
             return cached
 
         # Perform validation
@@ -160,6 +162,12 @@ class CachedValidator:
 
         validator = Gaea2PropertyValidator()
         result = validator.validate_properties(node_type, properties)
+
+        # Ensure result is the expected type
+        assert isinstance(result, tuple) and len(result) == 3
+        assert isinstance(result[0], bool)
+        assert isinstance(result[1], list)
+        assert isinstance(result[2], dict)
 
         # Cache result
         self.cache.set("validate_node", params, result)
@@ -178,6 +186,8 @@ class CachedValidator:
 
         cached = self.cache.get("suggest_connections", params)
         if cached:
+            # Ensure proper typing for cached result
+            assert isinstance(cached, list)
             return cached
 
         # Perform suggestion
@@ -185,6 +195,9 @@ class CachedValidator:
 
         validator = Gaea2ConnectionValidator()
         result = validator.suggest_connections(nodes, connections)
+
+        # Ensure result is the expected type
+        assert isinstance(result, list)
 
         # Cache result
         self.cache.set("suggest_connections", params, result)
@@ -197,12 +210,14 @@ class CachedValidator:
 
         cached = self.cache.get("workflow_analysis", params)
         if cached:
+            # Ensure proper typing for cached result
+            assert isinstance(cached, dict)
             return cached
 
         # Perform analysis
         from .gaea2_pattern_knowledge import get_next_node_suggestions
 
-        result = {"next_suggestions": [], "pattern_matches": []}
+        result: Dict[str, Any] = {"next_suggestions": [], "pattern_matches": []}
 
         if workflow_nodes:
             last_node = workflow_nodes[-1]

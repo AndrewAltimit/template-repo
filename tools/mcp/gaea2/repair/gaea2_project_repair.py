@@ -259,9 +259,13 @@ class Gaea2ProjectRepair:
         score = 100.0
 
         # Deduct points based on errors
-        score -= error_summary["critical"] * 25
-        score -= error_summary["errors"] * 10
-        score -= error_summary["warnings"] * 3
+        critical_count = float(error_summary.get("critical", 0))
+        error_count = float(error_summary.get("errors", 0))
+        warning_count = float(error_summary.get("warnings", 0))
+
+        score -= critical_count * 25
+        score -= error_count * 10
+        score -= warning_count * 3
 
         # Ensure score doesn't go below 0
         return max(0.0, score)
@@ -319,16 +323,17 @@ class Gaea2ProjectRepair:
 
     def _find_redundant_nodes(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> List[int]:
         """Find redundant nodes that can be removed"""
-        redundant = []
+        redundant: List[int] = []
 
         # Find pass-through Combine nodes (ratio = 0.5, only one input)
         for node in nodes:
             if node.get("type") == "Combine":
                 node_id = node.get("id")
-                # Count inputs
-                inputs = [c for c in connections if c.get("to_node") == node_id]
-                if len(inputs) == 1 and node.get("properties", {}).get("Ratio", 0.5) == 0.5:
-                    redundant.append(node_id)
+                if node_id is not None:
+                    # Count inputs
+                    inputs = [c for c in connections if c.get("to_node") == node_id]
+                    if len(inputs) == 1 and node.get("properties", {}).get("Ratio", 0.5) == 0.5:
+                        redundant.append(node_id)
 
         return redundant
 

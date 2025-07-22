@@ -34,8 +34,11 @@ class Gaea2ProjectGenerator:
             project_name=project_name, nodes=nodes, connections=connections
         )
 
+        # Ensure we return a proper dict
+        if not isinstance(project_data, dict):
+            return {"success": False, "error": "Invalid project data"}
         return project_data
 
     def generate_node_id(self) -> str:
         """Generate a non-sequential node ID"""
-        return generate_non_sequential_id()
+        return str(generate_non_sequential_id())

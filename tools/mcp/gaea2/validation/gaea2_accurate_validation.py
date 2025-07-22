@@ -38,10 +38,14 @@ class AccurateGaea2Validator:
         """Get property definitions for a node type"""
         # First check node-specific properties
         if node_type in self.schema["node_properties"]:
-            return self.schema["node_properties"][node_type]
+            properties = self.schema["node_properties"][node_type]
+            assert isinstance(properties, dict)
+            return properties
 
         # Fall back to common properties for nodes without specific definitions
-        return self.schema["common_properties"]
+        common_props = self.schema["common_properties"]
+        assert isinstance(common_props, dict)
+        return common_props
 
     def validate_and_coerce_property(self, node_type: str, prop_name: str, prop_value: Any) -> Tuple[bool, Optional[str], Any]:
         """
@@ -180,8 +184,8 @@ class AccurateGaea2Validator:
         connections: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """Validate a complete project configuration"""
-        errors = []
-        warnings = []
+        errors: List[str] = []
+        warnings: List[str] = []
         corrected_nodes = []
 
         # Validate nodes

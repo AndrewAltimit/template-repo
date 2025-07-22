@@ -57,9 +57,10 @@ class Gaea2MCPServer(BaseMCPServer):
         )
 
         # Initialize Gaea2 path
-        self.gaea_path = gaea_path or os.environ.get("GAEA2_PATH")
-        if self.gaea_path:
-            self.gaea_path = Path(self.gaea_path)
+        self.gaea_path: Optional[Path] = None
+        gaea_path_str = gaea_path or os.environ.get("GAEA2_PATH")
+        if gaea_path_str:
+            self.gaea_path = Path(gaea_path_str)
             if not self.gaea_path.exists():
                 self.logger.warning(f"Gaea2 executable not found at {self.gaea_path}")
                 self.gaea_path = None
@@ -524,7 +525,10 @@ class Gaea2MCPServer(BaseMCPServer):
                 return {"success": False, "error": "Workflow 'nodes' must be a list"}
 
             if "connections" in workflow and not isinstance(workflow["connections"], list):
-                return {"success": False, "error": "Workflow 'connections' must be a list"}
+                return {
+                    "success": False,
+                    "error": "Workflow 'connections' must be a list",
+                }
 
             result = await self.validator.validate_and_fix(workflow, strict_mode=strict_mode)
 

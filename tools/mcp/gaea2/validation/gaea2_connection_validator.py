@@ -5,7 +5,7 @@ Connection validation for Gaea2 workflows based on real patterns
 
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from ..utils.gaea2_pattern_knowledge import COMMON_NODE_SEQUENCES, NODE_CONNECTION_FREQUENCY, WORKFLOW_TEMPLATES
 
@@ -352,9 +352,10 @@ class Gaea2ConnectionValidator:
         # Bonus for following common patterns
         node_sequence = self._extract_main_sequence(nodes, connections)
         for template in WORKFLOW_TEMPLATES.values():
-            if self._sequence_matches_template(node_sequence, template["nodes"]):
-                score += 10
-                break
+            if isinstance(template, dict) and "nodes" in template:
+                if self._sequence_matches_template(node_sequence, template["nodes"]):
+                    score += 10
+                    break
 
         return max(0.0, min(100.0, score))
 
@@ -372,7 +373,7 @@ class Gaea2ConnectionValidator:
 
         # Follow main path
         sequence = []
-        current = start_nodes[0]
+        current: Optional[Dict[str, Any]] = start_nodes[0]
         visited = set()
 
         while current and current["id"] not in visited:

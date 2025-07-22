@@ -71,12 +71,12 @@ class GeminiIntegration:
         self.timeout = self.config.get("timeout", 60)
         self.rate_limit_delay = self.config.get("rate_limit_delay", 2.0)
         self.last_consultation = 0
-        self.consultation_log = []
+        self.consultation_log: List[Dict[str, Any]] = []
         self.max_context_length = self.config.get("max_context_length", 4000)
         self.model = self.config.get("model", "gemini-2.5-flash")
 
         # Conversation history for maintaining state
-        self.conversation_history = []
+        self.conversation_history: List[Tuple[str, str]] = []
         self.max_history_entries = self.config.get("max_history_entries", 10)
         self.include_history = self.config.get("include_history", True)
 

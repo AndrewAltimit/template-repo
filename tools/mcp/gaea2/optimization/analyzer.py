@@ -39,7 +39,9 @@ class Gaea2WorkflowAnalyzer:
     def _analyze_patterns(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Analyze workflow patterns"""
 
-        node_types = [n.get("type", n.get("node_type")) for n in nodes]
+        node_types = [n.get("type", n.get("node_type", "")) for n in nodes]
+        # Filter out empty strings to ensure we only have valid node types
+        node_types = [nt for nt in node_types if nt]
 
         # Find common sequences
         found_sequences = []

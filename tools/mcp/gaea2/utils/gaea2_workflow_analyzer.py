@@ -21,8 +21,8 @@ class WorkflowPattern:
         self.name = name
         self.nodes = nodes
         self.frequency = frequency
-        self.connections = []
-        self.property_patterns = defaultdict(dict)
+        self.connections: List[Dict[str, Any]] = []
+        self.property_patterns: Dict[str, Dict[str, List[Any]]] = defaultdict(dict)
 
     def add_property_pattern(self, node_type: str, property_name: str, value: Any):
         """Add a property pattern"""
@@ -109,7 +109,7 @@ class Gaea2WorkflowAnalyzer:
 
     def get_recommendations(self, current_nodes: List[str]) -> Dict[str, Any]:
         """Get recommendations based on learned patterns"""
-        recommendations = {
+        recommendations: Dict[str, Any] = {
             "next_nodes": [],
             "missing_nodes": [],
             "property_suggestions": {},
@@ -129,7 +129,10 @@ class Gaea2WorkflowAnalyzer:
         for pattern in self.patterns:
             similarity = self._calculate_pattern_similarity(current_nodes, pattern.nodes)
             if similarity > 0.5:
-                recommendations["similar_patterns"].append(
+                # Ensure we're working with a list
+                similar_patterns = recommendations["similar_patterns"]
+                assert isinstance(similar_patterns, list)
+                similar_patterns.append(
                     {
                         "name": pattern.name,
                         "similarity": similarity,
@@ -139,7 +142,9 @@ class Gaea2WorkflowAnalyzer:
                 )
 
         # Sort by similarity
-        recommendations["similar_patterns"].sort(key=lambda x: x["similarity"], reverse=True)
+        similar_patterns_list = recommendations["similar_patterns"]
+        assert isinstance(similar_patterns_list, list)
+        similar_patterns_list.sort(key=lambda x: x["similarity"], reverse=True)
 
         # Find commonly used nodes that are missing
         common_nodes = [node for node, _ in self.node_frequency.most_common(10)]
@@ -148,7 +153,7 @@ class Gaea2WorkflowAnalyzer:
         # Get property suggestions
         for node in current_nodes:
             if node in self.property_distributions:
-                suggestions = {}
+                suggestions: Dict[str, Any] = {}
                 for prop, values in self.property_distributions[node].items():
                     if values:
                         # Get median for numeric values
@@ -160,7 +165,9 @@ class Gaea2WorkflowAnalyzer:
                             # Get most common for other types
                             counter = Counter(values)
                             suggestions[prop] = counter.most_common(1)[0][0]
-                recommendations["property_suggestions"][node] = suggestions
+                property_suggestions = recommendations["property_suggestions"]
+                assert isinstance(property_suggestions, dict)
+                property_suggestions[node] = suggestions
 
         return recommendations
 
@@ -237,7 +244,7 @@ class Gaea2WorkflowAnalyzer:
 
         # Trace the main path
         pattern_nodes = []
-        current = start_nodes[0]
+        current: Optional[Dict[str, Any]] = start_nodes[0]
         visited = set()
 
         while current and current["id"] not in visited:

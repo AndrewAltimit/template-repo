@@ -31,7 +31,7 @@ class Gaea2WorkflowTools:
             node_types: Dict[str, int] = {}
             node_connections: Dict[str, Dict[str, Any]] = {}
             erosion_chains: List[List[str]] = []
-            export_nodes: List[str] = []
+            export_nodes: List[Dict[str, Any]] = []
 
             for node_id, node in nodes.items():
                 node_type = node.get("$type", "").split(".")[-2]

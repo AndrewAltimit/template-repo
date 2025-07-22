@@ -20,7 +20,9 @@ class OptimizedGaea2Validator:
         self._connection_cache_hits = 0
 
     def validate_workflow(
-        self, nodes: List[Dict[str, Any]], connections: Optional[List[Dict[str, Any]]] = None
+        self,
+        nodes: List[Dict[str, Any]],
+        connections: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """
         Optimized workflow validation with caching and efficient lookups.
@@ -29,19 +31,18 @@ class OptimizedGaea2Validator:
             Dictionary with validation results
         """
         # Normalize connections once
+        normalized_conns: List[Dict[str, Any]] = []
         if connections:
-            connections = normalize_connections(connections)
-        else:
-            connections = []
+            normalized_conns = normalize_connections(connections)
 
         # Build lookup structures once
-        lookup_structures = self._build_lookup_structures(nodes, connections)
+        lookup_structures = self._build_lookup_structures(nodes, normalized_conns)
 
         # Validate nodes with caching
         node_results = self._validate_nodes_batch(nodes, lookup_structures)
 
         # Validate connections efficiently
-        connection_results = self._validate_connections_batch(connections, lookup_structures)
+        connection_results = self._validate_connections_batch(normalized_conns, lookup_structures)
 
         # Combine results
         all_errors = node_results["errors"] + connection_results["errors"]
@@ -54,7 +55,7 @@ class OptimizedGaea2Validator:
             "fixed_nodes": node_results["fixed_nodes"],
             "stats": {
                 "nodes_validated": len(nodes),
-                "connections_validated": len(connections),
+                "connections_validated": len(normalized_conns),
                 "cache_hits": self._get_cache_stats(),
             },
         }

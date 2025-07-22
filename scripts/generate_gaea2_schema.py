@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 # Based on comprehensive analysis of the documentation
-GAEA2_COMPLETE_SCHEMA = {
+GAEA2_COMPLETE_SCHEMA: Dict[str, Any] = {
     "version": "2.0",
     "source": "Official Gaea2 Documentation + Real Project Analysis",
     # All 185 documented nodes
@@ -448,11 +448,18 @@ def validate_node_type(node_type: str) -> bool:
 def get_node_properties(node_type: str) -> Dict[str, Any]:
     """Get property definitions for a node type"""
     # First check node-specific properties
-    if node_type in GAEA2_COMPLETE_SCHEMA["node_properties"]:
-        return GAEA2_COMPLETE_SCHEMA["node_properties"][node_type]
+    node_properties = GAEA2_COMPLETE_SCHEMA["node_properties"]
+    assert isinstance(node_properties, dict)  # Type assertion for mypy
+
+    if node_type in node_properties:
+        node_type_props = node_properties[node_type]
+        assert isinstance(node_type_props, dict)  # Type assertion for mypy
+        return node_type_props
 
     # Fall back to common properties for nodes without specific definitions
-    return GAEA2_COMPLETE_SCHEMA["common_properties"]
+    common_props = GAEA2_COMPLETE_SCHEMA["common_properties"]
+    assert isinstance(common_props, dict)  # Type assertion for mypy
+    return common_props
 
 
 def validate_property(node_type: str, prop_name: str, prop_value: Any) -> tuple[bool, Optional[str], Any]:
@@ -465,8 +472,11 @@ def validate_property(node_type: str, prop_name: str, prop_value: Any) -> tuple[
     # Check if property exists for this node
     if prop_name not in node_props:
         # Check common properties
-        if prop_name in GAEA2_COMPLETE_SCHEMA["common_properties"]:
-            prop_def = GAEA2_COMPLETE_SCHEMA["common_properties"][prop_name]
+        common_properties = GAEA2_COMPLETE_SCHEMA["common_properties"]
+        assert isinstance(common_properties, dict)  # Type assertion for mypy
+
+        if prop_name in common_properties:
+            prop_def = common_properties[prop_name]
         else:
             # Unknown property - allow but warn
             return (
@@ -534,7 +544,7 @@ def validate_property(node_type: str, prop_name: str, prop_value: Any) -> tuple[
     return True, None, prop_value
 
 
-def validate_gaea_project(nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]] = None) -> Dict[str, Any]:
+def validate_gaea_project(nodes: List[Dict[str, Any]], connections: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
     """Validate a complete Gaea project configuration"""
     errors = []
     warnings = []

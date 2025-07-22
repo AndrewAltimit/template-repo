@@ -32,7 +32,11 @@ class TestEnhancedValidation:
             "nodes": [
                 {"id": "1", "type": "Mountain", "position": {"x": 0, "y": 0}},
                 {"id": "2", "type": "InvalidNodeType", "position": {"x": 100, "y": 0}},
-                {"id": "3", "type": "Islands", "position": {"x": 200, "y": 0}},  # Wrong: should be Island
+                {
+                    "id": "3",
+                    "type": "Islands",
+                    "position": {"x": 200, "y": 0},
+                },  # Wrong: should be Island
             ],
             "connections": [],
         }
@@ -135,14 +139,33 @@ class TestEnhancedValidation:
             "nodes": [
                 {"id": "1", "type": "Mountain", "position": {"x": 0, "y": 0}},
                 {"id": "2", "type": "Erosion2", "position": {"x": 100, "y": 0}},
-                {"id": "3", "type": "Volcano", "position": {"x": 200, "y": 0}},  # Orphaned
+                {
+                    "id": "3",
+                    "type": "Volcano",
+                    "position": {"x": 200, "y": 0},
+                },  # Orphaned
                 {"id": "4", "type": "SatMap", "position": {"x": 300, "y": 0}},
                 {"id": "5", "type": "Export", "position": {"x": 400, "y": 0}},
             ],
             "connections": [
-                {"source": "1", "source_port": "Out", "target": "2", "target_port": "In"},
-                {"source": "2", "source_port": "Out", "target": "4", "target_port": "In"},
-                {"source": "4", "source_port": "Out", "target": "5", "target_port": "In"},
+                {
+                    "source": "1",
+                    "source_port": "Out",
+                    "target": "2",
+                    "target_port": "In",
+                },
+                {
+                    "source": "2",
+                    "source_port": "Out",
+                    "target": "4",
+                    "target_port": "In",
+                },
+                {
+                    "source": "4",
+                    "source_port": "Out",
+                    "target": "5",
+                    "target_port": "In",
+                },
             ],
         }
 
@@ -161,9 +184,24 @@ class TestEnhancedValidation:
                 {"id": "2", "type": "Erosion2", "position": {"x": 100, "y": 0}},
             ],
             "connections": [
-                {"source": "1", "source_port": "Out", "target": "2", "target_port": "In"},
-                {"source": "2", "source_port": "Out", "target": "99", "target_port": "In"},  # Invalid target
-                {"source": "88", "source_port": "Out", "target": "1", "target_port": "In"},  # Invalid source
+                {
+                    "source": "1",
+                    "source_port": "Out",
+                    "target": "2",
+                    "target_port": "In",
+                },
+                {
+                    "source": "2",
+                    "source_port": "Out",
+                    "target": "99",
+                    "target_port": "In",
+                },  # Invalid target
+                {
+                    "source": "88",
+                    "source_port": "Out",
+                    "target": "1",
+                    "target_port": "In",
+                },  # Invalid source
             ],
         }
 
@@ -187,10 +225,16 @@ class TestEnhancedValidation:
                     "stderr": "",
                 }
 
-        workflow = {"nodes": [{"id": "1", "type": "Mountain", "position": {"x": 0, "y": 0}}], "connections": []}
+        workflow = {
+            "nodes": [{"id": "1", "type": "Mountain", "position": {"x": 0, "y": 0}}],
+            "connections": [],
+        }
 
         result = await validator.validate_workflow_comprehensive(
-            workflow, project_path="/tmp/test.terrain", cli_runner=MockCLIRunner(), test_opening=True
+            workflow,
+            project_path="/tmp/test.terrain",
+            cli_runner=MockCLIRunner(),
+            test_opening=True,
         )
 
         assert not result["valid"]
@@ -203,20 +247,45 @@ class TestEnhancedValidation:
         """Test that a valid workflow passes all checks"""
         workflow = {
             "nodes": [
-                {"id": "1", "type": "Mountain", "position": {"x": 0, "y": 0}, "properties": {"Height": 0.8, "Scale": 1.5}},
+                {
+                    "id": "1",
+                    "type": "Mountain",
+                    "position": {"x": 0, "y": 0},
+                    "properties": {"Height": 0.8, "Scale": 1.5},
+                },
                 {
                     "id": "2",
                     "type": "Ridge",
                     "position": {"x": 100, "y": 0},
                     "properties": {"Scale": 0.5, "Complexity": 0.7},
                 },  # Only 2 properties
-                {"id": "3", "type": "Erosion2", "position": {"x": 200, "y": 0}, "properties": {"Duration": 0.3}},
+                {
+                    "id": "3",
+                    "type": "Erosion2",
+                    "position": {"x": 200, "y": 0},
+                    "properties": {"Duration": 0.3},
+                },
                 {"id": "4", "type": "SatMap", "position": {"x": 300, "y": 0}},
             ],
             "connections": [
-                {"source": "1", "source_port": "Out", "target": "2", "target_port": "In"},
-                {"source": "2", "source_port": "Out", "target": "3", "target_port": "In"},
-                {"source": "3", "source_port": "Out", "target": "4", "target_port": "In"},
+                {
+                    "source": "1",
+                    "source_port": "Out",
+                    "target": "2",
+                    "target_port": "In",
+                },
+                {
+                    "source": "2",
+                    "source_port": "Out",
+                    "target": "3",
+                    "target_port": "In",
+                },
+                {
+                    "source": "3",
+                    "source_port": "Out",
+                    "target": "4",
+                    "target_port": "In",
+                },
             ],
         }
 

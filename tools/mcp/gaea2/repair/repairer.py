@@ -23,24 +23,24 @@ class Gaea2Repairer:
     async def repair_project(self, project_path: str, backup: bool = True) -> Dict[str, Any]:
         """Repair a Gaea2 project file"""
 
-        project_path = Path(project_path)
+        project_path_obj = Path(project_path)
 
-        if not project_path.exists():
+        if not project_path_obj.exists():
             return {
                 "success": False,
-                "error": f"Project file not found: {project_path}",
+                "error": f"Project file not found: {project_path_obj}",
             }
 
         try:
             # Create backup if requested
             backup_path = None
             if backup:
-                backup_path = project_path.with_suffix(f".backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.terrain")
-                shutil.copy2(project_path, backup_path)
+                backup_path = project_path_obj.with_suffix(f".backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.terrain")
+                shutil.copy2(project_path_obj, backup_path)
                 self.logger.info(f"Created backup: {backup_path}")
 
             # Load project
-            with open(project_path, "r") as f:
+            with open(project_path_obj, "r") as f:
                 project_data = json.load(f)
 
             # Validate structure
@@ -82,7 +82,7 @@ class Gaea2Repairer:
             )
 
             # Save repaired project
-            with open(project_path, "w") as f:
+            with open(project_path_obj, "w") as f:
                 json.dump(repaired_data, f, indent=2)
 
             return {

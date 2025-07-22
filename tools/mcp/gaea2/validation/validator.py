@@ -164,7 +164,11 @@ class Gaea2Validator:
 
         if not cli_runner:
             self.logger.warning("CLI runner not provided for project validation")
-            return {"can_open": None, "tested": False, "error": "CLI runner not available for validation"}
+            return {
+                "can_open": None,
+                "tested": False,
+                "error": "CLI runner not available for validation",
+            }
 
         try:
             # Try to run the project with minimal settings
@@ -213,7 +217,11 @@ class Gaea2Validator:
             return {"can_open": False, "tested": True, "error": str(e)}
 
     async def validate_workflow_comprehensive(
-        self, workflow: Dict[str, Any], project_path: Optional[str] = None, cli_runner=None, test_opening: bool = True
+        self,
+        workflow: Dict[str, Any],
+        project_path: Optional[str] = None,
+        cli_runner=None,
+        test_opening: bool = True,
     ) -> Dict[str, Any]:
         """Comprehensive validation including actual Gaea2 opening test"""
 

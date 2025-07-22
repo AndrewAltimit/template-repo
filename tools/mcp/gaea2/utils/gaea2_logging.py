@@ -90,7 +90,7 @@ class Gaea2Logger:
         self.logger.addHandler(console_handler)
 
         # File handler with structured logging (optional)
-        self.file_handler = None
+        self.file_handler: Optional[logging.FileHandler] = None
 
     def enable_file_logging(self, log_dir: str, structured: bool = True):
         """Enable file logging"""
@@ -103,6 +103,7 @@ class Gaea2Logger:
         self.file_handler.setLevel(logging.DEBUG)
 
         # Use structured or plain formatter
+        formatter: logging.Formatter
         if structured:
             formatter = StructuredFormatter()
         else:
@@ -128,7 +129,7 @@ class Gaea2Logger:
         level: int = logging.INFO,
     ):
         """Log node-specific operation"""
-        extra = {"operation": operation, "node_type": node_type}
+        extra: Dict[str, Any] = {"operation": operation, "node_type": node_type}
 
         if node_id is not None:
             extra["node_id"] = node_id
@@ -147,7 +148,7 @@ class Gaea2Logger:
         node_id: Optional[int] = None,
     ):
         """Log validation error"""
-        extra = {"error_type": error_type, "node_type": node_type}
+        extra: Dict[str, Any] = {"error_type": error_type, "node_type": node_type}
 
         if node_id is not None:
             extra["node_id"] = node_id
