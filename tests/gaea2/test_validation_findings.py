@@ -22,7 +22,9 @@ class TestGaea2ValidationFindings:
                 json={"tool": tool, "parameters": parameters},
                 timeout=aiohttp.ClientTimeout(total=300),
             ) as response:
-                return await response.json()
+                result = await response.json()
+                assert isinstance(result, dict)  # Type assertion for mypy
+                return result
 
     @pytest.mark.asyncio
     async def test_working_templates(self, mcp_url):

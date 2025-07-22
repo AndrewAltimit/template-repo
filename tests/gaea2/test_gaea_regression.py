@@ -52,7 +52,9 @@ class RegressionTestManager:
             return None
 
         with open(baseline_file) as f:
-            return json.load(f)
+            data = json.load(f)
+            assert isinstance(data, dict)  # Type assertion for mypy
+            return data
 
     def _normalize_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
         """Normalize result for comparison (remove timestamps, paths, etc.)."""
@@ -72,7 +74,7 @@ class RegressionTestManager:
             normalized.pop(field, None)
 
         # First pass: collect all nodes with their types and create mapping
-        node_info = {}
+        node_info: Dict[Any, Dict] = {}
         self._collect_node_info(normalized, node_info)
 
         # Create normalized ID mapping based on node type and position
@@ -351,8 +353,8 @@ class RegressionTestManager:
                     {
                         "path": path,
                         "type": "list_length_mismatch",
-                        "baseline_length": len(baseline),
-                        "current_length": len(current),
+                        "baseline_length": str(len(baseline)),
+                        "current_length": str(len(current)),
                     }
                 )
             else:
@@ -397,6 +399,7 @@ class TestGaea2Regression:
                     # Return the inner result for consistency
                     return result["result"]
 
+                assert isinstance(result, dict)  # Type assertion for mypy
                 return result
 
     @pytest.mark.asyncio

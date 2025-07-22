@@ -252,7 +252,7 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
     successful_models = []  # Track which models were successfully used
 
     # Group files by type for more coherent analysis
-    file_groups = {
+    file_groups: Dict[str, List[Tuple[str, str]]] = {
         "workflows": [],
         "python": [],
         "docker": [],

@@ -19,7 +19,7 @@ class IntegrationTestRunner:
 
     def __init__(self, mcp_url: str = "http://192.168.0.152:8007"):
         self.mcp_url = mcp_url
-        self.results = {
+        self.results: Dict[str, Any] = {
             "timestamp": datetime.now().isoformat(),
             "mcp_url": mcp_url,
             "test_suites": {},
@@ -86,7 +86,7 @@ class IntegrationTestRunner:
 
     def analyze_test_results(self) -> Dict[str, Any]:
         """Analyze all test results and identify patterns."""
-        analysis = {
+        analysis: Dict[str, Any] = {
             "total_suites": len(self.results["test_suites"]),
             "total_tests": 0,
             "total_passed": 0,
@@ -120,7 +120,7 @@ class IntegrationTestRunner:
                     analysis["performance_metrics"][suite_name] = suite_data["duration"]
 
         # Identify common failure patterns
-        failure_keywords = {}
+        failure_keywords: Dict[str, int] = {}
         for failed_test in analysis["failed_tests"]:
             error_str = str(failed_test["error"]).lower()
             for keyword in [
@@ -153,7 +153,7 @@ class IntegrationTestRunner:
 
     def generate_knowledge_base_update(self) -> Dict[str, Any]:
         """Generate updates for the AI agent knowledge base based on test results."""
-        knowledge_update = {
+        knowledge_update: Dict[str, Any] = {
             "timestamp": datetime.now().isoformat(),
             "successful_patterns": [],
             "failure_patterns": [],

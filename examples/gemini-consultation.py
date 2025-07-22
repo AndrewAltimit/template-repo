@@ -3,17 +3,19 @@
 Example: Using Gemini AI consultation through MCP
 """
 
+from typing import Any, Dict, Optional
+
 import requests
 
 
-def consult_gemini(question: str, context: str = None):
+def consult_gemini(question: str, context: Optional[str] = None):
     """Consult Gemini AI through MCP server"""
 
     # MCP server endpoint
     url = "http://localhost:8000/tools/execute"
 
     # Prepare request
-    payload = {"tool": "consult_gemini", "arguments": {"question": question}}
+    payload: Dict[str, Any] = {"tool": "consult_gemini", "arguments": {"question": question}}
 
     if context:
         payload["arguments"]["context"] = context

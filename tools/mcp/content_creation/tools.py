@@ -4,7 +4,7 @@ import os
 import shutil
 import subprocess
 import tempfile
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 # Tool registry
 TOOLS = {}
@@ -52,7 +52,7 @@ async def create_manim_animation(
         if result.returncode == 0:
             # Find output file
             output_dir = os.path.expanduser("~/media/videos")
-            output_files = []
+            output_files: List[str] = []
             if os.path.exists(output_dir):
                 for root, _, files in os.walk(output_dir):
                     output_files.extend(os.path.join(root, f) for f in files if f.endswith(f".{output_format}"))

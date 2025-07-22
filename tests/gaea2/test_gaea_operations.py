@@ -24,7 +24,9 @@ class TestGaea2Operations:
                 json={"tool": tool, "arguments": parameters},
                 timeout=aiohttp.ClientTimeout(total=300),
             ) as response:
-                return await response.json()
+                result = await response.json()
+                assert isinstance(result, dict)  # Type assertion for mypy
+                return result
 
     @pytest.mark.asyncio
     async def test_common_workflow_pattern(self, mcp_url):
@@ -648,7 +650,9 @@ class TestEdgeCasesAndBoundaries:
                 json={"tool": tool, "arguments": parameters},
                 timeout=aiohttp.ClientTimeout(total=300),
             ) as response:
-                return await response.json()
+                result = await response.json()
+                assert isinstance(result, dict)  # Type assertion for mypy
+                return result
 
     @pytest.mark.asyncio
     async def test_maximum_node_limit(self, mcp_url):

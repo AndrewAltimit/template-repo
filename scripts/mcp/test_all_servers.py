@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
 
 import httpx
 
@@ -57,7 +58,7 @@ class MCPServerTester:
         """Check if running in a container"""
         return Path("/.dockerenv").exists() or os.environ.get("CONTAINER_ENV") is not None
 
-    async def start_server(self, server_info: dict) -> subprocess.Popen:
+    async def start_server(self, server_info: dict) -> Optional[subprocess.Popen]:
         """Start an MCP server"""
         if self.is_port_open(server_info["port"]):
             print(f"⚠️  Port {server_info['port']} already in use, skipping {server_info['name']}")

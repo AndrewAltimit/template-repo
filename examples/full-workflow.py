@@ -27,7 +27,9 @@ class MCPWorkflow:
         response = requests.post(url, json={"tool": tool, "arguments": arguments})
 
         if response.status_code == 200:
-            return response.json()
+            result = response.json()
+            assert isinstance(result, dict)  # Type assertion for mypy
+            return result
         else:
             return {"success": False, "error": f"HTTP {response.status_code}"}
 

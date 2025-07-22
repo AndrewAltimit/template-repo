@@ -4,6 +4,7 @@ Simple test to verify Export node schema is working correctly
 """
 import os
 import sys
+from typing import Any, Dict, List, Tuple
 
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
@@ -18,6 +19,7 @@ print("\n1. Checking Export node in NODE_PROPERTY_DEFINITIONS...")
 if "Export" in NODE_PROPERTY_DEFINITIONS:
     print("   ✅ Export node found!")
     export_props = NODE_PROPERTY_DEFINITIONS["Export"]
+    assert isinstance(export_props, dict)  # Type assertion for mypy
     print(f"   Properties: {list(export_props.keys())}")
 else:
     print("   ❌ Export node NOT found!")
@@ -25,7 +27,7 @@ else:
 # Test 2: Validate correct properties
 print("\n2. Testing property validation...")
 
-test_cases = [
+test_cases: List[Tuple[str, Dict[str, Any], int, int]] = [
     ("Format property (valid)", {"Format": "PNG"}, 0, 0),
     ("BitDepth property (valid)", {"BitDepth": "16"}, 0, 0),
     ("Both valid properties", {"Format": "EXR", "BitDepth": "32"}, 0, 0),

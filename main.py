@@ -7,7 +7,7 @@ Example of integrating with modular MCP services
 import asyncio
 import logging
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import requests
 from dotenv import load_dotenv
@@ -31,7 +31,7 @@ MCP_SERVERS = {
 class MCPClient:
     """Client for interacting with MCP servers"""
 
-    def __init__(self, server_name: str = None, base_url: str = None):
+    def __init__(self, server_name: Optional[str] = None, base_url: Optional[str] = None):
         if base_url:
             self.base_url = base_url
         elif server_name and server_name in MCP_SERVERS:
@@ -47,7 +47,9 @@ class MCPClient:
         try:
             response = requests.post(url, json={"tool": tool, "arguments": arguments})
             response.raise_for_status()
-            return response.json()
+            result = response.json()
+            assert isinstance(result, dict)  # Type assertion for mypy
+            return result
         except requests.exceptions.RequestException as e:
             logger.error(f"Error executing tool {tool}: {e}")
             return {"success": False, "error": str(e)}
@@ -59,7 +61,9 @@ class MCPClient:
         try:
             response = requests.get(url)
             response.raise_for_status()
-            return response.json()
+            result = response.json()
+            assert isinstance(result, dict)  # Type assertion for mypy
+            return result
         except requests.exceptions.RequestException as e:
             logger.error(f"Error listing tools: {e}")
             return {}

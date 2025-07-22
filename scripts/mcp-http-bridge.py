@@ -6,7 +6,7 @@ Forwards MCP requests to remote MCP servers
 
 import logging
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import httpx
 from fastapi import FastAPI, HTTPException
@@ -46,7 +46,7 @@ class MCPResponse(BaseModel):
     """MCP response model"""
 
     result: Any
-    error: Dict[str, Any] = None
+    error: Optional[Dict[str, Any]] = None
 
 
 @app.get("/")

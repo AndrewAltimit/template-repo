@@ -30,7 +30,9 @@ class TestGaea2Failures:
                     json={"tool": tool, "parameters": parameters},
                     timeout=aiohttp.ClientTimeout(total=300),
                 ) as response:
-                    return await response.json()
+                    result = await response.json()
+                    assert isinstance(result, dict)  # Type assertion for mypy
+                    return result
         except Exception as e:
             return {"error": str(e), "error_type": type(e).__name__}
 
@@ -683,7 +685,9 @@ class TestErrorRecovery:
                     json={"tool": tool, "parameters": parameters},
                     timeout=aiohttp.ClientTimeout(total=300),
                 ) as response:
-                    return await response.json()
+                    result = await response.json()
+                    assert isinstance(result, dict)  # Type assertion for mypy
+                    return result
         except Exception as e:
             return {"error": str(e), "error_type": type(e).__name__}
 

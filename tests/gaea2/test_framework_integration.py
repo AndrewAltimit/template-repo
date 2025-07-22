@@ -10,7 +10,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 import pytest
@@ -33,9 +33,9 @@ class Gaea2TestFramework:
 
     def __init__(self, server_url: str = "http://192.168.0.152:8007"):
         self.server_url = server_url
-        self.test_results = []
-        self.knowledge_base = {}
-        self.regression_baseline = {}
+        self.test_results: List[Dict[str, Any]] = []
+        self.knowledge_base: Dict[str, Any] = {}
+        self.regression_baseline: Dict[str, Any] = {}
 
     async def execute_mcp_tool(self, tool: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Execute an MCP tool and capture all response details including errors."""
@@ -47,6 +47,7 @@ class Gaea2TestFramework:
                     timeout=aiohttp.ClientTimeout(total=300),
                 ) as response:
                     result = await response.json()
+                    assert isinstance(result, dict)  # Type assertion for mypy
 
                     # Capture comprehensive error feedback (Phase 1 requirement)
                     test_record = {
@@ -693,7 +694,7 @@ class PerformanceMonitor:
             "resource_usage": [],
         }
 
-    def record_operation(self, tool: str, duration: float, success: bool, error_type: str = None):
+    def record_operation(self, tool: str, duration: float, success: bool, error_type: Optional[str] = None):
         """Record operation metrics."""
         self.metrics["response_times"].append(
             {

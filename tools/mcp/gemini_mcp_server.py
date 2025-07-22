@@ -39,7 +39,7 @@ from tools.gemini.gemini_integration import get_integration  # noqa: E402
 
 
 class MCPServer:
-    def __init__(self, project_root: str = None):
+    def __init__(self, project_root: Optional[str] = None):
         self.project_root = Path(project_root) if project_root else Path.cwd()
         self.server = Server("gemini-mcp-server")
 
