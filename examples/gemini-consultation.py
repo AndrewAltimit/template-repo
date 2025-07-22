@@ -15,7 +15,10 @@ def consult_gemini(question: str, context: Optional[str] = None):
     url = "http://localhost:8000/tools/execute"
 
     # Prepare request
-    payload: Dict[str, Any] = {"tool": "consult_gemini", "arguments": {"question": question}}
+    payload: Dict[str, Any] = {
+        "tool": "consult_gemini",
+        "arguments": {"question": question},
+    }
 
     if context:
         payload["arguments"]["context"] = context

@@ -694,7 +694,13 @@ class PerformanceMonitor:
             "resource_usage": [],
         }
 
-    def record_operation(self, tool: str, duration: float, success: bool, error_type: Optional[str] = None):
+    def record_operation(
+        self,
+        tool: str,
+        duration: float,
+        success: bool,
+        error_type: Optional[str] = None,
+    ):
         """Record operation metrics."""
         self.metrics["response_times"].append(
             {

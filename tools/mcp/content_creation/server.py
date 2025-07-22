@@ -137,11 +137,12 @@ class ContentCreationMCPServer(BaseMCPServer):
 
             cmd = [
                 "manim",
-                quality_flags.get(quality, "-qm"),
-                "-f",
-                output_format,
-                "--output_dir",
+                "render",
+                "--media_dir",
                 self.manim_output_dir,
+                quality_flags.get(quality, "-qm"),
+                "--format",
+                output_format,
             ]
 
             if preview:
@@ -158,28 +159,29 @@ class ContentCreationMCPServer(BaseMCPServer):
             os.unlink(script_path)
 
             if result.returncode == 0:
-                # Find output file
-                media_dir = os.path.join(self.manim_output_dir, "media")
-                if os.path.exists(media_dir):
-                    # Search for output file
-                    for root, dirs, files in os.walk(media_dir):
-                        for file in files:
-                            if file.endswith(f".{output_format}"):
-                                output_path = os.path.join(root, file)
-                                # Copy to a stable location
-                                final_path = os.path.join(
-                                    self.manim_output_dir,
-                                    f"animation_{os.getpid()}.{output_format}",
-                                )
-                                shutil.copy(output_path, final_path)
+                # Find output file - check both media and videos directories
+                for search_dir in ["media", "videos", ""]:
+                    search_path = os.path.join(self.manim_output_dir, search_dir) if search_dir else self.manim_output_dir
+                    if os.path.exists(search_path):
+                        # Search for output file
+                        for root, dirs, files in os.walk(search_path):
+                            for file in files:
+                                if file.endswith(f".{output_format}") and "partial_movie_files" not in root:
+                                    output_path = os.path.join(root, file)
+                                    # Copy to a stable location
+                                    final_path = os.path.join(
+                                        self.manim_output_dir,
+                                        f"animation_{os.getpid()}.{output_format}",
+                                    )
+                                    shutil.copy(output_path, final_path)
 
-                                return {
-                                    "success": True,
-                                    "output_path": final_path,
-                                    "format": output_format,
-                                    "quality": quality,
-                                    "preview": preview,
-                                }
+                                    return {
+                                        "success": True,
+                                        "output_path": final_path,
+                                        "format": output_format,
+                                        "quality": quality,
+                                        "preview": preview,
+                                    }
 
                 return {
                     "success": False,
