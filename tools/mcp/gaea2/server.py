@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union  # noqa: F401
 
 from aiohttp import web  # noqa: F401
-from fastapi import Response
+from fastapi import Request, Response
 from fastapi.responses import FileResponse
 
 from ..core.base_server import BaseMCPServer
@@ -409,8 +409,14 @@ class Gaea2MCPServer(BaseMCPServer):
 
             ensure_directory(os.path.dirname(output_path))
 
+            # Extract just the project data (not the wrapper with success, node_count, etc.)
+            if isinstance(project_data, dict) and "project" in project_data:
+                terrain_data = project_data["project"]
+            else:
+                terrain_data = project_data
+
             with open(output_path, "w") as f:
-                json.dump(project_data, f, indent=2)
+                json.dump(terrain_data, f, indent=2)
 
             # Perform file validation by opening in Gaea2
             file_validation_performed = False
@@ -843,7 +849,7 @@ class Gaea2MCPServer(BaseMCPServer):
             self.logger.error(f"Failed to list files: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def download_file_http(self, filename: str):
+    async def download_file_http(self, filename: str, request: Request):
         """HTTP endpoint for direct file download"""
         try:
             # Remove any path separators for security
@@ -853,7 +859,29 @@ class Gaea2MCPServer(BaseMCPServer):
             if not os.path.exists(file_path):
                 return Response(content="File not found", status_code=404)
 
-            # Return file response
+            # Check if we should extract just the project field
+            extract_project = request.query_params.get("extract_project", "").lower() == "true"
+
+            if extract_project and file_path.endswith(".terrain"):
+                # Read the file and extract project field if it exists
+                try:
+                    with open(file_path, "r") as f:
+                        data = json.load(f)
+
+                    # If it has the wrapper structure, extract just the project
+                    if isinstance(data, dict) and "project" in data and "success" in data:
+                        project_data = data["project"]
+                        # Return as JSON response
+                        return Response(
+                            content=json.dumps(project_data, indent=2),
+                            media_type="application/json",
+                            headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
+                        )
+                except Exception:
+                    # If JSON parsing fails, just return the file as-is
+                    pass
+
+            # Return file response as-is
             return FileResponse(
                 path=file_path,
                 filename=safe_filename,
