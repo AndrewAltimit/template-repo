@@ -124,7 +124,7 @@ class Gaea2ErrorRecovery:
         self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """Add missing required nodes based on workflow patterns"""
-        node_types = [n["type"] for n in nodes]
+        node_types = [n.get("type", "Unknown") for n in nodes]
         nodes_added = []
 
         # Check for missing colorization
@@ -259,7 +259,7 @@ class Gaea2ErrorRecovery:
         """Optimize workflow based on best practices"""
 
         # Optimization 1: Ensure proper node order
-        node_types = [n["type"] for n in nodes]
+        node_types = [n.get("type", "Unknown") for n in nodes]
 
         # Check if erosion comes before rivers
         if "Erosion2" in node_types and "Rivers" in node_types:
@@ -464,7 +464,7 @@ class Gaea2ErrorRecovery:
             )
 
         # Check for missing nodes
-        node_types = [n["type"] for n in nodes]
+        node_types = [n.get("type", "Unknown") for n in nodes]
 
         if not any(t in ["Export", "Unity", "Unreal"] for t in node_types):
             suggestions.append(

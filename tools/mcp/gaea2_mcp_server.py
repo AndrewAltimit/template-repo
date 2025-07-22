@@ -1241,6 +1241,9 @@ class Gaea2MCPServer:
                 "is_valid": False,
             }
 
+            # Initialize validation state
+            all_valid = True
+
             # Validate node structure before other validations
             nodes = workflow.get("nodes", [])
             malformed_nodes = []
@@ -1258,6 +1261,8 @@ class Gaea2MCPServer:
                     "valid": False,
                     "errors": malformed_nodes,
                 }
+                # Mark as invalid since we have structural errors
+                all_valid = False
                 # Try to fix by converting 'node' to 'type' if present
                 for node in nodes:
                     if "node" in node and "type" not in node:
@@ -1273,11 +1278,11 @@ class Gaea2MCPServer:
             if validate_connections:
                 validators.append(("connections", Gaea2ConnectionValidator()))
 
-            # Structure validation
-            validators.append(("structure", Gaea2StructureValidator()))
+            # Only add structure validator if we haven't already done structure validation
+            if "structure" not in results["validation_results"]:
+                validators.append(("structure", Gaea2StructureValidator()))
 
             # Run all validators
-            all_valid = True
             for name, validator in validators:
                 # Different validators have different methods
                 if hasattr(validator, "validate_workflow"):
@@ -1298,6 +1303,7 @@ class Gaea2MCPServer:
                 }
                 if not is_valid:
                     all_valid = False
+                    self.logger.info(f"Validator {name} failed, setting all_valid=False. Errors: {errors}")
 
             # Check if workflow is empty (critical validation)
             nodes = workflow.get("nodes", [])
@@ -1311,7 +1317,13 @@ class Gaea2MCPServer:
                 }
 
             # Apply fixes if requested
-            if fix_errors and (not all_valid or not nodes):
+            # Don't try to fix if nodes have fundamental structural issues
+            has_structural_errors = any(
+                "missing 'type' field" in str(err)
+                for err in results.get("validation_results", {}).get("structure", {}).get("errors", [])
+            )
+
+            if fix_errors and (not all_valid or not nodes) and not has_structural_errors:
                 recovery = Gaea2ErrorRecovery()
 
                 # Apply fixes - auto_fix_project returns tuple (nodes, connections, fixes_applied)
@@ -1323,9 +1335,8 @@ class Gaea2MCPServer:
                 workflow["connections"] = fixed_connections
                 results["fixes_applied"] = fixes_applied
 
-                # Re-validate after fixes
-                if fixed_nodes and len(fixed_nodes) > len(nodes):
-                    all_valid = True  # Consider valid if nodes were added
+                # Don't change validation state based on fixes
+                # Fixes don't make invalid connections valid (e.g., circular dependencies)
 
             # Note: Export and SatMap nodes ARE present in working reference files
             # The error_recovery.auto_fix_project handles adding missing required nodes
@@ -1358,12 +1369,24 @@ class Gaea2MCPServer:
 
             # Return in the format expected by tests
             # Tests expect result.valid and result.fixes_applied
+            # Collect all errors from validation_results
+            all_errors = []
+            for validator_name, validation_result in results.get("validation_results", {}).items():
+                if not validation_result.get("valid", True):
+                    errors = validation_result.get("errors", [])
+                    if isinstance(errors, list):
+                        all_errors.extend(errors)
+                    else:
+                        all_errors.append(str(errors))
+                    # Debug logging
+                    self.logger.info(f"Validator {validator_name} found errors: {errors}")
+
             return {
                 "success": True,
                 "result": {
                     "valid": all_valid,
                     "fixes_applied": results.get("fixes_applied", []),
-                    "errors": [],  # Collect all errors from validation_results
+                    "errors": all_errors,
                     "workflow": workflow,
                 },
                 # Also include the detailed results for backward compatibility
@@ -1371,6 +1394,9 @@ class Gaea2MCPServer:
             }
 
         except Exception as e:
+            import traceback
+
+            self.logger.error(f"Validation error: {e}\n{traceback.format_exc()}")
             return {"success": False, "error": str(e)}
 
     async def analyze_execution_history(self) -> Dict[str, Any]:

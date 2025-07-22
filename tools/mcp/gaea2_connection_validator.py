@@ -19,6 +19,20 @@ class Gaea2ConnectionValidator:
         self.warnings = []
         self.suggestions = []
 
+    def validate_workflow(self, workflow: Dict[str, Any]) -> Tuple[bool, List[str]]:
+        """
+        Validate workflow connections (wrapper for compatibility)
+
+        Returns:
+            - is_valid: Whether connections are valid
+            - errors: List of error messages
+        """
+        nodes = workflow.get("nodes", [])
+        connections = workflow.get("connections", [])
+        is_valid, errors, warnings = self.validate_connections(nodes, connections)
+        # Return only validity and errors for compatibility
+        return is_valid, errors
+
     def validate_connections(
         self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
     ) -> Tuple[bool, List[str], List[str]]:
@@ -34,8 +48,8 @@ class Gaea2ConnectionValidator:
         warnings = []
 
         # Build lookup structures
-        node_map = {n["id"]: n for n in nodes}
-        node_types = {n["id"]: n["type"] for n in nodes}
+        node_map = {n.get("id", f"node_{i}"): n for i, n in enumerate(nodes)}
+        node_types = {n.get("id", f"node_{i}"): n.get("type", "Unknown") for i, n in enumerate(nodes)}
 
         # Check basic connection validity
         for conn in connections:
@@ -83,12 +97,14 @@ class Gaea2ConnectionValidator:
             connected_ids.add(conn["to_node"])
 
         for node in nodes:
-            if node["id"] not in connected_ids:
-                node_type = node["type"]
+            node_id = node.get("id", f"node_{nodes.index(node)}")
+            if node_id not in connected_ids:
+                node_type = node.get("type", "Unknown")
                 # Some nodes can be standalone
                 standalone_types = ["Export", "Unity", "Unreal", "File"]
                 if node_type not in standalone_types:
-                    warnings.append(f"Node '{node['name']}' ({node_type}) is not connected")
+                    node_name = node.get("name", f"node_{node_id}")
+                    warnings.append(f"Node '{node_name}' ({node_type}) is not connected")
 
         # Check for cycles
         cycles = self._detect_cycles(connections)
@@ -96,6 +112,7 @@ class Gaea2ConnectionValidator:
             for cycle in cycles:
                 # Cycles are errors in Gaea2, not just warnings
                 errors.append(f"Circular dependency detected: {' → '.join(str(n) for n in cycle)}")
+                logger.warning(f"Detected circular dependency: {cycle}")
 
         # Check for missing common patterns
         self._check_workflow_patterns(nodes, connections, warnings)
@@ -119,8 +136,8 @@ class Gaea2ConnectionValidator:
         # Check each node for missing connections
 
         for node in nodes:
-            node_id = node["id"]
-            node_type = node["type"]
+            node_id = node.get("id", f"node_{nodes.index(node)}")
+            node_type = node.get("type", "Unknown")
 
             # Skip if node already has outgoing connections
             has_outgoing = any(conn["from_node"] == node_id for conn in existing_connections)
@@ -134,7 +151,7 @@ class Gaea2ConnectionValidator:
                     if target_node["id"] == node_id:
                         continue
 
-                    target_type = target_node["type"]
+                    target_type = target_node.get("type", "Unknown")
                     if target_type in targets:
                         probability = targets[target_type]
 
@@ -171,7 +188,7 @@ class Gaea2ConnectionValidator:
 
         # Check for bypass opportunities
         # (e.g., A→B→C where A→C would be more efficient)
-        node_types = {n["id"]: n["type"] for n in nodes}
+        node_types = {n.get("id", f"node_{i}"): n.get("type", "Unknown") for i, n in enumerate(nodes)}
 
         # Build adjacency for path finding
         adjacency = defaultdict(list)
@@ -180,9 +197,9 @@ class Gaea2ConnectionValidator:
 
         # Look for long chains that could be shortened
         for start_node in nodes:
-            if start_node["type"] in ["Mountain", "Canyon", "Ridge", "Island"]:
+            if start_node.get("type", "Unknown") in ["Mountain", "Canyon", "Ridge", "Island"]:
                 # These are typically starting nodes
-                paths = self._find_paths_to_type(start_node["id"], "SatMap", adjacency, node_types, max_length=6)
+                paths = self._find_paths_to_type(start_node.get("id", ""), "SatMap", adjacency, node_types, max_length=6)
 
                 if paths:
                     shortest = min(paths, key=len)
@@ -233,7 +250,7 @@ class Gaea2ConnectionValidator:
         warnings: List[str],
     ):
         """Check for missing common workflow patterns"""
-        node_types = [n["type"] for n in nodes]
+        node_types = [n.get("type", "Unknown") for n in nodes]
 
         # Check for common required nodes
         if "Erosion2" in node_types and "TextureBase" not in node_types:
@@ -247,7 +264,7 @@ class Gaea2ConnectionValidator:
 
         # Check for export nodes
         export_types = ["Export", "Unity", "Unreal"]
-        if not any(n["type"] in export_types for n in nodes):
+        if not any(n.get("type", "Unknown") in export_types for n in nodes):
             warnings.append("No export node found - add Export node to save terrain")
 
     def _find_paths_to_type(
@@ -284,7 +301,7 @@ class Gaea2ConnectionValidator:
         """Calculate a quality score for the connections (0-100)"""
         score = 100.0
 
-        node_types = {n["id"]: n["type"] for n in nodes}
+        node_types = {n.get("id", f"node_{i}"): n.get("type", "Unknown") for i, n in enumerate(nodes)}
 
         # Penalize unusual connections
         for conn in connections:
