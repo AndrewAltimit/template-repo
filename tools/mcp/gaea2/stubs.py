@@ -42,11 +42,12 @@ knowledge_graph: KnowledgeGraph = KnowledgeGraph()
 
 
 # Validator stubs
-def create_accurate_validator() -> "Validator":
-    class Validator:
-        def validate_node(self, node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
-            return True, [], properties
+class Validator:
+    def validate_node(self, node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
+        return True, [], properties
 
+
+def create_accurate_validator() -> Validator:
     return Validator()
 
 

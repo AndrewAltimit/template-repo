@@ -17,7 +17,12 @@ class Gaea2Exception(Exception):
 class Gaea2ValidationError(Gaea2Exception):
     """Raised when validation of Gaea2 data fails"""
 
-    def __init__(self, message: str, node_id: Optional[int] = None, property_name: Optional[str] = None):
+    def __init__(
+        self,
+        message: str,
+        node_id: Optional[int] = None,
+        property_name: Optional[str] = None,
+    ):
         self.node_id = node_id
         self.property_name = property_name
         super().__init__(message)
@@ -35,7 +40,13 @@ class Gaea2NodeTypeError(Gaea2ValidationError):
 class Gaea2PropertyError(Gaea2ValidationError):
     """Raised when a property value is invalid"""
 
-    def __init__(self, property_name: str, value: Any, expected_type: str, node_id: Optional[int] = None):
+    def __init__(
+        self,
+        property_name: str,
+        value: Any,
+        expected_type: str,
+        node_id: Optional[int] = None,
+    ):
         self.value = value
         self.expected_type = expected_type
         message = f"Invalid value for property '{property_name}': {value} (expected {expected_type})"
@@ -103,7 +114,12 @@ class Gaea2OptimizationError(Gaea2Exception):
 class Gaea2RuntimeError(Gaea2Exception):
     """Raised when Gaea2 CLI operations fail"""
 
-    def __init__(self, message: str, exit_code: Optional[int] = None, stderr: Optional[str] = None):
+    def __init__(
+        self,
+        message: str,
+        exit_code: Optional[int] = None,
+        stderr: Optional[str] = None,
+    ):
         self.exit_code = exit_code
         self.stderr = stderr
         super().__init__(message)
