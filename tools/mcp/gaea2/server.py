@@ -1,16 +1,20 @@
 """Gaea2 Terrain Generation MCP Server"""
 
 import asyncio  # noqa: F401
+import base64
 import json
 import logging  # noqa: F401
 import os
 import platform
 import sys  # noqa: F401
 from datetime import datetime
+from glob import glob
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union  # noqa: F401
 
 from aiohttp import web  # noqa: F401
+from fastapi import Response
+from fastapi.responses import FileResponse
 
 from ..core.base_server import BaseMCPServer
 from ..core.utils import check_container_environment, ensure_directory, setup_logging
@@ -64,7 +68,16 @@ class Gaea2MCPServer(BaseMCPServer):
         self.cli = Gaea2CLIAutomation(self.gaea_path) if self.gaea_path else None
 
         # Execution history for debugging
-        self.execution_history = []
+        self.execution_history: List[Dict[str, Any]] = []
+
+        # Add custom routes for file download
+        self._setup_custom_routes()
+
+    def _setup_custom_routes(self):
+        """Setup custom routes for Gaea2 server"""
+        self.app.get("/download/{filename}")(self.download_file_http)
+        self.app.get("/files/{filename}")(self.download_file_http)
+        self.app.get("/list")(self.list_files_http)
 
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return available Gaea2 tools"""
@@ -296,6 +309,45 @@ class Gaea2MCPServer(BaseMCPServer):
                     },
                 }
             )
+
+        # Add download tool
+        tools["download_gaea2_project"] = {
+            "description": "Download a previously created Gaea2 terrain file",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filename": {
+                        "type": "string",
+                        "description": "The terrain filename (e.g., 'two_mountains_river_20250722_113730.terrain')",
+                    },
+                    "full_path": {
+                        "type": "string",
+                        "description": "Full path to the terrain file (optional, overrides filename)",
+                    },
+                    "encoding": {
+                        "type": "string",
+                        "enum": ["base64", "raw"],
+                        "default": "base64",
+                        "description": "How to encode the file data",
+                    },
+                },
+                "required": ["filename"],
+            },
+        }
+
+        tools["list_gaea2_projects"] = {
+            "description": "List all terrain files in the output directory",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pattern": {
+                        "type": "string",
+                        "default": "*.terrain",
+                        "description": "File pattern to match",
+                    },
+                },
+            },
+        }
 
         return tools
 
@@ -578,6 +630,150 @@ class Gaea2MCPServer(BaseMCPServer):
         except Exception as e:
             self.logger.error(f"History analysis failed: {str(e)}")
             return {"success": False, "error": str(e)}
+
+    async def download_gaea2_project(
+        self,
+        *,
+        filename: str,
+        full_path: Optional[str] = None,
+        encoding: str = "base64",
+    ) -> Dict[str, Any]:
+        """Download a previously created Gaea2 terrain file"""
+        try:
+            # Determine file path
+            if full_path and os.path.exists(full_path):
+                file_path = full_path
+            else:
+                # Remove any path separators from filename for security
+                safe_filename = os.path.basename(filename)
+                file_path = os.path.join(self.output_dir, safe_filename)
+
+            # Check if file exists
+            if not os.path.exists(file_path):
+                # Try with Windows path separator if not found
+                if "\\" in filename:
+                    safe_filename = os.path.basename(filename.split("\\")[-1])
+                    file_path = os.path.join(self.output_dir, safe_filename)
+
+                if not os.path.exists(file_path):
+                    return {
+                        "success": False,
+                        "error": f"File not found: {safe_filename}",
+                        "searched_path": file_path,
+                    }
+
+            # Read file
+            with open(file_path, "rb") as f:
+                file_data = f.read()
+
+            # Get file info
+            file_stats = os.stat(file_path)
+
+            # Encode based on requested format
+            if encoding == "base64":
+                encoded_data = base64.b64encode(file_data).decode("utf-8")
+                return {
+                    "success": True,
+                    "filename": os.path.basename(file_path),
+                    "size": file_stats.st_size,
+                    "modified": datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
+                    "encoding": "base64",
+                    "data": encoded_data,
+                }
+            else:
+                # For raw, we'll return the file as JSON string (terrain files are JSON)
+                try:
+                    json_data = json.loads(file_data.decode("utf-8"))
+                    return {
+                        "success": True,
+                        "filename": os.path.basename(file_path),
+                        "size": file_stats.st_size,
+                        "modified": datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
+                        "encoding": "raw",
+                        "data": json_data,
+                    }
+                except Exception:
+                    # If not JSON, still return base64
+                    encoded_data = base64.b64encode(file_data).decode("utf-8")
+                    return {
+                        "success": True,
+                        "filename": os.path.basename(file_path),
+                        "size": file_stats.st_size,
+                        "modified": datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
+                        "encoding": "base64",
+                        "data": encoded_data,
+                    }
+
+        except Exception as e:
+            self.logger.error(f"Failed to download file: {str(e)}")
+            return {"success": False, "error": str(e)}
+
+    async def list_gaea2_projects(
+        self,
+        *,
+        pattern: str = "*.terrain",
+    ) -> Dict[str, Any]:
+        """List all terrain files in the output directory"""
+        try:
+            # Find matching files
+            search_pattern = os.path.join(self.output_dir, pattern)
+            files = glob(search_pattern)
+
+            # Get file info
+            file_list = []
+            for file_path in files:
+                try:
+                    stats = os.stat(file_path)
+                    file_list.append(
+                        {
+                            "filename": os.path.basename(file_path),
+                            "path": file_path,
+                            "size": stats.st_size,
+                            "modified": datetime.fromtimestamp(stats.st_mtime).isoformat(),
+                        }
+                    )
+                except Exception:
+                    pass
+
+            # Sort by modified time (newest first)
+            file_list.sort(key=lambda x: str(x["modified"]), reverse=True)
+
+            return {
+                "success": True,
+                "count": len(file_list),
+                "files": file_list,
+                "output_dir": self.output_dir,
+            }
+
+        except Exception as e:
+            self.logger.error(f"Failed to list files: {str(e)}")
+            return {"success": False, "error": str(e)}
+
+    async def download_file_http(self, filename: str):
+        """HTTP endpoint for direct file download"""
+        try:
+            # Remove any path separators for security
+            safe_filename = os.path.basename(filename)
+            file_path = os.path.join(self.output_dir, safe_filename)
+
+            if not os.path.exists(file_path):
+                return Response(content="File not found", status_code=404)
+
+            # Return file response
+            return FileResponse(
+                path=file_path,
+                filename=safe_filename,
+                media_type="application/octet-stream",
+            )
+
+        except Exception as e:
+            self.logger.error(f"HTTP download failed: {str(e)}")
+            return Response(content=f"Download failed: {str(e)}", status_code=500)
+
+    async def list_files_http(self):
+        """HTTP endpoint to list files"""
+        result = await self.list_gaea2_projects()
+        return result
 
 
 def main():
