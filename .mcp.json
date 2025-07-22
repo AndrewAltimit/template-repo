@@ -1,202 +1,44 @@
 {
   "mcpServers": {
-    "local-tools": {
-      "name": "Local MCP Tools",
-      "url": "http://localhost:8005",
-      "tools": {
-        "format_check": {
-          "description": "Check code formatting",
-          "parameters": {
-            "path": {
-              "type": "string",
-              "description": "Path to check"
-            },
-            "language": {
-              "type": "string",
-              "description": "Programming language",
-              "enum": [
-                "python",
-                "javascript",
-                "typescript",
-                "go",
-                "rust"
-              ]
-            }
-          }
-        },
-        "lint": {
-          "description": "Run code linting",
-          "parameters": {
-            "path": {
-              "type": "string",
-              "description": "Path to lint"
-            },
-            "config": {
-              "type": "string",
-              "description": "Linting configuration file"
-            }
-          }
-        },
-        "create_manim_animation": {
-          "description": "Create mathematical animations",
-          "parameters": {
-            "script": {
-              "type": "string",
-              "description": "Manim script content"
-            },
-            "output_format": {
-              "type": "string",
-              "enum": [
-                "mp4",
-                "gif",
-                "webm"
-              ],
-              "default": "mp4"
-            }
-          }
-        },
-        "compile_latex": {
-          "description": "Compile LaTeX documents",
-          "parameters": {
-            "content": {
-              "type": "string",
-              "description": "LaTeX document content"
-            },
-            "format": {
-              "type": "string",
-              "enum": [
-                "pdf",
-                "dvi",
-                "ps"
-              ],
-              "default": "pdf"
-            }
-          }
-        }
-      }
-    },
-    "gemini-tools-http": {
-      "name": "Gemini MCP Server (HTTP mode - testing only)",
-      "url": "http://localhost:8006",
-      "note": "For testing only. Must run on host system with: ./scripts/start-gemini-mcp.sh --http",
-      "tools": {
-        "consult_gemini": {
-          "description": "Get AI assistance from Gemini",
-          "parameters": {
-            "prompt": {
-              "type": "string",
-              "description": "Technical question or code to review"
-            },
-            "context": {
-              "type": "object",
-              "description": "Additional context"
-            },
-            "max_retries": {
-              "type": "integer",
-              "description": "Maximum retry attempts",
-              "default": 3
-            }
-          }
-        },
-        "clear_gemini_history": {
-          "description": "Clear Gemini conversation history",
-          "parameters": {}
-        }
-      }
-    },
-    "gemini-tools-stdio": {
-      "name": "Gemini MCP Server (stdio mode - recommended)",
-      "type": "stdio",
-      "command": "python3",
+    "code-quality": {
+      "command": "python",
       "args": [
-        "tools/mcp/gemini_mcp_server.py"
+        "-m",
+        "tools.mcp.code_quality.server",
+        "--mode",
+        "stdio"
+      ]
+    },
+    "content-creation": {
+      "command": "python",
+      "args": [
+        "-m",
+        "tools.mcp.content_creation.server",
+        "--mode",
+        "stdio"
+      ]
+    },
+    "gemini": {
+      "command": "python",
+      "args": [
+        "-m",
+        "tools.mcp.gemini.server",
+        "--mode",
+        "stdio"
       ],
       "env": {
-        "GEMINI_API_KEY": "${GEMINI_API_KEY}",
-        "GEMINI_MODEL": "gemini-2.5-flash",
+        "GEMINI_MODEL": "gemini-2.0-flash-exp",
         "GEMINI_TIMEOUT": "60"
-      },
-      "note": "Recommended for production. Must run on host system, not in container",
-      "tools": {
-        "consult_gemini": {
-          "description": "Get AI assistance from Gemini with streaming support",
-          "parameters": {
-            "query": {
-              "type": "string",
-              "description": "Technical question or code to review"
-            },
-            "context": {
-              "type": "string",
-              "description": "Additional context"
-            },
-            "comparison_mode": {
-              "type": "boolean",
-              "description": "Enable comparison mode for second opinions",
-              "default": true
-            },
-            "force": {
-              "type": "boolean",
-              "description": "Force consultation even if disabled",
-              "default": false
-            }
-          }
-        },
-        "gemini_status": {
-          "description": "Get Gemini integration status and statistics",
-          "parameters": {}
-        },
-        "toggle_gemini_auto_consult": {
-          "description": "Toggle automatic Gemini consultation on uncertainty detection",
-          "parameters": {
-            "enable": {
-              "type": "boolean",
-              "description": "Enable or disable auto-consultation (null to toggle)"
-            }
-          }
-        },
-        "clear_gemini_history": {
-          "description": "Clear Gemini conversation history",
-          "parameters": {}
-        }
       }
     },
-    "comfyui": {
-      "name": "ComfyUI MCP Server",
-      "url": "http://localhost:8189",
-      "remote_url": "${COMFYUI_SERVER_URL}",
-      "tools": {
-        "generate_image": {
-          "description": "Generate images using ComfyUI workflows"
-        },
-        "list_workflows": {
-          "description": "List available ComfyUI workflows"
-        },
-        "execute_workflow": {
-          "description": "Execute a specific ComfyUI workflow"
-        }
-      }
-    },
-    "ai-toolkit": {
-      "name": "AI Toolkit MCP Server",
-      "url": "http://localhost:8190",
-      "remote_url": "${AI_TOOLKIT_SERVER_URL}",
-      "tools": {
-        "upload_dataset": {
-          "description": "Upload training dataset"
-        },
-        "create_training_config": {
-          "description": "Create LoRA training configuration"
-        },
-        "start_training": {
-          "description": "Start LoRA training job"
-        },
-        "check_training_status": {
-          "description": "Check training job status"
-        },
-        "list_models": {
-          "description": "List trained models"
-        }
-      }
+    "gaea2": {
+      "command": "python",
+      "args": [
+        "-m",
+        "tools.mcp.gaea2.server",
+        "--mode",
+        "stdio"
+      ]
     }
   },
   "settings": {
