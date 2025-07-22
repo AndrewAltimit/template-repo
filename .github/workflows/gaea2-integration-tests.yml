@@ -88,7 +88,7 @@ jobs:
           echo "🌐 Testing MCP server connectivity..."
           docker-compose run --rm \
             -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
-            python-ci python scripts/test_gaea_mcp_server.py ${{ env.GAEA2_MCP_URL }}
+            python-ci python tests/gaea2/run_all_integration_tests.py ${{ env.GAEA2_MCP_URL }}
 
       - name: Test 2 - Successful Operations
         id: successful-ops
