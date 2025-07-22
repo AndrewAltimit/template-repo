@@ -10,9 +10,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 
 import json  # noqa: E402
 
-from tools.mcp.gaea2_error_recovery import Gaea2ErrorRecovery  # noqa: E402
-from tools.mcp.gaea2_schema import NODE_PROPERTY_DEFINITIONS, validate_node_properties  # noqa: E402
-from tools.mcp.gaea2_validation import create_validator  # noqa: E402
+from tools.mcp.gaea2.errors.gaea2_error_recovery import Gaea2ErrorRecovery  # noqa: E402
+from tools.mcp.gaea2.schema.gaea2_schema import NODE_PROPERTY_DEFINITIONS, validate_node_properties  # noqa: E402
+from tools.mcp.gaea2.validation.gaea2_validation import create_validator  # noqa: E402
 
 
 def test_export_node_schema():

@@ -24,8 +24,8 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from tools.mcp.gaea2_project_repair import Gaea2ProjectRepair  # noqa: E402
-from tools.mcp.gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer  # noqa: E402
+from tools.mcp.gaea2.repair.gaea2_project_repair import Gaea2ProjectRepair  # noqa: E402
+from tools.mcp.gaea2.utils.gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer  # noqa: E402
 
 
 async def analyze_real_projects():

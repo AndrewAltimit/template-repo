@@ -7,10 +7,10 @@ import logging
 from copy import deepcopy
 from typing import Any, Dict, List, Tuple
 
-from tools.mcp.gaea2_connection_validator import Gaea2ConnectionValidator
-from tools.mcp.gaea2_format_fixes import generate_non_sequential_id
-from tools.mcp.gaea2_pattern_knowledge import get_next_node_suggestions, suggest_properties_for_node
-from tools.mcp.gaea2_property_validator import Gaea2PropertyValidator
+from ..utils.gaea2_pattern_knowledge import get_next_node_suggestions, suggest_properties_for_node
+from ..validation.gaea2_connection_validator import Gaea2ConnectionValidator
+from ..validation.gaea2_format_fixes import generate_non_sequential_id
+from ..validation.gaea2_property_validator import Gaea2PropertyValidator
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class Gaea2ErrorRecovery:
             - Fixed connections
             - List of fixes applied
         """
-        from .gaea2_connection_utils import normalize_connections
+        from ..utils.gaea2_connection_utils import normalize_connections
 
         self.fixes_applied = []
         fixed_nodes = deepcopy(nodes)

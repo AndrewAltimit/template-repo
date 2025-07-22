@@ -8,7 +8,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from tools.mcp.gaea2_pattern_knowledge import PROPERTY_RECOMMENDATIONS
+from ..utils.gaea2_pattern_knowledge import PROPERTY_RECOMMENDATIONS
 
 logger = logging.getLogger(__name__)
 

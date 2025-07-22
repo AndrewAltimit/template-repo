@@ -8,7 +8,7 @@ import sys
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from tools.mcp.gaea2_schema import NODE_PROPERTY_DEFINITIONS, validate_node_properties  # noqa: E402
+from tools.mcp.gaea2.schema.gaea2_schema import NODE_PROPERTY_DEFINITIONS, validate_node_properties  # noqa: E402
 
 print("Testing Export Node Schema Fix")
 print("=" * 50)

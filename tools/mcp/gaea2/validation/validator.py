@@ -3,12 +3,10 @@
 import logging
 from typing import Any, Dict, List, Tuple
 
-from ...gaea2_accurate_validation import create_accurate_validator
-from ...gaea2_connection_validator import Gaea2ConnectionValidator
-
-# Import real implementations
-from ...gaea2_error_recovery import Gaea2ErrorRecovery
-from ...gaea2_property_validator import Gaea2PropertyValidator
+from ..errors.gaea2_error_recovery import Gaea2ErrorRecovery
+from .gaea2_accurate_validation import create_accurate_validator
+from .gaea2_connection_validator import Gaea2ConnectionValidator
+from .gaea2_property_validator import Gaea2PropertyValidator
 
 
 class Gaea2Validator:

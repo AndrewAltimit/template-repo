@@ -14,8 +14,8 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 # Import Gaea2 MCP server
-from tools.mcp.gaea2_mcp_server import Gaea2MCPServer  # noqa: E402
-from tools.mcp.gaea2_pattern_knowledge import (  # noqa: E402
+from tools.mcp.gaea2.server import Gaea2MCPServer  # noqa: E402
+from tools.mcp.gaea2.utils.gaea2_pattern_knowledge import (  # noqa: E402
     get_next_node_suggestions,
     get_workflow_for_terrain_type,
     suggest_properties_for_node,
