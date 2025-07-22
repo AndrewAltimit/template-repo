@@ -4,7 +4,6 @@ numpy
 scipy
 matplotlib
 pillow
-cairo-cffi
 pycairo
 
 # MCP server dependencies

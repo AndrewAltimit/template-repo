@@ -5,8 +5,8 @@ Optimized Gaea2 validation with caching and efficient data structures
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
-from .gaea2_cache import Gaea2Cache
-from .gaea2_connection_utils import normalize_connections
+from ..utils.gaea2_cache import Gaea2Cache
+from ..utils.gaea2_connection_utils import normalize_connections
 from .gaea2_schema import NODE_PROPERTY_DEFINITIONS, validate_node_properties
 
 
