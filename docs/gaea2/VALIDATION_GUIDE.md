@@ -156,12 +156,20 @@ The validation system has been tested and proven accurate:
 | Simple terrain | Mountain node only | ✅ Success | ✓ |
 | Complex terrain | Multiple nodes/connections | ✅ Success | ✓ |
 | Template: basic_terrain | 4 nodes | ✅ Success | ✓ |
+| Template: detailed_mountain | 6 nodes | ✅ Success | ✓ |
 | Template: volcanic_terrain | 6 nodes | ✅ Success | ✓ |
 | Template: desert_canyon | 6 nodes | ✅ Success | ✓ |
+| Template: mountain_range | 5 nodes | ✅ Success | ✓ |
 | Template: river_valley | 6 nodes | ✅ Success | ✓ |
+| Template: modular_portal_terrain | 11 nodes | ❌ Corrupt | ✓ |
+| Template: volcanic_island | 9 nodes | ❌ Corrupt | ✓ |
+| Template: canyon_system | 7 nodes | ❌ Corrupt | ✓ |
+| Template: coastal_cliffs | 7 nodes | ❌ Corrupt | ✓ |
 | Template: arctic_terrain | 7 nodes | ❌ Corrupt | ✓ |
 | Empty file | No content | ❌ Failure | ✓ |
 | Corrupted JSON | Invalid format | ❌ Failure | ✓ |
+
+**Summary**: 6 out of 11 templates (55%) work correctly. The corrupted templates appear to have issues with certain node properties that exceed limits, causing file corruption.
 
 ## Common Issues and Solutions
 
