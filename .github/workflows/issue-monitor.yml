@@ -12,9 +12,9 @@ on:
       - labeled
 
 permissions:
-  issues: write
-  pull-requests: write
-  contents: write
+  issues: write       # Required to comment on issues and read issue data
+  pull-requests: write # Required to create pull requests
+  contents: read      # Changed from write to read - only need to read code
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -23,8 +23,31 @@ jobs:
   monitor-issues:
     name: Monitor GitHub Issues
     runs-on: self-hosted
+    # Only run if triggered by workflow_dispatch, schedule, or an allowed user
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'issues' &&
+       contains(fromJSON('["AndrewAltimit", "github-actions[bot]", "gemini-bot", "ai-agent[bot]"]'), github.event.issue.user.login))
 
     steps:
+      - name: Security Check - Log Event Details
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Actor: ${{ github.actor }}"
+          if [ "${{ github.event_name }}" = "issues" ]; then
+            echo "Issue Author: ${{ github.event.issue.user.login }}"
+            echo "Issue Number: ${{ github.event.issue.number }}"
+          fi
+
+      - name: Fail Fast - Unauthorized Issue Author
+        if: |
+          github.event_name == 'issues' &&
+          !contains(fromJSON('["AndrewAltimit", "github-actions[bot]", "gemini-bot", "ai-agent[bot]"]'), github.event.issue.user.login)
+        run: |
+          echo "❌ SECURITY: Unauthorized issue author '${{ github.event.issue.user.login }}' attempted to trigger AI agent"
+          echo "This workflow is restricted to authorized users only."
+          exit 1
       - name: Checkout repository
         uses: actions/checkout@v4
         with:

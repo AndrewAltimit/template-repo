@@ -47,5 +47,19 @@
   "notifications": {
     "enabled": false,
     "webhook_url": ""
+  },
+  "security": {
+    "enabled": true,
+    "allow_list": [
+      "AndrewAltimit",
+      "github-actions[bot]",
+      "gemini-bot",
+      "ai-agent[bot]"
+    ],
+    "log_violations": true,
+    "reject_message": "This AI agent only processes requests from authorized users to prevent security vulnerabilities. Please contact the repository owner if you believe you should have access.",
+    "rate_limit_window_minutes": 60,
+    "rate_limit_max_requests": 10,
+    "allowed_repositories": []
   }
 }

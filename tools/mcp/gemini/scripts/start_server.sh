@@ -81,11 +81,11 @@ fi
 if [ "$MODE" = "stdio" ]; then
     echo "Starting in stdio mode (for Claude Desktop)..."
     echo "Press Ctrl+C to stop the server."
-    python -m tools.mcp.gemini.server --mode stdio --project-root "$PROJECT_ROOT"
+    python3 -m tools.mcp.gemini.server --mode stdio --project-root "$PROJECT_ROOT"
 elif [ "$MODE" = "http" ]; then
     echo "Starting in HTTP mode on port 8006..."
     echo "Press Ctrl+C to stop the server."
-    python -m tools.mcp.gemini.server --mode http --project-root "$PROJECT_ROOT"
+    python3 -m tools.mcp.gemini.server --mode http --project-root "$PROJECT_ROOT"
 else
     echo -e "${RED}Invalid mode: $MODE${NC}"
     echo "Mode must be 'stdio' or 'http'"

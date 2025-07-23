@@ -25,6 +25,14 @@ Your role as Claude Code is the primary development assistant, handling:
 - Documentation and test writing
 - CI/CD pipeline development
 
+### AI Agent Security
+
+**IMPORTANT**: AI agents (Issue Monitor and PR Review Monitor) implement strict security measures:
+- Only authorized users can trigger AI agent actions
+- Allow list includes: AndrewAltimit, github-actions[bot], gemini-bot, ai-agent[bot]
+- Unauthorized requests are blocked to prevent prompt injection attacks
+- See `scripts/agents/README.md` for complete security documentation
+
 ## Commands
 
 ### Running Tests
