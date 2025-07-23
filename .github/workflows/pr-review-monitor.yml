@@ -23,15 +23,14 @@ jobs:
   monitor-pr-reviews:
     name: Monitor PR Reviews
     runs-on: self-hosted
-    # Enhanced security: Check PR author is in allow list
+    # Run for all relevant events
+    # Note: User authorization is handled by the SecurityManager in the Python agent
     if: |
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request_review' &&
-       contains(fromJSON('["AndrewAltimit", "github-actions[bot]", "gemini-bot", "ai-agent[bot]"]'), github.event.pull_request.user.login) &&
-       (github.event.review.state == 'changes_requested')) ||
-      (github.event_name == 'pull_request_review_comment' &&
-       contains(fromJSON('["AndrewAltimit", "github-actions[bot]", "gemini-bot", "ai-agent[bot]"]'), github.event.pull_request.user.login))
+       github.event.review.state == 'changes_requested') ||
+      github.event_name == 'pull_request_review_comment'
 
     steps:
       - name: Security Check - Log Event Details
@@ -44,14 +43,6 @@ jobs:
             echo "Review Author: ${{ github.event.review.user.login || github.event.comment.user.login }}"
           fi
 
-      - name: Fail Fast - Unauthorized PR Author
-        if: |
-          (github.event_name == 'pull_request_review' || github.event_name == 'pull_request_review_comment') &&
-          !contains(fromJSON('["AndrewAltimit", "github-actions[bot]", "gemini-bot", "ai-agent[bot]"]'), github.event.pull_request.user.login)
-        run: |
-          echo "❌ SECURITY: Unauthorized PR author '${{ github.event.pull_request.user.login }}' attempted to trigger AI agent"
-          echo "This workflow is restricted to PRs from authorized users only."
-          exit 1
 
       - name: Checkout repository
         uses: actions/checkout@v4

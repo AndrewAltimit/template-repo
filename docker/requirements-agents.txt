@@ -1,0 +1,7 @@
+# Requirements for AI agents
+# Currently agents only use Python standard library modules
+# This file exists for consistency with the project's container-first approach
+# and to support future agent dependencies
+
+# No external dependencies required at this time
+# Python 3.10+ is required for the agents to run

@@ -15,6 +15,7 @@ import re
 import subprocess
 import sys
 import time
+from pathlib import Path
 from typing import Dict, List, Optional
 
 from security import SecurityManager
@@ -31,9 +32,27 @@ class PRReviewMonitor:
     def __init__(self):
         self.repo = os.environ.get("GITHUB_REPOSITORY", "")
         self.token = os.environ.get("GITHUB_TOKEN", "")
+
+        # Load configuration
+        self.config = self._load_config()
+        pr_config = self.config.get("agents", {}).get("pr_review_monitor", {})
+
+        # Use config values with fallbacks
+        self.review_bot_names = pr_config.get("review_bot_names", ["gemini-bot", "github-actions[bot]", "dependabot[bot]"])
+        self.auto_fix_threshold = pr_config.get("auto_fix_threshold", {"critical_issues": 0, "total_issues": 5})
+
         self.agent_tag = "[AI Agent]"
-        self.review_bot_names = ["gemini-bot", "github-actions[bot]"]
         self.security_manager = SecurityManager()
+
+    def _load_config(self) -> dict:
+        """Load configuration from config.json."""
+        config_path = Path(__file__).parent / "config.json"
+        try:
+            with open(config_path, "r") as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            logger.warning(f"Could not load config from {config_path}: {e}")
+            return {}
 
     def get_open_prs(self) -> List[Dict]:
         """Get all open pull requests."""

@@ -29,7 +29,7 @@ Your role as Claude Code is the primary development assistant, handling:
 
 **IMPORTANT**: AI agents (Issue Monitor and PR Review Monitor) implement strict security measures:
 - Only authorized users can trigger AI agent actions
-- Allow list includes: AndrewAltimit, github-actions[bot], gemini-bot, ai-agent[bot]
+- Allow list is configured in `scripts/agents/config.json`
 - Unauthorized requests are blocked to prevent prompt injection attacks
 - See `scripts/agents/README.md` for complete security documentation
 

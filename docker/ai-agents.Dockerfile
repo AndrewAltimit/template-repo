@@ -19,9 +19,9 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
 # Create working directory
 WORKDIR /workspace
 
-# Copy requirements if they exist (for future dependencies)
-COPY requirements.txt* ./
-RUN if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
+# Copy agent-specific requirements
+COPY docker/requirements-agents.txt ./
+RUN pip install --no-cache-dir -r requirements-agents.txt || true
 
 # Python environment configuration
 ENV PYTHONUNBUFFERED=1 \

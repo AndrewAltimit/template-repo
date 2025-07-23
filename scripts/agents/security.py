@@ -4,11 +4,13 @@ Security module for AI agents
 Provides allow list functionality to prevent prompt injection attacks
 """
 
+import fcntl
 import json
 import logging
 import os
-from collections import defaultdict
+import tempfile
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -54,7 +56,10 @@ class SecurityManager:
         # Rate limiting configuration
         self.rate_limit_window = self.security_config.get("rate_limit_window_minutes", 60)
         self.rate_limit_max_requests = self.security_config.get("rate_limit_max_requests", 10)
-        self.rate_limit_tracker = defaultdict(list)
+
+        # Use a persistent file for rate limiting to work across subprocess invocations
+        self.rate_limit_file = Path(tempfile.gettempdir()) / "ai_agent_rate_limits.json"
+        self._ensure_rate_limit_file()
 
         # Repository validation
         self.allowed_repositories = self.security_config.get("allowed_repositories", [])
@@ -92,6 +97,51 @@ class SecurityManager:
         if repo and "/" in repo:
             return repo.split("/")[0]
         return None
+
+    def _ensure_rate_limit_file(self) -> None:
+        """Ensure the rate limit file exists."""
+        if not self.rate_limit_file.exists():
+            try:
+                self.rate_limit_file.write_text("{}")
+            except Exception as e:
+                logger.warning(f"Could not create rate limit file: {e}")
+
+    def _load_rate_limits(self) -> Dict[str, List[float]]:
+        """Load rate limits from persistent file with file locking."""
+        try:
+            with open(self.rate_limit_file, "r+") as f:
+                # Acquire exclusive lock
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                try:
+                    data = json.load(f)
+                    # Convert timestamps back to float
+                    return {k: [float(ts) for ts in v] for k, v in data.items()}
+                except json.JSONDecodeError:
+                    return {}
+                finally:
+                    # Release lock
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        except FileNotFoundError:
+            self._ensure_rate_limit_file()
+            return {}
+        except Exception as e:
+            logger.warning(f"Could not load rate limits: {e}")
+            return {}
+
+    def _save_rate_limits(self, rate_limits: Dict[str, List[float]]) -> None:
+        """Save rate limits to persistent file with file locking."""
+        try:
+            with open(self.rate_limit_file, "w") as f:
+                # Acquire exclusive lock
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                try:
+                    # Convert timestamps to list for JSON serialization
+                    json.dump({k: list(v) for k, v in rate_limits.items()}, f)
+                finally:
+                    # Release lock
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        except Exception as e:
+            logger.warning(f"Could not save rate limits: {e}")
 
     def is_user_allowed(self, username: str) -> bool:
         """
@@ -217,13 +267,22 @@ class SecurityManager:
         # Track requests per user and action
         key = f"{username}:{action}"
 
+        # Load rate limits from persistent storage
+        rate_limits = self._load_rate_limits()
+
         # Clean old entries
-        self.rate_limit_tracker[key] = [timestamp for timestamp in self.rate_limit_tracker[key] if timestamp > window_start]
+        if key in rate_limits:
+            rate_limits[key] = [ts for ts in rate_limits[key] if ts > window_start.timestamp()]
+        else:
+            rate_limits[key] = []
 
         # Check if limit exceeded
-        request_count = len(self.rate_limit_tracker[key])
+        request_count = len(rate_limits[key])
         if request_count >= self.rate_limit_max_requests:
-            remaining_time = min(self.rate_limit_tracker[key]) + timedelta(minutes=self.rate_limit_window) - current_time
+            oldest_timestamp = min(rate_limits[key])
+            remaining_time = (
+                datetime.fromtimestamp(oldest_timestamp) + timedelta(minutes=self.rate_limit_window) - current_time
+            )
             minutes_remaining = int(remaining_time.total_seconds() / 60)
 
             reason = (
@@ -238,7 +297,11 @@ class SecurityManager:
             return False, reason
 
         # Record this request
-        self.rate_limit_tracker[key].append(current_time)
+        rate_limits[key].append(current_time.timestamp())
+
+        # Save updated rate limits
+        self._save_rate_limits(rate_limits)
+
         return True, None
 
     def check_repository(self, repository: str) -> bool:

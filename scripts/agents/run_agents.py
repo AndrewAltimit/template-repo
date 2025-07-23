@@ -79,6 +79,10 @@ class AgentRunner:
         results = {}
 
         if parallel:
+            logger.warning(
+                "Running agents in parallel is not recommended as they perform "
+                "git operations on the same repository, which can lead to race conditions."
+            )
             with ThreadPoolExecutor(max_workers=len(agents)) as executor:
                 futures = {executor.submit(self.run_agent, agent): agent for agent in agents}
 
@@ -90,6 +94,7 @@ class AgentRunner:
                         logger.error(f"Error running agent {agent}: {e}")
                         results[agent] = False
         else:
+            # Sequential execution is the default and recommended approach
             for agent in agents:
                 results[agent] = self.run_agent(agent)
 
@@ -122,7 +127,11 @@ def main():
         help="Command to execute",
     )
     parser.add_argument("--config", help="Path to config file", default=None)
-    parser.add_argument("--parallel", action="store_true", help="Run agents in parallel (for run-all)")
+    parser.add_argument(
+        "--parallel",
+        action="store_true",
+        help="Run agents in parallel (NOT recommended - can cause git race conditions)",
+    )
     parser.add_argument("--continuous", action="store_true", help="Run agent continuously")
 
     args = parser.parse_args()

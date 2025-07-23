@@ -15,6 +15,7 @@ import re
 import subprocess
 import sys
 import time
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from security import SecurityManager
@@ -31,14 +32,35 @@ class IssueMonitor:
     def __init__(self):
         self.repo = os.environ.get("GITHUB_REPOSITORY", "")
         self.token = os.environ.get("GITHUB_TOKEN", "")
-        self.min_description_length = 50
-        self.required_fields = [
-            "description",
-            "expected behavior",
-            "steps to reproduce",
-        ]
+
+        # Load configuration
+        self.config = self._load_config()
+        issue_config = self.config.get("agents", {}).get("issue_monitor", {})
+
+        # Use config values with fallbacks
+        self.min_description_length = issue_config.get("min_description_length", 50)
+        self.required_fields = issue_config.get(
+            "required_fields",
+            [
+                "description",
+                "expected behavior",
+                "steps to reproduce",
+            ],
+        )
+        self.actionable_labels = issue_config.get("actionable_labels", ["bug", "feature", "enhancement", "fix", "improvement"])
+
         self.agent_tag = "[AI Agent]"
         self.security_manager = SecurityManager()
+
+    def _load_config(self) -> dict:
+        """Load configuration from config.json."""
+        config_path = Path(__file__).parent / "config.json"
+        try:
+            with open(config_path, "r") as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            logger.warning(f"Could not load config from {config_path}: {e}")
+            return {}
 
     def get_open_issues(self) -> List[Dict]:
         """Get all open issues from the repository."""

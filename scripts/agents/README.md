@@ -23,13 +23,7 @@ Our AI agents implement defense-in-depth with multiple security layers:
 
 ### 2. Default Allow List
 
-By default, the following users are allowed:
-- `AndrewAltimit` - Repository owner
-- `github-actions[bot]` - GitHub Actions bot
-- `gemini-bot` - Gemini review bot
-- `ai-agent[bot]` - AI agent bot account
-
-The repository owner (extracted from `GITHUB_REPOSITORY` environment variable) is always included automatically.
+The allow list is configured in `config.json` under the `security.allow_list` field. The repository owner (extracted from `GITHUB_REPOSITORY` environment variable) is always included automatically.
 
 ### 3. Configuration
 
