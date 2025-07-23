@@ -522,7 +522,7 @@ jobs:
     if: needs.detect-changes.outputs.mcp_changed == 'true'
     uses: ./.github/workflows/gaea2-integration-tests.yml
     with:
-      server_url: 'http://localhost:8007'
+      server_url: 'http://192.168.0.152:8007'
       run_regression: true
       update_baselines: false
 
