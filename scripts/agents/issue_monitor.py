@@ -19,12 +19,14 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from logging_security import get_secure_logger, setup_secure_logging
 from security import SecurityManager
-from utils import run_gh_command
+from utils import get_github_token, run_gh_command
 
-# Configure logging
+# Configure logging with security
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger(__name__)
+setup_secure_logging()
+logger = get_secure_logger(__name__)
 
 
 class IssueMonitor:
@@ -32,7 +34,7 @@ class IssueMonitor:
 
     def __init__(self):
         self.repo = os.environ.get("GITHUB_REPOSITORY", "")
-        self.token = os.environ.get("GITHUB_TOKEN", "")
+        self.token = get_github_token()
 
         # Load configuration
         self.config = self._load_config()

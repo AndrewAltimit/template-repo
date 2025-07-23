@@ -19,12 +19,14 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from logging_security import get_secure_logger, setup_secure_logging
 from security import SecurityManager
-from utils import run_gh_command
+from utils import get_github_token, run_gh_command
 
-# Configure logging
+# Configure logging with security
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger(__name__)
+setup_secure_logging()
+logger = get_secure_logger(__name__)
 
 
 class PRReviewMonitor:
@@ -32,7 +34,7 @@ class PRReviewMonitor:
 
     def __init__(self):
         self.repo = os.environ.get("GITHUB_REPOSITORY", "")
-        self.token = os.environ.get("GITHUB_TOKEN", "")
+        self.token = get_github_token()
 
         # Safety control - disable auto-fixing by default unless explicitly enabled
         self.auto_fix_enabled = os.environ.get("ENABLE_AUTO_FIX", "false").lower() == "true"

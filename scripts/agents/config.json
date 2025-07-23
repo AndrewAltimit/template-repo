@@ -62,6 +62,8 @@
     "reject_message": "This AI agent only processes requests from authorized users to prevent security vulnerabilities. Please contact the repository owner if you believe you should have access.",
     "rate_limit_window_minutes": 60,
     "rate_limit_max_requests": 10,
-    "allowed_repositories": []
+    "allowed_repositories": [
+      "AndrewAltimit/template-repo"
+    ]
   }
 }

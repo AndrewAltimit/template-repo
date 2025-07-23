@@ -277,3 +277,78 @@ Example log entry:
 ```
 2025-07-23 09:00:00 - security - WARNING - SECURITY VIOLATION: Unauthorized issue #123 from user 'attacker'. AI agent will not process this issue to prevent potential prompt injection.
 ```
+
+## Enhanced Security Features (v2)
+
+Recent security improvements include:
+
+### 1. Docker Secrets Support
+
+The agents now support Docker secrets for secure GitHub token management:
+
+```bash
+# Set up Docker secrets
+./scripts/agents/setup-docker-secrets.sh
+
+# Run agents with Docker secrets
+docker-compose --profile agents run --rm ai-agents python scripts/agents/run_agents.py
+```
+
+**Token Priority Order:**
+1. Docker secret at `/run/secrets/github_token` (most secure)
+2. `GITHUB_TOKEN` environment variable (backward compatible)
+3. GitHub CLI token via `gh auth token` (fallback)
+
+### 2. Secret Redaction in Logs
+
+All logging now includes automatic secret redaction to prevent accidental exposure:
+
+- GitHub tokens (classic and fine-grained formats)
+- API keys and passwords
+- Bearer tokens and authorization headers
+- URLs with embedded credentials
+
+Example:
+```
+# Original: "Using token ghp_1234567890abcdef..."
+# Logged as: "Using token [REDACTED]..."
+```
+
+### 3. Improved Rate Limiting
+
+Rate limiting now features:
+
+- **Atomic File Operations**: Prevents corruption during concurrent access
+- **Persistent Storage**: Uses `~/.ai-agent-state/` for better container support
+- **Retry Logic**: Handles file lock contention gracefully
+- **Non-blocking Locks**: Uses `LOCK_NB` flag to prevent deadlocks
+
+### 4. Repository Allowlist
+
+The `allowed_repositories` configuration now explicitly defines which repositories agents can operate on:
+
+```json
+{
+  "security": {
+    "allowed_repositories": [
+      "AndrewAltimit/template-repo"
+    ]
+  }
+}
+```
+
+Empty list defaults to allowing all repositories from the repository owner.
+
+### 5. Configuration Robustness
+
+- All config loading now handles JSON decode errors gracefully
+- Fallback to defaults if config is corrupted
+- Warning logs for config issues without crashing
+
+## Best Practices
+
+1. **Use Docker Secrets**: Prefer Docker secrets over environment variables
+2. **Monitor Logs**: Check for security violations and rate limit warnings
+3. **Regular Updates**: Keep allow lists and repository lists current
+4. **Minimal Permissions**: Only grant access to necessary users and repositories
+5. **Test Locally**: Use dry-run mode before enabling auto-fix features

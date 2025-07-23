@@ -6,15 +6,15 @@ Provides allow list functionality to prevent prompt injection attacks
 
 import fcntl
 import json
-import logging
 import os
 import re
-import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-logger = logging.getLogger(__name__)
+from logging_security import get_secure_logger
+
+logger = get_secure_logger(__name__)
 
 
 class SecurityManager:
@@ -77,7 +77,10 @@ class SecurityManager:
         self.rate_limit_max_requests = self.security_config.get("rate_limit_max_requests", 10)
 
         # Use a persistent file for rate limiting to work across subprocess invocations
-        self.rate_limit_file = Path(tempfile.gettempdir()) / "ai_agent_rate_limits.json"
+        # Use workspace directory for better persistence in containerized environments
+        rate_limit_dir = Path.home() / ".ai-agent-state"
+        rate_limit_dir.mkdir(exist_ok=True, mode=0o700)
+        self.rate_limit_file = rate_limit_dir / "rate_limits.json"
         self._ensure_rate_limit_file()
 
         # Repository validation
@@ -118,49 +121,107 @@ class SecurityManager:
         return None
 
     def _ensure_rate_limit_file(self) -> None:
-        """Ensure the rate limit file exists."""
+        """Ensure the rate limit file exists with atomic creation."""
         if not self.rate_limit_file.exists():
             try:
-                self.rate_limit_file.write_text("{}")
+                # Create parent directory if needed
+                self.rate_limit_file.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+
+                # Atomic file creation with exclusive mode
+                temp_file = self.rate_limit_file.with_suffix(".tmp")
+                temp_file.write_text("{}")
+                temp_file.replace(self.rate_limit_file)
+
+                # Set proper permissions
+                self.rate_limit_file.chmod(0o600)
+            except FileExistsError:
+                # Another process created it, that's fine
+                pass
             except Exception as e:
                 logger.warning(f"Could not create rate limit file: {e}")
 
     def _load_rate_limits(self) -> Dict[str, List[float]]:
         """Load rate limits from persistent file with file locking."""
-        try:
-            with open(self.rate_limit_file, "r+") as f:
-                # Acquire exclusive lock
-                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-                try:
-                    data = json.load(f)
-                    # Convert timestamps back to float
-                    return {k: [float(ts) for ts in v] for k, v in data.items()}
-                except json.JSONDecodeError:
-                    return {}
-                finally:
-                    # Release lock
-                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-        except FileNotFoundError:
-            self._ensure_rate_limit_file()
-            return {}
-        except Exception as e:
-            logger.warning(f"Could not load rate limits: {e}")
-            return {}
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # Ensure file exists before opening
+                self._ensure_rate_limit_file()
+
+                with open(self.rate_limit_file, "r") as f:
+                    # Acquire shared lock for reading
+                    fcntl.flock(f.fileno(), fcntl.LOCK_SH | fcntl.LOCK_NB)
+                    try:
+                        content = f.read()
+                        if not content.strip():
+                            return {}
+                        data = json.loads(content)
+                        # Convert timestamps back to float
+                        return {k: [float(ts) for ts in v] for k, v in data.items()}
+                    except json.JSONDecodeError:
+                        logger.warning("Invalid JSON in rate limit file, resetting")
+                        return {}
+                    finally:
+                        # Release lock
+                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+            except BlockingIOError:
+                # Lock is held by another process, retry
+                if attempt < max_retries - 1:
+                    import time
+
+                    time.sleep(0.1 * (attempt + 1))  # Exponential backoff
+                    continue
+                logger.warning("Could not acquire lock for rate limit file after retries")
+                return {}
+            except Exception as e:
+                logger.warning(f"Could not load rate limits: {e}")
+                return {}
 
     def _save_rate_limits(self, rate_limits: Dict[str, List[float]]) -> None:
-        """Save rate limits to persistent file with file locking."""
-        try:
-            with open(self.rate_limit_file, "w") as f:
-                # Acquire exclusive lock
-                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-                try:
-                    # Convert timestamps to list for JSON serialization
-                    json.dump({k: list(v) for k, v in rate_limits.items()}, f)
-                finally:
-                    # Release lock
-                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-        except Exception as e:
-            logger.warning(f"Could not save rate limits: {e}")
+        """Save rate limits to persistent file with atomic write and locking."""
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # Ensure directory exists
+                self.rate_limit_file.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+
+                # Write to temporary file first (atomic operation)
+                temp_file = self.rate_limit_file.with_suffix(".tmp")
+
+                with open(temp_file, "w") as f:
+                    # Acquire exclusive lock
+                    fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    try:
+                        # Convert timestamps to list for JSON serialization
+                        json.dump({k: list(v) for k, v in rate_limits.items()}, f, indent=2)
+                        f.flush()
+                        os.fsync(f.fileno())  # Ensure data is written to disk
+                    finally:
+                        # Release lock
+                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+
+                # Atomic move
+                temp_file.replace(self.rate_limit_file)
+                self.rate_limit_file.chmod(0o600)
+                return
+
+            except BlockingIOError:
+                # Lock is held by another process, retry
+                if attempt < max_retries - 1:
+                    import time
+
+                    time.sleep(0.1 * (attempt + 1))  # Exponential backoff
+                    continue
+                logger.warning("Could not acquire lock for saving rate limits after retries")
+                return
+            except Exception as e:
+                logger.warning(f"Could not save rate limits: {e}")
+                if attempt < max_retries - 1:
+                    import time
+
+                    time.sleep(0.1)
+                    continue
+                return
 
     def is_user_allowed(self, username: str) -> bool:
         """

@@ -156,6 +156,7 @@ _logs/
 *.pem
 *.cert
 secrets/
+.secrets/
 
 # Local development
 .local/

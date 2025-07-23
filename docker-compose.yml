@@ -96,9 +96,10 @@ services:
       - ./:/workspace
     environment:
       - PYTHONUNBUFFERED=1
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
       - ENABLE_AUTO_FIX=${ENABLE_AUTO_FIX:-false}
+    secrets:
+      - github_token
     working_dir: /workspace
     networks:
       - mcp-network
@@ -199,3 +200,7 @@ networks:
 volumes:
   postgres_data: {}
   gaea2-output: {}
+
+secrets:
+  github_token:
+    file: ./.secrets/github_token.txt
