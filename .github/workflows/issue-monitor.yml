@@ -1,0 +1,53 @@
+name: Issue Monitor Agent
+
+on:
+  schedule:
+    # Run every 15 minutes
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+  issues:
+    types:
+      - opened
+      - edited
+      - labeled
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  monitor-issues:
+    name: Monitor GitHub Issues
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "AI Issue Agent"
+          git config --global user.email "ai-agent@localhost"
+
+      - name: Install dependencies
+        run: |
+          pip install requests
+
+      - name: Run issue monitor
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          echo "Running issue monitor for repository: $GITHUB_REPOSITORY"
+          python scripts/agents/issue_monitor.py
+
+      - name: Log monitoring results
+        if: always()
+        run: |
+          echo "Issue monitoring completed at $(date)"

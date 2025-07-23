@@ -1,0 +1,308 @@
+#!/usr/bin/env python3
+"""
+GitHub Issue Monitoring Agent
+
+This agent monitors GitHub issues and:
+1. Comments on issues that need more information
+2. Creates pull requests when there's enough information
+3. Updates issue status
+"""
+
+import json
+import logging
+import os
+import re
+import subprocess
+import sys
+import time
+from typing import Dict, List, Optional, Tuple
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
+
+
+class IssueMonitor:
+    """Monitor GitHub issues and create PRs when appropriate."""
+
+    def __init__(self):
+        self.repo = os.environ.get("GITHUB_REPOSITORY", "")
+        self.token = os.environ.get("GITHUB_TOKEN", "")
+        self.min_description_length = 50
+        self.required_fields = [
+            "description",
+            "expected behavior",
+            "steps to reproduce",
+        ]
+        self.agent_tag = "[AI Agent]"
+
+    def run_gh_command(self, args: List[str]) -> Optional[str]:
+        """Run GitHub CLI command and return output."""
+        try:
+            cmd = ["gh"] + args
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            return result.stdout.strip()
+        except subprocess.CalledProcessError as e:
+            logger.error(f"GitHub CLI error: {e.stderr}")
+            return None
+
+    def get_open_issues(self) -> List[Dict]:
+        """Get all open issues from the repository."""
+        output = self.run_gh_command(
+            [
+                "issue",
+                "list",
+                "--repo",
+                self.repo,
+                "--state",
+                "open",
+                "--json",
+                "number,title,body,author,createdAt,labels,comments",
+            ]
+        )
+
+        if output:
+            return json.loads(output)
+        return []
+
+    def has_agent_comment(self, issue_number: int) -> bool:
+        """Check if the agent has already commented on this issue."""
+        output = self.run_gh_command(
+            [
+                "issue",
+                "view",
+                str(issue_number),
+                "--repo",
+                self.repo,
+                "--json",
+                "comments",
+            ]
+        )
+
+        if output:
+            data = json.loads(output)
+            for comment in data.get("comments", []):
+                if self.agent_tag in comment.get("body", ""):
+                    return True
+        return False
+
+    def analyze_issue(self, issue: Dict) -> Tuple[bool, List[str]]:
+        """
+        Analyze if issue has enough information.
+        Returns (has_enough_info, missing_fields)
+        """
+        body = issue.get("body", "").lower()
+        missing_fields = []
+
+        # Check minimum description length
+        if len(body) < self.min_description_length:
+            missing_fields.append("detailed description")
+
+        # Check for required information patterns
+        patterns = {
+            "description": r"(description|problem|issue|bug)[\s:]+.{20,}",
+            "expected behavior": r"(expected|should|supposed)[\s:]+.{10,}",
+            "steps to reproduce": r"(steps|reproduce|how to)[\s:]+.{10,}",
+            "version": r"(version|commit|branch)[\s:]+\S+",
+        }
+
+        for field, pattern in patterns.items():
+            if not re.search(pattern, body, re.IGNORECASE):
+                missing_fields.append(field)
+
+        # Check for code blocks or examples
+        if "```" not in body and not re.search(r"`[^`]+`", body):
+            missing_fields.append("code examples")
+
+        has_enough_info = len(missing_fields) == 0
+        return has_enough_info, missing_fields
+
+    def create_information_request_comment(self, issue_number: int, missing_fields: List[str]) -> None:
+        """Comment on issue requesting more information."""
+        comment_body = (
+            f"{self.agent_tag} Thank you for creating this issue! "
+            "To help address it effectively, could you please provide "
+            "the following additional information:\n\n"
+        )
+
+        for field in missing_fields:
+            comment_body += f"- **{field.title()}**: "
+
+            if field == "detailed description":
+                comment_body += "Please provide a more detailed description of the issue\n"
+            elif field == "expected behavior":
+                comment_body += "What behavior did you expect to see?\n"
+            elif field == "steps to reproduce":
+                comment_body += "Please list the steps to reproduce this issue\n"
+            elif field == "version":
+                comment_body += "What version/branch/commit are you using?\n"
+            elif field == "code examples":
+                comment_body += "Please include relevant code snippets or examples\n"
+            else:
+                comment_body += f"Please provide information about {field}\n"
+
+        comment_body += """
+Once you've added this information, I'll be able to create a pull request to address the issue.
+
+*This comment was generated by an AI agent monitoring system.*"""
+
+        self.run_gh_command(
+            [
+                "issue",
+                "comment",
+                str(issue_number),
+                "--repo",
+                self.repo,
+                "--body",
+                comment_body,
+            ]
+        )
+
+        logger.info(f"Requested more information on issue #{issue_number}")
+
+    def should_create_pr(self, issue: Dict) -> bool:
+        """Determine if we should create a PR for this issue."""
+        # Check if issue is actionable (bug fix, feature request, etc.)
+        labels = [label.get("name", "").lower() for label in issue.get("labels", [])]
+        actionable_labels = ["bug", "feature", "enhancement", "fix", "improvement"]
+
+        has_actionable_label = any(label in actionable_labels for label in labels)
+
+        return has_actionable_label
+
+    def create_pr_from_issue(self, issue: Dict) -> Optional[str]:
+        """Create a pull request to address the issue."""
+        issue_number = issue["number"]
+        issue_title = issue["title"]
+        issue_body = issue["body"]
+
+        # Create feature branch
+        branch_name = f"fix-issue-{issue_number}"
+
+        # Create implementation script
+        implementation_script = f"""#!/bin/bash
+# Auto-generated script to implement fix for issue #{issue_number}
+
+# Create branch
+git checkout -b {branch_name}
+
+# Use Claude Code to implement the fix
+npx --yes @claudeai/cli@latest code << 'EOF'
+Issue #{issue_number}: {issue_title}
+
+{issue_body}
+
+Please implement a fix for this issue. Make sure to:
+1. Address all the concerns mentioned in the issue
+2. Add appropriate tests if needed
+3. Update documentation if necessary
+4. Follow the project's coding standards
+
+After implementation, create a commit with a descriptive message.
+EOF
+
+# Create PR
+gh pr create --title "Fix: {issue_title} (#{issue_number})" \\
+    --body "This PR addresses issue #{issue_number}.
+
+## Changes
+- Implemented fix as described in the issue
+- Added tests where appropriate
+- Updated documentation
+
+## Testing
+- All existing tests pass
+- New tests added for the fix
+
+Closes #{issue_number}
+
+*This PR was created by an AI agent.*" \\
+    --assignee @me \\
+    --label "automated"
+"""
+
+        # Save and execute the script
+        script_path = f"/tmp/implement_issue_{issue_number}.sh"
+        with open(script_path, "w") as f:
+            f.write(implementation_script)
+
+        os.chmod(script_path, 0o755)
+
+        try:
+            subprocess.run([script_path], check=True)
+
+            # Comment on issue
+            self.run_gh_command(
+                [
+                    "issue",
+                    "comment",
+                    str(issue_number),
+                    "--repo",
+                    self.repo,
+                    "--body",
+                    (
+                        f"{self.agent_tag} I've created a pull request to address "
+                        "this issue. The PR will be reviewed by our automated "
+                        "review system."
+                    ),
+                ]
+            )
+
+            logger.info(f"Created PR for issue #{issue_number}")
+            return branch_name
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to create PR for issue #{issue_number}: {e}")
+            return None
+
+    def process_issues(self):
+        """Main process to monitor and handle issues."""
+        logger.info("Starting issue monitoring...")
+
+        issues = self.get_open_issues()
+        logger.info(f"Found {len(issues)} open issues")
+
+        for issue in issues:
+            issue_number = issue["number"]
+
+            # Skip if we've already commented
+            if self.has_agent_comment(issue_number):
+                logger.debug(f"Already processed issue #{issue_number}")
+                continue
+
+            # Analyze issue
+            has_info, missing = self.analyze_issue(issue)
+
+            if not has_info:
+                # Request more information
+                self.create_information_request_comment(issue_number, missing)
+            elif self.should_create_pr(issue):
+                # Create PR to address the issue
+                self.create_pr_from_issue(issue)
+            else:
+                logger.info(f"Issue #{issue_number} not actionable yet")
+
+
+def main():
+    """Main entry point."""
+    monitor = IssueMonitor()
+
+    if "--continuous" in sys.argv:
+        # Run continuously
+        while True:
+            try:
+                monitor.process_issues()
+                time.sleep(300)  # Check every 5 minutes
+            except KeyboardInterrupt:
+                logger.info("Monitoring stopped by user")
+                break
+            except Exception as e:
+                logger.error(f"Error in monitoring loop: {e}")
+                time.sleep(60)  # Wait a minute before retrying
+    else:
+        # Run once
+        monitor.process_issues()
+
+
+if __name__ == "__main__":
+    main()

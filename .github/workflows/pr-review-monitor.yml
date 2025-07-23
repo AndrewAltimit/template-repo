@@ -1,0 +1,71 @@
+name: PR Review Monitor Agent
+
+on:
+  pull_request_review:
+    types:
+      - submitted
+  pull_request_review_comment:
+    types:
+      - created
+  schedule:
+    # Also run periodically to catch any missed reviews
+    - cron: '*/30 * * * *'
+  workflow_dispatch: {}
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  monitor-pr-reviews:
+    name: Monitor PR Reviews
+    runs-on: self-hosted
+    # Only run if it's a review requesting changes or if scheduled
+    if: |
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.review.state == 'changes_requested') ||
+      (github.event_name == 'pull_request_review_comment')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "AI Review Agent"
+          git config --global user.email "ai-review-agent@localhost"
+
+      - name: Install dependencies
+        run: |
+          pip install requests
+
+      - name: Set up Node.js for Claude CLI
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run PR review monitor
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          echo "Running PR review monitor for repository: $GITHUB_REPOSITORY"
+
+          # If triggered by a specific PR event, we can optimize by checking just that PR
+          if [ "${{ github.event_name }}" = "pull_request_review" ] || [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
+            echo "Triggered by PR event on PR #${{ github.event.pull_request.number }}"
+          fi
+
+          python scripts/agents/pr_review_monitor.py
+
+      - name: Log monitoring results
+        if: always()
+        run: |
+          echo "PR review monitoring completed at $(date)"

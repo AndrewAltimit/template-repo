@@ -1,0 +1,51 @@
+{
+  "agents": {
+    "issue_monitor": {
+      "enabled": true,
+      "min_description_length": 50,
+      "required_fields": [
+        "description",
+        "expected behavior",
+        "steps to reproduce"
+      ],
+      "actionable_labels": [
+        "bug",
+        "feature",
+        "enhancement",
+        "fix",
+        "improvement"
+      ],
+      "check_interval_minutes": 15
+    },
+    "pr_review_monitor": {
+      "enabled": true,
+      "review_bot_names": [
+        "gemini-bot",
+        "github-actions[bot]",
+        "dependabot[bot]"
+      ],
+      "auto_fix_threshold": {
+        "critical_issues": 0,
+        "total_issues": 5
+      },
+      "check_interval_minutes": 30
+    }
+  },
+  "claude_cli": {
+    "command": "npx --yes @claudeai/cli@latest code",
+    "timeout_seconds": 600
+  },
+  "git": {
+    "author_name": "AI Agent",
+    "author_email": "ai-agent@localhost",
+    "branch_prefix": {
+      "issue": "fix-issue-",
+      "feature": "feature-",
+      "review": "review-feedback-"
+    }
+  },
+  "notifications": {
+    "enabled": false,
+    "webhook_url": ""
+  }
+}
