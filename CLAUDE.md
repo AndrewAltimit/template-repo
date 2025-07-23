@@ -67,24 +67,27 @@ docker-compose run --rm python-ci mypy . --ignore-missing-imports
 ### Development
 
 ```bash
-# NEW MODULAR MCP SERVERS (Recommended approach)
+# MODULAR MCP SERVERS (Container-First Approach)
 
-# Start individual MCP servers
-python -m tools.mcp.code_quality.server      # Port 8010 - Code formatting/linting
-python -m tools.mcp.content_creation.server  # Port 8011 - Manim & LaTeX
+# Start servers in Docker (recommended for consistency)
+docker-compose up -d mcp-code-quality        # Port 8010 - Code formatting/linting
+docker-compose up -d mcp-content-creation    # Port 8011 - Manim & LaTeX
+docker-compose up -d mcp-gaea2               # Port 8007 - Terrain generation
+
+# For local development (when actively developing server code)
+python -m tools.mcp.code_quality.server      # Port 8010
+python -m tools.mcp.content_creation.server  # Port 8011
+python -m tools.mcp.gaea2.server             # Port 8007
+
+# Gemini MUST run on host (requires Docker access)
 python -m tools.mcp.gemini.server            # Port 8006 - AI integration (host only)
-python -m tools.mcp.gaea2.server             # Port 8007 - Terrain generation
+./tools/mcp/gemini/scripts/start_server.sh --mode http
 
 # Test all MCP servers at once
 python scripts/mcp/test_all_servers.py
 
 # Quick test of running servers
 python scripts/mcp/test_all_servers.py --quick
-
-# Start servers in Docker (except Gemini)
-docker-compose up -d mcp-code-quality
-docker-compose up -d mcp-content-creation
-docker-compose up -d mcp-gaea2  # Note: CLI features require Windows host
 
 # View logs for specific servers
 docker-compose logs -f mcp-code-quality

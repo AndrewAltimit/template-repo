@@ -11,7 +11,11 @@ This project follows a **container-first approach**:
 - **Zero external dependencies** - runs on any Linux system with Docker
 - **Self-hosted infrastructure** - no cloud costs, full control over runners
 - **Single maintainer design** - optimized for individual developer productivity
-- **Separated MCP servers** - Main MCP server (port 8005) and Gemini MCP server (port 8006)
+- **Modular MCP architecture** - Separate specialized servers for different functionalities:
+  - Code Quality MCP (port 8010)
+  - Content Creation MCP (port 8011)
+  - Gaea2 MCP (port 8007)
+  - Gemini MCP (port 8006, host-only)
 
 ## AI Agents
 

@@ -3,56 +3,62 @@
 Analyze real Gaea2 projects to learn patterns and best practices
 
 Usage:
-    python analyze_gaea_projects.py
+    python analyze_gaea_projects.py --official-dir /path/to/official --user-dir /path/to/user
 
-Environment variables:
-    GAEA_OFFICIAL_PROJECTS_DIR: Path to official Gaea projects directory
-    GAEA_USER_PROJECTS_DIR: Path to user projects directory
-
-Example:
+    Or use environment variables:
     export GAEA_OFFICIAL_PROJECTS_DIR="/path/to/official/projects"
     export GAEA_USER_PROJECTS_DIR="/path/to/user/projects"
     python analyze_gaea_projects.py
 """
 
+import argparse
 import asyncio
 import json
 import os
 import sys
 from pathlib import Path
 
-# Add parent directory to path
-sys.path.append(str(Path(__file__).parent.parent))
+# Import from the project - assumes script is run from project root or with proper PYTHONPATH
+try:
+    from tools.mcp.gaea2.repair.gaea2_project_repair import Gaea2ProjectRepair
+    from tools.mcp.gaea2.utils.gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer
+except ImportError:
+    print("Error: Unable to import Gaea2 modules. Please run from project root:")
+    print("  python scripts/analyze_gaea_projects.py")
+    print("Or set PYTHONPATH:")
+    print("  PYTHONPATH=/path/to/project python analyze_gaea_projects.py")
+    sys.exit(1)
 
-from tools.mcp.gaea2.repair.gaea2_project_repair import Gaea2ProjectRepair  # noqa: E402
-from tools.mcp.gaea2.utils.gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer  # noqa: E402
 
+async def analyze_real_projects(official_dir=None, user_dir=None, output_file="gaea2_workflow_analysis.json"):
+    """Analyze all real Gaea2 projects
 
-async def analyze_real_projects():
-    """Analyze all real Gaea2 projects"""
+    Args:
+        official_dir: Path to official Gaea projects directory
+        user_dir: Path to user projects directory
+        output_file: Path to save analysis results
+    """
     print("=== Gaea2 Project Analysis ===\n")
 
     # Initialize analyzer
     analyzer = Gaea2WorkflowAnalyzer()
 
-    # Get project directories from environment or use defaults
-    default_official_dir = os.path.join(
-        os.path.expanduser("~"),
-        "Documents",
-        "references",
-        "Real Projects",
-        "Official Gaea Projects",
-    )
-    default_user_dir = os.path.join(
-        os.path.expanduser("~"),
-        "Documents",
-        "references",
-        "Real Projects",
-        "user files",
-    )
+    # Use provided directories or get from environment
+    if not official_dir:
+        official_dir = os.environ.get("GAEA_OFFICIAL_PROJECTS_DIR")
+    if not user_dir:
+        user_dir = os.environ.get("GAEA_USER_PROJECTS_DIR")
 
-    official_dir = os.environ.get("GAEA_OFFICIAL_PROJECTS_DIR", default_official_dir)
-    user_dir = os.environ.get("GAEA_USER_PROJECTS_DIR", default_user_dir)
+    # Check if at least one directory is provided
+    if not official_dir and not user_dir:
+        print("Error: No project directories specified.")
+        print("\nPlease provide at least one directory using:")
+        print("  --official-dir /path/to/official/projects")
+        print("  --user-dir /path/to/user/projects")
+        print("\nOr set environment variables:")
+        print("  GAEA_OFFICIAL_PROJECTS_DIR")
+        print("  GAEA_USER_PROJECTS_DIR")
+        return False
 
     # Check if directories exist
     if not os.path.exists(official_dir):
@@ -93,8 +99,9 @@ async def analyze_real_projects():
         print(f"   Nodes: {' → '.join(pattern['nodes'])}")
 
     # Save analysis
-    analyzer.save_analysis("gaea2_workflow_analysis.json")
-    print("\n✓ Analysis saved to gaea2_workflow_analysis.json")
+    analyzer.save_analysis(output_file)
+    print(f"\n✓ Analysis saved to {output_file}")
+    return True
 
     # Test recommendations
     print("\n=== Testing Recommendations ===")
@@ -147,12 +154,18 @@ async def analyze_real_projects():
                         print(f"      Suggestion: {error['suggestion']}")
 
 
-async def generate_knowledge_base():
+async def generate_knowledge_base(analysis_file="gaea2_workflow_analysis.json"):
     """Generate AI-friendly knowledge base from analysis"""
     print("\n=== Generating Knowledge Base ===")
 
+    # Check if analysis file exists
+    if not os.path.exists(analysis_file):
+        print(f"Analysis file not found: {analysis_file}")
+        print("Skipping knowledge base generation.")
+        return
+
     # Load analysis
-    with open("gaea2_workflow_analysis.json", "r") as f:
+    with open(analysis_file, "r") as f:
         analysis = json.load(f)
 
     knowledge_base = {
@@ -218,12 +231,37 @@ async def generate_knowledge_base():
     print("✓ Documentation saved to GAEA2_PATTERNS.md")
 
 
-async def main():
+async def main(official_dir=None, user_dir=None, output_file="gaea2_workflow_analysis.json"):
     """Main function"""
-    await analyze_real_projects()
-    await generate_knowledge_base()
-    print("\n✅ Analysis complete!")
+    success = await analyze_real_projects(official_dir, user_dir, output_file)
+    if success:
+        await generate_knowledge_base(output_file)
+        print("\n✅ Analysis complete!")
+    else:
+        print("\n❌ Analysis skipped due to missing directories.")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(
+        description="Analyze real Gaea2 projects to learn patterns and best practices",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples:
+  %(prog)s --official-dir /path/to/official --user-dir /path/to/user
+  %(prog)s --official-dir ./gaea-projects/official
+
+Environment variables:
+  GAEA_OFFICIAL_PROJECTS_DIR: Default path to official projects
+  GAEA_USER_PROJECTS_DIR: Default path to user projects""",
+    )
+    parser.add_argument("--official-dir", type=str, help="Path to official Gaea projects directory")
+    parser.add_argument("--user-dir", type=str, help="Path to user projects directory")
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="gaea2_workflow_analysis.json",
+        help="Output file for analysis results (default: gaea2_workflow_analysis.json)",
+    )
+
+    args = parser.parse_args()
+
+    asyncio.run(main(args.official_dir, args.user_dir, args.output))

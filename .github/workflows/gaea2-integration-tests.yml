@@ -7,7 +7,7 @@ on:
       server_url:
         description: 'Gaea2 MCP Server URL'
         required: false
-        default: 'http://192.168.0.152:8007'
+        default: 'http://localhost:8007'
         type: string
       run_regression:
         description: 'Run regression tests'
@@ -24,16 +24,16 @@ on:
       server_url:
         description: 'Gaea2 MCP Server URL'
         required: false
-        default: 'http://192.168.0.152:8007'
+        default: 'http://localhost:8007'
       run_regression:
         description: 'Run regression tests'
         required: false
-        default: 'true'
+        default: true
         type: boolean
       update_baselines:
         description: 'Update regression baselines'
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
 jobs:
@@ -47,7 +47,7 @@ jobs:
       - name: Check if Gaea2 MCP server is reachable
         id: check
         run: |
-          SERVER_URL="${{ inputs.server_url || 'http://192.168.0.152:8007' }}"
+          SERVER_URL="${{ inputs.server_url || 'http://localhost:8007' }}"
           echo "🔍 Checking Gaea2 MCP server availability at: $SERVER_URL"
 
           # Try to connect to the server with a 5 second timeout
@@ -67,7 +67,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     env:
-      GAEA2_MCP_URL: ${{ inputs.server_url || 'http://192.168.0.152:8007' }}
+      GAEA2_MCP_URL: ${{ inputs.server_url || 'http://localhost:8007' }}
       UPDATE_BASELINES: ${{ inputs.update_baselines || 'false' }}
 
     steps:
