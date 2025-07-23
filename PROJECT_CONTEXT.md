@@ -6,11 +6,13 @@ This is a **container-first, self-hosted project template** maintained by a sing
 
 ## AI Agent Ecosystem
 
-This project uses three AI agents:
+This project uses five AI agents:
 
 1. **Claude Code** - Primary development (architecture, implementation, docs)
 2. **Gemini CLI** - Automated PR reviews (you are reviewing as Gemini)
 3. **GitHub Copilot** - Code review suggestions in pull requests
+4. **Issue Monitor** - Automated issue response and implementation
+5. **PR Review Monitor** - Automated PR review response and fixes
 
 As the PR reviewer, focus on security, containers, and project standards.
 
@@ -78,6 +80,20 @@ As the PR reviewer, focus on security, containers, and project standards.
 - No `chmod 777` or aggressive cleanup steps
 - Coverage reporting with pytest-cov
 - Security scanning with bandit and safety
+
+## Remote Infrastructure Requirements
+
+### Gaea2 MCP Server
+
+The Gaea2 MCP server runs on a **dedicated remote machine** at `192.168.0.152:8007` due to special software requirements:
+
+- **Gaea2 software** requires specific GPU hardware and Windows environment
+- **Cannot be containerized** due to proprietary software dependencies
+- **Hardcoded IP is intentional** - this is a permanent infrastructure component
+- **Tests and workflows** must use this specific address - do NOT change to localhost
+- **Health checks** are implemented to gracefully handle when the server is unavailable
+
+This is NOT a bug or oversight - it's a deliberate architectural decision based on the specialized requirements of the Gaea2 terrain generation software.
 
 ## Project Structure
 

@@ -34,6 +34,9 @@ class PRReviewMonitor:
         self.repo = os.environ.get("GITHUB_REPOSITORY", "")
         self.token = os.environ.get("GITHUB_TOKEN", "")
 
+        # Safety control - disable auto-fixing by default unless explicitly enabled
+        self.auto_fix_enabled = os.environ.get("ENABLE_AUTO_FIX", "false").lower() == "true"
+
         # Load configuration
         self.config = self._load_config()
         pr_config = self.config.get("agents", {}).get("pr_review_monitor", {})
@@ -191,12 +194,28 @@ class PRReviewMonitor:
         must_fix_text = "\n".join([f"- {fix}" for fix in feedback["must_fix"]])
         suggestions_text = "\n".join([f"- {suggestion}" for suggestion in feedback["nice_to_have"]])
 
+        # Add safety checks
+        total_issues = len(feedback["must_fix"]) + len(feedback["issues"])
+        if total_issues > 20:
+            logger.warning(f"Too many issues ({total_issues}) for automatic fixing. Skipping auto-fix.")
+            return ""
+
         script = f"""#!/bin/bash
 # Auto-generated script to address PR #{pr_number} review feedback
+set -e  # Exit on error
+
+# Safety check - ensure we're in a git repository
+if ! git rev-parse --git-dir > /dev/null 2>&1; then
+    echo "Error: Not in a git repository"
+    exit 1
+fi
 
 # Checkout the PR branch
 git fetch origin {branch_name}
 git checkout {branch_name}
+
+# Create a backup branch
+git branch -f pr-{pr_number}-backup-$(date +%s)
 
 # Use Claude Code to implement fixes
 npx --yes @claudeai/cli@latest code << 'EOF'
@@ -249,7 +268,17 @@ git push origin {branch_name}
 
     def address_review_feedback(self, pr_number: int, branch_name: str, feedback: Dict) -> bool:
         """Implement changes to address review feedback."""
+        # Check if auto-fix is enabled
+        if not self.auto_fix_enabled:
+            logger.info(f"Auto-fix is disabled. Skipping automatic fixes for PR #{pr_number}")
+            logger.info("To enable auto-fix, set ENABLE_AUTO_FIX=true environment variable")
+            return False
+
         script = self.generate_fix_script(pr_number, branch_name, feedback)
+        if not script:
+            logger.warning(f"No fix script generated for PR #{pr_number}")
+            return False
+
         script_path = f"/tmp/fix_pr_{pr_number}_review.sh"
 
         with open(script_path, "w") as f:
@@ -258,9 +287,12 @@ git push origin {branch_name}
         os.chmod(script_path, 0o755)
 
         try:
-            subprocess.run([script_path], check=True)
+            subprocess.run([script_path], check=True, timeout=300)  # 5 minute timeout
             logger.info(f"Successfully addressed feedback for PR #{pr_number}")
             return True
+        except subprocess.TimeoutExpired:
+            logger.error(f"Timeout while addressing feedback for PR #{pr_number}")
+            return False
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to address feedback for PR #{pr_number}: {e}")
             return False

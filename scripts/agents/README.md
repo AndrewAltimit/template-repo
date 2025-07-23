@@ -227,6 +227,24 @@ Per Gemini's analysis, these risks still require external mitigation:
 1. **Account Compromise**: Enable 2FA on all allowed GitHub accounts
 2. **Token Security**: Secure storage of GITHUB_TOKEN and API keys
 3. **Workflow File Security**: Restrict write access to `.github/workflows/`
+
+## Auto-Fix Security Controls
+
+The PR Review Monitor agent has the capability to automatically implement code fixes based on review feedback. Due to security concerns, this feature is:
+
+1. **Disabled by Default**: Auto-fix requires explicit opt-in via `ENABLE_AUTO_FIX=true` environment variable
+2. **Limited Scope**: Will not auto-fix if more than 20 issues are found (prevents large-scale changes)
+3. **Backup Creation**: Creates a backup branch before making any changes
+4. **Timeout Protection**: Auto-fix operations timeout after 5 minutes
+5. **Sandboxed Execution**: Runs in a separate shell script with error checking
+
+To enable auto-fix (use with caution):
+```bash
+export ENABLE_AUTO_FIX=true
+./scripts/agents/run_agents.sh pr-review
+```
+
+**Security Recommendation**: Only enable auto-fix in controlled environments with trusted reviewers.
 4. **Code Review**: All changes to workflows and agent scripts must be reviewed
 
 ## Security Considerations

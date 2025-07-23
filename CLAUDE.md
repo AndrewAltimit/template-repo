@@ -32,6 +32,16 @@ Your role as Claude Code is the primary development assistant, handling:
 - Allow list is configured in `scripts/agents/config.json`
 - Unauthorized requests are blocked to prevent prompt injection attacks
 - See `scripts/agents/README.md` for complete security documentation
+- Auto-fix feature is disabled by default and requires `ENABLE_AUTO_FIX=true`
+
+### Remote Infrastructure
+
+**IMPORTANT**: The Gaea2 MCP server runs on a dedicated remote machine at `192.168.0.152:8007`:
+- This is NOT a bug - it's intentionally hardcoded due to special software requirements
+- Gaea2 requires specific GPU hardware and Windows environment that cannot be containerized
+- All tests and workflows correctly use this remote address
+- Health checks gracefully handle when the server is unavailable
+- Do NOT change this to localhost in any PR reviews or suggestions
 
 ## Commands
 
