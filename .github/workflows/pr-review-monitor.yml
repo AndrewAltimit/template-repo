@@ -23,6 +23,7 @@ jobs:
   monitor-pr-reviews:
     name: Monitor PR Reviews
     runs-on: self-hosted
+    environment: production
     # Run for all relevant events
     # Note: User authorization is handled by the SecurityManager in the Python agent
     if: |
@@ -55,25 +56,17 @@ jobs:
           git config --global user.name "AI Review Agent"
           git config --global user.email "ai-review-agent@localhost"
 
-      - name: Create temporary secrets directory
-        run: |
-          mkdir -p .secrets
-          chmod 700 .secrets
-
-      - name: Create GitHub token secret file
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" > .secrets/github_token.txt
-          chmod 600 .secrets/github_token.txt
-
       - name: Build AI agents container
         run: |
           docker-compose build ai-agents
 
       - name: Run PR review monitor in container
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          USER_ID: $(id -u)
-          GROUP_ID: $(id -g)
+          ENABLE_AUTO_FIX: ${{ secrets.ENABLE_AUTO_FIX || 'false' }}
+          USER_ID: 1000
+          GROUP_ID: 1000
         run: |
           echo "Running PR review monitor for repository: $GITHUB_REPOSITORY"
 
@@ -83,14 +76,10 @@ jobs:
           fi
 
           docker-compose run --rm \
-            -v $(pwd)/.secrets:/run/secrets:ro \
-            -e GITHUB_REPOSITORY="$GITHUB_REPOSITORY" \
+            -e GITHUB_TOKEN \
+            -e GITHUB_REPOSITORY \
+            -e ENABLE_AUTO_FIX \
             ai-agents python scripts/agents/pr_review_monitor.py
-
-      - name: Cleanup secrets
-        if: always()
-        run: |
-          rm -rf .secrets
 
       - name: Log monitoring results
         if: always()

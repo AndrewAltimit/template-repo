@@ -23,6 +23,7 @@ jobs:
   monitor-issues:
     name: Monitor GitHub Issues
     runs-on: self-hosted
+    environment: production
     # Only run if triggered by workflow_dispatch or schedule
     # Note: User authorization is handled by the SecurityManager in the Python agent
     if: |
@@ -51,36 +52,22 @@ jobs:
           git config --global user.name "AI Issue Agent"
           git config --global user.email "ai-agent@localhost"
 
-      - name: Create temporary secrets directory
-        run: |
-          mkdir -p .secrets
-          chmod 700 .secrets
-
-      - name: Create GitHub token secret file
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" > .secrets/github_token.txt
-          chmod 600 .secrets/github_token.txt
-
       - name: Build AI agents container
         run: |
           docker-compose build ai-agents
 
       - name: Run issue monitor in container
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          USER_ID: $(id -u)
-          GROUP_ID: $(id -g)
+          USER_ID: 1000
+          GROUP_ID: 1000
         run: |
           echo "Running issue monitor for repository: $GITHUB_REPOSITORY"
           docker-compose run --rm \
-            -v $(pwd)/.secrets:/run/secrets:ro \
-            -e GITHUB_REPOSITORY="$GITHUB_REPOSITORY" \
+            -e GITHUB_TOKEN \
+            -e GITHUB_REPOSITORY \
             ai-agents python scripts/agents/issue_monitor.py
-
-      - name: Cleanup secrets
-        if: always()
-        run: |
-          rm -rf .secrets
 
       - name: Log monitoring results
         if: always()

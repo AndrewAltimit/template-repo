@@ -282,22 +282,18 @@ Example log entry:
 
 Recent security improvements include:
 
-### 1. Docker Secrets Support
+### 1. GitHub Environments Support
 
-The agents now support Docker secrets for secure GitHub token management:
+The agents use GitHub Environments for secure secret management:
 
-```bash
-# Set up Docker secrets
-./scripts/agents/setup-docker-secrets.sh
-
-# Run agents with Docker secrets
-docker-compose --profile agents run --rm ai-agents python scripts/agents/run_agents.py
-```
+- Secrets are managed in GitHub, never stored in files
+- Environment protection rules can require approvals
+- Full audit trail of secret access
 
 **Token Priority Order:**
-1. Docker secret at `/run/secrets/github_token` (most secure)
-2. `GITHUB_TOKEN` environment variable (backward compatible)
-3. GitHub CLI token via `gh auth token` (fallback)
+1. `GITHUB_TOKEN` environment variable (standard for GitHub Actions)
+2. Docker secret at `/run/secrets/github_token` (optional, for advanced setups)
+3. GitHub CLI token via `gh auth token` (for local development)
 
 ### 2. Secret Redaction in Logs
 
@@ -347,8 +343,10 @@ Empty list defaults to allowing all repositories from the repository owner.
 
 ## Best Practices
 
-1. **Use Docker Secrets**: Prefer Docker secrets over environment variables
-2. **Monitor Logs**: Check for security violations and rate limit warnings
-3. **Regular Updates**: Keep allow lists and repository lists current
-4. **Minimal Permissions**: Only grant access to necessary users and repositories
-5. **Test Locally**: Use dry-run mode before enabling auto-fix features
+1. **Use GitHub Environments**: Configure production environment with appropriate secrets
+2. **Enable Protection Rules**: Require approvals for production deployments
+3. **Monitor Logs**: Check for security violations and rate limit warnings
+4. **Regular Updates**: Keep allow lists and repository lists current
+5. **Minimal Permissions**: Use fine-grained PATs with minimal required permissions
+6. **Test Locally**: Use gh CLI auth for local development
+7. **Rotate Tokens**: Set expiration dates and rotate tokens regularly

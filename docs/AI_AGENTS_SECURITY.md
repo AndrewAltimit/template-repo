@@ -4,62 +4,54 @@
 
 ### ⚠️ IMPORTANT: Never Commit Secrets!
 
-The `.secrets/` directory is used for runtime secrets only and should **NEVER** contain committed files.
+Secrets should be managed through GitHub Environments, not files in the repository.
 
 ## Token Configuration Methods
 
-### 1. GitHub Actions (Production)
+### 1. GitHub Actions (Recommended)
 
-GitHub Actions automatically creates the secret file at runtime:
+The workflows use GitHub Environments for secure secret management:
 
 ```yaml
-- name: Create GitHub token secret file
-  run: |
-    echo "${{ secrets.GITHUB_TOKEN }}" > .secrets/github_token.txt
-    chmod 600 .secrets/github_token.txt
-
-- name: Cleanup secrets
-  if: always()
-  run: |
-    rm -rf .secrets
+jobs:
+  monitor-issues:
+    environment: production  # Uses environment secrets
+    steps:
+      - name: Run agent
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 **Setup Required:**
-1. Go to your repository Settings → Secrets and variables → Actions
-2. Ensure `GITHUB_TOKEN` secret exists (it's provided by default)
-3. For enhanced permissions, create a fine-grained PAT and add it as a secret
+1. Go to Settings → Environments → New environment
+2. Create a "production" environment
+3. Add secrets (GITHUB_TOKEN, ENABLE_AUTO_FIX)
+4. Configure protection rules as needed
+
+See [GitHub Environments Setup Guide](./GITHUB_ENVIRONMENTS_SETUP.md) for detailed instructions.
 
 ### 2. Local Development
 
-For local testing only:
+For local testing:
 
 ```bash
-# Option 1: Use the setup script (creates .secrets locally)
-./scripts/agents/setup-docker-secrets.sh
-
-# Option 2: Use environment variable
+# Option 1: Use environment variable
 export GITHUB_TOKEN="your-token-here"
 docker-compose run --rm ai-agents python scripts/agents/run_agents.py
 
-# Option 3: Use gh CLI authentication
+# Option 2: Use gh CLI authentication (recommended)
 gh auth login
 docker-compose run --rm ai-agents python scripts/agents/run_agents.py
 ```
 
 ### 3. Self-Hosted Runners
 
-For self-hosted runners, use one of these approaches:
+Self-hosted runners will use the GitHub Environment secrets automatically. No additional configuration needed.
 
+For runner-specific tokens (not recommended), you can:
 ```bash
-# Option 1: Environment variable in runner service
-# Add to .env file on runner:
+# Add to runner's .env file:
 GITHUB_TOKEN=your-token-here
-
-# Option 2: Use systemd credentials (Linux)
-sudo systemctl set-environment GITHUB_TOKEN=your-token-here
-
-# Option 3: Use Docker secrets (Swarm mode)
-echo "your-token" | docker secret create github_token -
 ```
 
 ## Security Best Practices
@@ -82,9 +74,9 @@ Create a fine-grained Personal Access Token with minimal permissions:
 
 The implementation includes multiple security layers:
 
-1. **Docker Secrets**: Tokens are mounted as read-only files
-2. **Automatic Cleanup**: Secrets are deleted after workflow runs
-3. **No Environment Exposure**: Tokens aren't exposed in environment variables
+1. **GitHub Environments**: Secrets are managed by GitHub, never touch the filesystem
+2. **Environment Protection**: Optional approval requirements for production
+3. **Automatic Injection**: GitHub injects secrets only when needed
 4. **Logging Redaction**: All tokens are automatically redacted from logs
 
 ### 4. Verification
@@ -113,18 +105,16 @@ logger.info('Token: ghp_1234567890abcdef1234567890abcdef12345678')
 ### Issue: "No GitHub token found"
 
 **Solution**: Ensure one of these is configured:
-1. `.secrets/github_token.txt` exists (local only)
-2. `GITHUB_TOKEN` environment variable is set
-3. `gh auth status` shows you're authenticated
+1. `GITHUB_TOKEN` environment variable is set
+2. `gh auth status` shows you're authenticated
+3. Workflow uses `environment: production`
 
-### Issue: Container can't read secrets
+### Issue: Workflow can't access secrets
 
-**Solution**: Check permissions:
-```bash
-ls -la .secrets/
-# Should show: drwx------ (700) for directory
-# Should show: -rw------- (600) for files
-```
+**Solution**:
+- Verify the workflow job includes `environment: production`
+- Check that secrets are defined in the production environment
+- Ensure branch protection rules allow the workflow to run
 
 ### Issue: Secrets appearing in logs
 
@@ -137,8 +127,9 @@ logger = get_secure_logger(__name__)
 
 ## Never Do This!
 
-❌ **NEVER** commit `.secrets/github_token.txt` to the repository
 ❌ **NEVER** hardcode tokens in code
+❌ **NEVER** commit tokens to the repository
 ❌ **NEVER** log tokens without redaction
 ❌ **NEVER** use tokens in command line arguments (they appear in process lists)
-❌ **NEVER** share tokens between environments (dev/staging/prod)
+❌ **NEVER** share tokens between environments (use separate environments)
+❌ **NEVER** disable environment protection rules for production

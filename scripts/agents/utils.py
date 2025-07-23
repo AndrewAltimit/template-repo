@@ -15,10 +15,12 @@ logger = get_secure_logger(__name__)
 
 def get_github_token() -> str:
     """
-    Get GitHub token from Docker secret or environment variable.
+    Get GitHub token from environment variable or other sources.
 
-    Prefers Docker secret if available for enhanced security.
-    Falls back to environment variable for compatibility.
+    Priority order:
+    1. GITHUB_TOKEN environment variable (used in GitHub Actions)
+    2. Docker secret at /run/secrets/github_token (for advanced setups)
+    3. GitHub CLI token (for local development)
 
     Returns:
         GitHub token string
@@ -26,7 +28,13 @@ def get_github_token() -> str:
     Raises:
         RuntimeError: If no token is available
     """
-    # Check Docker secret first (more secure)
+    # Check environment variable first (standard for GitHub Actions)
+    token = os.environ.get("GITHUB_TOKEN", "")
+    if token:
+        logger.debug("Using GitHub token from environment variable")
+        return token
+
+    # Check Docker secret (optional, for advanced setups)
     secret_path = Path("/run/secrets/github_token")
     if secret_path.exists():
         try:
@@ -37,13 +45,7 @@ def get_github_token() -> str:
         except Exception as e:
             logger.warning(f"Failed to read Docker secret: {e}")
 
-    # Fall back to environment variable
-    token = os.environ.get("GITHUB_TOKEN", "")
-    if token:
-        logger.debug("Using GitHub token from environment variable")
-        return token
-
-    # Try gh CLI as last resort
+    # Try gh CLI as last resort (for local development)
     try:
         result = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, check=True)
         token = result.stdout.strip()
@@ -54,8 +56,7 @@ def get_github_token() -> str:
         pass
 
     raise RuntimeError(
-        "No GitHub token found. Please set GITHUB_TOKEN environment variable, "
-        "configure Docker secret, or authenticate with 'gh auth login'"
+        "No GitHub token found. Please set GITHUB_TOKEN environment variable " "or authenticate with 'gh auth login'"
     )
 
 
