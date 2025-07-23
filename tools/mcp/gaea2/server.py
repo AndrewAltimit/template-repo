@@ -49,7 +49,15 @@ class Gaea2MCPServer(BaseMCPServer):
         )
 
         self.logger = setup_logging("Gaea2MCP")
-        self.output_dir = ensure_directory(output_dir)
+
+        # Use temp directory if in test mode or if default directory is not writable
+        if os.environ.get("GAEA2_TEST_MODE") == "1" or os.environ.get("CI") == "true":
+            import tempfile
+
+            self.output_dir = tempfile.mkdtemp(prefix="gaea2_test_")
+            self.logger.info(f"Using temporary directory for tests: {self.output_dir}")
+        else:
+            self.output_dir = ensure_directory(output_dir)
 
         # File validation enforcement - can be disabled via env var for tests
         self.enforce_file_validation = (
