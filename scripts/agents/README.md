@@ -266,6 +266,144 @@ This security implementation protects against:
 - **Unauthorized Changes**: Only trusted users can trigger code changes
 - **Social Engineering**: Multi-layer validation prevents bypass attempts
 
+## Deduplication and State Management
+
+The AI agents use a sophisticated deduplication system to prevent duplicate processing and ensure each issue/PR is only handled once per trigger.
+
+### How Deduplication Works
+
+#### 1. Comment-Based State Tracking
+The agents use GitHub comments as a **stateless database** to track their work:
+- Every agent action results in a comment with the `[AI Agent]` tag
+- These comments serve as persistent "claims" on issues/PRs
+- Before processing, agents check for existing claims
+
+#### 2. Deduplication Flow
+```
+New Issue/PR Event
+    ↓
+Time Filter (last 24 hours) ← Deterministic pre-filter
+    ↓
+Has [Action][Agent] trigger? ← Only process explicit requests
+    ↓
+Security checks passed?
+    ↓
+Has [AI Agent] comment? ← THE KEY CHECK
+    ↓
+No? → Process & Post Comment (stake claim)
+Yes? → Skip (already claimed)
+```
+
+#### 3. Implementation Details
+
+**Issue Monitor (`issue_monitor.py`):**
+- Uses `has_agent_comment()` to check for ANY comment containing `[AI Agent]`
+- If found, skips processing entirely
+- Simple but effective for preventing duplicate issue processing
+
+**PR Review Monitor (`pr_review_monitor.py`):**
+- Uses `has_agent_addressed_review()` to check for `[AI Agent]` + "addressed"
+- More specific check - only skips if review was already addressed
+- Allows for multiple different actions on the same PR
+
+### Comment Patterns
+
+Agents use specific comment patterns to mark their work:
+
+**Issue Processing:**
+- `[AI Agent] I've created a PR to address this issue...` - PR created
+- `[AI Agent] I need more information...` - Info requested
+- `[AI Agent] Issue closed as requested...` - Issue closed
+
+**PR Review Processing:**
+- `[AI Agent] I've reviewed and addressed the feedback...` - Review addressed
+- `[AI Agent] I've reviewed the PR feedback and found no changes are required...` - No action needed
+
+### Deterministic Pre-Filters
+
+The system uses multiple filters to minimize unnecessary processing:
+
+#### 1. Time-Based Filter (`cutoff_hours`)
+- Default: Only process issues/PRs from last 24 hours
+- Prevents processing old issues on every scheduled run
+- Configurable in `config.json` under `agents.<agent_name>.cutoff_hours`
+
+#### 2. Keyword Trigger Filter
+- Only processes items with valid `[Action][Agent]` triggers
+- Ignores all other issues/PRs entirely
+- Checks comments in reverse chronological order (most recent first)
+
+#### 3. Security Filters
+- User allowlist check
+- Rate limiting
+- Repository validation
+- All applied BEFORE the deduplication check
+
+### Example Processing Flow
+
+```
+1. Issue #123 created by user
+2. User comments: "[Fix][Claude] Please help with this bug"
+3. Issue Monitor runs (every 15 minutes)
+4. Checks filters:
+   - Created within 24 hours? ✓
+   - Has keyword trigger? ✓
+   - User allowed? ✓
+   - Rate limit OK? ✓
+5. Checks deduplication:
+   - Any [AI Agent] comments? ✗ (No)
+6. Processes issue:
+   - Creates PR #124
+   - Posts: "[AI Agent] I've created PR #124 to address this issue..."
+7. Next run (15 minutes later):
+   - Gets to deduplication check
+   - Any [AI Agent] comments? ✓ (Yes!)
+   - SKIPS - Already processed
+```
+
+### Edge Cases and Limitations
+
+#### Handled Cases:
+1. **Multiple Triggers**: If user posts new trigger after agent comment, it's still skipped
+2. **Partial Completion**: If agent fails mid-process but posted initial comment, won't retry (prevents infinite loops)
+3. **Time Window**: Old issues (>24 hours) are ignored unless updated
+
+#### Known Limitations:
+1. **Comment Deletion**: If someone deletes the agent's comment, it will reprocess
+2. **Force Reprocessing**: No built-in way to force reprocessing (must delete agent comment)
+3. **Cross-Agent Coordination**: Each agent type only checks for generic `[AI Agent]` tag
+4. **No Persistent State**: State is tied to GitHub comments, not a database
+
+### Design Philosophy
+
+The comment-based approach was chosen for several reasons:
+- **Simplicity**: No external database or state files needed
+- **Transparency**: All state is visible in the GitHub UI
+- **Portability**: State travels with the issue/PR
+- **Audit Trail**: Clear history of agent actions
+- **Reliability**: Leverages GitHub's reliable comment storage
+
+This is why agents post comments even for simple acknowledgments - it's not just communication, it's the deduplication mechanism!
+
+### Configuration
+
+Deduplication behavior can be tuned in `config.json`:
+
+```json
+{
+  "agents": {
+    "issue_monitor": {
+      "cutoff_hours": 24,  // Time window for processing
+      "agent_tag": "[AI Agent]"  // Tag used in comments
+    },
+    "pr_review_monitor": {
+      "cutoff_hours": 24,
+      "agent_tag": "[AI Agent]"
+    }
+  }
+}
+```
+
 ## Adding New Users
 
 To add a new trusted user:
