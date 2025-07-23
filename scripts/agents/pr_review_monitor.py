@@ -203,86 +203,15 @@ class PRReviewMonitor:
 
         return feedback
 
-    def generate_fix_script(self, pr_number: int, branch_name: str, feedback: Dict) -> str:
-        """Generate a script to fix the issues identified in review."""
+    def prepare_feedback_text(self, feedback: Dict) -> tuple:
+        """Prepare feedback text for the fix script."""
         issues_text = "\n".join(
             [f"- File: {issue['file']}, Line: {issue['line']}, Issue: {issue['comment']}" for issue in feedback["issues"]]
         )
-
         must_fix_text = "\n".join([f"- {fix}" for fix in feedback["must_fix"]])
         suggestions_text = "\n".join([f"- {suggestion}" for suggestion in feedback["nice_to_have"]])
 
-        # Add safety checks
-        total_issues = len(feedback["must_fix"]) + len(feedback["issues"])
-        if total_issues > 20:
-            logger.warning(f"Too many issues ({total_issues}) for automatic fixing. Skipping auto-fix.")
-            return ""
-
-        script = f"""#!/bin/bash
-# Auto-generated script to address PR #{pr_number} review feedback
-set -e  # Exit on error
-
-# Safety check - ensure we're in a git repository
-if ! git rev-parse --git-dir > /dev/null 2>&1; then
-    echo "Error: Not in a git repository"
-    exit 1
-fi
-
-# Checkout the PR branch
-git fetch origin {branch_name}
-git checkout {branch_name}
-
-# Create a backup branch
-git branch -f pr-{pr_number}-backup-$(date +%s)
-
-# Use Claude Code to implement fixes
-npx --yes @claudeai/cli@latest code << 'EOF'
-PR #{pr_number} Review Feedback
-
-The following issues were identified in the code review and need to be addressed:
-
-## Critical Issues (Must Fix):
-{must_fix_text if must_fix_text else "None identified"}
-
-## Inline Code Comments:
-{issues_text if issues_text else "No inline comments"}
-
-## Suggestions (Nice to Have):
-{suggestions_text if suggestions_text else "None"}
-
-Please implement fixes for all the critical issues and inline comments.
-For suggestions, implement them if they improve the code quality
-without breaking existing functionality.
-
-Make sure to:
-1. Address all critical issues
-2. Fix any bugs or errors mentioned
-3. Improve code quality where suggested
-4. Maintain existing functionality
-5. Run tests to ensure nothing is broken
-
-After making changes, create a commit with message: "Address PR review feedback"
-EOF
-
-# Run tests
-./scripts/run-ci.sh test
-
-# Commit changes
-git add -A
-git commit -m "Address PR review feedback
-
-- Fixed all critical issues identified in review
-- Addressed inline code comments
-- Implemented suggested improvements where applicable
-- All tests passing
-
-Co-Authored-By: AI Review Agent <noreply@ai-agent.local>"
-
-# Push changes
-git push origin {branch_name}
-"""
-
-        return script
+        return must_fix_text, issues_text, suggestions_text
 
     def address_review_feedback(self, pr_number: int, branch_name: str, feedback: Dict) -> bool:
         """Implement changes to address review feedback."""
@@ -292,20 +221,34 @@ git push origin {branch_name}
             logger.info("To enable auto-fix, set ENABLE_AI_AGENTS=true environment variable")
             return False
 
-        script = self.generate_fix_script(pr_number, branch_name, feedback)
-        if not script:
-            logger.warning(f"No fix script generated for PR #{pr_number}")
+        # Add safety checks
+        total_issues = len(feedback["must_fix"]) + len(feedback["issues"])
+        if total_issues > 20:
+            logger.warning(f"Too many issues ({total_issues}) for automatic fixing. Skipping auto-fix.")
             return False
 
-        script_path = f"/tmp/fix_pr_{pr_number}_review.sh"
+        # Prepare feedback text
+        must_fix_text, issues_text, suggestions_text = self.prepare_feedback_text(feedback)
 
-        with open(script_path, "w") as f:
-            f.write(script)
-
-        os.chmod(script_path, 0o755)
+        # Use the external script
+        script_path = Path(__file__).parent / "templates" / "fix_pr_review.sh"
+        if not script_path.exists():
+            logger.error(f"Fix script not found at {script_path}")
+            return False
 
         try:
-            subprocess.run([script_path], check=True, timeout=300)  # 5 minute timeout
+            subprocess.run(
+                [
+                    str(script_path),
+                    str(pr_number),
+                    branch_name,
+                    must_fix_text,
+                    issues_text,
+                    suggestions_text,
+                ],
+                check=True,
+                timeout=300,  # 5 minute timeout
+            )
             logger.info(f"Successfully addressed feedback for PR #{pr_number}")
             return True
         except subprocess.TimeoutExpired:

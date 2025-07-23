@@ -258,57 +258,23 @@ Once you've added this information, I'll be able to create a pull request to add
         # Create feature branch
         branch_name = f"fix-issue-{issue_number}"
 
-        # Create implementation script
-        implementation_script = f"""#!/bin/bash
-# Auto-generated script to implement fix for issue #{issue_number}
-
-# Create branch
-git checkout -b {branch_name}
-
-# Use Claude Code to implement the fix
-npx --yes @claudeai/cli@latest code << 'EOF'
-Issue #{issue_number}: {issue_title}
-
-{issue_body}
-
-Please implement a fix for this issue. Make sure to:
-1. Address all the concerns mentioned in the issue
-2. Add appropriate tests if needed
-3. Update documentation if necessary
-4. Follow the project's coding standards
-
-After implementation, create a commit with a descriptive message.
-EOF
-
-# Create PR
-gh pr create --title "Fix: {issue_title} (#{issue_number})" \\
-    --body "This PR addresses issue #{issue_number}.
-
-## Changes
-- Implemented fix as described in the issue
-- Added tests where appropriate
-- Updated documentation
-
-## Testing
-- All existing tests pass
-- New tests added for the fix
-
-Closes #{issue_number}
-
-*This PR was created by an AI agent.*" \\
-    --assignee @me \\
-    --label "automated"
-"""
-
-        # Save and execute the script
-        script_path = f"/tmp/implement_issue_{issue_number}.sh"
-        with open(script_path, "w") as f:
-            f.write(implementation_script)
-
-        os.chmod(script_path, 0o755)
+        # Use the external script
+        script_path = Path(__file__).parent / "templates" / "fix_issue.sh"
+        if not script_path.exists():
+            logger.error(f"Fix script not found at {script_path}")
+            return None
 
         try:
-            subprocess.run([script_path], check=True)
+            subprocess.run(
+                [
+                    str(script_path),
+                    str(issue_number),
+                    branch_name,
+                    issue_title,
+                    issue_body,
+                ],
+                check=True,
+            )
 
             # Comment on issue
             run_gh_command(
