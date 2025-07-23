@@ -15,6 +15,7 @@
         "fix",
         "improvement"
       ],
+      "cutoff_hours": 24,
       "check_interval_minutes": 15
     },
     "pr_review_monitor": {
@@ -28,6 +29,7 @@
         "critical_issues": 0,
         "total_issues": 5
       },
+      "cutoff_hours": 24,
       "check_interval_minutes": 30
     }
   },

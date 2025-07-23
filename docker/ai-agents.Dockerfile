@@ -21,7 +21,7 @@ WORKDIR /workspace
 
 # Copy agent-specific requirements
 COPY docker/requirements-agents.txt ./
-RUN pip install --no-cache-dir -r requirements-agents.txt || true
+RUN pip install --no-cache-dir -r requirements-agents.txt
 
 # Python environment configuration
 ENV PYTHONUNBUFFERED=1 \

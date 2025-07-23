@@ -94,7 +94,6 @@ services:
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/workspace
-      - ~/.config/gh:/home/agentuser/.config/gh:ro  # GitHub CLI config (read-only)
     environment:
       - PYTHONUNBUFFERED=1
       - GITHUB_TOKEN=${GITHUB_TOKEN}

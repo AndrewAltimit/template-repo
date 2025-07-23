@@ -15,6 +15,7 @@ import re
 import subprocess
 import sys
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -48,6 +49,8 @@ class IssueMonitor:
             ],
         )
         self.actionable_labels = issue_config.get("actionable_labels", ["bug", "feature", "enhancement", "fix", "improvement"])
+        # Cutoff period in hours for filtering recent issues
+        self.cutoff_hours = issue_config.get("cutoff_hours", 24)
 
         self.agent_tag = "[AI Agent]"
         self.security_manager = SecurityManager()
@@ -63,7 +66,7 @@ class IssueMonitor:
             return {}
 
     def get_open_issues(self) -> List[Dict]:
-        """Get all open issues from the repository."""
+        """Get open issues from the repository, filtered by recent activity."""
         output = run_gh_command(
             [
                 "issue",
@@ -73,12 +76,32 @@ class IssueMonitor:
                 "--state",
                 "open",
                 "--json",
-                "number,title,body,author,createdAt,labels,comments",
+                "number,title,body,author,createdAt,updatedAt,labels,comments",
             ]
         )
 
         if output:
-            return json.loads(output)
+            all_issues = json.loads(output)
+
+            # Filter by recent activity
+            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=self.cutoff_hours)
+            recent_issues = []
+
+            for issue in all_issues:
+                # Check both created and updated times
+                created_at = datetime.fromisoformat(issue["createdAt"].replace("Z", "+00:00"))
+                updated_at = (
+                    datetime.fromisoformat(issue["updatedAt"].replace("Z", "+00:00")) if "updatedAt" in issue else created_at
+                )
+
+                # Include issue if it was created or updated recently
+                if created_at >= cutoff_time or updated_at >= cutoff_time:
+                    recent_issues.append(issue)
+
+            logger.info(
+                f"Filtered {len(all_issues)} issues to {len(recent_issues)} recent issues (cutoff: {self.cutoff_hours} hours)"
+            )
+            return recent_issues
         return []
 
     def has_agent_comment(self, issue_number: int) -> bool:

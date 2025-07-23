@@ -15,6 +15,7 @@ import re
 import subprocess
 import sys
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -40,6 +41,8 @@ class PRReviewMonitor:
         # Use config values with fallbacks
         self.review_bot_names = pr_config.get("review_bot_names", ["gemini-bot", "github-actions[bot]", "dependabot[bot]"])
         self.auto_fix_threshold = pr_config.get("auto_fix_threshold", {"critical_issues": 0, "total_issues": 5})
+        # Cutoff period in hours for filtering recent PRs
+        self.cutoff_hours = pr_config.get("cutoff_hours", 24)
 
         self.agent_tag = "[AI Agent]"
         self.security_manager = SecurityManager()
@@ -55,7 +58,7 @@ class PRReviewMonitor:
             return {}
 
     def get_open_prs(self) -> List[Dict]:
-        """Get all open pull requests."""
+        """Get open pull requests, filtered by recent activity."""
         output = run_gh_command(
             [
                 "pr",
@@ -65,12 +68,30 @@ class PRReviewMonitor:
                 "--state",
                 "open",
                 "--json",
-                "number,title,body,author,createdAt,labels,reviews,comments,headRefName",
+                "number,title,body,author,createdAt,updatedAt,labels,reviews,comments,headRefName",
             ]
         )
 
         if output:
-            return json.loads(output)
+            all_prs = json.loads(output)
+
+            # Filter by recent activity
+            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=self.cutoff_hours)
+            recent_prs = []
+
+            for pr in all_prs:
+                # Check both created and updated times
+                created_at = datetime.fromisoformat(pr["createdAt"].replace("Z", "+00:00"))
+                updated_at = (
+                    datetime.fromisoformat(pr["updatedAt"].replace("Z", "+00:00")) if "updatedAt" in pr else created_at
+                )
+
+                # Include PR if it was created or updated recently
+                if created_at >= cutoff_time or updated_at >= cutoff_time:
+                    recent_prs.append(pr)
+
+            logger.info(f"Filtered {len(all_prs)} PRs to {len(recent_prs)} recent PRs (cutoff: {self.cutoff_hours} hours)")
+            return recent_prs
         return []
 
     def get_pr_reviews(self, pr_number: int) -> List[Dict]:

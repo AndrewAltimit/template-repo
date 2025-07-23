@@ -379,3 +379,76 @@ class SecurityManager:
         )
 
         return True, None
+
+    def check_file_path_security(self, file_path: str) -> Tuple[bool, Optional[str]]:
+        """
+        Check if a file path is allowed to be modified.
+        Prevents agents from modifying their own code and critical system files.
+
+        Args:
+            file_path: Path to the file being modified
+
+        Returns:
+            Tuple of (is_allowed, rejection_reason)
+        """
+        # Normalize the path
+        normalized_path = os.path.normpath(file_path)
+        abs_path = os.path.abspath(normalized_path)
+
+        # Define restricted paths and patterns
+        restricted_patterns = [
+            # Agent's own code
+            "scripts/agents/",
+            ".github/workflows/issue-monitor.yml",
+            ".github/workflows/pr-review-monitor.yml",
+            # Security configurations
+            "scripts/agents/config.json",
+            "scripts/agents/security.py",
+            # Git configuration
+            ".git/",
+            ".gitconfig",
+            # GitHub Actions workflows (partial restriction)
+            ".github/workflows/runner-maintenance.yml",
+            # System files
+            "/etc/",
+            "/usr/",
+            "/bin/",
+            "/sbin/",
+            "/boot/",
+            "/proc/",
+            "/sys/",
+            # Home directory configs
+            "~/.ssh/",
+            "~/.config/gh/",
+            "~/.gitconfig",
+        ]
+
+        # Check against restricted patterns
+        for pattern in restricted_patterns:
+            # Expand user home directory
+            expanded_pattern = os.path.expanduser(pattern)
+
+            # Check if the path contains or starts with the restricted pattern
+            if (
+                pattern in normalized_path
+                or normalized_path.startswith(pattern)
+                or abs_path.startswith(os.path.abspath(expanded_pattern))
+            ):
+                logger.warning(
+                    f"File path security violation: Attempt to modify restricted path '{file_path}' "
+                    f"(matched pattern: '{pattern}')"
+                )
+                return (
+                    False,
+                    f"Cannot modify restricted path matching pattern '{pattern}'",
+                )
+
+        # Additional check: prevent modifying any file named security.py or config.json
+        basename = os.path.basename(normalized_path)
+        if basename in ["security.py", "config.json", ".gitconfig", "authorized_keys"]:
+            logger.warning(f"File path security violation: Attempt to modify restricted file '{basename}'")
+            return False, f"Cannot modify restricted file '{basename}'"
+
+        # If all checks pass
+        logger.debug(f"File path security check passed for: {file_path}")
+        return True, None
