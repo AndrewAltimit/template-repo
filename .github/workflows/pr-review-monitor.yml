@@ -50,7 +50,13 @@ jobs:
       - name: Set up Node.js for Claude CLI
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22.16.0'
+
+      - name: Install Claude Code CLI
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          # Verify installation
+          which claude-code || echo "claude-code not found in PATH"
 
       - name: Run PR review monitor
         env:

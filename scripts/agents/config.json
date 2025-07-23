@@ -32,7 +32,7 @@
     }
   },
   "claude_cli": {
-    "command": "npx --yes @claudeai/cli@latest code",
+    "command": "claude-code",
     "timeout_seconds": 600
   },
   "git": {
