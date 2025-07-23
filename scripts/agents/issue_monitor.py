@@ -334,13 +334,27 @@ Closes #{issue_number}
         for issue in issues:
             issue_number = issue["number"]
 
+            # Check for keyword trigger from allowed user
+            trigger_info = self.security_manager.check_trigger_comment(issue, "issue")
+
+            if not trigger_info:
+                logger.debug(f"Issue #{issue_number} has no valid trigger")
+                continue
+
+            action, agent, trigger_user = trigger_info
+
+            # Check if this agent should handle this trigger
+            # For now, we'll handle all triggers, but this is where agent selection would happen
+            # In the future: if agent != "Claude": continue
+
+            logger.info(f"Processing issue #{issue_number} triggered by {trigger_user}: [{action}][{agent}]")
+
             # Enhanced security check with rate limiting and repository validation
-            author = issue.get("author", {}).get("login", "unknown")
             repo = self.repo
 
             is_allowed, rejection_reason = self.security_manager.perform_full_security_check(
-                username=author,
-                action="issue_process",
+                username=trigger_user,
+                action=f"issue_{action.lower()}",
                 repository=repo,
                 entity_type="issue",
                 entity_id=str(issue_number),
@@ -352,22 +366,83 @@ Closes #{issue_number}
                     self.post_security_rejection_comment(issue_number, rejection_reason)
                 continue
 
-            # Skip if we've already commented
+            # Skip if we've already processed this action
             if self.has_agent_comment(issue_number):
                 logger.debug(f"Already processed issue #{issue_number}")
                 continue
 
-            # Analyze issue
-            has_info, missing = self.analyze_issue(issue)
+            # Handle different actions
+            if action.lower() in ["approved", "fix", "implement"]:
+                # Analyze issue
+                has_info, missing = self.analyze_issue(issue)
 
-            if not has_info:
-                # Request more information
-                self.create_information_request_comment(issue_number, missing)
-            elif self.should_create_pr(issue):
-                # Create PR to address the issue
-                self.create_pr_from_issue(issue)
+                if not has_info:
+                    # Request more information
+                    self.create_information_request_comment(issue_number, missing)
+                elif self.should_create_pr(issue):
+                    # Create PR to address the issue
+                    self.create_pr_from_issue(issue)
+                else:
+                    logger.info(f"Issue #{issue_number} not actionable yet")
+            elif action.lower() == "close":
+                # Close the issue
+                logger.info(f"Closing issue #{issue_number} as requested")
+                run_gh_command(["issue", "close", str(issue_number), "--repo", self.repo])
+                self.create_action_comment(
+                    issue_number,
+                    f"Issue closed as requested by {trigger_user} using [{action}][{agent}]",
+                )
+            elif action.lower() == "summarize":
+                # Summarize the issue
+                logger.info(f"Summarizing issue #{issue_number}")
+                self.create_summary_comment(issue_number, issue)
             else:
-                logger.info(f"Issue #{issue_number} not actionable yet")
+                logger.warning(f"Unknown action: {action}")
+
+    def create_action_comment(self, issue_number: int, message: str) -> None:
+        """Create a comment for an action taken."""
+        comment = f"{self.agent_tag} {message}"
+
+        run_gh_command(
+            [
+                "issue",
+                "comment",
+                str(issue_number),
+                "--repo",
+                self.repo,
+                "--body",
+                comment,
+            ]
+        )
+
+    def create_summary_comment(self, issue_number: int, issue: Dict) -> None:
+        """Create a summary comment for an issue."""
+        title = issue.get("title", "No title")
+        body = issue.get("body", "No description")
+        labels = [label.get("name", "") for label in issue.get("labels", [])]
+
+        summary = f"""{self.agent_tag} **Issue Summary:**
+
+**Title:** {title}
+
+**Labels:** {', '.join(labels) if labels else 'None'}
+
+**Description Summary:** {body[:200]}{'...' if len(body) > 200 else ''}
+
+**Status:** This issue appears to be {'actionable' if self.should_create_pr(issue) else 'informational or needs more details'}.
+"""
+
+        run_gh_command(
+            [
+                "issue",
+                "comment",
+                str(issue_number),
+                "--repo",
+                self.repo,
+                "--body",
+                summary,
+            ]
+        )
 
 
 def main():

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The AI agents system includes comprehensive security measures to prevent unauthorized use and protect against prompt injection attacks. Only users on an explicit allow list can trigger AI agent actions.
+The AI agents system includes comprehensive security measures to prevent unauthorized use and protect against prompt injection attacks. Only users on an explicit allow list can trigger AI agent actions using specific keyword triggers.
 
 ## Security Features
 
@@ -25,7 +25,40 @@ Our AI agents implement defense-in-depth with multiple security layers:
 
 The allow list is configured in `config.json` under the `security.allow_list` field. The repository owner (extracted from `GITHUB_REPOSITORY` environment variable) is always included automatically.
 
-### 3. Configuration
+### 3. Keyword Trigger System
+
+To prevent accidental or unauthorized agent activation, AI agents require specific keyword triggers in comments from allowed users:
+
+#### Trigger Format
+The trigger format is: `[Action][Agent]`
+
+#### Supported Actions
+- `[Approved]` - Approve and process the issue/PR
+- `[Fix]` - Fix the reported issue
+- `[Implement]` - Implement the requested feature
+- `[Review]` - Review and address feedback
+- `[Close]` - Close the issue/PR
+- `[Summarize]` - Provide a summary
+- `[Debug]` - Debug the issue
+
+#### Supported Agents
+- `[Claude]` - Claude Code agent
+- `[Gemini]` - Gemini CLI agent
+
+#### Examples
+- `[Approved][Claude]` - Have Claude process the issue
+- `[Fix][Claude]` - Have Claude fix the reported bug
+- `[Summarize][Gemini]` - Have Gemini provide a summary
+- `[Close][Claude]` - Have Claude close the issue
+- `[Review][Gemini]` - Have Gemini review and address PR feedback
+
+#### How It Works
+1. An allowed user comments on an issue/PR with a keyword trigger
+2. The agent checks for the most recent valid trigger from an allowed user
+3. If found, the agent processes the request based on the action
+4. The agent selection (`[Claude]`, `[Gemini]`, etc.) can be used for routing to specific agents
+
+### 4. Configuration
 
 Security settings are configured in `config.json`:
 
@@ -96,6 +129,14 @@ is_allowed = security.check_repository("owner/repo")
 
 # Log security violations
 security.log_security_violation("issue", "123", "attacker")
+
+# Keyword trigger parsing
+trigger = security.parse_keyword_trigger("[Approved][Claude]")
+# Returns: ("Approved", "Claude") or None
+
+# Check for keyword triggers in issue/PR
+trigger_info = security.check_trigger_comment(issue_dict, "issue")
+# Returns: (action, agent, username) or None
 ```
 
 ### 6. Security Violation Handling

@@ -299,3 +299,121 @@ class TestSecurityManager:
         assert security_manager.is_user_allowed("env-user1") is True
         assert security_manager.is_user_allowed("env-user2") is True
         assert security_manager.is_user_allowed("env-user3") is True
+
+    def test_keyword_trigger_parsing(self, security_manager):
+        """Test parsing keyword triggers from text."""
+        # Valid triggers
+        assert security_manager.parse_keyword_trigger("[Approved][Claude]") == (
+            "Approved",
+            "Claude",
+        )
+        assert security_manager.parse_keyword_trigger("[Fix][Gemini]") == (
+            "Fix",
+            "Gemini",
+        )
+        assert security_manager.parse_keyword_trigger("[Close][Claude]") == (
+            "Close",
+            "Claude",
+        )
+        assert security_manager.parse_keyword_trigger("[Summarize][Gemini]") == (
+            "Summarize",
+            "Gemini",
+        )
+        assert security_manager.parse_keyword_trigger("[Debug][Claude]") == (
+            "Debug",
+            "Claude",
+        )
+        assert security_manager.parse_keyword_trigger("[Implement][Gemini]") == (
+            "Implement",
+            "Gemini",
+        )
+        assert security_manager.parse_keyword_trigger("[Review][Claude]") == (
+            "Review",
+            "Claude",
+        )
+
+        # Case insensitive
+        assert security_manager.parse_keyword_trigger("[approved][claude]") == (
+            "approved",
+            "claude",
+        )
+        assert security_manager.parse_keyword_trigger("[CLOSE][GEMINI]") == (
+            "CLOSE",
+            "GEMINI",
+        )
+
+        # With whitespace
+        assert security_manager.parse_keyword_trigger("[Approved] [Claude]") == (
+            "Approved",
+            "Claude",
+        )
+        assert security_manager.parse_keyword_trigger("[Fix]  [Gemini]") == (
+            "Fix",
+            "Gemini",
+        )
+
+        # Invalid triggers
+        assert security_manager.parse_keyword_trigger("[Invalid][Claude]") is None
+        assert security_manager.parse_keyword_trigger("[Approved][GitBot]") is None  # GitBot removed
+        assert security_manager.parse_keyword_trigger("[Approved][InvalidAgent]") is None
+        assert security_manager.parse_keyword_trigger("[Approved]") is None
+        assert security_manager.parse_keyword_trigger("Approved][Claude]") is None
+        assert security_manager.parse_keyword_trigger("[Approved Claude]") is None
+        assert security_manager.parse_keyword_trigger("Just some text") is None
+        assert security_manager.parse_keyword_trigger("") is None
+        assert security_manager.parse_keyword_trigger(None) is None
+
+    def test_check_trigger_comment(self, security_manager, test_issue):
+        """Test checking for trigger comments in issues/PRs."""
+        # Issue with valid trigger from allowed user
+        issue = test_issue("randomuser")
+        issue["comments"] = [
+            {"user": {"login": "randomuser"}, "body": "This is a bug"},
+            {
+                "user": {"login": "test-user"},
+                "body": "I'll fix this. [Approved][Claude]",
+            },
+        ]
+        result = security_manager.check_trigger_comment(issue)
+        assert result == ("Approved", "Claude", "test-user")
+
+        # Issue without trigger
+        issue_no_trigger = test_issue("user1")
+        issue_no_trigger["comments"] = [{"user": {"login": "test-user"}, "body": "This needs work"}]
+        assert security_manager.check_trigger_comment(issue_no_trigger) is None
+
+        # Trigger from unauthorized user
+        issue_unauthorized = test_issue("hacker")
+        issue_unauthorized["comments"] = [{"user": {"login": "hacker"}, "body": "[Approved][Claude]"}]
+        assert security_manager.check_trigger_comment(issue_unauthorized) is None
+
+        # Multiple triggers - most recent wins
+        issue_multiple = test_issue("user1")
+        issue_multiple["comments"] = [
+            {"user": {"login": "test-user"}, "body": "[Close][Claude]"},
+            {"user": {"login": "AndrewAltimit"}, "body": "[Summarize][Gemini]"},
+            {
+                "user": {"login": "test-user"},
+                "body": "[Approved][Claude]",
+            },  # Most recent
+        ]
+        result = security_manager.check_trigger_comment(issue_multiple)
+        assert result == ("Approved", "Claude", "test-user")
+
+        # Empty comments list
+        issue_empty = test_issue("user1")
+        issue_empty["comments"] = []
+        assert security_manager.check_trigger_comment(issue_empty) is None
+
+        # Mixed valid and invalid triggers
+        issue_mixed = test_issue("user1")
+        issue_mixed["comments"] = [
+            {"user": {"login": "hacker"}, "body": "[Approved][Claude]"},  # Unauthorized
+            {
+                "user": {"login": "test-user"},
+                "body": "[Invalid][Claude]",
+            },  # Invalid action
+            {"user": {"login": "test-user"}, "body": "[Fix][Gemini]"},  # Valid
+        ]
+        result = security_manager.check_trigger_comment(issue_mixed)
+        assert result == ("Fix", "Gemini", "test-user")

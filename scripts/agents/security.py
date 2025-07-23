@@ -8,6 +8,7 @@ import fcntl
 import json
 import logging
 import os
+import re
 import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -17,7 +18,25 @@ logger = logging.getLogger(__name__)
 
 
 class SecurityManager:
-    """Manages security for AI agents through allow lists."""
+    """Manages security for AI agents through allow lists and keyword triggers."""
+
+    # Valid actions and agents for keyword triggers
+    VALID_ACTIONS = [
+        "Approved",
+        "Close",
+        "Summarize",
+        "Debug",
+        "Fix",
+        "Implement",
+        "Review",
+    ]
+    VALID_AGENTS = ["Claude", "Gemini"]
+
+    # Regex pattern for keyword triggers: [Action][Agent]
+    TRIGGER_PATTERN = re.compile(
+        r"\[(" + "|".join(VALID_ACTIONS) + r")\]\s*\[(" + "|".join(VALID_AGENTS) + r")\]",
+        re.IGNORECASE,
+    )
 
     def __init__(self, allow_list: Optional[List[str]] = None, config_path: Optional[str] = None):
         """
@@ -220,6 +239,61 @@ class SecurityManager:
             return False
 
         return self.is_user_allowed(author)
+
+    def parse_keyword_trigger(self, text: str) -> Optional[Tuple[str, str]]:
+        """
+        Parse keyword triggers from text.
+
+        Args:
+            text: Text to parse for triggers (e.g., comment body)
+
+        Returns:
+            Tuple of (action, agent) if found, None otherwise
+            Example: ("Approved", "Claude")
+        """
+        if not text:
+            return None
+
+        match = self.TRIGGER_PATTERN.search(text)
+        if match:
+            action = match.group(1)
+            agent = match.group(2)
+            logger.info(f"Found keyword trigger: [{action}][{agent}]")
+            return (action, agent)
+
+        return None
+
+    def check_trigger_comment(self, issue_or_pr: Dict, entity_type: str = "issue") -> Optional[Tuple[str, str, str]]:
+        """
+        Check if an issue/PR has a trigger comment from an allowed user.
+
+        Args:
+            issue_or_pr: GitHub issue or PR data
+            entity_type: "issue" or "pr"
+
+        Returns:
+            Tuple of (action, agent, username) if triggered, None otherwise
+        """
+        comments = issue_or_pr.get("comments", [])
+
+        # Check comments in reverse order (most recent first)
+        for comment in reversed(comments):
+            author = comment.get("user", {}).get("login", "")
+
+            # Skip if not from allowed user
+            if not self.is_user_allowed(author):
+                continue
+
+            # Check for keyword trigger
+            body = comment.get("body", "")
+            trigger = self.parse_keyword_trigger(body)
+
+            if trigger:
+                action, agent = trigger
+                logger.info(f"Found valid trigger from {author}: [{action}][{agent}]")
+                return (action, agent, author)
+
+        return None
 
     def add_user_to_allow_list(self, username: str) -> None:
         """Add a user to the allow list."""
