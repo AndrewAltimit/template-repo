@@ -16,8 +16,8 @@ COPY docker/requirements-gaea2.txt /app/requirements.txt
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Note: Output directory will be created at runtime with proper permissions
-# Do not create it in the Dockerfile to avoid permission issues
+# Create output directory with proper permissions
+RUN mkdir -p /output/gaea2 && chmod -R 777 /output
 
 # Copy MCP server code
 COPY tools/mcp /app/tools/mcp
