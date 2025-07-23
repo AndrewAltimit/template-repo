@@ -78,7 +78,11 @@ class PRReviewMonitor:
         )
 
         if output:
-            all_prs = json.loads(output)
+            try:
+                all_prs = json.loads(output)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse PRs JSON: {e}")
+                return []
 
             # Filter by recent activity
             cutoff_time = datetime.now(timezone.utc) - timedelta(hours=self.cutoff_hours)
@@ -104,8 +108,12 @@ class PRReviewMonitor:
         output = run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "reviews"])
 
         if output:
-            data = json.loads(output)
-            return data.get("reviews", [])
+            try:
+                data = json.loads(output)
+                return data.get("reviews", [])
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse reviews JSON: {e}")
+                return []
         return []
 
     def get_pr_review_comments(self, pr_number: int) -> List[Dict]:
@@ -113,7 +121,11 @@ class PRReviewMonitor:
         output = run_gh_command(["api", f"/repos/{self.repo}/pulls/{pr_number}/comments", "--paginate"])
 
         if output:
-            return json.loads(output) if output.startswith("[") else [json.loads(output)]
+            try:
+                return json.loads(output) if output.startswith("[") else [json.loads(output)]
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse comments JSON: {e}")
+                return []
         return []
 
     def has_agent_addressed_review(self, pr_number: int) -> bool:
@@ -121,7 +133,11 @@ class PRReviewMonitor:
         output = run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "comments"])
 
         if output:
-            data = json.loads(output)
+            try:
+                data = json.loads(output)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse comment data JSON: {e}")
+                return False
             for comment in data.get("comments", []):
                 if self.agent_tag in comment.get("body", "") and "addressed" in comment.get("body", "").lower():
                     return True
@@ -538,7 +554,7 @@ def main():
                 logger.info("Monitoring stopped by user")
                 break
             except Exception as e:
-                logger.error(f"Error in monitoring loop: {e}")
+                logger.error(f"Error in monitoring loop: {e}", exc_info=True)
                 time.sleep(60)  # Wait a minute before retrying
     else:
         # Run once

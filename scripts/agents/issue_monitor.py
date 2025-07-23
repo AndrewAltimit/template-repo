@@ -83,7 +83,11 @@ class IssueMonitor:
         )
 
         if output:
-            all_issues = json.loads(output)
+            try:
+                all_issues = json.loads(output)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse issues JSON: {e}")
+                return []
 
             # Filter by recent activity
             cutoff_time = datetime.now(timezone.utc) - timedelta(hours=self.cutoff_hours)
@@ -121,7 +125,11 @@ class IssueMonitor:
         )
 
         if output:
-            data = json.loads(output)
+            try:
+                data = json.loads(output)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse comments JSON: {e}")
+                return False
             for comment in data.get("comments", []):
                 if self.agent_tag in comment.get("body", ""):
                     return True
@@ -325,6 +333,15 @@ Closes #{issue_number}
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to create PR for issue #{issue_number}: {e}")
             return None
+        except PermissionError as e:
+            logger.error(f"Permission denied executing script for issue #{issue_number}: {e}")
+            return None
+        except FileNotFoundError as e:
+            logger.error(f"Script file not found for issue #{issue_number}: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error creating PR for issue #{issue_number}: {e}")
+            return None
 
     def process_issues(self):
         """Main process to monitor and handle issues."""
@@ -461,7 +478,7 @@ def main():
                 logger.info("Monitoring stopped by user")
                 break
             except Exception as e:
-                logger.error(f"Error in monitoring loop: {e}")
+                logger.error(f"Error in monitoring loop: {e}", exc_info=True)
                 time.sleep(60)  # Wait a minute before retrying
     else:
         # Run once
