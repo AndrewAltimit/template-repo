@@ -19,7 +19,7 @@ This project follows a **container-first approach**:
 
 ## AI Agents
 
-This repository leverages **three AI agents** for development and automation:
+This repository leverages **five AI agents** for development and automation:
 
 1. **Claude Code** (Primary Development)
    - Main development assistant via claude.ai/code
@@ -36,6 +36,16 @@ This repository leverages **three AI agents** for development and automation:
    - Provides inline review comments in pull requests
    - Complements Gemini's automated reviews
 
+4. **Issue Monitor Agent** (Automated Issue Management)
+   - Monitors GitHub issues for completeness
+   - Automatically creates PRs from well-described issues
+   - Runs every 15 minutes via GitHub Actions
+
+5. **PR Review Monitor Agent** (Automated Review Response)
+   - Monitors PR reviews and implements requested changes
+   - Uses Claude Code CLI to address feedback automatically
+   - Runs every 30 minutes or on PR review events
+
 ## Features
 
 - **MCP Server Integration** - Multiple MCP servers for different tool categories
@@ -50,7 +60,9 @@ This repository leverages **three AI agents** for development and automation:
 - **LaTeX Compilation** - Document generation
 - **Self-Hosted Runners** - GitHub Actions with local infrastructure
 - **Docker Compose** - Containerized services
-- **AI-Powered Development** - Three AI agents working in harmony
+- **AI-Powered Development** - Five AI agents working in harmony
+- **Automated Issue Processing** - Issues automatically converted to PRs
+- **Automated Review Response** - PR feedback automatically implemented
 
 ## Quick Start
 
@@ -166,11 +178,13 @@ See [setup guide](docs/GEMINI_SETUP.md) for details.
 
 ### AI Agents Configuration
 
-This project uses three AI agents. See [AI Agents Documentation](docs/AI_AGENTS.md) for details on:
+This project uses five AI agents. See [AI Agents Documentation](docs/AI_AGENTS.md) for details on:
 
 - Claude Code (primary development)
 - Gemini CLI (automated PR reviews)
 - GitHub Copilot (code review suggestions)
+- Issue Monitor Agent (automated issue management)
+- PR Review Monitor Agent (automated review response)
 
 ### MCP Configuration
 
