@@ -94,6 +94,17 @@ python -m tools.mcp.gemini.server
 ./tools/mcp/gemini/scripts/start_server.sh --mode http
 ```
 
+**Important: Why Gemini MCP Server Must Run on Host**
+
+The Gemini MCP server is an exception to the project's container-first approach and must run on the host system because:
+
+1. **Docker Access Required**: The server needs to execute Docker commands to interact with other containerized services
+2. **Docker-in-Docker Complexity**: Running Docker inside a container would require privileged mode and complex socket mounting
+3. **Security Considerations**: Avoiding nested Docker layers reduces security risks and complexity
+4. **Integration Requirements**: The server needs direct access to the host's Docker daemon for service orchestration
+
+This is a deliberate architectural decision to maintain simplicity and security while still providing seamless AI integration.
+
 The server runs on port 8006 and provides:
 - `consult_gemini` - Get AI assistance for technical questions
 - `clear_gemini_history` - Clear conversation history

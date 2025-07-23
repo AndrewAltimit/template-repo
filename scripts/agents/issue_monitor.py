@@ -17,6 +17,8 @@ import sys
 import time
 from typing import Dict, List, Optional, Tuple
 
+from utils import run_gh_command
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -36,19 +38,9 @@ class IssueMonitor:
         ]
         self.agent_tag = "[AI Agent]"
 
-    def run_gh_command(self, args: List[str]) -> Optional[str]:
-        """Run GitHub CLI command and return output."""
-        try:
-            cmd = ["gh"] + args
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            return result.stdout.strip()
-        except subprocess.CalledProcessError as e:
-            logger.error(f"GitHub CLI error: {e.stderr}")
-            return None
-
     def get_open_issues(self) -> List[Dict]:
         """Get all open issues from the repository."""
-        output = self.run_gh_command(
+        output = run_gh_command(
             [
                 "issue",
                 "list",
@@ -67,7 +59,7 @@ class IssueMonitor:
 
     def has_agent_comment(self, issue_number: int) -> bool:
         """Check if the agent has already commented on this issue."""
-        output = self.run_gh_command(
+        output = run_gh_command(
             [
                 "issue",
                 "view",

@@ -15,7 +15,9 @@ import re
 import subprocess
 import sys
 import time
-from typing import Dict, List, Optional
+from typing import Dict, List
+
+from utils import run_gh_command
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -31,19 +33,9 @@ class PRReviewMonitor:
         self.agent_tag = "[AI Agent]"
         self.review_bot_names = ["gemini-bot", "github-actions[bot]"]
 
-    def run_gh_command(self, args: List[str]) -> Optional[str]:
-        """Run GitHub CLI command and return output."""
-        try:
-            cmd = ["gh"] + args
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            return result.stdout.strip()
-        except subprocess.CalledProcessError as e:
-            logger.error(f"GitHub CLI error: {e.stderr}")
-            return None
-
     def get_open_prs(self) -> List[Dict]:
         """Get all open pull requests."""
-        output = self.run_gh_command(
+        output = run_gh_command(
             [
                 "pr",
                 "list",
@@ -62,7 +54,7 @@ class PRReviewMonitor:
 
     def get_pr_reviews(self, pr_number: int) -> List[Dict]:
         """Get all reviews for a specific PR."""
-        output = self.run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "reviews"])
+        output = run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "reviews"])
 
         if output:
             data = json.loads(output)
@@ -71,7 +63,7 @@ class PRReviewMonitor:
 
     def get_pr_review_comments(self, pr_number: int) -> List[Dict]:
         """Get all review comments for a specific PR."""
-        output = self.run_gh_command(["api", f"/repos/{self.repo}/pulls/{pr_number}/comments", "--paginate"])
+        output = run_gh_command(["api", f"/repos/{self.repo}/pulls/{pr_number}/comments", "--paginate"])
 
         if output:
             return json.loads(output) if output.startswith("[") else [json.loads(output)]
@@ -79,7 +71,7 @@ class PRReviewMonitor:
 
     def has_agent_addressed_review(self, pr_number: int) -> bool:
         """Check if agent has already addressed the review."""
-        output = self.run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "comments"])
+        output = run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "comments"])
 
         if output:
             data = json.loads(output)

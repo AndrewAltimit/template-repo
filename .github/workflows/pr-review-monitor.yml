@@ -12,6 +12,10 @@ on:
     - cron: '*/30 * * * *'
   workflow_dispatch: {}
 
+permissions:
+  pull-requests: write
+  contents: write
+
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -38,9 +42,15 @@ jobs:
           git config --global user.name "AI Review Agent"
           git config --global user.email "ai-review-agent@localhost"
 
-      - name: Run PR review monitor
+      - name: Build AI agents container
+        run: |
+          docker-compose build ai-agents
+
+      - name: Run PR review monitor in container
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
+          USER_ID: $(id -u)
+          GROUP_ID: $(id -g)
         run: |
           echo "Running PR review monitor for repository: $GITHUB_REPOSITORY"
 
@@ -49,7 +59,10 @@ jobs:
             echo "Triggered by PR event on PR #${{ github.event.pull_request.number }}"
           fi
 
-          python scripts/agents/pr_review_monitor.py
+          docker-compose run --rm \
+            -e GITHUB_TOKEN="$GITHUB_TOKEN" \
+            -e GITHUB_REPOSITORY="$GITHUB_REPOSITORY" \
+            ai-agents python scripts/agents/pr_review_monitor.py
 
       - name: Log monitoring results
         if: always()

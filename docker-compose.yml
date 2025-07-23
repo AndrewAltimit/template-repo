@@ -85,6 +85,29 @@ services:
     profiles:
       - services
 
+  # AI Agents container for GitHub automation
+  ai-agents:
+    build:
+      context: .
+      dockerfile: docker/ai-agents.Dockerfile
+    container_name: ai-agents
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    volumes:
+      - ./:/workspace
+      - ~/.config/gh:/home/agentuser/.config/gh:ro  # GitHub CLI config (read-only)
+    environment:
+      - PYTHONUNBUFFERED=1
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
+    working_dir: /workspace
+    networks:
+      - mcp-network
+    command: ["/bin/bash"]
+    stdin_open: true
+    tty: true
+    profiles:
+      - agents
+
   # Python CI container for running tests and linting
   python-ci:
     build:

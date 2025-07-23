@@ -11,6 +11,11 @@ on:
       - edited
       - labeled
 
+permissions:
+  issues: write
+  pull-requests: write
+  contents: write
+
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -31,12 +36,21 @@ jobs:
           git config --global user.name "AI Issue Agent"
           git config --global user.email "ai-agent@localhost"
 
-      - name: Run issue monitor
+      - name: Build AI agents container
+        run: |
+          docker-compose build ai-agents
+
+      - name: Run issue monitor in container
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
+          USER_ID: $(id -u)
+          GROUP_ID: $(id -g)
         run: |
           echo "Running issue monitor for repository: $GITHUB_REPOSITORY"
-          python scripts/agents/issue_monitor.py
+          docker-compose run --rm \
+            -e GITHUB_TOKEN="$GITHUB_TOKEN" \
+            -e GITHUB_REPOSITORY="$GITHUB_REPOSITORY" \
+            ai-agents python scripts/agents/issue_monitor.py
 
       - name: Log monitoring results
         if: always()
