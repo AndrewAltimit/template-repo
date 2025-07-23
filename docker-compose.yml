@@ -97,7 +97,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
-      - ENABLE_AUTO_FIX=${ENABLE_AUTO_FIX:-false}
+      - ENABLE_AI_AGENTS=${ENABLE_AI_AGENTS:-false}
     # Secrets are mounted as volumes at runtime - see workflows
     working_dir: /workspace
     networks:

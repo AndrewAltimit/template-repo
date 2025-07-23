@@ -36,8 +36,8 @@ class PRReviewMonitor:
         self.repo = os.environ.get("GITHUB_REPOSITORY", "")
         self.token = get_github_token()
 
-        # Safety control - disable auto-fixing by default unless explicitly enabled
-        self.auto_fix_enabled = os.environ.get("ENABLE_AUTO_FIX", "false").lower() == "true"
+        # Safety control - auto-fixing is enabled when AI agents are enabled
+        self.auto_fix_enabled = os.environ.get("ENABLE_AI_AGENTS", "false").lower() == "true"
 
         # Load configuration
         self.config = self._load_config()
@@ -272,8 +272,8 @@ git push origin {branch_name}
         """Implement changes to address review feedback."""
         # Check if auto-fix is enabled
         if not self.auto_fix_enabled:
-            logger.info(f"Auto-fix is disabled. Skipping automatic fixes for PR #{pr_number}")
-            logger.info("To enable auto-fix, set ENABLE_AUTO_FIX=true environment variable")
+            logger.info(f"AI agents are disabled. Skipping automatic fixes for PR #{pr_number}")
+            logger.info("To enable auto-fix, set ENABLE_AI_AGENTS=true environment variable")
             return False
 
         script = self.generate_fix_script(pr_number, branch_name, feedback)

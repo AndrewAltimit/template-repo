@@ -24,10 +24,15 @@ GitHub Environments provide:
 
 In the production environment, add these secrets:
 
+#### Secrets (sensitive values):
 | Secret Name | Description | Required |
 |------------|-------------|----------|
-| `GITHUB_TOKEN` | GitHub Personal Access Token with appropriate permissions | Yes |
-| `ENABLE_AUTO_FIX` | Set to `true` to allow PR auto-fixes (use with caution) | No |
+| `AI_AGENT_TOKEN` | GitHub Personal Access Token with appropriate permissions | Yes |
+
+#### Variables (configuration values):
+| Variable Name | Description | Default | Effect |
+|--------------|-------------|---------|--------|
+| `ENABLE_AI_AGENTS` | Master switch for AI agents | `false` | When `true`: Enables scheduled runs AND auto-fix capabilities |
 
 #### Creating a Fine-Grained Personal Access Token
 
@@ -80,8 +85,8 @@ jobs:
     steps:
       - name: Run issue monitor
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # From environment
-          ENABLE_AUTO_FIX: ${{ secrets.ENABLE_AUTO_FIX || 'false' }}
+          GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}  # From environment secret
+          ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS || 'false' }}  # From environment variable
 ```
 
 ## Testing Your Setup

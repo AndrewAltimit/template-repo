@@ -24,14 +24,16 @@ jobs:
     name: Monitor PR Reviews
     runs-on: self-hosted
     environment: production
-    # Run for all relevant events
+    # Only run if AI agents are enabled AND relevant event occurs
     # Note: User authorization is handled by the SecurityManager in the Python agent
     if: |
-      github.event_name == 'schedule' ||
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'pull_request_review' &&
-       github.event.review.state == 'changes_requested') ||
-      github.event_name == 'pull_request_review_comment'
+      vars.ENABLE_AI_AGENTS == 'true' && (
+        github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'pull_request_review' &&
+         github.event.review.state == 'changes_requested') ||
+        github.event_name == 'pull_request_review_comment'
+      )
 
     steps:
       - name: Security Check - Log Event Details
@@ -62,9 +64,9 @@ jobs:
 
       - name: Run PR review monitor in container
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          ENABLE_AUTO_FIX: ${{ secrets.ENABLE_AUTO_FIX || 'false' }}
+          ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}
           USER_ID: 1000
           GROUP_ID: 1000
         run: |
@@ -78,7 +80,7 @@ jobs:
           docker-compose run --rm \
             -e GITHUB_TOKEN \
             -e GITHUB_REPOSITORY \
-            -e ENABLE_AUTO_FIX \
+            -e ENABLE_AI_AGENTS \
             ai-agents python scripts/agents/pr_review_monitor.py
 
       - name: Log monitoring results

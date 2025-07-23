@@ -24,12 +24,14 @@ jobs:
     name: Monitor GitHub Issues
     runs-on: self-hosted
     environment: production
-    # Only run if triggered by workflow_dispatch or schedule
+    # Only run if AI agents are enabled AND (manual trigger OR schedule OR issue event)
     # Note: User authorization is handled by the SecurityManager in the Python agent
     if: |
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'schedule' ||
-      github.event_name == 'issues'
+      vars.ENABLE_AI_AGENTS == 'true' && (
+        github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'schedule' ||
+        github.event_name == 'issues'
+      )
 
     steps:
       - name: Security Check - Log Event Details
@@ -58,8 +60,9 @@ jobs:
 
       - name: Run issue monitor in container
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}
           USER_ID: 1000
           GROUP_ID: 1000
         run: |
@@ -67,6 +70,7 @@ jobs:
           docker-compose run --rm \
             -e GITHUB_TOKEN \
             -e GITHUB_REPOSITORY \
+            -e ENABLE_AI_AGENTS \
             ai-agents python scripts/agents/issue_monitor.py
 
       - name: Log monitoring results
