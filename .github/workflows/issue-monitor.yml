@@ -51,6 +51,16 @@ jobs:
           git config --global user.name "AI Issue Agent"
           git config --global user.email "ai-agent@localhost"
 
+      - name: Create temporary secrets directory
+        run: |
+          mkdir -p .secrets
+          chmod 700 .secrets
+
+      - name: Create GitHub token secret file
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" > .secrets/github_token.txt
+          chmod 600 .secrets/github_token.txt
+
       - name: Build AI agents container
         run: |
           docker-compose build ai-agents
@@ -63,9 +73,14 @@ jobs:
         run: |
           echo "Running issue monitor for repository: $GITHUB_REPOSITORY"
           docker-compose run --rm \
-            -e GITHUB_TOKEN="$GITHUB_TOKEN" \
+            -v $(pwd)/.secrets:/run/secrets:ro \
             -e GITHUB_REPOSITORY="$GITHUB_REPOSITORY" \
             ai-agents python scripts/agents/issue_monitor.py
+
+      - name: Cleanup secrets
+        if: always()
+        run: |
+          rm -rf .secrets
 
       - name: Log monitoring results
         if: always()
