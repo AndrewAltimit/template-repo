@@ -36,7 +36,7 @@ git branch -f "$BACKUP_BRANCH"
 
 # Use Claude Code to implement fixes
 echo "Running Claude Code to address review feedback..."
-npx --yes @claudeai/cli@latest code << EOF
+npx --yes @anthropic-ai/claude-code@1.0.59 << EOF
 PR #${PR_NUMBER} Review Feedback
 
 The following issues were identified in the code review and need to be addressed:

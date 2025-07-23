@@ -29,7 +29,7 @@ git checkout -b "$BRANCH_NAME"
 
 # Use Claude Code to implement the fix
 echo "Running Claude Code to implement fix for issue #$ISSUE_NUMBER..."
-npx --yes @claudeai/cli@latest code << EOF
+npx --yes @anthropic-ai/claude-code@1.0.59 << EOF
 Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}
 
 ${ISSUE_BODY}
