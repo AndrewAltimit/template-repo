@@ -136,6 +136,15 @@ jobs:
             -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
             python-ci python tests/gaea2/run_all_integration_tests.py ${{ env.GAEA2_MCP_URL }}
 
+      - name: Run All Gaea2 Tests
+        id: all-gaea2-tests
+        if: success()
+        run: |
+          echo "🧪 Running all Gaea2 tests in the gaea2 directory..."
+          docker-compose run --rm \
+            -e GAEA2_MCP_URL=${{ env.GAEA2_MCP_URL }} \
+            python-ci pytest tests/gaea2/ -v --tb=short
+
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4
@@ -173,6 +182,7 @@ jobs:
           echo "| Edge Cases | ${{ steps.edge-cases.outcome }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Regression | ${{ steps.regression.outcome }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Full Suite | ${{ steps.full-suite.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| All Gaea2 Tests | ${{ steps.all-gaea2-tests.outcome }} |" >> $GITHUB_STEP_SUMMARY
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Configuration" >> $GITHUB_STEP_SUMMARY
@@ -206,6 +216,7 @@ jobs:
               - Error Handling: ${{ steps.failure-tests.outcome }}
               - Edge Cases: ${{ steps.edge-cases.outcome }}
               - Regression: ${{ steps.regression.outcome }}
+              - All Gaea2 Tests: ${{ steps.all-gaea2-tests.outcome }}
 
               [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
 
