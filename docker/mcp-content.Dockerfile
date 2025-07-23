@@ -21,6 +21,8 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     # Build tools
     build-essential \
+    # Port checking utility
+    lsof \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
@@ -28,7 +30,9 @@ WORKDIR /app
 
 # Create output directories with proper permissions
 RUN mkdir -p /app/output/manim /app/output/latex && \
-    chmod -R 777 /app/output
+    chmod -R 777 /app/output && \
+    mkdir -p /tmp/mcp-content-output/manim /tmp/mcp-content-output/latex && \
+    chmod -R 777 /tmp/mcp-content-output
 
 # Copy requirements first for better layer caching
 COPY docker/requirements-content.txt /app/requirements.txt

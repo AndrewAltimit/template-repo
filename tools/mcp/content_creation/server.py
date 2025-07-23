@@ -20,9 +20,26 @@ class ContentCreationMCPServer(BaseMCPServer):
             port=8011,  # New port for content creation server
         )
         self.logger = setup_logging("ContentCreationMCP")
-        self.output_dir = output_dir
-        self.manim_output_dir = ensure_directory(os.path.join(output_dir, "manim"))
-        self.latex_output_dir = ensure_directory(os.path.join(output_dir, "latex"))
+
+        # Use environment variable if set
+        self.output_dir = os.environ.get("MCP_OUTPUT_DIR", output_dir)
+        self.logger.info(f"Using output directory: {self.output_dir}")
+
+        try:
+            # Create output directories with error handling
+            self.manim_output_dir = ensure_directory(os.path.join(self.output_dir, "manim"))
+            self.latex_output_dir = ensure_directory(os.path.join(self.output_dir, "latex"))
+            self.logger.info("Successfully created output directories")
+        except Exception as e:
+            self.logger.error(f"Failed to create output directories: {e}")
+            # Use temp directory as fallback
+            import tempfile
+
+            temp_dir = tempfile.mkdtemp(prefix="mcp_content_")
+            self.output_dir = temp_dir
+            self.manim_output_dir = ensure_directory(os.path.join(temp_dir, "manim"))
+            self.latex_output_dir = ensure_directory(os.path.join(temp_dir, "latex"))
+            self.logger.warning(f"Using fallback temp directory: {temp_dir}")
 
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return available content creation tools"""

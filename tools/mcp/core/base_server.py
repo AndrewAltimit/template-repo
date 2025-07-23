@@ -43,6 +43,16 @@ class BaseMCPServer(ABC):
         self.logger = logging.getLogger(name)
         self.app = FastAPI(title=name, version=version)
         self._setup_routes()
+        self._setup_events()
+
+    def _setup_events(self):
+        """Setup startup/shutdown events"""
+
+        @self.app.on_event("startup")
+        async def startup_event():
+            self.logger.info(f"{self.name} starting on port {self.port}")
+            self.logger.info(f"Server version: {self.version}")
+            self.logger.info("Server initialized successfully")
 
     def _setup_routes(self):
         """Setup common HTTP routes"""
