@@ -33,30 +33,10 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
       - name: Configure Git
         run: |
           git config --global user.name "AI Review Agent"
           git config --global user.email "ai-review-agent@localhost"
-
-      - name: Install dependencies
-        run: |
-          pip install requests
-
-      - name: Set up Node.js for Claude CLI
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.16.0'
-
-      - name: Install Claude Code CLI
-        run: |
-          npm install -g @anthropic-ai/claude-code
-          # Verify installation
-          which claude-code || echo "claude-code not found in PATH"
 
       - name: Run PR review monitor
         env:

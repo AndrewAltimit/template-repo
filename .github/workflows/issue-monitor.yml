@@ -26,30 +26,10 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22.16.0'
-
       - name: Configure Git
         run: |
           git config --global user.name "AI Issue Agent"
           git config --global user.email "ai-agent@localhost"
-
-      - name: Install dependencies
-        run: |
-          pip install requests
-
-      - name: Install Claude Code CLI
-        run: |
-          npm install -g @anthropic-ai/claude-code
-          # Verify installation
-          which claude-code || echo "claude-code not found in PATH"
 
       - name: Run issue monitor
         env:
