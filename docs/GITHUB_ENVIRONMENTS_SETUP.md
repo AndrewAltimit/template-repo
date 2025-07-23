@@ -33,14 +33,25 @@ In the production environment, add these secrets:
 
 1. Go to GitHub Settings → Developer settings → Personal access tokens → Fine-grained tokens
 2. Click **Generate new token**
-3. Set expiration (recommend 90 days)
-4. Select repository access: Choose your specific repository
-5. Set permissions:
-   - **Contents**: Read and Write
-   - **Issues**: Read and Write
-   - **Pull requests**: Read and Write
-   - **Actions**: Read (to see workflow runs)
-6. Click **Generate token** and save it
+3. Set token details:
+   - **Token name**: `AI-Agents-Production` (or similar)
+   - **Expiration**: 90 days (recommended)
+   - **Repository access**: Select only your specific repository
+
+4. **Required Repository Permissions** (exactly 5):
+
+   | Permission | Access Level | Purpose |
+   |------------|--------------|---------|
+   | **Actions** | Read | View workflow runs and logs |
+   | **Commit statuses** | Read | See CI/CD status on PRs |
+   | **Contents** | Read + Write | Read files, create branches, push commits |
+   | **Issues** | Read + Write | Read issues/comments, post comments |
+   | **Pull requests** | Read + Write | Read PRs/reviews, create PRs, post comments |
+   | **Metadata** | Read | (Automatically included) |
+
+5. **Account Permissions**: Leave all unchecked (0 selected)
+
+6. Click **Generate token** and save it securely
 
 ### 3. Configure Protection Rules (Optional but Recommended)
 
@@ -133,9 +144,13 @@ Version: main branch
 
 ## Troubleshooting
 
-### Issue: "Bad credentials" error
+### Issue: "Bad credentials" or "Resource not accessible by personal access token"
 
-**Solution**: Check that your PAT has the correct permissions and hasn't expired.
+**Solution**:
+- Verify your PAT has all 5 required repository permissions listed above
+- Check that the token hasn't expired
+- Ensure you selected the correct repository when creating the token
+- Confirm no Account permissions are selected (should show "0 selected")
 
 ### Issue: Workflow waits for approval
 

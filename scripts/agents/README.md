@@ -278,6 +278,22 @@ Example log entry:
 2025-07-23 09:00:00 - security - WARNING - SECURITY VIOLATION: Unauthorized issue #123 from user 'attacker'. AI agent will not process this issue to prevent potential prompt injection.
 ```
 
+## GitHub Token Permissions
+
+The AI agents require a fine-grained Personal Access Token with exactly these permissions:
+
+| Permission | Access Level | Why It's Needed |
+|------------|--------------|-----------------|
+| **Actions** | Read | View workflow runs and logs |
+| **Commit statuses** | Read | Check CI/CD status on PRs |
+| **Contents** | Read + Write | Clone repo, create branches, push commits |
+| **Issues** | Read + Write | Read issues, post comments |
+| **Pull requests** | Read + Write | Read PRs, create PRs, post comments |
+
+**Important**: Do NOT grant any Account permissions - only Repository permissions are needed.
+
+See [GitHub Environments Setup Guide](../../docs/GITHUB_ENVIRONMENTS_SETUP.md) for detailed token creation instructions.
+
 ## Enhanced Security Features (v2)
 
 Recent security improvements include:
