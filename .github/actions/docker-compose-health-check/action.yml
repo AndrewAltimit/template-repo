@@ -2,7 +2,11 @@ name: 'Docker Compose Health Check'
 description: 'Start Docker Compose services and wait for them to be healthy'
 inputs:
   services:
-    description: 'Services to start (default: all)'
+    description: 'Services to start (space-separated list, or empty for profile-based selection)'
+    required: false
+    default: ''
+  profiles:
+    description: 'Docker Compose profiles to activate (comma-separated)'
     required: false
     default: ''
   health-endpoint:
@@ -21,21 +25,51 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Set Docker Compose profiles
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.profiles }}" ]; then
+          echo "🐳 Setting Docker Compose profiles: ${{ inputs.profiles }}"
+          echo "COMPOSE_PROFILES=${{ inputs.profiles }}" >> $GITHUB_ENV
+        fi
+
     - name: Validate docker-compose configuration
       shell: bash
       run: |
         echo "🐳 Validating docker-compose configuration..."
         docker-compose config
 
+        # Check if any services will be started
+        service_count=$(docker-compose config --services | wc -l)
+        if [ "$service_count" -eq 0 ] && [ -z "${{ inputs.services }}" ]; then
+          echo "❌ ERROR: No services selected!"
+          echo "Either specify services explicitly or set profiles to activate services."
+          echo "Available profiles in docker-compose.yml:"
+          grep -E "^\s*profiles:" docker-compose.yml | sort -u || echo "No profiles found"
+          exit 1
+        fi
+
     - name: Start services
       shell: bash
       run: |
         if [ "${{ inputs.build }}" = "true" ]; then
           echo "🐳 Building images and starting services..."
-          docker-compose up --build -d ${{ inputs.services }}
+          if [ -n "${{ inputs.services }}" ]; then
+            echo "Starting specific services: ${{ inputs.services }}"
+            docker-compose up --build -d ${{ inputs.services }}
+          else
+            echo "Starting all services in active profiles"
+            docker-compose up --build -d
+          fi
         else
           echo "🐳 Starting services..."
-          docker-compose up -d ${{ inputs.services }}
+          if [ -n "${{ inputs.services }}" ]; then
+            echo "Starting specific services: ${{ inputs.services }}"
+            docker-compose up -d ${{ inputs.services }}
+          else
+            echo "Starting all services in active profiles"
+            docker-compose up -d
+          fi
         fi
 
     - name: Wait for services to be healthy
