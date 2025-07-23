@@ -80,6 +80,57 @@ Gemini receives detailed project context from `PROJECT_CONTEXT.md`, which includ
 
 This ensures Gemini "hits the ground running" with relevant, actionable feedback.
 
+## MCP Server Integration
+
+This project includes a dedicated Gemini MCP server that provides AI consultation capabilities:
+
+### Running the Gemini MCP Server
+
+```bash
+# Run on the host system (cannot run in container)
+python -m tools.mcp.gemini.server
+
+# Or with HTTP mode
+./tools/mcp/gemini/scripts/start_server.sh --mode http
+```
+
+The server runs on port 8006 and provides:
+- `consult_gemini` - Get AI assistance for technical questions
+- `clear_gemini_history` - Clear conversation history
+- `gemini_status` - Check integration status
+- `toggle_gemini_auto_consult` - Control auto-consultation
+
+### Configuration via .mcp.json
+
+Configure the Gemini MCP server in your `.mcp.json` file:
+
+```json
+{
+  "servers": {
+    "gemini": {
+      "url": "http://localhost:8006",
+      "timeout": 60,
+      "rateLimit": {
+        "requests": 10,
+        "period": 60
+      }
+    }
+  }
+}
+```
+
+### Environment Variables
+
+Configure Gemini behavior with these environment variables:
+
+- `GEMINI_ENABLED` - Enable/disable Gemini (default: "true")
+- `GEMINI_AUTO_CONSULT` - Enable auto-consultation (default: "true")
+- `GEMINI_CLI_COMMAND` - Gemini CLI command (default: "gemini")
+- `GEMINI_TIMEOUT` - Request timeout in seconds (default: 60)
+- `GEMINI_RATE_LIMIT` - Rate limit delay in seconds (default: 2)
+- `GEMINI_MAX_CONTEXT` - Maximum context length (default: 4000)
+- `GEMINI_MODEL` - Default model (default: "gemini-2.5-flash")
+
 ## CLI Usage
 
 The Gemini CLI can be used directly:
@@ -90,72 +141,6 @@ echo "Your question here" | gemini
 
 # Specify a model
 echo "Technical question" | gemini -m gemini-2.5-pro
-```
-
-## Configuration
-
-Gemini CLI stores its configuration in `~/.gemini/settings.json`. This file is automatically created after authentication. For MCP integration with this project, configure it as follows:
-
-```json
-{
-  "mcpServers": {
-    "local-tools": {
-      "command": "npx",
-      "args": ["-y", "mcp-server-local-tools"],
-      "env": {
-        "SERVER_URL": "http://localhost:8000"
-      }
-    },
-    "comfyui": {
-      "command": "npx",
-      "args": ["-y", "mcp-server-comfyui"],
-      "env": {
-        "COMFYUI_URL": "http://localhost:8189",
-        "COMFYUI_SERVER_URL": "${COMFYUI_SERVER_URL}"
-      }
-    },
-    "ai-toolkit": {
-      "command": "npx",
-      "args": ["-y", "mcp-server-ai-toolkit"],
-      "env": {
-        "AI_TOOLKIT_URL": "http://localhost:8190",
-        "AI_TOOLKIT_SERVER_URL": "${AI_TOOLKIT_SERVER_URL}"
-      }
-    }
-  },
-  "model": "gemini-2.5-pro",
-  "temperature": 0.7,
-  "maxTokens": 8192,
-  "logLevel": "INFO",
-  "cache": {
-    "enabled": true,
-    "ttl": 3600
-  }
-}
-```
-
-### Configuration Options
-
-- **mcpServers**: MCP server configurations for various tools
-  - **local-tools**: Local MCP server for development tools
-  - **comfyui**: ComfyUI integration for image generation
-  - **ai-toolkit**: AI Toolkit for LoRA training
-- **model**: Default model to use (e.g., "gemini-2.5-pro", "gemini-1.5-flash")
-- **temperature**: Controls randomness (0.0-1.0, default 0.7)
-- **maxTokens**: Maximum response length (default 8192)
-- **logLevel**: Logging verbosity (DEBUG, INFO, WARN, ERROR)
-- **cache**: Response caching configuration
-  - **enabled**: Enable/disable caching
-  - **ttl**: Cache time-to-live in seconds
-
-You can manually edit this file to change defaults, or use command-line flags to override:
-
-```bash
-# Override model
-echo "Question" | gemini -m gemini-1.5-flash
-
-# Override temperature
-echo "Question" | gemini --temperature 0.5
 ```
 
 ## Rate Limits
@@ -173,7 +158,7 @@ For most single-maintainer projects, these limits are more than sufficient.
 You can customize the review behavior by editing `scripts/gemini-pr-review.py`:
 
 - Adjust the prompt to focus on specific aspects
-- Change the model (default tries gemini-2.5-pro, falls back to default)
+- Change the model (default tries gemini-2.5-pro, falls back to flash)
 - Modify comment formatting
 
 ## Troubleshooting
@@ -194,6 +179,7 @@ If Gemini reviews aren't working:
 - **Authentication errors**: Run `gemini` directly to re-authenticate
 - **Rate limit exceeded**: Wait a few minutes and retry
 - **No review posted**: Check if PR has proper permissions
+- **MCP server errors**: Ensure Gemini MCP server is running on host (not in container)
 
 ## Privacy Note
 
@@ -204,4 +190,5 @@ If Gemini reviews aren't working:
 ## References
 
 - [Gemini CLI Documentation](https://github.com/google/gemini-cli)
+- [Gemini MCP Server Docs](tools/mcp/gemini/docs/README.md)
 - [Setup Guide](https://gist.github.com/AndrewAltimit/fc5ba068b73e7002cbe4e9721cebb0f5)
