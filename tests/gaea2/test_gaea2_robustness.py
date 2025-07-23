@@ -45,14 +45,14 @@ class MCPTools:
     @classmethod
     async def repair_gaea2_project(cls, **kwargs):
         server = cls._get_server()
-        # Call the private method directly
-        return await server._repair_project(**kwargs)
+        # Call the method directly
+        return await server.repair_gaea2_project(**kwargs)
 
     @classmethod
     async def create_gaea2_from_template(cls, **kwargs):
         server = cls._get_server()
-        # Call the method directly (mapped to create_from_template)
-        return await server.create_from_template(**kwargs)
+        # Call the method directly
+        return await server.create_gaea2_from_template(**kwargs)
 
     @classmethod
     async def validate_gaea2_project(cls, **kwargs):
@@ -134,28 +134,24 @@ async def test_workflow_validation():
     ]
 
     # Validate and fix
-    result = await MCPTools.validate_and_fix_workflow(
-        workflow={"nodes": nodes, "connections": connections},
-        fix_errors=True,
-        validate_connections=True,
-        validate_properties=True,
-        add_missing_nodes=True,
-    )
+    result = await MCPTools.validate_and_fix_workflow(workflow={"nodes": nodes, "connections": connections}, strict_mode=False)
 
     if result["success"]:
-        results = result["results"]
         print("Validation Results:")
-        print(f"  Valid: {results['is_valid']}")
-        print("  Validation errors:")
-        for validator, val_result in results["validation_results"].items():
-            if not val_result["valid"]:
-                print(f"    - {validator}: {len(val_result['errors'])} errors")
+        print(f"  Valid: {result['valid']}")
+        print(f"  Fixed: {result['fixed']}")
+        print(f"  Errors: {len(result['errors'])}")
 
-        print(f"\nFixes Applied: {len(results['fixes_applied'])}")
-        for fix in results["fixes_applied"][:5]:
+        if result["errors"]:
+            print("  Validation errors:")
+            for error in result["errors"][:3]:
+                print(f"    - {error}")
+
+        print(f"\nFixes Applied: {len(result['fixes_applied'])}")
+        for fix in result["fixes_applied"][:5]:
             print(f"  - {fix}")
 
-        return results["final_workflow"]
+        return result["workflow"]
     else:
         print(f"Error: {result['error']}")
         return None

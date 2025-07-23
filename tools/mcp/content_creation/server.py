@@ -376,7 +376,7 @@ def main():
     )
     parser.add_argument(
         "--output-dir",
-        default="/app/output",
+        default=os.environ.get("MCP_OUTPUT_DIR", "/app/output"),
         help="Output directory for generated content",
     )
     args = parser.parse_args()

@@ -54,7 +54,7 @@ async def test_with_validation_bypass():
         server = TestServer.get_server()
 
         # Call the server directly to create the broken file
-        result = await server._create_project(
+        result = await server.create_gaea2_project(
             project_name="test_broken_for_validation",
             nodes=broken_workflow["nodes"],
             connections=broken_workflow["connections"],
@@ -105,7 +105,7 @@ async def test_without_bypass():
     server = TestServer.get_server()
 
     # Call the server directly to create the broken file
-    result = await server._create_project(
+    result = await server.create_gaea2_project(
         project_name="test_broken_no_bypass",
         nodes=broken_workflow["nodes"],
         connections=broken_workflow["connections"],
@@ -163,7 +163,7 @@ async def test_good_file():
     server = TestServer.get_server()
 
     # Call the server directly to create a valid file
-    result = await server._create_project(
+    result = await server.create_gaea2_project(
         project_name="test_valid_terrain",
         nodes=workflow["nodes"],
         connections=workflow["connections"],

@@ -26,6 +26,10 @@ RUN apt-get update && apt-get install -y \
 # Create app directory
 WORKDIR /app
 
+# Create output directories with proper permissions
+RUN mkdir -p /app/output/manim /app/output/latex && \
+    chmod -R 777 /app/output
+
 # Copy requirements first for better layer caching
 COPY docker/requirements-content.txt /app/requirements.txt
 

@@ -39,14 +39,14 @@ class MCPTools:
     @classmethod
     async def analyze_workflow_patterns(cls, **kwargs):
         server = cls._get_server()
-        # Call the private method directly
-        return await server._analyze_workflow_patterns(**kwargs)
+        # Call the method directly
+        return await server.analyze_workflow_patterns(**kwargs)
 
     @classmethod
     async def repair_gaea2_project(cls, **kwargs):
         server = cls._get_server()
-        # Call the private method directly
-        return await server._repair_project(**kwargs)
+        # Call the method directly
+        return await server.repair_gaea2_project(**kwargs)
 
     @classmethod
     async def create_gaea2_project(cls, **kwargs):
@@ -165,13 +165,19 @@ async def test_project_repair():
 
     if result["success"]:
         print("Project repair successful!")
-        analysis = result["analysis"]
-        print(f"Health Score: {analysis['analysis']['health_score']:.1f}/100")
-        print(f"Errors found: {analysis['analysis']['errors']['total_errors']}")
+        issues = result.get("issues_found", [])
+        fixes = result.get("fixes_applied", [])
 
-        if "repair_result" in result:
-            fixes = result["repair_result"].get("fixes_applied", [])
-            print(f"\nFixes applied: {len(fixes)}")
+        print(f"Issues found: {len(issues)}")
+        print(f"Fixes applied: {len(fixes)}")
+
+        if issues:
+            print("\nIssues found:")
+            for issue in issues[:3]:
+                print(f"  - {issue}")
+
+        if fixes:
+            print("\nFixes applied:")
             for fix in fixes[:3]:
                 print(f"  - {fix}")
     else:
