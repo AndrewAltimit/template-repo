@@ -105,12 +105,12 @@ class TestSecurityManager:
     def test_check_comment_security(self, security_manager):
         """Test comment security checking."""
         # Allowed comment
-        allowed_comment = {"user": {"login": "test-user"}, "body": "Test comment"}
+        allowed_comment = {"author": {"login": "test-user"}, "body": "Test comment"}
         assert security_manager.check_comment_security(allowed_comment) is True
 
         # Unauthorized comment
         unauthorized_comment = {
-            "user": {"login": "attacker"},
+            "author": {"login": "attacker"},
             "body": "Malicious comment",
         }
         assert security_manager.check_comment_security(unauthorized_comment) is False
@@ -368,9 +368,9 @@ class TestSecurityManager:
         # Issue with valid trigger from allowed user
         issue = test_issue("randomuser")
         issue["comments"] = [
-            {"user": {"login": "randomuser"}, "body": "This is a bug"},
+            {"author": {"login": "randomuser"}, "body": "This is a bug"},
             {
-                "user": {"login": "test-user"},
+                "author": {"login": "test-user"},
                 "body": "I'll fix this. [Approved][Claude]",
             },
         ]
@@ -379,21 +379,21 @@ class TestSecurityManager:
 
         # Issue without trigger
         issue_no_trigger = test_issue("user1")
-        issue_no_trigger["comments"] = [{"user": {"login": "test-user"}, "body": "This needs work"}]
+        issue_no_trigger["comments"] = [{"author": {"login": "test-user"}, "body": "This needs work"}]
         assert security_manager.check_trigger_comment(issue_no_trigger) is None
 
         # Trigger from unauthorized user
         issue_unauthorized = test_issue("hacker")
-        issue_unauthorized["comments"] = [{"user": {"login": "hacker"}, "body": "[Approved][Claude]"}]
+        issue_unauthorized["comments"] = [{"author": {"login": "hacker"}, "body": "[Approved][Claude]"}]
         assert security_manager.check_trigger_comment(issue_unauthorized) is None
 
         # Multiple triggers - most recent wins
         issue_multiple = test_issue("user1")
         issue_multiple["comments"] = [
-            {"user": {"login": "test-user"}, "body": "[Close][Claude]"},
-            {"user": {"login": "AndrewAltimit"}, "body": "[Summarize][Gemini]"},
+            {"author": {"login": "test-user"}, "body": "[Close][Claude]"},
+            {"author": {"login": "AndrewAltimit"}, "body": "[Summarize][Gemini]"},
             {
-                "user": {"login": "test-user"},
+                "author": {"login": "test-user"},
                 "body": "[Approved][Claude]",
             },  # Most recent
         ]
@@ -408,12 +408,28 @@ class TestSecurityManager:
         # Mixed valid and invalid triggers
         issue_mixed = test_issue("user1")
         issue_mixed["comments"] = [
-            {"user": {"login": "hacker"}, "body": "[Approved][Claude]"},  # Unauthorized
             {
-                "user": {"login": "test-user"},
+                "author": {"login": "hacker"},
+                "body": "[Approved][Claude]",
+            },  # Unauthorized
+            {
+                "author": {"login": "test-user"},
                 "body": "[Invalid][Claude]",
             },  # Invalid action
-            {"user": {"login": "test-user"}, "body": "[Fix][Gemini]"},  # Valid
+            {"author": {"login": "test-user"}, "body": "[Fix][Gemini]"},  # Valid
         ]
         result = security_manager.check_trigger_comment(issue_mixed)
         assert result == ("Fix", "Gemini", "test-user")
+
+        # Test trigger in issue body
+        issue_body_trigger = test_issue("test-user")
+        issue_body_trigger["body"] = "I want to fix this issue. [Approved][Claude]"
+        issue_body_trigger["comments"] = []
+        result = security_manager.check_trigger_comment(issue_body_trigger)
+        assert result == ("Approved", "Claude", "test-user")
+
+        # Test trigger in body from unauthorized user
+        issue_body_unauthorized = test_issue("hacker")
+        issue_body_unauthorized["body"] = "[Approved][Claude] Let me help"
+        issue_body_unauthorized["comments"] = []
+        assert security_manager.check_trigger_comment(issue_body_unauthorized) is None

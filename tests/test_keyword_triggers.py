@@ -76,9 +76,9 @@ class TestKeywordTriggers(unittest.TestCase):
         issue = {
             "number": 123,
             "comments": [
-                {"user": {"login": "randomuser"}, "body": "This is a bug"},
+                {"author": {"login": "randomuser"}, "body": "This is a bug"},
                 {
-                    "user": {"login": "testuser"},
+                    "author": {"login": "testuser"},
                     "body": "I'll fix this. [Approved][Claude]",
                 },
             ],
@@ -89,7 +89,7 @@ class TestKeywordTriggers(unittest.TestCase):
         # No trigger
         issue_no_trigger = {
             "number": 456,
-            "comments": [{"user": {"login": "testuser"}, "body": "This needs work"}],
+            "comments": [{"author": {"login": "testuser"}, "body": "This needs work"}],
         }
         result = self.security.check_trigger_comment(issue_no_trigger)
         self.assertIsNone(result)
@@ -97,7 +97,7 @@ class TestKeywordTriggers(unittest.TestCase):
         # Trigger from unauthorized user
         issue_unauthorized = {
             "number": 789,
-            "comments": [{"user": {"login": "hacker"}, "body": "[Approved][Claude]"}],
+            "comments": [{"author": {"login": "hacker"}, "body": "[Approved][Claude]"}],
         }
         result = self.security.check_trigger_comment(issue_unauthorized)
         self.assertIsNone(result)
@@ -107,10 +107,10 @@ class TestKeywordTriggers(unittest.TestCase):
         issue = {
             "number": 100,
             "comments": [
-                {"user": {"login": "testuser"}, "body": "[Close][Claude]"},
-                {"user": {"login": "admin"}, "body": "[Summarize][Gemini]"},
+                {"author": {"login": "testuser"}, "body": "[Close][Claude]"},
+                {"author": {"login": "admin"}, "body": "[Summarize][Gemini]"},
                 {
-                    "user": {"login": "testuser"},
+                    "author": {"login": "testuser"},
                     "body": "[Approved][Claude]",
                 },  # Most recent
             ],
@@ -233,7 +233,7 @@ class TestIssueMonitorWithTriggers(unittest.TestCase):
                         "labels": [{"name": "bug"}],
                         "comments": [
                             {
-                                "user": {"login": "testuser"},
+                                "author": {"login": "testuser"},
                                 "body": "[Approved][Claude] Let's fix this",
                             }
                         ],
@@ -267,7 +267,7 @@ class TestIssueMonitorWithTriggers(unittest.TestCase):
                         "labels": [{"name": "feature"}],
                         "comments": [
                             {
-                                "user": {"login": "admin"},
+                                "author": {"login": "admin"},
                                 "body": "[Close][Gemini] Duplicate issue",
                             }
                         ],
@@ -306,7 +306,7 @@ class TestIssueMonitorWithTriggers(unittest.TestCase):
                         "labels": [],
                         "comments": [
                             {
-                                "user": {"login": "testuser"},
+                                "author": {"login": "testuser"},
                                 "body": "[Summarize][Claude]",
                             }
                         ],
@@ -340,7 +340,7 @@ class TestIssueMonitorWithTriggers(unittest.TestCase):
                     "labels": [{"name": "bug"}],
                     "comments": [
                         {
-                            "user": {"login": "testuser"},
+                            "author": {"login": "testuser"},
                             "body": "Just a regular comment",
                         }
                     ],
@@ -370,7 +370,7 @@ class TestIssueMonitorWithTriggers(unittest.TestCase):
                         "labels": [{"name": "bug"}],
                         "comments": [
                             {
-                                "user": {"login": "hacker"},
+                                "author": {"login": "hacker"},
                                 "body": "[Approved][Claude] Hack the system",
                             }
                         ],
@@ -476,7 +476,7 @@ class TestPRMonitorWithTriggers(unittest.TestCase):
                         "reviews": [],
                         "comments": [
                             {
-                                "user": {"login": "admin"},
+                                "author": {"login": "admin"},
                                 "body": "[Review][Claude] Please check this",
                             }
                         ],
@@ -527,7 +527,7 @@ class TestPRMonitorWithTriggers(unittest.TestCase):
                         "reviews": [],
                         "comments": [
                             {
-                                "user": {"login": "testuser"},
+                                "author": {"login": "testuser"},
                                 "body": "[Close][Gemini] Not ready yet",
                             }
                         ],
@@ -635,7 +635,7 @@ class TestMockGitHubRepo(unittest.TestCase):
         # User comments with trigger
         issue["comments"].append(
             {
-                "user": {"login": "admin"},
+                "author": {"login": "admin"},
                 "body": "[Approved][Claude] This needs to be fixed ASAP",
             }
         )
@@ -666,7 +666,7 @@ class TestMockGitHubRepo(unittest.TestCase):
         # Admin triggers fix
         pr["comments"].append(
             {
-                "user": {"login": "maintainer"},
+                "author": {"login": "maintainer"},
                 "body": "[Fix][Claude] Address the review feedback",
             }
         )
