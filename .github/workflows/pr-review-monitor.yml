@@ -100,9 +100,10 @@ jobs:
 
           # Mount Claude config from host into container
           # The container runs as USER_ID:GROUP_ID, so mount configs to /tmp/home
+          # GitHub CLI config needs read-write for migrations/updates
           docker-compose run --rm --user "${USER_ID}:${GROUP_ID}" \
             -v "$HOME/.claude:/tmp/home/.claude:ro" \
-            -v "$HOME/.config/gh:/tmp/home/.config/gh:ro" \
+            -v "$HOME/.config/gh:/tmp/home/.config/gh:rw" \
             -e HOME=/tmp/home \
             -e GITHUB_TOKEN \
             -e GITHUB_REPOSITORY \
