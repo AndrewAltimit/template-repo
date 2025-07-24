@@ -57,9 +57,9 @@ if [ -f /.dockerenv ] || [ -n "$CONTAINER" ]; then
     if [ -f "$HOME/.claude/.credentials.json" ]; then
         echo "Claude credentials found at $HOME/.claude/.credentials.json"
         CLAUDE_CMD="claude"
-    elif [ -f "/tmp/home/.claude/.credentials.json" ]; then
-        echo "Claude credentials found at /tmp/home/.claude/.credentials.json"
-        export HOME=/tmp/home
+    elif [ -f "/tmp/agent-home/.claude/.credentials.json" ]; then
+        echo "Claude credentials found at /tmp/agent-home/.claude/.credentials.json"
+        export HOME=/tmp/agent-home
         CLAUDE_CMD="claude"
     else
         echo "WARNING: Claude credentials not mounted from host!"
