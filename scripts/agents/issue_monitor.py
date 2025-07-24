@@ -272,7 +272,7 @@ Once you've added this information, I'll be able to create a pull request to add
             # Pass sensitive data via stdin instead of command-line arguments
             issue_data = {"title": issue_title, "body": issue_body}
 
-            subprocess.run(
+            result = subprocess.run(
                 [
                     str(script_path),
                     str(issue_number),
@@ -280,8 +280,14 @@ Once you've added this information, I'll be able to create a pull request to add
                 ],
                 input=json.dumps(issue_data),
                 text=True,
+                capture_output=True,
                 check=True,
             )
+
+            if result.stdout:
+                logger.info(f"Script output: {result.stdout}")
+            if result.stderr:
+                logger.error(f"Script error: {result.stderr}")
 
             # Comment on issue
             run_gh_command(
@@ -305,6 +311,10 @@ Once you've added this information, I'll be able to create a pull request to add
 
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to create PR for issue #{issue_number}: {e}")
+            if e.stdout:
+                logger.error(f"Script stdout: {e.stdout}")
+            if e.stderr:
+                logger.error(f"Script stderr: {e.stderr}")
             return None
         except PermissionError as e:
             logger.error(f"Permission denied executing script for issue #{issue_number}: {e}")
