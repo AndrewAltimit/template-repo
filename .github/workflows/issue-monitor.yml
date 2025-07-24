@@ -51,6 +51,10 @@ jobs:
 
       - name: Configure Git
         run: |
+          # Set git identity on the host. This works for the container because:
+          # 1. The container runs as the same user (USER_ID:GROUP_ID)
+          # 2. Git's global config is stored in the user's home directory
+          # 3. The container mounts the host's file system, inheriting this config
           git config --global user.name "AI Issue Agent"
           git config --global user.email "ai-agent@localhost"
 
