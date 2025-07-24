@@ -150,6 +150,10 @@ echo "Pushing branch to origin..."
 echo "Git remote configuration:"
 git remote -v
 echo "Attempting to push branch $BRANCH_NAME..."
+echo "Current branch: $(git branch --show-current 2>/dev/null || git rev-parse --abbrev-ref HEAD)"
+echo "Remote tracking info:"
+git branch -vv | grep "$(git rev-parse --abbrev-ref HEAD)" || echo "No tracking info"
+
 set +e
 # Use pipefail to capture exit code from git push, not tee
 set -o pipefail
@@ -157,6 +161,18 @@ git push -u origin "$BRANCH_NAME" 2>&1 | tee push.log
 PUSH_RESULT=$?
 set +o pipefail
 set -e
+
+# Show more detail about the push error
+if [ $PUSH_RESULT -ne 0 ]; then
+    echo "Push failed with exit code: $PUSH_RESULT"
+    echo "Full push log:"
+    cat push.log
+    # Try to get more information about why the push failed
+    echo "Checking remote branch existence:"
+    git ls-remote --heads origin "$BRANCH_NAME" || echo "Remote branch does not exist"
+    echo "Checking local commit:"
+    git log --oneline -1
+fi
 
 if [ $PUSH_RESULT -ne 0 ]; then
     echo "ERROR: Failed to push branch"
