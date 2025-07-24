@@ -19,6 +19,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
     && rm -rf /var/lib/apt/lists/*
 
 # Install Claude Code globally (will use mounted credentials from host)
+# The package is @anthropic-ai/claude-code but the CLI command is just 'claude'
 RUN npm install -g @anthropic-ai/claude-code@latest
 
 # Create working directory

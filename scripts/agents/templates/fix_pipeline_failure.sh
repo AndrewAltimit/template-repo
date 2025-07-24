@@ -64,8 +64,8 @@ if [ -n "$LINT_FAILURES" ]; then
     fi
 fi
 
-# Use Claude Code to analyze and fix failures
-echo "Running Claude Code to fix pipeline failures..."
+# Use Claude to analyze and fix failures
+echo "Running Claude to fix pipeline failures..."
 
 # Determine Claude command based on environment
 if [ -f /.dockerenv ] || [ -n "$CONTAINER" ]; then
@@ -74,11 +74,11 @@ if [ -f /.dockerenv ] || [ -n "$CONTAINER" ]; then
     # Check both possible locations for Claude credentials
     if [ -f "$HOME/.claude/.credentials.json" ]; then
         echo "Claude credentials found at $HOME/.claude/.credentials.json"
-        CLAUDE_CMD="claude-code --dangerously-skip-permissions"
+        CLAUDE_CMD="claude"
     elif [ -f "/tmp/home/.claude/.credentials.json" ]; then
         echo "Claude credentials found at /tmp/home/.claude/.credentials.json"
         export HOME=/tmp/home
-        CLAUDE_CMD="claude-code --dangerously-skip-permissions"
+        CLAUDE_CMD="claude"
     else
         echo "WARNING: Claude credentials not mounted from host!"
         echo "Mount host's ~/.claude directory to container for authentication"

@@ -46,8 +46,8 @@ BACKUP_BRANCH="pr-${PR_NUMBER}-backup-$(date +%s)"
 echo "Creating backup branch: $BACKUP_BRANCH"
 git branch -f "$BACKUP_BRANCH"
 
-# Use Claude Code to implement fixes
-echo "Running Claude Code to address review feedback..."
+# Use Claude to implement fixes
+echo "Running Claude to address review feedback..."
 
 # Determine Claude command based on environment
 if [ -f /.dockerenv ] || [ -n "$CONTAINER" ]; then
@@ -56,11 +56,11 @@ if [ -f /.dockerenv ] || [ -n "$CONTAINER" ]; then
     # Check both possible locations for Claude credentials
     if [ -f "$HOME/.claude/.credentials.json" ]; then
         echo "Claude credentials found at $HOME/.claude/.credentials.json"
-        CLAUDE_CMD="claude-code --dangerously-skip-permissions"
+        CLAUDE_CMD="claude"
     elif [ -f "/tmp/home/.claude/.credentials.json" ]; then
         echo "Claude credentials found at /tmp/home/.claude/.credentials.json"
         export HOME=/tmp/home
-        CLAUDE_CMD="claude-code --dangerously-skip-permissions"
+        CLAUDE_CMD="claude"
     else
         echo "WARNING: Claude credentials not mounted from host!"
         echo "Mount host's ~/.claude directory to container for authentication"

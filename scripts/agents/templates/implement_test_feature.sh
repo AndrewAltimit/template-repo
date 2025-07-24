@@ -130,11 +130,11 @@ fi
 rm -f checkout2.log
 echo "Successfully on branch: $(git rev-parse --abbrev-ref HEAD)"
 
-# Use Claude Code to implement the requested feature
-echo "Running Claude Code to implement the feature..."
+# Use Claude to implement the requested feature
+echo "Running Claude to implement the feature..."
 echo "Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
 echo ""
-echo "Using Claude Code with --dangerously-skip-permissions to implement the requested feature..."
+echo "Using Claude to implement the requested feature..."
 
 # Determine Claude command based on environment
 if [ -f /.dockerenv ] || [ -n "$CONTAINER" ]; then
@@ -143,11 +143,11 @@ if [ -f /.dockerenv ] || [ -n "$CONTAINER" ]; then
     # Check both possible locations for Claude credentials
     if [ -f "$HOME/.claude/.credentials.json" ]; then
         echo "Claude credentials found at $HOME/.claude/.credentials.json"
-        CLAUDE_CMD="claude-code --dangerously-skip-permissions"
+        CLAUDE_CMD="claude"
     elif [ -f "/tmp/home/.claude/.credentials.json" ]; then
         echo "Claude credentials found at /tmp/home/.claude/.credentials.json"
         export HOME=/tmp/home
-        CLAUDE_CMD="claude-code --dangerously-skip-permissions"
+        CLAUDE_CMD="claude"
     else
         echo "WARNING: Claude credentials not mounted from host!"
         echo "Mount host's ~/.claude directory to container for authentication"
@@ -195,7 +195,7 @@ EOF
 
 # Check if Claude made any commits
 if git diff HEAD^ --quiet 2>/dev/null; then
-    echo "No changes were committed by Claude Code"
+    echo "No changes were committed by Claude"
     # If no commits were made, create a minimal implementation to ensure the pipeline works
     echo "Creating a minimal implementation commit..."
     echo "# Implementation for issue #${ISSUE_NUMBER}" > "implementation_${ISSUE_NUMBER}.md"
