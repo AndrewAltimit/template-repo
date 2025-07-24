@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/AndrewAltimit/template-repo/tree/main/docs
+    about: Check the documentation for answers to common questions
+  - name: GitHub Discussions
+    url: https://github.com/AndrewAltimit/template-repo/discussions
+    about: Ask questions and discuss ideas with the community
