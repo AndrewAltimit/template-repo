@@ -457,9 +457,18 @@ You'll receive a notification once the PR is ready.
                 continue
 
             # Skip if we've already processed this action
-            if self.has_agent_comment(issue_number):
+            # Check if we've already processed this issue
+            has_comment = self.has_agent_comment(issue_number)
+            force_reprocess = os.environ.get("FORCE_REPROCESS", "false").lower() == "true"
+
+            if has_comment and not force_reprocess:
+                logger.info(f"Issue #{issue_number} already has AI agent comment - skipping")
                 logger.debug(f"Already processed issue #{issue_number}")
                 continue
+            elif has_comment and force_reprocess:
+                logger.info(f"Issue #{issue_number} has AI agent comment but FORCE_REPROCESS=true - proceeding")
+            else:
+                logger.info(f"Issue #{issue_number} has no AI agent comment - proceeding")
 
             # Handle different actions
             if action.lower() in ["approved", "fix", "implement"]:

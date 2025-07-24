@@ -68,6 +68,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}
+          FORCE_REPROCESS: ${{ vars.FORCE_REPROCESS || 'false' }}
         run: |
           echo "Running issue monitor for repository: $GITHUB_REPOSITORY"
           # Export dynamic user/group IDs to match project standards
@@ -78,6 +79,7 @@ jobs:
             -e GITHUB_TOKEN="${GITHUB_TOKEN}" \
             -e GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
             -e ENABLE_AI_AGENTS="${ENABLE_AI_AGENTS}" \
+            -e FORCE_REPROCESS="${FORCE_REPROCESS:-false}" \
             ai-agents python scripts/agents/issue_monitor.py
 
       - name: Log monitoring results
