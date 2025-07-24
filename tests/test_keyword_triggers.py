@@ -240,6 +240,17 @@ class TestIssueMonitorWithTriggers(unittest.TestCase):
                     }
                 ]
             ),
+            # issue view response for comments
+            json.dumps(
+                {
+                    "comments": [
+                        {
+                            "author": {"login": "testuser"},
+                            "body": "[Approved][Claude] Let's fix this",
+                        }
+                    ]
+                }
+            ),
             # has_agent_comment response
             json.dumps({"comments": []}),
             # create_pr_from_issue responses will be added as needed
@@ -273,6 +284,17 @@ class TestIssueMonitorWithTriggers(unittest.TestCase):
                         ],
                     }
                 ]
+            ),
+            # issue view response for comments
+            json.dumps(
+                {
+                    "comments": [
+                        {
+                            "author": {"login": "admin"},
+                            "body": "[Close][Gemini] Duplicate issue",
+                        }
+                    ]
+                }
             ),
             # has_agent_comment response
             json.dumps({"comments": []}),
@@ -313,6 +335,17 @@ class TestIssueMonitorWithTriggers(unittest.TestCase):
                     }
                 ]
             ),
+            # issue view response for comments
+            json.dumps(
+                {
+                    "comments": [
+                        {
+                            "author": {"login": "testuser"},
+                            "body": "[Summarize][Claude]",
+                        }
+                    ]
+                }
+            ),
             # has_agent_comment response
             json.dumps({"comments": []}),
             # create_summary_comment
@@ -328,25 +361,39 @@ class TestIssueMonitorWithTriggers(unittest.TestCase):
     @patch("issue_monitor.run_gh_command")
     def test_no_processing_without_trigger(self, mock_gh):
         """Test that issues without triggers are not processed."""
-        mock_gh.return_value = json.dumps(
-            [
+        mock_gh.side_effect = [
+            # get_open_issues response
+            json.dumps(
+                [
+                    {
+                        "number": 4,
+                        "title": "Issue without trigger",
+                        "body": "This issue has no trigger comment",
+                        "author": {"login": "testuser"},
+                        "createdAt": datetime.now(timezone.utc).isoformat(),
+                        "updatedAt": datetime.now(timezone.utc).isoformat(),
+                        "labels": [{"name": "bug"}],
+                        "comments": [
+                            {
+                                "author": {"login": "testuser"},
+                                "body": "Just a regular comment",
+                            }
+                        ],
+                    }
+                ]
+            ),
+            # issue view response for comments
+            json.dumps(
                 {
-                    "number": 4,
-                    "title": "Issue without trigger",
-                    "body": "This issue has no trigger comment",
-                    "author": {"login": "testuser"},
-                    "createdAt": datetime.now(timezone.utc).isoformat(),
-                    "updatedAt": datetime.now(timezone.utc).isoformat(),
-                    "labels": [{"name": "bug"}],
                     "comments": [
                         {
                             "author": {"login": "testuser"},
                             "body": "Just a regular comment",
                         }
-                    ],
+                    ]
                 }
-            ]
-        )
+            ),
+        ]
 
         with patch.object(self.monitor, "create_pr_from_issue") as mock_create_pr:
             self.monitor.process_issues()
@@ -376,6 +423,17 @@ class TestIssueMonitorWithTriggers(unittest.TestCase):
                         ],
                     }
                 ]
+            ),
+            # issue view response for comments
+            json.dumps(
+                {
+                    "comments": [
+                        {
+                            "author": {"login": "hacker"},
+                            "body": "[Approved][Claude] Hack the system",
+                        }
+                    ]
+                }
             ),
         ]
 

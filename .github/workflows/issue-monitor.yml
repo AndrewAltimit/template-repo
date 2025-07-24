@@ -14,7 +14,7 @@ on:
 permissions:
   issues: write       # Required to comment on issues and read issue data
   pull-requests: write # Required to create pull requests
-  contents: read      # Changed from write to read - only need to read code
+  contents: read      # For actions/checkout. Agent uses AI_AGENT_TOKEN with write perms.
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -63,11 +63,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}
-          USER_ID: 1000
-          GROUP_ID: 1000
         run: |
           echo "Running issue monitor for repository: $GITHUB_REPOSITORY"
-          docker-compose run --rm \
+          # Export dynamic user/group IDs to match project standards
+          export USER_ID=$(id -u)
+          export GROUP_ID=$(id -g)
+
+          docker-compose run --rm --user "${USER_ID}:${GROUP_ID}" \
             -e GITHUB_TOKEN \
             -e GITHUB_REPOSITORY \
             -e ENABLE_AI_AGENTS \

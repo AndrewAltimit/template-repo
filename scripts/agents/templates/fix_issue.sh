@@ -4,7 +4,6 @@
 # Issue data (title and body) is passed via stdin as JSON
 
 set -e  # Exit on error
-set -x  # Debug mode - print commands
 
 # Parse arguments
 ISSUE_NUMBER="$1"
