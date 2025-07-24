@@ -123,6 +123,10 @@ jobs:
                 cp -r /host-gh \$HOME/.config/gh
               fi
 
+              # Configure git identity globally in container
+              git config --global user.name 'AI PR Agent'
+              git config --global user.email 'ai-agent[bot]@users.noreply.github.com'
+
               # Run the agent
               python scripts/agents/pr_review_monitor.py
             "

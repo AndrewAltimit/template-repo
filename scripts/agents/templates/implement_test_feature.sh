@@ -166,6 +166,14 @@ else
     exit 1
 fi
 
+# Configure git identity if not already set (Claude will need this)
+if ! git config user.name >/dev/null 2>&1; then
+    git config user.name "AI Issue Monitor Agent"
+fi
+if ! git config user.email >/dev/null 2>&1; then
+    git config user.email "ai-agent[bot]@users.noreply.github.com"
+fi
+
 # Run Claude Code to implement the feature
 $CLAUDE_CMD << EOF
 Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}

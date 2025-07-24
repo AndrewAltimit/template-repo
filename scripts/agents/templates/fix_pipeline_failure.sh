@@ -97,6 +97,14 @@ else
     exit 1
 fi
 
+# Configure git identity if not already set
+if ! git config user.name >/dev/null 2>&1; then
+    git config user.name "AI Pipeline Agent"
+fi
+if ! git config user.email >/dev/null 2>&1; then
+    git config user.email "ai-agent[bot]@users.noreply.github.com"
+fi
+
 # Run Claude Code with the task
 $CLAUDE_CMD << EOF
 PR #${PR_NUMBER} CI/CD Pipeline Failures
