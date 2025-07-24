@@ -294,7 +294,7 @@ class SecurityManager:
         Returns:
             True if comment author is allowed, False otherwise
         """
-        author = comment.get("user", {}).get("login", "")
+        author = comment.get("author", {}).get("login", "")
         if not author:
             logger.warning("Comment has no author information")
             return False
@@ -335,6 +335,18 @@ class SecurityManager:
         Returns:
             Tuple of (action, agent, username) if triggered, None otherwise
         """
+        # First check the issue/PR body itself
+        body = issue_or_pr.get("body", "")
+        author = issue_or_pr.get("author", {}).get("login", "")
+
+        if author and self.is_user_allowed(author):
+            trigger = self.parse_keyword_trigger(body)
+            if trigger:
+                action, agent = trigger
+                logger.info(f"Found valid trigger in {entity_type} body from {author}: [{action}][{agent}]")
+                return (action, agent, author)
+
+        # Then check comments
         comments = issue_or_pr.get("comments", [])
         logger.debug(f"Checking {len(comments)} comments for triggers in {entity_type}")
 

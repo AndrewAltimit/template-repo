@@ -185,7 +185,7 @@ class PRReviewMonitor:
 
         # Parse review comments (inline code comments)
         for comment in review_comments:
-            if comment.get("user", {}).get("login") in self.review_bot_names:
+            if comment.get("author", {}).get("login") in self.review_bot_names:
                 path = comment.get("path", "")
                 line = comment.get("line", 0)
                 body = comment.get("body", "")
