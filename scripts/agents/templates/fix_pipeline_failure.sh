@@ -68,26 +68,28 @@ fi
 echo "Running Claude Code to fix pipeline failures..."
 
 # Determine Claude command based on environment
-if command -v claude-code >/dev/null 2>&1; then
-    # Check if API key is set
-    if [ -n "$ANTHROPIC_API_KEY" ]; then
-        echo "Using claude-code with API key authentication"
-        export ANTHROPIC_API_KEY
+if [ -f /.dockerenv ] || [ -n "$CONTAINER" ]; then
+    # We're in a container
+    echo "Running in container - checking for mounted Claude credentials..."
+    if [ -f "$HOME/.claude/.credentials.json" ]; then
+        echo "Claude credentials found at $HOME/.claude/.credentials.json"
         CLAUDE_CMD="claude-code --dangerously-skip-permissions"
     else
-        echo "WARNING: ANTHROPIC_API_KEY is not set!"
-        echo "Claude Code may prompt for login or fail"
-        CLAUDE_CMD="claude-code --dangerously-skip-permissions"
+        echo "WARNING: Claude credentials not mounted from host!"
+        echo "Mount host's ~/.claude directory to container for authentication"
+        exit 1
     fi
+elif command -v nvm >/dev/null 2>&1; then
+    # We're on the host with nvm
+    echo "Running on host - using nvm to load Claude..."
+    export NVM_DIR="$HOME/.nvm"
+    # shellcheck disable=SC1091
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    nvm use 22.16.0
+    CLAUDE_CMD="claude-code --dangerously-skip-permissions"
 else
-    # Fall back to npx if claude-code isn't installed
-    echo "claude-code not found, falling back to npx..."
-    # Note: npx may have issues with authentication
-    if [ -n "$ANTHROPIC_API_KEY" ]; then
-        export ANTHROPIC_API_KEY
-        echo "ANTHROPIC_API_KEY is set (length: ${#ANTHROPIC_API_KEY})"
-    fi
-    CLAUDE_CMD="npx --yes @anthropic-ai/claude-code@latest"
+    echo "ERROR: Neither in container with mounted credentials nor on host with nvm"
+    exit 1
 fi
 
 # Run Claude Code with the task

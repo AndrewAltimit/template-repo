@@ -75,21 +75,23 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}
           FORCE_REPROCESS: ${{ inputs.force_reprocess || 'false' }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # List of environment variables whose values should be masked in public comments
-          MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN,ANTHROPIC_API_KEY"
+          MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN"
         run: |
           echo "Running issue monitor for repository: $GITHUB_REPOSITORY"
           # Export dynamic user/group IDs to match project standards
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
 
+          # Mount Claude config from host into container
+          # The container runs as USER_ID:GROUP_ID, so mount to /root/.claude
           docker-compose run --rm --user "${USER_ID}:${GROUP_ID}" \
+            -v "$HOME/.claude:/root/.claude:ro" \
+            -e HOME=/root \
             -e GITHUB_TOKEN="${GITHUB_TOKEN}" \
             -e GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
             -e ENABLE_AI_AGENTS="${ENABLE_AI_AGENTS}" \
             -e FORCE_REPROCESS="${FORCE_REPROCESS:-false}" \
-            -e ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
             -e MASK_ENV_VARS="${MASK_ENV_VARS}" \
             ai-agents python scripts/agents/issue_monitor.py
 

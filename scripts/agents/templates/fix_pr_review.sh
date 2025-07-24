@@ -50,20 +50,28 @@ git branch -f "$BACKUP_BRANCH"
 echo "Running Claude Code to address review feedback..."
 
 # Determine Claude command based on environment
-if command -v claude-code >/dev/null 2>&1; then
-    CLAUDE_CMD="claude-code --dangerously-skip-permissions"
-    echo "Using local claude-code command with --dangerously-skip-permissions"
-else
-    # Fall back to npx if claude-code isn't installed
-    echo "Using npx to run claude-code..."
-    # Set up API key for npx version
-    if [ -n "$ANTHROPIC_API_KEY" ]; then
-        export ANTHROPIC_API_KEY
-        echo "ANTHROPIC_API_KEY is set (length: ${#ANTHROPIC_API_KEY})"
+if [ -f /.dockerenv ] || [ -n "$CONTAINER" ]; then
+    # We're in a container
+    echo "Running in container - checking for mounted Claude credentials..."
+    if [ -f "$HOME/.claude/.credentials.json" ]; then
+        echo "Claude credentials found at $HOME/.claude/.credentials.json"
+        CLAUDE_CMD="claude-code --dangerously-skip-permissions"
     else
-        echo "WARNING: ANTHROPIC_API_KEY is not set!"
+        echo "WARNING: Claude credentials not mounted from host!"
+        echo "Mount host's ~/.claude directory to container for authentication"
+        exit 1
     fi
-    CLAUDE_CMD="npx --yes @anthropic-ai/claude-code@latest"
+elif command -v nvm >/dev/null 2>&1; then
+    # We're on the host with nvm
+    echo "Running on host - using nvm to load Claude..."
+    export NVM_DIR="$HOME/.nvm"
+    # shellcheck disable=SC1091
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    nvm use 22.16.0
+    CLAUDE_CMD="claude-code --dangerously-skip-permissions"
+else
+    echo "ERROR: Neither in container with mounted credentials nor on host with nvm"
+    exit 1
 fi
 
 # Run Claude Code with the task
