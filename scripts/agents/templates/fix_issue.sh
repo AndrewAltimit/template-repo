@@ -20,7 +20,8 @@ fi
 # Read issue data from stdin
 ISSUE_DATA=$(cat)
 ISSUE_TITLE=$(echo "$ISSUE_DATA" | jq -r '.title')
-ISSUE_BODY=$(echo "$ISSUE_DATA" | jq -r '.body')
+# ISSUE_BODY is available but not used in this simple test implementation
+# ISSUE_BODY=$(echo "$ISSUE_DATA" | jq -r '.body')
 
 # Safety check - ensure we're in a git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
@@ -32,21 +33,39 @@ fi
 echo "Creating branch: $BRANCH_NAME"
 git checkout -b "$BRANCH_NAME"
 
-# Use Claude Code to implement the fix
-echo "Running Claude Code to implement fix for issue #$ISSUE_NUMBER..."
-npx --yes @anthropic-ai/claude-code@1.0.59 << EOF
-Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}
+# For testing purposes, create a simple hello world tool
+echo "Creating hello world MCP tool..."
 
-${ISSUE_BODY}
+# Create the hello world tool in the appropriate location
+mkdir -p tools/mcp/hello_world
+cat > tools/mcp/hello_world/__init__.py << 'PYTHON'
+"""Hello World MCP tool for testing."""
 
-Please implement a fix for this issue. Make sure to:
-1. Address all the concerns mentioned in the issue
-2. Add appropriate tests if needed
-3. Update documentation if necessary
-4. Follow the project's coding standards
+def hello_world():
+    """Simple hello world tool for testing."""
+    return "Hello, World!"
+PYTHON
 
-After implementation, create a commit with a descriptive message.
-EOF
+# Create a simple test
+mkdir -p tests
+cat > tests/test_hello_world.py << 'PYTHON'
+"""Test for hello world tool."""
+from tools.mcp.hello_world import hello_world
+
+def test_hello_world():
+    """Test that hello world returns the correct message."""
+    assert hello_world() == "Hello, World!"
+PYTHON
+
+# Add and commit the changes
+git add tools/mcp/hello_world/__init__.py tests/test_hello_world.py
+git commit -m "feat: add hello world MCP tool for testing AI agents
+
+- Add simple hello_world function that returns 'Hello, World!'
+- Include basic test to verify functionality
+- Implements request from issue #${ISSUE_NUMBER}
+
+This is a test implementation to validate AI agent workflows."
 
 # Create PR
 echo "Creating pull request..."
