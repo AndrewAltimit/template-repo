@@ -39,11 +39,19 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
     exit 1
 fi
 
-# Create and checkout branch
-echo "Creating branch: $BRANCH_NAME"
+# Ensure we start from main branch
+echo "Fetching latest changes..."
+git fetch origin main
+echo "Checking out main branch..."
+git checkout main
+git pull origin main
+
+# Create and checkout branch from main
+echo "Creating branch: $BRANCH_NAME from main"
 git checkout -b "$BRANCH_NAME" || {
     echo "Branch already exists, checking out existing branch"
     git checkout "$BRANCH_NAME"
+    git rebase main
 }
 
 # For testing purposes, create a simple hello world tool
