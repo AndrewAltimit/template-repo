@@ -322,6 +322,29 @@ Once you've added this information, I'll be able to create a pull request to add
         for issue in issues:
             issue_number = issue["number"]
 
+            # Fetch full comment data for this issue
+            comments_output = run_gh_command(
+                [
+                    "issue",
+                    "view",
+                    str(issue_number),
+                    "--repo",
+                    self.repo,
+                    "--json",
+                    "comments",
+                ]
+            )
+
+            if comments_output:
+                try:
+                    comments_data = json.loads(comments_output)
+                    issue["comments"] = comments_data.get("comments", [])
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse comments for issue #{issue_number}: {e}")
+                    issue["comments"] = []
+            else:
+                issue["comments"] = []
+
             # Check for keyword trigger from allowed user
             trigger_info = self.security_manager.check_trigger_comment(issue, "issue")
 
