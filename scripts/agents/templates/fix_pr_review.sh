@@ -55,10 +55,18 @@ if command -v claude-code >/dev/null 2>&1; then
     echo "Using local claude-code command with --dangerously-skip-permissions"
 else
     # Fall back to npx if claude-code isn't installed
+    echo "Using npx to run claude-code..."
+    # Set up API key for npx version
+    if [ -n "$ANTHROPIC_API_KEY" ]; then
+        export ANTHROPIC_API_KEY
+        echo "ANTHROPIC_API_KEY is set (length: ${#ANTHROPIC_API_KEY})"
+    else
+        echo "WARNING: ANTHROPIC_API_KEY is not set!"
+    fi
     CLAUDE_CMD="npx --yes @anthropic-ai/claude-code@latest"
-    echo "Using npx to run claude-code (Note: --dangerously-skip-permissions not available via npx)"
 fi
 
+# Run Claude Code with the task
 $CLAUDE_CMD << EOF
 PR #${PR_NUMBER} Review Feedback
 
@@ -89,7 +97,16 @@ EOF
 
 # Run tests
 echo "Running tests..."
-if [ -f "./scripts/run-ci.sh" ]; then
+# Check if we're running inside a container (AI agents container)
+if [ -f /.dockerenv ] || [ -n "$CONTAINER" ]; then
+    echo "Running tests directly (inside container)..."
+    # Try to run pytest directly if available
+    if command -v pytest >/dev/null 2>&1; then
+        pytest tests/ -v || echo "Some tests failed"
+    else
+        echo "Warning: pytest not available in container"
+    fi
+elif [ -f "./scripts/run-ci.sh" ]; then
     ./scripts/run-ci.sh test
 else
     echo "Warning: run-ci.sh not found, skipping tests"

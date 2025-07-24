@@ -142,8 +142,15 @@ if command -v claude-code >/dev/null 2>&1; then
     echo "Using local claude-code command with --dangerously-skip-permissions"
 else
     # Fall back to npx if claude-code isn't installed
+    echo "Using npx to run claude-code..."
+    # Set up API key for npx version
+    if [ -n "$ANTHROPIC_API_KEY" ]; then
+        export ANTHROPIC_API_KEY
+        echo "ANTHROPIC_API_KEY is set (length: ${#ANTHROPIC_API_KEY})"
+    else
+        echo "WARNING: ANTHROPIC_API_KEY is not set!"
+    fi
     CLAUDE_CMD="npx --yes @anthropic-ai/claude-code@latest"
-    echo "Using npx to run claude-code"
 fi
 
 # Run Claude Code to implement the feature

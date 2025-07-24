@@ -50,10 +50,17 @@ git branch -f "$BACKUP_BRANCH"
 # Run linting/formatting tools first if there are lint failures
 if [ -n "$LINT_FAILURES" ]; then
     echo "Detected lint/format failures. Running auto-formatting..."
-    # Check if we have the CI script available
-    if [ -f "./scripts/run-ci.sh" ]; then
-        echo "Running auto-format..."
+    # Check if we're running inside a container (AI agents container)
+    if [ -f /.dockerenv ] || [ -n "$CONTAINER" ]; then
+        echo "Running auto-format directly (inside container)..."
+        # Run Python formatting tools directly
+        black . || echo "Black formatting completed"
+        isort . || echo "Isort formatting completed"
+    elif [ -f "./scripts/run-ci.sh" ]; then
+        echo "Running auto-format via run-ci.sh..."
         ./scripts/run-ci.sh autoformat || echo "Auto-format completed with warnings"
+    else
+        echo "Warning: No formatting tools available"
     fi
 fi
 
@@ -62,14 +69,28 @@ echo "Running Claude Code to fix pipeline failures..."
 
 # Determine Claude command based on environment
 if command -v claude-code >/dev/null 2>&1; then
-    CLAUDE_CMD="claude-code --dangerously-skip-permissions"
-    echo "Using local claude-code command with --dangerously-skip-permissions"
+    # Check if API key is set
+    if [ -n "$ANTHROPIC_API_KEY" ]; then
+        echo "Using claude-code with API key authentication"
+        export ANTHROPIC_API_KEY
+        CLAUDE_CMD="claude-code --dangerously-skip-permissions"
+    else
+        echo "WARNING: ANTHROPIC_API_KEY is not set!"
+        echo "Claude Code may prompt for login or fail"
+        CLAUDE_CMD="claude-code --dangerously-skip-permissions"
+    fi
 else
     # Fall back to npx if claude-code isn't installed
+    echo "claude-code not found, falling back to npx..."
+    # Note: npx may have issues with authentication
+    if [ -n "$ANTHROPIC_API_KEY" ]; then
+        export ANTHROPIC_API_KEY
+        echo "ANTHROPIC_API_KEY is set (length: ${#ANTHROPIC_API_KEY})"
+    fi
     CLAUDE_CMD="npx --yes @anthropic-ai/claude-code@latest"
-    echo "Using npx to run claude-code (Note: --dangerously-skip-permissions not available via npx)"
 fi
 
+# Run Claude Code with the task
 $CLAUDE_CMD << EOF
 PR #${PR_NUMBER} CI/CD Pipeline Failures
 
@@ -121,7 +142,29 @@ EOF
 
 # Run tests to verify fixes
 echo "Running tests to verify fixes..."
-if [ -f "./scripts/run-ci.sh" ]; then
+# Check if we're running inside a container (AI agents container)
+if [ -f /.dockerenv ] || [ -n "$CONTAINER" ]; then
+    echo "Running verification directly (inside container)..."
+
+    # Run format check
+    echo "Checking code formatting..."
+    black --check . || echo "Format check completed"
+    isort --check-only . || echo "Import sort check completed"
+
+    # Run basic linting
+    echo "Running basic linting..."
+    flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || echo "Basic lint completed"
+
+    # Run tests if we fixed test failures
+    if [ -n "$TEST_FAILURES" ]; then
+        echo "Running tests..."
+        if command -v pytest >/dev/null 2>&1; then
+            pytest tests/ -v || echo "Tests completed"
+        else
+            echo "Warning: pytest not available in container"
+        fi
+    fi
+elif [ -f "./scripts/run-ci.sh" ]; then
     # Run format check
     echo "Checking code formatting..."
     ./scripts/run-ci.sh format || echo "Format check completed"

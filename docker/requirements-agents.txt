@@ -1,7 +1,17 @@
 # Requirements for AI agents
-# Currently agents only use Python standard library modules
-# This file exists for consistency with the project's container-first approach
-# and to support future agent dependencies
+# Includes Python linting/formatting tools that agents need to run
+# when fixing CI/CD pipeline failures
 
-# No external dependencies required at this time
+# Linting and formatting tools
+black>=23.0.0
+isort==6.0.1
+flake8>=6.0.0
+mypy>=1.0.0
+pylint>=2.17.0
+
+# Testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0
+
 # Python 3.10+ is required for the agents to run
