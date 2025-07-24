@@ -30,6 +30,16 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
     exit 1
 fi
 
+# Configure git to use the GITHUB_TOKEN for authentication
+if [ -n "$GITHUB_TOKEN" ]; then
+    echo "Configuring git authentication..."
+    # Set the remote URL with authentication token
+    git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+    echo "Git authentication configured for ${GITHUB_REPOSITORY}"
+else
+    echo "WARNING: GITHUB_TOKEN not set, git push may fail"
+fi
+
 # Checkout the PR branch
 echo "Fetching and checking out branch: $BRANCH_NAME"
 git fetch origin "$BRANCH_NAME" 2>&1 | grep -v "Git LFS" || true
@@ -217,6 +227,35 @@ Co-Authored-By: AI Pipeline Agent <noreply@ai-agent.local>"
 
 # Push changes
 echo "Pushing fixes to origin..."
-git push origin "$BRANCH_NAME"
+echo "Attempting to push branch: $BRANCH_NAME"
 
+# Try push with verbose output to debug
+set +e
+git push origin "$BRANCH_NAME" -v 2>&1 | tee push_output.log
+PUSH_RESULT=$?
+set -e
+
+if [ $PUSH_RESULT -ne 0 ]; then
+    echo "Push failed with exit code: $PUSH_RESULT"
+    echo "Full push output:"
+    cat push_output.log
+
+    # Check for common push errors
+    if grep -q "rejected" push_output.log; then
+        echo "Push was rejected. This may be due to:"
+        echo "1. Branch protection rules"
+        echo "2. Remote has newer commits"
+        echo "3. Force push required"
+
+        # Try to fetch and show divergence
+        git fetch origin "$BRANCH_NAME"
+        echo "Local vs remote status:"
+        git status -sb
+    fi
+
+    rm -f push_output.log
+    exit 1
+fi
+
+rm -f push_output.log
 echo "Successfully fixed pipeline failures!"
