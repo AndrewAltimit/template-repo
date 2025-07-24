@@ -1,22 +1,27 @@
 #!/bin/bash
 # Script to address PR review feedback using Claude Code
-# Usage: fix_pr_review.sh <pr_number> <branch_name> <must_fix_items> <inline_issues> <suggestions>
+# Usage: fix_pr_review.sh <pr_number> <branch_name>
+# Review feedback data is passed via stdin as JSON
 
 set -e  # Exit on error
 
 # Parse arguments
 PR_NUMBER="$1"
 BRANCH_NAME="$2"
-MUST_FIX_TEXT="$3"
-ISSUES_TEXT="$4"
-SUGGESTIONS_TEXT="$5"
 
 # Validate arguments
 if [ -z "$PR_NUMBER" ] || [ -z "$BRANCH_NAME" ]; then
     echo "Error: PR number and branch name are required"
-    echo "Usage: $0 <pr_number> <branch_name> [must_fix_items] [inline_issues] [suggestions]"
+    echo "Usage: $0 <pr_number> <branch_name>"
+    echo "Review feedback should be passed via stdin as JSON"
     exit 1
 fi
+
+# Read feedback data from stdin
+FEEDBACK_DATA=$(cat)
+MUST_FIX_TEXT=$(echo "$FEEDBACK_DATA" | jq -r '.must_fix')
+ISSUES_TEXT=$(echo "$FEEDBACK_DATA" | jq -r '.issues')
+SUGGESTIONS_TEXT=$(echo "$FEEDBACK_DATA" | jq -r '.suggestions')
 
 # Safety check - ensure we're in a git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then

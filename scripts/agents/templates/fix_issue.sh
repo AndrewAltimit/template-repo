@@ -1,21 +1,26 @@
 #!/bin/bash
 # Script to implement fixes for GitHub issues using Claude Code
-# Usage: fix_issue.sh <issue_number> <branch_name> <issue_title> <issue_body>
+# Usage: fix_issue.sh <issue_number> <branch_name>
+# Issue data (title and body) is passed via stdin as JSON
 
 set -e  # Exit on error
 
 # Parse arguments
 ISSUE_NUMBER="$1"
 BRANCH_NAME="$2"
-ISSUE_TITLE="$3"
-ISSUE_BODY="$4"
 
 # Validate arguments
-if [ -z "$ISSUE_NUMBER" ] || [ -z "$BRANCH_NAME" ] || [ -z "$ISSUE_TITLE" ]; then
-    echo "Error: Issue number, branch name, and title are required"
-    echo "Usage: $0 <issue_number> <branch_name> <issue_title> <issue_body>"
+if [ -z "$ISSUE_NUMBER" ] || [ -z "$BRANCH_NAME" ]; then
+    echo "Error: Issue number and branch name are required"
+    echo "Usage: $0 <issue_number> <branch_name>"
+    echo "Issue data should be passed via stdin as JSON"
     exit 1
 fi
+
+# Read issue data from stdin
+ISSUE_DATA=$(cat)
+ISSUE_TITLE=$(echo "$ISSUE_DATA" | jq -r '.title')
+ISSUE_BODY=$(echo "$ISSUE_DATA" | jq -r '.body')
 
 # Safety check - ensure we're in a git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then

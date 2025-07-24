@@ -237,15 +237,21 @@ class PRReviewMonitor:
             return False
 
         try:
+            # Pass sensitive data via stdin instead of command-line arguments
+            feedback_data = {
+                "must_fix": must_fix_text,
+                "issues": issues_text,
+                "suggestions": suggestions_text,
+            }
+
             subprocess.run(
                 [
                     str(script_path),
                     str(pr_number),
                     branch_name,
-                    must_fix_text,
-                    issues_text,
-                    suggestions_text,
                 ],
+                input=json.dumps(feedback_data),
+                text=True,
                 check=True,
                 timeout=300,  # 5 minute timeout
             )

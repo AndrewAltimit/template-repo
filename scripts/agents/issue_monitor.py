@@ -265,14 +265,17 @@ Once you've added this information, I'll be able to create a pull request to add
             return None
 
         try:
+            # Pass sensitive data via stdin instead of command-line arguments
+            issue_data = {"title": issue_title, "body": issue_body}
+
             subprocess.run(
                 [
                     str(script_path),
                     str(issue_number),
                     branch_name,
-                    issue_title,
-                    issue_body,
                 ],
+                input=json.dumps(issue_data),
+                text=True,
                 check=True,
             )
 
