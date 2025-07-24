@@ -88,6 +88,10 @@ git commit -m "feat: add hello world MCP tool for testing AI agents
 
 This is a test implementation to validate AI agent workflows."
 
+# Push the branch to origin
+echo "Pushing branch to origin..."
+git push -u origin "$BRANCH_NAME"
+
 # Create PR using template
 echo "Creating pull request..."
 PR_BODY="## Description
