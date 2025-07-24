@@ -43,7 +43,11 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request_review" ] || [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
             echo "PR Author: ${{ github.event.pull_request.user.login }}"
             echo "PR Number: ${{ github.event.pull_request.number }}"
-            echo "Review Author: ${{ github.event.review.user.login || github.event.comment.user.login }}"
+            if [ "${{ github.event_name }}" = "pull_request_review" ]; then
+              echo "Review Author: ${{ github.event.review.user.login }}"
+            elif [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
+              echo "Review Author: ${{ github.event.comment.user.login }}"
+            fi
           fi
 
 
