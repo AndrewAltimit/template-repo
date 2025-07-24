@@ -155,7 +155,7 @@ class PRReviewMonitor:
                 "--repo",
                 self.repo,
                 "--json",
-                "name,status,conclusion,detailsUrl",
+                "name,state,link",
             ]
         )
 
@@ -164,8 +164,10 @@ class PRReviewMonitor:
                 checks = json.loads(output)
                 return {
                     "checks": checks,
-                    "has_failures": any(check.get("conclusion") in ["failure", "cancelled"] for check in checks),
-                    "failing_checks": [check for check in checks if check.get("conclusion") in ["failure", "cancelled"]],
+                    "has_failures": any(check.get("state") in ["failure", "error", "action_required"] for check in checks),
+                    "failing_checks": [
+                        check for check in checks if check.get("state") in ["failure", "error", "action_required"]
+                    ],
                 }
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse check status JSON: {e}")
@@ -379,9 +381,8 @@ class PRReviewMonitor:
             check_name = check.get("name", "").lower()
             failure_info = {
                 "name": check.get("name"),
-                "url": check.get("detailsUrl", ""),
-                "status": check.get("status"),
-                "conclusion": check.get("conclusion"),
+                "url": check.get("link", ""),
+                "state": check.get("state"),
             }
 
             if any(word in check_name for word in ["lint", "format", "flake", "black", "mypy"]):
