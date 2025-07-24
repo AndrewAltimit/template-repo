@@ -44,6 +44,12 @@ else
     echo "WARNING: GITHUB_TOKEN not set, git push may fail"
 fi
 
+# Configure git user for commits (required in containers)
+echo "Configuring git user..."
+git config user.name "AI Issue Monitor Agent"
+git config user.email "ai-agent[bot]@users.noreply.github.com"
+echo "Git user configured"
+
 # Ensure we start from main branch
 echo "Fetching latest changes..."
 git fetch origin main
