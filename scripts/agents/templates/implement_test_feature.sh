@@ -72,7 +72,7 @@ echo "Successfully on main branch"
 echo "Creating/updating branch: $BRANCH_NAME from origin/main"
 # Create branch if it doesn't exist, or reset it to origin/main if it does
 git checkout -B "$BRANCH_NAME" origin/main
-echo "Successfully on branch: $(git branch --show-current)"
+echo "Successfully on branch: $(git rev-parse --abbrev-ref HEAD)"
 
 # For testing purposes, create a simple hello world tool
 echo "Creating hello world MCP tool..."
