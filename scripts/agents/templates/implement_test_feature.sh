@@ -34,6 +34,16 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
     exit 1
 fi
 
+# Debug: Show git configuration and environment
+echo "Git repository info:"
+echo "Working directory: $(pwd)"
+echo "Git directory: $(git rev-parse --git-dir)"
+echo "Git version: $(git --version)"
+echo "Repository ownership:"
+ls -la .git/config
+echo "Safe directory configuration:"
+git config --global --get-all safe.directory || echo "No safe directories configured"
+
 # Configure git to use the AI_AGENT_TOKEN for authentication
 if [ -n "$GITHUB_TOKEN" ]; then
     echo "Configuring git authentication..."
@@ -49,6 +59,11 @@ echo "Configuring git user..."
 git config user.name "AI Issue Monitor Agent"
 git config user.email "ai-agent[bot]@users.noreply.github.com"
 echo "Git user configured"
+
+# Add repository as safe directory (needed when running as different user in container)
+echo "Adding repository as safe directory..."
+git config --global --add safe.directory /workspace
+echo "Safe directory added"
 
 # Ensure we start from main branch
 echo "Fetching latest changes..."
@@ -155,9 +170,17 @@ echo "Remote tracking info:"
 git branch -vv | grep "$(git rev-parse --abbrev-ref HEAD)" || echo "No tracking info"
 
 set +e
+# First, let's make sure we have the latest main branch
+echo "Fetching latest changes before push..."
+git fetch origin main
+echo "Checking if our branch is up to date with origin/main..."
+git log --oneline origin/main..HEAD
+
 # Use pipefail to capture exit code from git push, not tee
 set -o pipefail
-git push -u origin "$BRANCH_NAME" 2>&1 | tee push.log
+# Try push with verbose output to see what's happening
+echo "Running: git push -u origin $BRANCH_NAME --verbose"
+git push -u origin "$BRANCH_NAME" --verbose 2>&1 | tee push.log
 PUSH_RESULT=$?
 set +o pipefail
 set -e
@@ -172,6 +195,24 @@ if [ $PUSH_RESULT -ne 0 ]; then
     git ls-remote --heads origin "$BRANCH_NAME" || echo "Remote branch does not exist"
     echo "Checking local commit:"
     git log --oneline -1
+
+    # Check for common push errors
+    if grep -q "Updates were rejected" push.log; then
+        echo "ERROR: Updates were rejected - this usually means the remote has changes not in local"
+        echo "Trying to see what's on remote main:"
+        git log --oneline origin/main -5
+    fi
+
+    if grep -q "Permission" push.log || grep -q "403" push.log; then
+        echo "ERROR: Permission denied - token may not have push access"
+        echo "Current user:"
+        git config user.name
+        git config user.email
+    fi
+
+    # Try a dry-run to see what would be pushed
+    echo "Attempting dry-run push to see what would be sent:"
+    git push --dry-run -u origin "$BRANCH_NAME" 2>&1
 fi
 
 if [ $PUSH_RESULT -ne 0 ]; then
