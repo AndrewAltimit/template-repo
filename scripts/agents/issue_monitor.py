@@ -34,10 +34,10 @@ class IssueMonitor:
     """Monitor GitHub issues and create PRs when appropriate."""
 
     def __init__(self):
-        self.repo = os.environ.get("GITHUB_REPOSITORY", "AndrewAltimit/template-repo")
+        self.repo = os.environ.get("GITHUB_REPOSITORY")
         if not self.repo:
-            self.repo = "AndrewAltimit/template-repo"
-            logger.warning("GITHUB_REPOSITORY not set, using default: AndrewAltimit/template-repo")
+            logger.error("GITHUB_REPOSITORY environment variable is required but not set")
+            raise RuntimeError("GITHUB_REPOSITORY environment variable must be set")
         self.token = get_github_token()
 
         # Load configuration
@@ -263,7 +263,7 @@ Once you've added this information, I'll be able to create a pull request to add
         branch_name = f"fix-issue-{issue_number}"
 
         # Use the external script
-        script_path = Path(__file__).parent / "templates" / "fix_issue.sh"
+        script_path = Path(__file__).parent / "templates" / "implement_test_feature.sh"
         if not script_path.exists():
             logger.error(f"Fix script not found at {script_path}")
             return None

@@ -1,6 +1,7 @@
 #!/bin/bash
-# Script to implement fixes for GitHub issues using Claude Code
-# Usage: fix_issue.sh <issue_number> <branch_name>
+# Script to implement a test feature for validating AI agent workflows
+# This creates a simple hello_world tool as a test implementation
+# Usage: implement_test_feature.sh <issue_number> <branch_name>
 # Issue data (title and body) is passed via stdin as JSON
 
 set -e  # Exit on error
@@ -94,7 +95,9 @@ git push -u origin "$BRANCH_NAME"
 # Create PR using template
 echo "Creating pull request..."
 PR_BODY="## Description
-This PR implements the fix for issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}
+This PR implements a test feature for issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}
+
+**Note**: This is a test implementation that creates a hello_world tool to validate the AI agent workflow.
 
 ## Related Issue
 Fixes #${ISSUE_NUMBER}

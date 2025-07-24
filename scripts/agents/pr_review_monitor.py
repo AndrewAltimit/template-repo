@@ -33,7 +33,10 @@ class PRReviewMonitor:
     """Monitor PR reviews and address feedback automatically."""
 
     def __init__(self):
-        self.repo = os.environ.get("GITHUB_REPOSITORY", "")
+        self.repo = os.environ.get("GITHUB_REPOSITORY")
+        if not self.repo:
+            logger.error("GITHUB_REPOSITORY environment variable is required but not set")
+            raise RuntimeError("GITHUB_REPOSITORY environment variable must be set")
         self.token = get_github_token()
 
         # Safety control - auto-fixing is enabled when AI agents are enabled
