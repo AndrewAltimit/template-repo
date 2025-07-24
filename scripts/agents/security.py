@@ -336,13 +336,19 @@ class SecurityManager:
             Tuple of (action, agent, username) if triggered, None otherwise
         """
         comments = issue_or_pr.get("comments", [])
+        logger.debug(f"Checking {len(comments)} comments for triggers in {entity_type}")
 
         # Check comments in reverse order (most recent first)
-        for comment in reversed(comments):
-            author = comment.get("user", {}).get("login", "")
+        for i, comment in enumerate(reversed(comments)):
+            # Try both "user" and "author" fields since GitHub API is inconsistent
+            author = comment.get("user", {}).get("login", "") or comment.get("author", {}).get("login", "")
+
+            # Log comment details for debugging
+            logger.debug(f"Comment {i}: author={author}, has_body={'body' in comment}")
 
             # Skip if not from allowed user
             if not self.is_user_allowed(author):
+                logger.debug(f"Skipping comment from non-allowed user: {author}")
                 continue
 
             # Check for keyword trigger

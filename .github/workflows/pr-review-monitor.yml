@@ -9,7 +9,7 @@ on:
       - created
   schedule:
     # Also run periodically to catch any missed reviews
-    - cron: '*/30 * * * *'
+    - cron: '0 * * * *'
   workflow_dispatch: {}
 
 permissions:

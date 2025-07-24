@@ -24,7 +24,8 @@ from security import SecurityManager
 from utils import get_github_token, run_gh_command
 
 # Configure logging with security
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+log_level = logging.DEBUG if os.environ.get("DEBUG") else logging.INFO
+logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 setup_secure_logging()
 logger = get_secure_logger(__name__)
 
@@ -33,7 +34,10 @@ class IssueMonitor:
     """Monitor GitHub issues and create PRs when appropriate."""
 
     def __init__(self):
-        self.repo = os.environ.get("GITHUB_REPOSITORY", "")
+        self.repo = os.environ.get("GITHUB_REPOSITORY", "AndrewAltimit/template-repo")
+        if not self.repo:
+            self.repo = "AndrewAltimit/template-repo"
+            logger.warning("GITHUB_REPOSITORY not set, using default: AndrewAltimit/template-repo")
         self.token = get_github_token()
 
         # Load configuration
@@ -314,10 +318,15 @@ Once you've added this information, I'll be able to create a pull request to add
 
     def process_issues(self):
         """Main process to monitor and handle issues."""
-        logger.info("Starting issue monitoring...")
+        logger.info(f"Starting issue monitoring for repository: {self.repo}")
 
         issues = self.get_open_issues()
         logger.info(f"Found {len(issues)} open issues")
+
+        # Log all issue numbers for debugging
+        if issues:
+            issue_numbers = [issue.get("number", "?") for issue in issues]
+            logger.info(f"Issue numbers: {issue_numbers}")
 
         for issue in issues:
             issue_number = issue["number"]
@@ -339,10 +348,16 @@ Once you've added this information, I'll be able to create a pull request to add
                 try:
                     comments_data = json.loads(comments_output)
                     issue["comments"] = comments_data.get("comments", [])
+                    logger.debug(f"Issue #{issue_number} has {len(issue['comments'])} comments")
+                    # Log comment authors for debugging
+                    if issue["comments"]:
+                        authors = [c.get("author", {}).get("login", "Unknown") for c in issue["comments"]]
+                        logger.debug(f"Comment authors: {authors}")
                 except json.JSONDecodeError as e:
                     logger.error(f"Failed to parse comments for issue #{issue_number}: {e}")
                     issue["comments"] = []
             else:
+                logger.warning(f"No comments output for issue #{issue_number}")
                 issue["comments"] = []
 
             # Check for keyword trigger from allowed user
