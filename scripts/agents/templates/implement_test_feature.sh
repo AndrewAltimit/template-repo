@@ -71,7 +71,21 @@ echo "Successfully on main branch"
 # Create and checkout branch from main
 echo "Creating/updating branch: $BRANCH_NAME from origin/main"
 # Create branch if it doesn't exist, or reset it to origin/main if it does
-git checkout -B "$BRANCH_NAME" origin/main
+# Temporarily disable exit on error to handle Git LFS warnings
+set +e
+git checkout -B "$BRANCH_NAME" origin/main > checkout2.log 2>&1
+CHECKOUT_RESULT=$?
+set -e
+
+# Show the output
+cat checkout2.log
+
+# Check if checkout actually failed (ignore Git LFS warnings)
+if [ $CHECKOUT_RESULT -ne 0 ] && ! grep -q "Git LFS" checkout2.log; then
+    echo "ERROR: Failed to checkout branch $BRANCH_NAME"
+    exit 1
+fi
+rm -f checkout2.log
 echo "Successfully on branch: $(git rev-parse --abbrev-ref HEAD)"
 
 # For testing purposes, create a simple hello world tool
