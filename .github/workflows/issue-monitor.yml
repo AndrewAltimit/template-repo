@@ -64,6 +64,7 @@ jobs:
 
       - name: Run issue monitor in container
         env:
+          # Use AI_AGENT_TOKEN which has write permissions for creating branches/PRs
           GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}

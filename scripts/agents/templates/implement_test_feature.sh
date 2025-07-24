@@ -197,11 +197,18 @@ set -e
 # Show the output
 cat pr_create.log
 
-# Extract PR URL from output if successful
+# Get PR URL using gh CLI for more reliable extraction
 if [ $PR_CREATE_RESULT -eq 0 ]; then
-    PR_URL=$(grep -oE 'https://github\.com/[^[:space:]]+/pull/[0-9]+' pr_create.log || echo "")
+    echo "Retrieving PR URL..."
+    PR_URL=$(gh pr view --json url --jq .url 2>/dev/null || echo "")
     if [ -n "$PR_URL" ]; then
         echo "Pull Request URL: $PR_URL"
+    else
+        # Fallback to parsing the output if gh pr view fails
+        PR_URL=$(grep -oE 'https://github\.com/[^[:space:]]+/pull/[0-9]+' pr_create.log || echo "")
+        if [ -n "$PR_URL" ]; then
+            echo "Pull Request URL (from output): $PR_URL"
+        fi
     fi
 fi
 
