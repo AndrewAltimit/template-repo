@@ -134,12 +134,12 @@ echo "Successfully on branch: $(git rev-parse --abbrev-ref HEAD)"
 echo "Running Claude Code to implement the feature..."
 echo "Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
 echo ""
-echo "Using Claude Code with bypass permissions to implement the requested feature..."
+echo "Using Claude Code with --dangerously-skip-permissions to implement the requested feature..."
 
 # Determine Claude command based on environment
 if command -v claude-code >/dev/null 2>&1; then
-    CLAUDE_CMD="claude-code --bypass-permissions"
-    echo "Using local claude-code command with bypass permissions"
+    CLAUDE_CMD="claude-code --dangerously-skip-permissions"
+    echo "Using local claude-code command with --dangerously-skip-permissions"
 else
     # Fall back to npx if claude-code isn't installed
     CLAUDE_CMD="npx --yes @anthropic-ai/claude-code@latest"
