@@ -308,25 +308,31 @@ echo "Creating PR with gh command..."
 set +e
 gh pr create --title "Fix: ${ISSUE_TITLE} (#${ISSUE_NUMBER})" \
     --body "$PR_BODY" \
-    --assignee @me \
-    --label "automated" 2>&1 | tee pr_create.log
+    --assignee @me 2>&1 | tee pr_create.log
 PR_CREATE_RESULT=$?
 set -e
 
 # Show the output
 cat pr_create.log
 
-# Get PR URL using gh CLI for more reliable extraction
-if [ $PR_CREATE_RESULT -eq 0 ]; then
-    echo "Retrieving PR URL..."
-    PR_URL=$(gh pr view --json url --jq .url 2>/dev/null || echo "")
+# Get PR URL - check even if label failed
+# The PR might have been created successfully even if adding the label failed
+echo "Retrieving PR URL..."
+PR_URL=$(gh pr view --json url --jq .url 2>/dev/null || echo "")
+if [ -n "$PR_URL" ]; then
+    echo "Pull Request URL: $PR_URL"
+else
+    # Fallback to parsing the output if gh pr view fails
+    PR_URL=$(grep -oE 'https://github\.com/[^[:space:]]+/pull/[0-9]+' pr_create.log || echo "")
     if [ -n "$PR_URL" ]; then
-        echo "Pull Request URL: $PR_URL"
+        echo "Pull Request URL (from output): $PR_URL"
     else
-        # Fallback to parsing the output if gh pr view fails
-        PR_URL=$(grep -oE 'https://github\.com/[^[:space:]]+/pull/[0-9]+' pr_create.log || echo "")
-        if [ -n "$PR_URL" ]; then
-            echo "Pull Request URL (from output): $PR_URL"
+        # Try to find PR by branch name
+        echo "Checking for PR with branch $BRANCH_NAME..."
+        EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --json url --jq '.[0].url' 2>/dev/null || echo "")
+        if [ -n "$EXISTING_PR" ]; then
+            echo "Found PR: $EXISTING_PR"
+            PR_URL="$EXISTING_PR"
         fi
     fi
 fi
@@ -349,3 +355,6 @@ fi
 
 rm -f pr_create.log
 echo "Successfully created PR for issue #$ISSUE_NUMBER!"
+if [ -n "$PR_URL" ]; then
+    echo "Pull Request: $PR_URL"
+fi
