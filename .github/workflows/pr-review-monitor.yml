@@ -83,6 +83,10 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # List of environment variables whose values should be masked in public comments
+          # Note: GitHub Actions also automatically masks registered secrets in logs,
+          # but we need explicit masking for PR comments which are public
+          MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN,ANTHROPIC_API_KEY"
         run: |
           echo "Running PR review monitor for repository: $GITHUB_REPOSITORY"
 
@@ -100,6 +104,7 @@ jobs:
             -e GITHUB_REPOSITORY \
             -e ENABLE_AI_AGENTS \
             -e ANTHROPIC_API_KEY \
+            -e MASK_ENV_VARS \
             ai-agents python scripts/agents/pr_review_monitor.py
 
       - name: Log monitoring results

@@ -17,7 +17,7 @@ import sys
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from logging_security import get_secure_logger, setup_secure_logging
 from security import SecurityManager
@@ -56,6 +56,81 @@ class PRReviewMonitor:
 
         self.agent_tag = "[AI Agent]"
         self.security_manager = SecurityManager()
+
+        # Load secrets to mask from environment
+        self._load_mask_config()
+
+    def _load_mask_config(self) -> None:
+        """Load masking configuration from environment."""
+        # Get list of environment variables to mask from workflow
+        mask_vars = os.environ.get("MASK_ENV_VARS", "")
+        if mask_vars:
+            self.env_vars_to_mask = [v.strip() for v in mask_vars.split(",") if v.strip()]
+        else:
+            # Default list if not specified
+            self.env_vars_to_mask = [
+                "GITHUB_TOKEN",
+                "ANTHROPIC_API_KEY",
+                "AI_AGENT_TOKEN",
+            ]
+
+        # Auto-detect additional sensitive environment variables
+        sensitive_prefixes = ["SECRET_", "TOKEN_", "API_", "KEY_", "PASSWORD_", "PRIVATE_"]
+        sensitive_suffixes = ["_SECRET", "_TOKEN", "_API_KEY", "_KEY", "_PASSWORD", "_PRIVATE_KEY"]
+
+        for var_name in os.environ:
+            # Check if variable name suggests it's sensitive
+            if any(var_name.startswith(prefix) for prefix in sensitive_prefixes) or any(
+                var_name.endswith(suffix) for suffix in sensitive_suffixes
+            ):
+                if var_name not in self.env_vars_to_mask:
+                    self.env_vars_to_mask.append(var_name)
+                    logger.debug(f"Auto-detected sensitive variable: {var_name}")
+
+        # Build patterns for masking
+        self.secret_patterns = []
+
+        # Add patterns for each environment variable's value
+        for var_name in self.env_vars_to_mask:
+            var_value = os.environ.get(var_name)
+            if var_value and len(var_value) > 10:  # Only mask if it's a substantial value
+                # Escape special regex characters
+                escaped_value = re.escape(var_value)
+                self.secret_patterns.append((escaped_value, f"[{var_name}]"))
+
+        # Always include common secret patterns
+        self.secret_patterns.extend(
+            [
+                # GitHub tokens
+                (r"ghp_[a-zA-Z0-9]{36}", "[GITHUB_TOKEN]"),
+                (r"ghs_[a-zA-Z0-9]{36}", "[GITHUB_SECRET]"),
+                (r"github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59}", "[GITHUB_PAT]"),
+                # API keys
+                (r"sk-[a-zA-Z0-9]{48}", "[API_KEY]"),
+                (r"Bearer\s+[a-zA-Z0-9_\-\.]+", "Bearer [REDACTED]"),
+                # URLs with credentials
+                (r"https?://[^:]+:[^@]+@[^\s]+", "https://[REDACTED]@[URL]"),
+            ]
+        )
+
+        logger.info(f"Configured to mask {len(self.env_vars_to_mask)} environment variables")
+
+    def mask_secrets(self, text: str) -> str:
+        """Mask secrets in text based on configured patterns."""
+        if not text:
+            return text
+
+        masked_text = text
+
+        # Apply all masking patterns
+        for pattern, replacement in self.secret_patterns:
+            try:
+                masked_text = re.sub(pattern, replacement, masked_text, flags=re.IGNORECASE)
+            except re.error:
+                # Skip invalid patterns
+                continue
+
+        return masked_text
 
     def _load_config(self) -> dict:
         """Load configuration from config.json."""
@@ -463,19 +538,19 @@ class PRReviewMonitor:
 
         return failures
 
-    def address_review_feedback(self, pr_number: int, branch_name: str, feedback: Dict) -> bool:
-        """Implement changes to address review feedback."""
+    def address_review_feedback(self, pr_number: int, branch_name: str, feedback: Dict) -> Tuple[bool, Optional[str]]:
+        """Implement changes to address review feedback. Returns (success, error_details)"""
         # Check if auto-fix is enabled
         if not self.auto_fix_enabled:
             logger.info(f"AI agents are disabled. Skipping automatic fixes for PR #{pr_number}")
             logger.info("To enable auto-fix, set ENABLE_AI_AGENTS=true environment variable")
-            return False
+            return False, "AI agents are disabled"
 
         # Add safety checks
         total_issues = len(feedback["must_fix"]) + len(feedback["issues"])
         if total_issues > 20:
             logger.warning(f"Too many issues ({total_issues}) for automatic fixing. Skipping auto-fix.")
-            return False
+            return False, f"Too many issues ({total_issues}) for automatic fixing"
 
         # Prepare feedback text
         must_fix_text, issues_text, suggestions_text = self.prepare_feedback_text(feedback)
@@ -484,7 +559,7 @@ class PRReviewMonitor:
         script_path = Path(__file__).parent / "templates" / "fix_pr_review.sh"
         if not script_path.exists():
             logger.error(f"Fix script not found at {script_path}")
-            return False
+            return False, f"Fix script not found at {script_path}"
 
         try:
             # Pass sensitive data via stdin instead of command-line arguments
@@ -508,35 +583,42 @@ class PRReviewMonitor:
                 check=True,
                 timeout=300,  # 5 minute timeout
                 env=env,
+                capture_output=True,
             )
             logger.info(f"Successfully addressed feedback for PR #{pr_number}")
-            return True
+            return True, None
         except subprocess.TimeoutExpired:
             logger.error(f"Timeout while addressing feedback for PR #{pr_number}")
-            return False
+            return False, "Operation timed out after 5 minutes"
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to address feedback for PR #{pr_number}: {e}")
-            return False
+            # Capture detailed error information
+            error_details = f"Exit code: {e.returncode}\n"
+            if e.stdout:
+                error_details += f"\nOutput:\n{e.stdout[-2000:]}"  # Last 2000 chars
+            if e.stderr:
+                error_details += f"\nError:\n{e.stderr[-2000:]}"  # Last 2000 chars
+            return False, error_details
 
-    def address_pipeline_failures(self, pr_number: int, branch_name: str, failures: Dict) -> bool:
-        """Attempt to fix pipeline failures."""
+    def address_pipeline_failures(self, pr_number: int, branch_name: str, failures: Dict) -> Tuple[bool, Optional[str]]:
+        """Attempt to fix pipeline failures. Returns (success, error_details)"""
         # Check if auto-fix is enabled
         if not self.auto_fix_enabled:
             logger.info(f"AI agents are disabled. Skipping automatic pipeline fixes for PR #{pr_number}")
-            return False
+            return False, "AI agents are disabled"
 
         # Safety check - don't try to fix too many failures at once
         if failures["total_failures"] > 10:
             logger.warning(
                 f"Too many failures ({failures['total_failures']}) for automatic fixing. Manual intervention required."
             )
-            return False
+            return False, f"Too many failures ({failures['total_failures']}) for automatic fixing"
 
         # Use the external script for pipeline fixes
         script_path = Path(__file__).parent / "templates" / "fix_pipeline_failure.sh"
         if not script_path.exists():
             logger.error(f"Pipeline fix script not found at {script_path}")
-            return False
+            return False, f"Pipeline fix script not found at {script_path}"
 
         try:
             # Prepare failure information
@@ -561,17 +643,26 @@ class PRReviewMonitor:
                 check=True,
                 timeout=600,  # 10 minute timeout for pipeline fixes
                 env=env,
+                capture_output=True,
             )
             logger.info(f"Successfully fixed pipeline failures for PR #{pr_number}")
-            return True
+            return True, None
         except subprocess.TimeoutExpired:
             logger.error(f"Timeout while fixing pipeline failures for PR #{pr_number}")
-            return False
+            return False, "Operation timed out after 10 minutes"
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to fix pipeline failures for PR #{pr_number}: {e}")
-            return False
+            # Capture detailed error information
+            error_details = f"Exit code: {e.returncode}\n"
+            if e.stdout:
+                error_details += f"\nOutput:\n{e.stdout[-2000:]}"  # Last 2000 chars
+            if e.stderr:
+                error_details += f"\nError:\n{e.stderr[-2000:]}"  # Last 2000 chars
+            return False, error_details
 
-    def post_completion_comment(self, pr_number: int, feedback: Dict, success: bool) -> None:
+    def post_completion_comment(
+        self, pr_number: int, feedback: Dict, success: bool, error_details: Optional[str] = None
+    ) -> None:
         """Post a comment indicating review feedback has been addressed."""
         if success:
             comment_body = f"""{self.agent_tag} I've reviewed and addressed the feedback from the PR review:
@@ -593,6 +684,23 @@ All requested changes have been implemented and tests are passing. The PR is rea
                 f"- {len(feedback['must_fix'])} critical issues\n"
                 f"- {len(feedback['issues'])} inline code comments\n"
                 f"- {len(feedback['nice_to_have'])} suggestions\n\n"
+            )
+
+            # Add error details if available
+            if error_details:
+                # Mask any secrets in the error details
+                masked_error_details = self.mask_secrets(error_details)
+                comment_body += (
+                    "**Error Details:**\n"
+                    "<details>\n"
+                    "<summary>Click to expand error log</summary>\n\n"
+                    "```\n"
+                    f"{masked_error_details}\n"
+                    "```\n\n"
+                    "</details>\n\n"
+                )
+
+            comment_body += (
                 "Please review the attempted changes and complete any "
                 "remaining fixes manually.\n\n"
                 "*This comment was generated by an AI agent.*"
@@ -610,16 +718,27 @@ All requested changes have been implemented and tests are passing. The PR is rea
             ]
         )
 
-    def post_pipeline_fix_comment(self, pr_number: int, failures: Dict, status: str = "attempting") -> None:
+    def post_pipeline_fix_comment(
+        self, pr_number: int, failures: Dict, status: str = "attempting", error_details: Optional[str] = None
+    ) -> None:
         """Post a comment about pipeline fix attempts."""
         if status == "attempting":
             comment_body = f"""{self.agent_tag} 🔧 I've detected failing CI/CD checks and I'm working on fixing them:
 
 **Failed Checks:**
-- Lint/Format failures: {len(failures['lint_failures'])}
-- Test failures: {len(failures['test_failures'])}
-- Build failures: {len(failures['build_failures'])}
-- Other failures: {len(failures['other_failures'])}
+- Lint/Format failures: {len(failures['lint_failures'])}"""
+            if failures["lint_failures"]:
+                comment_body += f" ({', '.join([f['name'] for f in failures['lint_failures']])})"
+            comment_body += f"\n- Test failures: {len(failures['test_failures'])}"
+            if failures["test_failures"]:
+                comment_body += f" ({', '.join([f['name'] for f in failures['test_failures']])})"
+            comment_body += f"\n- Build failures: {len(failures['build_failures'])}"
+            if failures["build_failures"]:
+                comment_body += f" ({', '.join([f['name'] for f in failures['build_failures']])})"
+            comment_body += f"\n- Other failures: {len(failures['other_failures'])}"
+            if failures["other_failures"]:
+                comment_body += f" ({', '.join([f['name'] for f in failures['other_failures']])})"
+            comment_body += """
 
 I'll analyze the failure logs and attempt to fix these issues automatically...
 
@@ -640,14 +759,38 @@ All checks should now pass. The PR is ready for review.
             comment_body = f"""{self.agent_tag} ❌ I attempted to fix the pipeline failures but encountered issues:
 
 **Attempted Fixes:**
-- Lint/Format failures: {len(failures['lint_failures'])}
-- Test failures: {len(failures['test_failures'])}
-- Build failures: {len(failures['build_failures'])}
-- Other failures: {len(failures['other_failures'])}
+- Lint/Format failures: {len(failures['lint_failures'])}"""
+            if failures["lint_failures"]:
+                comment_body += f" ({', '.join([f['name'] for f in failures['lint_failures']])})"
+            comment_body += f"\n- Test failures: {len(failures['test_failures'])}"
+            if failures["test_failures"]:
+                comment_body += f" ({', '.join([f['name'] for f in failures['test_failures']])})"
+            comment_body += f"\n- Build failures: {len(failures['build_failures'])}"
+            if failures["build_failures"]:
+                comment_body += f" ({', '.join([f['name'] for f in failures['build_failures']])})"
+            comment_body += f"\n- Other failures: {len(failures['other_failures'])}"
+            if failures["other_failures"]:
+                comment_body += f" ({', '.join([f['name'] for f in failures['other_failures']])})"
+            comment_body += """
 
 Manual intervention may be required to resolve these issues.
+"""
+            # Add error details if available
+            if error_details:
+                # Mask any secrets in the error details
+                masked_error_details = self.mask_secrets(error_details)
+                comment_body += f"""
+**Error Details:**
+<details>
+<summary>Click to expand error log</summary>
 
-*This comment was generated by an AI agent that monitors CI/CD pipeline failures.*"""
+```
+{masked_error_details}
+```
+
+</details>
+"""
+            comment_body += "\n*This comment was generated by an AI agent that monitors CI/CD pipeline failures.*"
 
         run_gh_command(
             [
@@ -767,13 +910,13 @@ Manual intervention may be required to resolve these issues.
                 self.post_pipeline_fix_comment(pr_number, failures, "attempting")
 
                 # Attempt to fix the failures
-                success = self.address_pipeline_failures(pr_number, branch_name, failures)
+                success, error_details = self.address_pipeline_failures(pr_number, branch_name, failures)
 
                 # Post completion comment
                 if success:
                     self.post_pipeline_fix_comment(pr_number, failures, "success")
                 else:
-                    self.post_pipeline_fix_comment(pr_number, failures, "failed")
+                    self.post_pipeline_fix_comment(pr_number, failures, "failed", error_details)
 
                 # Continue to next PR after handling pipeline failures
                 continue
@@ -812,8 +955,8 @@ Manual intervention may be required to resolve these issues.
                 # Only process if changes were requested or issues found
                 if feedback["changes_requested"] or feedback["issues"] or feedback["must_fix"]:
                     logger.info(f"Processing review feedback for PR #{pr_number}")
-                    success = self.address_review_feedback(pr_number, branch_name, feedback)
-                    self.post_completion_comment(pr_number, feedback, success)
+                    success, error_details = self.address_review_feedback(pr_number, branch_name, feedback)
+                    self.post_completion_comment(pr_number, feedback, success, error_details)
                 else:
                     # Post comment that no changes needed
                     comment_body = (

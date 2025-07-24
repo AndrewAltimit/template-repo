@@ -539,6 +539,56 @@ Empty list defaults to allowing all repositories from the repository owner.
 - Fallback to defaults if config is corrupted
 - Warning logs for config issues without crashing
 
+## Secret Masking in Public Comments
+
+The PR monitoring agent includes comprehensive secret masking to prevent accidental exposure of sensitive information in public PR comments:
+
+### How It Works
+
+1. **Workflow Configuration**: Define which environment variables to mask in the workflow YAML:
+   ```yaml
+   env:
+     MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN,ANTHROPIC_API_KEY"
+   ```
+
+2. **Auto-Detection**: The agent automatically detects sensitive variables based on naming patterns:
+   - Variables starting with: `SECRET_`, `TOKEN_`, `API_`, `KEY_`, `PASSWORD_`, `PRIVATE_`
+   - Variables ending with: `_SECRET`, `_TOKEN`, `_API_KEY`, `_KEY`, `_PASSWORD`, `_PRIVATE_KEY`
+
+3. **Pattern Matching**: Common secret patterns are always masked:
+   - GitHub tokens: `ghp_*`, `ghs_*`, `github_pat_*`
+   - API keys: `sk-*`, `pk-*`
+   - Bearer tokens
+   - URLs with embedded credentials
+
+4. **Error Log Masking**: When pipeline fixes fail, error details are automatically masked before posting to PR comments
+
+### Configuration
+
+In your workflow files:
+```yaml
+- name: Run PR review monitor in container
+  env:
+    # Secrets to use
+    GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
+    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    # Which ones to mask in public comments
+    MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN,ANTHROPIC_API_KEY"
+```
+
+The agent will:
+1. Read the `MASK_ENV_VARS` list
+2. Auto-detect additional sensitive variables
+3. Replace any occurrence of these values with `[VARIABLE_NAME]` in error logs
+4. Apply pattern-based masking for common secret formats
+
+### Important Notes
+
+- GitHub Actions automatically masks registered secrets in workflow logs, but this doesn't apply to PR comments
+- The masking happens before any text is posted as a PR comment
+- Both stdout and stderr from failed commands are masked
+- The masking is case-insensitive for patterns but exact-match for environment variable values
+
 ## Best Practices
 
 1. **Use GitHub Environments**: Configure production environment with appropriate secrets
@@ -548,3 +598,4 @@ Empty list defaults to allowing all repositories from the repository owner.
 5. **Minimal Permissions**: Use fine-grained PATs with minimal required permissions
 6. **Test Locally**: Use gh CLI auth for local development
 7. **Rotate Tokens**: Set expiration dates and rotate tokens regularly
+8. **Review Error Logs**: Always review error logs in PR comments to ensure no secrets leaked

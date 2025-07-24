@@ -76,6 +76,8 @@ jobs:
           ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}
           FORCE_REPROCESS: ${{ inputs.force_reprocess || 'false' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # List of environment variables whose values should be masked in public comments
+          MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN,ANTHROPIC_API_KEY"
         run: |
           echo "Running issue monitor for repository: $GITHUB_REPOSITORY"
           # Export dynamic user/group IDs to match project standards
@@ -88,6 +90,7 @@ jobs:
             -e ENABLE_AI_AGENTS="${ENABLE_AI_AGENTS}" \
             -e FORCE_REPROCESS="${FORCE_REPROCESS:-false}" \
             -e ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
+            -e MASK_ENV_VARS="${MASK_ENV_VARS}" \
             ai-agents python scripts/agents/issue_monitor.py
 
       - name: Log monitoring results
