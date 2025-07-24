@@ -253,6 +253,8 @@ class TestIssueMonitorWithTriggers(unittest.TestCase):
             ),
             # has_agent_comment response
             json.dumps({"comments": []}),
+            # post_starting_work_comment response
+            None,
             # create_pr_from_issue responses will be added as needed
         ]
 
