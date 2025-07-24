@@ -4,6 +4,7 @@
 # Issue data (title and body) is passed via stdin as JSON
 
 set -e  # Exit on error
+set -x  # Debug mode - print commands
 
 # Parse arguments
 ISSUE_NUMBER="$1"
@@ -19,7 +20,16 @@ fi
 
 # Read issue data from stdin
 ISSUE_DATA=$(cat)
-ISSUE_TITLE=$(echo "$ISSUE_DATA" | jq -r '.title')
+
+# Check if jq is available
+if ! command -v jq &> /dev/null; then
+    echo "Warning: jq not found, using simple parsing"
+    # Extract title using grep and sed as fallback
+    ISSUE_TITLE=$(echo "$ISSUE_DATA" | grep -o '"title":"[^"]*"' | sed 's/"title":"//' | sed 's/"$//')
+else
+    ISSUE_TITLE=$(echo "$ISSUE_DATA" | jq -r '.title')
+fi
+
 # ISSUE_BODY is available but not used in this simple test implementation
 # ISSUE_BODY=$(echo "$ISSUE_DATA" | jq -r '.body')
 
@@ -31,7 +41,10 @@ fi
 
 # Create and checkout branch
 echo "Creating branch: $BRANCH_NAME"
-git checkout -b "$BRANCH_NAME"
+git checkout -b "$BRANCH_NAME" || {
+    echo "Branch already exists, checking out existing branch"
+    git checkout "$BRANCH_NAME"
+}
 
 # For testing purposes, create a simple hello world tool
 echo "Creating hello world MCP tool..."
