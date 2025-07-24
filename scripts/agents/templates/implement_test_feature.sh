@@ -69,19 +69,9 @@ rm -f checkout.log
 echo "Successfully on main branch"
 
 # Create and checkout branch from main
-echo "Creating branch: $BRANCH_NAME from main"
-# Temporarily disable exit on error for branch creation
-set +e
-git checkout -b "$BRANCH_NAME" 2>/dev/null
-BRANCH_CREATE_RESULT=$?
-set -e
-
-if [ $BRANCH_CREATE_RESULT -ne 0 ]; then
-    echo "Branch already exists, checking out existing branch"
-    git checkout "$BRANCH_NAME"
-    # Reset to latest main
-    git reset --hard origin/main
-fi
+echo "Creating/updating branch: $BRANCH_NAME from origin/main"
+# Create branch if it doesn't exist, or reset it to origin/main if it does
+git checkout -B "$BRANCH_NAME" origin/main
 echo "Successfully on branch: $(git branch --show-current)"
 
 # For testing purposes, create a simple hello world tool
