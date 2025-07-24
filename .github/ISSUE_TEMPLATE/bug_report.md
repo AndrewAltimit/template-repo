@@ -33,8 +33,9 @@ If applicable, add screenshots to help explain your problem.
 
 ## Version/Environment
 - Branch/Commit: [e.g. main, abc123]
-- OS: [e.g. Ubuntu 22.04]
-- Python version: [e.g. 3.11]
+- Docker Image/Tag: [e.g. python-ci:latest, mcp-gaea2:latest]
+- Service (if using docker-compose): [e.g. mcp-gaea2, python-ci]
+- Host OS (if relevant): [e.g. Ubuntu 22.04]
 - Other relevant version info
 
 ## Additional Context
