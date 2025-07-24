@@ -75,6 +75,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}
           FORCE_REPROCESS: ${{ inputs.force_reprocess || 'false' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           echo "Running issue monitor for repository: $GITHUB_REPOSITORY"
           # Export dynamic user/group IDs to match project standards
@@ -86,6 +87,7 @@ jobs:
             -e GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
             -e ENABLE_AI_AGENTS="${ENABLE_AI_AGENTS}" \
             -e FORCE_REPROCESS="${FORCE_REPROCESS:-false}" \
+            -e ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY}" \
             ai-agents python scripts/agents/issue_monitor.py
 
       - name: Log monitoring results

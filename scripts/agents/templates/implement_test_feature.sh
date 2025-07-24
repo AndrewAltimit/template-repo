@@ -130,56 +130,61 @@ fi
 rm -f checkout2.log
 echo "Successfully on branch: $(git rev-parse --abbrev-ref HEAD)"
 
-# For testing purposes, create a simple hello world tool
-echo "Creating hello world MCP tool..."
-echo "Current directory: $(pwd)"
-echo "Git status before creating files:"
-git status --short
+# Use Claude Code to implement the requested feature
+echo "Running Claude Code to implement the feature..."
+echo "Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
+echo ""
+echo "Using Claude Code with bypass permissions to implement the requested feature..."
 
-# Create the hello world tool in the appropriate location
-echo "Creating directory tools/mcp/hello_world..."
-mkdir -p tools/mcp/hello_world
-echo "Directory created successfully"
-echo "Creating __init__.py file..."
-cat > tools/mcp/hello_world/__init__.py << 'PYTHON'
-"""Hello World MCP tool for testing."""
+# Determine Claude command based on environment
+if command -v claude-code >/dev/null 2>&1; then
+    CLAUDE_CMD="claude-code --bypass-permissions"
+    echo "Using local claude-code command with bypass permissions"
+else
+    # Fall back to npx if claude-code isn't installed
+    CLAUDE_CMD="npx --yes @anthropic-ai/claude-code@latest"
+    echo "Using npx to run claude-code"
+fi
 
-def hello_world():
-    """Simple hello world tool for testing."""
-    return "Hello, World!"
-PYTHON
-echo "__init__.py file created successfully"
+# Run Claude Code to implement the feature
+$CLAUDE_CMD << EOF
+Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}
 
-# Create a simple test
-echo "Creating tests directory..."
-mkdir -p tests
-echo "Tests directory created successfully"
-echo "Creating test file..."
-cat > tests/test_hello_world.py << 'PYTHON'
-"""Test for hello world tool."""
-from tools.mcp.hello_world import hello_world
+${ISSUE_BODY}
 
-def test_hello_world():
-    """Test that hello world returns the correct message."""
-    assert hello_world() == "Hello, World!"
-PYTHON
-echo "Test file created successfully"
-echo "Listing created files:"
-ls -la tools/mcp/hello_world/__init__.py tests/test_hello_world.py
+Please implement the requested feature/fix based on the issue description above.
 
-# Add and commit the changes
-echo "Adding files to git..."
-git add tools/mcp/hello_world/__init__.py tests/test_hello_world.py
-echo "Files added to git successfully"
-echo "Committing changes..."
-git commit -m "feat: add hello world MCP tool for testing AI agents
+Important guidelines:
+1. Analyze the issue carefully and implement a complete solution
+2. Write production-quality code following the project's conventions
+3. Add appropriate tests for your implementation
+4. Ensure all existing tests continue to pass
+5. Follow the existing code style and patterns in the repository
+6. If implementing a new feature, add documentation as needed
+7. Make sure to handle edge cases and error conditions
 
-- Add simple hello_world function that returns 'Hello, World!'
-- Include basic test to verify functionality
-- Implements request from issue #${ISSUE_NUMBER}
+After implementing the solution, commit your changes with an appropriate commit message.
 
-This is a test implementation to validate AI agent workflows."
-echo "Commit successful"
+The commit message should follow this format:
+- For features: "feat: <description>"
+- For bug fixes: "fix: <description>"
+- Include reference to issue #${ISSUE_NUMBER}
+
+Make sure all changes are committed before you finish.
+EOF
+
+# Check if Claude made any commits
+if git diff HEAD^ --quiet 2>/dev/null; then
+    echo "No changes were committed by Claude Code"
+    # If no commits were made, create a minimal implementation to ensure the pipeline works
+    echo "Creating a minimal implementation commit..."
+    echo "# Implementation for issue #${ISSUE_NUMBER}" > "implementation_${ISSUE_NUMBER}.md"
+    git add "implementation_${ISSUE_NUMBER}.md"
+    git commit -m "feat: placeholder implementation for issue #${ISSUE_NUMBER}
+
+This is a placeholder commit to ensure the CI/CD pipeline runs.
+The actual implementation should be added by reviewing the issue requirements."
+fi
 
 # Push the branch to origin
 echo "Pushing branch to origin..."
