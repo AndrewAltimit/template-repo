@@ -597,7 +597,11 @@ class PRReviewMonitor:
             if e.stdout:
                 error_details += f"\nOutput:\n{e.stdout[-2000:]}"  # Last 2000 chars
             if e.stderr:
-                error_details += f"\nError:\n{e.stderr[-2000:]}"  # Last 2000 chars
+                # Filter out Git LFS warnings which are not actual errors
+                stderr_lines = e.stderr.splitlines()
+                filtered_stderr = "\n".join(line for line in stderr_lines if "Git LFS" not in line and "git-lfs" not in line)
+                if filtered_stderr.strip():
+                    error_details += f"\nError:\n{filtered_stderr[-2000:]}"  # Last 2000 chars
             return False, error_details
 
     def address_pipeline_failures(self, pr_number: int, branch_name: str, failures: Dict) -> Tuple[bool, Optional[str]]:
@@ -657,7 +661,11 @@ class PRReviewMonitor:
             if e.stdout:
                 error_details += f"\nOutput:\n{e.stdout[-2000:]}"  # Last 2000 chars
             if e.stderr:
-                error_details += f"\nError:\n{e.stderr[-2000:]}"  # Last 2000 chars
+                # Filter out Git LFS warnings which are not actual errors
+                stderr_lines = e.stderr.splitlines()
+                filtered_stderr = "\n".join(line for line in stderr_lines if "Git LFS" not in line and "git-lfs" not in line)
+                if filtered_stderr.strip():
+                    error_details += f"\nError:\n{filtered_stderr[-2000:]}"  # Last 2000 chars
             return False, error_details
 
     def post_completion_comment(

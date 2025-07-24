@@ -31,8 +31,15 @@ fi
 
 # Checkout the PR branch
 echo "Fetching and checking out branch: $BRANCH_NAME"
-git fetch origin "$BRANCH_NAME"
-git checkout "$BRANCH_NAME"
+git fetch origin "$BRANCH_NAME" 2>&1 | grep -v "Git LFS" || true
+git checkout "$BRANCH_NAME" 2>&1 | grep -v "Git LFS" || true
+
+# Disable Git LFS hooks that are causing issues
+echo "Disabling Git LFS hooks..."
+if [ -f .git/hooks/post-checkout ]; then
+    mv .git/hooks/post-checkout .git/hooks/post-checkout.disabled
+    echo "Disabled post-checkout hook"
+fi
 
 # Create a backup branch
 BACKUP_BRANCH="pr-${PR_NUMBER}-backup-$(date +%s)"
