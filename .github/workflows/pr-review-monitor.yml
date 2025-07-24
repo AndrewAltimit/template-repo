@@ -10,7 +10,13 @@ on:
   schedule:
     # Also run periodically to catch any missed reviews
     - cron: '0 * * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      force_reprocess:
+        description: 'Force reprocess PRs even if they have existing AI agent comments'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   pull-requests: write # Required to comment on PRs and push changes

@@ -4,7 +4,13 @@ on:
   schedule:
     # Run every hour
     - cron: '0 * * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      force_reprocess:
+        description: 'Force reprocess issues even if they have existing AI agent comments'
+        required: false
+        type: boolean
+        default: false
   issues:
     types:
       - opened
@@ -68,7 +74,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}
-          FORCE_REPROCESS: ${{ vars.FORCE_REPROCESS || 'false' }}
+          FORCE_REPROCESS: ${{ inputs.force_reprocess || 'false' }}
         run: |
           echo "Running issue monitor for repository: $GITHUB_REPOSITORY"
           # Export dynamic user/group IDs to match project standards
