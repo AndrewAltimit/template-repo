@@ -16,13 +16,17 @@
         "improvement"
       ],
       "cutoff_hours": 24,
-      "check_interval_minutes": 15
+      "check_interval_minutes": 15,
+      "pr_labels_to_add": [
+        "help wanted"
+      ]
     },
     "pr_review_monitor": {
       "enabled": true,
       "review_bot_names": [
         "gemini-bot",
         "github-actions[bot]",
+        "github-actions",
         "dependabot[bot]"
       ],
       "auto_fix_threshold": {
@@ -30,7 +34,10 @@
         "total_issues": 5
       },
       "cutoff_hours": 24,
-      "check_interval_minutes": 30
+      "check_interval_minutes": 30,
+      "required_labels": [
+        "help wanted"
+      ]
     }
   },
   "claude_cli": {

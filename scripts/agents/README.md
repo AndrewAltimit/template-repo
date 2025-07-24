@@ -255,7 +255,41 @@ export ENABLE_AI_AGENTS=true
 ```
 
 **Security Recommendation**: Only enable in controlled environments with trusted reviewers.
-4. **Code Review**: All changes to workflows and agent scripts must be reviewed
+
+### PR Review Monitor Specific Requirements
+
+The PR Review Monitor has additional requirements beyond the standard security controls:
+
+1. **Label Requirement**: PRs must have the "help wanted" label to be processed
+   - This applies to ALL actions: review fixes, pipeline fixes, etc.
+   - Configurable via `agents.pr_review_monitor.required_labels` in `config.json`
+   - Default: `["help wanted"]`
+
+2. **Why Label Requirement?**: This provides an additional layer of control:
+   - Repository owners can explicitly mark which PRs should receive AI assistance
+   - Prevents accidental processing of sensitive or work-in-progress PRs
+   - Allows gradual rollout and testing on specific PRs
+
+3. **Automatic Labeling**: The Issue Monitor Agent automatically adds labels to PRs it creates:
+   - By default, adds "help wanted" label to enable PR Review Monitor processing
+   - Configurable via `agents.issue_monitor.pr_labels_to_add` in `config.json`
+   - Ensures smooth workflow between agents
+
+4. **Configuration Examples**:
+   ```json
+   {
+     "agents": {
+       "issue_monitor": {
+         "pr_labels_to_add": ["help wanted", "ai-generated"]
+       },
+       "pr_review_monitor": {
+         "required_labels": ["help wanted", "ai-assist"]
+       }
+     }
+   }
+   ```
+
+5. **Code Review**: All changes to workflows and agent scripts must be reviewed
 
 ## Security Considerations
 

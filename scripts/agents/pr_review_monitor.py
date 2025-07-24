@@ -51,6 +51,8 @@ class PRReviewMonitor:
         self.auto_fix_threshold = pr_config.get("auto_fix_threshold", {"critical_issues": 0, "total_issues": 5})
         # Cutoff period in hours for filtering recent PRs
         self.cutoff_hours = pr_config.get("cutoff_hours", 24)
+        # Required labels for PR processing
+        self.required_labels = pr_config.get("required_labels", ["help wanted"])
 
         self.agent_tag = "[AI Agent]"
         self.security_manager = SecurityManager()
@@ -131,6 +133,83 @@ class PRReviewMonitor:
                 return []
         return []
 
+    def get_pr_general_comments(self, pr_number: int) -> List[Dict]:
+        """Get all general comments for a specific PR (including Gemini bot reviews)."""
+        output = run_gh_command(["api", f"/repos/{self.repo}/issues/{pr_number}/comments", "--paginate"])
+
+        if output:
+            try:
+                return json.loads(output) if output.startswith("[") else [json.loads(output)]
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse general comments JSON: {e}")
+                return []
+        return []
+
+    def get_pr_check_status(self, pr_number: int) -> Dict:
+        """Get the status of checks for a PR."""
+        output = run_gh_command(
+            [
+                "pr",
+                "checks",
+                str(pr_number),
+                "--repo",
+                self.repo,
+                "--json",
+                "name,status,conclusion,detailsUrl",
+            ]
+        )
+
+        if output:
+            try:
+                checks = json.loads(output)
+                return {
+                    "checks": checks,
+                    "has_failures": any(check.get("conclusion") in ["failure", "cancelled"] for check in checks),
+                    "failing_checks": [check for check in checks if check.get("conclusion") in ["failure", "cancelled"]],
+                }
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse check status JSON: {e}")
+                return {"checks": [], "has_failures": False, "failing_checks": []}
+        return {"checks": [], "has_failures": False, "failing_checks": []}
+
+    def get_check_run_logs(self, pr_number: int, check_name: str) -> str:
+        """Get the logs for a specific check run."""
+        # First get the check runs for the PR
+        output = run_gh_command(["api", f"/repos/{self.repo}/pulls/{pr_number}", "--jq", ".head.sha"])
+
+        if not output:
+            return ""
+
+        commit_sha = output.strip()
+
+        # Get check runs for this commit
+        output = run_gh_command(["api", f"/repos/{self.repo}/commits/{commit_sha}/check-runs"])
+
+        if output:
+            try:
+                data = json.loads(output)
+                check_runs = data.get("check_runs", [])
+
+                # Find the check run by name
+                for run in check_runs:
+                    if run.get("name") == check_name:
+                        run_id = run.get("id")
+                        # Get the logs for this run
+                        log_output = run_gh_command(
+                            [
+                                "api",
+                                f"/repos/{self.repo}/actions/runs/{run_id}/logs",
+                                "-i",
+                            ]
+                        )
+                        return log_output or f"Could not fetch logs for {check_name}"
+
+                return f"Check run not found: {check_name}"
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse check runs JSON: {e}")
+                return ""
+        return ""
+
     def has_agent_addressed_review(self, pr_number: int) -> bool:
         """Check if agent has already addressed the review."""
         output = run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "comments"])
@@ -146,7 +225,31 @@ class PRReviewMonitor:
                     return True
         return False
 
-    def parse_review_feedback(self, reviews: List[Dict], review_comments: List[Dict]) -> Dict:
+    def has_agent_attempted_pipeline_fix(self, pr_number: int) -> bool:
+        """Check if agent has already attempted to fix pipeline failures."""
+        output = run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "comments"])
+
+        if output:
+            try:
+                data = json.loads(output)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse comment data JSON: {e}")
+                return False
+            for comment in data.get("comments", []):
+                if (
+                    self.agent_tag in comment.get("body", "")
+                    and "pipeline" in comment.get("body", "").lower()
+                    and any(word in comment.get("body", "").lower() for word in ["fixing", "fixed", "attempted"])
+                ):
+                    return True
+        return False
+
+    def parse_review_feedback(
+        self,
+        reviews: List[Dict],
+        review_comments: List[Dict],
+        general_comments: List[Dict],
+    ) -> Dict:
         """Parse review feedback to extract actionable items."""
         feedback = {
             "changes_requested": False,
@@ -204,6 +307,52 @@ class PRReviewMonitor:
                     }
                 )
 
+        # Parse general PR comments (where Gemini posts its reviews)
+        for comment in general_comments:
+            author = comment.get("user", {}).get("login", "")
+            if author in self.review_bot_names or author == "github-actions":
+                body = comment.get("body", "")
+
+                # Look for review patterns in general comments
+                if any(
+                    phrase in body.lower()
+                    for phrase in [
+                        "review:",
+                        "feedback:",
+                        "found",
+                        "issue",
+                        "error",
+                        "suggestion",
+                    ]
+                ):
+                    # Extract issues from Gemini's structured reviews
+                    issue_patterns = [
+                        r"(?:issue|problem|error|bug):\s*(.+?)(?:\n|$)",
+                        r"(?:must fix|required|critical):\s*(.+?)(?:\n|$)",
+                        r"❌\s*(.+?)(?:\n|$)",
+                        r"🔴\s*(.+?)(?:\n|$)",
+                        r"\*\*Issue\*\*:\s*(.+?)(?:\n|$)",
+                        r"\*\*Error\*\*:\s*(.+?)(?:\n|$)",
+                    ]
+
+                    for pattern in issue_patterns:
+                        matches = re.findall(pattern, body, re.IGNORECASE | re.MULTILINE)
+                        feedback["must_fix"].extend(matches)
+
+                    # Also look for code blocks with issues
+                    code_block_pattern = r"```[^\n]*\n(.*?)\n```"
+                    code_blocks = re.findall(code_block_pattern, body, re.DOTALL)
+                    if code_blocks and any(word in body.lower() for word in ["error", "issue", "problem"]):
+                        for block in code_blocks:
+                            feedback["issues"].append(
+                                {
+                                    "file": "See PR comment",
+                                    "line": 0,
+                                    "comment": f"Code issue: {block[:200]}...",
+                                    "severity": "high",
+                                }
+                            )
+
         return feedback
 
     def prepare_feedback_text(self, feedback: Dict) -> tuple:
@@ -215,6 +364,36 @@ class PRReviewMonitor:
         suggestions_text = "\n".join([f"- {suggestion}" for suggestion in feedback["nice_to_have"]])
 
         return must_fix_text, issues_text, suggestions_text
+
+    def parse_pipeline_failures(self, failing_checks: List[Dict]) -> Dict:
+        """Parse pipeline failure information."""
+        failures = {
+            "lint_failures": [],
+            "test_failures": [],
+            "build_failures": [],
+            "other_failures": [],
+            "total_failures": len(failing_checks),
+        }
+
+        for check in failing_checks:
+            check_name = check.get("name", "").lower()
+            failure_info = {
+                "name": check.get("name"),
+                "url": check.get("detailsUrl", ""),
+                "status": check.get("status"),
+                "conclusion": check.get("conclusion"),
+            }
+
+            if any(word in check_name for word in ["lint", "format", "flake", "black", "mypy"]):
+                failures["lint_failures"].append(failure_info)
+            elif any(word in check_name for word in ["test", "pytest", "unittest"]):
+                failures["test_failures"].append(failure_info)
+            elif any(word in check_name for word in ["build", "compile", "docker"]):
+                failures["build_failures"].append(failure_info)
+            else:
+                failures["other_failures"].append(failure_info)
+
+        return failures
 
     def address_review_feedback(self, pr_number: int, branch_name: str, feedback: Dict) -> bool:
         """Implement changes to address review feedback."""
@@ -271,6 +450,59 @@ class PRReviewMonitor:
             logger.error(f"Failed to address feedback for PR #{pr_number}: {e}")
             return False
 
+    def address_pipeline_failures(self, pr_number: int, branch_name: str, failures: Dict) -> bool:
+        """Attempt to fix pipeline failures."""
+        # Check if auto-fix is enabled
+        if not self.auto_fix_enabled:
+            logger.info(f"AI agents are disabled. Skipping automatic pipeline fixes for PR #{pr_number}")
+            return False
+
+        # Safety check - don't try to fix too many failures at once
+        if failures["total_failures"] > 10:
+            logger.warning(
+                f"Too many failures ({failures['total_failures']}) for automatic fixing. Manual intervention required."
+            )
+            return False
+
+        # Use the external script for pipeline fixes
+        script_path = Path(__file__).parent / "templates" / "fix_pipeline_failure.sh"
+        if not script_path.exists():
+            logger.error(f"Pipeline fix script not found at {script_path}")
+            return False
+
+        try:
+            # Prepare failure information
+            failure_data = {
+                "lint_failures": [f["name"] for f in failures["lint_failures"]],
+                "test_failures": [f["name"] for f in failures["test_failures"]],
+                "build_failures": [f["name"] for f in failures["build_failures"]],
+                "other_failures": [f["name"] for f in failures["other_failures"]],
+            }
+
+            # Pass environment variables including GITHUB_TOKEN
+            env = os.environ.copy()
+
+            subprocess.run(
+                [
+                    str(script_path),
+                    str(pr_number),
+                    branch_name,
+                ],
+                input=json.dumps(failure_data),
+                text=True,
+                check=True,
+                timeout=600,  # 10 minute timeout for pipeline fixes
+                env=env,
+            )
+            logger.info(f"Successfully fixed pipeline failures for PR #{pr_number}")
+            return True
+        except subprocess.TimeoutExpired:
+            logger.error(f"Timeout while fixing pipeline failures for PR #{pr_number}")
+            return False
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to fix pipeline failures for PR #{pr_number}: {e}")
+            return False
+
     def post_completion_comment(self, pr_number: int, feedback: Dict, success: bool) -> None:
         """Post a comment indicating review feedback has been addressed."""
         if success:
@@ -297,6 +529,57 @@ All requested changes have been implemented and tests are passing. The PR is rea
                 "remaining fixes manually.\n\n"
                 "*This comment was generated by an AI agent.*"
             )
+
+        run_gh_command(
+            [
+                "pr",
+                "comment",
+                str(pr_number),
+                "--repo",
+                self.repo,
+                "--body",
+                comment_body,
+            ]
+        )
+
+    def post_pipeline_fix_comment(self, pr_number: int, failures: Dict, status: str = "attempting") -> None:
+        """Post a comment about pipeline fix attempts."""
+        if status == "attempting":
+            comment_body = f"""{self.agent_tag} 🔧 I've detected failing CI/CD checks and I'm working on fixing them:
+
+**Failed Checks:**
+- Lint/Format failures: {len(failures['lint_failures'])}
+- Test failures: {len(failures['test_failures'])}
+- Build failures: {len(failures['build_failures'])}
+- Other failures: {len(failures['other_failures'])}
+
+I'll analyze the failure logs and attempt to fix these issues automatically...
+
+*This comment was generated by an AI agent that monitors and fixes CI/CD pipeline failures.*"""
+        elif status == "success":
+            comment_body = f"""{self.agent_tag} ✅ I've successfully fixed the pipeline failures:
+
+**Fixed Issues:**
+- Resolved {len(failures['lint_failures'])} lint/format issues
+- Fixed {len(failures['test_failures'])} test failures
+- Corrected {len(failures['build_failures'])} build problems
+- Addressed {len(failures['other_failures'])} other issues
+
+All checks should now pass. The PR is ready for review.
+
+*This comment was generated by an AI agent that automatically fixes CI/CD pipeline failures.*"""
+        else:  # failed
+            comment_body = f"""{self.agent_tag} ❌ I attempted to fix the pipeline failures but encountered issues:
+
+**Attempted Fixes:**
+- Lint/Format failures: {len(failures['lint_failures'])}
+- Test failures: {len(failures['test_failures'])}
+- Build failures: {len(failures['build_failures'])}
+- Other failures: {len(failures['other_failures'])}
+
+Manual intervention may be required to resolve these issues.
+
+*This comment was generated by an AI agent that monitors CI/CD pipeline failures.*"""
 
         run_gh_command(
             [
@@ -350,6 +633,15 @@ All requested changes have been implemented and tests are passing. The PR is rea
         for pr in prs:
             pr_number = pr["number"]
             branch_name = pr["headRefName"]
+            labels = [label.get("name", "") for label in pr.get("labels", [])]
+
+            logger.info(f"Checking PR #{pr_number} with labels: {labels}")
+
+            # Check if PR has required labels
+            has_required_label = any(label in labels for label in self.required_labels)
+            if not has_required_label:
+                logger.info(f"PR #{pr_number} does not have required labels {self.required_labels} - skipping")
+                continue
 
             # Check for keyword trigger from allowed user
             trigger_info = self.security_manager.check_trigger_comment(pr, "pr")
@@ -388,20 +680,57 @@ All requested changes have been implemented and tests are passing. The PR is rea
                 logger.debug(f"Already addressed review for PR #{pr_number}")
                 continue
 
+            # Check for pipeline failures first
+            check_status = self.get_pr_check_status(pr_number)
+            if check_status["has_failures"] and not self.has_agent_attempted_pipeline_fix(pr_number):
+                logger.info(f"PR #{pr_number} has failing CI/CD checks")
+                failures = self.parse_pipeline_failures(check_status["failing_checks"])
+
+                # Post comment that we're working on fixing pipeline
+                self.post_pipeline_fix_comment(pr_number, failures, "attempting")
+
+                # Attempt to fix the failures
+                success = self.address_pipeline_failures(pr_number, branch_name, failures)
+
+                # Post completion comment
+                if success:
+                    self.post_pipeline_fix_comment(pr_number, failures, "success")
+                else:
+                    self.post_pipeline_fix_comment(pr_number, failures, "failed")
+
+                # Continue to next PR after handling pipeline failures
+                continue
+
             # Handle different actions
             if action.lower() in ["approved", "fix", "implement", "review"]:
                 # Get reviews and comments
                 reviews = self.get_pr_reviews(pr_number)
                 review_comments = self.get_pr_review_comments(pr_number)
+                general_comments = self.get_pr_general_comments(pr_number)
 
                 # Skip if no reviews from bots
                 bot_reviews = [r for r in reviews if r.get("author", {}).get("login") in self.review_bot_names]
-                if not bot_reviews and not review_comments:
+
+                # Check for bot comments in general comments too (where Gemini posts)
+                bot_general_comments = [
+                    c
+                    for c in general_comments
+                    if c.get("user", {}).get("login") in self.review_bot_names
+                    or c.get("user", {}).get("login") == "github-actions"
+                ]
+
+                logger.info(
+                    f"PR #{pr_number}: Found {len(bot_reviews)} bot reviews, "
+                    f"{len(review_comments)} inline comments, "
+                    f"{len(bot_general_comments)} bot general comments"
+                )
+
+                if not bot_reviews and not review_comments and not bot_general_comments:
                     logger.debug(f"No bot reviews found for PR #{pr_number}")
                     continue
 
                 # Parse feedback
-                feedback = self.parse_review_feedback(bot_reviews, review_comments)
+                feedback = self.parse_review_feedback(bot_reviews, review_comments, general_comments)
 
                 # Only process if changes were requested or issues found
                 if feedback["changes_requested"] or feedback["issues"] or feedback["must_fix"]:

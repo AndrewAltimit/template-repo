@@ -31,6 +31,8 @@ Your role as Claude Code is the primary development assistant, handling:
 
 **IMPORTANT**: AI agents (Issue Monitor and PR Review Monitor) implement strict security measures:
 - Only authorized users can trigger AI agent actions using keyword triggers like `[Approved][Claude]`
+- PR Review Monitor only works on PRs with "help wanted" label (configurable in `config.json`)
+- Issue Monitor automatically adds "help wanted" label to PRs it creates for seamless workflow
 - Allow list is configured in `scripts/agents/config.json`
 - Unauthorized requests are blocked to prevent prompt injection attacks
 - See `scripts/agents/README.md` for complete security documentation
@@ -151,8 +153,8 @@ docker-compose run --rm ai-agents python scripts/agents/run_agents.py pr-review-
 ./scripts/agents/run_agents.sh pr-review-monitor
 
 # GitHub Actions automatically run agents on schedule:
-# - Issue Monitor: Every 15 minutes
-# - PR Review Monitor: Every 30 minutes
+# - Issue Monitor: Every hour
+# - PR Review Monitor: Every hour
 ```
 
 ### Docker Operations

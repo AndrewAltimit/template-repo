@@ -26,6 +26,12 @@ ISSUE_TITLE=$(echo "$ISSUE_DATA" | jq -r '.title')
 # ISSUE_BODY is available for future use when implementing real fixes
 # ISSUE_BODY=$(echo "$ISSUE_DATA" | jq -r '.body')
 
+# Extract PR labels to add (default to "help wanted" if not specified)
+PR_LABELS_TO_ADD=$(echo "$ISSUE_DATA" | jq -r '.pr_labels_to_add[]?' 2>/dev/null || echo "")
+if [ -z "$PR_LABELS_TO_ADD" ]; then
+    PR_LABELS_TO_ADD="help wanted"
+fi
+
 echo "Processing issue: $ISSUE_TITLE"
 
 # Safety check - ensure we're in a git repository
@@ -314,6 +320,29 @@ set -e
 
 # Show the output
 cat pr_create.log
+
+# If PR was created successfully, add the configured labels
+if [ $PR_CREATE_RESULT -eq 0 ]; then
+    echo "Adding labels to the PR..."
+    # Get the PR number first
+    PR_NUMBER=$(gh pr view --json number --jq .number 2>/dev/null || echo "")
+    if [ -n "$PR_NUMBER" ]; then
+        # PR_LABELS_TO_ADD might contain multiple labels separated by newlines
+        if [ -n "$PR_LABELS_TO_ADD" ]; then
+            echo "$PR_LABELS_TO_ADD" | while IFS= read -r label; do
+                if [ -n "$label" ]; then
+                    echo "Adding label: $label"
+                    gh pr edit "$PR_NUMBER" --add-label "$label" 2>&1 || echo "WARNING: Failed to add label '$label'"
+                fi
+            done
+            echo "Finished adding labels to PR #$PR_NUMBER"
+        else
+            echo "No labels configured to add"
+        fi
+    else
+        echo "WARNING: Could not get PR number to add labels"
+    fi
+fi
 
 # Get PR URL - check even if label failed
 # The PR might have been created successfully even if adding the label failed

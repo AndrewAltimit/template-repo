@@ -58,6 +58,8 @@ class IssueMonitor:
         self.actionable_labels = issue_config.get("actionable_labels", ["bug", "feature", "enhancement", "fix", "improvement"])
         # Cutoff period in hours for filtering recent issues
         self.cutoff_hours = issue_config.get("cutoff_hours", 24)
+        # Labels to add to PRs created by this agent
+        self.pr_labels_to_add = issue_config.get("pr_labels_to_add", ["help wanted"])
 
         self.agent_tag = "[AI Agent]"
         self.security_manager = SecurityManager()
@@ -298,7 +300,11 @@ You'll receive a notification once the PR is ready.
 
         try:
             # Pass sensitive data via stdin instead of command-line arguments
-            issue_data = {"title": issue_title, "body": issue_body}
+            issue_data = {
+                "title": issue_title,
+                "body": issue_body,
+                "pr_labels_to_add": self.pr_labels_to_add,
+            }
 
             # Pass environment variables including GITHUB_TOKEN
             env = os.environ.copy()
