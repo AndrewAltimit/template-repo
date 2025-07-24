@@ -339,6 +339,10 @@ class SecurityManager:
         body = issue_or_pr.get("body", "")
         author = issue_or_pr.get("author", {}).get("login", "")
 
+        # Log what we're checking
+        logger.debug(f"Checking {entity_type} body for triggers")
+        logger.debug(f"Author from issue data: '{author}'")
+
         if author and self.is_user_allowed(author):
             trigger = self.parse_keyword_trigger(body)
             if trigger:

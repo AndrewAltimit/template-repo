@@ -424,6 +424,10 @@ You'll receive a notification once the PR is ready.
                 logger.warning(f"No comments output for issue #{issue_number}")
                 issue["comments"] = []
 
+            # Log issue structure for debugging
+            logger.debug(f"Issue structure keys: {list(issue.keys())}")
+            logger.debug(f"Issue author data: {issue.get('author', 'NO AUTHOR KEY')}")
+
             # Check for keyword trigger from allowed user
             trigger_info = self.security_manager.check_trigger_comment(issue, "issue")
 
