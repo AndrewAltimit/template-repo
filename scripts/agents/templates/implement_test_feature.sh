@@ -103,6 +103,8 @@ git status --short
 # Create the hello world tool in the appropriate location
 echo "Creating directory tools/mcp/hello_world..."
 mkdir -p tools/mcp/hello_world
+echo "Directory created successfully"
+echo "Creating __init__.py file..."
 cat > tools/mcp/hello_world/__init__.py << 'PYTHON'
 """Hello World MCP tool for testing."""
 
@@ -110,9 +112,13 @@ def hello_world():
     """Simple hello world tool for testing."""
     return "Hello, World!"
 PYTHON
+echo "__init__.py file created successfully"
 
 # Create a simple test
+echo "Creating tests directory..."
 mkdir -p tests
+echo "Tests directory created successfully"
+echo "Creating test file..."
 cat > tests/test_hello_world.py << 'PYTHON'
 """Test for hello world tool."""
 from tools.mcp.hello_world import hello_world
@@ -121,9 +127,15 @@ def test_hello_world():
     """Test that hello world returns the correct message."""
     assert hello_world() == "Hello, World!"
 PYTHON
+echo "Test file created successfully"
+echo "Listing created files:"
+ls -la tools/mcp/hello_world/__init__.py tests/test_hello_world.py
 
 # Add and commit the changes
+echo "Adding files to git..."
 git add tools/mcp/hello_world/__init__.py tests/test_hello_world.py
+echo "Files added to git successfully"
+echo "Committing changes..."
 git commit -m "feat: add hello world MCP tool for testing AI agents
 
 - Add simple hello_world function that returns 'Hello, World!'
@@ -131,6 +143,7 @@ git commit -m "feat: add hello world MCP tool for testing AI agents
 - Implements request from issue #${ISSUE_NUMBER}
 
 This is a test implementation to validate AI agent workflows."
+echo "Commit successful"
 
 # Push the branch to origin
 echo "Pushing branch to origin..."
