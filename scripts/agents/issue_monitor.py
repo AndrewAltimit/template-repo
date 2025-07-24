@@ -244,14 +244,14 @@ Once you've added this information, I'll be able to create a pull request to add
 
         logger.info(f"Posted security rejection comment on issue #{issue_number}")
 
-    def post_starting_work_comment(self, issue_number: int) -> None:
+    def post_starting_work_comment(self, issue_number: int, branch_name: str) -> None:
         """Post a comment indicating we're starting to work on the issue."""
         comment_body = f"""{self.agent_tag} I'm starting work on this issue!
 
 I'll analyze the requirements and create a pull request to address this issue. This typically takes a few minutes.
 
 **What I'll do:**
-1. Create a new branch for this issue
+1. Create a new branch: `{branch_name}`
 2. Implement the requested changes
 3. Run tests to ensure everything works
 4. Open a pull request for review
@@ -284,15 +284,11 @@ You'll receive a notification once the PR is ready.
 
         return has_actionable_label
 
-    def create_pr_from_issue(self, issue: Dict) -> Optional[str]:
+    def create_pr_from_issue(self, issue: Dict, branch_name: str) -> Optional[str]:
         """Create a pull request to address the issue."""
         issue_number = issue["number"]
         issue_title = issue["title"]
         issue_body = issue["body"]
-
-        # Create feature branch with UUID suffix to avoid conflicts
-        uuid_suffix = str(uuid.uuid4())[:6]
-        branch_name = f"fix-issue-{issue_number}-{uuid_suffix}"
 
         # Use the external script
         script_path = Path(__file__).parent / "templates" / "implement_test_feature.sh"
@@ -474,10 +470,14 @@ You'll receive a notification once the PR is ready.
                     # Request more information
                     self.create_information_request_comment(issue_number, missing)
                 elif self.should_create_pr(issue):
+                    # Generate branch name with UUID suffix
+                    uuid_suffix = str(uuid.uuid4())[:6]
+                    branch_name = f"fix-issue-{issue_number}-{uuid_suffix}"
+
                     # Post comment that we're starting work
-                    self.post_starting_work_comment(issue_number)
+                    self.post_starting_work_comment(issue_number, branch_name)
                     # Create PR to address the issue
-                    self.create_pr_from_issue(issue)
+                    self.create_pr_from_issue(issue, branch_name)
                 else:
                     logger.info(f"Issue #{issue_number} not actionable yet")
             elif action.lower() == "close":

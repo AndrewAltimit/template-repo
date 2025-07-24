@@ -151,8 +151,11 @@ echo "Git remote configuration:"
 git remote -v
 echo "Attempting to push branch $BRANCH_NAME..."
 set +e
+# Use pipefail to capture exit code from git push, not tee
+set -o pipefail
 git push -u origin "$BRANCH_NAME" 2>&1 | tee push.log
 PUSH_RESULT=$?
+set +o pipefail
 set -e
 
 if [ $PUSH_RESULT -ne 0 ]; then

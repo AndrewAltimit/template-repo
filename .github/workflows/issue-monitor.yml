@@ -75,9 +75,9 @@ jobs:
           export GROUP_ID=$(id -g)
 
           docker-compose run --rm --user "${USER_ID}:${GROUP_ID}" \
-            -e GITHUB_TOKEN \
-            -e GITHUB_REPOSITORY \
-            -e ENABLE_AI_AGENTS \
+            -e GITHUB_TOKEN="${GITHUB_TOKEN}" \
+            -e GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
+            -e ENABLE_AI_AGENTS="${ENABLE_AI_AGENTS}" \
             ai-agents python scripts/agents/issue_monitor.py
 
       - name: Log monitoring results
