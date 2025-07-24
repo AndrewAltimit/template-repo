@@ -15,6 +15,7 @@ import re
 import subprocess
 import sys
 import time
+import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -289,8 +290,9 @@ You'll receive a notification once the PR is ready.
         issue_title = issue["title"]
         issue_body = issue["body"]
 
-        # Create feature branch
-        branch_name = f"fix-issue-{issue_number}"
+        # Create feature branch with UUID suffix to avoid conflicts
+        uuid_suffix = str(uuid.uuid4())[:6]
+        branch_name = f"fix-issue-{issue_number}-{uuid_suffix}"
 
         # Use the external script
         script_path = Path(__file__).parent / "templates" / "implement_test_feature.sh"
