@@ -57,14 +57,17 @@ echo "Creating/updating local main branch from origin..."
 # This handles detached HEAD state in GitHub Actions
 # Temporarily disable exit on error to handle Git LFS warnings
 set +e
-git checkout -B main origin/main 2>&1 | tee checkout.log
+# Redirect both stdout and stderr to capture all output including warnings
+git checkout -B main origin/main > checkout.log 2>&1
 CHECKOUT_RESULT=$?
 set -e
+
+# Show the output
+cat checkout.log
 
 # Check if checkout actually failed (ignore Git LFS warnings)
 if [ $CHECKOUT_RESULT -ne 0 ] && ! grep -q "Git LFS" checkout.log; then
     echo "ERROR: Failed to checkout main branch"
-    cat checkout.log
     exit 1
 fi
 rm -f checkout.log
