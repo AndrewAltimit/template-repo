@@ -147,32 +147,98 @@ class PRReviewMonitor:
 
     def get_pr_check_status(self, pr_number: int) -> Dict:
         """Get the status of checks for a PR."""
-        output = run_gh_command(
+        # Get PR status check rollup which includes all checks
+        pr_output = run_gh_command(
             [
                 "pr",
-                "checks",
+                "view",
                 str(pr_number),
                 "--repo",
                 self.repo,
                 "--json",
-                "name,state,link",
+                "statusCheckRollup",
             ]
         )
 
-        if output:
-            try:
-                checks = json.loads(output)
+        if not pr_output:
+            logger.error(f"Failed to get PR #{pr_number} details")
+            return {
+                "checks": [],
+                "has_failures": False,
+                "failing_checks": [],
+                "in_progress": False,
+            }
+
+        try:
+            pr_data = json.loads(pr_output)
+            status_rollup = pr_data.get("statusCheckRollup", [])
+
+            # If no status checks, return empty
+            if not status_rollup:
+                logger.info(f"PR #{pr_number}: No status checks found")
                 return {
-                    "checks": checks,
-                    "has_failures": any(check.get("state") in ["failure", "error", "action_required"] for check in checks),
-                    "failing_checks": [
-                        check for check in checks if check.get("state") in ["failure", "error", "action_required"]
-                    ],
+                    "checks": [],
+                    "has_failures": False,
+                    "failing_checks": [],
+                    "in_progress": False,
                 }
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse check status JSON: {e}")
-                return {"checks": [], "has_failures": False, "failing_checks": []}
-        return {"checks": [], "has_failures": False, "failing_checks": []}
+
+            # Process status checks
+            all_checks = []
+            failing_checks = []
+            in_progress_checks = []
+
+            for check in status_rollup:
+                all_checks.append(check)
+
+                # GitHub uses different status values in statusCheckRollup
+                status = check.get("status", "").upper()
+                conclusion = check.get("conclusion", "").upper() if check.get("conclusion") else None
+
+                logger.debug(f"Check: {check.get('name')} - Status: {status} - Conclusion: {conclusion}")
+
+                # Check if still in progress
+                if status in ["PENDING", "QUEUED", "IN_PROGRESS"]:
+                    in_progress_checks.append(check)
+                # Check if failed
+                elif conclusion in [
+                    "FAILURE",
+                    "CANCELLED",
+                    "TIMED_OUT",
+                    "ACTION_REQUIRED",
+                ]:
+                    failing_checks.append(check)
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse PR data: {e}")
+            return {
+                "checks": [],
+                "has_failures": False,
+                "failing_checks": [],
+                "in_progress": False,
+            }
+        except Exception as e:
+            logger.error(f"Error processing check status: {e}")
+            return {
+                "checks": [],
+                "has_failures": False,
+                "failing_checks": [],
+                "in_progress": False,
+            }
+
+        # Log summary
+        logger.info(f"PR #{pr_number}: Found {len(all_checks)} total checks")
+        if in_progress_checks:
+            logger.info(f"PR #{pr_number}: {len(in_progress_checks)} checks still in progress")
+        if failing_checks:
+            logger.info(f"PR #{pr_number}: {len(failing_checks)} checks failed")
+
+        return {
+            "checks": all_checks,
+            "has_failures": len(failing_checks) > 0,
+            "failing_checks": failing_checks,
+            "in_progress": len(in_progress_checks) > 0,
+        }
 
     def get_check_run_logs(self, pr_number: int, check_name: str) -> str:
         """Get the logs for a specific check run."""
@@ -378,11 +444,12 @@ class PRReviewMonitor:
         }
 
         for check in failing_checks:
-            check_name = check.get("name", "").lower()
+            check_name = (check.get("name") or check.get("context", "Unknown")).lower()
             failure_info = {
-                "name": check.get("name"),
-                "url": check.get("link", ""),
-                "state": check.get("state"),
+                "name": check.get("name") or check.get("context", "Unknown"),
+                "url": check.get("detailsUrl") or check.get("targetUrl", ""),
+                "status": check.get("status", ""),
+                "conclusion": check.get("conclusion", ""),
             }
 
             if any(word in check_name for word in ["lint", "format", "flake", "black", "mypy"]):
@@ -682,9 +749,18 @@ Manual intervention may be required to resolve these issues.
                 continue
 
             # Check for pipeline failures first
+            logger.info(f"Checking pipeline status for PR #{pr_number}")
             check_status = self.get_pr_check_status(pr_number)
+            logger.info(
+                f"PR #{pr_number}: Total checks: {len(check_status['checks'])}, Failing: {len(check_status['failing_checks'])}"
+            )
+
+            # If checks are still in progress, log but don't attempt fixes yet
+            if check_status.get("in_progress", False):
+                logger.info(f"PR #{pr_number}: Checks still in progress, will check again later")
+
             if check_status["has_failures"] and not self.has_agent_attempted_pipeline_fix(pr_number):
-                logger.info(f"PR #{pr_number} has failing CI/CD checks")
+                logger.info(f"PR #{pr_number} has {len(check_status['failing_checks'])} failing CI/CD checks")
                 failures = self.parse_pipeline_failures(check_status["failing_checks"])
 
                 # Post comment that we're working on fixing pipeline
