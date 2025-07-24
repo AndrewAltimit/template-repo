@@ -42,9 +42,10 @@ fi
 # Ensure we start from main branch
 echo "Fetching latest changes..."
 git fetch origin main
-echo "Checking out main branch..."
-git checkout main
-git pull origin main
+echo "Creating/updating local main branch from origin..."
+# Create or reset local main branch to match origin/main
+# This handles detached HEAD state in GitHub Actions
+git checkout -B main origin/main
 
 # Create and checkout branch from main
 echo "Creating branch: $BRANCH_NAME from main"
