@@ -101,7 +101,7 @@ class GeminiMCPServer(BaseMCPServer):
             if str(parent_dir) not in sys.path:
                 sys.path.insert(0, str(parent_dir))
 
-            from tools.gemini.gemini_integration import get_integration
+            from .gemini_integration import get_integration
 
             return get_integration(self.gemini_config)
         except ImportError as e:
