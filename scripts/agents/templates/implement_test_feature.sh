@@ -48,11 +48,18 @@ git pull origin main
 
 # Create and checkout branch from main
 echo "Creating branch: $BRANCH_NAME from main"
-git checkout -b "$BRANCH_NAME" || {
+# Temporarily disable exit on error for branch creation
+set +e
+git checkout -b "$BRANCH_NAME" 2>/dev/null
+BRANCH_CREATE_RESULT=$?
+set -e
+
+if [ $BRANCH_CREATE_RESULT -ne 0 ]; then
     echo "Branch already exists, checking out existing branch"
     git checkout "$BRANCH_NAME"
-    git rebase main
-}
+    # Reset to latest main
+    git reset --hard origin/main
+fi
 
 # For testing purposes, create a simple hello world tool
 echo "Creating hello world MCP tool..."
