@@ -84,10 +84,11 @@ jobs:
           export GROUP_ID=$(id -g)
 
           # Mount Claude config from host into container
-          # The container runs as USER_ID:GROUP_ID, so mount to /root/.claude
+          # The container runs as USER_ID:GROUP_ID, so mount configs to /tmp/home
           docker-compose run --rm --user "${USER_ID}:${GROUP_ID}" \
-            -v "$HOME/.claude:/root/.claude:ro" \
-            -e HOME=/root \
+            -v "$HOME/.claude:/tmp/home/.claude:ro" \
+            -v "$HOME/.config/gh:/tmp/home/.config/gh:ro" \
+            -e HOME=/tmp/home \
             -e GITHUB_TOKEN="${GITHUB_TOKEN}" \
             -e GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
             -e ENABLE_AI_AGENTS="${ENABLE_AI_AGENTS}" \

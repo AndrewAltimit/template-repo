@@ -140,8 +140,13 @@ echo "Using Claude Code with --dangerously-skip-permissions to implement the req
 if [ -f /.dockerenv ] || [ -n "$CONTAINER" ]; then
     # We're in a container
     echo "Running in container - checking for mounted Claude credentials..."
+    # Check both possible locations for Claude credentials
     if [ -f "$HOME/.claude/.credentials.json" ]; then
         echo "Claude credentials found at $HOME/.claude/.credentials.json"
+        CLAUDE_CMD="claude-code --dangerously-skip-permissions"
+    elif [ -f "/tmp/home/.claude/.credentials.json" ]; then
+        echo "Claude credentials found at /tmp/home/.claude/.credentials.json"
+        export HOME=/tmp/home
         CLAUDE_CMD="claude-code --dangerously-skip-permissions"
     else
         echo "WARNING: Claude credentials not mounted from host!"
