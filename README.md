@@ -39,11 +39,13 @@ This repository leverages **five AI agents** for development and automation:
 4. **Issue Monitor Agent** (Automated Issue Management)
    - Monitors GitHub issues for completeness
    - Automatically creates PRs from well-described issues
+   - Triggered by keyword commands like `[Approved][Claude]`
    - Runs every 15 minutes via GitHub Actions
 
 5. **PR Review Monitor Agent** (Automated Review Response)
    - Monitors PR reviews and implements requested changes
    - Uses Claude Code CLI to address feedback automatically
+   - Triggered by keyword commands like `[Fix][Claude]`
    - Runs every 30 minutes or on PR review events
 
 ## Features
@@ -185,6 +187,12 @@ This project uses five AI agents. See [AI Agents Documentation](docs/AI_AGENTS.m
 - GitHub Copilot (code review suggestions)
 - Issue Monitor Agent (automated issue management)
 - PR Review Monitor Agent (automated review response)
+
+**Security Features:**
+- Keyword trigger system (e.g., `[Approved][Claude]`) prevents accidental activation
+- User allow list prevents unauthorized access
+- GitHub Environments for secure token management
+- See [AI Agents Security](docs/AI_AGENTS_SECURITY.md) for configuration
 
 ### MCP Configuration
 

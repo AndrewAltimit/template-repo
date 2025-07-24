@@ -13,10 +13,12 @@ This is a **single-maintainer project** by @AndrewAltimit with a **container-fir
 
 ## AI Agent Collaboration
 
-You are working alongside two other AI agents:
+You are working alongside four other AI agents in a comprehensive ecosystem:
 
 1. **Gemini CLI** - Handles automated PR code reviews
 2. **GitHub Copilot** - Provides code review suggestions in PRs
+3. **Issue Monitor Agent** - Automatically creates PRs from well-described issues
+4. **PR Review Monitor Agent** - Automatically implements fixes based on review feedback
 
 Your role as Claude Code is the primary development assistant, handling:
 
@@ -28,11 +30,12 @@ Your role as Claude Code is the primary development assistant, handling:
 ### AI Agent Security
 
 **IMPORTANT**: AI agents (Issue Monitor and PR Review Monitor) implement strict security measures:
-- Only authorized users can trigger AI agent actions
+- Only authorized users can trigger AI agent actions using keyword triggers like `[Approved][Claude]`
 - Allow list is configured in `scripts/agents/config.json`
 - Unauthorized requests are blocked to prevent prompt injection attacks
 - See `scripts/agents/README.md` for complete security documentation
 - Auto-fix feature is disabled by default and requires `ENABLE_AUTO_FIX=true`
+- Token management uses GitHub Environments for secure secret storage
 
 ### Remote Infrastructure
 
@@ -132,6 +135,24 @@ python main.py
 
 # For local development without Docker
 pip install -r requirements.txt
+```
+
+### AI Agents
+
+```bash
+# Run AI agents (containerized)
+docker-compose run --rm ai-agents python scripts/agents/run_agents.py status
+docker-compose run --rm ai-agents python scripts/agents/run_agents.py issue-monitor
+docker-compose run --rm ai-agents python scripts/agents/run_agents.py pr-review-monitor
+
+# Run agents using the helper script
+./scripts/agents/run_agents.sh status
+./scripts/agents/run_agents.sh issue-monitor
+./scripts/agents/run_agents.sh pr-review-monitor
+
+# GitHub Actions automatically run agents on schedule:
+# - Issue Monitor: Every 15 minutes
+# - PR Review Monitor: Every 30 minutes
 ```
 
 ### Docker Operations
