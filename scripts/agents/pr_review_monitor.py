@@ -247,6 +247,9 @@ class PRReviewMonitor:
                 "suggestions": suggestions_text,
             }
 
+            # Pass environment variables including GITHUB_TOKEN
+            env = os.environ.copy()
+
             subprocess.run(
                 [
                     str(script_path),
@@ -257,6 +260,7 @@ class PRReviewMonitor:
                 text=True,
                 check=True,
                 timeout=300,  # 5 minute timeout
+                env=env,
             )
             logger.info(f"Successfully addressed feedback for PR #{pr_number}")
             return True

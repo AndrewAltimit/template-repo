@@ -39,13 +39,36 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
     exit 1
 fi
 
+# Configure git to use the AI_AGENT_TOKEN for authentication
+if [ -n "$GITHUB_TOKEN" ]; then
+    echo "Configuring git authentication..."
+    # Set the remote URL with authentication token
+    git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+    echo "Git authentication configured for ${GITHUB_REPOSITORY}"
+else
+    echo "WARNING: GITHUB_TOKEN not set, git push may fail"
+fi
+
 # Ensure we start from main branch
 echo "Fetching latest changes..."
 git fetch origin main
 echo "Creating/updating local main branch from origin..."
 # Create or reset local main branch to match origin/main
 # This handles detached HEAD state in GitHub Actions
-git checkout -B main origin/main
+# Temporarily disable exit on error to handle Git LFS warnings
+set +e
+git checkout -B main origin/main 2>&1 | tee checkout.log
+CHECKOUT_RESULT=$?
+set -e
+
+# Check if checkout actually failed (ignore Git LFS warnings)
+if [ $CHECKOUT_RESULT -ne 0 ] && ! grep -q "Git LFS" checkout.log; then
+    echo "ERROR: Failed to checkout main branch"
+    cat checkout.log
+    exit 1
+fi
+rm -f checkout.log
+echo "Successfully on main branch"
 
 # Create and checkout branch from main
 echo "Creating branch: $BRANCH_NAME from main"
@@ -61,11 +84,16 @@ if [ $BRANCH_CREATE_RESULT -ne 0 ]; then
     # Reset to latest main
     git reset --hard origin/main
 fi
+echo "Successfully on branch: $(git branch --show-current)"
 
 # For testing purposes, create a simple hello world tool
 echo "Creating hello world MCP tool..."
+echo "Current directory: $(pwd)"
+echo "Git status before creating files:"
+git status --short
 
 # Create the hello world tool in the appropriate location
+echo "Creating directory tools/mcp/hello_world..."
 mkdir -p tools/mcp/hello_world
 cat > tools/mcp/hello_world/__init__.py << 'PYTHON'
 """Hello World MCP tool for testing."""
@@ -98,7 +126,21 @@ This is a test implementation to validate AI agent workflows."
 
 # Push the branch to origin
 echo "Pushing branch to origin..."
-git push -u origin "$BRANCH_NAME"
+echo "Git remote configuration:"
+git remote -v
+echo "Attempting to push branch $BRANCH_NAME..."
+set +e
+git push -u origin "$BRANCH_NAME" 2>&1 | tee push.log
+PUSH_RESULT=$?
+set -e
+
+if [ $PUSH_RESULT -ne 0 ]; then
+    echo "ERROR: Failed to push branch"
+    cat push.log
+    exit 1
+fi
+rm -f push.log
+echo "Successfully pushed branch"
 
 # Create PR using template
 echo "Creating pull request..."

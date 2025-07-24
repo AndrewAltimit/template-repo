@@ -272,6 +272,9 @@ Once you've added this information, I'll be able to create a pull request to add
             # Pass sensitive data via stdin instead of command-line arguments
             issue_data = {"title": issue_title, "body": issue_body}
 
+            # Pass environment variables including GITHUB_TOKEN
+            env = os.environ.copy()
+
             result = subprocess.run(
                 [
                     str(script_path),
@@ -282,6 +285,7 @@ Once you've added this information, I'll be able to create a pull request to add
                 text=True,
                 capture_output=True,
                 check=True,
+                env=env,
             )
 
             if result.stdout:
