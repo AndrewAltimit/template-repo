@@ -595,13 +595,14 @@ class PRReviewMonitor:
             # Capture detailed error information
             error_details = f"Exit code: {e.returncode}\n"
             if e.stdout:
-                error_details += f"\nOutput:\n{e.stdout[-2000:]}"  # Last 2000 chars
+                # Show more output for debugging push issues
+                error_details += f"\nOutput:\n{e.stdout[-4000:]}"  # Last 4000 chars
             if e.stderr:
                 # Filter out Git LFS warnings which are not actual errors
                 stderr_lines = e.stderr.splitlines()
                 filtered_stderr = "\n".join(line for line in stderr_lines if "Git LFS" not in line and "git-lfs" not in line)
                 if filtered_stderr.strip():
-                    error_details += f"\nError:\n{filtered_stderr[-2000:]}"  # Last 2000 chars
+                    error_details += f"\nError:\n{filtered_stderr[-4000:]}"  # Last 4000 chars
             return False, error_details
 
     def address_pipeline_failures(self, pr_number: int, branch_name: str, failures: Dict) -> Tuple[bool, Optional[str]]:
@@ -659,13 +660,14 @@ class PRReviewMonitor:
             # Capture detailed error information
             error_details = f"Exit code: {e.returncode}\n"
             if e.stdout:
-                error_details += f"\nOutput:\n{e.stdout[-2000:]}"  # Last 2000 chars
+                # Show more output for debugging push issues
+                error_details += f"\nOutput:\n{e.stdout[-4000:]}"  # Last 4000 chars
             if e.stderr:
                 # Filter out Git LFS warnings which are not actual errors
                 stderr_lines = e.stderr.splitlines()
                 filtered_stderr = "\n".join(line for line in stderr_lines if "Git LFS" not in line and "git-lfs" not in line)
                 if filtered_stderr.strip():
-                    error_details += f"\nError:\n{filtered_stderr[-2000:]}"  # Last 2000 chars
+                    error_details += f"\nError:\n{filtered_stderr[-4000:]}"  # Last 4000 chars
             return False, error_details
 
     def post_completion_comment(

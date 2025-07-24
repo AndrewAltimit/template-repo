@@ -29,11 +29,22 @@ if ! git rev-parse --git-dir > /dev/null 2>&1; then
     exit 1
 fi
 
+# Debug: Show working directory and git info
+echo "=== Working directory info ==="
+echo "Current directory: $(pwd)"
+echo "Git directory: $(git rev-parse --git-dir)"
+echo "Git work tree: $(git rev-parse --show-toplevel)"
+echo "=============================="
+
 # Configure git to use the GITHUB_TOKEN for authentication
 if [ -n "$GITHUB_TOKEN" ]; then
     echo "Configuring git authentication..."
+    echo "Original remote URL:"
+    git remote get-url origin
     # Set the remote URL with authentication token
     git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+    echo "New remote URL (token hidden):"
+    git remote get-url origin | sed 's|x-access-token:[^@]*@|x-access-token:***@|'
     echo "Git authentication configured for ${GITHUB_REPOSITORY}"
 else
     echo "WARNING: GITHUB_TOKEN not set, git push may fail"
@@ -159,16 +170,32 @@ Co-Authored-By: AI Review Agent <noreply@ai-agent.local>"
 echo "Pushing changes to origin..."
 echo "Attempting to push branch: $BRANCH_NAME"
 
+# Show current state before push
+echo "=== Pre-push diagnostics ==="
+echo "Current branch:"
+git branch --show-current
+echo "Remote URL:"
+git remote get-url origin
+echo "Local commits ahead of origin:"
+git log origin/"$BRANCH_NAME"..HEAD --oneline 2>/dev/null || echo "Cannot compare with origin/$BRANCH_NAME"
+echo "Git status:"
+git status -sb
+echo "=========================="
+
 # Try push with verbose output to debug
 set +e
+echo "Executing: git push origin $BRANCH_NAME -v"
 git push origin "$BRANCH_NAME" -v 2>&1 | tee push_output.log
 PUSH_RESULT=$?
 set -e
 
+echo "Push command exit code: $PUSH_RESULT"
+echo "=== Full push output ==="
+cat push_output.log
+echo "========================"
+
 if [ $PUSH_RESULT -ne 0 ]; then
-    echo "Push failed with exit code: $PUSH_RESULT"
-    echo "Full push output:"
-    cat push_output.log
+    echo "ERROR: Push failed with exit code: $PUSH_RESULT"
 
     # Check for common push errors
     if grep -q "rejected" push_output.log; then
@@ -179,13 +206,39 @@ if [ $PUSH_RESULT -ne 0 ]; then
 
         # Try to fetch and show divergence
         git fetch origin "$BRANCH_NAME"
-        echo "Local vs remote status:"
+        echo "Local vs remote status after fetch:"
         git status -sb
+    fi
+
+    if grep -q "Everything up-to-date" push_output.log; then
+        echo "WARNING: Git reports 'Everything up-to-date' - no new commits to push"
+        echo "This might mean:"
+        echo "1. Changes were already pushed"
+        echo "2. No commits were created"
+        echo "3. Working on wrong branch"
     fi
 
     rm -f push_output.log
     exit 1
+else
+    echo "Push command returned success (exit code 0)"
+
+    # Verify the push actually worked
+    echo "=== Post-push verification ==="
+    git fetch origin "$BRANCH_NAME" 2>&1
+    echo "Comparing local and remote after push:"
+    git log HEAD..origin/"$BRANCH_NAME" --oneline 2>/dev/null && echo "Remote has these commits that local doesn't (should be empty)"
+    git log origin/"$BRANCH_NAME"..HEAD --oneline 2>/dev/null && echo "Local has these commits that remote doesn't (should be empty after successful push)"
+
+    # Check if push actually updated remote
+    if git diff HEAD origin/"$BRANCH_NAME" --quiet 2>/dev/null; then
+        echo "✓ Verified: Local and remote branches are identical"
+    else
+        echo "⚠ WARNING: Local and remote branches differ after push!"
+        git diff HEAD origin/"$BRANCH_NAME" --stat 2>/dev/null || true
+    fi
+    echo "=============================="
 fi
 
 rm -f push_output.log
-echo "Successfully addressed PR review feedback!"
+echo "PR review feedback process completed!"
