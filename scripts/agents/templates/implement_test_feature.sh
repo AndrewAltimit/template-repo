@@ -23,8 +23,7 @@ ISSUE_DATA=$(cat)
 
 # Extract issue data using jq (always available in our container)
 ISSUE_TITLE=$(echo "$ISSUE_DATA" | jq -r '.title')
-# ISSUE_BODY is available for future use when implementing real fixes
-# ISSUE_BODY=$(echo "$ISSUE_DATA" | jq -r '.body')
+ISSUE_BODY=$(echo "$ISSUE_DATA" | jq -r '.body')
 
 # Extract PR labels to add (default to "help wanted" if not specified)
 PR_LABELS_TO_ADD=$(echo "$ISSUE_DATA" | jq -r '.pr_labels_to_add[]?' 2>/dev/null || echo "")
@@ -184,42 +183,100 @@ if ! git config user.email >/dev/null 2>&1; then
     git config user.email "ai-agent[bot]@users.noreply.github.com"
 fi
 
+# Gather repository context for Claude
+echo "Gathering repository context..."
+REPO_LANGUAGES=$(find . -type f -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.go" | head -5 | xargs -I {} basename {} | cut -d. -f2 | sort -u | tr '\n' ', ' | sed 's/,$//')
+MAIN_DIRS=$(find . -maxdepth 2 -type d -not -path '*/\.*' -not -path './node_modules*' -not -path './__pycache__*' | grep -v '^\.$' | sort | head -10 | tr '\n' ', ' | sed 's/,$//')
+TEST_FRAMEWORK=""
+if [ -f "pytest.ini" ] || [ -f "setup.cfg" ] || grep -q "pytest" requirements.txt 2>/dev/null; then
+    TEST_FRAMEWORK="pytest"
+elif [ -f "package.json" ] && grep -q "jest" package.json 2>/dev/null; then
+    TEST_FRAMEWORK="jest"
+elif [ -f "go.mod" ]; then
+    TEST_FRAMEWORK="go test"
+fi
+
 # Run Claude Code to implement the feature
 $CLAUDE_CMD << EOF
 Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}
 
+Issue Description:
 ${ISSUE_BODY}
 
-Please implement the requested feature/fix based on the issue description above.
+Repository Context:
+- Main languages: ${REPO_LANGUAGES:-Python}
+- Key directories: ${MAIN_DIRS}
+- Test framework: ${TEST_FRAMEWORK:-pytest}
+- Current directory: $(pwd)
 
-IMPORTANT: You have full permission to create and modify files. Please actually write the implementation code, don't just describe what you would do.
+CRITICAL: You MUST implement the actual solution, not just analyze or describe it.
 
-Implementation requirements:
-1. Analyze the issue carefully and implement a complete solution
-2. Create or modify the necessary files to implement the feature/fix
-3. Write production-quality code following the project's conventions
-4. Add appropriate tests for your implementation
-5. Ensure all existing tests continue to pass
-6. Follow the existing code style and patterns in the repository
-7. If implementing a new feature, add documentation as needed
-8. Make sure to handle edge cases and error conditions
+Your task is to implement the feature/fix described in the issue above. Follow these steps:
 
-You are expected to:
-- Create new files as needed
-- Modify existing files as needed
-- Write actual working code, not just placeholders
-- Use the Write, Edit, and MultiEdit tools to make changes
+STEP 1 - Understand the codebase:
+- Use Grep and Glob tools to search for relevant files
+- Use Read tool to examine existing code patterns
+- Understand the project structure and conventions
 
-After implementing the solution, commit your changes with an appropriate commit message.
+STEP 2 - Implement the solution:
+- Create new files with Write tool where needed
+- Modify existing files with Edit or MultiEdit tools
+- Write actual, working code - no placeholders or TODOs
+- Follow the existing code style and patterns
 
-The commit message should follow this format:
-- For features: "feat: <description>"
-- For bug fixes: "fix: <description>"
-- Include reference to issue #${ISSUE_NUMBER}
+STEP 3 - Add tests:
+- Create test files if they don't exist
+- Add test cases for your implementation
+- Ensure tests actually test the functionality
 
-Remember: Actually implement the changes by writing code to files. Do not just analyze or describe what should be done.
-Make sure all changes are committed before you finish.
+STEP 4 - Verify your work:
+- Use Bash tool to run relevant tests if possible
+- Use Read tool to review your changes
+- Ensure all code is complete and functional
+
+IMPORTANT REMINDERS:
+- You have FULL permission to create and modify ANY files
+- Write ACTUAL CODE, not descriptions or placeholders
+- If the issue asks for a feature, BUILD IT completely
+- If the issue reports a bug, FIX IT with real code changes
+- Do NOT just create documentation unless specifically asked
+
+Example of what NOT to do:
+- Creating only a README or documentation file
+- Writing comments about what should be done
+- Creating placeholder functions with pass or TODO
+
+Example of what TO DO:
+- Implement the full functionality requested
+- Write complete, working code
+- Add proper error handling
+- Include tests that verify the functionality
+
+After implementing everything, commit your changes with message:
+"feat: implement ${ISSUE_TITLE} (fixes #${ISSUE_NUMBER})"
+
+START IMPLEMENTING NOW. Do not just analyze - BUILD THE SOLUTION.
 EOF
+
+# Check what files were created or modified
+echo "Checking for implementation changes..."
+IMPLEMENTATION_FILES=$(git diff --name-only origin/main 2>/dev/null | grep -E '\.(py|js|ts|jsx|tsx|go|java|cpp|c|h|rs|rb|php|cs|swift|kt|scala|r|jl|m|mm)$' || true)
+DOC_FILES=$(git diff --name-only origin/main 2>/dev/null | grep -E '\.(md|txt|rst|adoc)$' || true)
+UNSTAGED_IMPL_FILES=$(git diff --name-only 2>/dev/null | grep -E '\.(py|js|ts|jsx|tsx|go|java|cpp|c|h|rs|rb|php|cs|swift|kt|scala|r|jl|m|mm)$' || true)
+UNSTAGED_DOC_FILES=$(git diff --name-only 2>/dev/null | grep -E '\.(md|txt|rst|adoc)$' || true)
+
+if [ -n "$IMPLEMENTATION_FILES" ] || [ -n "$UNSTAGED_IMPL_FILES" ]; then
+    echo "✓ Found implementation files:"
+    [ -n "$IMPLEMENTATION_FILES" ] && echo "$IMPLEMENTATION_FILES"
+    [ -n "$UNSTAGED_IMPL_FILES" ] && echo "$UNSTAGED_IMPL_FILES"
+else
+    echo "⚠ WARNING: No implementation files found, only documentation:"
+    [ -n "$DOC_FILES" ] && echo "$DOC_FILES"
+    [ -n "$UNSTAGED_DOC_FILES" ] && echo "$UNSTAGED_DOC_FILES"
+    echo ""
+    echo "Claude may have only analyzed the issue without implementing it."
+    echo "This could happen if the issue description is unclear or too vague."
+fi
 
 # Check if Claude made any commits by comparing with origin/main
 COMMITS_AHEAD=$(git rev-list --count origin/main..HEAD)
@@ -337,19 +394,59 @@ fi
 rm -f push.log
 echo "Successfully pushed branch"
 
+# Get list of changed files for PR description
+echo "Analyzing changes for PR description..."
+ALL_CHANGED_FILES=$(git diff --name-only origin/main 2>/dev/null || true)
+IMPL_FILES_FOR_PR=$(echo "$ALL_CHANGED_FILES" | grep -E '\.(py|js|ts|jsx|tsx|go|java|cpp|c|h|rs|rb|php|cs|swift|kt|scala|r|jl|m|mm)$' || echo "")
+TEST_FILES_FOR_PR=$(echo "$ALL_CHANGED_FILES" | grep -E '(test_|_test\.|\.test\.|spec\.|\.spec\.)' || echo "")
+DOC_FILES_FOR_PR=$(echo "$ALL_CHANGED_FILES" | grep -E '\.(md|txt|rst|adoc)$' || echo "")
+
+# Build changes summary
+CHANGES_SUMMARY=""
+if [ -n "$IMPL_FILES_FOR_PR" ]; then
+    CHANGES_SUMMARY="${CHANGES_SUMMARY}### Implementation Files\n"
+    echo "$IMPL_FILES_FOR_PR" | while read -r file; do
+        CHANGES_SUMMARY="${CHANGES_SUMMARY}- \`$file\`\n"
+    done
+fi
+if [ -n "$TEST_FILES_FOR_PR" ]; then
+    CHANGES_SUMMARY="${CHANGES_SUMMARY}\n### Test Files\n"
+    echo "$TEST_FILES_FOR_PR" | while read -r file; do
+        CHANGES_SUMMARY="${CHANGES_SUMMARY}- \`$file\`\n"
+    done
+fi
+if [ -n "$DOC_FILES_FOR_PR" ]; then
+    CHANGES_SUMMARY="${CHANGES_SUMMARY}\n### Documentation\n"
+    echo "$DOC_FILES_FOR_PR" | while read -r file; do
+        CHANGES_SUMMARY="${CHANGES_SUMMARY}- \`$file\`\n"
+    done
+fi
+
+# Determine PR type based on what was changed
+PR_TYPE="feature"
+if echo "${ISSUE_TITLE}" | grep -iE "(fix|bug|error|issue)" >/dev/null; then
+    PR_TYPE="fix"
+fi
+
 # Create PR using template
 echo "Creating pull request..."
 PR_BODY="## Description
-This PR implements a test feature for issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}
+This PR implements the requested changes for issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}
 
-**Note**: This is a test implementation that creates a hello_world tool to validate the AI agent workflow.
+## Issue Details
+${ISSUE_BODY}
 
 ## Related Issue
 Fixes #${ISSUE_NUMBER}
 
 ## Type of Change
-- [x] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
+$(if [ "$PR_TYPE" = "fix" ]; then
+    echo "- [x] Bug fix (non-breaking change which fixes an issue)"
+    echo "- [ ] New feature (non-breaking change which adds functionality)"
+else
+    echo "- [ ] Bug fix (non-breaking change which fixes an issue)"
+    echo "- [x] New feature (non-breaking change which adds functionality)"
+fi)
 - [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
 - [ ] Documentation update
 - [ ] Refactoring
@@ -357,39 +454,48 @@ Fixes #${ISSUE_NUMBER}
 - [ ] CI/CD improvement
 
 ## Changes Made
-- Implemented the requested hello_world MCP tool
-- Added unit test for the new functionality
-- Created module structure in tools/mcp/hello_world/
+${CHANGES_SUMMARY:-No files were changed}
+
+## Implementation Status
+$(if [ -n "$IMPL_FILES_FOR_PR" ]; then
+    echo "✅ Implementation completed - $(echo "$IMPL_FILES_FOR_PR" | wc -l) source files modified"
+else
+    echo "⚠️ No implementation files found - only documentation was created"
+fi)
 
 ## Testing
-- [x] All existing tests pass
-- [x] New tests added for new functionality
-- [x] Manual testing completed
+- [ ] All existing tests pass
+$(if [ -n "$TEST_FILES_FOR_PR" ]; then
+    echo "- [x] New tests added for new functionality"
+else
+    echo "- [ ] New tests added for new functionality"
+fi)
+- [ ] Manual testing completed
 - [ ] CI/CD pipeline passes
-
-### Test Details
-1. Created hello_world function that returns 'Hello, World!'
-2. Added test_hello_world.py to verify functionality
 
 ## Checklist
 - [x] My code follows the project's style guidelines
 - [x] I have performed a self-review of my code
-- [x] I have commented my code, particularly in hard-to-understand areas
+- [ ] I have commented my code, particularly in hard-to-understand areas
 - [ ] I have made corresponding changes to the documentation
-- [x] My changes generate no new warnings
-- [x] New and existing unit tests pass locally with my changes
+- [ ] My changes generate no new warnings
+- [ ] New and existing unit tests pass locally with my changes
 - [ ] Any dependent changes have been merged and published
 
 ## Additional Notes
-This PR was automatically generated by the AI Issue Monitor Agent.
+This PR was automatically generated by the AI Issue Monitor Agent in response to issue #${ISSUE_NUMBER}.
+
+$(if [ -z "$IMPL_FILES_FOR_PR" ] && [ -n "$DOC_FILES_FOR_PR" ]; then
+    echo "**Note**: This PR only contains documentation changes. The implementation may need to be completed manually if the issue description was unclear or if the requested feature requires more context."
+fi)
 
 ---
 ## AI Agent Metadata
 - **Auto-merge eligible**: No
 - **Priority**: Normal
-- **Complexity**: Low
 - **Agent**: Issue Monitor
-- **Trigger**: [Approved][Claude]"
+- **Trigger**: [Approved][Claude]
+- **Implementation Status**: $(if [ -n "$IMPL_FILES_FOR_PR" ]; then echo "Complete"; else echo "Documentation Only"; fi)"
 
 # Create PR with error handling
 echo "Creating PR with gh command..."
