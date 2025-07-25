@@ -168,7 +168,7 @@ jobs:
 
               # Test Python import
               echo "[INFO] Testing Python imports..."
-              python -c \"import sys; print('Python path:', sys.path)\" || echo "Failed to print Python path"
+              python --version || echo "Failed to get Python version"
 
               # Add the scripts/agents directory to PYTHONPATH
               export PYTHONPATH="/workspace/scripts/agents:\$PYTHONPATH"
@@ -184,16 +184,27 @@ jobs:
 
               # First, test if Python can run at all
               echo "[DEBUG] Testing basic Python execution..."
-              python -c \"print('[PYTHON] Basic Python test successful')\" || echo "[ERROR] Basic Python test failed"
+              echo "import sys; print('Python working')" | python || echo "[ERROR] Basic Python test failed"
 
               # Try to run the script with full error output
               echo "[DEBUG] Attempting to run pr_review_monitor.py..."
+              cd /workspace
               python -u scripts/agents/pr_review_monitor.py 2>&1 || {
                 exit_code=\$?
                 echo "[ERROR] PR review monitor failed with exit code: \$exit_code"
                 # Try to get more info about the failure
-                echo "[DEBUG] Attempting to import the script to check for syntax errors..."
-                python -c \"import scripts.agents.pr_review_monitor\" 2>&1 || echo "[ERROR] Failed to import script"
+                echo "[DEBUG] Getting more debug info..."
+                echo "[DEBUG] Python sys.path:"
+                echo "import sys; print(sys.path)" | python
+                echo "[DEBUG] Directory listing:"
+                ls -la scripts/agents/
+                echo "[DEBUG] Checking if we can import the modules:"
+                echo "try: import logging_security; print('logging_security: OK')" | python
+                echo "except Exception as e: print('logging_security:', e)" | python
+                echo "try: import security; print('security: OK')" | python
+                echo "except Exception as e: print('security:', e)" | python
+                echo "try: import utils; print('utils: OK')" | python
+                echo "except Exception as e: print('utils:', e)" | python
                 exit \$exit_code
               }
               echo "[SUCCESS] PR review monitor completed successfully"
