@@ -60,8 +60,6 @@ class PRReviewMonitor:
         self.auto_fix_threshold = pr_config.get("auto_fix_threshold", {"critical_issues": 0, "total_issues": 5})
         # Cutoff period in hours for filtering recent PRs
         self.cutoff_hours = pr_config.get("cutoff_hours", 24)
-        # Required labels for PR processing
-        self.required_labels = pr_config.get("required_labels", ["help wanted"])
 
         self.agent_tag = "[AI Agent]"
         self.security_manager = SecurityManager()
@@ -322,6 +320,49 @@ class PRReviewMonitor:
                 logger.error(f"Failed to parse general comments JSON: {e}")
                 return []
         return []
+
+    def get_pr_latest_commit(self, pr_number: int) -> Optional[str]:
+        """Get the latest commit SHA for a PR."""
+        output = run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "commits"])
+
+        if output:
+            try:
+                data = json.loads(output)
+                commits = data.get("commits", [])
+                if commits:
+                    # The last commit in the list is the latest
+                    return commits[-1].get("oid", "")
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse commits JSON: {e}")
+                return None
+        return None
+
+    def get_commit_for_comment(self, pr_number: int, comment_time: str) -> Optional[str]:
+        """Get the latest commit SHA at the time a comment was made."""
+        output = run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "commits"])
+
+        if output:
+            try:
+                data = json.loads(output)
+                commits = data.get("commits", [])
+                comment_datetime = datetime.fromisoformat(comment_time.replace("Z", "+00:00"))
+
+                # Find the latest commit before or at the comment time
+                latest_commit = None
+                for commit in commits:
+                    commit_time = commit.get("committedDate", "")
+                    if commit_time:
+                        commit_datetime = datetime.fromisoformat(commit_time.replace("Z", "+00:00"))
+                        if commit_datetime <= comment_datetime:
+                            latest_commit = commit.get("oid", "")
+                        else:
+                            break  # Commits are ordered, so we can stop here
+
+                return latest_commit
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse commits JSON: {e}")
+                return None
+        return None
 
     def get_pr_check_status(self, pr_number: int) -> Dict:
         """Get the status of checks for a PR."""
@@ -1185,7 +1226,6 @@ Manual intervention may be required to resolve these issues.
         logger.info("=== Starting PR review monitoring ===")
         logger.info(f"Repository: {self.repo}")
         logger.info(f"Auto-fix enabled: {self.auto_fix_enabled}")
-        logger.info(f"Required labels: {self.required_labels}")
         logger.info(f"Review bot names: {self.review_bot_names}")
         logger.info(f"Cutoff hours: {self.cutoff_hours}")
 
@@ -1204,13 +1244,9 @@ Manual intervention may be required to resolve these issues.
             logger.info(f"Branch: {branch_name}")
             logger.info(f"Labels: {labels}")
 
-            # Check if PR has required labels
-            has_required_label = any(label in labels for label in self.required_labels)
-            if not has_required_label:
-                logger.info(f"[SKIP] PR #{pr_number} does not have required labels {self.required_labels}")
-                if self.verbose:
-                    logger.debug(f"PR has labels: {labels}, required: {self.required_labels}")
-                continue
+            # Label check removed - keyword triggers from approved users are sufficient
+            # The PR will be processed based on keyword triggers regardless of labels
+            logger.debug("Processing PR based on keyword triggers, not labels")
 
             # Check for keyword trigger from allowed user
             logger.info(f"[CHECK] Looking for trigger keywords in PR #{pr_number} comments...")
@@ -1230,6 +1266,53 @@ Manual intervention may be required to resolve these issues.
                 continue
 
             action, agent, trigger_user = trigger_info
+
+            # Get the commit SHA when the approval was made
+            approval_commit = None
+            approval_comment_time = None
+
+            # Find the comment that triggered this action to get its timestamp
+            for comment in pr.get("comments", []):
+                author = comment.get("user", {}).get("login", "")
+                if author == trigger_user:
+                    body = comment.get("body", "")
+                    if self.security_manager.parse_keyword_trigger(body):
+                        approval_comment_time = comment.get("created_at", "")
+                        break
+
+            if approval_comment_time:
+                approval_commit = self.get_commit_for_comment(pr_number, approval_comment_time)
+                logger.info(
+                    f"[SECURITY] Approval comment was made at commit: {approval_commit[:8] if approval_commit else 'unknown'}"
+                )
+
+            # Get current latest commit
+            current_commit = self.get_pr_latest_commit(pr_number)
+            logger.info(f"[SECURITY] Current latest commit: {current_commit[:8] if current_commit else 'unknown'}")
+
+            # Check if approval is on the latest commit
+            if approval_commit and current_commit and approval_commit != current_commit:
+                logger.warning(f"[SECURITY] PR #{pr_number} has new commits since approval. Rejecting for safety.")
+                comment_body = (
+                    f"{self.agent_tag} Security Notice\n\n"
+                    f"New commits have been pushed since the [{action}][{agent}] approval. "
+                    f"Please review the new changes and provide a fresh approval on the latest commit.\n\n"
+                    f"Approval was on commit: `{approval_commit[:8]}`\n"
+                    f"Current latest commit: `{current_commit[:8]}`\n\n"
+                    f"*This is a security measure to prevent unauthorized code injection.*"
+                )
+                run_gh_command(
+                    [
+                        "pr",
+                        "comment",
+                        str(pr_number),
+                        "--repo",
+                        self.repo,
+                        "--body",
+                        comment_body,
+                    ]
+                )
+                continue
 
             # Check if this agent should handle this trigger
             # For now, we'll handle all triggers, but this is where agent selection would happen
@@ -1299,7 +1382,16 @@ Manual intervention may be required to resolve these issues.
 
                 # Attempt to fix the failures
                 logger.info(f"[ACTION] Attempting to fix pipeline failures for PR #{pr_number}...")
+
+                # Store approval commit for later verification
+                os.environ["APPROVAL_COMMIT_SHA"] = approval_commit or ""
+                os.environ["PR_MONITORING_ACTIVE"] = "true"
+
                 success, error_details, agent_output = self.address_pipeline_failures(pr_number, branch_name, failures)
+
+                # Clean up environment variables
+                os.environ.pop("APPROVAL_COMMIT_SHA", None)
+                os.environ.pop("PR_MONITORING_ACTIVE", None)
 
                 # Post completion comment
                 if success:
@@ -1399,11 +1491,20 @@ Manual intervention may be required to resolve these issues.
                     if self.verbose:
                         logger.debug(f"Must fix items: {feedback['must_fix'][:3]}...")  # Show first 3
 
-                    # Pass PR description for context
+                    # Pass PR description for context along with approval commit
                     full_pr_context = f"PR Title: {pr_title}\n\nPR Description:\n{pr_description}"
+
+                    # Store approval commit for later verification
+                    os.environ["APPROVAL_COMMIT_SHA"] = approval_commit or ""
+                    os.environ["PR_MONITORING_ACTIVE"] = "true"
+
                     success, error_details, agent_output = self.address_review_feedback(
                         pr_number, branch_name, feedback, full_pr_context
                     )
+
+                    # Clean up environment variables
+                    os.environ.pop("APPROVAL_COMMIT_SHA", None)
+                    os.environ.pop("PR_MONITORING_ACTIVE", None)
 
                     if success:
                         logger.info(f"[SUCCESS] Review feedback addressed successfully for PR #{pr_number}")

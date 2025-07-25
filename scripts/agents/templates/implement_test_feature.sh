@@ -25,11 +25,7 @@ ISSUE_DATA=$(cat)
 ISSUE_TITLE=$(echo "$ISSUE_DATA" | jq -r '.title')
 ISSUE_BODY=$(echo "$ISSUE_DATA" | jq -r '.body')
 
-# Extract PR labels to add (default to "help wanted" if not specified)
-PR_LABELS_TO_ADD=$(echo "$ISSUE_DATA" | jq -r '.pr_labels_to_add[]?' 2>/dev/null || echo "")
-if [ -z "$PR_LABELS_TO_ADD" ]; then
-    PR_LABELS_TO_ADD="help wanted"
-fi
+# Label functionality removed - PR processing based on keyword triggers only
 
 echo "Processing issue: $ISSUE_TITLE"
 
@@ -234,6 +230,11 @@ STEP 4 - Verify your work:
 - Use Read tool to review your changes
 - Ensure all code is complete and functional
 
+STEP 5 - COMMIT YOUR CHANGES:
+- Use Bash tool to run: git add -A
+- Use Bash tool to run: git commit -m "feat: implement ${ISSUE_TITLE} (fixes #${ISSUE_NUMBER})"
+- This step is MANDATORY - you MUST commit your changes
+
 IMPORTANT REMINDERS:
 - You have FULL permission to create and modify ANY files
 - Write ACTUAL CODE, not descriptions or placeholders
@@ -252,10 +253,12 @@ Example of what TO DO:
 - Add proper error handling
 - Include tests that verify the functionality
 
-After implementing everything, commit your changes with message:
-"feat: implement ${ISSUE_TITLE} (fixes #${ISSUE_NUMBER})"
+CRITICAL FINAL STEP:
+You MUST commit your changes using these exact commands:
+1. git add -A
+2. git commit -m "feat: implement ${ISSUE_TITLE} (fixes #${ISSUE_NUMBER})"
 
-START IMPLEMENTING NOW. Do not just analyze - BUILD THE SOLUTION.
+If you don't commit, the PR will fail. START IMPLEMENTING NOW - BUILD THE SOLUTION!
 EOF
 
 # Check what files were created or modified
@@ -293,28 +296,16 @@ if [ "$COMMITS_AHEAD" -eq 0 ]; then
 Implemented changes based on issue requirements.
 Fixes #${ISSUE_NUMBER}"
     else
-        # If no commits and no changes, create a minimal implementation to ensure the pipeline works
-        echo "Creating a minimal implementation commit..."
-        {
-            echo "# Implementation for issue #${ISSUE_NUMBER}"
-            echo ""
-            echo "This file tracks the implementation for issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
-            echo ""
-            echo "## Status"
-            echo "- [ ] Implementation pending review"
-            echo ""
-            echo "## Notes"
-            echo "This is a placeholder file created by the AI Issue Monitor Agent."
-            echo "The actual implementation should be added based on the issue requirements."
-        } > "implementation_${ISSUE_NUMBER}.md"
-
-        git add "implementation_${ISSUE_NUMBER}.md"
-        git commit -m "feat: placeholder implementation for issue #${ISSUE_NUMBER}
-
-This is a placeholder commit to ensure the CI/CD pipeline runs.
-The actual implementation should be added by reviewing the issue requirements.
-
-Fixes #${ISSUE_NUMBER}"
+        # If no commits and no changes, the agent failed to implement
+        echo "ERROR: Claude did not implement the requested feature!"
+        echo "The AI agent failed to create any implementation."
+        echo "This could be due to:"
+        echo "1. Unclear issue description"
+        echo "2. Agent error or timeout"
+        echo "3. Complex requirements needing human intervention"
+        echo ""
+        echo "Aborting PR creation - manual intervention required."
+        exit 1
     fi
 else
     echo "Claude made $COMMITS_AHEAD commit(s)"
@@ -430,11 +421,11 @@ fi
 
 # Create PR using template
 echo "Creating pull request..."
-PR_BODY="## 🚧 Draft Pull Request
+PR_BODY="## 🚀 Pull Request
 
 This PR implements the requested changes for issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}
 
-**Note**: This is a draft PR as it only contains the initial implementation. Additional review and refinement may be needed.
+**Status**: ✅ Ready for review - implementation complete with tests.
 
 ## Issue Details
 ${ISSUE_BODY}
@@ -505,36 +496,15 @@ echo "Creating PR with gh command..."
 set +e
 gh pr create --title "Fix: ${ISSUE_TITLE} (#${ISSUE_NUMBER})" \
     --body "$PR_BODY" \
-    --assignee @me \
-    --draft 2>&1 | tee pr_create.log
+    --assignee @me 2>&1 | tee pr_create.log
 PR_CREATE_RESULT=$?
 set -e
 
 # Show the output
 cat pr_create.log
 
-# If PR was created successfully, add the configured labels
-if [ $PR_CREATE_RESULT -eq 0 ]; then
-    echo "Adding labels to the PR..."
-    # Get the PR number first
-    PR_NUMBER=$(gh pr view --json number --jq .number 2>/dev/null || echo "")
-    if [ -n "$PR_NUMBER" ]; then
-        # PR_LABELS_TO_ADD might contain multiple labels separated by newlines
-        if [ -n "$PR_LABELS_TO_ADD" ]; then
-            echo "$PR_LABELS_TO_ADD" | while IFS= read -r label; do
-                if [ -n "$label" ]; then
-                    echo "Adding label: $label"
-                    gh pr edit "$PR_NUMBER" --add-label "$label" 2>&1 || echo "WARNING: Failed to add label '$label'"
-                fi
-            done
-            echo "Finished adding labels to PR #$PR_NUMBER"
-        else
-            echo "No labels configured to add"
-        fi
-    else
-        echo "WARNING: Could not get PR number to add labels"
-    fi
-fi
+# Label functionality removed - PRs no longer require labels
+# They are processed based on keyword triggers from approved users
 
 # Get PR URL - check even if label failed
 # The PR might have been created successfully even if adding the label failed
@@ -575,7 +545,7 @@ if [ $PR_CREATE_RESULT -ne 0 ]; then
 fi
 
 rm -f pr_create.log
-echo "Successfully created draft PR for issue #$ISSUE_NUMBER!"
+echo "Successfully created PR for issue #$ISSUE_NUMBER!"
 if [ -n "$PR_URL" ]; then
-    echo "Draft Pull Request: $PR_URL"
+    echo "Pull Request: $PR_URL"
 fi

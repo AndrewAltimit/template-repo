@@ -2,7 +2,15 @@
 
 ## Overview
 
-The AI agents system includes comprehensive security measures to prevent unauthorized use and protect against prompt injection attacks. Only users on an explicit allow list can trigger AI agent actions using specific keyword triggers.
+The AI agents system implements a comprehensive security model designed to prevent unauthorized use, prompt injection attacks, and malicious code insertion. The system uses multiple layers of defense including user authentication, keyword-based command triggers, and real-time commit validation during PR processing.
+
+## Core Security Principles
+
+1. **Zero Trust by Default**: No action is taken without explicit authorization
+2. **Defense in Depth**: Multiple security layers that work independently
+3. **Audit Trail**: All actions are logged with user attribution
+4. **Fail Secure**: Any security failure results in no action taken
+5. **Real-time Validation**: Continuous security checks during execution
 
 ## Security Features
 
@@ -25,12 +33,18 @@ Our AI agents implement defense-in-depth with multiple security layers:
 
 The allow list is configured in `config.json` under the `security.allow_list` field. The repository owner (extracted from `GITHUB_REPOSITORY` environment variable) is always included automatically.
 
-### 3. Keyword Trigger System
+### 3. Keyword Trigger System - Command and Control
 
-To prevent accidental or unauthorized agent activation, AI agents require specific keyword triggers in comments from allowed users:
+AI agents are controlled exclusively through a keyword trigger system that requires explicit commands from authorized users. This prevents accidental activation and provides clear audit trails.
 
 #### Trigger Format
 The trigger format is: `[Action][Agent]`
+
+**Security Properties:**
+- Case-insensitive matching for user convenience
+- Must be exact format with square brackets
+- Only the most recent trigger is processed
+- Invalid triggers are ignored (fail secure)
 
 #### Supported Actions
 - `[Approved]` - Approve and process the issue/PR
@@ -46,17 +60,21 @@ The trigger format is: `[Action][Agent]`
 - `[Gemini]` - Gemini CLI agent
 
 #### Examples
-- `[Approved][Claude]` - Have Claude process the issue
+- `[Approved][Claude]` - Have Claude process the issue/PR
 - `[Fix][Claude]` - Have Claude fix the reported bug
-- `[Summarize][Gemini]` - Have Gemini provide a summary
+- `[Implement][Claude]` - Have Claude implement a feature
+- `[Review][Claude]` - Have Claude review and address PR feedback
 - `[Close][Claude]` - Have Claude close the issue
-- `[Review][Gemini]` - Have Gemini review and address PR feedback
+- `[Summarize][Gemini]` - Have Gemini provide a summary
+- `[Debug][Claude]` - Have Claude debug an issue
 
-#### How It Works
-1. An allowed user comments on an issue/PR with a keyword trigger
-2. The agent checks for the most recent valid trigger from an allowed user
-3. If found, the agent processes the request based on the action
-4. The agent selection (`[Claude]`, `[Gemini]`, etc.) can be used for routing to specific agents
+#### Security Flow
+1. **User Action**: An allowed user comments with `[Action][Agent]`
+2. **Authentication**: System verifies user is in allow list
+3. **Authorization**: System checks rate limits and repository permissions
+4. **Validation**: System ensures trigger is on latest commit (for PRs)
+5. **Execution**: Agent performs requested action
+6. **Audit**: All actions logged with full context
 
 ### 4. Configuration
 
@@ -256,49 +274,189 @@ export ENABLE_AI_AGENTS=true
 
 **Security Recommendation**: Only enable in controlled environments with trusted reviewers.
 
-### PR Review Monitor Specific Requirements
+### PR Review Monitor Configuration
 
-The PR Review Monitor has additional requirements beyond the standard security controls:
+The PR Review Monitor relies on keyword triggers from authorized users for security:
 
-1. **Label Requirement**: PRs must have the "help wanted" label to be processed
-   - This applies to ALL actions: review fixes, pipeline fixes, etc.
-   - Configurable via `agents.pr_review_monitor.required_labels` in `config.json`
-   - Default: `["help wanted"]`
+1. **Keyword Triggers Required**: PRs are only processed when an authorized user comments with `[Action][Agent]`
+   - No label requirements - keyword approval is sufficient
+   - This simplifies the workflow and reduces configuration overhead
+   - All security is handled through the allow list and keyword system
 
-2. **Why Label Requirement?**: This provides an additional layer of control:
-   - Repository owners can explicitly mark which PRs should receive AI assistance
-   - Prevents accidental processing of sensitive or work-in-progress PRs
-   - Allows gradual rollout and testing on specific PRs
+2. **Simplified Configuration**:
+   - No label requirements or configurations needed
+   - PRs are processed based solely on keyword triggers
+   - Reduces configuration complexity and maintenance
 
-3. **Automatic Labeling**: The Issue Monitor Agent automatically adds labels to PRs it creates:
-   - By default, adds "help wanted" label to enable PR Review Monitor processing
-   - Configurable via `agents.issue_monitor.pr_labels_to_add` in `config.json`
-   - Ensures smooth workflow between agents
-
-4. **Configuration Examples**:
+3. **Configuration Examples**:
    ```json
    {
      "agents": {
        "issue_monitor": {
-         "pr_labels_to_add": ["help wanted", "ai-generated"]
+         "min_description_length": 50,
+         "cutoff_hours": 24
        },
        "pr_review_monitor": {
-         "required_labels": ["help wanted", "ai-assist"]
+         "cutoff_hours": 24,
+         "auto_fix_threshold": {
+           "critical_issues": 0,
+           "total_issues": 5
+         }
        }
      }
    }
    ```
 
-5. **Code Review**: All changes to workflows and agent scripts must be reviewed
+4. **Code Review**: All changes to workflows and agent scripts must be reviewed
 
-## Security Considerations
+### 4. Advanced Security: Commit-Level Validation for Pull Requests
 
-This security implementation protects against:
-- **Prompt Injection**: Multiple layers prevent malicious command injection
-- **Impersonation**: Workflow-level checks prevent spoofed requests
-- **Resource Abuse**: Rate limiting prevents excessive AI usage
-- **Unauthorized Changes**: Only trusted users can trigger code changes
-- **Social Engineering**: Multi-layer validation prevents bypass attempts
+The PR monitoring system implements sophisticated commit-level security to prevent code injection attacks during the review and modification process.
+
+#### The Threat Model
+Without commit validation, an attacker could:
+1. Create an innocent-looking PR
+2. Wait for approval from an authorized user
+3. Push malicious code after approval but before AI processing
+4. Have the AI agent unknowingly work on and push malicious code
+
+#### Our Multi-Stage Defense
+
+**Stage 1 - Approval Commit Tracking**
+- When `[Approved][Claude]` is issued, the system records the exact commit SHA
+- This creates an immutable "point-in-time" snapshot of what was approved
+- The approval is cryptographically tied to the repository state
+
+**Stage 2 - Pre-Execution Validation**
+```
+if (current_commit != approval_commit) {
+    reject_with_security_notice();
+    request_fresh_approval();
+}
+```
+- Prevents any work if the PR has changed since approval
+- Immediate failure with clear security message
+
+**Stage 3 - Pre-Push Validation**
+```bash
+# Before pushing any changes
+git fetch origin
+if [ commits_since_approval > 0 ]; then
+    abort_all_work();
+    post_security_warning();
+    exit 1;
+fi
+```
+- Final check before any code enters the repository
+- Drops all work if PR was modified during processing
+- Prevents race conditions and TOCTOU attacks
+
+#### Real-World Attack Prevention
+
+**Scenario 1: Post-Approval Injection**
+```
+Time 0: Attacker creates PR with innocent code
+Time 1: Admin reviews and approves with [Approved][Claude]
+Time 2: Attacker pushes malicious commit
+Time 3: AI agent detects mismatch and refuses to proceed ✓
+```
+
+**Scenario 2: Race Condition During Work**
+```
+Time 0: Admin approves PR with [Approved][Claude]
+Time 1: AI agent begins working
+Time 2: Attacker pushes malicious commit
+Time 3: AI agent attempts to push
+Time 4: Pre-push validation detects new commit and aborts ✓
+```
+
+#### Security Properties
+- **Immutable Approval**: Approvals cannot be transferred to different code
+- **Atomic Operations**: Either all changes are safe or nothing is pushed
+- **Clear Attribution**: Every commit linked to specific approval
+- **No Silent Failures**: All rejections create visible security notices
+
+### 5. Implementation Security for Issues
+
+The Issue Monitor Agent now implements complete solutions before creating PRs:
+
+**Security Measures:**
+- AI agent must successfully implement and commit code
+- No placeholder or draft PRs allowed
+- Failed implementations abort the entire process
+- PRs are created only with working, tested code
+- Clear error messages if implementation fails
+
+**Benefits:**
+- No half-completed PRs that could be exploited
+- All PRs are ready for immediate review
+- Reduces window for malicious interference
+- Clear success/failure states
+
+## Complete Security Model Summary
+
+### Attack Vectors Prevented
+
+1. **Unauthorized Access**
+   - ✓ Allow list prevents unauthorized users
+   - ✓ Workflow-level checks block at GitHub Actions layer
+   - ✓ Application-level validation as backup
+
+2. **Prompt Injection**
+   - ✓ Keyword triggers only accept predefined commands
+   - ✓ No free-form text execution
+   - ✓ Commands tied to specific users
+
+3. **Code Injection**
+   - ✓ Commit-level validation prevents post-approval attacks
+   - ✓ Real-time validation during execution
+   - ✓ Atomic operations ensure consistency
+
+4. **Resource Abuse**
+   - ✓ Rate limiting per user
+   - ✓ Repository restrictions
+   - ✓ Action-specific limits
+
+5. **Social Engineering**
+   - ✓ Multi-layer validation
+   - ✓ Clear audit trails
+   - ✓ Visible security notices
+
+### Security Configuration
+
+All security settings in `config.json`:
+```json
+{
+  "security": {
+    "enabled": true,
+    "allow_list": ["trusted-user1", "trusted-user2"],
+    "rate_limit_window_minutes": 60,
+    "rate_limit_max_requests": 10,
+    "allowed_repositories": ["owner/repo"],
+    "log_violations": true,
+    "reject_message": "Custom security message"
+  }
+}
+```
+
+### Security Best Practices
+
+1. **Minimal Allow List**: Only add users who absolutely need access
+2. **Regular Audits**: Review allow list quarterly
+3. **Monitor Logs**: Check for security violations
+4. **Test Security**: Regularly test with unauthorized users
+5. **Update Promptly**: Keep security measures current
+6. **Document Changes**: Track all security modifications
+
+## Security Incident Response
+
+If a security incident occurs:
+
+1. **Immediate**: Disable AI agents via environment variable
+2. **Investigate**: Check logs for unauthorized attempts
+3. **Remediate**: Remove compromised users from allow list
+4. **Document**: Record incident details
+5. **Improve**: Update security measures based on findings
 
 ## Deduplication and State Management
 

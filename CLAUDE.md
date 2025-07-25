@@ -27,17 +27,48 @@ Your role as Claude Code is the primary development assistant, handling:
 - Documentation and test writing
 - CI/CD pipeline development
 
-### AI Agent Security
+### AI Agent Security Model
 
-**IMPORTANT**: AI agents (Issue Monitor and PR Review Monitor) implement strict security measures:
-- Only authorized users can trigger AI agent actions using keyword triggers like `[Approved][Claude]`
-- PR Review Monitor only works on PRs with "help wanted" label (configurable in `config.json`)
-- Issue Monitor automatically adds "help wanted" label to PRs it creates for seamless workflow
-- Allow list is configured in `scripts/agents/config.json`
-- Unauthorized requests are blocked to prevent prompt injection attacks
-- See `scripts/agents/README.md` for complete security documentation
-- Auto-fix feature is disabled by default and requires `ENABLE_AUTO_FIX=true`
-- Token management uses GitHub Environments for secure secret storage
+**CRITICAL**: The AI agents implement a comprehensive multi-layer security model:
+
+#### 1. Command-Based Control System
+- **Keyword Triggers**: All agent actions require explicit `[Action][Agent]` commands
+- **Supported Commands**: `[Approved]`, `[Fix]`, `[Implement]`, `[Review]`, `[Close]`, `[Summarize]`, `[Debug]`
+- **Example**: `[Approved][Claude]` - tells Claude to process the issue/PR
+- **No Accidental Activation**: Agents ignore all other comments
+
+#### 2. User Authorization
+- **Allow List**: Only pre-approved GitHub users can trigger agents
+- **Configuration**: `scripts/agents/config.json` contains the `security.allow_list`
+- **Default Users**: Repository owner, specific bots, and explicitly added users
+- **Audit Trail**: All actions logged with user attribution
+
+#### 3. Commit-Level Security (Advanced Protection)
+- **Approval Tracking**: Each `[Approved][Claude]` is tied to a specific commit SHA
+- **Pre-Work Validation**: Agents refuse to work if PR has new commits after approval
+- **Pre-Push Validation**: Final check prevents pushing if PR changed during work
+- **Attack Prevention**: Blocks malicious code injection after approval
+- **Example Attack Blocked**:
+  ```
+  1. Attacker creates innocent PR
+  2. Admin approves with [Approved][Claude]
+  3. Attacker pushes malicious code
+  4. Agent detects change and aborts ✓
+  ```
+
+#### 4. Implementation Requirements
+- **Issue Monitor**: Creates fully implemented PRs ready for review (no drafts)
+- **Complete Solutions**: Agent must successfully implement and commit code
+- **No Placeholders**: Failed implementations abort the entire process
+- **Quality Gate**: Only working, tested code makes it to PRs
+
+#### 5. Additional Security Layers
+- **Rate Limiting**: Prevents abuse even from authorized users
+- **Repository Restrictions**: Agents only work on configured repositories
+- **ENABLE_AI_AGENTS**: Master switch for all automated actions
+- **Token Security**: Uses GitHub Environments for secure secret storage
+
+**For complete security documentation, see `scripts/agents/README.md`**
 
 ### Remote Infrastructure
 

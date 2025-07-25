@@ -235,6 +235,51 @@ This commit acknowledges that the review has been processed.
 Co-Authored-By: AI Review Agent <noreply@ai-agent.local>"
 fi
 
+# Security check before push - verify no new commits since approval
+if [ -n "$PR_MONITORING_ACTIVE" ] && [ -n "$APPROVAL_COMMIT_SHA" ]; then
+    echo "=== Security Check: Verifying no new commits since approval ==="
+    echo "Fetching latest changes from origin..."
+    git fetch origin "$BRANCH_NAME" 2>&1 | grep -v "Git LFS" || true
+
+    # Get the current remote HEAD
+    CURRENT_REMOTE_HEAD=$(git rev-parse origin/"$BRANCH_NAME" 2>/dev/null || echo "")
+    echo "Approval was on commit: $APPROVAL_COMMIT_SHA"
+    echo "Current remote HEAD: $CURRENT_REMOTE_HEAD"
+
+    # Check if the remote has moved beyond the approval commit
+    if [ -n "$CURRENT_REMOTE_HEAD" ] && [ -n "$APPROVAL_COMMIT_SHA" ]; then
+        # Check if approval commit is an ancestor of current remote HEAD
+        if ! git merge-base --is-ancestor "$APPROVAL_COMMIT_SHA" "$CURRENT_REMOTE_HEAD" 2>/dev/null; then
+            echo "ERROR: The approval commit is not in the remote branch history!"
+            echo "This could indicate the branch was force-pushed or rebased."
+            echo "Aborting for security reasons."
+            exit 1
+        fi
+
+        # Check if there are new commits after the approval
+        NEW_COMMITS=$(git rev-list "$APPROVAL_COMMIT_SHA".."$CURRENT_REMOTE_HEAD" --count 2>/dev/null || echo "0")
+        if [ "$NEW_COMMITS" -gt 0 ]; then
+            echo "ERROR: Found $NEW_COMMITS new commit(s) pushed after the approval!"
+            echo "New commits:"
+            git log "$APPROVAL_COMMIT_SHA".."$CURRENT_REMOTE_HEAD" --oneline
+            echo ""
+            echo "For security reasons, we cannot push changes when new commits exist after approval."
+            echo "The PR author needs to provide a new approval on the latest commit."
+
+            # Post a comment about this
+            if [ -n "$GITHUB_TOKEN" ] && [ -n "$PR_NUMBER" ]; then
+                COMMENT_BODY="[AI Agent] Security Notice\n\nI've completed the requested changes, but cannot push them because new commits were detected after the approval.\n\nFor security reasons, I need a fresh approval on the latest commit before I can push my changes.\n\nPlease review the new commits and provide a new [Approved][Claude] comment if you want me to proceed.\n\n*This is a security measure to prevent unauthorized code injection.*"
+
+                gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "$COMMENT_BODY"
+            fi
+
+            exit 1
+        fi
+    fi
+    echo "✓ Security check passed: No new commits since approval"
+    echo "==============================================="
+fi
+
 # Push changes
 echo "Pushing changes to origin..."
 echo "Attempting to push branch: $BRANCH_NAME"

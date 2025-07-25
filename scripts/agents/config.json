@@ -16,10 +16,7 @@
         "improvement"
       ],
       "cutoff_hours": 24,
-      "check_interval_minutes": 15,
-      "pr_labels_to_add": [
-        "help wanted"
-      ]
+      "check_interval_minutes": 15
     },
     "pr_review_monitor": {
       "enabled": true,
@@ -34,10 +31,7 @@
         "total_issues": 5
       },
       "cutoff_hours": 24,
-      "check_interval_minutes": 30,
-      "required_labels": [
-        "help wanted"
-      ]
+      "check_interval_minutes": 30
     }
   },
   "claude_cli": {
