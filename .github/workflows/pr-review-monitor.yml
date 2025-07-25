@@ -115,15 +115,20 @@ jobs:
           # Mount Claude config from host into container
           # The container runs as USER_ID:GROUP_ID
           # Create a writable home directory and copy configs
-          docker-compose run --rm --user "${USER_ID}:${GROUP_ID}" \
+          # Run the container with explicit environment variables
+          docker-compose run --rm -T --user "${USER_ID}:${GROUP_ID}" \
             -v "$HOME/.claude:/host-claude:ro" \
             -v "$HOME/.config/gh:/host-gh:ro" \
-            -e GITHUB_TOKEN \
-            -e GITHUB_REPOSITORY \
-            -e ENABLE_AI_AGENTS \
-            -e MASK_ENV_VARS \
-            -e PR_MONITOR_VERBOSE \
+            -e GITHUB_TOKEN="${GITHUB_TOKEN}" \
+            -e GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
+            -e ENABLE_AI_AGENTS="${ENABLE_AI_AGENTS}" \
+            -e MASK_ENV_VARS="${MASK_ENV_VARS}" \
+            -e PR_MONITOR_VERBOSE="${PR_MONITOR_VERBOSE}" \
+            -e PYTHONPATH=/workspace \
             ai-agents bash -c "
+              set -x  # Enable bash debugging
+              echo '[CONTAINER] Started bash script inside container'
+
               # Create writable home directory
               export HOME=/tmp/agent-home
               mkdir -p \$HOME/.config
@@ -148,6 +153,26 @@ jobs:
               echo "  GITHUB_REPOSITORY: $GITHUB_REPOSITORY"
               echo "  ENABLE_AI_AGENTS: $ENABLE_AI_AGENTS"
               echo "  PR_MONITOR_VERBOSE: $PR_MONITOR_VERBOSE"
+              echo "  PYTHONPATH: $PYTHONPATH"
+              echo "[INFO] Current directory: $(pwd)"
+              echo "[INFO] Directory contents:"
+              ls -la scripts/agents/
+
+              # Check if required Python modules exist
+              echo "[INFO] Checking Python modules..."
+              if [ -f scripts/agents/pr_review_monitor.py ]; then
+                echo "  ✓ pr_review_monitor.py exists"
+              else
+                echo "  ✗ pr_review_monitor.py not found!"
+              fi
+
+              # Test Python import
+              echo "[INFO] Testing Python imports..."
+              python -c "import sys; print('Python path:', sys.path)" || echo "Failed to print Python path"
+
+              # Add the scripts/agents directory to PYTHONPATH
+              export PYTHONPATH="/workspace/scripts/agents:$PYTHONPATH"
+              echo "[INFO] Updated PYTHONPATH: $PYTHONPATH"
 
               # Run with explicit PR number if triggered by PR event
               if [ "${{ github.event_name }}" = "pull_request_review" ] || [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
@@ -155,9 +180,20 @@ jobs:
                 echo "[INFO] Targeting specific PR: $TARGET_PR_NUMBER"
               fi
 
-              python -u scripts/agents/pr_review_monitor.py || {
+              echo "[INFO] Running PR review monitor..."
+
+              # First, test if Python can run at all
+              echo "[DEBUG] Testing basic Python execution..."
+              python -c "print('[PYTHON] Basic Python test successful')" || echo "[ERROR] Basic Python test failed"
+
+              # Try to run the script with full error output
+              echo "[DEBUG] Attempting to run pr_review_monitor.py..."
+              python -u scripts/agents/pr_review_monitor.py 2>&1 || {
                 exit_code=$?
                 echo "[ERROR] PR review monitor failed with exit code: $exit_code"
+                # Try to get more info about the failure
+                echo "[DEBUG] Attempting to import the script to check for syntax errors..."
+                python -c "import scripts.agents.pr_review_monitor" 2>&1 || echo "[ERROR] Failed to import script"
                 exit $exit_code
               }
               echo "[SUCCESS] PR review monitor completed successfully"

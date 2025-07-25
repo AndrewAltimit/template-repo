@@ -86,7 +86,7 @@ jobs:
           # Mount Claude config from host into container
           # The container runs as USER_ID:GROUP_ID
           # Create a writable home directory and copy configs
-          docker-compose run --rm --user "${USER_ID}:${GROUP_ID}" \
+          docker-compose run --rm -T --user "${USER_ID}:${GROUP_ID}" \
             -v "$HOME/.claude:/host-claude:ro" \
             -v "$HOME/.config/gh:/host-gh:ro" \
             -e GITHUB_TOKEN="${GITHUB_TOKEN}" \
