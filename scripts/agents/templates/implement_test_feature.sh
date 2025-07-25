@@ -430,8 +430,11 @@ fi
 
 # Create PR using template
 echo "Creating pull request..."
-PR_BODY="## Description
+PR_BODY="## 🚧 Draft Pull Request
+
 This PR implements the requested changes for issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}
+
+**Note**: This is a draft PR as it only contains the initial implementation. Additional review and refinement may be needed.
 
 ## Issue Details
 ${ISSUE_BODY}
@@ -502,7 +505,8 @@ echo "Creating PR with gh command..."
 set +e
 gh pr create --title "Fix: ${ISSUE_TITLE} (#${ISSUE_NUMBER})" \
     --body "$PR_BODY" \
-    --assignee @me 2>&1 | tee pr_create.log
+    --assignee @me \
+    --draft 2>&1 | tee pr_create.log
 PR_CREATE_RESULT=$?
 set -e
 
@@ -571,7 +575,7 @@ if [ $PR_CREATE_RESULT -ne 0 ]; then
 fi
 
 rm -f pr_create.log
-echo "Successfully created PR for issue #$ISSUE_NUMBER!"
+echo "Successfully created draft PR for issue #$ISSUE_NUMBER!"
 if [ -n "$PR_URL" ]; then
-    echo "Pull Request: $PR_URL"
+    echo "Draft Pull Request: $PR_URL"
 fi
