@@ -203,31 +203,84 @@ class PRReviewMonitor:
                 ]
             )
 
-        if output:
-            try:
-                all_prs = json.loads(output)
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse PRs JSON: {e}")
+            if output:
+                try:
+                    all_prs = json.loads(output)
+                    if self.verbose:
+                        logger.debug(
+                            "Parsed PR data type: "
+                            f"{type(all_prs)}, "
+                            f"length: {len(all_prs) if isinstance(all_prs, list) else 'N/A'}"
+                        )
+                        if all_prs and isinstance(all_prs, list):
+                            logger.debug(f"First PR type: {type(all_prs[0])}")
+                            if all_prs and isinstance(all_prs[0], dict):
+                                logger.debug(f"First PR keys: {list(all_prs[0].keys())}")
+                        elif isinstance(all_prs, dict):
+                            logger.debug(f"PR data is a dict with keys: {list(all_prs.keys())}")
+
+                    # If we got a single PR object from gh pr view, wrap it in a list
+                    if target_pr and isinstance(all_prs, dict):
+                        logger.debug("Wrapping single PR dict in list")
+                        all_prs = [all_prs]
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse PRs JSON: {e}")
+                    return []
+            else:
                 return []
 
-            # Filter by recent activity
-            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=self.cutoff_hours)
-            recent_prs = []
-
+        # If targeting specific PR, skip time filtering and just fetch comments
+        if target_pr:
+            logger.info(f"Using targeted PR #{target_pr} without time filtering")
+            # Fetch comments for this PR since pr view doesn't include them
             for pr in all_prs:
-                # Check both created and updated times
-                created_at = datetime.fromisoformat(pr["createdAt"].replace("Z", "+00:00"))
-                updated_at = (
-                    datetime.fromisoformat(pr["updatedAt"].replace("Z", "+00:00")) if "updatedAt" in pr else created_at
-                )
+                if self.verbose:
+                    logger.debug(f"Processing PR data: type={type(pr)}")
+                    if isinstance(pr, dict):
+                        logger.debug(f"PR keys: {list(pr.keys())}")
+                pr_number = pr["number"]
+                pr_comments = self.get_pr_general_comments(pr_number)
+                pr["comments"] = pr_comments
+                if self.verbose:
+                    logger.debug(f"Fetched {len(pr_comments)} comments for PR #{pr_number}")
+                    for i, comment in enumerate(pr_comments[:3]):  # Show first 3
+                        logger.debug(
+                            f"  Comment {i+1} by "
+                            f"{comment.get('user', {}).get('login', 'unknown')}: "
+                            f"{comment.get('body', '')[:50]}..."
+                        )
+            return all_prs
 
-                # Include PR if it was created or updated recently
-                if created_at >= cutoff_time or updated_at >= cutoff_time:
-                    recent_prs.append(pr)
+        # Filter by recent activity (only for non-targeted PR list)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=self.cutoff_hours)
+        recent_prs = []
 
-            logger.info(f"Filtered {len(all_prs)} PRs to {len(recent_prs)} recent PRs (cutoff: {self.cutoff_hours} hours)")
-            return recent_prs
-        return []
+        for pr in all_prs:
+            # Check both created and updated times
+            created_at = datetime.fromisoformat(pr["createdAt"].replace("Z", "+00:00"))
+            updated_at = datetime.fromisoformat(pr["updatedAt"].replace("Z", "+00:00")) if "updatedAt" in pr else created_at
+
+            # Include PR if it was created or updated recently
+            if created_at >= cutoff_time or updated_at >= cutoff_time:
+                recent_prs.append(pr)
+
+        logger.info(f"Filtered {len(all_prs)} PRs to {len(recent_prs)} recent PRs (cutoff: {self.cutoff_hours} hours)")
+
+        # Fetch comments for recent PRs
+        for pr in recent_prs:
+            pr_number = pr["number"]
+            pr_comments = self.get_pr_general_comments(pr_number)
+            pr["comments"] = pr_comments
+            if self.verbose:
+                logger.debug(f"Fetched {len(pr_comments)} comments for PR #{pr_number}")
+                for i, comment in enumerate(pr_comments[:3]):  # Show first 3
+                    logger.debug(
+                        f"  Comment {i+1} by "
+                        f"{comment.get('user', {}).get('login', 'unknown')}: "
+                        f"{comment.get('body', '')[:50]}..."
+                    )
+
+        return recent_prs
 
     def get_pr_reviews(self, pr_number: int) -> List[Dict]:
         """Get all reviews for a specific PR."""
@@ -1091,12 +1144,6 @@ Manual intervention may be required to resolve these issues.
             logger.info(f"Author: {pr_author}")
             logger.info(f"Branch: {branch_name}")
             logger.info(f"Labels: {labels}")
-
-            # Fetch comments for this PR since pr list doesn't include them
-            pr_comments = self.get_pr_general_comments(pr_number)
-            pr["comments"] = pr_comments
-            if self.verbose:
-                logger.debug(f"Fetched {len(pr_comments)} comments for PR #{pr_number}")
 
             # Check if PR has required labels
             has_required_label = any(label in labels for label in self.required_labels)
