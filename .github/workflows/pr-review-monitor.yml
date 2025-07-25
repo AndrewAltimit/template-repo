@@ -143,6 +143,17 @@ jobs:
 
               # Run the agent with verbose output
               echo "[INFO] Starting PR review monitor agent..."
+              echo "[INFO] Environment variables:"
+              echo "  GITHUB_REPOSITORY: $GITHUB_REPOSITORY"
+              echo "  ENABLE_AI_AGENTS: $ENABLE_AI_AGENTS"
+              echo "  PR_MONITOR_VERBOSE: $PR_MONITOR_VERBOSE"
+
+              # Run with explicit PR number if triggered by PR event
+              if [ "${{ github.event_name }}" = "pull_request_review" ] || [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
+                export TARGET_PR_NUMBER="${{ github.event.pull_request.number }}"
+                echo "[INFO] Targeting specific PR: $TARGET_PR_NUMBER"
+              fi
+
               python -u scripts/agents/pr_review_monitor.py || {
                 exit_code=$?
                 echo "[ERROR] PR review monitor failed with exit code: $exit_code"

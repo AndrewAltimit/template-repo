@@ -163,18 +163,45 @@ class PRReviewMonitor:
 
     def get_open_prs(self) -> List[Dict]:
         """Get open pull requests, filtered by recent activity."""
-        output = run_gh_command(
-            [
-                "pr",
-                "list",
-                "--repo",
-                self.repo,
-                "--state",
-                "open",
-                "--json",
-                "number,title,body,author,createdAt,updatedAt,labels,reviews,comments,headRefName",
-            ]
-        )
+        # Check if we should target a specific PR
+        target_pr = os.environ.get("TARGET_PR_NUMBER")
+
+        if target_pr:
+            logger.info(f"Targeting specific PR #{target_pr}")
+            output = run_gh_command(
+                [
+                    "pr",
+                    "view",
+                    target_pr,
+                    "--repo",
+                    self.repo,
+                    "--json",
+                    "number,title,body,author,createdAt,updatedAt,labels,headRefName",
+                ]
+            )
+            if output:
+                try:
+                    pr_data = json.loads(output)
+                    # Wrap in list for consistent processing
+                    all_prs = [pr_data]
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse PR JSON: {e}")
+                    return []
+            else:
+                return []
+        else:
+            output = run_gh_command(
+                [
+                    "pr",
+                    "list",
+                    "--repo",
+                    self.repo,
+                    "--state",
+                    "open",
+                    "--json",
+                    "number,title,body,author,createdAt,updatedAt,labels,headRefName",
+                ]
+            )
 
         if output:
             try:
@@ -1065,6 +1092,12 @@ Manual intervention may be required to resolve these issues.
             logger.info(f"Branch: {branch_name}")
             logger.info(f"Labels: {labels}")
 
+            # Fetch comments for this PR since pr list doesn't include them
+            pr_comments = self.get_pr_general_comments(pr_number)
+            pr["comments"] = pr_comments
+            if self.verbose:
+                logger.debug(f"Fetched {len(pr_comments)} comments for PR #{pr_number}")
+
             # Check if PR has required labels
             has_required_label = any(label in labels for label in self.required_labels)
             if not has_required_label:
@@ -1075,6 +1108,13 @@ Manual intervention may be required to resolve these issues.
 
             # Check for keyword trigger from allowed user
             logger.info(f"[CHECK] Looking for trigger keywords in PR #{pr_number} comments...")
+            if self.verbose:
+                logger.debug(f"PR has {len(pr.get('comments', []))} comments to check")
+                for i, comment in enumerate(pr.get("comments", [])[:5]):
+                    author = comment.get("user", {}).get("login", "Unknown")
+                    body_preview = comment.get("body", "")[:100]
+                    logger.debug(f"  Comment {i}: author={author}, preview={body_preview}...")
+
             trigger_info = self.security_manager.check_trigger_comment(pr, "pr")
 
             if not trigger_info:
