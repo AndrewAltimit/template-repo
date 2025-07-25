@@ -62,6 +62,10 @@ if [ -f .git/hooks/post-checkout ]; then
     mv .git/hooks/post-checkout .git/hooks/post-checkout.disabled
     echo "Disabled post-checkout hook"
 fi
+if [ -f .git/hooks/pre-push ]; then
+    mv .git/hooks/pre-push .git/hooks/pre-push.disabled
+    echo "Disabled pre-push hook (Git LFS)"
+fi
 
 # Create a backup branch
 BACKUP_BRANCH="pr-${PR_NUMBER}-backup-$(date +%s)"
@@ -261,8 +265,9 @@ echo "=== Full push output ==="
 cat push_output.log
 echo "========================"
 
-if [ $PUSH_RESULT -ne 0 ]; then
-    echo "ERROR: Push failed with exit code: $PUSH_RESULT"
+# Check both exit code and output for errors
+if [ $PUSH_RESULT -ne 0 ] || grep -q "error:" push_output.log || grep -q "failed to push" push_output.log; then
+    echo "ERROR: Push failed (exit code: $PUSH_RESULT)"
 
     # Check for common push errors
     if grep -q "rejected" push_output.log; then
@@ -288,7 +293,14 @@ if [ $PUSH_RESULT -ne 0 ]; then
     rm -f push_output.log
     exit 1
 else
-    echo "Push command returned success (exit code 0)"
+    echo "Push command returned exit code 0"
+
+    # Double-check for errors in output even with exit code 0
+    if grep -q "error:" push_output.log || grep -q "failed to push" push_output.log; then
+        echo "ERROR: Push output contains error messages despite exit code 0!"
+        rm -f push_output.log
+        exit 1
+    fi
 
     # Verify the push actually worked
     echo "=== Post-push verification ==="
@@ -301,8 +313,11 @@ else
     if git diff HEAD origin/"$BRANCH_NAME" --quiet 2>/dev/null; then
         echo "✓ Verified: Local and remote branches are identical"
     else
-        echo "⚠ WARNING: Local and remote branches differ after push!"
+        echo "⚠ ERROR: Local and remote branches differ after push!"
+        echo "Push appeared to succeed but changes were not pushed to remote."
         git diff HEAD origin/"$BRANCH_NAME" --stat 2>/dev/null || true
+        rm -f push_output.log
+        exit 1
     fi
     echo "=============================="
 fi
