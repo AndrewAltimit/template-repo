@@ -190,9 +190,19 @@ fi
 
 # Check if there are any changes to commit
 echo "Checking for changes..."
+echo "=== Git status before commit ==="
+git status --porcelain
+echo "==============================="
+
 if ! git diff --quiet || ! git diff --staged --quiet; then
     echo "Found changes to commit"
+    echo "Adding all changes..."
     git add -A
+    echo "=== Files staged for commit ==="
+    git diff --cached --name-status
+    echo "==============================="
+
+    echo "Creating commit..."
     git commit -m "fix: address PR review feedback and complete implementation
 
 - Fixed all critical issues identified in review
@@ -202,6 +212,11 @@ if ! git diff --quiet || ! git diff --staged --quiet; then
 - All tests passing
 
 Co-Authored-By: AI Review Agent <noreply@ai-agent.local>"
+
+    # Verify the commit was created
+    echo "=== Verifying commit creation ==="
+    git log -1 --oneline
+    echo "================================"
 else
     echo "No changes were made by Claude"
     # Create a minimal change to ensure we have something to push
@@ -225,11 +240,13 @@ echo "=== Pre-push diagnostics ==="
 echo "Current branch:"
 git branch --show-current
 echo "Remote URL:"
-git remote get-url origin
+git remote get-url origin | sed 's|x-access-token:[^@]*@|x-access-token:***@|'
 echo "Local commits ahead of origin:"
 git log origin/"$BRANCH_NAME"..HEAD --oneline 2>/dev/null || echo "Cannot compare with origin/$BRANCH_NAME"
 echo "Git status:"
 git status -sb
+echo "Number of commits to push:"
+git rev-list --count origin/"$BRANCH_NAME"..HEAD 2>/dev/null || echo "Cannot count commits"
 echo "=========================="
 
 # Try push with verbose output to debug
@@ -291,4 +308,7 @@ else
 fi
 
 rm -f push_output.log
+echo "=== SCRIPT COMPLETED SUCCESSFULLY ==="
 echo "PR review feedback process completed!"
+echo "Exit code: 0"
+exit 0

@@ -743,7 +743,7 @@ The PR is now ready for final review and merge.
                 input=json.dumps(feedback_data),
                 text=True,
                 check=True,
-                timeout=300,  # 5 minute timeout
+                timeout=600,  # 10 minute timeout
                 env=env,
                 capture_output=True,
             )
@@ -751,7 +751,8 @@ The PR is now ready for final review and merge.
             # Capture agent output for logging
             agent_output = result.stdout if result.stdout else ""
             if self.verbose and agent_output:
-                logger.info(f"Agent output:\n{agent_output[:1000]}...")  # Log first 1000 chars
+                # Log the full output to see commit/push results
+                logger.info(f"Agent output:\n{agent_output}")  # Show full output
 
             logger.info(f"Successfully addressed feedback for PR #{pr_number}")
             return True, None, agent_output
@@ -834,7 +835,8 @@ The PR is now ready for final review and merge.
             # Capture agent output for logging
             agent_output = result.stdout if result.stdout else ""
             if self.verbose and agent_output:
-                logger.info(f"Agent output:\n{agent_output[:1000]}...")  # Log first 1000 chars
+                # Log the full output to see commit/push results
+                logger.info(f"Agent output:\n{agent_output}")  # Show full output
 
             logger.info(f"Successfully fixed pipeline failures for PR #{pr_number}")
             return True, None, agent_output
