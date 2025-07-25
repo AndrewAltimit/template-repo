@@ -79,7 +79,8 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 - Comments with specific information requests
 - Uses Claude Code CLI to implement fixes
 - Creates feature branches automatically
-- Runs every 15 minutes via GitHub Actions
+- Creates draft pull requests for initial implementations
+- Runs every hour via GitHub Actions
 
 ### 5. PR Review Monitor Agent (NEW)
 
@@ -98,6 +99,8 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 - Extracts inline code comments
 - Uses Claude Code to address feedback
 - Commits and pushes fixes
+- Automatically undrafts PRs when ready (all checks passing, no review changes needed)
+- Monitors pipeline failures and attempts fixes
 - Updates PR with completion status
 
 ## How They Work Together
@@ -135,7 +138,7 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
    - Issue Monitor uses Claude Code
    - Creates feature branch
    - Implements fix
-   - Opens PR for review
+   - Opens draft PR for review
 
 3. **Review Phase**:
    - Gemini automatically reviews PR
@@ -147,6 +150,11 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
    - Uses Claude Code to fix issues
    - Commits and pushes changes
    - Comments on completion
+
+5. **PR Ready for Review**:
+   - When all checks pass and no changes needed
+   - PR Review Monitor automatically undrafts the PR
+   - PR is marked as ready for final review
 
 ### Real-World Example
 
@@ -194,7 +202,7 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
       "min_description_length": 50,
       "required_fields": ["description", "expected behavior", "steps to reproduce"],
       "actionable_labels": ["bug", "feature", "enhancement"],
-      "check_interval_minutes": 15
+      "check_interval_minutes": 60
     },
     "pr_review_monitor": {
       "enabled": true,
@@ -203,7 +211,7 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
         "critical_issues": 0,
         "total_issues": 5
       },
-      "check_interval_minutes": 30
+      "check_interval_minutes": 60
     }
   }
 }
@@ -225,8 +233,8 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 
 ### GitHub Actions Automation
 
-- **issue-monitor.yml**: Runs every 15 minutes
-- **pr-review-monitor.yml**: Triggered by PR reviews
+- **issue-monitor.yml**: Runs every hour
+- **pr-review-monitor.yml**: Runs every hour and triggered by PR reviews
 
 ## Best Practices
 

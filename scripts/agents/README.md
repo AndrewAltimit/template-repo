@@ -378,7 +378,7 @@ The system uses multiple filters to minimize unnecessary processing:
 ```
 1. Issue #123 created by user
 2. User comments: "[Fix][Claude] Please help with this bug"
-3. Issue Monitor runs (every 15 minutes)
+3. Issue Monitor runs (every hour)
 4. Checks filters:
    - Created within 24 hours? ✓
    - Has keyword trigger? ✓
@@ -389,7 +389,7 @@ The system uses multiple filters to minimize unnecessary processing:
 6. Processes issue:
    - Creates PR #124
    - Posts: "[AI Agent] I've created PR #124 to address this issue..."
-7. Next run (15 minutes later):
+7. Next run (1 hour later):
    - Gets to deduplication check
    - Any [AI Agent] comments? ✓ (Yes!)
    - SKIPS - Already processed
