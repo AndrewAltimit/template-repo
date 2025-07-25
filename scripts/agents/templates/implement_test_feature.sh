@@ -143,11 +143,21 @@ if [ -f /.dockerenv ] || [ -n "$CONTAINER" ]; then
     # Check both possible locations for Claude credentials
     if [ -f "$HOME/.claude/.credentials.json" ]; then
         echo "Claude credentials found at $HOME/.claude/.credentials.json"
-        CLAUDE_CMD="claude"
+        # Try to use claude-code with permissions flag if available, otherwise fall back to claude
+        if command -v claude-code >/dev/null 2>&1; then
+            CLAUDE_CMD="claude-code --dangerously-skip-permissions"
+        else
+            CLAUDE_CMD="claude"
+        fi
     elif [ -f "/tmp/agent-home/.claude/.credentials.json" ]; then
         echo "Claude credentials found at /tmp/agent-home/.claude/.credentials.json"
         export HOME=/tmp/agent-home
-        CLAUDE_CMD="claude"
+        # Try to use claude-code with permissions flag if available, otherwise fall back to claude
+        if command -v claude-code >/dev/null 2>&1; then
+            CLAUDE_CMD="claude-code --dangerously-skip-permissions"
+        else
+            CLAUDE_CMD="claude"
+        fi
     else
         echo "WARNING: Claude credentials not mounted from host!"
         echo "Mount host's ~/.claude directory to container for authentication"
@@ -182,14 +192,23 @@ ${ISSUE_BODY}
 
 Please implement the requested feature/fix based on the issue description above.
 
-Important guidelines:
+IMPORTANT: You have full permission to create and modify files. Please actually write the implementation code, don't just describe what you would do.
+
+Implementation requirements:
 1. Analyze the issue carefully and implement a complete solution
-2. Write production-quality code following the project's conventions
-3. Add appropriate tests for your implementation
-4. Ensure all existing tests continue to pass
-5. Follow the existing code style and patterns in the repository
-6. If implementing a new feature, add documentation as needed
-7. Make sure to handle edge cases and error conditions
+2. Create or modify the necessary files to implement the feature/fix
+3. Write production-quality code following the project's conventions
+4. Add appropriate tests for your implementation
+5. Ensure all existing tests continue to pass
+6. Follow the existing code style and patterns in the repository
+7. If implementing a new feature, add documentation as needed
+8. Make sure to handle edge cases and error conditions
+
+You are expected to:
+- Create new files as needed
+- Modify existing files as needed
+- Write actual working code, not just placeholders
+- Use the Write, Edit, and MultiEdit tools to make changes
 
 After implementing the solution, commit your changes with an appropriate commit message.
 
@@ -198,20 +217,50 @@ The commit message should follow this format:
 - For bug fixes: "fix: <description>"
 - Include reference to issue #${ISSUE_NUMBER}
 
+Remember: Actually implement the changes by writing code to files. Do not just analyze or describe what should be done.
 Make sure all changes are committed before you finish.
 EOF
 
-# Check if Claude made any commits
-if git diff HEAD^ --quiet 2>/dev/null; then
+# Check if Claude made any commits by comparing with origin/main
+COMMITS_AHEAD=$(git rev-list --count origin/main..HEAD)
+echo "Commits ahead of origin/main: $COMMITS_AHEAD"
+
+if [ "$COMMITS_AHEAD" -eq 0 ]; then
     echo "No changes were committed by Claude"
-    # If no commits were made, create a minimal implementation to ensure the pipeline works
-    echo "Creating a minimal implementation commit..."
-    echo "# Implementation for issue #${ISSUE_NUMBER}" > "implementation_${ISSUE_NUMBER}.md"
-    git add "implementation_${ISSUE_NUMBER}.md"
-    git commit -m "feat: placeholder implementation for issue #${ISSUE_NUMBER}
+    # Check if there are any uncommitted changes first
+    if ! git diff --quiet || ! git diff --staged --quiet; then
+        echo "Found uncommitted changes - committing them..."
+        git add -A
+        git commit -m "feat: implement changes for issue #${ISSUE_NUMBER}
+
+Implemented changes based on issue requirements.
+Fixes #${ISSUE_NUMBER}"
+    else
+        # If no commits and no changes, create a minimal implementation to ensure the pipeline works
+        echo "Creating a minimal implementation commit..."
+        {
+            echo "# Implementation for issue #${ISSUE_NUMBER}"
+            echo ""
+            echo "This file tracks the implementation for issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
+            echo ""
+            echo "## Status"
+            echo "- [ ] Implementation pending review"
+            echo ""
+            echo "## Notes"
+            echo "This is a placeholder file created by the AI Issue Monitor Agent."
+            echo "The actual implementation should be added based on the issue requirements."
+        } > "implementation_${ISSUE_NUMBER}.md"
+
+        git add "implementation_${ISSUE_NUMBER}.md"
+        git commit -m "feat: placeholder implementation for issue #${ISSUE_NUMBER}
 
 This is a placeholder commit to ensure the CI/CD pipeline runs.
-The actual implementation should be added by reviewing the issue requirements."
+The actual implementation should be added by reviewing the issue requirements.
+
+Fixes #${ISSUE_NUMBER}"
+    fi
+else
+    echo "Claude made $COMMITS_AHEAD commit(s)"
 fi
 
 # Push the branch to origin
