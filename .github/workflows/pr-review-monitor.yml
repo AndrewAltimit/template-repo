@@ -150,11 +150,11 @@ jobs:
               # Run the agent with verbose output
               echo "[INFO] Starting PR review monitor agent..."
               echo "[INFO] Environment variables:"
-              echo "  GITHUB_REPOSITORY: $GITHUB_REPOSITORY"
-              echo "  ENABLE_AI_AGENTS: $ENABLE_AI_AGENTS"
-              echo "  PR_MONITOR_VERBOSE: $PR_MONITOR_VERBOSE"
-              echo "  PYTHONPATH: $PYTHONPATH"
-              echo "[INFO] Current directory: $(pwd)"
+              echo "  GITHUB_REPOSITORY: \$GITHUB_REPOSITORY"
+              echo "  ENABLE_AI_AGENTS: \$ENABLE_AI_AGENTS"
+              echo "  PR_MONITOR_VERBOSE: \$PR_MONITOR_VERBOSE"
+              echo "  PYTHONPATH: \$PYTHONPATH"
+              echo "[INFO] Current directory: \$(pwd)"
               echo "[INFO] Directory contents:"
               ls -la scripts/agents/
 
@@ -171,13 +171,13 @@ jobs:
               python -c 'import sys; print("Python path:", sys.path)' || echo "Failed to print Python path"
 
               # Add the scripts/agents directory to PYTHONPATH
-              export PYTHONPATH="/workspace/scripts/agents:$PYTHONPATH"
-              echo "[INFO] Updated PYTHONPATH: $PYTHONPATH"
+              export PYTHONPATH="/workspace/scripts/agents:\$PYTHONPATH"
+              echo "[INFO] Updated PYTHONPATH: \$PYTHONPATH"
 
               # Run with explicit PR number if triggered by PR event
               if [ "${{ github.event_name }}" = "pull_request_review" ] || [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
                 export TARGET_PR_NUMBER="${{ github.event.pull_request.number }}"
-                echo "[INFO] Targeting specific PR: $TARGET_PR_NUMBER"
+                echo "[INFO] Targeting specific PR: \$TARGET_PR_NUMBER"
               fi
 
               echo "[INFO] Running PR review monitor..."
@@ -189,12 +189,12 @@ jobs:
               # Try to run the script with full error output
               echo "[DEBUG] Attempting to run pr_review_monitor.py..."
               python -u scripts/agents/pr_review_monitor.py 2>&1 || {
-                exit_code=$?
-                echo "[ERROR] PR review monitor failed with exit code: $exit_code"
+                exit_code=\$?
+                echo "[ERROR] PR review monitor failed with exit code: \$exit_code"
                 # Try to get more info about the failure
                 echo "[DEBUG] Attempting to import the script to check for syntax errors..."
                 python -c 'import scripts.agents.pr_review_monitor' 2>&1 || echo "[ERROR] Failed to import script"
-                exit $exit_code
+                exit \$exit_code
               }
               echo "[SUCCESS] PR review monitor completed successfully"
             "
