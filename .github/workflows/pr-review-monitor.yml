@@ -115,7 +115,12 @@ jobs:
           # Mount Claude config from host into container
           # The container runs as USER_ID:GROUP_ID
           # Create a writable home directory and copy configs
-          # Run the container with explicit environment variables
+          # Run with explicit PR number if triggered by PR event
+          if [ "${{ github.event_name }}" = "pull_request_review" ] || [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
+            export TARGET_PR_NUMBER="${{ github.event.pull_request.number }}"
+          fi
+
+          # Run the container with the monitoring script
           docker-compose run --rm -T --user "${USER_ID}:${GROUP_ID}" \
             -v "$HOME/.claude:/host-claude:ro" \
             -v "$HOME/.config/gh:/host-gh:ro" \
@@ -124,91 +129,22 @@ jobs:
             -e ENABLE_AI_AGENTS="${ENABLE_AI_AGENTS}" \
             -e MASK_ENV_VARS="${MASK_ENV_VARS}" \
             -e PR_MONITOR_VERBOSE="${PR_MONITOR_VERBOSE}" \
+            -e TARGET_PR_NUMBER="${TARGET_PR_NUMBER:-}" \
             -e PYTHONPATH=/workspace \
-            ai-agents bash -c "
-              set -x  # Enable bash debugging
-              echo '[CONTAINER] Started bash script inside container'
+            -e PYTHONUNBUFFERED=1 \
+            ai-agents bash scripts/agents/run_pr_monitor.sh || {
+              exit_code=$?
+              echo "[ERROR] PR monitor script failed with exit code: $exit_code"
 
-              # Create writable home directory
-              export HOME=/tmp/agent-home
-              mkdir -p \$HOME/.config
+              # Run debug script on failure
+              echo "[DEBUG] Running import debug script..."
+              docker-compose run --rm -T --user "${USER_ID}:${GROUP_ID}" \
+                -e PYTHONPATH=/workspace \
+                -e PYTHONUNBUFFERED=1 \
+                ai-agents python scripts/agents/debug_imports.py
 
-              # Copy Claude credentials (read-only source)
-              if [ -d /host-claude ]; then
-                cp -r /host-claude \$HOME/.claude
-              fi
-
-              # Copy GitHub CLI config (read-only source)
-              if [ -d /host-gh ]; then
-                cp -r /host-gh \$HOME/.config/gh
-              fi
-
-              # Configure git identity globally in container
-              git config --global user.name 'AI PR Agent'
-              git config --global user.email 'ai-agent[bot]@users.noreply.github.com'
-
-              # Run the agent with verbose output
-              echo "[INFO] Starting PR review monitor agent..."
-              echo "[INFO] Environment variables:"
-              echo "  GITHUB_REPOSITORY: \$GITHUB_REPOSITORY"
-              echo "  ENABLE_AI_AGENTS: \$ENABLE_AI_AGENTS"
-              echo "  PR_MONITOR_VERBOSE: \$PR_MONITOR_VERBOSE"
-              echo "  PYTHONPATH: \$PYTHONPATH"
-              echo "[INFO] Current directory: \$(pwd)"
-              echo "[INFO] Directory contents:"
-              ls -la scripts/agents/
-
-              # Check if required Python modules exist
-              echo "[INFO] Checking Python modules..."
-              if [ -f scripts/agents/pr_review_monitor.py ]; then
-                echo "  ✓ pr_review_monitor.py exists"
-              else
-                echo "  ✗ pr_review_monitor.py not found!"
-              fi
-
-              # Test Python import
-              echo "[INFO] Testing Python imports..."
-              python --version || echo "Failed to get Python version"
-
-              # Add the scripts/agents directory to PYTHONPATH
-              export PYTHONPATH="/workspace/scripts/agents:\$PYTHONPATH"
-              echo "[INFO] Updated PYTHONPATH: \$PYTHONPATH"
-
-              # Run with explicit PR number if triggered by PR event
-              if [ "${{ github.event_name }}" = "pull_request_review" ] || [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
-                export TARGET_PR_NUMBER="${{ github.event.pull_request.number }}"
-                echo "[INFO] Targeting specific PR: \$TARGET_PR_NUMBER"
-              fi
-
-              echo "[INFO] Running PR review monitor..."
-
-              # First, test if Python can run at all
-              echo "[DEBUG] Testing basic Python execution..."
-              echo "import sys; print('Python working')" | python || echo "[ERROR] Basic Python test failed"
-
-              # Try to run the script with full error output
-              echo "[DEBUG] Attempting to run pr_review_monitor.py..."
-              cd /workspace
-              python -u scripts/agents/pr_review_monitor.py 2>&1 || {
-                exit_code=\$?
-                echo "[ERROR] PR review monitor failed with exit code: \$exit_code"
-                # Try to get more info about the failure
-                echo "[DEBUG] Getting more debug info..."
-                echo "[DEBUG] Python sys.path:"
-                echo "import sys; print(sys.path)" | python
-                echo "[DEBUG] Directory listing:"
-                ls -la scripts/agents/
-                echo "[DEBUG] Checking if we can import the modules:"
-                echo "try: import logging_security; print('logging_security: OK')" | python
-                echo "except Exception as e: print('logging_security:', e)" | python
-                echo "try: import security; print('security: OK')" | python
-                echo "except Exception as e: print('security:', e)" | python
-                echo "try: import utils; print('utils: OK')" | python
-                echo "except Exception as e: print('utils:', e)" | python
-                exit \$exit_code
-              }
-              echo "[SUCCESS] PR review monitor completed successfully"
-            "
+              exit $exit_code
+            }
 
       - name: Log monitoring results
         if: always()

@@ -83,9 +83,7 @@ jobs:
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
 
-          # Mount Claude config from host into container
-          # The container runs as USER_ID:GROUP_ID
-          # Create a writable home directory and copy configs
+          # Run the container with the monitoring script
           docker-compose run --rm -T --user "${USER_ID}:${GROUP_ID}" \
             -v "$HOME/.claude:/host-claude:ro" \
             -v "$HOME/.config/gh:/host-gh:ro" \
@@ -94,28 +92,21 @@ jobs:
             -e ENABLE_AI_AGENTS="${ENABLE_AI_AGENTS}" \
             -e FORCE_REPROCESS="${FORCE_REPROCESS:-false}" \
             -e MASK_ENV_VARS="${MASK_ENV_VARS}" \
-            ai-agents bash -c "
-              # Create writable home directory
-              export HOME=/tmp/agent-home
-              mkdir -p \$HOME/.config
+            -e PYTHONPATH=/workspace \
+            -e PYTHONUNBUFFERED=1 \
+            ai-agents bash scripts/agents/run_issue_monitor.sh || {
+              exit_code=$?
+              echo "[ERROR] Issue monitor script failed with exit code: $exit_code"
 
-              # Copy Claude credentials (read-only source)
-              if [ -d /host-claude ]; then
-                cp -r /host-claude \$HOME/.claude
-              fi
+              # Run debug script on failure
+              echo "[DEBUG] Running import debug script..."
+              docker-compose run --rm -T --user "${USER_ID}:${GROUP_ID}" \
+                -e PYTHONPATH=/workspace \
+                -e PYTHONUNBUFFERED=1 \
+                ai-agents python scripts/agents/debug_imports.py
 
-              # Copy GitHub CLI config (read-only source)
-              if [ -d /host-gh ]; then
-                cp -r /host-gh \$HOME/.config/gh
-              fi
-
-              # Configure git identity globally in container
-              git config --global user.name 'AI Issue Agent'
-              git config --global user.email 'ai-agent[bot]@users.noreply.github.com'
-
-              # Run the agent
-              python scripts/agents/issue_monitor.py
-            "
+              exit $exit_code
+            }
 
       - name: Log monitoring results
         if: always()
