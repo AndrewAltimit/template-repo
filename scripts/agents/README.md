@@ -393,6 +393,64 @@ The Issue Monitor Agent now implements complete solutions before creating PRs:
 - Reduces window for malicious interference
 - Clear success/failure states
 
+## Deterministic Security Processes
+
+The AI agents implement three core deterministic security processes that ensure predictable and secure behavior:
+
+### 1. Secret Masking for Agent Outputs
+
+All agent outputs are processed through multi-layer secret masking before being posted to GitHub:
+
+**Implementation:**
+- **Logging**: `SecretRedactionFilter` automatically redacts secrets in all Python logs
+- **GitHub Comments**: `mask_secrets()` method sanitizes all PR/issue comments
+- **Error Details**: Command outputs from failed operations are masked
+- **Pattern Detection**: Automatic detection of tokens, API keys, and credentials
+
+**Example:**
+```python
+# In pr_review_monitor.py
+masked_output = self.mask_secrets(agent_output)
+masked_error_details = self.mask_secrets(error_details)
+```
+
+### 2. Deterministic Issue/PR Filtering
+
+Issues and PRs are filtered through a strict, deterministic pipeline:
+
+```
+Time Filter → Trigger Check → Security Check → Rate Limit → Deduplication → Process
+```
+
+**Each stage is deterministic:**
+- **Time**: Only items updated within `cutoff_hours` (default: 24h)
+- **Trigger**: Must have exact `[Action][Agent]` format
+- **Security**: User must be in `allow_list`
+- **Rate Limit**: Enforced per user per time window
+- **Deduplication**: Skip if `[AI Agent]` comment exists
+
+### 3. Commit Validation Security
+
+Prevents code injection by validating commits at three stages:
+
+1. **Approval Recording**: SHA captured when `[Approved][Claude]` is issued
+2. **Pre-Work Check**: Validates no new commits before starting
+3. **Pre-Push Check**: Final validation before pushing changes
+
+**Implementation in bash scripts:**
+```bash
+# Security check before push
+if [ -n "$APPROVAL_COMMIT_SHA" ]; then
+    NEW_COMMITS=$(git rev-list "$APPROVAL_COMMIT_SHA"..HEAD --count)
+    if [ "$NEW_COMMITS" -gt 0 ]; then
+        echo "ERROR: New commits detected!"
+        exit 1
+    fi
+fi
+```
+
+For complete details on these deterministic processes, see [SECURITY.md](../../SECURITY.md).
+
 ## Complete Security Model Summary
 
 ### Attack Vectors Prevented
