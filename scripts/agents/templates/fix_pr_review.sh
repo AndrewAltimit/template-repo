@@ -22,6 +22,7 @@ FEEDBACK_DATA=$(cat)
 MUST_FIX_TEXT=$(echo "$FEEDBACK_DATA" | jq -r '.must_fix')
 ISSUES_TEXT=$(echo "$FEEDBACK_DATA" | jq -r '.issues')
 SUGGESTIONS_TEXT=$(echo "$FEEDBACK_DATA" | jq -r '.suggestions')
+PR_DESCRIPTION=$(echo "$FEEDBACK_DATA" | jq -r '.pr_description // ""')
 
 # Safety check - ensure we're in a git repository
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
@@ -120,9 +121,12 @@ fi
 
 # Run Claude Code with the task
 $CLAUDE_CMD << EOF
-PR #${PR_NUMBER} Review Feedback
+PR #${PR_NUMBER} Review Feedback and Implementation
 
-The following issues were identified in the code review and need to be addressed:
+${PR_DESCRIPTION:+"## PR Context:
+$PR_DESCRIPTION
+
+"}The following issues were identified in the code review and need to be addressed:
 
 ## Critical Issues (Must Fix):
 ${MUST_FIX_TEXT:-"None identified"}
@@ -135,26 +139,36 @@ ${SUGGESTIONS_TEXT:-"None"}
 
 IMPORTANT: You have full permission to modify files. Please actually implement the fixes, don't just describe what you would do.
 
-Please implement fixes for all the critical issues and inline comments.
-For suggestions, implement them if they improve the code quality
-without breaking existing functionality.
+CRITICAL INSTRUCTION: You MUST analyze the PR description to determine what needs to be implemented:
+- Read the ENTIRE PR description carefully, not just review comments
+- Look for ANY indication that implementation is missing or incomplete:
+  * "No implementation files found"
+  * "Documentation only"
+  * "May need to be completed"
+  * Empty checkboxes in implementation status
+  * Comments saying features are missing
+- If the PR description says a feature should exist but you can't find it, IMPLEMENT IT
+- Don't assume the PR is complete just because there are no explicit review comments
+- Your job is to make the PR actually do what it claims to do
 
 You are expected to:
-- Read the existing code files
+- Read the existing code files to understand the current state
 - Use Edit, MultiEdit, or Write tools to make the necessary changes
-- Write actual working code to fix the issues
+- Write actual working code to fix issues AND complete implementations
 - Do not just analyze or describe fixes - implement them
+- If the PR describes a feature that's not implemented, implement it fully
 
 Make sure to:
-1. Address all critical issues by modifying the code
-2. Fix any bugs or errors mentioned
-3. Improve code quality where suggested
-4. Maintain existing functionality
-5. Run tests if possible to ensure nothing is broken
+1. Complete any unfinished implementations based on PR description
+2. Address all critical issues by modifying the code
+3. Fix any bugs or errors mentioned
+4. Improve code quality where suggested
+5. Maintain existing functionality
+6. Run tests if possible to ensure nothing is broken
 
-After making all necessary changes, create a commit with message: "fix: address PR review feedback"
+After making all necessary changes, create a commit with message: "fix: address PR review feedback and complete implementation"
 
-Remember: Actually implement the fixes by modifying files. Do not just analyze or describe what should be done.
+Remember: Actually implement the fixes AND complete any unfinished work by modifying files. Do not just analyze or describe what should be done.
 EOF
 
 # Run tests
@@ -179,10 +193,11 @@ echo "Checking for changes..."
 if ! git diff --quiet || ! git diff --staged --quiet; then
     echo "Found changes to commit"
     git add -A
-    git commit -m "fix: address PR review feedback
+    git commit -m "fix: address PR review feedback and complete implementation
 
 - Fixed all critical issues identified in review
 - Addressed inline code comments
+- Completed any unfinished implementations based on PR description
 - Implemented suggested improvements where applicable
 - All tests passing
 

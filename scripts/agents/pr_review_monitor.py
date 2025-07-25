@@ -633,54 +633,27 @@ The PR is now ready for final review and merge.
                 )
 
         # Parse general PR comments (where Gemini posts its reviews)
+        # Instead of pattern matching, just pass all bot comments to the AI
+        bot_review_comments = []
         for comment in general_comments:
             author = comment.get("user", {}).get("login", "")
             if author in self.review_bot_names or author == "github-actions":
                 body = comment.get("body", "")
+                if body and len(body.strip()) > 10:  # Skip empty comments
+                    bot_review_comments.append(f"Review from {author}:\n{body}")
 
-                # Look for review patterns in general comments
-                if any(
-                    phrase in body.lower()
-                    for phrase in [
-                        "review:",
-                        "feedback:",
-                        "found",
-                        "issue",
-                        "error",
-                        "suggestion",
-                    ]
-                ):
-                    # Extract issues from Gemini's structured reviews
-                    issue_patterns = [
-                        r"(?:issue|problem|error|bug):\s*(.+?)(?:\n|$)",
-                        r"(?:must fix|required|critical):\s*(.+?)(?:\n|$)",
-                        r"❌\s*(.+?)(?:\n|$)",
-                        r"🔴\s*(.+?)(?:\n|$)",
-                        r"\*\*Issue\*\*:\s*(.+?)(?:\n|$)",
-                        r"\*\*Error\*\*:\s*(.+?)(?:\n|$)",
-                    ]
-
-                    for pattern in issue_patterns:
-                        matches = re.findall(pattern, body, re.IGNORECASE | re.MULTILINE)
-                        feedback["must_fix"].extend(matches)
-
-                    # Also look for code blocks with issues
-                    code_block_pattern = r"```[^\n]*\n(.*?)\n```"
-                    code_blocks = re.findall(code_block_pattern, body, re.DOTALL)
-                    if code_blocks and any(word in body.lower() for word in ["error", "issue", "problem"]):
-                        for block in code_blocks:
-                            feedback["issues"].append(
-                                {
-                                    "file": "See PR comment",
-                                    "line": 0,
-                                    "comment": f"Code issue: {block[:200]}...",
-                                    "severity": "high",
-                                }
-                            )
+        # Add all bot comments as context for the AI to analyze
+        if bot_review_comments:
+            feedback["must_fix"].append(
+                "REVIEW COMMENTS TO ANALYZE:\n"
+                + "\n\n---\n\n".join(bot_review_comments)
+                + "\n\nAnalyze all the review comments above and implement any requested changes, "
+                "fixes, or improvements mentioned by the reviewers."
+            )
 
         return feedback
 
-    def prepare_feedback_text(self, feedback: Dict) -> tuple:
+    def prepare_feedback_text(self, feedback: Dict, pr_description: str = "") -> tuple:
         """Prepare feedback text for the fix script."""
         issues_text = "\n".join(
             [f"- File: {issue['file']}, Line: {issue['line']}, Issue: {issue['comment']}" for issue in feedback["issues"]]
@@ -688,7 +661,7 @@ The PR is now ready for final review and merge.
         must_fix_text = "\n".join([f"- {fix}" for fix in feedback["must_fix"]])
         suggestions_text = "\n".join([f"- {suggestion}" for suggestion in feedback["nice_to_have"]])
 
-        return must_fix_text, issues_text, suggestions_text
+        return must_fix_text, issues_text, suggestions_text, pr_description
 
     def parse_pipeline_failures(self, failing_checks: List[Dict]) -> Dict:
         """Parse pipeline failure information."""
@@ -721,7 +694,7 @@ The PR is now ready for final review and merge.
         return failures
 
     def address_review_feedback(
-        self, pr_number: int, branch_name: str, feedback: Dict
+        self, pr_number: int, branch_name: str, feedback: Dict, pr_description: str = ""
     ) -> Tuple[bool, Optional[str], Optional[str]]:
         """Implement changes to address review feedback. Returns (success, error_details, agent_output)"""
         # Check if auto-fix is enabled
@@ -737,7 +710,7 @@ The PR is now ready for final review and merge.
             return False, f"Too many issues ({total_issues}) for automatic fixing", None
 
         # Prepare feedback text
-        must_fix_text, issues_text, suggestions_text = self.prepare_feedback_text(feedback)
+        must_fix_text, issues_text, suggestions_text, pr_desc = self.prepare_feedback_text(feedback, pr_description)
 
         # Use the external script
         script_path = Path(__file__).parent / "templates" / "fix_pr_review.sh"
@@ -751,6 +724,7 @@ The PR is now ready for final review and merge.
                 "must_fix": must_fix_text,
                 "issues": issues_text,
                 "suggestions": suggestions_text,
+                "pr_description": pr_desc,
             }
 
             # Pass environment variables including GITHUB_TOKEN
@@ -1281,6 +1255,9 @@ Manual intervention may be required to resolve these issues.
             if self.verbose:
                 logger.info(f"Security check passed for user {trigger_user}")
 
+            # We'll let the AI determine what needs to be done based on all context
+            logger.info(f"[PROCESSING] PR #{pr_number} - will analyze all context to determine needed actions")
+
             # Skip if we've already addressed this review
             if self.has_agent_addressed_review(pr_number):
                 logger.info(f"[SKIP] Already addressed review for PR #{pr_number}")
@@ -1383,11 +1360,8 @@ Manual intervention may be required to resolve these issues.
                     f"{len(bot_general_comments)} bot general comments"
                 )
 
-                if not bot_reviews and not review_comments and not bot_general_comments:
-                    logger.info(f"[SKIP] No bot reviews found for PR #{pr_number}")
-                    if self.verbose:
-                        logger.debug(f"Checked for reviews from: {self.review_bot_names}")
-                    continue
+                # Always provide all context to the AI, even without explicit reviews
+                # The AI will determine if any work is needed based on PR description and context
 
                 # Parse feedback
                 logger.info("[REVIEW] Parsing feedback from reviews and comments...")
@@ -1399,13 +1373,35 @@ Manual intervention may be required to resolve these issues.
                     f"suggestions={len(feedback['nice_to_have'])}"
                 )
 
-                # Only process if changes were requested or issues found
-                if feedback["changes_requested"] or feedback["issues"] or feedback["must_fix"]:
+                # Log if we found bot comments
+                if any("REVIEW COMMENTS TO ANALYZE:" in item for item in feedback["must_fix"]):
+                    logger.info("[REVIEW] Found bot review comments that need to be analyzed by AI")
+
+                # Get all PR context
+                pr_description = pr.get("body", "")
+                pr_title = pr.get("title", "")
+
+                # Always add instruction for AI to analyze PR and determine what's needed
+                feedback["must_fix"].insert(
+                    0,
+                    "IMPORTANT: Analyze the PR description and all context to determine what needs to be implemented. "
+                    "If the PR description indicates missing implementation, incomplete features, or work that needs "
+                    "to be done, implement it based on the description. Don't just fix review comments - complete "
+                    "any unfinished work described in the PR.",
+                )
+
+                # Always process - let AI determine if work is needed
+                # AI will analyze PR description, reviews, and determine what to implement
+                if True:  # Always process to let AI make the decision
                     logger.info(f"[ACTION] Processing review feedback for PR #{pr_number}...")
                     if self.verbose:
                         logger.debug(f"Must fix items: {feedback['must_fix'][:3]}...")  # Show first 3
 
-                    success, error_details, agent_output = self.address_review_feedback(pr_number, branch_name, feedback)
+                    # Pass PR description for context
+                    full_pr_context = f"PR Title: {pr_title}\n\nPR Description:\n{pr_description}"
+                    success, error_details, agent_output = self.address_review_feedback(
+                        pr_number, branch_name, feedback, full_pr_context
+                    )
 
                     if success:
                         logger.info(f"[SUCCESS] Review feedback addressed successfully for PR #{pr_number}")
@@ -1437,31 +1433,6 @@ Manual intervention may be required to resolve these issues.
                             logger.debug(f"Error details: {error_details[:500]}...")
 
                     self.post_completion_comment(pr_number, feedback, success, error_details, agent_output)
-                else:
-                    logger.info(f"[INFO] No changes required for PR #{pr_number} - review passed")
-
-                    # Post comment that no changes needed
-                    comment_body = (
-                        f"{self.agent_tag} I've reviewed the PR feedback and found "
-                        "no changes are required. The PR review passed without any "
-                        "critical issues or required fixes.\n\n"
-                        "✅ **Review Status:** All checks passed\n"
-                        "🎉 **No changes needed**\n\n"
-                        "*This comment was generated by an AI agent monitoring PR reviews.*"
-                    )
-
-                    logger.info(f"[ACTION] Posting 'no changes needed' comment on PR #{pr_number}")
-                    run_gh_command(
-                        [
-                            "pr",
-                            "comment",
-                            str(pr_number),
-                            "--repo",
-                            self.repo,
-                            "--body",
-                            comment_body,
-                        ]
-                    )
 
                     # Check if this draft PR is ready to be marked as ready for review
                     if self.is_pr_ready_to_undraft(pr, check_status, feedback) and not self.has_agent_undrafted_pr(pr_number):
