@@ -122,6 +122,7 @@ jobs:
             -e GITHUB_REPOSITORY \
             -e ENABLE_AI_AGENTS \
             -e MASK_ENV_VARS \
+            -e PR_MONITOR_VERBOSE \
             ai-agents bash -c "
               # Create writable home directory
               export HOME=/tmp/agent-home

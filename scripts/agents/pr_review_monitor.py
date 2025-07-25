@@ -40,7 +40,11 @@ class PRReviewMonitor:
         self.token = get_github_token()
 
         # Safety control - auto-fixing is enabled when AI agents are enabled
-        self.auto_fix_enabled = os.environ.get("ENABLE_AI_AGENTS", "false").lower() == "true"
+        enable_ai_agents_value = os.environ.get("ENABLE_AI_AGENTS", "false")
+        self.auto_fix_enabled = enable_ai_agents_value.lower() == "true"
+        logger.info(
+            f"ENABLE_AI_AGENTS environment variable: '{enable_ai_agents_value}' (auto_fix_enabled: {self.auto_fix_enabled})"
+        )
 
         # Enable verbose logging
         self.verbose = os.environ.get("PR_MONITOR_VERBOSE", "false").lower() == "true"
