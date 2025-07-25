@@ -42,6 +42,11 @@ class PRReviewMonitor:
         # Safety control - auto-fixing is enabled when AI agents are enabled
         self.auto_fix_enabled = os.environ.get("ENABLE_AI_AGENTS", "false").lower() == "true"
 
+        # Enable verbose logging
+        self.verbose = os.environ.get("PR_MONITOR_VERBOSE", "false").lower() == "true"
+        if self.verbose:
+            logger.info("Verbose logging enabled")
+
         # Load configuration
         self.config = self._load_config()
         pr_config = self.config.get("agents", {}).get("pr_review_monitor", {})
@@ -75,8 +80,22 @@ class PRReviewMonitor:
             ]
 
         # Auto-detect additional sensitive environment variables
-        sensitive_prefixes = ["SECRET_", "TOKEN_", "API_", "KEY_", "PASSWORD_", "PRIVATE_"]
-        sensitive_suffixes = ["_SECRET", "_TOKEN", "_API_KEY", "_KEY", "_PASSWORD", "_PRIVATE_KEY"]
+        sensitive_prefixes = [
+            "SECRET_",
+            "TOKEN_",
+            "API_",
+            "KEY_",
+            "PASSWORD_",
+            "PRIVATE_",
+        ]
+        sensitive_suffixes = [
+            "_SECRET",
+            "_TOKEN",
+            "_API_KEY",
+            "_KEY",
+            "_PASSWORD",
+            "_PRIVATE_KEY",
+        ]
 
         for var_name in os.environ:
             # Check if variable name suggests it's sensitive
@@ -538,19 +557,21 @@ class PRReviewMonitor:
 
         return failures
 
-    def address_review_feedback(self, pr_number: int, branch_name: str, feedback: Dict) -> Tuple[bool, Optional[str]]:
-        """Implement changes to address review feedback. Returns (success, error_details)"""
+    def address_review_feedback(
+        self, pr_number: int, branch_name: str, feedback: Dict
+    ) -> Tuple[bool, Optional[str], Optional[str]]:
+        """Implement changes to address review feedback. Returns (success, error_details, agent_output)"""
         # Check if auto-fix is enabled
         if not self.auto_fix_enabled:
             logger.info(f"AI agents are disabled. Skipping automatic fixes for PR #{pr_number}")
             logger.info("To enable auto-fix, set ENABLE_AI_AGENTS=true environment variable")
-            return False, "AI agents are disabled"
+            return False, "AI agents are disabled", None
 
         # Add safety checks
         total_issues = len(feedback["must_fix"]) + len(feedback["issues"])
         if total_issues > 20:
             logger.warning(f"Too many issues ({total_issues}) for automatic fixing. Skipping auto-fix.")
-            return False, f"Too many issues ({total_issues}) for automatic fixing"
+            return False, f"Too many issues ({total_issues}) for automatic fixing", None
 
         # Prepare feedback text
         must_fix_text, issues_text, suggestions_text = self.prepare_feedback_text(feedback)
@@ -559,7 +580,7 @@ class PRReviewMonitor:
         script_path = Path(__file__).parent / "templates" / "fix_pr_review.sh"
         if not script_path.exists():
             logger.error(f"Fix script not found at {script_path}")
-            return False, f"Fix script not found at {script_path}"
+            return False, f"Fix script not found at {script_path}", None
 
         try:
             # Pass sensitive data via stdin instead of command-line arguments
@@ -572,7 +593,11 @@ class PRReviewMonitor:
             # Pass environment variables including GITHUB_TOKEN
             env = os.environ.copy()
 
-            subprocess.run(
+            if self.verbose:
+                logger.info(f"Running fix script for PR #{pr_number} on branch {branch_name}")
+                logger.info(f"Total issues to fix: {total_issues}")
+
+            result = subprocess.run(
                 [
                     str(script_path),
                     str(pr_number),
@@ -585,16 +610,24 @@ class PRReviewMonitor:
                 env=env,
                 capture_output=True,
             )
+
+            # Capture agent output for logging
+            agent_output = result.stdout if result.stdout else ""
+            if self.verbose and agent_output:
+                logger.info(f"Agent output:\n{agent_output[:1000]}...")  # Log first 1000 chars
+
             logger.info(f"Successfully addressed feedback for PR #{pr_number}")
-            return True, None
+            return True, None, agent_output
         except subprocess.TimeoutExpired:
             logger.error(f"Timeout while addressing feedback for PR #{pr_number}")
-            return False, "Operation timed out after 5 minutes"
+            return False, "Operation timed out after 5 minutes", None
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to address feedback for PR #{pr_number}: {e}")
             # Capture detailed error information
             error_details = f"Exit code: {e.returncode}\n"
+            agent_output = ""
             if e.stdout:
+                agent_output = e.stdout
                 # Show more output for debugging push issues
                 error_details += f"\nOutput:\n{e.stdout[-4000:]}"  # Last 4000 chars
             if e.stderr:
@@ -603,27 +636,33 @@ class PRReviewMonitor:
                 filtered_stderr = "\n".join(line for line in stderr_lines if "Git LFS" not in line and "git-lfs" not in line)
                 if filtered_stderr.strip():
                     error_details += f"\nError:\n{filtered_stderr[-4000:]}"  # Last 4000 chars
-            return False, error_details
+            return False, error_details, agent_output
 
-    def address_pipeline_failures(self, pr_number: int, branch_name: str, failures: Dict) -> Tuple[bool, Optional[str]]:
-        """Attempt to fix pipeline failures. Returns (success, error_details)"""
+    def address_pipeline_failures(
+        self, pr_number: int, branch_name: str, failures: Dict
+    ) -> Tuple[bool, Optional[str], Optional[str]]:
+        """Attempt to fix pipeline failures. Returns (success, error_details, agent_output)"""
         # Check if auto-fix is enabled
         if not self.auto_fix_enabled:
             logger.info(f"AI agents are disabled. Skipping automatic pipeline fixes for PR #{pr_number}")
-            return False, "AI agents are disabled"
+            return False, "AI agents are disabled", None
 
         # Safety check - don't try to fix too many failures at once
         if failures["total_failures"] > 10:
             logger.warning(
                 f"Too many failures ({failures['total_failures']}) for automatic fixing. Manual intervention required."
             )
-            return False, f"Too many failures ({failures['total_failures']}) for automatic fixing"
+            return (
+                False,
+                f"Too many failures ({failures['total_failures']}) for automatic fixing",
+                None,
+            )
 
         # Use the external script for pipeline fixes
         script_path = Path(__file__).parent / "templates" / "fix_pipeline_failure.sh"
         if not script_path.exists():
             logger.error(f"Pipeline fix script not found at {script_path}")
-            return False, f"Pipeline fix script not found at {script_path}"
+            return False, f"Pipeline fix script not found at {script_path}", None
 
         try:
             # Prepare failure information
@@ -637,7 +676,11 @@ class PRReviewMonitor:
             # Pass environment variables including GITHUB_TOKEN
             env = os.environ.copy()
 
-            subprocess.run(
+            if self.verbose:
+                logger.info(f"Running pipeline fix script for PR #{pr_number} on branch {branch_name}")
+                logger.info(f"Failures to fix: {failures['total_failures']}")
+
+            result = subprocess.run(
                 [
                     str(script_path),
                     str(pr_number),
@@ -650,16 +693,24 @@ class PRReviewMonitor:
                 env=env,
                 capture_output=True,
             )
+
+            # Capture agent output for logging
+            agent_output = result.stdout if result.stdout else ""
+            if self.verbose and agent_output:
+                logger.info(f"Agent output:\n{agent_output[:1000]}...")  # Log first 1000 chars
+
             logger.info(f"Successfully fixed pipeline failures for PR #{pr_number}")
-            return True, None
+            return True, None, agent_output
         except subprocess.TimeoutExpired:
             logger.error(f"Timeout while fixing pipeline failures for PR #{pr_number}")
-            return False, "Operation timed out after 10 minutes"
+            return False, "Operation timed out after 10 minutes", None
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to fix pipeline failures for PR #{pr_number}: {e}")
             # Capture detailed error information
             error_details = f"Exit code: {e.returncode}\n"
+            agent_output = ""
             if e.stdout:
+                agent_output = e.stdout
                 # Show more output for debugging push issues
                 error_details += f"\nOutput:\n{e.stdout[-4000:]}"  # Last 4000 chars
             if e.stderr:
@@ -668,10 +719,15 @@ class PRReviewMonitor:
                 filtered_stderr = "\n".join(line for line in stderr_lines if "Git LFS" not in line and "git-lfs" not in line)
                 if filtered_stderr.strip():
                     error_details += f"\nError:\n{filtered_stderr[-4000:]}"  # Last 4000 chars
-            return False, error_details
+            return False, error_details, agent_output
 
     def post_completion_comment(
-        self, pr_number: int, feedback: Dict, success: bool, error_details: Optional[str] = None
+        self,
+        pr_number: int,
+        feedback: Dict,
+        success: bool,
+        error_details: Optional[str] = None,
+        agent_output: Optional[str] = None,
     ) -> None:
         """Post a comment indicating review feedback has been addressed."""
         if success:
@@ -683,8 +739,52 @@ class PRReviewMonitor:
 - Implemented {len(feedback['nice_to_have'])} suggested improvements
 
 All requested changes have been implemented and tests are passing. The PR is ready for another review.
+"""
 
-*This comment was generated by an AI agent that automatically addresses PR review feedback.*"""
+            # Add agent work details if verbose mode is enabled
+            if self.verbose and agent_output:
+                # Extract key information from agent output
+                masked_output = self.mask_secrets(agent_output)
+
+                # Look for specific sections in the output
+                work_summary = []
+
+                # Extract Claude's response (between specific markers)
+                if "Running Claude to address review feedback..." in masked_output:
+                    claude_section = masked_output.split("Running Claude to address review feedback...")[1]
+                    if "Running tests..." in claude_section:
+                        claude_work = claude_section.split("Running tests...")[0].strip()
+                        if claude_work and len(claude_work) > 100:  # Only include if substantial
+                            work_summary.append("**Claude's Analysis:**")
+                            work_summary.append("```")
+                            work_summary.append(claude_work[:1500] + ("..." if len(claude_work) > 1500 else ""))
+                            work_summary.append("```")
+
+                # Extract test results
+                if "Running tests..." in masked_output:
+                    test_section = masked_output.split("Running tests...")[1]
+                    if "Committing changes..." in test_section:
+                        test_results = test_section.split("Committing changes...")[0].strip()
+                        if test_results:
+                            work_summary.append("\n**Test Results:**")
+                            work_summary.append("```")
+                            work_summary.append(test_results[:500] + ("..." if len(test_results) > 500 else ""))
+                            work_summary.append("```")
+
+                # Extract commit info
+                if "Committing changes..." in masked_output and "git add -A" in masked_output:
+                    commit_section = masked_output.split("Committing changes...")[1]
+                    if "Pushing changes" in commit_section:
+                        commit_info = commit_section.split("Pushing changes")[0].strip()
+                        if "Address PR review feedback" in commit_info:
+                            work_summary.append("\n**Commit Created:** ✓ Address PR review feedback")
+
+                if work_summary:
+                    comment_body += "\n\n<details>\n<summary>🔧 Agent Work Details (click to expand)</summary>\n\n"
+                    comment_body += "\n".join(work_summary)
+                    comment_body += "\n\n</details>"
+
+            comment_body += "\n\n*This comment was generated by an AI agent that automatically addresses PR review feedback.*"
         else:
             comment_body = (
                 f"{self.agent_tag} I attempted to address the PR review "
@@ -710,6 +810,28 @@ All requested changes have been implemented and tests are passing. The PR is rea
                     "</details>\n\n"
                 )
 
+            # Add partial agent output if available (shows what was attempted)
+            if self.verbose and agent_output:
+                masked_output = self.mask_secrets(agent_output)
+                # Extract the most relevant parts
+                relevant_sections = []
+
+                if "Running Claude to address review feedback..." in masked_output:
+                    relevant_sections.append("**Agent attempted the following:**")
+                    # Get the Claude interaction part
+                    claude_section = masked_output.split("Running Claude to address review feedback...")[1]
+                    if claude_section:
+                        relevant_sections.append("```")
+                        relevant_sections.append(claude_section[:1000] + ("..." if len(claude_section) > 1000 else ""))
+                        relevant_sections.append("```")
+
+                if relevant_sections:
+                    comment_body += (
+                        "\n**Agent Work Log:**\n" "<details>\n" "<summary>Click to see what the agent attempted</summary>\n\n"
+                    )
+                    comment_body += "\n".join(relevant_sections)
+                    comment_body += "\n\n</details>\n"
+
             comment_body += (
                 "Please review the attempted changes and complete any "
                 "remaining fixes manually.\n\n"
@@ -729,7 +851,12 @@ All requested changes have been implemented and tests are passing. The PR is rea
         )
 
     def post_pipeline_fix_comment(
-        self, pr_number: int, failures: Dict, status: str = "attempting", error_details: Optional[str] = None
+        self,
+        pr_number: int,
+        failures: Dict,
+        status: str = "attempting",
+        error_details: Optional[str] = None,
+        agent_output: Optional[str] = None,
     ) -> None:
         """Post a comment about pipeline fix attempts."""
         if status == "attempting":
@@ -763,8 +890,55 @@ I'll analyze the failure logs and attempt to fix these issues automatically...
 - Addressed {len(failures['other_failures'])} other issues
 
 All checks should now pass. The PR is ready for review.
+"""
 
-*This comment was generated by an AI agent that automatically fixes CI/CD pipeline failures.*"""
+            # Add agent work details if verbose mode is enabled
+            if self.verbose and agent_output:
+                masked_output = self.mask_secrets(agent_output)
+
+                work_summary = []
+
+                # Extract auto-formatting results
+                if "Running auto-format" in masked_output:
+                    format_section = masked_output.split("Running auto-format")[1]
+                    if "Running Claude" in format_section:
+                        format_results = format_section.split("Running Claude")[0].strip()
+                        if format_results:
+                            work_summary.append("**Auto-formatting Results:**")
+                            work_summary.append("```")
+                            work_summary.append(format_results[:500] + ("..." if len(format_results) > 500 else ""))
+                            work_summary.append("```")
+
+                # Extract Claude's analysis
+                if "Running Claude to fix pipeline failures..." in masked_output:
+                    claude_section = masked_output.split("Running Claude to fix pipeline failures...")[1]
+                    if "Running tests to verify" in claude_section:
+                        claude_work = claude_section.split("Running tests to verify")[0].strip()
+                        if claude_work and len(claude_work) > 100:
+                            work_summary.append("\n**Claude's Pipeline Fix Analysis:**")
+                            work_summary.append("```")
+                            work_summary.append(claude_work[:1500] + ("..." if len(claude_work) > 1500 else ""))
+                            work_summary.append("```")
+
+                # Extract verification results
+                if "Running tests to verify fixes..." in masked_output:
+                    verify_section = masked_output.split("Running tests to verify fixes...")[1]
+                    if "Committing fixes..." in verify_section:
+                        verify_results = verify_section.split("Committing fixes...")[0].strip()
+                        if verify_results:
+                            work_summary.append("\n**Verification Results:**")
+                            work_summary.append("```")
+                            work_summary.append(verify_results[:500] + ("..." if len(verify_results) > 500 else ""))
+                            work_summary.append("```")
+
+                if work_summary:
+                    comment_body += "\n\n<details>\n<summary>🔧 Pipeline Fix Details (click to expand)</summary>\n\n"
+                    comment_body += "\n".join(work_summary)
+                    comment_body += "\n\n</details>"
+
+            comment_body += (
+                "\n\n*This comment was generated by an AI agent that automatically fixes CI/CD pipeline failures.*" ""
+            )
         else:  # failed
             comment_body = f"""{self.agent_tag} ❌ I attempted to fix the pipeline failures but encountered issues:
 
@@ -800,6 +974,29 @@ Manual intervention may be required to resolve these issues.
 
 </details>
 """
+
+            # Add partial agent output if available
+            if self.verbose and agent_output:
+                masked_output = self.mask_secrets(agent_output)
+                relevant_sections = []
+
+                if "Running Claude to fix pipeline failures..." in masked_output:
+                    relevant_sections.append("**Agent attempted the following fixes:**")
+                    claude_section = masked_output.split("Running Claude to fix pipeline failures...")[1]
+                    if claude_section:
+                        relevant_sections.append("```")
+                        relevant_sections.append(claude_section[:1000] + ("..." if len(claude_section) > 1000 else ""))
+                        relevant_sections.append("```")
+
+                if relevant_sections:
+                    comment_body += """
+**Agent Work Log:**
+<details>
+<summary>Click to see what the agent attempted</summary>
+
+"""
+                    comment_body += "\n".join(relevant_sections)
+                    comment_body += "\n\n</details>\n"
             comment_body += "\n*This comment was generated by an AI agent that monitors CI/CD pipeline failures.*"
 
         run_gh_command(
@@ -846,29 +1043,44 @@ Manual intervention may be required to resolve these issues.
 
     def process_pr_reviews(self):
         """Main process to monitor and handle PR reviews."""
-        logger.info("Starting PR review monitoring...")
+        logger.info("=== Starting PR review monitoring ===")
+        logger.info(f"Repository: {self.repo}")
+        logger.info(f"Auto-fix enabled: {self.auto_fix_enabled}")
+        logger.info(f"Required labels: {self.required_labels}")
+        logger.info(f"Review bot names: {self.review_bot_names}")
+        logger.info(f"Cutoff hours: {self.cutoff_hours}")
 
         prs = self.get_open_prs()
-        logger.info(f"Found {len(prs)} open PRs")
+        logger.info(f"Found {len(prs)} open PRs after filtering by recent activity")
 
         for pr in prs:
             pr_number = pr["number"]
             branch_name = pr["headRefName"]
             labels = [label.get("name", "") for label in pr.get("labels", [])]
+            pr_author = pr.get("author", {}).get("login", "Unknown")
 
-            logger.info(f"Checking PR #{pr_number} with labels: {labels}")
+            logger.info(f"\n--- Processing PR #{pr_number} ---")
+            logger.info(f"Title: {pr.get('title', 'No title')}")
+            logger.info(f"Author: {pr_author}")
+            logger.info(f"Branch: {branch_name}")
+            logger.info(f"Labels: {labels}")
 
             # Check if PR has required labels
             has_required_label = any(label in labels for label in self.required_labels)
             if not has_required_label:
-                logger.info(f"PR #{pr_number} does not have required labels {self.required_labels} - skipping")
+                logger.info(f"[SKIP] PR #{pr_number} does not have required labels {self.required_labels}")
+                if self.verbose:
+                    logger.debug(f"PR has labels: {labels}, required: {self.required_labels}")
                 continue
 
             # Check for keyword trigger from allowed user
+            logger.info(f"[CHECK] Looking for trigger keywords in PR #{pr_number} comments...")
             trigger_info = self.security_manager.check_trigger_comment(pr, "pr")
 
             if not trigger_info:
-                logger.debug(f"PR #{pr_number} has no valid trigger")
+                logger.info(f"[SKIP] PR #{pr_number} has no valid trigger keyword")
+                if self.verbose:
+                    logger.debug("No [Action][Agent] pattern found in recent comments")
                 continue
 
             action, agent, trigger_user = trigger_info
@@ -896,16 +1108,23 @@ Manual intervention may be required to resolve these issues.
                     self.post_security_rejection_comment(pr_number, rejection_reason)
                 continue
 
+            if self.verbose:
+                logger.info(f"Security check passed for user {trigger_user}")
+
             # Skip if we've already addressed this review
             if self.has_agent_addressed_review(pr_number):
-                logger.debug(f"Already addressed review for PR #{pr_number}")
+                logger.info(f"[SKIP] Already addressed review for PR #{pr_number}")
+                if self.verbose:
+                    logger.debug("Found previous agent comment indicating review was addressed")
                 continue
 
             # Check for pipeline failures first
-            logger.info(f"Checking pipeline status for PR #{pr_number}")
+            logger.info(f"[PIPELINE] Checking CI/CD status for PR #{pr_number}...")
             check_status = self.get_pr_check_status(pr_number)
             logger.info(
-                f"PR #{pr_number}: Total checks: {len(check_status['checks'])}, Failing: {len(check_status['failing_checks'])}"
+                f"[PIPELINE] PR #{pr_number}: Total checks: {len(check_status['checks'])}, "
+                f"Failing: {len(check_status['failing_checks'])}, "
+                f"In progress: {check_status.get('in_progress', False)}"
             )
 
             # If checks are still in progress, log but don't attempt fixes yet
@@ -913,27 +1132,46 @@ Manual intervention may be required to resolve these issues.
                 logger.info(f"PR #{pr_number}: Checks still in progress, will check again later")
 
             if check_status["has_failures"] and not self.has_agent_attempted_pipeline_fix(pr_number):
-                logger.info(f"PR #{pr_number} has {len(check_status['failing_checks'])} failing CI/CD checks")
+                logger.info(f"[PIPELINE] PR #{pr_number} has {len(check_status['failing_checks'])} failing CI/CD checks")
+                if self.verbose:
+                    for check in check_status["failing_checks"][:5]:  # Show first 5
+                        logger.debug(f"  - Failed: {check.get('name', 'Unknown check')}")
+
                 failures = self.parse_pipeline_failures(check_status["failing_checks"])
+                logger.info(
+                    f"[PIPELINE] Failure breakdown: Lint={len(failures['lint_failures'])}, "
+                    f"Test={len(failures['test_failures'])}, Build={len(failures['build_failures'])}, "
+                    f"Other={len(failures['other_failures'])}"
+                )
 
                 # Post comment that we're working on fixing pipeline
+                logger.info(f"[ACTION] Posting 'attempting fix' comment on PR #{pr_number}")
                 self.post_pipeline_fix_comment(pr_number, failures, "attempting")
 
                 # Attempt to fix the failures
-                success, error_details = self.address_pipeline_failures(pr_number, branch_name, failures)
+                logger.info(f"[ACTION] Attempting to fix pipeline failures for PR #{pr_number}...")
+                success, error_details, agent_output = self.address_pipeline_failures(pr_number, branch_name, failures)
 
                 # Post completion comment
                 if success:
-                    self.post_pipeline_fix_comment(pr_number, failures, "success")
+                    logger.info(f"[SUCCESS] Pipeline fixes applied successfully for PR #{pr_number}")
+                    self.post_pipeline_fix_comment(pr_number, failures, "success", agent_output=agent_output)
                 else:
-                    self.post_pipeline_fix_comment(pr_number, failures, "failed", error_details)
+                    logger.error(f"[FAILED] Pipeline fix failed for PR #{pr_number}")
+                    if self.verbose and error_details:
+                        logger.debug(f"Error details: {error_details[:500]}...")
+                    self.post_pipeline_fix_comment(pr_number, failures, "failed", error_details, agent_output)
 
                 # Continue to next PR after handling pipeline failures
+                logger.info(f"[DONE] Completed pipeline fix attempt for PR #{pr_number}")
                 continue
 
             # Handle different actions
             if action.lower() in ["approved", "fix", "implement", "review"]:
+                logger.info(f"[REVIEW] Processing '{action}' action for PR #{pr_number}")
+
                 # Get reviews and comments
+                logger.info(f"[REVIEW] Fetching reviews and comments for PR #{pr_number}...")
                 reviews = self.get_pr_reviews(pr_number)
                 review_comments = self.get_pr_review_comments(pr_number)
                 general_comments = self.get_pr_general_comments(pr_number)
@@ -956,18 +1194,40 @@ Manual intervention may be required to resolve these issues.
                 )
 
                 if not bot_reviews and not review_comments and not bot_general_comments:
-                    logger.debug(f"No bot reviews found for PR #{pr_number}")
+                    logger.info(f"[SKIP] No bot reviews found for PR #{pr_number}")
+                    if self.verbose:
+                        logger.debug(f"Checked for reviews from: {self.review_bot_names}")
                     continue
 
                 # Parse feedback
+                logger.info("[REVIEW] Parsing feedback from reviews and comments...")
                 feedback = self.parse_review_feedback(bot_reviews, review_comments, general_comments)
+
+                logger.info(
+                    f"[REVIEW] Feedback summary: changes_requested={feedback['changes_requested']}, "
+                    f"must_fix={len(feedback['must_fix'])}, issues={len(feedback['issues'])}, "
+                    f"suggestions={len(feedback['nice_to_have'])}"
+                )
 
                 # Only process if changes were requested or issues found
                 if feedback["changes_requested"] or feedback["issues"] or feedback["must_fix"]:
-                    logger.info(f"Processing review feedback for PR #{pr_number}")
-                    success, error_details = self.address_review_feedback(pr_number, branch_name, feedback)
-                    self.post_completion_comment(pr_number, feedback, success, error_details)
+                    logger.info(f"[ACTION] Processing review feedback for PR #{pr_number}...")
+                    if self.verbose:
+                        logger.debug(f"Must fix items: {feedback['must_fix'][:3]}...")  # Show first 3
+
+                    success, error_details, agent_output = self.address_review_feedback(pr_number, branch_name, feedback)
+
+                    if success:
+                        logger.info(f"[SUCCESS] Review feedback addressed successfully for PR #{pr_number}")
+                    else:
+                        logger.error(f"[FAILED] Failed to address review feedback for PR #{pr_number}")
+                        if self.verbose and error_details:
+                            logger.debug(f"Error details: {error_details[:500]}...")
+
+                    self.post_completion_comment(pr_number, feedback, success, error_details, agent_output)
                 else:
+                    logger.info(f"[INFO] No changes required for PR #{pr_number} - review passed")
+
                     # Post comment that no changes needed
                     comment_body = (
                         f"{self.agent_tag} I've reviewed the PR feedback and found "
@@ -978,6 +1238,7 @@ Manual intervention may be required to resolve these issues.
                         "*This comment was generated by an AI agent monitoring PR reviews.*"
                     )
 
+                    logger.info(f"[ACTION] Posting 'no changes needed' comment on PR #{pr_number}")
                     run_gh_command(
                         [
                             "pr",
@@ -991,18 +1252,22 @@ Manual intervention may be required to resolve these issues.
                     )
             elif action.lower() == "close":
                 # Close the PR
-                logger.info(f"Closing PR #{pr_number} as requested")
+                logger.info(f"[ACTION] Closing PR #{pr_number} as requested by {trigger_user}")
                 run_gh_command(["pr", "close", str(pr_number), "--repo", self.repo])
                 self.create_action_comment(
                     pr_number,
                     f"PR closed as requested by {trigger_user} using [{action}][{agent}]",
                 )
+                logger.info(f"[SUCCESS] PR #{pr_number} closed successfully")
             elif action.lower() == "summarize":
                 # Summarize the PR
-                logger.info(f"Summarizing PR #{pr_number}")
+                logger.info(f"[ACTION] Creating summary for PR #{pr_number}")
                 self.create_summary_comment(pr_number, pr)
+                logger.info(f"[SUCCESS] Summary posted for PR #{pr_number}")
             else:
-                logger.warning(f"Unknown action: {action}")
+                logger.warning(f"[WARNING] Unknown action: {action}")
+
+            logger.info(f"[DONE] Completed processing PR #{pr_number}")
 
     def create_action_comment(self, pr_number: int, message: str) -> None:
         """Create a comment for an action taken."""
@@ -1057,6 +1322,10 @@ Manual intervention may be required to resolve these issues.
 
 def main():
     """Main entry point."""
+    logger.info("=== PR Review Monitor Starting ===")
+    logger.info(f"Python version: {sys.version}")
+    logger.info(f"Working directory: {os.getcwd()}")
+
     monitor = PRReviewMonitor()
 
     if "--continuous" in sys.argv:

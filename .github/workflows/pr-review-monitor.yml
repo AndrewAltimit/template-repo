@@ -86,12 +86,26 @@ jobs:
           # Note: GitHub Actions also automatically masks registered secrets in logs,
           # but we need explicit masking for PR comments which are public
           MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN"
+          # Enable verbose logging for better debugging
+          PR_MONITOR_VERBOSE: "true"
+          PYTHONUNBUFFERED: "1"
         run: |
-          echo "Running PR review monitor for repository: $GITHUB_REPOSITORY"
+          echo "=== PR Review Monitor Starting ==="
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Event: ${{ github.event_name }}"
+          echo "AI Agents Enabled: $ENABLE_AI_AGENTS"
+          echo "Verbose Logging: ENABLED"
+          echo "================================="
 
           # If triggered by a specific PR event, we can optimize by checking just that PR
           if [ "${{ github.event_name }}" = "pull_request_review" ] || [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
-            echo "Triggered by PR event on PR #${{ github.event.pull_request.number }}"
+            echo "[INFO] Triggered by PR event on PR #${{ github.event.pull_request.number }}"
+            if [ "${{ github.event_name }}" = "pull_request_review" ]; then
+              echo "[INFO] Review state: ${{ github.event.review.state }}"
+              echo "[INFO] Review author: ${{ github.event.review.user.login }}"
+            fi
+          else
+            echo "[INFO] Triggered by: ${{ github.event_name }}"
           fi
 
           # Export dynamic user/group IDs to match project standards
@@ -127,11 +141,25 @@ jobs:
               git config --global user.name 'AI PR Agent'
               git config --global user.email 'ai-agent[bot]@users.noreply.github.com'
 
-              # Run the agent
-              python scripts/agents/pr_review_monitor.py
+              # Run the agent with verbose output
+              echo "[INFO] Starting PR review monitor agent..."
+              python -u scripts/agents/pr_review_monitor.py || {
+                exit_code=$?
+                echo "[ERROR] PR review monitor failed with exit code: $exit_code"
+                exit $exit_code
+              }
+              echo "[SUCCESS] PR review monitor completed successfully"
             "
 
       - name: Log monitoring results
         if: always()
         run: |
-          echo "PR review monitoring completed at $(date)"
+          echo "=== PR Review Monitor Summary ==="
+          echo "Completion time: $(date)"
+          echo "Workflow status: ${{ job.status }}"
+          if [ "${{ job.status }}" = "failure" ]; then
+            echo "[ERROR] Workflow failed - check logs above for details"
+          else
+            echo "[SUCCESS] Workflow completed successfully"
+          fi
+          echo "================================="
