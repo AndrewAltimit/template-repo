@@ -164,7 +164,6 @@ scratch/
 
 # Generated files
 *.pdf
-*.mp4
 *.gif
 *.webm
 generated/

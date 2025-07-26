@@ -2,6 +2,11 @@
 
 A container-first, self-hosted project template using Model Context Protocol (MCP) tools with zero-cost infrastructure.
 
+<video width="100%" autoplay muted loop>
+  <source src="docs/mcp/mcp-demo.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
 ## Project Philosophy
 
 This project follows a **container-first approach**:
