@@ -254,7 +254,7 @@ class BaseMCPServer(ABC):
                     response = await self._process_jsonrpc_request(req)
                     if response:  # Don't include responses for notifications
                         responses.append(response)
-                return responses if responses else None
+                return JSONResponse(content=responses if responses else [], headers={"Content-Type": "application/json"})
             else:
                 # Single request
                 response = await self._process_jsonrpc_request(body)
@@ -332,15 +332,19 @@ class BaseMCPServer(ABC):
 
     async def _jsonrpc_initialize(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Handle initialize request"""
-        # client_info = params.get("clientInfo", {})  # Reserved for future use
+        client_info = params.get("clientInfo", {})
+        protocol_version = params.get("protocolVersion", "2024-11-05")
+
+        # Log client info
+        self.logger.info(f"Client info: {client_info}, requested protocol: {protocol_version}")
+
         return {
-            "protocolVersion": "2024-11-05",
+            "protocolVersion": "2025-06-18",  # Match Claude Code's version
             "serverInfo": {"name": self.name, "version": self.version},
             "capabilities": {
-                "tools": {},
-                "prompts": None,
+                "tools": {},  # Empty object means tools are supported
                 "resources": None,
-                "logging": None,
+                "prompts": None,
             },
         }
 
