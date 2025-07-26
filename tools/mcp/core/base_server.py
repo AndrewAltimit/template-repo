@@ -150,8 +150,21 @@ class BaseMCPServer(ABC):
         # Return redirect response
         return RedirectResponse(url=redirect_url, status_code=302)
 
-    async def oauth_token_bypass(self, request_data: Dict[str, Any]):
+    async def oauth_token_bypass(self, request: Request):
         """Bypass OAuth2 token exchange - immediately return access token"""
+        # Handle both JSON and form-encoded requests
+        try:
+            if request.headers.get("content-type", "").startswith("application/json"):
+                request_data = await request.json()
+            else:
+                form_data = await request.form()
+                request_data = dict(form_data)
+        except Exception:
+            request_data = {}
+
+        # Log the request for debugging
+        self.logger.info(f"Token request data: {request_data}")
+
         # Return a valid token response without any validation
         return {
             "access_token": "bypass-token-no-auth-required",
