@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "code-quality": {
-      "command": "python",
+      "command": "python3",
       "args": [
         "-m",
         "tools.mcp.code_quality.server",
@@ -10,7 +10,7 @@
       ]
     },
     "content-creation": {
-      "command": "python",
+      "command": "python3",
       "args": [
         "-m",
         "tools.mcp.content_creation.server",
@@ -19,7 +19,7 @@
       ]
     },
     "gemini": {
-      "command": "python",
+      "command": "python3",
       "args": [
         "-m",
         "tools.mcp.gemini.server",
@@ -32,7 +32,7 @@
       }
     },
     "gaea2": {
-      "command": "python",
+      "command": "python3",
       "args": [
         "-m",
         "tools.mcp.gaea2.server",
