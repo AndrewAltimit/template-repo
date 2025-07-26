@@ -248,11 +248,50 @@ Per Gemini's analysis, these risks still require external mitigation:
 
 ## AI Agent Controls
 
-The `ENABLE_AI_AGENTS` environment variable is a master switch that controls:
+### Kill Switch Functionality
+
+The `ENABLE_AI_AGENTS` environment variable serves as a master kill switch:
 
 1. **Scheduled Runs**: When `false`, cron-triggered workflows won't run
-2. **Auto-Fix Capability**: When `true`, PR Review Monitor can implement code fixes
-3. **Manual Triggers**: Still work regardless of this setting for testing
+2. **Workflow Gating**: GitHub Actions check this variable before running
+3. **Manual Override**: Manual workflow triggers bypass this for testing
+
+**Emergency Shutdown Procedure:**
+
+#### Step 1: set ENABLE_AI_AGENTS to false
+
+Toggle via GitHub UI:
+Settings → Variables → ENABLE_AI_AGENTS → Update → false
+
+Toggle via GitHub CLI:
+
+```bash
+gh variable set ENABLE_AI_AGENTS --body="false"
+```
+
+#### Step 2: Disable AI agent itegrated workflows (e.g. issue/pr monitoring)
+
+Actions → AI Agent Workflow → Disable Workflow
+
+### Environment Isolation
+
+**Critical Security Principle**: AI agents must be restricted to development environments only.
+
+```yaml
+# Example workflow configuration
+jobs:
+  ai-agent:
+    environment: development  # NEVER use 'production' here
+    env:
+      GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}  # Limited scope token
+```
+
+**Environment Setup:**
+- **Production**: No AI agent secrets or access
+- **Staging**: No AI agent secrets or access
+- **Development**: Limited AI agent token with minimal permissions
+
+This ensures that even if all other security controls fail, AI agents cannot access production systems or secrets.
 
 ### Auto-Fix Security Features:
 
@@ -308,6 +347,28 @@ The PR Review Monitor relies on keyword triggers from authorized users for secur
    ```
 
 4. **Code Review**: All changes to workflows and agent scripts must be reviewed
+
+### 5. Developer Override Risk
+
+**Known Limitation**: Developers with repository write access can modify `.github/workflows` files to potentially bypass security controls.
+
+**Accepted Risk with Mitigations**:
+1. **Environment Isolation**: Even if workflows are modified, agents only have DEV access
+2. **Branch Protection**: Require reviews for `.github/workflows/**` changes
+3. **Audit Trail**: All workflow modifications are tracked in git history
+4. **Monitoring**: Regular reviews of workflow changes
+5. **Token Scoping**: AI_AGENT_TOKEN has minimal permissions
+
+**Recommended Branch Protection**:
+```yaml
+# .github/CODEOWNERS
+.github/workflows/ @repository-owner @security-team
+
+# Branch protection rules
+- Require pull request reviews before merging
+- Dismiss stale pull request approvals
+- Require review from CODEOWNERS
+```
 
 ### 4. Advanced Security: Commit-Level Validation for Pull Requests
 

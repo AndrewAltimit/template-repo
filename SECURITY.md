@@ -8,6 +8,8 @@ This repository uses AI agents that implement a comprehensive security model wit
 
 | Component | Security Measure | Purpose |
 |-----------|-----------------|---------|
+| **Kill Switch** | `ENABLE_AI_AGENTS` variable | Emergency shutdown control |
+| **Environment** | DEV-only access for agents | Prevents production access |
 | **Commands** | `[Action][Agent]` format only | Prevents prompt injection |
 | **Users** | Allow list in `config.json` | Prevents unauthorized access |
 | **Commits** | SHA validation before/after work | Prevents code injection |
@@ -15,6 +17,34 @@ This repository uses AI agents that implement a comprehensive security model wit
 | **Filtering** | Time + Trigger + Security checks | Deterministic issue selection |
 | **Implementation** | Full completion required | Prevents incomplete/vulnerable code |
 | **Rate Limits** | Per-user request limits | Prevents resource abuse |
+
+### Kill Switch and Environment Controls
+
+#### Master Kill Switch
+
+The `ENABLE_AI_AGENTS` environment variable serves as a master kill switch:
+
+```yaml
+# In GitHub Actions workflows
+if: vars.ENABLE_AI_AGENTS == 'true'
+```
+
+**To disable agents immediately:**
+1. GitHub Settings → Variables → Set `ENABLE_AI_AGENTS=false`
+2. GitHub Settings → Actions → Disable workflows
+3. Emergency: Delete `AI_AGENT_TOKEN` from secrets
+
+#### Environment Isolation
+
+AI agents should **ONLY** have access to development environments:
+
+```
+Production:  ❌ No AI agent access
+Staging:     ❌ No AI agent access
+Development: ✅ Limited AI agent access
+```
+
+This prevents AI agents from accessing production secrets or infrastructure, even if security controls are bypassed.
 
 ### How to Trigger AI Agents Securely
 
@@ -177,12 +207,36 @@ If you discover a security vulnerability:
 - [ ] Review all PRs created by AI agents before merging
 - [ ] Audit agent actions monthly
 - [ ] Test security with non-authorized users quarterly
+- [ ] Ensure AI agents only have DEV environment access
+- [ ] Require PR reviews for `.github/workflows` changes
+- [ ] Monitor for workflow file modifications
 
 ### Additional Security Documentation
 
 - **Full Documentation**: See `scripts/agents/README.md`
 - **Configuration**: See `scripts/agents/config.json`
 - **Logs**: Check GitHub Actions logs for security events
+
+### Known Limitations and Accepted Risks
+
+#### Developer Override Risk
+
+Developers with repository write access can potentially modify `.github/workflows` files to bypass security controls. This is an accepted risk that we mitigate through:
+
+1. **Environment Isolation**: AI agents are restricted to development environments only
+2. **Branch Protection**: Protect `.github/workflows` directory with required reviews
+3. **Audit Trail**: All workflow modifications are logged in git history
+4. **Monitoring**: Regular reviews of workflow changes
+
+#### Mitigation Strategy
+
+```yaml
+# Example branch protection rule for .github/workflows
+paths:
+  - '.github/workflows/**'
+required_reviews: 2
+dismiss_stale_reviews: true
+```
 
 ## Responsible Disclosure
 
