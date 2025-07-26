@@ -14,7 +14,7 @@ from fastapi import FastAPI, HTTPException, Request
 from mcp.server import InitializationOptions, NotificationOptions, Server
 from pydantic import BaseModel
 
-from .client_registry import ClientRegistry
+# from .client_registry import ClientRegistry  # Disabled for home lab use
 
 
 class ToolRequest(BaseModel):
@@ -47,7 +47,8 @@ class BaseMCPServer(ABC):
         self.port = port
         self.logger = logging.getLogger(name)
         self.app = FastAPI(title=name, version=version)
-        self.client_registry = ClientRegistry()
+        # Skip client registry for home lab use
+        # self.client_registry = ClientRegistry()
         self._setup_routes()
         self._setup_events()
 
@@ -77,61 +78,47 @@ class BaseMCPServer(ABC):
         return {"status": "healthy", "server": self.name, "version": self.version}
 
     async def register_client(self, request: Dict[str, Any]):
-        """Register a client with the MCP server with enhanced tracking"""
+        """Register a client - simplified for home lab use"""
         client_name = request.get("client", request.get("client_name", "unknown"))
-        client_metadata = {
-            "name": request.get("name"),
-            "version": request.get("version"),
-            "capabilities": request.get("capabilities", []),
-            "description": request.get("description"),
-            "contact": request.get("contact"),
-            "client_id": request.get("client_id"),
-        }
-        # Remove None values
-        client_metadata = {k: v for k, v in client_metadata.items() if v is not None}
+        client_id = request.get("client_id", f"{client_name}_simple")
 
-        # Register with enhanced registry
-        registration = self.client_registry.register_client(client_name, client_metadata)
-
-        self.logger.info(
-            f"Client registered: {registration['client_id']} ({'update' if registration['is_update'] else 'new'})"
-        )
+        # Simple response without tracking for home lab
+        self.logger.info(f"Client registration request from: {client_name}")
 
         return {
             "status": "registered",
             "client": client_name,
-            "client_id": registration["client_id"],
+            "client_id": client_id,
             "server": self.name,
             "version": self.version,
-            "registration": registration,
+            "registration": {
+                "client_id": client_id,
+                "client_name": client_name,
+                "registered": True,
+                "is_update": False,
+                "registration_time": datetime.utcnow().isoformat(),
+                "server_time": datetime.utcnow().isoformat(),
+            },
         }
 
     async def register_client_oauth(self, request_data: Dict[str, Any], request: Request):
-        """OAuth2-style client registration for Claude Code compatibility"""
-        # Handle OAuth2 dynamic client registration
+        """OAuth2-style client registration - simplified for home lab use"""
         redirect_uris = request_data.get("redirect_uris", [])
         client_name = request_data.get("client_name", request_data.get("client", "claude-code"))
+        client_id = f"{client_name}_oauth"
 
-        # Register the client
-        client_metadata = {
-            "redirect_uris": redirect_uris,
+        # Simple OAuth2-compliant response without tracking
+        self.logger.info(f"OAuth registration request from: {client_name}")
+
+        return {
+            "client_id": client_id,
+            "client_name": client_name,
+            "redirect_uris": redirect_uris if redirect_uris else ["http://localhost"],
             "grant_types": request_data.get("grant_types", ["authorization_code"]),
             "response_types": request_data.get("response_types", ["code"]),
             "token_endpoint_auth_method": request_data.get("token_endpoint_auth_method", "none"),
-        }
-
-        registration = self.client_registry.register_client(client_name, client_metadata)
-
-        # Return OAuth2-compliant response
-        return {
-            "client_id": registration["client_id"],
-            "client_name": client_name,
-            "redirect_uris": redirect_uris if redirect_uris else ["http://localhost"],
-            "grant_types": client_metadata["grant_types"],
-            "response_types": client_metadata["response_types"],
-            "token_endpoint_auth_method": client_metadata["token_endpoint_auth_method"],
             "registration_access_token": "not-required-for-local-mcp",
-            "registration_client_uri": f"{request.url.scheme}://{request.url.netloc}/mcp/clients/{registration['client_id']}",
+            "registration_client_uri": f"{request.url.scheme}://{request.url.netloc}/mcp/clients/{client_id}",
             "client_id_issued_at": int(datetime.utcnow().timestamp()),
             "client_secret_expires_at": 0,  # Never expires
         }
@@ -153,9 +140,7 @@ class BaseMCPServer(ABC):
     async def execute_tool(self, request: ToolRequest):
         """Execute a tool with given arguments"""
         try:
-            # Track client activity if client_id provided
-            if request.client_id:
-                self.client_registry.update_client_activity(request.client_id)
+            # Skip client tracking for home lab use
 
             tools = self.get_tools()
             if request.tool not in tools:
@@ -176,23 +161,29 @@ class BaseMCPServer(ABC):
             return ToolResponse(success=False, result=None, error=str(e))
 
     async def list_clients(self, active_only: bool = True):
-        """List all registered clients"""
-        clients = self.client_registry.list_clients(active_only=active_only)
-        return {"clients": clients, "count": len(clients), "active_only": active_only}
+        """List clients - returns empty for home lab use"""
+        return {"clients": [], "count": 0, "active_only": active_only}
 
     async def get_client_info(self, client_id: str):
-        """Get information about a specific client"""
-        client = self.client_registry.get_client(client_id)
-        if not client:
-            raise HTTPException(status_code=404, detail=f"Client '{client_id}' not found")
-        return client
+        """Get client info - returns simple response for home lab use"""
+        return {
+            "client_id": client_id,
+            "client_name": client_id.replace("_oauth", "").replace("_simple", ""),
+            "active": True,
+            "registered_at": datetime.utcnow().isoformat(),
+        }
 
     async def get_stats(self):
-        """Get server and client statistics"""
-        client_stats = self.client_registry.get_client_stats()
+        """Get server statistics - simplified for home lab use"""
         return {
             "server": {"name": self.name, "version": self.version, "tools_count": len(self.get_tools())},
-            "clients": client_stats,
+            "clients": {
+                "total_clients": 0,
+                "active_clients": 0,
+                "inactive_clients": 0,
+                "clients_active_last_hour": 0,
+                "total_requests": 0,
+            },
         }
 
     @abstractmethod
