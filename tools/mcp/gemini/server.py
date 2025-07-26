@@ -5,11 +5,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-
-import mcp.server.stdio
-import mcp.types as types
-from mcp.server import InitializationOptions, NotificationOptions, Server
+from typing import Any, Dict, Optional
 
 from ..core.base_server import BaseMCPServer
 from ..core.utils import check_container_environment, setup_logging
@@ -297,72 +293,8 @@ class GeminiMCPServer(BaseMCPServer):
 
         return "\n".join(output_lines)
 
-    async def run_stdio(self):
-        """Run the server in stdio mode (for Claude desktop app)"""
-        # Use the MCP Server directly for stdio mode
-        server = Server(self.name)
-
-        # Register all tools with proper decorators
-        @server.call_tool()
-        async def consult_gemini(arguments: Dict[str, Any]) -> List[types.TextContent]:
-            result = await self.consult_gemini(**arguments)
-            return [types.TextContent(type="text", text=result.get("result", str(result)))]
-
-        @server.call_tool()
-        async def clear_gemini_history(
-            arguments: Dict[str, Any],
-        ) -> List[types.TextContent]:
-            result = await self.clear_gemini_history()
-            return [types.TextContent(type="text", text=f"✅ {result['message']}")]
-
-        @server.call_tool()
-        async def gemini_status(arguments: Dict[str, Any]) -> List[types.TextContent]:
-            result = await self.gemini_status()
-            status = result["status"]
-
-            lines = [
-                "🤖 Gemini Integration Status",
-                "=" * 40,
-                f"Enabled: {status['enabled']}",
-                f"Auto-consult: {status['auto_consult']}",
-                f"Model: {status['model']}",
-                f"Timeout: {status['timeout']}s",
-            ]
-
-            if status.get("statistics"):
-                lines.extend(
-                    [
-                        "",
-                        "📊 Statistics:",
-                        f"  Total consultations: {status['statistics'].get('total_consultations', 0)}",
-                        f"  Successful: {status['statistics'].get('successful_consultations', 0)}",
-                        f"  Failed: {status['statistics'].get('failed_consultations', 0)}",
-                    ]
-                )
-
-            return [types.TextContent(type="text", text="\n".join(lines))]
-
-        @server.call_tool()
-        async def toggle_gemini_auto_consult(
-            arguments: Dict[str, Any],
-        ) -> List[types.TextContent]:
-            result = await self.toggle_gemini_auto_consult(arguments.get("enable"))
-            return [types.TextContent(type="text", text=f"✅ {result['message']}")]
-
-        # Run the stdio server
-        async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
-            await server.run(
-                read_stream,
-                write_stream,
-                InitializationOptions(
-                    server_name=self.name,
-                    server_version=self.version,
-                    capabilities=server.get_capabilities(
-                        notification_options=NotificationOptions(),
-                        experimental_capabilities={},
-                    ),
-                ),
-            )
+    # Remove the custom run_stdio method to use the base class implementation
+    # The base class will automatically handle tool registration and stdio mode
 
 
 def main():

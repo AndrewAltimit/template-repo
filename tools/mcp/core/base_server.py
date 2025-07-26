@@ -1,15 +1,16 @@
 """Base MCP Server implementation with common functionality"""
 
 import asyncio
-import json  # noqa: F401
+import json
 import logging
 import os  # noqa: F401
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional  # noqa: F401
 
 import mcp.server.stdio
-import mcp.types as types  # noqa: F401
+import mcp.types as types
 from fastapi import FastAPI, HTTPException
+from mcp.server import InitializationOptions, NotificationOptions, Server
 from pydantic import BaseModel
 
 
@@ -106,25 +107,62 @@ class BaseMCPServer(ABC):
 
     async def run_stdio(self):
         """Run the server in stdio mode (for Claude desktop app)"""
-        server = mcp.server.Server(self.name)
+        server = Server(self.name)
 
-        # Register all tools
-        tools = self.get_tools()
-        for tool_name, tool_info in tools.items():
+        # Store tools and their functions for later access
+        self._tools = self.get_tools()
+        self._tool_funcs = {}
+        for tool_name, tool_info in self._tools.items():
             tool_func = getattr(self, tool_name, None)
             if tool_func:
+                self._tool_funcs[tool_name] = tool_func
 
-                @server.tool(
-                    name=tool_name,
-                    description=tool_info.get("description", ""),
-                    input_schema=tool_info.get("parameters", {}),
+        @server.list_tools()
+        async def list_tools() -> List[types.Tool]:
+            """List available tools"""
+            tools = []
+            for tool_name, tool_info in self._tools.items():
+                tools.append(
+                    types.Tool(
+                        name=tool_name,
+                        description=tool_info.get("description", ""),
+                        inputSchema=tool_info.get("parameters", {}),
+                    )
                 )
-                async def handler(arguments: dict, func=tool_func):
-                    return await func(**arguments)
+            return tools
+
+        @server.call_tool()
+        async def call_tool(name: str, arguments: Dict[str, Any]) -> List[types.TextContent]:
+            """Call a tool with given arguments"""
+            if name not in self._tool_funcs:
+                return [types.TextContent(type="text", text=f"Tool '{name}' not found")]
+
+            try:
+                # Call the tool function
+                result = await self._tool_funcs[name](**arguments)
+
+                # Convert result to MCP response format
+                if isinstance(result, dict):
+                    return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
+                return [types.TextContent(type="text", text=str(result))]
+            except Exception as e:
+                self.logger.error(f"Error calling tool {name}: {str(e)}")
+                return [types.TextContent(type="text", text=f"Error: {str(e)}")]
 
         # Run the stdio server
         async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
-            await server.run(read_stream, write_stream, server.create_initialization_options())
+            await server.run(
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name=self.name,
+                    server_version=self.version,
+                    capabilities=server.get_capabilities(
+                        notification_options=NotificationOptions(),
+                        experimental_capabilities={},
+                    ),
+                ),
+            )
 
     def run_http(self):
         """Run the server in HTTP mode"""
