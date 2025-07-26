@@ -208,7 +208,7 @@ class BaseMCPServer(ABC):
     async def oauth_protected_resource(self):
         """OAuth 2.0 protected resource metadata"""
         return {
-            "resource": "http://192.168.0.152:8007/messages",
+            "resource": "http://192.168.0.152:8007/mcp",
             "authorization_servers": ["http://192.168.0.152:8007"],
         }
 
@@ -404,41 +404,8 @@ class BaseMCPServer(ABC):
 
     async def handle_jsonrpc(self, request: Request):
         """Handle JSON-RPC 2.0 requests for MCP protocol"""
-        # Log headers for debugging
-        self.logger.info(f"JSON-RPC request headers: {dict(request.headers)}")
-
-        try:
-            # Parse JSON-RPC request
-            body = await request.json()
-            self.logger.info(f"JSON-RPC request body: {json.dumps(body)}")
-
-            # Handle batch requests
-            if isinstance(body, list):
-                responses = []
-                for req in body:
-                    response = await self._process_jsonrpc_request(req)
-                    if response:  # Don't include responses for notifications
-                        responses.append(response)
-                return JSONResponse(content=responses if responses else [], headers={"Content-Type": "application/json"})
-            else:
-                # Single request
-                response = await self._process_jsonrpc_request(body)
-                if response:
-                    return JSONResponse(content=response, headers={"Content-Type": "application/json"})
-                else:
-                    # Return empty response for notifications
-                    return JSONResponse(content="", headers={"Content-Type": "application/json"})
-
-        except Exception as e:
-            self.logger.error(f"JSON-RPC error: {e}")
-            return JSONResponse(
-                content={
-                    "jsonrpc": "2.0",
-                    "error": {"code": -32700, "message": "Parse error", "data": str(e)},
-                    "id": None,
-                },
-                headers={"Content-Type": "application/json"},
-            )
+        # Forward to the new streamable handler
+        return await self.handle_messages(request)
 
     async def _process_jsonrpc_request(self, request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Process a single JSON-RPC request"""
