@@ -308,14 +308,28 @@ class BaseMCPServer(ABC):
         # Check response mode preference
         response_mode = request.headers.get("Mcp-Response-Mode", "batch").lower()
 
+        # Check protocol version header
+        protocol_version = request.headers.get("MCP-Protocol-Version")
+
         # Log headers for debugging
         self.logger.info(f"Messages request headers: {dict(request.headers)}")
-        self.logger.info(f"Session ID: {session_id}, Response Mode: {response_mode}")
+        self.logger.info(f"Session ID: {session_id}, Response Mode: {response_mode}, Protocol Version: {protocol_version}")
 
         try:
             # Parse JSON-RPC request
             body = await request.json()
             self.logger.info(f"Messages request body: {json.dumps(body)}")
+
+            # Check if this is an initialization request to generate session ID
+            is_init_request = False
+            if isinstance(body, dict) and body.get("method") == "initialize":
+                is_init_request = True
+                if not session_id:
+                    # Generate a new session ID for initialization
+                    import uuid
+
+                    session_id = str(uuid.uuid4())
+                    self.logger.info(f"Generated new session ID: {session_id}")
 
             # Process based on response mode
             if response_mode == "stream":
@@ -395,6 +409,10 @@ class BaseMCPServer(ABC):
                         )
                     else:
                         # This is a request - return the response
+                        # Log session ID being returned
+                        if is_init_request and session_id:
+                            self.logger.info(f"Returning session ID in response: {session_id}")
+
                         return JSONResponse(
                             content=response,
                             headers={
