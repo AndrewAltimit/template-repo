@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional
 import mcp.server.stdio
 import mcp.types as types
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from mcp.server import InitializationOptions, NotificationOptions, Server
 from pydantic import BaseModel
 
@@ -239,9 +239,13 @@ class BaseMCPServer(ABC):
 
     async def handle_jsonrpc(self, request: Request):
         """Handle JSON-RPC 2.0 requests for MCP protocol"""
+        # Log headers for debugging
+        self.logger.info(f"JSON-RPC request headers: {dict(request.headers)}")
+
         try:
             # Parse JSON-RPC request
             body = await request.json()
+            self.logger.info(f"JSON-RPC request body: {json.dumps(body)}")
 
             # Handle batch requests
             if isinstance(body, list):
@@ -254,7 +258,11 @@ class BaseMCPServer(ABC):
             else:
                 # Single request
                 response = await self._process_jsonrpc_request(body)
-                return response if response else ""  # Return empty string for notifications
+                if response:
+                    return JSONResponse(content=response, headers={"Content-Type": "application/json"})
+                else:
+                    # Return empty response for notifications
+                    return JSONResponse(content="", headers={"Content-Type": "application/json"})
 
         except Exception as e:
             self.logger.error(f"JSON-RPC error: {e}")
