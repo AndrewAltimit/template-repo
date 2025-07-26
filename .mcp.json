@@ -50,25 +50,8 @@
       }
     },
     "gaea2": {
-      "transport": "http",
-      "url": "http://192.168.0.152:8007/mcp"
-    }
-  },
-  "settings": {
-    "timeout": 30,
-    "max_retries": 3,
-    "log_level": "INFO",
-    "enable_caching": true,
-    "cache_ttl": 3600
-  },
-  "security": {
-    "require_auth": false,
-    "allowed_origins": [
-      "*"
-    ],
-    "rate_limit": {
-      "enabled": true,
-      "requests_per_minute": 60
+      "type": "http",
+      "url": "http://192.168.0.152:8007/messages"
     }
   }
 }

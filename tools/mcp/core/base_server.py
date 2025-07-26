@@ -88,7 +88,10 @@ class BaseMCPServer(ABC):
         self.app.get("/.well-known/mcp")(self.mcp_discovery)
         self.app.post("/mcp/initialize")(self.mcp_initialize)
         self.app.get("/mcp/capabilities")(self.mcp_capabilities)
-        # JSON-RPC 2.0 endpoint for MCP (Streamable HTTP transport)
+        # NEW: Streamable HTTP transport - single endpoint for both regular and streaming
+        self.app.get("/messages")(self.handle_messages_get)
+        self.app.post("/messages")(self.handle_messages)
+        # Legacy endpoints for backward compatibility
         self.app.get("/mcp")(self.handle_mcp_get)
         self.app.post("/mcp")(self.handle_jsonrpc)
         self.app.post("/mcp/rpc")(self.handle_jsonrpc)
@@ -205,7 +208,7 @@ class BaseMCPServer(ABC):
     async def oauth_protected_resource(self):
         """OAuth 2.0 protected resource metadata"""
         return {
-            "resource": "http://192.168.0.152:8007/mcp",
+            "resource": "http://192.168.0.152:8007/messages",
             "authorization_servers": ["http://192.168.0.152:8007"],
         }
 
@@ -293,6 +296,111 @@ class BaseMCPServer(ABC):
                 "X-Accel-Buffering": "no",
             },
         )
+
+    async def handle_messages_get(self, request: Request):
+        """Handle GET requests to /messages endpoint"""
+        # For GET requests, return MCP server info
+        return {
+            "protocol": "mcp",
+            "version": "1.0",
+            "server": {
+                "name": self.name,
+                "version": self.version,
+                "description": f"{self.name} MCP Server",
+            },
+            "auth": {
+                "required": False,
+                "type": "none",
+            },
+            "transport": {
+                "type": "streamable-http",
+                "endpoint": "/messages",
+            },
+        }
+
+    async def handle_messages(self, request: Request):
+        """Handle POST requests to /messages endpoint (Streamable HTTP transport)"""
+        # Check Accept header to determine response type
+        accept_header = request.headers.get("accept", "")
+
+        # Log headers for debugging
+        self.logger.info(f"Messages request headers: {dict(request.headers)}")
+
+        try:
+            # Parse JSON-RPC request
+            body = await request.json()
+            self.logger.info(f"Messages request body: {json.dumps(body)}")
+
+            # Check if streaming is requested
+            if "text/event-stream" in accept_header:
+                # Return SSE response for streaming
+                from fastapi.responses import StreamingResponse
+
+                async def event_generator():
+                    # Process the request first
+                    if isinstance(body, list):
+                        # Batch request
+                        for req in body:
+                            response = await self._process_jsonrpc_request(req)
+                            if response:
+                                yield f"data: {json.dumps(response)}\n\n"
+                    else:
+                        # Single request
+                        response = await self._process_jsonrpc_request(body)
+                        if response:
+                            yield f"data: {json.dumps(response)}\n\n"
+
+                    # Keep connection alive for future messages
+                    import asyncio
+
+                    while True:
+                        await asyncio.sleep(30)
+                        yield f"data: {json.dumps({'type': 'ping'})}\n\n"
+
+                return StreamingResponse(
+                    event_generator(),
+                    media_type="text/event-stream",
+                    headers={
+                        "Cache-Control": "no-cache",
+                        "Connection": "keep-alive",
+                        "X-Accel-Buffering": "no",
+                    },
+                )
+            else:
+                # Standard HTTP response
+                if isinstance(body, list):
+                    responses = []
+                    for req in body:
+                        response = await self._process_jsonrpc_request(req)
+                        if response:
+                            responses.append(response)
+                    return JSONResponse(
+                        content=responses if responses else [],
+                        headers={"Content-Type": "application/json"},
+                    )
+                else:
+                    response = await self._process_jsonrpc_request(body)
+                    if response:
+                        return JSONResponse(
+                            content=response,
+                            headers={"Content-Type": "application/json"},
+                        )
+                    else:
+                        return JSONResponse(
+                            content="",
+                            headers={"Content-Type": "application/json"},
+                        )
+        except Exception as e:
+            self.logger.error(f"Messages endpoint error: {e}")
+            return JSONResponse(
+                content={
+                    "jsonrpc": "2.0",
+                    "error": {"code": -32700, "message": "Parse error", "data": str(e)},
+                    "id": None,
+                },
+                status_code=400,
+                headers={"Content-Type": "application/json"},
+            )
 
     async def handle_jsonrpc(self, request: Request):
         """Handle JSON-RPC 2.0 requests for MCP protocol"""
