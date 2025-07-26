@@ -190,3 +190,31 @@ def create_bridge_from_env(service_name: str, default_port: int = 8191) -> HTTPB
     port = int(os.getenv("PORT", str(default_port)))
 
     return HTTPBridge(service_name=service_name, remote_url=remote_url, port=port, timeout=timeout)
+
+
+if __name__ == "__main__":
+    import argparse
+
+    # Setup argument parser
+    parser = argparse.ArgumentParser(description="HTTP Bridge for MCP servers")
+    parser.add_argument("--service-name", default="MCP", help="Service name for the bridge")
+    parser.add_argument("--remote-url", required=True, help="Remote MCP server URL")
+    parser.add_argument("--port", type=int, default=8191, help="Port to listen on")
+    parser.add_argument("--timeout", type=int, default=30, help="Request timeout in seconds")
+    parser.add_argument("--no-cors", action="store_true", help="Disable CORS")
+
+    args = parser.parse_args()
+
+    # Setup logging
+    logging.basicConfig(level=logging.INFO)
+
+    # Create and run bridge
+    bridge = HTTPBridge(
+        service_name=args.service_name,
+        remote_url=args.remote_url,
+        port=args.port,
+        timeout=args.timeout,
+        enable_cors=not args.no_cors,
+    )
+
+    bridge.run()
