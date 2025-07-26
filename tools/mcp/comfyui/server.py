@@ -306,6 +306,17 @@ class ComfyUIMCPServer(BaseMCPServer):
                 media_type="application/json",
             )
 
+    def get_tools(self) -> dict:
+        """Return dictionary of available tools and their metadata"""
+        # Convert tools list to dictionary format expected by base class
+        tools_dict = {}
+        for tool in self.tools:
+            tools_dict[tool["name"]] = {
+                "description": tool["description"],
+                "inputSchema": tool["inputSchema"],
+            }
+        return tools_dict
+
 
 def main():
     """Main entry point"""
