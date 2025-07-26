@@ -80,6 +80,11 @@ class BaseMCPServer(ABC):
         self.app.get("/mcp/clients")(self.list_clients)
         self.app.get("/mcp/clients/{client_id}")(self.get_client_info)
         self.app.get("/mcp/stats")(self.get_stats)
+        # MCP protocol discovery endpoints
+        self.app.get("/.well-known/mcp")(self.mcp_discovery)
+        self.app.get("/mcp")(self.mcp_info)
+        self.app.post("/mcp/initialize")(self.mcp_initialize)
+        self.app.get("/mcp/capabilities")(self.mcp_capabilities)
 
     async def health_check(self):
         """Health check endpoint"""
@@ -172,6 +177,75 @@ class BaseMCPServer(ABC):
             "expires_in": 31536000,  # 1 year
             "scope": "full_access",
             "refresh_token": "bypass-refresh-token-no-auth-required",
+        }
+
+    async def mcp_discovery(self):
+        """MCP protocol discovery endpoint"""
+        return {
+            "mcp_version": "1.0",
+            "server_name": self.name,
+            "server_version": self.version,
+            "capabilities": {
+                "tools": True,
+                "prompts": False,
+                "resources": False,
+            },
+            "endpoints": {
+                "tools": "/mcp/tools",
+                "execute": "/mcp/execute",
+                "initialize": "/mcp/initialize",
+                "capabilities": "/mcp/capabilities",
+            },
+        }
+
+    async def mcp_info(self):
+        """MCP server information"""
+        return {
+            "protocol": "mcp",
+            "version": "1.0",
+            "server": {
+                "name": self.name,
+                "version": self.version,
+                "description": f"{self.name} MCP Server",
+            },
+            "auth": {
+                "required": False,
+                "type": "none",
+            },
+        }
+
+    async def mcp_initialize(self, request: Dict[str, Any]):
+        """Initialize MCP session"""
+        client_info = request.get("client", {})
+        return {
+            "session_id": f"session-{client_info.get('name', 'unknown')}-{int(datetime.utcnow().timestamp())}",
+            "server": {
+                "name": self.name,
+                "version": self.version,
+            },
+            "capabilities": {
+                "tools": True,
+                "prompts": False,
+                "resources": False,
+            },
+        }
+
+    async def mcp_capabilities(self):
+        """Return server capabilities"""
+        tools = self.get_tools()
+        return {
+            "capabilities": {
+                "tools": {
+                    "list": list(tools.keys()),
+                    "count": len(tools),
+                },
+                "prompts": {
+                    "supported": False,
+                },
+                "resources": {
+                    "supported": False,
+                },
+            },
         }
 
     async def list_tools(self):
