@@ -85,6 +85,9 @@ class BaseMCPServer(ABC):
         self.app.get("/mcp")(self.mcp_info)
         self.app.post("/mcp/initialize")(self.mcp_initialize)
         self.app.get("/mcp/capabilities")(self.mcp_capabilities)
+        # JSON-RPC 2.0 endpoint for MCP
+        self.app.post("/mcp")(self.handle_jsonrpc)
+        self.app.post("/mcp/rpc")(self.handle_jsonrpc)
 
     async def health_check(self):
         """Health check endpoint"""
@@ -178,6 +181,157 @@ class BaseMCPServer(ABC):
             "scope": "full_access",
             "refresh_token": "bypass-refresh-token-no-auth-required",
         }
+
+    async def handle_jsonrpc(self, request: Request):
+        """Handle JSON-RPC 2.0 requests for MCP protocol"""
+        try:
+            # Parse JSON-RPC request
+            body = await request.json()
+
+            # Handle batch requests
+            if isinstance(body, list):
+                responses = []
+                for req in body:
+                    response = await self._process_jsonrpc_request(req)
+                    if response:  # Don't include responses for notifications
+                        responses.append(response)
+                return responses if responses else None
+            else:
+                # Single request
+                response = await self._process_jsonrpc_request(body)
+                return response if response else ""  # Return empty string for notifications
+
+        except Exception as e:
+            self.logger.error(f"JSON-RPC error: {e}")
+            return {
+                "jsonrpc": "2.0",
+                "error": {"code": -32700, "message": "Parse error", "data": str(e)},
+                "id": None,
+            }
+
+    async def _process_jsonrpc_request(self, request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Process a single JSON-RPC request"""
+        jsonrpc = request.get("jsonrpc", "2.0")
+        method = request.get("method")
+        params = request.get("params", {})
+        req_id = request.get("id")
+
+        # Log the request for debugging
+        self.logger.info(f"JSON-RPC request: method={method}, id={req_id}")
+
+        # If no ID, this is a notification (no response expected)
+        is_notification = req_id is None
+
+        try:
+            # Route to appropriate handler based on method
+            if method == "initialize":
+                result = await self._jsonrpc_initialize(params)
+            elif method == "tools/list":
+                result = await self._jsonrpc_list_tools(params)
+            elif method == "tools/call":
+                result = await self._jsonrpc_call_tool(params)
+            elif method == "completion/complete":
+                # We don't support completions
+                result = {"error": "Completions not supported"}
+            elif method == "ping":
+                result = {"pong": True}
+            else:
+                # Unknown method
+                if not is_notification:
+                    return {
+                        "jsonrpc": jsonrpc,
+                        "error": {
+                            "code": -32601,
+                            "message": f"Method not found: {method}",
+                        },
+                        "id": req_id,
+                    }
+                return None
+
+            # Return response if not a notification
+            if not is_notification:
+                return {"jsonrpc": jsonrpc, "result": result, "id": req_id}
+            return None
+
+        except Exception as e:
+            self.logger.error(f"Error processing method {method}: {e}")
+            if not is_notification:
+                return {
+                    "jsonrpc": jsonrpc,
+                    "error": {
+                        "code": -32603,
+                        "message": "Internal error",
+                        "data": str(e),
+                    },
+                    "id": req_id,
+                }
+            return None
+
+    async def _jsonrpc_initialize(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle initialize request"""
+        # client_info = params.get("clientInfo", {})  # Reserved for future use
+        return {
+            "protocolVersion": "2024-11-05",
+            "serverInfo": {"name": self.name, "version": self.version},
+            "capabilities": {
+                "tools": {},
+                "prompts": None,
+                "resources": None,
+                "logging": None,
+            },
+        }
+
+    async def _jsonrpc_list_tools(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle tools/list request"""
+        tools = self.get_tools()
+        tool_list = []
+
+        for tool_name, tool_info in tools.items():
+            tool_list.append(
+                {
+                    "name": tool_name,
+                    "description": tool_info.get("description", ""),
+                    "inputSchema": tool_info.get("parameters", {}),
+                }
+            )
+
+        return {"tools": tool_list}
+
+    async def _jsonrpc_call_tool(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle tools/call request"""
+        tool_name = params.get("name")
+        arguments = params.get("arguments", {})
+
+        if not tool_name:
+            raise ValueError("Tool name is required")
+
+        # Get available tools
+        tools = self.get_tools()
+        if tool_name not in tools:
+            raise ValueError(f"Tool '{tool_name}' not found")
+
+        # Get the tool function
+        tool_func = getattr(self, tool_name, None)
+        if not tool_func:
+            raise ValueError(f"Tool '{tool_name}' not implemented")
+
+        # Execute the tool
+        try:
+            result = await tool_func(**arguments)
+
+            # Convert result to MCP content format
+            if isinstance(result, dict):
+                content_text = json.dumps(result, indent=2)
+            else:
+                content_text = str(result)
+
+            return {"content": [{"type": "text", "text": content_text}]}
+        except Exception as e:
+            self.logger.error(f"Error calling tool {tool_name}: {e}")
+            return {
+                "content": [{"type": "text", "text": f"Error executing {tool_name}: {str(e)}"}],
+                "isError": True,
+            }
 
     async def mcp_discovery(self):
         """MCP protocol discovery endpoint"""

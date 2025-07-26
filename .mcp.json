@@ -50,8 +50,8 @@
       }
     },
     "gaea2": {
-      "type": "http",
-      "url": "http://192.168.0.152:8007"
+      "transport": "http",
+      "url": "http://192.168.0.152:8007/mcp"
     }
   },
   "settings": {
