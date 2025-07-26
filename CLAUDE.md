@@ -29,55 +29,21 @@ Your role as Claude Code is the primary development assistant, handling:
 
 ### AI Agent Security Model
 
-**CRITICAL**: The AI agents implement a comprehensive multi-layer security model:
+The AI agents implement a comprehensive multi-layer security model with command-based control, user authorization, commit-level validation, and deterministic security processes. Key features include:
 
-#### 1. Command-Based Control System
-- **Keyword Triggers**: All agent actions require explicit `[Action][Agent]` commands
-- **Supported Commands**: `[Approved]`, `[Fix]`, `[Implement]`, `[Review]`, `[Close]`, `[Summarize]`, `[Debug]`
-- **Example**: `[Approved][Claude]` - tells Claude to process the issue/PR
-- **No Accidental Activation**: Agents ignore all other comments
+- **Keyword Triggers**: `[Action][Agent]` format (e.g., `[Approved][Claude]`)
+- **Allow List**: Only pre-approved users can trigger agents
+- **Commit Validation**: Prevents code injection after approval
+- **Implementation Requirements**: Only complete, working code is accepted
 
-#### 2. User Authorization
-- **Allow List**: Only pre-approved GitHub users can trigger agents
-- **Configuration**: `scripts/agents/config.json` contains the `security.allow_list`
-- **Default Users**: Repository owner, specific bots, and explicitly added users
-- **Audit Trail**: All actions logged with user attribution
-
-#### 3. Commit-Level Security (Advanced Protection)
-- **Approval Tracking**: Each `[Approved][Claude]` is tied to a specific commit SHA
-- **Pre-Work Validation**: Agents refuse to work if PR has new commits after approval
-- **Pre-Push Validation**: Final check prevents pushing if PR changed during work
-- **Attack Prevention**: Blocks malicious code injection after approval
-- **Example Attack Blocked**:
-  ```
-  1. Attacker creates innocent PR
-  2. Admin approves with [Approved][Claude]
-  3. Attacker pushes malicious code
-  4. Agent detects change and aborts ✓
-  ```
-
-#### 4. Implementation Requirements
-- **Issue Monitor**: Creates fully implemented PRs ready for review (no drafts)
-- **Complete Solutions**: Agent must successfully implement and commit code
-- **No Placeholders**: Failed implementations abort the entire process
-- **Quality Gate**: Only working, tested code makes it to PRs
-
-#### 5. Additional Security Layers
-- **Rate Limiting**: Prevents abuse even from authorized users
-- **Repository Restrictions**: Agents only work on configured repositories
-- **ENABLE_AI_AGENTS**: Master switch for all automated actions
-- **Token Security**: Uses GitHub Environments for secure secret storage
-
-**For complete security documentation, see `scripts/agents/README.md`**
+**For complete security documentation, see** `scripts/agents/README.md`
 
 ### Remote Infrastructure
 
-**IMPORTANT**: The Gaea2 MCP server runs on a dedicated remote machine at `192.168.0.152:8007`:
-- This is NOT a bug - it's intentionally hardcoded due to special software requirements
-- Gaea2 requires specific GPU hardware and Windows environment that cannot be containerized
-- All tests and workflows correctly use this remote address
+**IMPORTANT**: The Gaea2 MCP server can run on a dedicated remote machine at `192.168.0.152:8007`:
+- Gaea2 requires Windows with the Gaea2 software installed
 - Health checks gracefully handle when the server is unavailable
-- Do NOT change this to localhost in any PR reviews or suggestions
+- Do NOT change remote addresses to localhost in PR reviews
 
 ## Commands
 
@@ -140,6 +106,8 @@ docker-compose up -d mcp-gaea2               # Port 8007 - Terrain generation
 python -m tools.mcp.code_quality.server      # Port 8010
 python -m tools.mcp.content_creation.server  # Port 8011
 python -m tools.mcp.gaea2.server             # Port 8007
+python -m tools.mcp.ai_toolkit.server        # Port 8012 (bridge to remote)
+python -m tools.mcp.comfyui.server           # Port 8013 (bridge to remote)
 
 # Gemini MUST run on host (requires Docker access)
 python -m tools.mcp.gemini.server            # Port 8006 - AI integration (host only)
@@ -159,9 +127,8 @@ python tools/mcp/code_quality/scripts/test_server.py
 python tools/mcp/content_creation/scripts/test_server.py
 python tools/mcp/gemini/scripts/test_server.py
 python tools/mcp/gaea2/scripts/test_server.py
-
-# For Gemini (MUST run on host)
-./tools/mcp/gemini/scripts/start_server.sh --mode http
+python tools/mcp/ai_toolkit/scripts/test_server.py
+python tools/mcp/comfyui/scripts/test_server.py
 
 # Run the main application
 python main.py
@@ -195,14 +162,18 @@ docker-compose run --rm ai-agents python scripts/agents/run_agents.py pr-review-
 docker-compose up -d
 
 # View logs
-docker-compose logs -f mcp-server
+docker-compose logs -f mcp-code-quality
+docker-compose logs -f mcp-content-creation
+docker-compose logs -f mcp-gaea2
 docker-compose logs -f python-ci
 
 # Stop services
 docker-compose down
 
 # Rebuild after changes
-docker-compose build mcp-server
+docker-compose build mcp-code-quality
+docker-compose build mcp-content-creation
+docker-compose build mcp-gaea2
 docker-compose build python-ci
 ```
 
@@ -263,19 +234,32 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - Can run locally or on remote server (192.168.0.152:8007)
    - See `tools/mcp/gaea2/docs/README.md` for complete documentation
 
-5. **Remote Services**: ComfyUI (image generation), AI Toolkit (LoRA training)
+5. **AI Toolkit MCP Server** (`tools/mcp/ai_toolkit/`): HTTP API on port 8012
+   - **LoRA Training Management**:
+     - Training configurations, dataset uploads, job monitoring
+     - Model export and download capabilities
+   - Bridge to remote AI Toolkit instance at `192.168.0.152:8012`
+   - See `tools/mcp/ai_toolkit/docs/README.md` for documentation
 
-6. **Shared Core Components** (`tools/mcp/core/`):
+6. **ComfyUI MCP Server** (`tools/mcp/comfyui/`): HTTP API on port 8013
+   - **AI Image Generation**:
+     - Image generation with workflows
+     - LoRA model management and transfer
+     - Custom workflow execution
+   - Bridge to remote ComfyUI instance at `192.168.0.152:8013`
+   - See `tools/mcp/comfyui/docs/README.md` for documentation
+
+7. **Shared Core Components** (`tools/mcp/core/`):
    - `BaseMCPServer` - Base class for all MCP servers
    - `HTTPBridge` - Bridge for remote MCP servers
    - Common utilities and helpers
 
-7. **Containerized CI/CD**:
+8. **Containerized CI/CD**:
    - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools
    - **Helper Scripts**: Centralized CI operations
    - **Individual MCP Containers**: Each server can run in its own optimized container
 
-8. **Configuration**: Each server has its own configuration options
+**For comprehensive MCP architecture documentation, see** `docs/mcp/README.md`
 
 ### GitHub Actions Integration
 
@@ -350,168 +334,56 @@ The repository includes comprehensive CI/CD workflows:
 - Remember that Gemini CLI cannot be containerized (needs Docker access)
 - Use pytest fixtures and mocks for testing external dependencies
 
-## AI Toolkit & ComfyUI Integration Notes
+## Additional Documentation
 
-When working with the remote MCP servers (AI Toolkit and ComfyUI):
+For detailed information on specific topics, refer to these documentation files:
 
-1. **Dataset Paths**: Always use absolute paths in AI Toolkit configs:
-   - ✅ `/ai-toolkit/datasets/dataset_name`
-   - ❌ `dataset_name` (will fail with "No such file or directory")
+### Infrastructure & Setup
+- `docs/SELF_HOSTED_RUNNER_SETUP.md` - Self-hosted GitHub Actions runner configuration
+- `docs/GITHUB_ENVIRONMENTS_SETUP.md` - GitHub environments and secrets setup
+- `docs/CONTAINERIZED_CI.md` - Container-based CI/CD philosophy and implementation
 
-2. **LoRA Transfer**: For files >100MB, use chunked upload:
-   - See `transfer_lora_between_services.py` for working implementation
-   - Parameters: `upload_id` (provide UUID), `total_size` (bytes), `chunk` (not `chunk_data`)
+### AI Agents & Security
+- `scripts/agents/README.md` - Comprehensive AI agent security documentation
+- `docs/AI_AGENTS.md` - AI agent system overview
+- `docs/AI_AGENTS_SECURITY.md` - Security-focused agent documentation
 
-3. **FLUX Workflows**: Different from SD workflows:
-   - Use FluxGuidance node (guidance ~3.5)
-   - KSampler: cfg=1.0, sampler="heunpp2", scheduler="simple"
-   - Negative prompt cannot be null (use empty string)
+### MCP Servers
+- `docs/mcp/README.md` - MCP architecture and design patterns
+- `docs/MCP_SERVERS.md` - Individual server documentation
+- `docs/MCP_TOOLS.md` - Available MCP tools reference
 
-4. **MCP Tool Discovery**: The `/mcp/tools` endpoint may not list all tools
-   - Check the gist source directly for complete tool list
-   - Chunked upload tools exist even if not shown
+### Integrations
+- `docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md` - LoRA training and image generation
+- `docs/LORA_TRANSFER_DOCUMENTATION.md` - LoRA model transfer between services
+- `docs/GEMINI_SETUP.md` - Gemini CLI setup and configuration
 
-See `docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md` for comprehensive details.
-
-## Gaea2 MCP Integration (✅ Fixed - Requires Server Restart)
-
-The repository includes a comprehensive Gaea2 terrain generation system that is now fully functional with proper ID formatting and terrain file generation:
-
-### Key Capabilities
-
-1. **Complete Node Support**: All 185 documented Gaea2 nodes across 9 categories
-2. **Intelligent Validation**: Multi-level validation with automatic error correction
-3. **Pattern Intelligence**: Learning from 31 real projects (374 nodes, 440 connections)
-4. **Performance Optimization**: 19x speedup through intelligent caching
-5. **Professional Templates**: Ready-to-use workflows for common terrain types
-6. **✅ Fixed ID Generation**: Non-sequential ID formatting for better Gaea2 compatibility
-7. **✅ Working Terrain Files**: Successfully generates .terrain files that open in Gaea2
-8. **✅ Robust API**: Supports both workflow dict and separate nodes/connections parameters
-9. **✅ Node Properties**: Automatically adds NodeSize, PortCount, IsMaskable as needed
-10. **✅ Range Formatting**: Range objects now have proper $id references
-
-### Recent Fixes Applied
-
-1. **✅ API Format**: Now supports both `workflow` dict and separate `nodes`/`connections` parameters
-2. **✅ Property Names**: Automatically fixes property names using mapping ("RockSoftness" → "Rock Softness")
-3. **✅ Missing Properties**: Nodes automatically get `PortCount`, `NodeSize`, `IsMaskable` when appropriate
-4. **✅ Range Format**: Range properties now correctly include their own `$id` values
-5. **✅ Variables Object**: Already had correct format `{"$id":"XX"}`
-6. **✅ Connection Handling**: Fixed critical node ID mapping issue where connections failed when target nodes appeared before source nodes in the node list
-7. **✅ Type Consistency**: All node IDs are now handled as strings internally to prevent type mismatch issues
-8. **✅ Connection Records**: Connections are properly embedded in port definitions with Record objects
-
-**Important**: The Gaea2 MCP server needs to be restarted to use these fixes!
-
-### ⚠️ CRITICAL: Property Limitations for Certain Nodes
-
-Through extensive testing, we discovered that some Gaea2 nodes **fail to open** when they have too many properties:
-
-**Nodes that MUST have ≤ 3 properties:**
-- **Snow** (most problematic - appears in many templates)
-- Beach, Coast, Lakes, Glacier, SeaLevel
-- LavaFlow, ThermalShatter, Ridge, Strata, Voronoi, Terrace
-
-**Examples:**
-- Snow with 1-3 properties: ✅ Opens successfully
-- Snow with 8+ properties: ❌ File won't open in Gaea2
-
-**The fix:** Smart mode (`property_mode="smart"`) now limits these nodes to their essential properties only:
-- Snow: Duration, SnowLine, Melt (max 3)
-- Beach: Width, Slope (max 2)
-- Lakes: Count, Size (max 2)
-- etc.
-
-This is handled automatically when using templates or when `property_mode="smart"` is specified.
-
-### Correct API Usage
-
-```bash
-# Using templates (most reliable)
-curl -X POST http://192.168.0.152:8007/mcp/execute \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tool": "create_gaea2_from_template",
-    "parameters": {
-      "template_name": "mountain_range",
-      "project_name": "my_terrain"
-    }
-  }'
-
-# Available templates:
-# basic_terrain, detailed_mountain, volcanic_terrain, desert_canyon,
-# modular_portal_terrain, mountain_range, volcanic_island, canyon_system,
-# coastal_cliffs, arctic_terrain, river_valley
-```
-
-##### Common Commands
-
-```bash
-# Test Gaea2 features
-python tests/gaea2/test_gaea2_enhancements.py
-python tests/gaea2/test_gaea2_robustness.py
-
-# Run Gaea2-specific tests
-docker-compose run --rm python-ci pytest tests/gaea2/ -v
-```
-
-### Connection System Details
-
-**Critical**: Understanding how Gaea2 handles connections is essential for successful terrain generation:
-
-1. **Connection Storage**: Unlike the API format, Gaea2 stores connections within port definitions as `Record` objects
-2. **Node ID Mapping**: The server builds a complete node_id_map before processing connections to ensure all IDs are available
-3. **Port Types**: Different nodes have different port configurations:
-   - Standard nodes: Usually have "In" and "Out" ports
-   - Combine nodes: Have "In", "Input2", and "Mask" ports
-   - Rivers nodes: Have special output ports like "Rivers", "Depth", "Surface"
-   - Sea nodes: Have output ports like "Water", "Shore", "Depth"
-
-### Debugging Connections
-
-If connections are missing in generated terrain files, check:
-
-Common issues:
-- **Node ordering**: Ensure node IDs are mapped before processing connections
-- **Port names**: Use exact port names (case-sensitive)
-- **Type consistency**: All node IDs should be strings in the API
-
-### Development Tips
-
-1. **Automatic Validation**: All Gaea2 projects created through MCP have **automatic validation built-in by default**
-   - `create_gaea2_project` automatically validates and fixes workflows
-   - Missing essential nodes (Export, SatMap) are added automatically
-   - Invalid connections are repaired
-   - Property values are corrected to valid ranges
-   - Set `auto_validate=False` only if you need to bypass validation
-
-2. **Pattern-Based Development**: Use `analyze_workflow_patterns` to get suggestions based on real projects
-3. **Manual Validation**: Use `validate_and_fix_workflow` for existing projects or custom validation needs
-4. **Performance vs Quality**: Use `optimize_gaea2_properties` with appropriate mode
-5. **Templates First**: Start with templates for common terrain types, then customize
-
-### Common Patterns (from 31 real projects)
-
-- Most common workflow: Slump → FractalTerraces → Combine → Shear
-- Most used nodes: SatMap (47), Combine (38), Erosion2 (29)
-- Average project complexity: 12.1 nodes, 14.2 connections
-
-### Automatic Error Recovery (Built-in)
-
-**All Gaea2 projects are automatically validated and fixed during creation:**
-- ✅ Duplicate connections are removed
-- ✅ Out-of-range property values are corrected
-- ✅ Missing required nodes (Export, SatMap) are added
-- ✅ Orphaned nodes are connected or removed
-- ✅ Workflow optimization issues are resolved
-- ✅ Invalid node properties are fixed
-- ✅ Connection validity is ensured
-- ✅ File format is guaranteed to be Gaea2-compatible
-
-**No manual intervention needed** - the MCP server handles all validation automatically!
-
-For complete documentation, see:
+### Gaea2 Terrain Generation
 - `docs/gaea2/INDEX.md` - Complete Gaea2 documentation index
 - `docs/gaea2/README.md` - Main Gaea2 MCP documentation
-- `docs/gaea2/GAEA2_API_REFERENCE.md` - Complete API reference
-- `docs/gaea2/GAEA2_EXAMPLES.md` - Usage examples and patterns
+- `docs/gaea2/GAEA2_QUICK_REFERENCE.md` - Quick reference guide
+
+## AI Toolkit & ComfyUI Integration
+
+The AI Toolkit and ComfyUI MCP servers provide bridges to remote instances for LoRA training and image generation. Key points:
+
+- **Dataset Paths**: Use absolute paths starting with `/ai-toolkit/datasets/`
+- **Chunked Upload**: Required for files >100MB
+- **FLUX Workflows**: Different from SD workflows (cfg=1.0, special nodes)
+
+**For comprehensive integration guide, see** `docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md`
+
+## Gaea2 MCP Integration
+
+The Gaea2 MCP server provides comprehensive terrain generation capabilities:
+
+- **Complete Node Support**: All 185 documented Gaea2 nodes
+- **Intelligent Validation**: Automatic error correction and optimization
+- **Professional Templates**: 11 ready-to-use terrain workflows
+- **Windows Requirement**: Must run on Windows with Gaea2 installed
+
+**For complete Gaea2 documentation:**
+- `docs/gaea2/INDEX.md` - Documentation index
+- `docs/gaea2/README.md` - Main documentation
+- `docs/gaea2/GAEA2_API_REFERENCE.md` - API reference
+- `docs/gaea2/GAEA2_EXAMPLES.md` - Usage examples
