@@ -92,6 +92,8 @@ class BaseMCPServer(ABC):
         self.app.get("/mcp")(self.handle_mcp_get)
         self.app.post("/mcp")(self.handle_jsonrpc)
         self.app.post("/mcp/rpc")(self.handle_jsonrpc)
+        # SSE endpoint for streaming after auth
+        self.app.get("/mcp/sse")(self.handle_mcp_sse)
 
     async def health_check(self):
         """Health check endpoint"""
@@ -262,6 +264,36 @@ class BaseMCPServer(ABC):
                 },
             }
 
+    async def handle_mcp_sse(self, request: Request):
+        """Handle SSE requests for authenticated clients"""
+        import asyncio
+
+        from fastapi.responses import StreamingResponse
+
+        # Check authorization
+        auth_header = request.headers.get("authorization", "")
+        if not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+        async def event_generator():
+            # Send initial connection event
+            yield f"data: {json.dumps({'type': 'connected', 'message': 'SSE connection established'})}\n\n"
+
+            # Keep connection alive
+            while True:
+                await asyncio.sleep(30)
+                yield f"data: {json.dumps({'type': 'ping'})}\n\n"
+
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
     async def handle_jsonrpc(self, request: Request):
         """Handle JSON-RPC 2.0 requests for MCP protocol"""
         # Log headers for debugging
@@ -343,6 +375,11 @@ class BaseMCPServer(ABC):
             if not is_notification:
                 response = {"jsonrpc": jsonrpc, "result": result, "id": req_id}
                 self.logger.info(f"JSON-RPC response: {json.dumps(response)}")
+
+                # After successful initialization, log that we're ready for more requests
+                if method == "initialize" and "protocolVersion" in result:
+                    self.logger.info("Initialization complete, ready for tools/list request")
+
                 return response
             return None
 
