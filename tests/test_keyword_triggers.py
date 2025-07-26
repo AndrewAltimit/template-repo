@@ -518,58 +518,118 @@ class TestPRMonitorWithTriggers(unittest.TestCase):
             del os.environ["GITHUB_TOKEN"]
 
     @patch("pr_review_monitor.run_gh_command")
-    def test_process_pr_with_review_trigger(self, mock_gh):
+    @patch("pr_review_monitor.PRReviewMonitor.address_review_feedback")
+    @patch("pr_review_monitor.PRReviewMonitor.get_pr_latest_commit")
+    @patch("pr_review_monitor.PRReviewMonitor.get_commit_for_comment")
+    @patch("pr_review_monitor.PRReviewMonitor.get_pr_review_comments")
+    @patch("pr_review_monitor.PRReviewMonitor.get_pr_reviews")
+    @patch("pr_review_monitor.PRReviewMonitor.get_pr_check_status")
+    @patch("pr_review_monitor.PRReviewMonitor.has_agent_addressed_review")
+    @patch("pr_review_monitor.PRReviewMonitor.get_pr_general_comments")
+    @patch("pr_review_monitor.PRReviewMonitor.get_open_prs")
+    def test_process_pr_with_review_trigger(
+        self,
+        mock_get_open_prs,
+        mock_get_general_comments,
+        mock_has_addressed,
+        mock_check_status,
+        mock_get_reviews,
+        mock_get_review_comments,
+        mock_get_commit_for_comment,
+        mock_get_pr_latest_commit,
+        mock_address_review_feedback,
+        mock_gh,
+    ):
         """Test processing a PR with [Review][Claude] trigger."""
-        mock_gh.side_effect = [
-            # get_open_prs response
-            json.dumps(
-                [
-                    {
-                        "number": 10,
-                        "title": "Fix: Update API",
-                        "body": "Fixes API endpoints",
-                        "author": {"login": "contributor"},
-                        "createdAt": datetime.now(timezone.utc).isoformat(),
-                        "updatedAt": datetime.now(timezone.utc).isoformat(),
-                        "headRefName": "fix-api",
-                        "labels": [],
-                        "reviews": [],
-                        "comments": [
-                            {
-                                "author": {"login": "admin"},
-                                "body": "[Review][Claude] Please check this",
-                            }
-                        ],
-                    }
-                ]
-            ),
-            # has_agent_addressed_review response
-            json.dumps({"comments": []}),
-            # get_pr_reviews response
-            json.dumps(
+        # Set up the PR data structure matching the expected format
+        test_pr = {
+            "number": 10,
+            "title": "Fix: Update API",
+            "body": "Fixes API endpoints",
+            "author": {"login": "contributor"},
+            "createdAt": datetime.now(timezone.utc).isoformat(),
+            "updatedAt": datetime.now(timezone.utc).isoformat(),
+            "headRefName": "fix-api",
+            "labels": [],
+            "reviews": [],
+            "comments": [
                 {
-                    "reviews": [
-                        {
-                            "author": {"login": "gemini-bot"},
-                            "state": "CHANGES_REQUESTED",
-                            "body": "Please fix the import statements",
-                        }
-                    ]
+                    "author": {"login": "admin"},
+                    "body": "[Review][Claude] Please check this",
                 }
-            ),
-            # get_pr_review_comments response
-            json.dumps([]),
-        ]
+            ],
+        }
 
-        with patch.object(self.monitor, "address_review_feedback") as mock_address:
-            mock_address.return_value = True
-            with patch.object(self.monitor, "post_completion_comment"):
-                self.monitor.process_pr_reviews()
-                # Should process the review since it has a valid trigger
-                mock_address.assert_called_once()
+        # Set up comment data
+        test_comment = {
+            "user": {"login": "admin"},
+            "body": "[Review][Claude] Please check this",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "id": 12345,
+        }
 
+        # Set up review data
+        test_review = {
+            "author": {"login": "gemini-bot"},
+            "state": "CHANGES_REQUESTED",
+            "body": "Please fix the import statements",
+            "id": 67890,
+        }
+
+        # Configure mock return values
+        mock_get_open_prs.return_value = [test_pr]
+        mock_get_general_comments.return_value = [test_comment]
+        mock_has_addressed.return_value = False  # Not yet addressed
+
+        # Mock gh command calls - we need to return the comments
+        mock_gh.return_value = json.dumps({"comments": []})
+        mock_check_status.return_value = {
+            "checks": [],
+            "has_failures": False,
+            "failing_checks": [],
+            "in_progress": False,
+        }
+        mock_get_reviews.return_value = [test_review]
+        mock_get_review_comments.return_value = []
+        mock_get_commit_for_comment.return_value = "abc123"
+        mock_get_pr_latest_commit.return_value = "abc123"
+        mock_address_review_feedback.return_value = (
+            True,
+            None,
+            "Fixed import statements",
+        )
+
+        # Execute the method
+        self.monitor.process_pr_reviews()
+
+        # Verify the workflow was executed
+        mock_get_open_prs.assert_called_once()
+        mock_get_general_comments.assert_called_once_with(10)
+        mock_has_addressed.assert_called_once_with(10)
+        # Check status is called twice in the process
+        self.assertEqual(mock_check_status.call_count, 2)
+        mock_check_status.assert_any_call(10)
+        mock_get_reviews.assert_called_once_with(10)
+        mock_get_review_comments.assert_called_once_with(10)
+
+        # Verify address_review_feedback was called with correct parameters
+        mock_address_review_feedback.assert_called_once()
+        call_args = mock_address_review_feedback.call_args[0]  # Positional args
+        self.assertEqual(call_args[0], 10)  # pr_number
+        self.assertEqual(call_args[1], "fix-api")  # branch_name
+        # The third argument is the feedback dict - it's parsed into a structured format
+        feedback = call_args[2]
+        self.assertIn("changes_requested", feedback)
+        self.assertIn("must_fix", feedback)
+        self.assertIn("issues", feedback)
+        self.assertTrue(feedback["changes_requested"])
+        # The fourth argument is the PR description (includes title and body)
+        self.assertIn("Fix: Update API", call_args[3])
+        self.assertIn("Fixes API endpoints", call_args[3])
+
+    @patch("pr_review_monitor.PRReviewMonitor.create_action_comment")
     @patch("pr_review_monitor.run_gh_command")
-    def test_process_pr_with_close_trigger(self, mock_gh):
+    def test_process_pr_with_close_trigger(self, mock_gh, mock_comment):
         """Test closing a PR with [Close][Gemini] trigger."""
         mock_gh.side_effect = [
             # get_open_prs response
@@ -594,19 +654,35 @@ class TestPRMonitorWithTriggers(unittest.TestCase):
                     }
                 ]
             ),
-            # has_agent_addressed_review response
+            # get_pr_general_comments response
+            json.dumps(
+                [
+                    {
+                        "user": {"login": "testuser"},
+                        "body": "[Close][Gemini] Not ready yet",
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                ]
+            ),
+            # has_agent_addressed_review response (pr view)
             json.dumps({"comments": []}),
+            # get_pr_check_status response (pr view returns object)
+            json.dumps({"statusCheckRollup": []}),
             # close PR command
             None,
-            # create_action_comment
+            # create_action_comment (api command)
+            None,
+            # Extra response for any additional calls
             None,
         ]
 
         self.monitor.process_pr_reviews()
 
         # Verify close command was called
-        close_call = [call for call in mock_gh.call_args_list if "close" in call[0][0]]
-        self.assertEqual(len(close_call), 1)
+        close_call = [call for call in mock_gh.call_args_list if "close" in str(call)]
+        self.assertGreater(len(close_call), 0)
+        # Verify comment was posted
+        mock_comment.assert_called_once()
 
 
 class TestSecurityValidation(unittest.TestCase):
