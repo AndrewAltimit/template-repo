@@ -357,10 +357,24 @@ class BaseMCPServer(ABC):
                 # Batch mode (default)
                 if isinstance(body, list):
                     responses = []
+                    has_notifications = False
                     for req in body:
                         response = await self._process_jsonrpc_request(req)
-                        if response:
+                        if response is None:
+                            has_notifications = True
+                        else:
                             responses.append(response)
+
+                    # If all were notifications, return 202
+                    if not responses and has_notifications:
+                        return Response(
+                            status_code=202,
+                            headers={
+                                "Mcp-Session-Id": session_id or "",
+                            },
+                        )
+
+                    # Otherwise return the responses
                     return JSONResponse(
                         content=responses,
                         headers={
@@ -370,14 +384,24 @@ class BaseMCPServer(ABC):
                     )
                 else:
                     response = await self._process_jsonrpc_request(body)
-                    # For single requests, return the response directly (not in array)
-                    return JSONResponse(
-                        content=response if response else {},
-                        headers={
-                            "Content-Type": "application/json",
-                            "Mcp-Session-Id": session_id or "",
-                        },
-                    )
+                    # For single requests, check if it's a notification
+                    if response is None:
+                        # This is a notification - return 202 Accepted with no body
+                        return Response(
+                            status_code=202,
+                            headers={
+                                "Mcp-Session-Id": session_id or "",
+                            },
+                        )
+                    else:
+                        # This is a request - return the response
+                        return JSONResponse(
+                            content=response,
+                            headers={
+                                "Content-Type": "application/json",
+                                "Mcp-Session-Id": session_id or "",
+                            },
+                        )
         except Exception as e:
             self.logger.error(f"Messages endpoint error: {e}")
             return JSONResponse(
@@ -427,6 +451,12 @@ class BaseMCPServer(ABC):
             # Route to appropriate handler based on method
             if method == "initialize":
                 result = await self._jsonrpc_initialize(params)
+            elif method == "initialized":
+                # Handle initialized notification
+                self.logger.info("Client sent initialized notification")
+                if is_notification:
+                    return None  # No response for notification
+                result = {"status": "acknowledged"}
             elif method == "tools/list":
                 result = await self._jsonrpc_list_tools(params)
             elif method == "tools/call":
