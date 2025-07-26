@@ -379,6 +379,8 @@ class BaseMCPServer(ABC):
                 # After successful initialization, log that we're ready for more requests
                 if method == "initialize" and "protocolVersion" in result:
                     self.logger.info("Initialization complete, ready for tools/list request")
+                    # Log what we're expecting next
+                    self.logger.info("Expecting client to send 'tools/list' request next")
 
                 return response
             return None
@@ -418,6 +420,8 @@ class BaseMCPServer(ABC):
     async def _jsonrpc_list_tools(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Handle tools/list request"""
         tools = self.get_tools()
+        self.logger.info(f"Available tools from get_tools(): {list(tools.keys())}")
+
         tool_list = []
 
         for tool_name, tool_info in tools.items():
@@ -429,6 +433,7 @@ class BaseMCPServer(ABC):
                 }
             )
 
+        self.logger.info(f"Returning {len(tool_list)} tools to client")
         return {"tools": tool_list}
 
     async def _jsonrpc_call_tool(self, params: Dict[str, Any]) -> Dict[str, Any]:
