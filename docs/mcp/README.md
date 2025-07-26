@@ -44,6 +44,29 @@ Comprehensive terrain generation with Gaea2:
 - CLI automation (Windows only)
 - Project repair capabilities
 
+## Configuration and Transport
+
+### HTTP Streamable Transport
+
+MCP servers can use HTTP transport for remote deployment. For detailed configuration and troubleshooting:
+- **[HTTP Streamable Transport Guide](HTTP_STREAMABLE_TRANSPORT.md)** - Complete guide for HTTP-based MCP servers
+- **[MCP Specification](https://modelcontextprotocol.io/specification/2025-06-18)** - Official protocol specification
+
+### Configuration File (.mcp.json)
+
+All MCP servers are configured in the `.mcp.json` file at the project root. HTTP servers use the following format:
+
+```json
+{
+  "mcpServers": {
+    "server-name": {
+      "type": "http",
+      "url": "http://host:port/messages"
+    }
+  }
+}
+```
+
 ## Architecture Overview
 
 ```

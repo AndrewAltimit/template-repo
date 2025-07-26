@@ -10,12 +10,74 @@ The Gaea2 MCP Server provides comprehensive tools for programmatic terrain gener
 - **Professional Templates**: Ready-to-use workflows for common terrain types
 - **CLI Automation**: Run Gaea2 projects programmatically (Windows only)
 - **Auto-Fix Capabilities**: Automatic detection and correction of common issues
+- **HTTP Streamable Transport**: Supports remote server deployment with full MCP protocol compliance
 
 ## Important Requirements
 
 ⚠️ **This server MUST run on a Windows host system where Gaea2 is installed!**
 
 The server requires direct access to the Gaea2 executable for CLI automation and cannot run inside a container.
+
+## Configuration
+
+### Claude Code Configuration (.mcp.json)
+
+Configure the Gaea2 server in your `.mcp.json` file:
+
+```json
+{
+  "mcpServers": {
+    "gaea2": {
+      "type": "http",
+      "url": "http://192.168.0.152:8007/messages"
+    }
+  }
+}
+```
+
+**Important**: The URL must point to the `/messages` endpoint, not `/mcp`.
+
+### Local Configuration
+
+For local development:
+
+```json
+{
+  "mcpServers": {
+    "gaea2": {
+      "type": "http",
+      "url": "http://localhost:8007/messages"
+    }
+  }
+}
+```
+
+### Running the Server
+
+1. **On Windows with Gaea2 installed:**
+   ```bash
+   python -m tools.mcp.gaea2.server --mode http
+   ```
+
+2. **The server will automatically detect Gaea2 at common installation paths:**
+   - `C:\Program Files\QuadSpinner\Gaea\Gaea.Swarm.exe`
+   - `C:\Program Files (x86)\QuadSpinner\Gaea\Gaea.Swarm.exe`
+
+3. **Or specify a custom path:**
+   ```bash
+   python -m tools.mcp.gaea2.server --mode http --gaea-path "D:\Gaea\Gaea.Swarm.exe"
+   ```
+
+### Connection Troubleshooting
+
+If Claude Code shows "Status: ✘ failed", check:
+
+1. **Server is running** - Verify the server is accessible at the configured URL
+2. **Correct endpoint** - Must use `/messages` not `/mcp`
+3. **OAuth flow** - The server implements simplified OAuth for local use
+4. **Session management** - Server generates session IDs automatically
+
+For detailed HTTP transport configuration, see [HTTP Streamable Transport Guide](../../HTTP_STREAMABLE_TRANSPORT.md).
 
 ## Available Tools
 
