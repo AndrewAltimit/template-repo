@@ -365,7 +365,11 @@ class ComfyUIMCPServer(BaseMCPServer):
             }
         except Exception as e:
             self.logger.error(f"Error forwarding request: {e}")
-            return {"success": False, "error": str(e), "type": "remote_connection_error"}
+            return {
+                "success": False,
+                "error": str(e),
+                "type": "remote_connection_error",
+            }
 
 
 def main():

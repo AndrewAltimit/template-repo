@@ -92,16 +92,26 @@ async def test_mcp_protocol(name: str, url: str) -> Dict[str, Any]:
             init_request = {
                 "jsonrpc": "2.0",
                 "method": "initialize",
-                "params": {"protocolVersion": "2024-11-05", "clientInfo": {"name": "test-client", "version": "1.0.0"}},
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "clientInfo": {"name": "test-client", "version": "1.0.0"},
+                },
                 "id": 1,
             }
 
             print(f"\n📤 Sending initialize request to {name}...")
-            response = await client.post(f"{url}/messages", json=init_request, headers={"Content-Type": "application/json"})
+            response = await client.post(
+                f"{url}/messages",
+                json=init_request,
+                headers={"Content-Type": "application/json"},
+            )
 
             if response.status_code != 200:
                 print(f"❌ Initialize failed with status {response.status_code}")
-                return {"success": False, "error": f"Initialize failed: {response.status_code}"}
+                return {
+                    "success": False,
+                    "error": f"Initialize failed: {response.status_code}",
+                }
 
             init_result = response.json()
             print(f"📥 Initialize response: {json.dumps(init_result, indent=2)}")
@@ -112,13 +122,20 @@ async def test_mcp_protocol(name: str, url: str) -> Dict[str, Any]:
                 print(f"🔑 Got session ID: {session_id}")
 
             # 2. Send initialized notification
-            initialized_notification = {"jsonrpc": "2.0", "method": "initialized", "params": {}}
+            initialized_notification = {
+                "jsonrpc": "2.0",
+                "method": "initialized",
+                "params": {},
+            }
 
             print("\n📤 Sending initialized notification...")
             response = await client.post(
                 f"{url}/messages",
                 json=initialized_notification,
-                headers={"Content-Type": "application/json", "Mcp-Session-Id": session_id or ""},
+                headers={
+                    "Content-Type": "application/json",
+                    "Mcp-Session-Id": session_id or "",
+                },
             )
 
             # Should return 202 Accepted for notification
@@ -126,18 +143,29 @@ async def test_mcp_protocol(name: str, url: str) -> Dict[str, Any]:
                 print(f"⚠️  Initialized notification returned {response.status_code} (expected 202)")
 
             # 3. List tools
-            tools_request = {"jsonrpc": "2.0", "method": "tools/list", "params": {}, "id": 2}
+            tools_request = {
+                "jsonrpc": "2.0",
+                "method": "tools/list",
+                "params": {},
+                "id": 2,
+            }
 
             print("\n📤 Sending tools/list request...")
             response = await client.post(
                 f"{url}/messages",
                 json=tools_request,
-                headers={"Content-Type": "application/json", "Mcp-Session-Id": session_id or ""},
+                headers={
+                    "Content-Type": "application/json",
+                    "Mcp-Session-Id": session_id or "",
+                },
             )
 
             if response.status_code != 200:
                 print(f"❌ Tools list failed with status {response.status_code}")
-                return {"success": False, "error": f"Tools list failed: {response.status_code}"}
+                return {
+                    "success": False,
+                    "error": f"Tools list failed: {response.status_code}",
+                }
 
             tools_result = response.json()
             print(f"📥 Tools response: {json.dumps(tools_result, indent=2)}")
