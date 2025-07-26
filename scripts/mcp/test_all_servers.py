@@ -45,6 +45,22 @@ class MCPServerTester:
                 "test_tool": "suggest_gaea2_nodes",
                 "test_args": {"current_nodes": ["Mountain"]},
             },
+            {
+                "name": "AI Toolkit",
+                "module": "tools.mcp.ai_toolkit.server",
+                "port": 8012,
+                "test_tool": "list_configs",
+                "test_args": {},
+                "remote_only": True,  # Requires remote server
+            },
+            {
+                "name": "ComfyUI",
+                "module": "tools.mcp.comfyui.server",
+                "port": 8013,
+                "test_tool": "list_loras",
+                "test_args": {},
+                "remote_only": True,  # Requires remote server
+            },
         ]
 
     def is_port_open(self, port: int) -> bool:

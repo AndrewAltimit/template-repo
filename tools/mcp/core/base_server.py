@@ -228,7 +228,11 @@ class BaseMCPServer(ABC):
 
         async def event_generator():
             # Send initial connection event with session ID
-            connection_data = {"type": "connection", "sessionId": session_id, "status": "connected"}
+            connection_data = {
+                "type": "connection",
+                "sessionId": session_id,
+                "status": "connected",
+            }
             yield f"data: {json.dumps(connection_data)}\n\n"
 
             # Keep connection alive with ping messages
