@@ -83,6 +83,7 @@ class BaseMCPServer(ABC):
         # OAuth discovery endpoints
         self.app.get("/.well-known/oauth-authorization-server")(self.oauth_discovery)
         self.app.get("/.well-known/oauth-authorization-server/mcp")(self.oauth_discovery)
+        self.app.get("/.well-known/oauth-authorization-server/messages")(self.oauth_discovery)
         self.app.get("/.well-known/oauth-protected-resource")(self.oauth_protected_resource)
         # MCP protocol discovery endpoints
         self.app.get("/.well-known/mcp")(self.mcp_discovery)
