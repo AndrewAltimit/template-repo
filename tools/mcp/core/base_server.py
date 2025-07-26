@@ -192,10 +192,12 @@ class BaseMCPServer(ABC):
             "issuer": "http://192.168.0.152:8007",
             "authorization_endpoint": "http://192.168.0.152:8007/authorize",
             "token_endpoint": "http://192.168.0.152:8007/token",
+            "registration_endpoint": "http://192.168.0.152:8007/register",
             "token_endpoint_auth_methods_supported": ["none"],
             "response_types_supported": ["code"],
             "grant_types_supported": ["authorization_code"],
             "code_challenge_methods_supported": ["S256"],
+            "registration_endpoint_auth_methods_supported": ["none"],
         }
 
     async def oauth_protected_resource(self):
