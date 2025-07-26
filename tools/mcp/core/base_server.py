@@ -534,13 +534,16 @@ class BaseMCPServer(ABC):
         # Log client info
         self.logger.info(f"Client info: {client_info}, requested protocol: {protocol_version}")
 
+        # Store the protocol version for later use
+        self._protocol_version = protocol_version
+
         return {
-            "protocolVersion": "2025-06-18",  # Match Claude Code's version
+            "protocolVersion": protocol_version,  # Echo back the client's requested version
             "serverInfo": {"name": self.name, "version": self.version},
             "capabilities": {
                 "tools": {"listChanged": True},  # Indicate tools can change
-                "resources": None,
-                "prompts": None,
+                "resources": {},  # Empty object instead of None
+                "prompts": {},  # Empty object instead of None
             },
         }
 
