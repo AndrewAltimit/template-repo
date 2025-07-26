@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional
 import mcp.server.stdio
 import mcp.types as types
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from mcp.server import InitializationOptions, NotificationOptions, Server
 from pydantic import BaseModel
 
@@ -94,6 +94,7 @@ class BaseMCPServer(ABC):
         # Legacy endpoints for backward compatibility
         self.app.get("/mcp")(self.handle_mcp_get)
         self.app.post("/mcp")(self.handle_jsonrpc)
+        self.app.options("/mcp")(self.handle_options)  # CORS preflight
         self.app.post("/mcp/rpc")(self.handle_jsonrpc)
         # SSE endpoint for streaming after auth
         self.app.get("/mcp/sse")(self.handle_mcp_sse)
@@ -213,59 +214,38 @@ class BaseMCPServer(ABC):
         }
 
     async def handle_mcp_get(self, request: Request):
-        """Handle GET requests to /mcp endpoint based on Accept header"""
-        accept_header = request.headers.get("accept", "")
+        """Handle GET requests to /mcp endpoint for SSE streaming"""
+        # For HTTP Stream Transport, GET is used to establish SSE stream
+        import uuid
 
-        # Check if SSE is requested
-        if "text/event-stream" in accept_header:
-            # Return SSE response for streaming
-            from fastapi.responses import StreamingResponse
+        from fastapi.responses import StreamingResponse
 
-            async def event_generator():
-                # Send initial connection event
-                yield f"data: {json.dumps({'type': 'connection', 'status': 'connected'})}\n\n"
+        # Generate session ID
+        session_id = request.headers.get("Mcp-Session-Id", str(uuid.uuid4()))
 
-                # Keep connection alive
-                # In a real implementation, this would stream MCP events
-                # For now, just send a ping every 30 seconds
-                import asyncio
+        async def event_generator():
+            # Send initial connection event with session ID
+            connection_data = {"type": "connection", "sessionId": session_id, "status": "connected"}
+            yield f"data: {json.dumps(connection_data)}\n\n"
 
-                while True:
-                    await asyncio.sleep(30)
-                    yield f"data: {json.dumps({'type': 'ping'})}\n\n"
+            # Keep connection alive with ping messages
+            import asyncio
 
-            return StreamingResponse(
-                event_generator(),
-                media_type="text/event-stream",
-                headers={
-                    "Cache-Control": "no-cache",
-                    "Connection": "keep-alive",
-                    "X-Accel-Buffering": "no",  # Disable nginx buffering
-                },
-            )
-        else:
-            # Return regular JSON response
-            return {
-                "protocol": "mcp",
-                "version": "1.0",
-                "server": {
-                    "name": self.name,
-                    "version": self.version,
-                    "description": f"{self.name} MCP Server",
-                },
-                "auth": {
-                    "required": False,
-                    "type": "none",
-                },
-                "transport": {
-                    "type": "http",
-                    "streamable": True,
-                    "endpoints": {
-                        "jsonrpc": "/mcp",
-                        "sse": "/mcp",
-                    },
-                },
-            }
+            while True:
+                await asyncio.sleep(15)  # Ping every 15 seconds as per spec
+                ping_data = {"type": "ping", "timestamp": datetime.utcnow().isoformat()}
+                yield f"data: {json.dumps(ping_data)}\n\n"
+
+        return StreamingResponse(
+            event_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+                "Mcp-Session-Id": session_id,
+            },
+        )
 
     async def handle_mcp_sse(self, request: Request):
         """Handle SSE requests for authenticated clients"""
@@ -319,25 +299,33 @@ class BaseMCPServer(ABC):
         }
 
     async def handle_messages(self, request: Request):
-        """Handle POST requests to /messages endpoint (Streamable HTTP transport)"""
-        # Check Accept header to determine response type
-        accept_header = request.headers.get("accept", "")
+        """Handle POST requests to /messages endpoint (HTTP Stream Transport)"""
+        # Get session ID from header
+        session_id = request.headers.get("Mcp-Session-Id")
+
+        # Check response mode preference
+        response_mode = request.headers.get("Mcp-Response-Mode", "batch").lower()
 
         # Log headers for debugging
         self.logger.info(f"Messages request headers: {dict(request.headers)}")
+        self.logger.info(f"Session ID: {session_id}, Response Mode: {response_mode}")
 
         try:
             # Parse JSON-RPC request
             body = await request.json()
             self.logger.info(f"Messages request body: {json.dumps(body)}")
 
-            # Check if streaming is requested
-            if "text/event-stream" in accept_header:
+            # Process based on response mode
+            if response_mode == "stream":
                 # Return SSE response for streaming
                 from fastapi.responses import StreamingResponse
 
                 async def event_generator():
-                    # Process the request first
+                    # Send session info first if available
+                    if session_id:
+                        yield f"data: {json.dumps({'type': 'session', 'sessionId': session_id})}\n\n"
+
+                    # Process the request
                     if isinstance(body, list):
                         # Batch request
                         for req in body:
@@ -350,12 +338,8 @@ class BaseMCPServer(ABC):
                         if response:
                             yield f"data: {json.dumps(response)}\n\n"
 
-                    # Keep connection alive for future messages
-                    import asyncio
-
-                    while True:
-                        await asyncio.sleep(30)
-                        yield f"data: {json.dumps({'type': 'ping'})}\n\n"
+                    # Send completion event
+                    yield f"data: {json.dumps({'type': 'completion'})}\n\n"
 
                 return StreamingResponse(
                     event_generator(),
@@ -364,10 +348,11 @@ class BaseMCPServer(ABC):
                         "Cache-Control": "no-cache",
                         "Connection": "keep-alive",
                         "X-Accel-Buffering": "no",
+                        "Mcp-Session-Id": session_id or "",
                     },
                 )
             else:
-                # Standard HTTP response
+                # Batch mode (default)
                 if isinstance(body, list):
                     responses = []
                     for req in body:
@@ -375,21 +360,22 @@ class BaseMCPServer(ABC):
                         if response:
                             responses.append(response)
                     return JSONResponse(
-                        content=responses if responses else [],
-                        headers={"Content-Type": "application/json"},
+                        content=responses,
+                        headers={
+                            "Content-Type": "application/json",
+                            "Mcp-Session-Id": session_id or "",
+                        },
                     )
                 else:
                     response = await self._process_jsonrpc_request(body)
-                    if response:
-                        return JSONResponse(
-                            content=response,
-                            headers={"Content-Type": "application/json"},
-                        )
-                    else:
-                        return JSONResponse(
-                            content="",
-                            headers={"Content-Type": "application/json"},
-                        )
+                    # For single requests, return the response directly (not in array)
+                    return JSONResponse(
+                        content=response if response else {},
+                        headers={
+                            "Content-Type": "application/json",
+                            "Mcp-Session-Id": session_id or "",
+                        },
+                    )
         except Exception as e:
             self.logger.error(f"Messages endpoint error: {e}")
             return JSONResponse(
@@ -399,13 +385,28 @@ class BaseMCPServer(ABC):
                     "id": None,
                 },
                 status_code=400,
-                headers={"Content-Type": "application/json"},
+                headers={
+                    "Content-Type": "application/json",
+                    "Mcp-Session-Id": session_id or "",
+                },
             )
 
     async def handle_jsonrpc(self, request: Request):
         """Handle JSON-RPC 2.0 requests for MCP protocol"""
         # Forward to the new streamable handler
         return await self.handle_messages(request)
+
+    async def handle_options(self, request: Request):
+        """Handle OPTIONS requests for CORS preflight"""
+        return Response(
+            content="",
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization, Mcp-Session-Id, Mcp-Response-Mode",
+                "Access-Control-Max-Age": "86400",
+            },
+        )
 
     async def _process_jsonrpc_request(self, request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Process a single JSON-RPC request"""
