@@ -821,7 +821,7 @@ The PR is now ready for final review and merge.
                 # Commit and push changes
                 subprocess.run(["git", "add", "-A"], check=True)
                 commit_message = (
-                    f"fix: address review feedback for PR #{pr_number}\n\n🤖 Generated with Claude Code QA Reviewer"
+                    f"fix: address review feedback for PR #{pr_number}\n\n" f"🤖 Generated with Claude Code QA Reviewer"
                 )
                 subprocess.run(["git", "commit", "-m", commit_message], check=True)
                 subprocess.run(["git", "push", "origin", branch_name], check=True)

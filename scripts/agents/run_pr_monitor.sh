@@ -30,7 +30,7 @@ git config --global user.name 'AI PR Agent'
 git config --global user.email 'ai-agent[bot]@users.noreply.github.com'
 
 # Set up Python path
-export PYTHONPATH="/workspace/scripts/agents:$PYTHONPATH"
+export PYTHONPATH="/workspace:$PYTHONPATH"
 echo "[INFO] Updated PYTHONPATH: $PYTHONPATH"
 
 # Check if we're in the right directory
