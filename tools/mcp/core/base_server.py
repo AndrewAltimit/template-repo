@@ -5,11 +5,12 @@ import json
 import logging
 import os  # noqa: F401
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import mcp.server.stdio
 import mcp.types as types
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from mcp.server import InitializationOptions, NotificationOptions, Server
 from pydantic import BaseModel
 
@@ -65,8 +66,8 @@ class BaseMCPServer(ABC):
         self.app.get("/mcp/tools")(self.list_tools)
         self.app.post("/mcp/execute")(self.execute_tool)
         self.app.post("/mcp/register")(self.register_client)
-        self.app.post("/register")(self.register_client)  # Alternative endpoint
-        self.app.post("/oauth/register")(self.register_client)  # OAuth style endpoint
+        self.app.post("/register")(self.register_client_oauth)  # OAuth2 style for Claude Code
+        self.app.post("/oauth/register")(self.register_client_oauth)  # OAuth style endpoint
         self.app.get("/mcp/clients")(self.list_clients)
         self.app.get("/mcp/clients/{client_id}")(self.get_client_info)
         self.app.get("/mcp/stats")(self.get_stats)
@@ -103,6 +104,36 @@ class BaseMCPServer(ABC):
             "server": self.name,
             "version": self.version,
             "registration": registration,
+        }
+
+    async def register_client_oauth(self, request_data: Dict[str, Any], request: Request):
+        """OAuth2-style client registration for Claude Code compatibility"""
+        # Handle OAuth2 dynamic client registration
+        redirect_uris = request_data.get("redirect_uris", [])
+        client_name = request_data.get("client_name", request_data.get("client", "claude-code"))
+
+        # Register the client
+        client_metadata = {
+            "redirect_uris": redirect_uris,
+            "grant_types": request_data.get("grant_types", ["authorization_code"]),
+            "response_types": request_data.get("response_types", ["code"]),
+            "token_endpoint_auth_method": request_data.get("token_endpoint_auth_method", "none"),
+        }
+
+        registration = self.client_registry.register_client(client_name, client_metadata)
+
+        # Return OAuth2-compliant response
+        return {
+            "client_id": registration["client_id"],
+            "client_name": client_name,
+            "redirect_uris": redirect_uris if redirect_uris else ["http://localhost"],
+            "grant_types": client_metadata["grant_types"],
+            "response_types": client_metadata["response_types"],
+            "token_endpoint_auth_method": client_metadata["token_endpoint_auth_method"],
+            "registration_access_token": "not-required-for-local-mcp",
+            "registration_client_uri": f"{request.url.scheme}://{request.url.netloc}/mcp/clients/{registration['client_id']}",
+            "client_id_issued_at": int(datetime.utcnow().timestamp()),
+            "client_secret_expires_at": 0,  # Never expires
         }
 
     async def list_tools(self):
