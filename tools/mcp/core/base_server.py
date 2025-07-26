@@ -65,6 +65,8 @@ class BaseMCPServer(ABC):
         self.app.get("/mcp/tools")(self.list_tools)
         self.app.post("/mcp/execute")(self.execute_tool)
         self.app.post("/mcp/register")(self.register_client)
+        self.app.post("/register")(self.register_client)  # Alternative endpoint
+        self.app.post("/oauth/register")(self.register_client)  # OAuth style endpoint
         self.app.get("/mcp/clients")(self.list_clients)
         self.app.get("/mcp/clients/{client_id}")(self.get_client_info)
         self.app.get("/mcp/stats")(self.get_stats)
