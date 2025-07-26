@@ -82,10 +82,10 @@ class BaseMCPServer(ABC):
         self.app.get("/mcp/stats")(self.get_stats)
         # MCP protocol discovery endpoints
         self.app.get("/.well-known/mcp")(self.mcp_discovery)
-        self.app.get("/mcp")(self.mcp_info)
         self.app.post("/mcp/initialize")(self.mcp_initialize)
         self.app.get("/mcp/capabilities")(self.mcp_capabilities)
-        # JSON-RPC 2.0 endpoint for MCP
+        # JSON-RPC 2.0 endpoint for MCP (Streamable HTTP transport)
+        self.app.get("/mcp")(self.handle_mcp_get)
         self.app.post("/mcp")(self.handle_jsonrpc)
         self.app.post("/mcp/rpc")(self.handle_jsonrpc)
 
@@ -181,6 +181,61 @@ class BaseMCPServer(ABC):
             "scope": "full_access",
             "refresh_token": "bypass-refresh-token-no-auth-required",
         }
+
+    async def handle_mcp_get(self, request: Request):
+        """Handle GET requests to /mcp endpoint based on Accept header"""
+        accept_header = request.headers.get("accept", "")
+
+        # Check if SSE is requested
+        if "text/event-stream" in accept_header:
+            # Return SSE response for streaming
+            from fastapi.responses import StreamingResponse
+
+            async def event_generator():
+                # Send initial connection event
+                yield f"data: {json.dumps({'type': 'connection', 'status': 'connected'})}\n\n"
+
+                # Keep connection alive
+                # In a real implementation, this would stream MCP events
+                # For now, just send a ping every 30 seconds
+                import asyncio
+
+                while True:
+                    await asyncio.sleep(30)
+                    yield f"data: {json.dumps({'type': 'ping'})}\n\n"
+
+            return StreamingResponse(
+                event_generator(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no",  # Disable nginx buffering
+                },
+            )
+        else:
+            # Return regular JSON response
+            return {
+                "protocol": "mcp",
+                "version": "1.0",
+                "server": {
+                    "name": self.name,
+                    "version": self.version,
+                    "description": f"{self.name} MCP Server",
+                },
+                "auth": {
+                    "required": False,
+                    "type": "none",
+                },
+                "transport": {
+                    "type": "http",
+                    "streamable": True,
+                    "endpoints": {
+                        "jsonrpc": "/mcp",
+                        "sse": "/mcp",
+                    },
+                },
+            }
 
     async def handle_jsonrpc(self, request: Request):
         """Handle JSON-RPC 2.0 requests for MCP protocol"""
