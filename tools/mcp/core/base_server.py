@@ -192,13 +192,14 @@ class BaseMCPServer(ABC):
             "refresh_token": "bypass-refresh-token-no-auth-required",
         }
 
-    async def oauth_discovery(self):
+    async def oauth_discovery(self, request: Request):
         """OAuth 2.0 authorization server metadata"""
+        base_url = f"{request.url.scheme}://{request.url.netloc}"
         return {
-            "issuer": "http://192.168.0.152:8007",
-            "authorization_endpoint": "http://192.168.0.152:8007/authorize",
-            "token_endpoint": "http://192.168.0.152:8007/token",
-            "registration_endpoint": "http://192.168.0.152:8007/register",
+            "issuer": base_url,
+            "authorization_endpoint": f"{base_url}/authorize",
+            "token_endpoint": f"{base_url}/token",
+            "registration_endpoint": f"{base_url}/register",
             "token_endpoint_auth_methods_supported": ["none"],
             "response_types_supported": ["code"],
             "grant_types_supported": ["authorization_code"],
@@ -206,11 +207,12 @@ class BaseMCPServer(ABC):
             "registration_endpoint_auth_methods_supported": ["none"],
         }
 
-    async def oauth_protected_resource(self):
+    async def oauth_protected_resource(self, request: Request):
         """OAuth 2.0 protected resource metadata"""
+        base_url = f"{request.url.scheme}://{request.url.netloc}"
         return {
-            "resource": "http://192.168.0.152:8007/mcp",
-            "authorization_servers": ["http://192.168.0.152:8007"],
+            "resource": f"{base_url}/messages",
+            "authorization_servers": [base_url],
         }
 
     async def handle_mcp_get(self, request: Request):
