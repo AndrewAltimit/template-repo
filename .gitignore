@@ -167,6 +167,10 @@ scratch/
 *.webm
 generated/
 
+# Security reports
+bandit-report.json
+safety-report.json
+
 # Large reference files
 reference projects/**/*.resource
 reference projects/**/*.jpg
