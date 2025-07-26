@@ -143,4 +143,9 @@ def mask_secrets(text: str) -> str:
 
 
 # Export public API
-__all__ = ["SecretRedactionFilter", "setup_secure_logging", "get_secure_logger", "mask_secrets"]
+__all__ = [
+    "SecretRedactionFilter",
+    "setup_secure_logging",
+    "get_secure_logger",
+    "mask_secrets",
+]
