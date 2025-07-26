@@ -24,7 +24,11 @@ async def test_enhanced_registration(base_url: str = "http://192.168.0.152:8007"
                     "client": "terrain-builder-v2",
                     "name": "Terrain Builder Application",
                     "version": "2.1.0",
-                    "capabilities": ["create_terrain", "validate_workflow", "export_heightmap"],
+                    "capabilities": [
+                        "create_terrain",
+                        "validate_workflow",
+                        "export_heightmap",
+                    ],
                     "description": "Advanced terrain generation client",
                     "contact": "admin@terraincorp.com",
                 },
@@ -67,7 +71,12 @@ async def test_enhanced_registration(base_url: str = "http://192.168.0.152:8007"
                     "client": "terrain-builder-v2",
                     "client_id": client1_id,  # Use same client_id to update
                     "version": "2.1.1",  # Updated version
-                    "capabilities": ["create_terrain", "validate_workflow", "export_heightmap", "batch_process"],
+                    "capabilities": [
+                        "create_terrain",
+                        "validate_workflow",
+                        "export_heightmap",
+                        "batch_process",
+                    ],
                 },
             )
             result = response.json()
@@ -109,7 +118,10 @@ async def test_enhanced_registration(base_url: str = "http://192.168.0.152:8007"
                 json={
                     "tool": "suggest_gaea2_nodes",
                     "client_id": client1_id,  # Include client_id for tracking
-                    "arguments": {"current_nodes": ["Mountain", "Erosion2"], "context": "Adding detail"},
+                    "arguments": {
+                        "current_nodes": ["Mountain", "Erosion2"],
+                        "context": "Adding detail",
+                    },
                 },
             )
             result = response.json()

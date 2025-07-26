@@ -18,7 +18,12 @@ async def test_registration(base_url: str = "http://192.168.0.152:8007"):
         print("\n1. Testing basic registration...")
         try:
             response = await client.post(
-                f"{base_url}/mcp/register", json={"client": "test-client-001", "name": "Test Client", "version": "1.0.0"}
+                f"{base_url}/mcp/register",
+                json={
+                    "client": "test-client-001",
+                    "name": "Test Client",
+                    "version": "1.0.0",
+                },
             )
             print(f"Status: {response.status_code}")
             print(f"Response: {json.dumps(response.json(), indent=2)}")
