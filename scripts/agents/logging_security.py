@@ -140,3 +140,7 @@ def mask_secrets(text: str) -> str:
     """
     redaction_filter = SecretRedactionFilter()
     return redaction_filter._redact_secrets(text)
+
+
+# Export public API
+__all__ = ["SecretRedactionFilter", "setup_secure_logging", "get_secure_logger", "mask_secrets"]
