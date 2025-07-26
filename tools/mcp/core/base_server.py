@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 import mcp.server.stdio
 import mcp.types as types
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import RedirectResponse
 from mcp.server import InitializationOptions, NotificationOptions, Server
 from pydantic import BaseModel
 
@@ -69,6 +70,13 @@ class BaseMCPServer(ABC):
         self.app.post("/mcp/register")(self.register_client)
         self.app.post("/register")(self.register_client_oauth)  # OAuth2 style for Claude Code
         self.app.post("/oauth/register")(self.register_client_oauth)  # OAuth style endpoint
+        # OAuth2 bypass endpoints - no auth required
+        self.app.get("/authorize")(self.oauth_authorize_bypass)
+        self.app.post("/authorize")(self.oauth_authorize_bypass)
+        self.app.get("/oauth/authorize")(self.oauth_authorize_bypass)
+        self.app.post("/oauth/authorize")(self.oauth_authorize_bypass)
+        self.app.post("/token")(self.oauth_token_bypass)
+        self.app.post("/oauth/token")(self.oauth_token_bypass)
         self.app.get("/mcp/clients")(self.list_clients)
         self.app.get("/mcp/clients/{client_id}")(self.get_client_info)
         self.app.get("/mcp/stats")(self.get_stats)
@@ -121,6 +129,36 @@ class BaseMCPServer(ABC):
             "registration_client_uri": f"{request.url.scheme}://{request.url.netloc}/mcp/clients/{client_id}",
             "client_id_issued_at": int(datetime.utcnow().timestamp()),
             "client_secret_expires_at": 0,  # Never expires
+        }
+
+    async def oauth_authorize_bypass(self, request: Request):
+        """Bypass OAuth2 authorization - immediately approve without auth"""
+        # Get query parameters
+        params = dict(request.query_params)
+        redirect_uri = params.get("redirect_uri", "http://localhost")
+        state = params.get("state", "")
+
+        # Immediately redirect back with authorization code
+        auth_code = "bypass-auth-code-no-auth-required"
+
+        # Build redirect URL with code
+        separator = "&" if "?" in redirect_uri else "?"
+        redirect_url = f"{redirect_uri}{separator}code={auth_code}"
+        if state:
+            redirect_url += f"&state={state}"
+
+        # Return redirect response
+        return RedirectResponse(url=redirect_url, status_code=302)
+
+    async def oauth_token_bypass(self, request_data: Dict[str, Any]):
+        """Bypass OAuth2 token exchange - immediately return access token"""
+        # Return a valid token response without any validation
+        return {
+            "access_token": "bypass-token-no-auth-required",
+            "token_type": "Bearer",
+            "expires_in": 31536000,  # 1 year
+            "scope": "full_access",
+            "refresh_token": "bypass-refresh-token-no-auth-required",
         }
 
     async def list_tools(self):
@@ -176,7 +214,11 @@ class BaseMCPServer(ABC):
     async def get_stats(self):
         """Get server statistics - simplified for home lab use"""
         return {
-            "server": {"name": self.name, "version": self.version, "tools_count": len(self.get_tools())},
+            "server": {
+                "name": self.name,
+                "version": self.version,
+                "tools_count": len(self.get_tools()),
+            },
             "clients": {
                 "total_clients": 0,
                 "active_clients": 0,
