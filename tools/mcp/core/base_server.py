@@ -80,6 +80,10 @@ class BaseMCPServer(ABC):
         self.app.get("/mcp/clients")(self.list_clients)
         self.app.get("/mcp/clients/{client_id}")(self.get_client_info)
         self.app.get("/mcp/stats")(self.get_stats)
+        # OAuth discovery endpoints
+        self.app.get("/.well-known/oauth-authorization-server")(self.oauth_discovery)
+        self.app.get("/.well-known/oauth-authorization-server/mcp")(self.oauth_discovery)
+        self.app.get("/.well-known/oauth-protected-resource")(self.oauth_protected_resource)
         # MCP protocol discovery endpoints
         self.app.get("/.well-known/mcp")(self.mcp_discovery)
         self.app.post("/mcp/initialize")(self.mcp_initialize)
@@ -182,6 +186,25 @@ class BaseMCPServer(ABC):
             "refresh_token": "bypass-refresh-token-no-auth-required",
         }
 
+    async def oauth_discovery(self):
+        """OAuth 2.0 authorization server metadata"""
+        return {
+            "issuer": "http://192.168.0.152:8007",
+            "authorization_endpoint": "http://192.168.0.152:8007/authorize",
+            "token_endpoint": "http://192.168.0.152:8007/token",
+            "token_endpoint_auth_methods_supported": ["none"],
+            "response_types_supported": ["code"],
+            "grant_types_supported": ["authorization_code"],
+            "code_challenge_methods_supported": ["S256"],
+        }
+
+    async def oauth_protected_resource(self):
+        """OAuth 2.0 protected resource metadata"""
+        return {
+            "resource": "http://192.168.0.152:8007/mcp",
+            "authorization_servers": ["http://192.168.0.152:8007"],
+        }
+
     async def handle_mcp_get(self, request: Request):
         """Handle GET requests to /mcp endpoint based on Accept header"""
         accept_header = request.headers.get("accept", "")
@@ -266,11 +289,14 @@ class BaseMCPServer(ABC):
 
         except Exception as e:
             self.logger.error(f"JSON-RPC error: {e}")
-            return {
-                "jsonrpc": "2.0",
-                "error": {"code": -32700, "message": "Parse error", "data": str(e)},
-                "id": None,
-            }
+            return JSONResponse(
+                content={
+                    "jsonrpc": "2.0",
+                    "error": {"code": -32700, "message": "Parse error", "data": str(e)},
+                    "id": None,
+                },
+                headers={"Content-Type": "application/json"},
+            )
 
     async def _process_jsonrpc_request(self, request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Process a single JSON-RPC request"""
@@ -313,7 +339,9 @@ class BaseMCPServer(ABC):
 
             # Return response if not a notification
             if not is_notification:
-                return {"jsonrpc": jsonrpc, "result": result, "id": req_id}
+                response = {"jsonrpc": jsonrpc, "result": result, "id": req_id}
+                self.logger.info(f"JSON-RPC response: {json.dumps(response)}")
+                return response
             return None
 
         except Exception as e:
