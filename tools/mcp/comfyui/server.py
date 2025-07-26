@@ -28,7 +28,7 @@ class ComfyUIMCPServer(BaseMCPServer):
         self.remote_url = REMOTE_URL
         self.logger = setup_logging("comfyui_mcp")
 
-        # Tool definitions
+        # Tool definitions (must be defined before creating methods)
         self.tools = [
             {
                 "name": "generate_image",
@@ -253,6 +253,9 @@ class ComfyUIMCPServer(BaseMCPServer):
             },
         ]
 
+        # Create dynamic tool methods after tools are defined
+        self._create_tool_methods()
+
     async def handle_tools_list(self, request: Request) -> Response:
         """Handle tools list request"""
         return Response(
@@ -313,9 +316,56 @@ class ComfyUIMCPServer(BaseMCPServer):
         for tool in self.tools:
             tools_dict[tool["name"]] = {
                 "description": tool["description"],
-                "inputSchema": tool["inputSchema"],
+                "parameters": tool["inputSchema"],  # Base class expects 'parameters' not 'inputSchema'
             }
         return tools_dict
+
+    def _create_tool_methods(self):
+        """Dynamically create tool methods that forward to remote server"""
+        for tool in self.tools:
+            tool_name = tool["name"]
+
+            # Create a closure to capture the tool name
+            def make_tool_method(name):
+                async def tool_method(**kwargs):
+                    """Forward tool call to remote server"""
+                    return await self._forward_tool_call(name, kwargs)
+
+                return tool_method
+
+            # Set the method on the instance
+            setattr(self, tool_name, make_tool_method(tool_name))
+
+    async def _forward_tool_call(self, tool_name: str, arguments: dict) -> dict:
+        """Forward a tool call to the remote server"""
+        try:
+            import httpx
+
+            data = {"tool": tool_name, "parameters": arguments}
+
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(f"{self.remote_url}/mcp/execute", json=data)
+
+                if response.status_code == 200:
+                    result = response.json()
+                    return result  # type: ignore[no-any-return]
+                else:
+                    return {
+                        "success": False,
+                        "error": f"Remote server error: {response.status_code}",
+                        "details": response.text,
+                    }
+        except httpx.ConnectError:
+            self.logger.error(f"Could not connect to remote server at {self.remote_url}")
+            return {
+                "success": False,
+                "error": "Remote ComfyUI server not available",
+                "type": "remote_connection_error",
+                "remote_url": self.remote_url,
+            }
+        except Exception as e:
+            self.logger.error(f"Error forwarding request: {e}")
+            return {"success": False, "error": str(e), "type": "remote_connection_error"}
 
 
 def main():
