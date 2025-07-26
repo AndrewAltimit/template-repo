@@ -13,6 +13,8 @@ from fastapi import FastAPI, HTTPException
 from mcp.server import InitializationOptions, NotificationOptions, Server
 from pydantic import BaseModel
 
+from .client_registry import ClientRegistry
+
 
 class ToolRequest(BaseModel):
     """Model for tool execution requests"""
@@ -20,6 +22,7 @@ class ToolRequest(BaseModel):
     tool: str
     arguments: Optional[Dict[str, Any]] = None
     parameters: Optional[Dict[str, Any]] = None
+    client_id: Optional[str] = None
 
     def get_args(self) -> Dict[str, Any]:
         """Get arguments, supporting both 'arguments' and 'parameters' fields"""
@@ -43,6 +46,7 @@ class BaseMCPServer(ABC):
         self.port = port
         self.logger = logging.getLogger(name)
         self.app = FastAPI(title=name, version=version)
+        self.client_registry = ClientRegistry()
         self._setup_routes()
         self._setup_events()
 
@@ -61,16 +65,43 @@ class BaseMCPServer(ABC):
         self.app.get("/mcp/tools")(self.list_tools)
         self.app.post("/mcp/execute")(self.execute_tool)
         self.app.post("/mcp/register")(self.register_client)
+        self.app.get("/mcp/clients")(self.list_clients)
+        self.app.get("/mcp/clients/{client_id}")(self.get_client_info)
+        self.app.get("/mcp/stats")(self.get_stats)
 
     async def health_check(self):
         """Health check endpoint"""
         return {"status": "healthy", "server": self.name, "version": self.version}
 
     async def register_client(self, request: Dict[str, Any]):
-        """Register a client with the MCP server"""
-        client_id = request.get("client", "unknown")
-        self.logger.info(f"Client registered: {client_id}")
-        return {"status": "registered", "client": client_id, "server": self.name, "version": self.version}
+        """Register a client with the MCP server with enhanced tracking"""
+        client_name = request.get("client", request.get("client_name", "unknown"))
+        client_metadata = {
+            "name": request.get("name"),
+            "version": request.get("version"),
+            "capabilities": request.get("capabilities", []),
+            "description": request.get("description"),
+            "contact": request.get("contact"),
+            "client_id": request.get("client_id"),
+        }
+        # Remove None values
+        client_metadata = {k: v for k, v in client_metadata.items() if v is not None}
+
+        # Register with enhanced registry
+        registration = self.client_registry.register_client(client_name, client_metadata)
+
+        self.logger.info(
+            f"Client registered: {registration['client_id']} ({'update' if registration['is_update'] else 'new'})"
+        )
+
+        return {
+            "status": "registered",
+            "client": client_name,
+            "client_id": registration["client_id"],
+            "server": self.name,
+            "version": self.version,
+            "registration": registration,
+        }
 
     async def list_tools(self):
         """List available tools"""
@@ -89,6 +120,10 @@ class BaseMCPServer(ABC):
     async def execute_tool(self, request: ToolRequest):
         """Execute a tool with given arguments"""
         try:
+            # Track client activity if client_id provided
+            if request.client_id:
+                self.client_registry.update_client_activity(request.client_id)
+
             tools = self.get_tools()
             if request.tool not in tools:
                 raise HTTPException(status_code=404, detail=f"Tool '{request.tool}' not found")
@@ -106,6 +141,26 @@ class BaseMCPServer(ABC):
         except Exception as e:
             self.logger.error(f"Error executing tool {request.tool}: {str(e)}")
             return ToolResponse(success=False, result=None, error=str(e))
+
+    async def list_clients(self, active_only: bool = True):
+        """List all registered clients"""
+        clients = self.client_registry.list_clients(active_only=active_only)
+        return {"clients": clients, "count": len(clients), "active_only": active_only}
+
+    async def get_client_info(self, client_id: str):
+        """Get information about a specific client"""
+        client = self.client_registry.get_client(client_id)
+        if not client:
+            raise HTTPException(status_code=404, detail=f"Client '{client_id}' not found")
+        return client
+
+    async def get_stats(self):
+        """Get server and client statistics"""
+        client_stats = self.client_registry.get_client_stats()
+        return {
+            "server": {"name": self.name, "version": self.version, "tools_count": len(self.get_tools())},
+            "clients": client_stats,
+        }
 
     @abstractmethod
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
