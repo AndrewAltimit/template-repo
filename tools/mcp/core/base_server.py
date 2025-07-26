@@ -5,7 +5,7 @@ import json
 import logging
 import os  # noqa: F401
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional  # noqa: F401
+from typing import Any, Dict, List, Optional
 
 import mcp.server.stdio
 import mcp.types as types
@@ -60,10 +60,17 @@ class BaseMCPServer(ABC):
         self.app.get("/health")(self.health_check)
         self.app.get("/mcp/tools")(self.list_tools)
         self.app.post("/mcp/execute")(self.execute_tool)
+        self.app.post("/mcp/register")(self.register_client)
 
     async def health_check(self):
         """Health check endpoint"""
         return {"status": "healthy", "server": self.name, "version": self.version}
+
+    async def register_client(self, request: Dict[str, Any]):
+        """Register a client with the MCP server"""
+        client_id = request.get("client", "unknown")
+        self.logger.info(f"Client registered: {client_id}")
+        return {"status": "registered", "client": client_id, "server": self.name, "version": self.version}
 
     async def list_tools(self):
         """List available tools"""

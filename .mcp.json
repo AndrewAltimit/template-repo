@@ -50,13 +50,8 @@
       }
     },
     "gaea2": {
-      "command": "python3",
-      "args": [
-        "-m",
-        "tools.mcp.core.http_bridge",
-        "--remote-url",
-        "http://192.168.0.152:8007"
-      ]
+      "type": "http",
+      "url": "http://192.168.0.152:8007"
     }
   },
   "settings": {
