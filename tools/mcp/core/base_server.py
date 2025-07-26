@@ -409,7 +409,7 @@ class BaseMCPServer(ABC):
             "protocolVersion": "2025-06-18",  # Match Claude Code's version
             "serverInfo": {"name": self.name, "version": self.version},
             "capabilities": {
-                "tools": {},  # Empty object means tools are supported
+                "tools": {"listChanged": True},  # Indicate tools can change
                 "resources": None,
                 "prompts": None,
             },
