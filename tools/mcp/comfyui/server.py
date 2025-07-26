@@ -337,12 +337,11 @@ def main():
 
     # Create and run server
     server = ComfyUIMCPServer(port=args.port)
-    app = server.create_app()
 
     print(f"Starting ComfyUI MCP Server on {args.host}:{args.port}")
     print(f"Remote server: {REMOTE_URL}")
 
-    uvicorn.run(app, host=args.host, port=args.port)
+    uvicorn.run(server.app, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":
