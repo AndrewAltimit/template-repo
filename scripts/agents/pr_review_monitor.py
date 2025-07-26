@@ -21,6 +21,7 @@ from typing import Dict, List, Optional, Tuple
 
 from logging_security import get_secure_logger, setup_secure_logging
 from security import SecurityManager
+from subagent_manager import review_pr_with_qa
 from utils import get_github_token, run_gh_command
 
 # Configure logging with security
@@ -753,50 +754,83 @@ The PR is now ready for final review and merge.
         # Prepare feedback text
         must_fix_text, issues_text, suggestions_text, pr_desc = self.prepare_feedback_text(feedback, pr_description)
 
-        # Use the external script
-        script_path = Path(__file__).parent / "templates" / "fix_pr_review.sh"
-        if not script_path.exists():
-            logger.error(f"Fix script not found at {script_path}")
-            return False, f"Fix script not found at {script_path}", None
-
+        # First, ensure we're in the correct branch
         try:
-            # Pass sensitive data via stdin instead of command-line arguments
-            feedback_data = {
-                "must_fix": must_fix_text,
-                "issues": issues_text,
-                "suggestions": suggestions_text,
-                "pr_description": pr_desc,
-            }
+            # Get the repository directory
+            repo_name = self.repo.split("/")[-1]
+            repo_path = Path.cwd() / repo_name
 
-            # Pass environment variables including GITHUB_TOKEN
-            env = os.environ.copy()
+            # Clone repo if not already present
+            if not repo_path.exists():
+                run_gh_command(["repo", "clone", self.repo])
 
+            # Change to repo directory
+            os.chdir(repo_path)
+
+            # Checkout the PR branch
+            subprocess.run(["git", "fetch", "origin", branch_name], check=True)
+            subprocess.run(["git", "checkout", branch_name], check=True)
+            subprocess.run(["git", "pull", "origin", branch_name], check=True)
+            logger.info(f"Checked out PR branch: {branch_name}")
+
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to prepare repository: {e}")
+            return False, f"Failed to prepare repository: {str(e)}", None
+
+        # Use the Claude Code qa-reviewer subagent to address feedback
+        try:
             if self.verbose:
-                logger.info(f"Running fix script for PR #{pr_number} on branch {branch_name}")
+                logger.info(f"Using Claude Code qa-reviewer subagent for PR #{pr_number}")
                 logger.info(f"Total issues to fix: {total_issues}")
 
-            result = subprocess.run(
-                [
-                    str(script_path),
-                    str(pr_number),
-                    branch_name,
-                ],
-                input=json.dumps(feedback_data),
-                text=True,
-                check=True,
-                timeout=600,  # 10 minute timeout
-                env=env,
-                capture_output=True,
-            )
+            # Prepare review comments for the subagent
+            review_comments = []
 
-            # Capture agent output for logging
-            agent_output = result.stdout if result.stdout else ""
-            if self.verbose and agent_output:
-                # Log the full output to see commit/push results
-                logger.info(f"Agent output:\n{agent_output}")  # Show full output
+            # Add must-fix issues
+            for issue in feedback["must_fix"]:
+                review_comments.append({"body": f"CRITICAL: {issue}", "severity": "critical"})
+
+            # Add regular issues
+            for issue in feedback["issues"]:
+                review_comments.append({"body": issue, "severity": "major"})
+
+            # Add suggestions
+            for suggestion in feedback["suggestions"]:
+                review_comments.append({"body": suggestion, "severity": "minor"})
+
+            # Create PR data for the subagent
+            pr_data = {
+                "number": pr_number,
+                "title": f"PR #{pr_number}",
+                "head": {"ref": branch_name},
+                "body": pr_description,
+            }
+
+            # Use the qa-reviewer subagent
+            success, output = review_pr_with_qa(pr_data, review_comments)
+
+            if not success:
+                logger.error(f"QA reviewer subagent failed: {output}")
+                return False, f"QA reviewer failed: {output}", None
+
+            logger.info("QA reviewer subagent completed review fixes successfully")
+
+            # Check if there are changes to commit
+            status_result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
+            if status_result.stdout.strip():
+                # Commit and push changes
+                subprocess.run(["git", "add", "-A"], check=True)
+                commit_message = (
+                    f"fix: address review feedback for PR #{pr_number}\n\n🤖 Generated with Claude Code QA Reviewer"
+                )
+                subprocess.run(["git", "commit", "-m", commit_message], check=True)
+                subprocess.run(["git", "push", "origin", branch_name], check=True)
+                logger.info(f"Pushed fixes to branch {branch_name}")
+            else:
+                logger.info("No changes were needed")
 
             logger.info(f"Successfully addressed feedback for PR #{pr_number}")
-            return True, None, agent_output
+            return True, None, output
         except subprocess.TimeoutExpired:
             logger.error(f"Timeout while addressing feedback for PR #{pr_number}")
             return False, "Operation timed out after 5 minutes", None
@@ -911,15 +945,16 @@ The PR is now ready for final review and merge.
     ) -> None:
         """Post a comment indicating review feedback has been addressed."""
         if success:
-            comment_body = f"""{self.agent_tag} I've reviewed and addressed the feedback from the PR review:
-
-✅ **Changes Made:**
-- Addressed {len(feedback['must_fix'])} critical issues
-- Fixed {len(feedback['issues'])} inline code comments
-- Implemented {len(feedback['nice_to_have'])} suggested improvements
-
-All requested changes have been implemented and tests are passing. The PR is ready for another review.
-"""
+            comment_body = (
+                f"{self.agent_tag} I've reviewed and addressed the feedback from the PR review "
+                "using Claude Code with the QA reviewer persona:\n\n"
+                f"✅ **Changes Made:**\n"
+                f"- Addressed {len(feedback['must_fix'])} critical issues\n"
+                f"- Fixed {len(feedback['issues'])} inline code comments\n"
+                f"- Implemented {len(feedback['nice_to_have'])} suggested improvements\n\n"
+                "All requested changes have been implemented and tests are passing. "
+                "The PR is ready for another review.\n"
+            )
 
             # Add agent work details if verbose mode is enabled
             if self.verbose and agent_output:
@@ -929,16 +964,12 @@ All requested changes have been implemented and tests are passing. The PR is rea
                 # Look for specific sections in the output
                 work_summary = []
 
-                # Extract Claude's response (between specific markers)
-                if "Running Claude to address review feedback..." in masked_output:
-                    claude_section = masked_output.split("Running Claude to address review feedback...")[1]
-                    if "Running tests..." in claude_section:
-                        claude_work = claude_section.split("Running tests...")[0].strip()
-                        if claude_work and len(claude_work) > 100:  # Only include if substantial
-                            work_summary.append("**Claude's Analysis:**")
-                            work_summary.append("```")
-                            work_summary.append(claude_work[:1500] + ("..." if len(claude_work) > 1500 else ""))
-                            work_summary.append("```")
+                # Extract QA reviewer's response
+                if "QA reviewer subagent completed" in masked_output or len(masked_output) > 100:
+                    work_summary.append("**QA Reviewer Analysis:**")
+                    work_summary.append("```")
+                    work_summary.append(masked_output[:1500] + ("..." if len(masked_output) > 1500 else ""))
+                    work_summary.append("```")
 
                 # Extract test results
                 if "Running tests..." in masked_output:
@@ -964,11 +995,11 @@ All requested changes have been implemented and tests are passing. The PR is rea
                     comment_body += "\n".join(work_summary)
                     comment_body += "\n\n</details>"
 
-            comment_body += "\n\n*This comment was generated by an AI agent that automatically addresses PR review feedback.*"
+            comment_body += "\n\n*This comment was generated by an AI agent using Claude Code with the QA reviewer persona.*"
         else:
             comment_body = (
                 f"{self.agent_tag} I attempted to address the PR review "
-                "feedback but encountered some issues. Manual intervention "
+                "feedback using Claude Code but encountered some issues. Manual intervention "
                 "may be required.\n\n"
                 f"The review identified:\n"
                 f"- {len(feedback['must_fix'])} critical issues\n"
@@ -996,14 +1027,12 @@ All requested changes have been implemented and tests are passing. The PR is rea
                 # Extract the most relevant parts
                 relevant_sections = []
 
-                if "Running Claude to address review feedback..." in masked_output:
-                    relevant_sections.append("**Agent attempted the following:**")
-                    # Get the Claude interaction part
-                    claude_section = masked_output.split("Running Claude to address review feedback...")[1]
-                    if claude_section:
-                        relevant_sections.append("```")
-                        relevant_sections.append(claude_section[:1000] + ("..." if len(claude_section) > 1000 else ""))
-                        relevant_sections.append("```")
+                if len(masked_output) > 100:
+                    relevant_sections.append("**QA Reviewer attempted the following:**")
+                    # Show what was attempted
+                    relevant_sections.append("```")
+                    relevant_sections.append(masked_output[:1000] + ("..." if len(masked_output) > 1000 else ""))
+                    relevant_sections.append("```")
 
                 if relevant_sections:
                     comment_body += (

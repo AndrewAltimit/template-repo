@@ -1,8 +1,17 @@
 {
   "mcpServers": {
     "code-quality": {
-      "command": "python3",
+      "command": "docker-compose",
       "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-code-quality",
+        "python",
         "-m",
         "tools.mcp.code_quality.server",
         "--mode",
@@ -10,8 +19,17 @@
       ]
     },
     "content-creation": {
-      "command": "python3",
+      "command": "docker-compose",
       "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-content-creation",
+        "python",
         "-m",
         "tools.mcp.content_creation.server",
         "--mode",
@@ -27,17 +45,26 @@
         "stdio"
       ],
       "env": {
-        "GEMINI_MODEL": "gemini-2.0-flash-exp",
-        "GEMINI_TIMEOUT": "60"
+        "GEMINI_MODEL": "gemini-2.5-pro",
+        "GEMINI_TIMEOUT": "300"
       }
     },
     "gaea2": {
-      "command": "python3",
+      "command": "docker-compose",
       "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-gaea2",
+        "python",
         "-m",
         "tools.mcp.gaea2.server",
         "--mode",
-        "stdio"
+        "http"
       ]
     }
   },
