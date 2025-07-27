@@ -1,10 +1,10 @@
 # Claude Authentication in AI Agents
 
-## Current Limitation
+## Why AI Agents Run on Host Machine
 
-The AI agents that use Claude Code for implementation currently face an authentication limitation when running in containerized environments (like GitHub Actions).
+The AI agents (issue monitor and PR review monitor) run directly on the host machine instead of in Docker containers. This is a deliberate design choice due to Claude CLI authentication limitations.
 
-### The Problem
+### The Authentication Problem
 
 Claude CLI subscription authentication (obtained via `claude login`) is tied to the specific machine and user session where the login was performed. The authentication tokens stored in `~/.claude.json` are not portable to other environments, particularly containers.
 
@@ -19,9 +19,46 @@ Invalid API key · Please run /login
 2. **Container Isolation**: Containers run in isolated environments with different system characteristics
 3. **Security Design**: This is likely by design to prevent credential sharing across different environments
 
-### Current Status
+### Our Solution: Host Execution
 
-As of now, the AI agents that rely on Claude Code (issue monitor, PR review monitor) will fail in containerized GitHub Actions with authentication errors.
+We've modified the GitHub Actions workflows to run the AI agents directly on the self-hosted runner machine instead of in containers. This allows the agents to:
+
+1. Access the host's `~/.claude.json` authentication file
+2. Use the same environment where `claude login` was performed
+3. Maintain the security context that Claude CLI expects
+
+### Implications of Host Execution
+
+Running on the host machine means:
+
+1. **Python Dependencies**: Must be installed on the host with `pip3 install --user`
+2. **Claude CLI Required**: Must be installed on the host machine
+3. **Less Isolation**: The agents run with the same permissions as the runner user
+4. **Environment Consistency**: The host must maintain consistent Python and tool versions
+
+### Setup Requirements
+
+For the AI agents to work on your self-hosted runner:
+
+1. **Install Claude CLI**: Follow the official Claude installation guide
+2. **Authenticate Claude**: Run `claude login` on the host machine
+3. **Install Python Dependencies**: The workflows will attempt to install required packages
+4. **GitHub CLI**: Must be available on the host (usually pre-installed on runners)
+
+### Quick Setup
+
+We provide a setup script to help prepare your host machine:
+
+```bash
+# Run from the project root directory
+./scripts/setup-host-for-agents.sh
+```
+
+This script will:
+- Check for required tools (Python, pip, Claude CLI, GitHub CLI)
+- Verify authentication status
+- Install Python dependencies with `pip3 install --user`
+- Provide guidance for any missing components
 
 ## Potential Solutions
 

@@ -64,29 +64,34 @@ jobs:
 
       - name: Configure Git
         run: |
-          # Set git identity on the host. This works for the container because:
-          # 1. The container runs as the same user (USER_ID:GROUP_ID)
-          # 2. Git's global config is stored in the user's home directory
-          # 3. The container mounts the host's file system, inheriting this config
+          # Set git identity for the AI agent
           git config --global user.name "AI Review Agent"
           git config --global user.email "ai-review-agent@localhost"
 
-      - name: Build AI agents container
+      - name: Set up Python environment
         run: |
-          docker-compose build ai-agents
+          echo "[INFO] Checking Python environment..."
+          python3 --version
 
-      - name: Run PR review monitor in container
+          # Install required Python packages if not already installed
+          # Using --user to avoid permission issues on self-hosted runners
+          echo "[INFO] Installing required Python packages..."
+          pip3 install --user -r docker/requirements-agents.txt || {
+            echo "[WARNING] Failed to install some packages, continuing anyway"
+          }
+
+      - name: Run PR review monitor on host
         env:
           # Use AI_AGENT_TOKEN which has write permissions for applying review suggestions
           GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}
           # List of environment variables whose values should be masked in public comments
-          # Note: GitHub Actions also automatically masks registered secrets in logs,
-          # but we need explicit masking for PR comments which are public
           MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN"
           # Enable verbose logging for better debugging
           PR_MONITOR_VERBOSE: "true"
+          # Set Python path to include the current directory
+          PYTHONPATH: ${{ github.workspace }}
           PYTHONUNBUFFERED: "1"
         run: |
           echo "=== PR Review Monitor Starting ==="
@@ -94,11 +99,13 @@ jobs:
           echo "Event: ${{ github.event_name }}"
           echo "AI Agents Enabled: $ENABLE_AI_AGENTS"
           echo "Verbose Logging: ENABLED"
+          echo "[INFO] Running directly on host machine to use Claude subscription authentication"
           echo "================================="
 
           # If triggered by a specific PR event, we can optimize by checking just that PR
           if [ "${{ github.event_name }}" = "pull_request_review" ] || [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
             echo "[INFO] Triggered by PR event on PR #${{ github.event.pull_request.number }}"
+            export TARGET_PR_NUMBER="${{ github.event.pull_request.number }}"
             if [ "${{ github.event_name }}" = "pull_request_review" ]; then
               echo "[INFO] Review state: ${{ github.event.review.state }}"
               echo "[INFO] Review author: ${{ github.event.review.user.login }}"
@@ -107,55 +114,37 @@ jobs:
             echo "[INFO] Triggered by: ${{ github.event_name }}"
           fi
 
-          # Export dynamic user/group IDs to match project standards
-          export USER_ID=$(id -u)
-          export GROUP_ID=$(id -g)
-
-          # Check for Claude credentials location
-          CLAUDE_MOUNT=""
+          # Check for Claude credentials
           if [ -f "$HOME/.claude.json" ]; then
-            echo "[INFO] Found .claude.json file, mounting as file"
-            CLAUDE_MOUNT="-v $HOME/.claude.json:/host-claude:ro"
+            echo "[INFO] Found .claude.json file for Claude authentication"
           elif [ -d "$HOME/.claude" ]; then
-            echo "[INFO] Found .claude directory, mounting as directory"
-            CLAUDE_MOUNT="-v $HOME/.claude:/host-claude:ro"
+            echo "[INFO] Found .claude directory for Claude authentication"
           else
             echo "[WARNING] No Claude credentials found at ~/.claude.json or ~/.claude/"
+            echo "[WARNING] Claude CLI may not work without authentication"
           fi
 
-          # Mount Claude config from host into container
-          # The container runs as USER_ID:GROUP_ID
-          # Create a writable home directory and copy configs
-          # Run with explicit PR number if triggered by PR event
-          if [ "${{ github.event_name }}" = "pull_request_review" ] || [ "${{ github.event_name }}" = "pull_request_review_comment" ]; then
-            export TARGET_PR_NUMBER="${{ github.event.pull_request.number }}"
+          # Verify Claude CLI is available
+          if command -v claude &> /dev/null; then
+            echo "[INFO] Claude CLI found at: $(which claude)"
+            echo "[INFO] Claude version: $(claude --version 2>&1 || echo 'version check failed')"
+          else
+            echo "[ERROR] Claude CLI not found. Please ensure it's installed on the host."
+            exit 1
           fi
 
-          # Run the container with the monitoring script
-          docker-compose run --rm -T --user "${USER_ID}:${GROUP_ID}" \
-            $CLAUDE_MOUNT \
-            -v "$HOME/.config/gh:/host-gh:ro" \
-            -e GITHUB_TOKEN="${GITHUB_TOKEN}" \
-            -e GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
-            -e ENABLE_AI_AGENTS="${ENABLE_AI_AGENTS}" \
-            -e MASK_ENV_VARS="${MASK_ENV_VARS}" \
-            -e PR_MONITOR_VERBOSE="${PR_MONITOR_VERBOSE}" \
-            -e TARGET_PR_NUMBER="${TARGET_PR_NUMBER:-}" \
-            -e PYTHONPATH=/workspace \
-            -e PYTHONUNBUFFERED=1 \
-            ai-agents bash scripts/agents/run_pr_monitor.sh || {
+          # Run the PR review monitor directly
+          cd "${{ github.workspace }}"
+          python3 scripts/agents/pr_review_monitor.py || {
               exit_code=$?
-              echo "[ERROR] PR monitor script failed with exit code: $exit_code"
+              echo "[ERROR] PR review monitor script failed with exit code: $exit_code"
 
               # Run debug script on failure
               echo "[DEBUG] Running import debug script..."
-              docker-compose run --rm -T --user "${USER_ID}:${GROUP_ID}" \
-                -e PYTHONPATH=/workspace \
-                -e PYTHONUNBUFFERED=1 \
-                ai-agents python scripts/agents/debug_imports.py
+              python3 scripts/agents/debug_imports.py || true
 
               exit $exit_code
-            }
+          }
 
       - name: Log monitoring results
         if: always()

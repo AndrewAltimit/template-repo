@@ -140,19 +140,24 @@ pip install -r requirements.txt
 ### AI Agents
 
 ```bash
-# Run AI agents (containerized)
-docker-compose run --rm ai-agents python scripts/agents/run_agents.py status
-docker-compose run --rm ai-agents python scripts/agents/run_agents.py issue-monitor
-docker-compose run --rm ai-agents python scripts/agents/run_agents.py pr-review-monitor
+# IMPORTANT: AI agents now run on the host machine (not containerized)
+# This is required for Claude CLI subscription authentication to work
 
-# Run agents using the helper script
-./scripts/agents/run_agents.sh status
-./scripts/agents/run_agents.sh issue-monitor
-./scripts/agents/run_agents.sh pr-review-monitor
+# Run AI agents directly on host
+python3 scripts/agents/run_agents.py status
+python3 scripts/agents/run_agents.py issue-monitor
+python3 scripts/agents/run_agents.py pr-review-monitor
+
+# Or run individual agent scripts
+python3 scripts/agents/issue_monitor.py
+python3 scripts/agents/pr_review_monitor.py
 
 # GitHub Actions automatically run agents on schedule:
-# - Issue Monitor: Every hour
-# - PR Review Monitor: Every hour
+# - Issue Monitor: Every hour (runs on host)
+# - PR Review Monitor: Every hour (runs on host)
+
+# Note: Ensure Python dependencies are installed on host:
+pip3 install --user -r docker/requirements-agents.txt
 ```
 
 ### Docker Operations
@@ -273,10 +278,12 @@ The repository includes comprehensive CI/CD workflows:
 
 ### Container Architecture Philosophy
 
-1. **Everything Containerized**:
+1. **Everything Containerized** (with exceptions for authentication):
    - Python CI/CD tools run in `python-ci` container (Python 3.11)
-   - MCP server runs in its own container
-   - Only exception: Gemini CLI (would require Docker-in-Docker)
+   - MCP servers run in their own containers
+   - **Exceptions due to authentication requirements**:
+     - Gemini CLI (requires Docker access)
+     - AI Agents using Claude CLI (requires host subscription auth)
    - All containers run with user permissions (non-root)
 
 2. **Zero Local Dependencies**:
@@ -347,6 +354,7 @@ For detailed information on specific topics, refer to these documentation files:
 - `scripts/agents/README.md` - Comprehensive AI agent security documentation
 - `docs/AI_AGENTS.md` - AI agent system overview
 - `docs/AI_AGENTS_SECURITY.md` - Security-focused agent documentation
+- `docs/AI_AGENTS_CLAUDE_AUTH.md` - Why AI agents run on host (Claude auth limitation)
 
 ### MCP Servers
 - `docs/mcp/README.md` - MCP architecture and design patterns
