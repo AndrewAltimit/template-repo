@@ -253,6 +253,8 @@ class TestIssueMonitorWithTriggers(unittest.TestCase):
             ),
             # has_agent_comment response
             json.dumps({"comments": []}),
+            # has_agent_claimed_work response
+            json.dumps({"comments": []}),
             # post_starting_work_comment response
             None,
             # create_pr_from_issue responses will be added as needed
@@ -666,13 +668,17 @@ class TestPRMonitorWithTriggers(unittest.TestCase):
             ),
             # has_agent_addressed_review response (pr view)
             json.dumps({"comments": []}),
+            # has_agent_claimed_work response (pr view)
+            json.dumps({"comments": []}),
+            # post_claim_comment response
+            None,
             # get_pr_check_status response (pr view returns object)
+            json.dumps({"statusCheckRollup": []}),
+            # Second get_pr_check_status response (there's another check after claim comment)
             json.dumps({"statusCheckRollup": []}),
             # close PR command
             None,
-            # create_action_comment (api command)
-            None,
-            # Extra response for any additional calls
+            # create_action_comment (pr comment)
             None,
         ]
 
