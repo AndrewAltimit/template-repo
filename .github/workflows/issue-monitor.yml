@@ -29,6 +29,7 @@ jobs:
   monitor-issues:
     name: Monitor GitHub Issues
     runs-on: self-hosted
+    environment: production  # Required to access AI_AGENT_TOKEN secret
     # Only run if AI agents are enabled AND (manual trigger OR schedule OR issue event)
     # Note: User authorization is handled by the SecurityManager in the Python agent
     if: |

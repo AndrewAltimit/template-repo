@@ -29,6 +29,7 @@ jobs:
   monitor-pr-reviews:
     name: Monitor PR Reviews
     runs-on: self-hosted
+    environment: production  # Required to access AI_AGENT_TOKEN secret
     # Only run if AI agents are enabled AND relevant event occurs
     # Note: User authorization is handled by the SecurityManager in the Python agent
     if: |
