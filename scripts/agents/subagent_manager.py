@@ -152,24 +152,79 @@ class SubagentManager:
         env = os.environ.copy()
 
         # Set HOME to ensure claude can find config files
+        # Use the actual user's home directory, not a temp directory
         if "HOME" not in env:
-            env["HOME"] = os.environ.get("HOME", "/tmp/agent-home")
+            # Try to get the real home directory
+            import pwd
 
-        logger.info(f"HOME set to: {env['HOME']}")
-
-        # Build the Claude Code command
-        # Using the format: claude --print --dangerously-skip-permissions "prompt content"
-        # --print: Print response and exit (for non-interactive use)
-        # --dangerously-skip-permissions: Bypass all permission checks for automated execution
-        # --settings: Explicitly specify the settings file location
-        # This is crucial for non-interactive environments like GitHub Actions
-        settings_path = os.path.join(env["HOME"], ".claude.json")
-        if os.path.exists(settings_path):
-            cmd = ["claude", "--print", "--dangerously-skip-permissions", "--settings", settings_path, prompt_content]
-            logger.info(f"Using settings file: {settings_path}")
+            try:
+                env["HOME"] = pwd.getpwuid(os.getuid()).pw_dir
+                logger.info(f"Set HOME from pwd: {env['HOME']}")
+            except (KeyError, OSError):
+                env["HOME"] = os.path.expanduser("~")
+                logger.info(f"Set HOME from expanduser: {env['HOME']}")
         else:
+            logger.info(f"Using existing HOME: {env['HOME']}")
+
+        # Check for ANTHROPIC_API_KEY first as it's more reliable in CI/CD
+        # Define potential settings paths for later reference
+        potential_settings_paths = [
+            os.path.join(env["HOME"], ".claude.json"),
+            os.path.join(env["HOME"], ".config", "claude", "claude.json"),
+            os.path.join(env["HOME"], ".claude", "claude.json"),
+            "/home/runner/.claude.json",  # Common on GitHub runners
+            os.path.expanduser("~/.claude.json"),  # Fallback to actual home
+        ]
+
+        settings_path = None
+
+        if os.environ.get("ANTHROPIC_API_KEY"):
+            logger.info("Found ANTHROPIC_API_KEY environment variable - using API key authentication")
+            # Make sure the API key is available in the subprocess environment
+            env["ANTHROPIC_API_KEY"] = os.environ["ANTHROPIC_API_KEY"]
+            # API key auth doesn't need settings file
             cmd = ["claude", "--print", "--dangerously-skip-permissions", prompt_content]
-            logger.warning("No settings file found, authentication may fail")
+        else:
+            # Build the Claude Code command for subscription auth
+            # Using the format: claude --print --dangerously-skip-permissions "prompt content"
+            # --print: Print response and exit (for non-interactive use)
+            # --dangerously-skip-permissions: Bypass all permission checks for automated execution
+            # --settings: Explicitly specify the settings file location
+            # This is crucial for non-interactive environments like GitHub Actions
+
+            # Look for settings file in multiple locations
+            for path in potential_settings_paths:
+                if os.path.exists(path):
+                    settings_path = path
+                    logger.info(f"Found Claude settings at: {settings_path}")
+                    break
+
+            if settings_path:
+                # Validate the settings file has content
+                try:
+                    with open(settings_path, "r") as f:
+                        content = f.read().strip()
+                        if len(content) > 10:  # Basic validation
+                            cmd = [
+                                "claude",
+                                "--print",
+                                "--dangerously-skip-permissions",
+                                "--settings",
+                                settings_path,
+                                prompt_content,
+                            ]
+                            logger.info(f"Using validated settings file: {settings_path}")
+                        else:
+                            logger.warning(f"Settings file appears empty or invalid: {settings_path}")
+                            cmd = ["claude", "--print", "--dangerously-skip-permissions", prompt_content]
+                except Exception as e:
+                    logger.warning(f"Could not validate settings file: {e}")
+                    cmd = ["claude", "--print", "--dangerously-skip-permissions", prompt_content]
+            else:
+                cmd = ["claude", "--print", "--dangerously-skip-permissions", prompt_content]
+                logger.warning("No Claude settings file found in any expected location")
+                logger.warning(f"Searched paths: {potential_settings_paths}")
+                logger.warning("Consider setting ANTHROPIC_API_KEY environment variable for CI/CD")
 
         # Log prompt length for debugging
         logger.debug(f"Prompt length: {len(prompt_content)} characters")
@@ -202,22 +257,50 @@ class SubagentManager:
             logger.warning("Claude CLI requires a valid .claude.json from 'claude login'")
 
         # Set up nvm and Node.js 22.16.0 environment
-        nvm_dir = os.path.expanduser("~/.nvm")
-        if os.path.exists(nvm_dir):
+        nvm_locations = [
+            os.path.expanduser("~/.nvm"),
+            "/usr/local/share/nvm",
+            os.path.join(env["HOME"], ".nvm"),
+            "/opt/nvm",
+        ]
+
+        nvm_dir = None
+        for loc in nvm_locations:
+            if os.path.exists(os.path.join(loc, "nvm.sh")):
+                nvm_dir = loc
+                logger.info(f"Found nvm at: {nvm_dir}")
+                break
+
+        if nvm_dir:
             # Source nvm and set Node.js version
-            nvm_setup = f'. "{nvm_dir}/nvm.sh" && nvm use 22.16.0'
+            nvm_setup = f'. "{nvm_dir}/nvm.sh" && nvm use 22.16.0 2>/dev/null || nvm use default'
             # We'll prepend this to our command later
-            logger.info("Found nvm, will use Node.js 22.16.0")
+            logger.info("Will attempt to use Node.js 22.16.0 (or default if not available)")
         else:
             nvm_setup = ""
-            logger.warning("nvm not found, Claude CLI may have issues")
+            logger.warning("nvm not found in any expected location")
+            logger.warning(f"Searched: {nvm_locations}")
 
         # Ensure PATH includes common locations for claude including npm global bin
-        # npm global packages are typically installed in /usr/local/lib/node_modules/.bin or /usr/local/bin
-        if "PATH" in env:
-            env["PATH"] = f"/usr/local/lib/node_modules/.bin:/usr/local/bin:/usr/bin:/bin:{env['PATH']}"
+        # npm global packages are typically installed in various locations
+        npm_paths = [
+            "/usr/local/lib/node_modules/.bin",
+            "/usr/local/bin",
+            os.path.expanduser("~/.npm-global/bin"),
+            os.path.expanduser("~/.local/bin"),
+            os.path.join(env["HOME"], ".npm-global/bin"),
+            os.path.join(env["HOME"], "node_modules/.bin"),
+            "/opt/nodejs/bin",
+        ]
+
+        existing_path = env.get("PATH", "")
+        new_paths = [p for p in npm_paths if os.path.exists(p) and p not in existing_path]
+
+        if new_paths:
+            env["PATH"] = ":".join(new_paths) + f":/usr/bin:/bin:{existing_path}"
+            logger.debug(f"Added to PATH: {new_paths}")
         else:
-            env["PATH"] = "/usr/local/lib/node_modules/.bin:/usr/local/bin:/usr/bin:/bin"
+            env["PATH"] = f"/usr/local/bin:/usr/bin:/bin:{existing_path}"
 
         # First check if claude is available
         which_result = subprocess.run(["which", "claude"], capture_output=True, text=True, env=env)
@@ -277,21 +360,28 @@ class SubagentManager:
                     logger.error(f"Standard output: {stdout}")
 
                 # Special handling for authentication errors
-                if "Invalid API key" in stdout or "Please run /login" in stdout:
-                    logger.error("Claude authentication failed in container environment")
-                    logger.error(
-                        "IMPORTANT: Claude subscription authentication (via 'claude login') is tied to the host machine"
-                    )
-                    logger.error("and cannot be transferred to containerized environments like GitHub Actions.")
+                if "Invalid API key" in stdout or "Please run /login" in stdout or "Unauthorized" in stderr:
+                    logger.error("Claude authentication failed")
+                    logger.error("=== Authentication Troubleshooting ===")
+                    logger.error(f"1. Checked for .claude.json in: {potential_settings_paths}")
+                    logger.error(f"2. Found settings at: {settings_path if settings_path else 'NONE'}")
+                    logger.error(f"3. Running as user: {env.get('USER', 'unknown')}")
+                    logger.error(f"4. HOME directory: {env.get('HOME', 'not set')}")
                     logger.error("")
-                    logger.error("Possible solutions:")
-                    logger.error("1. Use ANTHROPIC_API_KEY environment variable instead of subscription auth")
-                    logger.error("2. Run the AI agents on the host machine (not in containers)")
-                    logger.error("3. Use the 'claude setup-token' command if available for CI/CD")
+                    logger.error("To fix authentication:")
+                    logger.error("1. Ensure you're running on the host machine (not in container)")
+                    logger.error("2. Run: nvm use 22.16.0")
+                    logger.error("3. Run: claude login")
+                    logger.error("4. Verify ~/.claude.json exists and has valid content")
                     logger.error("")
-                    logger.error(
-                        "For now, the AI agent functionality requires running on the host with active subscription auth."
-                    )
+                    logger.error("Alternative: Set ANTHROPIC_API_KEY environment variable")
+
+                    # Check if we're in a container
+                    if os.path.exists("/.dockerenv") or os.environ.get("GITHUB_ACTIONS"):
+                        logger.error("")
+                        logger.error("DETECTED: Running in container or GitHub Actions")
+                        logger.error("Claude subscription auth doesn't work in containers.")
+                        logger.error("Use ANTHROPIC_API_KEY or run on host machine.")
 
                 # If no output at all, it might be a PATH issue
                 if not stderr and not stdout:

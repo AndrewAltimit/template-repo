@@ -53,9 +53,7 @@ This repository leverages **five AI agents** for development and automation:
 ## Features
 
 - **MCP Server Integration** - Multiple MCP servers for different tool categories
-- **Gaea2 Terrain Generation** - ✅ Fully working MCP integration for all 185 Gaea2 nodes
-  - Standalone Gaea2 MCP server with CLI automation and intelligent validation
-  - Automatic terrain file generation with proper ID formatting (Windows host-only)
+- **Gaea2 Terrain Generation** - MCP integration for all Gaea2 nodes
 - **ComfyUI Integration** - Image generation workflows
 - **AI Toolkit** - LoRA training capabilities
 - **Gemini AI Consultation** - Standalone MCP server for AI assistance (host-only)
