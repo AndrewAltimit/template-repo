@@ -44,9 +44,43 @@ else
     exit 1
 fi
 
+# Check nvm and Node.js
+echo ""
+echo "[INFO] Checking nvm and Node.js..."
+if [ -s "$HOME/.nvm/nvm.sh" ]; then
+    # Load nvm
+    export NVM_DIR="$HOME/.nvm"
+    # shellcheck disable=SC1091
+    . "$NVM_DIR/nvm.sh"
+
+    if command_exists nvm; then
+        echo "[OK] Found nvm"
+
+        # Check for Node.js 22.16.0
+        if nvm use 22.16.0 >/dev/null 2>&1; then
+            echo "[OK] Node.js 22.16.0 is available"
+            NODE_VERSION=$(node --version)
+            echo "[OK] Using Node.js: $NODE_VERSION"
+        else
+            echo "[WARNING] Node.js 22.16.0 not found"
+            echo "Install it with: nvm install 22.16.0"
+        fi
+    fi
+else
+    echo "[WARNING] nvm not found at ~/.nvm/nvm.sh"
+    echo "Claude CLI requires Node.js 22.16.0 via nvm"
+fi
+
 # Check Claude CLI
 echo ""
 echo "[INFO] Checking Claude CLI..."
+# Make sure we're using the right Node.js version
+if [ -s "$HOME/.nvm/nvm.sh" ]; then
+    # shellcheck disable=SC1091
+    . "$HOME/.nvm/nvm.sh"
+    nvm use 22.16.0 >/dev/null 2>&1
+fi
+
 if command_exists claude; then
     CLAUDE_VERSION=$(claude --version 2>&1 || echo "version check failed")
     echo "[OK] Found Claude CLI: $CLAUDE_VERSION"
@@ -169,16 +203,25 @@ echo "✓ Python dependencies: Installed with --user"
 echo ""
 echo "=== Next Steps ==="
 echo ""
-echo "1. If Claude CLI is not installed:"
+echo "1. If nvm is not installed:"
+echo "   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash"
+echo ""
+echo "2. If Node.js 22.16.0 is not installed:"
+echo "   nvm install 22.16.0"
+echo "   nvm use 22.16.0"
+echo ""
+echo "3. If Claude CLI is not installed:"
+echo "   nvm use 22.16.0"
 echo "   npm install -g @anthropic-ai/claude-code"
 echo ""
-echo "2. If Claude is not authenticated:"
+echo "4. If Claude is not authenticated:"
+echo "   nvm use 22.16.0"
 echo "   claude login"
 echo ""
-echo "3. If GitHub CLI is not authenticated:"
+echo "5. If GitHub CLI is not authenticated:"
 echo "   gh auth login"
 echo ""
-echo "4. Test the AI agents:"
+echo "6. Test the AI agents:"
 echo "   python3 scripts/agents/run_agents.py status"
 echo ""
 echo "Done!"

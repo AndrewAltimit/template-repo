@@ -98,6 +98,21 @@ jobs:
             echo "[WARNING] Claude CLI may not work without authentication"
           fi
 
+          # Set up Node.js version using nvm
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # Load nvm
+          if command -v nvm &> /dev/null; then
+            echo "[INFO] Setting Node.js version with nvm..."
+            nvm use 22.16.0 || {
+              echo "[WARNING] Node.js 22.16.0 not found, trying to install..."
+              nvm install 22.16.0
+              nvm use 22.16.0
+            }
+            echo "[INFO] Node.js version: $(node --version)"
+          else
+            echo "[WARNING] nvm not found, Claude CLI may have issues"
+          fi
+
           # Verify Claude CLI is available
           if command -v claude &> /dev/null; then
             echo "[INFO] Claude CLI found at: $(which claude)"

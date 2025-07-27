@@ -201,6 +201,17 @@ class SubagentManager:
             logger.warning("No Claude subscription config found - authentication will fail")
             logger.warning("Claude CLI requires a valid .claude.json from 'claude login'")
 
+        # Set up nvm and Node.js 22.16.0 environment
+        nvm_dir = os.path.expanduser("~/.nvm")
+        if os.path.exists(nvm_dir):
+            # Source nvm and set Node.js version
+            nvm_setup = f'. "{nvm_dir}/nvm.sh" && nvm use 22.16.0'
+            # We'll prepend this to our command later
+            logger.info("Found nvm, will use Node.js 22.16.0")
+        else:
+            nvm_setup = ""
+            logger.warning("nvm not found, Claude CLI may have issues")
+
         # Ensure PATH includes common locations for claude including npm global bin
         # npm global packages are typically installed in /usr/local/lib/node_modules/.bin or /usr/local/bin
         if "PATH" in env:
@@ -219,10 +230,18 @@ class SubagentManager:
 
         try:
             logger.info(f"Executing Claude Code with subagent: {subagent_file}")
-            logger.debug(f"Command: {' '.join(cmd[:3])} <prompt>")  # Log command without full prompt
+
+            # If we have nvm, wrap the command with nvm setup
+            if nvm_setup:
+                # Use bash -c to run nvm setup and then claude
+                full_cmd = ["bash", "-c", f"{nvm_setup} && {' '.join(cmd)}"]
+                logger.debug("Running with nvm: bash -c '<nvm setup> && claude ...'")
+            else:
+                full_cmd = cmd
+                logger.debug(f"Command: {' '.join(cmd[:3])} <prompt>")  # Log command without full prompt
 
             result = subprocess.run(
-                cmd,
+                full_cmd,
                 cwd=working_directory,
                 env=env,
                 capture_output=True,
