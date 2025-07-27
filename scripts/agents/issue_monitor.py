@@ -215,6 +215,22 @@ Once you've added this information, I'll be able to create a pull request to add
 
         logger.info(f"Requested more information on issue #{issue_number}")
 
+    def has_agent_claimed_work(self, issue_number: int) -> bool:
+        """Check if an agent has already claimed this work."""
+        output = run_gh_command(["issue", "view", str(issue_number), "--repo", self.repo, "--json", "comments"])
+
+        if output:
+            try:
+                data = json.loads(output)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse comment data JSON: {e}")
+                return False
+            for comment in data.get("comments", []):
+                body = comment.get("body", "")
+                if self.agent_tag in body and "starting work on this issue" in body.lower():
+                    return True
+        return False
+
     def post_security_rejection_comment(self, issue_number: int, reason: Optional[str] = None) -> None:
         """Post a comment explaining why the issue cannot be processed."""
         if reason:
@@ -574,6 +590,11 @@ Implemented using Claude Code with the tech-lead persona, focusing on:
                     # Request more information
                     self.create_information_request_comment(issue_number, missing)
                 elif self.should_create_pr(issue, has_approval_trigger=True):
+                    # Check if another agent has already claimed this work
+                    if self.has_agent_claimed_work(issue_number):
+                        logger.info(f"[SKIP] Another agent has already claimed work on issue #{issue_number}")
+                        continue
+
                     # Generate branch name with UUID suffix
                     uuid_suffix = str(uuid.uuid4())[:6]
                     branch_name = f"fix-issue-{issue_number}-{uuid_suffix}"

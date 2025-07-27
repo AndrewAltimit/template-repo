@@ -461,7 +461,7 @@ def implement_issue_with_tech_lead(issue_data: Dict, branch_name: str) -> Tuple[
         return False, f"Error: {stderr}"
 
 
-def review_pr_with_qa(pr_data: Dict, review_comments: List[Dict]) -> Tuple[bool, str]:
+def review_pr_with_qa(pr_data: Dict, review_comments: List[Dict], timeout: int = 600) -> Tuple[bool, str]:
     """Use the qa-reviewer persona to address PR reviews."""
     manager = SubagentManager()
 
@@ -474,9 +474,7 @@ def review_pr_with_qa(pr_data: Dict, review_comments: List[Dict]) -> Tuple[bool,
         "review_comments": "\n".join([c.get("body", "") for c in review_comments]),
     }
 
-    success, stdout, stderr = manager.execute_with_persona(
-        "qa-reviewer", task, context, timeout=300  # 5 minutes for review fixes
-    )
+    success, stdout, stderr = manager.execute_with_persona("qa-reviewer", task, context, timeout=timeout)
 
     if success:
         return True, stdout

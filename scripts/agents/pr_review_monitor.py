@@ -61,6 +61,8 @@ class PRReviewMonitor:
         self.auto_fix_threshold = pr_config.get("auto_fix_threshold", {"critical_issues": 0, "total_issues": 5})
         # Cutoff period in hours for filtering recent PRs
         self.cutoff_hours = pr_config.get("cutoff_hours", 24)
+        # Get timeout from config
+        self.claude_timeout = self.config.get("claude_cli", {}).get("timeout_seconds", 600)
 
         self.agent_tag = "[AI Agent]"
         self.security_manager = SecurityManager()
@@ -498,6 +500,22 @@ class PRReviewMonitor:
                 return ""
         return ""
 
+    def has_agent_claimed_work(self, pr_number: int) -> bool:
+        """Check if an agent has already claimed this work."""
+        output = run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "comments"])
+
+        if output:
+            try:
+                data = json.loads(output)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse comment data JSON: {e}")
+                return False
+            for comment in data.get("comments", []):
+                body = comment.get("body", "")
+                if self.agent_tag in body and "Starting work on this PR" in body:
+                    return True
+        return False
+
     def has_agent_addressed_review(self, pr_number: int) -> bool:
         """Check if agent has already addressed the review."""
         output = run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "comments"])
@@ -806,8 +824,8 @@ The PR is now ready for final review and merge.
                 "body": pr_description,
             }
 
-            # Use the qa-reviewer subagent
-            success, output = review_pr_with_qa(pr_data, review_comments)
+            # Use the qa-reviewer subagent with configured timeout
+            success, output = review_pr_with_qa(pr_data, review_comments, timeout=self.claude_timeout)
 
             if not success:
                 logger.error(f"QA reviewer subagent failed: {output}")
@@ -1220,6 +1238,29 @@ Manual intervention may be required to resolve these issues.
             ]
         )
 
+    def post_claim_comment(self, pr_number: int, action: str, agent: str, trigger_user: str) -> None:
+        """Post a comment claiming the work to prevent multiple agents from working on the same task."""
+        comment_body = (
+            f"{self.agent_tag} 🔧 **Starting work on this PR**\n\n"
+            f"I'm processing the `[{action}][{agent}]` request from @{trigger_user}.\n\n"
+            f"This may take a few minutes. I'll post updates as I progress.\n\n"
+            f"*This comment prevents other agents from duplicating work on this task.*"
+        )
+
+        run_gh_command(
+            [
+                "pr",
+                "comment",
+                str(pr_number),
+                "--repo",
+                self.repo,
+                "--body",
+                comment_body,
+            ]
+        )
+
+        logger.info(f"Posted claim comment on PR #{pr_number}")
+
     def post_security_rejection_comment(self, pr_number: int, reason: Optional[str] = None) -> None:
         """Post a comment explaining why the PR cannot be processed."""
         if reason:
@@ -1368,6 +1409,14 @@ Manual intervention may be required to resolve these issues.
 
             if self.verbose:
                 logger.info(f"Security check passed for user {trigger_user}")
+
+            # Check if another agent has already claimed this work
+            if self.has_agent_claimed_work(pr_number):
+                logger.info(f"[SKIP] Another agent has already claimed work on PR #{pr_number}")
+                continue
+
+            # Post claim comment to prevent multiple agents from working on the same task
+            self.post_claim_comment(pr_number, action, agent, trigger_user)
 
             # We'll let the AI determine what needs to be done based on all context
             logger.info(f"[PROCESSING] PR #{pr_number} - will analyze all context to determine needed actions")
