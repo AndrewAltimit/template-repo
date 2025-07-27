@@ -233,9 +233,22 @@ class SubagentManager:
 
             # If we have nvm, wrap the command with nvm setup
             if nvm_setup:
-                # Use bash -c to run nvm setup and then claude
-                full_cmd = ["bash", "-c", f"{nvm_setup} && {' '.join(cmd)}"]
-                logger.debug("Running with nvm: bash -c '<nvm setup> && claude ...'")
+                # We need to properly escape the prompt content for bash
+                # Use shlex to properly quote the arguments
+                import shlex
+
+                # Quote each part of the command, especially the prompt
+                quoted_cmd = []
+                for i, part in enumerate(cmd):
+                    if i < len(cmd) - 1:  # Not the prompt
+                        quoted_cmd.append(part)
+                    else:  # This is the prompt, needs proper quoting
+                        quoted_cmd.append(shlex.quote(part))
+
+                # Build the bash command
+                bash_cmd = f"{nvm_setup} && {' '.join(quoted_cmd)}"
+                full_cmd = ["bash", "-c", bash_cmd]
+                logger.debug("Running with nvm and properly quoted prompt")
             else:
                 full_cmd = cmd
                 logger.debug(f"Command: {' '.join(cmd[:3])} <prompt>")  # Log command without full prompt
