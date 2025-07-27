@@ -169,37 +169,30 @@ class SubagentManager:
         if "HOME" not in env:
             env["HOME"] = os.environ.get("HOME", "/tmp/agent-home")
 
-        # Try to load API key from claude.json if ANTHROPIC_API_KEY not set
-        if "ANTHROPIC_API_KEY" not in env:
-            # Try multiple possible locations for claude.json
-            possible_paths = [
-                os.path.join(env["HOME"], ".claude.json"),
-                os.path.join(env["HOME"], ".claude", "claude.json"),
-                os.path.join(env["HOME"], ".config", "claude", "claude.json"),
-            ]
+        logger.info(f"HOME set to: {env['HOME']}")
 
-            api_key_found = False
-            for path in possible_paths:
-                if os.path.exists(path):
-                    try:
-                        with open(path, "r") as f:
-                            import json
+        # Claude CLI uses subscription authentication stored in .claude.json
+        # This file contains session tokens from logging in with a subscription
+        claude_config_paths = [
+            os.path.join(env["HOME"], ".claude.json"),
+            os.path.join(env["HOME"], ".claude", "claude.json"),
+        ]
 
-                            claude_config = json.load(f)
-                            # Try different possible key names
-                            for key in ["apiKey", "api_key", "ANTHROPIC_API_KEY", "anthropic_api_key"]:
-                                if key in claude_config:
-                                    env["ANTHROPIC_API_KEY"] = claude_config[key]
-                                    logger.info(f"Loaded API key from {path}")
-                                    api_key_found = True
-                                    break
-                            if api_key_found:
-                                break
-                    except Exception as e:
-                        logger.warning(f"Failed to read claude config from {path}: {e}")
+        config_found = False
+        for path in claude_config_paths:
+            if os.path.exists(path):
+                logger.info(f"Found Claude subscription config at: {path}")
+                config_found = True
+                # Ensure proper permissions (claude may require 600)
+                try:
+                    os.chmod(path, 0o600)
+                    logger.debug(f"Set permissions 600 on {path}")
+                except Exception as e:
+                    logger.warning(f"Could not set permissions on {path}: {e}")
 
-            if not api_key_found:
-                logger.warning("ANTHROPIC_API_KEY not set and could not load from claude.json")
+        if not config_found:
+            logger.warning("No Claude subscription config found - authentication will fail")
+            logger.warning("Claude CLI requires a valid .claude.json from 'claude login'")
 
         # Ensure PATH includes common locations for claude including npm global bin
         # npm global packages are typically installed in /usr/local/lib/node_modules/.bin or /usr/local/bin

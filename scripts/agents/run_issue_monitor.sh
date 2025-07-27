@@ -64,6 +64,16 @@ echo "[DEBUG] Checking for Claude config files:"
 [ -f $HOME/.claude/claude.json ] && echo "[DEBUG]   - Found $HOME/.claude/claude.json"
 [ -d $HOME/.config/claude ] && echo "[DEBUG]   - Found $HOME/.config/claude directory"
 
+# Claude may also look for config in other locations
+echo "[DEBUG] Checking additional Claude config locations:"
+[ -f $HOME/.config/claude.json ] && echo "[DEBUG]   - Found $HOME/.config/claude.json"
+[ -d $HOME/.claude ] && echo "[DEBUG]   - Found $HOME/.claude directory: $(ls -la $HOME/.claude/)"
+
+# Test if Claude can detect the credentials
+echo "[DEBUG] Testing Claude CLI authentication status..."
+# Use timeout to prevent hanging if claude tries to prompt
+timeout 5 claude --version 2>&1 | head -n 5 || echo "[DEBUG] Claude version check timed out or failed"
+
 if [ -d /host-gh ]; then
     echo "[INFO] Copying GitHub CLI config..."
     cp -r /host-gh $HOME/.config/gh
