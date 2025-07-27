@@ -155,6 +155,13 @@ class SubagentManager:
         # This is crucial for non-interactive environments like GitHub Actions
         cmd = ["claude", "--print", "--dangerously-skip-permissions", prompt_content]
 
+        # Log prompt length for debugging
+        logger.debug(f"Prompt length: {len(prompt_content)} characters")
+        if len(prompt_content) > 1000:
+            logger.debug(f"Prompt preview (first 500 chars): {prompt_content[:500]}...")
+        else:
+            logger.debug(f"Full prompt: {prompt_content}")
+
         # Set up environment
         env = os.environ.copy()
 
@@ -162,8 +169,25 @@ class SubagentManager:
         if "ANTHROPIC_API_KEY" not in env:
             logger.warning("ANTHROPIC_API_KEY not set, Claude Code may not work")
 
+        # Ensure PATH includes common locations for claude including npm global bin
+        # npm global packages are typically installed in /usr/local/lib/node_modules/.bin or /usr/local/bin
+        if "PATH" in env:
+            env["PATH"] = f"/usr/local/lib/node_modules/.bin:/usr/local/bin:/usr/bin:/bin:{env['PATH']}"
+        else:
+            env["PATH"] = "/usr/local/lib/node_modules/.bin:/usr/local/bin:/usr/bin:/bin"
+
+        # First check if claude is available
+        which_result = subprocess.run(["which", "claude"], capture_output=True, text=True, env=env)
+        if which_result.returncode != 0:
+            logger.error("claude command not found in PATH")
+            logger.error(f"Current PATH: {env.get('PATH', 'not set')}")
+            return False, "", "claude command not found - please ensure Claude CLI is installed"
+
+        logger.info(f"Found claude at: {which_result.stdout.strip()}")
+
         try:
             logger.info(f"Executing Claude Code with subagent: {subagent_file}")
+            logger.debug(f"Command: {' '.join(cmd[:3])} <prompt>")  # Log command without full prompt
 
             result = subprocess.run(
                 cmd,
@@ -183,6 +207,13 @@ class SubagentManager:
                 return True, stdout, stderr
             else:
                 logger.error(f"Claude Code execution failed with code {result.returncode}")
+                if stderr:
+                    logger.error(f"Error output: {stderr}")
+                if stdout:
+                    logger.error(f"Standard output: {stdout}")
+                # If no output at all, it might be a PATH issue
+                if not stderr and not stdout:
+                    logger.error("No output from claude command - it may not be installed or not in PATH")
                 return False, stdout, stderr
 
         except subprocess.TimeoutExpired:
