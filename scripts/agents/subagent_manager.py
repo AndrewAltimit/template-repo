@@ -169,6 +169,10 @@ class SubagentManager:
         if "ANTHROPIC_API_KEY" not in env:
             logger.warning("ANTHROPIC_API_KEY not set, Claude Code may not work")
 
+        # Set HOME to ensure claude can find .claude.json or .claude/claude.json
+        if "HOME" not in env:
+            env["HOME"] = os.environ.get("HOME", "/tmp/agent-home")
+
         # Ensure PATH includes common locations for claude including npm global bin
         # npm global packages are typically installed in /usr/local/lib/node_modules/.bin or /usr/local/bin
         if "PATH" in env:
