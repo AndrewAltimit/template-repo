@@ -165,13 +165,41 @@ class SubagentManager:
         # Set up environment
         env = os.environ.copy()
 
-        # Add any necessary environment variables
-        if "ANTHROPIC_API_KEY" not in env:
-            logger.warning("ANTHROPIC_API_KEY not set, Claude Code may not work")
-
-        # Set HOME to ensure claude can find .claude.json or .claude/claude.json
+        # Set HOME to ensure claude can find config files
         if "HOME" not in env:
             env["HOME"] = os.environ.get("HOME", "/tmp/agent-home")
+
+        # Try to load API key from claude.json if ANTHROPIC_API_KEY not set
+        if "ANTHROPIC_API_KEY" not in env:
+            # Try multiple possible locations for claude.json
+            possible_paths = [
+                os.path.join(env["HOME"], ".claude.json"),
+                os.path.join(env["HOME"], ".claude", "claude.json"),
+                os.path.join(env["HOME"], ".config", "claude", "claude.json"),
+            ]
+
+            api_key_found = False
+            for path in possible_paths:
+                if os.path.exists(path):
+                    try:
+                        with open(path, "r") as f:
+                            import json
+
+                            claude_config = json.load(f)
+                            # Try different possible key names
+                            for key in ["apiKey", "api_key", "ANTHROPIC_API_KEY", "anthropic_api_key"]:
+                                if key in claude_config:
+                                    env["ANTHROPIC_API_KEY"] = claude_config[key]
+                                    logger.info(f"Loaded API key from {path}")
+                                    api_key_found = True
+                                    break
+                            if api_key_found:
+                                break
+                    except Exception as e:
+                        logger.warning(f"Failed to read claude config from {path}: {e}")
+
+            if not api_key_found:
+                logger.warning("ANTHROPIC_API_KEY not set and could not load from claude.json")
 
         # Ensure PATH includes common locations for claude including npm global bin
         # npm global packages are typically installed in /usr/local/lib/node_modules/.bin or /usr/local/bin

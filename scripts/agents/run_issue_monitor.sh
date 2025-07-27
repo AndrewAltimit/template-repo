@@ -35,12 +35,18 @@ if [ -f $HOME/.claude/claude.json ]; then
     # Claude Code might also look for .claude.json in HOME
     cp $HOME/.claude/claude.json $HOME/.claude.json
     echo "[INFO] Also copied to $HOME/.claude.json for compatibility"
+    # Debug: check file contents (without exposing sensitive data)
+    echo "[DEBUG] Credential file size: $(stat -c%s $HOME/.claude.json) bytes"
+    echo "[DEBUG] Credential file permissions: $(stat -c%a $HOME/.claude.json)"
 elif [ -f $HOME/.claude.json ]; then
     echo "[INFO] Claude credentials found at $HOME/.claude.json"
     # Also create .claude directory structure
     mkdir -p $HOME/.claude
     cp $HOME/.claude.json $HOME/.claude/claude.json
     echo "[INFO] Also copied to $HOME/.claude/claude.json for compatibility"
+    # Debug: check file contents (without exposing sensitive data)
+    echo "[DEBUG] Credential file size: $(stat -c%s $HOME/.claude.json) bytes"
+    echo "[DEBUG] Credential file permissions: $(stat -c%a $HOME/.claude.json)"
 else
     echo "[WARNING] No Claude credentials found after copy"
     echo "[DEBUG] HOME directory contents:"
@@ -49,6 +55,14 @@ else
     [ -f ~/.claude.json ] && echo "[DEBUG] Found ~/.claude.json in original home"
     [ -d ~/.claude ] && echo "[DEBUG] Found ~/.claude directory in original home"
 fi
+
+# Verify Claude CLI can see the credentials
+echo "[DEBUG] Testing Claude CLI configuration..."
+echo "[DEBUG] HOME=$HOME"
+echo "[DEBUG] Checking for Claude config files:"
+[ -f $HOME/.claude.json ] && echo "[DEBUG]   - Found $HOME/.claude.json"
+[ -f $HOME/.claude/claude.json ] && echo "[DEBUG]   - Found $HOME/.claude/claude.json"
+[ -d $HOME/.config/claude ] && echo "[DEBUG]   - Found $HOME/.config/claude directory"
 
 if [ -d /host-gh ]; then
     echo "[INFO] Copying GitHub CLI config..."
