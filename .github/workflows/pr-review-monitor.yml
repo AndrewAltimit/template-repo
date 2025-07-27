@@ -111,6 +111,18 @@ jobs:
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
 
+          # Check for Claude credentials location
+          CLAUDE_MOUNT=""
+          if [ -f "$HOME/.claude.json" ]; then
+            echo "[INFO] Found .claude.json file, mounting as file"
+            CLAUDE_MOUNT="-v $HOME/.claude.json:/host-claude:ro"
+          elif [ -d "$HOME/.claude" ]; then
+            echo "[INFO] Found .claude directory, mounting as directory"
+            CLAUDE_MOUNT="-v $HOME/.claude:/host-claude:ro"
+          else
+            echo "[WARNING] No Claude credentials found at ~/.claude.json or ~/.claude/"
+          fi
+
           # Mount Claude config from host into container
           # The container runs as USER_ID:GROUP_ID
           # Create a writable home directory and copy configs
@@ -121,7 +133,7 @@ jobs:
 
           # Run the container with the monitoring script
           docker-compose run --rm -T --user "${USER_ID}:${GROUP_ID}" \
-            -v "$HOME/.claude:/host-claude:ro" \
+            $CLAUDE_MOUNT \
             -v "$HOME/.config/gh:/host-gh:ro" \
             -e GITHUB_TOKEN="${GITHUB_TOKEN}" \
             -e GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
