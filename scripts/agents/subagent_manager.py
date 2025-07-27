@@ -140,11 +140,20 @@ class SubagentManager:
         Returns:
             Tuple of (success, stdout, stderr)
         """
+        # Read the prompt content from the file
+        try:
+            with open(subagent_file, "r") as f:
+                prompt_content = f.read()
+        except Exception as e:
+            logger.error(f"Failed to read subagent file: {e}")
+            return False, "", f"Failed to read subagent file: {str(e)}"
+
         # Build the Claude Code command
-        # Using the format: claude code /path/to/subagent.md
-        # Add --dangerously-skip-permissions flag to bypass interactive prompts for automated execution
+        # Using the format: claude --print --dangerously-skip-permissions "prompt content"
+        # --print: Print response and exit (for non-interactive use)
+        # --dangerously-skip-permissions: Bypass all permission checks for automated execution
         # This is crucial for non-interactive environments like GitHub Actions
-        cmd = ["claude", "code", "--dangerously-skip-permissions", subagent_file]
+        cmd = ["claude", "--print", "--dangerously-skip-permissions", prompt_content]
 
         # Set up environment
         env = os.environ.copy()
