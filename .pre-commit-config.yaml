@@ -11,21 +11,21 @@ repos:
     hooks:
       - id: black
         language_version: python3.10
-        args: [--line-length=127]
+        # Line length configured in pyproject.toml
 
   # Python import sorting
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:
       - id: isort
-        args: [--profile=black, --line-length=127]
+        # Profile and line length configured in pyproject.toml
 
   # Python linting
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
     hooks:
       - id: flake8
-        args: [--max-line-length=127, --extend-ignore=E203]
+        # Max line length and ignores configured in .flake8
 
   # YAML formatting
   - repo: https://github.com/pre-commit/pre-commit-hooks
