@@ -7,7 +7,10 @@ import logging
 from copy import deepcopy
 from typing import Any, Dict, List, Tuple
 
-from ..utils.gaea2_pattern_knowledge import get_next_node_suggestions, suggest_properties_for_node
+from ..utils.gaea2_pattern_knowledge import (
+    get_next_node_suggestions,
+    suggest_properties_for_node,
+)
 from ..validation.gaea2_connection_validator import Gaea2ConnectionValidator
 from ..validation.gaea2_format_fixes import generate_non_sequential_id
 from ..validation.gaea2_property_validator import Gaea2PropertyValidator
@@ -57,14 +60,20 @@ class Gaea2ErrorRecovery:
 
         # Fix 3: Add missing required nodes
         if aggressive:
-            fixed_nodes, fixed_connections = self._add_missing_required_nodes(fixed_nodes, fixed_connections)
+            fixed_nodes, fixed_connections = self._add_missing_required_nodes(
+                fixed_nodes, fixed_connections
+            )
 
         # Fix 4: Connect orphaned nodes
-        fixed_connections = self._fix_orphaned_nodes(fixed_nodes, fixed_connections, aggressive)
+        fixed_connections = self._fix_orphaned_nodes(
+            fixed_nodes, fixed_connections, aggressive
+        )
 
         # Fix 5: Optimize workflow
         if aggressive:
-            fixed_nodes, fixed_connections = self._optimize_workflow(fixed_nodes, fixed_connections)
+            fixed_nodes, fixed_connections = self._optimize_workflow(
+                fixed_nodes, fixed_connections
+            )
 
         # Fix 6: Do NOT add Export node - they aren't needed for working files!
         # Working Gaea2 files often have no Export node at all
@@ -72,7 +81,9 @@ class Gaea2ErrorRecovery:
 
         return fixed_nodes, fixed_connections, self.fixes_applied
 
-    def _fix_duplicate_connections(self, connections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _fix_duplicate_connections(
+        self, connections: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Remove duplicate connections"""
         seen = set()
         fixed = []
@@ -104,7 +115,9 @@ class Gaea2ErrorRecovery:
             properties = node.get("properties", {})
 
             if properties:
-                is_valid, errors, fixed_props = self.property_validator.validate_properties(node_type, properties)
+                is_valid, errors, fixed_props = (
+                    self.property_validator.validate_properties(node_type, properties)
+                )
 
                 if not is_valid or fixed_props != properties:
                     node["properties"] = fixed_props
@@ -114,10 +127,14 @@ class Gaea2ErrorRecovery:
                     )
             else:
                 # Add default properties
-                suggestions = self.property_validator.suggest_missing_properties(node_type, {})
+                suggestions = self.property_validator.suggest_missing_properties(
+                    node_type, {}
+                )
                 if suggestions:
                     node["properties"] = suggestions
-                    self.fixes_applied.append(f"Added default properties to {node.get('name', 'Unnamed')} ({node_type})")
+                    self.fixes_applied.append(
+                        f"Added default properties to {node.get('name', 'Unnamed')} ({node_type})"
+                    )
 
         return nodes
 
@@ -129,7 +146,9 @@ class Gaea2ErrorRecovery:
         nodes_added = []
 
         # Check for missing colorization
-        if "SatMap" not in node_types and any(t in node_types for t in ["Mountain", "Canyon", "Ridge"]):
+        if "SatMap" not in node_types and any(
+            t in node_types for t in ["Mountain", "Canyon", "Ridge"]
+        ):
             # Need to add TextureBase -> SatMap
             if "TextureBase" not in node_types:
                 # Add TextureBase
@@ -155,7 +174,9 @@ class Gaea2ErrorRecovery:
                 }
             )
 
-            self.fixes_applied.append(f"Added missing colorization nodes: {', '.join(nodes_added)}")
+            self.fixes_applied.append(
+                f"Added missing colorization nodes: {', '.join(nodes_added)}"
+            )
 
         # Check for Rivers without Erosion
         if "Rivers" in node_types and "Erosion2" not in node_types:
@@ -215,7 +236,11 @@ class Gaea2ErrorRecovery:
             for suggestion in suggestions:
                 target_type = suggestion["node"]
                 # Find a node of this type
-                target_nodes = [n for n in nodes if n["type"] == target_type and n["id"] != orphan["id"]]
+                target_nodes = [
+                    n
+                    for n in nodes
+                    if n["type"] == target_type and n["id"] != orphan["id"]
+                ]
 
                 if target_nodes:
                     # Connect to first available
@@ -227,9 +252,15 @@ class Gaea2ErrorRecovery:
                             "to_port": "In",
                         }
                     )
-                    orphan_name = orphan.get("name", f'node_{orphan.get("id", "unknown")}')
-                    target_name = target_nodes[0].get("name", f'node_{target_nodes[0].get("id", "unknown")}')
-                    self.fixes_applied.append(f"Connected orphaned {orphan_name} to {target_name}")
+                    orphan_name = orphan.get(
+                        "name", f'node_{orphan.get("id", "unknown")}'
+                    )
+                    target_name = target_nodes[0].get(
+                        "name", f'node_{target_nodes[0].get("id", "unknown")}'
+                    )
+                    self.fixes_applied.append(
+                        f"Connected orphaned {orphan_name} to {target_name}"
+                    )
                     break
             else:
                 # No pattern match, try reverse connection
@@ -247,9 +278,15 @@ class Gaea2ErrorRecovery:
                                 "to_port": "In",
                             }
                         )
-                        node_name = node.get("name", f'node_{node.get("id", "unknown")}')
-                        orphan_name = orphan.get("name", f'node_{orphan.get("id", "unknown")}')
-                        self.fixes_applied.append(f"Connected {node_name} to orphaned {orphan_name}")
+                        node_name = node.get(
+                            "name", f'node_{node.get("id", "unknown")}'
+                        )
+                        orphan_name = orphan.get(
+                            "name", f'node_{orphan.get("id", "unknown")}'
+                        )
+                        self.fixes_applied.append(
+                            f"Connected {node_name} to orphaned {orphan_name}"
+                        )
                         break
 
         return connections
@@ -273,7 +310,10 @@ class Gaea2ErrorRecovery:
                 # Check if river has erosion input
                 has_erosion_input = any(
                     conn["to_node"] == river_id
-                    and any(n["id"] == conn["from_node"] and n["type"] == "Erosion2" for n in nodes)
+                    and any(
+                        n["id"] == conn["from_node"] and n["type"] == "Erosion2"
+                        for n in nodes
+                    )
                     for conn in connections
                 )
 
@@ -287,17 +327,25 @@ class Gaea2ErrorRecovery:
                             "to_port": "In",
                         }
                     )
-                    self.fixes_applied.append("Connected Erosion2 to Rivers for proper water flow")
+                    self.fixes_applied.append(
+                        "Connected Erosion2 to Rivers for proper water flow"
+                    )
 
         # Optimization 2: Optimize properties for performance
         for node in nodes:
             if node["type"] in ["Erosion2", "Rivers", "Thermal2"]:
                 original_props = node.get("properties", {}).copy()
-                optimized_props = self.property_validator.get_performance_optimized_properties(node["type"], original_props)
+                optimized_props = (
+                    self.property_validator.get_performance_optimized_properties(
+                        node["type"], original_props
+                    )
+                )
                 if optimized_props != original_props:
                     node["properties"] = optimized_props
                     node_name = node.get("name", f'node_{node.get("id", "unknown")}')
-                    self.fixes_applied.append(f"Optimized {node_name} properties for performance")
+                    self.fixes_applied.append(
+                        f"Optimized {node_name} properties for performance"
+                    )
 
         return nodes, connections
 
@@ -333,7 +381,11 @@ class Gaea2ErrorRecovery:
             if not export_nodes:
                 # Add new Export node with updated structure
                 # Generate non-sequential ID for the Export node
-                used_ids = [int(n.get("id", 0)) for n in nodes if str(n.get("id", "0")).isdigit()]
+                used_ids = [
+                    int(n.get("id", 0))
+                    for n in nodes
+                    if str(n.get("id", "0")).isdigit()
+                ]
                 export_id = generate_non_sequential_id(base=100, used_ids=used_ids)
                 export_node = self._create_node("Export", export_id)
                 export_node["name"] = "TerrainExport"
@@ -346,7 +398,9 @@ class Gaea2ErrorRecovery:
                     "enabled": True,
                 }
                 nodes.append(export_node)
-                self.fixes_applied.append("Added Export node configured for .terrain output")
+                self.fixes_applied.append(
+                    "Added Export node configured for .terrain output"
+                )
             else:
                 # Update existing Export node to output terrain
                 for node in export_nodes:
@@ -398,7 +452,9 @@ class Gaea2ErrorRecovery:
 
         return node
 
-    def _get_essential_properties(self, node_type: str, properties: Dict[str, Any]) -> Dict[str, Any]:
+    def _get_essential_properties(
+        self, node_type: str, properties: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Get the most essential properties for a node type (max 3)"""
         # Define essential properties for each limited node type
         essential_props_map = {
@@ -434,7 +490,9 @@ class Gaea2ErrorRecovery:
             # For unknown nodes, just take the first 3 properties
             return dict(list(properties.items())[:3])
 
-    def fix_workflow(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def fix_workflow(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Fix workflow issues automatically"""
         # Nodes that must have <= 3 properties to open in Gaea2
         PROPERTY_LIMITED_NODES = {
@@ -465,8 +523,12 @@ class Gaea2ErrorRecovery:
 
         # Check if properties were fixed
         for i, node in enumerate(nodes):
-            if i < len(fixed_nodes) and node.get("properties", {}) != fixed_nodes[i].get("properties", {}):
-                fixes_applied.append(f"Fixed properties for {node.get('type', 'unknown')} node")
+            if i < len(fixed_nodes) and node.get("properties", {}) != fixed_nodes[
+                i
+            ].get("properties", {}):
+                fixes_applied.append(
+                    f"Fixed properties for {node.get('type', 'unknown')} node"
+                )
                 break
 
         # Fix property count limits for problematic nodes
@@ -478,8 +540,12 @@ class Gaea2ErrorRecovery:
                     # Get the most important properties for this node type
                     essential_props = self._get_essential_properties(node_type, props)
                     node["properties"] = essential_props
-                    fixes_applied.append(f"Limited {node_type} node to 3 essential properties (had {len(props)})")
-                    logger.warning(f"Node {node_type} had {len(props)} properties, limited to 3 for Gaea2 compatibility")
+                    fixes_applied.append(
+                        f"Limited {node_type} node to 3 essential properties (had {len(props)})"
+                    )
+                    logger.warning(
+                        f"Node {node_type} had {len(props)} properties, limited to 3 for Gaea2 compatibility"
+                    )
 
         return {
             "nodes": fixed_nodes,
@@ -488,7 +554,9 @@ class Gaea2ErrorRecovery:
             "fixes_applied": fixes_applied,
         }
 
-    def suggest_fixes(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def suggest_fixes(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Suggest fixes without applying them"""
         suggestions = []
 
@@ -497,7 +565,9 @@ class Gaea2ErrorRecovery:
             node_type = node.get("type", "")
             properties = node.get("properties", {})
 
-            is_valid, errors, fixed_props = self.property_validator.validate_properties(node_type, properties)
+            is_valid, errors, fixed_props = self.property_validator.validate_properties(
+                node_type, properties
+            )
 
             if errors:
                 suggestions.append(
@@ -510,7 +580,9 @@ class Gaea2ErrorRecovery:
                 )
 
         # Check connections
-        is_valid, errors, warnings = self.connection_validator.validate_connections(nodes, connections)
+        is_valid, errors, warnings = self.connection_validator.validate_connections(
+            nodes, connections
+        )
 
         for error in errors:
             suggestions.append(

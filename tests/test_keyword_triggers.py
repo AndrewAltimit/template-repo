@@ -129,7 +129,9 @@ class TestIssueMonitorWithTriggers(unittest.TestCase):
         os.environ["GITHUB_TOKEN"] = "fake-token"
 
         # Create a temporary config file
-        self.temp_config = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
+        self.temp_config = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False
+        )
         self.config_data = {
             "agents": {
                 "issue_monitor": {
@@ -185,11 +187,15 @@ class TestIssueMonitorWithTriggers(unittest.TestCase):
             "admin",
             "testowner",
         ]
-        self.monitor.security_manager.parse_keyword_trigger = SecurityManager.parse_keyword_trigger.__get__(
-            self.monitor.security_manager, SecurityManager
+        self.monitor.security_manager.parse_keyword_trigger = (
+            SecurityManager.parse_keyword_trigger.__get__(
+                self.monitor.security_manager, SecurityManager
+            )
         )
-        self.monitor.security_manager.check_trigger_comment = SecurityManager.check_trigger_comment.__get__(
-            self.monitor.security_manager, SecurityManager
+        self.monitor.security_manager.check_trigger_comment = (
+            SecurityManager.check_trigger_comment.__get__(
+                self.monitor.security_manager, SecurityManager
+            )
         )
         self.monitor.security_manager.perform_full_security_check = lambda **kwargs: (
             True,
@@ -357,7 +363,9 @@ class TestIssueMonitorWithTriggers(unittest.TestCase):
         self.monitor.process_issues()
 
         # Verify summary comment was created
-        comment_calls = [call for call in mock_gh.call_args_list if "comment" in call[0][0]]
+        comment_calls = [
+            call for call in mock_gh.call_args_list if "comment" in call[0][0]
+        ]
         self.assertGreater(len(comment_calls), 0)
 
     @patch("issue_monitor.run_gh_command")
@@ -491,20 +499,28 @@ class TestPRMonitorWithTriggers(unittest.TestCase):
                     "Review",
                 ]
                 self.monitor.security_manager.VALID_AGENTS = ["Claude", "Gemini"]
-                self.monitor.security_manager.TRIGGER_PATTERN = SecurityManager.TRIGGER_PATTERN
+                self.monitor.security_manager.TRIGGER_PATTERN = (
+                    SecurityManager.TRIGGER_PATTERN
+                )
                 self.monitor.security_manager.is_user_allowed = lambda user: user in [
                     "testuser",
                     "admin",
                     "maintainer",
                     "testowner",
                 ]
-                self.monitor.security_manager.parse_keyword_trigger = SecurityManager.parse_keyword_trigger.__get__(
-                    self.monitor.security_manager, SecurityManager
+                self.monitor.security_manager.parse_keyword_trigger = (
+                    SecurityManager.parse_keyword_trigger.__get__(
+                        self.monitor.security_manager, SecurityManager
+                    )
                 )
-                self.monitor.security_manager.check_trigger_comment = SecurityManager.check_trigger_comment.__get__(
-                    self.monitor.security_manager, SecurityManager
+                self.monitor.security_manager.check_trigger_comment = (
+                    SecurityManager.check_trigger_comment.__get__(
+                        self.monitor.security_manager, SecurityManager
+                    )
                 )
-                self.monitor.security_manager.perform_full_security_check = lambda **kwargs: (True, None)
+                self.monitor.security_manager.perform_full_security_check = (
+                    lambda **kwargs: (True, None)
+                )
                 self.monitor.security_manager.check_rate_limit = lambda user, action: (
                     True,
                     None,
@@ -696,7 +712,9 @@ class TestSecurityValidation(unittest.TestCase):
         """Test rate limiting applies to trigger actions."""
         # Simulate many requests from same user
         for i in range(10):
-            is_allowed, reason = self.security.check_rate_limit("alice", "issue_approved")
+            is_allowed, reason = self.security.check_rate_limit(
+                "alice", "issue_approved"
+            )
             if i < 10:  # First 10 should pass
                 self.assertTrue(is_allowed)
 

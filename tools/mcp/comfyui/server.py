@@ -88,7 +88,9 @@ class ComfyUIMCPServer(BaseMCPServer):
                 "description": "Get a specific workflow",
                 "inputSchema": {
                     "type": "object",
-                    "properties": {"name": {"type": "string", "description": "Workflow name"}},
+                    "properties": {
+                        "name": {"type": "string", "description": "Workflow name"}
+                    },
                     "required": ["name"],
                 },
             },
@@ -273,10 +275,14 @@ class ComfyUIMCPServer(BaseMCPServer):
             import httpx
 
             async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(f"{self.remote_url}/mcp/execute", json=data)
+                response = await client.post(
+                    f"{self.remote_url}/mcp/execute", json=data
+                )
 
                 if response.status_code == 200:
-                    return Response(content=response.text, media_type="application/json")
+                    return Response(
+                        content=response.text, media_type="application/json"
+                    )
                 else:
                     return Response(
                         content=json.dumps(
@@ -289,7 +295,9 @@ class ComfyUIMCPServer(BaseMCPServer):
                         media_type="application/json",
                     )
         except httpx.ConnectError:
-            self.logger.error(f"Could not connect to remote server at {self.remote_url}")
+            self.logger.error(
+                f"Could not connect to remote server at {self.remote_url}"
+            )
             return Response(
                 content=json.dumps(
                     {
@@ -304,7 +312,9 @@ class ComfyUIMCPServer(BaseMCPServer):
         except Exception as e:
             self.logger.error(f"Error forwarding request: {e}")
             return Response(
-                content=json.dumps({"error": str(e), "type": "remote_connection_error"}),
+                content=json.dumps(
+                    {"error": str(e), "type": "remote_connection_error"}
+                ),
                 status_code=503,
                 media_type="application/json",
             )
@@ -316,7 +326,9 @@ class ComfyUIMCPServer(BaseMCPServer):
         for tool in self.tools:
             tools_dict[tool["name"]] = {
                 "description": tool["description"],
-                "parameters": tool["inputSchema"],  # Base class expects 'parameters' not 'inputSchema'
+                "parameters": tool[
+                    "inputSchema"
+                ],  # Base class expects 'parameters' not 'inputSchema'
             }
         return tools_dict
 
@@ -344,7 +356,9 @@ class ComfyUIMCPServer(BaseMCPServer):
             data = {"tool": tool_name, "parameters": arguments}
 
             async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(f"{self.remote_url}/mcp/execute", json=data)
+                response = await client.post(
+                    f"{self.remote_url}/mcp/execute", json=data
+                )
 
                 if response.status_code == 200:
                     result = response.json()
@@ -356,7 +370,9 @@ class ComfyUIMCPServer(BaseMCPServer):
                         "details": response.text,
                     }
         except httpx.ConnectError:
-            self.logger.error(f"Could not connect to remote server at {self.remote_url}")
+            self.logger.error(
+                f"Could not connect to remote server at {self.remote_url}"
+            )
             return {
                 "success": False,
                 "error": "Remote ComfyUI server not available",
@@ -381,7 +397,9 @@ def main():
     parser = argparse.ArgumentParser(description="ComfyUI MCP Server")
     parser.add_argument("--port", type=int, default=8013, help="Port to listen on")
     parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
-    parser.add_argument("--mode", choices=["http", "stdio"], default="http", help="Server mode")
+    parser.add_argument(
+        "--mode", choices=["http", "stdio"], default="http", help="Server mode"
+    )
 
     args = parser.parse_args()
 

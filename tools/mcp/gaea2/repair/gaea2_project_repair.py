@@ -9,7 +9,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from tools.mcp.gaea2.utils.workflow_extractor import WorkflowExtractor
 
-from ..errors.gaea2_error_handler import ErrorCategory, ErrorSeverity, Gaea2Error, Gaea2ErrorHandler
+from ..errors.gaea2_error_handler import (
+    ErrorCategory,
+    ErrorSeverity,
+    Gaea2Error,
+    Gaea2ErrorHandler,
+)
 from ..validation.gaea2_accurate_validation import create_accurate_validator
 
 logger = logging.getLogger(__name__)
@@ -48,7 +53,8 @@ class Gaea2ProjectRepair:
                     "node_count": len(nodes),
                     "connection_count": len(connections),
                     "errors": error_summary,
-                    "can_auto_fix": len(self.error_handler.get_auto_fixable_errors()) > 0,
+                    "can_auto_fix": len(self.error_handler.get_auto_fixable_errors())
+                    > 0,
                     "health_score": self._calculate_health_score(error_summary),
                 },
                 "errors": [e.to_dict() for e in self.error_handler.errors],
@@ -83,11 +89,15 @@ class Gaea2ProjectRepair:
 
             if auto_fix:
                 # Auto-fix what we can
-                nodes, connections, fixes = self.error_handler.auto_fix_errors(nodes, connections, self.validator.schema)
+                nodes, connections, fixes = self.error_handler.auto_fix_errors(
+                    nodes, connections, self.validator.schema
+                )
                 fixes_applied.extend(fixes)
 
                 # Additional repairs
-                nodes, connections, more_fixes = self._repair_orphaned_nodes(nodes, connections)
+                nodes, connections, more_fixes = self._repair_orphaned_nodes(
+                    nodes, connections
+                )
                 fixes_applied.extend(more_fixes)
 
                 nodes, more_fixes = self._repair_missing_properties(nodes)
@@ -135,14 +145,19 @@ class Gaea2ProjectRepair:
                     headwaters = node.get("properties", {}).get("Headwaters", 100)
                     if headwaters > 200:
                         node["properties"]["Headwaters"] = 200
-                        optimizations.append(f"Reduced {node.get('name')} headwaters from {headwaters} to 200")
+                        optimizations.append(
+                            f"Reduced {node.get('name')} headwaters from {headwaters} to 200"
+                        )
 
             # Remove redundant nodes
             redundant = self._find_redundant_nodes(nodes, connections)
             if redundant:
                 nodes = [n for n in nodes if n.get("id") not in redundant]
                 connections = [
-                    c for c in connections if c.get("from_node") not in redundant and c.get("to_node") not in redundant
+                    c
+                    for c in connections
+                    if c.get("from_node") not in redundant
+                    and c.get("to_node") not in redundant
                 ]
                 optimizations.append(f"Removed {len(redundant)} redundant nodes")
 
@@ -168,7 +183,9 @@ class Gaea2ProjectRepair:
         """Update project data with modified workflow"""
         # This is a simplified version - in reality would need to rebuild the full structure
         # For now, we'll just log that updates would be applied
-        logger.info(f"Would update project with {len(nodes)} nodes and {len(connections)} connections")
+        logger.info(
+            f"Would update project with {len(nodes)} nodes and {len(connections)} connections"
+        )
 
     def _check_structure_integrity(self, project_data: Dict[str, Any]):
         """Check project structure integrity"""
@@ -200,7 +217,9 @@ class Gaea2ProjectRepair:
                     )
                 )
 
-    def _check_connection_validity(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]):
+    def _check_connection_validity(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ):
         """Check connection validity"""
         self.error_handler.validate_node_connections(nodes, connections)
 
@@ -211,7 +230,9 @@ class Gaea2ProjectRepair:
             properties = node.get("properties", {})
 
             # Validate with accurate validator
-            is_valid, errors, corrected = self.validator.validate_node(node_type, properties)
+            is_valid, errors, corrected = self.validator.validate_node(
+                node_type, properties
+            )
 
             for error in errors:
                 self.error_handler.add_error(
@@ -224,14 +245,21 @@ class Gaea2ProjectRepair:
                     )
                 )
 
-    def _check_performance_issues(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]):
+    def _check_performance_issues(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ):
         """Check for performance issues"""
         self.error_handler.check_performance_issues(nodes, connections)
 
-    def _check_best_practices(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]):
+    def _check_best_practices(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ):
         """Check against best practices"""
         # Check for missing colorization
-        has_color = any(n.get("type") in ["SatMap", "CLUTer", "SuperColor", "Weathering"] for n in nodes)
+        has_color = any(
+            n.get("type") in ["SatMap", "CLUTer", "SuperColor", "Weathering"]
+            for n in nodes
+        )
         if not has_color and len(nodes) > 3:
             self.error_handler.add_error(
                 Gaea2Error(
@@ -293,13 +321,17 @@ class Gaea2ProjectRepair:
             node = next((n for n in nodes if n["id"] == node_id), None)
             if node and node.get("type") not in important_types:
                 nodes_to_remove.append(node_id)
-                fixes.append(f"Removed orphaned {node.get('type')} node: {node.get('name')}")
+                fixes.append(
+                    f"Removed orphaned {node.get('type')} node: {node.get('name')}"
+                )
 
         nodes = [n for n in nodes if n["id"] not in nodes_to_remove]
 
         return nodes, connections, fixes
 
-    def _repair_missing_properties(self, nodes: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[str]]:
+    def _repair_missing_properties(
+        self, nodes: List[Dict[str, Any]]
+    ) -> Tuple[List[Dict[str, Any]], List[str]]:
         """Add missing required properties with defaults"""
         fixes = []
 
@@ -313,15 +345,22 @@ class Gaea2ProjectRepair:
 
             # Add missing defaults
             for prop_name, prop_def in node_props.items():
-                if prop_name not in node.get("properties", {}) and "default" in prop_def:
+                if (
+                    prop_name not in node.get("properties", {})
+                    and "default" in prop_def
+                ):
                     if "properties" not in node:
                         node["properties"] = {}
                     node["properties"][prop_name] = prop_def["default"]
-                    fixes.append(f"Added default {prop_name}={prop_def['default']} to {node.get('name')}")
+                    fixes.append(
+                        f"Added default {prop_name}={prop_def['default']} to {node.get('name')}"
+                    )
 
         return nodes, fixes
 
-    def _find_redundant_nodes(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> List[int]:
+    def _find_redundant_nodes(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ) -> List[int]:
         """Find redundant nodes that can be removed"""
         redundant: List[int] = []
 
@@ -332,7 +371,10 @@ class Gaea2ProjectRepair:
                 if node_id is not None:
                     # Count inputs
                     inputs = [c for c in connections if c.get("to_node") == node_id]
-                    if len(inputs) == 1 and node.get("properties", {}).get("Ratio", 0.5) == 0.5:
+                    if (
+                        len(inputs) == 1
+                        and node.get("properties", {}).get("Ratio", 0.5) == 0.5
+                    ):
                         redundant.append(node_id)
 
         return redundant
@@ -349,7 +391,9 @@ def analyze_project_file(file_path: str) -> Dict[str, Any]:
     return repair.analyze_project(project_data)
 
 
-def repair_project_file(file_path: str, output_path: Optional[str] = None) -> Dict[str, Any]:
+def repair_project_file(
+    file_path: str, output_path: Optional[str] = None
+) -> Dict[str, Any]:
     """Repair a project file"""
     repair = Gaea2ProjectRepair()
 

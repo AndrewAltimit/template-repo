@@ -12,6 +12,7 @@ import pytest
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from tools.mcp.code_quality.server import CodeQualityMCPServer  # noqa: E402
 from tools.mcp.code_quality.tools import format_check, lint  # noqa: E402
 
 
@@ -28,7 +29,9 @@ class TestCodeQualityTools:
             result = await format_check(path="test.py", language="python")
 
             assert result["formatted"] is True
-            mock_run.assert_called_once_with(["black", "--check", "test.py"], capture_output=True, text=True)
+            mock_run.assert_called_once_with(
+                ["black", "--check", "test.py"], capture_output=True, text=True
+            )
 
     @pytest.mark.asyncio
     async def test_format_check_javascript(self):
@@ -40,7 +43,9 @@ class TestCodeQualityTools:
             result = await format_check(path="test.js", language="javascript")
 
             assert result["formatted"] is True
-            mock_run.assert_called_once_with(["prettier", "--check", "test.js"], capture_output=True, text=True)
+            mock_run.assert_called_once_with(
+                ["prettier", "--check", "test.js"], capture_output=True, text=True
+            )
 
     @pytest.mark.asyncio
     async def test_format_check_go(self):
@@ -52,7 +57,9 @@ class TestCodeQualityTools:
             result = await format_check(path="test.go", language="go")
 
             assert result["formatted"] is True
-            mock_run.assert_called_once_with(["gofmt", "-l", "test.go"], capture_output=True, text=True)
+            mock_run.assert_called_once_with(
+                ["gofmt", "-l", "test.go"], capture_output=True, text=True
+            )
 
     @pytest.mark.asyncio
     async def test_format_check_rust(self):
@@ -64,14 +71,18 @@ class TestCodeQualityTools:
             result = await format_check(path="test.rs", language="rust")
 
             assert result["formatted"] is True
-            mock_run.assert_called_once_with(["rustfmt", "--check", "test.rs"], capture_output=True, text=True)
+            mock_run.assert_called_once_with(
+                ["rustfmt", "--check", "test.rs"], capture_output=True, text=True
+            )
 
     @pytest.mark.asyncio
     async def test_format_check_unformatted(self):
         """Test format check with unformatted code"""
         with patch("subprocess.run") as mock_run:
             # Mock unformatted code
-            mock_run.return_value = Mock(returncode=1, stdout="File would be reformatted", stderr="")
+            mock_run.return_value = Mock(
+                returncode=1, stdout="File would be reformatted", stderr=""
+            )
 
             result = await format_check(path="test.py", language="python")
 
@@ -105,7 +116,8 @@ class TestCodeQualityTools:
             # Mock lint with issues
             mock_run.return_value = Mock(
                 returncode=1,
-                stdout="test.py:10:1: E302 expected 2 blank lines\n" "test.py:20:80: E501 line too long",
+                stdout="test.py:10:1: E302 expected 2 blank lines\n"
+                "test.py:20:80: E501 line too long",
                 stderr="",
             )
 
@@ -127,6 +139,35 @@ class TestCodeQualityTools:
 
             assert "error" in result
             assert "Command not found" in result["error"]
+
+
+class TestCodeQualityServer:
+    """Test suite for Code Quality MCP Server"""
+
+    @pytest.mark.asyncio
+    async def test_hello_world(self):
+        """Test hello world tool"""
+        server = CodeQualityMCPServer()
+
+        result = await server.hello_world()
+
+        assert result["success"] is True
+        assert result["message"] == "Hello, World!"
+
+    @pytest.mark.asyncio
+    async def test_get_tools_includes_hello_world(self):
+        """Test that hello_world is included in available tools"""
+        server = CodeQualityMCPServer()
+
+        tools = server.get_tools()
+
+        assert "hello_world" in tools
+        assert (
+            tools["hello_world"]["description"] == "Simple hello world tool for testing"
+        )
+        assert tools["hello_world"]["parameters"]["type"] == "object"
+        assert tools["hello_world"]["parameters"]["properties"] == {}
+        assert tools["hello_world"]["parameters"]["required"] == []
 
 
 if __name__ == "__main__":

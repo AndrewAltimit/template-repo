@@ -108,7 +108,9 @@ class GeminiIntegration:
                 self.conversation_history.append((query, result["output"]))
                 # Trim history if it exceeds max entries
                 if len(self.conversation_history) > self.max_history_entries:
-                    self.conversation_history = self.conversation_history[-self.max_history_entries :]
+                    self.conversation_history = self.conversation_history[
+                        -self.max_history_entries :
+                    ]
 
             # Log consultation
             if self.config.get("log_consultations", True):
@@ -180,7 +182,9 @@ class GeminiIntegration:
             "total_consultations": len(self.consultation_log),
             "completed_consultations": len(completed),
             "average_execution_time": (
-                sum(e.get("execution_time", 0) for e in completed) / len(completed) if completed else 0
+                sum(e.get("execution_time", 0) for e in completed) / len(completed)
+                if completed
+                else 0
             ),
             "conversation_history_size": len(self.conversation_history),
         }
@@ -208,7 +212,9 @@ class GeminiIntegration:
         if self.include_history and self.conversation_history:
             parts.append("Previous conversation:")
             parts.append("-" * 40)
-            for i, (prev_q, prev_a) in enumerate(self.conversation_history[-self.max_history_entries :], 1):
+            for i, (prev_q, prev_a) in enumerate(
+                self.conversation_history[-self.max_history_entries :], 1
+            ):
                 parts.append(f"Q{i}: {prev_q}")
                 # Truncate long responses in history
                 if len(prev_a) > 500:
@@ -260,7 +266,9 @@ class GeminiIntegration:
                 *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
 
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=self.timeout)
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(), timeout=self.timeout
+            )
 
             execution_time = time.time() - start_time
 

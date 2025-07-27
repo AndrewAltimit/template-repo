@@ -94,6 +94,14 @@ class CodeQualityMCPServer(BaseMCPServer):
                     "required": ["path"],
                 },
             },
+            "hello_world": {
+                "description": "Simple hello world tool for testing",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
+                    "required": [],
+                },
+            },
         }
 
     async def format_check(self, path: str, language: str = "python") -> Dict[str, Any]:
@@ -123,7 +131,9 @@ class CodeQualityMCPServer(BaseMCPServer):
 
         try:
             self.logger.info(f"Checking {language} formatting for: {path}")
-            result = subprocess.run(formatters[language], capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                formatters[language], capture_output=True, text=True, check=False
+            )
 
             return {
                 "success": True,
@@ -140,7 +150,9 @@ class CodeQualityMCPServer(BaseMCPServer):
             self.logger.error(f"Format check error: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def lint(self, path: str, config: Optional[str] = None, linter: str = "flake8") -> Dict[str, Any]:
+    async def lint(
+        self, path: str, config: Optional[str] = None, linter: str = "flake8"
+    ) -> Dict[str, Any]:
         """Run code linting with various linters
 
         Args:
@@ -230,7 +242,9 @@ class CodeQualityMCPServer(BaseMCPServer):
 
         try:
             self.logger.info(f"Auto-formatting {language} code in: {path}")
-            result = subprocess.run(formatters[language], capture_output=True, text=True, check=False)
+            result = subprocess.run(
+                formatters[language], capture_output=True, text=True, check=False
+            )
 
             return {
                 "success": result.returncode == 0,
@@ -245,6 +259,22 @@ class CodeQualityMCPServer(BaseMCPServer):
             }
         except Exception as e:
             self.logger.error(f"Auto-format error: {str(e)}")
+            return {"success": False, "error": str(e)}
+
+    async def hello_world(self) -> Dict[str, Any]:
+        """Simple hello world tool for testing
+
+        Returns:
+            Dictionary with hello world message
+        """
+        try:
+            self.logger.info("Executing hello_world tool")
+            return {
+                "success": True,
+                "message": "Hello, World!",
+            }
+        except Exception as e:
+            self.logger.error(f"Hello world error: {str(e)}")
             return {"success": False, "error": str(e)}
 
 

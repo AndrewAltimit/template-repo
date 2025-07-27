@@ -16,7 +16,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 # MCP Server endpoints for the modular architecture
@@ -31,7 +33,9 @@ MCP_SERVERS = {
 class MCPClient:
     """Client for interacting with MCP servers"""
 
-    def __init__(self, server_name: Optional[str] = None, base_url: Optional[str] = None):
+    def __init__(
+        self, server_name: Optional[str] = None, base_url: Optional[str] = None
+    ):
         if base_url:
             self.base_url = base_url
         elif server_name and server_name in MCP_SERVERS:
@@ -94,11 +98,15 @@ async def example_workflow():
     # Example 1: Code Quality - Format check
     logger.info("\n--- Code Quality Server: Format check ---")
     code_client = MCPClient(server_name="code_quality")
-    result = code_client.execute_tool("format_check", {"path": ".", "language": "python"})
+    result = code_client.execute_tool(
+        "format_check", {"path": ".", "language": "python"}
+    )
 
     if result.get("success"):
         formatted = result["result"].get("formatted", False)
-        logger.info(f"Code formatting: {'✅ Correct' if formatted else '⚠️  Needs formatting'}")
+        logger.info(
+            f"Code formatting: {'✅ Correct' if formatted else '⚠️  Needs formatting'}"
+        )
 
     # Example 2: Gemini Server - Consult AI
     logger.info("\n--- Gemini Server: AI Consultation ---")
@@ -135,7 +143,9 @@ This document was generated using the modular MCP content creation service.
 \end{document}
     """
 
-    result = content_client.execute_tool("compile_latex", {"content": latex_content, "format": "pdf"})
+    result = content_client.execute_tool(
+        "compile_latex", {"content": latex_content, "format": "pdf"}
+    )
 
     if result.get("success"):
         output_path = result["result"].get("output_path", "")
@@ -152,10 +162,14 @@ This document was generated using the modular MCP content creation service.
                 {"id": 1, "type": "Mountain", "position": {"x": 0, "y": 0}},
                 {"id": 2, "type": "Export", "position": {"x": 200, "y": 0}},
             ],
-            "connections": [{"from_node": 1, "to_node": 2, "from_port": "Out", "to_port": "In"}],
+            "connections": [
+                {"from_node": 1, "to_node": 2, "from_port": "Out", "to_port": "In"}
+            ],
         }
 
-        result = gaea2_client.execute_tool("validate_and_fix_workflow", {"workflow": workflow})
+        result = gaea2_client.execute_tool(
+            "validate_and_fix_workflow", {"workflow": workflow}
+        )
         if result.get("success"):
             logger.info("✅ Gaea2 workflow validation successful")
     else:

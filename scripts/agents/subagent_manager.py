@@ -78,7 +78,9 @@ class SubagentManager:
         full_prompt = self._build_prompt(persona_content, task, context)
 
         # Create a temporary markdown file for the subagent
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as tmp_file:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".md", delete=False
+        ) as tmp_file:
             tmp_file.write(full_prompt)
             tmp_file_path = tmp_file.name
 
@@ -92,7 +94,9 @@ class SubagentManager:
             except Exception as e:
                 logger.warning(f"Failed to delete temp file: {e}")
 
-    def _build_prompt(self, persona_content: str, task: str, context: Optional[Dict]) -> str:
+    def _build_prompt(
+        self, persona_content: str, task: str, context: Optional[Dict]
+    ) -> str:
         """Build the complete prompt with persona, task, and context."""
         prompt_parts = [persona_content, "\n\n## Current Task\n\n", task]
 
@@ -105,14 +109,18 @@ class SubagentManager:
             if "issue_title" in context:
                 prompt_parts.append(f"**Issue Title**: {context['issue_title']}\n")
             if "issue_body" in context:
-                prompt_parts.append(f"\n**Issue Description**:\n{context['issue_body']}\n")
+                prompt_parts.append(
+                    f"\n**Issue Description**:\n{context['issue_body']}\n"
+                )
 
             if "pr_number" in context:
                 prompt_parts.append(f"**PR Number**: #{context['pr_number']}\n")
             if "pr_title" in context:
                 prompt_parts.append(f"**PR Title**: {context['pr_title']}\n")
             if "review_comments" in context:
-                prompt_parts.append(f"\n**Review Comments**:\n{context['review_comments']}\n")
+                prompt_parts.append(
+                    f"\n**Review Comments**:\n{context['review_comments']}\n"
+                )
 
             if "branch_name" in context:
                 prompt_parts.append(f"\n**Branch**: {context['branch_name']}\n")
@@ -171,7 +179,9 @@ class SubagentManager:
                 logger.info("Claude Code execution completed successfully")
                 return True, stdout, stderr
             else:
-                logger.error(f"Claude Code execution failed with code {result.returncode}")
+                logger.error(
+                    f"Claude Code execution failed with code {result.returncode}"
+                )
                 return False, stdout, stderr
 
         except subprocess.TimeoutExpired:
@@ -185,7 +195,9 @@ class SubagentManager:
         """Create a task description for implementing an issue."""
         task_parts = []
 
-        task_parts.append(f"Implement the feature described in issue #{issue_data.get('number', 'unknown')}.")
+        task_parts.append(
+            f"Implement the feature described in issue #{issue_data.get('number', 'unknown')}."
+        )
         task_parts.append("\n\nRequirements:")
 
         # Extract requirements from issue body
@@ -193,11 +205,15 @@ class SubagentManager:
             task_parts.append(f"\n{issue_body}")
 
         task_parts.append("\n\nDeliverables:")
-        task_parts.append("1. Implement the requested feature following project conventions")
+        task_parts.append(
+            "1. Implement the requested feature following project conventions"
+        )
         task_parts.append("2. Add comprehensive tests for the new functionality")
         task_parts.append("3. Update documentation as needed")
         task_parts.append("4. Ensure all CI/CD checks pass")
-        task_parts.append("5. Create a detailed PR description explaining the implementation")
+        task_parts.append(
+            "5. Create a detailed PR description explaining the implementation"
+        )
 
         return "\n".join(task_parts)
 
@@ -205,7 +221,9 @@ class SubagentManager:
         """Create a task description for addressing PR review comments."""
         task_parts = []
 
-        task_parts.append(f"Address the review feedback for PR #{pr_data.get('number', 'unknown')}.")
+        task_parts.append(
+            f"Address the review feedback for PR #{pr_data.get('number', 'unknown')}."
+        )
         task_parts.append("\n\nReview Comments to Address:")
 
         for i, comment in enumerate(review_comments, 1):
@@ -225,7 +243,9 @@ class SubagentManager:
 
 
 # Example usage functions
-def implement_issue_with_tech_lead(issue_data: Dict, branch_name: str) -> Tuple[bool, str]:
+def implement_issue_with_tech_lead(
+    issue_data: Dict, branch_name: str
+) -> Tuple[bool, str]:
     """Use the tech-lead persona to implement an issue."""
     manager = SubagentManager()
 

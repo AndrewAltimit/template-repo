@@ -43,7 +43,9 @@ knowledge_graph: KnowledgeGraph = KnowledgeGraph()
 
 # Validator stubs
 class Validator:
-    def validate_node(self, node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
+    def validate_node(
+        self, node_type: str, properties: Dict[str, Any]
+    ) -> Tuple[bool, List[str], Dict[str, Any]]:
         return True, [], properties
 
 
@@ -52,17 +54,23 @@ def create_accurate_validator() -> Validator:
 
 
 class Gaea2ConnectionValidator:
-    def validate_connection(self, conn: Dict[str, Any], node_map: Dict[str, Any]) -> Tuple[bool, Any]:
+    def validate_connection(
+        self, conn: Dict[str, Any], node_map: Dict[str, Any]
+    ) -> Tuple[bool, Any]:
         return True, None
 
 
 class Gaea2PropertyValidator:
-    def validate_properties(self, node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
+    def validate_properties(
+        self, node_type: str, properties: Dict[str, Any]
+    ) -> Tuple[bool, List[str], Dict[str, Any]]:
         return True, [], properties
 
 
 class Gaea2ErrorRecovery:
-    def fix_workflow(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def fix_workflow(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         return {
             "nodes": nodes,
             "connections": connections,

@@ -7,7 +7,9 @@ import base64
 import requests
 
 
-def download_terrain_file(filename, local_filename, server_url="http://192.168.0.152:8007"):
+def download_terrain_file(
+    filename, local_filename, server_url="http://192.168.0.152:8007"
+):
     """
     Download terrain file from the Gaea2 MCP server using the new download tool.
 
@@ -47,7 +49,9 @@ def download_terrain_file(filename, local_filename, server_url="http://192.168.0
     }
 
     try:
-        response = requests.post(f"{server_url}/mcp/execute", json=mcp_request, timeout=30)
+        response = requests.post(
+            f"{server_url}/mcp/execute", json=mcp_request, timeout=30
+        )
 
         if response.status_code == 200:
             result = response.json()
@@ -69,7 +73,9 @@ def download_terrain_file(filename, local_filename, server_url="http://192.168.0
                 print(f"  Modified: {file_info['modified']}")
                 return True
             else:
-                error = result.get("result", {}).get("error") or result.get("error", "Unknown error")
+                error = result.get("result", {}).get("error") or result.get(
+                    "error", "Unknown error"
+                )
                 print(f"  MCP download failed: {error}")
 
                 # List available files
@@ -94,9 +100,13 @@ def list_files(server_url="http://192.168.0.152:8007"):
         if response.status_code == 200:
             result = response.json()
             if result.get("success"):
-                print(f"\nFound {result['count']} terrain files in {result['output_dir']}:")
+                print(
+                    f"\nFound {result['count']} terrain files in {result['output_dir']}:"
+                )
                 for file in result["files"][:10]:  # Show max 10 files
-                    print(f"  - {file['filename']} ({file['size']:,} bytes, modified: {file['modified']})")
+                    print(
+                        f"  - {file['filename']} ({file['size']:,} bytes, modified: {file['modified']})"
+                    )
                 if result["count"] > 10:
                     print(f"  ... and {result['count'] - 10} more files")
                 return
@@ -106,7 +116,9 @@ def list_files(server_url="http://192.168.0.152:8007"):
     # Fallback to MCP tool
     try:
         mcp_request = {"tool": "list_gaea2_projects", "parameters": {}}
-        response = requests.post(f"{server_url}/mcp/execute", json=mcp_request, timeout=10)
+        response = requests.post(
+            f"{server_url}/mcp/execute", json=mcp_request, timeout=10
+        )
         if response.status_code == 200:
             result = response.json()
             if result.get("success") and result.get("result", {}).get("success"):
@@ -127,5 +139,7 @@ if __name__ == "__main__":
     success = download_terrain_file(filename, local_filename)
 
     if not success:
-        print("\n❌ Download failed. The server may need to be restarted to use the new download functionality.")
+        print(
+            "\n❌ Download failed. The server may need to be restarted to use the new download functionality."
+        )
         print("Please restart the Gaea2 MCP server and try again.")

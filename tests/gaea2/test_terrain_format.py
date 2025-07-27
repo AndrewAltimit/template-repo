@@ -74,7 +74,9 @@ class TestTerrainFileFormat:
             # IDs should have gaps (non-sequential)
             for i in range(1, len(sorted_ids)):
                 gap = sorted_ids[i] - sorted_ids[i - 1]
-                assert gap > 1, f"IDs {sorted_ids[i-1]} and {sorted_ids[i]} are too close (sequential)"
+                assert (
+                    gap > 1
+                ), f"IDs {sorted_ids[i-1]} and {sorted_ids[i]} are too close (sequential)"
 
     def test_object_reference_format(self, sample_terrain: Dict[str, Any]):
         """Test object reference formats"""

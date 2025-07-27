@@ -68,8 +68,12 @@ class BaseMCPServer(ABC):
         self.app.get("/mcp/tools")(self.list_tools)
         self.app.post("/mcp/execute")(self.execute_tool)
         self.app.post("/mcp/register")(self.register_client)
-        self.app.post("/register")(self.register_client_oauth)  # OAuth2 style for Claude Code
-        self.app.post("/oauth/register")(self.register_client_oauth)  # OAuth style endpoint
+        self.app.post("/register")(
+            self.register_client_oauth
+        )  # OAuth2 style for Claude Code
+        self.app.post("/oauth/register")(
+            self.register_client_oauth
+        )  # OAuth style endpoint
         # OAuth2 bypass endpoints - no auth required
         self.app.get("/authorize")(self.oauth_authorize_bypass)
         self.app.post("/authorize")(self.oauth_authorize_bypass)
@@ -82,9 +86,15 @@ class BaseMCPServer(ABC):
         self.app.get("/mcp/stats")(self.get_stats)
         # OAuth discovery endpoints
         self.app.get("/.well-known/oauth-authorization-server")(self.oauth_discovery)
-        self.app.get("/.well-known/oauth-authorization-server/mcp")(self.oauth_discovery)
-        self.app.get("/.well-known/oauth-authorization-server/messages")(self.oauth_discovery)
-        self.app.get("/.well-known/oauth-protected-resource")(self.oauth_protected_resource)
+        self.app.get("/.well-known/oauth-authorization-server/mcp")(
+            self.oauth_discovery
+        )
+        self.app.get("/.well-known/oauth-authorization-server/messages")(
+            self.oauth_discovery
+        )
+        self.app.get("/.well-known/oauth-protected-resource")(
+            self.oauth_protected_resource
+        )
         # MCP protocol discovery endpoints
         self.app.get("/.well-known/mcp")(self.mcp_discovery)
         self.app.post("/mcp/initialize")(self.mcp_initialize)
@@ -128,10 +138,14 @@ class BaseMCPServer(ABC):
             },
         }
 
-    async def register_client_oauth(self, request_data: Dict[str, Any], request: Request):
+    async def register_client_oauth(
+        self, request_data: Dict[str, Any], request: Request
+    ):
         """OAuth2-style client registration - simplified for home lab use"""
         redirect_uris = request_data.get("redirect_uris", [])
-        client_name = request_data.get("client_name", request_data.get("client", "claude-code"))
+        client_name = request_data.get(
+            "client_name", request_data.get("client", "claude-code")
+        )
         client_id = f"{client_name}_oauth"
 
         # Simple OAuth2-compliant response without tracking
@@ -143,7 +157,9 @@ class BaseMCPServer(ABC):
             "redirect_uris": redirect_uris if redirect_uris else ["http://localhost"],
             "grant_types": request_data.get("grant_types", ["authorization_code"]),
             "response_types": request_data.get("response_types", ["code"]),
-            "token_endpoint_auth_method": request_data.get("token_endpoint_auth_method", "none"),
+            "token_endpoint_auth_method": request_data.get(
+                "token_endpoint_auth_method", "none"
+            ),
             "registration_access_token": "not-required-for-local-mcp",
             "registration_client_uri": f"{request.url.scheme}://{request.url.netloc}/mcp/clients/{client_id}",
             "client_id_issued_at": int(datetime.utcnow().timestamp()),
@@ -318,7 +334,9 @@ class BaseMCPServer(ABC):
 
         # Log headers for debugging
         self.logger.info(f"Messages request headers: {dict(request.headers)}")
-        self.logger.info(f"Session ID: {session_id}, Response Mode: {response_mode}, Protocol Version: {protocol_version}")
+        self.logger.info(
+            f"Session ID: {session_id}, Response Mode: {response_mode}, Protocol Version: {protocol_version}"
+        )
 
         try:
             # Parse JSON-RPC request
@@ -416,7 +434,9 @@ class BaseMCPServer(ABC):
                         # This is a request - return the response
                         # Log session ID being returned
                         if is_init_request and session_id:
-                            self.logger.info(f"Returning session ID in response: {session_id}")
+                            self.logger.info(
+                                f"Returning session ID in response: {session_id}"
+                            )
 
                         return JSONResponse(
                             content=response,
@@ -457,7 +477,9 @@ class BaseMCPServer(ABC):
             },
         )
 
-    async def _process_jsonrpc_request(self, request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def _process_jsonrpc_request(
+        self, request: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
         """Process a single JSON-RPC request"""
         jsonrpc = request.get("jsonrpc", "2.0")
         method = request.get("method")
@@ -509,9 +531,13 @@ class BaseMCPServer(ABC):
 
                 # After successful initialization, log that we're ready for more requests
                 if method == "initialize" and "protocolVersion" in result:
-                    self.logger.info("Initialization complete, ready for tools/list request")
+                    self.logger.info(
+                        "Initialization complete, ready for tools/list request"
+                    )
                     # Log what we're expecting next
-                    self.logger.info("Expecting client to send 'tools/list' request next")
+                    self.logger.info(
+                        "Expecting client to send 'tools/list' request next"
+                    )
 
                 return response
             return None
@@ -536,7 +562,9 @@ class BaseMCPServer(ABC):
         protocol_version = params.get("protocolVersion", "2024-11-05")
 
         # Log client info
-        self.logger.info(f"Client info: {client_info}, requested protocol: {protocol_version}")
+        self.logger.info(
+            f"Client info: {client_info}, requested protocol: {protocol_version}"
+        )
 
         # Store the protocol version for later use
         self._protocol_version = protocol_version
@@ -602,7 +630,9 @@ class BaseMCPServer(ABC):
         except Exception as e:
             self.logger.error(f"Error calling tool {tool_name}: {e}")
             return {
-                "content": [{"type": "text", "text": f"Error executing {tool_name}: {str(e)}"}],
+                "content": [
+                    {"type": "text", "text": f"Error executing {tool_name}: {str(e)}"}
+                ],
                 "isError": True,
             }
 
@@ -696,12 +726,16 @@ class BaseMCPServer(ABC):
 
             tools = self.get_tools()
             if request.tool not in tools:
-                raise HTTPException(status_code=404, detail=f"Tool '{request.tool}' not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Tool '{request.tool}' not found"
+                )
 
             # Get the tool function
             tool_func = getattr(self, request.tool, None)
             if not tool_func:
-                raise HTTPException(status_code=501, detail=f"Tool '{request.tool}' not implemented")
+                raise HTTPException(
+                    status_code=501, detail=f"Tool '{request.tool}' not implemented"
+                )
 
             # Execute the tool
             result = await tool_func(**request.get_args())
@@ -774,7 +808,9 @@ class BaseMCPServer(ABC):
             return tools
 
         @server.call_tool()
-        async def call_tool(name: str, arguments: Dict[str, Any]) -> List[types.TextContent]:
+        async def call_tool(
+            name: str, arguments: Dict[str, Any]
+        ) -> List[types.TextContent]:
             """Call a tool with given arguments"""
             if name not in self._tool_funcs:
                 return [types.TextContent(type="text", text=f"Tool '{name}' not found")]
@@ -785,7 +821,11 @@ class BaseMCPServer(ABC):
 
                 # Convert result to MCP response format
                 if isinstance(result, dict):
-                    return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
+                    return [
+                        types.TextContent(
+                            type="text", text=json.dumps(result, indent=2)
+                        )
+                    ]
                 return [types.TextContent(type="text", text=str(result))]
             except Exception as e:
                 self.logger.error(f"Error calling tool {name}: {str(e)}")

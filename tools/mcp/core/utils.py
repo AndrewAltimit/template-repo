@@ -17,7 +17,9 @@ def setup_logging(name: str, level: str = "INFO") -> logging.Logger:
         Configured logger instance
     """
     # Configure logging format
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
 
     # Setup console handler
     console_handler = logging.StreamHandler(sys.stdout)
@@ -54,7 +56,9 @@ def validate_environment(required_vars: List[str]) -> Dict[str, str]:
             env_vars[var] = value
 
     if missing_vars:
-        raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
+        raise ValueError(
+            f"Missing required environment variables: {', '.join(missing_vars)}"
+        )
 
     return env_vars
 

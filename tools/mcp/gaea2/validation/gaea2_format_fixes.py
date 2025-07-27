@@ -243,7 +243,9 @@ NODE_PROPERTIES = {
 COLOR_NODES = ["Combine", "SatMap", "ColorMap", "CLUTer", "HSL"]
 
 
-def generate_non_sequential_id(base: int = 100, used_ids: Optional[List[int]] = None) -> int:
+def generate_non_sequential_id(
+    base: int = 100, used_ids: Optional[List[int]] = None
+) -> int:
     """Generate non-sequential IDs similar to real Gaea2 projects"""
     if used_ids is None:
         used_ids = []
@@ -299,7 +301,9 @@ def generate_non_sequential_id(base: int = 100, used_ids: Optional[List[int]] = 
     return base + len(used_ids) * 10
 
 
-def fix_property_names(properties: Dict[str, Any], node_type: str = "default") -> Dict[str, Any]:
+def fix_property_names(
+    properties: Dict[str, Any], node_type: str = "default"
+) -> Dict[str, Any]:
     """Fix property names to match Gaea2's exact format based on node type"""
     fixed: Dict[str, Any] = {}
 
@@ -322,7 +326,12 @@ def fix_property_names(properties: Dict[str, Any], node_type: str = "default") -
             mapped_key = key_str
 
         # Special handling for Range properties
-        if key_str == "Range" and isinstance(value, dict) and "X" in value and "Y" in value:
+        if (
+            key_str == "Range"
+            and isinstance(value, dict)
+            and "X" in value
+            and "Y" in value
+        ):
             # Range should have its own $id
             fixed[mapped_key] = {
                 "$id": str(random.randint(100, 200)),
@@ -371,7 +380,9 @@ def fix_empty_objects(project: Dict[str, Any], ref_counter: int) -> int:
     return ref_counter
 
 
-def create_proper_port_structure(node_id: int, node_type: str, ref_id_counter: int) -> Tuple[Dict[str, Any], int]:
+def create_proper_port_structure(
+    node_id: int, node_type: str, ref_id_counter: int
+) -> Tuple[Dict[str, Any], int]:
     """Create proper port structure based on node type"""
     ports: Dict[str, Any] = {"$id": str(ref_id_counter), "$values": []}
     ref_id_counter += 1
@@ -579,7 +590,9 @@ def create_proper_port_structure(node_id: int, node_type: str, ref_id_counter: i
     return ports, ref_id_counter
 
 
-def extract_and_fix_savedefinitions(project: Dict[str, Any], ref_counter: int) -> Tuple[List[Dict[str, Any]], int]:
+def extract_and_fix_savedefinitions(
+    project: Dict[str, Any], ref_counter: int
+) -> Tuple[List[Dict[str, Any]], int]:
     """Extract SaveDefinitions from Export nodes and create them as separate objects"""
     save_definitions: List[Dict[str, Any]] = []
     assets_values = project.get("Assets", {}).get("$values", [])
@@ -639,7 +652,11 @@ def ensure_all_nodes_connected(project: Dict[str, Any]) -> None:
             continue
 
         if node_id not in nodes_with_connections:
-            node_type = node.get("$type", "").split(".")[-2] if "." in node.get("$type", "") else "Unknown"
+            node_type = (
+                node.get("$type", "").split(".")[-2]
+                if "." in node.get("$type", "")
+                else "Unknown"
+            )
             # Note: We don't auto-connect as we don't know the intended workflow
             # This should be handled by proper connection setup
             print(f"Warning: Node {node_id} ({node_type}) has no incoming connections")
@@ -660,7 +677,11 @@ def apply_format_fixes(
 
     # 2. Update GraphTabs with proper viewport location
     assets_values = project.get("Assets", {}).get("$values", [])
-    if assets_values and "Terrain" in assets_values[0] and "GraphTabs" in assets_values[0]["Terrain"]:
+    if (
+        assets_values
+        and "Terrain" in assets_values[0]
+        and "GraphTabs" in assets_values[0]["Terrain"]
+    ):
         tabs = assets_values[0]["Terrain"]["GraphTabs"]["$values"]
         if tabs and len(tabs) > 0:
             tabs[0]["ViewportLocation"]["X"] = 25531.445

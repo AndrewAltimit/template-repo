@@ -131,7 +131,9 @@ async def list_tools():
             if response.status_code == 200:
                 return response.json()
             else:
-                raise HTTPException(status_code=response.status_code, detail="Failed to list tools")
+                raise HTTPException(
+                    status_code=response.status_code, detail="Failed to list tools"
+                )
     except Exception as e:
         logger.error(f"Error listing tools: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -72,12 +72,16 @@ class MCPServerTester:
 
     def is_running_in_container(self) -> bool:
         """Check if running in a container"""
-        return Path("/.dockerenv").exists() or os.environ.get("CONTAINER_ENV") is not None
+        return (
+            Path("/.dockerenv").exists() or os.environ.get("CONTAINER_ENV") is not None
+        )
 
     async def start_server(self, server_info: dict) -> Optional[subprocess.Popen]:
         """Start an MCP server"""
         if self.is_port_open(server_info["port"]):
-            print(f"⚠️  Port {server_info['port']} already in use, skipping {server_info['name']}")
+            print(
+                f"⚠️  Port {server_info['port']} already in use, skipping {server_info['name']}"
+            )
             return None
 
         if server_info.get("skip_container") and self.is_running_in_container():
@@ -123,7 +127,9 @@ class MCPServerTester:
                         print(f"  ✓ Tool test passed: {server_info['test_tool']}")
                         return True
                     else:
-                        print(f"  ✗ Tool test failed: {result.get('error', 'Unknown error')}")
+                        print(
+                            f"  ✗ Tool test failed: {result.get('error', 'Unknown error')}"
+                        )
                         return False
                 else:
                     print(f"  ✗ Tool test failed: HTTP {response.status_code}")
@@ -190,7 +196,9 @@ class MCPServerTester:
                 print(f"  ⚠️  {name}: SKIPPED")
 
         print("-" * 50)
-        print(f"Total: {total} | Passed: {passed} | Failed: {failed} | Skipped: {skipped}")
+        print(
+            f"Total: {total} | Passed: {passed} | Failed: {failed} | Skipped: {skipped}"
+        )
 
         return failed == 0
 
@@ -226,7 +234,9 @@ async def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Test all MCP servers")
-    parser.add_argument("--quick", action="store_true", help="Quick test of already running servers")
+    parser.add_argument(
+        "--quick", action="store_true", help="Quick test of already running servers"
+    )
     args = parser.parse_args()
 
     tester = MCPServerTester()

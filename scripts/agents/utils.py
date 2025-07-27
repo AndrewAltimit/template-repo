@@ -47,7 +47,9 @@ def get_github_token() -> str:
 
     # Try gh CLI as last resort (for local development)
     try:
-        result = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, check=True)
+        result = subprocess.run(
+            ["gh", "auth", "token"], capture_output=True, text=True, check=True
+        )
         token = result.stdout.strip()
         if token:
             logger.debug("Using GitHub token from gh CLI")
@@ -56,7 +58,8 @@ def get_github_token() -> str:
         pass
 
     raise RuntimeError(
-        "No GitHub token found. Please set GITHUB_TOKEN environment variable " "or authenticate with 'gh auth login'"
+        "No GitHub token found. Please set GITHUB_TOKEN environment variable "
+        "or authenticate with 'gh auth login'"
     )
 
 

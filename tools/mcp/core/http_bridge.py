@@ -94,7 +94,9 @@ class HTTPBridge:
         """Forward MCP request to remote server"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(f"{self.remote_url}/mcp", json=request.dict())
+                response = await client.post(
+                    f"{self.remote_url}/mcp", json=request.dict()
+                )
 
                 if response.status_code != 200:
                     raise HTTPException(
@@ -144,7 +146,9 @@ class HTTPBridge:
                 if response.status_code == 200:
                     return response.json()
                 else:
-                    raise HTTPException(status_code=response.status_code, detail="Failed to list tools")
+                    raise HTTPException(
+                        status_code=response.status_code, detail="Failed to list tools"
+                    )
         except Exception as e:
             self.logger.error(f"Error listing tools: {e}")
             raise HTTPException(status_code=500, detail=str(e))
@@ -153,7 +157,9 @@ class HTTPBridge:
         """Execute a tool on the remote server"""
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(f"{self.remote_url}/mcp/execute", json=request.dict())
+                response = await client.post(
+                    f"{self.remote_url}/mcp/execute", json=request.dict()
+                )
 
                 if response.status_code == 200:
                     return response.json()
@@ -189,7 +195,9 @@ def create_bridge_from_env(service_name: str, default_port: int = 8191) -> HTTPB
     timeout = int(os.getenv("TIMEOUT", "30"))
     port = int(os.getenv("PORT", str(default_port)))
 
-    return HTTPBridge(service_name=service_name, remote_url=remote_url, port=port, timeout=timeout)
+    return HTTPBridge(
+        service_name=service_name, remote_url=remote_url, port=port, timeout=timeout
+    )
 
 
 if __name__ == "__main__":
@@ -197,10 +205,14 @@ if __name__ == "__main__":
 
     # Setup argument parser
     parser = argparse.ArgumentParser(description="HTTP Bridge for MCP servers")
-    parser.add_argument("--service-name", default="MCP", help="Service name for the bridge")
+    parser.add_argument(
+        "--service-name", default="MCP", help="Service name for the bridge"
+    )
     parser.add_argument("--remote-url", required=True, help="Remote MCP server URL")
     parser.add_argument("--port", type=int, default=8191, help="Port to listen on")
-    parser.add_argument("--timeout", type=int, default=30, help="Request timeout in seconds")
+    parser.add_argument(
+        "--timeout", type=int, default=30, help="Request timeout in seconds"
+    )
     parser.add_argument("--no-cors", action="store_true", help="Disable CORS")
 
     args = parser.parse_args()

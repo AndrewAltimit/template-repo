@@ -20,7 +20,9 @@ class Gaea2CLIAutomation:
         self.gaea_path = gaea_path
 
         if not self.gaea_path:
-            self.logger.warning("Gaea2 path not provided. CLI automation will be limited.")
+            self.logger.warning(
+                "Gaea2 path not provided. CLI automation will be limited."
+            )
 
     async def run_project(
         self,
@@ -73,7 +75,9 @@ class Gaea2CLIAutomation:
             )
 
             try:
-                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
+                stdout, stderr = await asyncio.wait_for(
+                    process.communicate(), timeout=timeout
+                )
             except asyncio.TimeoutError:
                 process.kill()
                 return {
@@ -133,7 +137,9 @@ class Gaea2CLIAutomation:
             return {
                 "valid": True,
                 "path": str(self.gaea_path),
-                "version": (result.stdout.strip() if result.returncode == 0 else "Unknown"),
+                "version": (
+                    result.stdout.strip() if result.returncode == 0 else "Unknown"
+                ),
             }
 
         except Exception as e:

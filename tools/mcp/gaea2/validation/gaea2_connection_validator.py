@@ -7,7 +7,11 @@ import logging
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
-from ..utils.gaea2_pattern_knowledge import COMMON_NODE_SEQUENCES, NODE_CONNECTION_FREQUENCY, WORKFLOW_TEMPLATES
+from ..utils.gaea2_pattern_knowledge import (
+    COMMON_NODE_SEQUENCES,
+    NODE_CONNECTION_FREQUENCY,
+    WORKFLOW_TEMPLATES,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +53,10 @@ class Gaea2ConnectionValidator:
 
         # Build lookup structures
         node_map = {n.get("id", f"node_{i}"): n for i, n in enumerate(nodes)}
-        node_types = {n.get("id", f"node_{i}"): n.get("type", "Unknown") for i, n in enumerate(nodes)}
+        node_types = {
+            n.get("id", f"node_{i}"): n.get("type", "Unknown")
+            for i, n in enumerate(nodes)
+        }
 
         # Check basic connection validity
         for conn in connections:
@@ -59,10 +66,14 @@ class Gaea2ConnectionValidator:
 
             # Check if nodes exist
             if from_id not in node_map:
-                errors.append(f"Connection references non-existent source node ID: {from_id}")
+                errors.append(
+                    f"Connection references non-existent source node ID: {from_id}"
+                )
                 continue
             if to_id not in node_map:
-                errors.append(f"Connection references non-existent target node ID: {to_id}")
+                errors.append(
+                    f"Connection references non-existent target node ID: {to_id}"
+                )
                 continue
 
             from_type = node_types[from_id]
@@ -89,7 +100,10 @@ class Gaea2ConnectionValidator:
                         except ValueError:
                             probability = 0.5  # Default if conversion fails
                     if probability < 0.1:
-                        warnings.append(f"Rare connection: {from_type} → {to_type} " f"(only {probability:.0%} of cases)")
+                        warnings.append(
+                            f"Rare connection: {from_type} → {to_type} "
+                            f"(only {probability:.0%} of cases)"
+                        )
 
         # Check for orphaned nodes
         connected_ids = set()
@@ -108,14 +122,18 @@ class Gaea2ConnectionValidator:
                 standalone_types = ["Export", "Unity", "Unreal", "File"]
                 if node_type not in standalone_types:
                     node_name = node.get("name", f"node_{node_id}")
-                    warnings.append(f"Node '{node_name}' ({node_type}) is not connected")
+                    warnings.append(
+                        f"Node '{node_name}' ({node_type}) is not connected"
+                    )
 
         # Check for cycles
         cycles = self._detect_cycles(connections)
         if cycles:
             for cycle in cycles:
                 # Cycles are errors in Gaea2, not just warnings
-                errors.append(f"Circular dependency detected: {' → '.join(str(n) for n in cycle)}")
+                errors.append(
+                    f"Circular dependency detected: {' → '.join(str(n) for n in cycle)}"
+                )
                 logger.warning(f"Detected circular dependency: {cycle}")
 
         # Check for missing common patterns
@@ -144,7 +162,9 @@ class Gaea2ConnectionValidator:
             node_type = node.get("type", "Unknown")
 
             # Skip if node already has outgoing connections
-            has_outgoing = any(conn["from_node"] == node_id for conn in existing_connections)
+            has_outgoing = any(
+                conn["from_node"] == node_id for conn in existing_connections
+            )
 
             if not has_outgoing and node_type in NODE_CONNECTION_FREQUENCY:
                 # Get most likely target
@@ -178,7 +198,9 @@ class Gaea2ConnectionValidator:
 
         return suggestions[:5]  # Return top 5 suggestions
 
-    def optimize_connections(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def optimize_connections(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Optimize connections for better workflow"""
         optimized = []
 
@@ -192,7 +214,10 @@ class Gaea2ConnectionValidator:
 
         # Check for bypass opportunities
         # (e.g., A→B→C where A→C would be more efficient)
-        node_types = {n.get("id", f"node_{i}"): n.get("type", "Unknown") for i, n in enumerate(nodes)}
+        node_types = {
+            n.get("id", f"node_{i}"): n.get("type", "Unknown")
+            for i, n in enumerate(nodes)
+        }
 
         # Build adjacency for path finding
         adjacency = defaultdict(list)
@@ -219,7 +244,10 @@ class Gaea2ConnectionValidator:
                 if paths:
                     shortest = min(paths, key=len)
                     if len(shortest) > 4:
-                        logger.info(f"Long path detected from {start_node['type']} to SatMap: " f"{len(shortest)} nodes")
+                        logger.info(
+                            f"Long path detected from {start_node['type']} to SatMap: "
+                            f"{len(shortest)} nodes"
+                        )
 
         return optimized
 
@@ -272,13 +300,20 @@ class Gaea2ConnectionValidator:
 
         # Check for common required nodes
         if "Erosion2" in node_types and "TextureBase" not in node_types:
-            warnings.append("Workflow has Erosion2 but no TextureBase (usually needed for texturing)")
+            warnings.append(
+                "Workflow has Erosion2 but no TextureBase (usually needed for texturing)"
+            )
 
-        if any(t in node_types for t in ["Mountain", "Canyon", "Ridge"]) and "SatMap" not in node_types:
+        if (
+            any(t in node_types for t in ["Mountain", "Canyon", "Ridge"])
+            and "SatMap" not in node_types
+        ):
             warnings.append("Terrain generator present but no SatMap for colorization")
 
         if "Rivers" in node_types and "Erosion2" not in node_types:
-            warnings.append("Rivers node without Erosion2 (Rivers usually follows erosion)")
+            warnings.append(
+                "Rivers node without Erosion2 (Rivers usually follows erosion)"
+            )
 
         # Check for export nodes
         export_types = ["Export", "Unity", "Unreal"]
@@ -315,11 +350,16 @@ class Gaea2ConnectionValidator:
         dfs(start, [start], {start})
         return paths
 
-    def get_connection_quality_score(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> float:
+    def get_connection_quality_score(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ) -> float:
         """Calculate a quality score for the connections (0-100)"""
         score = 100.0
 
-        node_types = {n.get("id", f"node_{i}"): n.get("type", "Unknown") for i, n in enumerate(nodes)}
+        node_types = {
+            n.get("id", f"node_{i}"): n.get("type", "Unknown")
+            for i, n in enumerate(nodes)
+        }
 
         # Penalize unusual connections
         for conn in connections:
@@ -359,7 +399,9 @@ class Gaea2ConnectionValidator:
 
         return max(0.0, min(100.0, score))
 
-    def _extract_main_sequence(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> List[str]:
+    def _extract_main_sequence(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ) -> List[str]:
         """Extract the main node sequence from the workflow"""
         if not nodes or not connections:
             return []
@@ -381,15 +423,21 @@ class Gaea2ConnectionValidator:
             visited.add(current["id"])
 
             # Find next node
-            next_conn = next((c for c in connections if c["from_node"] == current["id"]), None)
+            next_conn = next(
+                (c for c in connections if c["from_node"] == current["id"]), None
+            )
             if next_conn:
-                current = next((n for n in nodes if n["id"] == next_conn["to_node"]), None)
+                current = next(
+                    (n for n in nodes if n["id"] == next_conn["to_node"]), None
+                )
             else:
                 current = None
 
         return sequence
 
-    def _sequence_matches_template(self, sequence: List[str], template: List[str]) -> bool:
+    def _sequence_matches_template(
+        self, sequence: List[str], template: List[str]
+    ) -> bool:
         """Check if a sequence matches a template pattern"""
         if len(sequence) < len(template):
             return False

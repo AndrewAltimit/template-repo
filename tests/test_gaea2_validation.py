@@ -14,7 +14,10 @@ import pytest
 # Add project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from scripts.generate_gaea2_schema import validate_gaea_project, validate_property  # noqa: E402
+from scripts.generate_gaea2_schema import (  # noqa: E402
+    validate_gaea_project,
+    validate_property,
+)
 from tools.mcp.gaea2.server import Gaea2MCPServer  # noqa: E402
 
 
@@ -131,7 +134,9 @@ def test_valid_projects():
         "connections": [],
     }
 
-    result = validate_gaea_project(real_project_pattern["nodes"], real_project_pattern["connections"])
+    result = validate_gaea_project(
+        real_project_pattern["nodes"], real_project_pattern["connections"]
+    )
     print("\nReal project pattern (Canyon + Erosion2):")
     print(f"  Valid: {result['valid']}")
     print(f"  Errors: {result['errors']}")
@@ -140,7 +145,9 @@ def test_valid_projects():
     # Check that Seed was coerced to int
     erosion_node = result["corrected_nodes"][1]
     seed_value = erosion_node["properties"].get("Seed")
-    assert isinstance(seed_value, int), f"Expected Seed to be int, got {type(seed_value)}"
+    assert isinstance(
+        seed_value, int
+    ), f"Expected Seed to be int, got {type(seed_value)}"
     print(f"  ✓ Seed coerced from float to int: {seed_value}")
 
 
@@ -209,7 +216,9 @@ def test_invalid_projects():
         ],
     }
 
-    result = validate_gaea_project(invalid_connections["nodes"], invalid_connections["connections"])
+    result = validate_gaea_project(
+        invalid_connections["nodes"], invalid_connections["connections"]
+    )
     print("\nInvalid connections (non-existent node):")
     print(f"  Valid: {result['valid']}")
     print(f"  Errors: {result['errors']}")
@@ -243,7 +252,9 @@ def test_property_coercion():
     print("✓ Height 1.5 correctly rejected (out of range)")
 
     # Test unknown property (should warn but allow)
-    is_valid, error, value = validate_property("Mountain", "CustomProperty", "custom_value")
+    is_valid, error, value = validate_property(
+        "Mountain", "CustomProperty", "custom_value"
+    )
     assert is_valid, "Expected valid for unknown property"
     assert "Unknown property" in error, "Expected warning about unknown property"
     print("✓ Unknown property allowed with warning")
@@ -284,7 +295,9 @@ async def test_mcp_integration():
         nodes = result["project"]["Assets"]["$values"][0]["Terrain"]["Nodes"]
         if "100" in nodes:
             seed_value = nodes["100"].get("Seed")
-            print(f"  Seed value in project: {seed_value} (type: {type(seed_value).__name__})")
+            print(
+                f"  Seed value in project: {seed_value} (type: {type(seed_value).__name__})"
+            )
 
 
 def main():

@@ -47,7 +47,9 @@ class AccurateGaea2Validator:
         assert isinstance(common_props, dict)
         return common_props
 
-    def validate_and_coerce_property(self, node_type: str, prop_name: str, prop_value: Any) -> Tuple[bool, Optional[str], Any]:
+    def validate_and_coerce_property(
+        self, node_type: str, prop_name: str, prop_value: Any
+    ) -> Tuple[bool, Optional[str], Any]:
         """
         Validate and coerce a property value for a node type.
         Returns (is_valid, error_message, corrected_value)
@@ -61,7 +63,9 @@ class AccurateGaea2Validator:
                 prop_def = self.schema["common_properties"][prop_name]
             else:
                 # Unknown property - log warning but allow
-                logger.warning(f"Unknown property '{prop_name}' for node type '{node_type}'")
+                logger.warning(
+                    f"Unknown property '{prop_name}' for node type '{node_type}'"
+                )
                 return True, None, prop_value
         else:
             prop_def = node_props[prop_name]
@@ -75,7 +79,9 @@ class AccurateGaea2Validator:
                     prop_value = int(prop_value)
                 else:
                     # Round with warning
-                    logger.warning(f"{node_type}.{prop_name}: Rounding float {prop_value} to int")
+                    logger.warning(
+                        f"{node_type}.{prop_name}: Rounding float {prop_value} to int"
+                    )
                     prop_value = int(round(prop_value))
             elif isinstance(prop_value, str) and prop_value.isdigit():
                 prop_value = int(prop_value)
@@ -147,11 +153,15 @@ class AccurateGaea2Validator:
 
         else:
             # Unknown type, pass through
-            logger.warning(f"Unknown property type '{prop_type}' for {node_type}.{prop_name}")
+            logger.warning(
+                f"Unknown property type '{prop_type}' for {node_type}.{prop_name}"
+            )
 
         return True, None, prop_value
 
-    def validate_node(self, node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
+    def validate_node(
+        self, node_type: str, properties: Dict[str, Any]
+    ) -> Tuple[bool, List[str], Dict[str, Any]]:
         """
         Validate all properties for a specific node type.
         Returns (is_valid, error_messages, corrected_properties)
@@ -163,7 +173,9 @@ class AccurateGaea2Validator:
         corrected = {}
 
         for prop_name, prop_value in properties.items():
-            is_valid, error, corrected_value = self.validate_and_coerce_property(node_type, prop_name, prop_value)
+            is_valid, error, corrected_value = self.validate_and_coerce_property(
+                node_type, prop_name, prop_value
+            )
 
             if not is_valid:
                 errors.append(f"{node_type}.{prop_name}: {error}")
@@ -195,7 +207,9 @@ class AccurateGaea2Validator:
                 errors.append(f"Node missing 'type' field: {node}")
                 continue
 
-            is_valid, node_errors, corrected_props = self.validate_node(node_type, node.get("properties", {}))
+            is_valid, node_errors, corrected_props = self.validate_node(
+                node_type, node.get("properties", {})
+            )
 
             if not is_valid:
                 errors.extend(node_errors)
@@ -209,9 +223,13 @@ class AccurateGaea2Validator:
             node_ids = {n.get("id") for n in nodes}
             for conn in connections:
                 if conn.get("from_node") not in node_ids:
-                    errors.append(f"Connection references non-existent source node: {conn.get('from_node')}")
+                    errors.append(
+                        f"Connection references non-existent source node: {conn.get('from_node')}"
+                    )
                 if conn.get("to_node") not in node_ids:
-                    errors.append(f"Connection references non-existent target node: {conn.get('to_node')}")
+                    errors.append(
+                        f"Connection references non-existent target node: {conn.get('to_node')}"
+                    )
 
         return {
             "valid": len(errors) == 0,

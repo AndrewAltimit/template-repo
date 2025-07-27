@@ -54,7 +54,9 @@ async def test_gaea2_server(base_url: str = "http://localhost:8007"):
                 print(f"  Nodes: {result['result']['node_count']}")
                 print(f"  Connections: {result['result']['connection_count']}")
             else:
-                print(f"✗ Template creation failed: {result.get('error', result['result'].get('error'))}")
+                print(
+                    f"✗ Template creation failed: {result.get('error', result['result'].get('error'))}"
+                )
         except Exception as e:
             print(f"✗ Template creation error: {e}")
 
@@ -102,7 +104,9 @@ async def test_gaea2_server(base_url: str = "http://localhost:8007"):
                 print("✓ Created custom project")
                 print(f"  Validation applied: {result['result']['validation_applied']}")
             else:
-                print(f"✗ Custom project failed: {result.get('error', result['result'].get('error'))}")
+                print(
+                    f"✗ Custom project failed: {result.get('error', result['result'].get('error'))}"
+                )
         except Exception as e:
             print(f"✗ Custom project error: {e}")
 

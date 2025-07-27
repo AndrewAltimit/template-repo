@@ -14,7 +14,9 @@ class Gaea2Validator:
         """Initialize with node property definitions"""
         self.node_properties = node_properties
 
-    def validate_property_value(self, prop_name: str, prop_value: Any, prop_def: Dict[str, Any]) -> Tuple[bool, str]:
+    def validate_property_value(
+        self, prop_name: str, prop_value: Any, prop_def: Dict[str, Any]
+    ) -> Tuple[bool, str]:
         """
         Validate a single property value against its definition
 
@@ -86,13 +88,18 @@ class Gaea2Validator:
                 )
             if "X" not in prop_value or "Y" not in prop_value:
                 return False, "Float2 value must have 'X' and 'Y' components"
-            if not isinstance(prop_value["X"], (int, float)) or not isinstance(prop_value["Y"], (int, float)):
+            if not isinstance(prop_value["X"], (int, float)) or not isinstance(
+                prop_value["Y"], (int, float)
+            ):
                 return False, "Float2 X and Y components must be numeric"
             # Check range if specified
             if "range" in prop_def:
                 min_val = prop_def["range"].get("min", float("-inf"))
                 max_val = prop_def["range"].get("max", float("inf"))
-                if not (min_val <= prop_value["X"] <= max_val and min_val <= prop_value["Y"] <= max_val):
+                if not (
+                    min_val <= prop_value["X"] <= max_val
+                    and min_val <= prop_value["Y"] <= max_val
+                ):
                     return (
                         False,
                         f"Float2 values outside range [{min_val}, {max_val}]",
@@ -100,7 +107,9 @@ class Gaea2Validator:
 
         return True, ""
 
-    def validate_node_properties(self, node_type: str, properties: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_node_properties(
+        self, node_type: str, properties: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Validate all properties for a node
 
@@ -127,13 +136,17 @@ class Gaea2Validator:
         for prop_name, prop_value in properties.items():
             if prop_name in all_props:
                 prop_def = all_props[prop_name]
-                is_valid, error_msg = self.validate_property_value(prop_name, prop_value, prop_def)
+                is_valid, error_msg = self.validate_property_value(
+                    prop_name, prop_value, prop_def
+                )
                 if not is_valid:
                     errors.append(f"{node_type}.{prop_name}: {error_msg}")
                 else:
                     fixed_properties[prop_name] = prop_value
             else:
-                warnings.append(f"Unknown property '{prop_name}' for node type {node_type}")
+                warnings.append(
+                    f"Unknown property '{prop_name}' for node type {node_type}"
+                )
                 # Still include it in case it's valid but undocumented
                 fixed_properties[prop_name] = prop_value
 
@@ -195,9 +208,13 @@ class Gaea2Validator:
             node_ids = {node.get("id", i) for i, node in enumerate(nodes)}
             for conn in connections:
                 if conn.get("from_node") not in node_ids:
-                    all_errors.append(f"Connection references non-existent source node: {conn.get('from_node')}")
+                    all_errors.append(
+                        f"Connection references non-existent source node: {conn.get('from_node')}"
+                    )
                 if conn.get("to_node") not in node_ids:
-                    all_errors.append(f"Connection references non-existent target node: {conn.get('to_node')}")
+                    all_errors.append(
+                        f"Connection references non-existent target node: {conn.get('to_node')}"
+                    )
 
         return {
             "valid": len(all_errors) == 0,

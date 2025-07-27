@@ -175,7 +175,9 @@ PROPERTY_RECOMMENDATIONS = {
 }
 
 
-def get_next_node_suggestions(current_node: str, top_n: int = 3) -> List[Dict[str, Any]]:
+def get_next_node_suggestions(
+    current_node: str, top_n: int = 3
+) -> List[Dict[str, Any]]:
     """Get suggested next nodes based on real usage patterns"""
     if current_node not in NODE_CONNECTION_FREQUENCY:
         return []
@@ -218,7 +220,9 @@ def get_workflow_for_terrain_type(terrain_type: str) -> Optional[Dict[str, Any]]
     return None
 
 
-def suggest_properties_for_node(node_type: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def suggest_properties_for_node(
+    node_type: str, context: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """Suggest properties based on node type and context"""
     if node_type not in PROPERTY_RECOMMENDATIONS:
         return {}

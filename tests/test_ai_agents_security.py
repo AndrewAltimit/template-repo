@@ -217,17 +217,23 @@ class TestSecurityManager:
         assert reason is None
 
         # Test restricted paths - agent's own code
-        allowed, reason = security_manager.check_file_path_security("scripts/agents/issue_monitor.py")
+        allowed, reason = security_manager.check_file_path_security(
+            "scripts/agents/issue_monitor.py"
+        )
         assert allowed is False
         assert "scripts/agents/" in reason
 
-        allowed, reason = security_manager.check_file_path_security("scripts/agents/security.py")
+        allowed, reason = security_manager.check_file_path_security(
+            "scripts/agents/security.py"
+        )
         assert allowed is False
         # The reason could be either the path pattern or the filename
         assert "scripts/agents/" in reason or "security.py" in reason
 
         # Test restricted paths - workflows
-        allowed, reason = security_manager.check_file_path_security(".github/workflows/issue-monitor.yml")
+        allowed, reason = security_manager.check_file_path_security(
+            ".github/workflows/issue-monitor.yml"
+        )
         assert allowed is False
         assert ".github/workflows/issue-monitor.yml" in reason
 
@@ -241,11 +247,15 @@ class TestSecurityManager:
         assert "~/.ssh/" in reason
 
         # Test restricted file names
-        allowed, reason = security_manager.check_file_path_security("some/path/config.json")
+        allowed, reason = security_manager.check_file_path_security(
+            "some/path/config.json"
+        )
         assert allowed is False
         assert "config.json" in reason
 
-        allowed, reason = security_manager.check_file_path_security("another/path/.gitconfig")
+        allowed, reason = security_manager.check_file_path_security(
+            "another/path/.gitconfig"
+        )
         assert allowed is False
         assert ".gitconfig" in reason
 
@@ -354,8 +364,12 @@ class TestSecurityManager:
 
         # Invalid triggers
         assert security_manager.parse_keyword_trigger("[Invalid][Claude]") is None
-        assert security_manager.parse_keyword_trigger("[Approved][GitBot]") is None  # GitBot removed
-        assert security_manager.parse_keyword_trigger("[Approved][InvalidAgent]") is None
+        assert (
+            security_manager.parse_keyword_trigger("[Approved][GitBot]") is None
+        )  # GitBot removed
+        assert (
+            security_manager.parse_keyword_trigger("[Approved][InvalidAgent]") is None
+        )
         assert security_manager.parse_keyword_trigger("[Approved]") is None
         assert security_manager.parse_keyword_trigger("Approved][Claude]") is None
         assert security_manager.parse_keyword_trigger("[Approved Claude]") is None
@@ -379,12 +393,16 @@ class TestSecurityManager:
 
         # Issue without trigger
         issue_no_trigger = test_issue("user1")
-        issue_no_trigger["comments"] = [{"author": {"login": "test-user"}, "body": "This needs work"}]
+        issue_no_trigger["comments"] = [
+            {"author": {"login": "test-user"}, "body": "This needs work"}
+        ]
         assert security_manager.check_trigger_comment(issue_no_trigger) is None
 
         # Trigger from unauthorized user
         issue_unauthorized = test_issue("hacker")
-        issue_unauthorized["comments"] = [{"author": {"login": "hacker"}, "body": "[Approved][Claude]"}]
+        issue_unauthorized["comments"] = [
+            {"author": {"login": "hacker"}, "body": "[Approved][Claude]"}
+        ]
         assert security_manager.check_trigger_comment(issue_unauthorized) is None
 
         # Multiple triggers - most recent wins

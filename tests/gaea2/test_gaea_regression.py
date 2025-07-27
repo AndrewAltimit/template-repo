@@ -89,7 +89,9 @@ class RegressionTestManager:
 
         # Sort lists for consistent comparison
         if "nodes" in normalized:
-            normalized["nodes"] = sorted(normalized["nodes"], key=lambda x: x.get("id", ""))
+            normalized["nodes"] = sorted(
+                normalized["nodes"], key=lambda x: x.get("id", "")
+            )
         if "connections" in normalized:
             normalized["connections"] = sorted(
                 normalized["connections"],
@@ -140,7 +142,9 @@ class RegressionTestManager:
             if "Nodes" in data and isinstance(data["Nodes"], dict):
                 # project_structure.Assets.$values[0].Terrain.Nodes format
                 for node_id, node_data in data["Nodes"].items():
-                    if node_id != "$id" and isinstance(node_data, dict):  # Skip metadata fields
+                    if node_id != "$id" and isinstance(
+                        node_data, dict
+                    ):  # Skip metadata fields
                         node_type = (
                             node_data.get("$type", "").split(".")[-1]
                             if "$type" in node_data
@@ -199,7 +203,9 @@ class RegressionTestManager:
 
         return node_id_map
 
-    def _apply_node_id_normalization(self, data: Any, node_id_map: Dict[Any, str]) -> None:
+    def _apply_node_id_normalization(
+        self, data: Any, node_id_map: Dict[Any, str]
+    ) -> None:
         """Recursively apply node ID normalization throughout the structure."""
         if isinstance(data, dict):
             # Handle project_structure.Assets.$values[0].Terrain.Nodes format
@@ -231,9 +237,13 @@ class RegressionTestManager:
             if "connections" in data and isinstance(data["connections"], list):
                 for conn in data["connections"]:
                     if "from_node" in conn:
-                        conn["from_node"] = node_id_map.get(conn["from_node"], conn["from_node"])
+                        conn["from_node"] = node_id_map.get(
+                            conn["from_node"], conn["from_node"]
+                        )
                     if "to_node" in conn:
-                        conn["to_node"] = node_id_map.get(conn["to_node"], conn["to_node"])
+                        conn["to_node"] = node_id_map.get(
+                            conn["to_node"], conn["to_node"]
+                        )
                     if "From" in conn:
                         conn["From"] = node_id_map.get(conn["From"], conn["From"])
                     if "To" in conn:
@@ -249,7 +259,9 @@ class RegressionTestManager:
 
             # Handle SelectedNode and similar fields
             if "SelectedNode" in data:
-                data["SelectedNode"] = node_id_map.get(data["SelectedNode"], data["SelectedNode"])
+                data["SelectedNode"] = node_id_map.get(
+                    data["SelectedNode"], data["SelectedNode"]
+                )
 
             # Recursively process nested structures
             for key, value in data.items():
@@ -259,7 +271,9 @@ class RegressionTestManager:
             for item in data:
                 self._apply_node_id_normalization(item, node_id_map)
 
-    def compare_with_baseline(self, test_name: str, current_result: Dict[str, Any]) -> Dict[str, Any]:
+    def compare_with_baseline(
+        self, test_name: str, current_result: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Compare current result with baseline."""
         baseline = self.load_baseline(test_name)
 
@@ -284,7 +298,9 @@ class RegressionTestManager:
                 "baseline_version": baseline["version"],
             }
 
-    def _find_differences(self, baseline: Any, current: Any, path: str = "") -> List[Dict[str, Any]]:
+    def _find_differences(
+        self, baseline: Any, current: Any, path: str = ""
+    ) -> List[Dict[str, Any]]:
         """Recursively find differences between baseline and current."""
         differences = []
 
@@ -324,7 +340,8 @@ class RegressionTestManager:
 
                 # Skip acceptable differences
                 if any(
-                    current_path == acceptable or current_path.endswith("." + acceptable)
+                    current_path == acceptable
+                    or current_path.endswith("." + acceptable)
                     for acceptable in acceptable_differences
                 ):
                     continue
@@ -346,7 +363,11 @@ class RegressionTestManager:
                         }
                     )
                 else:
-                    differences.extend(self._find_differences(baseline[key], current[key], current_path))
+                    differences.extend(
+                        self._find_differences(
+                            baseline[key], current[key], current_path
+                        )
+                    )
         elif isinstance(baseline, list):
             if len(baseline) != len(current):
                 differences.append(
@@ -359,7 +380,9 @@ class RegressionTestManager:
                 )
             else:
                 for i, (b_item, c_item) in enumerate(zip(baseline, current)):
-                    differences.extend(self._find_differences(b_item, c_item, f"{path}[{i}]"))
+                    differences.extend(
+                        self._find_differences(b_item, c_item, f"{path}[{i}]")
+                    )
         elif baseline != current:
             differences.append(
                 {
@@ -384,7 +407,9 @@ class TestGaea2Regression:
     def regression_manager(self):
         return RegressionTestManager()
 
-    async def execute_tool(self, url: str, tool: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_tool(
+        self, url: str, tool: str, parameters: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute an MCP tool and return the response."""
         async with aiohttp.ClientSession() as session:
             async with session.post(
@@ -460,7 +485,9 @@ class TestGaea2Regression:
                         actual_result = result
 
                     # Compare with baseline
-                    comparison = regression_manager.compare_with_baseline(test_name, actual_result)
+                    comparison = regression_manager.compare_with_baseline(
+                        test_name, actual_result
+                    )
                     regression_results[template] = comparison
 
                     # Update baseline if needed (controlled by environment variable)
@@ -498,9 +525,16 @@ class TestGaea2Regression:
                 diff = regression_results[t].get("differences", [])
                 # Check if all differences are acceptable
                 real_diffs = [
-                    d for d in diff if not any(d["path"] == acc or d["path"].endswith("." + acc) for acc in acceptable_diffs)
+                    d
+                    for d in diff
+                    if not any(
+                        d["path"] == acc or d["path"].endswith("." + acc)
+                        for acc in acceptable_diffs
+                    )
                 ]
-                if real_diffs:  # Only count as regression if there are non-acceptable differences
+                if (
+                    real_diffs
+                ):  # Only count as regression if there are non-acceptable differences
                     working_regressions.append(t)
 
         # Debug: print regression details
@@ -532,14 +566,21 @@ class TestGaea2Regression:
                     real_diffs = [
                         d
                         for d in diff
-                        if not any(d["path"] == acc or d["path"].endswith("." + acc) for acc in acceptable_diffs)
+                        if not any(
+                            d["path"] == acc or d["path"].endswith("." + acc)
+                            for acc in acceptable_diffs
+                        )
                     ]
                     if real_diffs:
-                        print(f"  Real differences: {real_diffs[:2]}...")  # Show first 2 real differences
+                        print(
+                            f"  Real differences: {real_diffs[:2]}..."
+                        )  # Show first 2 real differences
                     else:
                         print("  Only acceptable differences found (API format change)")
 
-        assert len(working_regressions) == 0, f"Regressions detected in working templates: {working_regressions}"
+        assert (
+            len(working_regressions) == 0
+        ), f"Regressions detected in working templates: {working_regressions}"
 
         # Verify corrupted templates remain corrupted
         for template in corrupted_templates:
@@ -573,7 +614,9 @@ class TestGaea2Regression:
             {
                 "name": "missing_export",
                 "workflow": {
-                    "nodes": [{"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}}],
+                    "nodes": [
+                        {"id": "1", "type": "Mountain", "position": {"X": 0, "Y": 0}}
+                    ],
                     "connections": [],
                 },
             },
@@ -617,12 +660,16 @@ class TestGaea2Regression:
             else:
                 actual_result = result
 
-            comparison = regression_manager.compare_with_baseline(test_name, actual_result)
+            comparison = regression_manager.compare_with_baseline(
+                test_name, actual_result
+            )
 
             if comparison["status"] == "no_baseline":
                 regression_manager.save_baseline(test_name, result)
             elif comparison["status"] == "regression_detected":
-                pytest.fail(f"Validation regression in {test_case['name']}: {comparison['differences']}")
+                pytest.fail(
+                    f"Validation regression in {test_case['name']}: {comparison['differences']}"
+                )
 
     @pytest.mark.asyncio
     async def test_node_behavior_regression(self, mcp_url, regression_manager):
@@ -681,16 +728,22 @@ class TestGaea2Regression:
             else:
                 actual_result = result
 
-            comparison = regression_manager.compare_with_baseline(test_name, actual_result)
+            comparison = regression_manager.compare_with_baseline(
+                test_name, actual_result
+            )
 
             if comparison["status"] == "no_baseline":
                 regression_manager.save_baseline(test_name, result)
             elif comparison["status"] == "regression_detected":
                 # Some differences might be acceptable (e.g., performance improvements)
                 critical_regressions = [
-                    d for d in comparison["differences"] if "validation" in d["path"] or "error" in d["path"]
+                    d
+                    for d in comparison["differences"]
+                    if "validation" in d["path"] or "error" in d["path"]
                 ]
-                assert len(critical_regressions) == 0, f"Critical regression in {test_case['name']}"
+                assert (
+                    len(critical_regressions) == 0
+                ), f"Critical regression in {test_case['name']}"
 
     @pytest.mark.asyncio
     async def test_pattern_analysis_regression(self, mcp_url, regression_manager):
@@ -698,7 +751,9 @@ class TestGaea2Regression:
         terrain_types = ["mountain", "desert", "coastal", "volcanic", "arctic"]
 
         for terrain_type in terrain_types:
-            result = await self.execute_tool(mcp_url, "analyze_workflow_patterns", {"workflow_type": terrain_type})
+            result = await self.execute_tool(
+                mcp_url, "analyze_workflow_patterns", {"workflow_type": terrain_type}
+            )
 
             test_name = f"patterns_{terrain_type}"
 
@@ -708,7 +763,9 @@ class TestGaea2Regression:
             else:
                 actual_result = result
 
-            comparison = regression_manager.compare_with_baseline(test_name, actual_result)
+            comparison = regression_manager.compare_with_baseline(
+                test_name, actual_result
+            )
 
             if comparison["status"] == "no_baseline":
                 regression_manager.save_baseline(test_name, result)
@@ -716,7 +773,10 @@ class TestGaea2Regression:
                 # Pattern recommendations can evolve, but core patterns should remain
                 core_regression = False
                 for diff in comparison["differences"]:
-                    if "common_patterns" in diff["path"] and diff["type"] == "removed_key":
+                    if (
+                        "common_patterns" in diff["path"]
+                        and diff["type"] == "removed_key"
+                    ):
                         core_regression = True
                         break
 
@@ -771,7 +831,9 @@ class TestGaea2Regression:
             else:
                 actual_result = result
 
-            comparison = regression_manager.compare_with_baseline(test_name, actual_result)
+            comparison = regression_manager.compare_with_baseline(
+                test_name, actual_result
+            )
 
             if comparison["status"] == "no_baseline":
                 regression_manager.save_baseline(test_name, result)
@@ -807,18 +869,28 @@ class TestGaea2Regression:
         ]
 
         for scenario in error_scenarios:
-            result = await self.execute_tool(mcp_url, scenario["tool"], scenario["parameters"])
+            result = await self.execute_tool(
+                mcp_url, scenario["tool"], scenario["parameters"]
+            )
 
             # Error responses should remain consistent
             # Allow both error format and success:false format
-            has_error = result.get("error") is not None or result.get("success") is False
-            assert has_error, f"Expected error response for {scenario['name']}, got: {result}"
+            has_error = (
+                result.get("error") is not None or result.get("success") is False
+            )
+            assert (
+                has_error
+            ), f"Expected error response for {scenario['name']}, got: {result}"
 
             # Check error message consistency
             test_name = f"error_{scenario['name']}"
             error_data = {
                 "has_error": True,
-                "error_keywords": [word.lower() for word in result["error"].split() if len(word) > 3 and word.isalpha()][
+                "error_keywords": [
+                    word.lower()
+                    for word in result["error"].split()
+                    if len(word) > 3 and word.isalpha()
+                ][
                     :5
                 ],  # First 5 significant words
             }
@@ -834,12 +906,19 @@ class TestGaea2Regression:
                 for diff in comparison["differences"]:
                     if diff["type"] == "removed_key" and diff["path"] == "has_error":
                         pytest.fail(f"Error handling removed for {scenario['name']}")
-                    elif diff["type"] == "list_length_mismatch" and diff["path"] == "error_keywords":
+                    elif (
+                        diff["type"] == "list_length_mismatch"
+                        and diff["path"] == "error_keywords"
+                    ):
                         # This is OK - error messages can be improved
                         # Just ensure we still have meaningful keywords
                         if diff["current_length"] == 0:
-                            pytest.fail(f"Error message lost all keywords for {scenario['name']}")
-                    elif diff["type"] == "value_mismatch" and diff["path"] == "has_error":
+                            pytest.fail(
+                                f"Error message lost all keywords for {scenario['name']}"
+                            )
+                    elif (
+                        diff["type"] == "value_mismatch" and diff["path"] == "has_error"
+                    ):
                         pytest.fail(f"Error handling changed for {scenario['name']}")
 
 
@@ -858,7 +937,9 @@ class TestPerformanceRegression:
                 return json.load(f)
         return {"tests": []}
 
-    async def execute_timed_tool(self, url: str, tool: str, parameters: Dict[str, Any]) -> tuple[Dict[str, Any], float]:
+    async def execute_timed_tool(
+        self, url: str, tool: str, parameters: Dict[str, Any]
+    ) -> tuple[Dict[str, Any], float]:
         """Execute tool and measure time."""
         start_time = asyncio.get_event_loop().time()
 
@@ -888,11 +969,15 @@ class TestPerformanceRegression:
 
         # Compare with historical performance
         historical = [
-            t["duration"] for t in performance_log["tests"] if t["test"] == "template_performance" and t.get("success")
+            t["duration"]
+            for t in performance_log["tests"]
+            if t["test"] == "template_performance" and t.get("success")
         ]
 
         if historical:
-            avg_historical = sum(historical[-10:]) / len(historical[-10:])  # Last 10 runs
+            avg_historical = sum(historical[-10:]) / len(
+                historical[-10:]
+            )  # Last 10 runs
             # Allow 300x performance degradation tolerance due to file validation
             # Historical baseline was without validation, new runs include validation
             assert (
@@ -929,14 +1014,22 @@ class TestPerformanceRegression:
                 )
 
         nodes.append({"id": "20", "type": "Export", "position": {"X": 0, "Y": 4}})
-        connections.append({"from_node": "19", "from_port": "Out", "to_node": "20", "to_port": "In"})
+        connections.append(
+            {"from_node": "19", "from_port": "Out", "to_node": "20", "to_port": "In"}
+        )
 
         workflow = {"nodes": nodes, "connections": connections}
 
-        result, duration = await self.execute_timed_tool(mcp_url, "validate_and_fix_workflow", {"workflow": workflow})
+        result, duration = await self.execute_timed_tool(
+            mcp_url, "validate_and_fix_workflow", {"workflow": workflow}
+        )
 
         # Check performance regression
-        historical = [t["duration"] for t in performance_log["tests"] if t["test"] == "validation_performance"]
+        historical = [
+            t["duration"]
+            for t in performance_log["tests"]
+            if t["test"] == "validation_performance"
+        ]
 
         if historical:
             avg_historical = sum(historical[-10:]) / len(historical[-10:])

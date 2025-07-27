@@ -14,7 +14,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 
@@ -32,7 +34,9 @@ class AgentRunner:
             with open(self.config_path, "r") as f:
                 return json.load(f)
         except FileNotFoundError:
-            logger.warning(f"Config file not found at {self.config_path}, using defaults")
+            logger.warning(
+                f"Config file not found at {self.config_path}, using defaults"
+            )
             return {
                 "agents": {
                     "issue_monitor": {"enabled": True},
@@ -84,7 +88,9 @@ class AgentRunner:
                 "git operations on the same repository, which can lead to race conditions."
             )
             with ThreadPoolExecutor(max_workers=len(agents)) as executor:
-                futures = {executor.submit(self.run_agent, agent): agent for agent in agents}
+                futures = {
+                    executor.submit(self.run_agent, agent): agent for agent in agents
+                }
 
                 for future in as_completed(futures):
                     agent = futures[future]
@@ -110,12 +116,18 @@ class AgentRunner:
             print(f"{agent_name}: {status}")
 
             if enabled and "check_interval_minutes" in agent_config:
-                print(f"  Check interval: {agent_config['check_interval_minutes']} minutes")
+                print(
+                    f"  Check interval: {agent_config['check_interval_minutes']} minutes"
+                )
 
         print("\n=== Configuration ===")
         print(f"Config file: {self.config_path}")
-        print(f"Claude CLI: {self.config.get('claude_cli', {}).get('command', 'Not configured')}")
-        print(f"Git author: {self.config.get('git', {}).get('author_name', 'Not configured')}")
+        print(
+            f"Claude CLI: {self.config.get('claude_cli', {}).get('command', 'Not configured')}"
+        )
+        print(
+            f"Git author: {self.config.get('git', {}).get('author_name', 'Not configured')}"
+        )
 
 
 def main():
@@ -132,7 +144,9 @@ def main():
         action="store_true",
         help="Run agents in parallel (NOT recommended - can cause git race conditions)",
     )
-    parser.add_argument("--continuous", action="store_true", help="Run agent continuously")
+    parser.add_argument(
+        "--continuous", action="store_true", help="Run agent continuously"
+    )
 
     args = parser.parse_args()
 
@@ -152,7 +166,9 @@ def main():
         if not all(results.values()):
             sys.exit(1)
     elif args.command == "run":
-        print("Please specify which agent to run (e.g., issue-monitor, pr-review-monitor)")
+        print(
+            "Please specify which agent to run (e.g., issue-monitor, pr-review-monitor)"
+        )
         sys.exit(1)
     elif args.command in ["issue-monitor", "pr-review-monitor"]:
         agent_name = args.command.replace("-", "_")

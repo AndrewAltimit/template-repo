@@ -20,7 +20,9 @@ class Gaea2Repairer:
         self.error_recovery = Gaea2ErrorRecovery()
         self.structure_validator = Gaea2StructureValidator()
 
-    async def repair_project(self, project_path: str, backup: bool = True) -> Dict[str, Any]:
+    async def repair_project(
+        self, project_path: str, backup: bool = True
+    ) -> Dict[str, Any]:
         """Repair a Gaea2 project file"""
 
         project_path_obj = Path(project_path)
@@ -35,7 +37,9 @@ class Gaea2Repairer:
             # Create backup if requested
             backup_path = None
             if backup:
-                backup_path = project_path_obj.with_suffix(f".backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.terrain")
+                backup_path = project_path_obj.with_suffix(
+                    f".backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.terrain"
+                )
                 shutil.copy2(project_path_obj, backup_path)
                 self.logger.info(f"Created backup: {backup_path}")
 
@@ -48,7 +52,9 @@ class Gaea2Repairer:
 
             if not structure_result["valid"]:
                 # Use project repair
-                repair_result = self.project_repair.repair_project(str(project_path), backup=False)  # We already made a backup
+                repair_result = self.project_repair.repair_project(
+                    str(project_path), backup=False
+                )  # We already made a backup
 
                 if repair_result["success"]:
                     # Reload repaired project

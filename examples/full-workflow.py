@@ -36,7 +36,9 @@ class MCPWorkflow:
     def log_step(self, step: str, status: str = "INFO"):
         """Log workflow step"""
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-        icon = {"INFO": "ℹ️", "SUCCESS": "✅", "ERROR": "❌", "WARNING": "⚠️"}.get(status, "")
+        icon = {"INFO": "ℹ️", "SUCCESS": "✅", "ERROR": "❌", "WARNING": "⚠️"}.get(
+            status, ""
+        )
         print(f"[{timestamp}] {icon} {step}")
 
     def run_code_quality_workflow(self, code_path: str) -> Dict[str, Any]:
@@ -46,10 +48,14 @@ class MCPWorkflow:
 
         # Step 1: Format check
         self.log_step("Running format check...")
-        format_result = self.execute_tool("format_check", {"path": code_path, "language": "python"})
+        format_result = self.execute_tool(
+            "format_check", {"path": code_path, "language": "python"}
+        )
         results["format_check"] = format_result
 
-        if format_result.get("success") and format_result.get("result", {}).get("formatted"):
+        if format_result.get("success") and format_result.get("result", {}).get(
+            "formatted"
+        ):
             self.log_step("Code is properly formatted", "SUCCESS")
         else:
             self.log_step("Code formatting issues detected", "WARNING")
@@ -79,7 +85,9 @@ class MCPWorkflow:
 
         return results
 
-    def generate_documentation_workflow(self, project_info: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_documentation_workflow(
+        self, project_info: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Generate project documentation"""
         self.log_step("Starting Documentation Generation Workflow")
         results = {}
@@ -88,7 +96,9 @@ class MCPWorkflow:
         self.log_step("Creating technical documentation...")
 
         latex_content = self._create_documentation_latex(project_info)
-        doc_result = self.execute_tool("compile_latex", {"content": latex_content, "format": "pdf"})
+        doc_result = self.execute_tool(
+            "compile_latex", {"content": latex_content, "format": "pdf"}
+        )
         results["documentation"] = doc_result
 
         if doc_result.get("success"):
@@ -98,7 +108,9 @@ class MCPWorkflow:
         self.log_step("Creating architecture diagram...")
 
         manim_script = self._create_architecture_animation(project_info)
-        viz_result = self.execute_tool("create_manim_animation", {"script": manim_script, "output_format": "mp4"})
+        viz_result = self.execute_tool(
+            "create_manim_animation", {"script": manim_script, "output_format": "mp4"}
+        )
         results["visualization"] = viz_result
 
         if viz_result.get("success"):
@@ -214,8 +226,13 @@ def main():
     project_info = {
         "name": "MCP Template Project",
         "author": "Development Team",
-        "description": ("A comprehensive template for MCP-enabled projects " "with self-hosted runners."),
-        "architecture": ("Microservices architecture with Docker containers " "and MCP tools."),
+        "description": (
+            "A comprehensive template for MCP-enabled projects "
+            "with self-hosted runners."
+        ),
+        "architecture": (
+            "Microservices architecture with Docker containers " "and MCP tools."
+        ),
         "api": "RESTful API with comprehensive tool endpoints.",
     }
 
@@ -239,8 +256,14 @@ def main():
     ai_structure = workflow.execute_tool(
         "consult_gemini",
         {
-            "question": ("What's the best project structure for a Python " "microservice with MCP integration?"),
-            "context": ("The service needs to handle HTTP requests, " "execute MCP tools, and maintain state."),
+            "question": (
+                "What's the best project structure for a Python "
+                "microservice with MCP integration?"
+            ),
+            "context": (
+                "The service needs to handle HTTP requests, "
+                "execute MCP tools, and maintain state."
+            ),
         },
     )
 

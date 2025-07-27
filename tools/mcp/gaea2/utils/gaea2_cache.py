@@ -108,7 +108,9 @@ class Gaea2Cache:
             except Exception as e:
                 logger.warning(f"Failed to load cache: {e}")
 
-    def _save_to_disk(self, key: str, operation: str, params: Dict[str, Any], data: Any):
+    def _save_to_disk(
+        self, key: str, operation: str, params: Dict[str, Any], data: Any
+    ):
         """Save cache entry to disk"""
         if not self.cache_dir:
             return
@@ -147,7 +149,9 @@ class CachedValidator:
         self._schema_cache: Dict[str, Any] = {}
         self._pattern_cache: Dict[str, Any] = {}
 
-    def cached_validate_node(self, node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
+    def cached_validate_node(
+        self, node_type: str, properties: Dict[str, Any]
+    ) -> Tuple[bool, List[str], Dict[str, Any]]:
         """Cached node validation"""
         # Check cache
         params = {"node_type": node_type, "properties": properties}

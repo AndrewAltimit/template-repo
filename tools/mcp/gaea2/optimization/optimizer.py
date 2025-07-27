@@ -15,7 +15,9 @@ class Gaea2Optimizer:
         self.validator = OptimizedGaea2Validator()
         self.property_validator = Gaea2PropertyValidator()
 
-    async def optimize_nodes(self, nodes: List[Dict[str, Any]], mode: str = "balanced") -> List[Dict[str, Any]]:
+    async def optimize_nodes(
+        self, nodes: List[Dict[str, Any]], mode: str = "balanced"
+    ) -> List[Dict[str, Any]]:
         """Optimize node properties based on mode"""
 
         optimized_nodes = []
@@ -44,7 +46,9 @@ class Gaea2Optimizer:
 
         return optimized_nodes
 
-    def _optimize_for_performance(self, node_type: str, properties: Dict[str, Any]) -> Dict[str, Any]:
+    def _optimize_for_performance(
+        self, node_type: str, properties: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Optimize properties for faster generation"""
         optimized = properties.copy()
 
@@ -60,7 +64,9 @@ class Gaea2Optimizer:
 
         return optimized
 
-    def _optimize_for_quality(self, node_type: str, properties: Dict[str, Any]) -> Dict[str, Any]:
+    def _optimize_for_quality(
+        self, node_type: str, properties: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Optimize properties for best quality"""
         optimized = properties.copy()
 
@@ -76,10 +82,14 @@ class Gaea2Optimizer:
 
         return optimized
 
-    def _optimize_balanced(self, node_type: str, properties: Dict[str, Any]) -> Dict[str, Any]:
+    def _optimize_balanced(
+        self, node_type: str, properties: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Balance between performance and quality"""
         # For now, just validate and correct properties
-        _, _, corrected = self.property_validator.validate_properties(node_type, properties)
+        _, _, corrected = self.property_validator.validate_properties(
+            node_type, properties
+        )
         # Ensure we're returning a dict
         if not isinstance(corrected, dict):
             return properties.copy()

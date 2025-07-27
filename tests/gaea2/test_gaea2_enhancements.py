@@ -11,7 +11,9 @@ import sys
 import pytest
 
 # Add project root to Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 # Import Gaea2 MCP server
 from tools.mcp.gaea2.server import Gaea2MCPServer  # noqa: E402
@@ -98,7 +100,9 @@ async def test_workflow_analyzer():
 
     # Create a workflow dict with nodes
     test_workflow = {"nodes": test_nodes, "connections": []}
-    result = await MCPTools.analyze_workflow_patterns(workflow_or_directory=test_workflow)
+    result = await MCPTools.analyze_workflow_patterns(
+        workflow_or_directory=test_workflow
+    )
 
     if result["success"]:
         print("Workflow analysis successful!")
@@ -158,7 +162,9 @@ async def test_project_repair():
         temp_path = f.name
 
     try:
-        result = await MCPTools.repair_gaea2_project(project_path=temp_path, backup=True)
+        result = await MCPTools.repair_gaea2_project(
+            project_path=temp_path, backup=True
+        )
     finally:
         # Clean up temp file
         os.unlink(temp_path)

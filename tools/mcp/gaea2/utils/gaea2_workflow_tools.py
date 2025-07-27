@@ -46,7 +46,9 @@ class Gaea2WorkflowTools:
 
                 # Identify special nodes
                 if node_type in ["Export", "Unity", "Unreal"]:
-                    export_nodes.append({"id": node_id, "type": node_type, "name": node.get("Name", "")})
+                    export_nodes.append(
+                        {"id": node_id, "type": node_type, "name": node.get("Name", "")}
+                    )
 
                 # Analyze ports for connections
                 ports = node.get("Ports", {}).get("$values", [])
@@ -64,7 +66,9 @@ class Gaea2WorkflowTools:
                             # Track as output in the source node
                             from_id = str(record["From"])
                             if from_id in node_connections:
-                                node_connections[from_id]["outputs"].append({"to": node_id, "port": port["Name"]})
+                                node_connections[from_id]["outputs"].append(
+                                    {"to": node_id, "port": port["Name"]}
+                                )
 
             # Identify erosion chains
             for node_id, connections in node_connections.items():
@@ -97,9 +101,17 @@ class Gaea2WorkflowTools:
                         erosion_chains.append(chain)
 
             # Calculate workflow complexity
-            total_connections = sum(len(conn["inputs"]) + len(conn["outputs"]) for conn in node_connections.values()) // 2
+            total_connections = (
+                sum(
+                    len(conn["inputs"]) + len(conn["outputs"])
+                    for conn in node_connections.values()
+                )
+                // 2
+            )
 
-            complexity_score = len(nodes) * 1.0 + total_connections * 0.5 + len(erosion_chains) * 2.0
+            complexity_score = (
+                len(nodes) * 1.0 + total_connections * 0.5 + len(erosion_chains) * 2.0
+            )
 
             # Generate optimization suggestions
             suggestions = []
@@ -143,14 +155,19 @@ class Gaea2WorkflowTools:
                 )
 
             # Analyze node distribution
-            primary_nodes = [t for t, c in node_types.items() if t in ["Mountain", "Ridge", "Dunes", "Canyon"]]
+            primary_nodes = [
+                t
+                for t, c in node_types.items()
+                if t in ["Mountain", "Ridge", "Dunes", "Canyon"]
+            ]
             if len(primary_nodes) > 5:
                 suggestions.append(
                     {
                         "type": "complexity",
                         "severity": "medium",
                         "message": (
-                            f"Multiple primary terrain nodes detected ({len(primary_nodes)}). " "Consider using Combine nodes."
+                            f"Multiple primary terrain nodes detected ({len(primary_nodes)}). "
+                            "Consider using Combine nodes."
                         ),
                         "nodes": [],
                     }
@@ -166,7 +183,9 @@ class Gaea2WorkflowTools:
                     "export_nodes": export_nodes,
                     "complexity_score": complexity_score,
                     "complexity_level": (
-                        "simple" if complexity_score < 20 else "moderate" if complexity_score < 50 else "complex"
+                        "simple"
+                        if complexity_score < 20
+                        else "moderate" if complexity_score < 50 else "complex"
                     ),
                 },
                 "suggestions": suggestions,
@@ -176,7 +195,9 @@ class Gaea2WorkflowTools:
             return {"success": False, "error": str(e)}
 
     @staticmethod
-    async def optimize_build_settings(project_file: str, target_use_case: str = "game") -> Dict[str, Any]:
+    async def optimize_build_settings(
+        project_file: str, target_use_case: str = "game"
+    ) -> Dict[str, Any]:
         """
         Suggest optimal build settings based on target use case
 
@@ -322,7 +343,9 @@ class Gaea2WorkflowTools:
 
                 # Apply resolution settings
                 if "resolution" in common_settings:
-                    build_def = project["Assets"]["$values"][0].get("BuildDefinition", {})
+                    build_def = project["Assets"]["$values"][0].get(
+                        "BuildDefinition", {}
+                    )
                     build_def["Resolution"] = common_settings["resolution"]
                     build_def["BakeResolution"] = common_settings["resolution"]
                     build_def["WorldResolution"] = common_settings["resolution"]
@@ -333,8 +356,14 @@ class Gaea2WorkflowTools:
                     for node_id, node in nodes.items():
                         node_type = node.get("$type", "").split(".")[-2]
                         if node_type in ["Export", "Unity", "Unreal"]:
-                            format_key = "heightmap" if "height" in node.get("Name", "").lower() else "textures"
-                            new_format = common_settings["export_formats"].get(format_key)
+                            format_key = (
+                                "heightmap"
+                                if "height" in node.get("Name", "").lower()
+                                else "textures"
+                            )
+                            new_format = common_settings["export_formats"].get(
+                                format_key
+                            )
                             if new_format:
                                 node["Format"] = new_format
                                 if "SaveDefinition" in node:
@@ -352,7 +381,9 @@ class Gaea2WorkflowTools:
 
                 # Save updated project
                 if output_directory:
-                    output_path = os.path.join(output_directory, f"{project_name}_batch.terrain")
+                    output_path = os.path.join(
+                        output_directory, f"{project_name}_batch.terrain"
+                    )
                     os.makedirs(output_directory, exist_ok=True)
                 else:
                     output_path = project_file.replace(".terrain", "_batch.terrain")
@@ -427,7 +458,9 @@ class Gaea2WorkflowTools:
         return {"success": True, "preset": preset, "path": preset_path}
 
     @staticmethod
-    async def import_node_preset(preset_name: str, position: Dict[str, float], id_offset: int = 1000) -> Dict[str, Any]:
+    async def import_node_preset(
+        preset_name: str, position: Dict[str, float], id_offset: int = 1000
+    ) -> Dict[str, Any]:
         """
         Import a node preset at the specified position
 
@@ -472,7 +505,9 @@ class Gaea2WorkflowTools:
             imported_connections = []
             for conn in preset["connections"]:
                 new_conn = conn.copy()
-                new_conn["from_node"] = id_mapping.get(conn["from_node"], conn["from_node"])
+                new_conn["from_node"] = id_mapping.get(
+                    conn["from_node"], conn["from_node"]
+                )
                 new_conn["to_node"] = id_mapping.get(conn["to_node"], conn["to_node"])
                 imported_connections.append(new_conn)
 
@@ -569,7 +604,9 @@ class Gaea2WorkflowTools:
                     val_b = node_b.get(key)
 
                     if val_a != val_b:
-                        props_changed.append({"property": key, "old_value": val_a, "new_value": val_b})
+                        props_changed.append(
+                            {"property": key, "old_value": val_a, "new_value": val_b}
+                        )
 
                 if props_changed:
                     differences["modified_nodes"].append(
@@ -601,7 +638,9 @@ class Gaea2WorkflowTools:
                         + len(differences["removed_nodes"])
                         + len(differences["modified_nodes"])
                     ),
-                    "has_structural_changes": bool(differences["added_nodes"] or differences["removed_nodes"]),
+                    "has_structural_changes": bool(
+                        differences["added_nodes"] or differences["removed_nodes"]
+                    ),
                     "has_property_changes": bool(differences["modified_nodes"]),
                     "has_build_changes": bool(differences["build_settings"]),
                 },
@@ -710,14 +749,18 @@ class Gaea2WorkflowTools:
                 if node_type in ["Export", "Unity", "Unreal"]:
                     # Each export adds memory for the output buffer
                     bytes_per_pixel = 4  # Assuming 32-bit float
-                    performance_analysis["memory_estimate_mb"] += (resolution * resolution * bytes_per_pixel) / (1024 * 1024)
+                    performance_analysis["memory_estimate_mb"] += (
+                        resolution * resolution * bytes_per_pixel
+                    ) / (1024 * 1024)
 
             # Generate optimization suggestions
             suggestions = performance_analysis["optimization_suggestions"]
 
             # Check for multiple heavy erosion nodes
             erosion_count = sum(
-                1 for n in performance_analysis["heavy_nodes"] if n["type"] in ["Erosion", "Erosion2", "Wizard"]
+                1
+                for n in performance_analysis["heavy_nodes"]
+                if n["type"] in ["Erosion", "Erosion2", "Wizard"]
             )
             if erosion_count > 2:
                 suggestions.append(

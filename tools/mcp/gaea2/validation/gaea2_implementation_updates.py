@@ -272,7 +272,8 @@ VALIDATION_RULES = {
     "Combine": {
         "color_mode": "Must have RenderIntentOverride='Color' for color operations",
         "rule": lambda props, context: (
-            context.get("is_color_operation") is False or props.get("RenderIntentOverride") == "Color"
+            context.get("is_color_operation") is False
+            or props.get("RenderIntentOverride") == "Color"
         ),
     },
 }

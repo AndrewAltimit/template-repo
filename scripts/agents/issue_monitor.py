@@ -27,7 +27,9 @@ from utils import get_github_token, run_gh_command
 
 # Configure logging with security
 log_level = logging.DEBUG if os.environ.get("DEBUG") else logging.INFO
-logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 setup_secure_logging()
 logger = get_secure_logger(__name__)
 
@@ -38,7 +40,9 @@ class IssueMonitor:
     def __init__(self):
         self.repo = os.environ.get("GITHUB_REPOSITORY")
         if not self.repo:
-            logger.error("GITHUB_REPOSITORY environment variable is required but not set")
+            logger.error(
+                "GITHUB_REPOSITORY environment variable is required but not set"
+            )
             raise RuntimeError("GITHUB_REPOSITORY environment variable must be set")
         self.token = get_github_token()
 
@@ -56,7 +60,9 @@ class IssueMonitor:
                 "steps to reproduce",
             ],
         )
-        self.actionable_labels = issue_config.get("actionable_labels", ["bug", "feature", "enhancement", "fix", "improvement"])
+        self.actionable_labels = issue_config.get(
+            "actionable_labels", ["bug", "feature", "enhancement", "fix", "improvement"]
+        )
         # Cutoff period in hours for filtering recent issues
         self.cutoff_hours = issue_config.get("cutoff_hours", 24)
 
@@ -96,14 +102,20 @@ class IssueMonitor:
                 return []
 
             # Filter by recent activity
-            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=self.cutoff_hours)
+            cutoff_time = datetime.now(timezone.utc) - timedelta(
+                hours=self.cutoff_hours
+            )
             recent_issues = []
 
             for issue in all_issues:
                 # Check both created and updated times
-                created_at = datetime.fromisoformat(issue["createdAt"].replace("Z", "+00:00"))
+                created_at = datetime.fromisoformat(
+                    issue["createdAt"].replace("Z", "+00:00")
+                )
                 updated_at = (
-                    datetime.fromisoformat(issue["updatedAt"].replace("Z", "+00:00")) if "updatedAt" in issue else created_at
+                    datetime.fromisoformat(issue["updatedAt"].replace("Z", "+00:00"))
+                    if "updatedAt" in issue
+                    else created_at
                 )
 
                 # Include issue if it was created or updated recently
@@ -172,7 +184,9 @@ class IssueMonitor:
         has_enough_info = len(missing_fields) == 0
         return has_enough_info, missing_fields
 
-    def create_information_request_comment(self, issue_number: int, missing_fields: List[str]) -> None:
+    def create_information_request_comment(
+        self, issue_number: int, missing_fields: List[str]
+    ) -> None:
         """Comment on issue requesting more information."""
         comment_body = (
             f"{self.agent_tag} Thank you for creating this issue! "
@@ -184,7 +198,9 @@ class IssueMonitor:
             comment_body += f"- **{field.title()}**: "
 
             if field == "detailed description":
-                comment_body += "Please provide a more detailed description of the issue\n"
+                comment_body += (
+                    "Please provide a more detailed description of the issue\n"
+                )
             elif field == "expected behavior":
                 comment_body += "What behavior did you expect to see?\n"
             elif field == "steps to reproduce":
@@ -215,7 +231,9 @@ Once you've added this information, I'll be able to create a pull request to add
 
         logger.info(f"Requested more information on issue #{issue_number}")
 
-    def post_security_rejection_comment(self, issue_number: int, reason: Optional[str] = None) -> None:
+    def post_security_rejection_comment(
+        self, issue_number: int, reason: Optional[str] = None
+    ) -> None:
         """Post a comment explaining why the issue cannot be processed."""
         if reason:
             comment_body = (
@@ -335,26 +353,36 @@ You'll receive a notification once the PR is ready.
 
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to prepare repository: {e}")
-            self.post_error_comment(issue_number, f"Failed to prepare repository: {str(e)}")
+            self.post_error_comment(
+                issue_number, f"Failed to prepare repository: {str(e)}"
+            )
             return None
 
         # Use the Claude Code tech-lead subagent to implement the feature
         try:
-            logger.info(f"Using Claude Code tech-lead subagent to implement issue #{issue_number}")
+            logger.info(
+                f"Using Claude Code tech-lead subagent to implement issue #{issue_number}"
+            )
             success, output = implement_issue_with_tech_lead(issue, branch_name)
 
             if not success:
                 logger.error(f"Tech-lead subagent failed: {output}")
-                self.post_error_comment(issue_number, f"Implementation failed: {output}")
+                self.post_error_comment(
+                    issue_number, f"Implementation failed: {output}"
+                )
                 return None
 
             logger.info("Tech-lead subagent completed implementation successfully")
 
             # Check if there are changes to commit
-            status_result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
+            status_result = subprocess.run(
+                ["git", "status", "--porcelain"], capture_output=True, text=True
+            )
             if not status_result.stdout.strip():
                 logger.warning("No changes to commit")
-                self.post_error_comment(issue_number, "No changes were made by the implementation")
+                self.post_error_comment(
+                    issue_number, "No changes were made by the implementation"
+                )
                 return None
 
             # Commit and push changes
@@ -412,7 +440,9 @@ Implemented using Claude Code with the tech-lead persona, focusing on:
             if result.stdout:
                 import re
 
-                url_match = re.search(r"https://github\.com/[^\s]+/pull/\d+", result.stdout)
+                url_match = re.search(
+                    r"https://github\.com/[^\s]+/pull/\d+", result.stdout
+                )
                 if url_match:
                     pr_url = url_match.group(0)
                     logger.info(f"Created PR: {pr_url}")
@@ -460,7 +490,9 @@ Implemented using Claude Code with the tech-lead persona, focusing on:
             self.post_error_comment(issue_number, f"Unexpected error: {str(e)}")
             return None
         except PermissionError as e:
-            logger.error(f"Permission denied executing script for issue #{issue_number}: {e}")
+            logger.error(
+                f"Permission denied executing script for issue #{issue_number}: {e}"
+            )
             return None
         except FileNotFoundError as e:
             logger.error(f"Script file not found for issue #{issue_number}: {e}")
@@ -501,13 +533,20 @@ Implemented using Claude Code with the tech-lead persona, focusing on:
                 try:
                     comments_data = json.loads(comments_output)
                     issue["comments"] = comments_data.get("comments", [])
-                    logger.debug(f"Issue #{issue_number} has {len(issue['comments'])} comments")
+                    logger.debug(
+                        f"Issue #{issue_number} has {len(issue['comments'])} comments"
+                    )
                     # Log comment authors for debugging
                     if issue["comments"]:
-                        authors = [c.get("author", {}).get("login", "Unknown") for c in issue["comments"]]
+                        authors = [
+                            c.get("author", {}).get("login", "Unknown")
+                            for c in issue["comments"]
+                        ]
                         logger.debug(f"Comment authors: {authors}")
                 except json.JSONDecodeError as e:
-                    logger.error(f"Failed to parse comments for issue #{issue_number}: {e}")
+                    logger.error(
+                        f"Failed to parse comments for issue #{issue_number}: {e}"
+                    )
                     issue["comments"] = []
             else:
                 logger.warning(f"No comments output for issue #{issue_number}")
@@ -530,17 +569,21 @@ Implemented using Claude Code with the tech-lead persona, focusing on:
             # For now, we'll handle all triggers, but this is where agent selection would happen
             # In the future: if agent != "Claude": continue
 
-            logger.info(f"Processing issue #{issue_number} triggered by {trigger_user}: [{action}][{agent}]")
+            logger.info(
+                f"Processing issue #{issue_number} triggered by {trigger_user}: [{action}][{agent}]"
+            )
 
             # Enhanced security check with rate limiting and repository validation
             repo = self.repo
 
-            is_allowed, rejection_reason = self.security_manager.perform_full_security_check(
-                username=trigger_user,
-                action=f"issue_{action.lower()}",
-                repository=repo,
-                entity_type="issue",
-                entity_id=str(issue_number),
+            is_allowed, rejection_reason = (
+                self.security_manager.perform_full_security_check(
+                    username=trigger_user,
+                    action=f"issue_{action.lower()}",
+                    repository=repo,
+                    entity_type="issue",
+                    entity_id=str(issue_number),
+                )
             )
 
             if not is_allowed:
@@ -552,16 +595,24 @@ Implemented using Claude Code with the tech-lead persona, focusing on:
             # Skip if we've already processed this action
             # Check if we've already processed this issue
             has_comment = self.has_agent_comment(issue_number)
-            force_reprocess = os.environ.get("FORCE_REPROCESS", "false").lower() == "true"
+            force_reprocess = (
+                os.environ.get("FORCE_REPROCESS", "false").lower() == "true"
+            )
 
             if has_comment and not force_reprocess:
-                logger.info(f"Issue #{issue_number} already has AI agent comment - skipping")
+                logger.info(
+                    f"Issue #{issue_number} already has AI agent comment - skipping"
+                )
                 logger.debug(f"Already processed issue #{issue_number}")
                 continue
             elif has_comment and force_reprocess:
-                logger.info(f"Issue #{issue_number} has AI agent comment but FORCE_REPROCESS=true - proceeding")
+                logger.info(
+                    f"Issue #{issue_number} has AI agent comment but FORCE_REPROCESS=true - proceeding"
+                )
             else:
-                logger.info(f"Issue #{issue_number} has no AI agent comment - proceeding")
+                logger.info(
+                    f"Issue #{issue_number} has no AI agent comment - proceeding"
+                )
 
             # Handle different actions
             if action.lower() in ["approved", "fix", "implement"]:
@@ -585,7 +636,9 @@ Implemented using Claude Code with the tech-lead persona, focusing on:
             elif action.lower() == "close":
                 # Close the issue
                 logger.info(f"Closing issue #{issue_number} as requested")
-                run_gh_command(["issue", "close", str(issue_number), "--repo", self.repo])
+                run_gh_command(
+                    ["issue", "close", str(issue_number), "--repo", self.repo]
+                )
                 self.create_action_comment(
                     issue_number,
                     f"Issue closed as requested by {trigger_user} using [{action}][{agent}]",

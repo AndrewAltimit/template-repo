@@ -39,7 +39,9 @@ class TestNodeProperties:
     def test_node_type_format(self, sample_node: Dict[str, Any]):
         """Test $type matches Gaea2 namespace format"""
         node_type = sample_node["$type"]
-        assert node_type.startswith("QuadSpinner.Gaea.Nodes."), f"Invalid type format: {node_type}"
+        assert node_type.startswith(
+            "QuadSpinner.Gaea.Nodes."
+        ), f"Invalid type format: {node_type}"
         assert node_type.endswith(", Gaea.Nodes"), f"Invalid type suffix: {node_type}"
 
     def test_node_size_values(self):
@@ -109,7 +111,9 @@ class TestNodeProperties:
         ]
 
         for prop_name, value, min_val, max_val in test_cases:
-            assert min_val <= value <= max_val, f"{prop_name} value {value} out of range [{min_val}, {max_val}]"
+            assert (
+                min_val <= value <= max_val
+            ), f"{prop_name} value {value} out of range [{min_val}, {max_val}]"
 
     def test_enum_property_values(self):
         """Test enum properties have valid values"""

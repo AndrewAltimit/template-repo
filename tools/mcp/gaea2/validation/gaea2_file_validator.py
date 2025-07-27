@@ -57,7 +57,9 @@ class Gaea2FileValidator:
             "parse_error": r"parse error|syntax error|malformed",
         }
 
-    async def validate_file(self, file_path: str, timeout: int = 30, capture_screenshot: bool = False) -> Dict[str, Any]:
+    async def validate_file(
+        self, file_path: str, timeout: int = 30, capture_screenshot: bool = False
+    ) -> Dict[str, Any]:
         """
         Validate a single Gaea2 terrain file
 
@@ -137,14 +139,18 @@ class Gaea2FileValidator:
                         line_text = line.decode("utf-8", errors="replace").strip()
                         if line_text:
                             data_list.append(line_text)
-                            logger.debug(f"{'stderr' if is_stderr else 'stdout'}: {line_text}")
+                            logger.debug(
+                                f"{'stderr' if is_stderr else 'stdout'}: {line_text}"
+                            )
 
                             # Check for success patterns
                             for pattern in success_patterns:
                                 if re.search(pattern, line_text, re.IGNORECASE):
                                     nonlocal success_detected
                                     success_detected = True
-                                    logger.info(f"Success pattern detected: {line_text}")
+                                    logger.info(
+                                        f"Success pattern detected: {line_text}"
+                                    )
 
                             # Check for failure patterns
                             for pattern in failure_patterns:
@@ -161,7 +167,9 @@ class Gaea2FileValidator:
 
             # Start reading both streams
             stdout_task = asyncio.create_task(read_stream(process.stdout, stdout_data))
-            stderr_task = asyncio.create_task(read_stream(process.stderr, stderr_data, True))
+            stderr_task = asyncio.create_task(
+                read_stream(process.stderr, stderr_data, True)
+            )
 
             # Wait for either success/failure detection or timeout
             wait_time = 0.0
@@ -178,10 +186,15 @@ class Gaea2FileValidator:
                 # If success detected, wait a bit to ensure no errors follow
                 if success_detected and not opening_detected_time:
                     opening_detected_time = wait_time
-                    logger.info(f"Success pattern detected at {wait_time}s, waiting {post_opening_wait}s to confirm...")
+                    logger.info(
+                        f"Success pattern detected at {wait_time}s, waiting {post_opening_wait}s to confirm..."
+                    )
 
                 # If we've waited enough after detecting opening, consider it successful
-                if opening_detected_time and (wait_time - opening_detected_time) >= post_opening_wait:
+                if (
+                    opening_detected_time
+                    and (wait_time - opening_detected_time) >= post_opening_wait
+                ):
                     logger.info("File opened successfully with no errors following")
                     break
 
@@ -232,7 +245,9 @@ class Gaea2FileValidator:
                 error = "Process ended without clear result" if not success else None
 
             # Parse error messages if failed
-            error_info = self._parse_errors(stdout_text + stderr_text) if not success else None
+            error_info = (
+                self._parse_errors(stdout_text + stderr_text) if not success else None
+            )
 
             # Calculate duration
             duration = (datetime.now() - start_time).total_seconds()
@@ -302,14 +317,19 @@ class Gaea2FileValidator:
         if node_match:
             error_info["problematic_node"] = node_match.group(1)
 
-        prop_pattern = r'property\s*["\']?(\w+)["\']?\s*' r"(?:is\s*)?(?:invalid|unknown|not supported)"
+        prop_pattern = (
+            r'property\s*["\']?(\w+)["\']?\s*'
+            r"(?:is\s*)?(?:invalid|unknown|not supported)"
+        )
         prop_match = re.search(prop_pattern, output, re.IGNORECASE)
         if prop_match:
             error_info["problematic_property"] = prop_match.group(1)
 
         return error_info
 
-    async def validate_batch(self, file_paths: List[str], concurrent: int = 4, stop_on_error: bool = False) -> Dict[str, Any]:
+    async def validate_batch(
+        self, file_paths: List[str], concurrent: int = 4, stop_on_error: bool = False
+    ) -> Dict[str, Any]:
         """
         Validate multiple files in batch
 
@@ -366,11 +386,15 @@ class Gaea2FileValidator:
         for result in results:
             if not result["success"] and result.get("error_info"):
                 for error_type in result["error_info"].get("error_types", []):
-                    summary["error_types"][error_type] = summary["error_types"].get(error_type, 0) + 1
+                    summary["error_types"][error_type] = (
+                        summary["error_types"].get(error_type, 0) + 1
+                    )
 
         # Find most common errors
         if summary["error_types"]:
-            summary["common_errors"] = sorted(summary["error_types"].items(), key=lambda x: x[1], reverse=True)[:5]
+            summary["common_errors"] = sorted(
+                summary["error_types"].items(), key=lambda x: x[1], reverse=True
+            )[:5]
 
         return summary
 
@@ -391,7 +415,9 @@ class Gaea2FileValidator:
         Returns:
             Validation results for the template
         """
-        logger.info(f"Validating template: {template_name} with {variations} variations")
+        logger.info(
+            f"Validating template: {template_name} with {variations} variations"
+        )
 
         # Directory for test files
         test_dir = Path(tempfile.mkdtemp(prefix=f"gaea2_test_{template_name}_"))
@@ -401,7 +427,9 @@ class Gaea2FileValidator:
 
             # Generate variations
             for i in range(variations):
-                project_name = f"test_{template_name}_var{i}_{datetime.now().strftime('%H%M%S')}"
+                project_name = (
+                    f"test_{template_name}_var{i}_{datetime.now().strftime('%H%M%S')}"
+                )
 
                 # Call MCP server to generate file
                 import requests
@@ -415,7 +443,9 @@ class Gaea2FileValidator:
                     },
                 }
 
-                response = requests.post(f"{server_url}/mcp/execute", json=payload, timeout=30)
+                response = requests.post(
+                    f"{server_url}/mcp/execute", json=payload, timeout=30
+                )
                 result = response.json()
 
                 if result.get("success"):
@@ -425,7 +455,9 @@ class Gaea2FileValidator:
                     else:
                         logger.error(f"Generated file not found: {file_path}")
                 else:
-                    logger.error(f"Failed to generate variation {i}: {result.get('error')}")
+                    logger.error(
+                        f"Failed to generate variation {i}: {result.get('error')}"
+                    )
 
             # Validate all generated files
             if generated_files:
@@ -474,22 +506,30 @@ class Gaea2FileValidator:
             if failure.get("error_info"):
                 # Count error types
                 for error_type in failure["error_info"].get("error_types", []):
-                    patterns["error_types"][error_type] = patterns["error_types"].get(error_type, 0) + 1
+                    patterns["error_types"][error_type] = (
+                        patterns["error_types"].get(error_type, 0) + 1
+                    )
 
                 # Track problematic nodes
                 if "problematic_node" in failure["error_info"]:
-                    patterns["problematic_nodes"].append(failure["error_info"]["problematic_node"])
+                    patterns["problematic_nodes"].append(
+                        failure["error_info"]["problematic_node"]
+                    )
 
                 # Track problematic properties
                 if "problematic_property" in failure["error_info"]:
-                    patterns["problematic_properties"].append(failure["error_info"]["problematic_property"])
+                    patterns["problematic_properties"].append(
+                        failure["error_info"]["problematic_property"]
+                    )
 
         # Find most common issues
         analysis = {
             "total_validations": len(self.validation_history),
             "failures": len(failures),
             "failure_rate": len(failures) / len(self.validation_history),
-            "most_common_errors": sorted(patterns["error_types"].items(), key=lambda x: x[1], reverse=True),
+            "most_common_errors": sorted(
+                patterns["error_types"].items(), key=lambda x: x[1], reverse=True
+            ),
             "problematic_nodes": list(set(patterns["problematic_nodes"])),
             "problematic_properties": list(set(patterns["problematic_properties"])),
         }
@@ -534,7 +574,9 @@ MOST COMMON ERRORS
         for i, failure in enumerate(failures[:20]):  # First 20 failures
             report += f"\n{i+1}. File: {Path(failure['file_path']).name}\n"
             report += f"   Error: {failure.get('error', 'Unknown')}\n"
-            if failure.get("error_info") and failure["error_info"].get("error_messages"):
+            if failure.get("error_info") and failure["error_info"].get(
+                "error_messages"
+            ):
                 report += "   Messages:\n"
                 for msg in failure["error_info"]["error_messages"][:3]:
                     report += f"     - {msg}\n"
@@ -554,7 +596,9 @@ async def validate_gaea2_file(file_path: str, timeout: int = 30) -> Dict[str, An
     return await validator.validate_file(file_path, timeout)
 
 
-async def validate_gaea2_batch(file_paths: List[str], concurrent: int = 4) -> Dict[str, Any]:
+async def validate_gaea2_batch(
+    file_paths: List[str], concurrent: int = 4
+) -> Dict[str, Any]:
     """MCP tool function to validate multiple Gaea2 files"""
     validator = Gaea2FileValidator()
     return await validator.validate_batch(file_paths, concurrent)

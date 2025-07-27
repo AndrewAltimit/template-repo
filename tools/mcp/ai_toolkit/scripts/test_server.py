@@ -30,7 +30,9 @@ def test_tools_list():
             return False
     except requests.exceptions.ConnectionError:
         print(f"✗ Could not connect to server at {SERVER_URL}")
-        print("  Make sure the server is running: python -m tools.mcp.ai_toolkit.server")
+        print(
+            "  Make sure the server is running: python -m tools.mcp.ai_toolkit.server"
+        )
         return False
     except Exception as e:
         print(f"✗ Error: {e}")
@@ -50,7 +52,9 @@ def test_list_configs():
             result = response.json()
             if "error" in result:
                 print(f"✓ Remote server not available: {result['error']}")
-                print(f"  This is expected if remote server at {REMOTE_URL} is not running")
+                print(
+                    f"  This is expected if remote server at {REMOTE_URL} is not running"
+                )
             else:
                 configs = result.get("configs", [])
                 print(f"✓ Found {len(configs)} configurations")

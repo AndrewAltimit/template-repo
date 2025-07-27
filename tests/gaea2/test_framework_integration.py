@@ -37,7 +37,9 @@ class Gaea2TestFramework:
         self.knowledge_base: Dict[str, Any] = {}
         self.regression_baseline: Dict[str, Any] = {}
 
-    async def execute_mcp_tool(self, tool: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_mcp_tool(
+        self, tool: str, parameters: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute an MCP tool and capture all response details including errors."""
         async with aiohttp.ClientSession() as session:
             try:
@@ -88,7 +90,9 @@ class Gaea2TestFramework:
                 self.test_results.append(error_record)
                 return {"error": str(e), "error_type": type(e).__name__}
 
-    def _update_knowledge_base(self, tool: str, parameters: Dict[str, Any], result: Dict[str, Any]):
+    def _update_knowledge_base(
+        self, tool: str, parameters: Dict[str, Any], result: Dict[str, Any]
+    ):
         """Update knowledge base with successful patterns."""
         if tool not in self.knowledge_base:
             self.knowledge_base[tool] = []
@@ -117,7 +121,9 @@ class TestSuccessfulOperations:
             {"template_name": "basic_terrain", "project_name": "test_basic"},
         )
 
-        assert result.get("success"), f"Expected success but got error: {result.get('error')}"
+        assert result.get(
+            "success"
+        ), f"Expected success but got error: {result.get('error')}"
         assert "project_path" in result
         # API returns validation info at top level
         assert result.get("node_count", 0) > 0
@@ -177,7 +183,9 @@ class TestSuccessfulOperations:
             ],
         }
 
-        result = await framework.execute_mcp_tool("validate_and_fix_workflow", {"workflow": workflow})
+        result = await framework.execute_mcp_tool(
+            "validate_and_fix_workflow", {"workflow": workflow}
+        )
 
         assert result.get("success"), f"Validation failed: {result.get('error')}"
         # Check the validation result structure
@@ -230,7 +238,9 @@ class TestSuccessfulOperations:
             ],
         }
 
-        result = await framework.execute_mcp_tool("analyze_workflow_patterns", {"workflow_or_directory": workflow})
+        result = await framework.execute_mcp_tool(
+            "analyze_workflow_patterns", {"workflow_or_directory": workflow}
+        )
 
         assert result.get("success"), f"Pattern analysis failed: {result.get('error')}"
         # Pattern analysis returns data in 'analysis' field
@@ -268,7 +278,9 @@ class TestSuccessfulOperations:
 
         # Each suggestion should have node_type, reason, and category
         for suggestion in suggestions:
-            assert isinstance(suggestion, dict), f"Expected dict, got {type(suggestion)}"
+            assert isinstance(
+                suggestion, dict
+            ), f"Expected dict, got {type(suggestion)}"
             assert "node_type" in suggestion
             assert "reason" in suggestion
             assert "category" in suggestion
@@ -296,11 +308,15 @@ class TestExpectedFailures:
     async def test_invalid_node_type(self, framework):
         """Test workflow with invalid node type."""
         workflow = {
-            "nodes": [{"id": "1", "type": "InvalidNodeType", "position": {"X": 0, "Y": 0}}],
+            "nodes": [
+                {"id": "1", "type": "InvalidNodeType", "position": {"X": 0, "Y": 0}}
+            ],
             "connections": [],
         }
 
-        result = await framework.execute_mcp_tool("validate_and_fix_workflow", {"workflow": workflow})
+        result = await framework.execute_mcp_tool(
+            "validate_and_fix_workflow", {"workflow": workflow}
+        )
 
         # The server might be permissive and accept unknown node types
         # or it might fix them automatically
@@ -350,7 +366,9 @@ class TestExpectedFailures:
             ],
         }
 
-        result = await framework.execute_mcp_tool("validate_and_fix_workflow", {"workflow": workflow})
+        result = await framework.execute_mcp_tool(
+            "validate_and_fix_workflow", {"workflow": workflow}
+        )
 
         # Circular connections should be detected as errors now
         assert result.get("success") is True
@@ -371,7 +389,9 @@ class TestEdgeCases:
     @pytest.mark.asyncio
     async def test_empty_workflow(self, framework):
         """Test validation of empty workflow."""
-        result = await framework.execute_mcp_tool("validate_and_fix_workflow", {"workflow": {"nodes": [], "connections": []}})
+        result = await framework.execute_mcp_tool(
+            "validate_and_fix_workflow", {"workflow": {"nodes": [], "connections": []}}
+        )
 
         # Empty workflow should be handled gracefully
         assert result.get("success") is True
@@ -448,7 +468,10 @@ class TestEdgeCases:
 
             # Should either succeed or provide clear error message
             if result.get("error"):
-                assert "name" in result["error"].lower() or "character" in result["error"].lower()
+                assert (
+                    "name" in result["error"].lower()
+                    or "character" in result["error"].lower()
+                )
 
 
 class TestErrorHandling:
@@ -547,14 +570,18 @@ class TestRegressionSuite:
             )
 
             # For working templates, ensure they succeed
-            assert result.get("success"), f"Working template {template} failed to create: {result.get('error')}"
+            assert result.get(
+                "success"
+            ), f"Working template {template} failed to create: {result.get('error')}"
 
             # Compare with baseline if exists
             baseline_key = f"template_{template}"
             if baseline_key in framework.regression_baseline:
                 baseline = framework.regression_baseline[baseline_key]
                 # Only check success status for consistency
-                assert result.get("success") == baseline.get("success", baseline.get("validation_passed"))
+                assert result.get("success") == baseline.get(
+                    "success", baseline.get("validation_passed")
+                )
 
     @pytest.mark.asyncio
     async def test_corrupted_templates(self, framework):
@@ -574,7 +601,9 @@ class TestRegressionSuite:
             )
 
             # These should create files successfully (no error during creation)
-            assert result.get("success"), f"Corrupted template {template} should still create a file"
+            assert result.get(
+                "success"
+            ), f"Corrupted template {template} should still create a file"
 
             # But validation would fail (which we've documented)
             # The files are created but won't open in Gaea2
@@ -614,12 +643,17 @@ class TestRegressionSuite:
         ]
 
         for test_case in test_cases:
-            result = await framework.execute_mcp_tool("validate_and_fix_workflow", {"workflow": test_case["workflow"]})
+            result = await framework.execute_mcp_tool(
+                "validate_and_fix_workflow", {"workflow": test_case["workflow"]}
+            )
 
             # If auto-fix is enabled, check fixed_issues instead
             if test_case["expected_valid"]:
                 if "results" in result:
-                    assert result.get("success") and result["results"].get("is_valid") is True
+                    assert (
+                        result.get("success")
+                        and result["results"].get("is_valid") is True
+                    )
                 else:
                     assert result.get("success") and result.get("valid") is True
             else:
@@ -631,14 +665,18 @@ class TestRegressionSuite:
                     )
                 else:
                     assert (
-                        not result.get("success") or result.get("valid") is False or len(result.get("fixes_applied", [])) > 0
+                        not result.get("success")
+                        or result.get("valid") is False
+                        or len(result.get("fixes_applied", [])) > 0
                     )
 
 
 # Utility functions for test management
 
 
-def save_test_results(framework: Gaea2TestFramework, output_path: str = "tests/gaea2/test_results.json"):
+def save_test_results(
+    framework: Gaea2TestFramework, output_path: str = "tests/gaea2/test_results.json"
+):
     """Save test results for analysis and improvement."""
     results = {
         "timestamp": datetime.now().isoformat(),
@@ -720,7 +758,8 @@ class PerformanceMonitor:
     def get_performance_report(self) -> Dict[str, Any]:
         """Generate performance report."""
         avg_response_time = (
-            sum(r["duration"] for r in self.metrics["response_times"]) / len(self.metrics["response_times"])
+            sum(r["duration"] for r in self.metrics["response_times"])
+            / len(self.metrics["response_times"])
             if self.metrics["response_times"]
             else 0
         )
@@ -771,7 +810,9 @@ if __name__ == "__main__":
                             monitor.record_operation(method_name, duration, True)
                         except Exception as e:
                             duration = asyncio.get_event_loop().time() - start_time
-                            monitor.record_operation(method_name, duration, False, type(e).__name__)
+                            monitor.record_operation(
+                                method_name, duration, False, type(e).__name__
+                            )
                             print(f"  Error: {e}")
 
         # Save results

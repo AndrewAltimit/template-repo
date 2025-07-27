@@ -22,7 +22,9 @@ def test_extract_project(server_url="http://192.168.0.152:8007", filename=None):
                 for file in data["files"]:
                     if file["filename"].endswith(".terrain") and file["size"] > 100:
                         filename = file["filename"]
-                        print(f"Found terrain file: {filename} ({file['size']:,} bytes)")
+                        print(
+                            f"Found terrain file: {filename} ({file['size']:,} bytes)"
+                        )
                         break
 
         if not filename:
@@ -77,7 +79,9 @@ def test_extract_project(server_url="http://192.168.0.152:8007", filename=None):
         print(f"   Without extract_project: {size1:,} bytes")
         print(f"   With extract_project:    {size2:,} bytes")
         diff = size1 - size2
-        print(f"   Difference:              {abs(diff):,} bytes {'removed' if diff > 0 else 'added'}")
+        print(
+            f"   Difference:              {abs(diff):,} bytes {'removed' if diff > 0 else 'added'}"
+        )
 
 
 if __name__ == "__main__":

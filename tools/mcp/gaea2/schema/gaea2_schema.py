@@ -2157,7 +2157,9 @@ def get_node_ports(node_type: str) -> Dict[str, List[Dict[str, Any]]]:
     }
 
 
-def validate_node_properties(node_type: str, properties: Dict[str, Any]) -> Tuple[List[str], List[str]]:
+def validate_node_properties(
+    node_type: str, properties: Dict[str, Any]
+) -> Tuple[List[str], List[str]]:
     """Validate node properties against known definitions.
 
     Returns:
@@ -2189,36 +2191,50 @@ def validate_node_properties(node_type: str, properties: Dict[str, Any]) -> Tupl
 
         if expected_type == "float":
             if not isinstance(prop_value, (int, float)):
-                errors.append(f"Property '{prop_name}' should be numeric, got {type(prop_value).__name__}")
+                errors.append(
+                    f"Property '{prop_name}' should be numeric, got {type(prop_value).__name__}"
+                )
             elif "range" in prop_def:
                 min_val = prop_def["range"].get("min", float("-inf"))
                 max_val = prop_def["range"].get("max", float("inf"))
                 if not min_val <= prop_value <= max_val:
                     warnings.append(
-                        f"Property '{prop_name}' value {prop_value} outside " f"recommended range [{min_val}, {max_val}]"
+                        f"Property '{prop_name}' value {prop_value} outside "
+                        f"recommended range [{min_val}, {max_val}]"
                     )
 
         elif expected_type == "int":
             if not isinstance(prop_value, int):
-                errors.append(f"Property '{prop_name}' should be integer, got {type(prop_value).__name__}")
+                errors.append(
+                    f"Property '{prop_name}' should be integer, got {type(prop_value).__name__}"
+                )
 
         elif expected_type == "bool":
             if not isinstance(prop_value, bool):
-                errors.append(f"Property '{prop_name}' should be boolean, got {type(prop_value).__name__}")
+                errors.append(
+                    f"Property '{prop_name}' should be boolean, got {type(prop_value).__name__}"
+                )
 
         elif expected_type == "enum":
             options = prop_def.get("options", [])
             if prop_value not in options:
-                errors.append(f"Property '{prop_name}' value '{prop_value}' not in " f"valid options: {', '.join(options)}")
+                errors.append(
+                    f"Property '{prop_name}' value '{prop_value}' not in "
+                    f"valid options: {', '.join(options)}"
+                )
 
         elif expected_type == "string":
             if not isinstance(prop_value, str):
-                errors.append(f"Property '{prop_name}' should be string, got {type(prop_value).__name__}")
+                errors.append(
+                    f"Property '{prop_name}' should be string, got {type(prop_value).__name__}"
+                )
 
     return errors, warnings
 
 
-def validate_connection(from_node: Dict[str, Any], to_node: Dict[str, Any], from_port: str, to_port: str) -> Tuple[bool, str]:
+def validate_connection(
+    from_node: Dict[str, Any], to_node: Dict[str, Any], from_port: str, to_port: str
+) -> Tuple[bool, str]:
     """Validate a connection between two nodes.
 
     Returns:
@@ -2263,7 +2279,9 @@ def validate_connection(from_node: Dict[str, Any], to_node: Dict[str, Any], from
     return True, ""
 
 
-def apply_default_properties(node_type: str, properties: Dict[str, Any]) -> Dict[str, Any]:
+def apply_default_properties(
+    node_type: str, properties: Dict[str, Any]
+) -> Dict[str, Any]:
     """Apply default values for missing properties."""
     result = properties.copy()
 
@@ -2371,9 +2389,7 @@ def create_workflow_from_template(
                 "PortalTransmit",
                 "PortalReceive",
                 "Portal",
-            ] or prev_node[
-                "type"
-            ] in ["PortalTransmit", "PortalReceive", "Portal"]:
+            ] or prev_node["type"] in ["PortalTransmit", "PortalReceive", "Portal"]:
                 continue
 
             # Handle special connection cases
@@ -2574,7 +2590,9 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
                     )
                 else:
                     # Use regular validation
-                    prop_errors, prop_warnings = validate_node_properties(node_type, props)
+                    prop_errors, prop_warnings = validate_node_properties(
+                        node_type, props
+                    )
                     errors.extend(prop_errors)
                     warnings.extend(prop_warnings)
 
@@ -2604,7 +2622,9 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
     # Perform batch validation if using optimized validator
     if use_optimized and nodes_for_validation:
         # Run optimized validation
-        validation_result = optimized_validator.validate_workflow(nodes_for_validation, connections_found)
+        validation_result = optimized_validator.validate_workflow(
+            nodes_for_validation, connections_found
+        )
         errors.extend(validation_result.get("errors", []))
         warnings.extend(validation_result.get("warnings", []))
 
@@ -2616,15 +2636,21 @@ def validate_gaea2_project(project_data: Dict[str, Any]) -> Dict[str, Any]:
         # Regular connection validation
         for conn in connections_found:
             if conn["from_node"] not in node_ids:
-                errors.append(f"Connection references non-existent node: {conn['from_node']}")
+                errors.append(
+                    f"Connection references non-existent node: {conn['from_node']}"
+                )
             if conn["to_node"] not in node_ids:
-                errors.append(f"Connection references non-existent node: {conn['to_node']}")
+                errors.append(
+                    f"Connection references non-existent node: {conn['to_node']}"
+                )
 
     # Generate suggestions
     if node_count == 0:
         suggestions.append("Add some nodes to create terrain")
     elif "Mountain" not in node_types_used and "Terrain" not in node_types_used:
-        suggestions.append("Consider adding a terrain generator node (Mountain, Island, etc.)")
+        suggestions.append(
+            "Consider adding a terrain generator node (Mountain, Island, etc.)"
+        )
 
     if "Erosion" not in node_types_used and node_count > 0:
         suggestions.append("Add an Erosion node for more realistic terrain")

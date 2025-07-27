@@ -69,7 +69,9 @@ E = mc^2
                 print(f"  Output: {result['result']['output_path']}")
                 print(f"  Format: {result['result']['format']}")
             else:
-                print(f"✗ LaTeX compilation failed: {result.get('error', result['result'].get('error'))}")
+                print(
+                    f"✗ LaTeX compilation failed: {result.get('error', result['result'].get('error'))}"
+                )
         except Exception as e:
             print(f"✗ LaTeX compilation error: {e}")
 
@@ -96,7 +98,9 @@ E = mc^2
                 print("✓ TikZ rendering completed")
                 print(f"  Output: {result['result']['output_path']}")
             else:
-                print(f"✗ TikZ rendering failed: {result.get('error', result['result'].get('error'))}")
+                print(
+                    f"✗ TikZ rendering failed: {result.get('error', result['result'].get('error'))}"
+                )
         except Exception as e:
             print(f"✗ TikZ rendering error: {e}")
 
@@ -141,7 +145,9 @@ class TestScene(Scene):
                 print(f"  Format: {result['result']['format']}")
                 print(f"  Preview: {result['result']['preview']}")
             else:
-                print(f"✗ Manim animation failed: {result.get('error', result['result'].get('error'))}")
+                print(
+                    f"✗ Manim animation failed: {result.get('error', result['result'].get('error'))}"
+                )
         except Exception as e:
             print(f"✗ Manim animation error: {e}")
 
@@ -158,7 +164,9 @@ class TestScene(Scene):
             result = response.json()
             if not result["success"] or "error" in result["result"]:
                 print("✓ Error handling works correctly")
-                print(f"  Error: {result.get('error', result['result'].get('error'))[:100]}...")
+                print(
+                    f"  Error: {result.get('error', result['result'].get('error'))[:100]}..."
+                )
             else:
                 print("✗ Expected error for invalid LaTeX")
         except Exception as e:

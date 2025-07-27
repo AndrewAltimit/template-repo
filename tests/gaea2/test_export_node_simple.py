@@ -9,7 +9,10 @@ from typing import Any, Dict, List, Tuple
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from tools.mcp.gaea2.schema.gaea2_schema import NODE_PROPERTY_DEFINITIONS, validate_node_properties  # noqa: E402
+from tools.mcp.gaea2.schema.gaea2_schema import (  # noqa: E402
+    NODE_PROPERTY_DEFINITIONS,
+    validate_node_properties,
+)
 
 print("Testing Export Node Schema Fix")
 print("=" * 50)
@@ -42,7 +45,11 @@ test_cases: List[Tuple[str, Dict[str, Any], int, int]] = [
 
 for name, properties, expected_errors, expected_warnings in test_cases:
     errors, warnings = validate_node_properties("Export", properties)
-    status = "✅" if len(errors) == expected_errors and len(warnings) == expected_warnings else "❌"
+    status = (
+        "✅"
+        if len(errors) == expected_errors and len(warnings) == expected_warnings
+        else "❌"
+    )
     print(f"\n   {status} {name}")
     print(f"      Properties: {properties}")
     print(f"      Errors: {len(errors)} (expected {expected_errors})")

@@ -24,12 +24,16 @@ class SecretRedactionFilter(logging.Filter):
             re.compile(r"(github_pat_[a-zA-Z0-9_]{36,})", re.IGNORECASE),
             # Generic token patterns
             re.compile(r'(token["\']?\s*[:=]\s*["\']?)([^"\'\s]+)', re.IGNORECASE),
-            re.compile(r'(api[_-]?key["\']?\s*[:=]\s*["\']?)([^"\'\s]+)', re.IGNORECASE),
+            re.compile(
+                r'(api[_-]?key["\']?\s*[:=]\s*["\']?)([^"\'\s]+)', re.IGNORECASE
+            ),
             re.compile(r'(secret["\']?\s*[:=]\s*["\']?)([^"\'\s]+)', re.IGNORECASE),
             re.compile(r'(password["\']?\s*[:=]\s*["\']?)([^"\'\s]+)', re.IGNORECASE),
             # Bearer tokens in headers
             re.compile(r"(Bearer\s+)([a-zA-Z0-9\-._~+/]+)", re.IGNORECASE),
-            re.compile(r'(Authorization["\']?\s*[:=]\s*["\']?)([^"\'\s]+)', re.IGNORECASE),
+            re.compile(
+                r'(Authorization["\']?\s*[:=]\s*["\']?)([^"\'\s]+)', re.IGNORECASE
+            ),
             # URLs with embedded credentials
             re.compile(r"(https?://)([^:]+):([^@]+)@", re.IGNORECASE),
             # Environment variable values
@@ -54,9 +58,13 @@ class SecretRedactionFilter(logging.Filter):
         # Redact arguments
         if hasattr(record, "args") and record.args:
             if isinstance(record.args, tuple):
-                record.args = tuple(self._redact_secrets(str(arg)) for arg in record.args)
+                record.args = tuple(
+                    self._redact_secrets(str(arg)) for arg in record.args
+                )
             elif isinstance(record.args, dict):
-                record.args = {k: self._redact_secrets(str(v)) for k, v in record.args.items()}
+                record.args = {
+                    k: self._redact_secrets(str(v)) for k, v in record.args.items()
+                }
 
         return True
 

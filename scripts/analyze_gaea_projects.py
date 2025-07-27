@@ -30,7 +30,9 @@ except ImportError:
     sys.exit(1)
 
 
-async def analyze_real_projects(official_dir=None, user_dir=None, output_file="gaea2_workflow_analysis.json"):
+async def analyze_real_projects(
+    official_dir=None, user_dir=None, output_file="gaea2_workflow_analysis.json"
+):
     """Analyze all real Gaea2 projects
 
     Args:
@@ -63,7 +65,9 @@ async def analyze_real_projects(official_dir=None, user_dir=None, output_file="g
     # Check if directories exist
     if not os.path.exists(official_dir):
         print(f"Warning: Official projects directory not found: {official_dir}")
-        print("Set GAEA_OFFICIAL_PROJECTS_DIR environment variable to specify the correct path")
+        print(
+            "Set GAEA_OFFICIAL_PROJECTS_DIR environment variable to specify the correct path"
+        )
         official_results = {"projects_analyzed": 0}
     else:
         print(f"Analyzing official projects in: {official_dir}")
@@ -73,12 +77,16 @@ async def analyze_real_projects(official_dir=None, user_dir=None, output_file="g
     # Analyze user projects
     if not os.path.exists(user_dir):
         print(f"\nWarning: User projects directory not found: {user_dir}")
-        print("Set GAEA_USER_PROJECTS_DIR environment variable to specify the correct path")
+        print(
+            "Set GAEA_USER_PROJECTS_DIR environment variable to specify the correct path"
+        )
         user_results = {"projects_analyzed": official_results["projects_analyzed"]}
     else:
         print(f"\nAnalyzing user projects in: {user_dir}")
         user_results = analyzer.analyze_directory(user_dir)
-        print(f"✓ Analyzed {user_results['projects_analyzed'] - official_results['projects_analyzed']} user projects")
+        print(
+            f"✓ Analyzed {user_results['projects_analyzed'] - official_results['projects_analyzed']} user projects"
+        )
 
     # Get overall statistics
     stats = analyzer.get_statistics()
@@ -222,7 +230,9 @@ async def generate_knowledge_base(analysis_file="gaea2_workflow_analysis.json"):
         f.write("## Node Best Practices\n\n")
         for node, practices in list(knowledge_base["node_best_practices"].items())[:10]:
             f.write(f"### {node}\n")
-            f.write(f"- **Commonly followed by**: {', '.join(practices['commonly_followed_by'])}\n\n")
+            f.write(
+                f"- **Commonly followed by**: {', '.join(practices['commonly_followed_by'])}\n\n"
+            )
 
         f.write("## Performance Tips\n\n")
         for tip in knowledge_base["performance_tips"]:
@@ -231,7 +241,9 @@ async def generate_knowledge_base(analysis_file="gaea2_workflow_analysis.json"):
     print("✓ Documentation saved to GAEA2_PATTERNS.md")
 
 
-async def main(official_dir=None, user_dir=None, output_file="gaea2_workflow_analysis.json"):
+async def main(
+    official_dir=None, user_dir=None, output_file="gaea2_workflow_analysis.json"
+):
     """Main function"""
     success = await analyze_real_projects(official_dir, user_dir, output_file)
     if success:
@@ -253,7 +265,9 @@ Environment variables:
   GAEA_OFFICIAL_PROJECTS_DIR: Default path to official projects
   GAEA_USER_PROJECTS_DIR: Default path to user projects""",
     )
-    parser.add_argument("--official-dir", type=str, help="Path to official Gaea projects directory")
+    parser.add_argument(
+        "--official-dir", type=str, help="Path to official Gaea projects directory"
+    )
     parser.add_argument("--user-dir", type=str, help="Path to user projects directory")
     parser.add_argument(
         "--output",

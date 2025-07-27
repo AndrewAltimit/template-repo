@@ -25,7 +25,9 @@ class GeminiMCPServer(BaseMCPServer):
                 "The Gemini CLI requires Docker access and must run on the host system.",
                 file=sys.stderr,
             )
-            print("Please launch this server directly on the host with:", file=sys.stderr)
+            print(
+                "Please launch this server directly on the host with:", file=sys.stderr
+            )
             print("  python -m tools.mcp.gemini.server", file=sys.stderr)
             sys.exit(1)
 
@@ -69,11 +71,13 @@ class GeminiMCPServer(BaseMCPServer):
             "timeout": int(os.getenv("GEMINI_TIMEOUT", "60")),
             "rate_limit_delay": float(os.getenv("GEMINI_RATE_LIMIT", "2")),
             "max_context_length": int(os.getenv("GEMINI_MAX_CONTEXT", "4000")),
-            "log_consultations": os.getenv("GEMINI_LOG_CONSULTATIONS", "true").lower() == "true",
+            "log_consultations": os.getenv("GEMINI_LOG_CONSULTATIONS", "true").lower()
+            == "true",
             "model": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
             "sandbox_mode": os.getenv("GEMINI_SANDBOX", "false").lower() == "true",
             "debug_mode": os.getenv("GEMINI_DEBUG", "false").lower() == "true",
-            "include_history": os.getenv("GEMINI_INCLUDE_HISTORY", "true").lower() == "true",
+            "include_history": os.getenv("GEMINI_INCLUDE_HISTORY", "true").lower()
+            == "true",
             "max_history_entries": int(os.getenv("GEMINI_MAX_HISTORY", "10")),
         }
 
@@ -223,7 +227,11 @@ class GeminiMCPServer(BaseMCPServer):
 
     async def gemini_status(self) -> Dict[str, Any]:
         """Get Gemini integration status and statistics"""
-        stats = self.gemini.get_statistics() if hasattr(self.gemini, "get_statistics") else {}
+        stats = (
+            self.gemini.get_statistics()
+            if hasattr(self.gemini, "get_statistics")
+            else {}
+        )
 
         status_info = {
             "enabled": getattr(self.gemini, "enabled", False),
@@ -235,7 +243,9 @@ class GeminiMCPServer(BaseMCPServer):
 
         return {"success": True, "status": status_info}
 
-    async def toggle_gemini_auto_consult(self, enable: Optional[bool] = None) -> Dict[str, Any]:
+    async def toggle_gemini_auto_consult(
+        self, enable: Optional[bool] = None
+    ) -> Dict[str, Any]:
         """Toggle automatic Gemini consultation
 
         Args:
@@ -265,8 +275,12 @@ class GeminiMCPServer(BaseMCPServer):
         output_lines.append("")
 
         if result["status"] == "success":
-            output_lines.append(f"✅ Consultation ID: {result.get('consultation_id', 'N/A')}")
-            output_lines.append(f"⏱️  Execution time: {result.get('execution_time', 0):.2f}s")
+            output_lines.append(
+                f"✅ Consultation ID: {result.get('consultation_id', 'N/A')}"
+            )
+            output_lines.append(
+                f"⏱️  Execution time: {result.get('execution_time', 0):.2f}s"
+            )
             output_lines.append("")
 
             # Display the raw response
@@ -281,7 +295,9 @@ class GeminiMCPServer(BaseMCPServer):
 
         elif result["status"] == "timeout":
             output_lines.append(f"❌ {result.get('error', 'Timeout error')}")
-            output_lines.append("💡 Try increasing the timeout or simplifying the query")
+            output_lines.append(
+                "💡 Try increasing the timeout or simplifying the query"
+            )
 
         else:  # error
             output_lines.append(f"❌ Error: {result.get('error', 'Unknown error')}")

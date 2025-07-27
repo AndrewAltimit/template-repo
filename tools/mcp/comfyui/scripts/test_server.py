@@ -50,7 +50,9 @@ def test_list_models():
             result = response.json()
             if "error" in result:
                 print(f"✓ Remote server not available: {result['error']}")
-                print(f"  This is expected if remote server at {REMOTE_URL} is not running")
+                print(
+                    f"  This is expected if remote server at {REMOTE_URL} is not running"
+                )
             else:
                 models = result.get("models", [])
                 print(f"✓ Found {len(models)} checkpoint models")

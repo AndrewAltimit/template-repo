@@ -119,10 +119,15 @@ class Gaea2ErrorHandler:
             "info": len(self.get_errors_by_severity(ErrorSeverity.INFO)),
             "auto_fixable": len(self.get_auto_fixable_errors()),
             "has_critical": self.has_critical_errors(),
-            "by_category": {category.value: len(self.get_errors_by_category(category)) for category in ErrorCategory},
+            "by_category": {
+                category.value: len(self.get_errors_by_category(category))
+                for category in ErrorCategory
+            },
         }
 
-    def validate_node_connections(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> List[Gaea2Error]:
+    def validate_node_connections(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ) -> List[Gaea2Error]:
         """Validate node connections and add errors"""
         errors = []
         node_ids = {node.get("id") for node in nodes}
@@ -188,7 +193,9 @@ class Gaea2ErrorHandler:
 
         return errors
 
-    def validate_property_ranges(self, node_type: str, properties: Dict[str, Any], schema: Dict[str, Any]) -> List[Gaea2Error]:
+    def validate_property_ranges(
+        self, node_type: str, properties: Dict[str, Any], schema: Dict[str, Any]
+    ) -> List[Gaea2Error]:
         """Validate property values against schema ranges"""
         errors: List[Gaea2Error] = []
 
@@ -232,7 +239,9 @@ class Gaea2ErrorHandler:
 
         return errors
 
-    def check_performance_issues(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> List[Gaea2Error]:
+    def check_performance_issues(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ) -> List[Gaea2Error]:
         """Check for potential performance issues"""
         errors = []
 
@@ -293,7 +302,9 @@ class Gaea2ErrorHandler:
 
         while True:
             # Find what this node connects to
-            next_conn = next((c for c in connections if c.get("from_node") == current), None)
+            next_conn = next(
+                (c for c in connections if c.get("from_node") == current), None
+            )
             if not next_conn:
                 break
 
@@ -329,7 +340,9 @@ class Gaea2ErrorHandler:
             if conn.get("from_node") != conn.get("to_node"):
                 new_connections.append(conn)
             else:
-                fixes_applied.append(f"Removed self-connection on node {conn.get('from_node')}")
+                fixes_applied.append(
+                    f"Removed self-connection on node {conn.get('from_node')}"
+                )
         connections = new_connections
 
         # Fix property ranges
@@ -347,19 +360,28 @@ class Gaea2ErrorHandler:
                             min_val, max_val = prop_def["range"]
                             if prop_value < min_val:
                                 node["properties"][prop_name] = min_val
-                                fixes_applied.append(f"Fixed {node.get('name')}.{prop_name}: {prop_value} -> {min_val}")
+                                fixes_applied.append(
+                                    f"Fixed {node.get('name')}.{prop_name}: {prop_value} -> {min_val}"
+                                )
                             elif prop_value > max_val:
                                 node["properties"][prop_name] = max_val
-                                fixes_applied.append(f"Fixed {node.get('name')}.{prop_name}: {prop_value} -> {max_val}")
+                                fixes_applied.append(
+                                    f"Fixed {node.get('name')}.{prop_name}: {prop_value} -> {max_val}"
+                                )
 
         # Remove connections to non-existent nodes
         valid_node_ids = {n.get("id") for n in nodes}
         new_connections = []
         for conn in connections:
-            if conn.get("from_node") in valid_node_ids and conn.get("to_node") in valid_node_ids:
+            if (
+                conn.get("from_node") in valid_node_ids
+                and conn.get("to_node") in valid_node_ids
+            ):
                 new_connections.append(conn)
             else:
-                fixes_applied.append(f"Removed invalid connection: {conn.get('from_node')} -> {conn.get('to_node')}")
+                fixes_applied.append(
+                    f"Removed invalid connection: {conn.get('from_node')} -> {conn.get('to_node')}"
+                )
         connections = new_connections
 
         return nodes, connections, fixes_applied

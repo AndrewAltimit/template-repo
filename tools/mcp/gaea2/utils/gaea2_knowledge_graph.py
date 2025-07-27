@@ -37,7 +37,9 @@ class NodeRelationship:
     relation_type: RelationType
     strength: float = 1.0  # 0.0 to 1.0, how strong the relationship is
     description: str = ""
-    conditions: Dict[str, Any] = field(default_factory=dict)  # Conditions for the relationship
+    conditions: Dict[str, Any] = field(
+        default_factory=dict
+    )  # Conditions for the relationship
 
 
 @dataclass
@@ -1143,7 +1145,9 @@ class Gaea2KnowledgeGraph:
         )
         self.property_constraints.append(constraint)
 
-    def get_relationships(self, node: str, relation_type: Optional[RelationType] = None) -> List[NodeRelationship]:
+    def get_relationships(
+        self, node: str, relation_type: Optional[RelationType] = None
+    ) -> List[NodeRelationship]:
         """Get all relationships for a node, optionally filtered by type"""
         relationships = []
         for rel in self.relationships:
@@ -1153,7 +1157,9 @@ class Gaea2KnowledgeGraph:
                 relationships.append(rel)
         return relationships
 
-    def get_suggested_next_nodes(self, current_nodes: List[str]) -> List[Tuple[str, float]]:
+    def get_suggested_next_nodes(
+        self, current_nodes: List[str]
+    ) -> List[Tuple[str, float]]:
         """Suggest next nodes based on current workflow"""
         suggestions: Dict[str, float] = {}
 
@@ -1162,7 +1168,9 @@ class Gaea2KnowledgeGraph:
             follows = self.get_relationships(node, RelationType.PRECEDES)
             for rel in follows:
                 if rel.to_node not in current_nodes:
-                    suggestions[rel.to_node] = max(suggestions.get(rel.to_node, 0), rel.strength)
+                    suggestions[rel.to_node] = max(
+                        suggestions.get(rel.to_node, 0), rel.strength
+                    )
 
         # Check patterns that contain current nodes
         for pattern in self.patterns:
@@ -1170,12 +1178,16 @@ class Gaea2KnowledgeGraph:
                 # Suggest remaining nodes from the pattern
                 for node in pattern.nodes:
                     if node not in current_nodes:
-                        suggestions[node] = max(suggestions.get(node, 0), pattern.frequency * 0.8)
+                        suggestions[node] = max(
+                            suggestions.get(node, 0), pattern.frequency * 0.8
+                        )
 
         # Sort by suggestion strength
         return sorted(suggestions.items(), key=lambda x: x[1], reverse=True)
 
-    def validate_workflow(self, nodes: List[str], connections: List[Tuple[str, str]]) -> Dict[str, Any]:
+    def validate_workflow(
+        self, nodes: List[str], connections: List[Tuple[str, str]]
+    ) -> Dict[str, Any]:
         """Validate a workflow for potential issues"""
         issues = []
         warnings = []
@@ -1187,13 +1199,19 @@ class Gaea2KnowledgeGraph:
                 conflicts = self.get_relationships(node_a, RelationType.CONFLICTS)
                 for rel in conflicts:
                     if rel.to_node == node_b:
-                        issues.append(f"{node_a} conflicts with {node_b}: {rel.description}")
+                        issues.append(
+                            f"{node_a} conflicts with {node_b}: {rel.description}"
+                        )
 
         # Check for missing requirements
         for node in nodes:
             requirements = self.get_relationships(node, RelationType.REQUIRES)
             for rel in requirements:
-                if rel.relation_type == RelationType.REQUIRES and rel.from_node == node and rel.to_node not in nodes:
+                if (
+                    rel.relation_type == RelationType.REQUIRES
+                    and rel.from_node == node
+                    and rel.to_node not in nodes
+                ):
                     warnings.append(f"{node} typically requires {rel.to_node}")
 
         # Check for enhancement opportunities
@@ -1201,12 +1219,16 @@ class Gaea2KnowledgeGraph:
             enhancements = self.get_relationships(node, RelationType.ENHANCES)
             for rel in enhancements:
                 if rel.to_node in nodes and rel.from_node not in nodes:
-                    suggestions.append(f"Consider adding {rel.from_node} to enhance {rel.to_node}")
+                    suggestions.append(
+                        f"Consider adding {rel.from_node} to enhance {rel.to_node}"
+                    )
 
         # Suggest next steps
         next_nodes = self.get_suggested_next_nodes(nodes)
         if next_nodes:
-            suggestions.append(f"Consider adding: {', '.join([n[0] for n in next_nodes[:3]])}")
+            suggestions.append(
+                f"Consider adding: {', '.join([n[0] for n in next_nodes[:3]])}"
+            )
 
         return {
             "valid": len(issues) == 0,
@@ -1306,7 +1328,9 @@ class Gaea2KnowledgeGraph:
             "Phoenix": "Special artistic blending mode",
         }
 
-    def suggest_property_values(self, nodes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def suggest_property_values(
+        self, nodes: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Suggest property values based on constraints"""
         suggestions = []
 
@@ -1364,7 +1388,9 @@ class Gaea2KnowledgeGraph:
 
         return suggestions
 
-    def find_similar_patterns(self, nodes: List[str], threshold: float = 0.5) -> List[NodePattern]:
+    def find_similar_patterns(
+        self, nodes: List[str], threshold: float = 0.5
+    ) -> List[NodePattern]:
         """Find patterns similar to the given node list"""
         similar_patterns = []
 
@@ -1386,7 +1412,9 @@ class Gaea2KnowledgeGraph:
 knowledge_graph = Gaea2KnowledgeGraph()
 
 
-def enhance_workflow_with_knowledge(nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> Dict[str, Any]:
+def enhance_workflow_with_knowledge(
+    nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+) -> Dict[str, Any]:
     """Enhance a workflow using the knowledge graph"""
     node_names = [node["name"] for node in nodes]
     connection_pairs = [(c["from_node"], c["to_node"]) for c in connections]

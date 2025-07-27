@@ -43,7 +43,9 @@ if __name__ == "__main__":
     # Example 1: Simple technical question
     print("Example 1: Technical Question")
     print("-" * 50)
-    response = consult_gemini("What are the best practices for implementing a REST API in Python?")
+    response = consult_gemini(
+        "What are the best practices for implementing a REST API in Python?"
+    )
     if response:
         print(response["response"][:500] + "...")
 

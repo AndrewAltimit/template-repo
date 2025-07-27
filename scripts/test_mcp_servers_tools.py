@@ -140,7 +140,9 @@ async def test_mcp_protocol(name: str, url: str) -> Dict[str, Any]:
 
             # Should return 202 Accepted for notification
             if response.status_code != 202:
-                print(f"⚠️  Initialized notification returned {response.status_code} (expected 202)")
+                print(
+                    f"⚠️  Initialized notification returned {response.status_code} (expected 202)"
+                )
 
             # 3. List tools
             tools_request = {
@@ -177,7 +179,9 @@ async def test_mcp_protocol(name: str, url: str) -> Dict[str, Any]:
 
                 print(f"\n🔧 Found {len(tools)} tools:")
                 for tool in tools:
-                    print(f"   - {tool['name']}: {tool.get('description', 'No description')}")
+                    print(
+                        f"   - {tool['name']}: {tool.get('description', 'No description')}"
+                    )
 
                 return {"success": True, "tools": tool_names, "count": len(tools)}
             else:
@@ -253,12 +257,18 @@ async def main():
             missing_count = len(result["missing_tools"])
             extra_count = len(result["extra_tools"])
             if missing_count == 0 and extra_count == 0:
-                print(f"✅ {server_name}: All tools correctly exposed ({result['tools_count']} tools)")
+                print(
+                    f"✅ {server_name}: All tools correctly exposed ({result['tools_count']} tools)"
+                )
             else:
-                print(f"⚠️  {server_name}: Tools exposed with issues - {missing_count} missing, {extra_count} extra")
+                print(
+                    f"⚠️  {server_name}: Tools exposed with issues - {missing_count} missing, {extra_count} extra"
+                )
 
     # Exit code based on results
-    all_success = all(r["status"] == "success" and not r["missing_tools"] for r in results.values())
+    all_success = all(
+        r["status"] == "success" and not r["missing_tools"] for r in results.values()
+    )
     sys.exit(0 if all_success else 1)
 
 

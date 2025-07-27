@@ -50,11 +50,15 @@ class TestGaea2ValidationFindings:
             )
 
             # Should create successfully
-            assert result.get("success"), f"Working template {template} failed: {result.get('error')}"
+            assert result.get(
+                "success"
+            ), f"Working template {template} failed: {result.get('error')}"
 
             # Handle nested result structure
             actual_result = result.get("result", result)
-            project_path = actual_result.get("project_path") or actual_result.get("saved_path")
+            project_path = actual_result.get("project_path") or actual_result.get(
+                "saved_path"
+            )
             assert project_path, f"No file path returned for {template}"
 
             # Skip file validation as the tool doesn't exist in the server
@@ -83,7 +87,9 @@ class TestGaea2ValidationFindings:
             )
 
             # Files are created successfully
-            assert result.get("success"), f"Template {template} should create a file even if corrupted"
+            assert result.get(
+                "success"
+            ), f"Template {template} should create a file even if corrupted"
 
             # Skip file validation as the tool doesn't exist in the server
             # Corrupted templates are assumed to be problematic based on creation result alone
@@ -114,18 +120,24 @@ class TestGaea2ValidationFindings:
             ],
         }
 
-        result = await self.execute_tool(mcp_url, "validate_and_fix_workflow", {"workflow": circular_workflow})
+        result = await self.execute_tool(
+            mcp_url, "validate_and_fix_workflow", {"workflow": circular_workflow}
+        )
         assert result.get("success")
         # Note: The server's handling of circular dependencies may vary
         # It may fix them automatically rather than marking as invalid
 
         # Unknown node types are rejected by default
         unknown_workflow = {
-            "nodes": [{"id": "1", "type": "UnknownNodeType", "position": {"x": 0, "y": 0}}],
+            "nodes": [
+                {"id": "1", "type": "UnknownNodeType", "position": {"x": 0, "y": 0}}
+            ],
             "connections": [],
         }
 
-        result = await self.execute_tool(mcp_url, "validate_and_fix_workflow", {"workflow": unknown_workflow})
+        result = await self.execute_tool(
+            mcp_url, "validate_and_fix_workflow", {"workflow": unknown_workflow}
+        )
         # Server may accept unknown nodes but mark as invalid
         assert result.get("success")
         # The validation should handle it gracefully
@@ -162,7 +174,9 @@ class TestGaea2ValidationFindings:
                 },
             )
 
-            assert result.get("success"), f"Minimal {node_type} should create successfully"
+            assert result.get(
+                "success"
+            ), f"Minimal {node_type} should create successfully"
 
     @pytest.mark.asyncio
     async def test_validation_summary(self, mcp_url):
@@ -180,6 +194,8 @@ class TestGaea2ValidationFindings:
 
         if result.get("success"):
             summary = result.get("summary", {})
-            assert summary.get("total_files", 0) > 0, "Should find some files to validate"
+            assert (
+                summary.get("total_files", 0) > 0
+            ), "Should find some files to validate"
             # We know some files are corrupted
             assert summary.get("failed", 0) > 0, "Should detect some failures"

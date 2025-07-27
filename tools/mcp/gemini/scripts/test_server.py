@@ -69,7 +69,9 @@ async def test_gemini_server(base_url: str = "http://localhost:8006"):
             )
             result = response.json()
             if result["success"]:
-                print(f"✓ History cleared: {result['result'].get('message', 'Success')}")
+                print(
+                    f"✓ History cleared: {result['result'].get('message', 'Success')}"
+                )
             else:
                 print(f"✗ Failed to clear history: {result['error']}")
         except Exception as e:
@@ -98,7 +100,9 @@ async def test_gemini_server(base_url: str = "http://localhost:8006"):
                 if response_text:
                     print(f"  Response preview: {response_text[:200]}...")
             else:
-                print(f"✗ Consultation failed: {result.get('error', result['result'].get('error'))}")
+                print(
+                    f"✗ Consultation failed: {result.get('error', result['result'].get('error'))}"
+                )
         except Exception as e:
             print(f"✗ Consultation error: {e}")
 
@@ -115,7 +119,9 @@ async def test_gemini_server(base_url: str = "http://localhost:8006"):
             )
             result = response.json()
             if result["success"]:
-                print(f"✓ Auto-consult disabled: {result['result'].get('message', 'Success')}")
+                print(
+                    f"✓ Auto-consult disabled: {result['result'].get('message', 'Success')}"
+                )
 
             # Then enable
             response = await client.post(
@@ -127,12 +133,16 @@ async def test_gemini_server(base_url: str = "http://localhost:8006"):
             )
             result = response.json()
             if result["success"]:
-                print(f"✓ Auto-consult enabled: {result['result'].get('message', 'Success')}")
+                print(
+                    f"✓ Auto-consult enabled: {result['result'].get('message', 'Success')}"
+                )
         except Exception as e:
             print(f"✗ Toggle error: {e}")
 
         print("\n✅ Gemini MCP Server tests completed!")
-        print("\nNote: Some tests may fail if Gemini CLI is not installed or configured.")
+        print(
+            "\nNote: Some tests may fail if Gemini CLI is not installed or configured."
+        )
 
 
 if __name__ == "__main__":

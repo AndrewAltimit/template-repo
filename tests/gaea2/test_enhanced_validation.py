@@ -45,7 +45,9 @@ class TestEnhancedValidation:
 
         assert not result["valid"]
         assert len(result["errors"]) >= 2
-        assert any("Invalid node type 'InvalidNodeType'" in err for err in result["errors"])
+        assert any(
+            "Invalid node type 'InvalidNodeType'" in err for err in result["errors"]
+        )
         assert any("Invalid node type 'Islands'" in err for err in result["errors"])
 
     @pytest.mark.asyncio
@@ -90,9 +92,14 @@ class TestEnhancedValidation:
         result = await validator.validate_and_fix(workflow)
 
         assert not result["valid"]
-        assert any("Snow" in err and "8 properties" in err and "<= 3 properties" in err for err in result["errors"])
+        assert any(
+            "Snow" in err and "8 properties" in err and "<= 3 properties" in err
+            for err in result["errors"]
+        )
         # Mountain should not have property limit errors
-        assert not any("Mountain" in err and "properties" in err for err in result["errors"])
+        assert not any(
+            "Mountain" in err and "properties" in err for err in result["errors"]
+        )
 
     @pytest.mark.asyncio
     async def test_property_count_limit_fixing(self, validator):
@@ -122,7 +129,10 @@ class TestEnhancedValidation:
 
         # Check that the fix was applied
         assert result["fixed"]
-        assert any("Limited Snow node to 3 essential properties" in fix for fix in result["fixes_applied"])
+        assert any(
+            "Limited Snow node to 3 essential properties" in fix
+            for fix in result["fixes_applied"]
+        )
 
         # Check that the node now has only 3 properties
         fixed_node = result["workflow"]["nodes"][0]
@@ -173,7 +183,9 @@ class TestEnhancedValidation:
 
         # Should have warnings about orphaned Volcano node
         assert len(result.get("warnings", [])) > 0
-        assert any("Volcano" in warn and "not connected" in warn for warn in result["warnings"])
+        assert any(
+            "Volcano" in warn and "not connected" in warn for warn in result["warnings"]
+        )
 
     @pytest.mark.asyncio
     async def test_invalid_connections_detection(self, validator):
@@ -217,7 +229,9 @@ class TestEnhancedValidation:
 
         # This test requires a mock CLI runner since we can't actually run Gaea2
         class MockCLIRunner:
-            async def run_gaea2_project(self, project_path, resolution, format, timeout):
+            async def run_gaea2_project(
+                self, project_path, resolution, format, timeout
+            ):
                 # Simulate a file that can't open
                 return {
                     "success": False,

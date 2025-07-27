@@ -31,7 +31,9 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
     def clean_output(output: str) -> str:
         if "Loaded cached credentials" in output:
             lines = output.split("\n")
-            return "\n".join(line for line in lines if "Loaded cached credentials" not in line)
+            return "\n".join(
+                line for line in lines if "Loaded cached credentials" not in line
+            )
         return output
 
     # Try with Pro model first
@@ -48,13 +50,19 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
         output = clean_output(result.stdout.strip())
         return output.strip(), PRO_MODEL
     except subprocess.TimeoutExpired:
-        print(f"⏱️  Pro model timed out after {PRO_MODEL_TIMEOUT}s, trying Flash model...")
+        print(
+            f"⏱️  Pro model timed out after {PRO_MODEL_TIMEOUT}s, trying Flash model..."
+        )
         print("   (This is likely due to network latency in CI, not a quota issue)")
     except subprocess.CalledProcessError as e:
         # Check if it's a quota limit error
         if e.stderr:
             error_text = e.stderr.lower()
-            if "quota limit" in error_text or "api error" in error_text or "quota exceeded" in error_text:
+            if (
+                "quota limit" in error_text
+                or "api error" in error_text
+                or "quota exceeded" in error_text
+            ):
                 print("⚡ Quota limit reached for Pro model, falling back to Flash...")
             else:
                 # Non-quota error from Pro model - surface the error
@@ -229,7 +237,9 @@ def get_project_context() -> str:
     )
 
 
-def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any]) -> Tuple[str, str]:
+def analyze_large_pr(
+    diff: str, changed_files: List[str], pr_info: Dict[str, Any]
+) -> Tuple[str, str]:
     """Analyze large PRs by breaking them down into manageable chunks
 
     Returns: (analysis, model_used)
@@ -241,14 +251,18 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
 
     # If diff is small enough, use single analysis
     if diff_size < 50000:  # 50KB threshold
-        return analyze_complete_diff(diff, changed_files, pr_info, project_context, file_stats)
+        return analyze_complete_diff(
+            diff, changed_files, pr_info, project_context, file_stats
+        )
 
     # For large diffs, analyze by file groups
     print(f"📦 Large diff detected ({diff_size:,} chars), using chunked analysis...")
 
     file_chunks = chunk_diff_by_files(diff)
     analyses = []
-    model_used = NO_MODEL  # Start with no model, will be updated if any analysis succeeds
+    model_used = (
+        NO_MODEL  # Start with no model, will be updated if any analysis succeeds
+    )
     successful_models = []  # Track which models were successfully used
 
     # Group files by type for more coherent analysis
@@ -280,7 +294,9 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
         if not group_files:
             continue
 
-        group_analysis, group_model = analyze_file_group(group_name, group_files, pr_info, project_context)
+        group_analysis, group_model = analyze_file_group(
+            group_name, group_files, pr_info, project_context
+        )
         if group_analysis and group_model != NO_MODEL:
             analyses.append(f"### {group_name.title()} Changes\n{group_analysis}")
             successful_models.append(group_model)
@@ -426,7 +442,9 @@ def format_workflow_contents(workflow_contents: Dict[str, str]) -> str:
     return formatted
 
 
-def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: str = PRO_MODEL) -> str:
+def format_github_comment(
+    analysis: str, pr_info: Dict[str, Any], model_used: str = PRO_MODEL
+) -> str:
     """Format the analysis as a GitHub PR comment"""
     if model_used == PRO_MODEL:
         model_display = "v2.5 Pro"

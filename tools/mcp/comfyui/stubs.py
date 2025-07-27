@@ -68,7 +68,9 @@ async def list_models(type: Optional[str] = None) -> Dict[str, List[str]]:
     return {}
 
 
-async def upload_lora(filename: str, data: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+async def upload_lora(
+    filename: str, data: str, metadata: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """Upload a LoRA model to ComfyUI.
 
     Args:
@@ -98,7 +100,9 @@ async def upload_lora_chunked_init(
     return {}
 
 
-async def upload_lora_chunk(upload_id: str, chunk_index: int, chunk: str, total_chunks: int) -> Dict[str, Any]:
+async def upload_lora_chunk(
+    upload_id: str, chunk_index: int, chunk: str, total_chunks: int
+) -> Dict[str, Any]:
     """Upload a chunk of a large LoRA file.
 
     Args:
@@ -165,7 +169,9 @@ async def get_system_info() -> Dict[str, Any]:
     return {}
 
 
-async def transfer_lora_from_ai_toolkit(model_name: str, filename: str) -> Dict[str, Any]:
+async def transfer_lora_from_ai_toolkit(
+    model_name: str, filename: str
+) -> Dict[str, Any]:
     """Transfer a LoRA from AI Toolkit to ComfyUI.
 
     Args:
@@ -178,7 +184,9 @@ async def transfer_lora_from_ai_toolkit(model_name: str, filename: str) -> Dict[
     return {}
 
 
-async def execute_workflow(workflow: Dict[str, Any], client_id: Optional[str] = None) -> Dict[str, Any]:
+async def execute_workflow(
+    workflow: Dict[str, Any], client_id: Optional[str] = None
+) -> Dict[str, Any]:
     """Execute a custom ComfyUI workflow.
 
     Args:

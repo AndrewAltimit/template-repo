@@ -12,7 +12,10 @@ import pytest
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from tools.mcp.content_creation.tools import compile_latex, create_manim_animation  # noqa: E402
+from tools.mcp.content_creation.tools import (  # noqa: E402
+    compile_latex,
+    create_manim_animation,
+)
 
 
 class TestContentCreationTools:
@@ -28,14 +31,21 @@ class TestContentCreationTools:
                         with patch("os.makedirs") as mock_makedirs:
                             with patch("builtins.open", mock_open()):
                                 # Setup mocks
-                                mock_tmpdir.return_value.__enter__.return_value = "/tmp/test"
+                                mock_tmpdir.return_value.__enter__.return_value = (
+                                    "/tmp/test"
+                                )
                                 mock_run.return_value = Mock(returncode=0)
                                 mock_exists.return_value = True
                                 mock_makedirs.return_value = None
 
                                 # Test compilation
-                                latex_content = r"\documentclass{article}" r"\begin{document}Test\end{document}"
-                                result = await compile_latex(content=latex_content, format="pdf")
+                                latex_content = (
+                                    r"\documentclass{article}"
+                                    r"\begin{document}Test\end{document}"
+                                )
+                                result = await compile_latex(
+                                    content=latex_content, format="pdf"
+                                )
 
                                 assert result["success"] is True
                                 assert result["format"] == "pdf"
@@ -52,14 +62,21 @@ class TestContentCreationTools:
                         with patch("os.makedirs") as mock_makedirs:
                             with patch("builtins.open", mock_open()):
                                 # Setup mocks
-                                mock_tmpdir.return_value.__enter__.return_value = "/tmp/test"
+                                mock_tmpdir.return_value.__enter__.return_value = (
+                                    "/tmp/test"
+                                )
                                 mock_run.return_value = Mock(returncode=0)
                                 mock_exists.return_value = True
                                 mock_makedirs.return_value = None
 
                                 # Test compilation
-                                latex_content = r"\documentclass{article}" r"\begin{document}Test\end{document}"
-                                result = await compile_latex(content=latex_content, format="dvi")
+                                latex_content = (
+                                    r"\documentclass{article}"
+                                    r"\begin{document}Test\end{document}"
+                                )
+                                result = await compile_latex(
+                                    content=latex_content, format="dvi"
+                                )
 
                                 assert result["success"] is True
                                 assert result["format"] == "dvi"
@@ -105,8 +122,12 @@ class TestContentCreationTools:
                             mock_makedirs.return_value = None
 
                             # Test animation
-                            script = "from manim import *\n" "class TestScene(Scene): pass"
-                            result = await create_manim_animation(script=script, output_format="mp4")
+                            script = (
+                                "from manim import *\n" "class TestScene(Scene): pass"
+                            )
+                            result = await create_manim_animation(
+                                script=script, output_format="mp4"
+                            )
 
                             assert result["success"] is True
                             assert result["format"] == "mp4"
@@ -130,7 +151,9 @@ class TestContentCreationTools:
                             mock_makedirs.return_value = None
 
                             # Test animation
-                            script = "from manim import *\n" "class TestScene(Scene): pass"
+                            script = (
+                                "from manim import *\n" "class TestScene(Scene): pass"
+                            )
                             result = await create_manim_animation(
                                 script=script,
                                 output_format="gif",
@@ -152,7 +175,9 @@ class TestContentCreationTools:
                         mock_file = Mock()
                         mock_file.name = "/tmp/test.py"
                         mock_tmp.return_value.__enter__.return_value = mock_file
-                        mock_run.return_value = Mock(returncode=1, stderr="Manim Error: Invalid scene")
+                        mock_run.return_value = Mock(
+                            returncode=1, stderr="Manim Error: Invalid scene"
+                        )
                         mock_makedirs.return_value = None
 
                         # Test animation
@@ -180,7 +205,9 @@ class TestContentCreationTools:
                             mock_exists.return_value = False
 
                             # Test animation
-                            script = "from manim import *\n" "class TestScene(Scene): pass"
+                            script = (
+                                "from manim import *\n" "class TestScene(Scene): pass"
+                            )
                             result = await create_manim_animation(script=script)
 
                             assert result["success"] is True

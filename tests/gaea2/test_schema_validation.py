@@ -11,7 +11,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 import json  # noqa: E402
 
 from tools.mcp.gaea2.errors.gaea2_error_recovery import Gaea2ErrorRecovery  # noqa: E402
-from tools.mcp.gaea2.schema.gaea2_schema import NODE_PROPERTY_DEFINITIONS, validate_node_properties  # noqa: E402
+from tools.mcp.gaea2.schema.gaea2_schema import (  # noqa: E402
+    NODE_PROPERTY_DEFINITIONS,
+    validate_node_properties,
+)
 from tools.mcp.gaea2.validation.gaea2_validation import create_validator  # noqa: E402
 
 
@@ -78,7 +81,9 @@ def test_export_node_validation():
         if len(warnings) == test["expected_warnings"]:
             print("    ✅ Validation passed")
         else:
-            print(f"    ❌ Expected {test['expected_warnings']} warnings, got {len(warnings)}")
+            print(
+                f"    ❌ Expected {test['expected_warnings']} warnings, got {len(warnings)}"
+            )
 
 
 def test_workflow_with_export():
@@ -112,14 +117,20 @@ def test_workflow_with_export():
     print("\n  Testing validate_workflow...")
     try:
         validator = create_validator()
-        validation_result = validator.validate_workflow(workflow["nodes"], workflow["connections"])
-        print(f"    Valid: {validation_result.get('valid', validation_result.get('is_valid', False))}")
+        validation_result = validator.validate_workflow(
+            workflow["nodes"], workflow["connections"]
+        )
+        print(
+            f"    Valid: {validation_result.get('valid', validation_result.get('is_valid', False))}"
+        )
         if validation_result.get("errors"):
             print(f"    Errors: {validation_result['errors']}")
         if validation_result.get("warnings"):
             print(f"    Warnings: {validation_result['warnings']}")
             # Check for Export-related warnings
-            export_warnings = [w for w in validation_result["warnings"] if "Export" in str(w)]
+            export_warnings = [
+                w for w in validation_result["warnings"] if "Export" in str(w)
+            ]
             if export_warnings:
                 print("    ⚠️  Export-related warnings found:")
                 for w in export_warnings:
@@ -144,7 +155,9 @@ def test_automatic_export_addition():
             {"id": "n1", "type": "Mountain", "properties": {"Height": 1000}},
             {"id": "n2", "type": "Erosion", "properties": {}},
         ],
-        "connections": [{"from_node": "n1", "from_port": "Out", "to_node": "n2", "to_port": "In"}],
+        "connections": [
+            {"from_node": "n1", "from_port": "Out", "to_node": "n2", "to_port": "In"}
+        ],
     }
 
     print("  Original workflow: 2 nodes, no Export")
@@ -201,14 +214,18 @@ def test_error_recovery_export_fix():
                 },
             },
         ],
-        "connections": [{"from_node": "n1", "from_port": "Out", "to_node": "n2", "to_port": "In"}],
+        "connections": [
+            {"from_node": "n1", "from_port": "Out", "to_node": "n2", "to_port": "In"}
+        ],
     }
 
     print("  Testing project with old-style Export node...")
 
     # First validate to see warnings
     validator = create_validator()
-    validation = validator.validate_workflow(project["nodes"], project.get("connections", []))
+    validation = validator.validate_workflow(
+        project["nodes"], project.get("connections", [])
+    )
     print(f"  Validation warnings: {len(validation.get('warnings', []))}")
     for warning in validation.get("warnings", []):
         if "Export" in str(warning):
@@ -216,7 +233,9 @@ def test_error_recovery_export_fix():
 
     # Now auto-fix
     recovery = Gaea2ErrorRecovery()
-    fixed_nodes, fixed_connections, issues = recovery.auto_fix_project(project["nodes"], project["connections"])
+    fixed_nodes, fixed_connections, issues = recovery.auto_fix_project(
+        project["nodes"], project["connections"]
+    )
     fixed_project = {"nodes": fixed_nodes, "connections": fixed_connections}
 
     print("\n  After auto-fix:")

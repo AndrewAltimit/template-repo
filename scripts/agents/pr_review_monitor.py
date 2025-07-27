@@ -25,7 +25,9 @@ from subagent_manager import review_pr_with_qa
 from utils import get_github_token, run_gh_command
 
 # Configure logging with security
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 setup_secure_logging()
 logger = get_secure_logger(__name__)
 
@@ -36,7 +38,9 @@ class PRReviewMonitor:
     def __init__(self):
         self.repo = os.environ.get("GITHUB_REPOSITORY")
         if not self.repo:
-            logger.error("GITHUB_REPOSITORY environment variable is required but not set")
+            logger.error(
+                "GITHUB_REPOSITORY environment variable is required but not set"
+            )
             raise RuntimeError("GITHUB_REPOSITORY environment variable must be set")
         self.token = get_github_token()
 
@@ -57,8 +61,12 @@ class PRReviewMonitor:
         pr_config = self.config.get("agents", {}).get("pr_review_monitor", {})
 
         # Use config values with fallbacks
-        self.review_bot_names = pr_config.get("review_bot_names", ["gemini-bot", "github-actions[bot]", "dependabot[bot]"])
-        self.auto_fix_threshold = pr_config.get("auto_fix_threshold", {"critical_issues": 0, "total_issues": 5})
+        self.review_bot_names = pr_config.get(
+            "review_bot_names", ["gemini-bot", "github-actions[bot]", "dependabot[bot]"]
+        )
+        self.auto_fix_threshold = pr_config.get(
+            "auto_fix_threshold", {"critical_issues": 0, "total_issues": 5}
+        )
         # Cutoff period in hours for filtering recent PRs
         self.cutoff_hours = pr_config.get("cutoff_hours", 24)
 
@@ -73,7 +81,9 @@ class PRReviewMonitor:
         # Get list of environment variables to mask from workflow
         mask_vars = os.environ.get("MASK_ENV_VARS", "")
         if mask_vars:
-            self.env_vars_to_mask = [v.strip() for v in mask_vars.split(",") if v.strip()]
+            self.env_vars_to_mask = [
+                v.strip() for v in mask_vars.split(",") if v.strip()
+            ]
         else:
             # Default list if not specified
             self.env_vars_to_mask = [
@@ -115,7 +125,9 @@ class PRReviewMonitor:
         # Add patterns for each environment variable's value
         for var_name in self.env_vars_to_mask:
             var_value = os.environ.get(var_name)
-            if var_value and len(var_value) > 10:  # Only mask if it's a substantial value
+            if (
+                var_value and len(var_value) > 10
+            ):  # Only mask if it's a substantial value
                 # Escape special regex characters
                 escaped_value = re.escape(var_value)
                 self.secret_patterns.append((escaped_value, f"[{var_name}]"))
@@ -135,7 +147,9 @@ class PRReviewMonitor:
             ]
         )
 
-        logger.info(f"Configured to mask {len(self.env_vars_to_mask)} environment variables")
+        logger.info(
+            f"Configured to mask {len(self.env_vars_to_mask)} environment variables"
+        )
 
     def mask_secrets(self, text: str) -> str:
         """Mask secrets in text based on configured patterns."""
@@ -147,7 +161,9 @@ class PRReviewMonitor:
         # Apply all masking patterns
         for pattern, replacement in self.secret_patterns:
             try:
-                masked_text = re.sub(pattern, replacement, masked_text, flags=re.IGNORECASE)
+                masked_text = re.sub(
+                    pattern, replacement, masked_text, flags=re.IGNORECASE
+                )
             except re.error:
                 # Skip invalid patterns
                 continue
@@ -218,9 +234,13 @@ class PRReviewMonitor:
                         if all_prs and isinstance(all_prs, list):
                             logger.debug(f"First PR type: {type(all_prs[0])}")
                             if all_prs and isinstance(all_prs[0], dict):
-                                logger.debug(f"First PR keys: {list(all_prs[0].keys())}")
+                                logger.debug(
+                                    f"First PR keys: {list(all_prs[0].keys())}"
+                                )
                         elif isinstance(all_prs, dict):
-                            logger.debug(f"PR data is a dict with keys: {list(all_prs.keys())}")
+                            logger.debug(
+                                f"PR data is a dict with keys: {list(all_prs.keys())}"
+                            )
 
                     # If we got a single PR object from gh pr view, wrap it in a list
                     if target_pr and isinstance(all_prs, dict):
@@ -245,7 +265,9 @@ class PRReviewMonitor:
                 pr_comments = self.get_pr_general_comments(pr_number)
                 pr["comments"] = pr_comments
                 if self.verbose:
-                    logger.debug(f"Fetched {len(pr_comments)} comments for PR #{pr_number}")
+                    logger.debug(
+                        f"Fetched {len(pr_comments)} comments for PR #{pr_number}"
+                    )
                     for i, comment in enumerate(pr_comments[:3]):  # Show first 3
                         logger.debug(
                             f"  Comment {i+1} by "
@@ -261,13 +283,19 @@ class PRReviewMonitor:
         for pr in all_prs:
             # Check both created and updated times
             created_at = datetime.fromisoformat(pr["createdAt"].replace("Z", "+00:00"))
-            updated_at = datetime.fromisoformat(pr["updatedAt"].replace("Z", "+00:00")) if "updatedAt" in pr else created_at
+            updated_at = (
+                datetime.fromisoformat(pr["updatedAt"].replace("Z", "+00:00"))
+                if "updatedAt" in pr
+                else created_at
+            )
 
             # Include PR if it was created or updated recently
             if created_at >= cutoff_time or updated_at >= cutoff_time:
                 recent_prs.append(pr)
 
-        logger.info(f"Filtered {len(all_prs)} PRs to {len(recent_prs)} recent PRs (cutoff: {self.cutoff_hours} hours)")
+        logger.info(
+            f"Filtered {len(all_prs)} PRs to {len(recent_prs)} recent PRs (cutoff: {self.cutoff_hours} hours)"
+        )
 
         # Fetch comments for recent PRs
         for pr in recent_prs:
@@ -287,7 +315,9 @@ class PRReviewMonitor:
 
     def get_pr_reviews(self, pr_number: int) -> List[Dict]:
         """Get all reviews for a specific PR."""
-        output = run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "reviews"])
+        output = run_gh_command(
+            ["pr", "view", str(pr_number), "--repo", self.repo, "--json", "reviews"]
+        )
 
         if output:
             try:
@@ -300,11 +330,17 @@ class PRReviewMonitor:
 
     def get_pr_review_comments(self, pr_number: int) -> List[Dict]:
         """Get all review comments for a specific PR."""
-        output = run_gh_command(["api", f"/repos/{self.repo}/pulls/{pr_number}/comments", "--paginate"])
+        output = run_gh_command(
+            ["api", f"/repos/{self.repo}/pulls/{pr_number}/comments", "--paginate"]
+        )
 
         if output:
             try:
-                return json.loads(output) if output.startswith("[") else [json.loads(output)]
+                return (
+                    json.loads(output)
+                    if output.startswith("[")
+                    else [json.loads(output)]
+                )
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse comments JSON: {e}")
                 return []
@@ -312,11 +348,17 @@ class PRReviewMonitor:
 
     def get_pr_general_comments(self, pr_number: int) -> List[Dict]:
         """Get all general comments for a specific PR (including Gemini bot reviews)."""
-        output = run_gh_command(["api", f"/repos/{self.repo}/issues/{pr_number}/comments", "--paginate"])
+        output = run_gh_command(
+            ["api", f"/repos/{self.repo}/issues/{pr_number}/comments", "--paginate"]
+        )
 
         if output:
             try:
-                return json.loads(output) if output.startswith("[") else [json.loads(output)]
+                return (
+                    json.loads(output)
+                    if output.startswith("[")
+                    else [json.loads(output)]
+                )
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse general comments JSON: {e}")
                 return []
@@ -324,7 +366,9 @@ class PRReviewMonitor:
 
     def get_pr_latest_commit(self, pr_number: int) -> Optional[str]:
         """Get the latest commit SHA for a PR."""
-        output = run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "commits"])
+        output = run_gh_command(
+            ["pr", "view", str(pr_number), "--repo", self.repo, "--json", "commits"]
+        )
 
         if output:
             try:
@@ -338,22 +382,30 @@ class PRReviewMonitor:
                 return None
         return None
 
-    def get_commit_for_comment(self, pr_number: int, comment_time: str) -> Optional[str]:
+    def get_commit_for_comment(
+        self, pr_number: int, comment_time: str
+    ) -> Optional[str]:
         """Get the latest commit SHA at the time a comment was made."""
-        output = run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "commits"])
+        output = run_gh_command(
+            ["pr", "view", str(pr_number), "--repo", self.repo, "--json", "commits"]
+        )
 
         if output:
             try:
                 data = json.loads(output)
                 commits = data.get("commits", [])
-                comment_datetime = datetime.fromisoformat(comment_time.replace("Z", "+00:00"))
+                comment_datetime = datetime.fromisoformat(
+                    comment_time.replace("Z", "+00:00")
+                )
 
                 # Find the latest commit before or at the comment time
                 latest_commit = None
                 for commit in commits:
                     commit_time = commit.get("committedDate", "")
                     if commit_time:
-                        commit_datetime = datetime.fromisoformat(commit_time.replace("Z", "+00:00"))
+                        commit_datetime = datetime.fromisoformat(
+                            commit_time.replace("Z", "+00:00")
+                        )
                         if commit_datetime <= comment_datetime:
                             latest_commit = commit.get("oid", "")
                         else:
@@ -413,9 +465,15 @@ class PRReviewMonitor:
 
                 # GitHub uses different status values in statusCheckRollup
                 status = check.get("status", "").upper()
-                conclusion = check.get("conclusion", "").upper() if check.get("conclusion") else None
+                conclusion = (
+                    check.get("conclusion", "").upper()
+                    if check.get("conclusion")
+                    else None
+                )
 
-                logger.debug(f"Check: {check.get('name')} - Status: {status} - Conclusion: {conclusion}")
+                logger.debug(
+                    f"Check: {check.get('name')} - Status: {status} - Conclusion: {conclusion}"
+                )
 
                 # Check if still in progress
                 if status in ["PENDING", "QUEUED", "IN_PROGRESS"]:
@@ -449,7 +507,9 @@ class PRReviewMonitor:
         # Log summary
         logger.info(f"PR #{pr_number}: Found {len(all_checks)} total checks")
         if in_progress_checks:
-            logger.info(f"PR #{pr_number}: {len(in_progress_checks)} checks still in progress")
+            logger.info(
+                f"PR #{pr_number}: {len(in_progress_checks)} checks still in progress"
+            )
         if failing_checks:
             logger.info(f"PR #{pr_number}: {len(failing_checks)} checks failed")
 
@@ -463,7 +523,9 @@ class PRReviewMonitor:
     def get_check_run_logs(self, pr_number: int, check_name: str) -> str:
         """Get the logs for a specific check run."""
         # First get the check runs for the PR
-        output = run_gh_command(["api", f"/repos/{self.repo}/pulls/{pr_number}", "--jq", ".head.sha"])
+        output = run_gh_command(
+            ["api", f"/repos/{self.repo}/pulls/{pr_number}", "--jq", ".head.sha"]
+        )
 
         if not output:
             return ""
@@ -471,7 +533,9 @@ class PRReviewMonitor:
         commit_sha = output.strip()
 
         # Get check runs for this commit
-        output = run_gh_command(["api", f"/repos/{self.repo}/commits/{commit_sha}/check-runs"])
+        output = run_gh_command(
+            ["api", f"/repos/{self.repo}/commits/{commit_sha}/check-runs"]
+        )
 
         if output:
             try:
@@ -500,7 +564,9 @@ class PRReviewMonitor:
 
     def has_agent_addressed_review(self, pr_number: int) -> bool:
         """Check if agent has already addressed the review."""
-        output = run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "comments"])
+        output = run_gh_command(
+            ["pr", "view", str(pr_number), "--repo", self.repo, "--json", "comments"]
+        )
 
         if output:
             try:
@@ -509,13 +575,18 @@ class PRReviewMonitor:
                 logger.error(f"Failed to parse comment data JSON: {e}")
                 return False
             for comment in data.get("comments", []):
-                if self.agent_tag in comment.get("body", "") and "addressed" in comment.get("body", "").lower():
+                if (
+                    self.agent_tag in comment.get("body", "")
+                    and "addressed" in comment.get("body", "").lower()
+                ):
                     return True
         return False
 
     def has_agent_attempted_pipeline_fix(self, pr_number: int) -> bool:
         """Check if agent has already attempted to fix pipeline failures."""
-        output = run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "comments"])
+        output = run_gh_command(
+            ["pr", "view", str(pr_number), "--repo", self.repo, "--json", "comments"]
+        )
 
         if output:
             try:
@@ -527,14 +598,19 @@ class PRReviewMonitor:
                 if (
                     self.agent_tag in comment.get("body", "")
                     and "pipeline" in comment.get("body", "").lower()
-                    and any(word in comment.get("body", "").lower() for word in ["fixing", "fixed", "attempted"])
+                    and any(
+                        word in comment.get("body", "").lower()
+                        for word in ["fixing", "fixed", "attempted"]
+                    )
                 ):
                     return True
         return False
 
     def has_agent_undrafted_pr(self, pr_number: int) -> bool:
         """Check if agent has already marked this PR as ready for review."""
-        output = run_gh_command(["pr", "view", str(pr_number), "--repo", self.repo, "--json", "comments"])
+        output = run_gh_command(
+            ["pr", "view", str(pr_number), "--repo", self.repo, "--json", "comments"]
+        )
 
         if output:
             try:
@@ -543,11 +619,15 @@ class PRReviewMonitor:
                 logger.error(f"Failed to parse comment data JSON: {e}")
                 return False
             for comment in data.get("comments", []):
-                if self.agent_tag in comment.get("body", "") and "PR is ready for review!" in comment.get("body", ""):
+                if self.agent_tag in comment.get(
+                    "body", ""
+                ) and "PR is ready for review!" in comment.get("body", ""):
                     return True
         return False
 
-    def is_pr_ready_to_undraft(self, pr: Dict, check_status: Dict, feedback: Dict) -> bool:
+    def is_pr_ready_to_undraft(
+        self, pr: Dict, check_status: Dict, feedback: Dict
+    ) -> bool:
         """
         Check if a draft PR is ready to be marked as ready for review.
 
@@ -669,7 +749,12 @@ The PR is now ready for final review and merge.
                         "line": line,
                         "comment": body,
                         "severity": (
-                            "high" if any(word in body.lower() for word in ["error", "bug", "critical", "must"]) else "medium"
+                            "high"
+                            if any(
+                                word in body.lower()
+                                for word in ["error", "bug", "critical", "must"]
+                            )
+                            else "medium"
                         ),
                     }
                 )
@@ -698,10 +783,15 @@ The PR is now ready for final review and merge.
     def prepare_feedback_text(self, feedback: Dict, pr_description: str = "") -> tuple:
         """Prepare feedback text for the fix script."""
         issues_text = "\n".join(
-            [f"- File: {issue['file']}, Line: {issue['line']}, Issue: {issue['comment']}" for issue in feedback["issues"]]
+            [
+                f"- File: {issue['file']}, Line: {issue['line']}, Issue: {issue['comment']}"
+                for issue in feedback["issues"]
+            ]
         )
         must_fix_text = "\n".join([f"- {fix}" for fix in feedback["must_fix"]])
-        suggestions_text = "\n".join([f"- {suggestion}" for suggestion in feedback["nice_to_have"]])
+        suggestions_text = "\n".join(
+            [f"- {suggestion}" for suggestion in feedback["nice_to_have"]]
+        )
 
         return must_fix_text, issues_text, suggestions_text, pr_description
 
@@ -724,7 +814,10 @@ The PR is now ready for final review and merge.
                 "conclusion": check.get("conclusion", ""),
             }
 
-            if any(word in check_name for word in ["lint", "format", "flake", "black", "mypy"]):
+            if any(
+                word in check_name
+                for word in ["lint", "format", "flake", "black", "mypy"]
+            ):
                 failures["lint_failures"].append(failure_info)
             elif any(word in check_name for word in ["test", "pytest", "unittest"]):
                 failures["test_failures"].append(failure_info)
@@ -741,18 +834,26 @@ The PR is now ready for final review and merge.
         """Implement changes to address review feedback. Returns (success, error_details, agent_output)"""
         # Check if auto-fix is enabled
         if not self.auto_fix_enabled:
-            logger.info(f"AI agents are disabled. Skipping automatic fixes for PR #{pr_number}")
-            logger.info("To enable auto-fix, set ENABLE_AI_AGENTS=true environment variable")
+            logger.info(
+                f"AI agents are disabled. Skipping automatic fixes for PR #{pr_number}"
+            )
+            logger.info(
+                "To enable auto-fix, set ENABLE_AI_AGENTS=true environment variable"
+            )
             return False, "AI agents are disabled", None
 
         # Add safety checks
         total_issues = len(feedback["must_fix"]) + len(feedback["issues"])
         if total_issues > 20:
-            logger.warning(f"Too many issues ({total_issues}) for automatic fixing. Skipping auto-fix.")
+            logger.warning(
+                f"Too many issues ({total_issues}) for automatic fixing. Skipping auto-fix."
+            )
             return False, f"Too many issues ({total_issues}) for automatic fixing", None
 
         # Prepare feedback text
-        must_fix_text, issues_text, suggestions_text, pr_desc = self.prepare_feedback_text(feedback, pr_description)
+        must_fix_text, issues_text, suggestions_text, pr_desc = (
+            self.prepare_feedback_text(feedback, pr_description)
+        )
 
         # First, ensure we're in the correct branch
         try:
@@ -780,7 +881,9 @@ The PR is now ready for final review and merge.
         # Use the Claude Code qa-reviewer subagent to address feedback
         try:
             if self.verbose:
-                logger.info(f"Using Claude Code qa-reviewer subagent for PR #{pr_number}")
+                logger.info(
+                    f"Using Claude Code qa-reviewer subagent for PR #{pr_number}"
+                )
                 logger.info(f"Total issues to fix: {total_issues}")
 
             # Prepare review comments for the subagent
@@ -788,7 +891,9 @@ The PR is now ready for final review and merge.
 
             # Add must-fix issues
             for issue in feedback["must_fix"]:
-                review_comments.append({"body": f"CRITICAL: {issue}", "severity": "critical"})
+                review_comments.append(
+                    {"body": f"CRITICAL: {issue}", "severity": "critical"}
+                )
 
             # Add regular issues
             for issue in feedback["issues"]:
@@ -816,12 +921,15 @@ The PR is now ready for final review and merge.
             logger.info("QA reviewer subagent completed review fixes successfully")
 
             # Check if there are changes to commit
-            status_result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
+            status_result = subprocess.run(
+                ["git", "status", "--porcelain"], capture_output=True, text=True
+            )
             if status_result.stdout.strip():
                 # Commit and push changes
                 subprocess.run(["git", "add", "-A"], check=True)
                 commit_message = (
-                    f"fix: address review feedback for PR #{pr_number}\n\n" f"🤖 Generated with Claude Code QA Reviewer"
+                    f"fix: address review feedback for PR #{pr_number}\n\n"
+                    f"🤖 Generated with Claude Code QA Reviewer"
                 )
                 subprocess.run(["git", "commit", "-m", commit_message], check=True)
                 subprocess.run(["git", "push", "origin", branch_name], check=True)
@@ -846,9 +954,15 @@ The PR is now ready for final review and merge.
             if e.stderr:
                 # Filter out Git LFS warnings which are not actual errors
                 stderr_lines = e.stderr.splitlines()
-                filtered_stderr = "\n".join(line for line in stderr_lines if "Git LFS" not in line and "git-lfs" not in line)
+                filtered_stderr = "\n".join(
+                    line
+                    for line in stderr_lines
+                    if "Git LFS" not in line and "git-lfs" not in line
+                )
                 if filtered_stderr.strip():
-                    error_details += f"\nError:\n{filtered_stderr[-4000:]}"  # Last 4000 chars
+                    error_details += (
+                        f"\nError:\n{filtered_stderr[-4000:]}"  # Last 4000 chars
+                    )
             return False, error_details, agent_output
 
     def address_pipeline_failures(
@@ -857,7 +971,9 @@ The PR is now ready for final review and merge.
         """Attempt to fix pipeline failures. Returns (success, error_details, agent_output)"""
         # Check if auto-fix is enabled
         if not self.auto_fix_enabled:
-            logger.info(f"AI agents are disabled. Skipping automatic pipeline fixes for PR #{pr_number}")
+            logger.info(
+                f"AI agents are disabled. Skipping automatic pipeline fixes for PR #{pr_number}"
+            )
             return False, "AI agents are disabled", None
 
         # Safety check - don't try to fix too many failures at once
@@ -890,7 +1006,9 @@ The PR is now ready for final review and merge.
             env = os.environ.copy()
 
             if self.verbose:
-                logger.info(f"Running pipeline fix script for PR #{pr_number} on branch {branch_name}")
+                logger.info(
+                    f"Running pipeline fix script for PR #{pr_number} on branch {branch_name}"
+                )
                 logger.info(f"Failures to fix: {failures['total_failures']}")
 
             result = subprocess.run(
@@ -930,9 +1048,15 @@ The PR is now ready for final review and merge.
             if e.stderr:
                 # Filter out Git LFS warnings which are not actual errors
                 stderr_lines = e.stderr.splitlines()
-                filtered_stderr = "\n".join(line for line in stderr_lines if "Git LFS" not in line and "git-lfs" not in line)
+                filtered_stderr = "\n".join(
+                    line
+                    for line in stderr_lines
+                    if "Git LFS" not in line and "git-lfs" not in line
+                )
                 if filtered_stderr.strip():
-                    error_details += f"\nError:\n{filtered_stderr[-4000:]}"  # Last 4000 chars
+                    error_details += (
+                        f"\nError:\n{filtered_stderr[-4000:]}"  # Last 4000 chars
+                    )
             return False, error_details, agent_output
 
     def post_completion_comment(
@@ -965,30 +1089,46 @@ The PR is now ready for final review and merge.
                 work_summary = []
 
                 # Extract QA reviewer's response
-                if "QA reviewer subagent completed" in masked_output or len(masked_output) > 100:
+                if (
+                    "QA reviewer subagent completed" in masked_output
+                    or len(masked_output) > 100
+                ):
                     work_summary.append("**QA Reviewer Analysis:**")
                     work_summary.append("```")
-                    work_summary.append(masked_output[:1500] + ("..." if len(masked_output) > 1500 else ""))
+                    work_summary.append(
+                        masked_output[:1500]
+                        + ("..." if len(masked_output) > 1500 else "")
+                    )
                     work_summary.append("```")
 
                 # Extract test results
                 if "Running tests..." in masked_output:
                     test_section = masked_output.split("Running tests...")[1]
                     if "Committing changes..." in test_section:
-                        test_results = test_section.split("Committing changes...")[0].strip()
+                        test_results = test_section.split("Committing changes...")[
+                            0
+                        ].strip()
                         if test_results:
                             work_summary.append("\n**Test Results:**")
                             work_summary.append("```")
-                            work_summary.append(test_results[:500] + ("..." if len(test_results) > 500 else ""))
+                            work_summary.append(
+                                test_results[:500]
+                                + ("..." if len(test_results) > 500 else "")
+                            )
                             work_summary.append("```")
 
                 # Extract commit info
-                if "Committing changes..." in masked_output and "git add -A" in masked_output:
+                if (
+                    "Committing changes..." in masked_output
+                    and "git add -A" in masked_output
+                ):
                     commit_section = masked_output.split("Committing changes...")[1]
                     if "Pushing changes" in commit_section:
                         commit_info = commit_section.split("Pushing changes")[0].strip()
                         if "Address PR review feedback" in commit_info:
-                            work_summary.append("\n**Commit Created:** ✓ Address PR review feedback")
+                            work_summary.append(
+                                "\n**Commit Created:** ✓ Address PR review feedback"
+                            )
 
                 if work_summary:
                     comment_body += "\n\n<details>\n<summary>🔧 Agent Work Details (click to expand)</summary>\n\n"
@@ -1031,12 +1171,17 @@ The PR is now ready for final review and merge.
                     relevant_sections.append("**QA Reviewer attempted the following:**")
                     # Show what was attempted
                     relevant_sections.append("```")
-                    relevant_sections.append(masked_output[:1000] + ("..." if len(masked_output) > 1000 else ""))
+                    relevant_sections.append(
+                        masked_output[:1000]
+                        + ("..." if len(masked_output) > 1000 else "")
+                    )
                     relevant_sections.append("```")
 
                 if relevant_sections:
                     comment_body += (
-                        "\n**Agent Work Log:**\n" "<details>\n" "<summary>Click to see what the agent attempted</summary>\n\n"
+                        "\n**Agent Work Log:**\n"
+                        "<details>\n"
+                        "<summary>Click to see what the agent attempted</summary>\n\n"
                     )
                     comment_body += "\n".join(relevant_sections)
                     comment_body += "\n\n</details>\n"
@@ -1074,16 +1219,24 @@ The PR is now ready for final review and merge.
 **Failed Checks:**
 - Lint/Format failures: {len(failures['lint_failures'])}"""
             if failures["lint_failures"]:
-                comment_body += f" ({', '.join([f['name'] for f in failures['lint_failures']])})"
+                comment_body += (
+                    f" ({', '.join([f['name'] for f in failures['lint_failures']])})"
+                )
             comment_body += f"\n- Test failures: {len(failures['test_failures'])}"
             if failures["test_failures"]:
-                comment_body += f" ({', '.join([f['name'] for f in failures['test_failures']])})"
+                comment_body += (
+                    f" ({', '.join([f['name'] for f in failures['test_failures']])})"
+                )
             comment_body += f"\n- Build failures: {len(failures['build_failures'])}"
             if failures["build_failures"]:
-                comment_body += f" ({', '.join([f['name'] for f in failures['build_failures']])})"
+                comment_body += (
+                    f" ({', '.join([f['name'] for f in failures['build_failures']])})"
+                )
             comment_body += f"\n- Other failures: {len(failures['other_failures'])}"
             if failures["other_failures"]:
-                comment_body += f" ({', '.join([f['name'] for f in failures['other_failures']])})"
+                comment_body += (
+                    f" ({', '.join([f['name'] for f in failures['other_failures']])})"
+                )
             comment_body += """
 
 I'll analyze the failure logs and attempt to fix these issues automatically...
@@ -1111,33 +1264,52 @@ All checks should now pass. The PR is ready for review.
                 if "Running auto-format" in masked_output:
                     format_section = masked_output.split("Running auto-format")[1]
                     if "Running Claude" in format_section:
-                        format_results = format_section.split("Running Claude")[0].strip()
+                        format_results = format_section.split("Running Claude")[
+                            0
+                        ].strip()
                         if format_results:
                             work_summary.append("**Auto-formatting Results:**")
                             work_summary.append("```")
-                            work_summary.append(format_results[:500] + ("..." if len(format_results) > 500 else ""))
+                            work_summary.append(
+                                format_results[:500]
+                                + ("..." if len(format_results) > 500 else "")
+                            )
                             work_summary.append("```")
 
                 # Extract Claude's analysis
                 if "Running Claude to fix pipeline failures..." in masked_output:
-                    claude_section = masked_output.split("Running Claude to fix pipeline failures...")[1]
+                    claude_section = masked_output.split(
+                        "Running Claude to fix pipeline failures..."
+                    )[1]
                     if "Running tests to verify" in claude_section:
-                        claude_work = claude_section.split("Running tests to verify")[0].strip()
+                        claude_work = claude_section.split("Running tests to verify")[
+                            0
+                        ].strip()
                         if claude_work and len(claude_work) > 100:
                             work_summary.append("\n**Claude's Pipeline Fix Analysis:**")
                             work_summary.append("```")
-                            work_summary.append(claude_work[:1500] + ("..." if len(claude_work) > 1500 else ""))
+                            work_summary.append(
+                                claude_work[:1500]
+                                + ("..." if len(claude_work) > 1500 else "")
+                            )
                             work_summary.append("```")
 
                 # Extract verification results
                 if "Running tests to verify fixes..." in masked_output:
-                    verify_section = masked_output.split("Running tests to verify fixes...")[1]
+                    verify_section = masked_output.split(
+                        "Running tests to verify fixes..."
+                    )[1]
                     if "Committing fixes..." in verify_section:
-                        verify_results = verify_section.split("Committing fixes...")[0].strip()
+                        verify_results = verify_section.split("Committing fixes...")[
+                            0
+                        ].strip()
                         if verify_results:
                             work_summary.append("\n**Verification Results:**")
                             work_summary.append("```")
-                            work_summary.append(verify_results[:500] + ("..." if len(verify_results) > 500 else ""))
+                            work_summary.append(
+                                verify_results[:500]
+                                + ("..." if len(verify_results) > 500 else "")
+                            )
                             work_summary.append("```")
 
                 if work_summary:
@@ -1146,7 +1318,8 @@ All checks should now pass. The PR is ready for review.
                     comment_body += "\n\n</details>"
 
             comment_body += (
-                "\n\n*This comment was generated by an AI agent that automatically fixes CI/CD pipeline failures.*" ""
+                "\n\n*This comment was generated by an AI agent that automatically fixes CI/CD pipeline failures.*"
+                ""
             )
         else:  # failed
             comment_body = f"""{self.agent_tag} ❌ I attempted to fix the pipeline failures but encountered issues:
@@ -1154,16 +1327,24 @@ All checks should now pass. The PR is ready for review.
 **Attempted Fixes:**
 - Lint/Format failures: {len(failures['lint_failures'])}"""
             if failures["lint_failures"]:
-                comment_body += f" ({', '.join([f['name'] for f in failures['lint_failures']])})"
+                comment_body += (
+                    f" ({', '.join([f['name'] for f in failures['lint_failures']])})"
+                )
             comment_body += f"\n- Test failures: {len(failures['test_failures'])}"
             if failures["test_failures"]:
-                comment_body += f" ({', '.join([f['name'] for f in failures['test_failures']])})"
+                comment_body += (
+                    f" ({', '.join([f['name'] for f in failures['test_failures']])})"
+                )
             comment_body += f"\n- Build failures: {len(failures['build_failures'])}"
             if failures["build_failures"]:
-                comment_body += f" ({', '.join([f['name'] for f in failures['build_failures']])})"
+                comment_body += (
+                    f" ({', '.join([f['name'] for f in failures['build_failures']])})"
+                )
             comment_body += f"\n- Other failures: {len(failures['other_failures'])}"
             if failures["other_failures"]:
-                comment_body += f" ({', '.join([f['name'] for f in failures['other_failures']])})"
+                comment_body += (
+                    f" ({', '.join([f['name'] for f in failures['other_failures']])})"
+                )
             comment_body += """
 
 Manual intervention may be required to resolve these issues.
@@ -1191,10 +1372,15 @@ Manual intervention may be required to resolve these issues.
 
                 if "Running Claude to fix pipeline failures..." in masked_output:
                     relevant_sections.append("**Agent attempted the following fixes:**")
-                    claude_section = masked_output.split("Running Claude to fix pipeline failures...")[1]
+                    claude_section = masked_output.split(
+                        "Running Claude to fix pipeline failures..."
+                    )[1]
                     if claude_section:
                         relevant_sections.append("```")
-                        relevant_sections.append(claude_section[:1000] + ("..." if len(claude_section) > 1000 else ""))
+                        relevant_sections.append(
+                            claude_section[:1000]
+                            + ("..." if len(claude_section) > 1000 else "")
+                        )
                         relevant_sections.append("```")
 
                 if relevant_sections:
@@ -1220,7 +1406,9 @@ Manual intervention may be required to resolve these issues.
             ]
         )
 
-    def post_security_rejection_comment(self, pr_number: int, reason: Optional[str] = None) -> None:
+    def post_security_rejection_comment(
+        self, pr_number: int, reason: Optional[str] = None
+    ) -> None:
         """Post a comment explaining why the PR cannot be processed."""
         if reason:
             comment_body = (
@@ -1278,13 +1466,17 @@ Manual intervention may be required to resolve these issues.
             logger.debug("Processing PR based on keyword triggers, not labels")
 
             # Check for keyword trigger from allowed user
-            logger.info(f"[CHECK] Looking for trigger keywords in PR #{pr_number} comments...")
+            logger.info(
+                f"[CHECK] Looking for trigger keywords in PR #{pr_number} comments..."
+            )
             if self.verbose:
                 logger.debug(f"PR has {len(pr.get('comments', []))} comments to check")
                 for i, comment in enumerate(pr.get("comments", [])[:5]):
                     author = comment.get("user", {}).get("login", "Unknown")
                     body_preview = comment.get("body", "")[:100]
-                    logger.debug(f"  Comment {i}: author={author}, preview={body_preview}...")
+                    logger.debug(
+                        f"  Comment {i}: author={author}, preview={body_preview}..."
+                    )
 
             trigger_info = self.security_manager.check_trigger_comment(pr, "pr")
 
@@ -1310,18 +1502,24 @@ Manual intervention may be required to resolve these issues.
                         break
 
             if approval_comment_time:
-                approval_commit = self.get_commit_for_comment(pr_number, approval_comment_time)
+                approval_commit = self.get_commit_for_comment(
+                    pr_number, approval_comment_time
+                )
                 logger.info(
                     f"[SECURITY] Approval comment was made at commit: {approval_commit[:8] if approval_commit else 'unknown'}"
                 )
 
             # Get current latest commit
             current_commit = self.get_pr_latest_commit(pr_number)
-            logger.info(f"[SECURITY] Current latest commit: {current_commit[:8] if current_commit else 'unknown'}")
+            logger.info(
+                f"[SECURITY] Current latest commit: {current_commit[:8] if current_commit else 'unknown'}"
+            )
 
             # Check if approval is on the latest commit
             if approval_commit and current_commit and approval_commit != current_commit:
-                logger.warning(f"[SECURITY] PR #{pr_number} has new commits since approval. Rejecting for safety.")
+                logger.warning(
+                    f"[SECURITY] PR #{pr_number} has new commits since approval. Rejecting for safety."
+                )
                 comment_body = (
                     f"{self.agent_tag} Security Notice\n\n"
                     f"New commits have been pushed since the [{action}][{agent}] approval. "
@@ -1347,17 +1545,21 @@ Manual intervention may be required to resolve these issues.
             # For now, we'll handle all triggers, but this is where agent selection would happen
             # In the future: if agent != "Claude": continue
 
-            logger.info(f"Processing PR #{pr_number} triggered by {trigger_user}: [{action}][{agent}]")
+            logger.info(
+                f"Processing PR #{pr_number} triggered by {trigger_user}: [{action}][{agent}]"
+            )
 
             # Enhanced security check with rate limiting and repository validation
             repo = self.repo
 
-            is_allowed, rejection_reason = self.security_manager.perform_full_security_check(
-                username=trigger_user,
-                action=f"pr_{action.lower()}",
-                repository=repo,
-                entity_type="pr",
-                entity_id=str(pr_number),
+            is_allowed, rejection_reason = (
+                self.security_manager.perform_full_security_check(
+                    username=trigger_user,
+                    action=f"pr_{action.lower()}",
+                    repository=repo,
+                    entity_type="pr",
+                    entity_id=str(pr_number),
+                )
             )
 
             if not is_allowed:
@@ -1370,13 +1572,17 @@ Manual intervention may be required to resolve these issues.
                 logger.info(f"Security check passed for user {trigger_user}")
 
             # We'll let the AI determine what needs to be done based on all context
-            logger.info(f"[PROCESSING] PR #{pr_number} - will analyze all context to determine needed actions")
+            logger.info(
+                f"[PROCESSING] PR #{pr_number} - will analyze all context to determine needed actions"
+            )
 
             # Skip if we've already addressed this review
             if self.has_agent_addressed_review(pr_number):
                 logger.info(f"[SKIP] Already addressed review for PR #{pr_number}")
                 if self.verbose:
-                    logger.debug("Found previous agent comment indicating review was addressed")
+                    logger.debug(
+                        "Found previous agent comment indicating review was addressed"
+                    )
                 continue
 
             # Check for pipeline failures first
@@ -1390,13 +1596,21 @@ Manual intervention may be required to resolve these issues.
 
             # If checks are still in progress, log but don't attempt fixes yet
             if check_status.get("in_progress", False):
-                logger.info(f"PR #{pr_number}: Checks still in progress, will check again later")
+                logger.info(
+                    f"PR #{pr_number}: Checks still in progress, will check again later"
+                )
 
-            if check_status["has_failures"] and not self.has_agent_attempted_pipeline_fix(pr_number):
-                logger.info(f"[PIPELINE] PR #{pr_number} has {len(check_status['failing_checks'])} failing CI/CD checks")
+            if check_status[
+                "has_failures"
+            ] and not self.has_agent_attempted_pipeline_fix(pr_number):
+                logger.info(
+                    f"[PIPELINE] PR #{pr_number} has {len(check_status['failing_checks'])} failing CI/CD checks"
+                )
                 if self.verbose:
                     for check in check_status["failing_checks"][:5]:  # Show first 5
-                        logger.debug(f"  - Failed: {check.get('name', 'Unknown check')}")
+                        logger.debug(
+                            f"  - Failed: {check.get('name', 'Unknown check')}"
+                        )
 
                 failures = self.parse_pipeline_failures(check_status["failing_checks"])
                 logger.info(
@@ -1406,17 +1620,23 @@ Manual intervention may be required to resolve these issues.
                 )
 
                 # Post comment that we're working on fixing pipeline
-                logger.info(f"[ACTION] Posting 'attempting fix' comment on PR #{pr_number}")
+                logger.info(
+                    f"[ACTION] Posting 'attempting fix' comment on PR #{pr_number}"
+                )
                 self.post_pipeline_fix_comment(pr_number, failures, "attempting")
 
                 # Attempt to fix the failures
-                logger.info(f"[ACTION] Attempting to fix pipeline failures for PR #{pr_number}...")
+                logger.info(
+                    f"[ACTION] Attempting to fix pipeline failures for PR #{pr_number}..."
+                )
 
                 # Store approval commit for later verification
                 os.environ["APPROVAL_COMMIT_SHA"] = approval_commit or ""
                 os.environ["PR_MONITORING_ACTIVE"] = "true"
 
-                success, error_details, agent_output = self.address_pipeline_failures(pr_number, branch_name, failures)
+                success, error_details, agent_output = self.address_pipeline_failures(
+                    pr_number, branch_name, failures
+                )
 
                 # Clean up environment variables
                 os.environ.pop("APPROVAL_COMMIT_SHA", None)
@@ -1424,8 +1644,12 @@ Manual intervention may be required to resolve these issues.
 
                 # Post completion comment
                 if success:
-                    logger.info(f"[SUCCESS] Pipeline fixes applied successfully for PR #{pr_number}")
-                    self.post_pipeline_fix_comment(pr_number, failures, "success", agent_output=agent_output)
+                    logger.info(
+                        f"[SUCCESS] Pipeline fixes applied successfully for PR #{pr_number}"
+                    )
+                    self.post_pipeline_fix_comment(
+                        pr_number, failures, "success", agent_output=agent_output
+                    )
 
                     # Check if this draft PR is now ready to be marked as ready for review
                     # Re-fetch check status and parse empty feedback since we just fixed pipeline
@@ -1438,36 +1662,52 @@ Manual intervention may be required to resolve these issues.
                         "suggestions": [],
                     }
 
-                    if self.is_pr_ready_to_undraft(pr, new_check_status, empty_feedback) and not self.has_agent_undrafted_pr(
-                        pr_number
-                    ):
-                        logger.info(f"[UNDRAFT] PR #{pr_number} is a draft and now meets all criteria after pipeline fix")
+                    if self.is_pr_ready_to_undraft(
+                        pr, new_check_status, empty_feedback
+                    ) and not self.has_agent_undrafted_pr(pr_number):
+                        logger.info(
+                            f"[UNDRAFT] PR #{pr_number} is a draft and now meets all criteria after pipeline fix"
+                        )
                         if self.undraft_pr(pr_number):
                             self.post_undraft_comment(pr_number)
                         else:
-                            logger.error(f"[UNDRAFT] Failed to mark PR #{pr_number} as ready")
+                            logger.error(
+                                f"[UNDRAFT] Failed to mark PR #{pr_number} as ready"
+                            )
                 else:
                     logger.error(f"[FAILED] Pipeline fix failed for PR #{pr_number}")
                     if self.verbose and error_details:
                         logger.debug(f"Error details: {error_details[:500]}...")
-                    self.post_pipeline_fix_comment(pr_number, failures, "failed", error_details, agent_output)
+                    self.post_pipeline_fix_comment(
+                        pr_number, failures, "failed", error_details, agent_output
+                    )
 
                 # Continue to next PR after handling pipeline failures
-                logger.info(f"[DONE] Completed pipeline fix attempt for PR #{pr_number}")
+                logger.info(
+                    f"[DONE] Completed pipeline fix attempt for PR #{pr_number}"
+                )
                 continue
 
             # Handle different actions
             if action.lower() in ["approved", "fix", "implement", "review"]:
-                logger.info(f"[REVIEW] Processing '{action}' action for PR #{pr_number}")
+                logger.info(
+                    f"[REVIEW] Processing '{action}' action for PR #{pr_number}"
+                )
 
                 # Get reviews and comments
-                logger.info(f"[REVIEW] Fetching reviews and comments for PR #{pr_number}...")
+                logger.info(
+                    f"[REVIEW] Fetching reviews and comments for PR #{pr_number}..."
+                )
                 reviews = self.get_pr_reviews(pr_number)
                 review_comments = self.get_pr_review_comments(pr_number)
                 general_comments = self.get_pr_general_comments(pr_number)
 
                 # Skip if no reviews from bots
-                bot_reviews = [r for r in reviews if r.get("author", {}).get("login") in self.review_bot_names]
+                bot_reviews = [
+                    r
+                    for r in reviews
+                    if r.get("author", {}).get("login") in self.review_bot_names
+                ]
 
                 # Check for bot comments in general comments too (where Gemini posts)
                 bot_general_comments = [
@@ -1488,7 +1728,9 @@ Manual intervention may be required to resolve these issues.
 
                 # Parse feedback
                 logger.info("[REVIEW] Parsing feedback from reviews and comments...")
-                feedback = self.parse_review_feedback(bot_reviews, review_comments, general_comments)
+                feedback = self.parse_review_feedback(
+                    bot_reviews, review_comments, general_comments
+                )
 
                 logger.info(
                     f"[REVIEW] Feedback summary: changes_requested={feedback['changes_requested']}, "
@@ -1497,8 +1739,13 @@ Manual intervention may be required to resolve these issues.
                 )
 
                 # Log if we found bot comments
-                if any("REVIEW COMMENTS TO ANALYZE:" in item for item in feedback["must_fix"]):
-                    logger.info("[REVIEW] Found bot review comments that need to be analyzed by AI")
+                if any(
+                    "REVIEW COMMENTS TO ANALYZE:" in item
+                    for item in feedback["must_fix"]
+                ):
+                    logger.info(
+                        "[REVIEW] Found bot review comments that need to be analyzed by AI"
+                    )
 
                 # Get all PR context
                 pr_description = pr.get("body", "")
@@ -1516,12 +1763,18 @@ Manual intervention may be required to resolve these issues.
                 # Always process - let AI determine if work is needed
                 # AI will analyze PR description, reviews, and determine what to implement
                 if True:  # Always process to let AI make the decision
-                    logger.info(f"[ACTION] Processing review feedback for PR #{pr_number}...")
+                    logger.info(
+                        f"[ACTION] Processing review feedback for PR #{pr_number}..."
+                    )
                     if self.verbose:
-                        logger.debug(f"Must fix items: {feedback['must_fix'][:3]}...")  # Show first 3
+                        logger.debug(
+                            f"Must fix items: {feedback['must_fix'][:3]}..."
+                        )  # Show first 3
 
                     # Pass PR description for context along with approval commit
-                    full_pr_context = f"PR Title: {pr_title}\n\nPR Description:\n{pr_description}"
+                    full_pr_context = (
+                        f"PR Title: {pr_title}\n\nPR Description:\n{pr_description}"
+                    )
 
                     # Store approval commit for later verification
                     os.environ["APPROVAL_COMMIT_SHA"] = approval_commit or ""
@@ -1536,7 +1789,9 @@ Manual intervention may be required to resolve these issues.
                     os.environ.pop("PR_MONITORING_ACTIVE", None)
 
                     if success:
-                        logger.info(f"[SUCCESS] Review feedback addressed successfully for PR #{pr_number}")
+                        logger.info(
+                            f"[SUCCESS] Review feedback addressed successfully for PR #{pr_number}"
+                        )
 
                         # Check if this draft PR is now ready to be marked as ready for review
                         # Re-fetch check status and use empty feedback since we just addressed all issues
@@ -1558,24 +1813,38 @@ Manual intervention may be required to resolve these issues.
                             if self.undraft_pr(pr_number):
                                 self.post_undraft_comment(pr_number)
                             else:
-                                logger.error(f"[UNDRAFT] Failed to mark PR #{pr_number} as ready")
+                                logger.error(
+                                    f"[UNDRAFT] Failed to mark PR #{pr_number} as ready"
+                                )
                     else:
-                        logger.error(f"[FAILED] Failed to address review feedback for PR #{pr_number}")
+                        logger.error(
+                            f"[FAILED] Failed to address review feedback for PR #{pr_number}"
+                        )
                         if self.verbose and error_details:
                             logger.debug(f"Error details: {error_details[:500]}...")
 
-                    self.post_completion_comment(pr_number, feedback, success, error_details, agent_output)
+                    self.post_completion_comment(
+                        pr_number, feedback, success, error_details, agent_output
+                    )
 
                     # Check if this draft PR is ready to be marked as ready for review
-                    if self.is_pr_ready_to_undraft(pr, check_status, feedback) and not self.has_agent_undrafted_pr(pr_number):
-                        logger.info(f"[UNDRAFT] PR #{pr_number} is a draft and meets all criteria to be marked ready")
+                    if self.is_pr_ready_to_undraft(
+                        pr, check_status, feedback
+                    ) and not self.has_agent_undrafted_pr(pr_number):
+                        logger.info(
+                            f"[UNDRAFT] PR #{pr_number} is a draft and meets all criteria to be marked ready"
+                        )
                         if self.undraft_pr(pr_number):
                             self.post_undraft_comment(pr_number)
                         else:
-                            logger.error(f"[UNDRAFT] Failed to mark PR #{pr_number} as ready")
+                            logger.error(
+                                f"[UNDRAFT] Failed to mark PR #{pr_number} as ready"
+                            )
             elif action.lower() == "close":
                 # Close the PR
-                logger.info(f"[ACTION] Closing PR #{pr_number} as requested by {trigger_user}")
+                logger.info(
+                    f"[ACTION] Closing PR #{pr_number} as requested by {trigger_user}"
+                )
                 run_gh_command(["pr", "close", str(pr_number), "--repo", self.repo])
                 self.create_action_comment(
                     pr_number,

@@ -188,13 +188,18 @@ class WorkflowExtractor:
                     }
 
                     # Only add if we have valid from/to nodes
-                    if connection["from_node"] is not None and connection["to_node"] is not None:
+                    if (
+                        connection["from_node"] is not None
+                        and connection["to_node"] is not None
+                    ):
                         connections.append(connection)
 
         return connections
 
     @staticmethod
-    def analyze_workflow_structure(nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def analyze_workflow_structure(
+        nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """
         Analyze workflow structure for common patterns and issues.
 
@@ -228,7 +233,9 @@ class WorkflowExtractor:
         for node in nodes:
             # Count node types
             node_type = node["type"]
-            analysis["node_types"][node_type] = analysis["node_types"].get(node_type, 0) + 1
+            analysis["node_types"][node_type] = (
+                analysis["node_types"].get(node_type, 0) + 1
+            )
 
             node_id = node["id"]
 

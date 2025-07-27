@@ -186,13 +186,17 @@ class EnhancedGaea2Tools:
 
             for node_data in nodes:
                 node_id = node_data.get("id", 100 + len(nodes_dict))
-                enhanced_node = await EnhancedGaea2Tools._create_enhanced_node(node_data, node_id, ref_id_counter)
+                enhanced_node = await EnhancedGaea2Tools._create_enhanced_node(
+                    node_data, node_id, ref_id_counter
+                )
                 nodes_dict[str(node_id)] = enhanced_node["node"]
                 ref_id_counter = enhanced_node["next_ref_id"]
 
             # Add connections
             if connections:
-                ref_id_counter = await EnhancedGaea2Tools._add_connections(connections, nodes_dict, ref_id_counter)
+                ref_id_counter = await EnhancedGaea2Tools._add_connections(
+                    connections, nodes_dict, ref_id_counter
+                )
 
             # Add groups
             if groups:
@@ -262,7 +266,9 @@ class EnhancedGaea2Tools:
             return {"success": False, "error": str(e)}
 
     @staticmethod
-    async def _create_enhanced_node(node_data: Dict[str, Any], node_id: int, ref_id_counter: int) -> Dict[str, Any]:
+    async def _create_enhanced_node(
+        node_data: Dict[str, Any], node_id: int, ref_id_counter: int
+    ) -> Dict[str, Any]:
         """Create an enhanced node with modifiers, ports, and save definitions"""
 
         node_type = node_data.get("type", "Mountain")
@@ -511,7 +517,9 @@ class EnhancedGaea2Tools:
         }
 
     @staticmethod
-    async def create_mixer_node(node_id: int, position: Dict[str, float], layers: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def create_mixer_node(
+        node_id: int, position: Dict[str, float], layers: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """
         Create a Mixer node with multiple layers
 
@@ -591,7 +599,9 @@ class EnhancedGaea2Tools:
         }
 
     @staticmethod
-    async def add_node_modifiers(node: Dict[str, Any], modifiers: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def add_node_modifiers(
+        node: Dict[str, Any], modifiers: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """
         Add modifiers to a node
 

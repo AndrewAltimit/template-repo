@@ -42,7 +42,9 @@ class OptimizedGaea2Validator:
         node_results = self._validate_nodes_batch(nodes, lookup_structures)
 
         # Validate connections efficiently
-        connection_results = self._validate_connections_batch(normalized_conns, lookup_structures)
+        connection_results = self._validate_connections_batch(
+            normalized_conns, lookup_structures
+        )
 
         # Combine results
         all_errors = node_results["errors"] + connection_results["errors"]
@@ -60,7 +62,9 @@ class OptimizedGaea2Validator:
             },
         }
 
-    def _build_lookup_structures(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _build_lookup_structures(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Build all lookup structures in a single pass."""
         node_by_id = {}
         node_type_by_id = {}
@@ -88,7 +92,9 @@ class OptimizedGaea2Validator:
                 connections_by_target[to_id].append(conn)
 
         # Calculate derived sets efficiently
-        connected_node_ids = set(connections_by_source.keys()) | set(connections_by_target.keys())
+        connected_node_ids = set(connections_by_source.keys()) | set(
+            connections_by_target.keys()
+        )
         orphaned_node_ids = node_ids - connected_node_ids
 
         return {
@@ -102,7 +108,9 @@ class OptimizedGaea2Validator:
             "orphaned_node_ids": orphaned_node_ids,
         }
 
-    def _validate_nodes_batch(self, nodes: List[Dict[str, Any]], lookup: Dict[str, Any]) -> Dict[str, Any]:
+    def _validate_nodes_batch(
+        self, nodes: List[Dict[str, Any]], lookup: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Validate all nodes in a single efficient pass."""
         errors = []
         warnings = []
@@ -120,9 +128,13 @@ class OptimizedGaea2Validator:
                 self._property_cache_hits += 1
                 cached_result = self._validation_cache[cache_key]
                 if cached_result["errors"]:
-                    errors.extend([f"Node '{node_name}': {e}" for e in cached_result["errors"]])
+                    errors.extend(
+                        [f"Node '{node_name}': {e}" for e in cached_result["errors"]]
+                    )
                 if cached_result["warnings"]:
-                    warnings.extend([f"Node '{node_name}': {w}" for w in cached_result["warnings"]])
+                    warnings.extend(
+                        [f"Node '{node_name}': {w}" for w in cached_result["warnings"]]
+                    )
                 if cached_result.get("fixed_properties"):
                     fixed_node = node.copy()
                     fixed_node["properties"] = cached_result["fixed_properties"]
@@ -139,7 +151,9 @@ class OptimizedGaea2Validator:
             self._validation_cache[cache_key] = {
                 "errors": node_errors,
                 "warnings": node_warnings,
-                "fixed_properties": (fixed_properties if fixed_properties != properties else None),
+                "fixed_properties": (
+                    fixed_properties if fixed_properties != properties else None
+                ),
             }
 
             # Add to results
@@ -154,7 +168,9 @@ class OptimizedGaea2Validator:
 
         return {"errors": errors, "warnings": warnings, "fixed_nodes": fixed_nodes}
 
-    def _validate_connections_batch(self, connections: List[Dict[str, Any]], lookup: Dict[str, Any]) -> Dict[str, Any]:
+    def _validate_connections_batch(
+        self, connections: List[Dict[str, Any]], lookup: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Validate all connections efficiently."""
         errors = []
         warnings = []
@@ -170,17 +186,22 @@ class OptimizedGaea2Validator:
 
             # Quick existence check using lookup
             if from_id not in lookup["node_ids"]:
-                errors.append(f"Connection references non-existent source node: {from_id}")
+                errors.append(
+                    f"Connection references non-existent source node: {from_id}"
+                )
                 continue
             if to_id not in lookup["node_ids"]:
-                errors.append(f"Connection references non-existent target node: {to_id}")
+                errors.append(
+                    f"Connection references non-existent target node: {to_id}"
+                )
                 continue
 
             # Duplicate detection using set
             conn_key = (from_id, to_id, from_port, to_port)
             if conn_key in seen_connections:
                 warnings.append(
-                    f"Duplicate connection: {lookup['node_name_by_id'][from_id]} -> " f"{lookup['node_name_by_id'][to_id]}"
+                    f"Duplicate connection: {lookup['node_name_by_id'][from_id]} -> "
+                    f"{lookup['node_name_by_id'][to_id]}"
                 )
             else:
                 seen_connections.add(conn_key)
@@ -190,8 +211,13 @@ class OptimizedGaea2Validator:
             to_type = lookup["node_type_by_id"][to_id]
 
             # Basic compatibility rules
-            if not self._check_port_compatibility(from_type, to_type, from_port, to_port):
-                warnings.append(f"Potentially incompatible connection: {from_type}:{from_port} -> " f"{to_type}:{to_port}")
+            if not self._check_port_compatibility(
+                from_type, to_type, from_port, to_port
+            ):
+                warnings.append(
+                    f"Potentially incompatible connection: {from_type}:{from_port} -> "
+                    f"{to_type}:{to_port}"
+                )
 
         return {"errors": errors, "warnings": warnings}
 
@@ -204,7 +230,9 @@ class OptimizedGaea2Validator:
         prop_str = json.dumps(properties, sort_keys=True)
         return f"{node_type}:{hash(prop_str)}"
 
-    def _apply_defaults_efficiently(self, node_type: str, properties: Dict[str, Any]) -> Dict[str, Any]:
+    def _apply_defaults_efficiently(
+        self, node_type: str, properties: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Apply default properties efficiently."""
         if node_type not in NODE_PROPERTY_DEFINITIONS:
             return properties
@@ -229,7 +257,9 @@ class OptimizedGaea2Validator:
 
         return fixed_props
 
-    def _check_port_compatibility(self, from_type: str, to_type: str, from_port: str, to_port: str) -> bool:
+    def _check_port_compatibility(
+        self, from_type: str, to_type: str, from_port: str, to_port: str
+    ) -> bool:
         """Check if ports are compatible (simplified version)."""
         # Basic rules for common cases
         if from_port == "Out" and to_port == "In":

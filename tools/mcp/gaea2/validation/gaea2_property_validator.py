@@ -27,7 +27,9 @@ class Gaea2PropertyValidator:
         patterns = {}
 
         # Try to load from analysis results
-        analysis_path = Path(__file__).parent.parent.parent / "gaea2_analysis_results.json"
+        analysis_path = (
+            Path(__file__).parent.parent.parent / "gaea2_analysis_results.json"
+        )
         if analysis_path.exists():
             try:
                 with open(analysis_path) as f:
@@ -66,7 +68,9 @@ class Gaea2PropertyValidator:
 
         # Special handling for common properties
         if node_type == "Erosion2":
-            fixed_properties, errs, warns = self._validate_erosion_properties(properties)
+            fixed_properties, errs, warns = self._validate_erosion_properties(
+                properties
+            )
             errors.extend(errs)
             warnings.extend(warns)
 
@@ -76,7 +80,9 @@ class Gaea2PropertyValidator:
             warnings.extend(warns)
 
         elif node_type == "Combine":
-            fixed_properties, errs, warns = self._validate_combine_properties(properties)
+            fixed_properties, errs, warns = self._validate_combine_properties(
+                properties
+            )
             errors.extend(errs)
             warnings.extend(warns)
 
@@ -89,10 +95,14 @@ class Gaea2PropertyValidator:
             # Export nodes shouldn't have format/bitdepth properties
             if "Format" in fixed_properties:
                 del fixed_properties["Format"]
-                warnings.append("Removed 'Format' property from Export node (handled by build system)")
+                warnings.append(
+                    "Removed 'Format' property from Export node (handled by build system)"
+                )
             if "BitDepth" in fixed_properties:
                 del fixed_properties["BitDepth"]
-                warnings.append("Removed 'BitDepth' property from Export node (handled by build system)")
+                warnings.append(
+                    "Removed 'BitDepth' property from Export node (handled by build system)"
+                )
 
         # Generic validation for numeric properties
         for prop_name, prop_value in list(fixed_properties.items()):
@@ -106,7 +116,10 @@ class Gaea2PropertyValidator:
                     # Ensure we can compare values
                     try:
                         # Convert string numbers to appropriate type
-                        if isinstance(prop_value, str) and prop_value.replace(".", "").replace("-", "").isdigit():
+                        if (
+                            isinstance(prop_value, str)
+                            and prop_value.replace(".", "").replace("-", "").isdigit()
+                        ):
                             prop_value = float(prop_value)
                             if prop_value == int(prop_value):
                                 prop_value = int(prop_value)
@@ -114,22 +127,32 @@ class Gaea2PropertyValidator:
                         # Ensure min/max are same type as value for comparison
                         if isinstance(prop_value, (int, float)):
                             # Convert min/max to match value type if needed
-                            if isinstance(prop_value, int) and isinstance(min_val, float):
+                            if isinstance(prop_value, int) and isinstance(
+                                min_val, float
+                            ):
                                 if min_val == int(min_val):
                                     min_val = int(min_val)
-                            if isinstance(prop_value, int) and isinstance(max_val, float):
+                            if isinstance(prop_value, int) and isinstance(
+                                max_val, float
+                            ):
                                 if max_val == int(max_val):
                                     max_val = int(max_val)
 
                             if prop_value < min_val:
                                 fixed_properties[prop_name] = min_val
-                                warnings.append(f"{prop_name} value {prop_value} below minimum {min_val}, set to {min_val}")
+                                warnings.append(
+                                    f"{prop_name} value {prop_value} below minimum {min_val}, set to {min_val}"
+                                )
                             elif prop_value > max_val:
                                 fixed_properties[prop_name] = max_val
-                                warnings.append(f"{prop_name} value {prop_value} above maximum {max_val}, set to {max_val}")
+                                warnings.append(
+                                    f"{prop_name} value {prop_value} above maximum {max_val}, set to {max_val}"
+                                )
                     except (TypeError, ValueError) as e:
                         # If comparison fails, log warning but don't crash
-                        warnings.append(f"Could not validate range for {prop_name}: {str(e)}")
+                        warnings.append(
+                            f"Could not validate range for {prop_name}: {str(e)}"
+                        )
 
                 # Enum validation
                 if "options" in pattern and prop_value not in pattern["options"]:
@@ -139,7 +162,9 @@ class Gaea2PropertyValidator:
                             f"{prop_name} value '{prop_value}' not in valid options, set to default '{pattern['default']}'"
                         )
                     else:
-                        errors.append(f"{prop_name} value '{prop_value}' not in valid options: {pattern['options']}")
+                        errors.append(
+                            f"{prop_name} value '{prop_value}' not in valid options: {pattern['options']}"
+                        )
 
         # Store warnings for retrieval
         self.warnings = warnings
@@ -147,7 +172,9 @@ class Gaea2PropertyValidator:
         is_valid = len(errors) == 0 or not strict
         return is_valid, errors, fixed_properties
 
-    def _validate_erosion_properties(self, properties: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str], List[str]]:
+    def _validate_erosion_properties(
+        self, properties: Dict[str, Any]
+    ) -> Tuple[Dict[str, Any], List[str], List[str]]:
         """Validate Erosion2 node properties"""
         errors: List[str] = []
         warnings: List[str] = []
@@ -162,17 +189,23 @@ class Gaea2PropertyValidator:
                     duration = float(duration)
                     fixed["Duration"] = duration
                 except ValueError:
-                    warnings.append(f"Invalid Duration value: {duration}, using default 0.07")
+                    warnings.append(
+                        f"Invalid Duration value: {duration}, using default 0.07"
+                    )
                     duration = 0.07
                     fixed["Duration"] = duration
 
             if isinstance(duration, (int, float)):
                 if duration > 0.15:
                     fixed["Duration"] = 0.1
-                    warnings.append(f"Erosion Duration {duration} too high for performance, reduced to 0.1")
+                    warnings.append(
+                        f"Erosion Duration {duration} too high for performance, reduced to 0.1"
+                    )
                 elif duration < 0.01:
                     fixed["Duration"] = 0.04
-                    warnings.append(f"Erosion Duration {duration} too low, increased to 0.04")
+                    warnings.append(
+                        f"Erosion Duration {duration} too low, increased to 0.04"
+                    )
         else:
             # Add default duration
             fixed["Duration"] = 0.07
@@ -189,7 +222,9 @@ class Gaea2PropertyValidator:
 
         return fixed, errors, warnings
 
-    def _validate_rivers_properties(self, properties: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str], List[str]]:
+    def _validate_rivers_properties(
+        self, properties: Dict[str, Any]
+    ) -> Tuple[Dict[str, Any], List[str], List[str]]:
         """Validate Rivers node properties"""
         errors: List[str] = []
         warnings: List[str] = []
@@ -201,10 +236,14 @@ class Gaea2PropertyValidator:
             if isinstance(headwaters, (int, float)):
                 if headwaters > 300:
                     fixed["Headwaters"] = 200
-                    warnings.append(f"Rivers Headwaters {headwaters} too high for performance, reduced to 200")
+                    warnings.append(
+                        f"Rivers Headwaters {headwaters} too high for performance, reduced to 200"
+                    )
                 elif headwaters < 10:
                     fixed["Headwaters"] = 50
-                    warnings.append(f"Rivers Headwaters {headwaters} too low, increased to 50")
+                    warnings.append(
+                        f"Rivers Headwaters {headwaters} too low, increased to 50"
+                    )
 
                 # Ensure integer
                 fixed["Headwaters"] = int(fixed["Headwaters"])
@@ -214,7 +253,9 @@ class Gaea2PropertyValidator:
 
         return fixed, errors, warnings
 
-    def _validate_combine_properties(self, properties: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str], List[str]]:
+    def _validate_combine_properties(
+        self, properties: Dict[str, Any]
+    ) -> Tuple[Dict[str, Any], List[str], List[str]]:
         """Validate Combine node properties"""
         errors: List[str] = []
         warnings: List[str] = []
@@ -252,7 +293,9 @@ class Gaea2PropertyValidator:
 
         return fixed, errors, warnings
 
-    def _validate_satmap_properties(self, properties: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str], List[str]]:
+    def _validate_satmap_properties(
+        self, properties: Dict[str, Any]
+    ) -> Tuple[Dict[str, Any], List[str], List[str]]:
         """Validate SatMap node properties"""
         errors: List[str] = []
         warnings: List[str] = []
@@ -272,7 +315,9 @@ class Gaea2PropertyValidator:
 
         return fixed, errors, warnings
 
-    def suggest_missing_properties(self, node_type: str, existing_properties: Dict[str, Any]) -> Dict[str, Any]:
+    def suggest_missing_properties(
+        self, node_type: str, existing_properties: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Suggest properties that are commonly used but missing"""
         suggestions = {}
 
@@ -286,7 +331,9 @@ class Gaea2PropertyValidator:
 
         return suggestions
 
-    def get_performance_optimized_properties(self, node_type: str, properties: Dict[str, Any]) -> Dict[str, Any]:
+    def get_performance_optimized_properties(
+        self, node_type: str, properties: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Get performance-optimized version of properties"""
         optimized = properties.copy()
 
@@ -304,7 +351,9 @@ class Gaea2PropertyValidator:
 
         return optimized
 
-    def get_quality_optimized_properties(self, node_type: str, properties: Dict[str, Any]) -> Dict[str, Any]:
+    def get_quality_optimized_properties(
+        self, node_type: str, properties: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Get quality-optimized version of properties"""
         optimized = properties.copy()
 

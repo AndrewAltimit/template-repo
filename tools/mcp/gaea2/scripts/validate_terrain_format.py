@@ -112,7 +112,9 @@ def check_terrain_format(filename):
 
 
 if __name__ == "__main__":
-    filename = sys.argv[1] if len(sys.argv) > 1 else "final_volcano_ocean_verified.terrain"
+    filename = (
+        sys.argv[1] if len(sys.argv) > 1 else "final_volcano_ocean_verified.terrain"
+    )
 
     print(f"\nValidating {filename} against Gaea2 format requirements:")
     print("=" * 60)

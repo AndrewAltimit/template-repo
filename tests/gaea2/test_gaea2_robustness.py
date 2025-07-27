@@ -13,13 +13,17 @@ from pathlib import Path
 import pytest
 
 # Add project root to Python path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 # Import Gaea2 MCP server
 from tools.mcp.gaea2.server import Gaea2MCPServer  # noqa: E402
 from tools.mcp.gaea2.utils.gaea2_cache import get_cache  # noqa: E402
 from tools.mcp.gaea2.utils.gaea2_logging import get_logger  # noqa: E402
-from tools.mcp.gaea2.validation.gaea2_structure_validator import Gaea2StructureValidator  # noqa: E402
+from tools.mcp.gaea2.validation.gaea2_structure_validator import (  # noqa: E402
+    Gaea2StructureValidator,
+)
 
 
 # Create a mock MCPTools class for backward compatibility
@@ -134,7 +138,9 @@ async def test_workflow_validation():
     ]
 
     # Validate and fix
-    result = await MCPTools.validate_and_fix_workflow(workflow={"nodes": nodes, "connections": connections}, strict_mode=False)
+    result = await MCPTools.validate_and_fix_workflow(
+        workflow={"nodes": nodes, "connections": connections}, strict_mode=False
+    )
 
     if result["success"]:
         print("Validation Results:")
@@ -220,7 +226,9 @@ async def test_logging():
 
         logger.log_node_operation("validate", "Mountain", 100, "Validation successful")
 
-        logger.log_validation_error("property_type", "Erosion2", "Duration must be numeric", 101)
+        logger.log_validation_error(
+            "property_type", "Erosion2", "Duration must be numeric", 101
+        )
 
         logger.log_performance("workflow_analysis", 0.234, 10)
         logger.log_performance("project_repair", 5.5, 100)
@@ -294,7 +302,9 @@ async def test_real_project_repair():
 
     try:
         # Analyze and repair
-        result = await MCPTools.repair_gaea2_project(project_path=temp_path, backup=False)
+        result = await MCPTools.repair_gaea2_project(
+            project_path=temp_path, backup=False
+        )
     finally:
         # Clean up
         Path(temp_path).unlink(missing_ok=True)
@@ -381,7 +391,9 @@ async def stress_test_performance():
 
     # Time validation
     start = time.time()
-    result = await MCPTools.validate_and_fix_workflow(workflow={"nodes": nodes, "connections": connections}, fix_errors=True)
+    result = await MCPTools.validate_and_fix_workflow(
+        workflow={"nodes": nodes, "connections": connections}, fix_errors=True
+    )
     duration = time.time() - start
 
     print(f"Validated and fixed {len(nodes)} nodes in {duration:.3f}s")

@@ -21,7 +21,9 @@ class TestGaea2Failures:
     def mcp_url(self):
         return "http://192.168.0.152:8007"
 
-    async def execute_tool(self, url: str, tool: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_tool(
+        self, url: str, tool: str, parameters: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute an MCP tool and return the response."""
         try:
             async with aiohttp.ClientSession() as session:
@@ -248,10 +250,14 @@ class TestGaea2Failures:
                 # Should have either errors or fixes for invalid connections
                 # Note: Some servers might accept unknown ports for extensibility
                 if len(errors) == 0 and len(fixes_applied) == 0:
-                    print(f"Note: Server accepted {test_case['name']} - may support custom ports/nodes")
+                    print(
+                        f"Note: Server accepted {test_case['name']} - may support custom ports/nodes"
+                    )
                 else:
                     # Good - server validated the issue
-                    assert len(errors) > 0 or len(fixes_applied) > 0, f"Expected validation response for {test_case['name']}"
+                    assert (
+                        len(errors) > 0 or len(fixes_applied) > 0
+                    ), f"Expected validation response for {test_case['name']}"
 
     @pytest.mark.asyncio
     async def test_missing_required_nodes(self, mcp_url):
@@ -486,7 +492,9 @@ class TestGaea2Failures:
         ]
 
         for test_case in malformed_requests:
-            result = await self.execute_tool(mcp_url, test_case["tool"], test_case["parameters"])
+            result = await self.execute_tool(
+                mcp_url, test_case["tool"], test_case["parameters"]
+            )
 
             # Check if request was rejected or handled
             if result.get("error") is not None:
@@ -521,14 +529,18 @@ class TestGaea2Failures:
         ]
 
         for test_case in template_errors:
-            result = await self.execute_tool(mcp_url, "create_gaea2_from_template", test_case["parameters"])
+            result = await self.execute_tool(
+                mcp_url, "create_gaea2_from_template", test_case["parameters"]
+            )
 
             # Handle base server response format
             error_msg = result.get("error")
             if error_msg is None and "result" in result:
                 error_msg = result["result"].get("error")
 
-            assert error_msg is not None, f"Expected error for {test_case['name']}, got: {result}"
+            assert (
+                error_msg is not None
+            ), f"Expected error for {test_case['name']}, got: {result}"
             assert "template" in str(error_msg).lower()
 
     @pytest.mark.asyncio
@@ -619,7 +631,9 @@ class TestGaea2Failures:
 
             if len(errors) == 0:
                 # Server might auto-correct or ignore type mismatches
-                print(f"Server accepted {test_case['name']} with {len(fixes_applied)} fixes")
+                print(
+                    f"Server accepted {test_case['name']} with {len(fixes_applied)} fixes"
+                )
             else:
                 # Has errors - expected
                 assert len(errors) > 0, f"Expected errors for {test_case['name']}"
@@ -676,7 +690,9 @@ class TestErrorRecovery:
     def mcp_url(self):
         return "http://192.168.0.152:8007"
 
-    async def execute_tool(self, url: str, tool: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_tool(
+        self, url: str, tool: str, parameters: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute an MCP tool and return the response."""
         try:
             async with aiohttp.ClientSession() as session:
@@ -761,11 +777,14 @@ class TestErrorRecovery:
                 actual_result = create_result
 
             assert actual_result.get("success") is True, (
-                f"Failed to create test project for {test_case['name']}: " f"{actual_result.get('error')}"
+                f"Failed to create test project for {test_case['name']}: "
+                f"{actual_result.get('error')}"
             )
 
             project_path = actual_result.get("project_path")
-            assert project_path is not None, f"No project path returned for {test_case['name']}"
+            assert (
+                project_path is not None
+            ), f"No project path returned for {test_case['name']}"
 
             # Now repair the project file
             repair_result = await self.execute_tool(
@@ -786,7 +805,9 @@ class TestErrorRecovery:
             ), f"Repair failed for {test_case['name']}: {actual_repair_result.get('error')}"
 
             # Check the repair result structure - could be nested or direct
-            repair_data = actual_repair_result.get("repair_result", actual_repair_result)
+            repair_data = actual_repair_result.get(
+                "repair_result", actual_repair_result
+            )
 
             # Verify fixes were applied
             fixes = repair_data.get("fixes_applied", [])
@@ -803,10 +824,14 @@ class TestErrorRecovery:
             # Both scenarios are acceptable
             if len(fixes) == 0 and len(issues) == 0:
                 # Project was likely auto-fixed during creation
-                print(f"Note: {test_case['name']} was likely auto-fixed during creation")
+                print(
+                    f"Note: {test_case['name']} was likely auto-fixed during creation"
+                )
             else:
                 # Fixes or issues were found and handled
-                assert repaired or len(fixes) > 0 or len(issues) > 0, f"Expected repair indicators for {test_case['name']}"
+                assert (
+                    repaired or len(fixes) > 0 or len(issues) > 0
+                ), f"Expected repair indicators for {test_case['name']}"
 
             # Note: The server will clean up old project files automatically,
             # so we don't need to worry about deleting them

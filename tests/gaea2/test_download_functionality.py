@@ -45,7 +45,9 @@ def test_download():
         files = list_result["result"]["files"]
         our_file = next((f for f in files if f["filename"] == filename), None)
         if our_file:
-            print(f"   ✓ Found our file: {our_file['filename']} ({our_file['size']} bytes)")
+            print(
+                f"   ✓ Found our file: {our_file['filename']} ({our_file['size']} bytes)"
+            )
         else:
             print("   ❌ File not found in list")
 
@@ -60,7 +62,9 @@ def test_download():
     )
 
     download_result = download_response.json()
-    if download_result.get("success") and download_result.get("result", {}).get("success"):
+    if download_result.get("success") and download_result.get("result", {}).get(
+        "success"
+    ):
         file_data = download_result["result"]["data"]
         print("   ✓ Downloaded successfully")
         print(f"   File size: {download_result['result']['size']} bytes")
@@ -80,7 +84,9 @@ def test_download():
 
     print("\n✅ Download functionality test complete!")
     print("\n⚠️  Note: All terrain files appear to be empty (2 bytes).")
-    print("This suggests an issue with the terrain generation, not the download functionality.")
+    print(
+        "This suggests an issue with the terrain generation, not the download functionality."
+    )
     return True
 
 

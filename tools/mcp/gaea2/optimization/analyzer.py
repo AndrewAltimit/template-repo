@@ -6,7 +6,11 @@ from typing import Any, Dict, List, Optional
 
 # Use stubs for now
 from ..stubs import knowledge_graph  # noqa: F401
-from ..stubs import COMMON_NODE_SEQUENCES, NODE_COMPATIBILITY, PROPERTY_RANGES  # noqa: F401
+from ..stubs import (  # noqa: F401
+    COMMON_NODE_SEQUENCES,
+    NODE_COMPATIBILITY,
+    PROPERTY_RANGES,
+)
 from ..stubs import Gaea2WorkflowAnalyzer as OriginalAnalyzer
 
 
@@ -17,7 +21,9 @@ class Gaea2WorkflowAnalyzer:
         self.logger = logging.getLogger(__name__)
         self.original_analyzer = OriginalAnalyzer()
 
-    async def analyze(self, workflow: Dict[str, Any], analysis_type: str = "all") -> Dict[str, Any]:
+    async def analyze(
+        self, workflow: Dict[str, Any], analysis_type: str = "all"
+    ) -> Dict[str, Any]:
         """Analyze workflow based on type"""
 
         nodes = workflow.get("nodes", [])
@@ -36,7 +42,9 @@ class Gaea2WorkflowAnalyzer:
 
         return analysis
 
-    def _analyze_patterns(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _analyze_patterns(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """Analyze workflow patterns"""
 
         node_types = [n.get("type", n.get("node_type", "")) for n in nodes]
@@ -69,7 +77,9 @@ class Gaea2WorkflowAnalyzer:
 
             # Identify computationally expensive nodes
             if node_type in ["Erosion2", "Rivers", "Snow", "Vegetation"]:
-                heavy_nodes.append({"id": node.get("id", node.get("node_id")), "type": node_type})
+                heavy_nodes.append(
+                    {"id": node.get("id", node.get("node_id")), "type": node_type}
+                )
 
         return {
             "heavy_nodes": heavy_nodes,
@@ -96,7 +106,9 @@ class Gaea2WorkflowAnalyzer:
             "enhancement_suggestions": self._get_quality_suggestions(nodes),
         }
 
-    async def suggest_nodes(self, current_nodes: List[str], context: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def suggest_nodes(
+        self, current_nodes: List[str], context: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """Suggest nodes based on current workflow"""
 
         suggestions = []
@@ -174,7 +186,10 @@ class Gaea2WorkflowAnalyzer:
     def _estimate_complexity(self, nodes: List[Dict[str, Any]]) -> str:
         """Estimate workflow complexity"""
         heavy_count = sum(
-            1 for n in nodes if n.get("type", n.get("node_type")) in ["Erosion2", "Rivers", "Snow", "Vegetation"]
+            1
+            for n in nodes
+            if n.get("type", n.get("node_type"))
+            in ["Erosion2", "Rivers", "Snow", "Vegetation"]
         )
 
         if heavy_count >= 5:
@@ -189,7 +204,9 @@ class Gaea2WorkflowAnalyzer:
         suggestions = []
 
         # Count heavy nodes
-        erosion_count = sum(1 for n in nodes if n.get("type", n.get("node_type")) == "Erosion2")
+        erosion_count = sum(
+            1 for n in nodes if n.get("type", n.get("node_type")) == "Erosion2"
+        )
 
         if erosion_count > 2:
             suggestions.append("Consider reducing Erosion2 nodes or lowering Duration")

@@ -58,13 +58,17 @@ Examples:
     )
 
     # Optional arguments
-    parser.add_argument("--issue", type=int, help="Issue number for 'implement' command")
+    parser.add_argument(
+        "--issue", type=int, help="Issue number for 'implement' command"
+    )
 
     parser.add_argument("--pr", type=int, help="PR number for 'review' command")
 
     parser.add_argument("--path", type=str, help="Path to code for 'audit' command")
 
-    parser.add_argument("--task", type=str, help="Custom task description for 'custom' command")
+    parser.add_argument(
+        "--task", type=str, help="Custom task description for 'custom' command"
+    )
 
     parser.add_argument(
         "--repo",
@@ -75,7 +79,9 @@ Examples:
 
     parser.add_argument("--branch", type=str, help="Git branch to work on")
 
-    parser.add_argument("--timeout", type=int, default=600, help="Timeout in seconds (default: 600)")
+    parser.add_argument(
+        "--timeout", type=int, default=600, help="Timeout in seconds (default: 600)"
+    )
 
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
 
@@ -160,7 +166,9 @@ def main():
         sys.exit(1)
 
     if not args.repo:
-        print("Error: --repo is required (or set GITHUB_REPOSITORY environment variable)")
+        print(
+            "Error: --repo is required (or set GITHUB_REPOSITORY environment variable)"
+        )
         sys.exit(1)
 
     # Initialize subagent manager
@@ -229,7 +237,9 @@ def main():
 
     print(f"\n⏳ Executing (timeout: {args.timeout}s)...\n")
 
-    success, stdout, stderr = manager.execute_with_persona(args.persona, task, context, timeout=args.timeout)
+    success, stdout, stderr = manager.execute_with_persona(
+        args.persona, task, context, timeout=args.timeout
+    )
 
     # Display results
     if success:

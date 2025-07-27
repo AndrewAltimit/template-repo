@@ -16,7 +16,9 @@ class TestGaea2Operations:
     def mcp_url(self):
         return "http://192.168.0.152:8007"
 
-    async def execute_tool(self, url: str, tool: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_tool(
+        self, url: str, tool: str, parameters: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute an MCP tool and return the response."""
         async with aiohttp.ClientSession() as session:
             async with session.post(
@@ -103,11 +105,14 @@ class TestGaea2Operations:
         if "result" in result and isinstance(result["result"], dict):
             # Extract the actual result from the base server wrapper
             actual_result = result["result"]
-            assert not actual_result.get("error"), f"Failed: {actual_result.get('error')}"
+            assert not actual_result.get(
+                "error"
+            ), f"Failed: {actual_result.get('error')}"
             assert actual_result.get("success") is not False, "Operation should succeed"
             # Either project_path, workflow, or results field should be present
             assert any(
-                key in actual_result for key in ["project_path", "workflow", "results", "project_data"]
+                key in actual_result
+                for key in ["project_path", "workflow", "results", "project_data"]
             ), "Response should contain project data"
         else:
             # Direct response format (standalone server)
@@ -168,7 +173,9 @@ class TestGaea2Operations:
             ],
         }
 
-        result = await self.execute_tool(mcp_url, "validate_and_fix_workflow", {"workflow": workflow})
+        result = await self.execute_tool(
+            mcp_url, "validate_and_fix_workflow", {"workflow": workflow}
+        )
 
         # Handle base server response format
         if "result" in result and isinstance(result["result"], dict):
@@ -178,9 +185,14 @@ class TestGaea2Operations:
 
         # Check validation results - either no errors or fixes were applied
         has_no_errors = len(actual_result.get("errors", [])) == 0
-        was_fixed = actual_result.get("fixed", False) or len(actual_result.get("fixes_applied", [])) > 0
+        was_fixed = (
+            actual_result.get("fixed", False)
+            or len(actual_result.get("fixes_applied", [])) > 0
+        )
 
-        assert has_no_errors or was_fixed, f"Validation should either have no errors or apply fixes: {actual_result}"
+        assert (
+            has_no_errors or was_fixed
+        ), f"Validation should either have no errors or apply fixes: {actual_result}"
 
     @pytest.mark.asyncio
     async def test_complex_property_nodes(self, mcp_url):
@@ -253,7 +265,9 @@ class TestGaea2Operations:
 
             results[template] = {
                 "success": not result.get("error") and result.get("success", False),
-                "validation_passed": result.get("validation_applied", True),  # Templates use auto_validate=True
+                "validation_passed": result.get(
+                    "validation_applied", True
+                ),  # Templates use auto_validate=True
                 "node_count": result.get("node_count", 0),
             }
 
@@ -280,12 +294,16 @@ class TestGaea2Operations:
 
         # Check project structure for Combine node connections
         if "project_structure" in result:
-            nodes = result["project_structure"]["Assets"]["$values"][0]["Terrain"]["Nodes"]
+            nodes = result["project_structure"]["Assets"]["$values"][0]["Terrain"][
+                "Nodes"
+            ]
 
             # Find Combine nodes and verify their connections
             combine_nodes_found = 0
             for node_id, node_data in nodes.items():
-                if isinstance(node_data, dict) and "Combine" in node_data.get("$type", ""):
+                if isinstance(node_data, dict) and "Combine" in node_data.get(
+                    "$type", ""
+                ):
                     combine_nodes_found += 1
 
                     # Check that both In and Input2 ports have connections
@@ -297,10 +315,16 @@ class TestGaea2Operations:
                             connected_ports[port["Name"]] = True
 
                     # Verify both primary inputs are connected
-                    assert "In" in connected_ports, f"Combine node {node_id} missing 'In' connection"
-                    assert "Input2" in connected_ports, f"Combine node {node_id} missing 'Input2' connection"
+                    assert (
+                        "In" in connected_ports
+                    ), f"Combine node {node_id} missing 'In' connection"
+                    assert (
+                        "Input2" in connected_ports
+                    ), f"Combine node {node_id} missing 'Input2' connection"
 
-            assert combine_nodes_found > 0, "No Combine nodes found in arctic_terrain template"
+            assert (
+                combine_nodes_found > 0
+            ), "No Combine nodes found in arctic_terrain template"
 
     @pytest.mark.asyncio
     async def test_workflow_optimization(self, mcp_url):
@@ -367,7 +391,9 @@ class TestGaea2Operations:
                 {"workflow": workflow, "optimization_mode": mode},
             )
 
-            assert not result.get("error"), f"Optimization failed for mode {mode}: {result.get('error')}"
+            assert not result.get(
+                "error"
+            ), f"Optimization failed for mode {mode}: {result.get('error')}"
             # Handle different response formats
             # Handle base server response format
             if "result" in result and isinstance(result["result"], dict):
@@ -376,7 +402,9 @@ class TestGaea2Operations:
                 actual_result = result
 
             assert (
-                "optimized_nodes" in actual_result or "nodes" in actual_result or "optimized_workflow" in actual_result
+                "optimized_nodes" in actual_result
+                or "nodes" in actual_result
+                or "optimized_workflow" in actual_result
             ), f"Expected optimization result but got: {actual_result}"
 
     @pytest.mark.asyncio
@@ -410,7 +438,9 @@ class TestGaea2Operations:
                 },
             )
 
-            assert not result.get("error"), f"Failed to get suggestions: {result.get('error')}"
+            assert not result.get(
+                "error"
+            ), f"Failed to get suggestions: {result.get('error')}"
 
             # Handle different response formats
             suggestions = []
@@ -426,7 +456,11 @@ class TestGaea2Operations:
             # If we got suggestions, verify they make sense
             if len(suggestions) > 0:
                 # Check if at least one expected suggestion appears
-                suggested_nodes = [s.get("node", s.get("name", "")) for s in suggestions if isinstance(s, dict)]
+                suggested_nodes = [
+                    s.get("node", s.get("name", ""))
+                    for s in suggestions
+                    if isinstance(s, dict)
+                ]
                 # Some suggestions might be strings
                 if not suggested_nodes and suggestions:
                     suggested_nodes = [s for s in suggestions if isinstance(s, str)]
@@ -460,9 +494,15 @@ class TestGaea2Operations:
 
                 # Check that we got at least one valid Gaea2 node
                 has_valid_node = any(
-                    any(valid.lower() in str(suggested).lower() for valid in valid_gaea_nodes) for suggested in suggested_nodes
+                    any(
+                        valid.lower() in str(suggested).lower()
+                        for valid in valid_gaea_nodes
+                    )
+                    for suggested in suggested_nodes
                 )
-                assert has_valid_node, f"No valid Gaea2 nodes found. Got: {suggested_nodes}"
+                assert (
+                    has_valid_node
+                ), f"No valid Gaea2 nodes found. Got: {suggested_nodes}"
 
     @pytest.mark.asyncio
     async def test_workflow_repair(self, mcp_url):
@@ -534,9 +574,22 @@ class TestGaea2Operations:
             # Check if repair_result exists (nested structure)
             if "repair_result" in result:
                 fixes = result["repair_result"].get("fixes_applied", [])
-                assert len(fixes) > 0 or result.get("analysis", {}).get("analysis", {}).get("health_score", 0) > 90
+                assert (
+                    len(fixes) > 0
+                    or result.get("analysis", {})
+                    .get("analysis", {})
+                    .get("health_score", 0)
+                    > 90
+                )
             else:
-                assert len(result["results"].get("fixes_applied", result["results"].get("issues_found", []))) > 0
+                assert (
+                    len(
+                        result["results"].get(
+                            "fixes_applied", result["results"].get("issues_found", [])
+                        )
+                    )
+                    > 0
+                )
         else:
             assert result.get("success") is True
             # The repair might have succeeded without needing fixes
@@ -544,7 +597,11 @@ class TestGaea2Operations:
             if not fixes and "repair_result" in result:
                 fixes = result["repair_result"].get("fixes_applied", [])
             # Either we have fixes or the project was already healthy
-            assert len(fixes) > 0 or result.get("repaired", False) or result.get("success", False)
+            assert (
+                len(fixes) > 0
+                or result.get("repaired", False)
+                or result.get("success", False)
+            )
 
     @pytest.mark.asyncio
     async def test_pattern_analysis(self, mcp_url):
@@ -561,7 +618,9 @@ class TestGaea2Operations:
                 },
             )
 
-            assert not result.get("error"), f"Pattern analysis failed for {terrain_type}: {result.get('error')}"
+            assert not result.get(
+                "error"
+            ), f"Pattern analysis failed for {terrain_type}: {result.get('error')}"
 
             # Handle base server response format
             if "result" in result and isinstance(result["result"], dict):
@@ -577,11 +636,22 @@ class TestGaea2Operations:
 
             # Check for expected fields in various formats
             has_patterns = "common_patterns" in data or "patterns" in data
-            has_nodes = "recommended_nodes" in data or "nodes" in data or "recommendations" in data or "node_types" in data
-            has_connections = "typical_connections" in data or "connections" in data or "connection_count" in data
+            has_nodes = (
+                "recommended_nodes" in data
+                or "nodes" in data
+                or "recommendations" in data
+                or "node_types" in data
+            )
+            has_connections = (
+                "typical_connections" in data
+                or "connections" in data
+                or "connection_count" in data
+            )
             has_analysis = "node_count" in data or "complexity" in data
 
-            assert has_patterns or has_nodes or has_connections or has_analysis, f"No useful data returned for {terrain_type}"
+            assert (
+                has_patterns or has_nodes or has_connections or has_analysis
+            ), f"No useful data returned for {terrain_type}"
 
             # Pattern analysis on empty workflows returns general data
             # Terrain-specific suggestions require actual workflow content
@@ -639,7 +709,9 @@ class TestEdgeCasesAndBoundaries:
     def mcp_url(self):
         return "http://192.168.0.152:8007"
 
-    async def execute_tool(self, url: str, tool: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    async def execute_tool(
+        self, url: str, tool: str, parameters: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Execute an MCP tool and return the response."""
         async with aiohttp.ClientSession() as session:
             async with session.post(
@@ -681,7 +753,9 @@ class TestEdgeCasesAndBoundaries:
 
         # Add Export as final node
         nodes.append({"id": "25", "type": "Export", "position": {"X": 0, "Y": 5}})
-        connections.append({"from_node": "23", "from_port": "Out", "to_node": "25", "to_port": "In"})
+        connections.append(
+            {"from_node": "23", "from_port": "Out", "to_node": "25", "to_port": "In"}
+        )
 
         result = await self.execute_tool(
             mcp_url,
@@ -694,7 +768,9 @@ class TestEdgeCasesAndBoundaries:
 
         # Expect success or meaningful error message
         if result.get("error"):
-            assert "node" in result["error"].lower() or "limit" in result["error"].lower()
+            assert (
+                "node" in result["error"].lower() or "limit" in result["error"].lower()
+            )
         else:
             assert result.get("success") is True
 
@@ -762,7 +838,9 @@ class TestEdgeCasesAndBoundaries:
             ],
         }
 
-        result = await self.execute_tool(mcp_url, "validate_and_fix_workflow", {"workflow": workflow})
+        result = await self.execute_tool(
+            mcp_url, "validate_and_fix_workflow", {"workflow": workflow}
+        )
 
         # Handle base server response format
         if "result" in result and isinstance(result["result"], dict):
@@ -772,7 +850,9 @@ class TestEdgeCasesAndBoundaries:
 
         # Check validation succeeded
         assert actual_result.get("success") is not False
-        assert len(actual_result.get("errors", [])) == 0 or actual_result.get("fixed", False)
+        assert len(actual_result.get("errors", [])) == 0 or actual_result.get(
+            "fixed", False
+        )
 
     @pytest.mark.asyncio
     async def test_special_port_connections(self, mcp_url):
@@ -829,7 +909,9 @@ class TestEdgeCasesAndBoundaries:
             ],
         }
 
-        result = await self.execute_tool(mcp_url, "validate_and_fix_workflow", {"workflow": workflow})
+        result = await self.execute_tool(
+            mcp_url, "validate_and_fix_workflow", {"workflow": workflow}
+        )
 
         # Special port connections are handled gracefully
         assert isinstance(result, dict)

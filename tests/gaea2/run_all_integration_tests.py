@@ -111,7 +111,9 @@ class IntegrationTestRunner:
                             {
                                 "suite": suite_name,
                                 "test": test["nodeid"],
-                                "error": test.get("call", {}).get("longrepr", "Unknown error"),
+                                "error": test.get("call", {}).get(
+                                    "longrepr", "Unknown error"
+                                ),
                             }
                         )
 
@@ -138,16 +140,26 @@ class IntegrationTestRunner:
 
         # Generate recommendations
         if analysis["total_failed"] == 0:
-            analysis["recommendations"].append("✅ All tests passed! The Gaea2 MCP is functioning correctly.")
+            analysis["recommendations"].append(
+                "✅ All tests passed! The Gaea2 MCP is functioning correctly."
+            )
         else:
             if "connection" in failure_keywords:
-                analysis["recommendations"].append("🔌 Check server connectivity and network configuration")
+                analysis["recommendations"].append(
+                    "🔌 Check server connectivity and network configuration"
+                )
             if "timeout" in failure_keywords:
-                analysis["recommendations"].append("⏱️  Consider increasing timeout values or optimizing server performance")
+                analysis["recommendations"].append(
+                    "⏱️  Consider increasing timeout values or optimizing server performance"
+                )
             if "validation" in failure_keywords:
-                analysis["recommendations"].append("🔍 Review validation logic and ensure it matches Gaea2 requirements")
+                analysis["recommendations"].append(
+                    "🔍 Review validation logic and ensure it matches Gaea2 requirements"
+                )
             if "template" in failure_keywords:
-                analysis["recommendations"].append("📋 Verify all templates are correctly implemented")
+                analysis["recommendations"].append(
+                    "📋 Verify all templates are correctly implemented"
+                )
 
         return analysis
 
@@ -219,19 +231,27 @@ class IntegrationTestRunner:
             return
 
         # 2. Framework tests (comprehensive integration suite)
-        framework_results = self.run_pytest_suite("tests/gaea2/test_framework_integration.py", "framework_integration")
+        framework_results = self.run_pytest_suite(
+            "tests/gaea2/test_framework_integration.py", "framework_integration"
+        )
         self.results["test_suites"]["framework_integration"] = framework_results
 
         # 3. Operations tests (successful operations)
-        operations_results = self.run_pytest_suite("tests/gaea2/test_gaea_operations.py", "operations")
+        operations_results = self.run_pytest_suite(
+            "tests/gaea2/test_gaea_operations.py", "operations"
+        )
         self.results["test_suites"]["operations"] = operations_results
 
         # 4. Failure tests (expected failures and error handling)
-        failure_results = self.run_pytest_suite("tests/gaea2/test_gaea_failures.py", "failures")
+        failure_results = self.run_pytest_suite(
+            "tests/gaea2/test_gaea_failures.py", "failures"
+        )
         self.results["test_suites"]["failures"] = failure_results
 
         # 5. Regression tests
-        regression_results = self.run_pytest_suite("tests/gaea2/test_gaea_regression.py", "regression")
+        regression_results = self.run_pytest_suite(
+            "tests/gaea2/test_gaea_regression.py", "regression"
+        )
         self.results["test_suites"]["regression"] = regression_results
 
         # Analyze and generate report
@@ -267,7 +287,9 @@ class IntegrationTestRunner:
 
         if analysis["common_failures"]:
             print("\n🔍 Common Failure Patterns:")
-            for pattern, count in sorted(analysis["common_failures"].items(), key=lambda x: x[1], reverse=True):
+            for pattern, count in sorted(
+                analysis["common_failures"].items(), key=lambda x: x[1], reverse=True
+            ):
                 print(f"  - {pattern}: {count} occurrences")
 
         print("\n💡 Recommendations:")
@@ -275,14 +297,18 @@ class IntegrationTestRunner:
             print(f"  {rec}")
 
         # Save detailed report
-        report_file = f"integration_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        report_file = (
+            f"integration_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        )
         with open(report_file, "w") as f:
             json.dump(self.results, f, indent=2)
 
         print(f"\n💾 Detailed report saved to: {report_file}")
 
         # Save knowledge base update
-        kb_file = f"knowledge_base_update_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        kb_file = (
+            f"knowledge_base_update_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        )
         with open(kb_file, "w") as f:
             json.dump(self.results.get("knowledge_update", {}), f, indent=2)
 
@@ -290,10 +316,14 @@ class IntegrationTestRunner:
 
         # Exit code based on results
         if analysis["total_failed"] == 0:
-            print("\n🎉 All integration tests passed! The Gaea2 MCP has been successfully validated.")
+            print(
+                "\n🎉 All integration tests passed! The Gaea2 MCP has been successfully validated."
+            )
             sys.exit(0)
         else:
-            print(f"\n⚠️  {analysis['total_failed']} tests failed. Review the detailed report for more information.")
+            print(
+                f"\n⚠️  {analysis['total_failed']} tests failed. Review the detailed report for more information."
+            )
             sys.exit(1)
 
 

@@ -19,7 +19,9 @@ def register_tool(name: str):
 
 
 @register_tool("format_check")
-async def format_check(path: str, language: str, config: Optional[str] = None) -> Dict[str, Any]:
+async def format_check(
+    path: str, language: str, config: Optional[str] = None
+) -> Dict[str, Any]:
     """Check code formatting"""
     formatters = {
         "python": ["black", "--check"],

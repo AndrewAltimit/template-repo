@@ -122,12 +122,15 @@ class Gaea2WorkflowAnalyzer:
             if last_node in self.node_sequences:
                 next_nodes = Counter(self.node_sequences[last_node])
                 recommendations["next_nodes"] = [
-                    {"node": node, "frequency": count} for node, count in next_nodes.most_common(5)
+                    {"node": node, "frequency": count}
+                    for node, count in next_nodes.most_common(5)
                 ]
 
         # Find similar patterns
         for pattern in self.patterns:
-            similarity = self._calculate_pattern_similarity(current_nodes, pattern.nodes)
+            similarity = self._calculate_pattern_similarity(
+                current_nodes, pattern.nodes
+            )
             if similarity > 0.5:
                 # Ensure we're working with a list
                 similar_patterns = recommendations["similar_patterns"]
@@ -148,7 +151,9 @@ class Gaea2WorkflowAnalyzer:
 
         # Find commonly used nodes that are missing
         common_nodes = [node for node, _ in self.node_frequency.most_common(10)]
-        recommendations["missing_nodes"] = [node for node in common_nodes if node not in current_nodes]
+        recommendations["missing_nodes"] = [
+            node for node in common_nodes if node not in current_nodes
+        ]
 
         # Get property suggestions
         for node in current_nodes:
@@ -201,11 +206,15 @@ class Gaea2WorkflowAnalyzer:
             "most_common_nodes": dict(self.node_frequency.most_common(10)),
             "most_common_patterns": [
                 {"name": p.name, "nodes": p.nodes, "frequency": p.frequency}
-                for p in sorted(self.patterns, key=lambda x: x.frequency, reverse=True)[:10]
+                for p in sorted(self.patterns, key=lambda x: x.frequency, reverse=True)[
+                    :10
+                ]
             ],
         }
 
-    def _analyze_sequences(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]):
+    def _analyze_sequences(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ):
         """Analyze node sequences"""
         node_map = {n["id"]: n["type"] for n in nodes}
 
@@ -226,7 +235,9 @@ class Gaea2WorkflowAnalyzer:
                 if isinstance(prop_value, (int, float, str, bool)):
                     self.property_distributions[node_type][prop_name].append(prop_value)
 
-    def _extract_pattern(self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]) -> Optional[WorkflowPattern]:
+    def _extract_pattern(
+        self, nodes: List[Dict[str, Any]], connections: List[Dict[str, Any]]
+    ) -> Optional[WorkflowPattern]:
         """Extract a workflow pattern from nodes"""
         if len(nodes) < 2:
             return None
@@ -252,7 +263,9 @@ class Gaea2WorkflowAnalyzer:
             visited.add(current["id"])
 
             # Find next node
-            next_conn = next((c for c in connections if c["from_node"] == current["id"]), None)
+            next_conn = next(
+                (c for c in connections if c["from_node"] == current["id"]), None
+            )
             if next_conn:
                 current = node_map.get(next_conn["to_node"])
             else:
@@ -266,7 +279,9 @@ class Gaea2WorkflowAnalyzer:
             for node in nodes:
                 if node["type"] in pattern_nodes:
                     for prop_name, prop_value in node.get("properties", {}).items():
-                        pattern.add_property_pattern(node["type"], prop_name, prop_value)
+                        pattern.add_property_pattern(
+                            node["type"], prop_name, prop_value
+                        )
 
             return pattern
 
@@ -287,7 +302,9 @@ class Gaea2WorkflowAnalyzer:
         # New pattern
         self.patterns.append(new_pattern)
 
-    def _calculate_pattern_similarity(self, nodes1: List[str], nodes2: List[str]) -> float:
+    def _calculate_pattern_similarity(
+        self, nodes1: List[str], nodes2: List[str]
+    ) -> float:
         """Calculate similarity between two node sequences"""
         if not nodes1 or not nodes2:
             return 0.0
@@ -310,11 +327,16 @@ class Gaea2WorkflowAnalyzer:
                     "name": p.name,
                     "nodes": p.nodes,
                     "frequency": p.frequency,
-                    "properties": {node: p.get_common_properties(node) for node in p.nodes},
+                    "properties": {
+                        node: p.get_common_properties(node) for node in p.nodes
+                    },
                 }
                 for p in self.patterns
             ],
-            "node_sequences": {node: Counter(sequences).most_common(5) for node, sequences in self.node_sequences.items()},
+            "node_sequences": {
+                node: Counter(sequences).most_common(5)
+                for node, sequences in self.node_sequences.items()
+            },
         }
 
         with open(output_path, "w") as f:
@@ -328,7 +350,9 @@ class Gaea2WorkflowAnalyzer:
         # Reconstruct patterns
         self.patterns = []
         for p_data in data.get("patterns", []):
-            pattern = WorkflowPattern(p_data["name"], p_data["nodes"], p_data["frequency"])
+            pattern = WorkflowPattern(
+                p_data["name"], p_data["nodes"], p_data["frequency"]
+            )
             self.patterns.append(pattern)
 
         # Load statistics
@@ -337,4 +361,6 @@ class Gaea2WorkflowAnalyzer:
 
         # Load node sequences
         for node, sequences in data.get("node_sequences", {}).items():
-            self.node_sequences[node] = [seq[0] for seq in sequences for _ in range(seq[1])]
+            self.node_sequences[node] = [
+                seq[0] for seq in sequences for _ in range(seq[1])
+            ]

@@ -36,7 +36,9 @@ class Gaea2Validator:
         self.error_recovery = Gaea2ErrorRecovery()
         self.cli_available = None  # Cache CLI availability status
 
-    async def validate_and_fix(self, workflow: Dict[str, Any], strict_mode: bool = False) -> Dict[str, Any]:
+    async def validate_and_fix(
+        self, workflow: Dict[str, Any], strict_mode: bool = False
+    ) -> Dict[str, Any]:
         """Validate and automatically fix a workflow"""
 
         nodes = workflow.get("nodes", [])
@@ -49,7 +51,9 @@ class Gaea2Validator:
         # Step 1: Validate node structure (check for required fields)
         for i, node in enumerate(nodes):
             if "type" not in node:
-                all_errors.append(f"Node at index {i} (id: {node.get('id', 'unknown')}) missing required 'type' field")
+                all_errors.append(
+                    f"Node at index {i} (id: {node.get('id', 'unknown')}) missing required 'type' field"
+                )
             if "id" not in node:
                 all_errors.append(f"Node at index {i} missing required 'id' field")
 
@@ -57,7 +61,9 @@ class Gaea2Validator:
         for node in nodes:
             node_type = node.get("type")
             if node_type and not self.accurate_validator.validate_node_type(node_type):
-                all_errors.append(f"Invalid node type '{node_type}' for node id '{node.get('id', 'unknown')}'")
+                all_errors.append(
+                    f"Invalid node type '{node_type}' for node id '{node.get('id', 'unknown')}'"
+                )
 
         # Step 3: Validate property count limits for problematic nodes
         for node in nodes:
@@ -79,12 +85,16 @@ class Gaea2Validator:
             target = str(conn.get("target", conn.get("to_node", "")))
 
             if source not in node_ids:
-                all_errors.append(f"Connection references non-existent source node: {source}")
+                all_errors.append(
+                    f"Connection references non-existent source node: {source}"
+                )
             else:
                 connected_nodes.add(source)
 
             if target not in node_ids:
-                all_errors.append(f"Connection references non-existent target node: {target}")
+                all_errors.append(
+                    f"Connection references non-existent target node: {target}"
+                )
             else:
                 connected_nodes.add(target)
 
@@ -94,7 +104,9 @@ class Gaea2Validator:
             node_id = str(node.get("id"))
             node_type = node.get("type")
             if node_id not in connected_nodes and node_type not in endpoint_types:
-                warnings.append(f"Node '{node_type}' (id: {node_id}) is not connected to any other nodes")
+                warnings.append(
+                    f"Node '{node_type}' (id: {node_id}) is not connected to any other nodes"
+                )
 
         # If there are structural errors, return early in strict mode
         if all_errors and strict_mode:
@@ -111,8 +123,10 @@ class Gaea2Validator:
         recovery_result = self.error_recovery.fix_workflow(nodes, connections)
 
         # Validate connections for circular dependencies
-        conn_valid, conn_errors, conn_warnings = self.connection_validator.validate_connections(
-            recovery_result["nodes"], recovery_result["connections"]
+        conn_valid, conn_errors, conn_warnings = (
+            self.connection_validator.validate_connections(
+                recovery_result["nodes"], recovery_result["connections"]
+            )
         )
 
         # Add connection errors to the main error list
@@ -147,19 +161,27 @@ class Gaea2Validator:
 
         errors = []
         for conn in connections:
-            is_valid, error = self.connection_validator.validate_connection(conn, node_map)
+            is_valid, error = self.connection_validator.validate_connection(
+                conn, node_map
+            )
             if not is_valid and error:
                 errors.append(error)
 
         return len(errors) == 0, errors
 
-    async def validate_properties(self, node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
+    async def validate_properties(
+        self, node_type: str, properties: Dict[str, Any]
+    ) -> Tuple[bool, List[str], Dict[str, Any]]:
         """Validate and correct node properties"""
 
-        result: Tuple[bool, List[str], Dict[str, Any]] = self.property_validator.validate_properties(node_type, properties)
+        result: Tuple[bool, List[str], Dict[str, Any]] = (
+            self.property_validator.validate_properties(node_type, properties)
+        )
         return result
 
-    async def validate_project_can_open(self, project_path: str, cli_runner=None) -> Dict[str, Any]:
+    async def validate_project_can_open(
+        self, project_path: str, cli_runner=None
+    ) -> Dict[str, Any]:
         """Test if a project can actually open in Gaea2 by attempting to run it"""
 
         if not cli_runner:
@@ -185,7 +207,9 @@ class Gaea2Validator:
                     "can_open": True,
                     "tested": True,
                     "execution_time": result.get("execution_time", 0),
-                    "output": result.get("stdout", "")[:500],  # First 500 chars of output
+                    "output": result.get("stdout", "")[
+                        :500
+                    ],  # First 500 chars of output
                 }
             else:
                 # Parse the error to determine if it's a file format issue
@@ -203,7 +227,9 @@ class Gaea2Validator:
                     "Property error",
                 ]
 
-                is_format_error = any(pattern in error_msg for pattern in cant_open_patterns)
+                is_format_error = any(
+                    pattern in error_msg for pattern in cant_open_patterns
+                )
 
                 return {
                     "can_open": False,

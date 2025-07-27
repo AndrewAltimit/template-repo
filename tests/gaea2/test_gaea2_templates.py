@@ -29,7 +29,9 @@ class Gaea2TemplateTester:
         """Initialize the MCP client."""
         # Check if server is healthy
         if not self.client.health_check():
-            raise RuntimeError("MCP server is not available at http://192.168.0.152:8000")
+            raise RuntimeError(
+                "MCP server is not available at http://192.168.0.152:8000"
+            )
         print("✅ Remote Gaea2 MCP server is healthy")
 
     def cleanup(self):
@@ -37,7 +39,9 @@ class Gaea2TemplateTester:
         # No cleanup needed for HTTP client
         pass
 
-    def create_template(self, name: str, workflow: Dict[str, Any], description: str) -> Tuple[bool, str, Any]:
+    def create_template(
+        self, name: str, workflow: Dict[str, Any], description: str
+    ) -> Tuple[bool, str, Any]:
         """
         Create a Gaea2 template and capture results.
 
@@ -81,7 +85,9 @@ class Gaea2TemplateTester:
             if success:
                 print(f"✅ Successfully created: {output_path}")
                 if result.get("validation_results"):
-                    print(f"Validation summary: {json.dumps(result['validation_results'], indent=2)}")
+                    print(
+                        f"Validation summary: {json.dumps(result['validation_results'], indent=2)}"
+                    )
             else:
                 print("❌ Failed to create template")
                 if result.get("error"):
@@ -521,7 +527,9 @@ class Gaea2TemplateTester:
                 }
             ],
         }
-        edge_cases.append(("edge_missing_essentials", workflow2, "Workflow missing essential nodes"))
+        edge_cases.append(
+            ("edge_missing_essentials", workflow2, "Workflow missing essential nodes")
+        )
 
         # Edge case 3: Invalid property values
         workflow3 = {
@@ -618,7 +626,9 @@ class Gaea2TemplateTester:
                 },
             ],
         }
-        edge_cases.append(("edge_circular_deps", workflow4, "Workflow with circular dependencies"))
+        edge_cases.append(
+            ("edge_circular_deps", workflow4, "Workflow with circular dependencies")
+        )
 
         # Edge case 5: Unknown node types
         workflow5 = {
@@ -651,7 +661,9 @@ class Gaea2TemplateTester:
                 },
             ],
         }
-        edge_cases.append(("edge_unknown_nodes", workflow5, "Workflow with unknown node types"))
+        edge_cases.append(
+            ("edge_unknown_nodes", workflow5, "Workflow with unknown node types")
+        )
 
         # Run all edge cases
         for name, workflow, description in edge_cases:
@@ -742,7 +754,9 @@ class Gaea2TemplateTester:
                         issue_type = issue.get("type", "unknown")
                         if issue_type not in validation_issues:
                             validation_issues[issue_type] = []
-                        validation_issues[issue_type].append({"test": result["name"], "issue": issue})
+                        validation_issues[issue_type].append(
+                            {"test": result["name"], "issue": issue}
+                        )
 
                 # Track warnings
                 if "warnings" in val_results:
@@ -755,7 +769,9 @@ class Gaea2TemplateTester:
             for issue_type, occurrences in validation_issues.items():
                 print(f"\n  {issue_type}: {len(occurrences)} occurrences")
                 for occ in occurrences[:3]:  # Show first 3 examples
-                    print(f"    - In {occ['test']}: {occ['issue'].get('description', 'No description')}")
+                    print(
+                        f"    - In {occ['test']}: {occ['issue'].get('description', 'No description')}"
+                    )
 
         # Save detailed results
         results_file = os.path.join(self.test_dir, "test_results.json")
@@ -789,13 +805,17 @@ class Gaea2TemplateTester:
                 unknown_nodes.add(result["name"])
 
         if unknown_nodes:
-            print(f"   - Add support for unknown node types found in: {', '.join(unknown_nodes)}")
+            print(
+                f"   - Add support for unknown node types found in: {', '.join(unknown_nodes)}"
+            )
         else:
             print("   - No unknown node types encountered ✅")
 
         print("\n2. Validation Improvements:")
         if validation_issues:
-            print(f"   - Most common issue type: {max(validation_issues, key=lambda k: len(validation_issues[k]))}")
+            print(
+                f"   - Most common issue type: {max(validation_issues, key=lambda k: len(validation_issues[k]))}"
+            )
             print("   - Consider stricter validation for these areas")
         else:
             print("   - Validation appears comprehensive ✅")

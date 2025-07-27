@@ -34,11 +34,17 @@ class SecurityManager:
 
     # Regex pattern for keyword triggers: [Action][Agent]
     TRIGGER_PATTERN = re.compile(
-        r"\[(" + "|".join(VALID_ACTIONS) + r")\]\s*\[(" + "|".join(VALID_AGENTS) + r")\]",
+        r"\[("
+        + "|".join(VALID_ACTIONS)
+        + r")\]\s*\[("
+        + "|".join(VALID_AGENTS)
+        + r")\]",
         re.IGNORECASE,
     )
 
-    def __init__(self, allow_list: Optional[List[str]] = None, config_path: Optional[str] = None):
+    def __init__(
+        self, allow_list: Optional[List[str]] = None, config_path: Optional[str] = None
+    ):
         """
         Initialize security manager with allow list.
 
@@ -46,7 +52,9 @@ class SecurityManager:
             allow_list: List of allowed GitHub usernames. If None, loads from config/env.
             config_path: Path to config.json file
         """
-        self.config_path = config_path or os.path.join(os.path.dirname(__file__), "config.json")
+        self.config_path = config_path or os.path.join(
+            os.path.dirname(__file__), "config.json"
+        )
         self.config = self._load_config()
         self.security_config = self.config.get("security", {})
         self.enabled = self.security_config.get("enabled", True)
@@ -70,11 +78,17 @@ class SecurityManager:
         if self.repo_owner and self.repo_owner not in self.allow_list:
             self.allow_list.append(self.repo_owner)
 
-        logger.info(f"Security manager initialized. Enabled: {self.enabled}, Allow list: {self.allow_list}")
+        logger.info(
+            f"Security manager initialized. Enabled: {self.enabled}, Allow list: {self.allow_list}"
+        )
 
         # Rate limiting configuration
-        self.rate_limit_window = self.security_config.get("rate_limit_window_minutes", 60)
-        self.rate_limit_max_requests = self.security_config.get("rate_limit_max_requests", 10)
+        self.rate_limit_window = self.security_config.get(
+            "rate_limit_window_minutes", 60
+        )
+        self.rate_limit_max_requests = self.security_config.get(
+            "rate_limit_max_requests", 10
+        )
 
         # Use a persistent file for rate limiting to work across subprocess invocations
         # Use workspace directory for better persistence in containerized environments
@@ -125,7 +139,9 @@ class SecurityManager:
         if not self.rate_limit_file.exists():
             try:
                 # Create parent directory if needed
-                self.rate_limit_file.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+                self.rate_limit_file.parent.mkdir(
+                    parents=True, exist_ok=True, mode=0o700
+                )
 
                 # Atomic file creation with exclusive mode
                 temp_file = self.rate_limit_file.with_suffix(".tmp")
@@ -171,7 +187,9 @@ class SecurityManager:
 
                     time.sleep(0.1 * (attempt + 1))  # Exponential backoff
                     continue
-                logger.warning("Could not acquire lock for rate limit file after retries")
+                logger.warning(
+                    "Could not acquire lock for rate limit file after retries"
+                )
                 return {}
             except Exception as e:
                 logger.warning(f"Could not load rate limits: {e}")
@@ -183,7 +201,9 @@ class SecurityManager:
         for attempt in range(max_retries):
             try:
                 # Ensure directory exists
-                self.rate_limit_file.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+                self.rate_limit_file.parent.mkdir(
+                    parents=True, exist_ok=True, mode=0o700
+                )
 
                 # Write to temporary file first (atomic operation)
                 temp_file = self.rate_limit_file.with_suffix(".tmp")
@@ -193,7 +213,9 @@ class SecurityManager:
                     fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
                     try:
                         # Convert timestamps to list for JSON serialization
-                        json.dump({k: list(v) for k, v in rate_limits.items()}, f, indent=2)
+                        json.dump(
+                            {k: list(v) for k, v in rate_limits.items()}, f, indent=2
+                        )
                         f.flush()
                         os.fsync(f.fileno())  # Ensure data is written to disk
                     finally:
@@ -212,7 +234,9 @@ class SecurityManager:
 
                     time.sleep(0.1 * (attempt + 1))  # Exponential backoff
                     continue
-                logger.warning("Could not acquire lock for saving rate limits after retries")
+                logger.warning(
+                    "Could not acquire lock for saving rate limits after retries"
+                )
                 return
             except Exception as e:
                 logger.warning(f"Could not save rate limits: {e}")
@@ -235,7 +259,9 @@ class SecurityManager:
         """
         # If security is disabled, allow all users (but log a warning)
         if not self.enabled:
-            logger.warning("Security is disabled! All users are allowed to trigger AI agents.")
+            logger.warning(
+                "Security is disabled! All users are allowed to trigger AI agents."
+            )
             return True
 
         is_allowed = username in self.allow_list
@@ -262,7 +288,9 @@ class SecurityManager:
         """
         author = issue.get("author", {}).get("login", "")
         if not author:
-            logger.warning(f"Issue #{issue.get('number', '?')} has no author information")
+            logger.warning(
+                f"Issue #{issue.get('number', '?')} has no author information"
+            )
             return False
 
         return self.is_user_allowed(author)
@@ -324,7 +352,9 @@ class SecurityManager:
 
         return None
 
-    def check_trigger_comment(self, issue_or_pr: Dict, entity_type: str = "issue") -> Optional[Tuple[str, str, str]]:
+    def check_trigger_comment(
+        self, issue_or_pr: Dict, entity_type: str = "issue"
+    ) -> Optional[Tuple[str, str, str]]:
         """
         Check if an issue/PR has a trigger comment from an allowed user.
 
@@ -347,7 +377,9 @@ class SecurityManager:
             trigger = self.parse_keyword_trigger(body)
             if trigger:
                 action, agent = trigger
-                logger.info(f"Found valid trigger in {entity_type} body from {author}: [{action}][{agent}]")
+                logger.info(
+                    f"Found valid trigger in {entity_type} body from {author}: [{action}][{agent}]"
+                )
                 return (action, agent, author)
 
         # Then check comments
@@ -357,7 +389,9 @@ class SecurityManager:
         # Check comments in reverse order (most recent first)
         for i, comment in enumerate(reversed(comments)):
             # Try both "user" and "author" fields since GitHub API is inconsistent
-            author = comment.get("user", {}).get("login", "") or comment.get("author", {}).get("login", "")
+            author = comment.get("user", {}).get("login", "") or comment.get(
+                "author", {}
+            ).get("login", "")
 
             # Log comment details for debugging
             logger.debug(f"Comment {i}: author={author}, has_body={'body' in comment}")
@@ -390,7 +424,9 @@ class SecurityManager:
             self.allow_list.remove(username)
             logger.info(f"Removed '{username}' from allow list")
 
-    def log_security_violation(self, entity_type: str, entity_id: str, username: str) -> None:
+    def log_security_violation(
+        self, entity_type: str, entity_id: str, username: str
+    ) -> None:
         """
         Log a security violation for audit purposes.
 
@@ -404,7 +440,9 @@ class SecurityManager:
             f"AI agent will not process this {entity_type} to prevent potential prompt injection."
         )
 
-    def check_rate_limit(self, username: str, action: str) -> Tuple[bool, Optional[str]]:
+    def check_rate_limit(
+        self, username: str, action: str
+    ) -> Tuple[bool, Optional[str]]:
         """
         Check if a user has exceeded rate limits.
 
@@ -429,7 +467,9 @@ class SecurityManager:
 
         # Clean old entries
         if key in rate_limits:
-            rate_limits[key] = [ts for ts in rate_limits[key] if ts > window_start.timestamp()]
+            rate_limits[key] = [
+                ts for ts in rate_limits[key] if ts > window_start.timestamp()
+            ]
         else:
             rate_limits[key] = []
 
@@ -438,7 +478,9 @@ class SecurityManager:
         if request_count >= self.rate_limit_max_requests:
             oldest_timestamp = min(rate_limits[key])
             remaining_time = (
-                datetime.fromtimestamp(oldest_timestamp) + timedelta(minutes=self.rate_limit_window) - current_time
+                datetime.fromtimestamp(oldest_timestamp)
+                + timedelta(minutes=self.rate_limit_window)
+                - current_time
             )
             minutes_remaining = int(remaining_time.total_seconds() / 60)
 
@@ -455,7 +497,8 @@ class SecurityManager:
         self._save_rate_limits(rate_limits)
 
         logger.debug(
-            f"Rate limit check passed for {username}: " f"{len(rate_limits[key])}/{self.rate_limit_max_requests} requests"
+            f"Rate limit check passed for {username}: "
+            f"{len(rate_limits[key])}/{self.rate_limit_max_requests} requests"
         )
         return True, None
 
@@ -596,7 +639,9 @@ class SecurityManager:
         # Additional check: prevent modifying any file named security.py or config.json
         basename = os.path.basename(normalized_path)
         if basename in ["security.py", "config.json", ".gitconfig", "authorized_keys"]:
-            logger.warning(f"File path security violation: Attempt to modify restricted file '{basename}'")
+            logger.warning(
+                f"File path security violation: Attempt to modify restricted file '{basename}'"
+            )
             return False, f"Cannot modify restricted file '{basename}'"
 
         # If all checks pass

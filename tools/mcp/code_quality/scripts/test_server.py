@@ -79,6 +79,29 @@ async def test_code_quality_server(base_url: str = "http://localhost:8010"):
         except Exception as e:
             print(f"✗ Lint check error: {e}")
 
+        # Test hello_world
+        print("\n--- Testing hello_world ---")
+        try:
+            response = await client.post(
+                f"{base_url}/mcp/execute",
+                json={
+                    "tool": "hello_world",
+                    "arguments": {},
+                },
+            )
+            result = response.json()
+            if result["success"]:
+                print("✓ Hello world executed")
+                print(f"  Message: {result['result']['message']}")
+                if result["result"]["message"] == "Hello, World!":
+                    print("✓ Correct message returned")
+                else:
+                    print("✗ Unexpected message returned")
+            else:
+                print(f"✗ Hello world failed: {result['error']}")
+        except Exception as e:
+            print(f"✗ Hello world error: {e}")
+
         # Test unsupported language
         print("\n--- Testing error handling ---")
         try:
@@ -92,7 +115,9 @@ async def test_code_quality_server(base_url: str = "http://localhost:8010"):
             result = response.json()
             if not result["success"] or "error" in result["result"]:
                 print("✓ Error handling works correctly")
-                print(f"  Error: {result.get('error') or result['result'].get('error')}")
+                print(
+                    f"  Error: {result.get('error') or result['result'].get('error')}"
+                )
             else:
                 print("✗ Expected error for unsupported language")
         except Exception as e:

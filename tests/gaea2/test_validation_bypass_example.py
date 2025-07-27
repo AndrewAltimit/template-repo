@@ -67,7 +67,9 @@ async def test_with_validation_bypass():
 
         if result.get("success"):
             print(f"  Created file: {result.get('project_path')}")
-            print("  ✓ Successfully created broken file for testing (validation bypassed)")
+            print(
+                "  ✓ Successfully created broken file for testing (validation bypassed)"
+            )
         else:
             print(f"  ✗ Failed: {result.get('error')}")
 

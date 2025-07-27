@@ -39,7 +39,9 @@ class Gaea2MCPServer(BaseMCPServer):
     ):
         # Check if running in container
         if check_container_environment() and platform.system() != "Windows":
-            print("WARNING: Gaea2 MCP server typically runs on Windows with Gaea2 installed")
+            print(
+                "WARNING: Gaea2 MCP server typically runs on Windows with Gaea2 installed"
+            )
             print("Some features may not work correctly without the Gaea2 executable")
 
         super().__init__(
@@ -61,7 +63,8 @@ class Gaea2MCPServer(BaseMCPServer):
 
         # File validation enforcement - can be disabled via env var for tests
         self.enforce_file_validation = (
-            enforce_file_validation and os.environ.get("GAEA2_BYPASS_FILE_VALIDATION_FOR_TESTS") != "1"
+            enforce_file_validation
+            and os.environ.get("GAEA2_BYPASS_FILE_VALIDATION_FOR_TESTS") != "1"
         )
 
         # Initialize Gaea2 path
@@ -396,7 +399,9 @@ class Gaea2MCPServer(BaseMCPServer):
 
             # Validate and fix if requested
             if auto_validate:
-                validation_result = await self.validator.validate_and_fix({"nodes": nodes, "connections": connections})
+                validation_result = await self.validator.validate_and_fix(
+                    {"nodes": nodes, "connections": connections}
+                )
                 if validation_result["fixed"]:
                     nodes = validation_result["workflow"]["nodes"]
                     connections = validation_result["workflow"]["connections"]
@@ -432,22 +437,32 @@ class Gaea2MCPServer(BaseMCPServer):
             file_validation_error = None
 
             # Check if we should bypass validation (for tests only)
-            bypass_for_tests = os.environ.get("GAEA2_BYPASS_FILE_VALIDATION_FOR_TESTS") == "1"
+            bypass_for_tests = (
+                os.environ.get("GAEA2_BYPASS_FILE_VALIDATION_FOR_TESTS") == "1"
+            )
 
             if self.enforce_file_validation and self.gaea_path and not bypass_for_tests:
                 try:
                     from .validation.gaea2_file_validator import Gaea2FileValidator
 
-                    self.logger.info(f"Validating generated file in Gaea2: {output_path}")
+                    self.logger.info(
+                        f"Validating generated file in Gaea2: {output_path}"
+                    )
                     file_validator = Gaea2FileValidator(self.gaea_path)
-                    validation_result = await file_validator.validate_file(output_path, timeout=30)
+                    validation_result = await file_validator.validate_file(
+                        output_path, timeout=30
+                    )
 
                     file_validation_performed = True
                     file_validation_passed = validation_result["success"]
 
                     if not file_validation_passed:
-                        file_validation_error = validation_result.get("error", "File failed to open in Gaea2")
-                        self.logger.error(f"File validation failed: {file_validation_error}")
+                        file_validation_error = validation_result.get(
+                            "error", "File failed to open in Gaea2"
+                        )
+                        self.logger.error(
+                            f"File validation failed: {file_validation_error}"
+                        )
 
                         # Delete the invalid file
                         try:
@@ -480,7 +495,9 @@ class Gaea2MCPServer(BaseMCPServer):
             elif bypass_for_tests:
                 self.logger.warning("File validation bypassed for testing")
             elif not self.gaea_path:
-                self.logger.warning("File validation skipped: Gaea2 path not configured")
+                self.logger.warning(
+                    "File validation skipped: Gaea2 path not configured"
+                )
 
             return {
                 "success": True,
@@ -528,7 +545,9 @@ class Gaea2MCPServer(BaseMCPServer):
             self.logger.error(f"Failed to create from template: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def validate_and_fix_workflow(self, *, workflow: Dict[str, Any], strict_mode: bool = False) -> Dict[str, Any]:
+    async def validate_and_fix_workflow(
+        self, *, workflow: Dict[str, Any], strict_mode: bool = False
+    ) -> Dict[str, Any]:
         """Validate and fix a Gaea2 workflow"""
         try:
             # Validate workflow structure
@@ -538,13 +557,17 @@ class Gaea2MCPServer(BaseMCPServer):
             if "nodes" in workflow and not isinstance(workflow["nodes"], list):
                 return {"success": False, "error": "Workflow 'nodes' must be a list"}
 
-            if "connections" in workflow and not isinstance(workflow["connections"], list):
+            if "connections" in workflow and not isinstance(
+                workflow["connections"], list
+            ):
                 return {
                     "success": False,
                     "error": "Workflow 'connections' must be a list",
                 }
 
-            result = await self.validator.validate_and_fix(workflow, strict_mode=strict_mode)
+            result = await self.validator.validate_and_fix(
+                workflow, strict_mode=strict_mode
+            )
 
             return {
                 "success": True,
@@ -611,7 +634,9 @@ class Gaea2MCPServer(BaseMCPServer):
             else:
                 return {"success": False, "error": "No workflow data provided"}
 
-            analysis = await self.analyzer.analyze(workflow_data, analysis_type=analysis_type)
+            analysis = await self.analyzer.analyze(
+                workflow_data, analysis_type=analysis_type
+            )
             return {"success": True, "analysis": analysis}
 
         except Exception as e:
@@ -641,7 +666,9 @@ class Gaea2MCPServer(BaseMCPServer):
             else:
                 return {"success": False, "error": "No nodes provided for optimization"}
 
-            optimized_nodes = await self.optimizer.optimize_nodes(nodes_to_optimize, mode=optimization_mode)
+            optimized_nodes = await self.optimizer.optimize_nodes(
+                nodes_to_optimize, mode=optimization_mode
+            )
 
             return {
                 "success": True,
@@ -653,10 +680,14 @@ class Gaea2MCPServer(BaseMCPServer):
             self.logger.error(f"Optimization failed: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def suggest_gaea2_nodes(self, *, current_nodes: List[str], context: Optional[str] = None) -> Dict[str, Any]:
+    async def suggest_gaea2_nodes(
+        self, *, current_nodes: List[str], context: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Get node suggestions"""
         try:
-            suggestions = await self.analyzer.suggest_nodes(current_nodes, context=context)
+            suggestions = await self.analyzer.suggest_nodes(
+                current_nodes, context=context
+            )
 
             return {"success": True, "suggestions": suggestions}
 
@@ -664,7 +695,9 @@ class Gaea2MCPServer(BaseMCPServer):
             self.logger.error(f"Suggestion failed: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def repair_gaea2_project(self, *, project_path: str, backup: bool = True) -> Dict[str, Any]:
+    async def repair_gaea2_project(
+        self, *, project_path: str, backup: bool = True
+    ) -> Dict[str, Any]:
         """Repair a Gaea2 project file"""
         try:
             result = await self.repairer.repair_project(project_path, backup=backup)
@@ -729,7 +762,11 @@ class Gaea2MCPServer(BaseMCPServer):
             analysis = {
                 "total_executions": len(self.execution_history),
                 "recent_executions": len(recent),
-                "success_rate": (sum(1 for e in recent if e["result"].get("success")) / len(recent) if recent else 0),
+                "success_rate": (
+                    sum(1 for e in recent if e["result"].get("success")) / len(recent)
+                    if recent
+                    else 0
+                ),
                 "executions": recent,
             }
 
@@ -796,7 +833,9 @@ class Gaea2MCPServer(BaseMCPServer):
                         "success": True,
                         "filename": os.path.basename(file_path),
                         "size": file_stats.st_size,
-                        "modified": datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
+                        "modified": datetime.fromtimestamp(
+                            file_stats.st_mtime
+                        ).isoformat(),
                         "encoding": "raw",
                         "data": json_data,
                     }
@@ -807,7 +846,9 @@ class Gaea2MCPServer(BaseMCPServer):
                         "success": True,
                         "filename": os.path.basename(file_path),
                         "size": file_stats.st_size,
-                        "modified": datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
+                        "modified": datetime.fromtimestamp(
+                            file_stats.st_mtime
+                        ).isoformat(),
                         "encoding": "base64",
                         "data": encoded_data,
                     }
@@ -837,7 +878,9 @@ class Gaea2MCPServer(BaseMCPServer):
                             "filename": os.path.basename(file_path),
                             "path": file_path,
                             "size": stats.st_size,
-                            "modified": datetime.fromtimestamp(stats.st_mtime).isoformat(),
+                            "modified": datetime.fromtimestamp(
+                                stats.st_mtime
+                            ).isoformat(),
                         }
                     )
                 except Exception:
@@ -868,7 +911,9 @@ class Gaea2MCPServer(BaseMCPServer):
                 return Response(content="File not found", status_code=404)
 
             # Check if we should extract just the project field
-            extract_project = request.query_params.get("extract_project", "").lower() == "true"
+            extract_project = (
+                request.query_params.get("extract_project", "").lower() == "true"
+            )
 
             if extract_project and file_path.endswith(".terrain"):
                 # Read the file and extract project field if it exists
@@ -877,13 +922,19 @@ class Gaea2MCPServer(BaseMCPServer):
                         data = json.load(f)
 
                     # If it has the wrapper structure, extract just the project
-                    if isinstance(data, dict) and "project" in data and "success" in data:
+                    if (
+                        isinstance(data, dict)
+                        and "project" in data
+                        and "success" in data
+                    ):
                         project_data = data["project"]
                         # Return as JSON response
                         return Response(
                             content=json.dumps(project_data, indent=2),
                             media_type="application/json",
-                            headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
+                            headers={
+                                "Content-Disposition": f'attachment; filename="{safe_filename}"'
+                            },
                         )
                 except Exception:
                     # If JSON parsing fails, just return the file as-is

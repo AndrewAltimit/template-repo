@@ -38,7 +38,9 @@ class ClientRegistry:
         except Exception as e:
             self.logger.error(f"Failed to save clients: {e}")
 
-    def register_client(self, client_name: str, client_metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def register_client(
+        self, client_name: str, client_metadata: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """Register a new client or update existing one
 
         Args:
@@ -60,7 +62,9 @@ class ClientRegistry:
         client_record = {
             "client_id": client_id,
             "client_name": client_name,
-            "registered_at": self.clients.get(client_id, {}).get("registered_at", datetime.utcnow().isoformat()),
+            "registered_at": self.clients.get(client_id, {}).get(
+                "registered_at", datetime.utcnow().isoformat()
+            ),
             "updated_at": datetime.utcnow().isoformat(),
             "metadata": client_metadata or {},
             "active": True,
@@ -97,7 +101,9 @@ class ClientRegistry:
         """Update client's last seen timestamp and request count"""
         if client_id in self.clients:
             self.clients[client_id]["last_seen"] = datetime.utcnow().isoformat()
-            self.clients[client_id]["request_count"] = self.clients[client_id].get("request_count", 0) + 1
+            self.clients[client_id]["request_count"] = (
+                self.clients[client_id].get("request_count", 0) + 1
+            )
             self._save_clients()
 
     def deactivate_client(self, client_id: str) -> bool:
@@ -120,7 +126,8 @@ class ClientRegistry:
         recent_active = sum(
             1
             for c in self.clients.values()
-            if c.get("last_seen") and datetime.fromisoformat(c["last_seen"]).timestamp() > hour_ago
+            if c.get("last_seen")
+            and datetime.fromisoformat(c["last_seen"]).timestamp() > hour_ago
         )
 
         return {
@@ -128,5 +135,7 @@ class ClientRegistry:
             "active_clients": active_clients,
             "inactive_clients": total_clients - active_clients,
             "clients_active_last_hour": recent_active,
-            "total_requests": sum(c.get("request_count", 0) for c in self.clients.values()),
+            "total_requests": sum(
+                c.get("request_count", 0) for c in self.clients.values()
+            ),
         }

@@ -9,8 +9,13 @@ from typing import Any, Dict
 
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from tools.mcp.gaea2.schema.gaea2_schema import create_workflow_from_template, validate_gaea2_project  # noqa: E402
-from tools.mcp.gaea2.validation.gaea2_optimized_validator import get_optimized_validator  # noqa: E402
+from tools.mcp.gaea2.schema.gaea2_schema import (  # noqa: E402
+    create_workflow_from_template,
+    validate_gaea2_project,
+)
+from tools.mcp.gaea2.validation.gaea2_optimized_validator import (  # noqa: E402
+    get_optimized_validator,
+)
 
 
 def create_large_workflow(num_nodes: int) -> Dict[str, Any]:
@@ -20,7 +25,9 @@ def create_large_workflow(num_nodes: int) -> Dict[str, Any]:
 
     # Create a chain of nodes
     for i in range(num_nodes):
-        node_type = ["Mountain", "Erosion2", "FractalTerraces", "Combine", "Shear"][i % 5]
+        node_type = ["Mountain", "Erosion2", "FractalTerraces", "Combine", "Shear"][
+            i % 5
+        ]
         nodes.append(
             {
                 "id": 100 + i,
@@ -109,7 +116,9 @@ def test_optimized_validator():
         },
     ]
 
-    connections = [{"from_node": 100, "to_node": 101, "from_port": "Out", "to_port": "In"}]
+    connections = [
+        {"from_node": 100, "to_node": 101, "from_port": "Out", "to_port": "In"}
+    ]
 
     result = validator.validate_workflow(nodes, connections)
     print(f"Valid: {result['valid']}")
@@ -123,7 +132,9 @@ def test_optimized_validator():
     # Time regular validation
     start_time = time.time()
     for _ in range(3):
-        validator.validate_workflow(large_workflow["nodes"], large_workflow["connections"])
+        validator.validate_workflow(
+            large_workflow["nodes"], large_workflow["connections"]
+        )
     optimized_time = time.time() - start_time
 
     print(f"Optimized validation time (3 runs): {optimized_time:.3f}s")
@@ -139,7 +150,9 @@ def test_optimized_validator():
     print("\nTest 3: Integration with validate_gaea2_project")
 
     # Create a project from template
-    template_nodes, template_connections = create_workflow_from_template("basic_terrain")
+    template_nodes, template_connections = create_workflow_from_template(
+        "basic_terrain"
+    )
 
     # Build project structure
     project_data = {

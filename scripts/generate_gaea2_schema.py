@@ -462,7 +462,9 @@ def get_node_properties(node_type: str) -> Dict[str, Any]:
     return common_props
 
 
-def validate_property(node_type: str, prop_name: str, prop_value: Any) -> tuple[bool, Optional[str], Any]:
+def validate_property(
+    node_type: str, prop_name: str, prop_value: Any
+) -> tuple[bool, Optional[str], Any]:
     """
     Validate a property value for a node type.
     Returns (is_valid, error_message, corrected_value)
@@ -534,7 +536,11 @@ def validate_property(node_type: str, prop_name: str, prop_value: Any) -> tuple[
             )
 
     elif prop_type == "float2":
-        if not isinstance(prop_value, dict) or "X" not in prop_value or "Y" not in prop_value:
+        if (
+            not isinstance(prop_value, dict)
+            or "X" not in prop_value
+            or "Y" not in prop_value
+        ):
             return (
                 False,
                 f"Property '{prop_name}' must be a dict with X and Y keys",
@@ -544,7 +550,9 @@ def validate_property(node_type: str, prop_name: str, prop_value: Any) -> tuple[
     return True, None, prop_value
 
 
-def validate_gaea_project(nodes: List[Dict[str, Any]], connections: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+def validate_gaea_project(
+    nodes: List[Dict[str, Any]], connections: Optional[List[Dict[str, Any]]] = None
+) -> Dict[str, Any]:
     """Validate a complete Gaea project configuration"""
     errors = []
     warnings = []
@@ -566,13 +574,19 @@ def validate_gaea_project(nodes: List[Dict[str, Any]], connections: Optional[Lis
         corrected_props = {}
 
         for prop_name, prop_value in node.get("properties", {}).items():
-            is_valid, error, corrected_value = validate_property(node_type, prop_name, prop_value)
+            is_valid, error, corrected_value = validate_property(
+                node_type, prop_name, prop_value
+            )
 
             if not is_valid:
-                errors.append(f"Node '{node.get('name', 'unnamed')}' ({node_type}): {error}")
+                errors.append(
+                    f"Node '{node.get('name', 'unnamed')}' ({node_type}): {error}"
+                )
             else:
                 if error:  # Warning
-                    warnings.append(f"Node '{node.get('name', 'unnamed')}' ({node_type}): {error}")
+                    warnings.append(
+                        f"Node '{node.get('name', 'unnamed')}' ({node_type}): {error}"
+                    )
                 corrected_props[prop_name] = corrected_value
 
         corrected_node["properties"] = corrected_props
@@ -583,9 +597,13 @@ def validate_gaea_project(nodes: List[Dict[str, Any]], connections: Optional[Lis
         node_ids = {n.get("id") for n in nodes}
         for conn in connections:
             if conn.get("from_node") not in node_ids:
-                errors.append(f"Connection references non-existent source node: {conn.get('from_node')}")
+                errors.append(
+                    f"Connection references non-existent source node: {conn.get('from_node')}"
+                )
             if conn.get("to_node") not in node_ids:
-                errors.append(f"Connection references non-existent target node: {conn.get('to_node')}")
+                errors.append(
+                    f"Connection references non-existent target node: {conn.get('to_node')}"
+                )
 
     return {
         "valid": len(errors) == 0,
@@ -609,8 +627,12 @@ def main():
     with open(schema_path, "w") as f:
         json.dump(GAEA2_COMPLETE_SCHEMA, f, indent=2)
 
-    logger.info(f"✅ Saved complete schema with {len(GAEA2_COMPLETE_SCHEMA['valid_node_types'])} node types")
-    logger.info(f"✅ Defined properties for {len(GAEA2_COMPLETE_SCHEMA['node_properties'])} nodes")
+    logger.info(
+        f"✅ Saved complete schema with {len(GAEA2_COMPLETE_SCHEMA['valid_node_types'])} node types"
+    )
+    logger.info(
+        f"✅ Defined properties for {len(GAEA2_COMPLETE_SCHEMA['node_properties'])} nodes"
+    )
 
     # Test validation with sample project
     test_project = {

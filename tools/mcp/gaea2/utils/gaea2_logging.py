@@ -107,12 +107,16 @@ class Gaea2Logger:
         if structured:
             formatter = StructuredFormatter()
         else:
-            formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s - %(message)s")
+            formatter = logging.Formatter(
+                "%(asctime)s [%(levelname)s] %(name)s - %(message)s"
+            )
 
         self.file_handler.setFormatter(formatter)
         self.logger.addHandler(self.file_handler)
 
-    def log_operation(self, operation: str, params: Dict[str, Any], level: int = logging.INFO):
+    def log_operation(
+        self, operation: str, params: Dict[str, Any], level: int = logging.INFO
+    ):
         """Log an operation with parameters"""
         extra = {"operation": operation}
         self.logger.log(level, f"Operation: {operation}", extra=extra)
@@ -153,13 +157,17 @@ class Gaea2Logger:
         if node_id is not None:
             extra["node_id"] = node_id
 
-        self.logger.error(f"Validation error [{error_type}] for {node_type}: {details}", extra=extra)
+        self.logger.error(
+            f"Validation error [{error_type}] for {node_type}: {details}", extra=extra
+        )
 
     def log_performance(self, operation: str, duration: float, item_count: int = 0):
         """Log performance metrics"""
         msg = f"Performance: {operation} took {duration:.3f}s"
         if item_count > 0:
-            msg += f" for {item_count} items ({duration/item_count*1000:.1f}ms per item)"
+            msg += (
+                f" for {item_count} items ({duration/item_count*1000:.1f}ms per item)"
+            )
 
         level = logging.INFO
         if duration > 5.0:
@@ -222,7 +230,9 @@ def log_operation(operation_name: str):
 
             except Exception as e:
                 # Log error
-                logger.logger.error(f"Operation {operation_name} failed: {str(e)}", exc_info=True)
+                logger.logger.error(
+                    f"Operation {operation_name} failed: {str(e)}", exc_info=True
+                )
                 raise
 
         return wrapper

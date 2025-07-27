@@ -28,7 +28,9 @@ class Gaea2StructureValidator:
         self.warnings = []
         self.fixes_applied = []
 
-    def validate_structure(self, project_data: Dict[str, Any]) -> Tuple[bool, List[str], List[str]]:
+    def validate_structure(
+        self, project_data: Dict[str, Any]
+    ) -> Tuple[bool, List[str], List[str]]:
         """
         Validate project structure
 
@@ -54,7 +56,9 @@ class Gaea2StructureValidator:
         is_valid = len(self.errors) == 0
         return is_valid, self.errors, self.warnings
 
-    def fix_structure(self, project_data: Dict[str, Any], project_name: Optional[str] = None) -> Dict[str, Any]:
+    def fix_structure(
+        self, project_data: Dict[str, Any], project_name: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Fix common structure issues"""
         self.fixes_applied = []
         fixed = project_data.copy()
@@ -184,7 +188,9 @@ class Gaea2StructureValidator:
         except (ValueError, TypeError):
             return False
 
-    def _create_default_metadata(self, project_name: Optional[str] = None) -> Dict[str, Any]:
+    def _create_default_metadata(
+        self, project_name: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Create default metadata"""
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%SZ")
 
@@ -199,7 +205,9 @@ class Gaea2StructureValidator:
             "DateLastSaved": timestamp,
         }
 
-    def _fix_metadata(self, metadata: Dict[str, Any], project_name: Optional[str] = None) -> Dict[str, Any]:
+    def _fix_metadata(
+        self, metadata: Dict[str, Any], project_name: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Fix metadata issues"""
         fixed = metadata.copy()
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%SZ")
@@ -221,7 +229,9 @@ class Gaea2StructureValidator:
 
         return fixed
 
-    def _create_default_assets(self, project_name: Optional[str] = None) -> Dict[str, Any]:
+    def _create_default_assets(
+        self, project_name: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Create default assets structure"""
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%SZ")
         terrain_id = str(uuid.uuid4())
@@ -278,7 +288,9 @@ class Gaea2StructureValidator:
             ],
         }
 
-    def _fix_assets(self, assets: Dict[str, Any], project_name: Optional[str] = None) -> Dict[str, Any]:
+    def _fix_assets(
+        self, assets: Dict[str, Any], project_name: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Fix assets structure"""
         fixed = assets.copy()
 
@@ -300,7 +312,9 @@ class Gaea2StructureValidator:
         asset = fixed["$values"][0]
 
         if "Terrain" not in asset:
-            asset["Terrain"] = self._create_default_assets(project_name)["$values"][0]["Terrain"]
+            asset["Terrain"] = self._create_default_assets(project_name)["$values"][0][
+                "Terrain"
+            ]
             self.fixes_applied.append("Added missing Terrain")
 
         if "BuildDefinition" not in asset:
@@ -384,7 +398,10 @@ class Gaea2StructureValidator:
 
                 # Check for export
                 for node_id, node_data in nodes.items():
-                    if isinstance(node_data, dict) and node_data.get("$type", "").find("Export") != -1:
+                    if (
+                        isinstance(node_data, dict)
+                        and node_data.get("$type", "").find("Export") != -1
+                    ):
                         report["has_export"] = True
                         break
 
@@ -405,6 +422,8 @@ class Gaea2StructureValidator:
                 max_depth = max(max_depth, self._get_structure_depth(value, depth + 1))
             elif isinstance(value, list) and value:
                 if isinstance(value[0], dict):
-                    max_depth = max(max_depth, self._get_structure_depth(value[0], depth + 1))
+                    max_depth = max(
+                        max_depth, self._get_structure_depth(value[0], depth + 1)
+                    )
 
         return max_depth

@@ -60,7 +60,9 @@ async def get_config(name: str) -> Dict[str, Any]:
     return {}
 
 
-async def upload_dataset(dataset_name: str, images: List[Dict[str, str]]) -> Dict[str, Any]:
+async def upload_dataset(
+    dataset_name: str, images: List[Dict[str, str]]
+) -> Dict[str, Any]:
     """Upload images to create a dataset.
 
     Args:

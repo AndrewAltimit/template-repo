@@ -55,7 +55,11 @@ async def create_manim_animation(
             output_files: List[str] = []
             if os.path.exists(output_dir):
                 for root, _, files in os.walk(output_dir):
-                    output_files.extend(os.path.join(root, f) for f in files if f.endswith(f".{output_format}"))
+                    output_files.extend(
+                        os.path.join(root, f)
+                        for f in files
+                        if f.endswith(f".{output_format}")
+                    )
 
             return {
                 "success": True,
