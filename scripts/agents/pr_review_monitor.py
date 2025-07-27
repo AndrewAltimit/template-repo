@@ -512,7 +512,7 @@ class PRReviewMonitor:
                 return False
             for comment in data.get("comments", []):
                 body = comment.get("body", "")
-                if self.agent_tag in body and "Starting work on this PR" in body:
+                if self.agent_tag in body and "starting work on this pr" in body.lower():
                     return True
         return False
 

@@ -76,9 +76,7 @@ jobs:
           # Install required Python packages if not already installed
           # Using --user to avoid permission issues on self-hosted runners
           echo "[INFO] Installing required Python packages..."
-          pip3 install --user -r docker/requirements-agents.txt || {
-            echo "[WARNING] Failed to install some packages, continuing anyway"
-          }
+          pip3 install --user -r docker/requirements-agents.txt
 
       - name: Run PR review monitor on host
         env:

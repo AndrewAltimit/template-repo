@@ -14,47 +14,13 @@ echo "[INFO] Current directory: $(pwd)"
 export HOME=/tmp/agent-home
 mkdir -p $HOME/.config
 
-# Copy credentials if they exist
-if [ -d /host-claude ]; then
-    echo "[INFO] Copying Claude credentials directory..."
-    cp -r /host-claude $HOME/.claude
-    # Also check for claude.json file in the mounted directory
-    if [ -f /host-claude/claude.json ]; then
-        echo "[INFO] Found claude.json in mounted directory"
-    fi
-elif [ -f /host-claude ]; then
-    # Handle case where .claude is a file (like .claude.json)
-    echo "[INFO] Copying Claude credentials file..."
-    mkdir -p $HOME/.claude
-    cp /host-claude $HOME/.claude/claude.json
-fi
+# Source the shared credential setup script
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+source "${script_dir}/setup_agent_credentials.sh"
 
-# Check if credentials were copied successfully
-if [ -f $HOME/.claude/claude.json ]; then
-    echo "[INFO] Claude credentials found at $HOME/.claude/claude.json"
-    # Claude Code might also look for .claude.json in HOME
-    cp $HOME/.claude/claude.json $HOME/.claude.json
-    echo "[INFO] Also copied to $HOME/.claude.json for compatibility"
-    # Debug: check file contents (without exposing sensitive data)
-    echo "[DEBUG] Credential file size: $(stat -c%s $HOME/.claude.json) bytes"
-    echo "[DEBUG] Credential file permissions: $(stat -c%a $HOME/.claude.json)"
-elif [ -f $HOME/.claude.json ]; then
-    echo "[INFO] Claude credentials found at $HOME/.claude.json"
-    # Also create .claude directory structure
-    mkdir -p $HOME/.claude
-    cp $HOME/.claude.json $HOME/.claude/claude.json
-    echo "[INFO] Also copied to $HOME/.claude/claude.json for compatibility"
-    # Debug: check file contents (without exposing sensitive data)
-    echo "[DEBUG] Credential file size: $(stat -c%s $HOME/.claude.json) bytes"
-    echo "[DEBUG] Credential file permissions: $(stat -c%a $HOME/.claude.json)"
-else
-    echo "[WARNING] No Claude credentials found after copy"
-    echo "[DEBUG] HOME directory contents:"
-    ls -la $HOME/
-    echo "[DEBUG] Looking for Claude config in standard locations..."
-    [ -f ~/.claude.json ] && echo "[DEBUG] Found ~/.claude.json in original home"
-    [ -d ~/.claude ] && echo "[DEBUG] Found ~/.claude directory in original home"
-fi
+# Set up credentials
+setup_agent_credentials
 
 # Verify Claude CLI can see the credentials
 echo "[DEBUG] Testing Claude CLI configuration..."
@@ -86,10 +52,7 @@ timeout 5 claude --settings $HOME/.claude.json --version 2>&1 || echo "[DEBUG] S
 echo "[DEBUG] Checking for setup-token command..."
 claude setup-token --help 2>&1 | head -20 || echo "[DEBUG] No setup-token command found"
 
-if [ -d /host-gh ]; then
-    echo "[INFO] Copying GitHub CLI config..."
-    cp -r /host-gh $HOME/.config/gh
-fi
+# GitHub CLI config is handled by setup_agent_credentials function
 
 # Configure git identity
 git config --global user.name 'AI Issue Agent'
