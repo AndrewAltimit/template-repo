@@ -4,11 +4,12 @@ The MCP Core module provides shared base classes and utilities for building Mode
 
 ## Overview
 
-The MCP Core module consists of three main components:
+The MCP Core module consists of four main components:
 
 1. **BaseMCPServer**: Abstract base class for all MCP servers
 2. **HTTPBridge**: HTTP bridge for forwarding requests to remote MCP servers
-3. **Utilities**: Common utility functions for logging, configuration, and environment management
+3. **ClientRegistry**: Client registration and management (currently disabled for home lab use)
+4. **Utilities**: Common utility functions for logging, configuration, and environment management
 
 ## Components
 
@@ -16,11 +17,14 @@ The MCP Core module consists of three main components:
 
 The `BaseMCPServer` class provides the foundation for all MCP servers with:
 
-- **Common HTTP routes**: `/health`, `/mcp/tools`, `/mcp/execute`
+- **Common HTTP routes**: `/health`, `/mcp/tools`, `/mcp/execute`, `/messages`, `/register`, `/authorize`, `/token`
 - **Tool registration and execution framework**
 - **Support for both HTTP and stdio modes**
 - **Automatic error handling and response formatting**
 - **FastAPI integration for HTTP mode**
+- **OAuth2-style authentication bypass for simplified home lab use**
+- **JSON-RPC 2.0 support for MCP protocol**
+- **HTTP Stream Transport with SSE support**
 
 **Key Features:**
 - Abstract `get_tools()` method that subclasses must implement
@@ -28,6 +32,8 @@ The `BaseMCPServer` class provides the foundation for all MCP servers with:
 - Unified request/response models
 - Built-in health checks
 - Logging setup
+- MCP protocol discovery endpoints
+- Session management for streaming responses
 
 **Usage Example:**
 ```python
@@ -69,15 +75,14 @@ The `HTTPBridge` class enables forwarding MCP requests to remote servers:
 - **Remote server proxying**: Forward requests to MCP servers on different hosts
 - **CORS support**: Enable cross-origin requests
 - **Timeout handling**: Configurable request timeouts
-- **Automatic retries**: Built-in retry logic for failed requests
 - **Health monitoring**: Check remote server availability
 
 **Key Features:**
 - Transparent request forwarding
-- Authentication support
 - Error handling and logging
-- Performance monitoring
-- Configurable middleware
+- FastAPI-based implementation
+- Support for `/health`, `/mcp/tools`, `/mcp/execute` endpoints
+- Environment variable configuration support
 
 **Usage Example:**
 ```python
@@ -97,6 +102,17 @@ bridge = HTTPBridge(
 if __name__ == "__main__":
     uvicorn.run(bridge.app, host="0.0.0.0", port=bridge.port)
 ```
+
+### ClientRegistry (Currently Disabled)
+
+The `ClientRegistry` class provides client management functionality (currently disabled for home lab use):
+
+- **Client registration**: Track and manage MCP clients
+- **Persistent storage**: Store client information in JSON
+- **Activity tracking**: Monitor client usage and last seen times
+- **Statistics**: Track request counts and active clients
+
+**Note**: In the current implementation, client registry functionality is commented out in `BaseMCPServer` for simplified home lab deployment. Registration endpoints return mock responses without actual tracking.
 
 ### Utilities
 
@@ -176,6 +192,25 @@ if check_container_environment():
 else:
     print("Running on host")
 ```
+
+#### create_bridge_from_env(service_name: str, default_port: int = 8191) -> HTTPBridge
+Create an HTTP bridge using environment variables for configuration.
+
+**Environment Variables:**
+- `REMOTE_MCP_URL`: Remote MCP server URL
+- `TIMEOUT`: Request timeout in seconds
+- `PORT`: Port to listen on (optional)
+
+**Example:**
+```python
+from tools.mcp.core.http_bridge import create_bridge_from_env
+
+# Create bridge using environment variables
+bridge = create_bridge_from_env("MyService", default_port=8080)
+bridge.run()
+```
+
+**Note**: The core module exports only the most commonly used components: `BaseMCPServer`, `HTTPBridge`, `setup_logging`, and `validate_environment`. Other utilities like `ensure_directory`, `load_config`, and `check_container_environment` must be imported directly from `tools.mcp.core.utils`.
 
 ## Creating a New MCP Server
 
@@ -262,8 +297,10 @@ my-new-mcp:
 
 ## Request/Response Models
 
-### ToolRequest
-Standard request format for tool execution:
+### HTTP API Models
+
+#### ToolRequest
+Standard request format for tool execution via HTTP API:
 
 ```python
 {
@@ -277,7 +314,7 @@ Standard request format for tool execution:
 
 Note: Both `arguments` and `parameters` fields are supported for backwards compatibility.
 
-### ToolResponse
+#### ToolResponse
 Standard response format:
 
 ```python
@@ -289,6 +326,55 @@ Standard response format:
     "error": null  # Error message if success is false
 }
 ```
+
+### JSON-RPC 2.0 Models (MCP Protocol)
+
+The server also supports JSON-RPC 2.0 for MCP protocol communication:
+
+#### Initialize Request
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "initialize",
+    "params": {
+        "protocolVersion": "2024-11-05",
+        "clientInfo": {
+            "name": "claude-code",
+            "version": "1.0"
+        }
+    },
+    "id": 1
+}
+```
+
+#### Tools List Request
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "tools/list",
+    "params": {},
+    "id": 2
+}
+```
+
+#### Tool Call Request
+```json
+{
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+        "name": "tool_name",
+        "arguments": {
+            "param1": "value1"
+        }
+    },
+    "id": 3
+}
+```
+
+### HTTP Stream Transport
+
+The server supports HTTP Stream Transport via the `/messages` endpoint with optional Server-Sent Events (SSE) for streaming responses. Set the `Mcp-Response-Mode: stream` header to enable streaming.
 
 ## Best Practices
 
@@ -324,6 +410,32 @@ async def test_list_tools():
         assert "tools" in response.json()
 ```
 
+## Available Endpoints
+
+### Core Endpoints
+- `GET /health` - Health check endpoint
+- `GET /mcp/tools` - List available tools
+- `POST /mcp/execute` - Execute a tool
+- `GET /mcp/clients` - List registered clients (returns empty for home lab)
+- `GET /mcp/stats` - Get server statistics
+
+### MCP Protocol Endpoints
+- `GET /messages` - MCP server information
+- `POST /messages` - Handle MCP JSON-RPC requests (supports streaming)
+- `GET /mcp` - SSE endpoint for streaming
+- `POST /mcp` - JSON-RPC endpoint (legacy)
+- `GET /mcp/capabilities` - Server capabilities
+- `POST /mcp/initialize` - Initialize MCP session
+
+### OAuth2-style Endpoints (Bypass Mode)
+- `POST /register` - Client registration
+- `GET/POST /authorize` - OAuth authorization (auto-approves)
+- `POST /token` - Token exchange (returns bypass token)
+
+### Discovery Endpoints
+- `GET /.well-known/mcp` - MCP protocol discovery
+- `GET /.well-known/oauth-authorization-server` - OAuth discovery
+
 ## Environment Configuration
 
 Common environment variables used by MCP servers:
@@ -332,6 +444,11 @@ Common environment variables used by MCP servers:
 - `MCP_CONFIG_PATH`: Path to configuration file
 - `MCP_TIMEOUT`: Default timeout for operations
 - `MCP_MAX_RETRIES`: Maximum retry attempts
+
+For HTTPBridge:
+- `REMOTE_MCP_URL`: Remote MCP server URL
+- `TIMEOUT`: Request timeout in seconds
+- `PORT`: Port to listen on
 
 ## Security Considerations
 
