@@ -142,9 +142,9 @@ class SubagentManager:
         """
         # Build the Claude Code command
         # Using the format: claude code /path/to/subagent.md
-        # Add --yes flag to bypass interactive prompts for automated execution
+        # Add --dangerously-skip-permissions flag to bypass interactive prompts for automated execution
         # This is crucial for non-interactive environments like GitHub Actions
-        cmd = ["claude", "code", "--yes", subagent_file]
+        cmd = ["claude", "code", "--dangerously-skip-permissions", subagent_file]
 
         # Set up environment
         env = os.environ.copy()
