@@ -148,20 +148,6 @@ class SubagentManager:
             logger.error(f"Failed to read subagent file: {e}")
             return False, "", f"Failed to read subagent file: {str(e)}"
 
-        # Build the Claude Code command
-        # Using the format: claude --print --dangerously-skip-permissions "prompt content"
-        # --print: Print response and exit (for non-interactive use)
-        # --dangerously-skip-permissions: Bypass all permission checks for automated execution
-        # This is crucial for non-interactive environments like GitHub Actions
-        cmd = ["claude", "--print", "--dangerously-skip-permissions", prompt_content]
-
-        # Log prompt length for debugging
-        logger.debug(f"Prompt length: {len(prompt_content)} characters")
-        if len(prompt_content) > 1000:
-            logger.debug(f"Prompt preview (first 500 chars): {prompt_content[:500]}...")
-        else:
-            logger.debug(f"Full prompt: {prompt_content}")
-
         # Set up environment
         env = os.environ.copy()
 
@@ -170,6 +156,27 @@ class SubagentManager:
             env["HOME"] = os.environ.get("HOME", "/tmp/agent-home")
 
         logger.info(f"HOME set to: {env['HOME']}")
+
+        # Build the Claude Code command
+        # Using the format: claude --print --dangerously-skip-permissions "prompt content"
+        # --print: Print response and exit (for non-interactive use)
+        # --dangerously-skip-permissions: Bypass all permission checks for automated execution
+        # --settings: Explicitly specify the settings file location
+        # This is crucial for non-interactive environments like GitHub Actions
+        settings_path = os.path.join(env["HOME"], ".claude.json")
+        if os.path.exists(settings_path):
+            cmd = ["claude", "--print", "--dangerously-skip-permissions", "--settings", settings_path, prompt_content]
+            logger.info(f"Using settings file: {settings_path}")
+        else:
+            cmd = ["claude", "--print", "--dangerously-skip-permissions", prompt_content]
+            logger.warning("No settings file found, authentication may fail")
+
+        # Log prompt length for debugging
+        logger.debug(f"Prompt length: {len(prompt_content)} characters")
+        if len(prompt_content) > 1000:
+            logger.debug(f"Prompt preview (first 500 chars): {prompt_content[:500]}...")
+        else:
+            logger.debug(f"Full prompt: {prompt_content}")
 
         # Claude CLI uses subscription authentication stored in .claude.json
         # This file contains session tokens from logging in with a subscription
@@ -236,6 +243,24 @@ class SubagentManager:
                     logger.error(f"Error output: {stderr}")
                 if stdout:
                     logger.error(f"Standard output: {stdout}")
+
+                # Special handling for authentication errors
+                if "Invalid API key" in stdout or "Please run /login" in stdout:
+                    logger.error("Claude authentication failed in container environment")
+                    logger.error(
+                        "IMPORTANT: Claude subscription authentication (via 'claude login') is tied to the host machine"
+                    )
+                    logger.error("and cannot be transferred to containerized environments like GitHub Actions.")
+                    logger.error("")
+                    logger.error("Possible solutions:")
+                    logger.error("1. Use ANTHROPIC_API_KEY environment variable instead of subscription auth")
+                    logger.error("2. Run the AI agents on the host machine (not in containers)")
+                    logger.error("3. Use the 'claude setup-token' command if available for CI/CD")
+                    logger.error("")
+                    logger.error(
+                        "For now, the AI agent functionality requires running on the host with active subscription auth."
+                    )
+
                 # If no output at all, it might be a PATH issue
                 if not stderr and not stdout:
                     logger.error("No output from claude command - it may not be installed or not in PATH")

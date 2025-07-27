@@ -74,6 +74,18 @@ echo "[DEBUG] Testing Claude CLI authentication status..."
 # Use timeout to prevent hanging if claude tries to prompt
 timeout 5 claude --version 2>&1 | head -n 5 || echo "[DEBUG] Claude version check timed out or failed"
 
+# Check if we can get more info about Claude's auth status
+echo "[DEBUG] Checking Claude CLI help for auth options..."
+claude --help 2>&1 | grep -E "(auth|login|api|key|token)" || true
+
+# Try to see what Claude expects
+echo "[DEBUG] Testing if Claude recognizes the config..."
+timeout 5 claude --settings $HOME/.claude.json --version 2>&1 || echo "[DEBUG] Settings flag test failed"
+
+# Check for the setup-token command
+echo "[DEBUG] Checking for setup-token command..."
+claude setup-token --help 2>&1 | head -20 || echo "[DEBUG] No setup-token command found"
+
 if [ -d /host-gh ]; then
     echo "[INFO] Copying GitHub CLI config..."
     cp -r /host-gh $HOME/.config/gh
