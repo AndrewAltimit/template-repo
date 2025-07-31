@@ -241,13 +241,7 @@ jobs:
           docker-compose run --rm python-ci bash -c "
             cd /app/cgt-validator && \
             pip install -r requirements.txt && \
-            python -c \"
-from src.scrapers.web_scraper import WebScraper
-scraper = WebScraper()
-# Test with a simple URL
-result = scraper.fetch_url('https://www.example.com')
-print(f'Scraper test: {'✅ Success' if result else '❌ Failed'}')
-\"
+            python -c \"from src.scrapers.web_scraper import WebScraper; scraper = WebScraper(); result = scraper.fetch_url('https://www.example.com'); print(f'Scraper test: {\\\"✅ Success\\\" if result else \\\"❌ Failed\\\"}')\"
           "
 
   # Final summary
@@ -268,12 +262,24 @@ print(f'Scraper test: {'✅ Success' if result else '❌ Failed'}')
           echo "## Pipeline Results" >> $GITHUB_STEP_SUMMARY
           echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Format and Lint | ${{ needs.format-and-lint.result == 'success' && '✅' || needs.format-and-lint.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Test Suite | ${{ needs.test-suite.result == 'success' && '✅' || needs.test-suite.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Mock Data Validation | ${{ needs.validate-mock-data.result == 'success' && '✅' || needs.validate-mock-data.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Security Scan | ${{ needs.security-scan.result == 'success' && '✅' || needs.security-scan.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Docker Build | ${{ needs.docker-build.result == 'success' && '✅' || needs.docker-build.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Integration Tests | ${{ needs.integration-tests.result == 'success' && '✅' || needs.integration-tests.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          FMT_RESULT="${{ needs.format-and-lint.result }}"
+          FMT_STATUS="${{ needs.format-and-lint.result == 'success' && '✅' || needs.format-and-lint.result == 'skipped' && '⏭️' || '❌' }}"
+          echo "| Format and Lint | ${FMT_STATUS} |" >> $GITHUB_STEP_SUMMARY
+          TEST_RESULT="${{ needs.test-suite.result }}"
+          TEST_STATUS="${{ needs.test-suite.result == 'success' && '✅' || needs.test-suite.result == 'skipped' && '⏭️' || '❌' }}"
+          echo "| Test Suite | ${TEST_STATUS} |" >> $GITHUB_STEP_SUMMARY
+          MOCK_RESULT="${{ needs.validate-mock-data.result }}"
+          MOCK_STATUS="${{ needs.validate-mock-data.result == 'success' && '✅' || needs.validate-mock-data.result == 'skipped' && '⏭️' || '❌' }}"
+          echo "| Mock Data Validation | ${MOCK_STATUS} |" >> $GITHUB_STEP_SUMMARY
+          SEC_RESULT="${{ needs.security-scan.result }}"
+          SEC_STATUS="${{ needs.security-scan.result == 'success' && '✅' || needs.security-scan.result == 'skipped' && '⏭️' || '❌' }}"
+          echo "| Security Scan | ${SEC_STATUS} |" >> $GITHUB_STEP_SUMMARY
+          DOCKER_RESULT="${{ needs.docker-build.result }}"
+          DOCKER_STATUS="${{ needs.docker-build.result == 'success' && '✅' || needs.docker-build.result == 'skipped' && '⏭️' || '❌' }}"
+          echo "| Docker Build | ${DOCKER_STATUS} |" >> $GITHUB_STEP_SUMMARY
+          INT_RESULT="${{ needs.integration-tests.result }}"
+          INT_STATUS="${{ needs.integration-tests.result == 'success' && '✅' || needs.integration-tests.result == 'skipped' && '⏭️' || '❌' }}"
+          echo "| Integration Tests | ${INT_STATUS} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
