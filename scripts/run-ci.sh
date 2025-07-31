@@ -48,8 +48,8 @@ case "$STAGE" in
 
   security)
     echo "=== Running security scans ==="
-    docker-compose run --rm python-ci bandit -r . -f json -o bandit-report.json || true
-    docker-compose run --rm python-ci safety check --json --output safety-report.json || true
+    docker-compose run --rm python-ci bash -c "pip install --user bandit safety && export PATH=\$HOME/.local/bin:\$PATH && bandit -r . -f json -o bandit-report.json || true"
+    docker-compose run --rm python-ci bash -c "pip install --user safety && export PATH=\$HOME/.local/bin:\$PATH && safety check --json --output safety-report.json || true"
     ;;
 
   test)

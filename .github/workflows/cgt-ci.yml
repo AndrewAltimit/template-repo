@@ -162,6 +162,7 @@ jobs:
           echo "🔒 Running security scan..."
           docker-compose run --rm cgt-dev bash -c "
             pip install bandit && \
+            export PATH=/home/cgtuser/.local/bin:\$PATH && \
             bandit -r src/ -f json -o bandit-report.json || true
           "
 
@@ -171,6 +172,7 @@ jobs:
           echo "🔍 Checking dependencies..."
           docker-compose run --rm cgt-dev bash -c "
             pip install safety && \
+            export PATH=/home/cgtuser/.local/bin:\$PATH && \
             safety check --json > safety-report.json || true
           "
 

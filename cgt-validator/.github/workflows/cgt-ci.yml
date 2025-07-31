@@ -168,7 +168,8 @@ jobs:
           echo "🔒 Running security scan..."
           docker-compose run --rm python-ci bash -c "
             cd /app/cgt-validator && \
-            pip install bandit && \
+            pip install --user bandit && \
+            export PATH=/home/cgtuser/.local/bin:\$PATH && \
             bandit -r src/ -f json -o bandit-report.json || true
           "
 
@@ -178,7 +179,8 @@ jobs:
           echo "🔍 Checking dependencies..."
           docker-compose run --rm python-ci bash -c "
             cd /app/cgt-validator && \
-            pip install safety && \
+            pip install --user safety && \
+            export PATH=/home/cgtuser/.local/bin:\$PATH && \
             safety check --json > safety-report.json || true
           "
 
@@ -241,13 +243,7 @@ jobs:
           docker-compose run --rm python-ci bash -c "
             cd /app/cgt-validator && \
             pip install -r requirements.txt && \
-            python -c \"
-from src.scrapers.web_scraper import WebScraper
-scraper = WebScraper()
-# Test with a simple URL
-result = scraper.fetch_url('https://www.example.com')
-print(f'Scraper test: {'✅ Success' if result else '❌ Failed'}')
-\"
+            python -c 'from src.scrapers.web_scraper import WebScraper; scraper = WebScraper(); result = scraper.fetch_url(\"https://www.example.com\"); print(f\"Scraper test: {\"✅ Success\" if result else \"❌ Failed\"}\")'
           "
 
   # Final summary
