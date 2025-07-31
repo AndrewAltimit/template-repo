@@ -51,14 +51,18 @@ jobs:
         working-directory: ./cgt-validator
         run: |
           echo "🔍 Running basic linting..."
-          docker-compose -f docker-compose.yml run --rm cgt-lint sh -c "pip install flake8 && python -m flake8 --config=.flake8 src tests --count --select=E9,F63,F7,F82 --show-source --statistics"
+          docker-compose -f docker-compose.yml run --rm cgt-lint sh -c \
+            "pip install flake8 && python -m flake8 --config=.flake8 src tests \
+            --count --select=E9,F63,F7,F82 --show-source --statistics"
 
       - name: Run full linting
         if: success()
         working-directory: ./cgt-validator
         run: |
           echo "🔍 Running full linting..."
-          docker-compose -f docker-compose.yml run --rm cgt-lint sh -c "pip install black flake8 pylint && python -m black --check src tests && python -m flake8 --config=.flake8 src tests && python -m pylint src --disable=R,C"
+          docker-compose -f docker-compose.yml run --rm cgt-lint sh -c \
+            "pip install black flake8 pylint && python -m black --check src tests && \
+            python -m flake8 --config=.flake8 src tests && python -m pylint src --disable=R,C"
 
   # Stage 2: Test suite
   test-suite:
@@ -137,16 +141,14 @@ jobs:
 
           if [ -f test-results/coverage.xml ]; then
             echo "### Coverage Report" >> $GITHUB_STEP_SUMMARY
-            docker-compose run --rm cgt-dev python3 -c "
-            import xml.etree.ElementTree as ET
-            tree = ET.parse('test-results/coverage.xml')
-            root = tree.getroot()
-            line_rate = float(root.attrib.get('line-rate', 0)) * 100
-            branch_rate = float(root.attrib.get('branch-rate', 0)) * 100
-
-            print(f'- Line Coverage: {line_rate:.1f}%')
-            print(f'- Branch Coverage: {branch_rate:.1f}%')
-            " >> $GITHUB_STEP_SUMMARY
+            docker-compose -f docker-compose.yml run --rm cgt-dev python3 -c \
+              'import xml.etree.ElementTree as ET; \
+              tree = ET.parse("test-results/coverage.xml"); \
+              root = tree.getroot(); \
+              line_rate = float(root.attrib.get("line-rate", 0)) * 100; \
+              branch_rate = float(root.attrib.get("branch-rate", 0)) * 100; \
+              print(f"- Line Coverage: {line_rate:.1f}%"); \
+              print(f"- Branch Coverage: {branch_rate:.1f}%")' >> $GITHUB_STEP_SUMMARY
           fi
 
   # Stage 3: Validate mock data
@@ -163,13 +165,13 @@ jobs:
         working-directory: ./cgt-validator
         run: |
           echo "🏗️ Rebuilding Docker images with latest code..."
-          docker-compose build --no-cache cgt-dev
+          docker-compose -f docker-compose.yml build --no-cache cgt-dev
 
       - name: Generate and validate Oregon mock data
         working-directory: ./cgt-validator
         run: |
           echo "📊 Generating and validating Oregon mock data..."
-          docker-compose run --rm cgt-dev bash -c "
+          docker-compose -f docker-compose.yml run --rm cgt-dev bash -c "
             pip install -r requirements.txt && \
             python test_oregon_valid.py
           "
