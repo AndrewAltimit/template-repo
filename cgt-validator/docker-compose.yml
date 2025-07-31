@@ -45,7 +45,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: cgt-validator:latest
+      args:
+        INSTALL_DEV: "true"
+    image: cgt-validator:test
     container_name: cgt-test
     volumes:
       - ./src:/app/src:ro

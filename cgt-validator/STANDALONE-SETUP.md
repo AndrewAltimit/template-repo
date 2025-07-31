@@ -14,7 +14,7 @@ The CGT Validator is now fully self-contained with its own requirements file str
 ### Installation Process:
 
 ```bash
-cd /home/miku/Documents/repos/template-repo/cgt-validator
+cd cgt-validator
 
 # Option 1: Use install script
 ./install.sh

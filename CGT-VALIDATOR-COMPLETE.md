@@ -31,7 +31,7 @@ We have successfully implemented a comprehensive CGT (Cost Growth Target) data v
 
 ```bash
 # Navigate to project
-cd /home/miku/Documents/repos/template-repo/cgt-validator
+cd cgt-validator
 
 # Run the demo
 python test_oregon.py
@@ -160,7 +160,7 @@ The project demonstrates:
 
 To run quality checks:
 ```bash
-cd /home/miku/Documents/repos/template-repo
+# From the project root directory
 ./scripts/run-ci.sh format
 ./scripts/run-ci.sh lint-basic
 ```

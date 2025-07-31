@@ -16,12 +16,22 @@ RUN useradd -m -u 1000 cgtuser
 # Set working directory
 WORKDIR /app
 
-# Copy requirements and install
-COPY requirements-cgt.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements-cgt.txt
+# Copy only the files needed for dependency installation
+COPY requirements-cgt.txt requirements-dev.txt setup.py README.md ./
+COPY src/__init__.py src/
 
-# Copy application code
+# Install dependencies and the package
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements-cgt.txt && \
+    pip install --no-cache-dir -e .
+
+# Install dev dependencies for test/dev targets
+ARG INSTALL_DEV=false
+RUN if [ "$INSTALL_DEV" = "true" ]; then \
+        pip install --no-cache-dir -r requirements-dev.txt; \
+    fi
+
+# Copy the rest of the application code
 COPY --chown=cgtuser:cgtuser . .
 
 # Set environment variables
@@ -40,4 +50,4 @@ USER cgtuser
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
 # Default command
-CMD ["python", "-m", "cli", "--help"]
+CMD ["cgt-validate", "--help"]

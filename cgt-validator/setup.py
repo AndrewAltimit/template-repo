@@ -3,26 +3,9 @@ from setuptools import find_packages, setup
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-# Read core requirements only (not development/optional packages)
-core_requirements = [
-    "click>=8.0.0",
-    "openpyxl>=3.0.0",
-    "pandas>=2.0.0",
-    "pyyaml>=6.0.0",
-    "jsonschema>=4.0.0",
-    "beautifulsoup4>=4.12.0",
-    "requests>=2.31.0",
-    "lxml>=4.9.0",
-    "jinja2>=3.1.0",
-    "markdown>=3.5.0",
-    "python-dateutil>=2.8.0",
-    "tqdm>=4.65.0",
-    "tabulate>=0.9.0",
-    "colorama>=0.4.6",
-    "PyPDF2>=3.0.0",
-    "pdfplumber>=0.9.0",
-    "tabula-py>=2.8.0",
-]
+# Read core requirements from requirements-core.txt
+with open("requirements-core.txt", "r", encoding="utf-8") as f:
+    core_requirements = [line.strip() for line in f if line.strip() and not line.strip().startswith("#")]
 
 setup(
     name="cgt-validator",

@@ -2,19 +2,40 @@
 
 ## Getting Started
 
-### Prerequisites
-- Python 3.8+
-- Docker (optional but recommended)
-- Git
+This project follows a **container-first development approach** to ensure consistency across all environments. Docker is the primary and recommended method for development.
 
-### Initial Setup
+### Prerequisites
+- Docker and Docker Compose (required)
+- Git
+- Make (recommended for convenience)
+- Python 3.8+ (only if you must work outside containers)
+
+### Initial Setup - Container-First (Recommended)
 
 ```bash
 # Clone the repository
 git clone <repo-url>
 cd cgt-validator
 
-# Set up development environment
+# Build the development containers
+make docker-build
+
+# Start development environment
+make docker-dev
+
+# This gives you a shell inside the container with:
+# - All dependencies pre-installed
+# - Consistent Python version (3.11)
+# - Proper environment configuration
+# - Access to all development tools
+```
+
+### Alternative Setup - Local Development
+
+If you absolutely must work outside containers:
+
+```bash
+# Set up local development environment
 make dev-install
 
 # This will:
@@ -116,33 +137,48 @@ git diff
    - Add to .gitignore if not needed
    - Or increase limit in .pre-commit-config.yaml
 
-## Development Workflow
+## Development Workflow (Container-First)
 
-### 1. Create a Feature Branch
+### 1. Start Development Environment
 ```bash
+# Open a development shell in the container
+make docker-shell
+# or
+docker-compose run --rm cgt-dev bash
+```
+
+### 2. Create a Feature Branch
+```bash
+# Inside the container:
 git checkout -b feature/add-massachusetts-validator
 ```
 
-### 2. Make Changes
+### 3. Make Changes
 ```bash
-# Edit files
-vim src/validators/massachusetts.py
+# Edit files (your local files are mounted in the container)
+# The container has all necessary tools pre-installed
 
-# Run tests
-make test
+# Run tests in the container
+pytest tests/ -v
 
-# Check pre-commit
-make pre-commit
+# Run linting
+black src tests
+flake8 src tests
 ```
 
-### 3. Test in Docker
+### 4. Run Tests
 ```bash
-# Build and test in container
-make docker-build
+# Option 1: Inside dev container
+pytest tests/ -v --cov=src
+
+# Option 2: Using docker-compose from host
 make docker-test
+
+# Option 3: Watch mode for TDD
+docker-compose up cgt-test  # Runs tests in watch mode
 ```
 
-### 4. Commit Changes
+### 5. Commit Changes
 ```bash
 # Stage changes
 git add .
@@ -269,28 +305,45 @@ def test_validation_results(input, expected):
    make pre-commit
    ```
 
-## Docker Development
+## Container-First Development Commands
 
-### Building Images
+### Essential Docker Commands
 ```bash
-# Build main image
-docker build -t cgt-validator:dev .
+# Build all containers
+make docker-build
 
-# Build with specific target
-docker build --target builder -t cgt-validator:builder .
-```
-
-### Running Containers
-```bash
-# Interactive shell
-docker run -it --rm -v $(pwd):/app cgt-validator:dev bash
-
-# Run specific command
-docker run --rm -v $(pwd):/app cgt-validator:dev pytest
-
-# Use docker-compose
+# Start development shell
+make docker-shell
+# or
 docker-compose run --rm cgt-dev bash
+
+# Run tests
+make docker-test
+
+# Run linting
+docker-compose run --rm cgt-lint
+
+# Start all services
+make docker-up
+
+# Stop all services
+make docker-down
+
+# View logs
+docker-compose logs -f cgt-validator
 ```
+
+### Development Container Features
+- **cgt-dev**: Full development environment with all tools
+- **cgt-test**: Automated test runner with watch mode
+- **cgt-lint**: Code formatting and linting
+- **cgt-validator**: Main application container
+
+### File Synchronization
+Your local files are automatically synchronized with the container:
+- Source code changes are reflected immediately
+- No need to rebuild for code changes
+- Only rebuild when changing dependencies
 
 ## Continuous Integration
 
