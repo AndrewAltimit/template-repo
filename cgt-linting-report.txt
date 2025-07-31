@@ -1,3 +1,0 @@
-time="2025-07-31T13:58:50-04:00" level=warning msg="/home/miku/Documents/repos/template-repo/cgt-validator/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
-time="2025-07-31T13:58:50-04:00" level=warning msg="/home/miku/Documents/repos/template-repo/cgt-validator/docker-compose.override.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
-no such service: python-ci
