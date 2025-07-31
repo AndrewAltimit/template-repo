@@ -29,7 +29,7 @@ class RequirementsParser:
 
     def parse_pdf(self, pdf_path: Path) -> Dict[str, Any]:
         """Extract requirements from PDF specification manuals."""
-        requirements = {
+        requirements: Dict[str, Any] = {
             "source_file": str(pdf_path),
             "file_type": "pdf",
             "sheets": {},
@@ -77,7 +77,7 @@ class RequirementsParser:
 
     def parse_excel_template(self, excel_path: Path) -> Dict[str, Any]:
         """Extract requirements from Excel template files."""
-        requirements = {
+        requirements: Dict[str, Any] = {
             "source_file": str(excel_path),
             "file_type": "excel",
             "sheets": {},
@@ -167,7 +167,7 @@ class RequirementsParser:
 
     def _extract_field_definitions(self, tables: List[Dict], text: str) -> Dict[str, List[Dict]]:
         """Extract field definitions from tables and text."""
-        fields = {}
+        fields: Dict[str, List[Dict]] = {}
 
         # Look for field definition tables
         for table_info in tables:
@@ -233,7 +233,7 @@ class RequirementsParser:
 
     def _extract_business_rules(self, text: str) -> List[Dict[str, Any]]:
         """Extract business rules from text."""
-        rules = []
+        rules: List[Dict[str, Any]] = []
 
         # Look for numbered rules or business logic sections
         business_patterns = [
@@ -257,7 +257,9 @@ class RequirementsParser:
 
         return rules
 
-    def _extract_data_dictionary(self, tables: List[Dict], text: str) -> Dict[str, Dict]:
+    def _extract_data_dictionary(
+        self, tables: List[Dict], text: str
+    ) -> Dict[str, Dict]:  # pylint: disable=unused-argument
         """Extract data dictionary information."""
         data_dict = {}
 
@@ -510,7 +512,7 @@ class RequirementsParser:
 
         return allowed_values
 
-    def _determine_sheet_for_fields(self, page_num: int, text: str) -> str:
+    def _determine_sheet_for_fields(self, page_num: int, text: str) -> str:  # pylint: disable=unused-argument
         """Try to determine which sheet fields belong to based on context."""
         # Simple heuristic - look for sheet name mentions near the page
         # In real implementation, this would be more sophisticated

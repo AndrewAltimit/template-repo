@@ -2,7 +2,7 @@
 
 import shutil
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from openpyxl import load_workbook
 from openpyxl.comments import Comment
@@ -152,12 +152,12 @@ class ExcelAnnotator:
 
             # Add issues
             row = 14
-            for issue in results.errors:
-                self._add_issue_row(summary_sheet, row, issue, Severity.ERROR)
+            for error_issue in results.errors:
+                self._add_issue_row(summary_sheet, row, error_issue, Severity.ERROR)
                 row += 1
 
-            for issue in results.warnings:
-                self._add_issue_row(summary_sheet, row, issue, Severity.WARNING)
+            for warning_issue in results.warnings:
+                self._add_issue_row(summary_sheet, row, warning_issue, Severity.WARNING)
                 row += 1
 
         # Adjust column widths
@@ -191,9 +191,11 @@ class ExcelAnnotator:
             link_cell.font = Font(color="0000FF", underline="single")
             # Note: Actual hyperlink would require more complex implementation
 
-    def _group_issues_by_location(self, issues: List[Tuple[ValidationIssue, Severity]]) -> Dict:
+    def _group_issues_by_location(
+        self, issues: Sequence[Tuple[ValidationIssue, Severity]]
+    ) -> Dict[str, List[Tuple[ValidationIssue, Severity]]]:
         """Group issues by their location."""
-        grouped = {}
+        grouped: Dict[str, List[Tuple[ValidationIssue, Severity]]] = {}
 
         for issue, severity in issues:
             if issue.location not in grouped:
@@ -361,4 +363,4 @@ class ExcelAnnotator:
 
     def get_annotations_count(self) -> int:
         """Get the number of annotations made."""
-        return self.annotations_count
+        return int(self.annotations_count)

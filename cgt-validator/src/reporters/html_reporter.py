@@ -312,4 +312,4 @@ class HTMLReporter:
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
 
-        return self.template.render(**context)
+        return str(self.template.render(**context))

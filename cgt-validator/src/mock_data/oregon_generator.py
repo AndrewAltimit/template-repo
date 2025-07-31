@@ -195,10 +195,10 @@ class OregonMockDataGenerator:
 
         return pd.DataFrame(data)
 
-    def save_to_excel(self, output_path: str, include_optional: bool = True):
+    def save_to_excel(self, output_path: str, include_optional: bool = True) -> Path:
         """Save all sheets to an Excel file."""
-        output_file = Path(output_path)
-        output_file.parent.mkdir(parents=True, exist_ok=True)
+        output_file_path = Path(output_path)
+        output_file_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Generate all data
         provider_df = self.generate_provider_information()
@@ -208,7 +208,7 @@ class OregonMockDataGenerator:
         reconciliation_df = self.generate_reconciliation(medical_df, pharmacy_df)
 
         # Write to Excel
-        with pd.ExcelWriter(output_file, engine="openpyxl") as writer:
+        with pd.ExcelWriter(output_file_path, engine="openpyxl") as writer:
             provider_df.to_excel(writer, sheet_name="Provider Information", index=False)
             member_months_df.to_excel(writer, sheet_name="Member Months", index=False)
             medical_df.to_excel(writer, sheet_name="Medical Claims", index=False)
@@ -222,8 +222,8 @@ class OregonMockDataGenerator:
                 bh_df.to_excel(writer, sheet_name="Behavioral Health", index=False)
                 attribution_df.to_excel(writer, sheet_name="Attribution", index=False)
 
-        print(f"Mock data saved to: {output_file}")
-        return output_file
+        print(f"Mock data saved to: {output_file_path}")
+        return output_file_path
 
 
 def generate_mock_submission(

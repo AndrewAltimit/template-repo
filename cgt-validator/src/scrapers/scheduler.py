@@ -8,7 +8,7 @@ from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from config.states_config import list_supported_states
 
@@ -26,7 +26,7 @@ class ScrapingScheduler:
     def __init__(self, config_file: Optional[Path] = None):
         self.config_file = config_file or Path.home() / ".cgt-validator" / "scheduler_config.json"
         self.config = self._load_config()
-        self.results = []
+        self.results: List[Dict] = []
 
     def _load_config(self) -> Dict:
         """Load scheduler configuration."""
@@ -47,7 +47,7 @@ class ScrapingScheduler:
         }
 
         if self.config_file.exists():
-            with open(self.config_file) as f:
+            with open(self.config_file, encoding="utf-8") as f:
                 user_config = json.load(f)
                 # Merge with defaults
                 default_config.update(user_config)
@@ -57,9 +57,9 @@ class ScrapingScheduler:
     def save_config(self):
         """Save current configuration to file."""
         self.config_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.config_file, "w") as f:
+        with open(self.config_file, "w", encoding="utf-8") as f:
             json.dump(self.config, f, indent=2)
-        logger.info(f"Configuration saved to {self.config_file}")
+        logger.info("Configuration saved to %s", self.config_file)
 
     def scrape_state_with_retry(self, state: str) -> Dict:
         """Scrape a state with retry logic."""
@@ -68,15 +68,15 @@ class ScrapingScheduler:
 
         for attempt in range(max_retries):
             try:
-                logger.info(f"Scraping {state} (attempt {attempt + 1}/{max_retries})")
+                logger.info("Scraping %s (attempt %d/%d)", state, attempt + 1, max_retries)
 
                 # Scrape documents
                 documents = scrape_state(state)
-                logger.info(f"Found {len(documents)} documents for {state}")
+                logger.info("Found %d documents for %s", len(documents), state)
 
                 # Download documents
                 downloaded = download_all_documents(state)
-                logger.info(f"Downloaded {len(downloaded)} documents for {state}")
+                logger.info("Downloaded %d documents for %s", len(downloaded), state)
 
                 return {
                     "state": state,
@@ -86,10 +86,10 @@ class ScrapingScheduler:
                     "timestamp": datetime.now().isoformat(),
                 }
 
-            except Exception as e:
-                logger.error(f"Error scraping {state}: {e}")
+            except Exception as e:  # pylint: disable=broad-exception-caught  # pylint: disable=broad-exception-caught
+                logger.error("Error scraping %s: %s", state, e)
                 if attempt < max_retries - 1:
-                    logger.info(f"Retrying in {retry_delay} seconds...")
+                    logger.info("Retrying in %d seconds...", retry_delay)
                     import time
 
                     time.sleep(retry_delay)
@@ -101,11 +101,19 @@ class ScrapingScheduler:
                         "timestamp": datetime.now().isoformat(),
                     }
 
+        # All retries exhausted
+        return {
+            "state": state,
+            "status": "failed",
+            "error": "All retry attempts exhausted",
+            "timestamp": datetime.now().isoformat(),
+        }
+
     def run_scraping(self, states: Optional[List[str]] = None):
         """Run scraping for specified states or all configured states."""
         states_to_scrape = states or self.config.get("states", [])
 
-        logger.info(f"Starting scraping run for {len(states_to_scrape)} states")
+        logger.info("Starting scraping run for %d states", len(states_to_scrape))
         start_time = datetime.now()
 
         self.results = []
@@ -136,7 +144,7 @@ class ScrapingScheduler:
         # Send notifications
         self._send_notifications(summary)
 
-        logger.info(f"Scraping completed: {successful} successful, {failed} failed")
+        logger.info("Scraping completed: %d successful, %d failed", successful, failed)
 
         return summary
 
@@ -148,10 +156,10 @@ class ScrapingScheduler:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         results_file = output_dir / f"scraping_results_{timestamp}.json"
 
-        with open(results_file, "w") as f:
+        with open(results_file, "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
 
-        logger.info(f"Results saved to {results_file}")
+        logger.info("Results saved to %s", results_file)
 
     def _send_notifications(self, summary: Dict):
         """Send notifications about scraping results."""
@@ -189,8 +197,8 @@ class ScrapingScheduler:
             server.quit()
             logger.info("Email notification sent successfully")
 
-        except Exception as e:
-            logger.error(f"Failed to send email notification: {e}")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error("Failed to send email notification: %s", e)
 
     def _send_slack_notification(self, summary: Dict):
         """Send Slack notification with results."""
@@ -205,7 +213,7 @@ class ScrapingScheduler:
             import requests
 
             # Create message
-            message = {
+            message: Dict[str, Any] = {
                 "text": f"CGT Scraping Completed: {summary['successful']}/{summary['total_states']} Successful",
                 "blocks": [
                     {"type": "header", "text": {"type": "plain_text", "text": "CGT Requirements Scraping Results"}},
@@ -229,12 +237,12 @@ class ScrapingScheduler:
                     {"type": "section", "text": {"type": "mrkdwn", "text": f"*Failed States:*\n{failed_text}"}}
                 )
 
-            response = requests.post(webhook_url, json=message)
+            response = requests.post(webhook_url, json=message, timeout=30)
             response.raise_for_status()
             logger.info("Slack notification sent successfully")
 
-        except Exception as e:
-            logger.error(f"Failed to send Slack notification: {e}")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            logger.error("Failed to send Slack notification: %s", e)
 
     def _generate_notification_body(self, summary: Dict) -> str:
         """Generate notification body text."""

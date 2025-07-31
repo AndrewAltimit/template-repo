@@ -71,7 +71,7 @@ services:
       - ./src:/app/src:ro
       - ./tests:/app/tests:ro
       - ./.flake8:/app/.flake8:ro
-    command: ["/bin/sh", "-c", "pip install black flake8 pylint mypy && python -m black --check src tests && python -m flake8 --config=.flake8 src tests && python -m pylint src --disable=R,C && python -m mypy src --ignore-missing-imports"]
+    command: ["/bin/sh", "-c", "pip install black flake8 pylint && python -m black --check src tests && python -m flake8 --config=.flake8 src tests && python -m pylint src --disable=R,C"]
     networks:
       - cgt-network
 

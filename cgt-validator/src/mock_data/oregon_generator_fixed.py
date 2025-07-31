@@ -140,7 +140,9 @@ class OregonMockDataGenerator:
 
         return pd.DataFrame(data)
 
-    def generate_reconciliation(self, medical_df: pd.DataFrame, pharmacy_df: pd.DataFrame) -> pd.DataFrame:
+    def generate_reconciliation(
+        self, medical_df: pd.DataFrame, pharmacy_df: pd.DataFrame
+    ) -> pd.DataFrame:  # pylint: disable=unused-argument
         """Generate Reconciliation sheet."""
         # Calculate totals by provider
         medical_by_provider = (
@@ -210,9 +212,9 @@ class OregonMockDataGenerator:
 
         return pd.DataFrame(data)
 
-    def save_to_excel(self, output_file: str, include_optional: bool = True) -> Path:
+    def save_to_excel(self, output_filename: str, include_optional: bool = True) -> Path:
         """Save all sheets to an Excel file with proper formatting."""
-        output_path = Path(output_file)
+        output_path = Path(output_filename)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Generate all data

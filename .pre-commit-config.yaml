@@ -73,7 +73,7 @@ repos:
     hooks:
       - id: mypy
         args: [--ignore-missing-imports, --no-error-summary, --explicit-package-bases]
-        additional_dependencies: [types-requests, types-PyYAML]
+        additional_dependencies: [types-requests, types-PyYAML, types-tabulate]
         exclude: ^(docs/|tests/|scripts/)
 
   # Python docstring checking (optional - uncomment if needed)

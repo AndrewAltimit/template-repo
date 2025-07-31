@@ -112,11 +112,13 @@ def save_report(results: ValidationResults, output_path: str, format: str):
 @click.option("--file", "-f", required=True, help="Path to Excel file to validate")
 @click.option("--year", "-y", type=int, help="Validation year (default: current year)")
 @click.option("--output", "-o", help="Output report path")
-@click.option("--format", type=click.Choice(["html", "markdown", "json"]), default="html", help="Report format")
+@click.option(
+    "--format", "report_format", type=click.Choice(["html", "markdown", "json"]), default="html", help="Report format"
+)
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--quiet", "-q", is_flag=True, help="Quiet mode - only show summary")
 @click.option("--annotate", "-a", is_flag=True, help="Create annotated Excel file with errors highlighted")
-def validate(state, file, year, output, format, verbose, quiet, annotate):
+def validate(state, file, year, output, report_format, verbose, quiet, annotate):  # pylint: disable=unused-argument
     """Validate CGT submission file for specified state.
 
     Examples:
@@ -153,7 +155,7 @@ def validate(state, file, year, output, format, verbose, quiet, annotate):
 
     # Generate report if requested
     if output:
-        save_report(results, output, format)
+        save_report(results, output, report_format)
 
     # Create annotated Excel if requested
     if annotate:
@@ -173,8 +175,8 @@ def validate(state, file, year, output, format, verbose, quiet, annotate):
 @click.option("--pattern", "-p", default="*.xlsx", help="File pattern to match")
 @click.option("--year", "-y", type=int, help="Validation year")
 @click.option("--output-dir", "-o", help="Directory for output reports")
-@click.option("--format", type=click.Choice(["html", "markdown", "json"]), default="html")
-def batch_validate(state, directory, pattern, year, output_dir, format):
+@click.option("--format", "report_format", type=click.Choice(["html", "markdown", "json"]), default="html")
+def batch_validate(state, directory, pattern, year, output_dir, report_format):
     """Validate multiple CGT files in a directory."""
 
     dir_path = Path(directory)
@@ -233,7 +235,6 @@ def batch_validate(state, directory, pattern, year, output_dir, format):
 @click.group()
 def cli():
     """CGT Validator - Health cost growth target data validation tool."""
-    pass
 
 
 # Add commands to group

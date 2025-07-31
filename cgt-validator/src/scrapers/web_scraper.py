@@ -33,10 +33,10 @@ class DocumentInfo:
 class WebScraper:
     """Scraper for finding CGT templates and documents from state websites."""
 
-    def __init__(self, state: str, cache_dir: Optional[Path] = None):
-        self.state = state
-        self.config = get_state_config(state)
-        self.cache_dir = cache_dir or Path(f"./cache/{state}")
+    def __init__(self, state_name: str, cache_dir: Optional[Path] = None):
+        self.state = state_name
+        self.config = get_state_config(state_name)
+        self.cache_dir = cache_dir or Path(f"./cache/{state_name}")
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
         # Set up session with headers
@@ -134,10 +134,10 @@ class WebScraper:
                 version = self._extract_version(text) or self._extract_version(full_url)
 
                 # Create document info
-                doc = DocumentInfo(
+                doc_info = DocumentInfo(
                     url=full_url, title=text or Path(urlparse(full_url).path).name, file_type=file_type, version=version
                 )
-                documents.append(doc)
+                documents.append(doc_info)
 
         print(f"Found {len(documents)} relevant documents")
         return documents
@@ -168,12 +168,12 @@ class WebScraper:
         # Sort by version (if available) to get latest
         documents.sort(key=lambda d: d.version or "0", reverse=True)
 
-        for doc in documents:
+        for doc_item in documents:
             # Simple deduplication based on title similarity
-            base_title = re.sub(r"[^a-zA-Z0-9]+", "", doc.title.lower())
+            base_title = re.sub(r"[^a-zA-Z0-9]+", "", doc_item.title.lower())
             if base_title not in processed_titles:
                 processed_titles.add(base_title)
-                latest_docs.append(doc)
+                latest_docs.append(doc_item)
 
         return latest_docs
 
@@ -198,15 +198,15 @@ class WebScraper:
             ],
         }
 
-        with open(output_file, "w") as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
         print(f"Results saved to: {output_file}")
 
 
-def scrape_state(state: str) -> List[DocumentInfo]:
+def scrape_state(state_name: str) -> List[DocumentInfo]:
     """Convenience function to scrape all documents for a state."""
-    scraper = WebScraper(state)
+    scraper = WebScraper(state_name)
     documents = scraper.find_latest_templates()
     scraper.save_results(documents)
     return documents

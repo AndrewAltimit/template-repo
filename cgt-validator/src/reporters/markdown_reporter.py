@@ -1,7 +1,7 @@
 """Markdown report generator for validation results."""
 
 from datetime import datetime
-from typing import List
+from typing import Dict, List, Sequence
 
 from .validation_results import ValidationIssue, ValidationResults
 
@@ -49,7 +49,7 @@ class MarkdownReporter:
 | Info | {summary['info_count']} |
 | Duration | {summary['duration_seconds']:.2f}s |"""
 
-    def _generate_issues_section(self, title: str, issues: List[ValidationIssue], emoji: str) -> str:
+    def _generate_issues_section(self, title: str, issues: Sequence[ValidationIssue], emoji: str) -> str:
         """Generate a section for issues of a specific type."""
         if not issues:
             return ""
@@ -57,7 +57,7 @@ class MarkdownReporter:
         lines = [f"## {title} ({len(issues)})"]
 
         # Group issues by location
-        issues_by_location = {}
+        issues_by_location: Dict[str, List[ValidationIssue]] = {}
         for issue in issues:
             if issue.location not in issues_by_location:
                 issues_by_location[issue.location] = []

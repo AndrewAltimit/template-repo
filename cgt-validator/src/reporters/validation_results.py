@@ -67,26 +67,41 @@ class ValidationResults:
         self.warnings: List[ValidationWarning] = []
         self.info: List[ValidationInfo] = []
 
-    def add_error(self, code: str, message: str, location: str, severity: Severity = Severity.ERROR):
+    def add_error(
+        self, code: str, message: str, location: str, severity: Severity = Severity.ERROR
+    ):  # pylint: disable=unused-argument
         """Add an error to the results."""
         self.errors.append(ValidationError(code, message, location))
 
-    def add_warning(self, code: str, message: str, location: str, severity: Severity = Severity.WARNING):
+    def add_warning(
+        self, code: str, message: str, location: str, severity: Severity = Severity.WARNING
+    ):  # pylint: disable=unused-argument
         """Add a warning to the results."""
         self.warnings.append(ValidationWarning(code, message, location))
 
-    def add_info(self, code: str, message: str, location: str, severity: Severity = Severity.INFO):
+    def add_info(
+        self, code: str, message: str, location: str, severity: Severity = Severity.INFO
+    ):  # pylint: disable=unused-argument
         """Add an info message to the results."""
         self.info.append(ValidationInfo(code, message, location))
 
     def add_issue(self, issue: ValidationIssue):
         """Add a validation issue based on its severity."""
         if issue.severity == Severity.ERROR:
-            self.errors.append(issue)
+            if isinstance(issue, ValidationError):
+                self.errors.append(issue)
+            else:
+                self.errors.append(ValidationError(issue.code, issue.message, issue.location))
         elif issue.severity == Severity.WARNING:
-            self.warnings.append(issue)
+            if isinstance(issue, ValidationWarning):
+                self.warnings.append(issue)
+            else:
+                self.warnings.append(ValidationWarning(issue.code, issue.message, issue.location))
         else:
-            self.info.append(issue)
+            if isinstance(issue, ValidationInfo):
+                self.info.append(issue)
+            else:
+                self.info.append(ValidationInfo(issue.code, issue.message, issue.location))
 
     def merge(self, other: "ValidationResults"):
         """Merge another ValidationResults into this one."""
@@ -117,7 +132,7 @@ class ValidationResults:
 
     def get_issues_by_location(self) -> Dict[str, List[ValidationIssue]]:
         """Group issues by location."""
-        issues_by_location = {}
+        issues_by_location: Dict[str, List[ValidationIssue]] = {}
         all_issues = self.errors + self.warnings + self.info
 
         for issue in all_issues:
@@ -129,7 +144,11 @@ class ValidationResults:
 
     def get_issues_by_severity(self) -> Dict[Severity, List[ValidationIssue]]:
         """Group issues by severity."""
-        return {Severity.ERROR: self.errors, Severity.WARNING: self.warnings, Severity.INFO: self.info}
+        return {
+            Severity.ERROR: list(self.errors),  # type: ignore[arg-type]
+            Severity.WARNING: list(self.warnings),  # type: ignore[arg-type]
+            Severity.INFO: list(self.info),  # type: ignore[arg-type]
+        }
 
     def to_dict(self) -> Dict:
         """Convert results to dictionary format."""

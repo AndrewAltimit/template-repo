@@ -38,10 +38,10 @@ class VersionInfo:
 class DocumentDownloader:
     """Downloads documents with version tracking and change detection."""
 
-    def __init__(self, state: str, storage_dir: Optional[Path] = None):
-        self.state = state
-        self.config = get_state_config(state)
-        self.storage_dir = storage_dir or Path(f"./states/{state}")
+    def __init__(self, state_name: str, storage_dir: Optional[Path] = None):
+        self.state = state_name
+        self.config = get_state_config(state_name)
+        self.storage_dir = storage_dir or Path(f"./states/{state_name}")
         self.storage_dir.mkdir(parents=True, exist_ok=True)
 
         # Version tracking file
@@ -55,13 +55,13 @@ class DocumentDownloader:
     def _load_version_history(self) -> Dict:
         """Load version history from file."""
         if self.version_file.exists():
-            with open(self.version_file, "r") as f:
-                return json.load(f)
+            with open(self.version_file, "r", encoding="utf-8") as f:
+                return dict(json.load(f))
         return {}
 
     def _save_version_history(self):
         """Save version history to file."""
-        with open(self.version_file, "w") as f:
+        with open(self.version_file, "w", encoding="utf-8") as f:
             json.dump(self.version_history, f, indent=2)
 
     def _calculate_checksum(self, file_path: Path) -> str:
@@ -88,13 +88,13 @@ class DocumentDownloader:
                             pbar.update(len(chunk))
 
             return True, dest_path.stat().st_size
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             print(f"Error downloading {url}: {e}")
             if dest_path.exists():
                 dest_path.unlink()
             return False, 0
 
-    def _get_document_path(self, url: str, doc_type: str, version: Optional[str] = None) -> Path:
+    def _get_document_path(self, url: str, document_type: str, version: Optional[str] = None) -> Path:
         """Generate path for storing a document."""
         # Extract filename from URL
         filename = Path(url).name
@@ -103,7 +103,7 @@ class DocumentDownloader:
 
         # Create subdirectory structure
         year = datetime.now().year
-        type_dir = self.storage_dir / str(year) / doc_type
+        type_dir = self.storage_dir / str(year) / document_type
         type_dir.mkdir(parents=True, exist_ok=True)
 
         # Add version to filename if provided
@@ -138,7 +138,7 @@ class DocumentDownloader:
 
             return False, current_version
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             print(f"Error checking {url}: {e}")
             return False, None
 
@@ -149,7 +149,7 @@ class DocumentDownloader:
         print(f"\nDownloading direct URLs for {self.state}...")
         for url_config in self.config["direct_urls"]:
             url = url_config["url"]
-            doc_type = url_config["type"]
+            document_type = url_config["type"]
 
             # Check for updates
             has_update, version = self.check_for_updates(url)
@@ -162,7 +162,7 @@ class DocumentDownloader:
 
             if need_download:
                 # Download the file
-                dest_path = self._get_document_path(url, doc_type, version)
+                dest_path = self._get_document_path(url, document_type, version)
                 success, file_size = self._download_file(url, dest_path)
 
                 if success:
@@ -264,16 +264,16 @@ class DocumentDownloader:
 
             for type_dir in year_dir.glob("*/"):
                 for file_path in sorted(type_dir.glob("*"), reverse=True):
-                    doc_type = f"{type_dir.name}_{file_path.stem}"
-                    if doc_type not in latest:
-                        latest[doc_type] = file_path
+                    doc_key = f"{type_dir.name}_{file_path.stem}"
+                    if doc_key not in latest:
+                        latest[doc_key] = file_path
 
         return latest
 
 
-def download_all_documents(state: str) -> Dict[str, Path]:
+def download_all_documents(state_name: str) -> Dict[str, Path]:
     """Download all documents for a state (both direct URLs and scraped)."""
-    downloader = DocumentDownloader(state)
+    downloader = DocumentDownloader(state_name)
 
     # Download direct URLs
     downloader.download_direct_urls()

@@ -49,7 +49,7 @@ class ValidatorBase(ABC):
             # State-specific validations
             self._run_state_specific_validations(excel_data, results)
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             results.add_error(
                 code="FILE_READ_ERROR",
                 message=f"Error reading file: {str(e)}",
@@ -82,7 +82,7 @@ class ValidatorBase(ABC):
 
         return True
 
-    def _validate_structure(self, workbook, excel_data, results: ValidationResults):
+    def _validate_structure(self, workbook, excel_data, results: ValidationResults):  # pylint: disable=unused-argument
         """Validate overall file structure."""
         # Check for minimum number of sheets
         min_sheets = self.requirements.get("min_sheets", 1)
