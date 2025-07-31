@@ -17,7 +17,7 @@ RUN useradd -m -u 1000 cgtuser
 WORKDIR /app
 
 # Copy only the files needed for dependency installation
-COPY requirements-cgt.txt requirements-dev.txt setup.py README.md ./
+COPY requirements-cgt.txt requirements-core.txt requirements-dev.txt setup.py README.md ./
 COPY src/__init__.py src/
 
 # Install dependencies and the package
