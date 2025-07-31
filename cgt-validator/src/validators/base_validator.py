@@ -22,7 +22,6 @@ class ValidatorBase(ABC):
     @abstractmethod
     def _load_requirements(self) -> Dict[str, Any]:
         """Load state-specific requirements."""
-        pass
 
     def validate_file(self, filepath: str) -> ValidationResults:
         """Main validation entry point for end users."""
@@ -210,17 +209,14 @@ class ValidatorBase(ABC):
     @abstractmethod
     def _validate_business_rules(self, excel_data: pd.ExcelFile, results: ValidationResults):
         """Validate state-specific business rules."""
-        pass
 
     @abstractmethod
     def _validate_cross_references(self, excel_data: pd.ExcelFile, results: ValidationResults):
         """Validate cross-references between sheets."""
-        pass
 
     @abstractmethod
     def _run_state_specific_validations(self, excel_data: pd.ExcelFile, results: ValidationResults):
         """Run additional state-specific validations."""
-        pass
 
     def validate_numeric_range(
         self,

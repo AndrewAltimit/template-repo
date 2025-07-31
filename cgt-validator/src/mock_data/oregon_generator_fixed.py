@@ -140,9 +140,7 @@ class OregonMockDataGenerator:
 
         return pd.DataFrame(data)
 
-    def generate_reconciliation(
-        self, medical_df: pd.DataFrame, pharmacy_df: pd.DataFrame
-    ) -> pd.DataFrame:  # pylint: disable=unused-argument
+    def generate_reconciliation(self, medical_df: pd.DataFrame, pharmacy_df: pd.DataFrame) -> pd.DataFrame:
         """Generate Reconciliation sheet."""
         # Calculate totals by provider
         medical_by_provider = (
@@ -150,6 +148,12 @@ class OregonMockDataGenerator:
             .agg({"Allowed Amount": "sum", "Paid Amount": "sum", "Member Liability": "sum"})
             .round(2)
         )
+
+        # Calculate pharmacy totals
+        pharmacy_totals = {
+            "allowed": pharmacy_df["Allowed Amount"].sum() if not pharmacy_df.empty else 0,
+            "paid": pharmacy_df["Paid Amount"].sum() if not pharmacy_df.empty else 0,
+        }
 
         # Add some adjustments
         data = []
@@ -160,15 +164,19 @@ class OregonMockDataGenerator:
             # Add some random adjustments
             adjustments = round(random.uniform(-1000, 1000), 2)
 
+            # Distribute pharmacy totals across providers proportionally
+            provider_pharmacy_allowed = round(pharmacy_totals["allowed"] * 0.2, 2)
+            provider_pharmacy_paid = round(pharmacy_totals["paid"] * 0.2, 2)
+
             data.append(
                 {
                     "Provider ID": provider_id,
                     "Medical Claims Total": medical_allowed,
                     "Medical Paid Total": medical_paid,
-                    "Pharmacy Claims Total": round(random.uniform(5000, 50000), 2),
-                    "Pharmacy Paid Total": round(random.uniform(4000, 45000), 2),
+                    "Pharmacy Claims Total": provider_pharmacy_allowed,
+                    "Pharmacy Paid Total": provider_pharmacy_paid,
                     "Adjustments": adjustments,
-                    "Net Total": round(medical_allowed + adjustments, 2),
+                    "Net Total": round(medical_allowed + provider_pharmacy_allowed + adjustments, 2),
                 }
             )
 

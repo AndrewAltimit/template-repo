@@ -68,7 +68,7 @@ class RequirementsParser:
             requirements["business_rules"] = self._extract_business_rules(full_text)
 
             # Extract data dictionary
-            requirements["data_dictionary"] = self._extract_data_dictionary(tables, full_text)
+            requirements["data_dictionary"] = self._extract_data_dictionary(tables)
 
             # Extract cross-reference requirements
             requirements["cross_references"] = self._extract_cross_references(full_text)
@@ -257,9 +257,7 @@ class RequirementsParser:
 
         return rules
 
-    def _extract_data_dictionary(
-        self, tables: List[Dict], text: str
-    ) -> Dict[str, Dict]:  # pylint: disable=unused-argument
+    def _extract_data_dictionary(self, tables: List[Dict]) -> Dict[str, Dict]:
         """Extract data dictionary information."""
         data_dict = {}
 
@@ -429,7 +427,7 @@ class RequirementsParser:
             filename = f"{self.state}_requirements_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.json"
 
         output_path = self.output_dir / filename
-        with open(output_path, "w") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(requirements, f, indent=2, default=str)
 
         print(f"Requirements saved to: {output_path}")

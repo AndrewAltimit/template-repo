@@ -88,22 +88,22 @@ def print_validation_summary(results: ValidationResults):
             print(f"  ... and {len(results.warnings) - 5} more warnings")
 
 
-def save_report(results: ValidationResults, output_path: str, format: str):
+def save_report(results: ValidationResults, output_path: str, report_format: str):
     """Save validation report to file."""
     output_file = Path(output_path)
 
-    if format == "html":
+    if report_format == "html":
         reporter = HTMLReporter()
         content = reporter.generate_report(results)
-    elif format == "markdown":
+    elif report_format == "markdown":
         reporter = MarkdownReporter()
         content = reporter.generate_report(results)
-    elif format == "json":
+    elif report_format == "json":
         content = json.dumps(results.to_dict(), indent=2)
     else:
-        raise ValueError(f"Unknown format: {format}")
+        raise ValueError(f"Unknown format: {report_format}")
 
-    output_file.write_text(content)
+    output_file.write_text(content, encoding="utf-8")
     print(f"\n{Fore.GREEN}✓{Style.RESET_ALL} Report saved to: {output_file}")
 
 
@@ -218,8 +218,8 @@ def batch_validate(state, directory, pattern, year, output_dir, report_format):
 
         # Save report if output directory specified
         if output_dir:
-            output_path = Path(output_dir) / f"{file_path.stem}_report.{format}"
-            save_report(results, str(output_path), format)
+            output_path = Path(output_dir) / f"{file_path.stem}_report.{report_format}"
+            save_report(results, str(output_path), report_format)
 
     # Print summary table
     print("\n" + "=" * 60)

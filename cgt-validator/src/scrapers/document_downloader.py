@@ -279,7 +279,7 @@ def download_all_documents(state_name: str) -> Dict[str, Path]:
     downloader.download_direct_urls()
 
     # Scrape and download from index pages
-    scraper = WebScraper(state)
+    scraper = WebScraper(state_name)
     scraped_docs = scraper.find_latest_templates()
     downloader.download_scraped_documents(scraped_docs)
 
