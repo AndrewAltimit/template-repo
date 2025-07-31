@@ -99,7 +99,17 @@ jobs:
         run: |
           echo "🧪 Running unit tests..."
           # Use only docker-compose.yml, not docker-compose.override.yml
-          docker-compose -f docker-compose.yml run --rm cgt-test
+          # Run tests and capture the container name
+          CONTAINER_ID=$(docker-compose -f docker-compose.yml run -d cgt-test)
+
+          # Wait for the container to finish
+          docker wait $CONTAINER_ID
+
+          # Copy htmlcov directory from container before it's removed
+          docker cp $CONTAINER_ID:/app/htmlcov ./htmlcov || true
+
+          # Remove the container
+          docker rm $CONTAINER_ID
 
       - name: Tear down services
         if: always()
