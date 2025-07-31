@@ -207,8 +207,19 @@ class OregonMockDataGenerator:
         pharmacy_df = self.generate_pharmacy_claims()
         reconciliation_df = self.generate_reconciliation(medical_df, pharmacy_df)
 
-        # Write to Excel
-        with pd.ExcelWriter(output_file_path, engine="openpyxl") as writer:
+        # Ensure text fields are stored as strings to prevent Excel from converting them
+        provider_df["NPI"] = provider_df["NPI"].astype(str)
+        provider_df["ZIP"] = provider_df["ZIP"].astype(str)
+        provider_df["Tax ID"] = provider_df["Tax ID"].astype(str)
+        provider_df["Provider ID"] = provider_df["Provider ID"].astype(str)
+
+        # Convert date strings to datetime objects for proper Excel formatting
+        medical_df["Service Date"] = pd.to_datetime(medical_df["Service Date"])
+        medical_df["Paid Date"] = pd.to_datetime(medical_df["Paid Date"])
+        pharmacy_df["Fill Date"] = pd.to_datetime(pharmacy_df["Fill Date"])
+
+        # Write to Excel with date formatting
+        with pd.ExcelWriter(output_file_path, engine="openpyxl", date_format="YYYY-MM-DD") as writer:
             provider_df.to_excel(writer, sheet_name="Provider Information", index=False)
             member_months_df.to_excel(writer, sheet_name="Member Months", index=False)
             medical_df.to_excel(writer, sheet_name="Medical Claims", index=False)
@@ -221,6 +232,22 @@ class OregonMockDataGenerator:
 
                 bh_df.to_excel(writer, sheet_name="Behavioral Health", index=False)
                 attribution_df.to_excel(writer, sheet_name="Attribution", index=False)
+
+            # Format text columns to prevent Excel from converting to numbers
+            workbook = writer.book
+            provider_sheet = workbook["Provider Information"]
+
+            # Find column indices for NPI and ZIP
+            headers = [cell.value for cell in provider_sheet[1]]
+            npi_col = headers.index("NPI") + 1
+            zip_col = headers.index("ZIP") + 1
+
+            # Format these columns as text
+            for row in range(2, provider_sheet.max_row + 1):
+                npi_cell = provider_sheet.cell(row=row, column=npi_col)
+                zip_cell = provider_sheet.cell(row=row, column=zip_col)
+                npi_cell.number_format = "@"  # Text format
+                zip_cell.number_format = "@"  # Text format
 
         print(f"Mock data saved to: {output_file_path}")
         return output_file_path

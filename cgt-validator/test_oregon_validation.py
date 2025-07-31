@@ -9,9 +9,9 @@ import pandas as pd
 # Add src to path for direct testing before installation
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from src.mock_data.oregon_generator import OregonMockDataGenerator
-from src.reporters.html_reporter import HTMLReporter
-from src.validators.oregon import OregonValidator
+from src.mock_data.oregon_generator import OregonMockDataGenerator  # noqa: E402
+from src.reporters.html_reporter import HTMLReporter  # noqa: E402
+from src.validators.oregon import OregonValidator  # noqa: E402
 
 
 def create_invalid_test_data(output_path: str):
@@ -82,7 +82,7 @@ def create_valid_test_data(output_path: str):
         reconciliation_df.to_excel(writer, sheet_name="Reconciliation", index=False)
 
 
-def test_invalid_data():
+def test_invalid_data(tmp_path):
     """Test that validator properly catches invalid data."""
     print("\n" + "=" * 70)
     print("TEST 1: VALIDATING INTENTIONALLY INVALID DATA")
@@ -90,8 +90,7 @@ def test_invalid_data():
     print("=" * 70)
 
     # Create invalid test data
-    invalid_file = Path("./mock_data/oregon/test_invalid_data.xlsx")
-    invalid_file.parent.mkdir(parents=True, exist_ok=True)
+    invalid_file = tmp_path / "test_invalid_data.xlsx"
     create_invalid_test_data(str(invalid_file))
     print(f"\n✓ Created test file with intentional errors: {invalid_file}")
 
@@ -117,7 +116,7 @@ def test_invalid_data():
             print(f"    Details: {error.message}")
 
     # Generate report
-    report_path = Path("./test_report_invalid.html")
+    report_path = tmp_path / "test_report_invalid.html"
     reporter = HTMLReporter()
     report_content = reporter.generate_report(results)
     report_path.write_text(report_content)
@@ -126,7 +125,7 @@ def test_invalid_data():
     return not results.is_valid()  # Should return True (test passes if validation fails)
 
 
-def test_valid_data():
+def test_valid_data(tmp_path):
     """Test that validator passes valid data."""
     print("\n" + "=" * 70)
     print("TEST 2: VALIDATING PROPERLY FORMATTED DATA")
@@ -134,8 +133,7 @@ def test_valid_data():
     print("=" * 70)
 
     # Create valid test data
-    valid_file = Path("./mock_data/oregon/test_valid_data.xlsx")
-    valid_file.parent.mkdir(parents=True, exist_ok=True)
+    valid_file = tmp_path / "test_valid_data.xlsx"
     create_valid_test_data(str(valid_file))
     print(f"\n✓ Created properly formatted test file: {valid_file}")
 
@@ -159,7 +157,7 @@ def test_valid_data():
             print(f"  ⚠ [{warning.code}] {warning.message}")
 
     # Generate report
-    report_path = Path("./test_report_valid.html")
+    report_path = tmp_path / "test_report_valid.html"
     reporter = HTMLReporter()
     report_content = reporter.generate_report(results)
     report_path.write_text(report_content)

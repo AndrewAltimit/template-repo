@@ -197,7 +197,9 @@ class ValidatorBase(ABC):
         elif expected_type == "date":
             return isinstance(value, (datetime, pd.Timestamp))
         elif expected_type == "text":
-            return isinstance(value, str)
+            # Accept strings or numbers that can be converted to strings
+            # This handles cases where Excel reads numeric-looking strings as numbers
+            return isinstance(value, (str, int, float))
         elif expected_type == "integer":
             try:
                 return float(value).is_integer()

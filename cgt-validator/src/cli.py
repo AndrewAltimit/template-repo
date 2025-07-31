@@ -9,12 +9,12 @@ import click
 from colorama import Fore, Style, init
 from tabulate import tabulate
 
-from reporters.excel_annotator import ExcelAnnotator
-from reporters.html_reporter import HTMLReporter
-from reporters.markdown_reporter import MarkdownReporter
-from reporters.validation_results import ValidationResults
-from validators.base_validator import ValidatorBase
-from validators.oregon import OregonValidator
+from src.reporters.excel_annotator import ExcelAnnotator
+from src.reporters.html_reporter import HTMLReporter
+from src.reporters.markdown_reporter import MarkdownReporter
+from src.reporters.validation_results import ValidationResults
+from src.validators.base_validator import ValidatorBase
+from src.validators.oregon import OregonValidator
 
 # Initialize colorama for cross-platform colored output
 init(autoreset=True)
@@ -96,8 +96,8 @@ def save_report(results: ValidationResults, output_path: str, report_format: str
         reporter = HTMLReporter()
         content = reporter.generate_report(results)
     elif report_format == "markdown":
-        reporter = MarkdownReporter()
-        content = reporter.generate_report(results)
+        md_reporter = MarkdownReporter()
+        content = md_reporter.generate_report(results)
     elif report_format == "json":
         content = json.dumps(results.to_dict(), indent=2)
     else:

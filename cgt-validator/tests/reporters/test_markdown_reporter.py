@@ -46,7 +46,7 @@ class TestMarkdownReporter:
 
         # Should show passed status
         assert "✅ PASSED" in markdown
-        assert "Rhode_island" in markdown
+        assert "Rhode_Island" in markdown  # title() capitalizes both words
         assert "2025" in markdown
 
         # Should not have error/warning/info sections

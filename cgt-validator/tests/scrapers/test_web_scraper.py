@@ -47,7 +47,7 @@ class TestWebScraper:
 
         # Test various version formats
         assert scraper._extract_version("Template v2.0") == "v2.0"
-        assert scraper._extract_version("Version 5.1.3") == "version 5.1.3"
+        assert scraper._extract_version("Version 5.1.3") == "Version 5.1.3"  # Case-insensitive match
         assert scraper._extract_version("Manual 2024-03") == "2024-03"
         assert scraper._extract_version("Report 2024") == "2024"
         assert scraper._extract_version("No version here") is None

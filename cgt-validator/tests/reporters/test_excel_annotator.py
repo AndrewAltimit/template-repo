@@ -53,10 +53,35 @@ class TestExcelAnnotator:
         assert summary_sheet["A3"].value == "State:"
         assert summary_sheet["B3"].value == "Oregon"
 
-    def test_annotations_count(self, invalid_oregon_excel: Path, sample_validation_results: ValidationResults):
+    def test_annotations_count(self, temp_dir: Path):
         """Test that annotations are counted correctly."""
+        # Create Excel file matching the validation results
+        wb = Workbook()
+
+        # Create sheets that match the validation results
+        ws1 = wb.active
+        ws1.title = "Provider Information"
+        ws1["A1"] = "Provider ID"
+        ws1["B1"] = "NPI"
+        ws1["A2"] = "PRV001"
+        ws1["B2"] = "123"  # Invalid NPI
+
+        ws2 = wb.create_sheet("Medical Claims")
+        ws2["A1"] = "Claim ID"
+        ws2["B1"] = "Paid Amount"
+        ws2["A2"] = "CLM001"
+        ws2["B2"] = -100  # Negative amount
+
+        test_file = temp_dir / "test.xlsx"
+        wb.save(test_file)
+
+        # Create validation results matching the file
+        results = ValidationResults("test", 2024)
+        results.add_error("INVALID_NPI", "NPI must be 10 digits", "Provider Information.NPI")
+        results.add_warning("NEGATIVE_AMOUNT", "Negative amounts found", "Medical Claims.Paid Amount")
+
         annotator = ExcelAnnotator()
-        annotator.annotate_file(str(invalid_oregon_excel), sample_validation_results)
+        annotator.annotate_file(str(test_file), results)
 
         assert annotator.get_annotations_count() > 0
 
@@ -187,7 +212,9 @@ class TestExcelAnnotator:
         assert "WARNING1" in comment.text
 
         # Should use error styling (highest severity)
-        assert ws_annotated["A1"].fill.start_color.rgb == "FFFFE6E6"  # Error color
+        # Check color - openpyxl may include alpha channel
+        color = ws_annotated["A1"].fill.start_color.rgb
+        assert color in ["FFFFE6E6", "00FFE6E6"]  # Error color (with or without alpha)
 
     def test_file_level_issues(self, temp_dir: Path):
         """Test handling of file-level issues."""

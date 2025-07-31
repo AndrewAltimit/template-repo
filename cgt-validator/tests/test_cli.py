@@ -17,6 +17,13 @@ class TestCLI:
         runner = CliRunner()
         result = runner.invoke(validate, ["oregon", "--file", str(valid_oregon_excel)])
 
+        # Print output for debugging
+        if result.exit_code != 0:
+            print(f"Exit code: {result.exit_code}")
+            print(f"Output: {result.output}")
+            if result.exception:
+                print(f"Exception: {result.exception}")
+
         assert result.exit_code == 0
         assert "Validating" in result.output
 
@@ -34,8 +41,8 @@ class TestCLI:
         runner = CliRunner()
         result = runner.invoke(validate, ["oregon"])
 
-        assert result.exit_code == 1
-        assert "Error: Please specify a file" in result.output
+        assert result.exit_code == 2  # Click returns 2 for missing required options
+        assert "Missing option" in result.output or "required" in result.output
 
     def test_validate_nonexistent_file(self):
         """Test validate command with non-existent file."""

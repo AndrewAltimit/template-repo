@@ -51,7 +51,7 @@ class TestRequirementsParser:
         from openpyxl.worksheet.datavalidation import DataValidation
 
         dv = DataValidation(type="list", formula1='"Hospital,Clinic,Primary Care"', allow_blank=False)
-        dv.add(ws1["C2:C100"])
+        dv.add("C2:C100")
         ws1.add_data_validation(dv)
 
         # Sheet 2 with formula
