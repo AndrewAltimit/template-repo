@@ -8,10 +8,7 @@ The CGT Validator is organized as a standalone Python package with comprehensive
 cgt-validator/
 ├── .github/                    # GitHub Actions workflows
 │   └── workflows/
-│       ├── ci.yml             # Comprehensive CI pipeline
-│       ├── release.yml        # Release automation
-│       ├── dependencies.yml   # Dependency updates
-│       └── scheduled-scraping.yml  # Monthly scraping
+│       └── cgt-ci.yml         # CI/CD pipeline
 ├── docs/                      # User documentation
 │   ├── installation.md
 │   ├── user_guide.md

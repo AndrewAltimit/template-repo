@@ -52,28 +52,13 @@
 6. **Performance Benchmarks** - Track speed
 7. **Documentation Validation** - Check markdown
 
-#### Release Automation (`release.yml`)
-- Triggered by version tags (v*)
-- Builds Python packages
-- Creates multi-arch Docker images
-- Generates changelog
-- Creates GitHub releases
-- Publishes to PyPI (if configured)
-- Pushes to Docker Hub (if configured)
-
-#### Dependency Management (`dependencies.yml`)
-- **Weekly automated updates**
-- Uses pip-compile for reproducible builds
-- Security scanning of new dependencies
-- Creates PRs for review
-- Includes basic smoke tests
-
-#### Scheduled Scraping (`scheduled-scraping.yml`)
-- **Monthly execution** on the 1st
-- Scrapes all 8 states in parallel
-- Uploads artifacts for review
-- Creates GitHub issues for updates
-- Manual trigger support
+#### CI/CD Pipeline (`cgt-ci.yml`)
+- **Automated testing and validation**
+- Code formatting and linting checks
+- Security scanning with Bandit
+- Docker image building and testing
+- Integration tests
+- Coverage reporting
 
 ### 3. Developer Experience ✅
 
