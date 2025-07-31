@@ -52,12 +52,15 @@ services:
       - ./tests:/app/tests:ro
       - ./mock_data:/app/mock_data:ro
       - ./htmlcov:/app/htmlcov
+      - ./coverage.xml:/app/coverage.xml
     environment:
       - PYTHONPATH=/app/src
       - CGT_ENV=test
-    command: ["pytest", "-v", "--cov=src", "--cov-report=html", "--cov-report=term-missing", "tests/"]
+    command: ["pytest", "-v", "--timeout=300", "--cov=src", "--cov-report=html", "--cov-report=xml", "--cov-report=term-missing", "tests/"]
     networks:
       - cgt-network
+    stdin_open: false
+    tty: false
 
   # Linting and code quality service
   cgt-lint:

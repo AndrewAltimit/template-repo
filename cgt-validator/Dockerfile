@@ -1,12 +1,13 @@
 # CGT Validator Docker Image - Simple Version
 FROM python:3.11-slim
 
-# Install system dependencies
+# Install system dependencies including tini for proper signal handling
 RUN apt-get update && apt-get install -y \
     libxml2 \
     libxslt1.1 \
     poppler-utils \
     tzdata \
+    tini \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
@@ -34,6 +35,9 @@ RUN mkdir -p /app/downloads /app/reports /app/logs && \
 
 # Switch to non-root user
 USER cgtuser
+
+# Use tini as entrypoint to handle signals properly
+ENTRYPOINT ["/usr/bin/tini", "--"]
 
 # Default command
 CMD ["python", "-m", "cli", "--help"]

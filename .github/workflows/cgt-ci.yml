@@ -86,6 +86,13 @@ jobs:
           echo "🧪 Running unit tests..."
           docker-compose run --rm cgt-test
 
+      - name: Tear down services
+        if: always()
+        working-directory: ./cgt-validator
+        run: |
+          echo "🧹 Cleaning up Docker services..."
+          docker-compose down --remove-orphans
+
       - name: Upload test coverage
         if: always()
         uses: actions/upload-artifact@v4
