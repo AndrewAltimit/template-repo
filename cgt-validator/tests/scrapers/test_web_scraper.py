@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import requests
+
 from src.scrapers.web_scraper import DocumentInfo, WebScraper
 
 
@@ -82,7 +84,7 @@ class TestWebScraper:
     @patch("requests.Session.get")
     def test_fetch_page_error(self, mock_get):
         """Test page fetching with error."""
-        mock_get.side_effect = Exception("Network error")
+        mock_get.side_effect = requests.RequestException("Network error")
 
         scraper = WebScraper("oregon")
         html = scraper._fetch_page("https://example.com")

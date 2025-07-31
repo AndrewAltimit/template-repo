@@ -67,7 +67,7 @@ class WebScraper:
             response = self.session.get(url, timeout=30)
             response.raise_for_status()
             return response.text
-        except Exception as e:
+        except (requests.RequestException, OSError, ValueError) as e:
             print(f"Error fetching {url}: {e}")
             return None
 
