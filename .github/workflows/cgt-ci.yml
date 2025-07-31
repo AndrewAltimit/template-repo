@@ -77,8 +77,9 @@ jobs:
         working-directory: ./cgt-validator
         run: |
           echo "🔧 Setting up test environment..."
-          # Ensure mock data directory exists
+          # Ensure required directories exist
           mkdir -p mock_data/oregon
+          mkdir -p test-results
 
       - name: Debug docker-compose configuration
         working-directory: ./cgt-validator
@@ -111,7 +112,7 @@ jobs:
         with:
           name: cgt-coverage-${{ github.run_id }}
           path: |
-            cgt-validator/coverage.xml
+            cgt-validator/test-results/coverage.xml
             cgt-validator/htmlcov/
           retention-days: 7
 
@@ -122,11 +123,11 @@ jobs:
           echo "## CGT Validator Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ -f coverage.xml ]; then
+          if [ -f test-results/coverage.xml ]; then
             echo "### Coverage Report" >> $GITHUB_STEP_SUMMARY
             docker-compose run --rm cgt-dev python3 -c "
             import xml.etree.ElementTree as ET
-            tree = ET.parse('coverage.xml')
+            tree = ET.parse('test-results/coverage.xml')
             root = tree.getroot()
             line_rate = float(root.attrib.get('line-rate', 0)) * 100
             branch_rate = float(root.attrib.get('branch-rate', 0)) * 100

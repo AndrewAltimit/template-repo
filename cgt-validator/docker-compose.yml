@@ -52,12 +52,12 @@ services:
       - ./tests:/app/tests:ro
       - ./mock_data:/app/mock_data:ro
       - ./htmlcov:/app/htmlcov
-      - ./:/app/output
+      - ./test-results:/app/test-results
     environment:
       - PYTHONPATH=/app/src
       - CGT_ENV=test
     working_dir: /app
-    command: ["pytest", "-v", "--timeout=300", "--cov=src", "--cov-report=html:htmlcov", "--cov-report=xml:output/coverage.xml", "--cov-report=term-missing", "tests/"]
+    command: ["pytest", "-v", "--timeout=300", "--cov=src", "--cov-report=html:htmlcov", "--cov-report=xml:test-results/coverage.xml", "--cov-report=term-missing", "tests/"]
     networks:
       - cgt-network
     stdin_open: false

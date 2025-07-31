@@ -23,6 +23,7 @@ coverage.xml
 *.log
 nosetests.xml
 .hypothesis/
+test-results/
 
 # IDE
 .vscode/
