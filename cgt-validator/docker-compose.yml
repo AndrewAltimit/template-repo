@@ -137,14 +137,14 @@ services:
     image: cgt-validator:latest
     container_name: cgt-python-ci
     volumes:
-      - .:/app/cgt-validator
-      - /tmp/.pytest_cache:/tmp/.pytest_cache
+      - .:/app/cgt-validator:rw
+      - /tmp/pytest-cache:/tmp/.pytest_cache:rw
     environment:
       - PYTHONPATH=/app/cgt-validator/src
       - CGT_ENV=ci
       - PYTEST_CACHE_DIR=/tmp/.pytest_cache
       - PYTHONDONTWRITEBYTECODE=1
-    working_dir: /app
+    working_dir: /app/cgt-validator
     user: cgtuser
     networks:
       - cgt-network
