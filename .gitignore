@@ -144,6 +144,7 @@ mcp_output/
 logs/
 temp/
 output/
+outputs/
 
 # GitHub Actions Runner
 actions-runner/
