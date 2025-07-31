@@ -5,7 +5,7 @@
 We have successfully implemented a comprehensive CGT (Cost Growth Target) data validation system for Oregon, with the architecture ready to support all 8 states.
 
 ## 📁 Project Location
-`/home/miku/Documents/repos/template-repo/cgt-validator/`
+`./cgt-validator/`
 
 ## ✅ Completed Tasks (17/17)
 

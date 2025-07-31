@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Validate that mock data files have the expected structure."""
 
+import argparse
 import sys
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 
@@ -16,20 +18,29 @@ REQUIRED_SHEETS = {
 DEFAULT_REQUIRED_SHEETS = ["Provider Information", "Medical Claims", "Pharmacy Claims"]
 
 
-def validate_excel_file(file_path: str) -> bool:
-    """Validate that an Excel file has proper structure."""
+def validate_excel_file(file_path: str, state: Optional[str] = None) -> bool:
+    """Validate that an Excel file has proper structure.
+
+    Args:
+        file_path: Path to the Excel file to validate
+        state: State name (e.g., 'oregon', 'massachusetts'). If not provided,
+               will attempt to extract from path or use default sheets.
+    """
     path = Path(file_path)
 
-    # Extract state from path (assumes mock_data/state/file.xlsx structure)
-    parts = path.parts
-    state = None
-    if "mock_data" in parts:
-        idx = parts.index("mock_data")
-        if idx + 1 < len(parts):
-            state = parts[idx + 1]
+    # If state not provided, try to extract from path (backward compatibility)
+    if state is None:
+        parts = path.parts
+        if "mock_data" in parts:
+            idx = parts.index("mock_data")
+            if idx + 1 < len(parts):
+                state = parts[idx + 1]
 
     # Get required sheets for this state
-    required_sheets = REQUIRED_SHEETS.get(state, DEFAULT_REQUIRED_SHEETS)
+    if state:
+        required_sheets = REQUIRED_SHEETS.get(state, DEFAULT_REQUIRED_SHEETS)
+    else:
+        required_sheets = DEFAULT_REQUIRED_SHEETS
 
     try:
         # Read Excel file
@@ -62,13 +73,36 @@ def validate_excel_file(file_path: str) -> bool:
 
 def main():
     """Main entry point."""
-    if len(sys.argv) < 2:
-        print("Usage: validate-mock-data.py <excel_file> [excel_file ...]")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description="Validate CGT mock data Excel files",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Validate with explicit state
+  %(prog)s --state oregon mock_data/oregon/test_submission.xlsx
+
+  # Validate multiple files for the same state
+  %(prog)s --state massachusetts file1.xlsx file2.xlsx
+
+  # Let the script infer state from path (backward compatible)
+  %(prog)s mock_data/oregon/test_submission.xlsx
+""",
+    )
+
+    parser.add_argument("files", nargs="+", help="Excel file(s) to validate")
+
+    parser.add_argument(
+        "--state",
+        "-s",
+        help="State name (e.g., oregon, massachusetts). If not provided, will attempt to extract from file path.",
+        choices=list(REQUIRED_SHEETS.keys()),
+    )
+
+    args = parser.parse_args()
 
     all_valid = True
-    for file_path in sys.argv[1:]:
-        if not validate_excel_file(file_path):
+    for file_path in args.files:
+        if not validate_excel_file(file_path, args.state):
             all_valid = False
 
     sys.exit(0 if all_valid else 1)

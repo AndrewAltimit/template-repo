@@ -21,6 +21,7 @@ python3 -m venv venv
 
 # Activate virtual environment
 echo "Activating virtual environment..."
+# shellcheck source=/dev/null
 source venv/bin/activate
 
 # Upgrade pip
@@ -29,11 +30,7 @@ pip install --upgrade pip
 
 # Install requirements
 echo "Installing CGT validator requirements..."
-pip install -r requirements-core.txt
-
-# Install optional testing dependencies
-echo "Installing testing dependencies..."
-pip install pytest pytest-cov pytest-asyncio
+pip install -r requirements-cgt.txt
 
 # Install package in development mode
 echo "Installing CGT validator package..."

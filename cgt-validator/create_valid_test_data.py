@@ -2,14 +2,10 @@
 """Create a truly valid test data file using openpyxl directly to ensure proper text formatting."""
 
 import random
-import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
 from openpyxl import Workbook
-
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 
 def create_valid_oregon_submission():

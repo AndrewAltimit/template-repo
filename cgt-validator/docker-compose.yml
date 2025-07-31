@@ -28,7 +28,7 @@ services:
     container_name: cgt-dev
     volumes:
       - .:/app
-      - pip-cache:/root/.cache/pip
+      - pip-cache:/home/cgtuser/.cache/pip
     environment:
       - PYTHONPATH=/app/src
       - CGT_ENV=development
