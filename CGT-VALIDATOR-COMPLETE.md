@@ -33,8 +33,8 @@ We have successfully implemented a comprehensive CGT (Cost Growth Target) data v
 # Navigate to project
 cd cgt-validator
 
-# Run the demo
-python test_oregon.py
+# Run the demo (container-based approach)
+docker-compose run --rm cgt-validator python test_oregon.py
 
 # This will:
 # 1. Generate mock Oregon data

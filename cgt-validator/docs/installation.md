@@ -148,5 +148,12 @@ ENTRYPOINT ["cgt-validate"]
 Build and run:
 ```bash
 docker build -t cgt-validator .
+# Linux/macOS:
 docker run -v $(pwd):/data cgt-validator oregon --file /data/submission.xlsx
+
+# Windows (PowerShell):
+docker run -v ${PWD}:/data cgt-validator oregon --file /data/submission.xlsx
+
+# Windows (Command Prompt):
+docker run -v %cd%:/data cgt-validator oregon --file /data/submission.xlsx
 ```

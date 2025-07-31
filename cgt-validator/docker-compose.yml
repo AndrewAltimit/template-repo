@@ -11,7 +11,6 @@ services:
       - ./mock_data:/app/mock_data
       - ./downloads:/app/downloads
       - ./reports:/app/reports
-      - ./requirements:/app/requirements:ro
     environment:
       - PYTHONPATH=/app/src
       - CGT_ENV=development
@@ -70,13 +69,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: cgt-validator:latest
+      args:
+        INSTALL_DEV: "true"
+    image: cgt-validator:lint
     container_name: cgt-lint
     volumes:
       - ./src:/app/src:ro
       - ./tests:/app/tests:ro
       - ./.flake8:/app/.flake8:ro
-    command: ["/bin/sh", "-c", "pip install black flake8 pylint && python -m black --check src tests && python -m flake8 --config=.flake8 src tests && python -m pylint src --disable=R,C"]
+    command: ["/bin/sh", "-c", "python -m black --check src tests && python -m flake8 --config=.flake8 src tests && python -m pylint src --disable=R,C"]
     networks:
       - cgt-network
 

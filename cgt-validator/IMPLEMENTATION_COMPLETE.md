@@ -8,7 +8,16 @@
 docker build -t cgt-validator:latest .
 
 # Run validation
+# Linux/macOS:
 docker run --rm -v $(pwd):/data cgt-validator:latest \
+  python -m cli validate oregon --file /data/mock_data/oregon/test_submission.xlsx
+
+# Windows (PowerShell):
+docker run --rm -v ${PWD}:/data cgt-validator:latest `
+  python -m cli validate oregon --file /data/mock_data/oregon/test_submission.xlsx
+
+# Windows (Command Prompt):
+docker run --rm -v %cd%:/data cgt-validator:latest ^
   python -m cli validate oregon --file /data/mock_data/oregon/test_submission.xlsx
 
 # Or use docker-compose
@@ -131,7 +140,16 @@ make test
 ./cgt-validate.sh validate oregon --file mock_data/oregon/test_submission.xlsx
 
 # Or with Docker
+# Linux/macOS:
 docker run --rm -v $(pwd):/data cgt-validator:latest \
+  python -m cli validate oregon --file /data/mock_data/oregon/test_submission.xlsx
+
+# Windows (PowerShell):
+docker run --rm -v ${PWD}:/data cgt-validator:latest `
+  python -m cli validate oregon --file /data/mock_data/oregon/test_submission.xlsx
+
+# Windows (Command Prompt):
+docker run --rm -v %cd%:/data cgt-validator:latest ^
   python -m cli validate oregon --file /data/mock_data/oregon/test_submission.xlsx
 ```
 
