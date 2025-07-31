@@ -52,11 +52,9 @@ services:
       - ./tests:/app/tests:ro
       - ./mock_data:/app/mock_data:ro
       - ./htmlcov:/app/htmlcov
-      - test-cache:/app/.pytest_cache
     environment:
       - PYTHONPATH=/app/src
       - CGT_ENV=test
-      - PYTEST_CACHE_DIR=/tmp/.pytest_cache
     command: ["pytest", "-v", "--cov=src", "--cov-report=html", "--cov-report=term-missing", "tests/"]
     networks:
       - cgt-network
@@ -138,11 +136,9 @@ services:
     container_name: cgt-python-ci
     volumes:
       - .:/app/cgt-validator:rw
-      - /tmp/pytest-cache:/tmp/.pytest_cache:rw
     environment:
       - PYTHONPATH=/app/cgt-validator/src
       - CGT_ENV=ci
-      - PYTEST_CACHE_DIR=/tmp/.pytest_cache
       - PYTHONDONTWRITEBYTECODE=1
     working_dir: /app/cgt-validator
     user: cgtuser
@@ -155,4 +151,3 @@ networks:
 
 volumes:
   pip-cache: {}
-  test-cache: {}

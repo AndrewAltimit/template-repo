@@ -86,7 +86,7 @@ jobs:
           echo "🧪 Running unit tests..."
           docker-compose run --rm python-ci bash -c "
             pip install -r requirements.txt && \
-            python -m pytest tests/ -v --cov=src --cov-report=xml --cov-report=html --maxfail=5 -o cache_dir=/tmp/.pytest_cache
+            python -m pytest tests/ -v --cov=src --cov-report=xml --cov-report=html --maxfail=5 -p no:cacheprovider
           "
 
       - name: Upload test coverage
