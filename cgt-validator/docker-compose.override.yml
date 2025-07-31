@@ -40,7 +40,7 @@ services:
 
   cgt-lint:
     # Add auto-formatting in development
-    command: ["/bin/sh", "-c", "pip install black isort && black src tests && isort src tests && echo 'Formatting complete!'"]
+    command: ["/bin/sh", "-c", "pip install black isort && python -m black src tests && python -m isort src tests && echo 'Formatting complete!'"]
 
   # Jupyter notebook for interactive development
   cgt-notebook:

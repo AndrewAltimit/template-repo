@@ -45,20 +45,20 @@ jobs:
         working-directory: ./cgt-validator
         run: |
           echo "🎨 Checking code formatting..."
-          docker-compose run --rm cgt-lint sh -c "pip install black && black --check src tests"
+          docker-compose run --rm cgt-lint sh -c "pip install black && python -m black --check src tests"
 
       - name: Run basic linting
         working-directory: ./cgt-validator
         run: |
           echo "🔍 Running basic linting..."
-          docker-compose run --rm cgt-lint sh -c "pip install flake8 && flake8 src tests --count --select=E9,F63,F7,F82 --show-source --statistics"
+          docker-compose run --rm cgt-lint sh -c "pip install flake8 && python -m flake8 src tests --count --select=E9,F63,F7,F82 --show-source --statistics"
 
       - name: Run full linting
         if: success()
         working-directory: ./cgt-validator
         run: |
           echo "🔍 Running full linting..."
-          docker-compose run --rm cgt-lint sh -c "pip install black flake8 pylint mypy && black --check src tests && flake8 src tests && pylint src --disable=R,C && mypy src --ignore-missing-imports"
+          docker-compose run --rm cgt-lint sh -c "pip install black flake8 pylint mypy && python -m black --check src tests && python -m flake8 src tests && python -m pylint src --disable=R,C && python -m mypy src --ignore-missing-imports"
 
   # Stage 2: Test suite
   test-suite:
