@@ -54,6 +54,7 @@ services:
       - ./tests:/app/tests:ro
       - ./mock_data:/app/mock_data:ro
       - ./test-results:/app/test-results
+      - ./htmlcov:/app/htmlcov
     environment:
       - PYTHONPATH=/app/src
       - CGT_ENV=test

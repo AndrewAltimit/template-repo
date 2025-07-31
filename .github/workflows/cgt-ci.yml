@@ -102,18 +102,20 @@ jobs:
         working-directory: ./cgt-validator
         run: |
           echo "🧪 Running unit tests..."
+          # Create directories for test results
+          mkdir -p test-results htmlcov
+
           # Use only docker-compose.yml, not docker-compose.override.yml
-          # Run tests and capture the container name
-          CONTAINER_ID=$(docker-compose -f docker-compose.yml run -d cgt-test)
+          # Run tests in foreground to see output
+          # The volumes are already mapped in docker-compose.yml
+          docker-compose -f docker-compose.yml run --rm cgt-test
 
-          # Wait for the container to finish
-          docker wait $CONTAINER_ID
-
-          # Copy htmlcov directory from container before it's removed
-          docker cp $CONTAINER_ID:/app/htmlcov ./htmlcov || true
-
-          # Remove the container
-          docker rm $CONTAINER_ID
+          # Check if coverage files were created
+          if [ -f "test-results/coverage.xml" ]; then
+            echo "✅ Coverage report generated successfully"
+          else
+            echo "⚠️ Coverage report not found"
+          fi
 
       - name: Tear down services
         if: always()
