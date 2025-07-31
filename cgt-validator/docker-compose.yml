@@ -140,10 +140,13 @@ services:
       - PYTHONPATH=/app/cgt-validator/src
       - CGT_ENV=ci
       - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
     working_dir: /app/cgt-validator
     user: cgtuser
     networks:
       - cgt-network
+    stdin_open: false
+    tty: false
 
 networks:
   cgt-network:
