@@ -1,5 +1,6 @@
 """Content Creation MCP Server - Manim animations and LaTeX compilation"""
 
+import base64
 import os
 import shutil
 import subprocess
@@ -94,6 +95,11 @@ class ContentCreationMCPServer(BaseMCPServer):
                             "enum": ["article", "report", "book", "beamer", "custom"],
                             "default": "article",
                             "description": "Document template to use",
+                        },
+                        "visual_feedback": {
+                            "type": "boolean",
+                            "default": True,
+                            "description": "Return PNG preview image for visual verification",
                         },
                     },
                     "required": ["content"],
@@ -220,13 +226,16 @@ class ContentCreationMCPServer(BaseMCPServer):
             self.logger.error(f"Manim error: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def compile_latex(self, content: str, format: str = "pdf", template: str = "article") -> Dict[str, Any]:
+    async def compile_latex(
+        self, content: str, format: str = "pdf", template: str = "article", visual_feedback: bool = True
+    ) -> Dict[str, Any]:
         """Compile LaTeX document to various formats
 
         Args:
             content: LaTeX document content
             format: Output format (pdf, dvi, ps)
             template: Document template to use
+            visual_feedback: Whether to return PNG preview image
 
         Returns:
             Dictionary with compiled document path and metadata
@@ -235,10 +244,10 @@ class ContentCreationMCPServer(BaseMCPServer):
             # Add template wrapper if not custom
             if template != "custom" and not content.startswith("\\documentclass"):
                 templates = {
-                    "article": "\\documentclass{article}\n\\begin{document}\n{content}\n\\end{document}",
-                    "report": "\\documentclass{report}\n\\begin{document}\n{content}\n\\end{document}",
-                    "book": "\\documentclass{book}\n\\begin{document}\n{content}\n\\end{document}",
-                    "beamer": "\\documentclass{beamer}\n\\begin{document}\n{content}\n\\end{document}",
+                    "article": "\\documentclass{{article}}\n\\begin{{document}}\n{content}\n\\end{{document}}",
+                    "report": "\\documentclass{{report}}\n\\begin{{document}}\n{content}\n\\end{{document}}",
+                    "book": "\\documentclass{{book}}\n\\begin{{document}}\n{content}\n\\end{{document}}",
+                    "beamer": "\\documentclass{{beamer}}\n\\begin{{document}}\n{content}\n\\end{{document}}",
                 }
                 if template in templates:
                     content = templates[template].format(content=content)
@@ -286,13 +295,95 @@ class ContentCreationMCPServer(BaseMCPServer):
                         log_path = output_path.replace(f".{format}", ".log")
                         shutil.copy(log_file, log_path)
 
-                    return {
+                    result_data = {
                         "success": True,
                         "output_path": output_path,
                         "format": format,
                         "template": template,
                         "log_path": log_path if os.path.exists(log_file) else None,
                     }
+
+                    # Generate visual feedback if requested and format is PDF
+                    if visual_feedback and format == "pdf":
+                        try:
+                            # Convert first page of PDF to PNG with lower resolution
+                            png_path = output_path.replace(".pdf", "_preview.png")
+                            subprocess.run(
+                                [
+                                    "pdftoppm",
+                                    "-png",
+                                    "-f",
+                                    "1",  # First page
+                                    "-l",
+                                    "1",  # Last page (also first)
+                                    "-r",
+                                    "72",  # Lower resolution for smaller file size
+                                    "-singlefile",
+                                    output_path,
+                                    png_path[:-4],  # Remove .png extension
+                                ],
+                                check=True,
+                                capture_output=True,
+                            )
+
+                            # Read the PNG and optimize it
+                            if os.path.exists(png_path):
+                                try:
+                                    import io
+
+                                    from PIL import Image
+
+                                    # Open PNG and convert to JPEG with compression
+                                    with Image.open(png_path) as img:
+                                        # Convert RGBA to RGB if necessary
+                                        if img.mode in ("RGBA", "LA"):
+                                            # Create a white background
+                                            background = Image.new("RGB", img.size, (255, 255, 255))
+                                            if img.mode == "RGBA":
+                                                background.paste(img, mask=img.split()[3])
+                                            else:
+                                                background.paste(img, mask=img.split()[1])
+                                            img = background
+
+                                        # Save as JPEG with compression
+                                        buffer = io.BytesIO()
+                                        img.save(buffer, format="JPEG", quality=85, optimize=True)
+                                        img_data = buffer.getvalue()
+
+                                        # If still too large, try more compression
+                                        if len(img_data) > 100000:  # 100KB limit
+                                            buffer = io.BytesIO()
+                                            img.save(buffer, format="JPEG", quality=70, optimize=True)
+                                            img_data = buffer.getvalue()
+
+                                        img_base64 = base64.b64encode(img_data).decode("utf-8")
+                                        result_data["visual_feedback"] = {
+                                            "format": "jpeg",
+                                            "encoding": "base64",
+                                            "data": img_base64,
+                                            "size_kb": len(img_data) / 1024,
+                                        }
+                                except ImportError:
+                                    # Fallback to PNG if PIL not available
+                                    self.logger.warning("PIL not available, using PNG format")
+                                    with open(png_path, "rb") as img_file:
+                                        img_data = img_file.read()
+                                        # Only include if reasonably sized
+                                        if len(img_data) < 200000:  # 200KB limit for PNG
+                                            img_base64 = base64.b64encode(img_data).decode("utf-8")
+                                            result_data["visual_feedback"] = {
+                                                "format": "png",
+                                                "encoding": "base64",
+                                                "data": img_base64,
+                                                "size_kb": len(img_data) / 1024,
+                                            }
+                                        else:
+                                            result_data["visual_feedback_error"] = "Image too large for feedback"
+                        except Exception as e:
+                            self.logger.warning(f"Failed to generate visual feedback: {e}")
+                            result_data["visual_feedback_error"] = str(e)
+
+                    return result_data
 
                 # Extract error from log file
                 log_file = os.path.join(tmpdir, "document.log")
@@ -317,15 +408,16 @@ class ContentCreationMCPServer(BaseMCPServer):
             self.logger.error(f"LaTeX compilation error: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def render_tikz(self, tikz_code: str, output_format: str = "pdf") -> Dict[str, Any]:
+    async def render_tikz(self, tikz_code: str, output_format: str = "pdf", visual_feedback: bool = True) -> Dict[str, Any]:
         """Render TikZ diagram as standalone image
 
         Args:
             tikz_code: TikZ code for the diagram
             output_format: Output format (pdf, png, svg)
+            visual_feedback: Whether to return image data for visual verification
 
         Returns:
-            Dictionary with rendered diagram path
+            Dictionary with rendered diagram path and optional visual data
         """
         # Wrap TikZ code in standalone document
         latex_content = f"""
@@ -362,12 +454,80 @@ class ContentCreationMCPServer(BaseMCPServer):
                     subprocess.run(["pdf2svg", pdf_path, output_path], check=True)
 
                 if os.path.exists(output_path):
-                    return {
+                    result_data = {
                         "success": True,
                         "output_path": output_path,
                         "format": output_format,
                         "source_pdf": pdf_path,
                     }
+
+                    # Add visual feedback for PNG format
+                    if visual_feedback and output_format == "png":
+                        try:
+                            import io
+
+                            from PIL import Image
+
+                            # Open PNG and potentially compress it
+                            with Image.open(output_path) as img:
+                                # Convert RGBA to RGB if necessary for JPEG
+                                if img.mode in ("RGBA", "LA"):
+                                    background = Image.new("RGB", img.size, (255, 255, 255))
+                                    if img.mode == "RGBA":
+                                        background.paste(img, mask=img.split()[3])
+                                    else:
+                                        background.paste(img, mask=img.split()[1])
+                                    img = background
+
+                                # Save as JPEG with compression for smaller size
+                                buffer = io.BytesIO()
+                                img.save(buffer, format="JPEG", quality=85, optimize=True)
+                                img_data = buffer.getvalue()
+
+                                # If still too large, try more compression
+                                if len(img_data) > 100000:  # 100KB limit
+                                    buffer = io.BytesIO()
+                                    img.save(buffer, format="JPEG", quality=70, optimize=True)
+                                    img_data = buffer.getvalue()
+
+                                img_base64 = base64.b64encode(img_data).decode("utf-8")
+                                result_data["visual_feedback"] = {
+                                    "format": "jpeg",
+                                    "encoding": "base64",
+                                    "data": img_base64,
+                                    "size_kb": len(img_data) / 1024,
+                                }
+                        except ImportError:
+                            # Fallback to PNG if PIL not available
+                            self.logger.warning("PIL not available, using PNG format")
+                            with open(output_path, "rb") as img_file:
+                                img_data = img_file.read()
+                                # Only include if reasonably sized
+                                if len(img_data) < 200000:  # 200KB limit for PNG
+                                    img_base64 = base64.b64encode(img_data).decode("utf-8")
+                                    result_data["visual_feedback"] = {
+                                        "format": "png",
+                                        "encoding": "base64",
+                                        "data": img_base64,
+                                        "size_kb": len(img_data) / 1024,
+                                    }
+                                else:
+                                    result_data["visual_feedback_error"] = "Image too large for feedback"
+                        except Exception as e:
+                            self.logger.warning(f"Failed to read PNG for visual feedback: {e}")
+                            result_data["visual_feedback_error"] = str(e)
+
+                    # Add visual feedback for SVG format (as text)
+                    elif visual_feedback and output_format == "svg":
+                        try:
+                            with open(output_path, "r") as svg_file:
+                                svg_content = svg_file.read()
+                                result_data["visual_feedback"] = {"format": "svg", "encoding": "text", "data": svg_content}
+                        except Exception as e:
+                            self.logger.warning(f"Failed to read SVG for visual feedback: {e}")
+                            result_data["visual_feedback_error"] = str(e)
+
+                    return result_data
                 else:
                     return {
                         "success": False,
@@ -376,6 +536,84 @@ class ContentCreationMCPServer(BaseMCPServer):
 
             except Exception as e:
                 return {"success": False, "error": f"Format conversion error: {str(e)}"}
+
+        # For PDF format, add visual feedback if requested
+        if visual_feedback and output_format == "pdf":
+            try:
+                # Convert first page of PDF to PNG for preview with lower resolution
+                png_path = pdf_path.replace(".pdf", "_preview.png")
+                subprocess.run(
+                    [
+                        "pdftoppm",
+                        "-png",
+                        "-f",
+                        "1",
+                        "-l",
+                        "1",
+                        "-r",
+                        "72",  # Lower resolution
+                        "-singlefile",
+                        pdf_path,
+                        png_path[:-4],
+                    ],
+                    check=True,
+                    capture_output=True,
+                )
+
+                if os.path.exists(png_path):
+                    try:
+                        import io
+
+                        from PIL import Image
+
+                        # Open PNG and convert to JPEG with compression
+                        with Image.open(png_path) as img:
+                            # Convert RGBA to RGB if necessary
+                            if img.mode in ("RGBA", "LA"):
+                                background = Image.new("RGB", img.size, (255, 255, 255))
+                                if img.mode == "RGBA":
+                                    background.paste(img, mask=img.split()[3])
+                                else:
+                                    background.paste(img, mask=img.split()[1])
+                                img = background
+
+                            # Save as JPEG with compression
+                            buffer = io.BytesIO()
+                            img.save(buffer, format="JPEG", quality=85, optimize=True)
+                            img_data = buffer.getvalue()
+
+                            # If still too large, try more compression
+                            if len(img_data) > 100000:  # 100KB limit
+                                buffer = io.BytesIO()
+                                img.save(buffer, format="JPEG", quality=70, optimize=True)
+                                img_data = buffer.getvalue()
+
+                            img_base64 = base64.b64encode(img_data).decode("utf-8")
+                            result["visual_feedback"] = {
+                                "format": "jpeg",
+                                "encoding": "base64",
+                                "data": img_base64,
+                                "size_kb": len(img_data) / 1024,
+                            }
+                    except ImportError:
+                        # Fallback to PNG if PIL not available
+                        self.logger.warning("PIL not available, using PNG format")
+                        with open(png_path, "rb") as img_file:
+                            img_data = img_file.read()
+                            # Only include if reasonably sized
+                            if len(img_data) < 200000:  # 200KB limit for PNG
+                                img_base64 = base64.b64encode(img_data).decode("utf-8")
+                                result["visual_feedback"] = {
+                                    "format": "png",
+                                    "encoding": "base64",
+                                    "data": img_base64,
+                                    "size_kb": len(img_data) / 1024,
+                                }
+                            else:
+                                result["visual_feedback_error"] = "Image too large for feedback"
+            except Exception as e:
+                self.logger.warning(f"Failed to generate visual feedback for PDF: {e}")
+                result["visual_feedback_error"] = str(e)
 
         return result
 

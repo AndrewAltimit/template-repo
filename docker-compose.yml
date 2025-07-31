@@ -38,11 +38,11 @@ services:
       - "8011:8011"
     volumes:
       - ./:/app:ro
-      - /tmp/mcp-content-output:/tmp/mcp-content-output  # Writable output directory
+      - ./outputs/mcp-content:/output  # Writable output directory mapped to local outputs folder
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8011
-      - MCP_OUTPUT_DIR=/tmp/mcp-content-output
+      - MCP_OUTPUT_DIR=/output
     networks:
       - mcp-network
     command: ["python", "-m", "tools.mcp.content_creation.server", "--mode", "http"]
@@ -67,7 +67,7 @@ services:
       - "8007:8007"
     volumes:
       - ./:/app:ro
-      - gaea2-output:/output/gaea2  # Named volume for terrain files outside /app
+      - ./outputs/mcp-gaea2:/output/gaea2  # Local outputs directory for terrain files
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8007
