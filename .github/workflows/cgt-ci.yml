@@ -276,13 +276,9 @@ jobs:
           echo "🌐 Testing web scraper..."
           docker-compose run --rm cgt-dev bash -c "
             pip install -r requirements.txt && \
-            python -c \"import requests; \
-            try: \
-                response = requests.get('https://www.example.com', timeout=10); \
-                response.raise_for_status(); \
-                print('Scraper test: ✅ Success - HTTP connectivity working'); \
-            except Exception as e: \
-                print(f'Scraper test: ❌ Failed - {e}')\"
+            python -c \"import requests; response = None; \
+            try: response = requests.get('https://www.example.com', timeout=10); response.raise_for_status(); print('Scraper test: ✅ Success - HTTP connectivity working') \
+            except Exception as e: print(f'Scraper test: ❌ Failed - {e}')\"
           "
 
   # Final summary
