@@ -170,9 +170,15 @@ def main():
     print("\nCGT VALIDATOR - COMPREHENSIVE VALIDATION TESTING")
     print("This test demonstrates the validator catching various data quality issues")
 
-    # Run both tests
-    test1_passed = test_invalid_data()
-    test2_passed = test_valid_data()
+    # Create a temporary directory for the tests
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+
+        # Run both tests
+        test1_passed = test_invalid_data(tmp_path)
+        test2_passed = test_valid_data(tmp_path)
 
     # Summary
     print("\n" + "=" * 70)
@@ -189,10 +195,7 @@ def main():
         print("\n✗ Some tests failed. Check the reports for details.")
 
     print("\nGenerated Files:")
-    print("  - mock_data/oregon/test_invalid_data.xlsx (intentionally invalid)")
-    print("  - mock_data/oregon/test_valid_data.xlsx (properly formatted)")
-    print("  - test_report_invalid.html (shows caught errors)")
-    print("  - test_report_valid.html (should show minimal issues)")
+    print("  - Files are created in temporary directory and cleaned up after tests")
 
     return 0 if (test1_passed and test2_passed) else 1
 

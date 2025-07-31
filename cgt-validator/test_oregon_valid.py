@@ -7,9 +7,9 @@ from pathlib import Path
 # Add src to path for direct testing before installation
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from src.mock_data.oregon_generator_fixed import generate_mock_submission
-from src.reporters.html_reporter import HTMLReporter
-from src.validators.oregon import OregonValidator
+from src.mock_data.oregon_generator import generate_mock_submission  # noqa: E402
+from src.reporters.html_reporter import HTMLReporter  # noqa: E402
+from src.validators.oregon import OregonValidator  # noqa: E402
 
 
 def main():

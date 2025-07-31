@@ -1,4 +1,4 @@
-"""Generate mock CGT data for Oregon testing."""
+"""Generate mock CGT data for Oregon testing with proper data types."""
 
 import random
 from datetime import datetime, timedelta
@@ -28,11 +28,13 @@ class OregonMockDataGenerator:
                 "Provider Name": f"Oregon Health Provider {i+1}",
                 "Provider Type": random.choice(provider_types),
                 "Tax ID": f"{random.randint(10, 99)}-{random.randint(1000000, 9999999)}",
+                # NPI should be stored as text to preserve formatting
                 "NPI": str(random.randint(1000000000, 9999999999)),
                 "Address": f"{random.randint(100, 9999)} Main Street",
                 "City": random.choice(cities),
                 "State": "OR",
-                "ZIP": f"{random.randint(97000, 97999)}",
+                # ZIP should be stored as text to preserve leading zeros
+                "ZIP": f"{random.randint(97000, 97999):05d}",
             }
             providers.append(provider)
 
@@ -44,7 +46,11 @@ class OregonMockDataGenerator:
 
     def generate_provider_information(self) -> pd.DataFrame:
         """Generate Provider Information sheet."""
-        return pd.DataFrame(self.providers)
+        df = pd.DataFrame(self.providers)
+        # Ensure text fields are stored as strings
+        df["NPI"] = df["NPI"].astype(str)
+        df["ZIP"] = df["ZIP"].astype(str)
+        return df
 
     def generate_member_months(self) -> pd.DataFrame:
         """Generate Member Months sheet."""
@@ -92,8 +98,8 @@ class OregonMockDataGenerator:
                     "Provider ID": random.choice(self.providers)["Provider ID"],
                     "Member ID": random.choice(self.members),
                     "Claim ID": f"CLM{str(i+1).zfill(10)}",
-                    "Service Date": service_date.strftime("%Y-%m-%d"),
-                    "Paid Date": paid_date.strftime("%Y-%m-%d"),
+                    "Service Date": service_date,  # Keep as datetime object
+                    "Paid Date": paid_date,  # Keep as datetime object
                     "Procedure Code": random.choice(procedure_codes),
                     "Diagnosis Code": random.choice(diagnosis_codes),
                     "Allowed Amount": allowed_amount,
@@ -106,13 +112,7 @@ class OregonMockDataGenerator:
 
     def generate_pharmacy_claims(self, count: int = 3000) -> pd.DataFrame:
         """Generate Pharmacy Claims sheet."""
-        # Mock NDC codes
-        ndc_codes = [
-            "00069-2010-01",  # Generic medication
-            "00378-1805-01",  # Brand medication
-            "00093-0058-01",  # Chronic condition med
-            "00143-9520-01",  # Specialty medication
-        ]
+        ndc_codes = ["00069-0100-30", "00310-0750-90", "00002-3227-30", "00378-3651-91"]
 
         start_date = datetime.now() - timedelta(days=365)
 
@@ -129,10 +129,10 @@ class OregonMockDataGenerator:
                     "Provider ID": random.choice(self.providers)["Provider ID"],
                     "Member ID": random.choice(self.members),
                     "Claim ID": f"RX{str(i+1).zfill(10)}",
-                    "Fill Date": fill_date.strftime("%Y-%m-%d"),
+                    "Fill Date": fill_date,  # Keep as datetime object
                     "NDC": random.choice(ndc_codes),
+                    "Quantity": random.randint(10, 90),
                     "Days Supply": random.choice([30, 60, 90]),
-                    "Quantity": random.randint(30, 180),
                     "Allowed Amount": allowed_amount,
                     "Paid Amount": paid_amount,
                     "Member Liability": member_liability,
@@ -143,62 +143,69 @@ class OregonMockDataGenerator:
 
     def generate_reconciliation(self, medical_df: pd.DataFrame, pharmacy_df: pd.DataFrame) -> pd.DataFrame:
         """Generate Reconciliation sheet."""
-        medical_total = medical_df["Paid Amount"].sum()
-        pharmacy_total = pharmacy_df["Paid Amount"].sum()
+        # Calculate the sum of paid amounts for medical and pharmacy claims
+        medical_paid_total = medical_df["Paid Amount"].sum() if "Paid Amount" in medical_df.columns else 0
+        pharmacy_paid_total = pharmacy_df["Paid Amount"].sum() if "Paid Amount" in pharmacy_df.columns else 0
 
+        # Create a single summary row for reconciliation
         data = [
             {
-                "Category": "Summary",
-                "Medical Claims Total": round(medical_total, 2),
-                "Pharmacy Claims Total": round(pharmacy_total, 2),
-                "Total Claims": round(medical_total + pharmacy_total, 2),
+                "Medical Claims Total": round(
+                    medical_paid_total, 2
+                ),  # This must match the sum of Medical Claims Paid Amount
+                "Pharmacy Claims Total": round(
+                    pharmacy_paid_total, 2
+                ),  # This must match the sum of Pharmacy Claims Paid Amount
+                "Total Claims": round(medical_paid_total + pharmacy_paid_total, 2),
                 "Report Date": datetime.now().strftime("%Y-%m-%d"),
-                "Version": "1.0",
+                "Report Period": f"{datetime.now().year}-01 to {datetime.now().year}-12",
             }
         ]
 
         return pd.DataFrame(data)
 
     def generate_behavioral_health(self, medical_df: pd.DataFrame) -> pd.DataFrame:
-        """Generate Behavioral Health sheet (optional)."""
-        # Filter for behavioral health claims
-        bh_procedure_codes = ["90834", "90837", "90847"]
-        bh_claims = medical_df[medical_df["Procedure Code"].isin(bh_procedure_codes)].copy()
+        """Generate optional Behavioral Health sheet."""
+        bh_codes = ["90834", "90837", "90847", "90853", "96130", "96131"]
+        bh_claims = medical_df[medical_df["Procedure Code"].isin(bh_codes)].copy()
 
-        # Add provider taxonomy
-        bh_claims["Provider Taxonomy"] = "2084P0800X"  # Psychiatry
+        # Add additional BH-specific fields
+        bh_claims["Service Type"] = bh_claims["Procedure Code"].map(
+            {
+                "90834": "Individual Therapy 45 min",
+                "90837": "Individual Therapy 60 min",
+                "90847": "Family Therapy",
+                "90853": "Group Therapy",
+                "96130": "Psychological Testing",
+                "96131": "Psychological Testing Additional",
+            }
+        )
 
         return bh_claims
 
     def generate_attribution(self) -> pd.DataFrame:
-        """Generate Attribution sheet (optional)."""
-        attribution_methods = ["PCP Visit", "Plurality", "Geographic", "Member Selection"]
-
+        """Generate optional Attribution sheet."""
         data = []
-        # Attribute subset of members to providers
-        attributed_members = random.sample(self.members, k=int(len(self.members) * 0.8))
 
-        for member in attributed_members:
-            provider = random.choice(self.providers)
-            attribution_date = datetime.now() - timedelta(days=random.randint(30, 180))
+        # Sample 20% of members for attribution
+        attributed_members = random.sample(self.members, int(len(self.members) * 0.2))
 
+        for member_id in attributed_members:
             data.append(
                 {
-                    "Member ID": member,
-                    "Provider ID": provider["Provider ID"],
-                    "Attribution Method": random.choice(attribution_methods),
-                    "Attribution Date": attribution_date.strftime("%Y-%m-%d"),
-                    "Effective Date": attribution_date.strftime("%Y-%m-%d"),
-                    "End Date": "",  # Blank for current attributions
+                    "Member ID": member_id,
+                    "Attributed Provider ID": random.choice(self.providers)["Provider ID"],
+                    "Attribution Date": (datetime.now() - timedelta(days=random.randint(0, 365))),
+                    "Attribution Method": random.choice(["Claims-based", "Manual", "Auto-assigned"]),
                 }
             )
 
         return pd.DataFrame(data)
 
-    def save_to_excel(self, output_path: str, include_optional: bool = True) -> Path:
-        """Save all sheets to an Excel file."""
-        output_file_path = Path(output_path)
-        output_file_path.parent.mkdir(parents=True, exist_ok=True)
+    def save_to_excel(self, output_filename: str, include_optional: bool = True) -> Path:
+        """Save all sheets to an Excel file with proper formatting."""
+        output_path = Path(output_filename)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Generate all data
         provider_df = self.generate_provider_information()
@@ -207,19 +214,27 @@ class OregonMockDataGenerator:
         pharmacy_df = self.generate_pharmacy_claims()
         reconciliation_df = self.generate_reconciliation(medical_df, pharmacy_df)
 
-        # Ensure text fields are stored as strings to prevent Excel from converting them
-        provider_df["NPI"] = provider_df["NPI"].astype(str)
-        provider_df["ZIP"] = provider_df["ZIP"].astype(str)
-        provider_df["Tax ID"] = provider_df["Tax ID"].astype(str)
-        provider_df["Provider ID"] = provider_df["Provider ID"].astype(str)
+        # Create a metadata sheet
+        metadata_df = pd.DataFrame(
+            [
+                {
+                    "File Version": "1.0",
+                    "Generated Date": datetime.now().strftime("%Y-%m-%d"),
+                    "State": "Oregon",
+                    "Year": datetime.now().year,
+                    "Generator": "CGT Validator Mock Data Generator",
+                }
+            ]
+        )
 
-        # Convert date strings to datetime objects for proper Excel formatting
-        medical_df["Service Date"] = pd.to_datetime(medical_df["Service Date"])
-        medical_df["Paid Date"] = pd.to_datetime(medical_df["Paid Date"])
-        pharmacy_df["Fill Date"] = pd.to_datetime(pharmacy_df["Fill Date"])
+        # Write to Excel with proper formatting
+        with pd.ExcelWriter(
+            output_path, engine="openpyxl", date_format="YYYY-MM-DD", datetime_format="YYYY-MM-DD"
+        ) as writer:
+            # Write metadata first
+            metadata_df.to_excel(writer, sheet_name="Metadata", index=False)
 
-        # Write to Excel with date formatting
-        with pd.ExcelWriter(output_file_path, engine="openpyxl", date_format="YYYY-MM-DD") as writer:
+            # Write required sheets
             provider_df.to_excel(writer, sheet_name="Provider Information", index=False)
             member_months_df.to_excel(writer, sheet_name="Member Months", index=False)
             medical_df.to_excel(writer, sheet_name="Medical Claims", index=False)
@@ -233,30 +248,29 @@ class OregonMockDataGenerator:
                 bh_df.to_excel(writer, sheet_name="Behavioral Health", index=False)
                 attribution_df.to_excel(writer, sheet_name="Attribution", index=False)
 
-            # Format text columns to prevent Excel from converting to numbers
+            # Format text columns properly BEFORE values are read
             workbook = writer.book
             provider_sheet = workbook["Provider Information"]
 
-            # Find column indices for NPI and ZIP
-            headers = [cell.value for cell in provider_sheet[1]]
-            npi_col = headers.index("NPI") + 1
-            zip_col = headers.index("ZIP") + 1
+            # Format entire NPI column (E) and ZIP column (I) as text
+            for cell in provider_sheet["E"]:  # NPI column
+                cell.number_format = "@"
+            for cell in provider_sheet["I"]:  # ZIP column
+                cell.number_format = "@"
 
-            # Format these columns as text
-            for row in range(2, provider_sheet.max_row + 1):
-                npi_cell = provider_sheet.cell(row=row, column=npi_col)
-                zip_cell = provider_sheet.cell(row=row, column=zip_col)
-                npi_cell.number_format = "@"  # Text format
-                zip_cell.number_format = "@"  # Text format
+            # Re-write the NPI and ZIP values to ensure they're stored as text
+            for idx, row in provider_df.iterrows():
+                provider_sheet.cell(row=idx + 2, column=5, value=str(row["NPI"]))  # NPI is column 5 (E)
+                provider_sheet.cell(row=idx + 2, column=9, value=str(row["ZIP"]))  # ZIP is column 9 (I)
 
-        print(f"Mock data saved to: {output_file_path}")
-        return output_file_path
+        print(f"Mock data saved to: {output_path}")
+        return output_path
 
 
 def generate_mock_submission(
-    output_path: str = "./mock_data/oregon/oregon_submission_2025.xlsx", include_optional: bool = True
+    output_path: str = "./mock_data/oregon/test_submission_valid.xlsx", include_optional: bool = False
 ) -> Path:
-    """Generate a mock Oregon CGT submission file."""
+    """Generate a mock Oregon CGT submission file with valid data."""
     generator = OregonMockDataGenerator()
     return generator.save_to_excel(output_path, include_optional)
 
