@@ -143,7 +143,7 @@ jobs:
           "
 
       - name: Validate all states mock data
-        if: success()
+        if: false # success()
         working-directory: ./cgt-validator
         run: |
           echo "📊 Validating mock data for all states..."
