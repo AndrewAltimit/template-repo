@@ -70,7 +70,7 @@ services:
     volumes:
       - ./src:/app/src:ro
       - ./tests:/app/tests:ro
-    command: ["/bin/sh", "-c", "black --check src tests && flake8 src tests && pylint src --disable=R,C && mypy src --ignore-missing-imports"]
+    command: ["/bin/sh", "-c", "pip install black flake8 pylint mypy && black --check src tests && flake8 src tests && pylint src --disable=R,C && mypy src --ignore-missing-imports"]
     networks:
       - cgt-network
 
