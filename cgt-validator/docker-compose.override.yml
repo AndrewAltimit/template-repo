@@ -1,8 +1,6 @@
 # Docker Compose Override for Development
 # This file is automatically loaded by docker-compose and overrides settings for local development
 
-version: '3.8'
-
 services:
   cgt-validator:
     # Mount source code as read-write for development
@@ -59,6 +57,9 @@ services:
       - ./mock_data:/app/mock_data:rw
     environment:
       - PYTHONPATH=/app/src
-    command: ["sh", "-c", "pip install jupyter pandas matplotlib seaborn && jupyter notebook --ip=0.0.0.0 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password=''"]
+    command: |
+      sh -c "pip install jupyter pandas matplotlib seaborn && \
+      jupyter notebook --ip=0.0.0.0 --no-browser --allow-root \
+      --NotebookApp.token='' --NotebookApp.password=''"
     networks:
       - cgt-network

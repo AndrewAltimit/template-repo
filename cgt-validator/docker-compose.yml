@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Main CGT Validator service
   cgt-validator:
@@ -134,5 +132,5 @@ networks:
     driver: bridge
 
 volumes:
-  pip-cache:
-  test-cache:
+  pip-cache: {}
+  test-cache: {}
