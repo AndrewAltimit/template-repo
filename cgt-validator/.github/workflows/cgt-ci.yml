@@ -45,20 +45,20 @@ jobs:
         working-directory: ./cgt-validator
         run: |
           echo "🎨 Checking code formatting..."
-          docker-compose run --rm python-ci black --check .
+          docker-compose run --rm -T python-ci black --check .
 
       - name: Run basic linting
         working-directory: ./cgt-validator
         run: |
           echo "🔍 Running basic linting..."
-          docker-compose run --rm python-ci flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          docker-compose run --rm -T python-ci flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
       - name: Run full linting
         if: success()
         working-directory: ./cgt-validator
         run: |
           echo "🔍 Running full linting..."
-          docker-compose run --rm python-ci flake8 . --count --statistics || true
+          docker-compose run --rm -T python-ci flake8 . --count --statistics || true
 
   # Stage 2: Test suite
   test-suite:
@@ -82,12 +82,17 @@ jobs:
 
       - name: Run unit tests
         working-directory: ./cgt-validator
+        timeout-minutes: 10
         run: |
           echo "🧪 Running unit tests..."
-          docker-compose run --rm python-ci bash -c "
-            pip install -r requirements.txt && \
+          docker-compose run --rm -T python-ci bash -c "
+            set -e
+            pip install -r requirements.txt
             python -m pytest tests/ -v --cov=src --cov-report=xml --cov-report=html --maxfail=5 -p no:cacheprovider
+            echo 'Tests completed successfully'
           "
+          # Ensure all containers are stopped
+          docker-compose down || true
 
       - name: Upload test coverage
         if: always()
@@ -108,7 +113,7 @@ jobs:
 
           if [ -f coverage.xml ]; then
             echo "### Coverage Report" >> $GITHUB_STEP_SUMMARY
-            docker-compose run --rm python-ci python3 -c "
+            docker-compose run --rm -T python-ci python3 -c "
             import xml.etree.ElementTree as ET
             tree = ET.parse('coverage.xml')
             root = tree.getroot()
@@ -119,6 +124,13 @@ jobs:
             print(f'- Branch Coverage: {branch_rate:.1f}%')
             " >> $GITHUB_STEP_SUMMARY
           fi
+
+      - name: Cleanup
+        if: always()
+        working-directory: ./cgt-validator
+        run: |
+          docker-compose down || true
+          docker system prune -f || true
 
   # Stage 3: Validate mock data
   validate-mock-data:
@@ -134,7 +146,7 @@ jobs:
         working-directory: ./cgt-validator
         run: |
           echo "📊 Generating and validating Oregon mock data..."
-          docker-compose run --rm python-ci bash -c "
+          docker-compose run --rm -T python-ci bash -c "
             pip install -r requirements.txt && \
             python test_oregon_valid.py
           "
@@ -144,7 +156,7 @@ jobs:
         working-directory: ./cgt-validator
         run: |
           echo "📊 Validating mock data for all states..."
-          docker-compose run --rm python-ci bash -c "
+          docker-compose run --rm -T python-ci bash -c "
             pip install -r requirements.txt && \
             python scripts/validate-mock-data.py
           "
@@ -163,7 +175,7 @@ jobs:
         working-directory: ./cgt-validator
         run: |
           echo "🔒 Running security scan..."
-          docker-compose run --rm python-ci bash -c "
+          docker-compose run --rm -T python-ci bash -c "
             pip install --user bandit && \
             export PATH=/home/cgtuser/.local/bin:\$PATH && \
             bandit -r src/ -f json -o bandit-report.json || true
@@ -173,7 +185,7 @@ jobs:
         working-directory: ./cgt-validator
         run: |
           echo "🔍 Checking dependencies..."
-          docker-compose run --rm python-ci bash -c "
+          docker-compose run --rm -T python-ci bash -c "
             pip install --user safety && \
             export PATH=/home/cgtuser/.local/bin:\$PATH && \
             safety check --json > safety-report.json || true
@@ -235,7 +247,7 @@ jobs:
         working-directory: ./cgt-validator
         run: |
           echo "🌐 Testing web scraper..."
-          docker-compose run --rm python-ci bash -c "
+          docker-compose run --rm -T python-ci bash -c "
             pip install -r requirements.txt && \
             python -c 'from src.scrapers.web_scraper import WebScraper; scraper = WebScraper(); result = scraper.fetch_url(\"https://www.example.com\"); print(f\"Scraper test: {\"✅ Success\" if result else \"❌ Failed\"}\")'
           "
