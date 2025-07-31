@@ -39,7 +39,10 @@ def create_invalid_test_data(output_path: str):
     reconciliation_df["Medical Claims Total"] = reconciliation_df["Medical Claims Total"] * 0.5
 
     # 4. Add invalid date formats (strings instead of dates)
+    # Convert to object dtype first to avoid FutureWarning
+    medical_df["Service Date"] = medical_df["Service Date"].astype("object")
     medical_df.loc[0:10, "Service Date"] = "Invalid Date"
+    pharmacy_df["Fill Date"] = pharmacy_df["Fill Date"].astype("object")
     pharmacy_df.loc[0:10, "Fill Date"] = "2024/13/45"  # Invalid date
 
     # Write to Excel
@@ -122,7 +125,8 @@ def test_invalid_data(tmp_path):
     report_path.write_text(report_content)
     print(f"\n✓ Detailed report saved to: {report_path}")
 
-    return not results.is_valid()  # Should return True (test passes if validation fails)
+    # Test passes if validation fails (as expected for invalid data)
+    assert not results.is_valid(), "Validation should fail for invalid data"
 
 
 def test_valid_data(tmp_path):
@@ -163,7 +167,10 @@ def test_valid_data(tmp_path):
     report_path.write_text(report_content)
     print(f"\n✓ Report saved to: {report_path}")
 
-    return results.is_valid() or (summary["error_count"] == 0 and summary["warning_count"] <= 1)
+    # Test passes if validation succeeds or there are only minor warnings
+    assert results.is_valid() or (
+        summary["error_count"] == 0 and summary["warning_count"] <= 1
+    ), "Validation should pass for valid data"
 
 
 def main():
@@ -177,8 +184,18 @@ def main():
         tmp_path = Path(tmp_dir)
 
         # Run both tests
-        test1_passed = test_invalid_data(tmp_path)
-        test2_passed = test_valid_data(tmp_path)
+        test1_passed = True
+        test2_passed = True
+
+        try:
+            test_invalid_data(tmp_path)
+        except AssertionError:
+            test1_passed = False
+
+        try:
+            test_valid_data(tmp_path)
+        except AssertionError:
+            test2_passed = False
 
     # Summary
     print("\n" + "=" * 70)
