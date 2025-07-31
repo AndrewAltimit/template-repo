@@ -1,0 +1,3 @@
+# DEPRECATED - These are now included in requirements-cgt.txt
+# This file is kept for backwards compatibility
+# PDF parsing requirements have been consolidated into requirements-cgt.txt

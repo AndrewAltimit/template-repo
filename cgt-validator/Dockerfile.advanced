@@ -1,0 +1,77 @@
+# CGT Validator Docker Image
+# Multi-stage build for optimal size and security
+
+# Stage 1: Builder
+FROM python:3.11-slim AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    python3-dev \
+    libxml2-dev \
+    libxslt-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy requirements and install dependencies
+WORKDIR /build
+COPY requirements-cgt.txt .
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements-cgt.txt
+
+# Stage 2: Runtime
+FROM python:3.11-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libxml2 \
+    libxslt1.1 \
+    # For PDF processing
+    poppler-utils \
+    # For timezone data
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN useradd -m -u 1000 cgtuser
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+
+# Set environment variables
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONPATH="/app/src" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Create app directory
+WORKDIR /app
+
+# Copy application code
+COPY --chown=cgtuser:cgtuser . .
+
+# Install the package in development mode
+RUN pip install -e .
+
+# Create necessary directories
+RUN mkdir -p /app/downloads /app/reports /app/logs && \
+    chown -R cgtuser:cgtuser /app
+
+# Switch to non-root user
+USER cgtuser
+
+# Default command - show help
+CMD ["cgt-validate", "--help"]
+
+# Labels
+LABEL maintainer="CGT Validator Team" \
+      description="Health Cost Growth Target Data Validator" \
+      version="0.1.0"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD python -c "import sys; import pandas; import openpyxl; sys.exit(0)" || exit 1

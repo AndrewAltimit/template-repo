@@ -1,0 +1,286 @@
+---
+name: CGT Validator CI
+# CI pipeline for CGT validator on the cgt-validation branch
+
+'on':
+  push:
+    branches: [cgt-validation]
+    paths:
+      - 'cgt-validator/**'
+      - '.github/workflows/cgt-ci.yml'
+  pull_request:
+    branches: [cgt-validation]
+    paths:
+      - 'cgt-validator/**'
+      - '.github/workflows/cgt-ci.yml'
+  workflow_dispatch:
+    inputs:
+      run_full_test:
+        description: 'Run full test suite including integration tests'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: cgt-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  # Stage 1: Format and lint checks
+  format-and-lint:
+    name: Format and Lint Checks
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+
+      - name: Run format check
+        working-directory: ./cgt-validator
+        run: |
+          echo "🎨 Checking code formatting..."
+          docker-compose run --rm python-ci black --check .
+
+      - name: Run basic linting
+        working-directory: ./cgt-validator
+        run: |
+          echo "🔍 Running basic linting..."
+          docker-compose run --rm python-ci flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Run full linting
+        if: success()
+        working-directory: ./cgt-validator
+        run: |
+          echo "🔍 Running full linting..."
+          docker-compose run --rm python-ci flake8 . --count --statistics || true
+
+  # Stage 2: Test suite
+  test-suite:
+    name: Test Suite
+    needs: format-and-lint
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+
+      - name: Set up test environment
+        working-directory: ./cgt-validator
+        run: |
+          echo "🔧 Setting up test environment..."
+          # Ensure mock data directory exists
+          mkdir -p mock_data/oregon
+
+      - name: Run unit tests
+        working-directory: ./cgt-validator
+        run: |
+          echo "🧪 Running unit tests..."
+          docker-compose run --rm python-ci bash -c "
+            cd /app/cgt-validator && \
+            pip install -r requirements.txt && \
+            python -m pytest tests/ -v --cov=src --cov-report=xml --cov-report=html --maxfail=5
+          "
+
+      - name: Upload test coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cgt-coverage-${{ github.run_id }}
+          path: |
+            cgt-validator/coverage.xml
+            cgt-validator/htmlcov/
+          retention-days: 7
+
+      - name: Generate test summary
+        if: always()
+        working-directory: ./cgt-validator
+        run: |
+          echo "## CGT Validator Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f coverage.xml ]; then
+            echo "### Coverage Report" >> $GITHUB_STEP_SUMMARY
+            docker-compose run --rm python-ci python3 -c "
+            import xml.etree.ElementTree as ET
+            tree = ET.parse('coverage.xml')
+            root = tree.getroot()
+            line_rate = float(root.attrib.get('line-rate', 0)) * 100
+            branch_rate = float(root.attrib.get('branch-rate', 0)) * 100
+
+            print(f'- Line Coverage: {line_rate:.1f}%')
+            print(f'- Branch Coverage: {branch_rate:.1f}%')
+            " >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Stage 3: Validate mock data
+  validate-mock-data:
+    name: Validate Mock Data
+    needs: format-and-lint
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate and validate Oregon mock data
+        working-directory: ./cgt-validator
+        run: |
+          echo "📊 Generating and validating Oregon mock data..."
+          docker-compose run --rm python-ci bash -c "
+            cd /app/cgt-validator && \
+            pip install -r requirements.txt && \
+            python test_oregon_valid.py
+          "
+
+      - name: Validate all states mock data
+        if: success()
+        working-directory: ./cgt-validator
+        run: |
+          echo "📊 Validating mock data for all states..."
+          docker-compose run --rm python-ci bash -c "
+            cd /app/cgt-validator && \
+            pip install -r requirements.txt && \
+            python scripts/validate-mock-data.py
+          "
+
+  # Stage 4: Security scan
+  security-scan:
+    name: Security Scan
+    needs: format-and-lint
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Bandit security scan
+        working-directory: ./cgt-validator
+        run: |
+          echo "🔒 Running security scan..."
+          docker-compose run --rm python-ci bash -c "
+            cd /app/cgt-validator && \
+            pip install bandit && \
+            bandit -r src/ -f json -o bandit-report.json || true
+          "
+
+      - name: Check dependencies for vulnerabilities
+        working-directory: ./cgt-validator
+        run: |
+          echo "🔍 Checking dependencies..."
+          docker-compose run --rm python-ci bash -c "
+            cd /app/cgt-validator && \
+            pip install safety && \
+            safety check --json > safety-report.json || true
+          "
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cgt-security-reports-${{ github.run_id }}
+          path: |
+            cgt-validator/bandit-report.json
+            cgt-validator/safety-report.json
+          retention-days: 7
+
+  # Stage 5: Build and test Docker image
+  docker-build:
+    name: Docker Build and Test
+    needs: [test-suite, validate-mock-data]
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build CGT Validator Docker image
+        working-directory: ./cgt-validator
+        run: |
+          echo "🏗️ Building Docker image..."
+          docker build -t cgt-validator:test .
+
+      - name: Test Docker image
+        run: |
+          echo "🧪 Testing Docker image..."
+          # Test that the CLI works in the container
+          docker run --rm cgt-validator:test cgt-validate --help
+
+      - name: Test Docker Compose setup
+        working-directory: ./cgt-validator
+        run: |
+          echo "🧪 Testing Docker Compose..."
+          docker-compose up -d
+          sleep 5
+          docker-compose ps
+          docker-compose down
+
+  # Stage 6: Integration tests (optional)
+  integration-tests:
+    name: Integration Tests
+    needs: docker-build
+    if: github.event.inputs.run_full_test == 'true' || github.ref == 'refs/heads/cgt-validation'
+    runs-on: self-hosted
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run scraper integration test
+        working-directory: ./cgt-validator
+        run: |
+          echo "🌐 Testing web scraper..."
+          docker-compose run --rm python-ci bash -c "
+            cd /app/cgt-validator && \
+            pip install -r requirements.txt && \
+            python -c \"
+from src.scrapers.web_scraper import WebScraper
+scraper = WebScraper()
+# Test with a simple URL
+result = scraper.fetch_url('https://www.example.com')
+print(f'Scraper test: {'✅ Success' if result else '❌ Failed'}')
+\"
+          "
+
+  # Final summary
+  ci-summary:
+    name: CI Summary
+    needs: [format-and-lint, test-suite, validate-mock-data, security-scan, docker-build, integration-tests]
+    if: always()
+    runs-on: self-hosted
+    steps:
+      - name: Generate CI Summary
+        run: |
+          echo "# 📊 CGT Validator CI Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Format and Lint | ${{ needs.format-and-lint.result == 'success' && '✅' || needs.format-and-lint.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | ${{ needs.test-suite.result == 'success' && '✅' || needs.test-suite.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Mock Data Validation | ${{ needs.validate-mock-data.result == 'success' && '✅' || needs.validate-mock-data.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ needs.security-scan.result == 'success' && '✅' || needs.security-scan.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Build | ${{ needs.docker-build.result == 'success' && '✅' || needs.docker-build.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Tests | ${{ needs.integration-tests.result == 'success' && '✅' || needs.integration-tests.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+            echo "## ❌ CI Pipeline Failed" >> $GITHUB_STEP_SUMMARY
+            echo "One or more stages failed. Please review the logs." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "## ✅ CI Pipeline Succeeded" >> $GITHUB_STEP_SUMMARY
+            echo "All stages completed successfully!" >> $GITHUB_STEP_SUMMARY
+          fi

@@ -1,0 +1,64 @@
+# Docker Compose Override for Development
+# This file is automatically loaded by docker-compose and overrides settings for local development
+
+version: '3.8'
+
+services:
+  cgt-validator:
+    # Mount source code as read-write for development
+    volumes:
+      - ./src:/app/src:rw
+      - ./tests:/app/tests:rw
+      - ./mock_data:/app/mock_data:rw
+      - ./downloads:/app/downloads:rw
+      - ./reports:/app/reports:rw
+    environment:
+      - PYTHONPATH=/app/src
+      - CGT_ENV=development
+      - PYTHONDEBUG=1
+      - FLASK_ENV=development  # For future API
+    # Override command to keep container running
+    command: ["tail", "-f", "/dev/null"]
+
+  cgt-dev:
+    # Additional development tools
+    volumes:
+      - .:/app:rw
+      - ~/.gitconfig:/home/cgtuser/.gitconfig:ro
+      - ~/.ssh:/home/cgtuser/.ssh:ro
+    environment:
+      - PYTHONDEBUG=1
+      - PYTEST_ADDOPTS="-vv"
+
+  cgt-test:
+    # Enable pytest watch mode for development
+    environment:
+      - PYTEST_WATCH=1
+    volumes:
+      - ./src:/app/src:rw
+      - ./tests:/app/tests:rw
+    # Run tests in watch mode
+    command: ["sh", "-c", "pip install pytest-watch && ptw -- -v --color=yes"]
+
+  cgt-lint:
+    # Add auto-formatting in development
+    command: ["/bin/sh", "-c", "black src tests && isort src tests && echo 'Formatting complete!'"]
+
+  # Jupyter notebook for interactive development
+  cgt-notebook:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cgt-validator:latest
+    container_name: cgt-notebook
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./src:/app/src:rw
+      - ./notebooks:/app/notebooks:rw
+      - ./mock_data:/app/mock_data:rw
+    environment:
+      - PYTHONPATH=/app/src
+    command: ["sh", "-c", "pip install jupyter pandas matplotlib seaborn && jupyter notebook --ip=0.0.0.0 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password=''"]
+    networks:
+      - cgt-network

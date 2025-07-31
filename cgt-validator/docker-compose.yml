@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  # Main CGT Validator service
+  cgt-validator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cgt-validator:latest
+    container_name: cgt-validator
+    volumes:
+      - ./src:/app/src:ro
+      - ./mock_data:/app/mock_data
+      - ./downloads:/app/downloads
+      - ./reports:/app/reports
+      - ./requirements:/app/requirements:ro
+    environment:
+      - PYTHONPATH=/app/src
+      - CGT_ENV=development
+    command: ["python", "-m", "cli", "validate", "oregon", "--file", "mock_data/oregon/test_submission.xlsx"]
+    networks:
+      - cgt-network
+
+  # Development environment with hot reload
+  cgt-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cgt-validator:dev
+    container_name: cgt-dev
+    volumes:
+      - .:/app
+      - pip-cache:/root/.cache/pip
+    environment:
+      - PYTHONPATH=/app/src
+      - CGT_ENV=development
+      - PYTHONDEBUG=1
+    working_dir: /app
+    command: ["/bin/bash"]
+    stdin_open: true
+    tty: true
+    networks:
+      - cgt-network
+
+  # Test runner service
+  cgt-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cgt-validator:latest
+    container_name: cgt-test
+    volumes:
+      - ./src:/app/src:ro
+      - ./tests:/app/tests:ro
+      - ./mock_data:/app/mock_data:ro
+      - ./htmlcov:/app/htmlcov
+      - test-cache:/app/.pytest_cache
+    environment:
+      - PYTHONPATH=/app/src
+      - CGT_ENV=test
+    command: ["pytest", "-v", "--cov=src", "--cov-report=html", "--cov-report=term-missing", "tests/"]
+    networks:
+      - cgt-network
+
+  # Linting and code quality service
+  cgt-lint:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cgt-validator:latest
+    container_name: cgt-lint
+    volumes:
+      - ./src:/app/src:ro
+      - ./tests:/app/tests:ro
+    command: ["/bin/sh", "-c", "black --check src tests && flake8 src tests && pylint src --disable=R,C && mypy src --ignore-missing-imports"]
+    networks:
+      - cgt-network
+
+  # Documentation builder
+  cgt-docs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cgt-validator:latest
+    container_name: cgt-docs
+    volumes:
+      - ./docs:/app/docs
+      - ./src:/app/src:ro
+    ports:
+      - "8000:8000"
+    command: ["python", "-m", "http.server", "8000", "--directory", "docs"]
+    networks:
+      - cgt-network
+
+  # Automated scraper service
+  cgt-scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cgt-validator:latest
+    container_name: cgt-scraper
+    volumes:
+      - ./downloads:/app/downloads
+      - ./logs:/app/logs
+    environment:
+      - PYTHONPATH=/app/src
+      - CGT_ENV=production
+    command: ["python", "-m", "scrapers.scheduler", "run", "--all-states"]
+    networks:
+      - cgt-network
+
+  # API service (future REST API)
+  cgt-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cgt-validator:latest
+    container_name: cgt-api
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./src:/app/src:ro
+      - ./mock_data:/app/mock_data:ro
+    environment:
+      - PYTHONPATH=/app/src
+      - CGT_ENV=production
+      - FLASK_APP=api.app
+    command: ["echo", "API service not yet implemented"]
+    networks:
+      - cgt-network
+
+networks:
+  cgt-network:
+    driver: bridge
+
+volumes:
+  pip-cache:
+  test-cache:

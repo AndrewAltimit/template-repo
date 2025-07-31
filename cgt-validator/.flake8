@@ -1,0 +1,29 @@
+[flake8]
+# E203 whitespace before ':' - conflicts with Black's formatting for slices
+# W503 line break before binary operator - conflicts with Black
+# E501 line too long - handled by Black with max-line-length
+ignore = E203,W503
+max-line-length = 120
+exclude =
+    .git,
+    __pycache__,
+    docs/,
+    old,
+    build,
+    dist,
+    .venv,
+    venv,
+    *.egg-info,
+    .pytest_cache,
+    htmlcov,
+    .mypy_cache,
+    .tox,
+    migrations/,
+    scripts/agents/
+per-file-ignores =
+    # Allow unused imports in __init__ files
+    __init__.py:F401
+    # Allow more complex code in tests
+    test_*.py:C901
+    # Settings files can have "unused" imports
+    */config/*.py:F401

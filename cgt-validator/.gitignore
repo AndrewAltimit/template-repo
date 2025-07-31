@@ -1,0 +1,94 @@
+# CGT Validator .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+*.egg
+MANIFEST
+
+# Testing
+.coverage
+.coverage.*
+.pytest_cache/
+htmlcov/
+*.cover
+coverage.xml
+*.log
+nosetests.xml
+.hypothesis/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.spyderproject
+.spyproject
+.ropeproject
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+/cache/
+/states/*/
+/scraped_requirements/
+/downloads/
+/reports/
+/logs/
+/scraped_docs/
+/mock_data/*/*_annotated.xlsx
+/test_report*.html
+/validation_report.html
+/validation_demo_report.html
+*.xlsx
+*.xls
+*.csv
+!mock_data/**/*.xlsx
+!tests/fixtures/**/*.xlsx
+
+# Build
+build/
+dist/
+*.egg-info/
+.eggs/
+wheels/
+share/python-wheels/
+.installed.cfg
+
+# Documentation
+docs/_build/
+docs/_static/
+docs/_templates/
+/site
+
+# Temporary files
+*.tmp
+*.bak
+.~lock.*
+tmp/
+temp/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Pre-commit
+.pre-commit-config.yaml.lock
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
