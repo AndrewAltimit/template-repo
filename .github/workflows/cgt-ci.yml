@@ -80,6 +80,18 @@ jobs:
           # Ensure mock data directory exists
           mkdir -p mock_data/oregon
 
+      - name: Debug docker-compose configuration
+        working-directory: ./cgt-validator
+        run: |
+          echo "📋 Current docker-compose.yml configuration for cgt-test:"
+          grep -A 20 "cgt-test:" docker-compose.yml || true
+
+      - name: Rebuild test container
+        working-directory: ./cgt-validator
+        run: |
+          echo "🏗️ Rebuilding test container to ensure latest configuration..."
+          docker-compose build --no-cache cgt-test
+
       - name: Run unit tests
         working-directory: ./cgt-validator
         run: |
