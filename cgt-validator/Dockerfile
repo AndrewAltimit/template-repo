@@ -26,11 +26,13 @@ COPY --chown=cgtuser:cgtuser . .
 # Set environment variables
 ENV PYTHONPATH="/app/src" \
     PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTEST_CACHE_DIR="/tmp/.pytest_cache"
 
 # Create necessary directories
-RUN mkdir -p /app/downloads /app/reports /app/logs && \
-    chown -R cgtuser:cgtuser /app
+RUN mkdir -p /app/downloads /app/reports /app/logs /tmp/.pytest_cache && \
+    chown -R cgtuser:cgtuser /app && \
+    chmod -R 777 /tmp/.pytest_cache
 
 # Switch to non-root user
 USER cgtuser
