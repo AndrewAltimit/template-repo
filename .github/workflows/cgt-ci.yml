@@ -45,20 +45,20 @@ jobs:
         working-directory: ./cgt-validator
         run: |
           echo "🎨 Checking code formatting..."
-          docker-compose run --rm cgt-lint sh -c "pip install black && python -m black --check src tests"
+          docker-compose -f docker-compose.yml run --rm cgt-lint sh -c "pip install black && python -m black --check src tests"
 
       - name: Run basic linting
         working-directory: ./cgt-validator
         run: |
           echo "🔍 Running basic linting..."
-          docker-compose run --rm cgt-lint sh -c "pip install flake8 && python -m flake8 --config=.flake8 src tests --count --select=E9,F63,F7,F82 --show-source --statistics"
+          docker-compose -f docker-compose.yml run --rm cgt-lint sh -c "pip install flake8 && python -m flake8 --config=.flake8 src tests --count --select=E9,F63,F7,F82 --show-source --statistics"
 
       - name: Run full linting
         if: success()
         working-directory: ./cgt-validator
         run: |
           echo "🔍 Running full linting..."
-          docker-compose run --rm cgt-lint sh -c "pip install black flake8 pylint && python -m black --check src tests && python -m flake8 --config=.flake8 src tests && python -m pylint src --disable=R,C"
+          docker-compose -f docker-compose.yml run --rm cgt-lint sh -c "pip install black flake8 pylint && python -m black --check src tests && python -m flake8 --config=.flake8 src tests && python -m pylint src --disable=R,C"
 
   # Stage 2: Test suite
   test-suite:
@@ -91,13 +91,15 @@ jobs:
         working-directory: ./cgt-validator
         run: |
           echo "🏗️ Rebuilding test container to ensure latest configuration..."
-          docker-compose build --no-cache cgt-test
+          # Use only docker-compose.yml, not docker-compose.override.yml
+          docker-compose -f docker-compose.yml build --no-cache cgt-test
 
       - name: Run unit tests
         working-directory: ./cgt-validator
         run: |
           echo "🧪 Running unit tests..."
-          docker-compose run --rm cgt-test
+          # Use only docker-compose.yml, not docker-compose.override.yml
+          docker-compose -f docker-compose.yml run --rm cgt-test
 
       - name: Tear down services
         if: always()
