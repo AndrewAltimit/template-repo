@@ -56,6 +56,7 @@ services:
     environment:
       - PYTHONPATH=/app/src
       - CGT_ENV=test
+      - PYTEST_CACHE_DIR=/tmp/.pytest_cache
     command: ["pytest", "-v", "--cov=src", "--cov-report=html", "--cov-report=term-missing", "tests/"]
     networks:
       - cgt-network
@@ -125,6 +126,26 @@ services:
       - CGT_ENV=production
       - FLASK_APP=api.app
     command: ["echo", "API service not yet implemented"]
+    networks:
+      - cgt-network
+
+  # Python CI service for GitHub Actions
+  python-ci:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cgt-validator:latest
+    container_name: cgt-python-ci
+    volumes:
+      - .:/app/cgt-validator
+      - /tmp/.pytest_cache:/tmp/.pytest_cache
+    environment:
+      - PYTHONPATH=/app/cgt-validator/src
+      - CGT_ENV=ci
+      - PYTEST_CACHE_DIR=/tmp/.pytest_cache
+      - PYTHONDONTWRITEBYTECODE=1
+    working_dir: /app
+    user: cgtuser
     networks:
       - cgt-network
 
