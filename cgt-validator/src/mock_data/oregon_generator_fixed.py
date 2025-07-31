@@ -126,6 +126,7 @@ class OregonMockDataGenerator:
 
             data.append(
                 {
+                    "Provider ID": random.choice(self.providers)["Provider ID"],
                     "Member ID": random.choice(self.members),
                     "Claim ID": f"RX{str(i+1).zfill(10)}",
                     "Fill Date": fill_date,  # Keep as datetime object
@@ -149,34 +150,37 @@ class OregonMockDataGenerator:
             .round(2)
         )
 
-        # Calculate pharmacy totals
-        pharmacy_totals = {
-            "allowed": pharmacy_df["Allowed Amount"].sum() if not pharmacy_df.empty else 0,
-            "paid": pharmacy_df["Paid Amount"].sum() if not pharmacy_df.empty else 0,
-        }
+        # Calculate pharmacy totals by provider
+        pharmacy_by_provider = (
+            pharmacy_df.groupby("Provider ID").agg({"Allowed Amount": "sum", "Paid Amount": "sum"}).round(2)
+        )
 
-        # Add some adjustments
+        # Add reconciliation data
         data = []
         for provider_id in medical_by_provider.index:
             medical_allowed = medical_by_provider.loc[provider_id, "Allowed Amount"]
             medical_paid = medical_by_provider.loc[provider_id, "Paid Amount"]
 
-            # Add some random adjustments
-            adjustments = round(random.uniform(-1000, 1000), 2)
+            # Get pharmacy totals for this provider (if any)
+            if provider_id in pharmacy_by_provider.index:
+                pharmacy_allowed = pharmacy_by_provider.loc[provider_id, "Allowed Amount"]
+                pharmacy_paid = pharmacy_by_provider.loc[provider_id, "Paid Amount"]
+            else:
+                pharmacy_allowed = 0
+                pharmacy_paid = 0
 
-            # Distribute pharmacy totals across providers proportionally
-            provider_pharmacy_allowed = round(pharmacy_totals["allowed"] * 0.2, 2)
-            provider_pharmacy_paid = round(pharmacy_totals["paid"] * 0.2, 2)
+            # Small adjustments for realism
+            adjustments = round(random.uniform(-100, 100), 2)
 
             data.append(
                 {
                     "Provider ID": provider_id,
                     "Medical Claims Total": medical_allowed,
                     "Medical Paid Total": medical_paid,
-                    "Pharmacy Claims Total": provider_pharmacy_allowed,
-                    "Pharmacy Paid Total": provider_pharmacy_paid,
+                    "Pharmacy Claims Total": pharmacy_allowed,
+                    "Pharmacy Paid Total": pharmacy_paid,
                     "Adjustments": adjustments,
-                    "Net Total": round(medical_allowed + provider_pharmacy_allowed + adjustments, 2),
+                    "Net Total": round(medical_allowed, 2),  # Net total should match medical claims total
                 }
             )
 
@@ -266,17 +270,20 @@ class OregonMockDataGenerator:
                 bh_df.to_excel(writer, sheet_name="Behavioral Health", index=False)
                 attribution_df.to_excel(writer, sheet_name="Attribution", index=False)
 
-            # Format text columns properly
+            # Format text columns properly BEFORE values are read
             workbook = writer.book
-            for sheet_name in workbook.sheetnames:
-                if sheet_name == "Provider Information":
-                    worksheet = workbook[sheet_name]
-                    # Set NPI and ZIP columns to text format
-                    for row in worksheet.iter_rows(min_row=2):  # Skip header
-                        if row[4].value:  # NPI column (E)
-                            row[4].number_format = "@"  # Text format
-                        if row[8].value:  # ZIP column (I)
-                            row[8].number_format = "@"  # Text format
+            provider_sheet = workbook["Provider Information"]
+
+            # Format entire NPI column (E) and ZIP column (I) as text
+            for cell in provider_sheet["E"]:  # NPI column
+                cell.number_format = "@"
+            for cell in provider_sheet["I"]:  # ZIP column
+                cell.number_format = "@"
+
+            # Re-write the NPI and ZIP values to ensure they're stored as text
+            for idx, row in provider_df.iterrows():
+                provider_sheet.cell(row=idx + 2, column=5, value=str(row["NPI"]))  # NPI is column 5 (E)
+                provider_sheet.cell(row=idx + 2, column=9, value=str(row["ZIP"]))  # ZIP is column 9 (I)
 
         print(f"Mock data saved to: {output_path}")
         return output_path

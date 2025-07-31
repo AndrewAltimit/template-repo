@@ -36,6 +36,8 @@ class OregonValidator(ValidatorBase):
                 "Reconciliation",
                 "Behavioral Health",
                 "Attribution",
+                "Metadata",
+                "Version",
             ],
             "mandatory_fields": {
                 "Provider Information": [

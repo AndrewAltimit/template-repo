@@ -36,7 +36,7 @@ services:
       - ./src:/app/src:rw
       - ./tests:/app/tests:rw
     # Run tests in watch mode
-    command: ["sh", "-c", "pip install pytest-watch && ptw -- -v --color=yes"]
+    command: ["sh", "-c", "pip install pytest-watch && export PATH=/home/cgtuser/.local/bin:$PATH && ptw -- -v --color=yes"]
 
   cgt-lint:
     # Add auto-formatting in development
