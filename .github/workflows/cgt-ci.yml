@@ -127,6 +127,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Rebuild Docker images to ensure latest code
+        working-directory: ./cgt-validator
+        run: |
+          echo "🏗️ Rebuilding Docker images with latest code..."
+          docker-compose build --no-cache cgt-dev
+
       - name: Generate and validate Oregon mock data
         working-directory: ./cgt-validator
         run: |
