@@ -274,12 +274,17 @@ jobs:
         working-directory: ./cgt-validator
         run: |
           echo "🌐 Testing web scraper..."
-          docker-compose run --rm cgt-dev bash -c "
-            pip install -r requirements.txt && \
-            python -c \"import requests; response = None; \
-            try: response = requests.get('https://www.example.com', timeout=10); response.raise_for_status(); print('Scraper test: ✅ Success - HTTP connectivity working') \
-            except Exception as e: print(f'Scraper test: ❌ Failed - {e}')\"
-          "
+          cat > test_scraper.py << 'EOF'
+          import requests
+          try:
+              response = requests.get('https://www.example.com', timeout=10)
+              response.raise_for_status()
+              print('Scraper test: ✅ Success - HTTP connectivity working')
+          except Exception as e:
+              print(f'Scraper test: ❌ Failed - {e}')
+          EOF
+          docker-compose run --rm cgt-dev bash -c "pip install -r requirements.txt && python test_scraper.py"
+          rm -f test_scraper.py
 
   # Final summary
   ci-summary:
