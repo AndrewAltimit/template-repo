@@ -62,55 +62,36 @@ class ContentCreationMCPServer(BaseMCPServer):
             Dictionary with visual feedback data or error information
         """
         try:
-            # Try to use PIL for better compression
-            try:
-                from PIL import Image
+            from PIL import Image
 
-                with Image.open(image_path) as img:
-                    # Convert RGBA to RGB if necessary for JPEG
-                    if img.mode in ("RGBA", "LA"):
-                        background = Image.new("RGB", img.size, (255, 255, 255))
-                        if img.mode == "RGBA":
-                            background.paste(img, mask=img.split()[3])
-                        else:
-                            background.paste(img, mask=img.split()[1])
-                        img = background
+            with Image.open(image_path) as img:
+                # Convert RGBA to RGB if necessary for JPEG
+                if img.mode in ("RGBA", "LA"):
+                    background = Image.new("RGB", img.size, (255, 255, 255))
+                    if img.mode == "RGBA":
+                        background.paste(img, mask=img.split()[3])
+                    else:
+                        background.paste(img, mask=img.split()[1])
+                    img = background
 
-                    # Save as JPEG with compression for smaller size
+                # Save as JPEG with compression for smaller size
+                buffer = io.BytesIO()
+                img.save(buffer, format="JPEG", quality=JPEG_QUALITY_HIGH, optimize=True)
+                img_data = buffer.getvalue()
+
+                # If still too large, try more compression
+                if len(img_data) > MAX_IMAGE_SIZE_JPEG:
                     buffer = io.BytesIO()
-                    img.save(buffer, format="JPEG", quality=JPEG_QUALITY_HIGH, optimize=True)
+                    img.save(buffer, format="JPEG", quality=JPEG_QUALITY_LOW, optimize=True)
                     img_data = buffer.getvalue()
 
-                    # If still too large, try more compression
-                    if len(img_data) > MAX_IMAGE_SIZE_JPEG:
-                        buffer = io.BytesIO()
-                        img.save(buffer, format="JPEG", quality=JPEG_QUALITY_LOW, optimize=True)
-                        img_data = buffer.getvalue()
-
-                    img_base64 = base64.b64encode(img_data).decode("utf-8")
-                    return {
-                        "format": "jpeg",
-                        "encoding": "base64",
-                        "data": img_base64,
-                        "size_kb": len(img_data) / 1024,
-                    }
-
-            except ImportError:
-                # Fallback to PNG if PIL not available
-                self.logger.warning("PIL not available, using PNG format")
-                with open(image_path, "rb") as img_file:
-                    img_data = img_file.read()
-                    # Only include if reasonably sized
-                    if len(img_data) < MAX_IMAGE_SIZE_PNG:
-                        img_base64 = base64.b64encode(img_data).decode("utf-8")
-                        return {
-                            "format": "png",
-                            "encoding": "base64",
-                            "data": img_base64,
-                            "size_kb": len(img_data) / 1024,
-                        }
-                    else:
-                        return {"error": "Image too large for feedback"}
+                img_base64 = base64.b64encode(img_data).decode("utf-8")
+                return {
+                    "format": "jpeg",
+                    "encoding": "base64",
+                    "data": img_base64,
+                    "size_kb": len(img_data) / 1024,
+                }
 
         except Exception as e:
             self.logger.warning(f"Failed to process image for visual feedback: {e}")

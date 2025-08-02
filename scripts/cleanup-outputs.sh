@@ -20,7 +20,7 @@ cleanup_dir() {
         docker run --rm \
             -v "$(pwd)/$dir:/cleanup" \
             busybox \
-            sh -c "rm -rf /cleanup/* /cleanup/.* 2>/dev/null || true"
+            sh -c "find /cleanup -mindepth 1 -delete 2>/dev/null || true"
 
         # Remove the directory itself if empty
         rmdir "$dir" 2>/dev/null || true
