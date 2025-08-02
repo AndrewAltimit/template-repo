@@ -120,7 +120,8 @@ services:
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/workspace
-      - ~/.config/openrouter:/home/agentuser/.config  # For agent configs
+      - ~/.config/openrouter:/home/agentuser/.config/openrouter  # Mount only openrouter config
+      - ~/.config/mods:/home/agentuser/.config/mods              # Preserve mods config
     environment:
       - PYTHONUNBUFFERED=1
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}

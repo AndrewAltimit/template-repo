@@ -1,11 +1,9 @@
 """Base wrapper for CLI-based AI agents."""
 
 import asyncio
-import atexit
 import logging
 import os
 import re
-import tempfile
 from abc import abstractmethod
 from typing import Dict, List, Optional, Tuple
 
@@ -13,24 +11,6 @@ from .agent_interface import AIAgent
 from .exceptions import AgentAuthenticationError, AgentExecutionError, AgentTimeoutError
 
 logger = logging.getLogger(__name__)
-
-# Global temp file tracker for cleanup
-_temp_files = set()
-
-
-def _cleanup_temp_files():
-    """Clean up any remaining temporary files."""
-    for filepath in list(_temp_files):
-        try:
-            if os.path.exists(filepath):
-                os.unlink(filepath)
-                logger.debug(f"Cleaned up temp file: {filepath}")
-        except Exception as e:
-            logger.warning(f"Failed to clean up temp file {filepath}: {e}")
-
-
-# Register cleanup function to run at exit
-atexit.register(_cleanup_temp_files)
 
 
 class CLIAgentWrapper(AIAgent):
@@ -162,20 +142,8 @@ class CLIAgentWrapper(AIAgent):
         self._check_security_requirements()
 
         cmd = self._build_command(prompt, context)
-        temp_files_created = []
-
-        try:
-            # Track any temp files in the command
-            for arg in cmd:
-                if arg.startswith("/tmp/") and arg in _temp_files:
-                    temp_files_created.append(arg)
-
-            stdout, stderr = await self._execute_with_timeout(cmd)
-            return self._parse_output(stdout, stderr)
-        finally:
-            # Clean up any temp files created for this command
-            for filepath in temp_files_created:
-                self._cleanup_temp_file(filepath)
+        stdout, stderr = await self._execute_with_timeout(cmd)
+        return self._parse_output(stdout, stderr)
 
     async def review_code(self, code: str, instructions: str) -> str:
         """Review code using the CLI agent."""
@@ -235,24 +203,6 @@ class CLIAgentWrapper(AIAgent):
         code_pattern = re.compile(r"```(?:[\w]*\n)?(.*?)```", re.DOTALL)
         matches = code_pattern.findall(text)
         return matches if matches else [text]
-
-    def _save_to_temp_file(self, content: str, suffix: str = ".txt") -> str:
-        """Save content to a temporary file and return the path."""
-        with tempfile.NamedTemporaryFile(mode="w", suffix=suffix, delete=False) as f:
-            f.write(content)
-            filepath = f.name
-            _temp_files.add(filepath)  # Track for cleanup
-            return filepath
-
-    def _cleanup_temp_file(self, filepath: str) -> None:
-        """Clean up a temporary file immediately."""
-        try:
-            if os.path.exists(filepath):
-                os.unlink(filepath)
-                _temp_files.discard(filepath)
-                logger.debug(f"Cleaned up temp file: {filepath}")
-        except Exception as e:
-            logger.warning(f"Failed to clean up temp file {filepath}: {e}")
 
     def _check_security_requirements(self) -> None:
         """Check security requirements before executing commands.

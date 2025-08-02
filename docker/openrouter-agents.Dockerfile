@@ -1,6 +1,23 @@
 # OpenRouter Agents Image with Node.js and Go
 # For agents that can be fully containerized (OpenCode, Codex, Crush)
+
+# Stage 1: Node.js base
+FROM node:20-slim AS node-base
+
+# Stage 2: Go base
+FROM golang:1.21-bullseye AS go-base
+
+# Stage 3: Final image
 FROM python:3.11-slim
+
+# Copy Node.js from official image
+COPY --from=node-base /usr/local/bin/node /usr/local/bin/node
+COPY --from=node-base /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=node-base /usr/local/bin/npm /usr/local/bin/npm
+COPY --from=node-base /usr/local/bin/npx /usr/local/bin/npx
+
+# Copy Go from official image
+COPY --from=go-base /usr/local/go /usr/local/go
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -11,22 +28,12 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js 20 LTS
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Go 1.21
-RUN wget -q https://go.dev/dl/go1.21.0.linux-amd64.tar.gz \
-    && tar -C /usr/local -xzf go1.21.0.linux-amd64.tar.gz \
-    && rm go1.21.0.linux-amd64.tar.gz
-
 # Set Go environment variables
 ENV PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
 ENV GOPATH="/root/go"
 
-# Install GitHub CLI (for agent operations)
-RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+# Install GitHub CLI (for agent operations) - using official method
+RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /usr/share/keyrings/githubcli-archive-keyring.gpg > /dev/null \
     && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
     && apt-get update \
