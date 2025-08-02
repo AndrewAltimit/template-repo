@@ -17,27 +17,31 @@ cleanup_dir() {
     if [ -d "$dir" ]; then
         echo "  Cleaning $dir..."
         # Use a Docker container running as root to ensure we can remove all files
+        # Also remove the directory itself to prevent permission issues
         docker run --rm \
             -v "$(pwd)/$dir:/cleanup" \
             busybox \
-            sh -c "find /cleanup -mindepth 1 -delete 2>/dev/null || true"
-
-        # Remove the directory itself if empty
-        rmdir "$dir" 2>/dev/null || true
+            sh -c "rm -rf /cleanup/* /cleanup/.[!.]* /cleanup/..?* 2>/dev/null || true"
     fi
 }
 
-# Clean up all directories under outputs/ dynamically
+# Clean up the entire outputs directory if it exists
 if [ -d "outputs" ]; then
-    # Use find command instead of shell glob to avoid issues when no subdirs exist
-    find outputs -maxdepth 1 -mindepth 1 -type d 2>/dev/null | while read -r dir; do
-        cleanup_dir "$dir"
-    done
+    echo "  Cleaning entire outputs directory..."
+    # Use Docker to remove the entire directory with proper permissions
+    docker run --rm \
+        -v "$(pwd):/workspace" \
+        -w /workspace \
+        busybox \
+        sh -c "rm -rf outputs 2>/dev/null || true"
 
-    # Also clean up the parent directory if empty
-    rmdir "outputs" 2>/dev/null || true
+    # Recreate the outputs directory with proper permissions
+    mkdir -p outputs
+    chmod 755 outputs
 else
-    echo "  No outputs directory found - nothing to clean"
+    echo "  No outputs directory found - creating it"
+    mkdir -p outputs
+    chmod 755 outputs
 fi
 
 echo -e "${GREEN}✅ Output directories cleaned up${NC}"

@@ -5,17 +5,14 @@ This package contains specialized MCP servers:
 - content_creation: Manim animations and LaTeX compilation
 - gemini: AI integration (must run on host)
 - gaea2: Terrain generation tools
+
+Note: Each server should be imported directly from its module to avoid
+cross-dependencies between servers with different requirements.
 """
 
-# Import the individual servers for convenience
-from .code_quality import CodeQualityMCPServer
-from .content_creation import ContentCreationMCPServer
-from .gaea2 import Gaea2MCPServer
-from .gemini import GeminiMCPServer
-
-__all__ = [
-    "CodeQualityMCPServer",
-    "ContentCreationMCPServer",
-    "GeminiMCPServer",
-    "Gaea2MCPServer",
-]
+# Do not import servers here to avoid cross-dependencies
+# Each server has different dependencies that may not be available
+# in all environments. Import directly from the specific module instead:
+# from tools.mcp.code_quality import CodeQualityMCPServer
+# from tools.mcp.content_creation import ContentCreationMCPServer
+# etc.
