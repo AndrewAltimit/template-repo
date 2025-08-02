@@ -3,6 +3,7 @@
 Improved Gemini PR Review Script with better context handling
 """
 
+import json
 import os
 import subprocess
 import sys
@@ -239,8 +240,6 @@ def get_recent_pr_comments(pr_number: str) -> str:
             text=True,
             check=True,
         )
-
-        import json
 
         pr_data = json.loads(result.stdout)
         comments = pr_data.get("comments", [])
