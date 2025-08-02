@@ -142,6 +142,12 @@ pip install -r requirements.txt
 ```bash
 # IMPORTANT: AI agents now run on the host machine (not containerized)
 # This is required for Claude CLI subscription authentication to work
+# See docs/AI_AGENTS_CLAUDE_AUTH.md for detailed explanation
+#
+# This is a deliberate exception to our container-first philosophy due to:
+# 1. Claude CLI subscription auth being machine-specific
+# 2. Authentication tokens not being portable to containers
+# 3. Security design preventing credential sharing
 
 # Run AI agents directly on host
 python3 scripts/agents/run_agents.py status
@@ -278,12 +284,12 @@ The repository includes comprehensive CI/CD workflows:
 
 ### Container Architecture Philosophy
 
-1. **Everything Containerized** (with exceptions for authentication):
+1. **Everything Containerized** (with documented exceptions):
    - Python CI/CD tools run in `python-ci` container (Python 3.11)
    - MCP servers run in their own containers
    - **Exceptions due to authentication requirements**:
      - Gemini CLI (requires Docker access)
-     - AI Agents using Claude CLI (requires host subscription auth)
+     - AI Agents using Claude CLI (requires host subscription auth - see `docs/AI_AGENTS_CLAUDE_AUTH.md`)
    - All containers run with user permissions (non-root)
 
 2. **Zero Local Dependencies**:

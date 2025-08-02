@@ -88,6 +88,26 @@ class AgentConfig:
         """Get OpenRouter configuration."""
         return self.config.get("openrouter", {})
 
+    def get_security_config(self) -> Dict:
+        """Get security configuration."""
+        return self.config.get("security", {})
+
+    def get_subprocess_timeout(self) -> int:
+        """Get subprocess timeout from security config."""
+        security = self.get_security_config()
+        return security.get("subprocess_timeout", 600)  # Default 10 minutes
+
+    def get_rate_limit(self, agent: str) -> Dict:
+        """Get rate limit configuration for an agent."""
+        rate_limits = self.config.get("rate_limits", {})
+        agent_limits = rate_limits.copy()
+
+        # Override with agent-specific limits if available
+        if agent in rate_limits:
+            agent_limits.update(rate_limits[agent])
+
+        return agent_limits
+
     def save_config(self):
         """Save current configuration to file."""
         try:

@@ -12,7 +12,7 @@ import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from logging_security import get_secure_logger, mask_secrets
+from .logging_security import get_secure_logger, mask_secrets
 
 logger = get_secure_logger(__name__)
 

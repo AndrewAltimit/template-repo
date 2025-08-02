@@ -2,15 +2,21 @@
 
 import asyncio
 import os
+
+# Add the project root to sys.path to allow imports
+import sys
+from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from scripts.agents.core.agent_interface import AIAgent
-from scripts.agents.core.config_loader import AgentConfig
-from scripts.agents.core.exceptions import AgentExecutionError, AgentNotAvailableError, AgentTimeoutError
-from scripts.agents.implementations import ClaudeAgent, GeminiAgent
-from scripts.agents.multi_agent_subagent_manager import MultiAgentSubagentManager
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from scripts.agents.core.agent_interface import AIAgent  # noqa: E402
+from scripts.agents.core.config_loader import AgentConfig  # noqa: E402
+from scripts.agents.core.exceptions import AgentExecutionError, AgentNotAvailableError, AgentTimeoutError  # noqa: E402
+from scripts.agents.implementations import ClaudeAgent, GeminiAgent  # noqa: E402
+from scripts.agents.multi_agent_subagent_manager import MultiAgentSubagentManager  # noqa: E402
 
 
 class TestAgentConfig:
@@ -116,9 +122,13 @@ class TestMultiAgentSubagentManager:
 
     def test_initialize_agents(self):
         """Test agent initialization."""
-        with patch("scripts.agents.implementations.ClaudeAgent") as MockClaude, patch(
-            "scripts.agents.implementations.GeminiAgent"
-        ) as MockGemini:
+        with patch("scripts.agents.multi_agent_subagent_manager.ClaudeAgent") as MockClaude, patch(
+            "scripts.agents.multi_agent_subagent_manager.GeminiAgent"
+        ) as MockGemini, patch("scripts.agents.multi_agent_subagent_manager.OpenCodeAgent") as MockOpenCode, patch(
+            "scripts.agents.multi_agent_subagent_manager.CodexAgent"
+        ) as MockCodex, patch(
+            "scripts.agents.multi_agent_subagent_manager.CrushAgent"
+        ) as MockCrush:
             mock_claude = Mock()
             mock_claude.is_available.return_value = True
             MockClaude.return_value = mock_claude
@@ -126,6 +136,18 @@ class TestMultiAgentSubagentManager:
             mock_gemini = Mock()
             mock_gemini.is_available.return_value = True
             MockGemini.return_value = mock_gemini
+
+            mock_opencode = Mock()
+            mock_opencode.is_available.return_value = False
+            MockOpenCode.return_value = mock_opencode
+
+            mock_codex = Mock()
+            mock_codex.is_available.return_value = False
+            MockCodex.return_value = mock_codex
+
+            mock_crush = Mock()
+            mock_crush.is_available.return_value = False
+            MockCrush.return_value = mock_crush
 
             manager = MultiAgentSubagentManager()
             assert "claude" in manager.agents
@@ -144,8 +166,7 @@ class TestMultiAgentSubagentManager:
         with pytest.raises(AgentNotAvailableError):
             manager.get_agent("nonexistent")
 
-    @pytest.mark.asyncio
-    async def test_execute_with_agent_and_persona(self):
+    def test_execute_with_agent_and_persona(self):
         """Test executing with specific agent and persona."""
         manager = MultiAgentSubagentManager()
 
@@ -218,6 +239,12 @@ class TestTempFileCleanup:
 
             def get_model_config(self):
                 return {}
+
+            def _build_command(self, prompt, context):
+                return ["echo", "test"]
+
+            def _parse_output(self, output, error):
+                return output
 
         agent = TestAgent()
 

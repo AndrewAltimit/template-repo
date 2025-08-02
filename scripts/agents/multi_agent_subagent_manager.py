@@ -10,11 +10,11 @@ import asyncio
 import os
 from typing import Dict, List, Optional, Tuple
 
-from core import AgentConfig
-from core.exceptions import AgentNotAvailableError
-from implementations import ClaudeAgent, CodexAgent, CrushAgent, GeminiAgent, OpenCodeAgent
-from logging_security import get_secure_logger
-from subagent_manager import SubagentManager
+from .core import AgentConfig
+from .core.exceptions import AgentNotAvailableError
+from .implementations import ClaudeAgent, CodexAgent, CrushAgent, GeminiAgent, OpenCodeAgent
+from .logging_security import get_secure_logger
+from .subagent_manager import SubagentManager
 
 logger = get_secure_logger(__name__)
 
@@ -34,7 +34,7 @@ class MultiAgentSubagentManager(SubagentManager):
 
         # Initialize Claude
         try:
-            claude = ClaudeAgent()
+            claude = ClaudeAgent(agent_config=self.config)
             if claude.is_available():
                 agents["claude"] = claude
                 logger.info("Claude agent initialized")
@@ -43,7 +43,7 @@ class MultiAgentSubagentManager(SubagentManager):
 
         # Initialize Gemini
         try:
-            gemini = GeminiAgent()
+            gemini = GeminiAgent(agent_config=self.config)
             if gemini.is_available():
                 agents["gemini"] = gemini
                 logger.info("Gemini agent initialized")
@@ -52,7 +52,7 @@ class MultiAgentSubagentManager(SubagentManager):
 
         # Initialize OpenCode
         try:
-            opencode = OpenCodeAgent()
+            opencode = OpenCodeAgent(agent_config=self.config)
             if opencode.is_available():
                 agents["opencode"] = opencode
                 logger.info("OpenCode agent initialized")
@@ -61,7 +61,7 @@ class MultiAgentSubagentManager(SubagentManager):
 
         # Initialize Codex
         try:
-            codex = CodexAgent()
+            codex = CodexAgent(agent_config=self.config)
             if codex.is_available():
                 agents["codex"] = codex
                 logger.info("Codex agent initialized")
@@ -70,7 +70,7 @@ class MultiAgentSubagentManager(SubagentManager):
 
         # Initialize Crush
         try:
-            crush = CrushAgent()
+            crush = CrushAgent(agent_config=self.config)
             if crush.is_available():
                 agents["crush"] = crush
                 logger.info("Crush agent initialized")

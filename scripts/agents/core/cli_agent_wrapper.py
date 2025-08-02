@@ -6,7 +6,6 @@ import logging
 import os
 import re
 import tempfile
-import weakref
 from abc import abstractmethod
 from typing import Dict, List, Optional, Tuple
 
@@ -16,7 +15,7 @@ from .exceptions import AgentAuthenticationError, AgentExecutionError, AgentTime
 logger = logging.getLogger(__name__)
 
 # Global temp file tracker for cleanup
-_temp_files = weakref.WeakSet()
+_temp_files = set()
 
 
 def _cleanup_temp_files():

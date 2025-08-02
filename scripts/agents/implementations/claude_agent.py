@@ -12,15 +12,25 @@ logger = logging.getLogger(__name__)
 class ClaudeAgent(CLIAgentWrapper):
     """Claude Code CLI agent wrapper."""
 
-    def __init__(self):
-        """Initialize Claude agent."""
+    def __init__(self, agent_config=None):
+        """Initialize Claude agent.
+
+        Args:
+            agent_config: Optional AgentConfig instance for centralized configuration
+        """
+        # Get timeout from central config if available
+        timeout = 600  # Default 10 minutes
+        if agent_config:
+            timeout = agent_config.get_subprocess_timeout()
+
         config = {
             "executable": "claude",
-            "timeout": 600,  # 10 minutes for complex tasks
+            "timeout": timeout,
             "env_vars": {},
             "working_dir": os.getcwd(),
         }
         super().__init__("claude", config)
+        self.agent_config = agent_config
 
     def get_trigger_keyword(self) -> str:
         """Get trigger keyword for Claude."""

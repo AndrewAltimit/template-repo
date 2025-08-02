@@ -13,15 +13,25 @@ logger = logging.getLogger(__name__)
 class GeminiAgent(CLIAgentWrapper):
     """Gemini CLI agent wrapper."""
 
-    def __init__(self):
-        """Initialize Gemini agent."""
+    def __init__(self, agent_config=None):
+        """Initialize Gemini agent.
+
+        Args:
+            agent_config: Optional AgentConfig instance for centralized configuration
+        """
+        # Get timeout from central config if available
+        timeout = 90  # Default 90 seconds
+        if agent_config:
+            timeout = agent_config.get_subprocess_timeout()
+
         config = {
             "executable": "gemini",
-            "timeout": 90,  # 90 seconds for Pro model
+            "timeout": timeout,
             "env_vars": {},
             "working_dir": os.getcwd(),
         }
         super().__init__("gemini", config)
+        self.agent_config = agent_config
 
         # Model configuration
         self.pro_model = "gemini-2.5-pro"
@@ -104,20 +114,22 @@ class GeminiAgent(CLIAgentWrapper):
                 self._available = False
                 return False
 
-            # Check if we can run a simple command
-            # Note: Gemini CLI doesn't have a --version flag
-            result = subprocess.run([self.executable, "-m", self.flash_model, "-p", "test"], capture_output=True, timeout=10)
+            # Check if we can run a simple command without making API calls
+            # Note: Gemini CLI doesn't have a --version flag, so check for help
+            result = subprocess.run([self.executable, "--help"], capture_output=True, timeout=5)
 
-            # If return code is 0 or the error is about authentication, consider it available
+            # If help command works, CLI is available
             if result.returncode == 0:
                 self._available = True
+                logger.info("Gemini CLI is available")
             else:
-                stderr = result.stderr.decode().lower()
-                # Check for authentication error specifically
+                # Even if help fails, check if it's an auth issue
+                stderr = result.stderr.decode().lower() if result.stderr else ""
                 if "authentication" in stderr or "credentials" in stderr:
-                    logger.warning("Gemini CLI found but not authenticated. Run 'gemini' to authenticate.")
-                    self._available = True  # CLI is available, just needs auth
+                    logger.warning("Gemini CLI found but may need authentication")
+                    self._available = True  # CLI is available, just might need auth
                 else:
+                    logger.warning("Gemini CLI found but not functioning properly")
                     self._available = False
 
         except Exception as e:
