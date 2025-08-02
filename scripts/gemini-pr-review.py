@@ -263,8 +263,14 @@ def get_recent_pr_comments(pr_number: str) -> str:
                 return "\n".join(formatted)
 
         return ""
+    except subprocess.CalledProcessError as e:
+        print(f"Warning: GitHub CLI command failed: {e}")
+        return ""
+    except json.JSONDecodeError as e:
+        print(f"Warning: Could not parse PR comments JSON: {e}")
+        return ""
     except Exception as e:
-        print(f"Warning: Could not fetch PR comments: {e}")
+        print(f"Warning: Unexpected error fetching PR comments: {e}")
         return ""
 
 

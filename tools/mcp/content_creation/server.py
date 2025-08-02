@@ -8,6 +8,8 @@ import subprocess
 import tempfile
 from typing import Any, Dict, Optional  # noqa: F401
 
+from PIL import Image
+
 from ..core.base_server import BaseMCPServer
 from ..core.utils import ensure_directory, setup_logging
 
@@ -62,8 +64,6 @@ class ContentCreationMCPServer(BaseMCPServer):
             Dictionary with visual feedback data or error information
         """
         try:
-            from PIL import Image
-
             with Image.open(image_path) as img:
                 # Convert RGBA to RGB if necessary for JPEG
                 if img.mode in ("RGBA", "LA"):
