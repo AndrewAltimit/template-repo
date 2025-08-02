@@ -106,29 +106,29 @@ async def main():
     else:
         logger.info("\n⚠️  Some agents failed. Check the errors above.")
 
-    # Test integration with multi-agent system
+    # Test integration with github_ai_agents package
     logger.info("\n" + "=" * 60)
-    logger.info("MULTI-AGENT INTEGRATION TEST")
+    logger.info("GITHUB_AI_AGENTS PACKAGE INTEGRATION TEST")
     logger.info("=" * 60)
 
     try:
-        from scripts.agents.multi_agent_subagent_manager import MultiAgentSubagentManager
+        from github_ai_agents.monitors import IssueMonitor
 
-        manager = MultiAgentSubagentManager()
-        available_agents = list(manager.agents.keys())
+        monitor = IssueMonitor()
+        available_agents = list(monitor.agents.keys())
 
-        logger.info(f"Available agents in multi-agent system: {available_agents}")
+        logger.info(f"Available agents in github_ai_agents package: {available_agents}")
 
         # Check if our containerized agents are available
         containerized = ["opencode", "codex", "crush"]
         for agent_name in containerized:
             if agent_name in available_agents:
-                logger.info(f"✅ {agent_name} is integrated with multi-agent system")
+                logger.info(f"✅ {agent_name} is integrated with github_ai_agents package")
             else:
-                logger.info(f"❌ {agent_name} is NOT integrated with multi-agent system")
+                logger.info(f"❌ {agent_name} is NOT integrated with github_ai_agents package")
 
     except Exception as e:
-        logger.error(f"Failed to test multi-agent integration: {e}")
+        logger.error(f"Failed to test github_ai_agents integration: {e}")
 
 
 if __name__ == "__main__":

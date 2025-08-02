@@ -6,7 +6,7 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .base import CLIAgent
 
@@ -18,7 +18,7 @@ class OpenCodeAgent(CLIAgent):
 
     DEFAULT_MODEL = "qwen/qwen-2.5-coder-32b-instruct"
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize OpenCode agent."""
         super().__init__("opencode", "opencode", timeout=300)
 
@@ -27,9 +27,37 @@ class OpenCodeAgent(CLIAgent):
             self.env_vars["OPENROUTER_API_KEY"] = api_key
             self.env_vars["OPENCODE_MODEL"] = f"openrouter/{self.DEFAULT_MODEL}"
 
+        # Cache the project root
+        self._project_root: Optional[Path] = None
+
     def get_trigger_keyword(self) -> str:
         """Get trigger keyword for OpenCode."""
         return "OpenCode"
+
+    def _find_project_root(self) -> Optional[Path]:
+        """Find project root by searching up for .git directory or docker-compose.yml."""
+        if self._project_root:
+            return self._project_root
+
+        current = Path(__file__).resolve()
+
+        # Search up the directory tree
+        for parent in current.parents:
+            # Check for .git directory (marks repo root)
+            if (parent / ".git").is_dir():
+                self._project_root = parent
+                return parent
+
+            # Check for docker-compose.yml
+            if (parent / "docker-compose.yml").is_file():
+                self._project_root = parent
+                return parent
+
+            # Stop at root directory
+            if parent.parent == parent:
+                break
+
+        return None
 
     def is_available(self) -> bool:
         """Check if OpenCode is available locally or via Docker."""
@@ -49,8 +77,17 @@ class OpenCodeAgent(CLIAgent):
 
         # Check if Docker container is available
         try:
-            repo_root = Path(__file__).resolve().parents[5]  # Adjust based on actual location
+            repo_root = self._find_project_root()
+            if not repo_root:
+                logger.debug("Could not find project root")
+                self._available = False
+                return False
+
             compose_file = repo_root / "docker-compose.yml"
+            if not compose_file.exists():
+                logger.debug("docker-compose.yml not found")
+                self._available = False
+                return False
 
             result = subprocess.run(
                 ["docker-compose", "-f", str(compose_file), "config", "--services"],
@@ -105,8 +142,13 @@ class OpenCodeAgent(CLIAgent):
             ]
         else:
             # Use Docker
-            repo_root = Path(__file__).resolve().parents[5]
+            repo_root = self._find_project_root()
+            if not repo_root:
+                raise RuntimeError("Could not find project root for docker-compose.yml")
+
             compose_file = repo_root / "docker-compose.yml"
+            if not compose_file.exists():
+                raise RuntimeError(f"docker-compose.yml not found at {compose_file}")
 
             cmd = [
                 "docker-compose",

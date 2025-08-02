@@ -1,6 +1,6 @@
 """AI agent implementations."""
 
-from .base import AgentError, AgentExecutionError, AgentNotAvailableError, AgentTimeoutError, BaseAgent, CLIAgent
+from .base import AgentError, AgentExecutionError, AgentNotAvailableError, AgentTimeoutError, BaseAgent
 from .claude import ClaudeAgent
 from .codex import CodexAgent
 from .crush import CrushAgent
@@ -9,7 +9,6 @@ from .opencode import OpenCodeAgent
 
 __all__ = [
     "BaseAgent",
-    "CLIAgent",
     "AgentError",
     "AgentNotAvailableError",
     "AgentExecutionError",
