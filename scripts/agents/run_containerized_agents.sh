@@ -1,7 +1,7 @@
 #!/bin/bash
 # Script to run containerized OpenRouter agents
 
-set -e
+set -euo pipefail
 
 # Colors for output
 GREEN='\033[0;32m'

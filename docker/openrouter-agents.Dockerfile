@@ -94,7 +94,7 @@ RUN mkdir -p /root/.config/opencode \
 
 # Copy mods configuration
 COPY scripts/agents/config/mods-config.yml /root/.config/mods/config.yml
-COPY scripts/agents/config/mods-config.yml /home/node/.config/mods/config.yml
+COPY --chown=node:node scripts/agents/config/mods-config.yml /home/node/.config/mods/config.yml
 
 # Set ownership for all node directories
 # This ensures the user can write to all necessary locations

@@ -2,7 +2,7 @@
 # Safe installation guide for multi-agent CLI tools
 # This script provides instructions rather than automatic installation
 
-set -e
+set -euo pipefail
 
 # Colors for output
 GREEN='\033[0;32m'

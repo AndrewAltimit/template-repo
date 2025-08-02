@@ -123,7 +123,6 @@ services:
       - ~/.config/openrouter:/home/node/.config/openrouter  # Mount only openrouter config
       - ~/.config/mods:/home/node/.config/mods              # Preserve mods config
     environment:
-      - PYTHONUNBUFFERED=1
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
       - CONTAINER=openrouter-agents
