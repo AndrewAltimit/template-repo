@@ -38,7 +38,7 @@ services:
       - "8011:8011"
     volumes:
       - ./:/app:ro
-      - mcp-content-output:/output  # Use named volume to avoid permission issues
+      - ./outputs/mcp-content:/output  # Bind mount to local outputs directory
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8011
@@ -67,7 +67,7 @@ services:
       - "8007:8007"
     volumes:
       - ./:/app:ro
-      - gaea2-output:/output/gaea2  # Use named volume to avoid permission issues
+      - ./outputs/mcp-gaea2:/output/gaea2  # Bind mount to local outputs directory
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8007
@@ -199,8 +199,6 @@ networks:
 
 volumes:
   postgres_data: {}
-  gaea2-output: {}
-  mcp-content-output: {}
 
 # Secrets are managed at runtime by GitHub Actions or local setup script
 # Never commit actual secret files to the repository!
