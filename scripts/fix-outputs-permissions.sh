@@ -1,6 +1,7 @@
 #!/bin/bash
 # Fix permission issues for outputs directory and subdirectories
 # This script handles both local development and GitHub Actions environments
+set -e
 
 echo "🔧 Fixing outputs directory permissions..."
 
