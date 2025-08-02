@@ -37,7 +37,7 @@ security:
   autonomous_mode: true  # Enables non-interactive flags like --dangerously-skip-permissions
 
   # Confirm running in sandboxed environment
-  require_sandbox: ${AGENT_SANDBOX_MODE:-true}
+  require_sandbox: true
 
   # Maximum prompt length to prevent abuse
   max_prompt_length: 10000

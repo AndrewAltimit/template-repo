@@ -132,6 +132,22 @@ class CLIAgentWrapper(AIAgent):
 
         except (AgentTimeoutError, AgentExecutionError):
             raise
+        except FileNotFoundError:
+            logger.error(f"{self.agent_name} executable not found: {self.executable}")
+            raise AgentExecutionError(
+                self.agent_name,
+                -1,
+                "",
+                f"Executable '{self.executable}' not found in PATH. Please ensure {self.agent_name} is installed.",
+            )
+        except PermissionError:
+            logger.error(f"{self.agent_name} permission denied: {self.executable}")
+            raise AgentExecutionError(
+                self.agent_name,
+                -1,
+                "",
+                f"Permission denied executing '{self.executable}'. Please check file permissions.",
+            )
         except Exception as e:
             logger.error(f"{self.agent_name} command failed: {e}")
             raise AgentExecutionError(self.agent_name, -1, stdout_data.decode(errors="replace") if stdout_data else "", str(e))
