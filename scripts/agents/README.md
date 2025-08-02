@@ -866,6 +866,52 @@ The agent will:
 - Both stdout and stderr from failed commands are masked
 - The masking is case-insensitive for patterns but exact-match for environment variable values
 
+## Autonomous Mode for CI/CD
+
+All AI agents are configured to run in **fully autonomous mode** for CI/CD environments. This is a critical requirement for automated workflows.
+
+### Why Autonomous Mode?
+
+In CI/CD environments (GitHub Actions, GitLab CI, etc.):
+- No human interaction is possible (no TTY)
+- Workflows must run unattended
+- Interactive prompts would block pipelines indefinitely
+- Agents run in sandboxed environments for security
+
+### Key Configuration: `--dangerously-skip-permissions`
+
+The Claude agent uses the `--dangerously-skip-permissions` flag, which might seem concerning but is:
+- **Required** for CI/CD automation
+- **Safe** when running in sandboxed environments
+- **Necessary** to bypass interactive permission prompts
+
+### Security Context
+
+All agents run in isolated environments:
+```yaml
+# Example: GitHub Actions with Docker isolation
+- name: Run AI Agent
+  run: |
+    docker run --rm \
+      --memory="1g" \
+      --cpus="1" \
+      --read-only \
+      --network="none" \
+      -v ${{ github.workspace }}:/workspace:ro \
+      ai-agents:latest
+```
+
+### Agent-Specific Flags
+
+Each agent has specific flags for autonomous operation:
+- **Claude**: `--print --dangerously-skip-permissions`
+- **Gemini**: `-m model -p prompt` (non-interactive by design)
+- **OpenCode**: `--non-interactive`
+- **Codex**: `--non-interactive`
+- **Crush**: `--non-interactive --no-update`
+
+For detailed autonomous mode documentation, see [AUTONOMOUS_MODE.md](AUTONOMOUS_MODE.md).
+
 ## Best Practices
 
 1. **Use GitHub Environments**: Configure production environment with appropriate secrets

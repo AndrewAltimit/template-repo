@@ -30,7 +30,7 @@ class SecurityManager:
         "Implement",
         "Review",
     ]
-    VALID_AGENTS = ["Claude", "Gemini"]
+    VALID_AGENTS = ["Claude", "Gemini", "OpenCode", "Crush", "Codex"]
 
     # Regex pattern for keyword triggers: [Action][Agent]
     TRIGGER_PATTERN = re.compile(

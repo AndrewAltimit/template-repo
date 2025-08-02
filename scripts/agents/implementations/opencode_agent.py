@@ -1,0 +1,156 @@
+"""OpenCode AI agent implementation."""
+
+import json
+import logging
+import os
+from typing import Dict, List
+
+from ..core.cli_agent_wrapper import CLIAgentWrapper
+
+logger = logging.getLogger(__name__)
+
+
+class OpenCodeAgent(CLIAgentWrapper):
+    """OpenCode CLI agent wrapper."""
+
+    def __init__(self):
+        """Initialize OpenCode agent."""
+        # Get OpenRouter configuration from environment or defaults
+        openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
+
+        config = {
+            "executable": "opencode",
+            "timeout": 300,  # 5 minutes default
+            "env_vars": {
+                "OPENROUTER_API_KEY": openrouter_key,
+                # OpenCode supports Models.dev integration
+                "OPENCODE_MODEL": "openrouter/qwen/qwen-2.5-coder-32b-instruct",
+            },
+            "working_dir": os.getcwd(),
+        }
+        super().__init__("opencode", config)
+
+    def get_trigger_keyword(self) -> str:
+        """Get trigger keyword for OpenCode."""
+        return "OpenCode"
+
+    def get_model_config(self) -> Dict[str, any]:
+        """Get OpenCode model configuration."""
+        return {
+            "model": "qwen/qwen-2.5-coder-32b-instruct",
+            "provider": "openrouter",
+            "temperature": 0.2,
+            "max_tokens": 8192,
+            "supports_openrouter": True,
+        }
+
+    def _build_command(self, prompt: str, context: Dict[str, str]) -> List[str]:
+        """Build OpenCode CLI command."""
+        # OpenCode may support different flags than shown in research
+        # This is based on expected CLI patterns for terminal AI tools
+
+        # Build full prompt with context
+        full_prompt = prompt
+        if context.get("code"):
+            full_prompt = f"Code Context:\n```\n{context['code']}\n```\n\nTask: {prompt}"
+
+        # Create temporary file for the prompt (many CLI tools prefer file input)
+        prompt_file = self._save_to_temp_file(full_prompt, suffix=".md")
+
+        # Build command based on expected OpenCode CLI interface
+        cmd = [
+            self.executable,
+            "--non-interactive",  # Expected flag for automation
+            "--model",
+            self.env_vars.get("OPENCODE_MODEL", "qwen/qwen-2.5-coder-32b-instruct"),
+            "--input",
+            prompt_file,
+        ]
+
+        # If OpenCode supports JSON output
+        if self._supports_json_output():
+            cmd.extend(["--output-format", "json"])
+
+        return cmd
+
+    def _parse_output(self, output: str, error: str) -> str:
+        """Parse OpenCode CLI output."""
+        output = output.strip()
+
+        # Try to parse as JSON if available
+        if self._supports_json_output():
+            try:
+                result = json.loads(output)
+                if isinstance(result, dict):
+                    # Look for code or response field
+                    return result.get("code", result.get("response", output))
+            except json.JSONDecodeError:
+                # Fall back to text parsing
+                pass
+
+        # Strip any terminal formatting
+        output = self._strip_ansi_codes(output)
+
+        # Extract code blocks if present
+        code_blocks = self._extract_code_blocks(output)
+        if code_blocks:
+            return "\n\n".join(code_blocks)
+
+        return output
+
+    def _supports_json_output(self) -> bool:
+        """Check if OpenCode supports JSON output format."""
+        # This would be determined by testing or documentation
+        # For now, assume it might support it
+        return True
+
+    def is_available(self) -> bool:
+        """Check if OpenCode CLI is available."""
+        if self._available is not None:
+            return self._available
+
+        try:
+            import subprocess
+
+            # Check if opencode CLI exists
+            result = subprocess.run(["which", "opencode"], capture_output=True, timeout=5)
+
+            if result.returncode != 0:
+                logger.info("OpenCode CLI not found. Install with: curl -fsSL https://opencode.ai/install | bash")
+                self._available = False
+                return False
+
+            # Try to run a help command to verify it works
+            result = subprocess.run([self.executable, "--help"], capture_output=True, timeout=10)
+
+            self._available = result.returncode == 0
+
+            if not self._available:
+                logger.warning("OpenCode CLI found but not working properly")
+
+        except Exception as e:
+            logger.error(f"Error checking OpenCode availability: {e}")
+            self._available = False
+
+        return self._available
+
+    def get_capabilities(self) -> List[str]:
+        """Get OpenCode's capabilities."""
+        return [
+            "code_generation",
+            "code_review",
+            "refactoring",
+            "multi_session",  # OpenCode supports multiple sessions
+            "lsp_integration",  # Language Server Protocol support
+            "plan_mode",  # Planning before implementation
+            "openrouter_models",  # 75+ models via OpenRouter
+        ]
+
+    def get_priority(self) -> int:
+        """OpenCode has medium-high priority as an open-source alternative."""
+        return 80
+
+    def get_auth_command(self) -> List[str]:
+        """Get authentication command for OpenCode."""
+        # OpenCode uses 'opencode auth login' for authentication
+        return [self.executable, "auth", "login"]

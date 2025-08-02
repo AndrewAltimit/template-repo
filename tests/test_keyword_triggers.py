@@ -31,6 +31,7 @@ class TestKeywordTriggers(unittest.TestCase):
     def test_keyword_parsing_valid(self):
         """Test parsing valid keyword triggers."""
         test_cases = [
+            # Claude and Gemini
             ("[Approved][Claude]", ("Approved", "Claude")),
             ("[Fix][Gemini]", ("Fix", "Gemini")),
             ("[Close][Claude]", ("Close", "Claude")),
@@ -38,12 +39,21 @@ class TestKeywordTriggers(unittest.TestCase):
             ("[Debug][Claude]", ("Debug", "Claude")),
             ("[Implement][Gemini]", ("Implement", "Gemini")),
             ("[Review][Claude]", ("Review", "Claude")),
+            # New agents
+            ("[Approved][OpenCode]", ("Approved", "OpenCode")),
+            ("[Fix][Crush]", ("Fix", "Crush")),
+            ("[Implement][Codex]", ("Implement", "Codex")),
+            ("[Review][OpenCode]", ("Review", "OpenCode")),
+            ("[Debug][Crush]", ("Debug", "Crush")),
             # Case insensitive
             ("[approved][claude]", ("approved", "claude")),
             ("[CLOSE][GEMINI]", ("CLOSE", "GEMINI")),
+            ("[fix][opencode]", ("fix", "opencode")),
+            ("[REVIEW][CRUSH]", ("REVIEW", "CRUSH")),
             # With whitespace
             ("[Approved] [Claude]", ("Approved", "Claude")),
             ("[Fix]  [Gemini]", ("Fix", "Gemini")),
+            ("[Implement]   [OpenCode]", ("Implement", "OpenCode")),
         ]
 
         for text, expected in test_cases:
