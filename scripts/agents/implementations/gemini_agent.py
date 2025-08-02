@@ -33,10 +33,11 @@ class GeminiAgent(CLIAgentWrapper):
         super().__init__("gemini", config)
         self.agent_config = agent_config
 
-        # Model configuration
-        self.pro_model = "gemini-2.5-pro"
-        self.flash_model = "gemini-2.5-flash"
-        self.current_model = self.pro_model
+        # Model configuration from config file
+        model_config = agent_config.get_model_override("gemini") if agent_config else {}
+        self.pro_model = model_config.get("pro_model", "gemini-2.5-pro")
+        self.flash_model = model_config.get("flash_model", "gemini-2.5-flash")
+        self.current_model = model_config.get("default_model", self.pro_model)
 
     def get_trigger_keyword(self) -> str:
         """Get trigger keyword for Gemini."""

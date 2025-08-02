@@ -63,15 +63,25 @@ rate_limits:
     requests_per_minute: 5   # More conservative for Gemini
 
 # Model configuration overrides
-model_overrides: {}
-  # Use specific models for certain agents
-  # gemini:
-  #   model: gemini-2.0-pro-exp  # Experimental model
+model_overrides:
+  # Gemini models
+  gemini:
+    pro_model: gemini-2.5-pro
+    flash_model: gemini-2.5-flash
+    default_model: gemini-2.5-pro
 
   # OpenRouter agents configuration
-  # opencode:
-  #   model: qwen/qwen-2.5-coder-32b-instruct
-  #   temperature: 0.2
+  opencode:
+    model: qwen/qwen-2.5-coder-32b-instruct
+    temperature: 0.2
+
+  codex:
+    model: qwen/qwen-2.5-coder-32b-instruct
+    temperature: 0.3
+
+  crush:
+    model: qwen/qwen-2.5-coder-32b-instruct
+    temperature: 0.1  # Lower temperature for Crush
 
 # OpenRouter configuration (for future agents)
 openrouter:

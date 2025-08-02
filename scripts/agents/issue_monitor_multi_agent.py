@@ -40,6 +40,9 @@ class MultiAgentIssueMonitor(BaseIssueMonitor):
         repo_name = self.repo.split("/")[-1]
         repo_path = Path.cwd() / repo_name
 
+        # Save original working directory
+        original_cwd = os.getcwd()
+
         try:
             # Clone repo if not already present
             if not repo_path.exists():
@@ -58,6 +61,7 @@ class MultiAgentIssueMonitor(BaseIssueMonitor):
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to prepare repository: {e}")
             self.post_error_comment(issue_number, f"Failed to prepare repository: {str(e)}")
+            os.chdir(original_cwd)  # Restore directory before early return
             return None
 
         # Use the multi-agent subagent manager to implement the feature
@@ -126,6 +130,9 @@ class MultiAgentIssueMonitor(BaseIssueMonitor):
         except Exception as e:
             logger.error(f"Unexpected error creating PR for issue #{issue_number}: {e}")
             return None
+        finally:
+            # Always restore original working directory
+            os.chdir(original_cwd)
 
     def process_issues(self):
         """Main process to monitor and handle issues with multi-agent support."""

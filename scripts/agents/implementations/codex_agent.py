@@ -12,8 +12,12 @@ logger = logging.getLogger(__name__)
 class CodexAgent(CLIAgentWrapper):
     """OpenAI Codex CLI agent wrapper."""
 
-    def __init__(self):
-        """Initialize Codex CLI agent."""
+    def __init__(self, agent_config=None):
+        """Initialize Codex CLI agent.
+
+        Args:
+            agent_config: Optional AgentConfig instance for centralized configuration
+        """
         # Get API keys
         openai_key = os.environ.get("OPENAI_API_KEY", "")
         openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
@@ -21,15 +25,24 @@ class CodexAgent(CLIAgentWrapper):
         # Prefer OpenAI key for Codex, fall back to OpenRouter
         api_key = openai_key or openrouter_key
 
+        # Get timeout from central config if available
+        timeout = 300  # Default 5 minutes
+        if agent_config:
+            timeout = agent_config.get_subprocess_timeout()
+
         config = {
             "executable": "codex",
-            "timeout": 300,  # 5 minutes default
+            "timeout": timeout,
             "env_vars": {
                 "OPENAI_API_KEY": api_key,
             },
             "working_dir": os.getcwd(),
         }
         super().__init__("codex", config)
+        self.agent_config = agent_config
+
+        # Get model configuration from config file
+        self.model_config = agent_config.get_model_override("codex") if agent_config else {}
 
         # Track which provider we're using
         self.using_openrouter = not openai_key and openrouter_key
@@ -42,9 +55,9 @@ class CodexAgent(CLIAgentWrapper):
         """Get Codex model configuration."""
         if self.using_openrouter:
             return {
-                "model": "qwen/qwen-2.5-coder-32b-instruct",
+                "model": self.model_config.get("model", "qwen/qwen-2.5-coder-32b-instruct"),
                 "provider": "openrouter",
-                "temperature": 0.3,
+                "temperature": self.model_config.get("temperature", 0.3),
                 "max_tokens": 8192,
             }
         else:

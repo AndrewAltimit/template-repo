@@ -5,6 +5,15 @@ set -e
 
 echo "=== Multi-Agent CLI Tools Installation ==="
 echo
+echo -e "${YELLOW}WARNING: This script may require sudo privileges and will modify system files.${NC}"
+echo -e "${YELLOW}It is recommended to review the script before running.${NC}"
+echo -n "Do you want to continue? [y/N] "
+read -r response
+if [[ ! "$response" =~ ^[Yy]$ ]]; then
+    echo "Installation cancelled."
+    exit 0
+fi
+echo
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -21,6 +30,8 @@ command_exists() {
 install_nodejs() {
     if ! command_exists node; then
         echo -e "${YELLOW}Node.js not found. Installing via NodeSource...${NC}"
+        echo -e "${YELLOW}This will run commands with sudo. Press Enter to continue or Ctrl+C to cancel.${NC}"
+        read -r
         curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
         sudo apt-get install -y nodejs
     else
@@ -32,14 +43,21 @@ install_nodejs() {
 install_go() {
     if ! command_exists go; then
         echo -e "${YELLOW}Go not found. Installing Go 1.21...${NC}"
+        echo -e "${YELLOW}This will run commands with sudo and modify ~/.bashrc.${NC}"
+        echo -e "${YELLOW}Press Enter to continue or Ctrl+C to cancel.${NC}"
+        read -r
         wget -q https://go.dev/dl/go1.21.0.linux-amd64.tar.gz
         sudo rm -rf /usr/local/go
         sudo tar -C /usr/local -xzf go1.21.0.linux-amd64.tar.gz
         rm go1.21.0.linux-amd64.tar.gz
 
-        # Add to PATH
-        echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.bashrc
-        echo "export PATH=\$PATH:\$HOME/go/bin" >> ~/.bashrc
+        # Display PATH export commands instead of modifying bashrc
+        echo
+        echo -e "${YELLOW}To add Go to your PATH, add these lines to your shell configuration:${NC}"
+        echo "export PATH=\$PATH:/usr/local/go/bin"
+        echo "export PATH=\$PATH:\$HOME/go/bin"
+        echo
+        echo -e "${YELLOW}For now, setting PATH for this session only.${NC}"
         export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
     else
         echo -e "${GREEN}✓ Go already installed${NC}"
@@ -193,12 +211,16 @@ main() {
     echo "   export OPENROUTER_API_KEY='your-key'"
     echo "   export OPENAI_API_KEY='your-key' (for Codex)"
     echo
-    echo "2. Authenticate agents:"
+    echo "2. If you installed Go, add it to your PATH by adding these lines to ~/.bashrc:"
+    echo "   export PATH=\$PATH:/usr/local/go/bin"
+    echo "   export PATH=\$PATH:\$HOME/go/bin"
+    echo
+    echo "3. Authenticate agents:"
     echo "   claude (interactive)"
     echo "   gemini (interactive)"
     echo "   opencode auth login"
     echo
-    echo "3. Test the multi-agent system:"
+    echo "4. Test the multi-agent system:"
     echo "   python scripts/agents/test_agent_system.py"
 }
 

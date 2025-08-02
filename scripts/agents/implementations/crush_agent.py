@@ -13,8 +13,12 @@ logger = logging.getLogger(__name__)
 class CrushAgent(CLIAgentWrapper):
     """Crush CLI agent wrapper from Charm Bracelet."""
 
-    def __init__(self):
-        """Initialize Crush agent."""
+    def __init__(self, agent_config=None):
+        """Initialize Crush agent.
+
+        Args:
+            agent_config: Optional AgentConfig instance for centralized configuration
+        """
         # Get API keys from environment
         openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
 
@@ -22,15 +26,24 @@ class CrushAgent(CLIAgentWrapper):
         config_dir = os.path.expanduser("~/.config/crush")
         config_file = os.path.join(config_dir, "crush.json")
 
+        # Get timeout from central config if available
+        timeout = 300  # Default 5 minutes
+        if agent_config:
+            timeout = agent_config.get_subprocess_timeout()
+
         config = {
             "executable": "crush",
-            "timeout": 300,  # 5 minutes default
+            "timeout": timeout,
             "env_vars": {
                 "OPENROUTER_API_KEY": openrouter_key,
             },
             "working_dir": os.getcwd(),
         }
         super().__init__("crush", config)
+        self.agent_config = agent_config
+
+        # Get model configuration from config file
+        self.model_config = agent_config.get_model_override("crush") if agent_config else {}
 
         # Create Crush config if needed
         self._ensure_crush_config(config_file, openrouter_key)
@@ -46,7 +59,7 @@ class CrushAgent(CLIAgentWrapper):
                     "openrouter": {
                         "api_key": api_key,
                         "base_url": "https://openrouter.ai/api/v1",
-                        "model": "qwen/qwen-2.5-coder-32b-instruct",
+                        "model": self.model_config.get("model", "qwen/qwen-2.5-coder-32b-instruct"),
                     }
                 },
                 "default_provider": "openrouter",
@@ -66,9 +79,9 @@ class CrushAgent(CLIAgentWrapper):
     def get_model_config(self) -> Dict[str, any]:
         """Get Crush model configuration."""
         return {
-            "model": "qwen/qwen-2.5-coder-32b-instruct",
+            "model": self.model_config.get("model", "qwen/qwen-2.5-coder-32b-instruct"),
             "provider": "openrouter",
-            "temperature": 0.1,  # Lower temperature for Crush
+            "temperature": self.model_config.get("temperature", 0.1),  # Lower temperature for Crush
             "max_tokens": 8192,
             "supports_multi_provider": True,
             "supports_mcp": True,  # Model Context Protocol

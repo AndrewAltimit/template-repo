@@ -13,22 +13,37 @@ logger = logging.getLogger(__name__)
 class OpenCodeAgent(CLIAgentWrapper):
     """OpenCode CLI agent wrapper."""
 
-    def __init__(self):
-        """Initialize OpenCode agent."""
+    def __init__(self, agent_config=None):
+        """Initialize OpenCode agent.
+
+        Args:
+            agent_config: Optional AgentConfig instance for centralized configuration
+        """
         # Get OpenRouter configuration from environment or defaults
         openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
 
+        # Get model configuration from config file
+        model_config = agent_config.get_model_override("opencode") if agent_config else {}
+        model_name = model_config.get("model", "qwen/qwen-2.5-coder-32b-instruct")
+
+        # Get timeout from central config if available
+        timeout = 300  # Default 5 minutes
+        if agent_config:
+            timeout = agent_config.get_subprocess_timeout()
+
         config = {
             "executable": "opencode",
-            "timeout": 300,  # 5 minutes default
+            "timeout": timeout,
             "env_vars": {
                 "OPENROUTER_API_KEY": openrouter_key,
                 # OpenCode supports Models.dev integration
-                "OPENCODE_MODEL": "openrouter/qwen/qwen-2.5-coder-32b-instruct",
+                "OPENCODE_MODEL": f"openrouter/{model_name}",
             },
             "working_dir": os.getcwd(),
         }
         super().__init__("opencode", config)
+        self.agent_config = agent_config
+        self.model_config = model_config
 
     def get_trigger_keyword(self) -> str:
         """Get trigger keyword for OpenCode."""
@@ -36,10 +51,11 @@ class OpenCodeAgent(CLIAgentWrapper):
 
     def get_model_config(self) -> Dict[str, any]:
         """Get OpenCode model configuration."""
+        # Use model config from file or defaults
         return {
-            "model": "qwen/qwen-2.5-coder-32b-instruct",
+            "model": self.model_config.get("model", "qwen/qwen-2.5-coder-32b-instruct"),
             "provider": "openrouter",
-            "temperature": 0.2,
+            "temperature": self.model_config.get("temperature", 0.2),
             "max_tokens": 8192,
             "supports_openrouter": True,
         }
