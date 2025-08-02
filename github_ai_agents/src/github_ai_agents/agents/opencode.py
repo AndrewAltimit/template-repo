@@ -18,9 +18,9 @@ class OpenCodeAgent(CLIAgent):
 
     DEFAULT_MODEL = "qwen/qwen-2.5-coder-32b-instruct"
 
-    def __init__(self) -> None:
+    def __init__(self, config=None) -> None:
         """Initialize OpenCode agent."""
-        super().__init__("opencode", "opencode", timeout=300)
+        super().__init__("opencode", "opencode", timeout=300, config=config)
 
         # Set up environment variables
         if api_key := os.environ.get("OPENROUTER_API_KEY"):
@@ -132,14 +132,17 @@ class OpenCodeAgent(CLIAgent):
 
     def _build_command(self, prompt: str) -> List[str]:
         """Build OpenCode CLI command."""
+        # Get flags from config or use defaults
+        if self.config:
+            flags = self.config.get_non_interactive_flags("opencode")
+        else:
+            flags = ["-q"]  # Default quiet mode
+
         # Check if running locally or via Docker
         if shutil.which(self.executable):
-            return [
-                self.executable,
-                "-p",  # Prompt flag
-                prompt,
-                "-q",  # Quiet mode
-            ]
+            cmd = [self.executable, "-p", prompt]
+            cmd.extend(flags)
+            return cmd
         else:
             # Use Docker
             repo_root = self._find_project_root()
@@ -163,15 +166,8 @@ class OpenCodeAgent(CLIAgent):
             if api_key := self.env_vars.get("OPENROUTER_API_KEY"):
                 cmd.extend(["-e", f"OPENROUTER_API_KEY={api_key}"])
 
-            cmd.extend(
-                [
-                    "openrouter-agents",
-                    "opencode",
-                    "-p",
-                    prompt,
-                    "-q",
-                ]
-            )
+            cmd.extend(["openrouter-agents", "opencode", "-p", prompt])
+            cmd.extend(flags)
 
             return cmd
 

@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 class GeminiAgent(CLIAgent):
     """Gemini AI agent for code generation."""
 
-    def __init__(self):
+    def __init__(self, config=None):
         """Initialize Gemini agent."""
-        super().__init__("gemini", "gemini", timeout=300)
+        super().__init__("gemini", "gemini", timeout=300, config=config)
 
     def get_trigger_keyword(self) -> str:
         """Get trigger keyword for Gemini."""
@@ -29,8 +29,13 @@ class GeminiAgent(CLIAgent):
         Returns:
             Generated code or response
         """
-        # TODO: Implement Gemini-specific logic
-        cmd = ["gemini", prompt]
+        # Use flags from config if available
+        if self.config:
+            flags = self.config.get_non_interactive_flags("gemini")
+            cmd = ["gemini"] + flags + [prompt]
+        else:
+            cmd = ["gemini", prompt]
+
         stdout, stderr = await self._execute_command(cmd)
         return stdout.strip()
 

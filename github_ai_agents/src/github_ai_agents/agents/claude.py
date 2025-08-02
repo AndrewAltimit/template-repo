@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 class ClaudeAgent(CLIAgent):
     """Claude AI agent for code generation."""
 
-    def __init__(self):
+    def __init__(self, config=None):
         """Initialize Claude agent."""
-        super().__init__("claude", "claude", timeout=600)
+        super().__init__("claude", "claude", timeout=600, config=config)
 
     def get_trigger_keyword(self) -> str:
         """Get trigger keyword for Claude."""
@@ -29,8 +29,13 @@ class ClaudeAgent(CLIAgent):
         Returns:
             Generated code or response
         """
-        # TODO: Implement Claude-specific logic
-        cmd = ["claude", "--print", "--dangerously-skip-permissions", prompt]
+        # Use non-interactive flags from config if available
+        if self.config:
+            flags = self.config.get_non_interactive_flags("claude")
+        else:
+            flags = ["--print", "--dangerously-skip-permissions"]
+
+        cmd = ["claude"] + flags + [prompt]
         stdout, stderr = await self._execute_command(cmd)
         return stdout.strip()
 

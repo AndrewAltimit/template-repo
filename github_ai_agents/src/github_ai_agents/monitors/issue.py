@@ -7,9 +7,10 @@ import os
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Type
 
 from ..agents import ClaudeAgent, CodexAgent, CrushAgent, GeminiAgent, OpenCodeAgent
+from ..config import AgentConfig
 from ..security import SecurityManager
 from ..utils import get_github_token, run_gh_command
 
@@ -26,34 +27,40 @@ class IssueMonitor:
             raise RuntimeError("GITHUB_REPOSITORY environment variable must be set")
 
         self.token = get_github_token()
+        self.config = AgentConfig()
         self.security_manager = SecurityManager()
         self.agent_tag = "[AI Agent]"
 
-        # Initialize available agents
+        # Initialize available agents based on configuration
         self.agents = self._initialize_agents()
 
     def _initialize_agents(self) -> Dict[str, Any]:
-        """Initialize available AI agents."""
+        """Initialize available AI agents based on configuration."""
         agents = {}
 
-        # Try to initialize each agent
-        agent_classes = [
-            ClaudeAgent,
-            GeminiAgent,
-            OpenCodeAgent,
-            CodexAgent,
-            CrushAgent,
-        ]
+        # Map agent names to classes
+        agent_map: Dict[str, Type[Any]] = {
+            "claude": ClaudeAgent,
+            "gemini": GeminiAgent,
+            "opencode": OpenCodeAgent,
+            "codex": CodexAgent,
+            "crush": CrushAgent,
+        }
 
-        for agent_class in agent_classes:
-            try:
-                agent = agent_class()
-                if agent.is_available():
-                    keyword = agent.get_trigger_keyword()
-                    agents[keyword.lower()] = agent
-                    logger.info(f"Initialized {keyword} agent")
-            except Exception as e:
-                logger.warning(f"Failed to initialize {agent_class.__name__}: {e}")
+        # Only initialize enabled agents
+        enabled_agents = self.config.get_enabled_agents()
+
+        for agent_name in enabled_agents:
+            if agent_name in agent_map:
+                agent_class = agent_map[agent_name]
+                try:
+                    agent = agent_class(config=self.config)
+                    if agent.is_available():
+                        keyword = agent.get_trigger_keyword()
+                        agents[keyword.lower()] = agent
+                        logger.info(f"Initialized {keyword} agent")
+                except Exception as e:
+                    logger.warning(f"Failed to initialize {agent_class.__name__}: {e}")
 
         return agents
 

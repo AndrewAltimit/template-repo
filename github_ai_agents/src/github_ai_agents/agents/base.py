@@ -49,13 +49,15 @@ class AgentTimeoutError(AgentError):
 class BaseAgent(ABC):
     """Abstract base class for AI agents."""
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, config=None):
         """Initialize base agent.
 
         Args:
             name: Name of the agent
+            config: Optional AgentConfig instance
         """
         self.name = name
+        self.config = config
         self._available: Optional[bool] = None
 
     @abstractmethod
@@ -111,17 +113,22 @@ class BaseAgent(ABC):
 class CLIAgent(BaseAgent):
     """Base class for CLI-based agents."""
 
-    def __init__(self, name: str, executable: str, timeout: int = 300):
+    def __init__(self, name: str, executable: str, timeout: int = 300, config=None):
         """Initialize CLI agent.
 
         Args:
             name: Name of the agent
             executable: Path to executable
             timeout: Command timeout in seconds
+            config: Optional AgentConfig instance
         """
-        super().__init__(name)
+        super().__init__(name, config)
         self.executable = executable
-        self.timeout = timeout
+        # Use timeout from config if available
+        if config:
+            self.timeout = config.get_subprocess_timeout()
+        else:
+            self.timeout = timeout
         self.env_vars: Dict[str, str] = {}
 
     async def _execute_command(self, cmd: List[str], env: Optional[Dict[str, str]] = None) -> Tuple[str, str]:

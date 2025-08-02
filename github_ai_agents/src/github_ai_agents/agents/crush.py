@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 class CrushAgent(CLIAgent):
     """Crush AI agent for code generation."""
 
-    def __init__(self):
+    def __init__(self, config=None):
         """Initialize Crush agent."""
-        super().__init__("crush", "mods", timeout=300)
+        super().__init__("crush", "mods", timeout=300, config=config)
 
     def get_trigger_keyword(self) -> str:
         """Get trigger keyword for Crush."""
@@ -29,8 +29,13 @@ class CrushAgent(CLIAgent):
         Returns:
             Generated code or response
         """
-        # TODO: Implement Crush-specific logic
-        cmd = ["mods", prompt]
+        # Use flags from config if available
+        if self.config:
+            flags = self.config.get_non_interactive_flags("crush")
+            cmd = ["mods"] + flags + [prompt]
+        else:
+            cmd = ["mods", prompt]
+
         stdout, stderr = await self._execute_command(cmd)
         return stdout.strip()
 

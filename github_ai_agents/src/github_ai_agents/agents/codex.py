@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 class CodexAgent(CLIAgent):
     """Codex AI agent for code generation."""
 
-    def __init__(self):
+    def __init__(self, config=None):
         """Initialize Codex agent."""
-        super().__init__("codex", "codex", timeout=300)
+        super().__init__("codex", "codex", timeout=300, config=config)
 
     def get_trigger_keyword(self) -> str:
         """Get trigger keyword for Codex."""
@@ -29,8 +29,13 @@ class CodexAgent(CLIAgent):
         Returns:
             Generated code or response
         """
-        # TODO: Implement Codex-specific logic
-        cmd = ["codex", prompt]
+        # Use flags from config if available
+        if self.config:
+            flags = self.config.get_non_interactive_flags("codex")
+            cmd = ["codex"] + flags + [prompt]
+        else:
+            cmd = ["codex", prompt]
+
         stdout, stderr = await self._execute_command(cmd)
         return stdout.strip()
 
