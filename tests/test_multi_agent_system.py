@@ -223,6 +223,87 @@ class TestErrorHandling:
                 await agent.generate_code("Test", {})
 
 
+class TestSandboxSecurity:
+    """Test sandbox security enforcement."""
+
+    @pytest.mark.asyncio
+    async def test_sandbox_required_check(self):
+        """Test that agents respect sandbox requirement in config."""
+        from scripts.agents.core.cli_agent_wrapper import CLIAgentWrapper
+        from scripts.agents.core.config_loader import AgentConfig
+
+        # Create a config with sandbox requirement
+        with patch("os.path.exists", return_value=False):
+            config = AgentConfig()
+            config.config["security"] = {"require_sandbox": True}
+
+        class TestAgent(CLIAgentWrapper):
+            def __init__(self, agent_config):
+                super().__init__("test", {"executable": "test"}, agent_config)
+
+            def get_trigger_keyword(self):
+                return "Test"
+
+            def get_model_config(self):
+                return {}
+
+            def _build_command(self, prompt, context):
+                return ["echo", "test"]
+
+            def _parse_output(self, output, error):
+                return output
+
+        agent = TestAgent(config)
+
+        # Without sandbox mode environment variable, should fail
+        with pytest.raises(AgentExecutionError) as exc_info:
+            await agent.generate_code("Test", {})
+
+        assert "Sandbox mode is required" in str(exc_info.value)
+
+        # With sandbox mode enabled, should work
+        with patch.dict(os.environ, {"AGENT_SANDBOX_MODE": "true"}):
+            with patch.object(agent, "_execute_with_timeout") as mock_exec:
+                mock_exec.return_value = ("test output", "")
+                result = await agent.generate_code("Test", {})
+                assert result == "test output"
+
+    @pytest.mark.asyncio
+    async def test_sandbox_not_required(self):
+        """Test that agents work without sandbox when not required."""
+        from scripts.agents.core.cli_agent_wrapper import CLIAgentWrapper
+        from scripts.agents.core.config_loader import AgentConfig
+
+        # Create a config without sandbox requirement
+        with patch("os.path.exists", return_value=False):
+            config = AgentConfig()
+            config.config["security"] = {"require_sandbox": False}
+
+        class TestAgent(CLIAgentWrapper):
+            def __init__(self, agent_config):
+                super().__init__("test", {"executable": "test"}, agent_config)
+
+            def get_trigger_keyword(self):
+                return "Test"
+
+            def get_model_config(self):
+                return {}
+
+            def _build_command(self, prompt, context):
+                return ["echo", "test"]
+
+            def _parse_output(self, output, error):
+                return output
+
+        agent = TestAgent(config)
+
+        # Should work without sandbox mode
+        with patch.object(agent, "_execute_with_timeout") as mock_exec:
+            mock_exec.return_value = ("test output", "")
+            result = await agent.generate_code("Test", {})
+            assert result == "test output"
+
+
 class TestTempFileCleanup:
     """Test temporary file cleanup."""
 

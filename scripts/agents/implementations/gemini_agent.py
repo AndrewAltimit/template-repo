@@ -30,7 +30,7 @@ class GeminiAgent(CLIAgentWrapper):
             "env_vars": {},
             "working_dir": os.getcwd(),
         }
-        super().__init__("gemini", config)
+        super().__init__("gemini", config, agent_config)
         self.agent_config = agent_config
 
         # Model configuration from config file

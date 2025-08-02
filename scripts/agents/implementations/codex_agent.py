@@ -38,7 +38,7 @@ class CodexAgent(CLIAgentWrapper):
             },
             "working_dir": os.getcwd(),
         }
-        super().__init__("codex", config)
+        super().__init__("codex", config, agent_config)
         self.agent_config = agent_config
 
         # Get model configuration from config file

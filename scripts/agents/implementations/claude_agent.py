@@ -29,7 +29,7 @@ class ClaudeAgent(CLIAgentWrapper):
             "env_vars": {},
             "working_dir": os.getcwd(),
         }
-        super().__init__("claude", config)
+        super().__init__("claude", config, agent_config)
         self.agent_config = agent_config
 
     def get_trigger_keyword(self) -> str:

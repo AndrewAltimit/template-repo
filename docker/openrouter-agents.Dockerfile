@@ -43,7 +43,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | d
 
 # Crush from Charm Bracelet
 RUN go install github.com/charmbracelet/mods@latest && \
-    mv /root/go/bin/mods /usr/local/bin/crush || echo "Crush installation failed"
+    mv /root/go/bin/mods /usr/local/bin/crush
 
 # Create working directory
 WORKDIR /workspace

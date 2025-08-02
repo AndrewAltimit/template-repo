@@ -36,7 +36,7 @@ atexit.register(_cleanup_temp_files)
 class CLIAgentWrapper(AIAgent):
     """Base class for wrapping CLI-based AI agents."""
 
-    def __init__(self, agent_name: str, config: Dict[str, any]):
+    def __init__(self, agent_name: str, config: Dict[str, any], agent_config=None):
         """Initialize CLI agent wrapper.
 
         Args:
@@ -47,6 +47,7 @@ class CLIAgentWrapper(AIAgent):
                 - timeout: Command timeout in seconds
                 - env_vars: Environment variables to set
                 - working_dir: Working directory for execution
+            agent_config: Optional AgentConfig instance for security checks
         """
         self.agent_name = agent_name
         self.executable = config["executable"]
@@ -55,6 +56,7 @@ class CLIAgentWrapper(AIAgent):
         self.env_vars = config.get("env_vars", {})
         self.working_dir = config.get("working_dir", None)
         self._available = None
+        self.agent_config = agent_config
 
     @abstractmethod
     def _build_command(self, prompt: str, context: Dict[str, str]) -> List[str]:
@@ -156,6 +158,9 @@ class CLIAgentWrapper(AIAgent):
 
     async def generate_code(self, prompt: str, context: Dict[str, str]) -> str:
         """Generate code using the CLI agent."""
+        # Check security requirements if configured
+        self._check_security_requirements()
+
         cmd = self._build_command(prompt, context)
         temp_files_created = []
 
@@ -248,3 +253,24 @@ class CLIAgentWrapper(AIAgent):
                 logger.debug(f"Cleaned up temp file: {filepath}")
         except Exception as e:
             logger.warning(f"Failed to clean up temp file {filepath}: {e}")
+
+    def _check_security_requirements(self) -> None:
+        """Check security requirements before executing commands.
+
+        Raises:
+            AgentExecutionError: If security requirements are not met
+        """
+        if not self.agent_config:
+            return  # No config, no security checks
+
+        security_config = self.agent_config.get_security_config()
+        if security_config.get("require_sandbox", False):
+            # Check if we're running in a sandbox environment
+            if os.environ.get("AGENT_SANDBOX_MODE") != "true":
+                raise AgentExecutionError(
+                    self.agent_name,
+                    -1,
+                    "",
+                    "Agent execution denied: Sandbox mode is required but not enabled. "
+                    "Set AGENT_SANDBOX_MODE=true to enable sandbox mode.",
+                )

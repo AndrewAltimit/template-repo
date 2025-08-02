@@ -39,7 +39,7 @@ class CrushAgent(CLIAgentWrapper):
             },
             "working_dir": os.getcwd(),
         }
-        super().__init__("crush", config)
+        super().__init__("crush", config, agent_config)
         self.agent_config = agent_config
 
         # Get model configuration from config file

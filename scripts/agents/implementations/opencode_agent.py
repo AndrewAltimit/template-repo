@@ -41,7 +41,7 @@ class OpenCodeAgent(CLIAgentWrapper):
             },
             "working_dir": os.getcwd(),
         }
-        super().__init__("opencode", config)
+        super().__init__("opencode", config, agent_config)
         self.agent_config = agent_config
         self.model_config = model_config
 
