@@ -29,13 +29,9 @@ cleanup_dir() {
 
 # Clean up all directories under outputs/ dynamically
 if [ -d "outputs" ]; then
-    # Find all subdirectories under outputs/
-    for dir in outputs/*/; do
-        if [ -d "$dir" ]; then
-            # Remove trailing slash for proper directory handling
-            dir="${dir%/}"
-            cleanup_dir "$dir"
-        fi
+    # Use find command instead of shell glob to avoid issues when no subdirs exist
+    find outputs -maxdepth 1 -mindepth 1 -type d 2>/dev/null | while read -r dir; do
+        cleanup_dir "$dir"
     done
 
     # Also clean up the parent directory if empty
