@@ -23,10 +23,10 @@ RUN ln -sf /usr/bin/python3.11 /usr/bin/python \
 
 # Install Go in a separate layer (large download)
 # Checksum from https://go.dev/dl/
-RUN wget -q https://go.dev/dl/go1.21.13.linux-amd64.tar.gz && \
-    echo "2f8e71d1702157d8e560cd59297b25ee7403a84a80b2464be631af16575d8f4f  go1.21.13.linux-amd64.tar.gz" | sha256sum -c - && \
-    tar -C /usr/local -xzf go1.21.13.linux-amd64.tar.gz && \
-    rm go1.21.13.linux-amd64.tar.gz
+RUN wget -q https://go.dev/dl/go1.24.5.linux-amd64.tar.gz && \
+    echo "10ad9e86233e74c0f6590fe5426895de6bf388964210eac34a6d83f38918ecdc  go1.24.5.linux-amd64.tar.gz" | sha256sum -c - && \
+    tar -C /usr/local -xzf go1.24.5.linux-amd64.tar.gz && \
+    rm go1.24.5.linux-amd64.tar.gz
 
 # Set Go environment variables
 ENV PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
