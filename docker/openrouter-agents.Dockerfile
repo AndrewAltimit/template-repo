@@ -1,23 +1,26 @@
 # OpenRouter Agents Image with Node.js and Go
 # For agents that can be fully containerized (OpenCode, Codex, Crush)
 
-# Stage 1: Node.js base
-FROM node:20-slim AS node-base
+# Use a base image that already has Node.js
+FROM node:20-slim
 
-# Stage 2: Go base
-FROM golang:1.21-bullseye AS go-base
+# Install Python 3.11
+RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3-pip \
+    python3.11-venv \
+    && rm -rf /var/lib/apt/lists/*
 
-# Stage 3: Final image
-FROM python:3.11-slim
+# Create symbolic links for Python
+RUN ln -sf /usr/bin/python3.11 /usr/bin/python \
+    && ln -sf /usr/bin/pip3 /usr/bin/pip
 
-# Copy Node.js from official image
-COPY --from=node-base /usr/local/bin/node /usr/local/bin/node
-COPY --from=node-base /usr/local/lib/node_modules /usr/local/lib/node_modules
-COPY --from=node-base /usr/local/bin/npm /usr/local/bin/npm
-COPY --from=node-base /usr/local/bin/npx /usr/local/bin/npx
-
-# Copy Go from official image
-COPY --from=go-base /usr/local/go /usr/local/go
+# Install Go
+RUN apt-get update && apt-get install -y wget && \
+    wget -q https://go.dev/dl/go1.21.13.linux-amd64.tar.gz && \
+    tar -C /usr/local -xzf go1.21.13.linux-amd64.tar.gz && \
+    rm go1.21.13.linux-amd64.tar.gz && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -66,7 +69,7 @@ WORKDIR /workspace
 
 # Copy agent-specific requirements
 COPY docker/requirements-agents.txt ./
-RUN pip install --no-cache-dir -r requirements-agents.txt
+RUN pip install --no-cache-dir --break-system-packages -r requirements-agents.txt
 
 # Python environment configuration
 ENV PYTHONUNBUFFERED=1 \
@@ -74,22 +77,31 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPYCACHEPREFIX=/tmp/pycache \
     PYTHONUTF8=1
 
-# Create directories for agent configs
+# The node:20-slim image already has a "node" user with UID 1000
+# We'll use that user and create directories in the node home directory
+
+# Create all necessary directories for both root and node user
 RUN mkdir -p /root/.config/opencode \
     /root/.config/codex \
     /root/.config/mods \
-    /home/agentuser/.config/mods
-
-# Create a non-root user (will be overridden by docker-compose)
-RUN useradd -m -u 1000 agentuser
+    /home/node/.config/opencode \
+    /home/node/.config/codex \
+    /home/node/.config/mods \
+    /home/node/.cache \
+    /home/node/.cache/opencode \
+    /home/node/.cache/codex \
+    /home/node/.cache/mods \
+    /home/node/.local \
+    /home/node/.local/share \
+    /home/node/.local/bin
 
 # Copy mods configuration
 COPY scripts/agents/config/mods-config.yml /root/.config/mods/config.yml
-COPY scripts/agents/config/mods-config.yml /home/agentuser/.config/mods/config.yml
-# Set ownership for the default user. Note: when running via docker-compose,
-# the user is overridden by the host's USER_ID/GROUP_ID, and volume mount
-# permissions will take precedence.
-RUN chown -R agentuser:agentuser /home/agentuser/.config
+COPY scripts/agents/config/mods-config.yml /home/node/.config/mods/config.yml
+
+# Set ownership for all node directories
+# This ensures the user can write to all necessary locations
+RUN chown -R node:node /home/node
 
 # Default command
 CMD ["bash"]
