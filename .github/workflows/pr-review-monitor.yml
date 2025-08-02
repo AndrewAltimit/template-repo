@@ -84,8 +84,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}
+          # OpenRouter API key for alternative AI agents
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           # List of environment variables whose values should be masked in public comments
-          MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN"
+          MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN,OPENROUTER_API_KEY"
           # Enable verbose logging for better debugging
           PR_MONITOR_VERBOSE: "true"
           # Set Python path to include the current directory
