@@ -120,8 +120,11 @@ services:
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/workspace
-      - ~/.config/openrouter:/home/node/.config/openrouter  # Mount only openrouter config
-      - ~/.config/mods:/home/node/.config/mods              # Preserve mods config
+      # Mount host config directories for persistence during development
+      # These allow user-specific API keys and settings to persist between container runs
+      # In production, these would be replaced with secrets management
+      - ~/.config/openrouter:/home/node/.config/openrouter  # OpenRouter API key storage
+      - ~/.config/mods:/home/node/.config/mods              # Mods/Crush configuration
     environment:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}

@@ -7,13 +7,16 @@
 # - Interactive prompts are disabled (e.g., --dangerously-skip-permissions)
 
 # List of enabled agents
+# NOTE: Some agents are only available in specific environments:
+# - Host-only agents: claude (needs subscription auth), gemini (needs Docker access)
+# - Container-only agents: opencode, codex, crush (installed in openrouter-agents container)
 enabled_agents:
-  - claude      # Anthropic's Claude Code (primary agent)
-  - gemini      # Google's Gemini CLI (for reviews)
-  # Uncomment when ready:
-  # - opencode  # Open-source alternative
-  # - codex     # OpenAI's Codex
-  # - crush     # Charm Bracelet's multi-provider tool
+  - claude      # Anthropic's Claude Code (host-only, primary agent)
+  - gemini      # Google's Gemini CLI (host-only, for reviews)
+  # Container-only agents (uncomment only if running in container):
+  # - opencode  # Open-source alternative (container-only)
+  # - codex     # OpenAI's Codex (container-only)
+  # - crush     # Charm Bracelet's multi-provider tool (container-only)
 
 # Agent priorities for different task types
 agent_priorities:

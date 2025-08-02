@@ -153,10 +153,20 @@ class IssueMonitor:
         # Get the agent
         agent = self.agents.get(agent_name.lower())
         if not agent:
+            # Check if this is a containerized agent running on host
+            containerized_agents = ["opencode", "codex", "crush"]
+            if agent_name.lower() in containerized_agents:
+                error_msg = (
+                    f"Agent '{agent_name}' is only available in the containerized environment.\n\n"
+                    f"This agent runs in the `openrouter-agents` Docker container and is not available "
+                    f"when the issue monitor runs on the host (required for Claude authentication).\n\n"
+                    f"Available host agents: {list(self.agents.keys())}"
+                )
+            else:
+                error_msg = f"Agent '{agent_name}' is not available. Available agents: {list(self.agents.keys())}"
+
             logger.error(f"Agent '{agent_name}' not available")
-            self._post_error_comment(
-                issue_number, f"Agent '{agent_name}' is not available. Available agents: {list(self.agents.keys())}"
-            )
+            self._post_error_comment(issue_number, error_msg)
             return
 
         # Generate branch name
