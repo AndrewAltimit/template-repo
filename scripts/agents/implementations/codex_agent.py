@@ -12,6 +12,10 @@ logger = logging.getLogger(__name__)
 class CodexAgent(CLIAgentWrapper):
     """OpenAI Codex CLI agent wrapper."""
 
+    # Default model constants
+    DEFAULT_OPENROUTER_MODEL = "qwen/qwen-2.5-coder-32b-instruct"
+    DEFAULT_OPENAI_MODEL = "gpt-4"
+
     def __init__(self, agent_config=None):
         """Initialize Codex CLI agent.
 
@@ -55,13 +59,13 @@ class CodexAgent(CLIAgentWrapper):
         """Get Codex model configuration."""
         if self.using_openrouter:
             return {
-                "model": self.model_config.get("model", "qwen/qwen-2.5-coder-32b-instruct"),
+                "model": self.model_config.get("model", self.DEFAULT_OPENROUTER_MODEL),
                 "provider": "openrouter",
                 "temperature": self.model_config.get("temperature", 0.3),
                 "max_tokens": 8192,
             }
         else:
-            return {"model": "gpt-4", "provider": "openai", "temperature": 0.3, "max_tokens": 8192}
+            return {"model": self.DEFAULT_OPENAI_MODEL, "provider": "openai", "temperature": 0.3, "max_tokens": 8192}
 
     def _build_command(self, prompt: str, context: Dict[str, str]) -> List[str]:
         """Build Codex CLI command."""
@@ -81,10 +85,10 @@ class CodexAgent(CLIAgentWrapper):
         if self.using_openrouter:
             # Use OpenRouter provider
             cmd.extend(["--provider", "https://openrouter.ai/api/v1"])
-            cmd.extend(["--model", self.model_config.get("model", "qwen/qwen-2.5-coder-32b-instruct")])
+            cmd.extend(["--model", self.model_config.get("model", self.DEFAULT_OPENROUTER_MODEL)])
         else:
             # Use OpenAI directly
-            cmd.extend(["--model", "gpt-4.1"])
+            cmd.extend(["--model", self.DEFAULT_OPENAI_MODEL])
 
         # Add the prompt as the last argument
         cmd.append(full_prompt)

@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 class CrushAgent(CLIAgentWrapper):
     """Crush CLI agent wrapper from Charm Bracelet."""
 
+    # Default model constant
+    DEFAULT_MODEL = "qwen/qwen-2.5-coder-32b-instruct"
+
     def __init__(self, agent_config=None):
         """Initialize Crush agent.
 
@@ -59,7 +62,7 @@ class CrushAgent(CLIAgentWrapper):
                     "openrouter": {
                         "api_key": api_key,
                         "base_url": "https://openrouter.ai/api/v1",
-                        "model": self.model_config.get("model", "qwen/qwen-2.5-coder-32b-instruct"),
+                        "model": self.model_config.get("model", self.DEFAULT_MODEL),
                     }
                 },
                 "default_provider": "openrouter",
@@ -79,7 +82,7 @@ class CrushAgent(CLIAgentWrapper):
     def get_model_config(self) -> Dict[str, any]:
         """Get Crush model configuration."""
         return {
-            "model": self.model_config.get("model", "qwen/qwen-2.5-coder-32b-instruct"),
+            "model": self.model_config.get("model", self.DEFAULT_MODEL),
             "provider": "openrouter",
             "temperature": self.model_config.get("temperature", 0.1),  # Lower temperature for Crush
             "max_tokens": 8192,
@@ -98,7 +101,7 @@ class CrushAgent(CLIAgentWrapper):
         cmd = [
             self.executable,
             "--model",
-            self.model_config.get("model", "openrouter/qwen/qwen-2.5-coder-32b-instruct"),
+            self.model_config.get("model", f"openrouter/{self.DEFAULT_MODEL}"),
             "--api",
             "https://openrouter.ai/api/v1",
             "--no-cache",  # Don't cache results in CI/CD

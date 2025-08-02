@@ -51,8 +51,9 @@ RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/* &&
     rm /tmp/opencode.zip && \
     chmod +x /usr/local/bin/opencode
 
-# Install Codex from GitHub releases (rust-v0.11.0)
-# For now, create a wrapper that uses npm-installed version as fallback
+# Install Codex CLI - OpenAI's experimental coding agent
+# Note: May show deprecation warnings for subdependencies (node-domexception, lodash.isequal, phin)
+# These are dependency warnings, not warnings about codex itself - the tool is actively maintained
 RUN npm install -g @openai/codex || echo "NPM install of codex failed, will use direct binary"
 
 # Install Crush/mods from Charm Bracelet - VERIFIED WORKING

@@ -13,6 +13,10 @@ logger = logging.getLogger(__name__)
 class GeminiAgent(CLIAgentWrapper):
     """Gemini CLI agent wrapper."""
 
+    # Default model constants
+    DEFAULT_PRO_MODEL = "gemini-2.5-pro"
+    DEFAULT_FLASH_MODEL = "gemini-2.5-flash"
+
     def __init__(self, agent_config=None):
         """Initialize Gemini agent.
 
@@ -35,8 +39,8 @@ class GeminiAgent(CLIAgentWrapper):
 
         # Model configuration from config file
         model_config = agent_config.get_model_override("gemini") if agent_config else {}
-        self.pro_model = model_config.get("pro_model", "gemini-2.5-pro")
-        self.flash_model = model_config.get("flash_model", "gemini-2.5-flash")
+        self.pro_model = model_config.get("pro_model", self.DEFAULT_PRO_MODEL)
+        self.flash_model = model_config.get("flash_model", self.DEFAULT_FLASH_MODEL)
         self.current_model = model_config.get("default_model", self.pro_model)
 
     def get_trigger_keyword(self) -> str:

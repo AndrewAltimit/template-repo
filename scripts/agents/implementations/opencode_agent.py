@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 class OpenCodeAgent(CLIAgentWrapper):
     """OpenCode CLI agent wrapper."""
 
+    # Default model constant
+    DEFAULT_MODEL = "qwen/qwen-2.5-coder-32b-instruct"
+
     def __init__(self, agent_config=None):
         """Initialize OpenCode agent.
 
@@ -24,7 +27,7 @@ class OpenCodeAgent(CLIAgentWrapper):
 
         # Get model configuration from config file
         model_config = agent_config.get_model_override("opencode") if agent_config else {}
-        model_name = model_config.get("model", "qwen/qwen-2.5-coder-32b-instruct")
+        model_name = model_config.get("model", self.DEFAULT_MODEL)
 
         # Get timeout from central config if available
         timeout = 300  # Default 5 minutes
