@@ -220,7 +220,10 @@ jobs:
 
       - name: Stop MCP servers
         if: always()
-        run: docker-compose down
+        run: |
+          docker-compose down
+          # Clean up output directories using Docker to handle permissions
+          ./scripts/cleanup-outputs.sh
 
   # Stage 6: Documentation build
   docs-build:
@@ -428,7 +431,10 @@ jobs:
 
       - name: Stop services
         if: always()
-        run: docker-compose down
+        run: |
+          docker-compose down
+          # Clean up output directories using Docker to handle permissions
+          ./scripts/cleanup-outputs.sh
 
   # Stage 9: Integration tests
   integration-tests:
@@ -463,7 +469,10 @@ jobs:
 
       - name: Clean up services
         if: always()
-        run: docker-compose down
+        run: |
+          docker-compose down
+          # Clean up output directories using Docker to handle permissions
+          ./scripts/cleanup-outputs.sh
 
   # Stage 10: Deploy (placeholder)
   deploy:

@@ -141,6 +141,8 @@ jobs:
             rm gemini.pid
           fi
           docker-compose down
+          # Clean up output directories using Docker to handle permissions
+          ./scripts/cleanup-outputs.sh
 
   gemini-consultation:
     name: Gemini AI Consultation

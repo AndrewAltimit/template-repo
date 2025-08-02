@@ -514,6 +514,8 @@ jobs:
         if: always()
         run: |
           docker-compose down
+          # Clean up output directories using Docker to handle permissions
+          ./scripts/cleanup-outputs.sh
 
   # Stage 7: Gaea2 MCP Integration Tests
   gaea2-integration-tests:
@@ -629,7 +631,10 @@ jobs:
 
       - name: Stop services
         if: always()
-        run: docker-compose down
+        run: |
+          docker-compose down
+          # Clean up output directories using Docker to handle permissions
+          ./scripts/cleanup-outputs.sh
 
   # Final status and summary
   pr-status:
