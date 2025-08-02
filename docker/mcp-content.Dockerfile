@@ -45,9 +45,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy MCP server code
 COPY tools/mcp /app/tools/mcp
 
-# Copy entrypoint script
-COPY docker/entrypoint-mcp-content.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# No entrypoint script needed - containers run as host user
 
 # Set Python path
 ENV PYTHONPATH=/app
@@ -58,8 +56,7 @@ ENV MANIM_MEDIA_DIR=/tmp/mcp-content-output/manim
 # Expose port
 EXPOSE 8011
 
-# Use entrypoint script to ensure proper permissions
-ENTRYPOINT ["/entrypoint.sh"]
+# Run as host user via docker-compose - no entrypoint needed
 
 # Run the server
 CMD ["python", "-m", "tools.mcp.content_creation.server", "--mode", "http"]

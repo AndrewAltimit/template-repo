@@ -22,9 +22,7 @@ RUN mkdir -p /output/gaea2 && chmod -R 755 /output
 # Copy MCP server code
 COPY tools/mcp /app/tools/mcp
 
-# Copy entrypoint script
-COPY docker/entrypoint-mcp-gaea2.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# No entrypoint script needed - containers run as host user
 
 # Set Python path
 ENV PYTHONPATH=/app
@@ -36,8 +34,7 @@ RUN echo "Note: This container provides Gaea2 project creation and validation on
 # Expose port
 EXPOSE 8007
 
-# Use entrypoint script to ensure proper permissions
-ENTRYPOINT ["/entrypoint.sh"]
+# Run as host user via docker-compose - no entrypoint needed
 
 # Run the server
 CMD ["python", "-m", "tools.mcp.gaea2.server", "--mode", "http"]
