@@ -73,15 +73,20 @@ class CodexAgent(CLIAgentWrapper):
         # Create temp file for complex prompts
         prompt_file = self._save_to_temp_file(full_prompt, suffix=".md")
 
-        # Build command based on Codex CLI interface
-        cmd = [self.executable, "--non-interactive", "--input", prompt_file]  # Non-interactive mode for automation
+        try:
+            # Build command based on Codex CLI interface
+            cmd = [self.executable, "--non-interactive", "--input", prompt_file]  # Non-interactive mode for automation
 
-        # Add model configuration if using OpenRouter
-        if self.using_openrouter:
-            cmd.extend(["--api-endpoint", "https://openrouter.ai/api/v1"])
-            cmd.extend(["--model", "qwen/qwen-2.5-coder-32b-instruct"])
+            # Add model configuration if using OpenRouter
+            if self.using_openrouter:
+                cmd.extend(["--api-endpoint", "https://openrouter.ai/api/v1"])
+                cmd.extend(["--model", "qwen/qwen-2.5-coder-32b-instruct"])
 
-        return cmd
+            return cmd
+        except Exception:
+            # Clean up temp file if command building fails
+            self._cleanup_temp_file(prompt_file)
+            raise
 
     def _parse_output(self, output: str, error: str) -> str:
         """Parse Codex CLI output."""

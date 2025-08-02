@@ -1,0 +1,140 @@
+# Agent Containerization Strategy
+
+This document outlines the containerization approach for the multi-agent system, addressing security concerns while maintaining functionality.
+
+## Overview
+
+After careful analysis, we've determined that agents can be divided into two categories:
+
+1. **Host-Only Agents** (Cannot be containerized due to authentication constraints)
+2. **Containerizable Agents** (Can run fully in Docker containers)
+
+## Agent Classification
+
+### Host-Only Agents
+
+These agents MUST run on the host system due to authentication requirements:
+
+#### Claude Code
+- **Reason**: Requires machine-specific subscription authentication
+- **Details**: Claude CLI uses browser-based OAuth flow tied to the host machine
+- **Documentation**: See `docs/AI_AGENTS_CLAUDE_AUTH.md`
+
+#### Gemini CLI
+- **Reason**: Requires Docker socket access for system operations
+- **Details**: Gemini needs to spawn containers and access Docker daemon
+- **Documentation**: See tools/mcp/gemini/docs/README.md
+
+### Containerizable Agents
+
+These agents can run in Docker containers with proper configuration:
+
+#### OpenCode
+- **Authentication**: API key via environment variable
+- **Container**: `openrouter-agents`
+- **Requirements**: Node.js runtime
+
+#### Codex CLI
+- **Authentication**: API key via environment variable
+- **Container**: `openrouter-agents`
+- **Requirements**: Node.js runtime
+
+#### Crush (Charm Bracelet Mods)
+- **Authentication**: API key via config file
+- **Container**: `openrouter-agents`
+- **Requirements**: Go runtime
+
+## Implementation
+
+### Container Architecture
+
+```yaml
+# docker-compose.yml
+services:
+  # Existing AI agents container (for Claude when containerization becomes possible)
+  ai-agents:
+    build: docker/ai-agents.Dockerfile
+    profiles: [agents]
+
+  # New container for OpenRouter-compatible agents
+  openrouter-agents:
+    build: docker/openrouter-agents.Dockerfile
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+    profiles: [agents, openrouter]
+```
+
+### Security Improvements
+
+1. **Eliminated `curl | bash` Pattern**
+   - Replaced with `install_agents_safe.sh` providing manual instructions
+   - Users can review each installation step
+   - No automatic execution of remote scripts
+
+2. **No System-Level Dependencies**
+   - Containerized agents don't require host installations
+   - All dependencies contained within Docker images
+   - Host remains clean and portable
+
+3. **Environment Variable Management**
+   - API keys passed securely via environment variables
+   - No hardcoded credentials
+   - Supports `.env` file for local development
+
+## Usage Patterns
+
+### Development (Mixed Mode)
+```bash
+# Host agents (Claude, Gemini)
+claude --help
+gemini --help
+
+# Containerized agents
+docker-compose run --rm openrouter-agents mods "Write a function"
+docker-compose run --rm openrouter-agents python scripts/agents/run_agents.py
+```
+
+### Production (Recommended)
+```bash
+# All agents that can be containerized should be
+docker-compose --profile openrouter up -d
+
+# Only Claude and Gemini on host
+python scripts/agents/run_agents.py --agent claude
+```
+
+## Migration Path
+
+1. **Phase 1** (Current): Document exceptions, provide container option
+2. **Phase 2**: Investigate Claude CLI API for potential containerization
+3. **Phase 3**: Create authentication proxy for host-only agents
+4. **Phase 4**: Full containerization when technically feasible
+
+## Exceptions to Container-First Philosophy
+
+This implementation creates documented exceptions to our container-first philosophy:
+
+1. **Claude Code**: Authentication limitation (subscription-based)
+2. **Gemini CLI**: Technical requirement (Docker access)
+3. **AI Agents Runner**: Needs to coordinate both host and container agents
+
+These exceptions are:
+- Clearly documented in CLAUDE.md
+- Technically justified
+- Temporary (pending upstream changes)
+- Security-reviewed
+
+## Best Practices
+
+1. **Prefer Containers**: Always use containerized versions when available
+2. **Document Exceptions**: Any host requirement must be documented
+3. **Secure Credentials**: Use environment variables, never hardcode
+4. **Regular Updates**: Review containerization feasibility with each update
+5. **Test Both Modes**: Ensure agents work in both host and container contexts
+
+## Future Considerations
+
+- Monitor Claude CLI for API-based authentication options
+- Investigate credential proxy services for host agents
+- Consider Kubernetes operators for production deployments
+- Evaluate WebAssembly for lightweight agent isolation

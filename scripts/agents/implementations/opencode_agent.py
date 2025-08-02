@@ -73,21 +73,26 @@ class OpenCodeAgent(CLIAgentWrapper):
         # Create temporary file for the prompt (many CLI tools prefer file input)
         prompt_file = self._save_to_temp_file(full_prompt, suffix=".md")
 
-        # Build command based on expected OpenCode CLI interface
-        cmd = [
-            self.executable,
-            "--non-interactive",  # Expected flag for automation
-            "--model",
-            self.env_vars.get("OPENCODE_MODEL", "qwen/qwen-2.5-coder-32b-instruct"),
-            "--input",
-            prompt_file,
-        ]
+        try:
+            # Build command based on expected OpenCode CLI interface
+            cmd = [
+                self.executable,
+                "--non-interactive",  # Expected flag for automation
+                "--model",
+                self.env_vars.get("OPENCODE_MODEL", "qwen/qwen-2.5-coder-32b-instruct"),
+                "--input",
+                prompt_file,
+            ]
 
-        # If OpenCode supports JSON output
-        if self._supports_json_output():
-            cmd.extend(["--output-format", "json"])
+            # If OpenCode supports JSON output
+            if self._supports_json_output():
+                cmd.extend(["--output-format", "json"])
 
-        return cmd
+            return cmd
+        except Exception:
+            # Clean up temp file if command building fails
+            self._cleanup_temp_file(prompt_file)
+            raise
 
     def _parse_output(self, output: str, error: str) -> str:
         """Parse OpenCode CLI output."""

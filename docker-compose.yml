@@ -111,6 +111,31 @@ services:
     profiles:
       - agents
 
+  # OpenRouter Agents container (OpenCode, Codex, Crush)
+  openrouter-agents:
+    build:
+      context: .
+      dockerfile: docker/openrouter-agents.Dockerfile
+    container_name: openrouter-agents
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    volumes:
+      - ./:/workspace
+      - ~/.config/openrouter:/home/agentuser/.config  # For agent configs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
+      - CONTAINER=openrouter-agents
+    working_dir: /workspace
+    networks:
+      - mcp-network
+    command: ["/bin/bash"]
+    tty: true
+    stdin_open: true
+    profiles:
+      - agents
+      - openrouter
+
   # Python CI container for running tests and linting
   python-ci:
     build:

@@ -157,8 +157,20 @@ class CLIAgentWrapper(AIAgent):
     async def generate_code(self, prompt: str, context: Dict[str, str]) -> str:
         """Generate code using the CLI agent."""
         cmd = self._build_command(prompt, context)
-        stdout, stderr = await self._execute_with_timeout(cmd)
-        return self._parse_output(stdout, stderr)
+        temp_files_created = []
+
+        try:
+            # Track any temp files in the command
+            for arg in cmd:
+                if arg.startswith("/tmp/") and arg in _temp_files:
+                    temp_files_created.append(arg)
+
+            stdout, stderr = await self._execute_with_timeout(cmd)
+            return self._parse_output(stdout, stderr)
+        finally:
+            # Clean up any temp files created for this command
+            for filepath in temp_files_created:
+                self._cleanup_temp_file(filepath)
 
     async def review_code(self, code: str, instructions: str) -> str:
         """Review code using the CLI agent."""
@@ -226,3 +238,13 @@ class CLIAgentWrapper(AIAgent):
             filepath = f.name
             _temp_files.add(filepath)  # Track for cleanup
             return filepath
+
+    def _cleanup_temp_file(self, filepath: str) -> None:
+        """Clean up a temporary file immediately."""
+        try:
+            if os.path.exists(filepath):
+                os.unlink(filepath)
+                _temp_files.discard(filepath)
+                logger.debug(f"Cleaned up temp file: {filepath}")
+        except Exception as e:
+            logger.warning(f"Failed to clean up temp file {filepath}: {e}")

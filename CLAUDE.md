@@ -140,29 +140,36 @@ pip install -r requirements.txt
 ### AI Agents
 
 ```bash
-# IMPORTANT: AI agents now run on the host machine (not containerized)
-# This is required for Claude CLI subscription authentication to work
-# See docs/AI_AGENTS_CLAUDE_AUTH.md for detailed explanation
-#
-# This is a deliberate exception to our container-first philosophy due to:
-# 1. Claude CLI subscription auth being machine-specific
-# 2. Authentication tokens not being portable to containers
-# 3. Security design preventing credential sharing
+# IMPORTANT: Agent Containerization Strategy
+# Some agents run on host, others can be containerized
+# See docs/AGENT_CONTAINERIZATION_STRATEGY.md for complete details
 
-# Run AI agents directly on host
+# Host-Only Agents (authentication constraints):
+# 1. Claude CLI - requires subscription auth (machine-specific)
+# 2. Gemini CLI - requires Docker socket access
+# See docs/AI_AGENTS_CLAUDE_AUTH.md for Claude auth details
+
+# Containerized Agents (OpenRouter-compatible):
+# OpenCode, Codex, Crush - run in openrouter-agents container
+docker-compose run --rm openrouter-agents python scripts/agents/run_agents.py
+
+# Or use specific containerized agents:
+docker-compose run --rm openrouter-agents mods "Write a Python function"
+
+# Host agent execution (Claude, Gemini only):
 python3 scripts/agents/run_agents.py status
 python3 scripts/agents/run_agents.py issue-monitor
 python3 scripts/agents/run_agents.py pr-review-monitor
-
-# Or run individual agent scripts
-python3 scripts/agents/issue_monitor.py
-python3 scripts/agents/pr_review_monitor.py
 
 # GitHub Actions automatically run agents on schedule:
 # - Issue Monitor: Every hour (runs on host)
 # - PR Review Monitor: Every hour (runs on host)
 
-# Note: Ensure Python dependencies are installed on host:
+# Installation:
+# For safe installation instructions (no curl|bash):
+./scripts/agents/install_agents_safe.sh
+
+# Note: Host dependencies only needed for Claude/Gemini:
 pip3 install --user -r docker/requirements-agents.txt
 ```
 
