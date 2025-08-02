@@ -65,9 +65,12 @@ jobs:
           echo "[INFO] Checking Python environment..."
           python3 --version
 
-          # Install required Python packages if not already installed
-          # Using --user to avoid permission issues on self-hosted runners
-          echo "[INFO] Installing required Python packages..."
+          # Install the GitHub AI Agents package
+          echo "[INFO] Installing GitHub AI Agents package..."
+          pip3 install --user -e ./github_ai_agents
+
+          # Install additional requirements if needed
+          echo "[INFO] Installing additional requirements..."
           pip3 install --user -r docker/requirements-agents.txt
 
       - name: Build Docker containers for OpenRouter agents
@@ -87,8 +90,8 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           # List of environment variables whose values should be masked in public comments
           MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN,OPENROUTER_API_KEY"
-          # Set Python path to include the current directory and scripts
-          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/scripts/agents
+          # Set Python path to include the current directory
+          PYTHONPATH: ${{ github.workspace }}
           PYTHONUNBUFFERED: "1"
         run: |
           echo "Running issue monitor for repository: $GITHUB_REPOSITORY"
@@ -128,9 +131,9 @@ jobs:
             exit 1
           fi
 
-          # Run the multi-agent issue monitor as a module to fix imports
+          # Run the issue monitor from the new package
           cd "${{ github.workspace }}"
-          python3 -m scripts.agents.issue_monitor_multi_agent || {
+          python3 -m github_ai_agents.cli issue-monitor || {
               exit_code=$?
               echo "[ERROR] Issue monitor script failed with exit code: $exit_code"
 
