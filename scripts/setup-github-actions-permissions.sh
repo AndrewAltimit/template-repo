@@ -29,7 +29,6 @@ create_output_dirs() {
     # Create directories that MCP servers need
     local dirs=(
         "$WORKSPACE/outputs"
-        "$WORKSPACE/test_outputs"
     )
 
     for dir in "${dirs[@]}"; do

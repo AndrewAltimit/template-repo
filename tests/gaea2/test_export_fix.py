@@ -52,7 +52,7 @@ def test_export_node():
         {
             "project_name": "export_fix_test",
             "workflow": workflow,
-            "output_path": "test_outputs",
+            "output_path": "outputs/tests",
             "auto_validate": True,
         },
     )

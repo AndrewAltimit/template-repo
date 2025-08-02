@@ -22,7 +22,7 @@ class Gaea2TemplateTester:
         # Use remote Gaea2 MCP server
         self.client = MCPClient(base_url="http://192.168.0.152:8000")
         self.results = []
-        self.test_dir = "test_outputs/gaea2_templates"
+        self.test_dir = "outputs/tests/gaea2_templates"
         os.makedirs(self.test_dir, exist_ok=True)
 
     def setup(self):
