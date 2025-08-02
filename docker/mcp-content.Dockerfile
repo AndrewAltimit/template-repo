@@ -28,12 +28,9 @@ RUN apt-get update && apt-get install -y \
 # Create app directory
 WORKDIR /app
 
-# Create output directories with proper permissions
-RUN mkdir -p /app/output/manim /app/output/latex && \
-    chmod -R 755 /app/output && \
-    mkdir -p /tmp/mcp-content-output/manim /tmp/mcp-content-output/latex && \
-    chmod -R 755 /tmp/mcp-content-output && \
-    mkdir -p /output && \
+# Create output directory with proper permissions
+# Only create the volume mount directory - other paths are not used
+RUN mkdir -p /output && \
     chmod -R 755 /output
 
 # Copy requirements first for better layer caching
