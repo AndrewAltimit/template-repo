@@ -285,7 +285,7 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
     diff_size = len(diff)
 
     # If diff is small enough, use single analysis
-    if diff_size < 50000:  # 50KB threshold
+    if diff_size < 500000:  # 500KB threshold - Gemini can handle much larger context
         return analyze_complete_diff(diff, changed_files, pr_info, project_context, file_stats)
 
     # For large diffs, analyze by file groups
@@ -375,12 +375,13 @@ def analyze_file_group(
     combined_diff = ""
     file_list = []
 
-    for filepath, file_diff in files[:10]:  # Max 10 files per group
+    for filepath, file_diff in files[:20]:  # Increased to max 20 files per group
         file_list.append(filepath)
-        # Include first 2000 chars of each file diff
-        combined_diff += f"\n\n=== {filepath} ===\n{file_diff[:2000]}"
-        if len(file_diff) > 2000:
-            combined_diff += f"\n... (truncated {len(file_diff) - 2000} chars)"
+        # Include full file diff up to 50KB per file
+        file_content = file_diff[:50000]  # 50KB per file should be safe
+        combined_diff += f"\n\n=== {filepath} ===\n{file_content}"
+        if len(file_diff) > 50000:
+            combined_diff += f"\n... (truncated {len(file_diff) - 50000} chars)"
 
     prompt = f"Analyze this group of {group_name} changes from " f"PR #{pr_info['number']}:\n\n"
 
@@ -393,7 +394,7 @@ def analyze_file_group(
         f"{chr(10).join(f'- {f}' for f in file_list)}\n\n"
         f"**Relevant diffs:**\n"
         f"```diff\n"
-        f"{combined_diff[:15000]}\n"
+        f"{combined_diff[:200000]}\n"
         f"```\n\n"
         f"Focus on:\n"
         f"1. Correctness and potential bugs\n"
@@ -453,13 +454,13 @@ def analyze_complete_diff(
         f"{format_workflow_contents(workflow_contents)}\n"
         f"**COMPLETE DIFF:**\n"
         f"```diff\n"
-        f"{diff[:75000]}  # Increased limit to 75KB\n"
+        f"{diff[:500000]}  # Increased limit to 500KB - Gemini can handle it\n"
         f"```\n"
     )
 
     # Add truncation message if needed
-    if len(diff) > 75000:
-        prompt += f"... (diff truncated, {len(diff) - 75000} chars omitted)\n\n"
+    if len(diff) > 500000:
+        prompt += f"... (diff truncated, {len(diff) - 500000} chars omitted)\n\n"
     else:
         prompt += "\n"
 
