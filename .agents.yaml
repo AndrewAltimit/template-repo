@@ -85,8 +85,7 @@ model_overrides:
 
 # OpenRouter configuration (for future agents)
 openrouter:
-  # Get your API key from https://openrouter.ai/
-  api_key: ${OPENROUTER_API_KEY}
+  # API key must be provided as OPENROUTER_API_KEY environment variable
 
   # Default model for OpenRouter-compatible agents
   default_model: qwen/qwen-2.5-coder-32b-instruct

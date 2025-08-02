@@ -4,32 +4,29 @@
 # Use a base image that already has Node.js
 FROM node:20-slim
 
-# Install Python 3.11
+# Install Python 3.11 and all system dependencies in one layer
 RUN apt-get update && apt-get install -y \
     python3.11 \
     python3-pip \
     python3.11-venv \
+    git \
+    curl \
+    wget \
+    jq \
+    build-essential \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Create symbolic links for Python
 RUN ln -sf /usr/bin/python3.11 /usr/bin/python \
     && ln -sf /usr/bin/pip3 /usr/bin/pip
 
-# Install Go
-RUN apt-get update && apt-get install -y wget && \
-    wget -q https://go.dev/dl/go1.21.13.linux-amd64.tar.gz && \
+# Install Go in a separate layer (large download)
+# Checksum from https://go.dev/dl/
+RUN wget -q https://go.dev/dl/go1.21.13.linux-amd64.tar.gz && \
+    echo "2f8e71d1702157d8e560cd59297b25ee7403a84a80b2464be631af16575d8f4f  go1.21.13.linux-amd64.tar.gz" | sha256sum -c - && \
     tar -C /usr/local -xzf go1.21.13.linux-amd64.tar.gz && \
-    rm go1.21.13.linux-amd64.tar.gz && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    git \
-    curl \
-    wget \
-    jq \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+    rm go1.21.13.linux-amd64.tar.gz
 
 # Set Go environment variables
 ENV PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
@@ -46,8 +43,8 @@ RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | 
 # Install OpenRouter-compatible CLI tools
 
 # Install OpenCode from GitHub releases (v0.3.112)
-RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/* && \
-    ARCH=$(dpkg --print-architecture) && \
+# Note: OpenCode releases don't provide checksums, downloading from official GitHub releases
+RUN ARCH=$(dpkg --print-architecture) && \
     if [ "$ARCH" = "amd64" ]; then ARCH="x64"; elif [ "$ARCH" = "arm64" ]; then ARCH="arm64"; fi && \
     wget -q "https://github.com/sst/opencode/releases/download/v0.3.112/opencode-linux-${ARCH}.zip" -O /tmp/opencode.zip && \
     unzip -q /tmp/opencode.zip -d /usr/local/bin/ && \

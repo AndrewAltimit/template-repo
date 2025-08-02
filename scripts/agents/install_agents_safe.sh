@@ -120,8 +120,8 @@ echo -e "${BLUE}=== Testing ===${NC}"
 echo "   # Test the multi-agent system:"
 echo "   python scripts/agents/test_agent_system.py"
 echo
-echo "   # Test OpenRouter agents specifically:"
-echo "   python scripts/agents/test_openrouter_agents.py"
+echo "   # Analyze OpenRouter agents containerization feasibility:"
+echo "   python scripts/agents/analyze_containerization_feasibility.py"
 echo
 
 echo -e "${GREEN}=== Done ===${NC}"
