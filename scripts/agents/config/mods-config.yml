@@ -1,0 +1,44 @@
+# Mods configuration for OpenRouter integration
+# This config is used by the containerized agents
+
+# Default model settings
+default-model: openrouter/qwen/qwen-2.5-coder-32b-instruct
+api: https://openrouter.ai/api/v1
+
+# Model aliases for easier use
+aliases:
+  # Fast and efficient models
+  fast: openrouter/mistralai/mistral-7b-instruct
+
+  # Balanced models
+  balanced: openrouter/qwen/qwen-2.5-coder-32b-instruct
+
+  # High quality models
+  quality: openrouter/anthropic/claude-3-5-sonnet
+
+  # Code-specific models
+  code: openrouter/qwen/qwen-2.5-coder-32b-instruct
+  review: openrouter/anthropic/claude-3-5-sonnet
+
+# Headers required by OpenRouter
+headers:
+  HTTP-Referer: https://github.com/AndrewAltimit/template-repo
+  X-Title: Multi-Agent System
+
+# Default parameters
+max-tokens: 8192
+temperature: 0.2
+
+# Role-specific configurations
+roles:
+  developer:
+    system: "You are an expert software developer. Focus on writing clean, efficient, and well-documented code."
+    temperature: 0.2
+
+  reviewer:
+    system: "You are a thorough code reviewer. Look for bugs, security issues, and suggest improvements."
+    temperature: 0.3
+
+  architect:
+    system: "You are a software architect. Design scalable and maintainable systems."
+    temperature: 0.4

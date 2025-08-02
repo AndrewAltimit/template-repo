@@ -70,23 +70,26 @@ class CodexAgent(CLIAgentWrapper):
         if context.get("code"):
             full_prompt = f"Code Context:\n```\n{context['code']}\n```\n\nTask: {prompt}"
 
-        # Create temp file for complex prompts
-        prompt_file = self._save_to_temp_file(full_prompt, suffix=".md")
+        # Codex uses approval modes for automation
+        cmd = [
+            self.executable,
+            "--full-auto",  # Fully autonomous mode for CI/CD
+            "--quiet",  # Quiet mode
+        ]
 
-        try:
-            # Build command based on Codex CLI interface
-            cmd = [self.executable, "--non-interactive", "--input", prompt_file]  # Non-interactive mode for automation
+        # Add model configuration
+        if self.using_openrouter:
+            # Use OpenRouter provider
+            cmd.extend(["--provider", "https://openrouter.ai/api/v1"])
+            cmd.extend(["--model", self.model_config.get("model", "qwen/qwen-2.5-coder-32b-instruct")])
+        else:
+            # Use OpenAI directly
+            cmd.extend(["--model", "gpt-4.1"])
 
-            # Add model configuration if using OpenRouter
-            if self.using_openrouter:
-                cmd.extend(["--api-endpoint", "https://openrouter.ai/api/v1"])
-                cmd.extend(["--model", "qwen/qwen-2.5-coder-32b-instruct"])
+        # Add the prompt as the last argument
+        cmd.append(full_prompt)
 
-            return cmd
-        except Exception:
-            # Clean up temp file if command building fails
-            self._cleanup_temp_file(prompt_file)
-            raise
+        return cmd
 
     def _parse_output(self, output: str, error: str) -> str:
         """Parse Codex CLI output."""
@@ -136,7 +139,7 @@ class CodexAgent(CLIAgentWrapper):
             if not self.env_vars.get("OPENAI_API_KEY"):
                 logger.warning("Codex CLI found but no API key configured")
                 logger.info("Set OPENAI_API_KEY or OPENROUTER_API_KEY environment variable")
-                self._available = True  # CLI exists, just needs config
+                self._available = False  # Codex requires API key to function
             else:
                 self._available = True
 

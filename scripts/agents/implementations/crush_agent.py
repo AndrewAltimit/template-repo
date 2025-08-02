@@ -88,22 +88,20 @@ class CrushAgent(CLIAgentWrapper):
         }
 
     def _build_command(self, prompt: str, context: Dict[str, str]) -> List[str]:
-        """Build Crush CLI command."""
+        """Build Crush/mods CLI command."""
         # Build full prompt with context
         full_prompt = prompt
         if context.get("code"):
             full_prompt = f"Code Context:\n```\n{context['code']}\n```\n\nTask: {prompt}"
 
-        # Crush expects input via stdin or as argument
-        # Based on typical CLI patterns, we'll pass as argument
+        # mods (Crush) expects the prompt as the last argument
         cmd = [
             self.executable,
-            "--provider",
-            "openrouter",
             "--model",
-            "qwen/qwen-2.5-coder-32b-instruct",
-            "--non-interactive",  # Non-interactive mode for CI/CD
-            "--no-update",  # Prevent auto-updates in CI/CD
+            self.model_config.get("model", "openrouter/qwen/qwen-2.5-coder-32b-instruct"),
+            "--api",
+            "https://openrouter.ai/api/v1",
+            "--no-cache",  # Don't cache results in CI/CD
             full_prompt,
         ]
 
@@ -148,17 +146,17 @@ class CrushAgent(CLIAgentWrapper):
             result = subprocess.run(["which", "crush"], capture_output=True, timeout=5)
 
             if result.returncode != 0:
-                logger.info("Crush CLI not found. Install with: go install github.com/charmbracelet/crush@latest")
+                logger.info("Crush/mods CLI not found. Install with: go install github.com/charmbracelet/mods@latest")
                 self._available = False
                 return False
 
-            # Try to run version command
-            result = subprocess.run([self.executable, "--version"], capture_output=True, timeout=10)
+            # mods doesn't have a --version flag, test with help
+            result = subprocess.run([self.executable, "--help"], capture_output=True, timeout=10)
 
             self._available = result.returncode == 0
 
             if not self._available:
-                logger.warning("Crush CLI found but not working properly")
+                logger.warning("Crush/mods CLI found but not working properly")
 
         except Exception as e:
             logger.error(f"Error checking Crush availability: {e}")
@@ -179,7 +177,7 @@ class CrushAgent(CLIAgentWrapper):
         ]
 
     def get_priority(self) -> int:
-        """Crush has medium priority as a flexible multi-provider tool."""
+        """Crush/mods has medium priority as a flexible multi-provider tool."""
         return 75
 
     def get_auth_command(self) -> List[str]:

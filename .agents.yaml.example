@@ -3,11 +3,11 @@
 
 # List of enabled agents (claude is always enabled by default)
 enabled_agents:
-  - claude      # Anthropic's Claude Code
-  - gemini      # Google's Gemini CLI
-  # - opencode  # Uncomment when implemented
-  # - codex     # Uncomment when implemented
-  # - crush     # Uncomment when implemented
+  - claude      # Anthropic's Claude Code (host-only)
+  - gemini      # Google's Gemini CLI (host-only)
+  - opencode    # SST's OpenCode (containerized)
+  - codex       # OpenAI's Codex CLI (containerized)
+  - crush       # Charm Bracelet's mods (containerized)
 
 # Agent priorities for different task types
 # Agents are tried in order until one succeeds

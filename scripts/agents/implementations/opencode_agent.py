@@ -62,37 +62,24 @@ class OpenCodeAgent(CLIAgentWrapper):
 
     def _build_command(self, prompt: str, context: Dict[str, str]) -> List[str]:
         """Build OpenCode CLI command."""
-        # OpenCode may support different flags than shown in research
-        # This is based on expected CLI patterns for terminal AI tools
-
         # Build full prompt with context
         full_prompt = prompt
         if context.get("code"):
             full_prompt = f"Code Context:\n```\n{context['code']}\n```\n\nTask: {prompt}"
 
-        # Create temporary file for the prompt (many CLI tools prefer file input)
-        prompt_file = self._save_to_temp_file(full_prompt, suffix=".md")
+        # OpenCode supports non-interactive mode with -p flag
+        cmd = [
+            self.executable,
+            "-p",  # Prompt flag for non-interactive mode
+            full_prompt,
+            "-q",  # Quiet flag to disable spinner
+        ]
 
-        try:
-            # Build command based on expected OpenCode CLI interface
-            cmd = [
-                self.executable,
-                "--non-interactive",  # Expected flag for automation
-                "--model",
-                self.env_vars.get("OPENCODE_MODEL", "qwen/qwen-2.5-coder-32b-instruct"),
-                "--input",
-                prompt_file,
-            ]
+        # Add JSON format if needed
+        if self._supports_json_output():
+            cmd.extend(["-f", "json"])
 
-            # If OpenCode supports JSON output
-            if self._supports_json_output():
-                cmd.extend(["--output-format", "json"])
-
-            return cmd
-        except Exception:
-            # Clean up temp file if command building fails
-            self._cleanup_temp_file(prompt_file)
-            raise
+        return cmd
 
     def _parse_output(self, output: str, error: str) -> str:
         """Parse OpenCode CLI output."""
@@ -141,8 +128,8 @@ class OpenCodeAgent(CLIAgentWrapper):
                 self._available = False
                 return False
 
-            # Try to run a help command to verify it works
-            result = subprocess.run([self.executable, "--help"], capture_output=True, timeout=10)
+            # Try to run a simple test command
+            result = subprocess.run([self.executable, "-p", "test", "-q"], capture_output=True, timeout=10)
 
             self._available = result.returncode == 0
 
