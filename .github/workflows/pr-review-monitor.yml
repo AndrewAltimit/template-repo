@@ -73,9 +73,12 @@ jobs:
           echo "[INFO] Checking Python environment..."
           python3 --version
 
-          # Install required Python packages if not already installed
-          # Using --user to avoid permission issues on self-hosted runners
-          echo "[INFO] Installing required Python packages..."
+          # Install the GitHub AI Agents package
+          echo "[INFO] Installing GitHub AI Agents package..."
+          pip3 install --user -e ./github_ai_agents
+
+          # Install additional requirements if needed
+          echo "[INFO] Installing additional requirements..."
           pip3 install --user -r docker/requirements-agents.txt
 
       - name: Run PR review monitor on host
@@ -148,9 +151,9 @@ jobs:
             exit 1
           fi
 
-          # Run the PR review monitor directly
+          # Run the PR review monitor from the new package
           cd "${{ github.workspace }}"
-          python3 scripts/agents/pr_review_monitor.py || {
+          python3 -m github_ai_agents.cli pr-monitor || {
               exit_code=$?
               echo "[ERROR] PR review monitor script failed with exit code: $exit_code"
 

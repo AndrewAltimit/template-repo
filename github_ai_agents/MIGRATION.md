@@ -108,7 +108,7 @@ No changes needed - the same environment variables work:
 
 ## Backward Compatibility
 
-The old scripts can remain in place during transition. The new package is completely independent.
+The old scripts remain in place during transition for backward compatibility and documentation purposes. They serve as a reference for the security model and legacy integration patterns.
 
 ## Troubleshooting
 
