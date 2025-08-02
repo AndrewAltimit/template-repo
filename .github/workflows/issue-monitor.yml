@@ -70,6 +70,12 @@ jobs:
           echo "[INFO] Installing required Python packages..."
           pip3 install --user -r docker/requirements-agents.txt
 
+      - name: Build Docker containers for OpenRouter agents
+        run: |
+          echo "[INFO] Building openrouter-agents container for OpenCode support..."
+          docker-compose build openrouter-agents
+          echo "[INFO] Container build complete"
+
       - name: Run issue monitor on host
         env:
           # Use AI_AGENT_TOKEN which has write permissions for creating branches/PRs
@@ -122,9 +128,9 @@ jobs:
             exit 1
           fi
 
-          # Run the issue monitor directly
+          # Run the multi-agent issue monitor
           cd "${{ github.workspace }}"
-          python3 scripts/agents/issue_monitor.py || {
+          python3 scripts/agents/issue_monitor_multi_agent.py || {
               exit_code=$?
               echo "[ERROR] Issue monitor script failed with exit code: $exit_code"
 

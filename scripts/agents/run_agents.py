@@ -42,7 +42,11 @@ class AgentRunner:
 
     def run_agent(self, agent_name: str, args: list = None) -> bool:
         """Run a specific agent."""
-        agent_script = self.agents_dir / f"{agent_name}.py"
+        # Use multi-agent version for issue monitor
+        if agent_name == "issue_monitor":
+            agent_script = self.agents_dir / "issue_monitor_multi_agent.py"
+        else:
+            agent_script = self.agents_dir / f"{agent_name}.py"
 
         if not agent_script.exists():
             logger.error(f"Agent script not found: {agent_script}")

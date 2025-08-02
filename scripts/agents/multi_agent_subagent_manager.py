@@ -10,11 +10,11 @@ import asyncio
 import os
 from typing import Dict, List, Optional, Tuple
 
-from .core import AgentConfig
-from .core.exceptions import AgentNotAvailableError
-from .implementations import ClaudeAgent, CodexAgent, CrushAgent, GeminiAgent, OpenCodeAgent
-from .logging_security import get_secure_logger
-from .subagent_manager import SubagentManager
+from core import AgentConfig
+from core.exceptions import AgentNotAvailableError
+from implementations import ClaudeAgent, CodexAgent, CrushAgent, GeminiAgent, OpenCodeAgent
+from logging_security import get_secure_logger
+from subagent_manager import SubagentManager
 
 logger = get_secure_logger(__name__)
 

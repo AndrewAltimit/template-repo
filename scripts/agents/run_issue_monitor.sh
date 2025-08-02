@@ -66,8 +66,8 @@ export PYTHONPATH="/workspace:$PYTHONPATH"
 echo "[INFO] Updated PYTHONPATH: $PYTHONPATH"
 
 # Check if we're in the right directory
-if [ ! -f scripts/agents/issue_monitor.py ]; then
-    echo "[ERROR] issue_monitor.py not found! Current directory: $(pwd)"
+if [ ! -f scripts/agents/issue_monitor_multi_agent.py ]; then
+    echo "[ERROR] issue_monitor_multi_agent.py not found! Current directory: $(pwd)"
     echo "[ERROR] Directory contents:"
     ls -la
     exit 1
@@ -81,5 +81,5 @@ fi
 echo "[INFO] Running issue monitor..."
 cd /workspace
 
-# Run the actual Python script
-python -u scripts/agents/issue_monitor.py
+# Run the multi-agent Python script
+python -u scripts/agents/issue_monitor_multi_agent.py

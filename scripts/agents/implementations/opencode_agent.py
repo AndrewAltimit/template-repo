@@ -3,6 +3,8 @@
 import json
 import logging
 import os
+import subprocess
+from pathlib import Path
 from typing import Dict, List
 
 from ..core.cli_agent_wrapper import CLIAgentWrapper
@@ -48,6 +50,46 @@ class OpenCodeAgent(CLIAgentWrapper):
         self.agent_config = agent_config
         self.model_config = model_config
 
+    def is_available(self) -> bool:
+        """Check if OpenCode is available either locally or via Docker."""
+        if self._available is not None:
+            return self._available
+
+        # First check if OpenCode is available locally
+        try:
+            import shutil
+
+            if shutil.which(self.executable):
+                result = subprocess.run([self.executable, "--version"], capture_output=True, timeout=5)
+                self._available = result.returncode == 0
+                if self._available:
+                    logger.info("OpenCode found locally")
+                    return True
+        except Exception:
+            pass
+
+        # If not available locally, check if Docker container is available
+        try:
+            # Find the docker-compose.yml file
+            repo_root = Path(__file__).resolve().parents[3]  # Go up to repo root
+            compose_file = repo_root / "docker-compose.yml"
+
+            # Check if docker-compose and the openrouter-agents service exist
+            result = subprocess.run(
+                ["docker-compose", "-f", str(compose_file), "config", "--services"], capture_output=True, timeout=5, text=True
+            )
+            if result.returncode == 0 and "openrouter-agents" in result.stdout:
+                self._available = True
+                logger.info("OpenCode available via Docker container")
+                return True
+        except Exception as e:
+            logger.debug(f"Docker check failed: {e}")
+            pass
+
+        self._available = False
+        logger.warning("OpenCode not available locally or via Docker")
+        return False
+
     def get_trigger_keyword(self) -> str:
         """Get trigger keyword for OpenCode."""
         return "OpenCode"
@@ -70,13 +112,47 @@ class OpenCodeAgent(CLIAgentWrapper):
         if context.get("code"):
             full_prompt = f"Code Context:\n```\n{context['code']}\n```\n\nTask: {prompt}"
 
-        # OpenCode supports non-interactive mode with -p flag
-        cmd = [
-            self.executable,
-            "-p",  # Prompt flag for non-interactive mode
-            full_prompt,
-            "-q",  # Quiet flag to disable spinner
-        ]
+        # Check if opencode is available on host
+        import shutil
+
+        if shutil.which(self.executable):
+            # OpenCode is available locally
+            cmd = [
+                self.executable,
+                "-p",  # Prompt flag for non-interactive mode
+                full_prompt,
+                "-q",  # Quiet flag to disable spinner
+            ]
+        else:
+            # OpenCode not on host, use Docker
+            logger.info("OpenCode not found on host, using Docker container")
+            # Prepare environment variables
+            env_args = []
+            if self.env_vars.get("OPENROUTER_API_KEY"):
+                env_args.extend(["-e", f"OPENROUTER_API_KEY={self.env_vars['OPENROUTER_API_KEY']}"])
+
+            # Find the docker-compose.yml file
+            repo_root = Path(__file__).resolve().parents[3]  # Go up to repo root
+            compose_file = repo_root / "docker-compose.yml"
+
+            cmd = (
+                [
+                    "docker-compose",
+                    "-f",
+                    str(compose_file),
+                    "run",
+                    "--rm",
+                    "-T",  # Disable pseudo-TTY allocation
+                ]
+                + env_args
+                + [
+                    "openrouter-agents",
+                    "opencode",
+                    "-p",
+                    full_prompt,
+                    "-q",
+                ]
+            )
 
         # Add JSON format if needed
         if self._supports_json_output():
@@ -114,36 +190,6 @@ class OpenCodeAgent(CLIAgentWrapper):
         # This would be determined by testing or documentation
         # For now, assume it might support it
         return True
-
-    def is_available(self) -> bool:
-        """Check if OpenCode CLI is available."""
-        if self._available is not None:
-            return self._available
-
-        try:
-            import subprocess
-
-            # Check if opencode CLI exists
-            result = subprocess.run(["which", "opencode"], capture_output=True, timeout=5)
-
-            if result.returncode != 0:
-                logger.info("OpenCode CLI not found. Install with: curl -fsSL https://opencode.ai/install | bash")
-                self._available = False
-                return False
-
-            # Try to run a simple test command
-            result = subprocess.run([self.executable, "-p", "test", "-q"], capture_output=True, timeout=10)
-
-            self._available = result.returncode == 0
-
-            if not self._available:
-                logger.warning("OpenCode CLI found but not working properly")
-
-        except Exception as e:
-            logger.error(f"Error checking OpenCode availability: {e}")
-            self._available = False
-
-        return self._available
 
     def get_capabilities(self) -> List[str]:
         """Get OpenCode's capabilities."""
