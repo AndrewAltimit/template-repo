@@ -354,6 +354,24 @@ The repository includes comprehensive CI/CD workflows:
 - Remember that Gemini CLI cannot be containerized (needs Docker access)
 - Use pytest fixtures and mocks for testing external dependencies
 
+## GitHub Etiquette
+
+**IMPORTANT**: When working with GitHub issues, PRs, and comments:
+
+- **NEVER use @ mentions** unless referring to actual repository maintainers
+- Do NOT use @Gemini, @Claude, @OpenAI, etc. - these may ping unrelated GitHub users
+- Instead, refer to AI agents without the @ symbol: "Gemini", "Claude", "OpenAI"
+- Only @ mention users who are:
+  - The repository owner (@AndrewAltimit)
+  - Active contributors listed in the repository
+  - Users who have explicitly asked to be mentioned
+- When referencing AI reviews, use phrases like:
+  - "As noted in Gemini's review..."
+  - "Addressing Claude's feedback..."
+  - "Per the AI agent's suggestion..."
+
+This prevents accidentally notifying random GitHub users who happen to share names with our AI tools.
+
 ## Additional Documentation
 
 For detailed information on specific topics, refer to these documentation files:

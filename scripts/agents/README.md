@@ -922,3 +922,7 @@ For detailed autonomous mode documentation, see [AUTONOMOUS_MODE.md](AUTONOMOUS_
 6. **Test Locally**: Use gh CLI auth for local development
 7. **Rotate Tokens**: Set expiration dates and rotate tokens regularly
 8. **Review Error Logs**: Always review error logs in PR comments to ensure no secrets leaked
+9. **Follow GitHub Etiquette**: All agents must follow guidelines in [`docs/GITHUB_ETIQUETTE_FOR_AI_AGENTS.md`](../../docs/GITHUB_ETIQUETTE_FOR_AI_AGENTS.md)
+   - Never use @ mentions for AI agent names (Gemini, Claude, etc.)
+   - Only @ mention actual repository contributors
+   - This prevents pinging unrelated GitHub users
