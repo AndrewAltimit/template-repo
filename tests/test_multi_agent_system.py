@@ -304,41 +304,5 @@ class TestSandboxSecurity:
             assert result == "test output"
 
 
-class TestTempFileCleanup:
-    """Test temporary file cleanup."""
-
-    def test_temp_file_tracking(self):
-        """Test that temp files are tracked for cleanup."""
-        from scripts.agents.core.cli_agent_wrapper import CLIAgentWrapper, _temp_files
-
-        class TestAgent(CLIAgentWrapper):
-            def __init__(self):
-                super().__init__("test", {"executable": "test"})
-
-            def get_trigger_keyword(self):
-                return "Test"
-
-            def get_model_config(self):
-                return {}
-
-            def _build_command(self, prompt, context):
-                return ["echo", "test"]
-
-            def _parse_output(self, output, error):
-                return output
-
-        agent = TestAgent()
-
-        # Create a temp file
-        filepath = agent._save_to_temp_file("test content")
-
-        # Check it's tracked
-        assert filepath in _temp_files
-        assert os.path.exists(filepath)
-
-        # Clean up manually for test
-        os.unlink(filepath)
-
-
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -86,6 +86,9 @@ RUN useradd -m -u 1000 agentuser
 # Copy mods configuration
 COPY scripts/agents/config/mods-config.yml /root/.config/mods/config.yml
 COPY scripts/agents/config/mods-config.yml /home/agentuser/.config/mods/config.yml
+# Set ownership for the default user. Note: when running via docker-compose,
+# the user is overridden by the host's USER_ID/GROUP_ID, and volume mount
+# permissions will take precedence.
 RUN chown -R agentuser:agentuser /home/agentuser/.config
 
 # Default command
