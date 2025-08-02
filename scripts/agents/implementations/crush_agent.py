@@ -1,6 +1,5 @@
 """Crush AI agent implementation."""
 
-import json
 import logging
 import os
 from typing import Dict, List
@@ -25,17 +24,13 @@ class CrushAgent(CLIAgentWrapper):
         # Get API keys from environment
         openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
 
-        # Crush configuration path
-        config_dir = os.path.expanduser("~/.config/crush")
-        config_file = os.path.join(config_dir, "crush.json")
-
         # Get timeout from central config if available
         timeout = 300  # Default 5 minutes
         if agent_config:
             timeout = agent_config.get_subprocess_timeout()
 
         config = {
-            "executable": "crush",
+            "executable": "mods",  # Use the actual tool name
             "timeout": timeout,
             "env_vars": {
                 "OPENROUTER_API_KEY": openrouter_key,
@@ -47,33 +42,6 @@ class CrushAgent(CLIAgentWrapper):
 
         # Get model configuration from config file
         self.model_config = agent_config.get_model_override("crush") if agent_config else {}
-
-        # Create Crush config if needed
-        self._ensure_crush_config(config_file, openrouter_key)
-
-    def _ensure_crush_config(self, config_file: str, api_key: str):
-        """Ensure Crush configuration exists for OpenRouter."""
-        if not os.path.exists(config_file) and api_key:
-            os.makedirs(os.path.dirname(config_file), exist_ok=True)
-
-            # Create a basic Crush config for OpenRouter
-            crush_config = {
-                "providers": {
-                    "openrouter": {
-                        "api_key": api_key,
-                        "base_url": "https://openrouter.ai/api/v1",
-                        "model": self.model_config.get("model", self.DEFAULT_MODEL),
-                    }
-                },
-                "default_provider": "openrouter",
-            }
-
-            try:
-                with open(config_file, "w") as f:
-                    json.dump(crush_config, f, indent=2)
-                logger.info(f"Created Crush config at {config_file}")
-            except Exception as e:
-                logger.warning(f"Failed to create Crush config: {e}")
 
     def get_trigger_keyword(self) -> str:
         """Get trigger keyword for Crush."""
@@ -145,8 +113,8 @@ class CrushAgent(CLIAgentWrapper):
         try:
             import subprocess
 
-            # Check if crush CLI exists
-            result = subprocess.run(["which", "crush"], capture_output=True, timeout=5)
+            # Check if mods CLI exists
+            result = subprocess.run(["which", "mods"], capture_output=True, timeout=5)
 
             if result.returncode != 0:
                 logger.info("Crush/mods CLI not found. Install with: go install github.com/charmbracelet/mods@latest")

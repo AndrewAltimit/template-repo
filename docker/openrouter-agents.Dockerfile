@@ -54,7 +54,7 @@ RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/* &&
 # Install Codex CLI - OpenAI's experimental coding agent
 # Note: May show deprecation warnings for subdependencies (node-domexception, lodash.isequal, phin)
 # These are dependency warnings, not warnings about codex itself - the tool is actively maintained
-RUN npm install -g @openai/codex || echo "NPM install of codex failed, will use direct binary"
+RUN npm install -g @openai/codex
 
 # Install Crush/mods from Charm Bracelet - VERIFIED WORKING
 RUN go install github.com/charmbracelet/mods@latest && \
@@ -75,8 +75,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONUTF8=1
 
 # Create directories for agent configs
-RUN mkdir -p /root/.config/crush \
-    /root/.config/opencode \
+RUN mkdir -p /root/.config/opencode \
     /root/.config/codex \
     /root/.config/mods \
     /home/agentuser/.config/mods
