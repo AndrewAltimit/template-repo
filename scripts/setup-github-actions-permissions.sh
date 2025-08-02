@@ -29,10 +29,7 @@ create_output_dirs() {
     # Create directories that MCP servers need
     local dirs=(
         "$WORKSPACE/outputs"
-        "$WORKSPACE/outputs/mcp-content"
-        "$WORKSPACE/outputs/mcp-gaea2"
         "$WORKSPACE/test_outputs"
-        "$WORKSPACE/terrain_output"
     )
 
     for dir in "${dirs[@]}"; do
