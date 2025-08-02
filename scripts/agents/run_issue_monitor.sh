@@ -81,5 +81,5 @@ fi
 echo "[INFO] Running issue monitor..."
 cd /workspace
 
-# Run the multi-agent Python script
-python -u scripts/agents/issue_monitor_multi_agent.py
+# Run the multi-agent Python script as a module to fix imports
+python -u -m scripts.agents.issue_monitor_multi_agent

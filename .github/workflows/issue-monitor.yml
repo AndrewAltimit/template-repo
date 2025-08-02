@@ -87,8 +87,8 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           # List of environment variables whose values should be masked in public comments
           MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN,OPENROUTER_API_KEY"
-          # Set Python path to include the current directory
-          PYTHONPATH: ${{ github.workspace }}
+          # Set Python path to include the current directory and scripts
+          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/scripts/agents
           PYTHONUNBUFFERED: "1"
         run: |
           echo "Running issue monitor for repository: $GITHUB_REPOSITORY"
@@ -128,9 +128,9 @@ jobs:
             exit 1
           fi
 
-          # Run the multi-agent issue monitor
+          # Run the multi-agent issue monitor as a module to fix imports
           cd "${{ github.workspace }}"
-          python3 scripts/agents/issue_monitor_multi_agent.py || {
+          python3 -m scripts.agents.issue_monitor_multi_agent || {
               exit_code=$?
               echo "[ERROR] Issue monitor script failed with exit code: $exit_code"
 
