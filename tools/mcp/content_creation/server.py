@@ -8,8 +8,6 @@ import subprocess
 import tempfile
 from typing import Any, Dict, Optional  # noqa: F401
 
-from PIL import Image
-
 from ..core.base_server import BaseMCPServer
 from ..core.utils import ensure_directory, setup_logging
 
@@ -63,6 +61,12 @@ class ContentCreationMCPServer(BaseMCPServer):
         Returns:
             Dictionary with visual feedback data or error information
         """
+        try:
+            from PIL import Image
+        except ImportError:
+            self.logger.warning("Pillow (PIL) is not installed. Visual feedback unavailable.")
+            return {"error": "Pillow (PIL) is not installed, visual feedback unavailable."}
+
         try:
             with Image.open(image_path) as img:
                 # Convert RGBA to RGB if necessary for JPEG
