@@ -27,11 +27,21 @@ cleanup_dir() {
     fi
 }
 
-# Clean up known output directories
-cleanup_dir "outputs/mcp-content"
-cleanup_dir "outputs/mcp-gaea2"
+# Clean up all directories under outputs/ dynamically
+if [ -d "outputs" ]; then
+    # Find all subdirectories under outputs/
+    for dir in outputs/*/; do
+        if [ -d "$dir" ]; then
+            # Remove trailing slash for proper directory handling
+            dir="${dir%/}"
+            cleanup_dir "$dir"
+        fi
+    done
 
-# Also clean up the parent directory if empty
-rmdir "outputs" 2>/dev/null || true
+    # Also clean up the parent directory if empty
+    rmdir "outputs" 2>/dev/null || true
+else
+    echo "  No outputs directory found - nothing to clean"
+fi
 
 echo -e "${GREEN}✅ Output directories cleaned up${NC}"
