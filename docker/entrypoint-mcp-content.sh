@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e  # Exit on any error
 # Entrypoint script for MCP Content Creation container
 # Ensures proper permissions on mounted volumes
 
@@ -8,7 +9,7 @@ echo "🔧 Setting up MCP Content Creation container..."
 if [ -d "/output" ]; then
     echo "📁 Fixing /output directory permissions..."
     # If we can't change ownership, at least ensure it's writable
-    if ! chmod -R 777 /output 2>/dev/null; then
+    if ! chmod -R 755 /output 2>/dev/null; then
         echo "⚠️  Could not set full permissions on /output"
         # Try to make it at least group writable
         chmod -R g+w /output 2>/dev/null || true
@@ -18,12 +19,12 @@ if [ -d "/output" ]; then
 else
     echo "📁 Creating /output directory..."
     mkdir -p /output
-    chmod 777 /output
+    chmod 755 /output
 fi
 
 # Ensure subdirectories exist
 mkdir -p /output/manim /output/latex 2>/dev/null || true
-chmod -R 777 /output/manim /output/latex 2>/dev/null || true
+chmod -R 755 /output/manim /output/latex 2>/dev/null || true
 
 echo "👤 Running as user: $(whoami) ($(id))"
 echo "📁 Output directory permissions:"

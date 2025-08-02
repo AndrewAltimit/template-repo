@@ -30,11 +30,11 @@ WORKDIR /app
 
 # Create output directories with proper permissions
 RUN mkdir -p /app/output/manim /app/output/latex && \
-    chmod -R 777 /app/output && \
+    chmod -R 755 /app/output && \
     mkdir -p /tmp/mcp-content-output/manim /tmp/mcp-content-output/latex && \
-    chmod -R 777 /tmp/mcp-content-output && \
+    chmod -R 755 /tmp/mcp-content-output && \
     mkdir -p /output && \
-    chmod -R 777 /output
+    chmod -R 755 /output
 
 # Copy requirements first for better layer caching
 COPY docker/requirements-content.txt /app/requirements.txt
