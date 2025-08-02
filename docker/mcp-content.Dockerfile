@@ -50,8 +50,8 @@ COPY tools/mcp /app/tools/mcp
 # Set Python path
 ENV PYTHONPATH=/app
 
-# Manim configuration - use the writable temp directory
-ENV MANIM_MEDIA_DIR=/tmp/mcp-content-output/manim
+# Manim configuration - use the volume-mounted output directory
+ENV MANIM_MEDIA_DIR=/output/manim
 
 # Expose port
 EXPOSE 8011

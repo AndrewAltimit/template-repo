@@ -16,10 +16,9 @@ cleanup_dir() {
     local dir="$1"
     if [ -d "$dir" ]; then
         echo "  Cleaning $dir..."
-        # Use a Docker container with the same user mapping to remove files
+        # Use a Docker container running as root to ensure we can remove all files
         docker run --rm \
             -v "$(pwd)/$dir:/cleanup" \
-            -u "${USER_ID:-$(id -u)}:${GROUP_ID:-$(id -g)}" \
             busybox \
             sh -c "rm -rf /cleanup/* /cleanup/.* 2>/dev/null || true"
 
