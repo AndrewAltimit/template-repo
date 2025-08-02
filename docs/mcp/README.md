@@ -49,7 +49,7 @@ Comprehensive terrain generation with Gaea2:
 ### HTTP Streamable Transport
 
 MCP servers can use HTTP transport for remote deployment. For detailed configuration and troubleshooting:
-- **[HTTP Streamable Transport Guide](HTTP_STREAMABLE_TRANSPORT.md)** - Complete guide for HTTP-based MCP servers
+- **[MCP Server Modes: STDIO vs HTTP](STDIO_VS_HTTP_MODES.md)** - Complete guide for MCP server modes and HTTP implementation
 - **[MCP Specification](https://modelcontextprotocol.io/specification/2025-06-18)** - Official protocol specification
 
 ### Configuration File (.mcp.json)

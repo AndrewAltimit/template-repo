@@ -77,7 +77,7 @@ If Claude Code shows "Status: ✘ failed", check:
 3. **OAuth flow** - The server implements simplified OAuth for local use
 4. **Session management** - Server generates session IDs automatically
 
-For detailed HTTP transport configuration, see [HTTP Streamable Transport Guide](../../HTTP_STREAMABLE_TRANSPORT.md).
+For detailed HTTP transport configuration, see [MCP Server Modes Documentation](../../../../docs/mcp/STDIO_VS_HTTP_MODES.md#http-mode-technical-implementation).
 
 ## Available Tools
 
