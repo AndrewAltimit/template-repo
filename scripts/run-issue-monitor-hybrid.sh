@@ -73,11 +73,11 @@ if command -v docker &> /dev/null && command -v docker-compose &> /dev/null; the
         }
     else
         echo "[WARNING] openrouter-agents service not found in docker-compose.yml"
-        echo "[WARNING] OpenCode, Codex, and Crush agents will not be available"
+        echo "[WARNING] OpenCode and Crush agents will not be available"
     fi
 else
     echo "[WARNING] Docker or docker-compose not found"
-    echo "[WARNING] OpenCode, Codex, and Crush agents will not be available"
+    echo "[WARNING] OpenCode and Crush agents will not be available"
 fi
 
 # Run the issue monitor
