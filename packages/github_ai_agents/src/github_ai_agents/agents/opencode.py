@@ -3,103 +3,30 @@
 import json
 import logging
 import os
-import shutil
-import subprocess
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
-from .base import CLIAgent
+from .containerized import ContainerizedCLIAgent
 
 logger = logging.getLogger(__name__)
 
 
-class OpenCodeAgent(CLIAgent):
+class OpenCodeAgent(ContainerizedCLIAgent):
     """OpenCode AI agent for code generation."""
 
     DEFAULT_MODEL = "qwen/qwen-2.5-coder-32b-instruct"
 
     def __init__(self, config=None) -> None:
         """Initialize OpenCode agent."""
-        super().__init__("opencode", "opencode", timeout=300, config=config)
+        super().__init__("opencode", "opencode", docker_service="openrouter-agents", timeout=300, config=config)
 
         # Set up environment variables
         if api_key := os.environ.get("OPENROUTER_API_KEY"):
             self.env_vars["OPENROUTER_API_KEY"] = api_key
             self.env_vars["OPENCODE_MODEL"] = f"openrouter/{self.DEFAULT_MODEL}"
 
-        # Cache the project root
-        self._project_root: Optional[Path] = None
-        self._use_docker: bool = False  # Track whether to use Docker
-
     def get_trigger_keyword(self) -> str:
         """Get trigger keyword for OpenCode."""
         return "OpenCode"
-
-    def _find_project_root(self) -> Optional[Path]:
-        """Find project root by searching up for .git directory or docker-compose.yml."""
-        if self._project_root:
-            return self._project_root
-
-        current = Path(__file__).resolve()
-
-        # Search up the directory tree
-        for parent in current.parents:
-            # Check for .git directory (marks repo root)
-            if (parent / ".git").is_dir():
-                self._project_root = parent
-                return parent
-
-            # Check for docker-compose.yml
-            if (parent / "docker-compose.yml").is_file():
-                self._project_root = parent
-                return parent
-
-            # Stop at root directory
-            if parent.parent == parent:
-                break
-
-        return None
-
-    def is_available(self) -> bool:
-        """Check if OpenCode is available via Docker (preferred) or locally."""
-        if self._available is not None:
-            return self._available
-
-        # PREFER DOCKER: Check if Docker container is available first
-        try:
-            repo_root = self._find_project_root()
-            if repo_root:
-                compose_file = repo_root / "docker-compose.yml"
-                if compose_file.exists():
-                    result = subprocess.run(
-                        ["docker-compose", "-f", str(compose_file), "config", "--services"],
-                        capture_output=True,
-                        timeout=5,
-                        text=True,
-                    )
-                    if result.returncode == 0 and "openrouter-agents" in result.stdout:
-                        self._available = True
-                        self._use_docker = True
-                        logger.info("OpenCode available via Docker container (preferred)")
-                        return True
-        except Exception as e:
-            logger.debug(f"Docker check failed: {e}")
-
-        # Fall back to local if Docker not available
-        if shutil.which(self.executable):
-            try:
-                result = subprocess.run([self.executable, "--version"], capture_output=True, timeout=5, text=True)
-                if result.returncode == 0:
-                    self._available = True
-                    self._use_docker = False
-                    logger.info("OpenCode found locally (Docker not available)")
-                    return True
-            except Exception:
-                pass
-
-        self._available = False
-        logger.warning("OpenCode not available via Docker or locally")
-        return False
 
     async def generate_code(self, prompt: str, context: Dict[str, Any]) -> str:
         """Generate code using OpenCode.
@@ -133,38 +60,21 @@ class OpenCodeAgent(CLIAgent):
         else:
             flags = ["-q"]  # Default quiet mode
 
+        # Prepare arguments
+        args = ["-p", prompt]
+        args.extend(flags)
+
         # Use Docker if available (preferred), otherwise local
         if self._use_docker:
-            # Use Docker
-            repo_root = self._find_project_root()
-            if not repo_root:
-                raise RuntimeError("Could not find project root for docker-compose.yml")
-
-            compose_file = repo_root / "docker-compose.yml"
-            if not compose_file.exists():
-                raise RuntimeError(f"docker-compose.yml not found at {compose_file}")
-
-            cmd = [
-                "docker-compose",
-                "-f",
-                str(compose_file),
-                "run",
-                "--rm",
-                "-T",
-            ]
-
-            # Add environment variables
+            # Build Docker command with environment variables
+            env_vars = {}
             if api_key := self.env_vars.get("OPENROUTER_API_KEY"):
-                cmd.extend(["-e", f"OPENROUTER_API_KEY={api_key}"])
-
-            cmd.extend(["openrouter-agents", "opencode", "-p", prompt])
-            cmd.extend(flags)
-
-            return cmd
+                env_vars["OPENROUTER_API_KEY"] = api_key
+            return self._build_docker_command(args, env_vars)
         else:
             # Use local executable
-            cmd = [self.executable, "-p", prompt]
-            cmd.extend(flags)
+            cmd = [self.executable]
+            cmd.extend(args)
             return cmd
 
     def _parse_output(self, output: str, error: str) -> str:
