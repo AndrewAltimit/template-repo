@@ -36,7 +36,7 @@ The AI agents implement a comprehensive multi-layer security model with command-
 - **Commit Validation**: Prevents code injection after approval
 - **Implementation Requirements**: Only complete, working code is accepted
 
-**For complete security documentation, see** `scripts/agents/README.md`
+**For complete security documentation, see** `github_ai_agents/docs/security.md`
 
 ### Remote Infrastructure
 
@@ -151,22 +151,26 @@ pip install -r requirements.txt
 
 # Containerized Agents (OpenRouter-compatible):
 # OpenCode, Codex, Crush - run in openrouter-agents container
-docker-compose run --rm openrouter-agents python scripts/agents/run_agents.py
+docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
 
 # Or use specific containerized agents:
 docker-compose run --rm openrouter-agents mods "Write a Python function"
 
 # Host agent execution (Claude, Gemini only):
-python3 scripts/agents/run_agents.py status
-python3 scripts/agents/run_agents.py issue-monitor
-python3 scripts/agents/run_agents.py pr-review-monitor
+python3 -m github_ai_agents.cli issue-monitor
+python3 -m github_ai_agents.cli pr-monitor
+# Or use the installed commands directly:
+issue-monitor
+pr-monitor
 
 # GitHub Actions automatically run agents on schedule:
 # - Issue Monitor: Every hour (runs on host)
 # - PR Review Monitor: Every hour (runs on host)
 
 # Installation:
-# For safe installation instructions (no curl|bash):
+# Install the new AI agents package:
+pip3 install -e ./github_ai_agents
+# For legacy installation instructions:
 ./scripts/agents/install_agents_safe.sh
 
 # Note: Host dependencies only needed for Claude/Gemini:

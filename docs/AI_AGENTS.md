@@ -72,7 +72,7 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 - Creates pull requests for actionable issues
 - Updates issue status with PR links
 
-**Location**: `scripts/agents/issue_monitor.py`
+**Location**: `github_ai_agents` package
 
 **Key Features**:
 - Checks for required fields (description, steps to reproduce, etc.)
@@ -92,7 +92,7 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 - Implements requested changes automatically
 - Comments when changes are complete
 
-**Location**: `scripts/agents/pr_review_monitor.py`
+**Location**: `github_ai_agents` package
 
 **Key Features**:
 - Detects "changes requested" reviews
@@ -192,7 +192,7 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 
 ## Configuration
 
-### Agent Configuration (`scripts/agents/config.json`)
+### Agent Configuration
 
 ```json
 {
@@ -220,15 +220,16 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 ### Running Agents Locally
 
 ```bash
-# Check agent status
-./scripts/agents/run_agents.sh status
+# Install the GitHub AI Agents package
+pip install -e ./github_ai_agents
 
-# Run all agents
-./scripts/agents/run_agents.sh run-all
+# Run specific agents
+python -m github_ai_agents.cli issue-monitor
+python -m github_ai_agents.cli pr-monitor
 
-# Run specific agent continuously
-./scripts/agents/run_agents.sh issue-monitor --continuous
-./scripts/agents/run_agents.sh pr-review-monitor --continuous
+# Or use the installed commands directly
+issue-monitor
+pr-monitor
 ```
 
 ### GitHub Actions Automation

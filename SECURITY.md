@@ -48,7 +48,7 @@ This prevents AI agents from accessing production secrets or infrastructure, eve
 
 ### How to Trigger AI Agents Securely
 
-1. **Be an authorized user** (check `scripts/agents/config.json`)
+1. **Be an authorized user** (check security configuration)
 2. **Use exact command format**: `[Action][Agent]`
 3. **Valid commands**:
    - `[Approved][Claude]` - Process issue/PR
@@ -213,8 +213,8 @@ If you discover a security vulnerability:
 
 ### Additional Security Documentation
 
-- **Full Documentation**: See `scripts/agents/README.md`
-- **Configuration**: See `scripts/agents/config.json`
+- **Full Documentation**: See `github_ai_agents/docs/security.md`
+- **Configuration**: See agent configuration in environment
 - **Logs**: Check GitHub Actions logs for security events
 
 ### Known Limitations and Accepted Risks

@@ -91,7 +91,7 @@ gemini --help
 
 # Containerized agents
 docker-compose run --rm openrouter-agents mods "Write a function"
-docker-compose run --rm openrouter-agents python scripts/agents/run_agents.py
+docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
 ```
 
 ### Production (Recommended)
@@ -100,7 +100,7 @@ docker-compose run --rm openrouter-agents python scripts/agents/run_agents.py
 docker-compose --profile openrouter up -d
 
 # Only Claude and Gemini on host
-python scripts/agents/run_agents.py --agent claude
+python -m github_ai_agents.cli issue-monitor
 ```
 
 ## Migration Path
