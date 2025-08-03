@@ -34,7 +34,7 @@ These agents can run in Docker containers with proper configuration:
 - **Container**: `openrouter-agents`
 - **Requirements**: Node.js runtime
 
-#### Crush (Charm Bracelet Mods)
+#### Crush (Charm Bracelet)
 - **Authentication**: API key via config file
 - **Container**: `openrouter-agents`
 - **Requirements**: Go runtime
@@ -85,7 +85,7 @@ claude --help
 gemini --help
 
 # Containerized agents
-docker-compose run --rm openrouter-agents mods "Write a function"
+docker-compose run --rm openrouter-agents crush run -q "Write a function"
 docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
 ```
 

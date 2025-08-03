@@ -1,4 +1,4 @@
-"""Crush (mods) AI agent implementation."""
+"""Crush AI agent implementation."""
 
 import logging
 import os

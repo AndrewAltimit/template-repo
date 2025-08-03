@@ -79,7 +79,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
 
 
 # Install Crush from Charm Bracelet - AI-powered shell
-# Crush is a separate tool from mods, provides shell assistance
+# Crush is an AI-powered shell assistant from Charm Bracelet
 ENV GOBIN=/usr/local/bin
 RUN go install github.com/charmbracelet/crush@latest
 

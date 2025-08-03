@@ -177,7 +177,7 @@ class TestCrushAgent:
         """Test Crush agent initialization."""
         agent = CrushAgent()
         assert agent.name == "crush"
-        assert agent.executable == "mods"  # Note: mods is the actual executable
+        assert agent.executable == "crush"  # Note: crush is the actual executable
         assert agent.timeout == 300
 
     def test_trigger_keyword(self):

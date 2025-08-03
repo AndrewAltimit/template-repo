@@ -59,7 +59,7 @@ The trigger format is: `[Action][Agent]`
 - `[Claude]` - Claude Code agent
 - `[Gemini]` - Gemini CLI agent
 - `[OpenCode]` - Open-source coding AI
-- `[Crush]` - Charm Bracelet Mods
+- `[Crush]` - Charm Bracelet Crush AI shell assistant
 
 #### Examples
 - `[Approved][Claude]` - Have Claude process the issue/PR

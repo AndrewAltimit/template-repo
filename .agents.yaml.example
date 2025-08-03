@@ -6,7 +6,7 @@ enabled_agents:
   - claude      # Anthropic's Claude Code (host-only)
   - gemini      # Google's Gemini CLI (host-only)
   - opencode    # SST's OpenCode (containerized)
-  - crush       # Charm Bracelet's mods (containerized)
+  - crush       # Charm Bracelet's Crush AI (containerized)
 
 # Agent priorities for different task types
 # Agents are tried in order until one succeeds

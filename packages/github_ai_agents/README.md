@@ -105,7 +105,7 @@ ENABLE_AI_AGENTS=true
 | Claude | Anthropic's Claude AI | Subscription/API | Host only |
 | OpenCode | Open-source coding AI | API Key | Yes |
 | Gemini | Google's Gemini AI | CLI Auth | Host only |
-| Crush | Charm Bracelet Mods | API Key | Yes |
+| Crush | Charm Bracelet Crush | API Key | Yes |
 
 ## Testing
 

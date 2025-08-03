@@ -18,7 +18,7 @@ The agents module contains implementations of various AI agents:
   - `ClaudeAgent`: Anthropic's Claude AI
   - `OpenCodeAgent`: Open-source coding AI
   - `GeminiAgent`: Google's Gemini AI
-  - `CrushAgent`: Charm Bracelet Mods
+  - `CrushAgent`: Charm Bracelet Crush
 
 Each agent implements:
 - `is_available()`: Check if agent is available

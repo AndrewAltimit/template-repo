@@ -154,7 +154,7 @@ pip install -r requirements.txt
 docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
 
 # Or use specific containerized agents:
-docker-compose run --rm openrouter-agents mods "Write a Python function"
+docker-compose run --rm openrouter-agents crush run -q "Write a Python function"
 
 # Host agent execution (Claude, Gemini only):
 python3 -m github_ai_agents.cli issue-monitor
