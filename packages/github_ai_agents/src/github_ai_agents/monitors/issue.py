@@ -237,7 +237,7 @@ Content here...
             logger.info(f"Agent {agent.name} generated response for issue #{issue_number}")
 
             # Debug: Log the actual response
-            logger.info(f"Raw response from {agent.name}\n: {response[:500]}...")
+            logger.info(f"Raw response from {agent.name}:\n{response[:500]}...")
 
             # Create PR with the changes
             # Note: In a real implementation, the agent would make actual file changes
