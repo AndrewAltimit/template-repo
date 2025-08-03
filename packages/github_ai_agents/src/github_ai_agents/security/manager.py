@@ -22,15 +22,18 @@ class SecurityManager:
         """
         if agent_config:
             # Use security settings from AgentConfig
-            self.config = agent_config.get_security_config()
+            security_config = agent_config.get_security_config()
+            # Merge with defaults to ensure all required keys exist
+            default_config = self._get_default_config()
+            self.config = {**default_config, **security_config}
         else:
             # Fallback to loading from file
             self.config = self._load_config(config_path)
         self.rate_limit_tracker: Dict[str, List[datetime]] = {}
 
-    def _load_config(self, config_path: Optional[Path]) -> dict:
-        """Load security configuration."""
-        default_config = {
+    def _get_default_config(self) -> dict:
+        """Get default security configuration."""
+        return {
             "enabled": True,
             "allow_list": ["AndrewAltimit", "github-actions[bot]"],
             "rate_limit_window_minutes": 60,
@@ -38,6 +41,10 @@ class SecurityManager:
             "allowed_repositories": [],
             "reject_message": "This AI agent only processes requests from authorized users.",
         }
+
+    def _load_config(self, config_path: Optional[Path]) -> dict:
+        """Load security configuration."""
+        default_config = self._get_default_config()
 
         if config_path and config_path.exists():
             try:
