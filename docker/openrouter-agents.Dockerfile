@@ -32,10 +32,14 @@ RUN ln -sf /usr/bin/python3.11 /usr/bin/python \
 
 # Install Go in a separate layer (large download)
 # Checksum from https://go.dev/dl/
-RUN wget -q https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
-    echo "${GO_CHECKSUM}  go${GO_VERSION}.linux-amd64.tar.gz" | sha256sum -c - && \
-    tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz && \
-    rm go${GO_VERSION}.linux-amd64.tar.gz
+# Support multiple architectures using Docker's built-in TARGETARCH variable
+ARG TARGETARCH=amd64
+RUN wget -q https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz && \
+    if [ "${TARGETARCH}" = "amd64" ]; then \
+        echo "${GO_CHECKSUM}  go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" | sha256sum -c -; \
+    fi && \
+    tar -C /usr/local -xzf go${GO_VERSION}.linux-${TARGETARCH}.tar.gz && \
+    rm go${GO_VERSION}.linux-${TARGETARCH}.tar.gz
 
 # Set Go environment variables
 ENV PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
@@ -96,11 +100,8 @@ ENV PYTHONUNBUFFERED=1 \
 # The node:20-slim image already has a "node" user with UID 1000
 # We'll use that user and create directories in the node home directory
 
-# Create all necessary directories for both root and node user
-RUN mkdir -p /root/.config/opencode \
-    /root/.config/codex \
-    /root/.config/mods \
-    /home/node/.config/opencode \
+# Create all necessary directories for node user only (container runs as node)
+RUN mkdir -p /home/node/.config/opencode \
     /home/node/.config/codex \
     /home/node/.config/mods \
     /home/node/.cache \

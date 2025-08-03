@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Type
 
 from ..agents import ClaudeAgent, CodexAgent, CrushAgent, GeminiAgent, OpenCodeAgent
+from ..code_parser import CodeParser
 from ..config import AgentConfig
 from ..security import SecurityManager
 from ..utils import get_github_token, run_gh_command
@@ -248,14 +249,15 @@ Requirements:
             run_gh_command(["checkout", "-b", branch_name])
 
             # 2. Make the actual code changes
-            # Parse the implementation response for file changes
-            # This is a simplified version - in production, you'd parse structured output
-            if "```" in implementation:
-                # Extract code blocks and file paths from the implementation
-                logger.info("Applying code changes from agent response")
-                # TODO: Implement proper code extraction and file creation/modification
-                # For now, create a placeholder file to demonstrate
-                logger.info(f"Would create/modify files based on: {len(implementation)} characters")
+            # Parse and apply the code changes from the AI response
+            blocks, results = CodeParser.extract_and_apply(implementation)
+
+            if results:
+                logger.info(f"Applied {len(results)} file changes:")
+                for filename, operation in results.items():
+                    logger.info(f"  - {filename}: {operation}")
+            else:
+                logger.warning("No code changes were extracted from the AI response")
 
             # 3. Commit and push
             commit_message = (
