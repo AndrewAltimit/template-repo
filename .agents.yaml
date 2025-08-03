@@ -35,6 +35,14 @@ agent_priorities:
 
 # Security settings
 security:
+  # Authorized users who can trigger agent actions
+  # CRITICAL: Only add trusted users to prevent abuse
+  allow_list:
+    - AndrewAltimit           # Repository owner
+    - github-actions[bot]     # GitHub Actions bot
+    - dependabot[bot]         # Dependabot
+    - renovate[bot]           # Renovate bot
+
   # Autonomous mode is REQUIRED for CI/CD operation
   # All agents run in sandboxed environments for security
   autonomous_mode: true  # Enables non-interactive flags like --dangerously-skip-permissions
@@ -104,7 +112,8 @@ advanced:
   debug_mode: false
 
   # Custom paths
-  temp_directory: ${AGENT_TEMP_DIR:-/tmp/agents}
+  # Set AGENT_TEMP_DIR environment variable to override
+  temp_directory: /tmp/agents
 
   # Retry configuration
   max_retries: 2
@@ -119,7 +128,9 @@ advanced:
   # Non-interactive mode settings
   non_interactive_flags:
     claude: ["--print", "--dangerously-skip-permissions"]
-    gemini: ["-m", "gemini-2.5-pro", "-p"]  # -p for prompt
+    # For gemini: -m specifies model, -p flag expects the prompt to follow
+    # The prompt is appended by the code: gemini -m gemini-2.5-pro -p "prompt text"
+    gemini: ["-m", "gemini-2.5-pro", "-p"]
     opencode: ["--non-interactive"]
     codex: ["--non-interactive"]
     crush: ["--non-interactive", "--no-update"]

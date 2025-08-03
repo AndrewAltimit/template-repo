@@ -1,5 +1,6 @@
 """GitHub utility functions."""
 
+import asyncio
 import logging
 import os
 import subprocess
@@ -50,3 +51,18 @@ def run_gh_command(args: List[str], check: bool = True) -> Optional[str]:
         if not check:
             return None
         raise
+
+
+async def run_gh_command_async(args: List[str], check: bool = True) -> Optional[str]:
+    """Run GitHub CLI command asynchronously without blocking the event loop.
+
+    Args:
+        args: Command arguments
+        check: Whether to check return code
+
+    Returns:
+        Command output or None if failed
+    """
+    loop = asyncio.get_event_loop()
+    # Run the blocking subprocess call in a thread pool
+    return await loop.run_in_executor(None, run_gh_command, args, check)

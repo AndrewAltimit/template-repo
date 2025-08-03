@@ -22,7 +22,7 @@ class OpenCodeAgent(ContainerizedCLIAgent):
         # Set up environment variables
         if api_key := os.environ.get("OPENROUTER_API_KEY"):
             self.env_vars["OPENROUTER_API_KEY"] = api_key
-            self.env_vars["OPENCODE_MODEL"] = f"openrouter/{self.DEFAULT_MODEL}"
+            self.env_vars["OPENCODE_MODEL"] = self.DEFAULT_MODEL
 
     def get_trigger_keyword(self) -> str:
         """Get trigger keyword for OpenCode."""

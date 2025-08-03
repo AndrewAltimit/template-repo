@@ -44,11 +44,11 @@ def main():
             if args.continuous:
                 monitor.run_continuous(args.interval)
             else:
-                monitor.process_issues()
+                monitor.process_items()
 
         elif args.command == "pr-monitor":
             monitor = PRMonitor()
-            monitor.process_prs()
+            monitor.process_items()
 
         else:
             parser.print_help()

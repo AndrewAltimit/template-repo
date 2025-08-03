@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 
 from ..code_parser import CodeParser
-from ..utils import run_gh_command
+from ..utils import run_gh_command, run_gh_command_async
 from .base import BaseMonitor
 
 logger = logging.getLogger(__name__)
@@ -58,17 +58,33 @@ class PRMonitor(BaseMonitor):
 
         return []
 
-    def process_prs(self):
+    def process_items(self):
         """Process open PRs."""
         logger.info(f"Processing PRs for repository: {self.repo}")
 
         prs = self.get_open_prs()
         logger.info(f"Found {len(prs)} recent open PRs")
 
-        for pr in prs:
-            self._process_single_pr(pr)
+        # Process all PRs concurrently using asyncio
+        if prs:
+            asyncio.run(self._process_prs_async(prs))
 
-    def _process_single_pr(self, pr: Dict):
+    async def _process_prs_async(self, prs):
+        """Process multiple PRs concurrently."""
+        tasks = []
+        for pr in prs:
+            task = self._process_single_pr_async(pr)
+            tasks.append(task)
+
+        # Run all tasks concurrently
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Log any exceptions
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.error(f"Error processing PR: {result}")
+
+    async def _process_single_pr_async(self, pr: Dict):
         """Process a single PR."""
         pr_number = pr["number"]
         branch_name = pr.get("headRefName", "")
@@ -103,13 +119,13 @@ class PRMonitor(BaseMonitor):
 
             # Check if we already responded to this specific comment
             comment_id = comment.get("id")
-            if comment_id and self._has_responded_to_comment(pr_number, comment_id):
+            if comment_id and await self._has_responded_to_comment(pr_number, comment_id):
                 logger.info(f"Already responded to comment {comment_id} on PR #{pr_number}")
                 continue
 
             # Handle the action
             if action.lower() in ["fix", "address", "implement"]:
-                self._handle_review_feedback(pr, comment, agent_name, branch_name)
+                await self._handle_review_feedback_async(pr, comment, agent_name, branch_name)
 
     def _get_review_comments(self, pr_number: int) -> List[Dict]:
         """Get review comments for a PR."""
@@ -199,8 +215,8 @@ class PRMonitor(BaseMonitor):
 
         return None
 
-    def _handle_review_feedback(self, pr: Dict, comment: Dict, agent_name: str, branch_name: str):
-        """Handle PR review feedback with specified agent."""
+    async def _handle_review_feedback_async(self, pr: Dict, comment: Dict, agent_name: str, branch_name: str):
+        """Handle PR review feedback with specified agent asynchronously."""
         pr_number = pr["number"]
 
         # Get the agent
@@ -216,9 +232,9 @@ class PRMonitor(BaseMonitor):
         comment_id = comment.get("id", "unknown")
         self._post_starting_work_comment(pr_number, agent_name, comment_id)
 
-        # Run implementation asynchronously
+        # Run implementation directly (no asyncio.run needed since we're already async)
         try:
-            asyncio.run(self._implement_review_feedback(pr, comment, agent, branch_name))
+            await self._implement_review_feedback(pr, comment, agent, branch_name)
         except Exception as e:
             logger.error(f"Failed to address review feedback for PR #{pr_number}: {e}")
             self._post_error_comment(pr_number, str(e), "pr")
@@ -230,7 +246,7 @@ class PRMonitor(BaseMonitor):
         review_body = comment.get("body", "")
 
         # Get PR diff to understand current changes
-        diff_output = run_gh_command(
+        diff_output = await run_gh_command_async(
             [
                 "pr",
                 "diff",
@@ -270,20 +286,22 @@ Requirements:
             logger.info(f"Agent {agent.name} generated response for PR #{pr_number}")
 
             # Apply the changes
-            self._apply_review_fixes(pr, agent.name, response, branch_name, context["review_comment_id"])
+            await self._apply_review_fixes(pr, agent.name, response, branch_name, context["review_comment_id"])
 
         except Exception as e:
             logger.error(f"Agent {agent.name} failed: {e}")
             raise
 
-    def _apply_review_fixes(self, pr: Dict, agent_name: str, implementation: str, branch_name: str, comment_id: str):
+    async def _apply_review_fixes(
+        self, pr: Dict, agent_name: str, implementation: str, branch_name: str, comment_id: str
+    ):
         """Apply review fixes to the PR branch."""
         pr_number = pr["number"]
 
         try:
             # 1. Fetch and checkout the PR branch
             logger.info(f"Checking out PR branch: {branch_name}")
-            run_gh_command(["pr", "checkout", str(pr_number), "--repo", self.repo])
+            await run_gh_command_async(["pr", "checkout", str(pr_number), "--repo", self.repo])
 
             # 2. Apply the code changes
             # Parse and apply the code changes from the AI response
@@ -304,14 +322,14 @@ Requirements:
             )
 
             # Check if there are changes to commit
-            status_output = run_gh_command(["status", "--porcelain"])
+            status_output = await run_gh_command_async(["status", "--porcelain"])
             if status_output and status_output.strip():
-                run_gh_command(["add", "-A"])
-                run_gh_command(["commit", "-m", commit_message])
+                await run_gh_command_async(["add", "-A"])
+                await run_gh_command_async(["commit", "-m", commit_message])
 
                 # 4. Push to the branch
                 logger.info(f"Pushing changes to branch: {branch_name}")
-                run_gh_command(["push"])
+                await run_gh_command_async(["push"])
 
                 success_comment = (
                     f"{self.agent_tag} I've successfully addressed the review feedback using {agent_name}!\n\n"
@@ -346,10 +364,10 @@ Requirements:
         # Post completion comment
         self._post_comment(pr_number, success_comment, "pr")
 
-    def _has_responded_to_comment(self, pr_number: int, comment_id: str) -> bool:
+    async def _has_responded_to_comment(self, pr_number: int, comment_id: str) -> bool:
         """Check if we've already responded to a specific comment."""
         # Get all comments on the PR
-        output = run_gh_command(
+        output = await run_gh_command_async(
             [
                 "pr",
                 "view",

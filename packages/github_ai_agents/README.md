@@ -154,24 +154,6 @@ github_ai_agents/
 └── utils/           # Utility functions
 ```
 
-## Testing
-
-Run the test suite:
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=github_ai_agents
-
-# Run only unit tests
-pytest -m unit
-
-# Run integration tests
-pytest -m integration
-```
-
 ## Contributing
 
 1. Fork the repository

@@ -6,7 +6,8 @@ FROM node:20-slim
 
 # Define version arguments for better maintainability
 ARG GO_VERSION=1.24.5
-ARG GO_CHECKSUM=10ad9e86233e74c0f6590fe5426895de6bf388964210eac34a6d83f38918ecdc
+ARG GO_CHECKSUM_AMD64=10ad9e86233e74c0f6590fe5426895de6bf388964210eac34a6d83f38918ecdc
+ARG GO_CHECKSUM_ARM64=44e2d8b8e1b24a87dcab8c0bbf673cfcf92dc2ac0b3094df48b5c7fdb670cd5e
 ARG OPENCODE_VERSION=0.3.112
 ARG OPENCODE_CHECKSUM_AMD64=ce02926bbe94ca91c5a46e97565e3f8d275f1a6c2fd3352f7f99f558f6b60e09
 ARG OPENCODE_CHECKSUM_ARM64=6ceae43795a62b572866e50d30d99e266889b6aeae1da058aab34041cc5d49d8
@@ -30,20 +31,25 @@ RUN apt-get update && apt-get install -y \
 RUN ln -sf /usr/bin/python3.11 /usr/bin/python \
     && ln -sf /usr/bin/pip3 /usr/bin/pip
 
+# Create a generic user for consistency with other containers
+RUN useradd -m -u 1000 appuser
+
 # Install Go in a separate layer (large download)
 # Checksum from https://go.dev/dl/
 # Support multiple architectures using Docker's built-in TARGETARCH variable
 ARG TARGETARCH=amd64
 RUN wget -q https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz && \
     if [ "${TARGETARCH}" = "amd64" ]; then \
-        echo "${GO_CHECKSUM}  go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" | sha256sum -c -; \
+        echo "${GO_CHECKSUM_AMD64}  go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" | sha256sum -c -; \
+    elif [ "${TARGETARCH}" = "arm64" ]; then \
+        echo "${GO_CHECKSUM_ARM64}  go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" | sha256sum -c -; \
     fi && \
     tar -C /usr/local -xzf go${GO_VERSION}.linux-${TARGETARCH}.tar.gz && \
     rm go${GO_VERSION}.linux-${TARGETARCH}.tar.gz
 
 # Set Go environment variables
-ENV PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
-ENV GOPATH="/root/go"
+ENV PATH="/usr/local/go/bin:/home/appuser/go/bin:${PATH}"
+ENV GOPATH="/home/appuser/go"
 
 # Install GitHub CLI (for agent operations) - using official method
 RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /usr/share/keyrings/githubcli-archive-keyring.gpg > /dev/null \
@@ -80,12 +86,15 @@ RUN npm install -g @openai/codex@${CODEX_VERSION}
 
 # Install Crush/mods from Charm Bracelet - VERIFIED WORKING
 # Pin to specific version for reproducible builds
+ENV GOBIN=/usr/local/bin
 RUN go install github.com/charmbracelet/mods@${MODS_VERSION} && \
-    cp /root/go/bin/mods /usr/local/bin/mods && \
     ln -s /usr/local/bin/mods /usr/local/bin/crush
 
 # Create working directory
 WORKDIR /workspace
+
+# Change ownership of workspace to appuser
+RUN chown -R appuser:appuser /workspace
 
 # Copy agent-specific requirements
 COPY docker/requirements-agents.txt ./
@@ -97,27 +106,24 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPYCACHEPREFIX=/tmp/pycache \
     PYTHONUTF8=1
 
-# The node:20-slim image already has a "node" user with UID 1000
-# We'll use that user and create directories in the node home directory
+# Create necessary directories for appuser
+RUN mkdir -p /home/appuser/.config/opencode \
+    /home/appuser/.config/codex \
+    /home/appuser/.config/mods \
+    /home/appuser/.cache \
+    /home/appuser/.cache/opencode \
+    /home/appuser/.cache/codex \
+    /home/appuser/.cache/mods \
+    /home/appuser/.local \
+    /home/appuser/.local/share \
+    /home/appuser/.local/bin
 
-# Create all necessary directories for node user only (container runs as node)
-RUN mkdir -p /home/node/.config/opencode \
-    /home/node/.config/codex \
-    /home/node/.config/mods \
-    /home/node/.cache \
-    /home/node/.cache/opencode \
-    /home/node/.cache/codex \
-    /home/node/.cache/mods \
-    /home/node/.local \
-    /home/node/.local/share \
-    /home/node/.local/bin
+# Copy mods configuration
+COPY --chown=appuser:appuser packages/github_ai_agents/configs/mods-config.yml /home/appuser/.config/mods/config.yml
 
-# Copy mods configuration (only for node user since container runs as node)
-COPY --chown=node:node packages/github_ai_agents/configs/mods-config.yml /home/node/.config/mods/config.yml
-
-# Set ownership for all node directories
+# Set ownership for all appuser directories
 # This ensures the user can write to all necessary locations
-RUN chown -R node:node /home/node
+RUN chown -R appuser:appuser /home/appuser
 
 # Default command
 CMD ["bash"]
