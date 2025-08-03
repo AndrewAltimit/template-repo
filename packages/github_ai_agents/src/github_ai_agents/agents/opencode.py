@@ -53,6 +53,8 @@ class OpenCodeAgent(ContainerizedCLIAgent):
         # Log the command being executed (show more for debugging)
         logger.info(f"Full prompt length: {len(full_prompt)} chars")
         logger.info(f"Executing OpenCode command with {len(cmd)} parts")
+        # Log last few parts of command to see the actual prompt
+        logger.info(f"Command ending: ...{' '.join(cmd[-5:])}")
         logger.debug(f"Full command: {cmd}")
 
         # Execute command directly
@@ -84,6 +86,9 @@ class OpenCodeAgent(ContainerizedCLIAgent):
         # OpenCode expects the message as the last positional argument
         # Since we're using asyncio.create_subprocess_exec (no shell),
         # we don't need to escape - just pass the prompt as-is
+        # For debugging: log if multi-line prompt with Docker
+        if self._use_docker and "\n" in prompt:
+            logger.warning("Multi-line prompt detected with Docker - this may cause issues")
         args.append(prompt)
 
         # Use Docker if available (preferred), otherwise local
