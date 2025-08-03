@@ -46,6 +46,7 @@ RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | 
 # SECURITY NOTE: OpenCode releases don't provide checksums. We're downloading from the official
 # GitHub releases page (github.com/sst/opencode) which provides some assurance, but ideally
 # we would verify checksums if they were available. This is an accepted risk for this tool.
+# TODO: Track issue https://github.com/sst/opencode/issues requesting checksums for releases
 # Alternative: Build from source or request checksums from the maintainers.
 RUN ARCH=$(dpkg --print-architecture) && \
     if [ "$ARCH" = "amd64" ]; then ARCH="x64"; elif [ "$ARCH" = "arm64" ]; then ARCH="arm64"; fi && \

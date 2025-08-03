@@ -1,45 +1,47 @@
 # Multi-Agent System Migration Status
 
-This document tracks the migration from the scripts-based agent system to the new `github_ai_agents` package.
+This document tracks the successful migration from the scripts-based agent system to the new `github_ai_agents` package.
 
-## Migration Philosophy
+## Migration Complete
 
-We are following a **phased migration approach** to ensure stability:
+The migration from `scripts/agents/` to the `github_ai_agents` package has been completed successfully.
 
-1. **Phase 1**: Create new package structure alongside existing scripts
-2. **Phase 2**: Migrate workflows one by one to use new package
-3. **Phase 3**: Keep old scripts as reference for security patterns and documentation
-4. **Phase 4**: Eventually archive old scripts once fully stable
-
-## Current Status (as of this PR)
-
-### ✅ Migrated to New Package
+### ✅ Current Implementation
 
 - **Issue Monitor** - Using `python3 -m github_ai_agents.cli issue-monitor`
 - **PR Review Monitor** - Using `python3 -m github_ai_agents.cli pr-monitor`
+- **Containerized Agents** - OpenCode, Codex, and Crush run in the `openrouter-agents` container
+- **Host Agents** - Claude and Gemini run on the host due to authentication requirements
 
-### 📚 Retained for Reference
+### 📚 Documentation
 
-The `scripts/agents/` directory contains:
-- **Security implementation patterns** - Comprehensive security documentation
-- **Legacy integration examples** - Shows how agents were originally structured
-- **Direct CLI usage** - For local development and testing
+All agent documentation is now consolidated in:
+- **Package Documentation**: `packages/github_ai_agents/docs/`
+- **Security Model**: `packages/github_ai_agents/docs/security.md`
+- **Architecture**: `packages/github_ai_agents/docs/architecture.md`
+- **Containerization Strategy**: `docs/AGENT_CONTAINERIZATION_STRATEGY.md`
 
-## Why Keep Both?
+## Benefits of the New System
 
-1. **Documentation Value**: The scripts contain extensive security documentation and implementation patterns that serve as a reference.
+1. **Proper Python Package**: Installable via pip with proper dependencies
+2. **Containerization**: OpenRouter agents run in containers for better isolation
+3. **Unified Configuration**: Single `.agents.yaml` configuration file
+4. **Better Testing**: Comprehensive test suite in the package
+5. **Clear Architecture**: Modular design with separated concerns
 
-2. **Backward Compatibility**: External tools or documentation may reference the old paths.
+## Usage
 
-3. **Local Development**: The scripts provide examples for developers who want to run agents locally without the package.
+Install the package:
+```bash
+pip3 install -e ./packages/github_ai_agents
+```
 
-4. **Audit Trail**: Maintains the evolution of our security model and implementation approach.
+Run agents:
+```bash
+# Host agents (Claude/Gemini)
+python3 -m github_ai_agents.cli issue-monitor
+python3 -m github_ai_agents.cli pr-monitor
 
-## Not a Dual Implementation
-
-This is **not** a dual implementation issue. The scripts and package serve different purposes:
-
-- **Package (`github_ai_agents`)**: Production implementation used by GitHub Actions
-- **Scripts (`scripts/agents/`)**: Reference implementation and documentation
-
-The package is the canonical implementation. The scripts are retained for their documentation value and historical context.
+# Containerized agents (OpenRouter)
+docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
+```

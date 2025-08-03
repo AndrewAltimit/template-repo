@@ -170,8 +170,6 @@ pr-monitor
 # Installation:
 # Install the new AI agents package:
 pip3 install -e ./packages/github_ai_agents
-# For legacy installation instructions:
-./scripts/agents/install_agents_safe.sh
 
 # Note: Host dependencies only needed for Claude/Gemini:
 pip3 install --user -r docker/requirements-agents.txt
@@ -386,7 +384,7 @@ For detailed information on specific topics, refer to these documentation files:
 - `docs/CONTAINERIZED_CI.md` - Container-based CI/CD philosophy and implementation
 
 ### AI Agents & Security
-- `scripts/agents/README.md` - Comprehensive AI agent security documentation
+- `packages/github_ai_agents/docs/security.md` - Comprehensive AI agent security documentation
 - `docs/AI_AGENTS.md` - AI agent system overview
 - `docs/AI_AGENTS_SECURITY.md` - Security-focused agent documentation
 - `docs/AI_AGENTS_CLAUDE_AUTH.md` - Why AI agents run on host (Claude auth limitation)
