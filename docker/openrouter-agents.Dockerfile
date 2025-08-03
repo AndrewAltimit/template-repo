@@ -31,8 +31,8 @@ RUN apt-get update && apt-get install -y \
 RUN ln -sf /usr/bin/python3.11 /usr/bin/python \
     && ln -sf /usr/bin/pip3 /usr/bin/pip
 
-# Create a generic user for consistency with other containers
-RUN useradd -m -u 1000 appuser
+# Use the existing node user (UID 1000) from the base image
+# This avoids UID conflicts and maintains consistency
 
 # Install Go in a separate layer (large download)
 # Checksum from https://go.dev/dl/
@@ -48,8 +48,8 @@ RUN wget -q https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz && \
     rm go${GO_VERSION}.linux-${TARGETARCH}.tar.gz
 
 # Set Go environment variables
-ENV PATH="/usr/local/go/bin:/home/appuser/go/bin:${PATH}"
-ENV GOPATH="/home/appuser/go"
+ENV PATH="/usr/local/go/bin:/home/node/go/bin:${PATH}"
+ENV GOPATH="/home/node/go"
 
 # Install GitHub CLI (for agent operations) - using official method
 RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /usr/share/keyrings/githubcli-archive-keyring.gpg > /dev/null \
@@ -93,8 +93,8 @@ RUN go install github.com/charmbracelet/mods@${MODS_VERSION} && \
 # Create working directory
 WORKDIR /workspace
 
-# Change ownership of workspace to appuser
-RUN chown -R appuser:appuser /workspace
+# Change ownership of workspace to node user
+RUN chown -R node:node /workspace
 
 # Copy agent-specific requirements
 COPY docker/requirements-agents.txt ./
@@ -106,24 +106,24 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPYCACHEPREFIX=/tmp/pycache \
     PYTHONUTF8=1
 
-# Create necessary directories for appuser
-RUN mkdir -p /home/appuser/.config/opencode \
-    /home/appuser/.config/codex \
-    /home/appuser/.config/mods \
-    /home/appuser/.cache \
-    /home/appuser/.cache/opencode \
-    /home/appuser/.cache/codex \
-    /home/appuser/.cache/mods \
-    /home/appuser/.local \
-    /home/appuser/.local/share \
-    /home/appuser/.local/bin
+# Create necessary directories for node user
+RUN mkdir -p /home/node/.config/opencode \
+    /home/node/.config/codex \
+    /home/node/.config/mods \
+    /home/node/.cache \
+    /home/node/.cache/opencode \
+    /home/node/.cache/codex \
+    /home/node/.cache/mods \
+    /home/node/.local \
+    /home/node/.local/share \
+    /home/node/.local/bin
 
 # Copy mods configuration
-COPY --chown=appuser:appuser packages/github_ai_agents/configs/mods-config.yml /home/appuser/.config/mods/config.yml
+COPY --chown=node:node packages/github_ai_agents/configs/mods-config.yml /home/node/.config/mods/config.yml
 
-# Set ownership for all appuser directories
+# Set ownership for all node user directories
 # This ensures the user can write to all necessary locations
-RUN chown -R appuser:appuser /home/appuser
+RUN chown -R node:node /home/node
 
 # Default command
 CMD ["bash"]
