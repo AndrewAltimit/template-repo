@@ -17,12 +17,16 @@ class OpenCodeAgent(ContainerizedCLIAgent):
 
     def __init__(self, config=None) -> None:
         """Initialize OpenCode agent."""
-        super().__init__("opencode", "opencode", docker_service="openrouter-agents", timeout=300, config=config)
+        # OpenCode uses mods as the actual CLI tool
+        super().__init__("opencode", "mods", docker_service="openrouter-agents", timeout=300, config=config)
 
         # Set up environment variables
         if api_key := os.environ.get("OPENROUTER_API_KEY"):
             self.env_vars["OPENROUTER_API_KEY"] = api_key
             self.env_vars["OPENCODE_MODEL"] = self.DEFAULT_MODEL
+            logger.info(f"OpenCode initialized with API key: {'*' * 10}{api_key[-4:]}")
+        else:
+            logger.warning("OPENROUTER_API_KEY not found in environment - OpenCode may not work properly")
 
     def get_trigger_keyword(self) -> str:
         """Get trigger keyword for OpenCode."""
@@ -46,6 +50,9 @@ class OpenCodeAgent(ContainerizedCLIAgent):
         # Build command
         cmd = self._build_command(full_prompt)
 
+        # Log the command being executed
+        logger.info(f"Executing OpenCode command: {' '.join(cmd[:5])}... (truncated)")
+
         # Execute command
         stdout, stderr = await self._execute_command(cmd)
 
@@ -54,16 +61,17 @@ class OpenCodeAgent(ContainerizedCLIAgent):
 
     def _build_command(self, prompt: str) -> List[str]:
         """Build OpenCode CLI command."""
-        # Get flags from config or use defaults
-        if self.config:
-            flags = self.config.get_non_interactive_flags("opencode")
-        else:
-            flags = ["--non-interactive"]  # Default non-interactive mode
-
-        # Build command with proper order
+        # Mods takes the prompt as the last argument, not with -p flag
         args = []
-        args.extend(flags)
-        args.extend(["-p", prompt])
+
+        # Add model flag
+        args.extend(["-m", self.DEFAULT_MODEL])
+
+        # Add non-interactive flag
+        args.append("--no-cache")
+
+        # Add the prompt as the last argument
+        args.append(prompt)
 
         # Use Docker if available (preferred), otherwise local
         if self._use_docker:
@@ -71,6 +79,9 @@ class OpenCodeAgent(ContainerizedCLIAgent):
             env_vars = {}
             if api_key := self.env_vars.get("OPENROUTER_API_KEY"):
                 env_vars["OPENROUTER_API_KEY"] = api_key
+                env_vars["OPENCODE_MODEL"] = self.env_vars.get("OPENCODE_MODEL", self.DEFAULT_MODEL)
+            else:
+                logger.warning("No OPENROUTER_API_KEY found when building Docker command")
             return self._build_docker_command(args, env_vars)
         else:
             # Use local executable
@@ -83,9 +94,17 @@ class OpenCodeAgent(ContainerizedCLIAgent):
         output = output.strip()
 
         # Log the raw output for debugging
-        logger.debug(f"OpenCode raw output: {output[:500]}...")
+        logger.info(f"OpenCode raw output length: {len(output)}")
+        logger.info(f"OpenCode raw output: {output[:1000]}...")
         if error:
-            logger.debug(f"OpenCode stderr: {error[:500]}...")
+            logger.info(f"OpenCode stderr: {error[:500]}...")
+
+        # Check if output is empty
+        if not output:
+            logger.error("OpenCode returned empty output")
+            if error:
+                return f"Error: {error}"
+            return "Error: OpenCode returned no output"
 
         # Try to parse as JSON if it looks like JSON
         if output.startswith("{") and output.endswith("}"):

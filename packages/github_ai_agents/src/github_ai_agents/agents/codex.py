@@ -14,7 +14,8 @@ class CodexAgent(ContainerizedCLIAgent):
 
     def __init__(self, config=None):
         """Initialize Codex agent."""
-        super().__init__("codex", "codex", docker_service="openrouter-agents", timeout=300, config=config)
+        # Codex also uses mods as the actual CLI tool
+        super().__init__("codex", "mods", docker_service="openrouter-agents", timeout=300, config=config)
 
         # Set up environment variables
         if api_key := os.environ.get("OPENROUTER_API_KEY"):
