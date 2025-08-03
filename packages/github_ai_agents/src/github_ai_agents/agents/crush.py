@@ -38,9 +38,28 @@ class CrushAgent(ContainerizedCLIAgent):
         # Build command
         cmd = self._build_command(prompt)
 
+        # Log the command for debugging
+        logger.info(f"Executing Crush command with {len(cmd)} parts")
+        logger.debug(f"Full command: {cmd}")
+
+        # Set up environment variables for execution
+        env = {}
+        if api_key := self.env_vars.get("OPENROUTER_API_KEY"):
+            env["OPENROUTER_API_KEY"] = api_key
+            env["OPENAI_API_KEY"] = api_key  # Some tools expect this format
+
         # Execute command
-        stdout, stderr = await self._execute_command(cmd)
-        return stdout.strip()
+        try:
+            stdout, stderr = await self._execute_command(cmd, env)
+            return stdout.strip()
+        except Exception as e:
+            # Log more details about the error
+            logger.error(f"Crush execution failed: {e}")
+            if hasattr(e, "stdout"):
+                logger.error(f"Stdout: {e.stdout}")
+            if hasattr(e, "stderr"):
+                logger.error(f"Stderr: {e.stderr}")
+            raise
 
     def _build_command(self, prompt: str) -> List[str]:
         """Build Crush CLI command."""
@@ -59,21 +78,11 @@ class CrushAgent(ContainerizedCLIAgent):
         # Add the prompt as the last argument
         args.append(prompt)
 
-        # Use Docker if available (preferred), otherwise local
-        if self._use_docker:
-            # Build Docker command with environment variables
-            env_vars = {}
-            # Crush might need API keys for AI providers
-            if api_key := self.env_vars.get("OPENROUTER_API_KEY"):
-                env_vars["OPENROUTER_API_KEY"] = api_key
-                # Some tools expect OPENAI_API_KEY format
-                env_vars["OPENAI_API_KEY"] = api_key
-            return self._build_docker_command(args, env_vars)
-        else:
-            # Use local executable
-            cmd = [self.executable]  # self.executable is "crush"
-            cmd.extend(args)
-            return cmd
+        # Return just the command args, not the full docker command
+        # The parent class _execute_command will handle Docker wrapping
+        cmd = [self.executable]  # self.executable is "crush"
+        cmd.extend(args)
+        return cmd
 
     def get_priority(self) -> int:
         """Get priority for Crush."""
