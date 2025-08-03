@@ -5,7 +5,7 @@
 The AI agents system has a fundamental architectural constraint due to authentication requirements:
 
 - **Claude** requires host-specific authentication (machine-bound credentials)
-- **OpenCode/Codex/Crush** are containerized for security and portability
+- **OpenCode/Crush** are containerized for security and portability
 - The monitors can only run in one environment at a time
 
 ## Current Architecture
@@ -16,7 +16,6 @@ The AI agents system has a fundamental architectural constraint due to authentic
 
 ### Container Agents (Run in `openrouter-agents` container)
 - **OpenCode** - Uses OpenRouter API
-- **Codex** - Uses OpenRouter API
 - **Crush** - Uses OpenRouter API
 
 ## The Constraint
@@ -24,7 +23,7 @@ The AI agents system has a fundamental architectural constraint due to authentic
 When GitHub Actions workflows trigger the issue or PR monitors:
 
 1. The monitor runs on the **host** to support Claude authentication
-2. Container agents (OpenCode/Codex/Crush) are **not available** in this mode
+2. Container agents (OpenCode/Crush) are **not available** in this mode
 3. Only Claude and Gemini can be used for automated workflows
 
 ## Workarounds
@@ -65,7 +64,6 @@ For automated GitHub workflows:
 - ✅ `[Approved][Claude]` - Works
 - ✅ `[Approved][Gemini]` - Works
 - ❌ `[Approved][OpenCode]` - Requires manual intervention
-- ❌ `[Approved][Codex]` - Requires manual intervention
 - ❌ `[Approved][Crush]` - Requires manual intervention
 
 The system will post a helpful error message explaining the constraint and suggesting alternatives when container agents are requested in automated workflows.

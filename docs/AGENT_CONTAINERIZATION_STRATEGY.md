@@ -34,11 +34,6 @@ These agents can run in Docker containers with proper configuration:
 - **Container**: `openrouter-agents`
 - **Requirements**: Node.js runtime
 
-#### Codex CLI
-- **Authentication**: API key via environment variable
-- **Container**: `openrouter-agents`
-- **Requirements**: Node.js runtime
-
 #### Crush (Charm Bracelet Mods)
 - **Authentication**: API key via config file
 - **Container**: `openrouter-agents`

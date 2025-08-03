@@ -8,7 +8,7 @@ The PR Monitor (`github_ai_agents.monitors.pr`) has been fully implemented with 
 
 1. ✅ **PR Detection**: Monitors open PRs for review feedback and comments
 2. ✅ **Trigger Recognition**: Detects `[ACTION][AGENT]` commands in reviews/comments
-3. ✅ **Multi-Agent Support**: Works with any configured agent (Claude, Gemini, OpenCode, Codex, Crush)
+3. ✅ **Multi-Agent Support**: Works with any configured agent (Claude, Gemini, OpenCode, Crush)
 4. ✅ **Security Validation**: Checks user authorization and rate limits
 5. ✅ **Agent Selection**: Routes to appropriate agent based on trigger
 6. ✅ **Code Generation**: Calls AI agent to generate fixes
@@ -19,7 +19,7 @@ The PR Monitor (`github_ai_agents.monitors.pr`) has been fully implemented with 
 The PR monitor looks for commands in the format `[ACTION][AGENT]` where:
 
 - **ACTION**: Fix, Address, Implement (case-insensitive)
-- **AGENT**: Claude, Gemini, OpenCode, Codex, Crush, etc.
+- **AGENT**: Claude, Gemini, OpenCode, Crush, etc.
 
 Examples:
 - `[Fix][Claude]` - Use Claude to fix the issue
@@ -71,4 +71,4 @@ Note that when running on the host (required for Claude authentication), only ho
 - Claude (requires subscription auth)
 - Gemini (requires Docker access)
 
-Containerized agents (OpenCode, Codex, Crush) are only available when the monitor runs in the `openrouter-agents` container.
+Containerized agents (OpenCode, Crush) are only available when the monitor runs in the `openrouter-agents` container.

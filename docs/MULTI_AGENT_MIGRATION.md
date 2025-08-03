@@ -10,7 +10,7 @@ The migration from `scripts/agents/` to the `github_ai_agents` package has been 
 
 - **Issue Monitor** - Using `python3 -m github_ai_agents.cli issue-monitor`
 - **PR Review Monitor** - Using `python3 -m github_ai_agents.cli pr-monitor`
-- **Containerized Agents** - OpenCode, Codex, and Crush run in the `openrouter-agents` container
+- **Containerized Agents** - OpenCode and Crush run in the `openrouter-agents` container
 - **Host Agents** - Claude and Gemini run on the host due to authentication requirements
 
 ### 📚 Documentation

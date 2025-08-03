@@ -1,6 +1,6 @@
 # Multi-Agent Implementation Guide
 
-This document describes the complete implementation of the multi-agent system, featuring five AI agents: Claude, Gemini, OpenCode, Codex, and Crush.
+This document describes the complete implementation of the multi-agent system, featuring four AI agents: Claude, Gemini, OpenCode, and Crush.
 
 ## Overview
 
@@ -8,230 +8,173 @@ The multi-agent system allows you to use different AI coding assistants for vari
 
 **Implementation Status**: ✅ Fully Implemented
 - All agents have complete implementations with proper error handling
-- Hybrid execution model: Host agents (Claude/Gemini) and containerized agents (OpenCode/Codex/Crush)
+- Hybrid execution model: Host agents (Claude/Gemini) and containerized agents (OpenCode/Crush)
 - Automatic detection and switching between local and Docker execution for containerized agents
-- Full integration with GitHub Actions workflows
+- Security manager with user authorization and rate limiting
+- Two functional monitors: IssueMonitor and PRMonitor
+- Both monitors support all agents through trigger keywords
 
-### Agent Types
+## Architecture
 
-1. **Host-Only Agents** (require specific authentication):
+1. **Host Agents** (require specific host configuration):
    - **Claude** (Anthropic) - Requires subscription authentication
    - **Gemini** (Google) - Requires Docker socket access
 
-2. **Containerized Agents** (API key based):
+2. **Containerized Agents** (run in `openrouter-agents` container):
    - **OpenCode** (SST) - Terminal-based coding agent
-   - **Codex** (OpenAI) - Rust-based CLI with multimodal support
-   - **Crush/mods** (Charm Bracelet) - Flexible multi-provider tool
-
-## Quick Start
-
-### 1. Set Up Environment
-
-```bash
-# Copy example configuration
-cp .agents.yaml.example .agents.yaml
-
-# Add OpenRouter API key to .env
-echo "OPENROUTER_API_KEY=your-api-key" >> .env
-```
-
-### 2. Build Container
-
-```bash
-docker-compose build openrouter-agents
-```
-
-### 3. Verify Setup
-
-```bash
-python scripts/agents/verify_containerized_setup.py
-```
-
-### 4. Test Agents
-
-```bash
-# Test mods/Crush directly
-./scripts/agents/run_containerized_agents.sh crush "Write a hello world function"
-
-# Test all agents
-./scripts/agents/run_containerized_agents.sh test
-
-# Open shell in container
-./scripts/agents/run_containerized_agents.sh shell
-```
+   - **Crush** (Charm Bracelet) - Flexible multi-provider tool
 
 ## Configuration
 
-### .agents.yaml
+### Environment Variables
+
+```bash
+# Required
+GITHUB_TOKEN=your_github_token
+GITHUB_REPOSITORY=owner/repo
+OPENROUTER_API_KEY=your_openrouter_key
+
+# Optional
+ENABLE_AI_AGENTS=true
+ANTHROPIC_API_KEY=your_anthropic_key  # For API-based Claude
+```
+
+### Agent Configuration (.agents.yaml)
 
 ```yaml
 enabled_agents:
-  - claude      # Host-only
-  - gemini      # Host-only
+  - claude      # Host agent
+  - gemini      # Host agent
   - opencode    # Containerized
-  - codex       # Containerized
   - crush       # Containerized
-
-openrouter:
-  api_key: ${OPENROUTER_API_KEY}
-  default_model: qwen/qwen-2.5-coder-32b-instruct
 
 agent_priorities:
   issue_creation: [claude, opencode]
-  pr_reviews: [gemini, codex]
+  pr_reviews: [gemini]
   code_fixes: [claude, crush]
 ```
 
 ## Usage
 
-### Direct Agent Usage
+### Running Monitors
 
 ```bash
-# Use specific agent
-./scripts/agents/run_containerized_agents.sh opencode "Implement a REST API"
-./scripts/agents/run_containerized_agents.sh codex "Review this code"
-./scripts/agents/run_containerized_agents.sh crush "Explain Docker networking"
+# Issue Monitor (creates PRs from issues)
+python3 -m github_ai_agents.cli issue-monitor
 
-# Use mods directly with custom model
-docker-compose run --rm openrouter-agents mods \
-  "Your prompt" \
-  --model "openrouter/anthropic/claude-3-5-sonnet" \
-  --api https://openrouter.ai/api/v1
+# PR Monitor (applies fixes from PR reviews)
+python3 -m github_ai_agents.cli pr-monitor
+
+# Run containerized agents manually
+./scripts/agents/run_containerized_agents.sh opencode "Implement a REST API"
+./scripts/agents/run_containerized_agents.sh crush "Explain Docker networking"
 ```
 
-### GitHub Integration
+### Trigger Commands
 
-The agents integrate with GitHub issues and PRs through trigger keywords:
+In GitHub issues and PR comments, use the format `[ACTION][AGENT]`:
 
 - `[Approved][Claude]` - Use Claude for implementation
 - `[Approved][Gemini]` - Use Gemini for implementation
 - `[Approved][OpenCode]` - Use OpenCode for implementation
-- `[Approved][Codex]` - Use Codex for implementation
 - `[Approved][Crush]` - Use Crush for implementation
 
-### Monitor Usage
-
-```bash
-# Run issue monitor with multi-agent support
-docker-compose run --rm openrouter-agents \
-  python scripts/agents/issue_monitor_multi_agent.py
-
-# Run PR review monitor
-docker-compose run --rm openrouter-agents \
-  python scripts/agents/pr_review_monitor_multi_agent.py
-```
+For PR reviews:
+- `[Fix][Claude]` - Fix the issue with Claude
+- `[Address][Gemini]` - Address feedback with Gemini
+- `[Implement][OpenCode]` - Implement changes with OpenCode
 
 ## Agent Capabilities
 
+### Claude
+- **Strengths**: Complex implementation, architecture decisions, refactoring
+- **Use Cases**: Primary implementation agent, complex fixes
+- **Limitations**: Requires host authentication
+
+### Gemini
+- **Strengths**: Code review, optimization suggestions, documentation
+- **Use Cases**: PR reviews, code quality improvements
+- **Limitations**: Requires Docker socket access
+
 ### OpenCode
-- **Strengths**: Terminal-first design, session management, LSP integration
-- **Best for**: Code generation, refactoring, multi-file edits
-- **Model**: Configurable via OpenRouter
+- **Strengths**: Code generation, automatic OpenRouter detection
+- **Use Cases**: Straightforward implementations, code snippets
+- **Limitations**: Container-only
 
-### Codex
-- **Strengths**: Multimodal support, sandboxed execution, approval workflows
-- **Best for**: Code review, debugging, interactive development
-- **Model**: GPT-4.1 or OpenRouter models
+### Crush
+- **Strengths**: Multi-model support, flexible configuration
+- **Use Cases**: Various coding tasks, experimentation
+- **Limitations**: Container-only, requires OPENAI_API_KEY workaround
 
-### Crush/mods
-- **Strengths**: Multi-provider support, MCP integration, flexible configuration
-- **Best for**: Quick tasks, explanations, code snippets
-- **Model**: Any OpenRouter model
+## Implementation Details
 
-## Architecture
-
-### Container Structure
+### Directory Structure
 
 ```
-openrouter-agents/
-├── Python 3.11 base
-├── Node.js 20 LTS (for npm packages)
-├── Go 1.21 (for Go-based tools)
-├── CLI Tools:
+github_ai_agents/
+├── agents/              # Agent implementations
+│   ├── base.py         # Abstract base classes
+│   ├── claude.py       # Claude agent
+│   ├── gemini.py       # Gemini agent
+│   ├── opencode.py     # OpenCode agent
+│   └── crush.py        # Crush agent
+├── monitors/            # GitHub monitors
+│   ├── issue.py        # Issue monitor
+│   └── pr.py           # PR monitor
+├── security/            # Security components
+│   └── manager.py      # Authorization & rate limiting
+└── utils/              # Utilities
+    └── github.py       # GitHub API helpers
+```
+
+### Docker Setup
+
+```
+docker/
+├── openrouter-agents.Dockerfile  # Container for OpenRouter agents
+└── requirements-agents.txt       # Python dependencies
+
+Tools installed in container:
 │   ├── opencode (binary from GitHub)
-│   ├── codex (npm package)
 │   └── mods/crush (Go binary)
-└── Python agent implementations
 ```
 
-### Agent Interface
+### Security Model
 
-All agents implement a common interface:
+1. **User Authorization**: Only users in allow list can trigger agents
+2. **Rate Limiting**: Configurable per-agent rate limits
+3. **Command Validation**: Specific trigger format required
+4. **Repository Validation**: Only works on authorized repos
 
-```python
-class AgentInterface:
-    async def generate_code(prompt: str, context: dict) -> str
-    def is_available() -> bool
-    def get_capabilities() -> List[str]
-    def get_priority() -> int
-    def get_trigger_keyword() -> str
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **API Key Not Set**
-   ```bash
-   export OPENROUTER_API_KEY='your-key'
-   # Or add to .env file
-   ```
-
-2. **Container Not Built**
-   ```bash
-   docker-compose build openrouter-agents
-   ```
-
-3. **Agent Not Available**
-   - Check container logs: `docker-compose logs openrouter-agents`
-   - Verify CLI installation in container
-   - Check API key configuration
-
-### Debug Mode
+## Testing
 
 ```bash
-# Enable debug logging
-export DEBUG=1
+# Run all tests
+python -m pytest tests/
 
-# Run with verbose output
-docker-compose run --rm openrouter-agents \
-  python -m scripts.agents.test_containerized_agents
+# Test specific components
+python -m pytest tests/test_agents.py          # Agent tests
+python -m pytest tests/test_issue_monitor.py   # Issue monitor tests
+python -m pytest tests/test_pr_monitor.py      # PR monitor tests
+python -m pytest tests/test_security.py        # Security tests
 ```
 
-## Cost Optimization
+## Current Limitations
 
-The system uses OpenRouter for cost-effective model access:
-
-- **Qwen 2.5 Coder 32B**: ~$0.18/M tokens (default)
-- **Mistral 7B**: ~$0.10/M tokens (fast option)
-- **Claude 3.5 Sonnet**: ~$3.00/M tokens (quality option)
-
-Configure models per agent in `.agents.yaml` to optimize cost/performance.
-
-## Security
-
-- API keys stored in environment variables
-- Containerized execution for isolation
-- Rate limiting via OpenRouter
-- Audit logging for all agent actions
-- Allow-list based user authorization
+1. **Host vs Container**: Claude and Gemini can't run in containers due to authentication requirements
+2. **Automated Workflows**: Container agents require manual intervention in GitHub Actions
+3. **OpenRouter Dependency**: Container agents rely on OpenRouter API availability
 
 ## Future Enhancements
 
-1. **Additional Agents**:
-   - Cursor API integration
-   - Continue.dev support
-   - Aider integration
-
-2. **Features**:
-   - Agent collaboration (multi-agent tasks)
-   - Performance benchmarking
-   - Cost tracking dashboard
-   - Custom prompt templates
+1. **Hybrid Bridge**: Service to proxy between host and container agents
+2. **More Agents**: Add support for additional AI providers
+3. **Enhanced Security**: More granular permissions and audit logging
+4. **Performance**: Caching and parallel agent execution
 
 ## References
 
+- [Claude CLI Documentation](https://github.com/anthropics/claude-cli)
+- [Gemini CLI Documentation](https://github.com/google/generative-ai-docs)
 - [OpenCode Documentation](https://opencode.ai/docs/)
-- [Codex CLI Guide](https://github.com/openai/codex)
 - [mods/Crush Documentation](https://github.com/charmbracelet/mods)
-- [OpenRouter API](https://openrouter.ai/docs)

@@ -7,7 +7,7 @@ This document provides essential guidelines for AI agents interacting with GitHu
 ### 1. @ Mentions - Use with Extreme Caution
 
 **NEVER use @ mentions for:**
-- AI agent names (Gemini, Claude, OpenAI, Codex, etc.)
+- AI agent names (Gemini, Claude, OpenAI, etc.)
 - Generic role names (reviewer, developer, tester)
 - Any name you're not 100% certain is a real contributor
 
@@ -24,7 +24,7 @@ This document provides essential guidelines for AI agents interacting with GitHu
 - "Gemini's review indicates..."
 - "As Claude suggested..."
 - "The OpenAI agent found..."
-- "Per Codex's analysis..."
+- "Per the agent's analysis..."
 
 **Incorrect ways (DO NOT USE):**
 - "@Gemini's review indicates..." ❌

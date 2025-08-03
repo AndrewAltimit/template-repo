@@ -3,7 +3,7 @@
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Type
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +80,9 @@ class SubagentManager:
         if agent_name:
             # Use specific agent if requested
             from ..agents import ClaudeAgent, CrushAgent, GeminiAgent, OpenCodeAgent
+            from ..agents.base import BaseAgent
 
-            agent_map = {
+            agent_map: Dict[str, Type[BaseAgent]] = {
                 "claude": ClaudeAgent,
                 "opencode": OpenCodeAgent,
                 "gemini": GeminiAgent,
@@ -90,7 +91,7 @@ class SubagentManager:
             agent_class = agent_map.get(agent_name.lower())
             if not agent_class:
                 return False, "", f"Unknown agent: {agent_name}"
-            agent = agent_class()
+            agent = agent_class(config=None)  # type: ignore[call-arg]
         else:
             # Use best available agent
             agent = get_best_available_agent()
