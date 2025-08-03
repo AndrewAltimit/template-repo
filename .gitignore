@@ -175,3 +175,6 @@ safety-report.json
 # Large reference files
 reference projects/**/*.resource
 reference projects/**/*.jpg
+
+# Crush agent
+.crush/
