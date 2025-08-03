@@ -1,0 +1,253 @@
+name: Auto Review
+
+on:
+  workflow_dispatch:
+    inputs:
+      agents:
+        description: 'AI agents to use (comma-separated: claude,gemini,opencode,crush)'
+        required: false
+        type: string
+        default: 'claude,gemini'
+      target:
+        description: 'What to review'
+        required: true
+        type: choice
+        options:
+          - issues
+          - pull-requests
+          - both
+        default: 'both'
+      issue_numbers:
+        description: 'Specific issue numbers to review (comma-separated, optional)'
+        required: false
+        type: string
+      pr_numbers:
+        description: 'Specific PR numbers to review (comma-separated, optional)'
+        required: false
+        type: string
+      review_depth:
+        description: 'Review depth'
+        required: true
+        type: choice
+        options:
+          - quick    # Basic review, main points only
+          - standard # Normal review with suggestions
+          - thorough # Deep analysis with detailed feedback
+        default: 'standard'
+      comment_style:
+        description: 'Comment style'
+        required: true
+        type: choice
+        options:
+          - consolidated # One comment per agent with all findings
+          - inline       # Multiple inline comments where relevant
+          - summary      # Single summary comment combining all agents
+        default: 'consolidated'
+  schedule:
+    # Run daily at 2 AM UTC for automated reviews
+    - cron: '0 2 * * *'
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  auto-review:
+    name: Auto Review with AI Agents
+    runs-on: self-hosted
+    if: |
+      vars.ENABLE_AI_AGENTS == 'true' && (
+        github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'schedule'
+      )
+
+    steps:
+      - name: Log Review Configuration
+        run: |
+          echo "=== Auto Review Configuration ==="
+          echo "Event: ${{ github.event_name }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Mode: READ-ONLY REVIEW (no approvals needed)"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Agents: ${{ inputs.agents }}"
+            echo "Target: ${{ inputs.target }}"
+            echo "Issue Numbers: ${{ inputs.issue_numbers || 'all open' }}"
+            echo "PR Numbers: ${{ inputs.pr_numbers || 'all open' }}"
+            echo "Review Depth: ${{ inputs.review_depth }}"
+            echo "Comment Style: ${{ inputs.comment_style }}"
+          else
+            echo "Running scheduled review with default settings"
+            echo "This will review ALL open issues and PRs without requiring approval keywords"
+          fi
+          echo "==============================="
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.AI_AGENT_TOKEN }}
+
+      - name: Configure Git (read-only mode)
+        run: |
+          # Set git identity for the AI agent (even though we won't commit)
+          git config --global user.name "AI Review Agent"
+          git config --global user.email "ai-review@localhost"
+
+          # Ensure we're in a safe read-only state
+          git config --global core.fileMode false
+
+      - name: Set up Python environment
+        run: |
+          echo "[INFO] Setting up Python environment..."
+          python3 --version
+
+          # Install the GitHub AI Agents package
+          echo "[INFO] Installing GitHub AI Agents package..."
+          pip3 install --user -e ./packages/github_ai_agents
+
+          # Install additional requirements
+          echo "[INFO] Installing additional requirements..."
+          pip3 install --user -r docker/requirements-agents.txt
+
+      - name: Build Docker containers for containerized agents
+        if: contains(inputs.agents, 'opencode') || contains(inputs.agents, 'crush') || github.event_name == 'schedule'
+        run: |
+          echo "[INFO] Building containers for OpenRouter agents..."
+          docker-compose --profile agents build openrouter-agents
+          echo "[INFO] Container build complete"
+
+      - name: Set up Node.js for Claude (if needed)
+        if: contains(inputs.agents, 'claude') || github.event_name == 'schedule'
+        run: |
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          if command -v nvm &> /dev/null; then
+            echo "[INFO] Setting Node.js version for Claude..."
+            nvm use 22.16.0 || {
+              echo "[WARNING] Node.js 22.16.0 not found, trying to install..."
+              nvm install 22.16.0
+              nvm use 22.16.0
+            }
+            echo "[INFO] Node.js version: $(node --version)"
+          fi
+
+      - name: Run Auto Review
+        env:
+          GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN,OPENROUTER_API_KEY"
+          PYTHONPATH: ${{ github.workspace }}
+          PYTHONUNBUFFERED: "1"
+          # Auto review specific settings
+          REVIEW_AGENTS: ${{ inputs.agents || 'claude,gemini' }}
+          REVIEW_TARGET: ${{ inputs.target || 'both' }}
+          REVIEW_ISSUE_NUMBERS: ${{ inputs.issue_numbers || '' }}
+          REVIEW_PR_NUMBERS: ${{ inputs.pr_numbers || '' }}
+          REVIEW_DEPTH: ${{ inputs.review_depth || 'standard' }}
+          COMMENT_STYLE: ${{ inputs.comment_style || 'consolidated' }}
+          # Ensure read-only mode
+          REVIEW_ONLY_MODE: "true"
+          NO_FILE_MODIFICATIONS: "true"
+        run: |
+          echo "=== Starting Auto Review ==="
+          echo "Repository: $GITHUB_REPOSITORY"
+
+          # Create a temporary review script that uses existing monitors in review-only mode
+          cat > /tmp/auto_review.py << 'EOF'
+          #!/usr/bin/env python3
+          """Auto Review script that uses existing monitors in review-only mode."""
+
+          import os
+          import sys
+          import logging
+          from github_ai_agents.monitors import IssueMonitor, PRMonitor
+
+          logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+          logger = logging.getLogger(__name__)
+
+          def main():
+              # Parse configuration from environment
+              agents = os.environ.get("REVIEW_AGENTS", "claude,gemini").split(",")
+              target = os.environ.get("REVIEW_TARGET", "both")
+              issue_numbers = os.environ.get("REVIEW_ISSUE_NUMBERS", "").split(",") if os.environ.get("REVIEW_ISSUE_NUMBERS") else []
+              pr_numbers = os.environ.get("REVIEW_PR_NUMBERS", "").split(",") if os.environ.get("REVIEW_PR_NUMBERS") else []
+              review_depth = os.environ.get("REVIEW_DEPTH", "standard")
+              comment_style = os.environ.get("COMMENT_STYLE", "consolidated")
+
+              # Clean up agent names
+              agents = [a.strip().lower() for a in agents if a.strip()]
+
+              logger.info(f"Auto Review Configuration:")
+              logger.info(f"  Agents: {agents}")
+              logger.info(f"  Target: {target}")
+              logger.info(f"  Issue Numbers: {issue_numbers or 'all open'}")
+              logger.info(f"  PR Numbers: {pr_numbers or 'all open'}")
+              logger.info(f"  Review Depth: {review_depth}")
+              logger.info(f"  Comment Style: {comment_style}")
+
+              # Set review-only mode in environment for monitors to detect
+              os.environ["REVIEW_ONLY_MODE"] = "true"
+              os.environ["ENABLED_AGENTS_OVERRIDE"] = ",".join(agents)
+              os.environ["REVIEW_DEPTH"] = review_depth
+              os.environ["COMMENT_STYLE"] = comment_style
+
+              try:
+                  # Process issues if requested
+                  if target in ["issues", "both"]:
+                      logger.info("Processing issues...")
+                      issue_monitor = IssueMonitor()
+
+                      # Override to only process specific issues if provided
+                      if issue_numbers:
+                          os.environ["TARGET_ISSUE_NUMBERS"] = ",".join(issue_numbers)
+
+                      issue_monitor.process_items()
+
+                  # Process PRs if requested
+                  if target in ["pull-requests", "both"]:
+                      logger.info("Processing pull requests...")
+                      pr_monitor = PRMonitor()
+
+                      # Override to only process specific PRs if provided
+                      if pr_numbers:
+                          os.environ["TARGET_PR_NUMBERS"] = ",".join(pr_numbers)
+
+                      pr_monitor.process_items()
+
+                  logger.info("Auto Review completed successfully")
+
+              except Exception as e:
+                  logger.error(f"Auto Review failed: {e}")
+                  sys.exit(1)
+
+          if __name__ == "__main__":
+              main()
+          EOF
+
+          chmod +x /tmp/auto_review.py
+
+          # Run the auto review script
+          python3 /tmp/auto_review.py || {
+              exit_code=$?
+              echo "[ERROR] Auto review failed with exit code: $exit_code"
+              exit $exit_code
+          }
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "=== Auto Review Summary ==="
+          echo "Completion time: $(date)"
+          echo "Workflow status: ${{ job.status }}"
+          if [ "${{ job.status }}" = "failure" ]; then
+            echo "[ERROR] Auto review failed - check logs above for details"
+          else
+            echo "[SUCCESS] Auto review completed successfully"
+          fi
+          echo "=========================="

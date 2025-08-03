@@ -62,12 +62,23 @@ class PRMonitor(BaseMonitor):
         """Process open PRs."""
         logger.info(f"Processing PRs for repository: {self.repo}")
 
+        if self.review_only_mode:
+            logger.info("Running in review-only mode")
+
         prs = self.get_open_prs()
         logger.info(f"Found {len(prs)} recent open PRs")
 
+        # Filter by target PR numbers if specified
+        if self.target_pr_numbers:
+            prs = [pr for pr in prs if pr["number"] in self.target_pr_numbers]
+            logger.info(f"Filtered to {len(prs)} target PRs")
+
         # Process all PRs concurrently using asyncio
         if prs:
-            asyncio.run(self._process_prs_async(prs))
+            if self.review_only_mode:
+                asyncio.run(self._review_prs_async(prs))
+            else:
+                asyncio.run(self._process_prs_async(prs))
 
     async def _process_prs_async(self, prs):
         """Process multiple PRs concurrently."""
@@ -410,6 +421,100 @@ Requirements:
         )
 
         self._post_comment(pr_number, comment, "pr")
+
+    async def _review_prs_async(self, prs):
+        """Review multiple PRs concurrently without making changes."""
+        tasks = []
+        review_results = {}
+
+        for pr in prs:
+            task = self._review_single_pr_async(pr)
+            tasks.append(task)
+
+        # Run all review tasks concurrently
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.error(f"Error reviewing PR: {result}")
+            elif result:
+                pr_number = prs[i]["number"]
+                review_results[pr_number] = result
+
+        # Post consolidated summary if requested
+        if self.comment_style == "summary" and review_results:
+            self._post_consolidated_reviews(review_results, "pr")
+
+    async def _review_single_pr_async(self, pr: Dict):
+        """Review a single PR without making changes."""
+        pr_number = pr["number"]
+        pr_title = pr["title"]
+        pr_body = pr.get("body", "")
+
+        # Check if we should process this PR
+        if not self._should_process_item(pr_number, "pr"):
+            return None
+
+        # In review-only mode, skip trigger checks and review all PRs
+        # No need for [COMMAND][AGENT] keywords
+        logger.info(f"Reviewing PR #{pr_number}: {pr_title}")
+
+        # Get PR diff for better context
+        try:
+            diff_output = await run_gh_command_async(["pr", "diff", str(pr_number), "--repo", self.repo])
+        except Exception as e:
+            logger.warning(f"Failed to get PR diff: {e}")
+            diff_output = ""
+
+        # Collect reviews from all enabled agents
+        reviews = {}
+
+        for agent_name, agent in self.agents.items():
+            try:
+                # Create review prompt
+                # Safely handle diff_output
+                diff_preview = ""
+                if diff_output:
+                    diff_preview = diff_output[:5000]
+                    if len(diff_output) > 5000:
+                        diff_preview += "..."
+
+                review_prompt = f"""Review the following GitHub Pull Request and provide feedback:
+
+PR #{pr_number}: {pr_title}
+
+Description:
+{pr_body}
+
+Changes (diff):
+{diff_preview}
+
+Provide a {self.review_depth} review with:
+1. Summary of the changes
+2. Code quality assessment
+3. Potential issues or bugs
+4. Suggestions for improvement
+5. Security considerations
+
+Do not provide implementation code. Focus on review feedback only."""
+
+                logger.info(f"Getting review from {agent_name} for PR #{pr_number}")
+
+                # Get review from agent
+                review = await agent.review_async(review_prompt)
+
+                if review:
+                    reviews[agent_name] = review
+
+                    # Post individual review if not using summary style
+                    if self.comment_style != "summary":
+                        self._post_review_comment(pr_number, agent_name.title(), review, "pr")
+
+            except Exception as e:
+                logger.error(f"Failed to get review from {agent_name}: {e}")
+
+        return reviews
 
 
 def main():

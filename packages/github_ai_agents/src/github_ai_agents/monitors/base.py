@@ -41,8 +41,22 @@ class BaseMonitor(ABC):
         self.security_manager = SecurityManager(agent_config=self.config)
         self.agent_tag = "[AI Agent]"
 
+        # Check for review-only mode
+        self.review_only_mode = os.environ.get("REVIEW_ONLY_MODE", "false").lower() == "true"
+        self.review_depth = os.environ.get("REVIEW_DEPTH", "standard")
+        self.comment_style = os.environ.get("COMMENT_STYLE", "consolidated")
+
+        # Override enabled agents if specified
+        enabled_agents_override = os.environ.get("ENABLED_AGENTS_OVERRIDE")
+        if enabled_agents_override:
+            self._override_enabled_agents(enabled_agents_override)
+
         # Initialize available agents based on configuration
         self.agents = self._initialize_agents()
+
+        # Filter by target numbers if specified
+        self.target_issue_numbers = self._parse_target_numbers(os.environ.get("TARGET_ISSUE_NUMBERS", ""))
+        self.target_pr_numbers = self._parse_target_numbers(os.environ.get("TARGET_PR_NUMBERS", ""))
 
     def _initialize_agents(self) -> Dict[str, Any]:
         """Initialize available AI agents based on configuration."""
@@ -260,3 +274,70 @@ class BaseMonitor(ABC):
                 logger.error(f"Error in monitoring loop: {e}", exc_info=True)
 
             time.sleep(interval)
+
+    def _override_enabled_agents(self, agents_str: str):
+        """Override enabled agents from environment.
+
+        Args:
+            agents_str: Comma-separated list of agent names
+        """
+        agent_list = [a.strip().lower() for a in agents_str.split(",") if a.strip()]
+        # Temporarily modify config
+        self.config.config["enabled_agents"] = agent_list
+
+    def _parse_target_numbers(self, numbers_str: str) -> List[int]:
+        """Parse comma-separated numbers string.
+
+        Args:
+            numbers_str: Comma-separated numbers
+
+        Returns:
+            List of integers
+        """
+        if not numbers_str:
+            return []
+        try:
+            return [int(n.strip()) for n in numbers_str.split(",") if n.strip()]
+        except ValueError:
+            logger.warning(f"Invalid target numbers: {numbers_str}")
+            return []
+
+    def _should_process_item(self, item_number: int, item_type: str) -> bool:
+        """Check if an item should be processed based on target filters.
+
+        Args:
+            item_number: Issue or PR number
+            item_type: Type of item ('issue' or 'pr')
+
+        Returns:
+            True if item should be processed
+        """
+        if item_type == "issue" and self.target_issue_numbers:
+            return item_number in self.target_issue_numbers
+        elif item_type == "pr" and self.target_pr_numbers:
+            return item_number in self.target_pr_numbers
+        return True
+
+    def _post_review_comment(self, item_number: int, agent_name: str, review_content: str, item_type: str):
+        """Post a review comment from an agent.
+
+        Args:
+            item_number: Issue or PR number
+            agent_name: Name of the reviewing agent
+            review_content: Review content from the agent
+            item_type: Type of item ('issue' or 'pr')
+        """
+        # Format comment based on style
+        if self.comment_style == "summary":
+            # Will be handled by caller to combine multiple reviews
+            return review_content
+
+        comment_header = f"{self.agent_tag} Review by {agent_name}"
+        comment_footer = "\n\n*This is an automated review. No files were modified.*"
+
+        comment = f"{comment_header}\n\n{review_content}{comment_footer}"
+
+        # Post the comment
+        self._post_comment(item_number, comment, item_type)
+
+        return comment

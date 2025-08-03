@@ -73,6 +73,19 @@ class BaseAgent(ABC):
         """
         pass
 
+    async def review_async(self, prompt: str) -> str:
+        """Review code or issue without making changes.
+
+        Args:
+            prompt: The review prompt
+
+        Returns:
+            Review feedback as string
+        """
+        # Default implementation uses generate_code with a review context
+        context = {"mode": "review", "no_code_generation": True}
+        return await self.generate_code(prompt, context)
+
     @abstractmethod
     def is_available(self) -> bool:
         """Check if the agent is available.
