@@ -60,6 +60,53 @@
     "comfyui": {
       "type": "http",
       "url": "http://192.168.0.152:8013/messages"
+    },
+    "opencode": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "openrouter",
+        "run",
+        "--rm",
+        "-T",
+        "-e",
+        "OPENROUTER_API_KEY",
+        "mcp-opencode",
+        "python",
+        "-m",
+        "tools.mcp.opencode.server",
+        "--mode",
+        "stdio"
+      ],
+      "env": {
+        "OPENCODE_MODEL": "qwen/qwen-2.5-coder-32b-instruct",
+        "OPENCODE_TIMEOUT": "300"
+      }
+    },
+    "crush": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "openrouter",
+        "run",
+        "--rm",
+        "-T",
+        "-e",
+        "OPENROUTER_API_KEY",
+        "mcp-crush",
+        "python",
+        "-m",
+        "tools.mcp.crush.server",
+        "--mode",
+        "stdio"
+      ],
+      "env": {
+        "CRUSH_TIMEOUT": "300"
+      }
     }
   }
 }
