@@ -137,10 +137,6 @@ jobs:
               exit_code=$?
               echo "[ERROR] Issue monitor script failed with exit code: $exit_code"
 
-              # Run debug script on failure
-              echo "[DEBUG] Running import debug script..."
-              python3 scripts/agents/debug_imports.py || true
-
               exit $exit_code
           }
 

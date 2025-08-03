@@ -60,7 +60,8 @@ RUN ARCH=$(dpkg --print-architecture) && \
 RUN npm install -g @openai/codex
 
 # Install Crush/mods from Charm Bracelet - VERIFIED WORKING
-RUN go install github.com/charmbracelet/mods@latest && \
+# Pin to specific version for reproducible builds
+RUN go install github.com/charmbracelet/mods@v1.8.1 && \
     cp /root/go/bin/mods /usr/local/bin/mods && \
     ln -s /usr/local/bin/mods /usr/local/bin/crush
 
@@ -95,9 +96,8 @@ RUN mkdir -p /root/.config/opencode \
     /home/node/.local/share \
     /home/node/.local/bin
 
-# Copy mods configuration
-COPY scripts/agents/config/mods-config.yml /root/.config/mods/config.yml
-COPY --chown=node:node scripts/agents/config/mods-config.yml /home/node/.config/mods/config.yml
+# Copy mods configuration (only for node user since container runs as node)
+COPY --chown=node:node packages/github_ai_agents/configs/mods-config.yml /home/node/.config/mods/config.yml
 
 # Set ownership for all node directories
 # This ensures the user can write to all necessary locations

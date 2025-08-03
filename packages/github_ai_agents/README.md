@@ -18,7 +18,7 @@ A Python package for AI-powered GitHub automation using multiple AI agents (Clau
 ```bash
 # Clone the repository
 git clone https://github.com/AndrewAltimit/template-repo.git
-cd template-repo/github_ai_agents
+cd template-repo/packages/github_ai_agents
 
 # Install in development mode with all dependencies
 pip install -e ".[dev]"
@@ -28,7 +28,7 @@ pip install -e ".[dev]"
 
 ```bash
 # Install from the repository
-pip install git+https://github.com/AndrewAltimit/template-repo.git#subdirectory=github_ai_agents
+pip install git+https://github.com/AndrewAltimit/template-repo.git#subdirectory=packages/github_ai_agents
 ```
 
 ## Quick Start
@@ -92,6 +92,30 @@ ENABLE_AI_AGENTS=true
 | Gemini | Google's Gemini AI | CLI Auth | Host only |
 | Codex | OpenAI Codex | API Key | Yes |
 | Crush | Charm Bracelet Mods | API Key | Yes |
+
+## Testing
+
+### Running Tests
+
+```bash
+# Run all tests with coverage
+./run_tests.sh
+
+# Or manually with pytest
+python -m pytest tests/ -v --cov=github_ai_agents
+
+# Run specific test categories
+python -m pytest tests/ -m unit      # Unit tests only
+python -m pytest tests/ -m integration # Integration tests only
+```
+
+### Test Structure
+
+- `tests/test_agents.py` - Unit tests for individual AI agents
+- `tests/test_monitors.py` - Tests for issue and PR monitors
+- `tests/test_security.py` - Security manager tests
+- `tests/test_subagents.py` - Subagent system tests
+- `tests/test_multi_agent_system.py` - Integration tests
 
 ## Security
 
