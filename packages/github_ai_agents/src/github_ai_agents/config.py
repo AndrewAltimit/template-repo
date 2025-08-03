@@ -75,8 +75,8 @@ class AgentConfig:
                 "non_interactive_flags": {
                     "claude": ["--print", "--dangerously-skip-permissions"],
                     "gemini": ["-m", "gemini-2.5-pro", "-p"],
-                    "opencode": ["--non-interactive"],
-                    "crush": ["--non-interactive", "--no-update"],
+                    "opencode": [],  # OpenCode doesn't have a non-interactive flag
+                    "crush": [],  # Crush doesn't support --non-interactive or --no-update
                 },
             },
         }

@@ -71,8 +71,11 @@ class CrushAgent(ContainerizedCLIAgent):
         # Add any additional flags from config
         if self.config:
             flags = self.config.get_non_interactive_flags("crush")
-            # Filter out flags we're already adding
-            filtered_flags = [f for f in flags if f not in ["run", "-q", "-y", "--yolo"]]
+            # Filter out flags we're already adding and unsupported flags
+            # Crush doesn't support --non-interactive or --no-update
+            filtered_flags = [
+                f for f in flags if f not in ["run", "-q", "-y", "--yolo", "--non-interactive", "--no-update"]
+            ]
             args.extend(filtered_flags)
 
         # Add the prompt as the last argument
