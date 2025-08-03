@@ -14,8 +14,8 @@ class CodexAgent(ContainerizedCLIAgent):
 
     def __init__(self, config=None):
         """Initialize Codex agent."""
-        # Codex also uses mods as the actual CLI tool
-        super().__init__("codex", "mods", docker_service="openrouter-agents", timeout=300, config=config)
+        # Use the actual Codex CLI from @openai/codex npm package
+        super().__init__("codex", "codex", docker_service="openrouter-agents", timeout=300, config=config)
 
         # Set up environment variables
         if api_key := os.environ.get("OPENROUTER_API_KEY"):
@@ -44,22 +44,28 @@ class CodexAgent(ContainerizedCLIAgent):
 
     def _build_command(self, prompt: str) -> List[str]:
         """Build Codex CLI command."""
-        # Get flags from config or use defaults
+        # Codex CLI usage: codex exec [OPTIONS] [PROMPT]
+        # Use exec subcommand for non-interactive execution
+        args = ["exec"]
+
+        # Add any flags from config
         if self.config:
             flags = self.config.get_non_interactive_flags("codex")
-        else:
-            flags = []
+            args.extend(flags)
 
-        # Prepare arguments
-        args = list(flags)
+        # Add the prompt
         args.append(prompt)
 
         # Use Docker if available (preferred), otherwise local
         if self._use_docker:
             # Build Docker command with environment variables
             env_vars = {}
-            if api_key := self.env_vars.get("OPENROUTER_API_KEY"):
-                env_vars["OPENROUTER_API_KEY"] = api_key
+            # Codex likely needs OPENAI_API_KEY for authentication
+            if api_key := os.environ.get("OPENAI_API_KEY"):
+                env_vars["OPENAI_API_KEY"] = api_key
+            elif api_key := self.env_vars.get("OPENROUTER_API_KEY"):
+                # Try using OpenRouter key as OpenAI key
+                env_vars["OPENAI_API_KEY"] = api_key
             return self._build_docker_command(args, env_vars)
         else:
             # Use local executable

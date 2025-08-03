@@ -5,6 +5,7 @@ import logging
 import os
 from typing import Any, Dict, List
 
+from .base import AgentExecutionError
 from .containerized import ContainerizedCLIAgent
 
 logger = logging.getLogger(__name__)
@@ -17,8 +18,7 @@ class OpenCodeAgent(ContainerizedCLIAgent):
 
     def __init__(self, config=None) -> None:
         """Initialize OpenCode agent."""
-        # OpenCode uses mods as the actual CLI tool
-        super().__init__("opencode", "mods", docker_service="openrouter-agents", timeout=300, config=config)
+        super().__init__("opencode", "opencode", docker_service="openrouter-agents", timeout=300, config=config)
 
         # Set up environment variables
         if api_key := os.environ.get("OPENROUTER_API_KEY"):
@@ -53,24 +53,32 @@ class OpenCodeAgent(ContainerizedCLIAgent):
         # Log the command being executed
         logger.info(f"Executing OpenCode command: {' '.join(cmd[:5])}... (truncated)")
 
-        # Execute command
-        stdout, stderr = await self._execute_command(cmd)
-
-        # Parse output
-        return self._parse_output(stdout, stderr)
+        # Execute command and handle errors
+        try:
+            stdout, stderr = await self._execute_command(cmd)
+            # Parse output
+            return self._parse_output(stdout, stderr)
+        except AgentExecutionError as e:
+            # Log the actual error output
+            logger.error(f"OpenCode execution failed with exit code {e.exit_code}")
+            if e.stdout:
+                logger.error(f"OpenCode stdout: {e.stdout}")
+            if e.stderr:
+                logger.error(f"OpenCode stderr: {e.stderr}")
+            # Re-raise the error with more context
+            raise AgentExecutionError(self.name, e.exit_code, e.stdout, e.stderr or "No error output from mods command")
 
     def _build_command(self, prompt: str) -> List[str]:
         """Build OpenCode CLI command."""
-        # Mods takes the prompt as the last argument, not with -p flag
-        args = []
+        # OpenCode uses 'run' subcommand with the prompt as positional args
+        args = ["run"]
 
-        # Add model flag
-        args.extend(["-m", self.DEFAULT_MODEL])
+        # Add model flag if we have a model configured
+        if self.DEFAULT_MODEL:
+            args.extend(["-m", f"openrouter/{self.DEFAULT_MODEL}"])
 
-        # Add non-interactive flag
-        args.append("--no-cache")
-
-        # Add the prompt as the last argument
+        # Add the prompt as the last argument(s)
+        # OpenCode expects message as positional args, not with -p flag
         args.append(prompt)
 
         # Use Docker if available (preferred), otherwise local

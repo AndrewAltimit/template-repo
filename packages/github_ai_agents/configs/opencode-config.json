@@ -1,0 +1,23 @@
+{
+  "providers": {
+    "openrouter": {
+      "apiKey": "${OPENROUTER_API_KEY}",
+      "baseURL": "https://openrouter.ai/api/v1",
+      "models": {
+        "qwen-coder": {
+          "id": "qwen/qwen-2.5-coder-32b-instruct",
+          "name": "Qwen 2.5 Coder 32B"
+        },
+        "claude-sonnet": {
+          "id": "anthropic/claude-3.5-sonnet",
+          "name": "Claude 3.5 Sonnet"
+        },
+        "gpt4o": {
+          "id": "openai/gpt-4o",
+          "name": "GPT-4 Optimized"
+        }
+      }
+    }
+  },
+  "defaultModel": "openrouter/qwen-coder"
+}

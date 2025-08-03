@@ -12,7 +12,7 @@ ARG OPENCODE_VERSION=0.3.112
 ARG OPENCODE_CHECKSUM_AMD64=ce02926bbe94ca91c5a46e97565e3f8d275f1a6c2fd3352f7f99f558f6b60e09
 ARG OPENCODE_CHECKSUM_ARM64=6ceae43795a62b572866e50d30d99e266889b6aeae1da058aab34041cc5d49d8
 ARG CODEX_VERSION=0.11.0
-ARG MODS_VERSION=v1.8.1
+# Crush doesn't have stable releases yet, using latest
 
 # Install Python 3.11 and all system dependencies in one layer
 RUN apt-get update && apt-get install -y \
@@ -84,11 +84,10 @@ RUN ARCH=$(dpkg --print-architecture) && \
 # Version pinned for reproducible builds
 RUN npm install -g @openai/codex@${CODEX_VERSION}
 
-# Install Crush/mods from Charm Bracelet - VERIFIED WORKING
-# Pin to specific version for reproducible builds
+# Install Crush from Charm Bracelet - AI-powered shell
+# Crush is a separate tool from mods, provides shell assistance
 ENV GOBIN=/usr/local/bin
-RUN go install github.com/charmbracelet/mods@${MODS_VERSION} && \
-    ln -s /usr/local/bin/mods /usr/local/bin/crush
+RUN go install github.com/charmbracelet/crush@latest
 
 # Create working directory
 WORKDIR /workspace
@@ -109,17 +108,27 @@ ENV PYTHONUNBUFFERED=1 \
 # Create necessary directories for node user
 RUN mkdir -p /home/node/.config/opencode \
     /home/node/.config/codex \
-    /home/node/.config/mods \
+    /home/node/.config/crush \
     /home/node/.cache \
     /home/node/.cache/opencode \
     /home/node/.cache/codex \
-    /home/node/.cache/mods \
+    /home/node/.cache/crush \
     /home/node/.local \
     /home/node/.local/share \
+    /home/node/.local/share/opencode \
+    /home/node/.local/share/crush \
     /home/node/.local/bin
 
-# Copy mods configuration
-COPY --chown=node:node packages/github_ai_agents/configs/mods-config.yml /home/node/.config/mods/config.yml
+# Copy configurations for each agent
+# OpenCode configuration
+COPY --chown=node:node packages/github_ai_agents/configs/opencode-config.json /home/node/.config/opencode/.opencode.json
+
+# Crush configuration - copy JSON config to multiple expected locations
+COPY --chown=node:node packages/github_ai_agents/configs/crush.json /home/node/.config/crush/crush.json
+COPY --chown=node:node packages/github_ai_agents/configs/crush-data.json /home/node/.local/share/crush/crush.json
+
+# Also copy the .crush directory with database (for any cached data)
+COPY --chown=node:node packages/github_ai_agents/configs/crush-config /home/node/.crush
 
 # Set ownership for all node user directories
 # This ensures the user can write to all necessary locations

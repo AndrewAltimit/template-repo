@@ -25,7 +25,7 @@ class TestOpenCodeAgent:
         """Test OpenCode agent initialization."""
         agent = OpenCodeAgent()
         assert agent.name == "opencode"
-        assert agent.executable == "opencode"
+        assert agent.executable == "opencode"  # OpenCode uses its own CLI
         assert agent.timeout == 300
         assert agent._use_docker is False
         assert agent._project_root is None
@@ -177,7 +177,7 @@ class TestCodexAgent:
         """Test Codex agent initialization."""
         agent = CodexAgent()
         assert agent.name == "codex"
-        assert agent.executable == "codex"
+        assert agent.executable == "codex"  # Codex uses its own CLI from npm
         assert agent.timeout == 300
 
     def test_docker_preferred(self):
