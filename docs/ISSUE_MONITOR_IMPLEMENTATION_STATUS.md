@@ -10,46 +10,34 @@ The Issue Monitor (`github_ai_agents.monitors.issue`) currently implements:
 2. ✅ **Security Validation**: Checks user authorization and rate limits
 3. ✅ **Agent Selection**: Chooses appropriate agent based on trigger
 4. ✅ **Code Generation**: Calls AI agent to generate implementation
-5. ⚠️  **PR Creation**: Currently posts a comment only (intentional MVP)
+5. ✅ **PR Creation**: Creates full PR with branch, commits, and links to issue
 
-## Why PR Creation is Minimal
+## How PR Creation Works
 
-The current implementation intentionally only posts a comment instead of creating a full PR. This is because:
+When an authorized user triggers an implementation (e.g., `[Approved][Claude]`), the Issue Monitor:
 
-1. **Security First**: We want to validate the agent system's security model before allowing automated code commits
-2. **Gradual Rollout**: Starting with comment-only allows us to test agent responses without repository modifications
-3. **User Feedback**: Collecting feedback on generated implementations before automating commits
-4. **Branch Protection**: Many repositories have branch protection rules that would block automated PRs
+1. **Validates Security**: Checks user authorization and rate limits
+2. **Generates Implementation**: Calls the AI agent to create the solution
+3. **Creates Branch**: Makes a new feature branch from main
+4. **Applies Changes**: Writes the generated code to appropriate files
+5. **Creates PR**: Opens a pull request with the implementation
+6. **Links Issue**: Automatically links the PR to close the issue
 
-## Future Implementation Plan
+The security model with explicit user approval ensures safe automated PR creation.
 
-The full PR creation will be implemented in phases:
+## Implementation Notes
 
-### Phase 1 (Current)
-- Agent generates implementation
-- Posts comment with proposed solution
-- No actual code changes
+### Code Extraction
+Currently, the system looks for code blocks in the agent's response but doesn't yet parse them into specific files. This is a known limitation that will be enhanced to support structured code generation where agents specify file paths and content.
 
-### Phase 2 (Next)
-- Create branch with generated code
-- Push to fork (not main repo)
-- Create draft PR for review
+### Current Workflow
+1. Agent generates implementation (may include code suggestions)
+2. System creates branch and attempts to extract code
+3. If code changes are detected, creates PR
+4. If no changes, posts informative comment
 
-### Phase 3 (Future)
-- Direct PR creation with full implementation
-- Automated test running
-- Integration with CI/CD checks
-
-## Tracking Issue
-
-For updates on full PR creation implementation, see: [TODO: Create tracking issue]
-
-## Using the Current System
-
-Even without automatic PR creation, the system is useful for:
-- Getting AI-generated solutions to issues
-- Testing agent capabilities
-- Validating security model
-- Gathering implementation suggestions
-
-The comment-based approach allows maintainers to manually create PRs with the suggested implementations when appropriate.
+### Security Features
+- Only authorized users can trigger implementations
+- All actions are logged and audited
+- Rate limiting prevents abuse
+- Each PR clearly indicates it was AI-generated

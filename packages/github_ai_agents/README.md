@@ -193,9 +193,9 @@ MIT License - see LICENSE file for details.
 
 ## Implementation Status
 
-Both the Issue Monitor and PR Monitor are functional but currently operate in a comment-only mode:
+Both monitors are fully functional with automated code modification capabilities:
 
-- **Issue Monitor**: Generates implementation suggestions as comments (see [Issue Monitor Status](../../docs/ISSUE_MONITOR_IMPLEMENTATION_STATUS.md))
-- **PR Monitor**: Generates review fixes as comments (see [PR Monitor Status](../../docs/PR_MONITOR_IMPLEMENTATION_STATUS.md))
+- **Issue Monitor**: Creates PRs with AI-generated implementations (see [Issue Monitor Status](../../docs/ISSUE_MONITOR_IMPLEMENTATION_STATUS.md))
+- **PR Monitor**: Applies fixes directly to PR branches (see [PR Monitor Status](../../docs/PR_MONITOR_IMPLEMENTATION_STATUS.md))
 
-This MVP approach allows testing the multi-agent system and security model before enabling automated code commits.
+The security model ensures only authorized users can trigger code changes through explicit commands.

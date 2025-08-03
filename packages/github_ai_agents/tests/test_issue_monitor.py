@@ -154,7 +154,10 @@ class TestIssueMonitor:
         issue_monitor.security_manager.perform_full_security_check.return_value = (True, None)
 
         # Mock no existing comments
-        mock_gh_command.side_effect = [json.dumps({"comments": []}), None]  # No existing agent comments  # Error comment
+        mock_gh_command.side_effect = [
+            json.dumps({"comments": []}),
+            None,
+        ]  # No existing agent comments  # Error comment
 
         # Only Claude available (host mode)
         issue_monitor.agents = {"claude": MagicMock()}

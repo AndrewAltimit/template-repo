@@ -13,13 +13,19 @@ logger = logging.getLogger(__name__)
 class SecurityManager:
     """Manages security for AI agent operations."""
 
-    def __init__(self, config_path: Optional[Path] = None):
+    def __init__(self, agent_config=None, config_path: Optional[Path] = None):
         """Initialize security manager.
 
         Args:
-            config_path: Path to security config file
+            agent_config: AgentConfig instance to use for security settings
+            config_path: Path to security config file (deprecated, use agent_config)
         """
-        self.config = self._load_config(config_path)
+        if agent_config:
+            # Use security settings from AgentConfig
+            self.config = agent_config.get_security_config()
+        else:
+            # Fallback to loading from file
+            self.config = self._load_config(config_path)
         self.rate_limit_tracker: Dict[str, List[datetime]] = {}
 
     def _load_config(self, config_path: Optional[Path]) -> dict:

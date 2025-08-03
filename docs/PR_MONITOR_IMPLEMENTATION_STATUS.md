@@ -12,7 +12,7 @@ The PR Monitor (`github_ai_agents.monitors.pr`) has been fully implemented with 
 4. ✅ **Security Validation**: Checks user authorization and rate limits
 5. ✅ **Agent Selection**: Routes to appropriate agent based on trigger
 6. ✅ **Code Generation**: Calls AI agent to generate fixes
-7. ⚠️  **Fix Application**: Currently posts a comment only (intentional MVP)
+7. ✅ **Fix Application**: Automatically commits and pushes fixes to PR branch
 
 ## Trigger Command Format
 
@@ -26,14 +26,17 @@ Examples:
 - `[Address][Gemini]` - Use Gemini to address the feedback
 - `[Implement][OpenCode]` - Use OpenCode to implement the changes
 
-## Why Fix Application is Minimal
+## How Fix Application Works
 
-Similar to the Issue Monitor, the PR Monitor intentionally only posts a comment instead of applying fixes directly. This is because:
+When an authorized user triggers a fix command (e.g., `[Fix][Claude]`), the PR Monitor:
 
-1. **Security First**: Validate the agent system's security model before allowing automated commits to PR branches
-2. **Review Workflow**: Many teams prefer to review AI-generated fixes before they're committed
-3. **Branch Protection**: PR branches often have protection rules that would block automated commits
-4. **Maintainer Control**: Allows maintainers to review and selectively apply suggested fixes
+1. **Checks Authorization**: Validates the user is in the allow list
+2. **Generates Fix**: Calls the specified AI agent to generate code changes
+3. **Applies Changes**: Checks out the PR branch and applies the fixes
+4. **Commits & Pushes**: Creates a commit with the changes and pushes to the PR branch
+5. **Posts Confirmation**: Comments on the PR with the result
+
+The security model ensures only authorized users can trigger automated code changes, making it safe to have agents directly modify code.
 
 ## Implementation Details
 
@@ -45,32 +48,22 @@ The PR Monitor implementation includes:
 - Clear messaging when containerized agents are requested on host
 - Tracking to avoid duplicate responses to the same review
 
-## Future Implementation Plan
+## Current Capabilities
 
-### Phase 1 (Current)
-- Agent generates fix implementation
-- Posts comment with proposed solution
-- No actual code changes to PR branch
+The PR Monitor provides:
+- Real-time monitoring of PR review comments
+- Multi-agent support with intelligent routing
+- Automatic code generation and application
+- Git operations (checkout, commit, push)
+- Comprehensive error handling and reporting
 
-### Phase 2 (Next)
-- Create commits on PR branch with generated fixes
-- Support for selective application of fixes
-- Integration with CI/CD to verify fixes don't break tests
+## Security Model
 
-### Phase 3 (Future)
-- Automatic PR undrafting when all feedback is addressed
-- Pipeline failure detection and automatic fixes
-- Multi-round conversation support for complex reviews
-
-## Using the Current System
-
-Even without automatic fix application, the PR Monitor is useful for:
-- Getting AI-generated solutions to review feedback
-- Testing multi-agent capabilities on real reviews
-- Validating the security model
-- Gathering implementation suggestions
-
-The comment-based approach allows maintainers to manually apply the suggested fixes when appropriate, maintaining full control over the codebase.
+The system implements multiple layers of security:
+- **User Authorization**: Only users in the allow list can trigger actions
+- **Command Validation**: Specific `[ACTION][AGENT]` format required
+- **Rate Limiting**: Prevents abuse of AI resources
+- **Audit Trail**: All actions are logged and commented on the PR
 
 ## Agent Availability
 
