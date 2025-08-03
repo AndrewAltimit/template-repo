@@ -76,7 +76,7 @@ jobs:
       - name: Build Docker containers for OpenRouter agents
         run: |
           echo "[INFO] Building openrouter-agents container for OpenCode support..."
-          docker-compose build openrouter-agents
+          docker-compose --profile agents build openrouter-agents
           echo "[INFO] Container build complete"
 
       - name: Run issue monitor with hybrid agent support

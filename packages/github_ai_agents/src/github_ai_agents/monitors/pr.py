@@ -249,9 +249,16 @@ class PRMonitor:
             if agent_name.lower() in containerized_agents:
                 error_msg = (
                     f"Agent '{agent_name}' is only available in the containerized environment.\n\n"
-                    f"This agent runs in the `openrouter-agents` Docker container and is not available "
-                    f"when the PR monitor runs on the host (required for Claude authentication).\n\n"
-                    f"Available host agents: {list(self.agents.keys())}"
+                    f"Due to authentication constraints:\n"
+                    f"- Claude requires host-specific authentication and must run on the host\n"
+                    f"- {agent_name} is containerized and not installed on the host\n\n"
+                    f"**Workaround**: Use one of the available host agents instead:\n"
+                    f"- {', '.join([f'[Fix][{k.title()}]' for k in self.agents.keys()])}\n\n"
+                    f"Or manually run the containerized agent:\n"
+                    f"```bash\n"
+                    f"docker-compose --profile agents run --rm openrouter-agents \\\n"
+                    f"  python -m github_ai_agents.cli pr-monitor\n"
+                    f"```"
                 )
             else:
                 error_msg = f"Agent '{agent_name}' is not available. Available agents: {list(self.agents.keys())}"
