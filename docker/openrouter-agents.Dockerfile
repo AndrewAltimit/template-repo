@@ -43,14 +43,18 @@ RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | 
 # Install OpenRouter-compatible CLI tools
 
 # Install OpenCode from GitHub releases (v0.3.112)
-# SECURITY NOTE: OpenCode releases don't provide checksums. We're downloading from the official
-# GitHub releases page (github.com/sst/opencode) which provides some assurance, but ideally
-# we would verify checksums if they were available. This is an accepted risk for this tool.
-# TODO: Track issue https://github.com/sst/opencode/issues requesting checksums for releases
-# Alternative: Build from source or request checksums from the maintainers.
+# SECURITY: We verify checksums to ensure binary integrity
+# Checksums calculated on 2025-08-03 for v0.3.112 release
 RUN ARCH=$(dpkg --print-architecture) && \
-    if [ "$ARCH" = "amd64" ]; then ARCH="x64"; elif [ "$ARCH" = "arm64" ]; then ARCH="arm64"; fi && \
+    if [ "$ARCH" = "amd64" ]; then \
+        ARCH="x64"; \
+        CHECKSUM="ce02926bbe94ca91c5a46e97565e3f8d275f1a6c2fd3352f7f99f558f6b60e09"; \
+    elif [ "$ARCH" = "arm64" ]; then \
+        ARCH="arm64"; \
+        CHECKSUM="6ceae43795a62b572866e50d30d99e266889b6aeae1da058aab34041cc5d49d8"; \
+    fi && \
     wget -q "https://github.com/sst/opencode/releases/download/v0.3.112/opencode-linux-${ARCH}.zip" -O /tmp/opencode.zip && \
+    echo "${CHECKSUM}  /tmp/opencode.zip" | sha256sum -c - && \
     unzip -q /tmp/opencode.zip -d /usr/local/bin/ && \
     rm /tmp/opencode.zip && \
     chmod +x /usr/local/bin/opencode
