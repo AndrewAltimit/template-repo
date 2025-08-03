@@ -142,13 +142,30 @@ class CodeParser:
             Dictionary mapping filenames to their operation (created/modified)
         """
         results = {}
+        base_path_obj = Path(base_path).resolve()
 
         for block in blocks:
             if not block.filename:
                 logger.warning(f"Skipping code block without filename: {block}")
                 continue
 
-            filepath = Path(base_path) / block.filename
+            # Sanitize filename to prevent path traversal
+            filename = cls._sanitize_filename(block.filename)
+            if not filename:
+                logger.error(f"Invalid filename rejected: {block.filename}")
+                results[block.filename] = "error: invalid filename"
+                continue
+
+            filepath = base_path_obj / filename
+
+            # Ensure the resolved path is within the base directory
+            try:
+                filepath = filepath.resolve()
+                filepath.relative_to(base_path_obj)
+            except (ValueError, RuntimeError):
+                logger.error(f"Path traversal attempt blocked: {block.filename}")
+                results[block.filename] = "error: path traversal blocked"
+                continue
 
             # Create parent directories if needed
             filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -163,14 +180,52 @@ class CodeParser:
                     if not block.content.endswith("\n"):
                         f.write("\n")
 
-                results[block.filename] = operation
-                logger.info(f"{operation.capitalize()} file: {block.filename}")
+                results[filename] = operation
+                logger.info(f"{operation.capitalize()} file: {filename}")
 
             except Exception as e:
-                logger.error(f"Failed to write file {block.filename}: {e}")
-                results[block.filename] = f"error: {str(e)}"
+                logger.error(f"Failed to write file {filename}: {e}")
+                results[filename] = f"error: {str(e)}"
 
         return results
+
+    @classmethod
+    def _sanitize_filename(cls, filename: str) -> Optional[str]:
+        """Sanitize filename to prevent path traversal attacks.
+
+        Args:
+            filename: Raw filename from AI response
+
+        Returns:
+            Sanitized filename or None if invalid
+        """
+        if not filename:
+            return None
+
+        # Remove any leading/trailing whitespace
+        filename = filename.strip()
+
+        # Reject absolute paths
+        if filename.startswith("/") or (len(filename) > 1 and filename[1] == ":"):
+            logger.warning(f"Rejecting absolute path: {filename}")
+            return None
+
+        # Reject filenames with parent directory references
+        parts = Path(filename).parts
+        if ".." in parts:
+            logger.warning(f"Rejecting path with parent directory reference: {filename}")
+            return None
+
+        # Reject filenames that try to escape using special characters
+        if any(c in filename for c in ["\x00", "\n", "\r"]):
+            logger.warning(f"Rejecting filename with special characters: {filename}")
+            return None
+
+        # Additional safety: ensure the filename doesn't start with a dot-slash
+        if filename.startswith("./"):
+            filename = filename[2:]
+
+        return filename
 
     @classmethod
     def extract_and_apply(cls, response: str, base_path: str = ".") -> Tuple[List[CodeBlock], Dict[str, str]]:

@@ -190,7 +190,10 @@ class CLIAgent(BaseAgent):
         try:
             import subprocess
 
-            result = subprocess.run([self.executable, "--version"], capture_output=True, timeout=5)
+            # Note: This is a synchronous call because is_available() is called during
+            # synchronous initialization. Converting to async would require major refactoring.
+            # Using a short timeout to minimize blocking.
+            result = subprocess.run([self.executable, "--version"], capture_output=True, timeout=2)
             self._available = result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError):
             self._available = False

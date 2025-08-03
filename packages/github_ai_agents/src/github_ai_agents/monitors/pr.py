@@ -3,66 +3,27 @@
 import asyncio
 import json
 import logging
-import os
-import time
+import sys
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Dict, List, Optional, Tuple
 
-from ..agents import ClaudeAgent, CodexAgent, CrushAgent, GeminiAgent, OpenCodeAgent
 from ..code_parser import CodeParser
-from ..config import AgentConfig
-from ..security import SecurityManager
-from ..utils import get_github_token, run_gh_command
+from ..utils import run_gh_command
+from .base import BaseMonitor
 
 logger = logging.getLogger(__name__)
 
 
-class PRMonitor:
+class PRMonitor(BaseMonitor):
     """Monitor GitHub PRs and handle review feedback."""
 
     def __init__(self):
         """Initialize PR monitor."""
-        self.repo = os.environ.get("GITHUB_REPOSITORY")
-        if not self.repo:
-            raise RuntimeError("GITHUB_REPOSITORY environment variable must be set")
+        super().__init__()
 
-        self.token = get_github_token()
-        self.config = AgentConfig()
-        self.security_manager = SecurityManager(agent_config=self.config)
-        self.agent_tag = "[AI Agent]"
-
-        # Initialize available agents based on configuration
-        self.agents = self._initialize_agents()
-
-    def _initialize_agents(self) -> Dict[str, Any]:
-        """Initialize available AI agents based on configuration."""
-        agents = {}
-
-        # Map agent names to classes
-        agent_map: Dict[str, Type[Any]] = {
-            "claude": ClaudeAgent,
-            "gemini": GeminiAgent,
-            "opencode": OpenCodeAgent,
-            "codex": CodexAgent,
-            "crush": CrushAgent,
-        }
-
-        # Only initialize enabled agents
-        enabled_agents = self.config.get_enabled_agents()
-
-        for agent_name in enabled_agents:
-            if agent_name in agent_map:
-                agent_class = agent_map[agent_name]
-                try:
-                    agent = agent_class(config=self.config)
-                    if agent.is_available():
-                        keyword = agent.get_trigger_keyword()
-                        agents[keyword.lower()] = agent
-                        logger.info(f"Initialized {keyword} agent")
-                except Exception as e:
-                    logger.warning(f"Failed to initialize {agent_class.__name__}: {e}")
-
-        return agents
+    def _get_json_fields(self, item_type: str) -> str:
+        """Get JSON fields for PRs."""
+        return "number,title,body,author,createdAt,updatedAt,reviews,comments"
 
     def get_open_prs(self) -> List[Dict]:
         """Get open PRs from the repository."""
@@ -137,7 +98,7 @@ class PRMonitor:
 
             if not is_allowed:
                 logger.warning(f"Security check failed for PR #{pr_number}: {reason}")
-                self._post_security_rejection(pr_number, reason)
+                self._post_security_rejection(pr_number, reason, "pr")
                 continue
 
             # Check if we already responded to this specific comment
@@ -245,27 +206,10 @@ class PRMonitor:
         # Get the agent
         agent = self.agents.get(agent_name.lower())
         if not agent:
-            # Check if this is a containerized agent running on host
-            containerized_agents = ["opencode", "codex", "crush"]
-            if agent_name.lower() in containerized_agents:
-                error_msg = (
-                    f"Agent '{agent_name}' is only available in the containerized environment.\n\n"
-                    f"Due to authentication constraints:\n"
-                    f"- Claude requires host-specific authentication and must run on the host\n"
-                    f"- {agent_name} is containerized and not installed on the host\n\n"
-                    f"**Workaround**: Use one of the available host agents instead:\n"
-                    f"- {', '.join([f'[Fix][{k.title()}]' for k in self.agents.keys()])}\n\n"
-                    f"Or manually run the containerized agent:\n"
-                    f"```bash\n"
-                    f"docker-compose --profile agents run --rm openrouter-agents \\\n"
-                    f"  python -m github_ai_agents.cli pr-monitor\n"
-                    f"```"
-                )
-            else:
-                error_msg = f"Agent '{agent_name}' is not available. Available agents: {list(self.agents.keys())}"
+            error_msg = self._get_agent_unavailable_error(agent_name, "Fix")
 
             logger.error(f"Agent '{agent_name}' not available")
-            self._post_error_comment(pr_number, error_msg)
+            self._post_error_comment(pr_number, error_msg, "pr")
             return
 
         # Post starting work comment
@@ -277,7 +221,7 @@ class PRMonitor:
             asyncio.run(self._implement_review_feedback(pr, comment, agent, branch_name))
         except Exception as e:
             logger.error(f"Failed to address review feedback for PR #{pr_number}: {e}")
-            self._post_error_comment(pr_number, str(e))
+            self._post_error_comment(pr_number, str(e), "pr")
 
     async def _implement_review_feedback(self, pr: Dict, comment: Dict, agent, branch_name: str):
         """Implement review feedback using specified agent."""
@@ -400,17 +344,7 @@ Requirements:
             )
 
         # Post completion comment
-        run_gh_command(
-            [
-                "pr",
-                "comment",
-                str(pr_number),
-                "--repo",
-                self.repo,
-                "--body",
-                success_comment,
-            ]
-        )
+        self._post_comment(pr_number, success_comment, "pr")
 
     def _has_responded_to_comment(self, pr_number: int, comment_id: str) -> bool:
         """Check if we've already responded to a specific comment."""
@@ -445,72 +379,6 @@ Requirements:
 
         return False
 
-    def _has_agent_comment(self, pr_number: int) -> bool:
-        """Check if agent has already commented."""
-        output = run_gh_command(
-            [
-                "pr",
-                "view",
-                str(pr_number),
-                "--repo",
-                self.repo,
-                "--json",
-                "comments",
-            ]
-        )
-
-        if output:
-            try:
-                data = json.loads(output)
-                for comment in data.get("comments", []):
-                    if self.agent_tag in comment.get("body", ""):
-                        return True
-            except json.JSONDecodeError:
-                pass
-
-        return False
-
-    def _post_security_rejection(self, pr_number: int, reason: str):
-        """Post security rejection comment."""
-        comment = (
-            f"{self.agent_tag} Security Notice\n\n"
-            f"This request was blocked: {reason}\n\n"
-            f"{self.security_manager.reject_message}\n\n"
-            f"*This is an automated security measure.*"
-        )
-
-        run_gh_command(
-            [
-                "pr",
-                "comment",
-                str(pr_number),
-                "--repo",
-                self.repo,
-                "--body",
-                comment,
-            ]
-        )
-
-    def _post_error_comment(self, pr_number: int, error: str):
-        """Post error comment."""
-        comment = (
-            f"{self.agent_tag} Error\n\n"
-            f"An error occurred: {error}\n\n"
-            f"*This comment was generated by the AI agent automation system.*"
-        )
-
-        run_gh_command(
-            [
-                "pr",
-                "comment",
-                str(pr_number),
-                "--repo",
-                self.repo,
-                "--body",
-                comment,
-            ]
-        )
-
     def _post_starting_work_comment(self, pr_number: int, agent_name: str, comment_id: str):
         """Post starting work comment."""
         # Include a hidden identifier for robust tracking
@@ -523,36 +391,7 @@ Requirements:
             f"{hidden_id}"
         )
 
-        run_gh_command(
-            [
-                "pr",
-                "comment",
-                str(pr_number),
-                "--repo",
-                self.repo,
-                "--body",
-                comment,
-            ]
-        )
-
-    def run_continuous(self, interval: int = 300):
-        """Run continuously checking for PRs.
-
-        Args:
-            interval: Check interval in seconds
-        """
-        logger.info("Starting continuous PR monitoring")
-
-        while True:
-            try:
-                self.process_prs()
-            except KeyboardInterrupt:
-                logger.info("Stopped by user")
-                break
-            except Exception as e:
-                logger.error(f"Error in monitoring loop: {e}", exc_info=True)
-
-            time.sleep(interval)
+        self._post_comment(pr_number, comment, "pr")
 
 
 def main():
@@ -561,10 +400,10 @@ def main():
 
     monitor = PRMonitor()
 
-    if "--continuous" in os.sys.argv:
+    if "--continuous" in sys.argv:
         monitor.run_continuous()
     else:
-        monitor.process_prs()
+        monitor.process_items()
 
 
 if __name__ == "__main__":

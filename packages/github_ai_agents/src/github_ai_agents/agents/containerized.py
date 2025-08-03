@@ -14,7 +14,9 @@ logger = logging.getLogger(__name__)
 class ContainerizedCLIAgent(CLIAgent):
     """Base class for CLI agents that can run in Docker containers."""
 
-    def __init__(self, name: str, executable: str, docker_service: str = "openrouter-agents", timeout: int = 300, config=None):
+    def __init__(
+        self, name: str, executable: str, docker_service: str = "openrouter-agents", timeout: int = 300, config=None
+    ):
         """Initialize containerized CLI agent.
 
         Args:
@@ -65,10 +67,11 @@ class ContainerizedCLIAgent(CLIAgent):
             if repo_root:
                 compose_file = repo_root / "docker-compose.yml"
                 if compose_file.exists():
+                    # Note: Synchronous call during initialization. Short timeout to minimize blocking.
                     result = subprocess.run(
                         ["docker-compose", "-f", str(compose_file), "config", "--services"],
                         capture_output=True,
-                        timeout=5,
+                        timeout=2,
                         text=True,
                     )
                     if result.returncode == 0 and self.docker_service in result.stdout:
@@ -82,7 +85,8 @@ class ContainerizedCLIAgent(CLIAgent):
         # Fall back to local if Docker not available
         if shutil.which(self.executable):
             try:
-                result = subprocess.run([self.executable, "--version"], capture_output=True, timeout=5, text=True)
+                # Note: Synchronous call during initialization. Short timeout to minimize blocking.
+                result = subprocess.run([self.executable, "--version"], capture_output=True, timeout=2, text=True)
                 if result.returncode == 0:
                     self._available = True
                     self._use_docker = False

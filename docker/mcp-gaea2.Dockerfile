@@ -31,6 +31,9 @@ ENV PYTHONPATH=/app
 RUN echo "Note: This container provides Gaea2 project creation and validation only." > /app/CONTAINER_NOTE.txt && \
     echo "For CLI automation features, run on Windows host with Gaea2 installed." >> /app/CONTAINER_NOTE.txt
 
+# Create a non-root user that will be overridden by docker-compose
+RUN useradd -m -u 1000 appuser
+
 # Expose port
 EXPOSE 8007
 

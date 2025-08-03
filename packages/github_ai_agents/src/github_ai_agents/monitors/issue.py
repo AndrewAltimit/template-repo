@@ -1,112 +1,141 @@
 """GitHub issue monitoring with multi-agent support."""
 
 import asyncio
-import json
 import logging
-import os
-import time
+import sys
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Type
+from typing import Dict
 
-from ..agents import ClaudeAgent, CodexAgent, CrushAgent, GeminiAgent, OpenCodeAgent
 from ..code_parser import CodeParser
-from ..config import AgentConfig
-from ..security import SecurityManager
-from ..utils import get_github_token, run_gh_command
+from ..utils import run_gh_command
+from .base import BaseMonitor
 
 logger = logging.getLogger(__name__)
 
 
-class IssueMonitor:
+class IssueMonitor(BaseMonitor):
     """Monitor GitHub issues and create PRs with AI agents."""
 
     def __init__(self):
         """Initialize issue monitor."""
-        self.repo = os.environ.get("GITHUB_REPOSITORY")
-        if not self.repo:
-            raise RuntimeError("GITHUB_REPOSITORY environment variable must be set")
+        super().__init__()
 
-        self.token = get_github_token()
-        self.config = AgentConfig()
-        self.security_manager = SecurityManager(agent_config=self.config)
-        self.agent_tag = "[AI Agent]"
+    def _get_json_fields(self, item_type: str) -> str:
+        """Get JSON fields for issues."""
+        return "number,title,body,author,createdAt,updatedAt,labels,comments"
 
-        # Initialize available agents based on configuration
-        self.agents = self._initialize_agents()
-
-    def _initialize_agents(self) -> Dict[str, Any]:
-        """Initialize available AI agents based on configuration."""
-        agents = {}
-
-        # Map agent names to classes
-        agent_map: Dict[str, Type[Any]] = {
-            "claude": ClaudeAgent,
-            "gemini": GeminiAgent,
-            "opencode": OpenCodeAgent,
-            "codex": CodexAgent,
-            "crush": CrushAgent,
-        }
-
-        # Only initialize enabled agents
-        enabled_agents = self.config.get_enabled_agents()
-
-        for agent_name in enabled_agents:
-            if agent_name in agent_map:
-                agent_class = agent_map[agent_name]
-                try:
-                    agent = agent_class(config=self.config)
-                    if agent.is_available():
-                        keyword = agent.get_trigger_keyword()
-                        agents[keyword.lower()] = agent
-                        logger.info(f"Initialized {keyword} agent")
-                except Exception as e:
-                    logger.warning(f"Failed to initialize {agent_class.__name__}: {e}")
-
-        return agents
-
-    def get_open_issues(self) -> List[Dict]:
+    def get_open_issues(self):
         """Get open issues from the repository."""
-        output = run_gh_command(
-            [
-                "issue",
-                "list",
-                "--repo",
-                self.repo,
-                "--state",
-                "open",
-                "--json",
-                "number,title,body,author,createdAt,updatedAt,labels,comments",
-            ]
-        )
+        return self.get_recent_items("issue")
 
-        if output:
-            try:
-                issues = json.loads(output)
-                # Filter by recent activity (24 hours)
-                cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
-                recent_issues = []
-
-                for issue in issues:
-                    created_at = datetime.fromisoformat(issue["createdAt"].replace("Z", "+00:00"))
-                    if created_at >= cutoff:
-                        recent_issues.append(issue)
-
-                return recent_issues
-            except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse issues: {e}")
-
-        return []
-
-    def process_issues(self):
+    def process_items(self):
         """Process open issues."""
         logger.info(f"Processing issues for repository: {self.repo}")
 
         issues = self.get_open_issues()
         logger.info(f"Found {len(issues)} recent open issues")
 
+        # Process all issues concurrently using asyncio
+        if issues:
+            asyncio.run(self._process_issues_async(issues))
+
+    async def _process_issues_async(self, issues):
+        """Process multiple issues concurrently."""
+        tasks = []
         for issue in issues:
-            self._process_single_issue(issue)
+            task = self._process_single_issue_async(issue)
+            tasks.append(task)
+
+        # Run all tasks concurrently
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Log any exceptions
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.error(f"Error processing issue: {result}")
+
+    async def _process_single_issue_async(self, issue: Dict):
+        """Process a single issue asynchronously."""
+        # All the synchronous checks can remain synchronous
+        issue_number = issue["number"]
+
+        # Check for trigger
+        trigger_info = self.security_manager.check_trigger_comment(issue, "issue")
+        if not trigger_info:
+            return
+
+        action, agent_name, trigger_user = trigger_info
+        logger.info(f"Issue #{issue_number}: [{action}][{agent_name}] by {trigger_user}")
+
+        # Security check
+        is_allowed, reason = self.security_manager.perform_full_security_check(
+            username=trigger_user,
+            action=f"issue_{action.lower()}",
+            repository=self.repo,
+            entity_type="issue",
+            entity_id=str(issue_number),
+        )
+
+        if not is_allowed:
+            logger.warning(f"Security check failed for issue #{issue_number}: {reason}")
+            self._post_security_rejection(issue_number, reason, "issue")
+            return
+
+        # Check if we already commented
+        if self._has_agent_comment(issue_number, "issue"):
+            logger.info(f"Already processed issue #{issue_number}")
+            return
+
+        # Handle the action
+        if action.lower() in ["approved", "fix", "implement"]:
+            await self._handle_implementation_async(issue, agent_name)
+        elif action.lower() == "close":
+            self._handle_close(issue_number, trigger_user, agent_name)
+        elif action.lower() == "summarize":
+            self._handle_summarize(issue)
+
+    async def _handle_implementation_async(self, issue: Dict, agent_name: str):
+        """Handle issue implementation with specified agent asynchronously."""
+        issue_number = issue["number"]
+
+        # Get the agent
+        agent = self.agents.get(agent_name.lower())
+        if not agent:
+            # Check if this is a containerized agent running on host
+            containerized_agents = ["opencode", "codex", "crush"]
+            if agent_name.lower() in containerized_agents:
+                error_msg = (
+                    f"Agent '{agent_name}' is only available in the containerized environment.\n\n"
+                    f"Due to authentication constraints:\n"
+                    f"- Claude requires host-specific authentication and must run on the host\n"
+                    f"- {agent_name} is containerized and not installed on the host\n\n"
+                    f"**Workaround**: Use one of the available host agents instead:\n"
+                    f"- {', '.join([f'[Approved][{k.title()}]' for k in self.agents.keys()])}\n\n"
+                    f"Or manually run the containerized agent:\n"
+                    f"```bash\n"
+                    f"docker-compose --profile agents run --rm openrouter-agents \\\n"
+                    f"  python -m github_ai_agents.cli issue-monitor\n"
+                    f"```"
+                )
+            else:
+                error_msg = f"Agent '{agent_name}' is not available. Available agents: {list(self.agents.keys())}"
+
+            logger.error(f"Agent '{agent_name}' not available")
+            self._post_error_comment(issue_number, error_msg, "issue")
+            return
+
+        # Generate branch name
+        branch_name = f"fix-issue-{issue_number}-{agent_name.lower()}-{str(uuid.uuid4())[:6]}"
+
+        # Post starting work comment
+        self._post_starting_work_comment(issue_number, branch_name, agent_name)
+
+        # Run implementation directly (no asyncio.run needed since we're already async)
+        try:
+            await self._implement_issue(issue, branch_name, agent)
+        except Exception as e:
+            logger.error(f"Failed to implement issue #{issue_number}: {e}")
+            self._post_error_comment(issue_number, str(e), "issue")
 
     def _process_single_issue(self, issue: Dict):
         """Process a single issue."""
@@ -131,11 +160,11 @@ class IssueMonitor:
 
         if not is_allowed:
             logger.warning(f"Security check failed for issue #{issue_number}: {reason}")
-            self._post_security_rejection(issue_number, reason)
+            self._post_security_rejection(issue_number, reason, "issue")
             return
 
         # Check if we already commented
-        if self._has_agent_comment(issue_number):
+        if self._has_agent_comment(issue_number, "issue"):
             logger.info(f"Already processed issue #{issue_number}")
             return
 
@@ -174,7 +203,7 @@ class IssueMonitor:
                 error_msg = f"Agent '{agent_name}' is not available. Available agents: {list(self.agents.keys())}"
 
             logger.error(f"Agent '{agent_name}' not available")
-            self._post_error_comment(issue_number, error_msg)
+            self._post_error_comment(issue_number, error_msg, "issue")
             return
 
         # Generate branch name
@@ -188,7 +217,7 @@ class IssueMonitor:
             asyncio.run(self._implement_issue(issue, branch_name, agent))
         except Exception as e:
             logger.error(f"Failed to implement issue #{issue_number}: {e}")
-            self._post_error_comment(issue_number, str(e))
+            self._post_error_comment(issue_number, str(e), "issue")
 
     async def _implement_issue(self, issue: Dict, branch_name: str, agent):
         """Implement issue using specified agent."""
@@ -415,72 +444,6 @@ Requirements:
             ]
         )
 
-    def _has_agent_comment(self, issue_number: int) -> bool:
-        """Check if agent has already commented."""
-        output = run_gh_command(
-            [
-                "issue",
-                "view",
-                str(issue_number),
-                "--repo",
-                self.repo,
-                "--json",
-                "comments",
-            ]
-        )
-
-        if output:
-            try:
-                data = json.loads(output)
-                for comment in data.get("comments", []):
-                    if self.agent_tag in comment.get("body", ""):
-                        return True
-            except json.JSONDecodeError:
-                pass
-
-        return False
-
-    def _post_security_rejection(self, issue_number: int, reason: str):
-        """Post security rejection comment."""
-        comment = (
-            f"{self.agent_tag} Security Notice\n\n"
-            f"This request was blocked: {reason}\n\n"
-            f"{self.security_manager.reject_message}\n\n"
-            f"*This is an automated security measure.*"
-        )
-
-        run_gh_command(
-            [
-                "issue",
-                "comment",
-                str(issue_number),
-                "--repo",
-                self.repo,
-                "--body",
-                comment,
-            ]
-        )
-
-    def _post_error_comment(self, issue_number: int, error: str):
-        """Post error comment."""
-        comment = (
-            f"{self.agent_tag} Error\n\n"
-            f"An error occurred: {error}\n\n"
-            f"*This comment was generated by the AI agent automation system.*"
-        )
-
-        run_gh_command(
-            [
-                "issue",
-                "comment",
-                str(issue_number),
-                "--repo",
-                self.repo,
-                "--body",
-                comment,
-            ]
-        )
-
     def _post_starting_work_comment(self, issue_number: int, branch_name: str, agent_name: str):
         """Post starting work comment."""
         comment = (
@@ -489,37 +452,7 @@ Requirements:
             f"This typically takes a few minutes.\n\n"
             f"*This comment was generated by the AI agent automation system.*"
         )
-
-        run_gh_command(
-            [
-                "issue",
-                "comment",
-                str(issue_number),
-                "--repo",
-                self.repo,
-                "--body",
-                comment,
-            ]
-        )
-
-    def run_continuous(self, interval: int = 300):
-        """Run continuously checking for issues.
-
-        Args:
-            interval: Check interval in seconds
-        """
-        logger.info("Starting continuous issue monitoring")
-
-        while True:
-            try:
-                self.process_issues()
-            except KeyboardInterrupt:
-                logger.info("Stopped by user")
-                break
-            except Exception as e:
-                logger.error(f"Error in monitoring loop: {e}", exc_info=True)
-
-            time.sleep(interval)
+        self._post_comment(issue_number, comment, "issue")
 
 
 def main():
@@ -528,10 +461,10 @@ def main():
 
     monitor = IssueMonitor()
 
-    if "--continuous" in os.sys.argv:
+    if "--continuous" in sys.argv:
         monitor.run_continuous()
     else:
-        monitor.process_issues()
+        monitor.process_items()
 
 
 if __name__ == "__main__":

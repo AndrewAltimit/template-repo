@@ -50,6 +50,9 @@ ENV PYTHONPATH=/app
 # Manim configuration - use the volume-mounted output directory
 ENV MANIM_MEDIA_DIR=/output/manim
 
+# Create a non-root user that will be overridden by docker-compose
+RUN useradd -m -u 1000 appuser
+
 # Expose port
 EXPOSE 8011
 

@@ -2,23 +2,23 @@
 # This config is used by the containerized agents
 
 # Default model settings
-default-model: openrouter/qwen/qwen-2.5-coder-32b-instruct
+default-model: qwen/qwen-2.5-coder-32b-instruct
 api: https://openrouter.ai/api/v1
 
 # Model aliases for easier use
 aliases:
   # Fast and efficient models
-  fast: openrouter/mistralai/mistral-7b-instruct
+  fast: mistralai/mistral-7b-instruct
 
   # Balanced models
-  balanced: openrouter/qwen/qwen-2.5-coder-32b-instruct
+  balanced: qwen/qwen-2.5-coder-32b-instruct
 
   # High quality models
-  quality: openrouter/anthropic/claude-3-5-sonnet
+  quality: anthropic/claude-3-5-sonnet
 
   # Code-specific models
-  code: openrouter/qwen/qwen-2.5-coder-32b-instruct
-  review: openrouter/anthropic/claude-3-5-sonnet
+  code: qwen/qwen-2.5-coder-32b-instruct
+  review: anthropic/claude-3-5-sonnet
 
 # Headers required by OpenRouter
 headers:
