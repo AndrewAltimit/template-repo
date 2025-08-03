@@ -1,11 +1,12 @@
 """OpenCode AI agent implementation."""
 
+import asyncio
 import json
 import logging
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
-from .base import AgentExecutionError
+from .base import AgentExecutionError, AgentTimeoutError
 from .containerized import ContainerizedCLIAgent
 
 logger = logging.getLogger(__name__)
@@ -47,19 +48,17 @@ class OpenCodeAgent(ContainerizedCLIAgent):
         if code := context.get("code"):
             full_prompt = f"Code Context:\n```\n{code}\n```\n\nTask: {prompt}"
 
-        # Build command with prompt
-        cmd = self._build_command(full_prompt)
+        # Build command (without prompt - will use stdin)
+        cmd = self._build_command()
 
-        # Log the command being executed (show more for debugging)
+        # Log the command being executed
         logger.info(f"Full prompt length: {len(full_prompt)} chars")
-        logger.info(f"Executing OpenCode command with {len(cmd)} parts")
-        # Log last few parts of command to see the actual prompt
-        logger.info(f"Command ending: ...{' '.join(cmd[-5:])}")
+        logger.info(f"Executing OpenCode via stdin with command: {' '.join(cmd[-5:])}")
         logger.debug(f"Full command: {cmd}")
 
-        # Execute command directly
+        # Execute command with stdin
         try:
-            stdout, stderr = await self._execute_command(cmd)
+            stdout, stderr = await self._execute_command_with_stdin(cmd, full_prompt)
             # Parse output
             return self._parse_output(stdout, stderr)
         except AgentExecutionError as e:
@@ -74,8 +73,8 @@ class OpenCodeAgent(ContainerizedCLIAgent):
                 self.name, e.exit_code, e.stdout, e.stderr or "No error output from opencode command"
             )
 
-    def _build_command(self, prompt: str) -> List[str]:
-        """Build OpenCode CLI command."""
+    def _build_command(self) -> List[str]:
+        """Build OpenCode CLI command for stdin usage."""
         # OpenCode uses 'run' subcommand
         args = ["run"]
 
@@ -83,13 +82,7 @@ class OpenCodeAgent(ContainerizedCLIAgent):
         if self.DEFAULT_MODEL:
             args.extend(["-m", f"openrouter/{self.DEFAULT_MODEL}"])
 
-        # OpenCode expects the message as the last positional argument
-        # Since we're using asyncio.create_subprocess_exec (no shell),
-        # we don't need to escape - just pass the prompt as-is
-        # For debugging: log if multi-line prompt with Docker
-        if self._use_docker and "\n" in prompt:
-            logger.warning("Multi-line prompt detected with Docker - this may cause issues")
-        args.append(prompt)
+        # Don't add prompt here - we'll use stdin instead
 
         # Use Docker if available (preferred), otherwise local
         if self._use_docker:
@@ -106,6 +99,58 @@ class OpenCodeAgent(ContainerizedCLIAgent):
             cmd = [self.executable]
             cmd.extend(args)
             return cmd
+
+    async def _execute_command_with_stdin(self, cmd: List[str], stdin_input: str) -> Tuple[str, str]:
+        """Execute command with stdin input.
+
+        Args:
+            cmd: Command to execute (already includes docker-compose if using Docker)
+            stdin_input: Input to pass via stdin
+
+        Returns:
+            Tuple of (stdout, stderr)
+        """
+        # cmd is already the full command (including docker-compose if applicable)
+        # Just execute it with stdin
+        return await self._execute_stdin(cmd, stdin_input)
+
+    async def _execute_stdin(self, cmd: List[str], stdin_input: str) -> Tuple[str, str]:
+        """Execute command with stdin using asyncio."""
+        logger.debug(f"Executing {self.name} with stdin")
+
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+
+            try:
+                stdout, stderr = await asyncio.wait_for(
+                    proc.communicate(input=stdin_input.encode("utf-8")), timeout=self.timeout
+                )
+
+                stdout_str = stdout.decode("utf-8", errors="replace")
+                stderr_str = stderr.decode("utf-8", errors="replace")
+
+                if proc.returncode != 0:
+                    raise AgentExecutionError(self.name, proc.returncode or -1, stdout_str, stderr_str)
+
+                return stdout_str, stderr_str
+
+            except asyncio.TimeoutError:
+                proc.terminate()
+                try:
+                    await asyncio.wait_for(proc.wait(), timeout=2.0)
+                except asyncio.TimeoutError:
+                    proc.kill()
+                    await proc.wait()
+
+                raise AgentTimeoutError(self.name, self.timeout)
+
+        except FileNotFoundError:
+            raise AgentExecutionError(self.name, -1, "", f"Executable not found in command: {cmd}")
 
     def _parse_output(self, output: str, error: str) -> str:
         """Parse OpenCode output."""
