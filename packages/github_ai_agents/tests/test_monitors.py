@@ -75,9 +75,7 @@ class TestIssueMonitor:
             assert monitor._has_agent_comment(1) is True
 
             # Mock issue without agent comment
-            mock_gh.return_value = json.dumps(
-                {"comments": [{"body": "Regular comment"}, {"body": "Another regular comment"}]}
-            )
+            mock_gh.return_value = json.dumps({"comments": [{"body": "Regular comment"}, {"body": "Another regular comment"}]})
 
             assert monitor._has_agent_comment(2) is False
 

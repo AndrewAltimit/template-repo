@@ -2,12 +2,14 @@
 
 import pytest
 
-# The multi_agent_subagent_manager module was not migrated to the new package
-# This test file appears to be for the old implementation and should be updated
-# or removed as part of the migration. For now, we'll skip these tests.
+# This test file has been replaced by comprehensive tests in the github_ai_agents package:
+# - packages/github_ai_agents/tests/test_agents.py
+# - packages/github_ai_agents/tests/test_issue_monitor.py
+# - packages/github_ai_agents/tests/test_pr_monitor.py
+# - packages/github_ai_agents/tests/test_security.py
 
 pytest.skip(
-    "This test file is for the old multi-agent system implementation. "
-    "It needs to be updated for the new github_ai_agents package.",
+    "This test file is deprecated. The multi-agent system tests have been moved to "
+    "the github_ai_agents package. See packages/github_ai_agents/tests/ for the new tests.",
     allow_module_level=True,
 )

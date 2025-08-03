@@ -5,8 +5,8 @@ A Python package for AI-powered GitHub automation using multiple AI agents (Clau
 ## Features
 
 - **Multi-Agent Support**: Choose from multiple AI agents based on your needs
-- **Issue Monitoring**: Automatically create PRs from well-described GitHub issues
-- **PR Review Monitoring**: Automatically implement fixes based on review feedback
+- **Issue Monitoring**: Automatically respond to GitHub issues with AI-generated implementations
+- **PR Review Monitoring**: Process review feedback and generate fixes using multiple AI agents
 - **Security**: Built-in security features including user authorization and rate limiting
 - **Containerization**: Support for running agents in Docker containers
 - **Extensible**: Easy to add new AI agents or monitors
@@ -43,6 +43,21 @@ monitor = IssueMonitor()
 
 # Process issues once
 monitor.process_issues()
+
+# Or run continuously
+monitor.run_continuous(interval=300)  # Check every 5 minutes
+```
+
+### Running PR Review Monitor
+
+```python
+from github_ai_agents.monitors import PRMonitor
+
+# Initialize the monitor
+monitor = PRMonitor()
+
+# Process PRs once
+monitor.process_prs()
 
 # Or run continuously
 monitor.run_continuous(interval=300)  # Check every 5 minutes
@@ -112,10 +127,11 @@ python -m pytest tests/ -m integration # Integration tests only
 ### Test Structure
 
 - `tests/test_agents.py` - Unit tests for individual AI agents
-- `tests/test_monitors.py` - Tests for issue and PR monitors
+- `tests/test_issue_monitor.py` - Tests for issue monitoring functionality
+- `tests/test_pr_monitor.py` - Tests for PR review monitoring functionality
+- `tests/test_monitors.py` - General monitor tests
 - `tests/test_security.py` - Security manager tests
 - `tests/test_subagents.py` - Subagent system tests
-- `tests/test_multi_agent_system.py` - Integration tests
 
 ## Security
 
@@ -174,3 +190,12 @@ MIT License - see LICENSE file for details.
 - [Usage Guide](docs/usage.md)
 - [Security Documentation](docs/security.md)
 - [API Reference](docs/api.md)
+
+## Implementation Status
+
+Both the Issue Monitor and PR Monitor are functional but currently operate in a comment-only mode:
+
+- **Issue Monitor**: Generates implementation suggestions as comments (see [Issue Monitor Status](../../docs/ISSUE_MONITOR_IMPLEMENTATION_STATUS.md))
+- **PR Monitor**: Generates review fixes as comments (see [PR Monitor Status](../../docs/PR_MONITOR_IMPLEMENTATION_STATUS.md))
+
+This MVP approach allows testing the multi-agent system and security model before enabling automated code commits.

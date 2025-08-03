@@ -14,9 +14,7 @@ logger = logging.getLogger(__name__)
 class ContainerizedCLIAgent(CLIAgent):
     """Base class for CLI agents that can run in Docker containers."""
 
-    def __init__(
-        self, name: str, executable: str, docker_service: str = "openrouter-agents", timeout: int = 300, config=None
-    ):
+    def __init__(self, name: str, executable: str, docker_service: str = "openrouter-agents", timeout: int = 300, config=None):
         """Initialize containerized CLI agent.
 
         Args:
