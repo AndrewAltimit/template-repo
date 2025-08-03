@@ -101,31 +101,8 @@ class IssueMonitor(BaseMonitor):
         # Get the agent
         agent = self.agents.get(agent_name.lower())
         if not agent:
-            # Check if this is a containerized agent running on host
-            containerized_agents = ["opencode", "codex", "crush"]
-            if agent_name.lower() in containerized_agents:
-                # Get list of available host agents dynamically
-                available_agents = []
-                for agent in self.agents.values():
-                    keyword = agent.get_trigger_keyword()
-                    available_agents.append(f"[Approved][{keyword}]")
-
-                error_msg = (
-                    f"Agent '{agent_name}' is only available in the containerized environment.\n\n"
-                    f"Due to authentication constraints:\n"
-                    f"- Claude requires host-specific authentication and must run on the host\n"
-                    f"- {agent_name} is containerized and not installed on the host\n\n"
-                    f"**Workaround**: Use one of the available host agents instead:\n"
-                    f"- {', '.join(available_agents)}\n\n"
-                    f"Or manually run the containerized agent:\n"
-                    f"```bash\n"
-                    f"docker-compose --profile agents run --rm openrouter-agents \\\n"
-                    f"  python -m github_ai_agents.cli issue-monitor\n"
-                    f"```"
-                )
-            else:
-                available_keywords = [agent.get_trigger_keyword() for agent in self.agents.values()]
-                error_msg = f"Agent '{agent_name}' is not available. Available agents: {available_keywords}"
+            available_keywords = [agent.get_trigger_keyword() for agent in self.agents.values()]
+            error_msg = f"Agent '{agent_name}' is not available. Available agents: {available_keywords}"
 
             logger.error(f"Agent '{agent_name}' not available")
             self._post_error_comment(issue_number, error_msg, "issue")
@@ -190,31 +167,8 @@ class IssueMonitor(BaseMonitor):
         # Get the agent
         agent = self.agents.get(agent_name.lower())
         if not agent:
-            # Check if this is a containerized agent running on host
-            containerized_agents = ["opencode", "codex", "crush"]
-            if agent_name.lower() in containerized_agents:
-                # Get list of available host agents dynamically
-                available_agents = []
-                for agent in self.agents.values():
-                    keyword = agent.get_trigger_keyword()
-                    available_agents.append(f"[Approved][{keyword}]")
-
-                error_msg = (
-                    f"Agent '{agent_name}' is only available in the containerized environment.\n\n"
-                    f"Due to authentication constraints:\n"
-                    f"- Claude requires host-specific authentication and must run on the host\n"
-                    f"- {agent_name} is containerized and not installed on the host\n\n"
-                    f"**Workaround**: Use one of the available host agents instead:\n"
-                    f"- {', '.join(available_agents)}\n\n"
-                    f"Or manually run the containerized agent:\n"
-                    f"```bash\n"
-                    f"docker-compose --profile agents run --rm openrouter-agents \\\n"
-                    f"  python -m github_ai_agents.cli issue-monitor\n"
-                    f"```"
-                )
-            else:
-                available_keywords = [agent.get_trigger_keyword() for agent in self.agents.values()]
-                error_msg = f"Agent '{agent_name}' is not available. Available agents: {available_keywords}"
+            available_keywords = [agent.get_trigger_keyword() for agent in self.agents.values()]
+            error_msg = f"Agent '{agent_name}' is not available. Available agents: {available_keywords}"
 
             logger.error(f"Agent '{agent_name}' not available")
             self._post_error_comment(issue_number, error_msg, "issue")

@@ -13,10 +13,10 @@
 enabled_agents:
   - claude      # Anthropic's Claude Code (host-only, primary agent)
   - gemini      # Google's Gemini CLI (host-only, for reviews)
-  # Container-only agents (uncomment only if running in container):
-  # - opencode  # Open-source alternative (container-only)
-  # - codex     # OpenAI's Codex (container-only)
-  # - crush     # Charm Bracelet's multi-provider tool (container-only)
+  # Containerized agents (automatically run in Docker when invoked)
+  - opencode    # Open-source alternative (runs in container)
+  - codex       # OpenAI's Codex (runs in container)
+  - crush       # Charm Bracelet's multi-provider tool (runs in container)
 
 # Agent priorities for different task types
 agent_priorities:

@@ -49,23 +49,16 @@ class BaseMonitor(ABC):
         """Initialize available AI agents based on configuration."""
         agents = {}
 
-        # Check if we're running in a containerized environment
-        # When running on host (e.g., GitHub Actions), we should skip containerized agents
-        running_in_container = os.environ.get("RUNNING_IN_CONTAINER", "false").lower() == "true"
-
         # Only initialize enabled agents
         enabled_agents = self.config.get_enabled_agents()
 
         for agent_name in enabled_agents:
             if agent_name in self.AGENT_MAP:
-                # Skip containerized agents if not running in container
-                if not running_in_container and agent_name in self.CONTAINERIZED_AGENTS:
-                    logger.info(f"Skipping containerized agent '{agent_name}' (running on host)")
-                    continue
-
                 agent_class = self.AGENT_MAP[agent_name]
                 try:
                     agent = agent_class(config=self.config)
+                    # For containerized agents, is_available() will check if Docker is available
+                    # They will automatically use docker-compose when running on host
                     if agent.is_available():
                         keyword = agent.get_trigger_keyword()
                         agents[keyword.lower()] = agent

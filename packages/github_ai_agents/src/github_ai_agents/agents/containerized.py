@@ -1,10 +1,11 @@
 """Base class for containerized CLI agents."""
 
 import logging
+import os
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from .base import CLIAgent
 
@@ -69,7 +70,7 @@ class ContainerizedCLIAgent(CLIAgent):
                 if compose_file.exists():
                     # Note: Synchronous call during initialization. Short timeout to minimize blocking.
                     result = subprocess.run(
-                        ["docker-compose", "-f", str(compose_file), "config", "--services"],
+                        ["docker-compose", "-f", str(compose_file), "--profile", "agents", "config", "--services"],
                         capture_output=True,
                         timeout=2,
                         text=True,
@@ -121,15 +122,44 @@ class ContainerizedCLIAgent(CLIAgent):
             "docker-compose",
             "-f",
             str(compose_file),
+            "--profile",
+            "agents",
             "run",
             "--rm",
             "-T",
+            "-w",
+            "/workspace",
         ]
 
-        # Add environment variables
+        # Add critical environment variables from host
+        critical_env_vars = [
+            "GITHUB_TOKEN",
+            "GITHUB_REPOSITORY",
+            "OPENROUTER_API_KEY",
+            "ENABLE_AI_AGENTS",
+            "FORCE_REPROCESS",
+            "PYTHONPATH",
+            "GITHUB_WORKSPACE",
+        ]
+
+        # Build combined environment
+        combined_env = {}
+
+        # First, add critical vars from host environment
+        for var in critical_env_vars:
+            if var in os.environ:
+                combined_env[var] = os.environ[var]
+
+        # Then add/override with provided env_vars
         if env_vars:
-            for key, value in env_vars.items():
-                cmd.extend(["-e", f"{key}={value}"])
+            combined_env.update(env_vars)
+
+        # Always set RUNNING_IN_CONTAINER
+        combined_env["RUNNING_IN_CONTAINER"] = "true"
+
+        # Add all environment variables to docker command
+        for key, value in combined_env.items():
+            cmd.extend(["-e", f"{key}={value}"])
 
         # Add service name and executable
         cmd.extend([self.docker_service, self.executable])
@@ -138,3 +168,31 @@ class ContainerizedCLIAgent(CLIAgent):
         cmd.extend(args)
 
         return cmd
+
+    async def _execute_command(self, cmd: List[str], env: Optional[Dict[str, str]] = None) -> Tuple[str, str]:
+        """Execute a CLI command, using Docker if available.
+
+        Args:
+            cmd: Command to execute
+            env: Environment variables
+
+        Returns:
+            Tuple of (stdout, stderr)
+
+        Raises:
+            AgentTimeoutError: If command times out
+            AgentExecutionError: If command fails
+        """
+        # If Docker is available and we're on the host, use docker-compose
+        if self._use_docker:
+            # Extract just the arguments (skip the executable as it's already in docker command)
+            args = cmd[1:] if cmd and cmd[0] == self.executable else cmd
+
+            # Build docker command with all necessary environment variables
+            docker_cmd = self._build_docker_command(args, env)
+
+            # Use the parent class method to execute the docker command
+            return await super()._execute_command(docker_cmd, env=None)
+        else:
+            # Otherwise use normal execution
+            return await super()._execute_command(cmd, env)

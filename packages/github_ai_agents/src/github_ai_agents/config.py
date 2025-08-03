@@ -23,7 +23,7 @@ class AgentConfig:
         """Load configuration from file or use defaults."""
         # Default configuration
         default_config = {
-            "enabled_agents": ["claude", "gemini"],
+            "enabled_agents": ["claude", "gemini", "opencode", "codex", "crush"],
             "agent_priorities": {
                 "issue_creation": ["claude"],
                 "pr_reviews": ["gemini", "claude"],
