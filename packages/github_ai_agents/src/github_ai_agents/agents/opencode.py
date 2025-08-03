@@ -79,8 +79,8 @@ class OpenCodeAgent(ContainerizedCLIAgent):
         if self.DEFAULT_MODEL:
             args.extend(["-m", f"openrouter/{self.DEFAULT_MODEL}"])
 
-        # Add the prompt as the last argument(s)
-        # OpenCode expects message as positional args, not with -p flag
+        # Add the prompt as a single positional argument
+        # This ensures the entire prompt (including newlines) is treated as one message
         args.append(prompt)
 
         # Use Docker if available (preferred), otherwise local
