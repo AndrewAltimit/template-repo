@@ -58,11 +58,12 @@ class OpenCodeAgent(ContainerizedCLIAgent):
         if self.config:
             flags = self.config.get_non_interactive_flags("opencode")
         else:
-            flags = ["-q"]  # Default quiet mode
+            flags = ["--non-interactive"]  # Default non-interactive mode
 
-        # Prepare arguments
-        args = ["-p", prompt]
+        # Build command with proper order
+        args = []
         args.extend(flags)
+        args.extend(["-p", prompt])
 
         # Use Docker if available (preferred), otherwise local
         if self._use_docker:
@@ -80,6 +81,11 @@ class OpenCodeAgent(ContainerizedCLIAgent):
     def _parse_output(self, output: str, error: str) -> str:
         """Parse OpenCode output."""
         output = output.strip()
+
+        # Log the raw output for debugging
+        logger.debug(f"OpenCode raw output: {output[:500]}...")
+        if error:
+            logger.debug(f"OpenCode stderr: {error[:500]}...")
 
         # Try to parse as JSON if it looks like JSON
         if output.startswith("{") and output.endswith("}"):

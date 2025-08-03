@@ -207,6 +207,22 @@ Requirements:
 2. Follow the project's coding standards
 3. Add appropriate tests if needed
 4. Update documentation if needed
+
+Please provide the implementation with proper code blocks using triple backticks (```)
+and specify the filename for each code block.
+
+Example format:
+```markdown
+# filename: README.md
+Content here...
+```
+
+Or:
+
+Create file `README.md`:
+```markdown
+Content here...
+```
 """
 
         # Generate implementation
@@ -219,6 +235,9 @@ Requirements:
         try:
             response = await agent.generate_code(prompt, context)
             logger.info(f"Agent {agent.name} generated response for issue #{issue_number}")
+
+            # Debug: Log the actual response
+            logger.debug(f"Raw response from {agent.name}: {response[:500]}...")
 
             # Create PR with the changes
             # Note: In a real implementation, the agent would make actual file changes
