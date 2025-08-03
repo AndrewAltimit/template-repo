@@ -105,7 +105,7 @@ class OpenCodeAgent(ContainerizedCLIAgent):
 
         # Log the raw output for debugging
         logger.info(f"OpenCode raw output length: {len(output)}")
-        logger.info(f"OpenCode raw output: {output[:1000]}...")
+        logger.info(f"OpenCode raw output\n: {output[:1000]}...")
         if error:
             logger.info(f"OpenCode stderr: {error[:500]}...")
 
