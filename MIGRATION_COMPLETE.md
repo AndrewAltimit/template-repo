@@ -1,27 +1,27 @@
-# Migration to github_ai_agents Complete
+# Migration to packages/github_ai_agents Complete
 
 ## Summary
 
-The migration from `scripts/agents` to the new `github_ai_agents` Python package has been successfully completed.
+The migration from `scripts/agents` to the new `packages/github_ai_agents` Python package has been successfully completed.
 
 ## What Was Migrated
 
 ### 1. Documentation
-- ✅ **Security documentation** → `github_ai_agents/docs/security.md`
-- ✅ **Autonomous mode docs** → `github_ai_agents/docs/autonomous_mode.md`
-- ✅ **Subagents documentation** → `github_ai_agents/docs/subagents.md`
-- ✅ **Subagent personas** → `github_ai_agents/docs/subagents/*.md`
+- ✅ **Security documentation** → `packages/github_ai_agents/docs/security.md`
+- ✅ **Autonomous mode docs** → `packages/github_ai_agents/docs/autonomous_mode.md`
+- ✅ **Subagents documentation** → `packages/github_ai_agents/docs/subagents.md`
+- ✅ **Subagent personas** → `packages/github_ai_agents/docs/subagents/*.md`
 
 ### 2. Code Structure
-- ✅ **Agent implementations** → `github_ai_agents/src/github_ai_agents/agents/`
-- ✅ **Monitors** → `github_ai_agents/src/github_ai_agents/monitors/`
-- ✅ **Security manager** → `github_ai_agents/src/github_ai_agents/security/`
-- ✅ **Subagent system** → `github_ai_agents/src/github_ai_agents/subagents/`
-- ✅ **CLI interface** → `github_ai_agents/src/github_ai_agents/cli.py`
+- ✅ **Agent implementations** → `packages/github_ai_agents/src/github_ai_agents/agents/`
+- ✅ **Monitors** → `packages/github_ai_agents/src/github_ai_agents/monitors/`
+- ✅ **Security manager** → `packages/github_ai_agents/src/github_ai_agents/security/`
+- ✅ **Subagent system** → `packages/github_ai_agents/src/github_ai_agents/subagents/`
+- ✅ **CLI interface** → `packages/github_ai_agents/src/github_ai_agents/cli.py`
 
 ### 3. Configuration
-- ✅ **Mods config** → `github_ai_agents/configs/mods-config.yml`
-- ✅ **Templates** → `github_ai_agents/templates/`
+- ✅ **Mods config** → `packages/github_ai_agents/configs/mods-config.yml`
+- ✅ **Templates** → `packages/github_ai_agents/templates/`
 
 ### 4. Updated References
 - ✅ **CLAUDE.md** - Updated all agent commands
@@ -33,7 +33,7 @@ The migration from `scripts/agents` to the new `github_ai_agents` Python package
 
 ### Installation
 ```bash
-pip install -e ./github_ai_agents
+pip install -e ./packages/github_ai_agents
 ```
 
 ### Running Agents

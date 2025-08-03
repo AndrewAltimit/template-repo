@@ -1,25 +1,25 @@
 # Agent Migration Plan
 
 ## Overview
-This document outlines the migration plan from `scripts/agents` to the new `github_ai_agents` package.
+This document outlines the migration plan from `scripts/agents` to the new `packages/github_ai_agents` package.
 
 ## Items to Migrate Before Cleanup
 
 ### 1. Security Documentation
-- [ ] Copy comprehensive security documentation from `scripts/agents/README.md` to `github_ai_agents/docs/security.md`
+- [ ] Copy comprehensive security documentation from `scripts/agents/README.md` to `packages/github_ai_agents/docs/security.md`
 - [ ] Include all sections on multi-layer security, commit validation, deduplication, etc.
 
 ### 2. Subagent System
-- [ ] Migrate subagent functionality to `github_ai_agents/src/github_ai_agents/subagents/`
+- [ ] Migrate subagent functionality to `packages/github_ai_agents/src/github_ai_agents/subagents/`
 - [ ] Copy role definitions from `scripts/agents/subagents/`
 - [ ] Port `SUBAGENTS.md` documentation
 
 ### 3. CI/CD Documentation
-- [ ] Migrate `AUTONOMOUS_MODE.md` to `github_ai_agents/docs/autonomous_mode.md`
+- [ ] Migrate `AUTONOMOUS_MODE.md` to `packages/github_ai_agents/docs/autonomous_mode.md`
 - [ ] Document all agent-specific CLI flags for CI/CD
 
 ### 4. Configuration Files
-- [ ] Copy `config/mods-config.yml` to `github_ai_agents/configs/`
+- [ ] Copy `config/mods-config.yml` to `packages/github_ai_agents/configs/`
 - [ ] Document configuration options in new package
 
 ### 5. Helper Scripts

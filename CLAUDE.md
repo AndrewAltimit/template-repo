@@ -36,7 +36,7 @@ The AI agents implement a comprehensive multi-layer security model with command-
 - **Commit Validation**: Prevents code injection after approval
 - **Implementation Requirements**: Only complete, working code is accepted
 
-**For complete security documentation, see** `github_ai_agents/docs/security.md`
+**For complete security documentation, see** `packages/github_ai_agents/docs/security.md`
 
 ### Remote Infrastructure
 
@@ -169,7 +169,7 @@ pr-monitor
 
 # Installation:
 # Install the new AI agents package:
-pip3 install -e ./github_ai_agents
+pip3 install -e ./packages/github_ai_agents
 # For legacy installation instructions:
 ./scripts/agents/install_agents_safe.sh
 

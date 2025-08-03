@@ -213,7 +213,7 @@ If you discover a security vulnerability:
 
 ### Additional Security Documentation
 
-- **Full Documentation**: See `github_ai_agents/docs/security.md`
+- **Full Documentation**: See `packages/github_ai_agents/docs/security.md`
 - **Configuration**: See agent configuration in environment
 - **Logs**: Check GitHub Actions logs for security events
 
