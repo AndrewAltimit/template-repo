@@ -79,7 +79,7 @@ jobs:
           docker-compose build openrouter-agents
           echo "[INFO] Container build complete"
 
-      - name: Run issue monitor on host
+      - name: Run issue monitor with hybrid agent support
         env:
           # Use AI_AGENT_TOKEN which has write permissions for creating branches/PRs
           GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
@@ -93,50 +93,15 @@ jobs:
           # Set Python path to include the current directory
           PYTHONPATH: ${{ github.workspace }}
           PYTHONUNBUFFERED: "1"
+          GITHUB_WORKSPACE: ${{ github.workspace }}
         run: |
           echo "Running issue monitor for repository: $GITHUB_REPOSITORY"
-          echo "[INFO] Running directly on host machine to use Claude subscription authentication"
+          echo "[INFO] Using hybrid agent support: Claude/Gemini on host, OpenRouter agents in containers"
 
-          # Check for Claude credentials
-          if [ -f "$HOME/.claude.json" ]; then
-            echo "[INFO] Found .claude.json file for Claude authentication"
-          elif [ -d "$HOME/.claude" ]; then
-            echo "[INFO] Found .claude directory for Claude authentication"
-          else
-            echo "[WARNING] No Claude credentials found at ~/.claude.json or ~/.claude/"
-            echo "[WARNING] Claude CLI may not work without authentication"
-          fi
-
-          # Set up Node.js version using nvm
-          export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # Load nvm
-          if command -v nvm &> /dev/null; then
-            echo "[INFO] Setting Node.js version with nvm..."
-            nvm use 22.16.0 || {
-              echo "[WARNING] Node.js 22.16.0 not found, trying to install..."
-              nvm install 22.16.0
-              nvm use 22.16.0
-            }
-            echo "[INFO] Node.js version: $(node --version)"
-          else
-            echo "[WARNING] nvm not found, Claude CLI may have issues"
-          fi
-
-          # Verify Claude CLI is available
-          if command -v claude &> /dev/null; then
-            echo "[INFO] Claude CLI found at: $(which claude)"
-            echo "[INFO] Claude version: $(claude --version 2>&1 || echo 'version check failed')"
-          else
-            echo "[ERROR] Claude CLI not found. Please ensure it's installed on the host."
-            exit 1
-          fi
-
-          # Run the issue monitor from the new package
-          cd "${{ github.workspace }}"
-          python3 -m github_ai_agents.cli issue-monitor || {
+          # Run the hybrid issue monitor script
+          ./scripts/run-issue-monitor-hybrid.sh || {
               exit_code=$?
               echo "[ERROR] Issue monitor script failed with exit code: $exit_code"
-
               exit $exit_code
           }
 

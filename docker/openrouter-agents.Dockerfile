@@ -4,6 +4,15 @@
 # Use a base image that already has Node.js
 FROM node:20-slim
 
+# Define version arguments for better maintainability
+ARG GO_VERSION=1.24.5
+ARG GO_CHECKSUM=10ad9e86233e74c0f6590fe5426895de6bf388964210eac34a6d83f38918ecdc
+ARG OPENCODE_VERSION=0.3.112
+ARG OPENCODE_CHECKSUM_AMD64=ce02926bbe94ca91c5a46e97565e3f8d275f1a6c2fd3352f7f99f558f6b60e09
+ARG OPENCODE_CHECKSUM_ARM64=6ceae43795a62b572866e50d30d99e266889b6aeae1da058aab34041cc5d49d8
+ARG CODEX_VERSION=0.11.0
+ARG MODS_VERSION=v1.8.1
+
 # Install Python 3.11 and all system dependencies in one layer
 RUN apt-get update && apt-get install -y \
     python3.11 \
@@ -23,10 +32,10 @@ RUN ln -sf /usr/bin/python3.11 /usr/bin/python \
 
 # Install Go in a separate layer (large download)
 # Checksum from https://go.dev/dl/
-RUN wget -q https://go.dev/dl/go1.24.5.linux-amd64.tar.gz && \
-    echo "10ad9e86233e74c0f6590fe5426895de6bf388964210eac34a6d83f38918ecdc  go1.24.5.linux-amd64.tar.gz" | sha256sum -c - && \
-    tar -C /usr/local -xzf go1.24.5.linux-amd64.tar.gz && \
-    rm go1.24.5.linux-amd64.tar.gz
+RUN wget -q https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
+    echo "${GO_CHECKSUM}  go${GO_VERSION}.linux-amd64.tar.gz" | sha256sum -c - && \
+    tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz && \
+    rm go${GO_VERSION}.linux-amd64.tar.gz
 
 # Set Go environment variables
 ENV PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
@@ -42,18 +51,18 @@ RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | 
 
 # Install OpenRouter-compatible CLI tools
 
-# Install OpenCode from GitHub releases (v0.3.112)
+# Install OpenCode from GitHub releases
 # SECURITY: We verify checksums to ensure binary integrity
 # Checksums calculated on 2025-08-03 for v0.3.112 release
 RUN ARCH=$(dpkg --print-architecture) && \
     if [ "$ARCH" = "amd64" ]; then \
         ARCH="x64"; \
-        CHECKSUM="ce02926bbe94ca91c5a46e97565e3f8d275f1a6c2fd3352f7f99f558f6b60e09"; \
+        CHECKSUM="${OPENCODE_CHECKSUM_AMD64}"; \
     elif [ "$ARCH" = "arm64" ]; then \
         ARCH="arm64"; \
-        CHECKSUM="6ceae43795a62b572866e50d30d99e266889b6aeae1da058aab34041cc5d49d8"; \
+        CHECKSUM="${OPENCODE_CHECKSUM_ARM64}"; \
     fi && \
-    wget -q "https://github.com/sst/opencode/releases/download/v0.3.112/opencode-linux-${ARCH}.zip" -O /tmp/opencode.zip && \
+    wget -q "https://github.com/sst/opencode/releases/download/v${OPENCODE_VERSION}/opencode-linux-${ARCH}.zip" -O /tmp/opencode.zip && \
     echo "${CHECKSUM}  /tmp/opencode.zip" | sha256sum -c - && \
     unzip -q /tmp/opencode.zip -d /usr/local/bin/ && \
     rm /tmp/opencode.zip && \
@@ -63,11 +72,11 @@ RUN ARCH=$(dpkg --print-architecture) && \
 # Note: May show deprecation warnings for subdependencies (node-domexception, lodash.isequal, phin)
 # These are dependency warnings, not warnings about codex itself - the tool is actively maintained
 # Version pinned for reproducible builds
-RUN npm install -g @openai/codex@0.11.0
+RUN npm install -g @openai/codex@${CODEX_VERSION}
 
 # Install Crush/mods from Charm Bracelet - VERIFIED WORKING
 # Pin to specific version for reproducible builds
-RUN go install github.com/charmbracelet/mods@v1.8.1 && \
+RUN go install github.com/charmbracelet/mods@${MODS_VERSION} && \
     cp /root/go/bin/mods /usr/local/bin/mods && \
     ln -s /usr/local/bin/mods /usr/local/bin/crush
 
