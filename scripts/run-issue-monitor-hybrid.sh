@@ -25,11 +25,12 @@ if [ -s "$HOME/.nvm/nvm.sh" ]; then
     . "$NVM_DIR/nvm.sh"
     if command -v nvm &> /dev/null; then
         echo "[INFO] Setting Node.js version with nvm..."
-        nvm use 22.16.0 || {
-            echo "[WARNING] Node.js 22.16.0 not found, trying to install..."
-            nvm install 22.16.0
-            nvm use 22.16.0
+        # Use .nvmrc for Node.js version
+        nvm install || {
+            echo "[WARNING] Installing Node.js version from .nvmrc..."
+            nvm install "$(cat .nvmrc)"
         }
+        nvm use
         echo "[INFO] Node.js version: $(node --version)"
     fi
 fi

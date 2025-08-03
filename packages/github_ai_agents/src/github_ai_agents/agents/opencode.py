@@ -29,6 +29,7 @@ class OpenCodeAgent(CLIAgent):
 
         # Cache the project root
         self._project_root: Optional[Path] = None
+        self._use_docker: bool = False  # Track whether to use Docker
 
     def get_trigger_keyword(self) -> str:
         """Get trigger keyword for OpenCode."""
@@ -60,50 +61,44 @@ class OpenCodeAgent(CLIAgent):
         return None
 
     def is_available(self) -> bool:
-        """Check if OpenCode is available locally or via Docker."""
+        """Check if OpenCode is available via Docker (preferred) or locally."""
         if self._available is not None:
             return self._available
 
-        # Check if OpenCode is available locally
+        # PREFER DOCKER: Check if Docker container is available first
+        try:
+            repo_root = self._find_project_root()
+            if repo_root:
+                compose_file = repo_root / "docker-compose.yml"
+                if compose_file.exists():
+                    result = subprocess.run(
+                        ["docker-compose", "-f", str(compose_file), "config", "--services"],
+                        capture_output=True,
+                        timeout=5,
+                        text=True,
+                    )
+                    if result.returncode == 0 and "openrouter-agents" in result.stdout:
+                        self._available = True
+                        self._use_docker = True
+                        logger.info("OpenCode available via Docker container (preferred)")
+                        return True
+        except Exception as e:
+            logger.debug(f"Docker check failed: {e}")
+
+        # Fall back to local if Docker not available
         if shutil.which(self.executable):
             try:
                 result = subprocess.run([self.executable, "--version"], capture_output=True, timeout=5, text=True)
                 if result.returncode == 0:
                     self._available = True
-                    logger.info("OpenCode found locally")
+                    self._use_docker = False
+                    logger.info("OpenCode found locally (Docker not available)")
                     return True
             except Exception:
                 pass
 
-        # Check if Docker container is available
-        try:
-            repo_root = self._find_project_root()
-            if not repo_root:
-                logger.debug("Could not find project root")
-                self._available = False
-                return False
-
-            compose_file = repo_root / "docker-compose.yml"
-            if not compose_file.exists():
-                logger.debug("docker-compose.yml not found")
-                self._available = False
-                return False
-
-            result = subprocess.run(
-                ["docker-compose", "-f", str(compose_file), "config", "--services"],
-                capture_output=True,
-                timeout=5,
-                text=True,
-            )
-            if result.returncode == 0 and "openrouter-agents" in result.stdout:
-                self._available = True
-                logger.info("OpenCode available via Docker container")
-                return True
-        except Exception as e:
-            logger.debug(f"Docker check failed: {e}")
-
         self._available = False
-        logger.warning("OpenCode not available locally or via Docker")
+        logger.warning("OpenCode not available via Docker or locally")
         return False
 
     async def generate_code(self, prompt: str, context: Dict[str, Any]) -> str:
@@ -138,12 +133,8 @@ class OpenCodeAgent(CLIAgent):
         else:
             flags = ["-q"]  # Default quiet mode
 
-        # Check if running locally or via Docker
-        if shutil.which(self.executable):
-            cmd = [self.executable, "-p", prompt]
-            cmd.extend(flags)
-            return cmd
-        else:
+        # Use Docker if available (preferred), otherwise local
+        if self._use_docker:
             # Use Docker
             repo_root = self._find_project_root()
             if not repo_root:
@@ -169,6 +160,11 @@ class OpenCodeAgent(CLIAgent):
             cmd.extend(["openrouter-agents", "opencode", "-p", prompt])
             cmd.extend(flags)
 
+            return cmd
+        else:
+            # Use local executable
+            cmd = [self.executable, "-p", prompt]
+            cmd.extend(flags)
             return cmd
 
     def _parse_output(self, output: str, error: str) -> str:

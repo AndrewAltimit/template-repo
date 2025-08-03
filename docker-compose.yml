@@ -120,11 +120,9 @@ services:
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/workspace
-      # Mount host config directories for persistence during development
-      # These allow user-specific API keys and settings to persist between container runs
-      # In production, these would be replaced with secrets management
-      - ~/.config/openrouter:/home/node/.config/openrouter  # OpenRouter API key storage
-      - ~/.config/mods:/home/node/.config/mods              # Mods/Crush configuration
+      # SECURITY: Use environment variables for credentials instead of mounting host directories
+      # This prevents exposing host filesystem paths to the container
+      # API keys should be passed via OPENROUTER_API_KEY environment variable
     environment:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
