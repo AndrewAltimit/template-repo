@@ -7,7 +7,7 @@ import uuid
 from typing import Dict
 
 from ..code_parser import CodeParser
-from ..utils import run_gh_command, run_gh_command_async
+from ..utils import run_gh_command, run_gh_command_async, run_git_command_async
 from .base import BaseMonitor
 
 logger = logging.getLogger(__name__)
@@ -239,11 +239,11 @@ Requirements:
             logger.info(f"Creating branch: {branch_name}")
 
             # Ensure we're on the main branch first
-            await run_gh_command_async(["checkout", "main"])
-            await run_gh_command_async(["pull", "origin", "main"])
+            await run_git_command_async(["checkout", "main"])
+            await run_git_command_async(["pull", "origin", "main"])
 
             # Create and checkout new branch
-            await run_gh_command_async(["checkout", "-b", branch_name])
+            await run_git_command_async(["checkout", "-b", branch_name])
 
             # 2. Make the actual code changes
             # Parse and apply the code changes from the AI response
@@ -266,14 +266,14 @@ Requirements:
             )
 
             # Check if there are changes to commit
-            status_output = await run_gh_command_async(["status", "--porcelain"])
+            status_output = await run_git_command_async(["status", "--porcelain"])
             if status_output and status_output.strip():
-                await run_gh_command_async(["add", "-A"])
-                await run_gh_command_async(["commit", "-m", commit_message])
+                await run_git_command_async(["add", "-A"])
+                await run_git_command_async(["commit", "-m", commit_message])
 
                 # Push the branch
                 logger.info(f"Pushing branch: {branch_name}")
-                await run_gh_command_async(["push", "-u", "origin", branch_name])
+                await run_git_command_async(["push", "-u", "origin", branch_name])
 
                 # 4. Create the PR
                 pr_title = f"fix: {issue_title} (AI Generated)"

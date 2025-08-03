@@ -66,3 +66,47 @@ async def run_gh_command_async(args: List[str], check: bool = True) -> Optional[
     loop = asyncio.get_event_loop()
     # Run the blocking subprocess call in a thread pool
     return await loop.run_in_executor(None, run_gh_command, args, check)
+
+
+def run_git_command(args: List[str], check: bool = True) -> Optional[str]:
+    """Run git command.
+
+    Args:
+        args: Command arguments
+        check: Whether to check return code
+
+    Returns:
+        Command output or None if failed
+    """
+    cmd = ["git"] + args
+
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=check,
+        )
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Git command failed: {e}")
+        if e.stderr:
+            logger.error(f"Error output: {e.stderr}")
+        if not check:
+            return None
+        raise
+
+
+async def run_git_command_async(args: List[str], check: bool = True) -> Optional[str]:
+    """Run git command asynchronously without blocking the event loop.
+
+    Args:
+        args: Command arguments
+        check: Whether to check return code
+
+    Returns:
+        Command output or None if failed
+    """
+    loop = asyncio.get_event_loop()
+    # Run the blocking subprocess call in a thread pool
+    return await loop.run_in_executor(None, run_git_command, args, check)

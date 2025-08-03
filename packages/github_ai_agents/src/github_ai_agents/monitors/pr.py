@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 
 from ..code_parser import CodeParser
-from ..utils import run_gh_command, run_gh_command_async
+from ..utils import run_gh_command, run_gh_command_async, run_git_command_async
 from .base import BaseMonitor
 
 logger = logging.getLogger(__name__)
@@ -322,14 +322,14 @@ Requirements:
             )
 
             # Check if there are changes to commit
-            status_output = await run_gh_command_async(["status", "--porcelain"])
+            status_output = await run_git_command_async(["status", "--porcelain"])
             if status_output and status_output.strip():
-                await run_gh_command_async(["add", "-A"])
-                await run_gh_command_async(["commit", "-m", commit_message])
+                await run_git_command_async(["add", "-A"])
+                await run_git_command_async(["commit", "-m", commit_message])
 
                 # 4. Push to the branch
                 logger.info(f"Pushing changes to branch: {branch_name}")
-                await run_gh_command_async(["push"])
+                await run_git_command_async(["push"])
 
                 success_comment = (
                     f"{self.agent_tag} I've successfully addressed the review feedback using {agent_name}!\n\n"
