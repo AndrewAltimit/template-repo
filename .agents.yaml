@@ -123,8 +123,8 @@ advanced:
   # Non-interactive mode settings
   non_interactive_flags:
     claude: ["--print", "--dangerously-skip-permissions"]
-    # For gemini: -m specifies model, -p flag expects the prompt to follow
-    # The prompt is appended by the code: gemini -m gemini-2.5-pro -p "prompt text"
-    gemini: ["-m", "gemini-2.5-pro", "-p"]
+    # For gemini: model and prompt flags are now handled dynamically in the code
+    # based on the default_model setting in model_overrides
+    gemini: []
     opencode: ["--non-interactive"]
     crush: ["--non-interactive", "--no-update"]

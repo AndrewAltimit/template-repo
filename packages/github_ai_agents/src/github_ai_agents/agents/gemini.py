@@ -29,12 +29,22 @@ class GeminiAgent(CLIAgent):
         Returns:
             Generated code or response
         """
-        # Use flags from config if available
+        # Build command with proper model selection
+        cmd = ["gemini"]
+
+        # Get model configuration
         if self.config:
-            flags = self.config.get_non_interactive_flags("gemini")
-            cmd = ["gemini"] + flags + [prompt]
+            model_config = self.config.get_model_config("gemini")
+            default_model = model_config.get("default_model", "gemini-2.5-pro")
+
+            # Add model flag
+            cmd.extend(["-m", default_model])
+
+            # Add prompt flag
+            cmd.extend(["-p", prompt])
         else:
-            cmd = ["gemini", prompt]
+            # Fallback to simple command
+            cmd.append(prompt)
 
         stdout, stderr = await self._execute_command(cmd)
         return stdout.strip()
