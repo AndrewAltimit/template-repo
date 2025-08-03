@@ -115,7 +115,6 @@ services:
       start_period: 20s
     profiles:
       - services
-      - openrouter
 
   # Crush MCP Server
   mcp-crush:
@@ -146,7 +145,6 @@ services:
       start_period: 20s
     profiles:
       - services
-      - openrouter
 
   # AI Agents container for GitHub automation
   ai-agents:
@@ -272,6 +270,8 @@ services:
       - mcp-code-quality
       - mcp-content-creation
       - mcp-gaea2
+      - mcp-crush
+      - mcp-opencode
     profiles:
       - all
 
