@@ -9,7 +9,6 @@ This document clarifies which AI agents are available in different execution env
 | Claude | ✅ | ❌ | Subscription via ~/.claude.json |
 | Gemini | ✅ | ❌ | API key + Docker socket access |
 | OpenCode | ❌ | ✅ | OpenRouter API key |
-| Codex | ❌ | ✅ | OpenRouter API key |
 | Crush | ❌ | ✅ | OpenRouter API key |
 
 ## Execution Environments
@@ -38,7 +37,6 @@ When running inside the `openrouter-agents` container:
 
 **Available Agents:**
 - **OpenCode**: Open-source code generation
-- **Codex**: OpenAI's coding assistant
 - **Crush**: Multi-provider AI tool
 
 **Use Cases:**
@@ -64,7 +62,6 @@ enabled_agents:
 # For container execution
 # enabled_agents:
 #   - opencode
-#   - codex
 #   - crush
 ```
 

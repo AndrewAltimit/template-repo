@@ -2,7 +2,6 @@
 
 from .base import AgentError, AgentExecutionError, AgentNotAvailableError, AgentTimeoutError, BaseAgent
 from .claude import ClaudeAgent
-from .codex import CodexAgent
 from .containerized import ContainerizedCLIAgent
 from .crush import CrushAgent
 from .gemini import GeminiAgent
@@ -20,7 +19,6 @@ def get_best_available_agent():
         ClaudeAgent,
         OpenCodeAgent,
         GeminiAgent,
-        CodexAgent,
         CrushAgent,
     ]
 
@@ -46,7 +44,6 @@ __all__ = [
     "ClaudeAgent",
     "OpenCodeAgent",
     "GeminiAgent",
-    "CodexAgent",
     "CrushAgent",
     "get_best_available_agent",
 ]

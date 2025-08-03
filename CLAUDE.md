@@ -150,7 +150,7 @@ pip install -r requirements.txt
 # See docs/AI_AGENTS_CLAUDE_AUTH.md for Claude auth details
 
 # Containerized Agents (OpenRouter-compatible):
-# OpenCode, Codex, Crush - run in openrouter-agents container
+# OpenCode, Crush - run in openrouter-agents container
 docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
 
 # Or use specific containerized agents:

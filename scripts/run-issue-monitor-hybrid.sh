@@ -1,7 +1,7 @@
 #!/bin/bash
 # Run issue monitor with hybrid agent support
 # - Claude and Gemini run on host (authentication requirements)
-# - OpenCode, Codex, and Crush run in Docker containers
+# - OpenCode and Crush run in Docker containers
 
 set -e
 
@@ -69,7 +69,7 @@ if command -v docker &> /dev/null && command -v docker-compose &> /dev/null; the
         echo "[INFO] Ensuring openrouter-agents container is up to date..."
         docker-compose --profile agents build openrouter-agents || {
             echo "[WARNING] Failed to build openrouter-agents container"
-            echo "[WARNING] OpenCode, Codex, and Crush agents will not be available"
+            echo "[WARNING] OpenCode and Crush agents will not be available"
         }
     else
         echo "[WARNING] openrouter-agents service not found in docker-compose.yml"
@@ -84,7 +84,7 @@ fi
 echo ""
 echo "[INFO] Starting issue monitor..."
 echo "[INFO] Host agents: Claude, Gemini"
-echo "[INFO] Container agents: OpenCode, Codex, Crush"
+echo "[INFO] Container agents: OpenCode, Crush"
 echo ""
 
 # Execute the issue monitor

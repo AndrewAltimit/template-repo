@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run issue monitor with containerized agents (OpenCode, Codex, Crush)
+# Run issue monitor with containerized agents (OpenCode, Crush)
 # This script is called when containerized agents are requested
 
 set -e

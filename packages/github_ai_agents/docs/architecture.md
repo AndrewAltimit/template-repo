@@ -18,7 +18,6 @@ The agents module contains implementations of various AI agents:
   - `ClaudeAgent`: Anthropic's Claude AI
   - `OpenCodeAgent`: Open-source coding AI
   - `GeminiAgent`: Google's Gemini AI
-  - `CodexAgent`: OpenAI Codex
   - `CrushAgent`: Charm Bracelet Mods
 
 Each agent implements:

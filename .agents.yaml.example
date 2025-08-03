@@ -6,7 +6,6 @@ enabled_agents:
   - claude      # Anthropic's Claude Code (host-only)
   - gemini      # Google's Gemini CLI (host-only)
   - opencode    # SST's OpenCode (containerized)
-  - codex       # OpenAI's Codex CLI (containerized)
   - crush       # Charm Bracelet's mods (containerized)
 
 # Agent priorities for different task types
@@ -20,7 +19,6 @@ agent_priorities:
   # For reviewing PRs
   pr_reviews:
     - gemini
-    - codex
     - claude
 
   # For implementing code fixes

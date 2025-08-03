@@ -79,13 +79,12 @@ class SubagentManager:
         # Get the appropriate agent
         if agent_name:
             # Use specific agent if requested
-            from ..agents import ClaudeAgent, CodexAgent, CrushAgent, GeminiAgent, OpenCodeAgent
+            from ..agents import ClaudeAgent, CrushAgent, GeminiAgent, OpenCodeAgent
 
             agent_map = {
                 "claude": ClaudeAgent,
                 "opencode": OpenCodeAgent,
                 "gemini": GeminiAgent,
-                "codex": CodexAgent,
                 "crush": CrushAgent,
             }
             agent_class = agent_map.get(agent_name.lower())

@@ -27,8 +27,7 @@ The GitHub issue monitoring pipeline was failing when trying to use OpenCode age
 
 ### 4. Updated Agent Implementations
 - **Crush Agent**: Now properly uses `mods` CLI with OpenRouter API
-- **Codex Agent**: Updated to use `mods` instead of the npm codex package
-- **OpenCode Agent**: Implemented proper command syntax but disabled due to provider configuration requirement
+- **OpenCode Agent**: Works seamlessly with OpenRouter out of the box
 
 ### 5. Environment Variable Handling
 - **File**: `packages/github_ai_agents/src/github_ai_agents/agents/containerized.py`
@@ -41,11 +40,11 @@ The GitHub issue monitoring pipeline was failing when trying to use OpenCode age
 ## Current Status
 
 ### Working Containerized Agents
-1. **Crush** - Uses mods CLI with OpenRouter
-2. **Codex** - Uses mods CLI with OpenRouter (GPT-4 model)
+1. **OpenCode** - Automatically detects and uses OpenRouter API
+2. **Crush** - Uses mods CLI with OpenRouter
 
-### Non-Working Agents
-1. **OpenCode** - Requires provider configuration, currently disabled
+### Removed Agents
+1. **Codex** - Removed as it doesn't support OpenRouter and doesn't fit the ecosystem
 
 ### Configuration Requirements
 - Set `OPENROUTER_API_KEY` environment variable
@@ -54,6 +53,9 @@ The GitHub issue monitoring pipeline was failing when trying to use OpenCode age
 
 ## Testing
 ```bash
+# Test OpenCode agent
+docker-compose run --rm openrouter-agents opencode run "Write a hello world function"
+
 # Test Crush agent
 docker-compose run --rm -T -e OPENAI_API_KEY="${OPENROUTER_API_KEY}" \
   openrouter-agents mods -a openrouter "Write a hello world function"
@@ -63,7 +65,6 @@ python3 -m github_ai_agents.cli issue-monitor
 ```
 
 ## Future Work
-1. Implement OpenCode provider configuration
-2. Consider using native Codex npm package
-3. Add more robust error handling and logging
-4. Improve documentation for containerized agent setup
+1. Add more robust error handling and logging
+2. Improve documentation for containerized agent setup
+3. Consider adding more OpenRouter-compatible agents

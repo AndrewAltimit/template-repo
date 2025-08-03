@@ -1,5 +1,5 @@
 # OpenRouter Agents Image with Node.js and Go
-# For agents that can be fully containerized (OpenCode, Codex, Crush)
+# For agents that can be fully containerized (OpenCode, Crush)
 
 # Use a base image that already has Node.js
 FROM node:20-slim
@@ -11,7 +11,6 @@ ARG GO_CHECKSUM_ARM64=44e2d8b8e1b24a87dcab8c0bbf673cfcf92dc2ac0b3094df48b5c7fdb6
 ARG OPENCODE_VERSION=0.3.112
 ARG OPENCODE_CHECKSUM_AMD64=ce02926bbe94ca91c5a46e97565e3f8d275f1a6c2fd3352f7f99f558f6b60e09
 ARG OPENCODE_CHECKSUM_ARM64=6ceae43795a62b572866e50d30d99e266889b6aeae1da058aab34041cc5d49d8
-ARG CODEX_VERSION=0.11.0
 # Crush doesn't have stable releases yet, using latest
 
 # Install Python 3.11 and all system dependencies in one layer
@@ -78,11 +77,6 @@ RUN ARCH=$(dpkg --print-architecture) && \
     rm /tmp/opencode.zip && \
     chmod +x /usr/local/bin/opencode
 
-# Install Codex CLI - OpenAI's experimental coding agent
-# Note: May show deprecation warnings for subdependencies (node-domexception, lodash.isequal, phin)
-# These are dependency warnings, not warnings about codex itself - the tool is actively maintained
-# Version pinned for reproducible builds
-RUN npm install -g @openai/codex@${CODEX_VERSION}
 
 # Install Crush from Charm Bracelet - AI-powered shell
 # Crush is a separate tool from mods, provides shell assistance
@@ -107,11 +101,9 @@ ENV PYTHONUNBUFFERED=1 \
 
 # Create necessary directories for node user
 RUN mkdir -p /home/node/.config/opencode \
-    /home/node/.config/codex \
     /home/node/.config/crush \
     /home/node/.cache \
     /home/node/.cache/opencode \
-    /home/node/.cache/codex \
     /home/node/.cache/crush \
     /home/node/.local \
     /home/node/.local/share \
@@ -127,8 +119,7 @@ COPY --chown=node:node packages/github_ai_agents/configs/opencode-config.json /h
 COPY --chown=node:node packages/github_ai_agents/configs/crush.json /home/node/.config/crush/crush.json
 COPY --chown=node:node packages/github_ai_agents/configs/crush-data.json /home/node/.local/share/crush/crush.json
 
-# Also copy the .crush directory with database (for any cached data)
-COPY --chown=node:node packages/github_ai_agents/configs/crush-config /home/node/.crush
+# Also copy the .crush directory with database (for any cached data) - skip if not present
 
 # Set ownership for all node user directories
 # This ensures the user can write to all necessary locations

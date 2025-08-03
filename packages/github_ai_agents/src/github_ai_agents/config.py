@@ -23,7 +23,7 @@ class AgentConfig:
         """Load configuration from file or use defaults."""
         # Default configuration
         default_config = {
-            "enabled_agents": ["claude", "gemini", "opencode", "codex", "crush"],
+            "enabled_agents": ["claude", "gemini", "opencode", "crush"],
             "agent_priorities": {
                 "issue_creation": ["claude"],
                 "pr_reviews": ["gemini", "claude"],
@@ -53,10 +53,6 @@ class AgentConfig:
                     "model": "qwen/qwen-2.5-coder-32b-instruct",
                     "temperature": 0.2,
                 },
-                "codex": {
-                    "model": "qwen/qwen-2.5-coder-32b-instruct",
-                    "temperature": 0.3,
-                },
                 "crush": {
                     "model": "qwen/qwen-2.5-coder-32b-instruct",
                     "temperature": 0.1,
@@ -80,7 +76,6 @@ class AgentConfig:
                     "claude": ["--print", "--dangerously-skip-permissions"],
                     "gemini": ["-m", "gemini-2.5-pro", "-p"],
                     "opencode": ["--non-interactive"],
-                    "codex": ["--non-interactive"],
                     "crush": ["--non-interactive", "--no-update"],
                 },
             },

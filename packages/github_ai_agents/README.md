@@ -1,6 +1,6 @@
 # GitHub AI Agents
 
-A Python package for AI-powered GitHub automation using multiple AI agents (Claude, OpenCode, Gemini, Codex, Crush).
+A Python package for AI-powered GitHub automation using multiple AI agents (Claude, OpenCode, Gemini, Crush).
 
 ## Features
 
@@ -105,7 +105,6 @@ ENABLE_AI_AGENTS=true
 | Claude | Anthropic's Claude AI | Subscription/API | Host only |
 | OpenCode | Open-source coding AI | API Key | Yes |
 | Gemini | Google's Gemini AI | CLI Auth | Host only |
-| Codex | OpenAI Codex | API Key | Yes |
 | Crush | Charm Bracelet Mods | API Key | Yes |
 
 ## Testing

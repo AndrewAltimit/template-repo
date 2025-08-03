@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Type
 
-from ..agents import ClaudeAgent, CodexAgent, CrushAgent, GeminiAgent, OpenCodeAgent
+from ..agents import ClaudeAgent, CrushAgent, GeminiAgent, OpenCodeAgent
 from ..config import AgentConfig
 from ..security import SecurityManager
 from ..utils import get_github_token, run_gh_command
@@ -24,12 +24,11 @@ class BaseMonitor(ABC):
         "claude": ClaudeAgent,
         "gemini": GeminiAgent,
         "opencode": OpenCodeAgent,
-        "codex": CodexAgent,
         "crush": CrushAgent,
     }
 
     # Containerized agents that require special handling
-    CONTAINERIZED_AGENTS = ["opencode", "codex", "crush"]
+    CONTAINERIZED_AGENTS = ["opencode", "crush"]
 
     def __init__(self):
         """Initialize base monitor."""

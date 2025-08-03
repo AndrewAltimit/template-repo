@@ -59,7 +59,6 @@ The trigger format is: `[Action][Agent]`
 - `[Claude]` - Claude Code agent
 - `[Gemini]` - Gemini CLI agent
 - `[OpenCode]` - Open-source coding AI
-- `[Codex]` - OpenAI Codex
 - `[Crush]` - Charm Bracelet Mods
 
 #### Examples
@@ -306,7 +305,6 @@ Each agent has specific flags for autonomous operation:
 - **Claude**: `--print --dangerously-skip-permissions`
 - **Gemini**: `-m model -p prompt` (non-interactive by design)
 - **OpenCode**: `--non-interactive`
-- **Codex**: `--non-interactive`
 - **Crush**: `--non-interactive --no-update`
 
 ## GitHub Etiquette

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from github_ai_agents.agents import BaseAgent, ClaudeAgent, CodexAgent, CrushAgent, GeminiAgent, OpenCodeAgent
+from github_ai_agents.agents import BaseAgent, ClaudeAgent, CrushAgent, GeminiAgent, OpenCodeAgent
 
 
 class TestBaseAgent:
@@ -168,30 +168,6 @@ class TestOpenCodeAgent:
             result = await agent.generate_code("Write a hello function", {"code": "# existing code"})
 
             assert result == "def hello():\n    print('Hello')"
-
-
-class TestCodexAgent:
-    """Test Codex agent."""
-
-    def test_initialization(self):
-        """Test Codex agent initialization."""
-        agent = CodexAgent()
-        assert agent.name == "codex"
-        assert agent.executable == "codex"  # Codex uses its own CLI from npm
-        assert agent.timeout == 300
-
-    def test_docker_preferred(self):
-        """Test that Docker is preferred for Codex."""
-        agent = CodexAgent()
-
-        with patch("subprocess.run") as mock_run:
-            with patch.object(agent, "_find_project_root", return_value=Path("/fake/root")):
-                with patch("pathlib.Path.exists", return_value=True):
-                    mock_run.return_value.returncode = 0
-                    mock_run.return_value.stdout = "openrouter-agents\n"
-
-                    assert agent.is_available() is True
-                    assert agent._use_docker is True
 
 
 class TestCrushAgent:

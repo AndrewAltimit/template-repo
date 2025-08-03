@@ -9,13 +9,12 @@
 # List of enabled agents
 # NOTE: Some agents are only available in specific environments:
 # - Host-only agents: claude (needs subscription auth), gemini (needs Docker access)
-# - Container-only agents: opencode, codex, crush (installed in openrouter-agents container)
+# - Container-only agents: opencode, crush (installed in openrouter-agents container)
 enabled_agents:
   - claude      # Anthropic's Claude Code (host-only, primary agent)
   - gemini      # Google's Gemini CLI (host-only, for reviews)
   # Containerized agents (automatically run in Docker when invoked)
   - opencode    # Open-source alternative (runs in container)
-  - codex       # OpenAI's Codex (runs in container)
   - crush       # Charm Bracelet's multi-provider tool (runs in container)
 
 # Agent priorities for different task types
@@ -86,10 +85,6 @@ model_overrides:
     model: qwen/qwen-2.5-coder-32b-instruct
     temperature: 0.2
 
-  codex:
-    model: qwen/qwen-2.5-coder-32b-instruct
-    temperature: 0.3
-
   crush:
     model: qwen/qwen-2.5-coder-32b-instruct
     temperature: 0.1  # Lower temperature for Crush
@@ -132,5 +127,4 @@ advanced:
     # The prompt is appended by the code: gemini -m gemini-2.5-pro -p "prompt text"
     gemini: ["-m", "gemini-2.5-pro", "-p"]
     opencode: ["--non-interactive"]
-    codex: ["--non-interactive"]
     crush: ["--non-interactive", "--no-update"]

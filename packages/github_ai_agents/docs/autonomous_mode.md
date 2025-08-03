@@ -43,12 +43,6 @@ opencode --non-interactive --model qwen/qwen-2.5-coder-32b-instruct --input prom
 - `--non-interactive`: Disables all interactive features
 - `--input`: File-based input (no terminal interaction)
 
-### Codex (OpenAI)
-```bash
-codex --non-interactive --input prompt.md
-```
-- `--non-interactive`: Autonomous operation mode
-
 ### Crush (Charm Bracelet)
 ```bash
 crush --provider openrouter --model qwen/qwen-2.5-coder-32b-instruct --non-interactive --no-update "prompt"

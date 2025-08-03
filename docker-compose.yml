@@ -111,7 +111,7 @@ services:
     profiles:
       - agents
 
-  # OpenRouter Agents container (OpenCode, Codex, Crush)
+  # OpenRouter Agents container (OpenCode, Crush)
   openrouter-agents:
     build:
       context: .
