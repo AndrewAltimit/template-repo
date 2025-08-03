@@ -62,7 +62,8 @@ RUN ARCH=$(dpkg --print-architecture) && \
 # Install Codex CLI - OpenAI's experimental coding agent
 # Note: May show deprecation warnings for subdependencies (node-domexception, lodash.isequal, phin)
 # These are dependency warnings, not warnings about codex itself - the tool is actively maintained
-RUN npm install -g @openai/codex
+# Version pinned for reproducible builds
+RUN npm install -g @openai/codex@0.11.0
 
 # Install Crush/mods from Charm Bracelet - VERIFIED WORKING
 # Pin to specific version for reproducible builds
