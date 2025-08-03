@@ -65,7 +65,7 @@ class CrushAgent(ContainerizedCLIAgent):
         """Build Crush CLI command."""
         # Crush usage: crush run -q "prompt"
         # -q = quiet mode (no spinner)
-        # Note: -y/--yolo is for dangerous mode but might help with direct output
+        # Note: -y/--yolo only works in interactive mode, not with run command
         args = ["run", "-q"]
 
         # Add any additional flags from config

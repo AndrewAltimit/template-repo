@@ -202,27 +202,35 @@ Issue #{issue_number}: {issue_title}
 Description:
 {issue_body}
 
+IMPORTANT: You must provide the ACTUAL IMPLEMENTATION, not just describe what you would do.
+
 Requirements:
-1. Create a complete, working implementation
-2. Follow the project's coding standards
-3. Add appropriate tests if needed
-4. Update documentation if needed
+1. If creating documentation, provide the COMPLETE document content
+2. If writing code, provide the COMPLETE working code
+3. If modifying files, show the COMPLETE updated content
+4. Follow the project's coding standards
 
-Please provide the implementation with proper code blocks using triple backticks (```)
-and specify the filename for each code block.
+OUTPUT FORMAT:
+- You MUST output all file contents in code blocks with triple backticks (```)
+- You MUST specify the filename for each file
+- Do NOT just describe what you would do - actually do it!
 
-Example format:
+Example for documentation:
 ```markdown
 # filename: README.md
-Content here...
+# Complete Title Here
+
+Full documentation content here...
 ```
 
-Or:
-
-Create file `README.md`:
-```markdown
-Content here...
+Example for code:
+```python
+# filename: main.py
+def actual_function():
+    return "actual implementation"
 ```
+
+Remember: Generate the ACTUAL content, not a description of what you would create!
 """
 
         # Generate implementation
