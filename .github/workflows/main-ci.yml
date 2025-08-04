@@ -185,6 +185,30 @@ jobs:
           except ImportError as e:
               print(f\"❌ Failed to import Gaea2 server: {e}\")
               exit(1)
+
+          # Test OpenCode server
+          try:
+              from tools.mcp.opencode.server import OpenCodeMCPServer
+              from tools.mcp.opencode.tools import TOOLS as OPENCODE_TOOLS
+              print(\"✅ OpenCode MCP server imported successfully\")
+              print(f\"  - {len(OPENCODE_TOOLS)} tools available\")
+              for tool in OPENCODE_TOOLS:
+                  print(f\"    - {tool}\")
+          except ImportError as e:
+              print(f\"❌ Failed to import OpenCode server: {e}\")
+              exit(1)
+
+          # Test Crush server
+          try:
+              from tools.mcp.crush.server import CrushMCPServer
+              from tools.mcp.crush.tools import TOOLS as CRUSH_TOOLS
+              print(\"✅ Crush MCP server imported successfully\")
+              print(f\"  - {len(CRUSH_TOOLS)} tools available\")
+              for tool in CRUSH_TOOLS:
+                  print(f\"    - {tool}\")
+          except ImportError as e:
+              print(f\"❌ Failed to import Crush server: {e}\")
+              exit(1)
           '
           "
 
@@ -401,7 +425,7 @@ jobs:
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-gaea2-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Build and push MCP HTTP Bridge image
+      - name: Build MCP HTTP Bridge image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -410,8 +434,42 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-http-bridge
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-http-bridge-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Build and push Python CI image
+      - name: Build OpenCode MCP image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/mcp-opencode.Dockerfile
+          push: false  # Disabled - network unreliable
+          tags: |
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-opencode
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-opencode-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Build Crush MCP image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/mcp-crush.Dockerfile
+          push: false  # Disabled - network unreliable
+          tags: |
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-crush
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-crush-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Build OpenRouter Agents image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/openrouter-agents.Dockerfile
+          push: false  # Disabled - network unreliable
+          tags: |
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-openrouter-agents
+            ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-openrouter-agents-${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Build Python CI image
         uses: docker/build-push-action@v5
         with:
           context: .
