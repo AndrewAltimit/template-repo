@@ -43,9 +43,6 @@ on:
           - inline       # Multiple inline comments where relevant
           - summary      # Single summary comment combining all agents
         default: 'consolidated'
-  schedule:
-    # Run daily at 2 AM UTC for automated reviews
-    - cron: '0 2 * * *'
 
 permissions:
   issues: write
