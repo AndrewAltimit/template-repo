@@ -1,6 +1,6 @@
 # Crush MCP Server
 
-The Crush MCP Server provides an HTTP/stdio interface for fast AI-powered code generation using Crush.
+The Crush MCP Server provides stdio and HTTP interfaces for fast AI-powered code generation using Crush.
 
 ## Overview
 
@@ -38,13 +38,17 @@ You can also create `crush-config.json` in your project root:
 
 ## Running the Server
 
-### Local Development
+### Local Use (via Claude/MCP)
+
+The server is configured to run in stdio mode through `.mcp.json` for seamless integration with Claude and other MCP clients on the same machine.
+
+### Development and Cross-Machine Access
 
 ```bash
 # Set your API key
 export OPENROUTER_API_KEY="your-api-key-here"
 
-# Run in HTTP mode (default)
+# Run in HTTP mode for cross-machine access
 python -m tools.mcp.crush.server --mode http
 
 # Run in stdio mode (for MCP integrations)

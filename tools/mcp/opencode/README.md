@@ -1,6 +1,6 @@
 # OpenCode MCP Server
 
-The OpenCode MCP Server provides an HTTP/stdio interface for AI-powered code generation using OpenCode.
+The OpenCode MCP Server provides stdio and HTTP interfaces for AI-powered code generation using OpenCode.
 
 ## Overview
 
@@ -39,13 +39,17 @@ You can also create `opencode-config.json` in your project root:
 
 ## Running the Server
 
-### Local Development
+### Local Use (via Claude/MCP)
+
+The server is configured to run in stdio mode through `.mcp.json` for seamless integration with Claude and other MCP clients on the same machine.
+
+### Development and Cross-Machine Access
 
 ```bash
 # Set your API key
 export OPENROUTER_API_KEY="your-api-key-here"
 
-# Run in HTTP mode (default)
+# Run in HTTP mode for cross-machine access
 python -m tools.mcp.opencode.server --mode http
 
 # Run in stdio mode (for MCP integrations)

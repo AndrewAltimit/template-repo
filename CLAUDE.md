@@ -108,6 +108,11 @@ python -m tools.mcp.content_creation.server  # Port 8011
 python -m tools.mcp.gaea2.server             # Port 8007
 python -m tools.mcp.ai_toolkit.server        # Port 8012 (bridge to remote)
 python -m tools.mcp.comfyui.server           # Port 8013 (bridge to remote)
+python -m tools.mcp.opencode.server          # Port 8014 - AI code generation (HTTP mode)
+python -m tools.mcp.crush.server             # Port 8015 - Fast code generation (HTTP mode)
+
+# Note: OpenCode and Crush run in STDIO mode through .mcp.json for local use,
+# HTTP mode is for cross-machine access or when running standalone
 
 # Gemini MUST run on host (requires Docker access)
 python -m tools.mcp.gemini.server            # Port 8006 - AI integration (host only)
@@ -272,12 +277,32 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - Bridge to remote ComfyUI instance at `192.168.0.152:8013`
    - See `tools/mcp/comfyui/docs/README.md` for documentation
 
-7. **Shared Core Components** (`tools/mcp/core/`):
+7. **OpenCode MCP Server** (`tools/mcp/opencode/`): Local STDIO interface
+   - **AI-Powered Code Generation**:
+     - `consult_opencode` - Generate, refactor, review, or explain code
+     - `clear_opencode_history` - Clear conversation history
+     - `opencode_status` - Get integration status and statistics
+     - `toggle_opencode_auto_consult` - Control auto-consultation
+   - Uses OpenRouter API with Qwen 2.5 Coder model
+   - Runs locally via stdio for better integration
+   - See `tools/mcp/opencode/docs/README.md` for documentation
+
+8. **Crush MCP Server** (`tools/mcp/crush/`): Local STDIO interface
+   - **Fast Code Generation**:
+     - `consult_crush` - Quick code generation and conversion
+     - `clear_crush_history` - Clear conversation history
+     - `crush_status` - Get integration status and statistics
+     - `toggle_crush_auto_consult` - Control auto-consultation
+   - Uses OpenRouter API with optimized models for speed
+   - Runs locally via stdio for better integration
+   - See `tools/mcp/crush/docs/README.md` for documentation
+
+9. **Shared Core Components** (`tools/mcp/core/`):
    - `BaseMCPServer` - Base class for all MCP servers
    - `HTTPBridge` - Bridge for remote MCP servers
    - Common utilities and helpers
 
-8. **Containerized CI/CD**:
+10. **Containerized CI/CD**:
    - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools
    - **Helper Scripts**: Centralized CI operations
    - **Individual MCP Containers**: Each server can run in its own optimized container

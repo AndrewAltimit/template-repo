@@ -4,12 +4,16 @@ This project uses a modular architecture with multiple Model Context Protocol (M
 
 ## Architecture Overview
 
-The MCP functionality is split across four modular servers:
+The MCP functionality is split across modular servers:
 
 1. **Code Quality MCP Server** (Port 8010) - Containerized, provides code formatting and linting tools
 2. **Content Creation MCP Server** (Port 8011) - Containerized, provides Manim animations and LaTeX compilation
 3. **Gaea2 MCP Server** (Port 8007) - Containerized, provides terrain generation and workflow management
 4. **Gemini MCP Server** (Port 8006) - Host-only, provides Gemini AI integration (requires Docker access)
+5. **AI Toolkit MCP Server** (Port 8012) - Bridge to remote AI Toolkit for LoRA training
+6. **ComfyUI MCP Server** (Port 8013) - Bridge to remote ComfyUI for image generation
+7. **OpenCode MCP Server** (Port 8014) - Containerized, AI-powered code generation (stdio/HTTP)
+8. **Crush MCP Server** (Port 8015) - Containerized, fast code generation (stdio/HTTP)
 
 This modular architecture ensures better separation of concerns, easier maintenance, and the ability to scale individual services independently.
 

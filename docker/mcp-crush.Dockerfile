@@ -53,7 +53,9 @@ RUN pip install --no-cache-dir --break-system-packages \
 # Create necessary directories for node user
 RUN mkdir -p /home/node/.config/crush \
     /home/node/.cache/crush \
-    /home/node/.local/share/crush
+    /home/node/.local/share/crush \
+    /home/node/.crush \
+    /home/node/workspace
 
 # Copy Crush configurations
 COPY --chown=node:node packages/github_ai_agents/configs/crush.json /home/node/.config/crush/crush.json
@@ -69,7 +71,8 @@ COPY --chown=node:node tools/mcp /app/tools/mcp
 ENV PYTHONPATH=/app
 
 # Set ownership for all node user directories
-RUN chown -R node:node /home/node /app
+RUN chown -R node:node /home/node /app \
+    && chmod -R 755 /home/node/.crush /home/node/workspace
 
 # Switch to node user
 USER node
@@ -79,6 +82,9 @@ ENV HOME=/home/node
 
 # Verify crush is installed
 RUN which crush
+
+# Set working directory to a writable location
+WORKDIR /home/node/workspace
 
 # Default command
 CMD ["python", "-m", "tools.mcp.crush.server", "--mode", "http"]

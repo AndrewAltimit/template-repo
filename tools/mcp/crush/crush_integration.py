@@ -184,6 +184,7 @@ class CrushIntegration:
     async def _execute_crush_direct(self, prompt: str) -> Dict[str, Any]:
         """Execute Crush binary directly (when already in container)"""
         start_time = time.time()
+        logger.info(f"Starting direct crush execution with prompt: {prompt[:50]}...")
 
         # Build crush command
         cmd = ["crush", "run"]
@@ -195,27 +196,35 @@ class CrushIntegration:
         # Add the prompt
         cmd.append(prompt)
 
+        logger.info(f"Command: {' '.join(cmd)}")
+
         try:
             # Set environment for the subprocess
             env = os.environ.copy()
             env["OPENROUTER_API_KEY"] = self.api_key
             env["OPENAI_API_KEY"] = self.api_key  # Some tools expect this
             env["HOME"] = "/home/node"  # Ensure HOME is set for crush database
+            env["TERM"] = "dumb"  # Disable TTY features
+            env["NO_COLOR"] = "1"  # Disable color output
 
-            # Create process - run from home directory where crush expects its database
+            # Create process - run from workspace directory which is writable
+            logger.info("Creating crush subprocess...")
             process = await asyncio.create_subprocess_exec(
                 *cmd,
+                stdin=asyncio.subprocess.DEVNULL,  # Explicitly close stdin
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env=env,
-                cwd="/home/node",  # Run from home directory
+                cwd="/home/node/workspace",  # Run from writable workspace directory
             )
 
             # Get output with timeout
+            logger.info("Waiting for crush process to complete...")
             stdout, stderr = await asyncio.wait_for(
                 process.communicate(),
                 timeout=self.timeout,
             )
+            logger.info(f"Process completed with return code: {process.returncode}")
 
             execution_time = time.time() - start_time
 
@@ -224,6 +233,7 @@ class CrushIntegration:
                 raise Exception(f"Crush failed with exit code {process.returncode}: {error_msg}")
 
             output = stdout.decode().strip()
+            logger.info(f"Crush output: {output[:100]}...")
 
             # Log stderr if present (might contain warnings)
             if stderr:

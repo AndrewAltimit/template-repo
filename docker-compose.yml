@@ -130,6 +130,9 @@ services:
     volumes:
       - ./:/app:ro
       - /tmp:/tmp
+      - crush-data:/home/node/.crush
+      - crush-local-data:/home/node/.local/share/crush
+      - crush-cache:/home/node/.cache/crush
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8015
@@ -290,6 +293,9 @@ networks:
 
 volumes:
   postgres_data: {}
+  crush-data: {}
+  crush-local-data: {}
+  crush-cache: {}
 
 # Secrets are managed at runtime by GitHub Actions or local setup script
 # Never commit actual secret files to the repository!
