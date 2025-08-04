@@ -168,11 +168,14 @@ pr-monitor
 # - PR Review Monitor: Every hour (runs on host)
 
 # Installation:
-# Install the new AI agents package:
+# Step 1: Install the GitHub AI agents package (required for all agents):
 pip3 install -e ./packages/github_ai_agents
 
-# Note: Host dependencies only needed for Claude/Gemini:
+# Step 2: If running Claude or Gemini on host, install host-specific dependencies:
 pip3 install --user -r docker/requirements-agents.txt
+
+# Note: Step 2 is only needed if you plan to use Claude or Gemini agents.
+# Containerized agents (OpenCode, Crush) don't require host dependencies.
 ```
 
 ### Docker Operations

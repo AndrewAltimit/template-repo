@@ -81,6 +81,12 @@ jobs:
           echo "[INFO] Installing additional requirements..."
           pip3 install --user -r docker/requirements-agents.txt
 
+      - name: Build Docker containers for OpenRouter agents
+        run: |
+          echo "[INFO] Building openrouter-agents container for OpenCode/Crush support..."
+          docker-compose --profile agents build openrouter-agents
+          echo "[INFO] Container build complete"
+
       - name: Run PR review monitor on host
         env:
           # Use AI_AGENT_TOKEN which has write permissions for applying review suggestions
