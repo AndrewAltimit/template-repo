@@ -4,7 +4,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from ..core.base_server import BaseMCPServer
 from ..core.utils import setup_logging
@@ -27,6 +27,9 @@ class OpenCodeMCPServer(BaseMCPServer):
         self.opencode_config = self._load_opencode_config()
         self.opencode = self._initialize_opencode()
 
+        # Track auto-consultation status
+        self.last_response_uncertainty = None
+
     def _load_opencode_config(self) -> Dict[str, Any]:
         """Load OpenCode configuration from environment or config file"""
         # Try to load .env file if it exists
@@ -46,11 +49,12 @@ class OpenCodeMCPServer(BaseMCPServer):
 
         config = {
             "enabled": os.getenv("OPENCODE_ENABLED", "true").lower() == "true",
+            "auto_consult": os.getenv("OPENCODE_AUTO_CONSULT", "true").lower() == "true",
             "api_key": os.getenv("OPENROUTER_API_KEY", ""),
             "model": os.getenv("OPENCODE_MODEL", "qwen/qwen-2.5-coder-32b-instruct"),
             "timeout": int(os.getenv("OPENCODE_TIMEOUT", "300")),
             "max_context_length": int(os.getenv("OPENCODE_MAX_CONTEXT", "8000")),
-            "log_generations": os.getenv("OPENCODE_LOG_GENERATIONS", "true").lower() == "true",
+            "log_consultations": os.getenv("OPENCODE_LOG_CONSULTATIONS", "true").lower() == "true",
             "include_history": os.getenv("OPENCODE_INCLUDE_HISTORY", "true").lower() == "true",
             "max_history_entries": int(os.getenv("OPENCODE_MAX_HISTORY", "5")),
             "docker_service": "openrouter-agents",
@@ -87,8 +91,9 @@ class OpenCodeMCPServer(BaseMCPServer):
             class MockOpenCode:
                 def __init__(self):
                     self.enabled = False
+                    self.auto_consult = False
 
-                async def generate_code(self, **kwargs):
+                async def consult_opencode(self, **kwargs):
                     return {
                         "status": "disabled",
                         "error": "OpenCode integration not available",
@@ -105,75 +110,37 @@ class OpenCodeMCPServer(BaseMCPServer):
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return available OpenCode tools"""
         return {
-            "generate_code": {
-                "description": "Generate code using OpenCode AI",
+            "consult_opencode": {
+                "description": "Consult OpenCode AI for code generation, refactoring, or review",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "prompt": {
+                        "query": {
                             "type": "string",
-                            "description": "The coding task or question",
+                            "description": "The coding question, task, or code to consult about",
                         },
                         "context": {
                             "type": "string",
                             "description": "Additional context or existing code",
                         },
-                        "language": {
+                        "mode": {
                             "type": "string",
-                            "description": "Programming language (optional)",
+                            "enum": ["generate", "refactor", "review", "explain"],
+                            "default": "generate",
+                            "description": "Consultation mode",
                         },
-                        "include_tests": {
-                            "type": "boolean",
-                            "default": False,
-                            "description": "Include unit tests in the generated code",
-                        },
-                        "plan_mode": {
-                            "type": "boolean",
-                            "default": False,
-                            "description": "Use plan mode for multi-step tasks",
-                        },
-                    },
-                    "required": ["prompt"],
-                },
-            },
-            "refactor_code": {
-                "description": "Refactor existing code using OpenCode",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "code": {
-                            "type": "string",
-                            "description": "The code to refactor",
-                        },
-                        "instructions": {
-                            "type": "string",
-                            "description": "Refactoring instructions or goals",
-                        },
-                        "preserve_functionality": {
+                        "comparison_mode": {
                             "type": "boolean",
                             "default": True,
-                            "description": "Ensure refactoring preserves functionality",
+                            "description": "Compare with previous Claude response",
+                        },
+                        "force": {
+                            "type": "boolean",
+                            "default": False,
+                            "description": "Force consultation even if disabled",
                         },
                     },
-                    "required": ["code", "instructions"],
-                },
-            },
-            "review_code": {
-                "description": "Review code and provide feedback",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "code": {
-                            "type": "string",
-                            "description": "The code to review",
-                        },
-                        "focus_areas": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Specific areas to focus on (e.g., security, performance)",
-                        },
-                    },
-                    "required": ["code"],
+                    "required": ["query"],
                 },
             },
             "clear_opencode_history": {
@@ -184,128 +151,78 @@ class OpenCodeMCPServer(BaseMCPServer):
                 "description": "Get OpenCode integration status and statistics",
                 "parameters": {"type": "object", "properties": {}},
             },
+            "toggle_opencode_auto_consult": {
+                "description": "Toggle automatic OpenCode consultation on uncertainty detection",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "enable": {
+                            "type": "boolean",
+                            "description": "Enable or disable auto-consultation",
+                        }
+                    },
+                },
+            },
         }
 
-    async def generate_code(
+    async def consult_opencode(
         self,
-        prompt: str,
+        query: str,
         context: str = "",
-        language: str = "",
-        include_tests: bool = False,
-        plan_mode: bool = False,
+        mode: str = "generate",
+        comparison_mode: bool = True,
+        force: bool = False,
     ) -> Dict[str, Any]:
-        """Generate code using OpenCode AI
+        """Consult OpenCode AI for coding assistance
 
         Args:
-            prompt: The coding task or question
-            context: Additional context or existing code
-            language: Programming language (optional)
-            include_tests: Include unit tests
-            plan_mode: Use plan mode for multi-step tasks
+            query: The question, task, or code to consult about
+            context: Additional context
+            mode: Consultation mode (generate, refactor, review, explain)
+            comparison_mode: Compare with previous Claude response
+            force: Force consultation even if disabled
 
         Returns:
-            Dictionary with generation results
+            Dictionary with consultation results
         """
-        if not prompt:
+        if not query:
             return {
                 "success": False,
-                "error": "'prompt' parameter is required for code generation",
+                "error": "'query' parameter is required for OpenCode consultation",
             }
 
-        # Generate code
-        result = await self.opencode.generate_code(
-            prompt=prompt,
-            context=context,
-            language=language,
-            include_tests=include_tests,
-            plan_mode=plan_mode,
-        )
+        # Build prompt based on mode
+        if mode == "refactor":
+            prompt = f"Refactor the following code: {query}"
+            if context:
+                prompt += f"\n\nInstructions: {context}"
+        elif mode == "review":
+            prompt = f"Review the following code and provide feedback: {query}"
+            if context:
+                prompt += f"\n\nFocus areas: {context}"
+        elif mode == "explain":
+            prompt = f"Explain the following code: {query}"
+            if context:
+                prompt += f"\n\nSpecific focus: {context}"
+        else:  # generate mode
+            prompt = query
+
+        # Consult OpenCode
+        if hasattr(self.opencode, "consult_opencode"):
+            result = await self.opencode.consult_opencode(
+                query=prompt,
+                context=context,
+                comparison_mode=comparison_mode,
+                force_consult=force,
+            )
+        else:
+            # Fallback to generate_code for backward compatibility
+            result = await self.opencode.generate_code(
+                prompt=prompt,
+                context=context,
+            )
 
         # Format the response
-        formatted_response = self._format_opencode_response(result)
-
-        return {
-            "success": result.get("status") == "success",
-            "result": formatted_response,
-            "raw_result": result,
-        }
-
-    async def refactor_code(
-        self,
-        code: str,
-        instructions: str,
-        preserve_functionality: bool = True,
-    ) -> Dict[str, Any]:
-        """Refactor existing code
-
-        Args:
-            code: The code to refactor
-            instructions: Refactoring instructions
-            preserve_functionality: Ensure functionality is preserved
-
-        Returns:
-            Dictionary with refactored code
-        """
-        if not code or not instructions:
-            return {
-                "success": False,
-                "error": "Both 'code' and 'instructions' parameters are required",
-            }
-
-        # Use generate_code with refactoring prompt
-        refactor_prompt = f"""Refactor the following code according to these instructions: {instructions}
-
-{"IMPORTANT: Preserve all existing functionality." if preserve_functionality else ""}
-
-Code to refactor:
-```
-{code}
-```"""
-
-        result = await self.opencode.generate_code(
-            prompt=refactor_prompt,
-            context=code,
-        )
-
-        formatted_response = self._format_opencode_response(result)
-
-        return {
-            "success": result.get("status") == "success",
-            "result": formatted_response,
-            "raw_result": result,
-        }
-
-    async def review_code(
-        self,
-        code: str,
-        focus_areas: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
-        """Review code and provide feedback
-
-        Args:
-            code: The code to review
-            focus_areas: Specific areas to focus on
-
-        Returns:
-            Dictionary with review feedback
-        """
-        if not code:
-            return {
-                "success": False,
-                "error": "'code' parameter is required for code review",
-            }
-
-        # Build review prompt
-        review_prompt = "Please review the following code and provide feedback"
-        if focus_areas:
-            review_prompt += f" focusing on: {', '.join(focus_areas)}"
-        review_prompt += "."
-
-        result = await self.opencode.generate_code(
-            prompt=review_prompt,
-            context=code,
-        )
-
         formatted_response = self._format_opencode_response(result)
 
         return {
@@ -325,6 +242,7 @@ Code to refactor:
 
         status_info = {
             "enabled": getattr(self.opencode, "enabled", False),
+            "auto_consult": getattr(self.opencode, "auto_consult", False),
             "model": self.opencode_config.get("model", "unknown"),
             "timeout": self.opencode_config.get("timeout", 300),
             "api_key_configured": bool(self.opencode_config.get("api_key")),
@@ -333,31 +251,53 @@ Code to refactor:
 
         return {"success": True, "status": status_info}
 
+    async def toggle_opencode_auto_consult(self, enable: Optional[bool] = None) -> Dict[str, Any]:
+        """Toggle automatic OpenCode consultation
+
+        Args:
+            enable: True to enable, False to disable, None to toggle
+
+        Returns:
+            Dictionary with new status
+        """
+        if enable is None:
+            # Toggle current state
+            self.opencode.auto_consult = not getattr(self.opencode, "auto_consult", False)
+        else:
+            self.opencode.auto_consult = bool(enable)
+
+        status = "enabled" if self.opencode.auto_consult else "disabled"
+        return {
+            "success": True,
+            "status": status,
+            "message": f"OpenCode auto-consultation is now {status}",
+        }
+
     def _format_opencode_response(self, result: Dict[str, Any]) -> str:
-        """Format OpenCode generation response"""
+        """Format OpenCode consultation response"""
         output_lines = []
-        output_lines.append("🤖 OpenCode Response")
+        output_lines.append("🤖 OpenCode Consultation Response")
         output_lines.append("=" * 40)
         output_lines.append("")
 
         if result["status"] == "success":
-            output_lines.append(f"✅ Generation ID: {result.get('generation_id', 'N/A')}")
+            output_lines.append(f"✅ Consultation ID: {result.get('consultation_id', result.get('generation_id', 'N/A'))}")
             output_lines.append(f"⏱️  Execution time: {result.get('execution_time', 0):.2f}s")
             output_lines.append("")
 
-            # Display the generated code or response
+            # Display the response
             response = result.get("response", "")
             if response:
-                output_lines.append("📄 Generated Code:")
+                output_lines.append("📄 Response:")
                 output_lines.append(response)
 
         elif result["status"] == "disabled":
-            output_lines.append("ℹ️  OpenCode integration is currently disabled")
-            output_lines.append("💡 Enable by setting OPENCODE_ENABLED=true")
+            output_lines.append("ℹ️  OpenCode consultation is currently disabled")
+            output_lines.append("💡 Enable with: toggle_opencode_auto_consult")
 
         elif result["status"] == "timeout":
             output_lines.append(f"❌ {result.get('error', 'Timeout error')}")
-            output_lines.append("💡 Try increasing the timeout or simplifying the task")
+            output_lines.append("💡 Try increasing the timeout or simplifying the query")
 
         else:  # error
             output_lines.append(f"❌ Error: {result.get('error', 'Unknown error')}")

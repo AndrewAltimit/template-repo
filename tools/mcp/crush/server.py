@@ -27,6 +27,9 @@ class CrushMCPServer(BaseMCPServer):
         self.crush_config = self._load_crush_config()
         self.crush = self._initialize_crush()
 
+        # Track auto-consultation status
+        self.last_response_uncertainty = None
+
     def _load_crush_config(self) -> Dict[str, Any]:
         """Load Crush configuration from environment or config file"""
         # Try to load .env file if it exists
@@ -46,10 +49,11 @@ class CrushMCPServer(BaseMCPServer):
 
         config = {
             "enabled": os.getenv("CRUSH_ENABLED", "true").lower() == "true",
+            "auto_consult": os.getenv("CRUSH_AUTO_CONSULT", "true").lower() == "true",
             "api_key": os.getenv("OPENROUTER_API_KEY", ""),
             "timeout": int(os.getenv("CRUSH_TIMEOUT", "300")),
             "max_prompt_length": int(os.getenv("CRUSH_MAX_PROMPT", "4000")),
-            "log_generations": os.getenv("CRUSH_LOG_GENERATIONS", "true").lower() == "true",
+            "log_consultations": os.getenv("CRUSH_LOG_CONSULTATIONS", "true").lower() == "true",
             "include_history": os.getenv("CRUSH_INCLUDE_HISTORY", "true").lower() == "true",
             "max_history_entries": int(os.getenv("CRUSH_MAX_HISTORY", "5")),
             "docker_service": "openrouter-agents",
@@ -87,8 +91,9 @@ class CrushMCPServer(BaseMCPServer):
             class MockCrush:
                 def __init__(self):
                     self.enabled = False
+                    self.auto_consult = False
 
-                async def generate_response(self, **kwargs):
+                async def consult_crush(self, **kwargs):
                     return {
                         "status": "disabled",
                         "error": "Crush integration not available",
@@ -105,62 +110,37 @@ class CrushMCPServer(BaseMCPServer):
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return available Crush tools"""
         return {
-            "quick_generate": {
-                "description": "Quick code generation using Crush AI",
+            "consult_crush": {
+                "description": "Consult Crush AI for quick code generation, explanation, or conversion",
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "prompt": {
+                        "query": {
                             "type": "string",
-                            "description": "The coding task or question",
+                            "description": "The coding question, task, or code to consult about",
                         },
-                        "style": {
+                        "context": {
                             "type": "string",
-                            "enum": ["concise", "detailed", "explained"],
-                            "default": "concise",
-                            "description": "Output style preference",
+                            "description": "Additional context or target language for conversion",
                         },
-                    },
-                    "required": ["prompt"],
-                },
-            },
-            "explain_code": {
-                "description": "Explain code using Crush",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "code": {
+                        "mode": {
                             "type": "string",
-                            "description": "The code to explain",
+                            "enum": ["generate", "explain", "convert", "quick"],
+                            "default": "quick",
+                            "description": "Consultation mode",
                         },
-                        "focus": {
-                            "type": "string",
-                            "description": "Specific aspect to focus on (optional)",
-                        },
-                    },
-                    "required": ["code"],
-                },
-            },
-            "convert_code": {
-                "description": "Convert code between languages",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "code": {
-                            "type": "string",
-                            "description": "The code to convert",
-                        },
-                        "target_language": {
-                            "type": "string",
-                            "description": "Target programming language",
-                        },
-                        "preserve_comments": {
+                        "comparison_mode": {
                             "type": "boolean",
                             "default": True,
-                            "description": "Preserve comments in conversion",
+                            "description": "Compare with previous Claude response",
+                        },
+                        "force": {
+                            "type": "boolean",
+                            "default": False,
+                            "description": "Force consultation even if disabled",
                         },
                     },
-                    "required": ["code", "target_language"],
+                    "required": ["query"],
                 },
             },
             "clear_crush_history": {
@@ -171,109 +151,77 @@ class CrushMCPServer(BaseMCPServer):
                 "description": "Get Crush integration status and statistics",
                 "parameters": {"type": "object", "properties": {}},
             },
+            "toggle_crush_auto_consult": {
+                "description": "Toggle automatic Crush consultation on uncertainty detection",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "enable": {
+                            "type": "boolean",
+                            "description": "Enable or disable auto-consultation",
+                        }
+                    },
+                },
+            },
         }
 
-    async def quick_generate(
+    async def consult_crush(
         self,
-        prompt: str,
-        style: str = "concise",
+        query: str,
+        context: str = "",
+        mode: str = "quick",
+        comparison_mode: bool = True,
+        force: bool = False,
     ) -> Dict[str, Any]:
-        """Quick code generation using Crush AI
+        """Consult Crush AI for coding assistance
 
         Args:
-            prompt: The coding task or question
-            style: Output style (concise, detailed, explained)
+            query: The question, task, or code to consult about
+            context: Additional context or target language for conversion
+            mode: Consultation mode (generate, explain, convert, quick)
+            comparison_mode: Compare with previous Claude response
+            force: Force consultation even if disabled
 
         Returns:
-            Dictionary with generation results
+            Dictionary with consultation results
         """
-        if not prompt:
+        if not query:
             return {
                 "success": False,
-                "error": "'prompt' parameter is required for code generation",
+                "error": "'query' parameter is required for Crush consultation",
             }
 
-        # Adjust prompt based on style
-        styled_prompt = self._style_prompt(prompt, style)
+        # Build prompt based on mode
+        if mode == "explain":
+            prompt = "Explain the following code"
+            if context:
+                prompt += f", focusing on {context}"
+            prompt += f":\n\n```\n{query}\n```"
+        elif mode == "convert":
+            if not context:
+                return {
+                    "success": False,
+                    "error": "'context' parameter is required for conversion (target language)",
+                }
+            prompt = f"Convert the following code to {context}:\n\n```\n{query}\n```"
+        elif mode == "generate":
+            prompt = self._style_prompt(query, "detailed")
+        else:  # quick mode
+            prompt = self._style_prompt(query, "concise")
 
-        # Generate response
-        result = await self.crush.generate_response(prompt=styled_prompt)
+        # Consult Crush
+        if hasattr(self.crush, "consult_crush"):
+            result = await self.crush.consult_crush(
+                query=prompt,
+                context=context,
+                comparison_mode=comparison_mode,
+                force_consult=force,
+            )
+        else:
+            # Fallback to generate_response for backward compatibility
+            result = await self.crush.generate_response(prompt=prompt)
 
         # Format the response
-        formatted_response = self._format_crush_response(result)
-
-        return {
-            "success": result.get("status") == "success",
-            "result": formatted_response,
-            "raw_result": result,
-        }
-
-    async def explain_code(
-        self,
-        code: str,
-        focus: str = "",
-    ) -> Dict[str, Any]:
-        """Explain code using Crush
-
-        Args:
-            code: The code to explain
-            focus: Specific aspect to focus on
-
-        Returns:
-            Dictionary with explanation
-        """
-        if not code:
-            return {
-                "success": False,
-                "error": "'code' parameter is required for explanation",
-            }
-
-        # Build explanation prompt
-        explain_prompt = "Explain the following code"
-        if focus:
-            explain_prompt += f", focusing on {focus}"
-        explain_prompt += f":\n\n```\n{code}\n```"
-
-        result = await self.crush.generate_response(prompt=explain_prompt)
-
-        formatted_response = self._format_crush_response(result)
-
-        return {
-            "success": result.get("status") == "success",
-            "result": formatted_response,
-            "raw_result": result,
-        }
-
-    async def convert_code(
-        self,
-        code: str,
-        target_language: str,
-        preserve_comments: bool = True,
-    ) -> Dict[str, Any]:
-        """Convert code between languages
-
-        Args:
-            code: The code to convert
-            target_language: Target programming language
-            preserve_comments: Whether to preserve comments
-
-        Returns:
-            Dictionary with converted code
-        """
-        if not code or not target_language:
-            return {
-                "success": False,
-                "error": "Both 'code' and 'target_language' parameters are required",
-            }
-
-        # Build conversion prompt
-        convert_prompt = f"Convert the following code to {target_language}"
-        if preserve_comments:
-            convert_prompt += " (preserve all comments)"
-        convert_prompt += f":\n\n```\n{code}\n```"
-
-        result = await self.crush.generate_response(prompt=convert_prompt)
-
         formatted_response = self._format_crush_response(result)
 
         return {
@@ -293,12 +241,35 @@ class CrushMCPServer(BaseMCPServer):
 
         status_info = {
             "enabled": getattr(self.crush, "enabled", False),
+            "auto_consult": getattr(self.crush, "auto_consult", False),
             "timeout": self.crush_config.get("timeout", 300),
             "api_key_configured": bool(self.crush_config.get("api_key")),
             "statistics": stats,
         }
 
         return {"success": True, "status": status_info}
+
+    async def toggle_crush_auto_consult(self, enable: Optional[bool] = None) -> Dict[str, Any]:
+        """Toggle automatic Crush consultation
+
+        Args:
+            enable: True to enable, False to disable, None to toggle
+
+        Returns:
+            Dictionary with new status
+        """
+        if enable is None:
+            # Toggle current state
+            self.crush.auto_consult = not getattr(self.crush, "auto_consult", False)
+        else:
+            self.crush.auto_consult = bool(enable)
+
+        status = "enabled" if self.crush.auto_consult else "disabled"
+        return {
+            "success": True,
+            "status": status,
+            "message": f"Crush auto-consultation is now {status}",
+        }
 
     def _style_prompt(self, prompt: str, style: str) -> str:
         """Adjust prompt based on style preference"""
@@ -311,14 +282,14 @@ class CrushMCPServer(BaseMCPServer):
         return prompt
 
     def _format_crush_response(self, result: Dict[str, Any]) -> str:
-        """Format Crush generation response"""
+        """Format Crush consultation response"""
         output_lines = []
-        output_lines.append("⚡ Crush Response")
+        output_lines.append("⚡ Crush Consultation Response")
         output_lines.append("=" * 40)
         output_lines.append("")
 
         if result["status"] == "success":
-            output_lines.append(f"✅ Generation ID: {result.get('generation_id', 'N/A')}")
+            output_lines.append(f"✅ Consultation ID: {result.get('consultation_id', result.get('generation_id', 'N/A'))}")
             output_lines.append(f"⏱️  Execution time: {result.get('execution_time', 0):.2f}s")
             output_lines.append("")
 
@@ -329,12 +300,12 @@ class CrushMCPServer(BaseMCPServer):
                 output_lines.append(response)
 
         elif result["status"] == "disabled":
-            output_lines.append("ℹ️  Crush integration is currently disabled")
-            output_lines.append("💡 Enable by setting CRUSH_ENABLED=true")
+            output_lines.append("ℹ️  Crush consultation is currently disabled")
+            output_lines.append("💡 Enable with: toggle_crush_auto_consult")
 
         elif result["status"] == "timeout":
             output_lines.append(f"❌ {result.get('error', 'Timeout error')}")
-            output_lines.append("💡 Try a simpler prompt or increase the timeout")
+            output_lines.append("💡 Try a simpler query or increase the timeout")
 
         else:  # error
             output_lines.append(f"❌ Error: {result.get('error', 'Unknown error')}")

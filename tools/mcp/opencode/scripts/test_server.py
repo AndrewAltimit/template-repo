@@ -53,22 +53,21 @@ async def test_opencode_server():
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
-        # Test 3: Generate code
-        print("\n3. Testing code generation...")
+        # Test 3: Consult for code generation
+        print("\n3. Testing code generation consultation...")
         try:
             payload = {
-                "tool": "generate_code",
+                "tool": "consult_opencode",
                 "arguments": {
-                    "prompt": "Write a Python function to calculate fibonacci numbers",
-                    "language": "python",
-                    "include_tests": True,
+                    "query": "Write a Python function to calculate fibonacci numbers with unit tests",
+                    "mode": "generate",
                 },
             }
             async with session.post(f"{base_url}/mcp/execute", json=payload) as resp:
                 if resp.status == 200:
                     result = await resp.json()
                     if result.get("success"):
-                        print("   ✅ Code generation successful!")
+                        print("   ✅ Code generation consultation successful!")
                         print(f"   Generated in: {result.get('raw_result', {}).get('execution_time', 'N/A')}s")
                         # Show first 200 chars of result
                         response = result.get("result", "")
@@ -77,7 +76,7 @@ async def test_opencode_server():
                         else:
                             print(f"   Result type: {type(response)}")
                     else:
-                        print(f"   ❌ Generation failed: {result.get('error')}")
+                        print(f"   ❌ Consultation failed: {result.get('error')}")
                 else:
                     print(f"   ❌ Request failed: {resp.status}")
                     error_text = await resp.text()
@@ -85,8 +84,8 @@ async def test_opencode_server():
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
-        # Test 4: Refactor code
-        print("\n4. Testing code refactoring...")
+        # Test 4: Consult for code refactoring
+        print("\n4. Testing code refactoring consultation...")
         try:
             test_code = """
 def calc(x, y):
@@ -94,45 +93,66 @@ def calc(x, y):
     return r
 """
             payload = {
-                "tool": "refactor_code",
+                "tool": "consult_opencode",
                 "arguments": {
-                    "code": test_code,
-                    "instructions": "Make this more readable with better variable names and add type hints",
+                    "query": test_code,
+                    "context": "Make this more readable with better variable names and add type hints",
+                    "mode": "refactor",
                 },
             }
             async with session.post(f"{base_url}/mcp/execute", json=payload) as resp:
                 if resp.status == 200:
                     result = await resp.json()
                     if result.get("success"):
-                        print("   ✅ Code refactoring successful!")
+                        print("   ✅ Code refactoring consultation successful!")
                     else:
-                        print(f"   ❌ Refactoring failed: {result.get('error')}")
+                        print(f"   ❌ Consultation failed: {result.get('error')}")
                 else:
                     print(f"   ❌ Request failed: {resp.status}")
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
-        # Test 5: Code review
-        print("\n5. Testing code review...")
+        # Test 5: Consult for code review
+        print("\n5. Testing code review consultation...")
         try:
             payload = {
-                "tool": "review_code",
-                "arguments": {"code": test_code, "focus_areas": ["readability", "best practices"]},
+                "tool": "consult_opencode",
+                "arguments": {
+                    "query": test_code,
+                    "context": "readability, best practices",
+                    "mode": "review",
+                },
             }
             async with session.post(f"{base_url}/mcp/execute", json=payload) as resp:
                 if resp.status == 200:
                     result = await resp.json()
                     if result.get("success"):
-                        print("   ✅ Code review successful!")
+                        print("   ✅ Code review consultation successful!")
                     else:
-                        print(f"   ❌ Review failed: {result.get('error')}")
+                        print(f"   ❌ Consultation failed: {result.get('error')}")
                 else:
                     print(f"   ❌ Request failed: {resp.status}")
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
-        # Test 6: Status check
-        print("\n6. Testing status...")
+        # Test 6: Toggle auto-consultation
+        print("\n6. Testing auto-consultation toggle...")
+        try:
+            payload = {"tool": "toggle_opencode_auto_consult", "arguments": {"enable": False}}
+            async with session.post(f"{base_url}/mcp/execute", json=payload) as resp:
+                if resp.status == 200:
+                    result = await resp.json()
+                    if result.get("success"):
+                        print(f"   ✅ Auto-consultation toggle successful: {result.get('message')}")
+                    else:
+                        print(f"   ❌ Toggle failed: {result.get('error')}")
+                else:
+                    print(f"   ❌ Request failed: {resp.status}")
+        except Exception as e:
+            print(f"   ❌ Error: {e}")
+
+        # Test 7: Status check
+        print("\n7. Testing status...")
         try:
             payload = {"tool": "opencode_status", "arguments": {}}
             async with session.post(f"{base_url}/mcp/execute", json=payload) as resp:
@@ -142,6 +162,7 @@ def calc(x, y):
                         status = result.get("status", {})
                         print("   ✅ Status check successful!")
                         print(f"   - Enabled: {status.get('enabled')}")
+                        print(f"   - Auto Consult: {status.get('auto_consult')}")
                         print(f"   - Model: {status.get('model')}")
                         print(f"   - API Key Configured: {status.get('api_key_configured')}")
                         print(f"   - Statistics: {status.get('statistics', {})}")
@@ -152,8 +173,8 @@ def calc(x, y):
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
-        # Test 7: Clear history
-        print("\n7. Testing clear history...")
+        # Test 8: Clear history
+        print("\n8. Testing clear history...")
         try:
             payload = {"tool": "clear_opencode_history", "arguments": {}}
             async with session.post(f"{base_url}/mcp/execute", json=payload) as resp:

@@ -21,6 +21,7 @@ class OpenCodeIntegration:
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         self.config = config or {}
         self.enabled = self.config.get("enabled", True)
+        self.auto_consult = self.config.get("auto_consult", True)
         self.api_key = self.config.get("api_key", "")
         self.model = self.config.get("model", "qwen/qwen-2.5-coder-32b-instruct")
         self.timeout = self.config.get("timeout", 300)
@@ -71,7 +72,7 @@ class OpenCodeIntegration:
                     self.conversation_history = self.conversation_history[-self.max_history_entries :]
 
             # Log generation
-            if self.config.get("log_generations", True):
+            if self.config.get("log_consultations", self.config.get("log_generations", True)):
                 self.generation_log.append(
                     {
                         "id": generation_id,
@@ -108,16 +109,36 @@ class OpenCodeIntegration:
             "message": f"Cleared {old_count} conversation entries",
         }
 
+    async def consult_opencode(
+        self,
+        query: str,
+        context: str = "",
+        comparison_mode: bool = True,
+        force_consult: bool = False,
+    ) -> Dict[str, Any]:
+        """Consult OpenCode for AI assistance
+
+        This is an alias for generate_code that follows the Gemini-style consultation pattern.
+        """
+        if not self.auto_consult and not force_consult:
+            return {"status": "disabled", "message": "OpenCode auto-consultation is disabled. Use force=True to override."}
+
+        # Map consultation to generate_code
+        return await self.generate_code(
+            prompt=query,
+            context=context,
+        )
+
     def get_statistics(self) -> Dict[str, Any]:
         """Get statistics about code generations"""
         if not self.generation_log:
-            return {"total_generations": 0}
+            return {"total_consultations": 0}
 
         completed = [e for e in self.generation_log if e.get("status") == "success"]
 
         return {
-            "total_generations": len(self.generation_log),
-            "completed_generations": len(completed),
+            "total_consultations": len(self.generation_log),
+            "completed_consultations": len(completed),
             "average_execution_time": (
                 sum(e.get("execution_time", 0) for e in completed) / len(completed) if completed else 0
             ),
@@ -184,61 +205,48 @@ class OpenCodeIntegration:
         return "\n".join(parts)
 
     async def _execute_opencode_docker(self, prompt: str) -> Dict[str, Any]:
-        """Execute OpenCode via Docker container"""
+        """Execute OpenCode via direct API call"""
         start_time = time.time()
 
-        # Build docker-compose command
-        cmd = [
-            "docker-compose",
-            "run",
-            "--rm",
-            "-T",  # Disable pseudo-TTY allocation for stdin
-        ]
-
-        # Add environment variables
-        cmd.extend(["-e", f"OPENROUTER_API_KEY={self.api_key}"])
-        cmd.extend(["-e", f"OPENCODE_MODEL={self.model}"])
-
-        # Add the service name
-        cmd.append(self.docker_service)
-
-        # Add the OpenCode command
-        cmd.extend(self.container_command)
-
-        # Add model flag
-        cmd.extend(["-m", f"openrouter/{self.model}"])
+        # Use HTTP API approach instead of trying to run docker commands
+        import aiohttp
 
         try:
-            # Create process with stdin
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
+            # Prepare the request
+            url = "https://openrouter.ai/api/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://github.com/AndrewAltimit/template-repo",
+                "X-Title": "OpenCode MCP Server",
+            }
 
-            # Send prompt via stdin and get output
-            stdout, stderr = await asyncio.wait_for(
-                process.communicate(input=prompt.encode("utf-8")),
-                timeout=self.timeout,
-            )
+            data = {
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.7,
+                "max_tokens": 4000,
+            }
 
-            execution_time = time.time() - start_time
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    url, headers=headers, json=data, timeout=aiohttp.ClientTimeout(total=self.timeout)
+                ) as response:
+                    if response.status != 200:
+                        error_text = await response.text()
+                        raise Exception(f"API request failed with status {response.status}: {error_text}")
 
-            if process.returncode != 0:
-                error_msg = stderr.decode() if stderr else "Unknown error"
-                raise Exception(f"OpenCode failed with exit code {process.returncode}: {error_msg}")
+                    result = await response.json()
+                    output = result.get("choices", [{}])[0].get("message", {}).get("content", "")
 
-            output = stdout.decode().strip()
+                    execution_time = time.time() - start_time
 
-            # Log stderr if present (might contain warnings)
-            if stderr:
-                logger.warning(f"OpenCode stderr: {stderr.decode()}")
-
-            return {"output": output, "execution_time": execution_time}
+                    return {"output": output, "execution_time": execution_time}
 
         except asyncio.TimeoutError:
-            raise Exception(f"OpenCode timed out after {self.timeout} seconds")
+            raise Exception(f"OpenCode API request timed out after {self.timeout} seconds")
+        except Exception:
+            raise
 
 
 # Singleton pattern implementation

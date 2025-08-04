@@ -303,9 +303,7 @@ Requirements:
             logger.error(f"Agent {agent.name} failed: {e}")
             raise
 
-    async def _apply_review_fixes(
-        self, pr: Dict, agent_name: str, implementation: str, branch_name: str, comment_id: str
-    ):
+    async def _apply_review_fixes(self, pr: Dict, agent_name: str, implementation: str, branch_name: str, comment_id: str):
         """Apply review fixes to the PR branch."""
         pr_number = pr["number"]
 

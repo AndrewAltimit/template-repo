@@ -69,9 +69,7 @@ class OpenCodeAgent(ContainerizedCLIAgent):
             if e.stderr:
                 logger.error(f"OpenCode stderr: {e.stderr}")
             # Re-raise the error with more context
-            raise AgentExecutionError(
-                self.name, e.exit_code, e.stdout, e.stderr or "No error output from opencode command"
-            )
+            raise AgentExecutionError(self.name, e.exit_code, e.stdout, e.stderr or "No error output from opencode command")
 
     def _build_command(self) -> List[str]:
         """Build OpenCode CLI command for stdin usage."""

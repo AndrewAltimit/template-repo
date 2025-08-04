@@ -6,6 +6,7 @@ Provides fast AI-powered code generation using Crush
 
 import asyncio
 import logging
+import os
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
@@ -21,6 +22,7 @@ class CrushIntegration:
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         self.config = config or {}
         self.enabled = self.config.get("enabled", True)
+        self.auto_consult = self.config.get("auto_consult", True)
         self.api_key = self.config.get("api_key", "")
         self.timeout = self.config.get("timeout", 300)
         self.max_prompt_length = self.config.get("max_prompt_length", 4000)
@@ -67,7 +69,7 @@ class CrushIntegration:
                     self.conversation_history = self.conversation_history[-self.max_history_entries :]
 
             # Log generation
-            if self.config.get("log_generations", True):
+            if self.config.get("log_consultations", self.config.get("log_generations", True)):
                 self.generation_log.append(
                     {
                         "id": generation_id,
@@ -104,16 +106,33 @@ class CrushIntegration:
             "message": f"Cleared {old_count} conversation entries",
         }
 
+    async def consult_crush(
+        self,
+        query: str,
+        context: str = "",
+        comparison_mode: bool = True,
+        force_consult: bool = False,
+    ) -> Dict[str, Any]:
+        """Consult Crush for AI assistance
+
+        This is an alias for generate_response that follows the Gemini-style consultation pattern.
+        """
+        if not self.auto_consult and not force_consult:
+            return {"status": "disabled", "message": "Crush auto-consultation is disabled. Use force=True to override."}
+
+        # Map consultation to generate_response
+        return await self.generate_response(prompt=query)
+
     def get_statistics(self) -> Dict[str, Any]:
-        """Get statistics about generations"""
+        """Get statistics about consultations"""
         if not self.generation_log:
-            return {"total_generations": 0}
+            return {"total_consultations": 0}
 
         completed = [e for e in self.generation_log if e.get("status") == "success"]
 
         return {
-            "total_generations": len(self.generation_log),
-            "completed_generations": len(completed),
+            "total_consultations": len(self.generation_log),
+            "completed_consultations": len(completed),
             "average_execution_time": (
                 sum(e.get("execution_time", 0) for e in completed) / len(completed) if completed else 0
             ),
@@ -150,13 +169,85 @@ class CrushIntegration:
 
         return full_prompt
 
+    def _is_running_in_container(self) -> bool:
+        """Check if we're running inside a Docker container"""
+        # Check for .dockerenv file
+        if os.path.exists("/.dockerenv"):
+            return True
+        # Check for Docker in cgroup
+        try:
+            with open("/proc/1/cgroup", "r") as f:
+                return "docker" in f.read()
+        except (FileNotFoundError, IOError, OSError):
+            return False
+
+    async def _execute_crush_direct(self, prompt: str) -> Dict[str, Any]:
+        """Execute Crush binary directly (when already in container)"""
+        start_time = time.time()
+
+        # Build crush command
+        cmd = ["crush", "run"]
+
+        # Add quiet flag if enabled
+        if self.quiet_mode:
+            cmd.append("-q")
+
+        # Add the prompt
+        cmd.append(prompt)
+
+        try:
+            # Set environment for the subprocess
+            env = os.environ.copy()
+            env["OPENROUTER_API_KEY"] = self.api_key
+            env["OPENAI_API_KEY"] = self.api_key  # Some tools expect this
+            env["HOME"] = "/home/node"  # Ensure HOME is set for crush database
+
+            # Create process - run from home directory where crush expects its database
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env,
+                cwd="/home/node",  # Run from home directory
+            )
+
+            # Get output with timeout
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(),
+                timeout=self.timeout,
+            )
+
+            execution_time = time.time() - start_time
+
+            if process.returncode != 0:
+                error_msg = stderr.decode() if stderr else "Unknown error"
+                raise Exception(f"Crush failed with exit code {process.returncode}: {error_msg}")
+
+            output = stdout.decode().strip()
+
+            # Log stderr if present (might contain warnings)
+            if stderr:
+                stderr_str = stderr.decode()
+                if stderr_str.strip():
+                    logger.warning(f"Crush stderr: {stderr_str}")
+
+            return {"output": output, "execution_time": execution_time}
+
+        except asyncio.TimeoutError:
+            raise Exception(f"Crush timed out after {self.timeout} seconds")
+
     async def _execute_crush_docker(self, prompt: str) -> Dict[str, Any]:
         """Execute Crush via Docker container"""
+        # If we're already in a container, use direct execution
+        if self._is_running_in_container():
+            logger.info("Running in container, using direct crush execution")
+            return await self._execute_crush_direct(prompt)
+
         start_time = time.time()
 
         # Build docker-compose command
         cmd = [
-            "docker-compose",
+            "/usr/local/bin/docker-compose",
             "run",
             "--rm",
         ]

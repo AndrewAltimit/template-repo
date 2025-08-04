@@ -53,24 +53,27 @@ async def test_crush_server():
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
-        # Test 3: Quick generate
-        print("\n3. Testing quick generation...")
+        # Test 3: Consult for quick generation
+        print("\n3. Testing quick generation consultation...")
         try:
             payload = {
-                "tool": "quick_generate",
-                "arguments": {"prompt": "Write a one-liner to reverse a string in Python", "style": "concise"},
+                "tool": "consult_crush",
+                "arguments": {
+                    "query": "Write a one-liner to reverse a string in Python",
+                    "mode": "quick",
+                },
             }
             async with session.post(f"{base_url}/mcp/execute", json=payload) as resp:
                 if resp.status == 200:
                     result = await resp.json()
                     if result.get("success"):
-                        print("   ✅ Quick generation successful!")
+                        print("   ✅ Quick generation consultation successful!")
                         print(f"   Generated in: {result.get('raw_result', {}).get('execution_time', 'N/A')}s")
                         # Show result
                         response = result.get("result", "")
                         print(f"   Result preview: {response[:300]}...")
                     else:
-                        print(f"   ❌ Generation failed: {result.get('error')}")
+                        print(f"   ❌ Consultation failed: {result.get('error')}")
                 else:
                     print(f"   ❌ Request failed: {resp.status}")
                     error_text = await resp.text()
@@ -78,8 +81,8 @@ async def test_crush_server():
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
-        # Test 4: Explain code
-        print("\n4. Testing code explanation...")
+        # Test 4: Consult for code explanation
+        print("\n4. Testing code explanation consultation...")
         try:
             test_code = """
 def quicksort(arr):
@@ -91,44 +94,71 @@ def quicksort(arr):
     right = [x for x in arr if x > pivot]
     return quicksort(left) + middle + quicksort(right)
 """
-            payload = {"tool": "explain_code", "arguments": {"code": test_code, "focus": "algorithm complexity"}}
+            payload = {
+                "tool": "consult_crush",
+                "arguments": {
+                    "query": test_code,
+                    "context": "algorithm complexity",
+                    "mode": "explain",
+                },
+            }
             async with session.post(f"{base_url}/mcp/execute", json=payload) as resp:
                 if resp.status == 200:
                     result = await resp.json()
                     if result.get("success"):
-                        print("   ✅ Code explanation successful!")
+                        print("   ✅ Code explanation consultation successful!")
                     else:
-                        print(f"   ❌ Explanation failed: {result.get('error')}")
+                        print(f"   ❌ Consultation failed: {result.get('error')}")
                 else:
                     print(f"   ❌ Request failed: {resp.status}")
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
-        # Test 5: Convert code
-        print("\n5. Testing code conversion...")
+        # Test 5: Consult for code conversion
+        print("\n5. Testing code conversion consultation...")
         try:
             python_code = """
 def greet(name):
     return f"Hello, {name}!"
 """
             payload = {
-                "tool": "convert_code",
-                "arguments": {"code": python_code, "target_language": "JavaScript", "preserve_comments": True},
+                "tool": "consult_crush",
+                "arguments": {
+                    "query": python_code,
+                    "context": "JavaScript",
+                    "mode": "convert",
+                },
             }
             async with session.post(f"{base_url}/mcp/execute", json=payload) as resp:
                 if resp.status == 200:
                     result = await resp.json()
                     if result.get("success"):
-                        print("   ✅ Code conversion successful!")
+                        print("   ✅ Code conversion consultation successful!")
                     else:
-                        print(f"   ❌ Conversion failed: {result.get('error')}")
+                        print(f"   ❌ Consultation failed: {result.get('error')}")
                 else:
                     print(f"   ❌ Request failed: {resp.status}")
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
-        # Test 6: Status check
-        print("\n6. Testing status...")
+        # Test 6: Toggle auto-consultation
+        print("\n6. Testing auto-consultation toggle...")
+        try:
+            payload = {"tool": "toggle_crush_auto_consult", "arguments": {"enable": False}}
+            async with session.post(f"{base_url}/mcp/execute", json=payload) as resp:
+                if resp.status == 200:
+                    result = await resp.json()
+                    if result.get("success"):
+                        print(f"   ✅ Auto-consultation toggle successful: {result.get('message')}")
+                    else:
+                        print(f"   ❌ Toggle failed: {result.get('error')}")
+                else:
+                    print(f"   ❌ Request failed: {resp.status}")
+        except Exception as e:
+            print(f"   ❌ Error: {e}")
+
+        # Test 7: Status check
+        print("\n7. Testing status...")
         try:
             payload = {"tool": "crush_status", "arguments": {}}
             async with session.post(f"{base_url}/mcp/execute", json=payload) as resp:
@@ -138,6 +168,7 @@ def greet(name):
                         status = result.get("status", {})
                         print("   ✅ Status check successful!")
                         print(f"   - Enabled: {status.get('enabled')}")
+                        print(f"   - Auto Consult: {status.get('auto_consult')}")
                         print(f"   - Timeout: {status.get('timeout')}s")
                         print(f"   - API Key Configured: {status.get('api_key_configured')}")
                         print(f"   - Statistics: {status.get('statistics', {})}")
@@ -148,8 +179,8 @@ def greet(name):
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
-        # Test 7: Clear history
-        print("\n7. Testing clear history...")
+        # Test 8: Clear history
+        print("\n8. Testing clear history...")
         try:
             payload = {"tool": "clear_crush_history", "arguments": {}}
             async with session.post(f"{base_url}/mcp/execute", json=payload) as resp:
@@ -164,26 +195,29 @@ def greet(name):
         except Exception as e:
             print(f"   ❌ Error: {e}")
 
-        # Test 8: Test different styles
-        print("\n8. Testing different generation styles...")
-        styles = ["concise", "detailed", "explained"]
-        for style in styles:
+        # Test 9: Test different modes
+        print("\n9. Testing different consultation modes...")
+        test_cases = [
+            {"mode": "quick", "query": "Create a function to check if a number is prime"},
+            {"mode": "generate", "query": "Create a detailed function to check if a number is prime with comments"},
+        ]
+        for test in test_cases:
             try:
                 payload = {
-                    "tool": "quick_generate",
-                    "arguments": {"prompt": "Create a function to check if a number is prime", "style": style},
+                    "tool": "consult_crush",
+                    "arguments": test,
                 }
                 async with session.post(f"{base_url}/mcp/execute", json=payload) as resp:
                     if resp.status == 200:
                         result = await resp.json()
                         if result.get("success"):
-                            print(f"   ✅ Style '{style}' generation successful!")
+                            print(f"   ✅ Mode '{test['mode']}' consultation successful!")
                         else:
-                            print(f"   ❌ Style '{style}' failed: {result.get('error')}")
+                            print(f"   ❌ Mode '{test['mode']}' failed: {result.get('error')}")
                     else:
-                        print(f"   ❌ Request failed for style '{style}': {resp.status}")
+                        print(f"   ❌ Request failed for mode '{test['mode']}': {resp.status}")
             except Exception as e:
-                print(f"   ❌ Error with style '{style}': {e}")
+                print(f"   ❌ Error with mode '{test['mode']}': {e}")
 
     print("\n" + "=" * 50)
     print("✅ Crush MCP Server tests completed!")
