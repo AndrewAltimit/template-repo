@@ -34,6 +34,9 @@ RUN echo "Note: This container provides Gaea2 project creation and validation on
 # Create a non-root user that will be overridden by docker-compose
 RUN useradd -m -u 1000 appuser
 
+# Switch to non-root user
+USER appuser
+
 # Expose port
 EXPOSE 8007
 
