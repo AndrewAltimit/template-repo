@@ -40,6 +40,7 @@ cgt-scheduler = "scrapers.scheduler:main"
 
 [tool.setuptools]
 packages = {find = {where = ["src"]}}
+py-modules = ["cli"]
 package-dir = {"" = "src"}
 
 [tool.setuptools.dynamic]

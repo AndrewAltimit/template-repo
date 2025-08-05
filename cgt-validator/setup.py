@@ -16,6 +16,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/your-org/cgt-validator",
     packages=find_packages(where="src"),
+    py_modules=["cli"],
     package_dir={"": "src"},
     classifiers=[
         "Development Status :: 3 - Alpha",
