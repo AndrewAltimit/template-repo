@@ -156,10 +156,7 @@ class OregonMockDataGenerator:
         # Generate data rows
         data_rows = []
         for lob_code in self.line_of_business_codes.keys():
-            # Skip LOB 7 for TME_ALL as it's for specific use only
-            if lob_code == 7:
-                continue
-
+            # Include LOB 7 in TME_ALL as it's allowed only here
             member_months = random.randint(5000, 50000)
             demographic_score = round(random.uniform(0.8, 1.2), 3)
 
@@ -433,20 +430,30 @@ class OregonMockDataGenerator:
             [None] * 30,  # Row 6: Empty
             [None] * 30,  # Row 7: Empty
             # Row 8: Field codes
-            ["RXREBATE01", "RXREBATE02", "RXREBATE03"] + [None] * 27,
+            ["RXR01", "RXR02", "RXR03", "RXR04", "RXR05"] + [None] * 25,
             # Row 9: Data types
-            ["year", "code", "non-negative number"] + [None] * 27,
+            ["year", "code", "non-positive number", "non-positive number", "non-positive number"] + [None] * 25,
             # Row 10: Column names
-            ["Reporting Year", "Line of Business Code", "Prescription Rebates"] + [None] * 27,
+            [
+                "Reporting Year",
+                "Line of Business Code",
+                "Medical Pharmacy Rebate Amount",
+                "Retail Pharmacy Rebate Amount",
+                "Total Pharmacy Rebate Amount (Optional)",
+            ]
+            + [None] * 25,
         ]
 
         data_rows = []
         # Not all payers have rebates
         if random.random() > 0.3:  # 70% chance of having rebate data
-            for lob_code in [1, 2, 3, 4]:
+            for lob_code in [1, 2, 3, 4, 5, 6]:  # LOB 7 not allowed in RX_REBATE
                 if random.random() > 0.4:  # 60% chance per LOB
-                    rebate_amount = round(random.uniform(1000, 50000), 2)
-                    row = [self.year - 1, lob_code, rebate_amount] + [None] * 27
+                    # Rebates must be negative or zero
+                    medical_rebate = -round(random.uniform(1000, 25000), 2)
+                    retail_rebate = -round(random.uniform(5000, 50000), 2)
+                    total_rebate = medical_rebate + retail_rebate
+                    row = [self.year - 1, lob_code, medical_rebate, retail_rebate, total_rebate] + [None] * 25
                     data_rows.append(row)
 
         all_rows = headers + data_rows
@@ -618,13 +625,23 @@ def generate_fail_submission(
 
     # Add invalid Line of Business codes
     tme_all_sheet = wb["2. TME_ALL"]
-    if tme_all_sheet.cell(row=10, column=2).value:
-        tme_all_sheet.cell(row=10, column=2).value = 99  # Invalid LOB code
+    if tme_all_sheet.cell(row=11, column=2).value:
+        tme_all_sheet.cell(row=11, column=2).value = 99  # Invalid LOB code
+
+    # Add LOB 7 in non-TME_ALL sheet (invalid)
+    tme_prov_sheet = wb["3. TME_PROV"]
+    if tme_prov_sheet.cell(row=13, column=2).value:
+        tme_prov_sheet.cell(row=13, column=2).value = 7  # LOB 7 not allowed here
 
     # Add invalid TIN format
     prov_id_sheet = wb["9. PROV_ID"]
-    if prov_id_sheet.cell(row=10, column=3).value:
-        prov_id_sheet.cell(row=10, column=3).value = "12345"  # Too short TIN
+    if prov_id_sheet.cell(row=9, column=3).value:
+        prov_id_sheet.cell(row=9, column=3).value = "12345"  # Too short TIN
+
+    # Add positive pharmacy rebate (invalid)
+    rx_rebate_sheet = wb["8. RX_REBATE"]
+    if rx_rebate_sheet.cell(row=11, column=3).value:
+        rx_rebate_sheet.cell(row=11, column=3).value = 10000  # Positive rebate is invalid
 
     wb.save(path)
     return path

@@ -339,27 +339,46 @@ class OregonValidator(ValidatorBase):
                     if sheet_name == "2. TME_ALL":
                         # TME_ALL allows codes 1-7
                         invalid_codes = df[~numeric_lob.isin(valid_lob_codes)]
-                    else:
-                        # All other sheets only allow codes 1-6 (not 7)
-                        invalid_codes = df[~numeric_lob.isin([1, 2, 3, 4, 5, 6])]
-
-                    if not invalid_codes.empty:
-                        if sheet_name == "2. TME_ALL":
+                        if not invalid_codes.empty:
                             message = (
                                 f"Invalid Line of Business codes in rows: {invalid_codes.index.tolist()[:5]}. "
                                 "Valid codes are 1-7."
                             )
-                        else:
-                            message = (
-                                f"Invalid Line of Business codes in rows: {invalid_codes.index.tolist()[:5]}. "
-                                "Valid codes are 1-6 only (code 7 is only allowed in TME_ALL)."
+                            results.add_error(
+                                code="INVALID_LOB_CODE",
+                                message=message,
+                                location=f"{sheet_name}.Line of Business Code",
+                                severity=Severity.ERROR,
                             )
-                        results.add_error(
-                            code="INVALID_LOB_CODE",
-                            message=message,
-                            location=f"{sheet_name}.Line of Business Code",
-                            severity=Severity.ERROR,
-                        )
+                    else:
+                        # All other sheets only allow codes 1-6 (not 7)
+                        invalid_codes_general = df[~numeric_lob.isin([1, 2, 3, 4, 5, 6])]
+                        # Check specifically for LOB code 7
+                        has_lob_7 = df[numeric_lob == 7]
+
+                        if not has_lob_7.empty:
+                            message = (
+                                f"LOB code 7 found in rows: {has_lob_7.index.tolist()[:5]}. "
+                                "LOB code 7 is only allowed in TME_ALL sheet."
+                            )
+                            results.add_error(
+                                code="INVALID_LOB_CODE_7",
+                                message=message,
+                                location=f"{sheet_name}.Line of Business Code",
+                                severity=Severity.ERROR,
+                            )
+                        elif not invalid_codes_general.empty:
+                            # Other invalid codes (not 1-6)
+                            message = (
+                                f"Invalid Line of Business codes in rows: {invalid_codes_general.index.tolist()[:5]}. "
+                                "Valid codes are 1-6 only."
+                            )
+                            results.add_error(
+                                code="INVALID_LOB_CODE",
+                                message=message,
+                                location=f"{sheet_name}.Line of Business Code",
+                                severity=Severity.ERROR,
+                            )
 
         # Rule 3: Validate TIN format (9 digits) and field codes in PROV_ID sheet
         if "9. PROV_ID" in excel_data.sheet_names:
@@ -740,6 +759,34 @@ class OregonValidator(ValidatorBase):
                     location="8. RX_REBATE",
                     severity=Severity.WARNING,
                 )
+            else:
+                # Check that rebate amounts are negative or zero
+                rebate_columns = [
+                    "Medical Pharmacy Rebate Amount",
+                    "Retail Pharmacy Rebate Amount",
+                    "Total Pharmacy Rebate Amount (Optional)",
+                    # Also check variations without "(Optional)"
+                    "Total Pharmacy Rebate Amount",
+                ]
+
+                for col in rebate_columns:
+                    if col in data_df.columns:
+                        # Convert to numeric and check for positive values
+                        numeric_values = pd.to_numeric(data_df[col], errors="coerce")
+                        positive_rebates = data_df[numeric_values > 0]
+
+                        if not positive_rebates.empty:
+                            message = (
+                                f"Positive rebate amounts found in column '{col}' at rows: "
+                                f"{positive_rebates.index.tolist()[:5]}. "
+                                "Pharmacy rebate amounts must be reported as negative numbers or zero."
+                            )
+                            results.add_error(
+                                code="INVALID_PHARMACY_REBATE",
+                                message=message,
+                                location=f"8. RX_REBATE.{col}",
+                                severity=Severity.ERROR,
+                            )
 
         # Check for proper template version
         if "Contents" in excel_data.sheet_names:

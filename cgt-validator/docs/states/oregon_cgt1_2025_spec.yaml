@@ -7,6 +7,11 @@ template:
   date: "June 2025"
   state: "oregon"
   type: "CGT-1"
+  # Documentation section for non-programmable rules
+  documentation:
+    - "This specification enforces file structure and data format rules."
+    - "Data Sourcing Rule (Not Validated): Payers must include Oregon university student health plan members as Oregon residents."
+    - "Data Sourcing Rule (Not Validated): For LOBs 5 & 6, financial data should be based on 'Paid Amounts' not 'Allowed Amounts'."
 
 sheets:
   required:
@@ -64,8 +69,6 @@ sheets:
 
   optional:
     - "Contents"
-    - "Line of Business Code"
-    - "Attribution Hierarchy Code"
     - "Demographic Tables"
     - "TME Validation"
     - "RX_MED_PROV Validation"
@@ -115,6 +118,28 @@ field_mappings:
         required: true
         data_type: "text"
 
+  "2. TME_ALL":
+    columns:
+      - code: "TMEALL01"
+        name: "Reporting Year"
+        data_type: "year"
+        required: true
+
+      - code: "TMEALL02"
+        name: "Line of Business Code"
+        data_type: "code"
+        required: true
+
+      - code: "TMEALL03"
+        name: "Member Months"
+        data_type: "positive integer"
+        required: true
+
+      - code: "TMEALL04"
+        name: "Demographic Score"
+        data_type: "non-negative number"
+        required: true
+
   "3. TME_PROV":
     columns:
       - code: "TMEPRV01"
@@ -152,6 +177,33 @@ field_mappings:
         data_type: "non-negative number"
         required: true
 
+  "8. RX_REBATE":
+    columns:
+      - code: "RXR01"
+        name: "Reporting Year"
+        data_type: "year"
+        required: true
+
+      - code: "RXR02"
+        name: "Line of Business Code"
+        data_type: "code"
+        required: true
+
+      - code: "RXR03"
+        name: "Medical Pharmacy Rebate Amount"
+        data_type: "non-positive number"
+        required: false  # Can be zero or negative
+
+      - code: "RXR04"
+        name: "Retail Pharmacy Rebate Amount"
+        data_type: "non-positive number"
+        required: false
+
+      - code: "RXR05"
+        name: "Total Pharmacy Rebate Amount (Optional)"
+        data_type: "non-positive number"
+        required: false
+
   "9. PROV_ID":
     columns:
       - code: "PRV01"
@@ -170,8 +222,8 @@ field_mappings:
         required: true
 
 validation_rules:
-  - rule: "line_of_business_codes"
-    applies_to: ["2. TME_ALL", "3. TME_PROV", "4. TME_UNATTR", "5. MARKET_ENROLL", "6. RX_MED_PROV", "7. RX_MED_UNATTR", "8. RX_REBATE"]
+  - rule: "line_of_business_codes_all"
+    applies_to: ["2. TME_ALL"]
     field: "Line of Business Code"
     valid_values:
       1: "Medicare"
@@ -181,6 +233,19 @@ validation_rules:
       5: "Medicare Expenses for Medicare/Medicaid Dual Eligible"
       6: "Medicaid Expenses for Medicare/Medicaid Dual Eligible"
       7: "CCO-F expenses or Medicaid Carve-Outs"
+    message: "LOB Code in TME_ALL must be 1-7."
+
+  - rule: "line_of_business_codes_standard"
+    applies_to: ["3. TME_PROV", "4. TME_UNATTR", "5. MARKET_ENROLL", "6. RX_MED_PROV", "7. RX_MED_UNATTR", "8. RX_REBATE"]
+    field: "Line of Business Code"
+    valid_values:
+      1: "Medicare"
+      2: "Medicaid"
+      3: "Commercial: Full Claims"
+      4: "Commercial: Partial Claims"
+      5: "Medicare Expenses for Medicare/Medicaid Dual Eligible"
+      6: "Medicaid Expenses for Medicare/Medicaid Dual Eligible"
+    message: "LOB Code must be 1-6 for this sheet. LOB 7 is only allowed in TME_ALL."
 
   - rule: "attribution_hierarchy_codes"
     applies_to: ["3. TME_PROV"]
@@ -222,13 +287,19 @@ validation_rules:
       from_fields: ["Provider Organization Name", "IPA or Contract Name\n(If applicable/available)"]
       to_sheet: "9. PROV_ID"
       to_fields: ["Provider Organization Name", "IPA or Contract Name (If applicable/available)"]
-    message: "Provider-IPA combination not found in PROV_ID sheet"
+    message: "Provider-IPA combination not found in PROV_ID sheet. Note: Validator should handle newline characters in column names."
 
   - rule: "reporting_year"
     applies_to: ["2. TME_ALL", "3. TME_PROV", "4. TME_UNATTR", "5. MARKET_ENROLL", "6. RX_MED_PROV", "7. RX_MED_UNATTR", "8. RX_REBATE"]
     field: "Reporting Year"
     validation: "current_or_previous_year"
     message: "Reporting year must be current year or previous year"
+
+  - rule: "pharmacy_rebates_are_negative"
+    applies_to: ["8. RX_REBATE"]
+    fields: ["Medical Pharmacy Rebate Amount", "Retail Pharmacy Rebate Amount", "Total Pharmacy Rebate Amount (Optional)"]
+    validation: "is_non_positive"
+    message: "Pharmacy rebate amounts must be reported as a negative number or zero."
 
 data_type_mappings:
   "year":
@@ -246,6 +317,10 @@ data_type_mappings:
   "non-negative number":
     python_type: "float"
     validation: "greater_or_equal_zero"
+
+  "non-positive number":
+    python_type: "float"
+    validation: "less_or_equal_zero"
 
   "free text":
     python_type: "str"

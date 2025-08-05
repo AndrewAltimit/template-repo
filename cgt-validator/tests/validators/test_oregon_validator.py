@@ -646,11 +646,12 @@ class TestOregonValidator:
         validator = OregonValidator(year=2025)
         results = validator.validate_file(str(output_path))
 
-        # Should have LOB code error for TME_PROV but not TME_ALL
-        lob_errors = [e for e in results.errors if e.code == "INVALID_LOB_CODE"]
-        assert len(lob_errors) == 1
-        assert "3. TME_PROV" in lob_errors[0].location
-        assert "code 7 is only allowed in TME_ALL" in lob_errors[0].message
+        # Should have LOB code 7 error for TME_PROV but not TME_ALL
+        lob_7_errors = [e for e in results.errors if e.code == "INVALID_LOB_CODE_7"]
+        assert len(lob_7_errors) == 1
+        assert "3. TME_PROV" in lob_7_errors[0].location
+        assert "LOB code 7" in lob_7_errors[0].message
+        assert "only allowed in TME_ALL" in lob_7_errors[0].message
 
     def test_prov_id_field_codes(self, temp_dir: Path):
         """Test PROV_ID field codes validation."""
@@ -962,3 +963,58 @@ class TestOregonValidator:
 
         assert len(mandatory_errors) == 0, "Headers not parsed at correct row"
         assert len(missing_col_errors) == 0, "Required columns not found"
+
+    def test_pharmacy_rebate_validation(self, temp_dir: Path):
+        """Test that pharmacy rebates must be negative or zero."""
+        output_path = temp_dir / "rebate_test.xlsx"
+        wb = Workbook()
+
+        # Create minimal required sheets
+        for sheet_name in [
+            "Contents",
+            "1. Cover Page",
+            "2. TME_ALL",
+            "3. TME_PROV",
+            "4. TME_UNATTR",
+            "5. MARKET_ENROLL",
+            "6. RX_MED_PROV",
+            "7. RX_MED_UNATTR",
+            "9. PROV_ID",
+        ]:
+            ws = wb.create_sheet(sheet_name)
+            for i in range(13):
+                ws.append([None] * 10)
+
+        # RX_REBATE with positive rebates (invalid) - header at row 11, 0-indexed = 10
+        ws = wb.create_sheet("8. RX_REBATE")
+        for i in range(10):
+            ws.append([None] * 10)
+        ws.append(
+            [
+                "Reporting Year",
+                "Line of Business Code",
+                "Medical Pharmacy Rebate Amount",
+                "Retail Pharmacy Rebate Amount",
+                "Total Pharmacy Rebate Amount (Optional)",
+            ]
+            + [None] * 5
+        )
+        # Add data with positive rebates (invalid)
+        ws.append([2024, 1, 5000, 10000, 15000] + [None] * 5)  # All positive - invalid
+        ws.append([2024, 2, -5000, -10000, -15000] + [None] * 5)  # All negative - valid
+        ws.append([2024, 3, 0, 0, 0] + [None] * 5)  # All zero - valid
+        ws.append([2024, 4, 1000, -5000, -4000] + [None] * 5)  # Mixed - medical positive is invalid
+
+        wb.save(output_path)
+
+        validator = OregonValidator(year=2025)
+        results = validator.validate_file(str(output_path))
+
+        # Should have errors for positive rebate amounts
+        rebate_errors = [e for e in results.errors if e.code == "INVALID_PHARMACY_REBATE"]
+        assert len(rebate_errors) >= 2  # At least 2 rows have positive rebates
+
+        # Check that error messages mention negative requirement
+        for error in rebate_errors:
+            assert "negative" in error.message.lower() or "positive" in error.message.lower()
+            assert "8. RX_REBATE" in error.location

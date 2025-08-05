@@ -8,6 +8,13 @@
 3. **PROV_ID column order**: Name → IPA → TIN (TIN is LAST)
 4. **Data starts at row 11**, not row 8!
 5. **Match providers by NAME**, not by TIN
+6. **IPA or Contract Name field is REQUIRED** in TME_PROV and PROV_ID (even if left blank)
+7. **LOB 7 is ONLY allowed in TME_ALL** (not in other sheets)
+
+### 📌 Data Scope
+- **Include**: Oregon university student health plan members as Oregon residents
+- **Exclude**: Out-of-state residents treated in Oregon
+- **LOBs 5 & 6**: Report using "Paid Amounts" not "Allowed Amounts"
 
 ### 📊 Row Structure
 
@@ -51,18 +58,20 @@ Row 9:  First data row
 | Field | Format | Notes |
 |-------|--------|-------|
 | TIN | Exactly 9 digits | Store as text! "000000001" |
-| Line of Business Code | 1-7 | **7 only allowed in TME_ALL** (1-6 in all other sheets) |
+| Line of Business Code | 1-7 in TME_ALL, 1-6 elsewhere | **LOB 7 (CCO-F/Medicaid Carve-Outs) ONLY in TME_ALL** |
 | Attribution Code | 1-3 | 1=Member, 2=Contract, 3=Utilization |
 | Member Months | > 0 | ≤ 12 triggers warning |
 | Reporting Year | YYYY | Current or previous year only |
 | Date (Cover Page) | Any text | Required attestation date |
 | PROV_ID Field Codes | PRV01, [blank], PRV02 | Middle column has no field code |
+| Pharmacy Rebates | ≤ 0 | Must be negative or zero in RX_REBATE |
+| Dual-Eligible LOBs 5&6 | Use Paid Amounts | Not Allowed Amounts |
 
 ### 🏗️ TME_PROV Structure (CORRECT ORDER!)
 1. Reporting Year
 2. Line of Business Code
 3. **Provider Organization Name** ← NOT TIN!
-4. IPA or Contract Name (optional)
+4. IPA or Contract Name (Required field, but value can be blank)
 5. **Attribution Hierarchy Code** ← DON'T MISS!
 6. Member Months
 7. Demographic Score
@@ -74,16 +83,19 @@ Row 9:  First data row
 3. Provider Organization TIN ← LAST (field code: PRV02)
 
 ### ✅ Validation Checklist
-- [ ] All provider names in TME_PROV exist in PROV_ID (case-insensitive)
+- [ ] All provider names in TME_PROV exist in PROV_ID (case-insensitive match)
 - [ ] All Provider-IPA combinations in TME_PROV exist in PROV_ID
-- [ ] No duplicate Year-LOB-Provider-IPA-Attribution combinations
+- [ ] Aggregate all costs into single row per Year-LOB-Provider-IPA-Attribution combo
 - [ ] TINs are 9 digits with leading zeros preserved
 - [ ] Attribution codes are 1, 2, or 3
 - [ ] Member months > 0 (warn if ≤ 12)
 - [ ] Cover page has all 8 required fields filled (including Date)
-- [ ] LOB code 7 only appears in TME_ALL sheet
+- [ ] LOB code 7 used exclusively in TME_ALL sheet
 - [ ] PROV_ID field codes are PRV01, [blank], PRV02
 - [ ] All data types validated (year, code, positive integer, etc.)
+- [ ] Student health plan members correctly included in data
+- [ ] All pharmacy rebates reported as negative values or zero
+- [ ] LOBs 5 & 6 use "Paid Amounts" not "Allowed Amounts"
 
 ## 📋 Complete List of Validation Rules
 
@@ -157,15 +169,16 @@ Each sheet has specific required columns that cannot be empty:
 ### 5. Business Rule Validations
 
 **Line of Business Code Rules**:
-- Valid codes are 1-7:
+- TME_ALL accepts codes 1-7:
   - 1 = Medicare
   - 2 = Medicaid
   - 3 = Commercial: Full Claims
   - 4 = Commercial: Partial Claims
-  - 5 = Medicare Expenses for Medicare/Medicaid Dual Eligible
-  - 6 = Medicaid Expenses for Medicare/Medicaid Dual Eligible
-  - 7 = CCO-F expenses or Medicaid Carve-Outs
-- Code 7 is only allowed in TME_ALL sheet
+  - 5 = Medicare Expenses for Medicare/Medicaid Dual Eligible (Use Paid Amounts)
+  - 6 = Medicaid Expenses for Medicare/Medicaid Dual Eligible (Use Paid Amounts)
+  - 7 = CCO-F expenses or Medicaid Carve-Outs (TME_ALL ONLY)
+- All other sheets accept codes 1-6 only
+- LOB 7 is EXCLUSIVELY allowed in TME_ALL sheet
 
 **Attribution Hierarchy Code Rules**:
 - Valid codes are 1-3:
@@ -219,6 +232,7 @@ Each sheet has specific required columns that cannot be empty:
 **RX_REBATE Data Check**:
 - Warns if RX_REBATE sheet contains no data
 - Prompts to verify if prescription rebates should be reported
+- All rebate amounts must be negative or zero (not positive)
 
 **Template Version Check**:
 - Looks for "Version 5.0" or "June 2025" in Contents sheet
@@ -257,7 +271,8 @@ Different sheets have headers at different rows:
 - **EMPTY_MANDATORY_FIELD**: Required field has empty values
 - **MISSING_REQUIRED_FIELD**: Cover page missing required field
 - **INVALID_COVER_PAGE_FORMAT**: Cover page structure is invalid
-- **INVALID_LOB_CODE**: Line of Business code not in valid range (1-7)
+- **INVALID_LOB_CODE**: Line of Business code not in valid range
+- **INVALID_LOB_CODE_7**: LOB code 7 used outside TME_ALL sheet
 - **INVALID_TIN**: TIN is not exactly 9 digits
 - **INVALID_MEMBER_MONTHS**: Member months not positive integer
 - **INVALID_REPORTING_YEAR**: Year not current or previous year
@@ -265,6 +280,7 @@ Different sheets have headers at different rows:
 - **DUPLICATE_PROVIDER_COMBINATION**: Duplicate Year-LOB-Provider-IPA-Attribution found
 - **INVALID_PROVIDER_REFERENCE**: Provider name/TIN not found in PROV_ID
 - **INVALID_PROVIDER_IPA_COMBINATION**: Provider-IPA combo not in PROV_ID
+- **INVALID_PHARMACY_REBATE**: Pharmacy rebate amount is positive (must be ≤ 0)
 
 ### Warning Codes (Validation passes but needs attention)
 - **MEMBER_MONTHS_BELOW_THRESHOLD**: TME_PROV has rows with ≤ 12 member months
