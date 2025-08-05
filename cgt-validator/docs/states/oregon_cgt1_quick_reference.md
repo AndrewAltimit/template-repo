@@ -27,6 +27,14 @@ Row 12: Column names
 Row 13: First data row
 ```
 
+**PROV_ID (Also Different!):**
+```
+Row 6:  Field codes (PRV01, [blank], PRV02)
+Row 7:  Data types
+Row 8:  Column names
+Row 9:  First data row
+```
+
 ### 📋 Required Sheets (Exact Names!)
 1. `1. Cover Page`
 2. `2. TME_ALL`
@@ -43,10 +51,12 @@ Row 13: First data row
 | Field | Format | Notes |
 |-------|--------|-------|
 | TIN | Exactly 9 digits | Store as text! "000000001" |
-| Line of Business Code | 1-7 | 7 only in TME_ALL |
+| Line of Business Code | 1-7 | **7 only allowed in TME_ALL** (1-6 in all other sheets) |
 | Attribution Code | 1-3 | 1=Member, 2=Contract, 3=Utilization |
 | Member Months | > 0 | ≤ 12 triggers warning |
 | Reporting Year | YYYY | Current or previous year only |
+| Date (Cover Page) | Any text | Required attestation date |
+| PROV_ID Field Codes | PRV01, [blank], PRV02 | Middle column has no field code |
 
 ### 🏗️ TME_PROV Structure (CORRECT ORDER!)
 1. Reporting Year
@@ -64,13 +74,16 @@ Row 13: First data row
 3. Provider Organization TIN ← LAST (field code: PRV02)
 
 ### ✅ Validation Checklist
-- [ ] All provider names in TME_PROV exist in PROV_ID
+- [ ] All provider names in TME_PROV exist in PROV_ID (case-insensitive)
 - [ ] All Provider-IPA combinations in TME_PROV exist in PROV_ID
 - [ ] No duplicate Year-LOB-Provider-IPA-Attribution combinations
 - [ ] TINs are 9 digits with leading zeros preserved
 - [ ] Attribution codes are 1, 2, or 3
 - [ ] Member months > 0 (warn if ≤ 12)
 - [ ] Cover page has all 8 required fields filled (including Date)
+- [ ] LOB code 7 only appears in TME_ALL sheet
+- [ ] PROV_ID field codes are PRV01, [blank], PRV02
+- [ ] All data types validated (year, code, positive integer, etc.)
 
 ## 📋 Complete List of Validation Rules
 

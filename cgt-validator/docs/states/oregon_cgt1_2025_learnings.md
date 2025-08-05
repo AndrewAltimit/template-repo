@@ -67,6 +67,9 @@ When working with Oregon CGT-1 2025 templates:
 ✅ Handle column name variations (with/without newlines)
 ✅ Use numeric parsing with `pd.to_numeric(errors='coerce')` for robust validation
 ✅ Remember TINs must be stored as text to preserve leading zeros
+✅ Enforce LOB code 7 restriction (only allowed in TME_ALL)
+✅ Implement case-insensitive provider/IPA matching
+✅ Add complete data type validation for all field types
 
 ## Common Pitfalls to Avoid
 

@@ -142,6 +142,7 @@ This field is required in TME_PROV but easy to miss because it's between optiona
 **Correct**:
 - **Most sheets**: Field codes at row 8, column names at row 10, data at row 11
 - **TME_PROV, RX_MED_PROV, RX_MED_UNATTR**: Field codes at row 10, column names at row 12, data at row 13
+- **PROV_ID**: Field codes at row 6, column names at row 8, data at row 9
 
 ### ❌ MISTAKE 5: Incorrect Data Type Strings
 The template uses specific strings for data types:

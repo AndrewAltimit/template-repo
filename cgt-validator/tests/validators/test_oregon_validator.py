@@ -341,6 +341,8 @@ class TestOregonValidator:
         data[13][2] = "jane.doe@example.com"
         data[14][0] = "Signature:"
         data[14][2] = "[Input Required]"  # Missing signature
+        data[15][0] = "Date:"
+        data[15][2] = ""  # Missing date
 
         for row in data:
             ws.append(row)
@@ -352,7 +354,7 @@ class TestOregonValidator:
 
         # Should have missing required field errors
         missing_field_errors = [e for e in results.errors if e.code == "MISSING_REQUIRED_FIELD"]
-        assert len(missing_field_errors) >= 3  # At least payer name, email, full name
+        assert len(missing_field_errors) >= 4  # At least payer name, email, full name, date
 
     def test_reporting_year_validation(self, temp_dir: Path):
         """Test reporting year validation for 2025 template."""
@@ -593,3 +595,297 @@ class TestOregonValidator:
         assert not results.is_valid()
         # Should have errors about missing sheets
         assert any(e.code == "MISSING_SHEET" for e in results.errors)
+
+    def test_lob_code_7_restriction(self, temp_dir: Path):
+        """Test that LOB code 7 is only allowed in TME_ALL."""
+        output_path = temp_dir / "lob_7_test.xlsx"
+        wb = Workbook()
+
+        # Create minimal required sheets
+        for sheet_name in [
+            "Contents",
+            "1. Cover Page",
+            "4. TME_UNATTR",
+            "5. MARKET_ENROLL",
+            "6. RX_MED_PROV",
+            "7. RX_MED_UNATTR",
+            "8. RX_REBATE",
+            "9. PROV_ID",
+        ]:
+            ws = wb.create_sheet(sheet_name)
+            for i in range(13):  # Account for different header rows
+                ws.append([None] * 10)
+
+        # TME_ALL with LOB 7 (should be valid)
+        ws = wb.create_sheet("2. TME_ALL")
+        for i in range(10):  # Headers at row 10
+            ws.append([None] * 10)
+        ws.append(["Reporting Year", "Line of Business Code", "Member Months", "Demographic Score"] + [None] * 6)
+        ws.append([2024, 7, 1000, 1.0] + [None] * 6)  # Valid: LOB 7 in TME_ALL
+
+        # TME_PROV with LOB 7 (should be invalid)
+        ws = wb.create_sheet("3. TME_PROV")
+        for i in range(12):  # Headers at row 12
+            ws.append([None] * 10)
+        ws.append(
+            [
+                "Reporting Year",
+                "Line of Business Code",
+                "Provider Organization Name",
+                "IPA or Contract Name\n(If applicable/available)",
+                "Attribution Hierarchy Code",
+                "Member Months",
+                "Demographic Score",
+            ]
+            + [None] * 3
+        )
+        ws.append([2024, 7, "Provider 1", "IPA 1", 1, 1000, 1.0] + [None] * 3)  # Invalid: LOB 7 not allowed
+
+        wb.save(output_path)
+
+        validator = OregonValidator(year=2025)
+        results = validator.validate_file(str(output_path))
+
+        # Should have LOB code error for TME_PROV but not TME_ALL
+        lob_errors = [e for e in results.errors if e.code == "INVALID_LOB_CODE"]
+        assert len(lob_errors) == 1
+        assert "3. TME_PROV" in lob_errors[0].location
+        assert "code 7 is only allowed in TME_ALL" in lob_errors[0].message
+
+    def test_prov_id_field_codes(self, temp_dir: Path):
+        """Test PROV_ID field codes validation."""
+        output_path = temp_dir / "prov_id_codes_test.xlsx"
+        wb = Workbook()
+
+        # Create minimal required sheets
+        for sheet_name in [
+            "Contents",
+            "1. Cover Page",
+            "2. TME_ALL",
+            "3. TME_PROV",
+            "4. TME_UNATTR",
+            "5. MARKET_ENROLL",
+            "6. RX_MED_PROV",
+            "7. RX_MED_UNATTR",
+            "8. RX_REBATE",
+        ]:
+            ws = wb.create_sheet(sheet_name)
+            for i in range(13):
+                ws.append([None] * 10)
+
+        # PROV_ID with incorrect field codes
+        ws = wb.create_sheet("9. PROV_ID")
+        for i in range(6):
+            ws.append([None] * 5)
+        # Row 6: Field codes - should be PRV01, [blank], PRV02
+        ws.append(["PRV01", "PRV99", "PRV02"] + [None] * 2)  # Wrong: middle should be blank
+        ws.append(["free text", "free text", "text, 9 digits including leading zero"] + [None] * 2)
+        ws.append(
+            [
+                "Provider Organization Name",
+                "IPA or Contract Name (If applicable/available)",
+                "Provider Organization TIN",
+            ]
+            + [None] * 2
+        )
+        ws.append(["Provider 1", "IPA 1", "123456789"] + [None] * 2)
+
+        wb.save(output_path)
+
+        validator = OregonValidator(year=2025)
+        results = validator.validate_file(str(output_path))
+
+        # Should have field code error
+        field_code_errors = [e for e in results.errors if e.code == "INVALID_FIELD_CODES"]
+        assert len(field_code_errors) == 1
+        assert "PRV01, [blank], PRV02" in field_code_errors[0].message
+
+    def test_data_type_validation(self, temp_dir: Path):
+        """Test comprehensive data type validation."""
+        output_path = temp_dir / "data_types_test.xlsx"
+        wb = Workbook()
+
+        # Create minimal required sheets
+        for sheet_name in [
+            "Contents",
+            "1. Cover Page",
+            "4. TME_UNATTR",
+            "5. MARKET_ENROLL",
+            "6. RX_MED_PROV",
+            "7. RX_MED_UNATTR",
+            "8. RX_REBATE",
+            "9. PROV_ID",
+        ]:
+            ws = wb.create_sheet(sheet_name)
+            for i in range(13):
+                ws.append([None] * 10)
+
+        # TME_ALL with invalid data types
+        ws = wb.create_sheet("2. TME_ALL")
+        for i in range(10):
+            ws.append([None] * 10)
+        ws.append(["Reporting Year", "Line of Business Code", "Member Months", "Demographic Score"] + [None] * 6)
+        ws.append(["invalid_year", "not_a_code", "negative", "text"] + [None] * 6)  # All invalid types
+        ws.append([2024, 1.5, -100, -0.5] + [None] * 6)  # LOB not int, member months negative, demo score negative
+
+        # TME_PROV with invalid data types
+        ws = wb.create_sheet("3. TME_PROV")
+        for i in range(12):
+            ws.append([None] * 10)
+        ws.append(
+            [
+                "Reporting Year",
+                "Line of Business Code",
+                "Provider Organization Name",
+                "IPA or Contract Name\n(If applicable/available)",
+                "Attribution Hierarchy Code",
+                "Member Months",
+                "Demographic Score",
+            ]
+            + [None] * 3
+        )
+        ws.append(
+            [2024, 1, "", "IPA 1", "not_a_code", 0, -1.0] + [None] * 3
+        )  # Empty provider, invalid attr code, zero MM, negative demo
+
+        wb.save(output_path)
+
+        validator = OregonValidator(year=2025)
+        results = validator.validate_file(str(output_path))
+
+        # Should have various data type errors
+        data_type_errors = [e for e in results.errors if e.code == "INVALID_DATA_TYPE"]
+        assert len(data_type_errors) > 0
+
+        # Should also have specific validation errors
+        assert any(e.code == "EMPTY_MANDATORY_FIELD" for e in results.errors)  # Empty provider name
+        assert any(e.code == "INVALID_MEMBER_MONTHS" for e in results.errors)  # Zero/negative member months
+
+    def test_case_insensitive_provider_matching(self, temp_dir: Path):
+        """Test that provider matching is case-insensitive."""
+        output_path = temp_dir / "case_test.xlsx"
+        wb = Workbook()
+
+        # Create minimal required sheets
+        for sheet_name in [
+            "Contents",
+            "1. Cover Page",
+            "2. TME_ALL",
+            "4. TME_UNATTR",
+            "5. MARKET_ENROLL",
+            "6. RX_MED_PROV",
+            "7. RX_MED_UNATTR",
+            "8. RX_REBATE",
+        ]:
+            ws = wb.create_sheet(sheet_name)
+            for i in range(13):
+                ws.append([None] * 10)
+
+        # PROV_ID with mixed case
+        ws = wb.create_sheet("9. PROV_ID")
+        for i in range(8):
+            ws.append([None] * 5)
+        ws.append(
+            [
+                "Provider Organization Name",
+                "IPA or Contract Name (If applicable/available)",
+                "Provider Organization TIN",
+            ]
+            + [None] * 2
+        )
+        ws.append(["ABC Healthcare", "West IPA", "123456789"] + [None] * 2)
+        ws.append(["XYZ Medical Group", "", "987654321"] + [None] * 2)
+
+        # TME_PROV with different case
+        ws = wb.create_sheet("3. TME_PROV")
+        for i in range(12):
+            ws.append([None] * 10)
+        ws.append(
+            [
+                "Reporting Year",
+                "Line of Business Code",
+                "Provider Organization Name",
+                "IPA or Contract Name\n(If applicable/available)",
+                "Attribution Hierarchy Code",
+                "Member Months",
+                "Demographic Score",
+            ]
+            + [None] * 3
+        )
+        # These should match despite case differences
+        ws.append([2024, 1, "ABC HEALTHCARE", "WEST IPA", 1, 1000, 1.0] + [None] * 3)  # Upper case
+        ws.append([2024, 1, "xyz medical group", "", 1, 2000, 1.0] + [None] * 3)  # Lower case
+        ws.append([2024, 1, "Unknown Provider", "Some IPA", 1, 3000, 1.0] + [None] * 3)  # Should fail
+
+        wb.save(output_path)
+
+        validator = OregonValidator(year=2025)
+        results = validator.validate_file(str(output_path))
+
+        # Should only have one provider reference error (Unknown Provider)
+        ref_errors = [e for e in results.errors if e.code == "INVALID_PROVIDER_REFERENCE"]
+        assert len(ref_errors) == 1
+        assert "Unknown Provider" in str(ref_errors[0].message)
+
+    def test_rx_med_header_rows(self, temp_dir: Path):
+        """Test that RX_MED_PROV and RX_MED_UNATTR have correct header rows."""
+        output_path = temp_dir / "rx_med_headers_test.xlsx"
+        wb = Workbook()
+
+        # Create minimal required sheets
+        for sheet_name in [
+            "Contents",
+            "1. Cover Page",
+            "2. TME_ALL",
+            "3. TME_PROV",
+            "4. TME_UNATTR",
+            "5. MARKET_ENROLL",
+            "8. RX_REBATE",
+            "9. PROV_ID",
+        ]:
+            ws = wb.create_sheet(sheet_name)
+            for i in range(13):
+                ws.append([None] * 10)
+
+        # RX_MED_PROV with headers at row 12
+        ws = wb.create_sheet("6. RX_MED_PROV")
+        for i in range(12):  # Headers should be at row 12
+            ws.append([None] * 10)
+        ws.append(
+            [
+                "Reporting Year",
+                "Line of Business Code",
+                "Provider Organization TIN",
+                "Provider Organization Name",
+                "Allowed Pharmacy",
+                "Net Paid Medical",
+            ]
+            + [None] * 4
+        )
+        ws.append([2024, 1, "123456789", "Provider 1", 10000, 50000] + [None] * 4)
+
+        # RX_MED_UNATTR with headers at row 12
+        ws = wb.create_sheet("7. RX_MED_UNATTR")
+        for i in range(12):  # Headers should be at row 12
+            ws.append([None] * 10)
+        ws.append(["Reporting Year", "Line of Business Code", "Allowed Pharmacy", "Net Paid Medical"] + [None] * 6)
+        ws.append([2024, 1, 5000, 25000] + [None] * 6)
+
+        wb.save(output_path)
+
+        validator = OregonValidator(year=2025)
+        results = validator.validate_file(str(output_path))
+
+        # Should validate successfully if headers are parsed correctly
+        # If headers are at wrong row, mandatory field checks will fail
+        mandatory_errors = [e for e in results.errors if e.code == "EMPTY_MANDATORY_FIELD"]
+        missing_col_errors = [e for e in results.errors if e.code == "MISSING_COLUMN"]
+
+        # Print errors for debugging
+        if len(mandatory_errors) > 0 or len(missing_col_errors) > 0:
+            print("\nErrors found:")
+            for error in results.errors:
+                print(f"  {error.code}: {error.message} at {error.location}")
+
+        assert len(mandatory_errors) == 0, "Headers not parsed at correct row"
+        assert len(missing_col_errors) == 0, "Required columns not found"

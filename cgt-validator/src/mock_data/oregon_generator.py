@@ -107,7 +107,9 @@ class OregonMockDataGenerator:
             [None] * 30,  # Row 3: Empty
             [None] * 30,  # Row 4: Empty
             [None] * 30,  # Row 5: Empty
-            # Row 6: Field codes
+            [None] * 30,  # Row 6: Empty
+            [None] * 30,  # Row 7: Empty
+            # Row 8: Field codes
             [
                 "TMEALL01",
                 "TMEALL02",
@@ -121,7 +123,7 @@ class OregonMockDataGenerator:
                 "TMEALL10",
             ]
             + [None] * 20,
-            # Row 7: Data types
+            # Row 9: Data types
             [
                 "year",
                 "code",
@@ -135,7 +137,7 @@ class OregonMockDataGenerator:
                 "non-negative number",
             ]
             + [None] * 20,
-            # Row 8: Column names
+            # Row 10: Column names
             [
                 "Reporting Year",
                 "Line of Business Code",
@@ -203,9 +205,11 @@ class OregonMockDataGenerator:
             ]
             + [None] * 26,
             [None] * 30,
-            # Row 8: Field codes
+            [None] * 30,  # Row 8: Empty
+            [None] * 30,  # Row 9: Empty
+            # Row 10: Field codes
             ["TMEPRV01", "TMEPRV02", "TMEPRV03", "TMEPRV04", "TMEPRV06", "TMEPRV07", "TMEPRV08"] + [None] * 23,
-            # Row 9: Data types
+            # Row 11: Data types
             [
                 "Year",
                 "Code",
@@ -216,7 +220,7 @@ class OregonMockDataGenerator:
                 "non-negative number",
             ]
             + [None] * 23,
-            # Row 10: Column names
+            # Row 12: Column names
             [
                 "Reporting Year",
                 "Line of Business Code",
@@ -260,11 +264,13 @@ class OregonMockDataGenerator:
             [None] * 30,
             [None] * 30,
             [None] * 30,
-            # Field codes
+            [None] * 30,  # Row 6: Empty
+            [None] * 30,  # Row 7: Empty
+            # Row 8: Field codes
             ["TMEUNATTR01", "TMEUNATTR02", "TMEUNATTR03"] + [None] * 27,
-            # Data types
+            # Row 9: Data types
             ["year", "code", "positive integer"] + [None] * 27,
-            # Column names
+            # Row 10: Column names
             ["Reporting Year", "Line of Business Code", "Member Months"] + [None] * 27,
         ]
 
@@ -289,11 +295,13 @@ class OregonMockDataGenerator:
             [None] * 30,
             [None] * 30,
             [None] * 30,
-            # Field codes
+            [None] * 30,  # Row 6: Empty
+            [None] * 30,  # Row 7: Empty
+            # Row 8: Field codes
             ["MKTENROLL01", "MKTENROLL02", "MKTENROLL03"] + [None] * 27,
-            # Data types
+            # Row 9: Data types
             ["year", "code", "positive integer"] + [None] * 27,
-            # Column names
+            # Row 10: Column names
             ["Reporting Year", "Line of Business Code", "Market Member Months"] + [None] * 27,
         ]
 
@@ -319,9 +327,13 @@ class OregonMockDataGenerator:
             ["When the payer-entered data does not meet the desired format, the cell will become red."] + [None] * 29,
             [None] * 30,
             [None] * 30,
-            # Field codes
+            [None] * 30,  # Row 6: Empty
+            [None] * 30,  # Row 7: Empty
+            [None] * 30,  # Row 8: Empty
+            [None] * 30,  # Row 9: Empty
+            # Row 10: Field codes
             ["RXMEDPROV01", "RXMEDPROV02", "RXMEDPROV03", "RXMEDPROV04", "RXMEDPROV05", "RXMEDPROV06"] + [None] * 24,
-            # Data types
+            # Row 11: Data types
             [
                 "year",
                 "code",
@@ -331,7 +343,7 @@ class OregonMockDataGenerator:
                 "non-negative number",
             ]
             + [None] * 24,
-            # Column names
+            # Row 12: Column names
             [
                 "Reporting Year",
                 "Line of Business Code",
@@ -373,11 +385,15 @@ class OregonMockDataGenerator:
             ["When the payer-entered data does not meet the desired format, the cell will become red."] + [None] * 29,
             [None] * 30,
             [None] * 30,
-            # Field codes
+            [None] * 30,  # Row 6: Empty
+            [None] * 30,  # Row 7: Empty
+            [None] * 30,  # Row 8: Empty
+            [None] * 30,  # Row 9: Empty
+            # Row 10: Field codes
             ["RXMEDUNATTR01", "RXMEDUNATTR02", "RXMEDUNATTR03", "RXMEDUNATTR04"] + [None] * 26,
-            # Data types
+            # Row 11: Data types
             ["year", "code", "non-negative number", "non-negative number"] + [None] * 26,
-            # Column names
+            # Row 12: Column names
             [
                 "Reporting Year",
                 "Line of Business Code",
@@ -414,11 +430,13 @@ class OregonMockDataGenerator:
             ["When the payer-entered data does not meet the desired format, the cell will become red."] + [None] * 29,
             [None] * 30,
             [None] * 30,
-            # Field codes
+            [None] * 30,  # Row 6: Empty
+            [None] * 30,  # Row 7: Empty
+            # Row 8: Field codes
             ["RXREBATE01", "RXREBATE02", "RXREBATE03"] + [None] * 27,
-            # Data types
+            # Row 9: Data types
             ["year", "code", "non-negative number"] + [None] * 27,
-            # Column names
+            # Row 10: Column names
             ["Reporting Year", "Line of Business Code", "Prescription Rebates"] + [None] * 27,
         ]
 

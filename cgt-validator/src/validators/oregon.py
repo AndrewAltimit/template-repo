@@ -15,6 +15,17 @@ class OregonValidator(ValidatorBase):
     def __init__(self, year: Optional[int] = None):
         super().__init__("oregon", year)
 
+    def _get_header_row(self, sheet_name: str) -> int:
+        """Get the correct header row for a sheet based on 2025 template structure."""
+        # Per actual Excel template structure from reference files
+        if sheet_name in ["3. TME_PROV", "6. RX_MED_PROV", "7. RX_MED_UNATTR"]:
+            return 12  # Column names at row 13 (0-indexed = 12)
+        elif sheet_name == "9. PROV_ID":
+            return 8  # Column names at row 9 (0-indexed = 8)
+        else:
+            # TME_ALL, TME_UNATTR, MARKET_ENROLL, RX_REBATE
+            return 10  # Column names at row 11 (0-indexed = 10)
+
     def _load_requirements(self) -> Dict[str, Any]:
         """Load Oregon-specific requirements for 2025 CGT-1 template."""
         return {
@@ -145,12 +156,8 @@ class OregonValidator(ValidatorBase):
             if sheet_name == "1. Cover Page":
                 continue
 
-            # Determine the correct header row based on sheet type
-            # Based on actual mock generator implementation:
-            if sheet_name == "3. TME_PROV":
-                header_row = 10  # TME_PROV has headers at row 11 (0-indexed = 10)
-            else:
-                header_row = 8  # All other sheets have headers at row 9 (0-indexed = 8)
+            # Use centralized header row determination
+            header_row = self._get_header_row(sheet_name)
 
             # Parse with correct header row
             df = excel_data.parse(sheet_name, header=header_row)
@@ -193,25 +200,85 @@ class OregonValidator(ValidatorBase):
             if sheet_name == "1. Cover Page":
                 continue
 
-            # Determine the correct header row based on sheet type
-            # Based on actual mock generator implementation:
-            if sheet_name == "3. TME_PROV":
-                header_row = 10  # TME_PROV has headers at row 11 (0-indexed = 10)
-            else:
-                header_row = 8  # All other sheets have headers at row 9 (0-indexed = 8)
+            # Use centralized header row determination
+            header_row = self._get_header_row(sheet_name)
 
             # Parse with correct header row
             df = excel_data.parse(sheet_name, header=header_row)
 
-            for column in column_types.keys():
+            for column, expected_type in column_types.items():
                 if column not in df.columns:
                     continue
 
-                # Let parent handle the actual type checking
-                # Just ensure we're using the right dataframe
-
-        # For now, skip the parent's data type validation since it doesn't handle header rows correctly
-        # Note: Data type validation is handled differently for Oregon due to varying header row positions
+                # Validate data types based on expected type
+                if expected_type == "year":
+                    numeric_vals = pd.to_numeric(df[column], errors="coerce")
+                    invalid_years = df[numeric_vals.isna() | (numeric_vals < 2000) | (numeric_vals > 2050)]
+                    if not invalid_years.empty:
+                        results.add_error(
+                            code="INVALID_DATA_TYPE",
+                            message=(
+                                f"Column '{column}' contains invalid year values in rows: "
+                                f"{invalid_years.index.tolist()[:5]}"
+                            ),
+                            location=f"{sheet_name}.{column}",
+                            severity=Severity.ERROR,
+                        )
+                elif expected_type == "code":
+                    numeric_vals = pd.to_numeric(df[column], errors="coerce")
+                    invalid_codes = df[numeric_vals.isna()]
+                    if not invalid_codes.empty:
+                        results.add_error(
+                            code="INVALID_DATA_TYPE",
+                            message=(
+                                f"Column '{column}' must contain numeric codes in rows: "
+                                f"{invalid_codes.index.tolist()[:5]}"
+                            ),
+                            location=f"{sheet_name}.{column}",
+                            severity=Severity.ERROR,
+                        )
+                elif expected_type == "positive_integer":
+                    numeric_vals = pd.to_numeric(df[column], errors="coerce")
+                    invalid_ints = df[
+                        numeric_vals.isna()
+                        | (numeric_vals <= 0)
+                        | (numeric_vals != numeric_vals.fillna(0).astype("int64"))
+                    ]
+                    if not invalid_ints.empty:
+                        results.add_error(
+                            code="INVALID_DATA_TYPE",
+                            message=(
+                                f"Column '{column}' must contain positive integers in rows: "
+                                f"{invalid_ints.index.tolist()[:5]}"
+                            ),
+                            location=f"{sheet_name}.{column}",
+                            severity=Severity.ERROR,
+                        )
+                elif expected_type == "non_negative_number":
+                    numeric_vals = pd.to_numeric(df[column], errors="coerce")
+                    invalid_nums = df[numeric_vals.isna() | (numeric_vals < 0)]
+                    if not invalid_nums.empty:
+                        results.add_error(
+                            code="INVALID_DATA_TYPE",
+                            message=(
+                                f"Column '{column}' must contain non-negative numbers in rows: "
+                                f"{invalid_nums.index.tolist()[:5]}"
+                            ),
+                            location=f"{sheet_name}.{column}",
+                            severity=Severity.ERROR,
+                        )
+                elif expected_type == "text_9_digits":
+                    invalid_tins = df[~df[column].astype(str).str.match(r"^\d{9}$", na=False)]
+                    if not invalid_tins.empty:
+                        results.add_error(
+                            code="INVALID_DATA_TYPE",
+                            message=(
+                                f"Column '{column}' must contain exactly 9 digits in rows: "
+                                f"{invalid_tins.index.tolist()[:5]}"
+                            ),
+                            location=f"{sheet_name}.{column}",
+                            severity=Severity.ERROR,
+                        )
 
     def _validate_business_rules(self, excel_data: pd.ExcelFile, results: ValidationResults):
         """Validate Oregon-specific business rules for 2025 CGT-1 template."""
@@ -227,6 +294,7 @@ class OregonValidator(ValidatorBase):
                 "Title/Position": (12, 2),
                 "Email/Contact Information": (13, 2),
                 "Signature": (14, 2),
+                "Date": (15, 2),  # Required attestation date field
             }
 
             for field_name, (row_idx, col_idx) in required_fields.items():
@@ -247,31 +315,79 @@ class OregonValidator(ValidatorBase):
                         severity=Severity.ERROR,
                     )
 
-        # Rule 2: Validate Line of Business codes
+        # Rule 2: Validate Line of Business codes with LOB 7 restriction
         valid_lob_codes = list(self.requirements["allowed_values"]["Line of Business Code"].keys())
 
-        for sheet_name in ["2. TME_ALL", "3. TME_PROV", "4. TME_UNATTR", "5. MARKET_ENROLL"]:
+        for sheet_name in [
+            "2. TME_ALL",
+            "3. TME_PROV",
+            "4. TME_UNATTR",
+            "5. MARKET_ENROLL",
+            "6. RX_MED_PROV",
+            "7. RX_MED_UNATTR",
+            "8. RX_REBATE",
+        ]:
             if sheet_name in excel_data.sheet_names:
-                # Different sheets have different header rows - only TME_PROV is different
-                header_row = 10 if sheet_name == "3. TME_PROV" else 8
+                # Use centralized header row determination
+                header_row = self._get_header_row(sheet_name)
                 df = excel_data.parse(sheet_name, header=header_row)
                 if "Line of Business Code" in df.columns:
-                    invalid_codes = df[~df["Line of Business Code"].isin(valid_lob_codes)]
+                    # Filter out non-numeric data
+                    numeric_lob = pd.to_numeric(df["Line of Business Code"], errors="coerce")
+
+                    # Check for invalid codes based on sheet
+                    if sheet_name == "2. TME_ALL":
+                        # TME_ALL allows codes 1-7
+                        invalid_codes = df[~numeric_lob.isin(valid_lob_codes)]
+                    else:
+                        # All other sheets only allow codes 1-6 (not 7)
+                        invalid_codes = df[~numeric_lob.isin([1, 2, 3, 4, 5, 6])]
+
                     if not invalid_codes.empty:
-                        results.add_error(
-                            code="INVALID_LOB_CODE",
-                            message=(
+                        if sheet_name == "2. TME_ALL":
+                            message = (
                                 f"Invalid Line of Business codes in rows: {invalid_codes.index.tolist()[:5]}. "
                                 "Valid codes are 1-7."
-                            ),
+                            )
+                        else:
+                            message = (
+                                f"Invalid Line of Business codes in rows: {invalid_codes.index.tolist()[:5]}. "
+                                "Valid codes are 1-6 only (code 7 is only allowed in TME_ALL)."
+                            )
+                        results.add_error(
+                            code="INVALID_LOB_CODE",
+                            message=message,
                             location=f"{sheet_name}.Line of Business Code",
                             severity=Severity.ERROR,
                         )
 
-        # Rule 3: Validate TIN format (9 digits) in PROV_ID sheet
+        # Rule 3: Validate TIN format (9 digits) and field codes in PROV_ID sheet
         if "9. PROV_ID" in excel_data.sheet_names:
-            # Based on reference files, PROV_ID has header at row 8 (0-indexed)
-            df = excel_data.parse("9. PROV_ID", header=8)
+            # Use centralized header row determination
+            header_row = self._get_header_row("9. PROV_ID")
+            df = excel_data.parse("9. PROV_ID", header=header_row)
+
+            # Validate field codes structure (PRV01, [blank], PRV02)
+            df_raw = excel_data.parse("9. PROV_ID", header=None)
+            if len(df_raw) > 6 and len(df_raw.columns) >= 3:
+                field_codes_row = df_raw.iloc[6]  # Row 7 (0-indexed = 6)
+                actual_codes = [field_codes_row.iloc[i] if i < len(field_codes_row) else None for i in range(3)]
+
+                # Check if field codes match expected pattern
+                if (
+                    actual_codes[0] != "PRV01"
+                    or (
+                        actual_codes[1] is not None and pd.notna(actual_codes[1]) and str(actual_codes[1]).strip() != ""
+                    )
+                    or actual_codes[2] != "PRV02"
+                ):
+                    results.add_error(
+                        code="INVALID_FIELD_CODES",
+                        message="PROV_ID field codes must be PRV01, [blank], PRV02 in that order",
+                        location="9. PROV_ID",
+                        severity=Severity.ERROR,
+                    )
+
             if "Provider Organization TIN" in df.columns:
                 # Filter out header/type rows and validate actual data
                 data_df = df[~df["Provider Organization TIN"].astype(str).str.contains("text|PRV", na=False)]
@@ -287,7 +403,7 @@ class OregonValidator(ValidatorBase):
         # Rule 4: Validate member months are positive integers
         for sheet_name in ["2. TME_ALL", "3. TME_PROV", "4. TME_UNATTR", "5. MARKET_ENROLL"]:
             if sheet_name in excel_data.sheet_names:
-                header_row = 10 if sheet_name == "3. TME_PROV" else 8
+                header_row = self._get_header_row(sheet_name)
                 df = excel_data.parse(sheet_name, header=header_row)
                 mm_col = "Member Months" if sheet_name != "5. MARKET_ENROLL" else "Market Member Months"
                 if mm_col in df.columns:
@@ -305,7 +421,8 @@ class OregonValidator(ValidatorBase):
 
         # Rule 5: Validate TME_PROV member months threshold
         if "3. TME_PROV" in excel_data.sheet_names:
-            df = excel_data.parse("3. TME_PROV", header=10)  # TME_PROV header at row 10
+            header_row = self._get_header_row("3. TME_PROV")
+            df = excel_data.parse("3. TME_PROV", header=header_row)
             if "Member Months" in df.columns:
                 numeric_mm = pd.to_numeric(df["Member Months"], errors="coerce")
                 below_threshold = df[numeric_mm <= self.requirements["member_months_threshold"]]
@@ -325,7 +442,7 @@ class OregonValidator(ValidatorBase):
         current_year = self.year or 2025
         for sheet_name in ["2. TME_ALL", "3. TME_PROV", "4. TME_UNATTR", "5. MARKET_ENROLL"]:
             if sheet_name in excel_data.sheet_names:
-                header_row = 10 if sheet_name == "3. TME_PROV" else 8
+                header_row = self._get_header_row(sheet_name)
                 df = excel_data.parse(sheet_name, header=header_row)
                 if "Reporting Year" in df.columns:
                     numeric_years = pd.to_numeric(df["Reporting Year"], errors="coerce")
@@ -343,7 +460,8 @@ class OregonValidator(ValidatorBase):
 
         # Rule 7: Validate Attribution Hierarchy Code in TME_PROV
         if "3. TME_PROV" in excel_data.sheet_names:
-            df = excel_data.parse("3. TME_PROV", header=10)  # Column names at row 10
+            header_row = self._get_header_row("3. TME_PROV")
+            df = excel_data.parse("3. TME_PROV", header=header_row)
             if "Attribution Hierarchy Code" in df.columns:
                 valid_attr_codes = list(self.requirements["allowed_values"]["Attribution Hierarchy Code"].keys())
                 numeric_codes = pd.to_numeric(df["Attribution Hierarchy Code"], errors="coerce")
@@ -361,7 +479,8 @@ class OregonValidator(ValidatorBase):
 
         # Rule 8: Check for duplicate Year-LOB-Provider-Attribution combinations
         if "3. TME_PROV" in excel_data.sheet_names:
-            df = excel_data.parse("3. TME_PROV", header=10)
+            header_row = self._get_header_row("3. TME_PROV")
+            df = excel_data.parse("3. TME_PROV", header=header_row)
             # Include IPA/Contract Name in the key columns as shown in reference validation
             key_cols = [
                 "Reporting Year",
@@ -405,7 +524,8 @@ class OregonValidator(ValidatorBase):
         provider_ipa_combos = set()  # Initialize this set here
 
         if "9. PROV_ID" in excel_data.sheet_names:
-            df = excel_data.parse("9. PROV_ID", header=8)
+            header_row = self._get_header_row("9. PROV_ID")
+            df = excel_data.parse("9. PROV_ID", header=header_row)
             if "Provider Organization Name" in df.columns and "Provider Organization TIN" in df.columns:
                 # Filter out header/type rows
                 data_df = df[~df["Provider Organization TIN"].astype(str).str.contains("text|PRV|digits", na=False)]
@@ -426,29 +546,43 @@ class OregonValidator(ValidatorBase):
                     ipa = row.get(ipa_col, "") if ipa_col else ""
 
                     if pd.notna(name) and pd.notna(tin) and str(name).strip() and str(tin).strip():
+                        # Normalize names for case-insensitive matching
                         name_str = str(name).strip()
                         tin_str = str(tin).strip()
                         ipa_str = str(ipa).strip() if pd.notna(ipa) else ""
 
-                        provider_info[name_str] = tin_str
-                        provider_names.add(name_str)
+                        provider_info[name_str.upper()] = tin_str  # Store uppercase for matching
+                        provider_names.add(name_str.upper())
                         provider_tins.add(tin_str)
-                        # Add provider-IPA combination
-                        provider_ipa_combos.add((name_str, ipa_str))
+                        # Add provider-IPA combination (normalized)
+                        provider_ipa_combos.add((name_str.upper(), ipa_str.upper()))
 
         # Check that all Provider Names in TME_PROV exist in PROV_ID
         if "3. TME_PROV" in excel_data.sheet_names:
-            df = excel_data.parse("3. TME_PROV", header=10)  # Column names are at row 10
+            header_row = self._get_header_row("3. TME_PROV")
+            df = excel_data.parse("3. TME_PROV", header=header_row)
             if "Provider Organization Name" in df.columns:
                 # Filter out empty or invalid rows
                 valid_df = df[df["Provider Organization Name"].notna() & (df["Provider Organization Name"] != "")]
-                tme_prov_names = set(valid_df["Provider Organization Name"].unique())
+                # Use uppercase for case-insensitive matching
+                tme_prov_names = set(
+                    str(name).strip().upper() for name in valid_df["Provider Organization Name"].unique()
+                )
                 missing_names = tme_prov_names - provider_names
 
                 if missing_names:
+                    # Show original case names in error message
+                    original_missing = []
+                    for _, row in valid_df.iterrows():
+                        name = str(row.get("Provider Organization Name", "")).strip()
+                        if name.upper() in missing_names:
+                            original_missing.append(name)
+                            if len(original_missing) >= 5:
+                                break
+
                     results.add_error(
                         code="INVALID_PROVIDER_REFERENCE",
-                        message=f"Provider names in TME_PROV not found in PROV_ID sheet: {list(missing_names)[:5]}",
+                        message=f"Provider names in TME_PROV not found in PROV_ID sheet: {original_missing[:5]}",
                         location="3. TME_PROV.Provider Organization Name",
                         severity=Severity.ERROR,
                     )
@@ -477,7 +611,8 @@ class OregonValidator(ValidatorBase):
                         else:
                             ipa = str(ipa_val).strip()
 
-                        if name and (name, ipa) not in provider_ipa_combos:
+                        # Use uppercase for case-insensitive matching
+                        if name and (name.upper(), ipa.upper()) not in provider_ipa_combos:
                             missing_combos.append(f"{name} - {ipa if ipa else 'No IPA'}")
 
                     if missing_combos:
@@ -490,7 +625,8 @@ class OregonValidator(ValidatorBase):
 
         # Check that RX_MED_PROV Provider TINs exist in PROV_ID
         if "6. RX_MED_PROV" in excel_data.sheet_names:
-            df = excel_data.parse("6. RX_MED_PROV", header=8)
+            header_row = self._get_header_row("6. RX_MED_PROV")
+            df = excel_data.parse("6. RX_MED_PROV", header=header_row)
             if "Provider Organization TIN" in df.columns:
                 rx_prov_tins = set(df["Provider Organization TIN"].dropna().astype(str).unique())
                 missing_tins = rx_prov_tins - provider_tins
@@ -507,7 +643,7 @@ class OregonValidator(ValidatorBase):
         lob_by_sheet = {}
         for sheet_name in ["2. TME_ALL", "3. TME_PROV", "4. TME_UNATTR", "5. MARKET_ENROLL"]:
             if sheet_name in excel_data.sheet_names:
-                header_row = 10 if sheet_name == "3. TME_PROV" else 8
+                header_row = self._get_header_row(sheet_name)
                 df = excel_data.parse(sheet_name, header=header_row)
                 if "Line of Business Code" in df.columns and "Reporting Year" in df.columns:
                     # Filter out non-numeric data
@@ -541,7 +677,8 @@ class OregonValidator(ValidatorBase):
 
         # Check for behavioral health expenses in TME_ALL
         if "2. TME_ALL" in excel_data.sheet_names:
-            df = excel_data.parse("2. TME_ALL", header=8)
+            header_row = self._get_header_row("2. TME_ALL")
+            df = excel_data.parse("2. TME_ALL", header=header_row)
             bh_column = "Claims: Professional, Behavior Health Providers"
             if bh_column in df.columns:
                 # Check if behavioral health claims are properly reported
@@ -568,8 +705,10 @@ class OregonValidator(ValidatorBase):
 
         # Check if TME_UNATTR has data when TME_PROV has low member months
         if "3. TME_PROV" in excel_data.sheet_names and "4. TME_UNATTR" in excel_data.sheet_names:
-            tme_prov_df = excel_data.parse("3. TME_PROV", header=10)  # TME_PROV header at row 10
-            tme_unattr_df = excel_data.parse("4. TME_UNATTR", header=8)
+            header_row_prov = self._get_header_row("3. TME_PROV")
+            header_row_unattr = self._get_header_row("4. TME_UNATTR")
+            tme_prov_df = excel_data.parse("3. TME_PROV", header=header_row_prov)
+            tme_unattr_df = excel_data.parse("4. TME_UNATTR", header=header_row_unattr)
 
             if "Member Months" in tme_prov_df.columns:
                 # Count rows below threshold
@@ -590,7 +729,8 @@ class OregonValidator(ValidatorBase):
 
         # Validate prescription rebate reporting
         if "8. RX_REBATE" in excel_data.sheet_names:
-            df = excel_data.parse("8. RX_REBATE", header=8)
+            header_row = self._get_header_row("8. RX_REBATE")
+            df = excel_data.parse("8. RX_REBATE", header=header_row)
             # Filter out rows that are just headers or empty
             data_df = df[(pd.to_numeric(df.get("Reporting Year", pd.Series()), errors="coerce").notna())]
             if len(data_df) == 0:

@@ -3,6 +3,37 @@
 ## Summary of Updates
 This document tracks all updates made to the Oregon CGT validator based on analysis of reference Excel files on August 5, 2025.
 
+## Latest Updates (Second Round)
+
+### Critical Fixes Implemented
+
+1. **Fixed Header Row Logic**
+   - Created centralized `_get_header_row()` method
+   - RX_MED_PROV and RX_MED_UNATTR use header at row 12 (0-indexed)
+   - TME_ALL, TME_UNATTR, MARKET_ENROLL, RX_REBATE use header at row 10 (0-indexed)
+   - PROV_ID uses header at row 8 (0-indexed)
+
+2. **Added Missing Validations**
+   - Date field validation in Cover Page at cell [15, 2]
+   - LOB Code 7 restriction (only allowed in TME_ALL)
+   - PROV_ID field codes validation (PRV01, [blank], PRV02)
+   - Complete data type validation implementation
+
+3. **Enhanced Cross-Reference Validation**
+   - Case-insensitive provider name matching
+   - Fixed RX_MED_PROV header row in cross-reference
+   - Consistent empty value handling (None vs empty string)
+
+4. **Test Coverage**
+   - Added 6 new comprehensive test methods
+   - Tests for all new validation rules
+   - Edge case testing for header rows
+
+### Files Modified
+- `src/validators/oregon.py` - Implemented all fixes
+- `src/mock_data/oregon_generator.py` - Fixed header row structure
+- `tests/validators/test_oregon_validator.py` - Added comprehensive tests
+
 ## Files Updated
 
 ### 1. Code Files
