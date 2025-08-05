@@ -153,7 +153,42 @@ jobs:
               print(f"- Branch Coverage: {branch_rate:.1f}%")' >> $GITHUB_STEP_SUMMARY
           fi
 
-  # Stage 3: Validate mock data
+  # Stage 3: Build Python wheel
+  build-wheel:
+    name: Build Python Wheel
+    needs: test-suite
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+
+      - name: Build wheel
+        working-directory: ./cgt-validator
+        run: |
+          echo "📦 Building Python wheel..."
+          docker-compose -f docker-compose.yml run --rm cgt-dev bash -c "
+            pip install --upgrade pip setuptools wheel build && \
+            python -m build --wheel --outdir dist/
+          "
+
+      - name: List built artifacts
+        working-directory: ./cgt-validator
+        run: |
+          echo "📋 Built artifacts:"
+          ls -la dist/ || echo "No dist directory found"
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cgt-validator-wheel-${{ github.run_id }}
+          path: cgt-validator/dist/*.whl
+          retention-days: 7
+
+  # Stage 4: Validate mock data
   validate-mock-data:
     name: Validate Mock Data
     needs: format-and-lint
@@ -188,7 +223,7 @@ jobs:
             python scripts/validate-mock-data.py
           "
 
-  # Stage 4: Security scan
+  # Stage 5: Security scan
   security-scan:
     name: Security Scan
     needs: format-and-lint
@@ -228,10 +263,10 @@ jobs:
             cgt-validator/safety-report.json
           retention-days: 7
 
-  # Stage 5: Build and test Docker image
+  # Stage 6: Build and test Docker image
   docker-build:
     name: Docker Build and Test
-    needs: [test-suite, validate-mock-data]
+    needs: [test-suite, validate-mock-data, build-wheel]
     runs-on: self-hosted
     timeout-minutes: 15
     steps:
@@ -259,7 +294,7 @@ jobs:
           docker-compose ps
           docker-compose down
 
-  # Stage 6: Integration tests (optional)
+  # Stage 7: Integration tests (optional)
   integration-tests:
     name: Integration Tests
     needs: docker-build
@@ -289,7 +324,7 @@ jobs:
   # Final summary
   ci-summary:
     name: CI Summary
-    needs: [format-and-lint, test-suite, validate-mock-data, security-scan, docker-build, integration-tests]
+    needs: [format-and-lint, test-suite, build-wheel, validate-mock-data, security-scan, docker-build, integration-tests]
     if: always()
     runs-on: self-hosted
     steps:
@@ -310,6 +345,9 @@ jobs:
           TEST_RESULT="${{ needs.test-suite.result }}"
           TEST_STATUS="${{ needs.test-suite.result == 'success' && '✅' || needs.test-suite.result == 'skipped' && '⏭️' || '❌' }}"
           echo "| Test Suite | ${TEST_STATUS} |" >> $GITHUB_STEP_SUMMARY
+          WHEEL_RESULT="${{ needs.build-wheel.result }}"
+          WHEEL_STATUS="${{ needs.build-wheel.result == 'success' && '✅' || needs.build-wheel.result == 'skipped' && '⏭️' || '❌' }}"
+          echo "| Build Wheel | ${WHEEL_STATUS} |" >> $GITHUB_STEP_SUMMARY
           MOCK_RESULT="${{ needs.validate-mock-data.result }}"
           MOCK_STATUS="${{ needs.validate-mock-data.result == 'success' && '✅' || needs.validate-mock-data.result == 'skipped' && '⏭️' || '❌' }}"
           echo "| Mock Data Validation | ${MOCK_STATUS} |" >> $GITHUB_STEP_SUMMARY

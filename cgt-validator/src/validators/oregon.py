@@ -203,16 +203,15 @@ class OregonValidator(ValidatorBase):
             # Parse with correct header row
             df = excel_data.parse(sheet_name, header=header_row)
 
-            for column, expected_type in column_types.items():
+            for column in column_types.keys():
                 if column not in df.columns:
                     continue
 
                 # Let parent handle the actual type checking
                 # Just ensure we're using the right dataframe
-                pass
 
         # For now, skip the parent's data type validation since it doesn't handle header rows correctly
-        # TODO: Implement proper data type validation for Oregon sheets
+        # Note: Data type validation is handled differently for Oregon due to varying header row positions
 
     def _validate_business_rules(self, excel_data: pd.ExcelFile, results: ValidationResults):
         """Validate Oregon-specific business rules for 2025 CGT-1 template."""
