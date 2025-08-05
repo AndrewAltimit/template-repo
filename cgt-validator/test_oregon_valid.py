@@ -21,7 +21,7 @@ def main():
     mock_file = Path("./mock_data/oregon/test_submission_valid.xlsx")
     mock_file.parent.mkdir(parents=True, exist_ok=True)
 
-    generate_mock_submission(str(mock_file), include_optional=False)
+    generate_mock_submission(str(mock_file), include_validations=True)
     print(f"   ✓ Created: {mock_file}")
 
     # Validate the file
