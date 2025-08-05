@@ -42,8 +42,9 @@ class OregonMockDataGenerator:
 
         providers = []
         for i in range(count):
-            # Generate 9-digit TIN with leading zeros
-            tin = f"{random.randint(0, 999999999):09d}"
+            # Generate 9-digit TIN with leading zeros - ensure no TIN starts with 0
+            # to avoid Excel stripping leading zeros
+            tin = f"{random.randint(100000000, 999999999)}"
             provider = {
                 "Provider Organization Name": provider_names[i % len(provider_names)]
                 + (f" {i//len(provider_names) + 1}" if i >= len(provider_names) else ""),
