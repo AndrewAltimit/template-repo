@@ -9,7 +9,15 @@ import pandas as pd
 
 
 class OregonMockDataGenerator:
-    """Generate mock Oregon CGT-1 submission data for 2025 template."""
+    """Generate mock Oregon CGT-1 submission data for 2025 template.
+
+    Note: Mock data follows these Oregon-specific requirements:
+    - IPA/Contract Name fields are required but values can be blank
+    - LOB 7 is only used in TME_ALL sheet
+    - LOBs 5 & 6 represent Medicare/Medicaid Dual Eligible (using Paid Amounts)
+    - Student health plan members treated as Oregon residents
+    - Pharmacy rebates are reported as negative values
+    """
 
     def __init__(self, seed: int = 42, year: int = 2025):
         random.seed(seed)

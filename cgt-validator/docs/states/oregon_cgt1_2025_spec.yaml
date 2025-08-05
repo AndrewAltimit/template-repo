@@ -10,8 +10,10 @@ template:
   # Documentation section for non-programmable rules
   documentation:
     - "This specification enforces file structure and data format rules."
-    - "Data Sourcing Rule (Not Validated): Payers must include Oregon university student health plan members as Oregon residents."
-    - "Data Sourcing Rule (Not Validated): For LOBs 5 & 6, financial data should be based on 'Paid Amounts' not 'Allowed Amounts'."
+    - "Data Sourcing Rule (Not Validated): Payers must include Oregon university student health plan members as Oregon residents for the duration of their plan coverage."
+    - "Data Sourcing Rule (Not Validated): Exclude out-of-state residents treated in Oregon - focus is on Oregon residents only."
+    - "Data Sourcing Rule (Not Validated): For LOBs 5 & 6 (Medicare/Medicaid Dual Eligible), financial data should be based on 'Paid Amounts' not 'Allowed Amounts', regardless of whether the payer is primary or secondary."
+    - "Data Sourcing Rule (Not Validated): Payers using Tier 3 attribution (Utilization) must provide a summary of their methodology on the Cover Page."
 
 sheets:
   required:
@@ -160,7 +162,7 @@ field_mappings:
       - code: "TMEPRV04"
         name: "IPA or Contract Name\n(If applicable/available)"
         data_type: "free text, blank allowed"
-        required: false
+        required: false  # Field is required but value can be blank
 
       - code: "TMEPRV06"
         name: "Attribution Hierarchy Code"
@@ -213,8 +215,8 @@ field_mappings:
 
       - code: null  # No field code for IPA column
         name: "IPA or Contract Name (If applicable/available)"
-        data_type: "free text"
-        required: false
+        data_type: "free text, blank allowed"
+        required: false  # Field is required but value can be blank
 
       - code: "PRV02"
         name: "Provider Organization TIN"
@@ -253,7 +255,7 @@ validation_rules:
     valid_values:
       1: "Tier 1: Member Selection"
       2: "Tier 2: Contract Arrangement"
-      3: "Tier 3: Utilization"
+      3: "Tier 3: Utilization (requires methodology summary on Cover Page)"
 
   - rule: "tin_format"
     applies_to: ["9. PROV_ID"]

@@ -138,7 +138,7 @@ class OregonValidator(ValidatorBase):
                 "Attribution Hierarchy Code": {
                     1: "Tier 1: Member Selection",
                     2: "Tier 2: Contract Arrangement",
-                    3: "Tier 3: Utilization",
+                    3: "Tier 3: Utilization (requires methodology summary on Cover Page)",
                 },
             },
             "member_months_threshold": 12,  # TME_PROV rows with <= 12 member months should be rolled up to TME_UNATTR
@@ -281,7 +281,14 @@ class OregonValidator(ValidatorBase):
                         )
 
     def _validate_business_rules(self, excel_data: pd.ExcelFile, results: ValidationResults):
-        """Validate Oregon-specific business rules for 2025 CGT-1 template."""
+        """Validate Oregon-specific business rules for 2025 CGT-1 template.
+
+        Note: The following rules cannot be validated programmatically:
+        - Student health plans: Members should be included as Oregon residents for plan duration
+        - Out-of-state residents: Should be excluded even if treated in Oregon
+        - LOBs 5 & 6: Should use 'Paid Amounts' regardless of primary/secondary payer status
+        - Tier 3 attribution: Payers must provide methodology summary on Cover Page
+        """
 
         # Rule 1: Validate Cover Page required fields
         if "1. Cover Page" in excel_data.sheet_names:

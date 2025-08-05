@@ -8,13 +8,13 @@
 3. **PROV_ID column order**: Name → IPA → TIN (TIN is LAST)
 4. **Data starts at row 11**, not row 8!
 5. **Match providers by NAME**, not by TIN
-6. **IPA or Contract Name field is REQUIRED** in TME_PROV and PROV_ID (even if left blank)
+6. **IPA or Contract Name field is REQUIRED** in TME_PROV and PROV_ID (field required, value can be blank)
 7. **LOB 7 is ONLY allowed in TME_ALL** (not in other sheets)
 
 ### 📌 Data Scope
-- **Include**: Oregon university student health plan members as Oregon residents
-- **Exclude**: Out-of-state residents treated in Oregon
-- **LOBs 5 & 6**: Report using "Paid Amounts" not "Allowed Amounts"
+- **Include**: Oregon university student health plan members as Oregon residents (for duration of plan coverage)
+- **Exclude**: Out-of-state residents treated in Oregon (focus is on Oregon residents only)
+- **LOBs 5 & 6**: Report using "Paid Amounts" not "Allowed Amounts" (regardless of primary/secondary payer status)
 
 ### 📊 Row Structure
 
@@ -59,7 +59,7 @@ Row 9:  First data row
 |-------|--------|-------|
 | TIN | Exactly 9 digits | Store as text! "000000001" |
 | Line of Business Code | 1-7 in TME_ALL, 1-6 elsewhere | **LOB 7 (CCO-F/Medicaid Carve-Outs) ONLY in TME_ALL** |
-| Attribution Code | 1-3 | 1=Member, 2=Contract, 3=Utilization |
+| Attribution Code | 1-3 | 1=Member, 2=Contract, 3=Utilization* |
 | Member Months | > 0 | ≤ 12 triggers warning |
 | Reporting Year | YYYY | Current or previous year only |
 | Date (Cover Page) | Any text | Required attestation date |
@@ -161,7 +161,7 @@ Each sheet has specific required columns that cannot be empty:
 **Text Fields**:
 - **Provider Organization TIN**: Must be exactly 9 digits (stored as text)
 - **Provider Organization Name**: Cannot be blank in mandatory fields
-- **IPA or Contract Name**: Optional field, blanks allowed
+- **IPA or Contract Name**: Field is required but values can be blank (if not applicable)
 
 **Email Fields**:
 - **Contact Email**: Must be valid email format (xxx@xxx.xxx)
@@ -184,7 +184,7 @@ Each sheet has specific required columns that cannot be empty:
 - Valid codes are 1-3:
   - 1 = Tier 1: Member Selection
   - 2 = Tier 2: Contract Arrangement
-  - 3 = Tier 3: Utilization
+  - 3 = Tier 3: Utilization (requires methodology summary on Cover Page)
 
 **Member Months Threshold**:
 - TME_PROV rows with ≤ 12 member months trigger WARNING
