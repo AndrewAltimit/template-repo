@@ -32,7 +32,7 @@ def mock_oregon_data() -> OregonMockDataGenerator:
 def valid_oregon_excel(temp_dir: Path, mock_oregon_data: OregonMockDataGenerator) -> Path:
     """Create a valid Oregon submission Excel file."""
     output_path = temp_dir / "valid_oregon_submission.xlsx"
-    mock_oregon_data.save_to_excel(str(output_path), include_optional=True)
+    mock_oregon_data.save_to_excel(str(output_path), include_validations=True)
     return output_path
 
 

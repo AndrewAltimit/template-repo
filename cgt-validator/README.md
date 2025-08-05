@@ -14,6 +14,14 @@ A comprehensive tool for validating health cost growth target (CGT) data submiss
 - ✅ Docker support for consistent environments
 - ✅ Self-contained project structure (easy to extract to own repository)
 
+## State-Specific Documentation
+
+### Oregon CGT-1 2025 Template
+- [Implementation Guide](docs/states/oregon_cgt1_2025_template_guide.md) - Comprehensive guide for developers
+- [Quick Reference](docs/states/oregon_cgt1_quick_reference.md) - Key points and common mistakes
+- [Technical Specification](docs/states/oregon_cgt1_2025_spec.yaml) - Machine-readable spec file
+- [Reference File Learnings](docs/states/oregon_cgt1_2025_learnings.md) - Key discoveries from analyzing actual Excel templates
+
 ## Quick Start
 
 ### Installation
