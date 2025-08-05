@@ -476,8 +476,8 @@ class OregonMockDataGenerator:
             [None] * 5,
             [None] * 5,
             [None] * 5,
-            # Row 6: Field codes - PRV01, blank, PRV02 (note the order)
-            ["PRV01", None, "PRV02"] + [None] * 2,
+            # Row 6: Field codes - PRV01, PRV03, PRV02 (note the specific order)
+            ["PRV01", "PRV03", "PRV02"] + [None] * 2,
             # Data types
             ["free text", "free text", "text, 9 digits including leading zero"] + [None] * 2,
             # Column names

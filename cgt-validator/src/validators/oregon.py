@@ -396,23 +396,17 @@ class OregonValidator(ValidatorBase):
             header_row = self._get_header_row("9. PROV_ID")
             df = excel_data.parse("9. PROV_ID", header=header_row)
 
-            # Validate field codes structure (PRV01, [blank], PRV02)
+            # Validate field codes structure (PRV01, PRV03, PRV02)
             df_raw = excel_data.parse("9. PROV_ID", header=None)
             if len(df_raw) > 6 and len(df_raw.columns) >= 3:
                 field_codes_row = df_raw.iloc[6]  # Row 7 (0-indexed = 6)
                 actual_codes = [field_codes_row.iloc[i] if i < len(field_codes_row) else None for i in range(3)]
 
                 # Check if field codes match expected pattern
-                if (
-                    actual_codes[0] != "PRV01"
-                    or (
-                        actual_codes[1] is not None and pd.notna(actual_codes[1]) and str(actual_codes[1]).strip() != ""
-                    )
-                    or actual_codes[2] != "PRV02"
-                ):
+                if actual_codes[0] != "PRV01" or actual_codes[1] != "PRV03" or actual_codes[2] != "PRV02":
                     results.add_error(
                         code="INVALID_FIELD_CODES",
-                        message="PROV_ID field codes must be PRV01, [blank], PRV02 in that order",
+                        message="PROV_ID field codes must be PRV01, PRV03, PRV02 in that order",
                         location="9. PROV_ID",
                         severity=Severity.ERROR,
                     )

@@ -5,7 +5,7 @@
 ### 🚨 Critical Requirements
 1. **TME_PROV contains Provider Name** (TIN appears in PROV_ID sheet)
 2. **Attribution Hierarchy Code** is a required field (located between IPA and Member Months columns)
-3. **PROV_ID column sequence**: Name → IPA → TIN
+3. **PROV_ID column sequence & codes**: Name (`PRV01`) → IPA (`PRV03`) → TIN (`PRV02`)
 4. **Data starts at row 11** for standard sheets
 5. **Provider matching uses NAME field** for cross-references
 6. **IPA or Contract Name field** is required for dual-level attribution scenarios
@@ -41,7 +41,7 @@ Row 13: First data row
 
 **PROV_ID Sheet:**
 ```
-Row 6:  Field codes (PRV01, [blank], PRV02)
+Row 6:  Field codes (PRV01, PRV03, PRV02)
 Row 7:  Data types
 Row 8:  Column names
 Row 9:  First data row
@@ -68,7 +68,7 @@ Row 9:  First data row
 | Member Months | > 0 | ≤ 12 triggers warning |
 | Reporting Year | YYYY | Current or previous year |
 | Date (Cover Page) | Any text | Required attestation date |
-| PROV_ID Field Codes | PRV01, [blank], PRV02 | Middle column has no field code |
+| PROV_ID Field Codes | PRV01, PRV03, PRV02 | Note the specific order of codes |
 | Pharmacy Rebates | ≤ 0 | Negative or zero values in RX_REBATE |
 | Dual-Eligible LOBs 5&6 | Paid Amounts | (Uses Paid rather than Allowed Amounts) |
 
@@ -92,9 +92,9 @@ Row 9:  First data row
 **Note**: Performance Incentive Payments and Provider Salaries are no longer separate categories
 
 ### 🏗️ PROV_ID Column Order
-1. Provider Organization Name (field code: PRV01)
-2. IPA or Contract Name (field code is blank/missing)
-3. Provider Organization TIN (field code: PRV02)
+1. Provider Organization Name (field code: `PRV01`)
+2. IPA or Contract Name (field code: `PRV03`)
+3. Provider Organization TIN (field code: `PRV02`)
 
 ### 🔄 Key Validation Checks
 - **Medical Pharmacy Attribution**: Validated by OHA
@@ -112,7 +112,7 @@ Row 9:  First data row
 - [ ] Member months > 0 (warn if ≤ 12)
 - [ ] Cover page has all 8 required fields filled (including Date)
 - [ ] LOB code 7 used exclusively in TME_ALL sheet
-- [ ] PROV_ID field codes are PRV01, [blank], PRV02
+- [ ] PROV_ID field codes are `PRV01`, `PRV03`, `PRV02`
 - [ ] All data types validated (year, code, positive integer, etc.)
 - [ ] Student health plan members correctly included in data
 - [ ] All pharmacy rebates reported as negative values or zero

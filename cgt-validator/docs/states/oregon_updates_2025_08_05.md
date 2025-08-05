@@ -3,6 +3,25 @@
 ## Summary of Updates
 This document tracks all updates made to the Oregon CGT validator based on analysis of reference Excel files on August 5, 2025.
 
+## Latest Updates (Third Round - Gemini Review)
+
+### Critical Updates Based on v5.0 Manual Review
+
+1. **PROV_ID Field Codes Correction**
+   - **Issue:** Field codes were previously interpreted as PRV01, [blank], PRV02
+   - **Correction:** Manual v5.0 explicitly shows field codes as PRV01, PRV03, PRV02
+   - **Evidence:** Pages 16, 18 of the v5.0 manual show this specific ordering
+   - **Impact:** Updated validator, mock data generator, tests, and all documentation
+
+### Files Updated in Third Round
+- `docs/states/oregon_cgt1_2025_spec.yaml` - Changed IPA field code from null to PRV03
+- `docs/states/oregon_cgt1_quick_reference.md` - Updated all references to show PRV03
+- `src/validators/oregon.py` - Updated validation to expect PRV03 instead of blank
+- `src/mock_data/oregon_generator.py` - Generate PRV03 in field codes row
+- `tests/validators/test_oregon_validator.py` - Test for correct PRV03 field code
+- `docs/states/oregon_cgt1_2025_template_guide.md` - Updated field code documentation
+- `OREGON_CGT_IMPLEMENTATION_SUMMARY_2025_08_05.md` - Updated references
+
 ## Latest Updates (Second Round)
 
 ### Critical Fixes Implemented
@@ -16,7 +35,7 @@ This document tracks all updates made to the Oregon CGT validator based on analy
 2. **Added Missing Validations**
    - Date field validation in Cover Page at cell [15, 2]
    - LOB Code 7 restriction (only allowed in TME_ALL)
-   - PROV_ID field codes validation (PRV01, [blank], PRV02)
+   - PROV_ID field codes validation (PRV01, PRV03, PRV02)
    - Complete data type validation implementation
 
 3. **Enhanced Cross-Reference Validation**
@@ -47,7 +66,7 @@ This document tracks all updates made to the Oregon CGT validator based on analy
 
 #### `src/mock_data/oregon_generator.py`
 - Updated PROV_ID sheet structure (IPA column in middle, TIN last)
-- Fixed IPA column field codes (PRV01, blank, PRV02)
+- Fixed IPA column field codes (PRV01, PRV03, PRV02)
 - Added Date field to Cover Page generation
 - Fixed validation check explanation text
 - Removed unused imports

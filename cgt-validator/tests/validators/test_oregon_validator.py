@@ -678,8 +678,8 @@ class TestOregonValidator:
         ws = wb.create_sheet("9. PROV_ID")
         for i in range(6):
             ws.append([None] * 5)
-        # Row 6: Field codes - should be PRV01, [blank], PRV02
-        ws.append(["PRV01", "PRV99", "PRV02"] + [None] * 2)  # Wrong: middle should be blank
+        # Row 6: Field codes - should be PRV01, PRV03, PRV02
+        ws.append(["PRV01", "PRV99", "PRV02"] + [None] * 2)  # Wrong: middle should be PRV03
         ws.append(["free text", "free text", "text, 9 digits including leading zero"] + [None] * 2)
         ws.append(
             [
@@ -699,7 +699,7 @@ class TestOregonValidator:
         # Should have field code error
         field_code_errors = [e for e in results.errors if e.code == "INVALID_FIELD_CODES"]
         assert len(field_code_errors) == 1
-        assert "PRV01, [blank], PRV02" in field_code_errors[0].message
+        assert "PRV01, PRV03, PRV02" in field_code_errors[0].message
 
     def test_data_type_validation(self, temp_dir: Path):
         """Test comprehensive data type validation."""

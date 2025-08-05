@@ -219,8 +219,8 @@ field_mappings:
         data_type: "free text"
         required: true
 
-      - code: null  # No field code for IPA column
-        name: "IPA or Contract Name (If applicable/available)"
+      - code: "PRV03"
+        name: "IPA or Contract Name (if applicable/available)"
         data_type: "free text, blank allowed"
         required: false  # Field is required but value can be blank
 

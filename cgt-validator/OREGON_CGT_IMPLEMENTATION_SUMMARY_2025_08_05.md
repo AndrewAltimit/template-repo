@@ -29,7 +29,7 @@ Successfully implemented all missing validation rules and fixed structural issue
 
 ### 4. ✅ Added PROV_ID Field Code Validation
 
-**Issue:** No validation for PRV01, [blank], PRV02 structure
+**Issue:** No validation for PRV01, PRV03, PRV02 structure
 **Fixed:** Added validation to check field codes at row 6 match expected pattern
 
 ### 5. ✅ Completed Data Type Validation
@@ -95,7 +95,7 @@ Added comprehensive test methods:
 1. **Structure**: Correct header rows per sheet type
 2. **Cover Page**: All 8 required fields including Date
 3. **LOB Codes**: 1-7 in TME_ALL, 1-6 in others
-4. **PROV_ID**: Field codes PRV01, [blank], PRV02
+4. **PROV_ID**: Field codes PRV01, PRV03, PRV02
 5. **Data Types**: Full numeric/text validation
 6. **TINs**: Exactly 9 digits
 7. **Provider Matching**: Case-insensitive with IPA combinations

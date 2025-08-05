@@ -81,10 +81,10 @@ Special sparse structure with fields at specific cell locations:
 ### 9. PROV_ID (Provider Master List)
 **Column Order** (Different from TME_PROV!):
 1. Provider Organization Name (field code: PRV01)
-2. IPA or Contract Name (If applicable/available) (field code is blank)
+2. IPA or Contract Name (If applicable/available) (field code: PRV03)
 3. Provider Organization TIN (**TIN is LAST**) (field code: PRV02)
 
-**Field Codes Row**: PRV01, [blank], PRV02
+**Field Codes Row**: PRV01, PRV03, PRV02
 
 ## Key Validation Rules
 
