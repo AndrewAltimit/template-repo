@@ -4,7 +4,7 @@
 
 template:
   version: "5.0"
-  date: "June 2025"
+  date: "June 11, 2025"
   state: "oregon"
   type: "CGT-1"
   # Documentation section for non-programmable rules
@@ -14,6 +14,12 @@ template:
     - "Data Sourcing Rule (Not Validated): Exclude out-of-state residents treated in Oregon - focus is on Oregon residents only."
     - "Data Sourcing Rule (Not Validated): For LOBs 5 & 6 (Medicare/Medicaid Dual Eligible), financial data should be based on 'Paid Amounts' not 'Allowed Amounts', regardless of whether the payer is primary or secondary."
     - "Data Sourcing Rule (Not Validated): Payers using Tier 3 attribution (Utilization) must provide a summary of their methodology on the Cover Page."
+    - "Reporting Rule: Non-claims payments for provider performance must be assigned to the year the performance was tracked."
+    - "Reporting Rule: Costs previously reported under 'Provider Salaries' should now be reported under 'Non-Claims Other'."
+    - "Reporting Rule: HRSN costs are only to be included in the TME_UNATTR and TME_ALL tabs."
+    - "Process Rule: An authorized signer must certify every data submission and resubmission."
+    - "Calculation Rule: Cost growth by market at statewide level is reported on a per capita basis, not PMPM."
+    - "Attribution Rule: Non-claims dollars should be attributed at the member level before rolling up to provider organization."
 
 sheets:
   required:
@@ -162,7 +168,7 @@ field_mappings:
       - code: "TMEPRV04"
         name: "IPA or Contract Name\n(If applicable/available)"
         data_type: "free text, blank allowed"
-        required: false  # Field is required but value can be blank
+        required: true  # Field is required for dual-level attribution (Version 5.0 change)
 
       - code: "TMEPRV06"
         name: "Attribution Hierarchy Code"
@@ -234,7 +240,7 @@ validation_rules:
       4: "Commercial: Partial Claims"
       5: "Medicare Expenses for Medicare/Medicaid Dual Eligible"
       6: "Medicaid Expenses for Medicare/Medicaid Dual Eligible"
-      7: "CCO-F expenses or Medicaid Carve-Outs"
+      7: "CCO-F and Medicaid Open Card Carve-Outs"
     message: "LOB Code in TME_ALL must be 1-7."
 
   - rule: "line_of_business_codes_standard"
@@ -302,6 +308,24 @@ validation_rules:
     fields: ["Medical Pharmacy Rebate Amount", "Retail Pharmacy Rebate Amount", "Total Pharmacy Rebate Amount (Optional)"]
     validation: "is_non_positive"
     message: "Pharmacy rebate amounts must be reported as a negative number or zero."
+
+  - rule: "hrsn_costs_location"
+    applies_to: ["3. TME_PROV"]
+    validation: "field_empty_in_sheets"
+    field: "Non-Claims: HRSN"
+    message: "HRSN costs should only be reported in the TME_ALL and TME_UNATTR tabs, not in TME_PROV."
+    severity: "error"
+
+  - rule: "non_claims_performance_year"
+    severity: "manual_check"
+    message: "Manual verification needed to ensure non-claims performance payments are reported for the year the performance occurred."
+
+  - rule: "ipa_required_for_dual_attribution"
+    applies_to: ["3. TME_PROV"]
+    field: "IPA or Contract Name\n(If applicable/available)"
+    validation: "required_for_dual_attribution"
+    message: "IPA or Contract Name is required when members can be attributed at both provider organization and IPA/Contract level."
+    severity: "warning"
 
 data_type_mappings:
   "year":

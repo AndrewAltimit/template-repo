@@ -30,7 +30,7 @@ class OregonMockDataGenerator:
             4: "Commercial: Partial Claims",
             5: "Medicare Expenses for Medicare/Medicaid Dual Eligible",
             6: "Medicaid Expenses for Medicare/Medicaid Dual Eligible",
-            7: "CCO-F expenses or Medicaid Carve-Outs",
+            7: "CCO-F and Medicaid Open Card Carve-Outs",
         }
 
     def _generate_providers(self, count: int = 10) -> List[Dict]:

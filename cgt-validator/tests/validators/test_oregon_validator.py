@@ -1018,3 +1018,172 @@ class TestOregonValidator:
         for error in rebate_errors:
             assert "negative" in error.message.lower() or "positive" in error.message.lower()
             assert "8. RX_REBATE" in error.location
+
+    def test_hrsn_costs_location_validation(self, temp_dir: Path):
+        """Test Version 5.0: HRSN costs should only be in TME_ALL and TME_UNATTR tabs."""
+        output_path = temp_dir / "hrsn_test.xlsx"
+        wb = Workbook()
+
+        # Create minimal required sheets
+        for sheet_name in [
+            "Contents",
+            "1. Cover Page",
+            "4. TME_UNATTR",
+            "5. MARKET_ENROLL",
+            "6. RX_MED_PROV",
+            "7. RX_MED_UNATTR",
+            "8. RX_REBATE",
+            "9. PROV_ID",
+        ]:
+            ws = wb.create_sheet(sheet_name)
+            for i in range(13):
+                ws.append([None] * 10)
+
+        # TME_ALL with HRSN costs (valid) - header at row 11, 0-indexed = 10
+        ws = wb.create_sheet("2. TME_ALL")
+        for i in range(10):
+            ws.append([None] * 15)
+        ws.append(
+            [
+                "Reporting Year",
+                "Line of Business Code",
+                "Member Months",
+                "Demographic Score",
+                "Non-Claims: HRSN",
+            ]
+            + [None] * 10
+        )
+        ws.append([2024, 1, 10000, 1.0, 50000] + [None] * 10)  # Valid: HRSN in TME_ALL
+
+        # TME_PROV with HRSN costs (invalid) - header at row 13, 0-indexed = 12
+        ws = wb.create_sheet("3. TME_PROV")
+        for i in range(12):
+            ws.append([None] * 15)
+        ws.append(
+            [
+                "Reporting Year",
+                "Line of Business Code",
+                "Provider Organization Name",
+                "IPA or Contract Name\n(If applicable/available)",
+                "Attribution Hierarchy Code",
+                "Member Months",
+                "Demographic Score",
+                "Non-Claims: HRSN",
+            ]
+            + [None] * 7
+        )
+        ws.append([2024, 1, "Provider 1", "", 1, 5000, 1.0, 25000] + [None] * 7)  # Invalid: HRSN in TME_PROV
+
+        wb.save(output_path)
+
+        validator = OregonValidator(year=2025)
+        results = validator.validate_file(str(output_path))
+
+        # Should have error for HRSN in TME_PROV
+        hrsn_errors = [e for e in results.errors if e.code == "HRSN_IN_WRONG_SHEET"]
+        assert len(hrsn_errors) == 1
+        assert "TME_PROV" in hrsn_errors[0].location
+        assert "TME_ALL and TME_UNATTR" in hrsn_errors[0].message
+
+    def test_lob_7_updated_description(self, temp_dir: Path):
+        """Test Version 5.0: LOB 7 description update to 'CCO-F and Medicaid Open Card Carve-Outs'."""
+        output_path = temp_dir / "lob_7_desc_test.xlsx"
+        wb = Workbook()
+
+        # Create minimal required sheets
+        for sheet_name in [
+            "Contents",
+            "1. Cover Page",
+            "3. TME_PROV",
+            "4. TME_UNATTR",
+            "5. MARKET_ENROLL",
+            "6. RX_MED_PROV",
+            "7. RX_MED_UNATTR",
+            "8. RX_REBATE",
+            "9. PROV_ID",
+        ]:
+            ws = wb.create_sheet(sheet_name)
+            for i in range(13):
+                ws.append([None] * 10)
+
+        # TME_ALL with LOB 7 - header at row 11, 0-indexed = 10
+        ws = wb.create_sheet("2. TME_ALL")
+        for i in range(10):
+            ws.append([None] * 10)
+        ws.append(["Reporting Year", "Line of Business Code", "Member Months", "Demographic Score"] + [None] * 6)
+        ws.append([2024, 7, 1000, 1.0] + [None] * 6)  # LOB 7 with new description
+
+        wb.save(output_path)
+
+        validator = OregonValidator(year=2025)
+        results = validator.validate_file(str(output_path))
+
+        # LOB 7 should be valid in TME_ALL
+        lob_errors = [e for e in results.errors if e.code in ["INVALID_LOB_CODE", "INVALID_LOB_CODE_7"]]
+
+        # Should not have LOB errors for TME_ALL
+        for error in lob_errors:
+            assert "2. TME_ALL" not in error.location, "LOB 7 should be valid in TME_ALL"
+
+    def test_ipa_required_for_dual_attribution(self, temp_dir: Path):
+        """Test Version 5.0: IPA field is required for dual-level attribution."""
+        output_path = temp_dir / "ipa_required_test.xlsx"
+        wb = Workbook()
+
+        # Create minimal required sheets
+        for sheet_name in [
+            "Contents",
+            "1. Cover Page",
+            "2. TME_ALL",
+            "4. TME_UNATTR",
+            "5. MARKET_ENROLL",
+            "6. RX_MED_PROV",
+            "7. RX_MED_UNATTR",
+            "8. RX_REBATE",
+        ]:
+            ws = wb.create_sheet(sheet_name)
+            for i in range(13):
+                ws.append([None] * 10)
+
+        # PROV_ID sheet - header at row 9, 0-indexed = 8
+        ws = wb.create_sheet("9. PROV_ID")
+        for i in range(8):
+            ws.append([None] * 5)
+        ws.append(
+            [
+                "Provider Organization Name",
+                "IPA or Contract Name (If applicable/available)",
+                "Provider Organization TIN",
+            ]
+            + [None] * 2
+        )
+        ws.append(["Provider 1", "IPA 1", "123456789"] + [None] * 2)  # Provider with IPA
+
+        # TME_PROV sheet - header at row 13, 0-indexed = 12
+        ws = wb.create_sheet("3. TME_PROV")
+        for i in range(12):
+            ws.append([None] * 10)
+        ws.append(
+            [
+                "Reporting Year",
+                "Line of Business Code",
+                "Provider Organization Name",
+                "IPA or Contract Name\n(If applicable/available)",
+                "Attribution Hierarchy Code",
+                "Member Months",
+                "Demographic Score",
+            ]
+            + [None] * 3
+        )
+        # IPA field is now required (Version 5.0 change)
+        ws.append([2024, 1, "Provider 1", "IPA 1", 1, 1000, 1.0] + [None] * 3)  # Valid with IPA
+
+        wb.save(output_path)
+
+        validator = OregonValidator(year=2025)
+        results = validator.validate_file(str(output_path))
+
+        # The IPA field being required is now validated in the spec
+        # Check that no missing column errors occur
+        missing_col_errors = [e for e in results.errors if e.code == "MISSING_COLUMN" and "IPA" in e.message]
+        assert len(missing_col_errors) == 0, "IPA field should be recognized as present"

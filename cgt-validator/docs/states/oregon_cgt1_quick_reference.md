@@ -8,13 +8,18 @@
 3. **PROV_ID column order**: Name → IPA → TIN (TIN is LAST)
 4. **Data starts at row 11**, not row 8!
 5. **Match providers by NAME**, not by TIN
-6. **IPA or Contract Name field is REQUIRED** in TME_PROV and PROV_ID (field required, value can be blank)
+6. **IPA or Contract Name field is NOW REQUIRED** for dual-level attribution (field required when both provider org and IPA/Contract can be attributed)
 7. **LOB 7 is ONLY allowed in TME_ALL** (not in other sheets)
+8. **Non-claims performance payments** must be assigned to the year the performance was tracked
+9. **HRSN costs** are ONLY reported in TME_UNATTR and TME_ALL tabs
 
 ### 📌 Data Scope
 - **Include**: Oregon university student health plan members as Oregon residents (for duration of plan coverage)
 - **Exclude**: Out-of-state residents treated in Oregon (focus is on Oregon residents only)
 - **LOBs 5 & 6**: Report using "Paid Amounts" not "Allowed Amounts" (regardless of primary/secondary payer status)
+- **Cost Growth Calculation**: Reported on a per capita basis (not PMPM) at statewide level
+- **Non-Claims Attribution**: Should be attributed at member level before rolling up to provider organization
+- **Data Certification**: Required from authorized signer for each submission/resubmission
 
 ### 📊 Row Structure
 
@@ -71,16 +76,33 @@ Row 9:  First data row
 1. Reporting Year
 2. Line of Business Code
 3. **Provider Organization Name** ← NOT TIN!
-4. IPA or Contract Name (Required field, but value can be blank)
+4. IPA or Contract Name (REQUIRED for dual-level attribution)
 5. **Attribution Hierarchy Code** ← DON'T MISS!
 6. Member Months
 7. Demographic Score
 8. [Various claim columns...]
 
+### 💰 Non-Claims Payment Categories (NEW in Version 5.0)
+**Added Categories**:
+- **Performance Payments**: For provider performance metrics
+- **Shared Savings and Shared Risk Settlements**: Can be positive or negative
+- **HRSN (Health-Related Social Needs)**: Only in TME_UNATTR and TME_ALL tabs
+
+**Removed Categories**:
+- **Performance Incentive Payments**: Removed
+- **Provider Salaries**: Removed (now report under "Non-Claims Other")
+
 ### 🏗️ PROV_ID Structure (DIFFERENT ORDER!)
 1. Provider Organization Name ← FIRST (field code: PRV01)
 2. IPA or Contract Name (field code is blank/missing)
 3. Provider Organization TIN ← LAST (field code: PRV02)
+
+### 🔄 New Validation Checks in Version 5.0
+- **Medical Pharmacy Attribution**: New OHA validation
+- **Provider Attribution**: Enhanced validation by OHA
+- **HRSN Cost Location**: Must only appear in TME_UNATTR and TME_ALL
+- **Non-Claims Payment Timing**: Performance payments must match performance year
+- **Data Certification**: Required for every submission
 
 ### ✅ Validation Checklist
 - [ ] All provider names in TME_PROV exist in PROV_ID (case-insensitive match)

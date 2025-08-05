@@ -133,7 +133,7 @@ class OregonValidator(ValidatorBase):
                     4: "Commercial: Partial Claims",
                     5: "Medicare Expenses for Medicare/Medicaid Dual Eligible",
                     6: "Medicaid Expenses for Medicare/Medicaid Dual Eligible",
-                    7: "CCO-F expenses or Medicaid Carve-Outs",
+                    7: "CCO-F and Medicaid Open Card Carve-Outs",
                 },
                 "Attribution Hierarchy Code": {
                     1: "Tier 1: Member Selection",
@@ -288,6 +288,9 @@ class OregonValidator(ValidatorBase):
         - Out-of-state residents: Should be excluded even if treated in Oregon
         - LOBs 5 & 6: Should use 'Paid Amounts' regardless of primary/secondary payer status
         - Tier 3 attribution: Payers must provide methodology summary on Cover Page
+        - Non-claims performance payments: Should be assigned to the year performance was tracked
+        - Cost growth calculation: Reported on per capita basis at statewide level (not PMPM)
+        - Non-claims attribution: Should be at member level before rolling up to provider org
         """
 
         # Rule 1: Validate Cover Page required fields
@@ -366,7 +369,7 @@ class OregonValidator(ValidatorBase):
                         if not has_lob_7.empty:
                             message = (
                                 f"LOB code 7 found in rows: {has_lob_7.index.tolist()[:5]}. "
-                                "LOB code 7 is only allowed in TME_ALL sheet."
+                                "LOB code 7 (CCO-F and Medicaid Open Card Carve-Outs) is only allowed in TME_ALL sheet."
                             )
                             results.add_error(
                                 code="INVALID_LOB_CODE_7",
@@ -716,6 +719,29 @@ class OregonValidator(ValidatorBase):
                         location="2. TME_ALL",
                         severity=Severity.INFO,
                     )
+
+        # Check for HRSN costs in TME_PROV (they should only be in TME_ALL and TME_UNATTR)
+        if "3. TME_PROV" in excel_data.sheet_names:
+            header_row = self._get_header_row("3. TME_PROV")
+            df = excel_data.parse("3. TME_PROV", header=header_row)
+            # Check for various HRSN column names
+            hrsn_columns = ["Non-Claims: HRSN", "Non-Claims: HSRN", "HRSN", "Health-Related Social Needs"]
+            for col in hrsn_columns:
+                if col in df.columns:
+                    # Check if any HRSN values exist
+                    numeric_values = pd.to_numeric(df[col], errors="coerce")
+                    non_zero_hrsn = df[numeric_values > 0]
+                    if not non_zero_hrsn.empty:
+                        results.add_error(
+                            code="HRSN_IN_WRONG_SHEET",
+                            message=(
+                                f"HRSN costs found in TME_PROV at rows: {non_zero_hrsn.index.tolist()[:5]}. "
+                                "HRSN costs should only be reported in TME_ALL and TME_UNATTR tabs."
+                            ),
+                            location=f"3. TME_PROV.{col}",
+                            severity=Severity.ERROR,
+                        )
+                    break  # Found and checked HRSN column
 
         # Check for validation sheets
         validation_sheets = ["TME Validation", "RX_MED_PROV Validation", "RX_MED_UNATTR Validation", "Provider Check"]
