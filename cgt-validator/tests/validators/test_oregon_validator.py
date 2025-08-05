@@ -1020,7 +1020,7 @@ class TestOregonValidator:
             assert "8. RX_REBATE" in error.location
 
     def test_hrsn_costs_location_validation(self, temp_dir: Path):
-        """Test Version 5.0: HRSN costs should only be in TME_ALL and TME_UNATTR tabs."""
+        """Test that HRSN costs should only be in TME_ALL and TME_UNATTR tabs."""
         output_path = temp_dir / "hrsn_test.xlsx"
         wb = Workbook()
 
@@ -1085,8 +1085,8 @@ class TestOregonValidator:
         assert "TME_PROV" in hrsn_errors[0].location
         assert "TME_ALL and TME_UNATTR" in hrsn_errors[0].message
 
-    def test_lob_7_updated_description(self, temp_dir: Path):
-        """Test Version 5.0: LOB 7 description update to 'CCO-F and Medicaid Open Card Carve-Outs'."""
+    def test_lob_7_description(self, temp_dir: Path):
+        """Test LOB 7 description is 'CCO-F and Medicaid Open Card Carve-Outs'."""
         output_path = temp_dir / "lob_7_desc_test.xlsx"
         wb = Workbook()
 
@@ -1111,7 +1111,7 @@ class TestOregonValidator:
         for i in range(10):
             ws.append([None] * 10)
         ws.append(["Reporting Year", "Line of Business Code", "Member Months", "Demographic Score"] + [None] * 6)
-        ws.append([2024, 7, 1000, 1.0] + [None] * 6)  # LOB 7 with new description
+        ws.append([2024, 7, 1000, 1.0] + [None] * 6)  # LOB 7
 
         wb.save(output_path)
 
@@ -1126,7 +1126,7 @@ class TestOregonValidator:
             assert "2. TME_ALL" not in error.location, "LOB 7 should be valid in TME_ALL"
 
     def test_ipa_required_for_dual_attribution(self, temp_dir: Path):
-        """Test Version 5.0: IPA field is required for dual-level attribution."""
+        """Test that IPA field is required for dual-level attribution."""
         output_path = temp_dir / "ipa_required_test.xlsx"
         wb = Workbook()
 
@@ -1175,7 +1175,7 @@ class TestOregonValidator:
             ]
             + [None] * 3
         )
-        # IPA field is now required (Version 5.0 change)
+        # IPA field is required for dual-level attribution
         ws.append([2024, 1, "Provider 1", "IPA 1", 1, 1000, 1.0] + [None] * 3)  # Valid with IPA
 
         wb.save(output_path)
@@ -1183,7 +1183,7 @@ class TestOregonValidator:
         validator = OregonValidator(year=2025)
         results = validator.validate_file(str(output_path))
 
-        # The IPA field being required is now validated in the spec
+        # The IPA field requirement is validated in the spec
         # Check that no missing column errors occur
         missing_col_errors = [e for e in results.errors if e.code == "MISSING_COLUMN" and "IPA" in e.message]
         assert len(missing_col_errors) == 0, "IPA field should be recognized as present"

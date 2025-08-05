@@ -8,7 +8,7 @@
 3. **PROV_ID column order**: Name → IPA → TIN (TIN is LAST)
 4. **Data starts at row 11**, not row 8!
 5. **Match providers by NAME**, not by TIN
-6. **IPA or Contract Name field is NOW REQUIRED** for dual-level attribution (field required when both provider org and IPA/Contract can be attributed)
+6. **IPA or Contract Name field is REQUIRED** for dual-level attribution (field required when both provider org and IPA/Contract can be attributed)
 7. **LOB 7 is ONLY allowed in TME_ALL** (not in other sheets)
 8. **Non-claims performance payments** must be assigned to the year the performance was tracked
 9. **HRSN costs** are ONLY reported in TME_UNATTR and TME_ALL tabs
@@ -82,24 +82,23 @@ Row 9:  First data row
 7. Demographic Score
 8. [Various claim columns...]
 
-### 💰 Non-Claims Payment Categories (NEW in Version 5.0)
-**Added Categories**:
+### 💰 Non-Claims Payment Categories
+**Current Categories**:
 - **Performance Payments**: For provider performance metrics
 - **Shared Savings and Shared Risk Settlements**: Can be positive or negative
 - **HRSN (Health-Related Social Needs)**: Only in TME_UNATTR and TME_ALL tabs
+- **Non-Claims Other**: General category for other non-claims payments (includes what was formerly reported as Provider Salaries)
 
-**Removed Categories**:
-- **Performance Incentive Payments**: Removed
-- **Provider Salaries**: Removed (now report under "Non-Claims Other")
+**Note**: Performance Incentive Payments and Provider Salaries are no longer separate categories
 
 ### 🏗️ PROV_ID Structure (DIFFERENT ORDER!)
 1. Provider Organization Name ← FIRST (field code: PRV01)
 2. IPA or Contract Name (field code is blank/missing)
 3. Provider Organization TIN ← LAST (field code: PRV02)
 
-### 🔄 New Validation Checks in Version 5.0
-- **Medical Pharmacy Attribution**: New OHA validation
-- **Provider Attribution**: Enhanced validation by OHA
+### 🔄 Key Validation Checks
+- **Medical Pharmacy Attribution**: Validated by OHA
+- **Provider Attribution**: Validated by OHA
 - **HRSN Cost Location**: Must only appear in TME_UNATTR and TME_ALL
 - **Non-Claims Payment Timing**: Performance payments must match performance year
 - **Data Certification**: Required for every submission

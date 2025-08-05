@@ -168,7 +168,7 @@ field_mappings:
       - code: "TMEPRV04"
         name: "IPA or Contract Name\n(If applicable/available)"
         data_type: "free text, blank allowed"
-        required: true  # Field is required for dual-level attribution (Version 5.0 change)
+        required: true  # Field is required for dual-level attribution
 
       - code: "TMEPRV06"
         name: "Attribution Hierarchy Code"
