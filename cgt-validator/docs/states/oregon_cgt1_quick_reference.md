@@ -2,16 +2,16 @@
 
 ## ⚡ Critical Points
 
-### 🚨 Most Common Mistakes
-1. **TME_PROV has Provider Name, NOT TIN** (TIN is only in PROV_ID)
-2. **Attribution Hierarchy Code is REQUIRED** (between IPA and Member Months)
-3. **PROV_ID column order**: Name → IPA → TIN (TIN is LAST)
-4. **Data starts at row 11**, not row 8!
-5. **Match providers by NAME**, not by TIN
-6. **IPA or Contract Name field is REQUIRED** for dual-level attribution (field required when both provider org and IPA/Contract can be attributed)
-7. **LOB 7 is ONLY allowed in TME_ALL** (not in other sheets)
-8. **Non-claims performance payments** must be assigned to the year the performance was tracked
-9. **HRSN costs** are ONLY reported in TME_UNATTR and TME_ALL tabs
+### 🚨 Critical Requirements
+1. **TME_PROV contains Provider Name** (TIN appears in PROV_ID sheet)
+2. **Attribution Hierarchy Code** is a required field (located between IPA and Member Months columns)
+3. **PROV_ID column sequence**: Name → IPA → TIN
+4. **Data starts at row 11** for standard sheets
+5. **Provider matching uses NAME field** for cross-references
+6. **IPA or Contract Name field** is required for dual-level attribution scenarios
+7. **LOB 7** appears exclusively in TME_ALL sheet
+8. **Non-claims performance payments** align with the year performance was tracked
+9. **HRSN costs** appear in TME_UNATTR and TME_ALL tabs
 
 ### 📌 Data Scope
 - **Include**: Oregon university student health plan members as Oregon residents (for duration of plan coverage)
@@ -21,9 +21,9 @@
 - **Non-Claims Attribution**: Should be attributed at member level before rolling up to provider organization
 - **Data Certification**: Required from authorized signer for each submission/resubmission
 
-### 📊 Row Structure
+### 📊 Row Structure by Sheet Type
 
-**Most Sheets (TME_ALL, TME_UNATTR, MARKET_ENROLL, RX_REBATE):**
+**Standard Layout (TME_ALL, TME_UNATTR, MARKET_ENROLL, RX_REBATE):**
 ```
 Row 8:  Field codes (TMEALL01, TMEALL02...)
 Row 9:  Data types ("year", "code", "positive integer"...)
@@ -31,7 +31,7 @@ Row 10: Column names ("Reporting Year", "Line of Business Code"...)
 Row 11: First data row
 ```
 
-**TME_PROV, RX_MED_PROV, RX_MED_UNATTR (Different!):**
+**Provider Sheets (TME_PROV, RX_MED_PROV, RX_MED_UNATTR):**
 ```
 Row 10: Field codes (TMEPRV01, TMEPRV02...)
 Row 11: Data types
@@ -39,7 +39,7 @@ Row 12: Column names
 Row 13: First data row
 ```
 
-**PROV_ID (Also Different!):**
+**PROV_ID Sheet:**
 ```
 Row 6:  Field codes (PRV01, [blank], PRV02)
 Row 7:  Data types
@@ -63,21 +63,21 @@ Row 9:  First data row
 | Field | Format | Notes |
 |-------|--------|-------|
 | TIN | Exactly 9 digits | Store as text! "000000001" |
-| Line of Business Code | 1-7 in TME_ALL, 1-6 elsewhere | **LOB 7 (CCO-F/Medicaid Carve-Outs) ONLY in TME_ALL** |
+| Line of Business Code | 1-7 in TME_ALL, 1-6 in other sheets | **LOB 7 (CCO-F/Medicaid Carve-Outs) exclusive to TME_ALL** |
 | Attribution Code | 1-3 | 1=Member, 2=Contract, 3=Utilization* |
 | Member Months | > 0 | ≤ 12 triggers warning |
-| Reporting Year | YYYY | Current or previous year only |
+| Reporting Year | YYYY | Current or previous year |
 | Date (Cover Page) | Any text | Required attestation date |
 | PROV_ID Field Codes | PRV01, [blank], PRV02 | Middle column has no field code |
-| Pharmacy Rebates | ≤ 0 | Must be negative or zero in RX_REBATE |
-| Dual-Eligible LOBs 5&6 | Use Paid Amounts | Not Allowed Amounts |
+| Pharmacy Rebates | ≤ 0 | Negative or zero values in RX_REBATE |
+| Dual-Eligible LOBs 5&6 | Paid Amounts | (Uses Paid rather than Allowed Amounts) |
 
-### 🏗️ TME_PROV Structure (CORRECT ORDER!)
+### 🏗️ TME_PROV Column Order
 1. Reporting Year
 2. Line of Business Code
-3. **Provider Organization Name** ← NOT TIN!
+3. **Provider Organization Name** (Note: TIN is not in this sheet)
 4. IPA or Contract Name (REQUIRED for dual-level attribution)
-5. **Attribution Hierarchy Code** ← DON'T MISS!
+5. **Attribution Hierarchy Code**
 6. Member Months
 7. Demographic Score
 8. [Various claim columns...]
@@ -91,10 +91,10 @@ Row 9:  First data row
 
 **Note**: Performance Incentive Payments and Provider Salaries are no longer separate categories
 
-### 🏗️ PROV_ID Structure (DIFFERENT ORDER!)
-1. Provider Organization Name ← FIRST (field code: PRV01)
+### 🏗️ PROV_ID Column Order
+1. Provider Organization Name (field code: PRV01)
 2. IPA or Contract Name (field code is blank/missing)
-3. Provider Organization TIN ← LAST (field code: PRV02)
+3. Provider Organization TIN (field code: PRV02)
 
 ### 🔄 Key Validation Checks
 - **Medical Pharmacy Attribution**: Validated by OHA
@@ -259,11 +259,11 @@ Each sheet has specific required columns that cannot be empty:
 - Looks for "Version 5.0" or "June 2025" in Contents sheet
 - Warns if template version cannot be verified
 
-### 8. Header Row Validations
-Different sheets have headers at different rows:
-- **Most sheets**: Header at row 9 (0-indexed = 8)
-- **TME_PROV, RX_MED_PROV, RX_MED_UNATTR**: Header at row 11 (0-indexed = 10)
-- **Cover Page**: No header row (cell-based layout)
+### 8. Header Row Locations
+Each sheet type has headers at specific rows:
+- **Standard sheets**: Header at row 9 (0-indexed = 8)
+- **Provider sheets (TME_PROV, RX_MED_PROV, RX_MED_UNATTR)**: Header at row 11 (0-indexed = 10)
+- **Cover Page**: Cell-based layout (no header row)
 
 ### 🎯 Cover Page Fields (Cell Positions)
 - Payer Name: `[4, 2]`
@@ -275,14 +275,14 @@ Different sheets have headers at different rows:
 - Signature: `[14, 2]`
 - Date: `[15, 2]`
 
-### 💡 Pro Tips
+### 💡 Technical Notes
 - Some column names have newlines: `"IPA or Contract Name\n(If applicable/available)"`
-- Empty cells should be `None` or `""`, not `"[Input Required]"`
+- Empty cells are represented as `None` or `""`; `"[Input Required]"` indicates missing data
 - Use `pd.ExcelFile.parse(sheet, header=10)` for most sheets
 - Use `pd.ExcelFile.parse(sheet, header=None)` for Cover Page
-- Always validate against Provider Organization Name, not TIN
-- Parse TME_PROV with `header=10` (not 8!) due to different row structure
-- Validation checks include Provider-IPA combinations, not just Provider names
+- Provider validation uses Organization Name field
+- Parse TME_PROV with `header=10` based on its row structure
+- Validation includes Provider-IPA combinations
 
 ## 🚨 Validation Error Codes and Severity
 
