@@ -125,9 +125,9 @@ class TemplateMonitoringTest:
             if hasattr(monitor, "compare_snapshots"):
                 changed, description, severity = monitor.compare_snapshots(snapshot1, snapshot2)
             else:
-                changed, description, severity = monitor._compare_snapshots(
+                changed, description, severity = monitor._compare_snapshots(  # pylint: disable=protected-access
                     snapshot1, snapshot2
-                )  # pylint: disable=protected-access
+                )
             _ = severity  # Mark as intentionally unused
 
             assert changed, "Should detect change between different snapshots"

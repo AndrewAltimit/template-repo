@@ -109,7 +109,7 @@ def monitor(
             output_file = Path(f"{state}_monitoring_report.{ext}")
 
         # Save report
-        output_file.write_text(report_content)
+        output_file.write_text(report_content, encoding="utf-8")
         click.echo(f"\nReport saved to: {output_file}")
 
     # Save summary if requested
