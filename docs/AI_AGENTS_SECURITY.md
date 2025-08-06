@@ -38,11 +38,11 @@ For local testing:
 ```bash
 # Option 1: Use environment variable
 export GITHUB_TOKEN="your-token-here"
-docker-compose run --rm ai-agents python scripts/agents/run_agents.py
+docker-compose run --rm ai-agents python -m github_ai_agents.cli issue-monitor
 
 # Option 2: Use gh CLI authentication (recommended)
 gh auth login
-docker-compose run --rm ai-agents python scripts/agents/run_agents.py
+docker-compose run --rm ai-agents python -m github_ai_agents.cli issue-monitor
 ```
 
 ### 3. Self-Hosted Runners
@@ -93,7 +93,7 @@ git log -p | grep -E "(ghp_|github_pat_)" || echo "No tokens found"
 
 # Test secret redaction
 docker-compose run --rm ai-agents python -c "
-from scripts.agents.logging_security import setup_secure_logging, get_secure_logger
+from github_ai_agents.utils.logging import setup_secure_logging, get_secure_logger
 setup_secure_logging()
 logger = get_secure_logger('test')
 logger.info('Token: ghp_1234567890abcdef1234567890abcdef12345678')

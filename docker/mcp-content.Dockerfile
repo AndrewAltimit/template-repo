@@ -28,11 +28,10 @@ RUN apt-get update && apt-get install -y \
 # Create app directory
 WORKDIR /app
 
-# Create output directories with proper permissions
-RUN mkdir -p /app/output/manim /app/output/latex && \
-    chmod -R 777 /app/output && \
-    mkdir -p /tmp/mcp-content-output/manim /tmp/mcp-content-output/latex && \
-    chmod -R 777 /tmp/mcp-content-output
+# Create output directory with proper permissions
+# Only create the volume mount directory - other paths are not used
+RUN mkdir -p /output && \
+    chmod -R 755 /output
 
 # Copy requirements first for better layer caching
 COPY docker/requirements-content.txt /app/requirements.txt
@@ -43,14 +42,24 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy MCP server code
 COPY tools/mcp /app/tools/mcp
 
+# No entrypoint script needed - containers run as host user
+
 # Set Python path
 ENV PYTHONPATH=/app
 
-# Manim configuration - use the writable temp directory
-ENV MANIM_MEDIA_DIR=/tmp/mcp-content-output/manim
+# Manim configuration - use the volume-mounted output directory
+ENV MANIM_MEDIA_DIR=/output/manim
+
+# Create a non-root user that will be overridden by docker-compose
+RUN useradd -m -u 1000 appuser
+
+# Switch to non-root user
+USER appuser
 
 # Expose port
 EXPOSE 8011
+
+# Run as host user via docker-compose - no entrypoint needed
 
 # Run the server
 CMD ["python", "-m", "tools.mcp.content_creation.server", "--mode", "http"]

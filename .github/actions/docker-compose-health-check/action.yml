@@ -25,6 +25,16 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Pre-create output directories
+      shell: bash
+      run: |
+        echo "📁 Creating output directories with proper permissions..."
+        # Create directories that will be bind-mounted to avoid permission issues
+        mkdir -p outputs/mcp-content outputs/mcp-gaea2
+        # Ensure they're writable by the current user
+        chmod -R 755 outputs/
+        echo "✅ Output directories created"
+
     - name: Set Docker Compose profiles
       shell: bash
       run: |
@@ -104,3 +114,14 @@ runs:
       run: |
         echo "🧹 Cleaning up services..."
         docker-compose down
+
+    - name: Clean up output directories
+      if: always()
+      shell: bash
+      run: |
+        # Use the cleanup script that handles permissions properly
+        if [ -f scripts/cleanup-outputs.sh ]; then
+          ./scripts/cleanup-outputs.sh
+        else
+          echo "⚠️  Cleanup script not found, skipping cleanup"
+        fi

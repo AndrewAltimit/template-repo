@@ -3,6 +3,7 @@
 Improved Gemini PR Review Script with better context handling
 """
 
+import json
 import os
 import subprocess
 import sys
@@ -229,6 +230,50 @@ def get_project_context() -> str:
     )
 
 
+def get_recent_pr_comments(pr_number: str) -> str:
+    """Get PR comments since last Gemini review"""
+    try:
+        # Get all PR comments
+        result = subprocess.run(
+            ["gh", "pr", "view", pr_number, "--json", "comments"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        pr_data = json.loads(result.stdout)
+        comments = pr_data.get("comments", [])
+
+        # Find last Gemini comment index
+        last_gemini_idx = -1
+        for idx, comment in enumerate(comments):
+            body = comment.get("body", "")
+            if "🤖 Gemini AI Code Review" in body:
+                last_gemini_idx = idx
+
+        # Get comments after last Gemini review
+        if last_gemini_idx >= 0:
+            recent_comments = comments[last_gemini_idx + 1 :]
+            if recent_comments:
+                formatted = ["## Recent PR Comments Since Last Gemini Review\n"]
+                for comment in recent_comments:
+                    author = comment.get("author", {}).get("login", "Unknown")
+                    body = comment.get("body", "").strip()
+                    formatted.append(f"**@{author}**: {body}\n")
+                return "\n".join(formatted)
+
+        return ""
+    except subprocess.CalledProcessError as e:
+        print(f"Warning: GitHub CLI command failed: {e}")
+        return ""
+    except json.JSONDecodeError as e:
+        print(f"Warning: Could not parse PR comments JSON: {e}")
+        return ""
+    except Exception as e:
+        print(f"Warning: Unexpected error fetching PR comments: {e}")
+        return ""
+
+
 def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any]) -> Tuple[str, str]:
     """Analyze large PRs by breaking them down into manageable chunks
 
@@ -240,7 +285,7 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
     diff_size = len(diff)
 
     # If diff is small enough, use single analysis
-    if diff_size < 50000:  # 50KB threshold
+    if diff_size < 500000:  # 500KB threshold - Gemini can handle much larger context
         return analyze_complete_diff(diff, changed_files, pr_info, project_context, file_stats)
 
     # For large diffs, analyze by file groups
@@ -275,12 +320,15 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
         else:
             file_groups["other"].append((filepath, file_diff))
 
+    # Get recent PR comments for context
+    recent_comments = get_recent_pr_comments(pr_info["number"])
+
     # Analyze each group
     for group_name, group_files in file_groups.items():
         if not group_files:
             continue
 
-        group_analysis, group_model = analyze_file_group(group_name, group_files, pr_info, project_context)
+        group_analysis, group_model = analyze_file_group(group_name, group_files, pr_info, project_context, recent_comments)
         if group_analysis and group_model != NO_MODEL:
             analyses.append(f"### {group_name.title()} Changes\n{group_analysis}")
             successful_models.append(group_model)
@@ -316,6 +364,7 @@ def analyze_file_group(
     files: List[Tuple[str, str]],
     pr_info: Dict[str, Any],
     project_context: str,
+    recent_comments: str = "",
 ) -> Tuple[str, str]:
     """Analyze a group of related files
 
@@ -326,21 +375,26 @@ def analyze_file_group(
     combined_diff = ""
     file_list = []
 
-    for filepath, file_diff in files[:10]:  # Max 10 files per group
+    for filepath, file_diff in files[:20]:  # Increased to max 20 files per group
         file_list.append(filepath)
-        # Include first 2000 chars of each file diff
-        combined_diff += f"\n\n=== {filepath} ===\n{file_diff[:2000]}"
-        if len(file_diff) > 2000:
-            combined_diff += f"\n... (truncated {len(file_diff) - 2000} chars)"
+        # Include full file diff up to 50KB per file
+        file_content = file_diff[:50000]  # 50KB per file should be safe
+        combined_diff += f"\n\n=== {filepath} ===\n{file_content}"
+        if len(file_diff) > 50000:
+            combined_diff += f"\n... (truncated {len(file_diff) - 50000} chars)"
 
-    prompt = (
-        f"Analyze this group of {group_name} changes from "
-        f"PR #{pr_info['number']}:\n\n"
+    prompt = f"Analyze this group of {group_name} changes from " f"PR #{pr_info['number']}:\n\n"
+
+    # Add recent comments if provided
+    if recent_comments:
+        prompt += f"{recent_comments}\n\n"
+
+    prompt += (
         f"**Files in this group:**\n"
         f"{chr(10).join(f'- {f}' for f in file_list)}\n\n"
         f"**Relevant diffs:**\n"
         f"```diff\n"
-        f"{combined_diff[:15000]}\n"
+        f"{combined_diff[:200000]}\n"
         f"```\n\n"
         f"Focus on:\n"
         f"1. Correctness and potential bugs\n"
@@ -374,6 +428,9 @@ def analyze_complete_diff(
             if content and len(content) < 5000:  # Only include if reasonable size
                 workflow_contents[file] = content
 
+    # Get recent PR comments since last Gemini review
+    recent_comments = get_recent_pr_comments(pr_info["number"])
+
     prompt = (
         "You are an expert code reviewer. Please analyze this pull request "
         "comprehensively.\n\n"
@@ -385,18 +442,25 @@ def analyze_complete_diff(
         f"- Description: {pr_info['body']}\n"
         f"- Stats: {file_stats['files']} files, "
         f"+{file_stats['additions']}/-{file_stats['deletions']} lines\n\n"
+    )
+
+    # Add recent comments if any
+    if recent_comments:
+        prompt += f"{recent_comments}\n\n"
+
+    prompt += (
         f"**CHANGED FILES ({len(changed_files)} total):**\n"
         f"{chr(10).join(f'- {file}' for file in changed_files)}\n\n"
         f"{format_workflow_contents(workflow_contents)}\n"
         f"**COMPLETE DIFF:**\n"
         f"```diff\n"
-        f"{diff[:75000]}  # Increased limit to 75KB\n"
+        f"{diff[:500000]}  # Increased limit to 500KB - Gemini can handle it\n"
         f"```\n"
     )
 
     # Add truncation message if needed
-    if len(diff) > 75000:
-        prompt += f"... (diff truncated, {len(diff) - 75000} chars omitted)\n\n"
+    if len(diff) > 500000:
+        prompt += f"... (diff truncated, {len(diff) - 500000} chars omitted)\n\n"
     else:
         prompt += "\n"
 

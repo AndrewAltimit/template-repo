@@ -36,7 +36,7 @@ The AI agents implement a comprehensive multi-layer security model with command-
 - **Commit Validation**: Prevents code injection after approval
 - **Implementation Requirements**: Only complete, working code is accepted
 
-**For complete security documentation, see** `scripts/agents/README.md`
+**For complete security documentation, see** `packages/github_ai_agents/docs/security.md`
 
 ### Remote Infrastructure
 
@@ -108,6 +108,11 @@ python -m tools.mcp.content_creation.server  # Port 8011
 python -m tools.mcp.gaea2.server             # Port 8007
 python -m tools.mcp.ai_toolkit.server        # Port 8012 (bridge to remote)
 python -m tools.mcp.comfyui.server           # Port 8013 (bridge to remote)
+python -m tools.mcp.opencode.server          # Port 8014 - AI code generation (HTTP mode)
+python -m tools.mcp.crush.server             # Port 8015 - Fast code generation (HTTP mode)
+
+# Note: OpenCode and Crush run in STDIO mode through .mcp.json for local use,
+# HTTP mode is for cross-machine access or when running standalone
 
 # Gemini MUST run on host (requires Docker access)
 python -m tools.mcp.gemini.server            # Port 8006 - AI integration (host only)
@@ -140,24 +145,42 @@ pip install -r requirements.txt
 ### AI Agents
 
 ```bash
-# IMPORTANT: AI agents now run on the host machine (not containerized)
-# This is required for Claude CLI subscription authentication to work
+# IMPORTANT: Agent Containerization Strategy
+# Some agents run on host, others can be containerized
+# See docs/AGENT_CONTAINERIZATION_STRATEGY.md for complete details
 
-# Run AI agents directly on host
-python3 scripts/agents/run_agents.py status
-python3 scripts/agents/run_agents.py issue-monitor
-python3 scripts/agents/run_agents.py pr-review-monitor
+# Host-Only Agents (authentication constraints):
+# 1. Claude CLI - requires subscription auth (machine-specific)
+# 2. Gemini CLI - requires Docker socket access
+# See docs/AI_AGENTS_CLAUDE_AUTH.md for Claude auth details
 
-# Or run individual agent scripts
-python3 scripts/agents/issue_monitor.py
-python3 scripts/agents/pr_review_monitor.py
+# Containerized Agents (OpenRouter-compatible):
+# OpenCode, Crush - run in openrouter-agents container
+docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
+
+# Or use specific containerized agents:
+docker-compose run --rm openrouter-agents crush run -q "Write a Python function"
+
+# Host agent execution (Claude, Gemini only):
+python3 -m github_ai_agents.cli issue-monitor
+python3 -m github_ai_agents.cli pr-monitor
+# Or use the installed commands directly:
+issue-monitor
+pr-monitor
 
 # GitHub Actions automatically run agents on schedule:
 # - Issue Monitor: Every hour (runs on host)
 # - PR Review Monitor: Every hour (runs on host)
 
-# Note: Ensure Python dependencies are installed on host:
+# Installation:
+# Step 1: Install the GitHub AI agents package (required for all agents):
+pip3 install -e ./packages/github_ai_agents
+
+# Step 2: If running Claude or Gemini on host, install host-specific dependencies:
 pip3 install --user -r docker/requirements-agents.txt
+
+# Note: Step 2 is only needed if you plan to use Claude or Gemini agents.
+# Containerized agents (OpenCode, Crush) don't require host dependencies.
 ```
 
 ### Docker Operations
@@ -254,12 +277,32 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - Bridge to remote ComfyUI instance at `192.168.0.152:8013`
    - See `tools/mcp/comfyui/docs/README.md` for documentation
 
-7. **Shared Core Components** (`tools/mcp/core/`):
+7. **OpenCode MCP Server** (`tools/mcp/opencode/`): Local STDIO interface
+   - **AI-Powered Code Generation**:
+     - `consult_opencode` - Generate, refactor, review, or explain code
+     - `clear_opencode_history` - Clear conversation history
+     - `opencode_status` - Get integration status and statistics
+     - `toggle_opencode_auto_consult` - Control auto-consultation
+   - Uses OpenRouter API with Qwen 2.5 Coder model
+   - Runs locally via stdio for better integration
+   - See `tools/mcp/opencode/docs/README.md` for documentation
+
+8. **Crush MCP Server** (`tools/mcp/crush/`): Local STDIO interface
+   - **Fast Code Generation**:
+     - `consult_crush` - Quick code generation and conversion
+     - `clear_crush_history` - Clear conversation history
+     - `crush_status` - Get integration status and statistics
+     - `toggle_crush_auto_consult` - Control auto-consultation
+   - Uses OpenRouter API with optimized models for speed
+   - Runs locally via stdio for better integration
+   - See `tools/mcp/crush/docs/README.md` for documentation
+
+9. **Shared Core Components** (`tools/mcp/core/`):
    - `BaseMCPServer` - Base class for all MCP servers
    - `HTTPBridge` - Bridge for remote MCP servers
    - Common utilities and helpers
 
-8. **Containerized CI/CD**:
+10. **Containerized CI/CD**:
    - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools
    - **Helper Scripts**: Centralized CI operations
    - **Individual MCP Containers**: Each server can run in its own optimized container
@@ -278,12 +321,12 @@ The repository includes comprehensive CI/CD workflows:
 
 ### Container Architecture Philosophy
 
-1. **Everything Containerized** (with exceptions for authentication):
+1. **Everything Containerized** (with documented exceptions):
    - Python CI/CD tools run in `python-ci` container (Python 3.11)
    - MCP servers run in their own containers
    - **Exceptions due to authentication requirements**:
      - Gemini CLI (requires Docker access)
-     - AI Agents using Claude CLI (requires host subscription auth)
+     - AI Agents using Claude CLI (requires host subscription auth - see `docs/AI_AGENTS_CLAUDE_AUTH.md`)
    - All containers run with user permissions (non-root)
 
 2. **Zero Local Dependencies**:
@@ -341,6 +384,24 @@ The repository includes comprehensive CI/CD workflows:
 - Remember that Gemini CLI cannot be containerized (needs Docker access)
 - Use pytest fixtures and mocks for testing external dependencies
 
+## GitHub Etiquette
+
+**IMPORTANT**: When working with GitHub issues, PRs, and comments:
+
+- **NEVER use @ mentions** unless referring to actual repository maintainers
+- Do NOT use @Gemini, @Claude, @OpenAI, etc. - these may ping unrelated GitHub users
+- Instead, refer to AI agents without the @ symbol: "Gemini", "Claude", "OpenAI"
+- Only @ mention users who are:
+  - The repository owner (@AndrewAltimit)
+  - Active contributors listed in the repository
+  - Users who have explicitly asked to be mentioned
+- When referencing AI reviews, use phrases like:
+  - "As noted in Gemini's review..."
+  - "Addressing Claude's feedback..."
+  - "Per the AI agent's suggestion..."
+
+This prevents accidentally notifying random GitHub users who happen to share names with our AI tools.
+
 ## Additional Documentation
 
 For detailed information on specific topics, refer to these documentation files:
@@ -351,7 +412,7 @@ For detailed information on specific topics, refer to these documentation files:
 - `docs/CONTAINERIZED_CI.md` - Container-based CI/CD philosophy and implementation
 
 ### AI Agents & Security
-- `scripts/agents/README.md` - Comprehensive AI agent security documentation
+- `packages/github_ai_agents/docs/security.md` - Comprehensive AI agent security documentation
 - `docs/AI_AGENTS.md` - AI agent system overview
 - `docs/AI_AGENTS_SECURITY.md` - Security-focused agent documentation
 - `docs/AI_AGENTS_CLAUDE_AUTH.md` - Why AI agents run on host (Claude auth limitation)

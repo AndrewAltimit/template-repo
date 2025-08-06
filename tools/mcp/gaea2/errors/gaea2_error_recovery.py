@@ -341,7 +341,7 @@ class Gaea2ErrorRecovery:
                     "Format": "Terrain",  # Use new property name
                 }
                 export_node["save_definition"] = {
-                    "filename": "terrain_output",
+                    "filename": "outputs/mcp-gaea2/terrain",
                     "format": "Terrain",
                     "enabled": True,
                 }
@@ -361,7 +361,7 @@ class Gaea2ErrorRecovery:
                         node["save_definition"]["format"] = "Terrain"
                         node["save_definition"]["enabled"] = True
                         if "filename" not in node["save_definition"]:
-                            node["save_definition"]["filename"] = "terrain_output"
+                            node["save_definition"]["filename"] = "outputs/mcp-gaea2/terrain"
 
                         # Clean up old properties if they exist
                         if "format" in node["properties"]:

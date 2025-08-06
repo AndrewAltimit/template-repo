@@ -60,6 +60,42 @@
     "comfyui": {
       "type": "http",
       "url": "http://192.168.0.152:8013/messages"
+    },
+    "opencode": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-opencode",
+        "python",
+        "-m",
+        "tools.mcp.opencode.server",
+        "--mode",
+        "stdio"
+      ]
+    },
+    "crush": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-crush",
+        "python",
+        "-m",
+        "tools.mcp.crush.server",
+        "--mode",
+        "stdio"
+      ]
     }
   }
 }

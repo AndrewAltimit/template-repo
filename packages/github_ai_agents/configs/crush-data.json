@@ -1,0 +1,13 @@
+{
+  "models": {
+    "large": {
+      "model": "qwen/qwen3-coder:free",
+      "provider": "openrouter"
+    },
+    "small": {
+      "model": "anthropic/claude-3.5-haiku",
+      "provider": "openrouter",
+      "max_tokens": 4096
+    }
+  }
+}

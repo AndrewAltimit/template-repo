@@ -2,7 +2,7 @@
 
 A container-first, self-hosted project template using Model Context Protocol (MCP) tools with zero-cost infrastructure.
 
-![MCP Demo](docs/mcp/mcp-demo.gif)
+![MCP Demo](docs/template-repo.webp)
 
 ## Project Philosophy
 

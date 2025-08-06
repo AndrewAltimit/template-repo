@@ -1,0 +1,130 @@
+# Multi-Agent System Configuration
+# This file configures the AI agents available for automated CI/CD tasks
+#
+# IMPORTANT: All agents run in AUTONOMOUS MODE for CI/CD automation
+# - Agents must run without human interaction
+# - All agents operate in sandboxed environments (containers/VMs)
+# - Interactive prompts are disabled (e.g., --dangerously-skip-permissions)
+
+# List of enabled agents
+# NOTE: Some agents are only available in specific environments:
+# - Host-only agents: claude (needs subscription auth), gemini (needs Docker access)
+# - Container-only agents: opencode, crush (installed in openrouter-agents container)
+enabled_agents:
+  - claude      # Anthropic's Claude Code (host-only, primary agent)
+  - gemini      # Google's Gemini CLI (host-only, for reviews)
+  # Containerized agents (automatically run in Docker when invoked)
+  - opencode    # Open-source alternative (runs in container)
+  - crush       # Charm Bracelet's multi-provider tool (runs in container)
+
+# Agent priorities for different task types
+agent_priorities:
+  # For creating PRs from issues
+  issue_creation:
+    - claude      # Best for implementation
+
+  # For reviewing PRs
+  pr_reviews:
+    - gemini      # Excellent for code review
+    - claude      # Fallback option
+
+  # For implementing code fixes
+  code_fixes:
+    - claude      # Most capable for fixes
+
+# Security settings
+security:
+  # Authorized users who can trigger agent actions
+  # CRITICAL: Only add trusted users to prevent abuse
+  allow_list:
+    - AndrewAltimit           # Repository owner
+    - github-actions[bot]     # GitHub Actions bot
+    - dependabot[bot]         # Dependabot
+    - renovate[bot]           # Renovate bot
+
+  # Autonomous mode is REQUIRED for CI/CD operation
+  # All agents run in sandboxed environments for security
+  autonomous_mode: true  # Enables non-interactive flags like --dangerously-skip-permissions
+
+  # Confirm running in sandboxed environment
+  require_sandbox: true
+
+  # Maximum prompt length to prevent abuse
+  max_prompt_length: 10000
+
+  # Cleanup temporary files after use
+  temp_file_cleanup: true
+
+  # Maximum execution time per agent call
+  subprocess_timeout: 600  # 10 minutes
+
+  # Memory limit for subprocess execution
+  memory_limit_mb: 500
+
+# Rate limiting (per agent)
+rate_limits:
+  requests_per_minute: 10
+  requests_per_hour: 100
+
+  # Agent-specific overrides
+  claude:
+    requests_per_minute: 20  # Claude can handle more
+  gemini:
+    requests_per_minute: 5   # More conservative for Gemini
+
+# Model configuration overrides
+model_overrides:
+  # Gemini models
+  gemini:
+    pro_model: gemini-2.5-pro
+    flash_model: gemini-2.5-flash
+    default_model: gemini-2.5-pro
+
+  # OpenRouter agents configuration
+  opencode:
+    model: qwen/qwen-2.5-coder-32b-instruct
+    temperature: 0.2
+
+  crush:
+    model: qwen/qwen-2.5-coder-32b-instruct
+    temperature: 0.1  # Lower temperature for Crush
+
+# OpenRouter configuration (for future agents)
+openrouter:
+  # API key must be provided as OPENROUTER_API_KEY environment variable
+
+  # Default model for OpenRouter-compatible agents
+  default_model: qwen/qwen-2.5-coder-32b-instruct
+
+  # Fallback models if primary is unavailable
+  fallback_models:
+    - deepseek/deepseek-coder-v2-instruct
+    - meta-llama/llama-3.1-70b-instruct
+
+# Advanced settings
+advanced:
+  # Enable debug logging
+  debug_mode: false
+
+  # Custom paths
+  # Set AGENT_TEMP_DIR environment variable to override
+  temp_directory: /tmp/agents
+
+  # Retry configuration
+  max_retries: 2
+  retry_delay_seconds: 5
+
+  # Subprocess environment isolation
+  isolate_environment: true
+
+  # Enable telemetry (metrics collection)
+  enable_telemetry: false
+
+  # Non-interactive mode settings
+  non_interactive_flags:
+    claude: ["--print", "--dangerously-skip-permissions"]
+    # For gemini: model and prompt flags are now handled dynamically in the code
+    # based on the default_model setting in model_overrides
+    gemini: []
+    opencode: ["--non-interactive"]
+    crush: ["--non-interactive", "--no-update"]

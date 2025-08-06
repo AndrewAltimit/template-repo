@@ -1,5 +1,7 @@
 """Content Creation MCP Server - Manim animations and LaTeX compilation"""
 
+import base64
+import io
 import os
 import shutil
 import subprocess
@@ -8,6 +10,15 @@ from typing import Any, Dict, Optional  # noqa: F401
 
 from ..core.base_server import BaseMCPServer
 from ..core.utils import ensure_directory, setup_logging
+
+# Constants for image processing
+JPEG_QUALITY_HIGH = 85
+JPEG_QUALITY_LOW = 70
+MAX_IMAGE_SIZE_JPEG = 100000  # 100KB limit for JPEG
+MAX_IMAGE_SIZE_PNG = 200000  # 200KB limit for PNG
+PREVIEW_DPI = 72  # Lower resolution for previews
+FIRST_PAGE = "1"  # PDF page numbers
+LAST_PAGE = "1"
 
 
 class ContentCreationMCPServer(BaseMCPServer):
@@ -40,6 +51,81 @@ class ContentCreationMCPServer(BaseMCPServer):
             self.manim_output_dir = ensure_directory(os.path.join(temp_dir, "manim"))
             self.latex_output_dir = ensure_directory(os.path.join(temp_dir, "latex"))
             self.logger.warning(f"Using fallback temp directory: {temp_dir}")
+
+    def _process_image_for_feedback(self, image_path: str) -> Dict[str, Any]:
+        """Process image for visual feedback with compression and format conversion
+
+        Args:
+            image_path: Path to the image file (PNG)
+
+        Returns:
+            Dictionary with visual feedback data or error information
+        """
+        try:
+            from PIL import Image
+        except ImportError:
+            self.logger.warning("Pillow (PIL) is not installed. Visual feedback unavailable.")
+            return {"error": "Pillow (PIL) is not installed, visual feedback unavailable."}
+
+        try:
+            with Image.open(image_path) as img:
+                # Convert RGBA to RGB if necessary for JPEG
+                if img.mode in ("RGBA", "LA"):
+                    background = Image.new("RGB", img.size, (255, 255, 255))
+                    if img.mode == "RGBA":
+                        background.paste(img, mask=img.split()[3])
+                    else:
+                        background.paste(img, mask=img.split()[1])
+                    img = background
+
+                # Save as JPEG with compression for smaller size
+                buffer = io.BytesIO()
+                img.save(buffer, format="JPEG", quality=JPEG_QUALITY_HIGH, optimize=True)
+                img_data = buffer.getvalue()
+
+                # If still too large, try more compression
+                if len(img_data) > MAX_IMAGE_SIZE_JPEG:
+                    buffer = io.BytesIO()
+                    img.save(buffer, format="JPEG", quality=JPEG_QUALITY_LOW, optimize=True)
+                    img_data = buffer.getvalue()
+
+                img_base64 = base64.b64encode(img_data).decode("utf-8")
+                return {
+                    "format": "jpeg",
+                    "encoding": "base64",
+                    "data": img_base64,
+                    "size_kb": len(img_data) / 1024,
+                }
+
+        except Exception as e:
+            self.logger.warning(f"Failed to process image for visual feedback: {e}")
+            return {"error": str(e)}
+
+    def _run_subprocess_with_logging(
+        self, cmd: list, cwd: Optional[str] = None, check: bool = False
+    ) -> subprocess.CompletedProcess:
+        """Run subprocess command with proper logging and error handling
+
+        Args:
+            cmd: Command to run as list
+            cwd: Working directory for command
+            check: Whether to raise exception on non-zero return code
+
+        Returns:
+            CompletedProcess result
+        """
+        self.logger.info(f"Running command: {' '.join(cmd)}")
+        try:
+            result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=check)
+            if result.returncode != 0:
+                self.logger.warning(f"Command failed with return code {result.returncode}: {result.stderr}")
+            return result
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"Command failed: {e}")
+            raise
+        except FileNotFoundError:
+            self.logger.error(f"Command not found: {' '.join(cmd)}")
+            raise
 
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return available content creation tools"""
@@ -94,6 +180,11 @@ class ContentCreationMCPServer(BaseMCPServer):
                             "enum": ["article", "report", "book", "beamer", "custom"],
                             "default": "article",
                             "description": "Document template to use",
+                        },
+                        "visual_feedback": {
+                            "type": "boolean",
+                            "default": True,
+                            "description": "Return PNG preview image for visual verification",
                         },
                     },
                     "required": ["content"],
@@ -167,10 +258,8 @@ class ContentCreationMCPServer(BaseMCPServer):
 
             cmd.append(script_path)
 
-            self.logger.info(f"Running Manim: {' '.join(cmd)}")
-
             # Run Manim
-            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            result = self._run_subprocess_with_logging(cmd)
 
             # Clean up script file
             os.unlink(script_path)
@@ -220,13 +309,16 @@ class ContentCreationMCPServer(BaseMCPServer):
             self.logger.error(f"Manim error: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def compile_latex(self, content: str, format: str = "pdf", template: str = "article") -> Dict[str, Any]:
+    async def compile_latex(
+        self, content: str, format: str = "pdf", template: str = "article", visual_feedback: bool = True
+    ) -> Dict[str, Any]:
         """Compile LaTeX document to various formats
 
         Args:
             content: LaTeX document content
             format: Output format (pdf, dvi, ps)
             template: Document template to use
+            visual_feedback: Whether to return PNG preview image
 
         Returns:
             Dictionary with compiled document path and metadata
@@ -235,10 +327,10 @@ class ContentCreationMCPServer(BaseMCPServer):
             # Add template wrapper if not custom
             if template != "custom" and not content.startswith("\\documentclass"):
                 templates = {
-                    "article": "\\documentclass{article}\n\\begin{document}\n{content}\n\\end{document}",
-                    "report": "\\documentclass{report}\n\\begin{document}\n{content}\n\\end{document}",
-                    "book": "\\documentclass{book}\n\\begin{document}\n{content}\n\\end{document}",
-                    "beamer": "\\documentclass{beamer}\n\\begin{document}\n{content}\n\\end{document}",
+                    "article": "\\documentclass{{article}}\n\\begin{{document}}\n{content}\n\\end{{document}}",
+                    "report": "\\documentclass{{report}}\n\\begin{{document}}\n{content}\n\\end{{document}}",
+                    "book": "\\documentclass{{book}}\n\\begin{{document}}\n{content}\n\\end{{document}}",
+                    "beamer": "\\documentclass{{beamer}}\n\\begin{{document}}\n{content}\n\\end{{document}}",
                 }
                 if template in templates:
                     content = templates[template].format(content=content)
@@ -258,11 +350,9 @@ class ContentCreationMCPServer(BaseMCPServer):
 
                 cmd = [compiler, "-interaction=nonstopmode", tex_file]
 
-                self.logger.info(f"Compiling LaTeX with: {' '.join(cmd)}")
-
                 # Run compilation (twice for references)
                 for i in range(2):
-                    result = subprocess.run(cmd, cwd=tmpdir, capture_output=True, text=True, check=False)
+                    result = self._run_subprocess_with_logging(cmd, cwd=tmpdir)
                     if result.returncode != 0 and i == 0:
                         # First compilation might fail due to references
                         self.logger.warning("First compilation pass had warnings")
@@ -271,7 +361,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                 if format == "ps" and result.returncode == 0:
                     dvi_file = os.path.join(tmpdir, "document.dvi")
                     ps_file = os.path.join(tmpdir, "document.ps")
-                    subprocess.run(["dvips", dvi_file, "-o", ps_file], check=False)
+                    self._run_subprocess_with_logging(["dvips", dvi_file, "-o", ps_file])
 
                 # Check for output
                 output_file = os.path.join(tmpdir, f"document.{format}")
@@ -286,13 +376,48 @@ class ContentCreationMCPServer(BaseMCPServer):
                         log_path = output_path.replace(f".{format}", ".log")
                         shutil.copy(log_file, log_path)
 
-                    return {
+                    result_data = {
                         "success": True,
                         "output_path": output_path,
                         "format": format,
                         "template": template,
                         "log_path": log_path if os.path.exists(log_file) else None,
                     }
+
+                    # Generate visual feedback if requested and format is PDF
+                    if visual_feedback and format == "pdf":
+                        try:
+                            # Convert first page of PDF to PNG with lower resolution
+                            png_path = output_path.replace(".pdf", "_preview.png")
+                            self._run_subprocess_with_logging(
+                                [
+                                    "pdftoppm",
+                                    "-png",
+                                    "-f",
+                                    FIRST_PAGE,
+                                    "-l",
+                                    LAST_PAGE,
+                                    "-r",
+                                    str(PREVIEW_DPI),
+                                    "-singlefile",
+                                    output_path,
+                                    png_path[:-4],  # Remove .png extension
+                                ],
+                                check=True,
+                            )
+
+                            # Process the PNG image for visual feedback
+                            if os.path.exists(png_path):
+                                feedback_result = self._process_image_for_feedback(png_path)
+                                if "error" in feedback_result:
+                                    result_data["visual_feedback_error"] = feedback_result["error"]
+                                else:
+                                    result_data["visual_feedback"] = feedback_result
+                        except Exception as e:
+                            self.logger.warning(f"Failed to generate visual feedback: {e}")
+                            result_data["visual_feedback_error"] = str(e)
+
+                    return result_data
 
                 # Extract error from log file
                 log_file = os.path.join(tmpdir, "document.log")
@@ -317,15 +442,16 @@ class ContentCreationMCPServer(BaseMCPServer):
             self.logger.error(f"LaTeX compilation error: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def render_tikz(self, tikz_code: str, output_format: str = "pdf") -> Dict[str, Any]:
+    async def render_tikz(self, tikz_code: str, output_format: str = "pdf", visual_feedback: bool = True) -> Dict[str, Any]:
         """Render TikZ diagram as standalone image
 
         Args:
             tikz_code: TikZ code for the diagram
             output_format: Output format (pdf, png, svg)
+            visual_feedback: Whether to return image data for visual verification
 
         Returns:
-            Dictionary with rendered diagram path
+            Dictionary with rendered diagram path and optional visual data
         """
         # Wrap TikZ code in standalone document
         latex_content = f"""
@@ -353,21 +479,40 @@ class ContentCreationMCPServer(BaseMCPServer):
 
                 if output_format == "png":
                     # Use pdftoppm for PNG conversion
-                    subprocess.run(
-                        ["pdftoppm", "-png", "-singlefile", pdf_path, output_path[:-4]],
-                        check=True,
+                    self._run_subprocess_with_logging(
+                        ["pdftoppm", "-png", "-singlefile", pdf_path, output_path[:-4]], check=True
                     )
                 elif output_format == "svg":
                     # Use pdf2svg for SVG conversion
-                    subprocess.run(["pdf2svg", pdf_path, output_path], check=True)
+                    self._run_subprocess_with_logging(["pdf2svg", pdf_path, output_path], check=True)
 
                 if os.path.exists(output_path):
-                    return {
+                    result_data = {
                         "success": True,
                         "output_path": output_path,
                         "format": output_format,
                         "source_pdf": pdf_path,
                     }
+
+                    # Add visual feedback for PNG format
+                    if visual_feedback and output_format == "png":
+                        feedback_result = self._process_image_for_feedback(output_path)
+                        if "error" in feedback_result:
+                            result_data["visual_feedback_error"] = feedback_result["error"]
+                        else:
+                            result_data["visual_feedback"] = feedback_result
+
+                    # Add visual feedback for SVG format (as text)
+                    elif visual_feedback and output_format == "svg":
+                        try:
+                            with open(output_path, "r") as svg_file:
+                                svg_content = svg_file.read()
+                                result_data["visual_feedback"] = {"format": "svg", "encoding": "text", "data": svg_content}
+                        except Exception as e:
+                            self.logger.warning(f"Failed to read SVG for visual feedback: {e}")
+                            result_data["visual_feedback_error"] = str(e)
+
+                    return result_data
                 else:
                     return {
                         "success": False,
@@ -376,6 +521,38 @@ class ContentCreationMCPServer(BaseMCPServer):
 
             except Exception as e:
                 return {"success": False, "error": f"Format conversion error: {str(e)}"}
+
+        # For PDF format, add visual feedback if requested
+        if visual_feedback and output_format == "pdf":
+            try:
+                # Convert first page of PDF to PNG for preview with lower resolution
+                png_path = pdf_path.replace(".pdf", "_preview.png")
+                self._run_subprocess_with_logging(
+                    [
+                        "pdftoppm",
+                        "-png",
+                        "-f",
+                        FIRST_PAGE,
+                        "-l",
+                        LAST_PAGE,
+                        "-r",
+                        str(PREVIEW_DPI),
+                        "-singlefile",
+                        pdf_path,
+                        png_path[:-4],
+                    ],
+                    check=True,
+                )
+
+                if os.path.exists(png_path):
+                    feedback_result = self._process_image_for_feedback(png_path)
+                    if "error" in feedback_result:
+                        result["visual_feedback_error"] = feedback_result["error"]
+                    else:
+                        result["visual_feedback"] = feedback_result
+            except Exception as e:
+                self.logger.warning(f"Failed to generate visual feedback for PDF: {e}")
+                result["visual_feedback_error"] = str(e)
 
         return result
 

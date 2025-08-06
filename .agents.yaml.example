@@ -1,0 +1,72 @@
+# Multi-Agent System Configuration Example
+# Copy this to .agents.yaml and customize for your needs
+
+# List of enabled agents (claude is always enabled by default)
+enabled_agents:
+  - claude      # Anthropic's Claude Code (host-only)
+  - gemini      # Google's Gemini CLI (host-only)
+  - opencode    # SST's OpenCode (containerized)
+  - crush       # Charm Bracelet's Crush AI (containerized)
+
+# Agent priorities for different task types
+# Agents are tried in order until one succeeds
+agent_priorities:
+  # For creating PRs from issues
+  issue_creation:
+    - claude
+    - opencode
+
+  # For reviewing PRs
+  pr_reviews:
+    - gemini
+    - claude
+
+  # For implementing code fixes
+  code_fixes:
+    - claude
+    - crush
+    - opencode
+
+# Model configuration overrides per agent
+model_overrides:
+  # Example: Use a different model for OpenCode
+  # opencode:
+  #   model: deepseek/deepseek-coder-v2-instruct
+  #   temperature: 0.3
+
+  # Example: Configure Crush for faster responses
+  # crush:
+  #   model: qwen/qwen-2.5-coder-7b-instruct
+  #   temperature: 0.1
+
+# OpenRouter configuration for agents that support it
+openrouter:
+  # API key must be provided as OPENROUTER_API_KEY environment variable
+
+  # Default model for OpenRouter-compatible agents
+  default_model: qwen/qwen-2.5-coder-32b-instruct
+
+  # Fallback models if primary is unavailable
+  fallback_models:
+    - deepseek/deepseek-coder-v2-instruct
+    - meta-llama/llama-3.1-70b-instruct
+
+  # Per-agent model overrides
+  agent_overrides:
+    opencode:
+      model: qwen/qwen-2.5-coder-32b-instruct
+      temperature: 0.2
+    crush:
+      model: qwen/qwen-2.5-coder-32b-instruct
+      temperature: 0.1
+
+# Advanced settings (optional)
+advanced:
+  # Timeout for agent commands (seconds)
+  command_timeout: 300
+
+  # Maximum retries for failed agent calls
+  max_retries: 2
+
+  # Enable detailed logging
+  debug_mode: false

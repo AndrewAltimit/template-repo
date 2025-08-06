@@ -38,11 +38,11 @@ services:
       - "8011:8011"
     volumes:
       - ./:/app:ro
-      - /tmp/mcp-content-output:/tmp/mcp-content-output  # Writable output directory
+      - ./outputs/mcp-content:/output  # Bind mount to local outputs directory
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8011
-      - MCP_OUTPUT_DIR=/tmp/mcp-content-output
+      - MCP_OUTPUT_DIR=/output
     networks:
       - mcp-network
     command: ["python", "-m", "tools.mcp.content_creation.server", "--mode", "http"]
@@ -67,7 +67,7 @@ services:
       - "8007:8007"
     volumes:
       - ./:/app:ro
-      - gaea2-output:/output/gaea2  # Named volume for terrain files outside /app
+      - ./outputs/mcp-gaea2:/output/gaea2  # Bind mount to local outputs directory
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8007
@@ -78,6 +78,72 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    profiles:
+      - services
+
+  # OpenCode MCP Server
+  mcp-opencode:
+    build:
+      context: .
+      dockerfile: docker/mcp-opencode.Dockerfile
+    container_name: mcp-opencode
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    ports:
+      - "8014:8014"
+    volumes:
+      - ./:/app:ro
+      - /tmp:/tmp
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8014
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENCODE_ENABLED=${OPENCODE_ENABLED:-true}
+      - OPENCODE_MODEL=${OPENCODE_MODEL:-qwen/qwen-2.5-coder-32b-instruct}
+      - RUNNING_IN_DOCKER=true
+    networks:
+      - mcp-network
+    command: ["python", "-m", "tools.mcp.opencode.server", "--mode", "http"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8014/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    profiles:
+      - services
+
+  # Crush MCP Server
+  mcp-crush:
+    build:
+      context: .
+      dockerfile: docker/mcp-crush.Dockerfile
+    container_name: mcp-crush
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    ports:
+      - "8015:8015"
+    volumes:
+      - ./:/app:ro
+      - /tmp:/tmp
+      - crush-data:/home/node/.crush
+      - crush-local-data:/home/node/.local/share/crush
+      - crush-cache:/home/node/.cache/crush
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8015
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - CRUSH_ENABLED=${CRUSH_ENABLED:-true}
+    networks:
+      - mcp-network
+    command: ["python", "-m", "tools.mcp.crush.server", "--mode", "http"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8015/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -110,6 +176,32 @@ services:
     stdin_open: true
     profiles:
       - agents
+
+  # OpenRouter Agents container (OpenCode, Crush)
+  openrouter-agents:
+    build:
+      context: .
+      dockerfile: docker/openrouter-agents.Dockerfile
+    container_name: openrouter-agents
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    volumes:
+      - ./:/workspace
+      # SECURITY: Use environment variables for credentials instead of mounting host directories
+      # This prevents exposing host filesystem paths to the container
+      # API keys should be passed via OPENROUTER_API_KEY environment variable
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
+      - CONTAINER=openrouter-agents
+    working_dir: /workspace
+    networks:
+      - mcp-network
+    command: ["/bin/bash"]
+    tty: true
+    stdin_open: true
+    profiles:
+      - agents
+      - openrouter
 
   # Python CI container for running tests and linting
   python-ci:
@@ -183,6 +275,8 @@ services:
       - mcp-code-quality
       - mcp-content-creation
       - mcp-gaea2
+      - mcp-crush
+      - mcp-opencode
     profiles:
       - all
 
@@ -199,7 +293,9 @@ networks:
 
 volumes:
   postgres_data: {}
-  gaea2-output: {}
+  crush-data: {}
+  crush-local-data: {}
+  crush-cache: {}
 
 # Secrets are managed at runtime by GitHub Actions or local setup script
 # Never commit actual secret files to the repository!

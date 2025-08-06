@@ -56,19 +56,28 @@ if [ -s "$HOME/.nvm/nvm.sh" ]; then
     if command_exists nvm; then
         echo "[OK] Found nvm"
 
-        # Check for Node.js 22.16.0
-        if nvm use 22.16.0 >/dev/null 2>&1; then
-            echo "[OK] Node.js 22.16.0 is available"
-            NODE_VERSION=$(node --version)
-            echo "[OK] Using Node.js: $NODE_VERSION"
+        # Check for Node.js version from .nvmrc
+        if [ -f "$PROJECT_ROOT/.nvmrc" ]; then
+            REQUIRED_NODE_VERSION=$(cat "$PROJECT_ROOT/.nvmrc")
+            if nvm use "$REQUIRED_NODE_VERSION" >/dev/null 2>&1; then
+                echo "[OK] Node.js $REQUIRED_NODE_VERSION is available"
+                NODE_VERSION=$(node --version)
+                echo "[OK] Using Node.js: $NODE_VERSION"
+            else
+                echo "[WARNING] Node.js $REQUIRED_NODE_VERSION not found"
+                echo "Install it with: nvm install $REQUIRED_NODE_VERSION"
+            fi
         else
-            echo "[WARNING] Node.js 22.16.0 not found"
-            echo "Install it with: nvm install 22.16.0"
+            echo "[WARNING] .nvmrc file not found in project root"
         fi
     fi
 else
     echo "[WARNING] nvm not found at ~/.nvm/nvm.sh"
-    echo "Claude CLI requires Node.js 22.16.0 via nvm"
+    if [ -f "$PROJECT_ROOT/.nvmrc" ]; then
+        echo "Claude CLI requires Node.js $(cat "$PROJECT_ROOT/.nvmrc") via nvm"
+    else
+        echo "Claude CLI requires Node.js via nvm (see .nvmrc for version)"
+    fi
 fi
 
 # Check Claude CLI
@@ -78,7 +87,9 @@ echo "[INFO] Checking Claude CLI..."
 if [ -s "$HOME/.nvm/nvm.sh" ]; then
     # shellcheck disable=SC1091
     . "$HOME/.nvm/nvm.sh"
-    nvm use 22.16.0 >/dev/null 2>&1
+    if [ -f "$PROJECT_ROOT/.nvmrc" ]; then
+        nvm use "$(cat "$PROJECT_ROOT/.nvmrc")" >/dev/null 2>&1
+    fi
 fi
 
 if command_exists claude; then
@@ -206,22 +217,25 @@ echo ""
 echo "1. If nvm is not installed:"
 echo "   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash"
 echo ""
-echo "2. If Node.js 22.16.0 is not installed:"
-echo "   nvm install 22.16.0"
-echo "   nvm use 22.16.0"
+echo "2. If Node.js is not installed (check .nvmrc for required version):"
+echo "   nvm install"
+echo "   nvm use"
 echo ""
 echo "3. If Claude CLI is not installed:"
-echo "   nvm use 22.16.0"
+echo "   nvm use"
 echo "   npm install -g @anthropic-ai/claude-code"
 echo ""
 echo "4. If Claude is not authenticated:"
-echo "   nvm use 22.16.0"
+echo "   nvm use"
 echo "   claude login"
 echo ""
 echo "5. If GitHub CLI is not authenticated:"
 echo "   gh auth login"
 echo ""
-echo "6. Test the AI agents:"
-echo "   python3 scripts/agents/run_agents.py status"
+echo "6. Install the AI agents package:"
+echo "   pip3 install -e ./packages/github_ai_agents"
+echo ""
+echo "7. Test the AI agents:"
+echo "   python3 -m github_ai_agents.cli --help"
 echo ""
 echo "Done!"
