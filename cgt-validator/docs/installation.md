@@ -1,159 +1,159 @@
 # Installation Guide
 
-## System Requirements
+## Primary Method: Docker (Recommended)
 
-- Python 3.8 or higher
-- pip (Python package manager)
-- 100 MB free disk space
-- Internet connection (for downloading state templates)
+This project follows a **container-first philosophy**. Docker ensures a consistent environment across all systems and eliminates "it works on my machine" problems.
 
-## Installation Methods
+### Prerequisites
 
-### Method 1: Install from PyPI (Recommended)
+- Docker (version 20.10 or later)
+- Docker Compose (version 2.0 or later)
+- Git
 
-```bash
-pip install cgt-validator
-```
-
-### Method 2: Install from Source
+### Quick Start with Docker
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/cgt-validator.git
+git clone <repository-url>
 cd cgt-validator
 
-# Install in development mode
-pip install -e .
+# Build and start the container environment
+docker-compose up -d
+
+# Run the validator
+docker-compose run --rm cgt-validator validate oregon --file data.xlsx
+
+# Or use the Makefile shortcuts
+make docker-build
+make docker-validate FILE=data.xlsx STATE=oregon
 ```
 
-### Method 3: Install in Virtual Environment (Best Practice)
+### Docker Development Environment
+
+For development work, use the development container:
 
 ```bash
-# Create virtual environment
-python -m venv cgt-env
+# Start an interactive development shell
+make docker-shell
 
-# Activate virtual environment
-# On Windows:
-cgt-env\Scripts\activate
-# On Mac/Linux:
-source cgt-env/bin/activate
+# Or directly with docker-compose
+docker-compose run --rm cgt-dev bash
 
-# Install package
-pip install cgt-validator
+# Inside the container, all tools are pre-installed:
+# - Python 3.11 with all dependencies
+# - Pre-commit hooks
+# - Testing tools
+# - Linting and formatting tools
 ```
 
-### Method 4: Standalone Executable (Windows/Mac)
-
-Download pre-built executables from the releases page:
-- Windows: `cgt-validator-windows.exe`
-- Mac: `cgt-validator-macos`
-- Linux: `cgt-validator-linux`
-
-## Verify Installation
+### Docker Commands Reference
 
 ```bash
-# Check installation
-cgt-validate --version
+# Build containers
+docker-compose build
 
-# View help
-cgt-validate --help
+# Start services
+docker-compose up -d
+
+# Stop services
+docker-compose down
+
+# View logs
+docker-compose logs -f cgt-validator
+
+# Run tests in container
+docker-compose run --rm cgt-test
+
+# Run linting in container
+docker-compose run --rm cgt-lint
+
+# Clean up Docker resources
+docker system prune -a
 ```
 
-## Update to Latest Version
+## Alternative: Local Installation (Not Recommended)
 
-```bash
-pip install --upgrade cgt-validator
-```
+⚠️ **Warning**: Local installation is discouraged as it may lead to environment inconsistencies. Use Docker unless you have specific requirements that prevent container usage.
 
-## Uninstall
+If you absolutely must install locally:
 
-```bash
-pip uninstall cgt-validator
-```
+### System Requirements
 
-## Platform-Specific Instructions
+- Python 3.8 or higher (3.11 recommended for consistency with containers)
+- pip (Python package manager)
+- Virtual environment tool (venv or virtualenv)
 
-### Windows
+### Local Setup Steps
 
-1. Open Command Prompt or PowerShell as Administrator
-2. Ensure Python is in PATH:
-   ```cmd
-   python --version
-   ```
-3. If not found, add Python to PATH or use full path:
-   ```cmd
-   C:\Python39\Scripts\pip install cgt-validator
-   ```
-
-### macOS
-
-1. Open Terminal
-2. If using system Python, you may need sudo:
+1. **Create a virtual environment**:
    ```bash
-   sudo pip install cgt-validator
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
    ```
-3. Recommended: Use Homebrew Python:
+
+2. **Install the package**:
    ```bash
-   brew install python
-   pip3 install cgt-validator
+   pip install -e .
    ```
 
-### Linux
-
-1. Open Terminal
-2. Install pip if needed:
+3. **Install development dependencies** (if contributing):
    ```bash
-   # Ubuntu/Debian
-   sudo apt-get install python3-pip
-
-   # CentOS/RHEL
-   sudo yum install python3-pip
+   pip install -r requirements-dev.txt
+   pre-commit install
    ```
-3. Install package:
+
+4. **Verify installation**:
    ```bash
-   pip3 install --user cgt-validator
+   cgt-validate --help
    ```
 
-## Troubleshooting Installation
+### Why Docker is Preferred
 
-### Permission Denied
+1. **Consistency**: Same environment for all developers and CI/CD
+2. **Isolation**: No conflicts with system Python or other projects
+3. **Simplicity**: One command to get a fully configured environment
+4. **Reproducibility**: Guaranteed to work the same way everywhere
+5. **Clean**: No system pollution with dependencies
 
-Use `--user` flag to install for current user only:
+## Container Architecture
+
+The project provides several specialized containers:
+
+- **cgt-validator**: Main application container for running validations
+- **cgt-dev**: Development environment with all tools installed
+- **cgt-test**: Automated test runner with watch mode
+- **cgt-lint**: Code quality checks and formatting
+
+All containers share the same base image and mount your local code, so changes are reflected immediately without rebuilding.
+
+## Troubleshooting
+
+### Docker Installation Issues
+
+If Docker is not installed:
+- **Linux**: Follow [Docker's official installation guide](https://docs.docker.com/engine/install/)
+- **Mac**: Install [Docker Desktop for Mac](https://docs.docker.com/desktop/mac/install/)
+- **Windows**: Install [Docker Desktop for Windows](https://docs.docker.com/desktop/windows/install/)
+
+### Permission Issues
+
+If you encounter permission errors with Docker:
+
 ```bash
-pip install --user cgt-validator
+# Add your user to the docker group (Linux)
+sudo usermod -aG docker $USER
+# Log out and back in for changes to take effect
 ```
 
-### SSL Certificate Error
+### Port Conflicts
 
-Use trusted host flag:
-```bash
-pip install --trusted-host pypi.org --trusted-host files.pythonhosted.org cgt-validator
-```
+If ports are already in use:
+1. Check `docker-compose.yml` for port mappings
+2. Either stop conflicting services or modify the ports in `docker-compose.override.yml`
 
-### Behind Corporate Proxy
+## Next Steps
 
-Configure pip to use proxy:
-```bash
-pip install --proxy http://user:password@proxyserver:port cgt-validator
-```
-
-## Docker Installation (Alternative)
-
-```dockerfile
-FROM python:3.9-slim
-RUN pip install cgt-validator
-ENTRYPOINT ["cgt-validate"]
-```
-
-Build and run:
-```bash
-docker build -t cgt-validator .
-# Linux/macOS:
-docker run -v $(pwd):/data cgt-validator oregon --file /data/submission.xlsx
-
-# Windows (PowerShell):
-docker run -v ${PWD}:/data cgt-validator oregon --file /data/submission.xlsx
-
-# Windows (Command Prompt):
-docker run -v %cd%:/data cgt-validator oregon --file /data/submission.xlsx
-```
+After installation, see:
+- [User Guide](user_guide.md) for usage instructions
+- [Development Guide](DEVELOPMENT.md) for contributing
+- [Troubleshooting Guide](troubleshooting.md) for common issues

@@ -97,7 +97,7 @@ services:
     networks:
       - cgt-network
 
-  # Automated scraper service
+  # Automated scraper service (one-time run)
   cgt-scraper:
     build:
       context: .
@@ -107,10 +107,36 @@ services:
     volumes:
       - ./downloads:/app/downloads
       - ./logs:/app/logs
+      - ./monitoring:/app/monitoring
     environment:
       - PYTHONPATH=/app/src
       - CGT_ENV=production
     command: ["python", "-m", "scrapers.scheduler", "run", "--all-states"]
+    networks:
+      - cgt-network
+
+  # Scheduler service (runs on a schedule with built-in cron)
+  cgt-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.scheduler
+    image: cgt-validator:scheduler
+    container_name: cgt-scheduler
+    volumes:
+      - ./downloads:/app/downloads
+      - ./logs:/app/logs
+      - ./monitoring:/app/monitoring
+      - ./scheduler-config:/app/config
+    environment:
+      - PYTHONPATH=/app/src
+      - CGT_ENV=production
+      - SCHEDULE=${CGT_SCHEDULE:-0 2 * * *}  # Default: daily at 2 AM
+      - EMAIL_ENABLED=${EMAIL_ENABLED:-false}
+      - SMTP_SERVER=${SMTP_SERVER:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - FROM_EMAIL=${FROM_EMAIL:-}
+      - TO_EMAILS=${TO_EMAILS:-}
+    restart: unless-stopped
     networks:
       - cgt-network
 

@@ -50,7 +50,7 @@ test-integration:
 # Code quality
 lint:
 	black --check src tests
-	flake8 src tests --max-line-length=120 --extend-ignore=E203,W503
+	flake8 src tests  # Configuration in .flake8
 	pylint src --disable=R,C --max-line-length=120
 	mypy src --ignore-missing-imports
 

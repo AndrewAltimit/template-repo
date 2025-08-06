@@ -106,8 +106,15 @@ class ScrapingScheduler:
             safe_config["slack_notifications"] = safe_config["slack_notifications"].copy()
             safe_config["slack_notifications"].pop("webhook_url", None)
 
+        # Write config with restricted permissions (owner read/write only)
+        import stat
+
         with open(self.config_file, "w", encoding="utf-8") as f:
             json.dump(safe_config, f, indent=2)
+
+        # Set file permissions to 600 (owner read/write only)
+        os.chmod(self.config_file, stat.S_IRUSR | stat.S_IWUSR)
+
         logger.info("Configuration saved to %s (sensitive values excluded)", self.config_file)
 
     def scrape_state_with_retry(self, state: str) -> Dict:

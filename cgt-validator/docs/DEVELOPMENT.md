@@ -1,203 +1,403 @@
-# CGT Validator - Development Guide
+# CGT Validator Development Guide
 
-This guide covers setting up the development environment and contributing to the CGT Validator project.
+## Getting Started
 
-## Development Setup
+This project follows a **container-first development approach** to ensure consistency across all environments. Docker is the primary and recommended method for development.
 
 ### Prerequisites
-- Python 3.8 or higher
+- Docker and Docker Compose (required)
 - Git
-- Docker (optional, for containerized development)
+- Make (recommended for convenience)
+- Python 3.8+ (only if you must work outside containers)
 
-### Setting Up the Development Environment
+### Initial Setup - Container-First (Recommended)
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd cgt-validator
-   ```
-
-2. **Create a virtual environment**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install development dependencies**
-   ```bash
-   # Install all dependencies including dev tools
-   pip install -r requirements-cgt.txt
-   pip install -e .
-
-   # Or use make for full dev setup with pre-commit hooks
-   make dev-install
-   ```
-
-4. **Set up pre-commit hooks**
-   ```bash
-   pre-commit install
-   ```
-
-## Running Tests
-
-### Full Test Suite
 ```bash
-# Run all tests
-pytest
+# Clone the repository
+git clone <repo-url>
+cd cgt-validator
 
-# Run with coverage
-pytest --cov=src --cov-report=html
+# Build the development containers
+make docker-build
 
-# Run specific test file
-pytest tests/test_oregon_validator.py
+# Start development environment
+make docker-dev
 
-# Run tests matching a pattern
-pytest -k "test_validate"
+# This gives you a shell inside the container with:
+# - All dependencies pre-installed
+# - Consistent Python version (3.11)
+# - Proper environment configuration
+# - Access to all development tools
 ```
 
-### Using Make Commands
+### Alternative Setup - Local Development
+
+If you absolutely must work outside containers:
+
 ```bash
-make test          # Run all tests
-make test-cov      # Run tests with coverage
-make test-watch    # Run tests in watch mode
+# Set up local development environment
+make dev-install
+
+# This will:
+# - Install all dependencies
+# - Install the package in editable mode
+# - Set up pre-commit hooks
+# - Install development tools
 ```
 
-### Using Docker
+## Pre-commit Hooks
+
+This project uses pre-commit hooks to ensure code quality. The hooks are automatically installed when you run `make dev-install`.
+
+### Installed Hooks
+
+1. **Python Formatting**
+   - `black` - Automatic code formatting (120 char line length)
+   - `isort` - Import sorting (black-compatible profile)
+   - `reorder-python-imports` - Additional import cleanup
+
+2. **Python Linting**
+   - `flake8` - Style guide enforcement
+   - `bandit` - Security issue detection
+   - `mypy` - Static type checking
+
+3. **General File Checks**
+   - Trailing whitespace removal
+   - End-of-file fixer
+   - Large file prevention (5MB limit)
+   - Merge conflict detection
+   - Case conflict detection
+
+4. **YAML/JSON**
+   - YAML syntax validation and linting
+   - JSON formatting and validation
+   - GitHub Actions workflow linting
+
+5. **Documentation**
+   - Markdown linting (relaxed rules)
+   - Spell checking (if enabled)
+
+6. **Shell Scripts**
+   - ShellCheck for bash script validation
+
+7. **Docker**
+   - Hadolint for Dockerfile best practices
+
+8. **Project-Specific**
+   - Check for hardcoded state names
+   - Ensure validators have test files
+   - Validate mock data structure
+
+### Working with Pre-commit
+
 ```bash
-make docker-test   # Run tests in Docker container
+# Run all hooks manually
+make pre-commit
+# or
+pre-commit run --all-files
+
+# Run specific hook
+pre-commit run black --all-files
+
+# Skip hooks temporarily
+git commit --no-verify -m "WIP: Quick fix"
+
+# Update hooks to latest versions
+make pre-commit-update
+# or
+pre-commit autoupdate
+
+# See what changed
+git diff
 ```
 
-## Code Style and Linting
+### Common Pre-commit Issues and Fixes
 
-The project enforces code quality standards using:
-- **Black** for code formatting
-- **isort** for import sorting
-- **Flake8** for linting
-- **mypy** for type checking
+1. **Black formatting changes**
+   ```bash
+   # Auto-fix
+   make format
+   # Then commit the changes
+   ```
 
-### Running Code Quality Checks
+2. **Import order issues**
+   ```bash
+   # Auto-fix with isort
+   isort src tests
+   ```
+
+3. **Type checking failures**
+   ```bash
+   # Add type hints or ignore with:
+   # type: ignore
+   ```
+
+4. **Large file detected**
+   - Consider if the file should be tracked
+   - Add to .gitignore if not needed
+   - Or increase limit in .pre-commit-config.yaml
+
+## Development Workflow (Container-First)
+
+### 1. Start Development Environment
 ```bash
-# Format code
+# Open a development shell in the container
+make docker-shell
+# or
+docker-compose run --rm cgt-dev bash
+```
+
+### 2. Create a Feature Branch
+```bash
+# Inside the container:
+git checkout -b feature/add-massachusetts-validator
+```
+
+### 3. Make Changes
+```bash
+# Edit files (your local files are mounted in the container)
+# The container has all necessary tools pre-installed
+
+# Run tests in the container
+pytest tests/ -v
+
+# Run linting
+black src tests
+flake8 src tests
+```
+
+### 4. Run Tests
+```bash
+# Option 1: Inside dev container
+pytest tests/ -v --cov=src
+
+# Option 2: Using docker-compose from host
+make docker-test
+
+# Option 3: Watch mode for TDD
+docker-compose up cgt-test  # Runs tests in watch mode
+```
+
+### 5. Commit Changes
+```bash
+# Stage changes
+git add .
+
+# Commit (pre-commit runs automatically)
+git commit -m "feat: add Massachusetts validator"
+
+# If pre-commit fails, fix issues and retry
 make format
-
-# Run all linters
-make lint
-
-# Type checking
-make type-check
-
-# Run all quality checks
-make quality
+git add .
+git commit -m "feat: add Massachusetts validator"
 ```
 
-### Pre-commit Hooks
-Pre-commit hooks automatically run before each commit:
-- Black formatting
-- isort import sorting
-- Flake8 linting
-- Trailing whitespace removal
-- End-of-file fixing
+## Code Style Guide
 
-## Project Structure
+### Python
+- Line length: 120 characters
+- Use Black formatting
+- Follow PEP 8 with Black's modifications
+- Use type hints where beneficial
+- Docstrings for all public functions/classes
 
+### Imports
+```python
+# Standard library
+import os
+from pathlib import Path
+
+# Third-party
+import pandas as pd
+from click import command
+
+# Local
+from validators.base import BaseValidator
 ```
-src/
-├── __init__.py
-├── cli.py                  # CLI entry point
-├── validators/             # State-specific validators
-│   ├── __init__.py
-│   ├── base.py            # Base validator class
-│   └── oregon.py          # Oregon validator implementation
-├── scrapers/              # Web scraping modules
-│   ├── __init__.py
-│   ├── base.py           # Base scraper class
-│   └── oregon.py         # Oregon requirements scraper
-├── utils/                 # Shared utilities
-│   ├── __init__.py
-│   ├── excel.py          # Excel handling utilities
-│   └── reporting.py      # Report generation
-└── models/               # Data models
-    ├── __init__.py
-    └── validation.py     # Validation result models
+
+### Error Messages
+```python
+# Good: Specific and actionable
+raise ValueError(f"Column '{column}' not found in sheet '{sheet}'. Available columns: {', '.join(df.columns)}")
+
+# Bad: Vague
+raise ValueError("Invalid data")
+```
+
+## Testing
+
+### Running Tests
+```bash
+# All tests with coverage
+make test
+
+# Fast test run (no coverage)
+make test-fast
+
+# Specific test file
+pytest tests/validators/test_oregon.py -v
+
+# With debugging
+pytest tests/validators/test_oregon.py -v -s --pdb
+```
+
+### Writing Tests
+```python
+# tests/validators/test_state.py
+import pytest
+from validators.state import StateValidator
+
+def test_validator_initialization():
+    """Test validator initializes correctly."""
+    validator = StateValidator(year=2025)
+    assert validator.state == "state"
+    assert validator.year == 2025
+
+@pytest.mark.parametrize("input,expected", [
+    ("valid_data.xlsx", True),
+    ("invalid_data.xlsx", False),
+])
+def test_validation_results(input, expected):
+    """Test validation produces expected results."""
+    validator = StateValidator()
+    result = validator.validate_file(input)
+    assert result.is_valid() == expected
 ```
 
 ## Adding a New State Validator
 
-1. **Create a new validator class** in `src/validators/`:
-   ```python
-   # src/validators/massachusetts.py
-   from .base import BaseValidator
-
-   class MassachusettsValidator(BaseValidator):
-       def validate(self, data):
-           # Implementation
-           pass
+1. **Create the validator**
+   ```bash
+   cp src/validators/oregon.py src/validators/massachusetts.py
+   # Edit to implement Massachusetts-specific rules
    ```
 
-2. **Create a corresponding scraper** in `src/scrapers/`:
-   ```python
-   # src/scrapers/massachusetts.py
-   from .base import BaseScraper
-
-   class MassachusettsScraper(BaseScraper):
-       def scrape_requirements(self):
-           # Implementation
-           pass
+2. **Create tests**
+   ```bash
+   cp tests/validators/test_oregon.py tests/validators/test_massachusetts.py
+   # Update tests for Massachusetts
    ```
 
-3. **Register the validator** in `src/validators/__init__.py`
+3. **Update configuration**
+   ```python
+   # src/config/states_config.py
+   STATES_CONFIG["massachusetts"] = {
+       "urls": {...},
+       "requirements": {...}
+   }
+   ```
 
-4. **Add tests** in `tests/test_massachusetts_validator.py`
+4. **Add to CLI**
+   ```python
+   # src/cli.py
+   VALIDATORS["massachusetts"] = MassachusettsValidator
+   ```
 
-5. **Update documentation** and supported states list
+5. **Create mock data generator**
+   ```python
+   # src/mock_data/massachusetts_generator.py
+   class MassachusettsMockDataGenerator:
+       ...
+   ```
 
-## Testing Guidelines
+6. **Run pre-commit checks**
+   ```bash
+   make pre-commit
+   ```
 
-### Unit Tests
-- Test individual components in isolation
-- Mock external dependencies (web requests, file I/O)
-- Aim for >80% coverage
+## Container-First Development Commands
 
-### Integration Tests
-- Test validator end-to-end functionality
-- Use mock data files in `mock_data/`
-- Test all output formats
-
-### Test Data
-- Mock data is stored in `mock_data/<state>/`
-- Include both valid and invalid test cases
-- Document expected validation results
-
-## Debugging
-
-### Verbose Output
+### Essential Docker Commands
 ```bash
-# Enable debug logging
-cgt-validate validate oregon --file data.xlsx --verbose
+# Build all containers
+make docker-build
 
-# Or set environment variable
-export CGT_DEBUG=1
+# Start development shell
+make docker-shell
+# or
+docker-compose run --rm cgt-dev bash
+
+# Run tests
+make docker-test
+
+# Run linting
+docker-compose run --rm cgt-lint
+
+# Start all services
+make docker-up
+
+# Stop all services
+make docker-down
+
+# View logs
+docker-compose logs -f cgt-validator
 ```
 
-### Common Issues
-1. **Import errors**: Ensure PYTHONPATH includes src/
-2. **Missing dependencies**: Run `pip install -r requirements-cgt.txt`
-3. **Pre-commit failures**: Run `make format` to auto-fix
+### Development Container Features
+- **cgt-dev**: Full development environment with all tools
+- **cgt-test**: Automated test runner with watch mode
+- **cgt-lint**: Code formatting and linting
+- **cgt-validator**: Main application container
 
-## Contributing Guidelines
+### File Synchronization
+Your local files are automatically synchronized with the container:
+- Source code changes are reflected immediately
+- No need to rebuild for code changes
+- Only rebuild when changing dependencies
 
-1. **Branch naming**: `feature/description` or `fix/description`
-2. **Commit messages**: Use conventional commits (feat:, fix:, docs:, etc.)
-3. **Pull requests**: Include tests and update documentation
-4. **Code review**: All PRs require review before merging
+## Continuous Integration
+
+The project uses GitHub Actions for CI/CD:
+
+1. **Pre-commit checks** - Runs on every push
+2. **Tests** - Matrix of Python versions and OS
+3. **Coverage** - Reports to Codecov
+4. **Security** - Bandit and Safety checks
+5. **Docker** - Build verification
+6. **Benchmarks** - Performance tracking
+
+### CI Best Practices
+- Keep CI runs under 10 minutes
+- Use caching for dependencies
+- Run expensive tests only on main/PR
+- Use matrix strategy for version testing
+
+## Troubleshooting
+
+### Pre-commit Issues
+```bash
+# Reset pre-commit
+pre-commit clean
+pre-commit install
+
+# Skip problematic hook
+SKIP=mypy git commit -m "Fix: urgent patch"
+```
+
+### Import Errors
+```bash
+# Ensure PYTHONPATH is set
+export PYTHONPATH=src:$PYTHONPATH
+
+# Or use the wrapper
+./cgt-validate.sh validate oregon --file data.xlsx
+```
+
+### Docker Issues
+```bash
+# Clean Docker cache
+docker system prune -a
+
+# Rebuild without cache
+docker-compose build --no-cache
+```
 
 ## Release Process
 
-1. Update version in `setup.py`
+1. Update version in setup.py and pyproject.toml
 2. Update CHANGELOG.md
-3. Create a release tag
-4. GitHub Actions will handle the rest
-
-## Questions?
-
-For questions or issues, please open a GitHub issue or contact the maintainers.
+3. Create PR and get review
+4. Merge to main
+5. Tag release: `git tag -a v0.2.0 -m "Release version 0.2.0"`
+6. Push tag: `git push origin v0.2.0`
+7. GitHub Actions will handle the rest

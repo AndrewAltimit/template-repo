@@ -1,0 +1,35 @@
+# Scheduler Dockerfile with built-in cron support
+FROM python:3.11-slim
+
+# Install cron and other necessary tools
+RUN apt-get update && apt-get install -y \
+    cron \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user for running the application
+RUN useradd -m -s /bin/bash cgtuser
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY src/ ./src/
+COPY mock_data/ ./mock_data/
+
+# Create necessary directories with correct permissions
+RUN mkdir -p /app/logs /app/downloads /app/monitoring /app/config && \
+    chown -R cgtuser:cgtuser /app
+
+# Copy scheduler entrypoint script
+COPY docker/scheduler-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/scheduler-entrypoint.sh
+
+# Switch to non-root user for running cron jobs
+USER cgtuser
+
+# The entrypoint will set up cron and keep the container running
+ENTRYPOINT ["/usr/local/bin/scheduler-entrypoint.sh"]
