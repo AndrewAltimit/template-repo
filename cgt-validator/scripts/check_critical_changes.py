@@ -2,24 +2,34 @@
 """Check for critical template changes and create notification file."""
 
 import json
+import logging
 import sys
 from pathlib import Path
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+from config.states_config import list_supported_states  # noqa: E402
 from scrapers.template_monitor import TemplateMonitor  # noqa: E402
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
+
 critical_changes = []
-for state in ["oregon", "massachusetts", "rhode_island", "washington"]:
+for state in list_supported_states():
     try:
         monitor = TemplateMonitor(state, storage_dir=Path(f"./monitoring/{state}"))
         summary = monitor.run_monitoring()
 
         if summary.get("critical_changes"):
             critical_changes.extend([{"state": state, **change} for change in summary["critical_changes"]])
+    except FileNotFoundError as e:
+        logger.warning(f"Configuration not found for {state}: {e}")
+    except ConnectionError as e:
+        logger.error(f"Network error monitoring {state}: {e}")
     except Exception as e:
-        print(f"Error monitoring {state}: {e}")
+        logger.error(f"Unexpected error monitoring {state}: {e}")
 
 if critical_changes:
     print("CRITICAL TEMPLATE CHANGES DETECTED:")

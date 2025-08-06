@@ -1,4 +1,3 @@
-# DEPRECATED - Use requirements-cgt.txt instead
-# This file is kept for backwards compatibility
-# All requirements have been moved to requirements-cgt.txt
+# DEPRECATED - Use requirements-cgt.txt for production dependencies
+# This file is kept for backwards compatibility only
 -r requirements-cgt.txt

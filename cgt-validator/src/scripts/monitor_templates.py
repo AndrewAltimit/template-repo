@@ -9,11 +9,8 @@ from pathlib import Path
 
 import click
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-from config.states_config import list_supported_states  # noqa: E402
-from scrapers.template_monitor import TemplateMonitor  # noqa: E402
+from config.states_config import list_supported_states
+from scrapers.template_monitor import TemplateMonitor
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
