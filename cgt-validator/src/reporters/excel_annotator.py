@@ -232,9 +232,24 @@ class ExcelAnnotator:
                 import re
 
                 # Check if it's a valid Excel cell reference (e.g., A1, B2, AA10, etc.)
-                cell_ref_pattern = r"^[A-Z]+[0-9]+$"
-                if re.match(cell_ref_pattern, parts[1].upper()):  # Cell reference
-                    self._annotate_cell(worksheet, parts[1], issues)
+                # Excel columns go from A-XFD (max 16384 columns)
+                # We need to be more specific to avoid matching column names like "Column1"
+                cell_ref_pattern = r"^[A-Z]{1,3}[0-9]+$"
+                if re.match(cell_ref_pattern, parts[1].upper()):
+                    # Additional check: verify it's a reasonable Excel reference
+                    # Extract column letters and row number
+                    match = re.match(r"^([A-Z]{1,3})([0-9]+)$", parts[1].upper())
+                    if match:
+                        col_letters = match.group(1)
+                        # Check if it looks like a real Excel column (e.g., not "COLUMN1")
+                        if len(col_letters) <= 3 and not col_letters.startswith("COL"):
+                            self._annotate_cell(worksheet, parts[1], issues)
+                        else:
+                            # Treat as column name
+                            self._annotate_column(worksheet, parts[1], issues)
+                    else:
+                        # Column annotation
+                        self._annotate_column(worksheet, parts[1], issues)
                 else:
                     # Column annotation
                     self._annotate_column(worksheet, parts[1], issues)
