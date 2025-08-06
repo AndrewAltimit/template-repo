@@ -46,44 +46,12 @@ STATES_CONFIG: Dict[str, StateConfig] = {
                 "version": "5.0",
                 "last_checked": None,
             },
-            {
-                "url": (
-                    "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/"
-                    "CGT-Data-Submission-FAQ.pdf"
-                ),
-                "type": "pdf",
-                "description": "Data Submission FAQ",
-                "version": "current",
-                "last_checked": None,
-            },
-            {
-                "url": (
-                    "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/"
-                    "2025%20Cost%20Growth%20Target%20Payer%20List.pdf"
-                ),
-                "type": "pdf",
-                "description": "2025 Data Reporters List (2023-2024 data submission)",
-                "version": "2025",
-                "last_checked": None,
-            },
         ],
         "index_urls": [
             {
-                "url": "https://www.oregon.gov/oha/HPA/HP/Pages/Sustainable-Health-Care-Cost-Growth-Target.aspx",
-                "scan_pattern": r"\.(?:xlsx|xlsm|pdf|docx?)$",
-                "keywords": ["template", "manual", "specification", "submission", "data", "2024", "2025"],
-                "last_scraped": None,
-            },
-            {
                 "url": "https://www.oregon.gov/oha/HPA/HP/Pages/cost-growth-target-data.aspx",
-                "scan_pattern": r"\.(?:xlsx|xlsm|pdf|docx?)$",
-                "keywords": ["template", "submission", "data", "2024", "2025"],
-                "last_scraped": None,
-            },
-            {
-                "url": "https://www.oregon.gov/oha/hpa/hp/pages/cost-growth-target-reports.aspx",
-                "scan_pattern": r"\.(?:xlsx|xlsm|pdf|docx?)$",
-                "keywords": ["report", "data", "2024", "2025"],
+                "scan_pattern": r"CGT-[12]-.*\.(?:xlsx|pdf)$",
+                "keywords": ["CGT-1", "CGT-2", "Data-Submission-Template", "Data-Specification-Manual"],
                 "last_scraped": None,
             },
         ],
