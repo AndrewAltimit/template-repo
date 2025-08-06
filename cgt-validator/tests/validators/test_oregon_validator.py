@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 
 from openpyxl import Workbook
-
 from src.validators.oregon import OregonValidator
 
 

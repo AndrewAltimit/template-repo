@@ -85,10 +85,7 @@ class ScrapingScheduler:
         # Log warning if sensitive values are not configured
         if default_config["email_notifications"]["enabled"] and not default_config["email_notifications"]["password"]:
             logger.warning("Email notifications enabled but CGT_EMAIL_PASSWORD environment variable not set")
-        if (
-            default_config["slack_notifications"]["enabled"]
-            and not default_config["slack_notifications"]["webhook_url"]
-        ):
+        if default_config["slack_notifications"]["enabled"] and not default_config["slack_notifications"]["webhook_url"]:
             logger.warning("Slack notifications enabled but CGT_SLACK_WEBHOOK_URL environment variable not set")
 
         return default_config
@@ -313,8 +310,7 @@ class ScrapingScheduler:
         for result in summary["results"]:
             if result["status"] == "success":
                 lines.append(
-                    f"✓ {result['state']}: {result['documents_found']} found, "
-                    f"{result['documents_downloaded']} downloaded"
+                    f"✓ {result['state']}: {result['documents_found']} found, " f"{result['documents_downloaded']} downloaded"
                 )
             else:
                 lines.append(f"✗ {result['state']}: FAILED - {result.get('error', 'Unknown error')}")

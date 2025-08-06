@@ -6,7 +6,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 from openpyxl import Workbook
-
 from src.parsers.requirements_parser import RequirementsParser
 
 

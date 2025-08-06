@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any, Dict
 
 import pandas as pd
-
 from src.reporters.validation_results import ValidationResults
 from src.validators.base_validator import ValidatorBase
 

@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from openpyxl import load_workbook
-
 from reporters.validation_results import Severity, ValidationResults
 
 

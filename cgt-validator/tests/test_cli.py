@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-
 from src.cli import batch_validate, get_validator, validate
 
 
@@ -164,9 +163,7 @@ class TestCLI:
         output_dir.mkdir()
 
         runner = CliRunner()
-        result = runner.invoke(
-            batch_validate, ["oregon", "--directory", str(temp_dir), "--output-dir", str(output_dir)]
-        )
+        result = runner.invoke(batch_validate, ["oregon", "--directory", str(temp_dir), "--output-dir", str(output_dir)])
 
         assert result.exit_code == 0
         # Check report was created

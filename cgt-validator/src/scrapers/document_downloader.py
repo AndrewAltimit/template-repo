@@ -8,9 +8,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import requests
-from tqdm import tqdm
-
 from config.states_config import get_state_config
+from tqdm import tqdm
 
 from .web_scraper import DocumentInfo, WebScraper
 
