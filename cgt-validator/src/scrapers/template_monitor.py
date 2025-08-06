@@ -537,7 +537,7 @@ class TemplateMonitor:
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
 
-        summary = {
+        monitoring_summary = {
             "state": self.state,
             "monitoring_date": start_time.isoformat(),
             "duration_seconds": duration,
@@ -552,16 +552,16 @@ class TemplateMonitor:
         # Categorize changes
         for change_event in all_changes:
             # By type
-            changes_by_type = summary["changes_by_type"]  # type: ignore
+            changes_by_type: Dict[str, int] = monitoring_summary["changes_by_type"]  # type: ignore
             changes_by_type[change_event.change_type] = changes_by_type.get(change_event.change_type, 0) + 1
 
             # By severity
-            changes_by_severity = summary["changes_by_severity"]  # type: ignore
+            changes_by_severity: Dict[str, int] = monitoring_summary["changes_by_severity"]  # type: ignore
             changes_by_severity[change_event.severity] = changes_by_severity.get(change_event.severity, 0) + 1
 
             # Track critical changes
             if change_event.severity == "critical":
-                summary["critical_changes"].append(  # type: ignore
+                monitoring_summary["critical_changes"].append(  # type: ignore
                     {
                         "url": change_event.url,
                         "description": change_event.description,
@@ -571,11 +571,11 @@ class TemplateMonitor:
         # Save summary
         summary_file = self.storage_dir / f"monitoring_summary_{start_time.strftime('%Y%m%d_%H%M%S')}.json"
         with open(summary_file, "w", encoding="utf-8") as summary_f:
-            json.dump(summary, summary_f, indent=2)
+            json.dump(monitoring_summary, summary_f, indent=2)
 
         logger.info("Monitoring complete: %d changes detected", len(all_changes))
 
-        return summary
+        return monitoring_summary
 
     def generate_change_report(self, output_format: str = "markdown") -> str:
         """Generate a human-readable change report."""
@@ -711,8 +711,8 @@ class TemplateMonitor:
 
 def monitor_state_templates(state: str) -> Dict[str, Any]:
     """Convenience function to monitor templates for a state."""
-    monitor_instance = TemplateMonitor(state)
-    return monitor_instance.run_monitoring()
+    monitor = TemplateMonitor(state)
+    return monitor.run_monitoring()
 
 
 if __name__ == "__main__":
@@ -722,8 +722,8 @@ if __name__ == "__main__":
         state_arg = sys.argv[1]
         print(f"Monitoring templates for {state_arg}...")
 
-        monitor_instance = TemplateMonitor(state_arg)
-        summary = monitor_instance.run_monitoring()
+        template_monitor = TemplateMonitor(state_arg)
+        summary = template_monitor.run_monitoring()
 
         print("\nMonitoring Summary:")
         print(f"  URLs monitored: {summary['total_urls_monitored']}")
@@ -736,8 +736,8 @@ if __name__ == "__main__":
                 print(f"    {critical_change['description']}")
 
         # Generate and save report
-        report = monitor_instance.generate_change_report("markdown")
-        report_file = monitor_instance.storage_dir / "latest_report.md"
+        report = template_monitor.generate_change_report("markdown")
+        report_file = template_monitor.storage_dir / "latest_report.md"
         with open(report_file, "w", encoding="utf-8") as report_f:
             report_f.write(report)
         print(f"\nReport saved to: {report_file}")

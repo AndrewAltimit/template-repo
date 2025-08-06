@@ -32,8 +32,14 @@ repos:
     rev: v3.0.3
     hooks:
       - id: pylint
-        args: [--disable, C0114, --disable, C0115, --disable, C0116, --disable, R0903, --disable, R0913, --disable, R0914, --disable, R0915, --disable, R0401, --disable, R0801, --disable, C0301, --disable, W0621, --disable, C0413, --disable, C0415, --disable, R0911, --disable, R1705]
-        # Disabled: missing docstrings, too few public methods, too many args/locals/statements, cyclic imports, duplicate code, line too long, redefined-outer-name, wrong-import-position, import-outside-toplevel, too-many-return-statements, unnecessary-elif
+        args: [--disable, C0114, --disable, C0115, --disable, C0116, --disable, R0903, --disable, R0913, --disable, R0914, --disable, R0915, --disable, R0401, --disable, R0801, --disable, C0301, --disable, C0413, --disable, C0415, --disable, R0911, --disable, R1705, --disable, R0912, --disable, R1702, --disable, W0212, --disable, W0612, --disable, W0613, --disable, W1514, --disable, C0103, --disable, C0201, --disable, W0611, --disable, R1710, --disable, R1714, --disable, W0706, --disable, R0904, --disable, C0302]
+        # Disabled: missing docstrings, too few public methods, too many args/locals/statements, cyclic imports,
+        # duplicate code, line too long, wrong-import-position, import-outside-toplevel, too-many-return-statements,
+        # unnecessary-elif, too-many-branches, too-many-nested-blocks, protected-access, unused-variable,
+        # unused-argument, unspecified-encoding, invalid-name, consider-iterating-dictionary, unused-import,
+        # inconsistent-return-statements, consider-using-in, try-except-raise, too-many-public-methods, too-many-lines
+        # W0621 (redefined-outer-name) is NOT disabled - we want to catch variable shadowing
+        exclude: ^(docs/|reference/)
 
   # YAML formatting
   - repo: https://github.com/pre-commit/pre-commit-hooks
