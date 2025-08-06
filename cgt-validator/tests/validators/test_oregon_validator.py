@@ -131,11 +131,11 @@ class TestOregonValidator:
 
         # TME_ALL sheet with LOB validation
         ws = wb.create_sheet("2. TME_ALL")
-        # Add header rows - headers should be at row 11 (0-indexed row 10)
-        for i in range(10):
+        # Add header rows - headers should be at row 9 (0-indexed row 8)
+        for i in range(8):
             ws.append([None] * 10)
 
-        # Row 11: Column headers (0-indexed row 10)
+        # Row 9: Column headers (0-indexed row 8)
         ws.append(["Reporting Year", "Line of Business Code", "Member Months", "Demographic Score"] + [None] * 6)
 
         # Valid LOB codes (1-7)
@@ -179,11 +179,11 @@ class TestOregonValidator:
 
         # TME_PROV sheet with member months validation
         ws = wb.create_sheet("3. TME_PROV")
-        # Add header rows (TME_PROV has headers at row 13, 0-indexed = 12)
-        for i in range(12):
+        # Add header rows (TME_PROV has headers at row 11, 0-indexed = 10)
+        for i in range(10):
             ws.append([None] * 10)
 
-        # Row 13: Column headers (0-indexed row 12)
+        # Row 11: Column headers (0-indexed row 10)
         ws.append(
             [
                 "Reporting Year",
@@ -249,9 +249,9 @@ class TestOregonValidator:
         ws.append(["Provider 1", "IPA 1", "123456789"] + [None] * 2)
         ws.append(["Provider 2", "IPA 2", "987654321"] + [None] * 2)
 
-        # TME_PROV with invalid provider reference (header at row 13, 0-indexed = 12)
+        # TME_PROV with invalid provider reference (header at row 11, 0-indexed = 10)
         ws = wb.create_sheet("3. TME_PROV")
-        for i in range(12):
+        for i in range(10):
             ws.append([None] * 10)
         ws.append(
             [
@@ -268,9 +268,9 @@ class TestOregonValidator:
         ws.append([2024, 1, "Provider 1", "IPA 1", 1, 1000, 1.0] + [None] * 3)  # Valid
         ws.append([2024, 1, "Unknown Provider", "IPA 1", 1, 2000, 1.0] + [None] * 3)  # Invalid provider name
 
-        # RX_MED_PROV with invalid provider reference (header at row 13, 0-indexed = 12)
+        # RX_MED_PROV with invalid provider reference (header at row 11, 0-indexed = 10)
         ws = wb.create_sheet("6. RX_MED_PROV")
-        for i in range(12):
+        for i in range(10):
             ws.append([None] * 10)
         ws.append(
             [
@@ -377,9 +377,9 @@ class TestOregonValidator:
             for i in range(9):
                 ws.append([None] * 10)
 
-        # TME_ALL sheet with year validation (header at row 11, 0-indexed = 10)
+        # TME_ALL sheet with year validation (header at row 9, 0-indexed = 8)
         ws = wb.create_sheet("2. TME_ALL")
-        for i in range(10):
+        for i in range(8):
             ws.append([None] * 10)
 
         ws.append(["Reporting Year", "Line of Business Code", "Member Months", "Demographic Score"] + [None] * 6)
@@ -437,9 +437,9 @@ class TestOregonValidator:
             ws.append(row)
 
         # Create data sheets with proper structure
-        # TME_ALL (header at row 11, 0-indexed = 10)
+        # TME_ALL (header at row 9, 0-indexed = 8)
         ws = wb.create_sheet("2. TME_ALL")
-        for i in range(10):
+        for i in range(8):
             ws.append([None] * 30)
         ws.append(
             [
@@ -458,23 +458,23 @@ class TestOregonValidator:
         )
         ws.append([2024, 1, 10000, 1.0, 100000, 50000, 20000, 30000, 10000, 5000] + [None] * 20)
 
-        # TME_UNATTR (header at row 11, 0-indexed = 10)
+        # TME_UNATTR (header at row 9, 0-indexed = 8)
         ws = wb.create_sheet("4. TME_UNATTR")
-        for i in range(10):
+        for i in range(8):
             ws.append([None] * 30)
         ws.append(["Reporting Year", "Line of Business Code", "Member Months"] + [None] * 27)
         ws.append([2024, 1, 100] + [None] * 27)
 
-        # MARKET_ENROLL (header at row 11, 0-indexed = 10)
+        # MARKET_ENROLL (header at row 9, 0-indexed = 8, different structure)
         ws = wb.create_sheet("5. MARKET_ENROLL")
-        for i in range(10):
+        for i in range(8):
             ws.append([None] * 30)
-        ws.append(["Reporting Year", "Line of Business Code", "Market Member Months"] + [None] * 27)
-        ws.append([2024, 1, 100000] + [None] * 27)
+        ws.append(["Market Enrollment Category", "Year 2023 Member Months", "Year 2024 Member Months"] + [None] * 27)
+        ws.append(["1. Large group (51 + employees), fully insured", 50000, 60000] + [None] * 27)
 
-        # RX_MED_PROV (header at row 13, 0-indexed = 12)
+        # RX_MED_PROV (header at row 11, 0-indexed = 10)
         ws = wb.create_sheet("6. RX_MED_PROV")
-        for i in range(12):
+        for i in range(10):
             ws.append([None] * 30)
         ws.append(
             [
@@ -489,16 +489,16 @@ class TestOregonValidator:
         )
         ws.append([2024, 1, "123456789", "Provider 1", 10000, 50000] + [None] * 24)
 
-        # RX_MED_UNATTR (header at row 13, 0-indexed = 12)
+        # RX_MED_UNATTR (header at row 9, 0-indexed = 8)
         ws = wb.create_sheet("7. RX_MED_UNATTR")
-        for i in range(12):
+        for i in range(8):
             ws.append([None] * 30)
         ws.append(["Reporting Year", "Line of Business Code", "Allowed Pharmacy", "Net Paid Medical"] + [None] * 26)
         ws.append([2024, 1, 5000, 25000] + [None] * 26)
 
-        # RX_REBATE (header at row 11, 0-indexed = 10)
+        # RX_REBATE (header at row 9, 0-indexed = 8)
         ws = wb.create_sheet("8. RX_REBATE")
-        for i in range(10):
+        for i in range(8):
             ws.append([None] * 30)
         ws.append(["Reporting Year", "Line of Business Code", "Prescription Rebates"] + [None] * 27)
         ws.append([2024, 1, 1000] + [None] * 27)
@@ -519,9 +519,9 @@ class TestOregonValidator:
         ws.append(["Provider 1", "IPA 2", "123456789"] + [None] * 2)  # Same provider, different IPA
         ws.append(["Provider 2", "", "987654321"] + [None] * 2)  # Provider with no IPA
 
-        # TME_PROV with mismatched provider-IPA combination (header at row 13, 0-indexed = 12)
+        # TME_PROV with mismatched provider-IPA combination (header at row 11, 0-indexed = 10)
         ws = wb.create_sheet("3. TME_PROV")
-        for i in range(12):
+        for i in range(10):
             ws.append([None] * 30)
         ws.append(
             [
@@ -616,16 +616,16 @@ class TestOregonValidator:
             for i in range(13):  # Account for different header rows
                 ws.append([None] * 10)
 
-        # TME_ALL with LOB 7 (should be valid) - header at row 11, 0-indexed = 10
+        # TME_ALL with LOB 7 (should be valid) - header at row 9, 0-indexed = 8
         ws = wb.create_sheet("2. TME_ALL")
-        for i in range(10):
+        for i in range(8):
             ws.append([None] * 10)
         ws.append(["Reporting Year", "Line of Business Code", "Member Months", "Demographic Score"] + [None] * 6)
         ws.append([2024, 7, 1000, 1.0] + [None] * 6)  # Valid: LOB 7 in TME_ALL
 
-        # TME_PROV with LOB 7 (should be invalid) - header at row 13, 0-indexed = 12
+        # TME_PROV with LOB 7 (should be invalid) - header at row 11, 0-indexed = 10
         ws = wb.create_sheet("3. TME_PROV")
-        for i in range(12):
+        for i in range(10):
             ws.append([None] * 10)
         ws.append(
             [
@@ -721,17 +721,17 @@ class TestOregonValidator:
             for i in range(13):
                 ws.append([None] * 10)
 
-        # TME_ALL with invalid data types (header at row 11, 0-indexed = 10)
+        # TME_ALL with invalid data types (header at row 9, 0-indexed = 8)
         ws = wb.create_sheet("2. TME_ALL")
-        for i in range(10):
+        for i in range(8):
             ws.append([None] * 10)
         ws.append(["Reporting Year", "Line of Business Code", "Member Months", "Demographic Score"] + [None] * 6)
         ws.append(["invalid_year", "not_a_code", "negative", "text"] + [None] * 6)  # All invalid types
         ws.append([2024, 1.5, -100, -0.5] + [None] * 6)  # LOB not int, member months negative, demo score negative
 
-        # TME_PROV with invalid data types (header at row 13, 0-indexed = 12)
+        # TME_PROV with invalid data types (header at row 11, 0-indexed = 10)
         ws = wb.create_sheet("3. TME_PROV")
-        for i in range(12):
+        for i in range(10):
             ws.append([None] * 10)
         ws.append(
             [
@@ -797,9 +797,9 @@ class TestOregonValidator:
         ws.append(["ABC Healthcare", "West IPA", "123456789"] + [None] * 2)
         ws.append(["XYZ Medical Group", "", "987654321"] + [None] * 2)
 
-        # TME_PROV with different case (header at row 13, 0-indexed = 12)
+        # TME_PROV with different case (header at row 11, 0-indexed = 10)
         ws = wb.create_sheet("3. TME_PROV")
-        for i in range(12):
+        for i in range(10):
             ws.append([None] * 10)
         ws.append(
             [
@@ -836,7 +836,7 @@ class TestOregonValidator:
         # Create Contents sheet
         ws = wb.active
         ws.title = "Contents"
-        for i in range(10):
+        for i in range(8):
             ws.append([None] * 10)
 
         # Create Cover Page with minimal required structure
@@ -863,14 +863,14 @@ class TestOregonValidator:
 
         # Create TME_ALL with proper headers
         ws = wb.create_sheet("2. TME_ALL")
-        for i in range(10):
+        for i in range(8):
             ws.append([None] * 10)
         ws.append(["Reporting Year", "Line of Business Code", "Member Months", "Demographic Score"] + [None] * 6)
         ws.append([2024, 1, 10000, 1.0] + [None] * 6)
 
         # Create TME_PROV with proper headers
         ws = wb.create_sheet("3. TME_PROV")
-        for i in range(12):
+        for i in range(10):
             ws.append([None] * 10)
         ws.append(
             [
@@ -888,21 +888,21 @@ class TestOregonValidator:
 
         # Create TME_UNATTR with proper headers
         ws = wb.create_sheet("4. TME_UNATTR")
-        for i in range(10):
+        for i in range(8):
             ws.append([None] * 10)
         ws.append(["Reporting Year", "Line of Business Code", "Member Months"] + [None] * 7)
         ws.append([2024, 1, 500] + [None] * 7)
 
-        # Create MARKET_ENROLL with proper headers
+        # Create MARKET_ENROLL with proper headers (different structure)
         ws = wb.create_sheet("5. MARKET_ENROLL")
-        for i in range(10):
+        for i in range(8):
             ws.append([None] * 10)
-        ws.append(["Reporting Year", "Line of Business Code", "Market Member Months"] + [None] * 7)
-        ws.append([2024, 1, 100000] + [None] * 7)
+        ws.append(["Market Enrollment Category", "Year 2023 Member Months", "Year 2024 Member Months"] + [None] * 7)
+        ws.append(["1. Large group (51 + employees), fully insured", 50000, 60000] + [None] * 7)
 
         # Create RX_REBATE with proper headers
         ws = wb.create_sheet("8. RX_REBATE")
-        for i in range(10):
+        for i in range(8):
             ws.append([None] * 10)
         ws.append(["Reporting Year", "Line of Business Code", "Prescription Rebates"] + [None] * 7)
         ws.append([2024, 1, 5000] + [None] * 7)
@@ -921,9 +921,9 @@ class TestOregonValidator:
         )
         ws.append(["Provider 1", "", "123456789"] + [None] * 2)
 
-        # RX_MED_PROV with headers at row 13 (0-indexed = 12)
+        # RX_MED_PROV with headers at row 11 (0-indexed = 10)
         ws = wb.create_sheet("6. RX_MED_PROV")
-        for i in range(12):
+        for i in range(10):
             ws.append([None] * 10)
         ws.append(
             [
@@ -938,9 +938,9 @@ class TestOregonValidator:
         )
         ws.append([2024, 1, "123456789", "Provider 1", 10000, 50000] + [None] * 4)
 
-        # RX_MED_UNATTR with headers at row 13 (0-indexed = 12)
+        # RX_MED_UNATTR with headers at row 9 (0-indexed = 8)
         ws = wb.create_sheet("7. RX_MED_UNATTR")
-        for i in range(12):
+        for i in range(8):
             ws.append([None] * 10)
         ws.append(["Reporting Year", "Line of Business Code", "Allowed Pharmacy", "Net Paid Medical"] + [None] * 6)
         ws.append([2024, 1, 5000, 25000] + [None] * 6)
@@ -985,9 +985,9 @@ class TestOregonValidator:
             for i in range(13):
                 ws.append([None] * 10)
 
-        # RX_REBATE with positive rebates (invalid) - header at row 11, 0-indexed = 10
+        # RX_REBATE with positive rebates (invalid) - header at row 9, 0-indexed = 8
         ws = wb.create_sheet("8. RX_REBATE")
-        for i in range(10):
+        for i in range(8):
             ws.append([None] * 10)
         ws.append(
             [
@@ -1039,9 +1039,9 @@ class TestOregonValidator:
             for i in range(13):
                 ws.append([None] * 10)
 
-        # TME_ALL with HRSN costs (valid) - header at row 11, 0-indexed = 10
+        # TME_ALL with HRSN costs (valid) - header at row 9, 0-indexed = 8
         ws = wb.create_sheet("2. TME_ALL")
-        for i in range(10):
+        for i in range(8):
             ws.append([None] * 15)
         ws.append(
             [
@@ -1055,9 +1055,9 @@ class TestOregonValidator:
         )
         ws.append([2024, 1, 10000, 1.0, 50000] + [None] * 10)  # Valid: HRSN in TME_ALL
 
-        # TME_PROV with HRSN costs (invalid) - header at row 13, 0-indexed = 12
+        # TME_PROV with HRSN costs (invalid) - header at row 11, 0-indexed = 10
         ws = wb.create_sheet("3. TME_PROV")
-        for i in range(12):
+        for i in range(10):
             ws.append([None] * 15)
         ws.append(
             [
@@ -1106,9 +1106,9 @@ class TestOregonValidator:
             for i in range(13):
                 ws.append([None] * 10)
 
-        # TME_ALL with LOB 7 - header at row 11, 0-indexed = 10
+        # TME_ALL with LOB 7 - header at row 9, 0-indexed = 8
         ws = wb.create_sheet("2. TME_ALL")
-        for i in range(10):
+        for i in range(8):
             ws.append([None] * 10)
         ws.append(["Reporting Year", "Line of Business Code", "Member Months", "Demographic Score"] + [None] * 6)
         ws.append([2024, 7, 1000, 1.0] + [None] * 6)  # LOB 7
@@ -1159,9 +1159,9 @@ class TestOregonValidator:
         )
         ws.append(["Provider 1", "IPA 1", "123456789"] + [None] * 2)  # Provider with IPA
 
-        # TME_PROV sheet - header at row 13, 0-indexed = 12
+        # TME_PROV sheet - header at row 11, 0-indexed = 10
         ws = wb.create_sheet("3. TME_PROV")
-        for i in range(12):
+        for i in range(10):
             ws.append([None] * 10)
         ws.append(
             [

@@ -107,17 +107,16 @@ class OregonMockDataGenerator:
 
     def generate_tme_all(self) -> pd.DataFrame:
         """Generate TME_ALL sheet for 2025 template."""
-        # Headers structure
+        # Headers structure - matching actual template structure
         headers = [
-            [None] * 30,  # Row 0: Empty
-            ["Black = payer-reported data"] + [None] * 29,  # Row 1
-            ["Blue = OHA calculated data"] + [None] * 29,  # Row 2
-            [None] * 30,  # Row 3: Empty
-            [None] * 30,  # Row 4: Empty
+            ["2. Total Medical Expenses: All"] + [None] * 29,  # Row 0: Title
+            [None] * 30,  # Row 1: Empty
+            ["Black = payer-reported data"] + [None] * 29,  # Row 2
+            ["Blue = OHA calculated data"] + [None] * 29,  # Row 3
+            ["When the payer-entered data does not meet the desired format, the cell will become red."]
+            + [None] * 29,  # Row 4
             [None] * 30,  # Row 5: Empty
-            [None] * 30,  # Row 6: Empty
-            [None] * 30,  # Row 7: Empty
-            # Row 8: Field codes
+            # Row 6: Field codes
             [
                 "TMEALL01",
                 "TMEALL02",
@@ -131,7 +130,7 @@ class OregonMockDataGenerator:
                 "TMEALL10",
             ]
             + [None] * 20,
-            # Row 9: Data types
+            # Row 7: Data types
             [
                 "year",
                 "code",
@@ -145,7 +144,7 @@ class OregonMockDataGenerator:
                 "non-negative number",
             ]
             + [None] * 20,
-            # Row 10: Column names
+            # Row 8: Column names (this is where validator expects headers)
             [
                 "Reporting Year",
                 "Line of Business Code",
@@ -190,31 +189,18 @@ class OregonMockDataGenerator:
     def generate_tme_prov(self) -> pd.DataFrame:
         """Generate TME_PROV sheet for 2025 template."""
         headers = [
-            ["3. Total Medical Expenses: Member Months Attributed to Provider Organizations"] + [None] * 29,
-            ["Black = payer-reported data"] + [None] * 29,
-            ["Blue = OHA calculated data"] + [None] * 29,
-            ["When the payer-entered data does not meet the desired format, the cell will become red."] + [None] * 29,
-            [None] * 30,
-            [
-                "Validation Check 1 Explanation: This test flags duplicate rows at the "
-                "Reporting Year-LOB-Provider-Attribution level. All costs in TME_PROV and RX_MED_PROV should be "
-                "rolled up to a single line at this level. If the count is greater than zero, look for red cells "
-                "in TMERXPRV16 to identify which rows are causing an issue."
-            ]
-            + [None] * 29,
-            [
-                "Validation Check 1:  Number of rows where Year-LOB-Provider-IPA-Attribution combination is not unique:",
-                None,
-                None,
-                0,
-            ]
-            + [None] * 26,
-            [None] * 30,
-            [None] * 30,  # Row 8: Empty
-            [None] * 30,  # Row 9: Empty
-            # Row 10: Field codes
+            ["3. Total Medical Expenses: Member Months Attributed to Provider Organizations"] + [None] * 29,  # Row 0
+            [None] * 30,  # Row 1: Empty
+            ["Black = payer-reported data"] + [None] * 29,  # Row 2
+            ["Blue = OHA calculated data"] + [None] * 29,  # Row 3
+            ["When the payer-entered data does not meet the desired format, the cell will become red."]
+            + [None] * 29,  # Row 4
+            [None] * 30,  # Row 5: Empty
+            [None] * 30,  # Row 6: Empty
+            [None] * 30,  # Row 7: Empty
+            # Row 8: Field codes
             ["TMEPRV01", "TMEPRV02", "TMEPRV03", "TMEPRV04", "TMEPRV06", "TMEPRV07", "TMEPRV08"] + [None] * 23,
-            # Row 11: Data types
+            # Row 9: Data types
             [
                 "Year",
                 "Code",
@@ -225,7 +211,7 @@ class OregonMockDataGenerator:
                 "non-negative number",
             ]
             + [None] * 23,
-            # Row 12: Column names
+            # Row 10: Column names (this is where validator expects headers)
             [
                 "Reporting Year",
                 "Line of Business Code",
@@ -263,20 +249,19 @@ class OregonMockDataGenerator:
     def generate_tme_unattr(self) -> pd.DataFrame:
         """Generate TME_UNATTR sheet for rolled-up low member months data."""
         headers = [
-            [None] * 30,
-            ["Black = payer-reported data"] + [None] * 29,
-            ["Blue = OHA calculated data"] + [None] * 29,
-            [None] * 30,
-            [None] * 30,
-            [None] * 30,
-            [None] * 30,  # Row 6: Empty
-            [None] * 30,  # Row 7: Empty
-            # Row 8: Field codes
-            ["TMEUNATTR01", "TMEUNATTR02", "TMEUNATTR03"] + [None] * 27,
-            # Row 9: Data types
-            ["year", "code", "positive integer"] + [None] * 27,
-            # Row 10: Column names
-            ["Reporting Year", "Line of Business Code", "Member Months"] + [None] * 27,
+            ["4. Total Medical Expenses: Member Months Unattributed to Provider Organizations"] + [None] * 29,  # Row 0
+            [None] * 30,  # Row 1: Empty
+            ["Black = payer-reported data"] + [None] * 29,  # Row 2
+            ["Blue = OHA calculated data"] + [None] * 29,  # Row 3
+            ["When the payer-entered data does not meet the desired format, the cell will become red."]
+            + [None] * 29,  # Row 4
+            [None] * 30,  # Row 5: Empty
+            # Row 6: Field codes
+            ["TMEUNA01", "TMEUNA02", "TMEUNA03", "TMEUNA04"] + [None] * 26,
+            # Row 7: Data types
+            ["year", "code", "positive integer", "non-negative number"] + [None] * 26,
+            # Row 8: Column names (this is where validator expects headers)
+            ["Reporting Year", "Line of Business code", "Member Months", "Demographic Score"] + [None] * 26,
         ]
 
         data_rows = []
@@ -294,30 +279,37 @@ class OregonMockDataGenerator:
     def generate_market_enroll(self) -> pd.DataFrame:
         """Generate MARKET_ENROLL sheet for market-wide enrollment data."""
         headers = [
-            [None] * 30,
-            ["Black = payer-reported data"] + [None] * 29,
-            ["Blue = OHA calculated data"] + [None] * 29,
-            [None] * 30,
-            [None] * 30,
-            [None] * 30,
-            [None] * 30,  # Row 6: Empty
-            [None] * 30,  # Row 7: Empty
-            # Row 8: Field codes
-            ["MKTENROLL01", "MKTENROLL02", "MKTENROLL03"] + [None] * 27,
-            # Row 9: Data types
-            ["year", "code", "positive integer"] + [None] * 27,
-            # Row 10: Column names
-            ["Reporting Year", "Line of Business Code", "Market Member Months"] + [None] * 27,
+            ["5. Market Enrollment"] + [None] * 29,  # Row 0
+            [None] * 30,  # Row 1: Empty
+            ["Black = payer-reported data"] + [None] * 29,  # Row 2
+            ["Blue = OHA calculated data"] + [None] * 29,  # Row 3
+            ["When the payer-entered data does not meet the desired format, the cell will become red."]
+            + [None] * 29,  # Row 4
+            [None] * 30,  # Row 5: Empty
+            # Row 6: Field codes
+            ["MED01", "MED02", "MED03"] + [None] * 27,
+            # Row 7: Data types
+            [None, "non-negative integer", "non-negative integer"] + [None] * 27,
+            # Row 8: Column names (different structure for MARKET_ENROLL)
+            ["Market Enrollment Category", f"Year {2023} Member Months", f"Year {2024} Member Months"] + [None] * 27,
         ]
 
         data_rows = []
-        # Market enrollment should be larger than individual provider totals
-        for lob_code in self.line_of_business_codes.keys():
-            if lob_code == 7:
-                continue
+        # MARKET_ENROLL has different structure - categories, not LOB codes
+        market_categories = [
+            "1. Large group (51 + employees), fully insured",
+            "2. Small group (2-50 employees), fully insured",
+            "3. Individual",
+            "4. Medicare",
+            "5. Medicaid",
+            "6. Self-insured",
+            "7. Student health plan",
+        ]
 
-            market_member_months = random.randint(100000, 500000)
-            row = [self.year - 1, lob_code, market_member_months] + [None] * 27
+        for category in market_categories:
+            year_2023_months = random.randint(10000, 100000) if random.random() > 0.3 else None
+            year_2024_months = random.randint(10000, 100000) if random.random() > 0.3 else None
+            row = [category, year_2023_months, year_2024_months] + [None] * 27
             data_rows.append(row)
 
         all_rows = headers + data_rows
@@ -334,26 +326,23 @@ class OregonMockDataGenerator:
             [None] * 30,
             [None] * 30,  # Row 6: Empty
             [None] * 30,  # Row 7: Empty
-            [None] * 30,  # Row 8: Empty
-            [None] * 30,  # Row 9: Empty
-            # Row 10: Field codes
-            ["RXMEDPROV01", "RXMEDPROV02", "RXMEDPROV03", "RXMEDPROV04", "RXMEDPROV05", "RXMEDPROV06"] + [None] * 24,
-            # Row 11: Data types
+            # Row 8: Field codes
+            ["TMERXPRV01", "TMERXPRV02", "TMERXPRV03", "TMEPRV04", "TMERXPRV05"] + [None] * 25,
+            # Row 9: Data types
             [
-                "year",
-                "code",
-                "text, 9 digits including leading zero",
-                "free text",
-                "non-negative number",
-                "non-negative number",
+                "Year",
+                "Code",
+                "free text, blank is not allowed",
+                "free text, blank allowed",
+                "Code",
             ]
-            + [None] * 24,
-            # Row 12: Column names
+            + [None] * 25,
+            # Row 10: Column names (this is where validator expects headers)
             [
                 "Reporting Year",
                 "Line of Business Code",
-                "Provider Organization TIN",
                 "Provider Organization Name",
+                "IPA or Contract Name\n(If applicable/available)",
                 "Allowed Pharmacy",
                 "Net Paid Medical",
             ]
@@ -390,36 +379,26 @@ class OregonMockDataGenerator:
             ["When the payer-entered data does not meet the desired format, the cell will become red."] + [None] * 29,
             [None] * 30,
             [None] * 30,
-            [None] * 30,  # Row 6: Empty
-            [None] * 30,  # Row 7: Empty
-            [None] * 30,  # Row 8: Empty
-            [None] * 30,  # Row 9: Empty
-            # Row 10: Field codes
-            ["RXMEDUNATTR01", "RXMEDUNATTR02", "RXMEDUNATTR03", "RXMEDUNATTR04"] + [None] * 26,
-            # Row 11: Data types
-            ["year", "code", "non-negative number", "non-negative number"] + [None] * 26,
-            # Row 12: Column names
+            # Row 6: Field codes (should match actual template)
+            ["RXMEDUNA01", "RXMEDUNA02"] + [None] * 28,
+            # Row 7: Data types
+            ["year", "code"] + [None] * 28,
+            # Row 8: Column names (this is where validator expects headers)
             [
                 "Reporting Year",
                 "Line of Business Code",
-                "Allowed Pharmacy",
-                "Net Paid Medical",
             ]
-            + [None] * 26,
+            + [None] * 28,
         ]
 
         data_rows = []
         for lob_code in [1, 2, 3, 4]:
             if random.random() > 0.5:
-                allowed_pharmacy = round(random.uniform(5000, 50000), 2)
-                net_paid_medical = round(random.uniform(25000, 250000), 2)
-
+                # Simplified data for RX_MED_UNATTR - just year and LOB
                 row = [
                     self.year - 1,
                     lob_code,
-                    allowed_pharmacy,
-                    net_paid_medical,
-                ] + [None] * 26
+                ] + [None] * 28
 
                 data_rows.append(row)
 
@@ -429,25 +408,24 @@ class OregonMockDataGenerator:
     def generate_rx_rebate(self) -> pd.DataFrame:
         """Generate RX_REBATE sheet for prescription rebate data."""
         headers = [
-            ["8. Prescription Rebates"] + [None] * 29,
-            ["Black = payer-reported data"] + [None] * 29,
-            ["Blue = OHA calculated data"] + [None] * 29,
-            ["When the payer-entered data does not meet the desired format, the cell will become red."] + [None] * 29,
-            [None] * 30,
-            [None] * 30,
-            [None] * 30,  # Row 6: Empty
-            [None] * 30,  # Row 7: Empty
-            # Row 8: Field codes
-            ["RXR01", "RXR02", "RXR03", "RXR04", "RXR05"] + [None] * 25,
-            # Row 9: Data types
-            ["year", "code", "non-positive number", "non-positive number", "non-positive number"] + [None] * 25,
-            # Row 10: Column names
+            ["8. Prescription Rebates"] + [None] * 29,  # Row 0
+            [None] * 30,  # Row 1: Empty
+            ["Black = payer-reported data"] + [None] * 29,  # Row 2
+            ["Blue = OHA calculated data"] + [None] * 29,  # Row 3
+            ["When the payer-entered data does not meet the desired format, the cell will become red."]
+            + [None] * 29,  # Row 4
+            [None] * 30,  # Row 5: Empty
+            # Row 6: Field codes
+            ["RXR01", "RXR02", "RX07", "RXR03", "RXR04"] + [None] * 25,
+            # Row 7: Data types
+            ["year", "Code", "free text, blank is allowed", "non-positive number", "non-positive number"] + [None] * 25,
+            # Row 8: Column names (this is where validator expects headers)
             [
                 "Reporting Year",
                 "Line of Business Code",
+                "Provider Organization Name (Optional)",
                 "Medical Pharmacy Rebate Amount",
                 "Retail Pharmacy Rebate Amount",
-                "Total Pharmacy Rebate Amount (Optional)",
             ]
             + [None] * 25,
         ]
