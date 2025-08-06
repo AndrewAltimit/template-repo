@@ -9,11 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-from config.states_config import list_supported_states  # noqa: E402
-from scrapers.template_monitor import TemplateMonitor  # noqa: E402
+from config.states_config import list_supported_states
+from scrapers.template_monitor import TemplateMonitor
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -43,12 +40,12 @@ class TemplateMonitoringTest:
 
                 shutil.rmtree(state_dir)
 
-        logger.info(f"Test directory: {self.test_dir}")
-        logger.info(f"States to test: {', '.join(self.states)}")
+        logger.info("Test directory: %s", self.test_dir)
+        logger.info("States to test: %s", ", ".join(self.states))
 
     def test_monitoring_initialization(self, state: str) -> bool:
         """Test that monitoring can be initialized for a state."""
-        logger.info(f"Testing monitoring initialization for {state}...")
+        logger.info("Testing monitoring initialization for %s...", state)
 
         try:
             monitor = TemplateMonitor(state, storage_dir=self.test_dir / state)
@@ -58,16 +55,16 @@ class TemplateMonitoringTest:
             assert monitor.changes_file.exists(), f"Changes file not created for {state}"
             assert monitor.monitoring_config_file.exists(), f"Config file not created for {state}"
 
-            logger.info(f"✓ Monitoring initialization successful for {state}")
+            logger.info("✓ Monitoring initialization successful for %s", state)
             return True
 
-        except Exception as e:
-            logger.error(f"✗ Monitoring initialization failed for {state}: {e}")
+        except (FileNotFoundError, AttributeError, AssertionError) as e:
+            logger.error("✗ Monitoring initialization failed for %s: %s", state, e)
             return False
 
     def test_configuration_management(self, state: str) -> bool:
         """Test configuration loading and saving."""
-        logger.info(f"Testing configuration management for {state}...")
+        logger.info("Testing configuration management for %s...", state)
 
         try:
             monitor = TemplateMonitor(state, storage_dir=self.test_dir / state)
@@ -75,23 +72,27 @@ class TemplateMonitoringTest:
             # Modify configuration
             monitor.monitoring_config["test_field"] = "test_value"
             monitor.monitoring_config["critical_fields"].append("TEST_FIELD")
-            monitor._save_monitoring_config()
+            # Use public method if available, otherwise use protected
+            if hasattr(monitor, "save_monitoring_config"):
+                monitor.save_monitoring_config()
+            else:
+                monitor._save_monitoring_config()  # pylint: disable=protected-access
 
             # Create new instance and check config persistence
             monitor2 = TemplateMonitor(state, storage_dir=self.test_dir / state)
             assert monitor2.monitoring_config["test_field"] == "test_value", "Config not persisted"
             assert "TEST_FIELD" in monitor2.monitoring_config["critical_fields"], "Critical fields not updated"
 
-            logger.info(f"✓ Configuration management successful for {state}")
+            logger.info("✓ Configuration management successful for %s", state)
             return True
 
-        except Exception as e:
-            logger.error(f"✗ Configuration management failed for {state}: {e}")
+        except (FileNotFoundError, AttributeError, AssertionError, KeyError) as e:
+            logger.error("✗ Configuration management failed for %s: %s", state, e)
             return False
 
     def test_snapshot_functionality(self, state: str) -> bool:
         """Test snapshot creation and comparison."""
-        logger.info(f"Testing snapshot functionality for {state}...")
+        logger.info("Testing snapshot functionality for %s...", state)
 
         try:
             from scrapers.template_monitor import TemplateSnapshot
@@ -120,21 +121,28 @@ class TemplateMonitoringTest:
 
             # Test comparison
             monitor = TemplateMonitor(state, storage_dir=self.test_dir / state)
-            changed, description, severity = monitor._compare_snapshots(snapshot1, snapshot2)
+            # Use public method if available, otherwise use protected
+            if hasattr(monitor, "compare_snapshots"):
+                changed, description, severity = monitor.compare_snapshots(snapshot1, snapshot2)
+            else:
+                changed, description, severity = monitor._compare_snapshots(
+                    snapshot1, snapshot2
+                )  # pylint: disable=protected-access
+            _ = severity  # Mark as intentionally unused
 
             assert changed, "Should detect change between different snapshots"
             assert "size change" in description.lower(), "Should detect size change"
 
-            logger.info(f"✓ Snapshot functionality successful for {state}")
+            logger.info("✓ Snapshot functionality successful for %s", state)
             return True
 
-        except Exception as e:
-            logger.error(f"✗ Snapshot functionality failed for {state}: {e}")
+        except (ImportError, AttributeError, AssertionError, KeyError) as e:
+            logger.error("✗ Snapshot functionality failed for %s: %s", state, e)
             return False
 
     def test_change_detection(self, state: str) -> bool:
         """Test change detection capabilities."""
-        logger.info(f"Testing change detection for {state}...")
+        logger.info("Testing change detection for %s...", state)
 
         try:
             monitor = TemplateMonitor(state, storage_dir=self.test_dir / state)
@@ -159,22 +167,26 @@ class TemplateMonitoringTest:
             STATUS: Active
             """
 
-            changed_fields = monitor._detect_field_changes(old_text, new_text)
+            # Use public method if available, otherwise use protected
+            if hasattr(monitor, "detect_field_changes"):
+                changed_fields = monitor.detect_field_changes(old_text, new_text)
+            else:
+                changed_fields = monitor._detect_field_changes(old_text, new_text)  # pylint: disable=protected-access
 
             assert "PROV_ID" in changed_fields, "Should detect PROV_ID change"
             assert "PAID_AMT" in changed_fields, "Should detect PAID_AMT change"
             assert "MEMBER_MONTHS" not in changed_fields, "Should not detect unchanged MEMBER_MONTHS"
 
-            logger.info(f"✓ Change detection successful for {state}")
+            logger.info("✓ Change detection successful for %s", state)
             return True
 
-        except Exception as e:
-            logger.error(f"✗ Change detection failed for {state}: {e}")
+        except (AttributeError, AssertionError, KeyError) as e:
+            logger.error("✗ Change detection failed for %s: %s", state, e)
             return False
 
     def test_report_generation(self, state: str) -> bool:
         """Test report generation capabilities."""
-        logger.info(f"Testing report generation for {state}...")
+        logger.info("Testing report generation for %s...", state)
 
         try:
             from scrapers.template_monitor import ChangeEvent, TemplateSnapshot
@@ -201,11 +213,19 @@ class TemplateMonitoringTest:
             monitor.change_history.append(change)
 
             # Generate reports
-            markdown_report = monitor._generate_markdown_report()
+            # Use public method if available, otherwise use protected
+            if hasattr(monitor, "generate_markdown_report"):
+                markdown_report = monitor.generate_markdown_report()
+            else:
+                markdown_report = monitor._generate_markdown_report()  # pylint: disable=protected-access
             assert "Template Monitoring Report" in markdown_report, "Markdown report missing title"
             assert "test_template.xlsx" in markdown_report, "Markdown report missing template name"
 
-            html_report = monitor._generate_html_report()
+            # Use public method if available, otherwise use protected
+            if hasattr(monitor, "generate_html_report"):
+                html_report = monitor.generate_html_report()
+            else:
+                html_report = monitor._generate_html_report()  # pylint: disable=protected-access
             assert "<title>Template Monitoring Report" in html_report, "HTML report missing title"
             assert "test_template.xlsx" in html_report, "HTML report missing template name"
 
@@ -216,16 +236,16 @@ class TemplateMonitoringTest:
             html_file = self.test_dir / state / "test_report.html"
             html_file.write_text(html_report)
 
-            logger.info(f"✓ Report generation successful for {state}")
+            logger.info("✓ Report generation successful for %s", state)
             return True
 
-        except Exception as e:
-            logger.error(f"✗ Report generation failed for {state}: {e}")
+        except (ImportError, AttributeError, AssertionError, KeyError) as e:
+            logger.error("✗ Report generation failed for %s: %s", state, e)
             return False
 
     def test_monitoring_cycle(self, state: str) -> bool:
         """Test a complete monitoring cycle (without actual downloads)."""
-        logger.info(f"Testing monitoring cycle for {state}...")
+        logger.info("Testing monitoring cycle for %s...", state)
 
         try:
             from unittest.mock import patch
@@ -270,11 +290,11 @@ class TemplateMonitoringTest:
                     summary_files = list((self.test_dir / state).glob("monitoring_summary_*.json"))
                     assert len(summary_files) > 0, "Summary file not saved"
 
-                    logger.info(f"✓ Monitoring cycle successful for {state}")
+                    logger.info("✓ Monitoring cycle successful for %s", state)
                     return True
 
-        except Exception as e:
-            logger.error(f"✗ Monitoring cycle failed for {state}: {e}")
+        except (ImportError, AttributeError, AssertionError) as e:
+            logger.error("✗ Monitoring cycle failed for %s: %s", state, e)
             return False
 
     def run_tests(self) -> bool:
@@ -291,9 +311,9 @@ class TemplateMonitoringTest:
         ]
 
         for state in self.states:
-            logger.info(f"\n{'='*60}")
-            logger.info(f"Testing state: {state}")
-            logger.info(f"{'='*60}")
+            logger.info("\n%s", "=" * 60)
+            logger.info("Testing state: %s", state)
+            logger.info("%s", "=" * 60)
 
             state_results = []
             for test_method in test_methods:
@@ -322,7 +342,7 @@ class TemplateMonitoringTest:
 
         # Save summary
         summary_file = self.test_dir / "test_summary.json"
-        with open(summary_file, "w") as f:
+        with open(summary_file, "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
 
         return summary
@@ -381,8 +401,8 @@ def main():
     supported_states = list_supported_states()
     for state in args.states:
         if state not in supported_states:
-            logger.error(f"Unsupported state: {state}")
-            logger.info(f"Supported states: {', '.join(supported_states)}")
+            logger.error("Unsupported state: %s", state)
+            logger.info("Supported states: %s", ", ".join(supported_states))
             sys.exit(1)
 
     # Run tests
@@ -396,9 +416,9 @@ def main():
     # In CI mode, save detailed results
     if args.ci:
         ci_results_file = Path("template_monitoring_ci_results.json")
-        with open(ci_results_file, "w") as f:
+        with open(ci_results_file, "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
-        logger.info(f"CI results saved to: {ci_results_file}")
+        logger.info("CI results saved to: %s", ci_results_file)
 
     # Exit with appropriate code
     sys.exit(0 if success else 1)

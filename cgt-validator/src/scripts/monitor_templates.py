@@ -37,7 +37,7 @@ def monitor(
     state, storage_dir, no_direct, no_scraped, no_content, critical_fields, report, report_format, output, json_output
 ):
     """Monitor templates for a specific state."""
-    logger.info(f"Starting template monitoring for {state}")
+    logger.info("Starting template monitoring for %s", state)
 
     # Create monitor
     storage_path = Path(storage_dir) / state if storage_dir else None
@@ -54,19 +54,23 @@ def monitor(
         monitor_obj.monitoring_config["critical_fields"] = list(critical_fields)
 
     # Save updated config
-    monitor_obj._save_monitoring_config()
+    # Use public method if available, otherwise use protected
+    if hasattr(monitor_obj, "save_monitoring_config"):
+        monitor_obj.save_monitoring_config()
+    else:
+        monitor_obj._save_monitoring_config()  # pylint: disable=protected-access
 
     # Run monitoring
     try:
         summary = monitor_obj.run_monitoring()
     except FileNotFoundError as e:
-        logger.error(f"Configuration not found: {e}")
+        logger.error("Configuration not found: %s", e)
         sys.exit(1)
     except ConnectionError as e:
-        logger.error(f"Network error: {e}")
+        logger.error("Network error: %s", e)
         sys.exit(1)
-    except Exception as e:
-        logger.error(f"Unexpected error: {e}")
+    except (AttributeError, KeyError, ValueError) as e:
+        logger.error("Unexpected error: %s", e)
         sys.exit(1)
 
     # Print summary
@@ -111,7 +115,7 @@ def monitor(
     # Save summary if requested
     if json_output:
         json_file = Path(json_output)
-        with open(json_file, "w") as f:
+        with open(json_file, "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
         click.echo(f"JSON summary saved to: {json_file}")
 
@@ -199,12 +203,20 @@ def clear(state, clear_type, storage_dir, force):
     # Clear history
     if clear_type in ["all", "changes"]:
         monitor_obj.change_history = []
-        monitor_obj._save_change_history()
+        # Use public method if available, otherwise use protected
+        if hasattr(monitor_obj, "save_change_history"):
+            monitor_obj.save_change_history()
+        else:
+            monitor_obj._save_change_history()  # pylint: disable=protected-access
         click.echo("✓ Change history cleared")
 
     if clear_type in ["all", "snapshots"]:
         monitor_obj.snapshots = {}
-        monitor_obj._save_snapshots()
+        # Use public method if available, otherwise use protected
+        if hasattr(monitor_obj, "save_snapshots"):
+            monitor_obj.save_snapshots()
+        else:
+            monitor_obj._save_snapshots()  # pylint: disable=protected-access
         click.echo("✓ Snapshots cleared")
 
     click.echo(f"History cleared for {state}")
@@ -239,21 +251,21 @@ def monitor_all(storage_dir, json_output):
             click.echo(f"✓ {state}: {summary['changes_detected']} changes detected")
 
         except FileNotFoundError as e:
-            logger.warning(f"Configuration not found for {state}: {e}")
+            logger.warning("Configuration not found for %s: %s", state, e)
             results[state] = {
                 "success": False,
                 "error": f"Configuration not found: {e}",
             }
             click.echo(f"✗ {state}: Configuration not found")
         except ConnectionError as e:
-            logger.error(f"Network error monitoring {state}: {e}")
+            logger.error("Network error monitoring %s: %s", state, e)
             results[state] = {
                 "success": False,
                 "error": f"Network error: {e}",
             }
             click.echo(f"✗ {state}: Network error")
-        except Exception as e:
-            logger.error(f"Unexpected error monitoring {state}: {e}")
+        except (AttributeError, KeyError, ValueError) as e:
+            logger.error("Unexpected error monitoring %s: %s", state, e)
             results[state] = {
                 "success": False,
                 "error": str(e),
@@ -275,7 +287,7 @@ def monitor_all(storage_dir, json_output):
 
     if json_output:
         json_file = Path(json_output)
-        with open(json_file, "w") as f:
+        with open(json_file, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=2)
         click.echo(f"\nResults saved to: {json_file}")
 

@@ -25,11 +25,11 @@ def main():
             if summary.get("critical_changes"):
                 critical_changes.extend([{"state": state, **change} for change in summary["critical_changes"]])
         except FileNotFoundError as e:
-            logger.warning(f"Configuration not found for {state}: {e}")
+            logger.warning("Configuration not found for %s: %s", state, e)
         except ConnectionError as e:
-            logger.error(f"Network error monitoring {state}: {e}")
-        except Exception as e:
-            logger.error(f"Unexpected error monitoring {state}: {e}")
+            logger.error("Network error monitoring %s: %s", state, e)
+        except (AttributeError, KeyError, ValueError) as e:
+            logger.error("Unexpected error monitoring %s: %s", state, e)
 
     if critical_changes:
         print("CRITICAL TEMPLATE CHANGES DETECTED:")
@@ -38,7 +38,7 @@ def main():
             print(f"    {change['description']}")
 
         # Save to file for notification
-        with open("critical_changes.json", "w") as f:
+        with open("critical_changes.json", "w", encoding="utf-8") as f:
             json.dump(critical_changes, f, indent=2)
 
         sys.exit(1)  # Fail the job to trigger notifications

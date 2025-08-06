@@ -66,8 +66,14 @@ def validate_excel_file(file_path: str, state: Optional[str] = None) -> bool:
         print(f"✓ {path} - Valid structure")
         return True
 
-    except Exception as e:
-        print(f"ERROR: {path} - Failed to read: {e}")
+    except FileNotFoundError as e:
+        print(f"ERROR: {path} - File not found: {e}")
+        return False
+    except pd.errors.EmptyDataError as e:
+        print(f"ERROR: {path} - File is empty: {e}")
+        return False
+    except (pd.errors.ParserError, ValueError) as e:
+        print(f"ERROR: {path} - Failed to parse Excel file: {e}")
         return False
 
 
