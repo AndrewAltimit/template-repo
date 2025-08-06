@@ -3,9 +3,13 @@ from setuptools import find_packages, setup
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-# Read core requirements from requirements-core.txt
-with open("requirements-core.txt", "r", encoding="utf-8") as f:
-    core_requirements = [line.strip() for line in f if line.strip() and not line.strip().startswith("#")]
+# Read core requirements from requirements-cgt.txt
+with open("requirements-cgt.txt", "r", encoding="utf-8") as f:
+    core_requirements = [
+        line.strip()
+        for line in f
+        if line.strip() and not line.strip().startswith("#") and not line.strip().startswith("-r")
+    ]
 
 setup(
     name="cgt-validator",
