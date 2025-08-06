@@ -1,0 +1,138 @@
+name: CGT Template Monitoring Test
+
+on:
+  push:
+    branches: [main, cgt-validation]
+    paths:
+      - 'cgt-validator/**'
+      - '.github/workflows/cgt-template-monitoring.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cgt-validator/**'
+  schedule:
+    # Run daily at 2 AM UTC to check for template changes
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      states:
+        description: 'States to monitor (space-separated)'
+        required: false
+        default: 'oregon'
+      verbose:
+        description: 'Enable verbose logging'
+        required: false
+        default: 'false'
+
+jobs:
+  template-monitoring:
+    name: Monitor CGT Templates
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        run: |
+          echo "Using containerized Python environment"
+
+      - name: Install dependencies
+        run: |
+          cd cgt-validator
+          docker-compose run --rm python-ci pip install -r requirements.txt
+
+      - name: Run template monitoring integration test
+        run: |
+          cd cgt-validator
+
+          # Determine states to test
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.states }}" ]; then
+            STATES="${{ github.event.inputs.states }}"
+          elif [ "${{ github.event_name }}" == "schedule" ]; then
+            # Test all states on scheduled runs
+            STATES="oregon massachusetts rhode_island washington"
+          else
+            # Default to Oregon for PR/push tests
+            STATES="oregon"
+          fi
+
+          # Determine verbosity
+          VERBOSE_FLAG=""
+          if [ "${{ github.event.inputs.verbose }}" == "true" ]; then
+            VERBOSE_FLAG="--verbose"
+          fi
+
+          echo "Testing states: $STATES"
+
+          # Run the integration test
+          docker-compose run --rm python-ci python scripts/test_template_monitoring.py \
+            --states $STATES \
+            --test-dir /tmp/cgt_monitoring_test \
+            --ci \
+            $VERBOSE_FLAG
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: template-monitoring-results
+          path: |
+            cgt-validator/template_monitoring_ci_results.json
+            cgt-validator/test_monitoring/
+          retention-days: 30
+
+      - name: Check for critical changes (scheduled only)
+        if: github.event_name == 'schedule'
+        run: |
+          cd cgt-validator
+
+          # Run actual monitoring (not just tests) for all states
+          docker-compose run --rm python-ci python scripts/check_critical_changes.py
+
+      - name: Create issue for critical changes
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Check if critical changes file exists
+            let criticalChanges = [];
+            try {
+              const data = fs.readFileSync('cgt-validator/critical_changes.json', 'utf8');
+              criticalChanges = JSON.parse(data);
+            } catch (error) {
+              console.log('No critical changes file found');
+              return;
+            }
+
+            if (criticalChanges.length === 0) return;
+
+            // Create issue body
+            let issueBody = '## Critical CGT Template Changes Detected\n\n';
+            issueBody += 'The automated template monitoring has detected critical changes:\n\n';
+
+            for (const change of criticalChanges) {
+              issueBody += `### ${change.state.toUpperCase()}\n`;
+              issueBody += `- **URL**: ${change.url}\n`;
+              issueBody += `- **Description**: ${change.description}\n\n`;
+            }
+
+            issueBody += '### Required Actions\n';
+            issueBody += '1. Review the template changes\n';
+            issueBody += '2. Update validator rules if necessary\n';
+            issueBody += '3. Test with new template format\n';
+            issueBody += '4. Update documentation\n\n';
+            issueBody += 'This issue was automatically created by the template monitoring system.';
+
+            // Create the issue
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[CGT Monitor] Critical template changes detected - ${new Date().toISOString().split('T')[0]}`,
+              body: issueBody,
+              labels: ['cgt-validator', 'template-change', 'automated']
+            });
