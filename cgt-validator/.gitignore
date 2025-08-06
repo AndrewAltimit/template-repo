@@ -93,3 +93,12 @@ temp/
 dmypy.json
 .pyre/
 .pytype/
+
+# Template Monitoring
+# Keep JSON metadata files but exclude binary downloads
+monitoring/*/snapshots/
+monitoring/*/downloads/
+monitoring/*/cache/
+monitoring/*/temp/
+# Explicitly include JSON files for tracking
+!monitoring/*/*.json
