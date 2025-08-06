@@ -210,7 +210,7 @@ jobs:
           echo "📊 Generating and validating Oregon mock data..."
           docker-compose -f docker-compose.yml run --rm cgt-dev bash -c "
             pip install -r requirements.txt && \
-            python test_oregon_valid.py
+            python -m pytest tests/validators/test_oregon_validator.py -v
           "
 
       - name: Validate all states mock data
