@@ -166,7 +166,7 @@ field_mappings:
         required: true
 
       - code: "TMEPRV04"
-        name: "IPA or Contract Name\n(If applicable/available)"
+        name: "IPA or Contract Name (If applicable/available)"
         data_type: "free text, blank allowed"
         required: true  # Field is required for dual-level attribution
 
@@ -278,7 +278,7 @@ validation_rules:
 
   - rule: "no_duplicate_combinations"
     applies_to: ["3. TME_PROV"]
-    unique_key: ["Reporting Year", "Line of Business Code", "Provider Organization Name", "IPA or Contract Name\n(If applicable/available)", "Attribution Hierarchy Code"]
+    unique_key: ["Reporting Year", "Line of Business Code", "Provider Organization Name", "IPA or Contract Name (If applicable/available)", "Attribution Hierarchy Code"]
     message: "Duplicate Year-LOB-Provider-IPA-Attribution combinations found. All costs must be rolled up to a single line."
 
   - rule: "provider_name_reference"
@@ -292,7 +292,7 @@ validation_rules:
   - rule: "provider_ipa_combination_reference"
     cross_reference:
       from_sheet: "3. TME_PROV"
-      from_fields: ["Provider Organization Name", "IPA or Contract Name\n(If applicable/available)"]
+      from_fields: ["Provider Organization Name", "IPA or Contract Name (If applicable/available)"]
       to_sheet: "9. PROV_ID"
       to_fields: ["Provider Organization Name", "IPA or Contract Name (If applicable/available)"]
     message: "Provider-IPA combination not found in PROV_ID sheet. Note: Validator should handle newline characters in column names."
@@ -322,7 +322,7 @@ validation_rules:
 
   - rule: "ipa_required_for_dual_attribution"
     applies_to: ["3. TME_PROV"]
-    field: "IPA or Contract Name\n(If applicable/available)"
+    field: "IPA or Contract Name (If applicable/available)"
     validation: "required_for_dual_attribution"
     message: "IPA or Contract Name is required when members can be attributed at both provider organization and IPA/Contract level."
     severity: "warning"

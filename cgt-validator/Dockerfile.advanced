@@ -34,6 +34,8 @@ RUN apt-get update && apt-get install -y \
     poppler-utils \
     # For timezone data
     tzdata \
+    # Init process for proper signal handling
+    tini \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
@@ -63,6 +65,9 @@ RUN mkdir -p /app/downloads /app/reports /app/logs && \
 
 # Switch to non-root user
 USER cgtuser
+
+# Use tini as entrypoint for proper signal handling
+ENTRYPOINT ["/usr/bin/tini", "--"]
 
 # Default command - show help
 CMD ["cgt-validate", "--help"]

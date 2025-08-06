@@ -57,9 +57,10 @@ services:
       - ./mock_data:/app/mock_data:rw
     environment:
       - PYTHONPATH=/app/src
+    # To retrieve the token, run: docker-compose logs cgt-notebook | grep token
+    # Or set a custom token: --NotebookApp.token='your-secure-token'
     command: |
       sh -c "pip install jupyter pandas matplotlib seaborn && \
-      jupyter notebook --ip=0.0.0.0 --no-browser --allow-root \
-      --NotebookApp.token='' --NotebookApp.password=''"
+      jupyter notebook --ip=0.0.0.0 --no-browser"
     networks:
       - cgt-network

@@ -195,12 +195,206 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  # Stage 3a: Format check stage
+  format-check:
+    name: Python Format Check
+    needs: [detect-changes, gemini-review]
+    if: |
+      (needs.detect-changes.outputs.python_changed == 'true' ||
+       needs.detect-changes.outputs.mcp_changed == 'true') &&
+      !github.event.pull_request.draft
+    uses: ./.github/workflows/lint-stages.yml
+    with:
+      stage: format
+      upload_artifacts: true
+    secrets: inherit
+
+  # Stage 3b: Basic lint stage
+  basic-lint:
+    name: Python Basic Lint
+    needs: [detect-changes, gemini-review, format-check]
+    if: |
+      (needs.detect-changes.outputs.python_changed == 'true' ||
+       needs.detect-changes.outputs.mcp_changed == 'true') &&
+      !github.event.pull_request.draft
+    uses: ./.github/workflows/lint-stages.yml
+    with:
+      stage: basic
+      upload_artifacts: true
+    secrets: inherit
+
+  # Stage 3c: Full lint stage (includes security & type checking)
+  full-lint:
+    name: Python Full Lint
+    needs: [detect-changes, gemini-review, format-check, basic-lint]
+    if: |
+      (needs.detect-changes.outputs.python_changed == 'true' ||
+       needs.detect-changes.outputs.mcp_changed == 'true') &&
+      !github.event.pull_request.draft
+    uses: ./.github/workflows/lint-stages.yml
+    with:
+      stage: full
+      upload_artifacts: true
+    secrets: inherit
+
+  # Stage 4: YAML/JSON validation
+  config-validation:
+    name: Config File Validation
+    needs: [detect-changes, gemini-review]
+    if: needs.detect-changes.outputs.yaml_changed == 'true'
+    runs-on: self-hosted
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      - name: Validate YAML and JSON files
+        run: |
+          echo "🔍 Validating configuration files..."
+          ./scripts/run-ci.sh yaml-lint
+          ./scripts/run-ci.sh json-lint
+
+  # Stage 5: Test execution
+  test-suite:
+    name: Test Suite
+    needs: [detect-changes, gemini-review, format-check, basic-lint, full-lint]
+    if: |
+      (needs.detect-changes.outputs.python_changed == 'true' ||
+       needs.detect-changes.outputs.mcp_changed == 'true') &&
+      !github.event.pull_request.draft
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      - name: Run tests
+        run: |
+          echo "🧪 Running test suite..."
+          ./scripts/run-ci.sh test
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+  # Stage 6: MCP Server validation
+  mcp-validation:
+    name: MCP Server Validation
+    needs: [detect-changes, gemini-review]
+    if: |
+      needs.detect-changes.outputs.mcp_changed == 'true' &&
+      !github.event.pull_request.draft
+    runs-on: self-hosted
+    timeout-minutes: 10
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      - name: Set Docker user environment
+        run: |
+          source ./scripts/set-docker-user.sh
+
+      - name: Start modular MCP servers with health check
+        uses: ./.github/actions/docker-compose-health-check
+        with:
+          services: 'mcp-code-quality mcp-content-creation mcp-gaea2'
+          health-endpoint: 'http://localhost:8010/health'
+          timeout: '60'
+          build: 'true'
+
+      - name: Test MCP servers functionality
+        run: |
+          echo "🤖 Testing modular MCP servers..."
+          docker-compose run --rm python-ci python scripts/mcp/test_all_servers.py --quick
+
+      - name: View MCP server logs
+        if: failure()
+        run: |
+          echo "📋 MCP server logs:"
+          docker-compose logs mcp-code-quality mcp-content-creation mcp-gaea2
+
+      - name: Stop MCP server
+        if: always()
+        run: |
+          docker-compose down
+
+  # Stage 7: Docker image validation
+  docker-validation:
+    name: Docker Image Validation
+    needs: [detect-changes, gemini-review, format-check, basic-lint, full-lint]
+    if: |
+      (needs.detect-changes.outputs.docker_changed == 'true' ||
+       needs.detect-changes.outputs.python_changed == 'true') &&
+      !github.event.pull_request.draft
+    runs-on: self-hosted
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker images
+        run: |
+          echo "🏗️ Building Docker images..."
+          docker-compose build
+
+      - name: Test Docker Compose with health check
+        uses: ./.github/actions/docker-compose-health-check
+        with:
+          services: 'mcp-code-quality mcp-content-creation mcp-gaea2'
+          health-endpoint: 'http://localhost:8010/health'
+          timeout: '60'
+          build: 'false'
+
+      - name: Stop services
+        if: always()
+        run: docker-compose down
+
   # Final status and summary
   pr-status:
     name: PR Status Summary
     needs:
       - detect-changes
       - gemini-review
+      - format-check
+      - basic-lint
+      - full-lint
+      - config-validation
+      - test-suite
+      - mcp-validation
+      - docker-validation
     if: always()
     runs-on: self-hosted
     steps:
@@ -217,6 +411,13 @@ jobs:
           echo "**Validation Results:**"
           echo "- Change Detection: ${{ needs.detect-changes.result }}"
           echo "- Gemini AI Review: ${{ needs.gemini-review.result }}"
+          echo "- Format Check: ${{ needs.format-check.result }}"
+          echo "- Basic Lint: ${{ needs.basic-lint.result }}"
+          echo "- Full Lint: ${{ needs.full-lint.result }}"
+          echo "- Config Validation: ${{ needs.config-validation.result }}"
+          echo "- Test Suite: ${{ needs.test-suite.result }}"
+          echo "- MCP Validation: ${{ needs.mcp-validation.result }}"
+          echo "- Docker Validation: ${{ needs.docker-validation.result }}"
 
           # Check for failures
           if [[ "${{ needs.detect-changes.result }}" == "failure" ]]; then

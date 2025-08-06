@@ -3,6 +3,7 @@
 import argparse
 import json
 import logging
+import os
 import smtplib
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
@@ -29,37 +30,85 @@ class ScrapingScheduler:
         self.results: List[Dict] = []
 
     def _load_config(self) -> Dict:
-        """Load scheduler configuration."""
+        """Load scheduler configuration.
+
+        Sensitive values are loaded from environment variables:
+        - CGT_EMAIL_PASSWORD: Email password for SMTP authentication
+        - CGT_SLACK_WEBHOOK_URL: Slack webhook URL for notifications
+        """
         default_config = {
             "states": list_supported_states(),
             "output_dir": "./scraped_requirements",
             "email_notifications": {
-                "enabled": False,
-                "smtp_server": "smtp.gmail.com",
-                "smtp_port": 587,
-                "from_email": "",
-                "to_emails": [],
-                "password": "",
+                "enabled": os.getenv("CGT_EMAIL_ENABLED", "false").lower() == "true",
+                "smtp_server": os.getenv("CGT_SMTP_SERVER", "smtp.gmail.com"),
+                "smtp_port": int(os.getenv("CGT_SMTP_PORT", "587")),
+                "from_email": os.getenv("CGT_FROM_EMAIL", ""),
+                "to_emails": os.getenv("CGT_TO_EMAILS", "").split(",") if os.getenv("CGT_TO_EMAILS") else [],
+                # Password is ONLY loaded from environment variable for security
+                "password": os.getenv("CGT_EMAIL_PASSWORD", ""),
             },
-            "slack_notifications": {"enabled": False, "webhook_url": ""},
-            "max_retries": 3,
-            "retry_delay": 60,  # seconds
+            "slack_notifications": {
+                "enabled": os.getenv("CGT_SLACK_ENABLED", "false").lower() == "true",
+                # Webhook URL is ONLY loaded from environment variable for security
+                "webhook_url": os.getenv("CGT_SLACK_WEBHOOK_URL", ""),
+            },
+            "max_retries": int(os.getenv("CGT_MAX_RETRIES", "3")),
+            "retry_delay": int(os.getenv("CGT_RETRY_DELAY", "60")),  # seconds
         }
 
         if self.config_file.exists():
             with open(self.config_file, encoding="utf-8") as f:
                 user_config = json.load(f)
-                # Merge with defaults
-                default_config.update(user_config)
+                # Merge with defaults, but never override sensitive values
+                # Remove any sensitive values from the config file
+                if "email_notifications" in user_config:
+                    user_config["email_notifications"].pop("password", None)
+                if "slack_notifications" in user_config:
+                    user_config["slack_notifications"].pop("webhook_url", None)
+
+                # Merge non-sensitive configuration
+                for key, value in user_config.items():
+                    if key not in ["email_notifications", "slack_notifications"]:
+                        default_config[key] = value
+                    else:
+                        # For notification configs, merge carefully
+                        if key == "email_notifications" and isinstance(value, dict):
+                            for k, v in value.items():
+                                if k != "password":  # Never override password from file
+                                    default_config[key][k] = v
+                        elif key == "slack_notifications" and isinstance(value, dict):
+                            for k, v in value.items():
+                                if k != "webhook_url":  # Never override webhook URL from file
+                                    default_config[key][k] = v
+
+        # Log warning if sensitive values are not configured
+        if default_config["email_notifications"]["enabled"] and not default_config["email_notifications"]["password"]:
+            logger.warning("Email notifications enabled but CGT_EMAIL_PASSWORD environment variable not set")
+        if (
+            default_config["slack_notifications"]["enabled"]
+            and not default_config["slack_notifications"]["webhook_url"]
+        ):
+            logger.warning("Slack notifications enabled but CGT_SLACK_WEBHOOK_URL environment variable not set")
 
         return default_config
 
     def save_config(self):
-        """Save current configuration to file."""
+        """Save current configuration to file (excluding sensitive values)."""
         self.config_file.parent.mkdir(parents=True, exist_ok=True)
+
+        # Create a copy of config without sensitive values
+        safe_config = self.config.copy()
+        if "email_notifications" in safe_config:
+            safe_config["email_notifications"] = safe_config["email_notifications"].copy()
+            safe_config["email_notifications"].pop("password", None)
+        if "slack_notifications" in safe_config:
+            safe_config["slack_notifications"] = safe_config["slack_notifications"].copy()
+            safe_config["slack_notifications"].pop("webhook_url", None)
+
         with open(self.config_file, "w", encoding="utf-8") as f:
-            json.dump(self.config, f, indent=2)
-        logger.info("Configuration saved to %s", self.config_file)
+            json.dump(safe_config, f, indent=2)
+        logger.info("Configuration saved to %s (sensitive values excluded)", self.config_file)
 
     def scrape_state_with_retry(self, state: str) -> Dict:
         """Scrape a state with retry logic."""

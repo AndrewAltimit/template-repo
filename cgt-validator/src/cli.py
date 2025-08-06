@@ -118,7 +118,7 @@ def save_report(results: ValidationResults, output_path: str, report_format: str
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--quiet", "-q", is_flag=True, help="Quiet mode - only show summary")
 @click.option("--annotate", "-a", is_flag=True, help="Create annotated Excel file with errors highlighted")
-def validate(state, file, year, output, report_format, verbose, quiet, annotate):  # pylint: disable=unused-argument
+def validate(state, file, year, output, report_format, verbose, quiet, annotate):
     """Validate CGT submission file for specified state.
 
     Examples:
@@ -144,11 +144,24 @@ def validate(state, file, year, output, report_format, verbose, quiet, annotate)
     if not quiet:
         click.echo(f"Validating {file} against {state} requirements...")
 
+    # Set validator verbosity based on verbose flag
+    if verbose and hasattr(validator, "set_verbose"):
+        validator.set_verbose(True)
+
     results = validator.validate_file(file)
 
     # Show results
     if not quiet:
         print_validation_summary(results)
+
+        # Show additional details in verbose mode
+        if verbose and results.info:
+            print(f"\n{Fore.BLUE}INFO MESSAGES:{Style.RESET_ALL}")
+            for i, info in enumerate(results.info[:10], 1):
+                print(f"  {i}. [{info.code}] {info.message}")
+                print(f"     Location: {info.location}")
+            if len(results.info) > 10:
+                print(f"  ... and {len(results.info) - 10} more info messages")
     elif not results.is_valid():
         # In quiet mode, still show errors
         click.echo(f"{Fore.RED}Validation failed with {len(results.errors)} errors{Style.RESET_ALL}")

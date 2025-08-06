@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-"""Create a valid test data file using the OregonMockDataGenerator."""
+"""Create a valid test data file using the OregonMockDataGenerator.
 
-import sys
+Note: This script requires the cgt-validator package to be installed.
+Run: pip install -e . from the cgt-validator directory first.
+"""
+
 from pathlib import Path
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent / "src"))
-
-from mock_data.oregon_generator import OregonMockDataGenerator  # noqa: E402
+from mock_data.oregon_generator import OregonMockDataGenerator
 
 
 def create_valid_oregon_submission():

@@ -229,7 +229,11 @@ class ExcelAnnotator:
                 self._annotate_sheet(worksheet, issues)
             elif len(parts) == 2:
                 # Column or cell annotation
-                if parts[1].replace(" ", "_") in ["A1", "B2", "C3"]:  # Cell reference
+                import re
+
+                # Check if it's a valid Excel cell reference (e.g., A1, B2, AA10, etc.)
+                cell_ref_pattern = r"^[A-Z]+[0-9]+$"
+                if re.match(cell_ref_pattern, parts[1].upper()):  # Cell reference
                     self._annotate_cell(worksheet, parts[1], issues)
                 else:
                     # Column annotation
