@@ -11,7 +11,9 @@ from src.reporters.validation_results import ValidationResults
 class TestExcelAnnotator:
     """Test Excel annotation functionality."""
 
-    def test_annotate_file_creates_output(self, invalid_oregon_excel: Path, sample_validation_results: ValidationResults):
+    def test_annotate_file_creates_output(
+        self, invalid_oregon_excel: Path, sample_validation_results: ValidationResults
+    ):
         """Test that annotation creates an output file."""
         annotator = ExcelAnnotator()
 

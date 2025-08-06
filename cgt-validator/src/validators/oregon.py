@@ -242,7 +242,8 @@ class OregonValidator(ValidatorBase):
                         results.add_error(
                             code="INVALID_DATA_TYPE",
                             message=(
-                                f"Column '{column}' must contain numeric codes in rows: " f"{invalid_codes.index.tolist()[:5]}"
+                                f"Column '{column}' must contain numeric codes in rows: "
+                                f"{invalid_codes.index.tolist()[:5]}"
                             ),
                             location=f"{sheet_name}.{column}",
                             severity=Severity.ERROR,
@@ -250,7 +251,9 @@ class OregonValidator(ValidatorBase):
                 elif expected_type == "positive_integer":
                     numeric_vals = pd.to_numeric(data_df[column], errors="coerce")
                     invalid_ints = data_df[
-                        numeric_vals.isna() | (numeric_vals <= 0) | (numeric_vals != numeric_vals.fillna(0).astype("int64"))
+                        numeric_vals.isna()
+                        | (numeric_vals <= 0)
+                        | (numeric_vals != numeric_vals.fillna(0).astype("int64"))
                     ]
                     if not invalid_ints.empty:
                         results.add_error(
@@ -600,7 +603,9 @@ class OregonValidator(ValidatorBase):
                 # Filter out empty or invalid rows
                 valid_df = df[df["Provider Organization Name"].notna() & (df["Provider Organization Name"] != "")]
                 # Use uppercase for case-insensitive matching
-                tme_prov_names = set(str(name).strip().upper() for name in valid_df["Provider Organization Name"].unique())
+                tme_prov_names = set(
+                    str(name).strip().upper() for name in valid_df["Provider Organization Name"].unique()
+                )
                 missing_names = tme_prov_names - provider_names
 
                 if missing_names:

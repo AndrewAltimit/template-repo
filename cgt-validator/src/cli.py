@@ -63,7 +63,9 @@ def print_validation_summary(results: ValidationResults):
     # Counts
     print("\nIssue Summary:")
     print(f"  Errors:   {Fore.RED if summary['error_count'] > 0 else ''}{summary['error_count']}{Style.RESET_ALL}")
-    print(f"  Warnings: {Fore.YELLOW if summary['warning_count'] > 0 else ''}{summary['warning_count']}{Style.RESET_ALL}")
+    print(
+        f"  Warnings: {Fore.YELLOW if summary['warning_count'] > 0 else ''}{summary['warning_count']}{Style.RESET_ALL}"
+    )
     print(f"  Info:     {Fore.BLUE}{summary['info_count']}{Style.RESET_ALL}")
 
     print(f"\nValidation completed in {summary['duration_seconds']:.2f} seconds")

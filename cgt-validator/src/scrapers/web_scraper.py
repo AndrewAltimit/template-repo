@@ -17,7 +17,9 @@ from config.states_config import IndexURLConfig, get_state_config
 class DocumentInfo:
     """Information about a discovered document."""
 
-    def __init__(self, url: str, title: str, file_type: str, date_found: Optional[str] = None, version: Optional[str] = None):
+    def __init__(
+        self, url: str, title: str, file_type: str, date_found: Optional[str] = None, version: Optional[str] = None
+    ):
         self.url = url
         self.title = title
         self.file_type = file_type

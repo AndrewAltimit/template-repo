@@ -178,7 +178,8 @@ class RequirementsParser:
             # Check if this looks like a field definition table
             headers = table[0] if table else []
             if any(
-                h and any(keyword in str(h).lower() for keyword in ["field", "column", "attribute", "name"]) for h in headers
+                h and any(keyword in str(h).lower() for keyword in ["field", "column", "attribute", "name"])
+                for h in headers
             ):
                 # Parse field definitions
                 field_list = []

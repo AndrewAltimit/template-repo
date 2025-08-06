@@ -55,7 +55,9 @@ def invalid_oregon_excel(temp_dir: Path) -> Path:
     ws_member = wb.create_sheet("Member Months")
     ws_member.append(["Provider ID", "Reporting Period", "Line of Business", "Member Months", "Unique Members"])
     ws_member.append(["PRV001", "2024/01", "Commercial", "abc", 100])  # Wrong date format, non-numeric member months
-    ws_member.append(["PRV999", "2024-02", "Invalid LOB", 200, 250])  # Invalid provider ref, invalid LOB, unique > total
+    ws_member.append(
+        ["PRV999", "2024-02", "Invalid LOB", 200, 250]
+    )  # Invalid provider ref, invalid LOB, unique > total
 
     # Medical Claims - missing sheet
     # (Intentionally not creating Medical Claims sheet)
@@ -128,7 +130,9 @@ def sample_validation_results() -> ValidationResults:
         location="Medical Claims.Paid Amount",
     )
 
-    results.add_info(code="BEHAVIORAL_HEALTH_FOUND", message="Found 156 behavioral health claims", location="Medical Claims")
+    results.add_info(
+        code="BEHAVIORAL_HEALTH_FOUND", message="Found 156 behavioral health claims", location="Medical Claims"
+    )
 
     return results
 
