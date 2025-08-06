@@ -113,8 +113,7 @@ class OregonMockDataGenerator:
             [None] * 30,  # Row 1: Empty
             ["Black = payer-reported data"] + [None] * 29,  # Row 2
             ["Blue = OHA calculated data"] + [None] * 29,  # Row 3
-            ["When the payer-entered data does not meet the desired format, the cell will become red."]
-            + [None] * 29,  # Row 4
+            ["When the payer-entered data does not meet the desired format, the cell will become red."] + [None] * 29,  # Row 4
             [None] * 30,  # Row 5: Empty
             # Row 6: Field codes
             [
@@ -193,8 +192,7 @@ class OregonMockDataGenerator:
             [None] * 30,  # Row 1: Empty
             ["Black = payer-reported data"] + [None] * 29,  # Row 2
             ["Blue = OHA calculated data"] + [None] * 29,  # Row 3
-            ["When the payer-entered data does not meet the desired format, the cell will become red."]
-            + [None] * 29,  # Row 4
+            ["When the payer-entered data does not meet the desired format, the cell will become red."] + [None] * 29,  # Row 4
             [None] * 30,  # Row 5: Empty
             [None] * 30,  # Row 6: Empty
             [None] * 30,  # Row 7: Empty
@@ -253,8 +251,7 @@ class OregonMockDataGenerator:
             [None] * 30,  # Row 1: Empty
             ["Black = payer-reported data"] + [None] * 29,  # Row 2
             ["Blue = OHA calculated data"] + [None] * 29,  # Row 3
-            ["When the payer-entered data does not meet the desired format, the cell will become red."]
-            + [None] * 29,  # Row 4
+            ["When the payer-entered data does not meet the desired format, the cell will become red."] + [None] * 29,  # Row 4
             [None] * 30,  # Row 5: Empty
             # Row 6: Field codes
             ["TMEUNA01", "TMEUNA02", "TMEUNA03", "TMEUNA04"] + [None] * 26,
@@ -283,8 +280,7 @@ class OregonMockDataGenerator:
             [None] * 30,  # Row 1: Empty
             ["Black = payer-reported data"] + [None] * 29,  # Row 2
             ["Blue = OHA calculated data"] + [None] * 29,  # Row 3
-            ["When the payer-entered data does not meet the desired format, the cell will become red."]
-            + [None] * 29,  # Row 4
+            ["When the payer-entered data does not meet the desired format, the cell will become red."] + [None] * 29,  # Row 4
             [None] * 30,  # Row 5: Empty
             # Row 6: Field codes
             ["MED01", "MED02", "MED03"] + [None] * 27,
@@ -412,8 +408,7 @@ class OregonMockDataGenerator:
             [None] * 30,  # Row 1: Empty
             ["Black = payer-reported data"] + [None] * 29,  # Row 2
             ["Blue = OHA calculated data"] + [None] * 29,  # Row 3
-            ["When the payer-entered data does not meet the desired format, the cell will become red."]
-            + [None] * 29,  # Row 4
+            ["When the payer-entered data does not meet the desired format, the cell will become red."] + [None] * 29,  # Row 4
             [None] * 30,  # Row 5: Empty
             # Row 6: Field codes
             ["RXR01", "RXR02", "RX07", "RXR03", "RXR04"] + [None] * 25,

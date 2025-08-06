@@ -47,10 +47,7 @@ STATES_CONFIG: Dict[str, StateConfig] = {
                 "last_checked": None,
             },
             {
-                "url": (
-                    "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/"
-                    "CGT-Data-Submission-FAQ.pdf"
-                ),
+                "url": ("https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/" "CGT-Data-Submission-FAQ.pdf"),
                 "type": "pdf",
                 "description": "Data Submission FAQ",
                 "version": "current",

@@ -10,7 +10,6 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import requests
-
 from config.states_config import get_state_config
 
 from .document_downloader import DocumentDownloader
@@ -342,12 +341,8 @@ class TemplateMonitor:
 
             # Try to identify specific field changes
             if self.monitoring_config.get("track_field_changes"):
-                old_file = (
-                    self.storage_dir / "snapshots" / f"{old.file_hash[:8]}_{old.metadata.get('filename', 'unknown')}"
-                )
-                new_file = (
-                    self.storage_dir / "snapshots" / f"{new.file_hash[:8]}_{new.metadata.get('filename', 'unknown')}"
-                )
+                old_file = self.storage_dir / "snapshots" / f"{old.file_hash[:8]}_{old.metadata.get('filename', 'unknown')}"
+                new_file = self.storage_dir / "snapshots" / f"{new.file_hash[:8]}_{new.metadata.get('filename', 'unknown')}"
 
                 if old_file.exists() and new_file.exists():
                     old_text = self._extract_text_content(old_file)
@@ -610,9 +605,7 @@ class TemplateMonitor:
 
             for recent_change in reversed(recent_changes):
                 severity_icon = (
-                    "🔴"
-                    if recent_change.severity == "critical"
-                    else "🟡" if recent_change.severity == "warning" else "🟢"
+                    "🔴" if recent_change.severity == "critical" else "🟡" if recent_change.severity == "warning" else "🟢"
                 )
                 lines.append(
                     f"### {severity_icon} {recent_change.change_type.title()}: {Path(urlparse(recent_change.url).path).name}"
