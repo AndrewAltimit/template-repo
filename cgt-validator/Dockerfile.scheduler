@@ -12,9 +12,14 @@ RUN useradd -m -s /bin/bash cgtuser
 # Set working directory
 WORKDIR /app
 
-# Copy requirements
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy requirements and setup files
+COPY requirements-cgt.txt requirements-core.txt setup.py README.md ./
+COPY src/__init__.py src/
+
+# Install dependencies and the package
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements-cgt.txt && \
+    pip install --no-cache-dir -e .
 
 # Copy application code
 COPY src/ ./src/
