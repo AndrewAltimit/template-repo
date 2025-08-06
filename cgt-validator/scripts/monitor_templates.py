@@ -259,7 +259,9 @@ Examples:
     monitor_parser.add_argument("--no-content", action="store_true", help="Skip content change detection")
     monitor_parser.add_argument("--critical-fields", nargs="+", help="Critical fields to track")
     monitor_parser.add_argument("--report", action="store_true", help="Generate change report")
-    monitor_parser.add_argument("--report-format", choices=["markdown", "html"], default="markdown", help="Report format")
+    monitor_parser.add_argument(
+        "--report-format", choices=["markdown", "html"], default="markdown", help="Report format"
+    )
     monitor_parser.add_argument("--output", help="Output file for report")
     monitor_parser.add_argument("--json", help="Save summary as JSON")
 
