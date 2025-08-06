@@ -9,6 +9,7 @@ from typing import Dict, Generator
 import pandas as pd
 import pytest
 from openpyxl import Workbook
+
 from src.mock_data.oregon_generator import OregonMockDataGenerator
 from src.reporters.validation_results import ValidationResults
 

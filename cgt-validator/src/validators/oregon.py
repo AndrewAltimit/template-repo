@@ -3,6 +3,7 @@
 from typing import Any, Dict, Optional
 
 import pandas as pd
+
 from reporters.validation_results import Severity, ValidationResults
 
 from .base_validator import ValidatorBase

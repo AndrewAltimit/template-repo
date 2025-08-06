@@ -13,7 +13,6 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 import pytest  # noqa: E402
-
 from tools.mcp.gaea2.validation.validator import Gaea2Validator  # noqa: E402
 
 

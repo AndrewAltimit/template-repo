@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import requests
+
 from config.states_config import get_state_config
 
 from .document_downloader import DocumentDownloader

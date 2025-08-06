@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
+
 from src.cli import batch_validate, get_validator, validate
 
 

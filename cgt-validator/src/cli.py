@@ -7,11 +7,12 @@ from typing import Optional
 
 import click
 from colorama import Fore, Style, init
+from tabulate import tabulate
+
 from reporters.excel_annotator import ExcelAnnotator
 from reporters.html_reporter import HTMLReporter
 from reporters.markdown_reporter import MarkdownReporter
 from reporters.validation_results import ValidationResults
-from tabulate import tabulate
 from validators.base_validator import ValidatorBase
 from validators.oregon import OregonValidator
 

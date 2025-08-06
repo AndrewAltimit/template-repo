@@ -9,8 +9,9 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 from bs4 import BeautifulSoup
-from config.states_config import IndexURLConfig, get_state_config
 from tqdm import tqdm
+
+from config.states_config import IndexURLConfig, get_state_config
 
 
 class DocumentInfo:

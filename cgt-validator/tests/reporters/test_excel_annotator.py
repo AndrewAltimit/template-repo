@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from openpyxl import Workbook, load_workbook
+
 from src.reporters.excel_annotator import ExcelAnnotator
 from src.reporters.validation_results import ValidationResults
 
