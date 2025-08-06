@@ -194,8 +194,8 @@ class TemplateMonitor:
     def _calculate_file_hash(self, file_path: Path) -> str:
         """Calculate SHA256 hash of a file."""
         sha256_hash = hashlib.sha256()
-        with open(file_path, "rb") as f:
-            for byte_block in iter(lambda: f.read(4096), b""):
+        with open(file_path, "rb") as file_handle:
+            for byte_block in iter(lambda: file_handle.read(4096), b""):
                 sha256_hash.update(byte_block)
         return sha256_hash.hexdigest()
 
@@ -210,22 +210,22 @@ class TemplateMonitor:
             try:
                 import PyPDF2
 
-                with open(file_path, "rb") as f:
-                    reader = PyPDF2.PdfReader(f)
+                with open(file_path, "rb") as pdf_file:
+                    reader = PyPDF2.PdfReader(pdf_file)
                     text = ""
                     for page in reader.pages:
                         text += page.extract_text()
                 return text
-            except Exception as e:
-                logger.warning(f"Could not extract text from PDF {file_path}: {e}")
+            except (ImportError, AttributeError, ValueError, IOError) as e:
+                logger.warning("Could not extract text from PDF %s: %s", file_path, e)
                 return None
 
         elif file_type in [".txt", ".csv"]:
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    return f.read()
-            except Exception as e:
-                logger.warning(f"Could not read text file {file_path}: {e}")
+                with open(file_path, "r", encoding="utf-8") as text_file:
+                    return text_file.read()
+            except (IOError, UnicodeDecodeError) as e:
+                logger.warning("Could not read text file %s: %s", file_path, e)
                 return None
 
         elif file_type in [".xlsx", ".xls", ".xlsm"]:
@@ -238,8 +238,8 @@ class TemplateMonitor:
                     for row in sheet.iter_rows(values_only=True):
                         text += " ".join(str(cell) for cell in row if cell) + "\n"
                 return text
-            except Exception as e:
-                logger.warning(f"Could not extract text from Excel {file_path}: {e}")
+            except (ImportError, AttributeError, ValueError, IOError) as e:
+                logger.warning("Could not extract text from Excel %s: %s", file_path, e)
                 return None
 
         return None
@@ -269,7 +269,7 @@ class TemplateMonitor:
             head_response = self.session.head(url, timeout=10, allow_redirects=True)
             content_length = head_response.headers.get("content-length")
             if content_length and int(content_length) > 100 * 1024 * 1024:
-                logger.warning(f"File too large to download: {url} ({int(content_length) / 1024 / 1024:.1f} MB)")
+                logger.warning("File too large to download: %s (%.1f MB)", url, int(content_length) / 1024 / 1024)
                 return None
 
             # Download to temporary location
@@ -279,8 +279,8 @@ class TemplateMonitor:
             response = self.session.get(url, timeout=60)
             response.raise_for_status()
 
-            with open(temp_file, "wb") as f:
-                f.write(response.content)
+            with open(temp_file, "wb") as temp_f:
+                temp_f.write(response.content)
 
             # Calculate hashes
             file_hash = self._calculate_file_hash(temp_file)
@@ -321,8 +321,8 @@ class TemplateMonitor:
 
             return snapshot
 
-        except Exception as e:
-            logger.error(f"Error downloading {url}: {e}")
+        except (requests.RequestException, IOError, OSError) as e:
+            logger.error("Error downloading %s: %s", url, e)
             return None
 
     def _compare_snapshots(self, old: TemplateSnapshot, new: TemplateSnapshot) -> Tuple[bool, str, str]:
@@ -382,11 +382,11 @@ class TemplateMonitor:
             return []
 
         changes = []
-        logger.info(f"Monitoring direct URLs for {self.state}")
+        logger.info("Monitoring direct URLs for %s", self.state)
 
         for url_config in self.config["direct_urls"]:
             url = url_config["url"]
-            logger.info(f"Checking {url}")
+            logger.info("Checking %s", url)
 
             # Download and create snapshot
             new_snapshot = self._download_and_snapshot(url)
@@ -399,7 +399,7 @@ class TemplateMonitor:
                 changed, description, severity = self._compare_snapshots(latest_snapshot, new_snapshot)
 
                 if changed:
-                    change = ChangeEvent(
+                    change_event = ChangeEvent(
                         url=url,
                         change_type="modified",
                         old_snapshot=latest_snapshot,
@@ -407,7 +407,7 @@ class TemplateMonitor:
                         description=description,
                         severity=severity,
                     )
-                    changes.append(change)
+                    changes.append(change_event)
 
                     # Add to snapshots
                     self.snapshots[url].append(new_snapshot)
@@ -418,7 +418,7 @@ class TemplateMonitor:
                         self.snapshots[url] = self.snapshots[url][-max_snapshots:]
             else:
                 # New URL being tracked
-                change = ChangeEvent(
+                change_event = ChangeEvent(
                     url=url,
                     change_type="new",
                     old_snapshot=None,
@@ -426,7 +426,7 @@ class TemplateMonitor:
                     description=f"New template discovered: {url_config.get('description', 'Unknown')}",
                     severity="info",
                 )
-                changes.append(change)
+                changes.append(change_event)
 
                 # Initialize snapshots for this URL
                 self.snapshots[url] = [new_snapshot]
@@ -439,7 +439,7 @@ class TemplateMonitor:
             return []
 
         changes = []
-        logger.info(f"Scraping and monitoring templates for {self.state}")
+        logger.info("Scraping and monitoring templates for %s", self.state)
 
         # Scrape for templates
         scraped_docs = self.scraper.find_latest_templates()
@@ -462,7 +462,7 @@ class TemplateMonitor:
                 changed, description, severity = self._compare_snapshots(latest_snapshot, new_snapshot)
 
                 if changed:
-                    change = ChangeEvent(
+                    change_event = ChangeEvent(
                         url=url,
                         change_type="modified",
                         old_snapshot=latest_snapshot,
@@ -470,7 +470,7 @@ class TemplateMonitor:
                         description=description,
                         severity=severity,
                     )
-                    changes.append(change)
+                    changes.append(change_event)
 
                     # Add to snapshots
                     self.snapshots[url].append(new_snapshot)
@@ -481,7 +481,7 @@ class TemplateMonitor:
                         self.snapshots[url] = self.snapshots[url][-max_snapshots:]
             else:
                 # New URL being tracked
-                change = ChangeEvent(
+                change_event = ChangeEvent(
                     url=url,
                     change_type="new",
                     old_snapshot=None,
@@ -489,7 +489,7 @@ class TemplateMonitor:
                     description=f"New template discovered: {doc.title}",
                     severity="info",
                 )
-                changes.append(change)
+                changes.append(change_event)
 
                 # Initialize snapshots for this URL
                 self.snapshots[url] = [new_snapshot]
@@ -499,7 +499,7 @@ class TemplateMonitor:
             if url not in seen_urls and not any(url == uc["url"] for uc in self.config["direct_urls"]):
                 # Template no longer found
                 removed_snapshot: Optional[TemplateSnapshot] = self.snapshots[url][-1] if self.snapshots[url] else None
-                change = ChangeEvent(
+                change_event = ChangeEvent(
                     url=url,
                     change_type="removed",
                     old_snapshot=removed_snapshot,
@@ -507,13 +507,13 @@ class TemplateMonitor:
                     description="Template no longer available at this URL",
                     severity="warning",
                 )
-                changes.append(change)
+                changes.append(change_event)
 
         return changes
 
     def run_monitoring(self) -> Dict[str, Any]:
         """Run complete monitoring cycle."""
-        logger.info(f"Starting monitoring for {self.state}")
+        logger.info("Starting monitoring for %s", self.state)
         start_time = datetime.now()
 
         all_changes = []
@@ -550,30 +550,30 @@ class TemplateMonitor:
         }
 
         # Categorize changes
-        for change in all_changes:
+        for change_event in all_changes:
             # By type
             changes_by_type = summary["changes_by_type"]  # type: ignore
-            changes_by_type[change.change_type] = changes_by_type.get(change.change_type, 0) + 1
+            changes_by_type[change_event.change_type] = changes_by_type.get(change_event.change_type, 0) + 1
 
             # By severity
             changes_by_severity = summary["changes_by_severity"]  # type: ignore
-            changes_by_severity[change.severity] = changes_by_severity.get(change.severity, 0) + 1
+            changes_by_severity[change_event.severity] = changes_by_severity.get(change_event.severity, 0) + 1
 
             # Track critical changes
-            if change.severity == "critical":
+            if change_event.severity == "critical":
                 summary["critical_changes"].append(  # type: ignore
                     {
-                        "url": change.url,
-                        "description": change.description,
+                        "url": change_event.url,
+                        "description": change_event.description,
                     }
                 )
 
         # Save summary
         summary_file = self.storage_dir / f"monitoring_summary_{start_time.strftime('%Y%m%d_%H%M%S')}.json"
-        with open(summary_file, "w", encoding="utf-8") as f:
-            json.dump(summary, f, indent=2)
+        with open(summary_file, "w", encoding="utf-8") as summary_f:
+            json.dump(summary, summary_f, indent=2)
 
-        logger.info(f"Monitoring complete: {len(all_changes)} changes detected")
+        logger.info("Monitoring complete: %d changes detected", len(all_changes))
 
         return summary
 
@@ -608,16 +608,18 @@ class TemplateMonitor:
                 ]
             )
 
-            for change in reversed(recent_changes):
+            for recent_change in reversed(recent_changes):
                 severity_icon = (
-                    "🔴" if change.severity == "critical" else "🟡" if change.severity == "warning" else "🟢"
+                    "🔴"
+                    if recent_change.severity == "critical"
+                    else "🟡" if recent_change.severity == "warning" else "🟢"
                 )
                 lines.append(
-                    f"### {severity_icon} {change.change_type.title()}: {Path(urlparse(change.url).path).name}"
+                    f"### {severity_icon} {recent_change.change_type.title()}: {Path(urlparse(recent_change.url).path).name}"
                 )
-                lines.append(f"- **URL**: {change.url}")
-                lines.append(f"- **Description**: {change.description}")
-                lines.append(f"- **Detected**: {change.detected_at}")
+                lines.append(f"- **URL**: {recent_change.url}")
+                lines.append(f"- **Description**: {recent_change.description}")
+                lines.append(f"- **Detected**: {recent_change.detected_at}")
                 lines.append("")
 
         # Current template status
@@ -675,13 +677,13 @@ class TemplateMonitor:
         recent_changes = self.change_history[-10:] if self.change_history else []
         if recent_changes:
             html += "<h2>Recent Changes</h2>"
-            for change in reversed(recent_changes):
+            for recent_change in reversed(recent_changes):
                 html += f"""
-                <div class="change {change.severity}">
-                    <h3>{change.change_type.title()}: {Path(urlparse(change.url).path).name}</h3>
-                    <p><strong>URL:</strong> {change.url}</p>
-                    <p><strong>Description:</strong> {change.description}</p>
-                    <p><strong>Detected:</strong> {change.detected_at}</p>
+                <div class="change {recent_change.severity}">
+                    <h3>{recent_change.change_type.title()}: {Path(urlparse(recent_change.url).path).name}</h3>
+                    <p><strong>URL:</strong> {recent_change.url}</p>
+                    <p><strong>Description:</strong> {recent_change.description}</p>
+                    <p><strong>Detected:</strong> {recent_change.detected_at}</p>
                 </div>
                 """
 
@@ -709,19 +711,19 @@ class TemplateMonitor:
 
 def monitor_state_templates(state: str) -> Dict[str, Any]:
     """Convenience function to monitor templates for a state."""
-    monitor = TemplateMonitor(state)
-    return monitor.run_monitoring()
+    monitor_instance = TemplateMonitor(state)
+    return monitor_instance.run_monitoring()
 
 
 if __name__ == "__main__":
     import sys
 
     if len(sys.argv) > 1:
-        state_name = sys.argv[1]
-        print(f"Monitoring templates for {state_name}...")
+        state_arg = sys.argv[1]
+        print(f"Monitoring templates for {state_arg}...")
 
-        monitor = TemplateMonitor(state_name)
-        summary = monitor.run_monitoring()
+        monitor_instance = TemplateMonitor(state_arg)
+        summary = monitor_instance.run_monitoring()
 
         print("\nMonitoring Summary:")
         print(f"  URLs monitored: {summary['total_urls_monitored']}")
@@ -729,15 +731,15 @@ if __name__ == "__main__":
 
         if summary["critical_changes"]:
             print("\nCRITICAL CHANGES:")
-            for change in summary["critical_changes"]:
-                print(f"  - {change['url']}")
-                print(f"    {change['description']}")
+            for critical_change in summary["critical_changes"]:
+                print(f"  - {critical_change['url']}")
+                print(f"    {critical_change['description']}")
 
         # Generate and save report
-        report = monitor.generate_change_report("markdown")
-        report_file = monitor.storage_dir / "latest_report.md"
-        with open(report_file, "w") as f:
-            f.write(report)
+        report = monitor_instance.generate_change_report("markdown")
+        report_file = monitor_instance.storage_dir / "latest_report.md"
+        with open(report_file, "w", encoding="utf-8") as report_f:
+            report_f.write(report)
         print(f"\nReport saved to: {report_file}")
     else:
         print("Usage: python -m scrapers.template_monitor <state>")

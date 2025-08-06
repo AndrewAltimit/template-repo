@@ -11,21 +11,29 @@ repos:
     hooks:
       - id: black
         language_version: python3.10
-        # Line length configured in pyproject.toml
+      # Line length configured in pyproject.toml
 
   # Python import sorting
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:
       - id: isort
-        # Profile and line length configured in pyproject.toml
+      # Profile and line length configured in pyproject.toml
 
   # Python linting
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
     hooks:
       - id: flake8
-        # Max line length and ignores configured in .flake8
+      # Max line length and ignores configured in .flake8
+
+  # Pylint for more comprehensive linting
+  - repo: https://github.com/pycqa/pylint
+    rev: v3.0.3
+    hooks:
+      - id: pylint
+        args: [--disable, C0114, --disable, C0115, --disable, C0116, --disable, R0903, --disable, R0913, --disable, R0914, --disable, R0915, --disable, R0401, --disable, R0801, --disable, C0301, --disable, W0621, --disable, C0413, --disable, C0415, --disable, R0911, --disable, R1705]
+        # Disabled: missing docstrings, too few public methods, too many args/locals/statements, cyclic imports, duplicate code, line too long, redefined-outer-name, wrong-import-position, import-outside-toplevel, too-many-return-statements, unnecessary-elif
 
   # YAML formatting
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -76,7 +84,7 @@ repos:
         additional_dependencies: [types-requests, types-PyYAML, types-tabulate]
         exclude: ^(docs/|tests/|scripts/)
 
-  # Python docstring checking (optional - uncomment if needed)
+# Python docstring checking (optional - uncomment if needed)
   # - repo: https://github.com/pycqa/pydocstyle
   #   rev: 6.3.0
   #   hooks:
