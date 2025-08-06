@@ -29,21 +29,41 @@ STATES_CONFIG: Dict[str, StateConfig] = {
             {
                 "url": (
                     "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/"
+                    "CGT-1-Data-Submission-Template.xlsx"
+                ),
+                "type": "xlsx",
+                "description": "CGT-1 Data Submission Template (2025)",
+                "version": "current",
+                "last_checked": None,
+            },
+            {
+                "url": (
+                    "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/"
                     "CGT-2-Data-Specification-Manual.pdf"
                 ),
                 "type": "pdf",
-                "description": "CGT-2 Data Specification Manual",
+                "description": "CGT-2 Data Specification Manual v5.0 (Sept 2025 submission)",
                 "version": "5.0",
                 "last_checked": None,
             },
             {
                 "url": (
                     "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/"
-                    "CGT-2024-data-submission-training.pdf"
+                    "CGT-Data-Submission-FAQ.pdf"
                 ),
                 "type": "pdf",
-                "description": "2024 Data Submission Training",
-                "version": "2024",
+                "description": "Data Submission FAQ",
+                "version": "current",
+                "last_checked": None,
+            },
+            {
+                "url": (
+                    "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/"
+                    "2025%20Cost%20Growth%20Target%20Payer%20List.pdf"
+                ),
+                "type": "pdf",
+                "description": "2025 Data Reporters List (2023-2024 data submission)",
+                "version": "2025",
                 "last_checked": None,
             },
         ],
