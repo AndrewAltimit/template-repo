@@ -1,6 +1,6 @@
 #!/bin/bash
 # Script to implement a test feature for validating AI agent workflows
-# This creates a simple hello_world tool as a test implementation
+# This creates test implementations based on issue requirements
 # Usage: implement_test_feature.sh <issue_number> <branch_name>
 # Issue data (title and body) is passed via stdin as JSON
 

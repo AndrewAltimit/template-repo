@@ -56,7 +56,7 @@ The OpenCode configuration is pre-configured in the container at `/home/node/.co
 source .env
 
 # Run a simple prompt
-opencode run "Write a Python hello world function"
+opencode run "Write a Python data validation function"
 
 # Use a specific model
 opencode run -m "openrouter/qwen/qwen-2.5-coder-32b-instruct" "Your prompt"
@@ -75,7 +75,7 @@ opencode models
 source .env
 
 # Run in container
-docker-compose run --rm openrouter-agents opencode run "Write a Python hello world function"
+docker-compose run --rm openrouter-agents opencode run "Write a Python data validation function"
 
 # Use a specific model
 docker-compose run --rm openrouter-agents opencode run -m "openrouter/anthropic/claude-3.5-sonnet" "Your prompt"

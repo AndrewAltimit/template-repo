@@ -31,7 +31,7 @@ def test_imports():
 def test_basic_functionality():
     """Test basic functionality without server initialization"""
     assert 1 + 1 == 2
-    assert "hello" + " " + "world" == "hello world"
+    assert isinstance(42, int)
 
 
 @pytest.mark.asyncio

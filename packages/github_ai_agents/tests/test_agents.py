@@ -123,7 +123,7 @@ class TestOpenCodeAgent:
                 with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
                     agent.env_vars["OPENROUTER_API_KEY"] = "test-key"
 
-                    cmd = agent._build_command("Write a hello world function")
+                    cmd = agent._build_command("Generate a data validation class")
 
                     assert cmd == [
                         "docker-compose",
@@ -137,7 +137,7 @@ class TestOpenCodeAgent:
                         "openrouter-agents",
                         "opencode",
                         "-p",
-                        "Write a hello world function",
+                        "Generate a data validation class",
                         "-q",  # Default flag
                     ]
 
@@ -146,12 +146,12 @@ class TestOpenCodeAgent:
         agent = OpenCodeAgent()
         agent._use_docker = False
 
-        cmd = agent._build_command("Write a hello world function")
+        cmd = agent._build_command("Generate a data validation class")
 
         assert cmd == [
             "opencode",
             "-p",
-            "Write a hello world function",
+            "Generate a data validation class",
             "-q",  # Default flag
         ]
 
@@ -165,7 +165,7 @@ class TestOpenCodeAgent:
         with patch.object(agent, "_execute_command", new_callable=AsyncMock) as mock_exec:
             mock_exec.return_value = ("def hello():\n    print('Hello')", "")
 
-            result = await agent.generate_code("Write a hello function", {"code": "# existing code"})
+            result = await agent.generate_code("Generate a validation function", {"code": "# existing code"})
 
             assert result == "def hello():\n    print('Hello')"
 
