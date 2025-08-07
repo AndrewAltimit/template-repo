@@ -123,7 +123,7 @@ class TestOpenCodeAgent:
                 with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}):
                     agent.env_vars["OPENROUTER_API_KEY"] = "test-key"
 
-                    cmd = agent._build_command("Generate a data validation class")
+                    cmd = agent._build_command()  # No arguments - uses stdin
 
                     assert cmd == [
                         "docker-compose",
@@ -134,11 +134,13 @@ class TestOpenCodeAgent:
                         "-T",
                         "-e",
                         "OPENROUTER_API_KEY=test-key",
+                        "-e",
+                        "OPENCODE_MODEL=qwen/qwen-2.5-coder-32b-instruct",
                         "openrouter-agents",
                         "opencode",
-                        "-p",
-                        "Generate a data validation class",
-                        "-q",  # Default flag
+                        "run",
+                        "-m",
+                        "openrouter/qwen/qwen-2.5-coder-32b-instruct",
                     ]
 
     def test_build_command_local(self):
@@ -146,13 +148,13 @@ class TestOpenCodeAgent:
         agent = OpenCodeAgent()
         agent._use_docker = False
 
-        cmd = agent._build_command("Generate a data validation class")
+        cmd = agent._build_command()  # No arguments - uses stdin
 
         assert cmd == [
             "opencode",
-            "-p",
-            "Generate a data validation class",
-            "-q",  # Default flag
+            "run",
+            "-m",
+            "openrouter/qwen/qwen-2.5-coder-32b-instruct",
         ]
 
     @pytest.mark.asyncio

@@ -160,12 +160,9 @@ case $MODE in
                 ;;
         esac
 
-        # Run crush with the query (include unattended flag if set in single mode)
-        if [ -n "$UNATTENDED_FLAG" ]; then
-            crush run $UNATTENDED_FLAG -q "$FULL_QUERY"
-        else
-            crush run -q "$FULL_QUERY"
-        fi
+        # Run crush with the query (UNATTENDED_FLAG will be omitted if empty)
+        # shellcheck disable=SC2086
+        crush run $UNATTENDED_FLAG -q "$FULL_QUERY"
         ;;
 
     explain)
@@ -178,11 +175,8 @@ case $MODE in
         echo ""
 
         CODE_CONTENT=$(cat "$CODE_FILE")
-        if [ -n "$UNATTENDED_FLAG" ]; then
-            crush run $UNATTENDED_FLAG -q "Explain this code in detail:\n\n$CODE_CONTENT"
-        else
-            crush run -q "Explain this code in detail:\n\n$CODE_CONTENT"
-        fi
+        # shellcheck disable=SC2086
+        crush run $UNATTENDED_FLAG -q "Explain this code in detail:\n\n$CODE_CONTENT"
         ;;
 
     convert)
@@ -201,11 +195,8 @@ case $MODE in
         echo ""
 
         CODE_CONTENT=$(cat "$CODE_FILE")
-        if [ -n "$UNATTENDED_FLAG" ]; then
-            crush run $UNATTENDED_FLAG -q "Convert this code to $CONVERT_TO, preserving all functionality:\n\n$CODE_CONTENT"
-        else
-            crush run -q "Convert this code to $CONVERT_TO, preserving all functionality:\n\n$CODE_CONTENT"
-        fi
+        # shellcheck disable=SC2086
+        crush run $UNATTENDED_FLAG -q "Convert this code to $CONVERT_TO, preserving all functionality:\n\n$CODE_CONTENT"
         ;;
 
     interactive)
@@ -216,11 +207,8 @@ case $MODE in
         echo "   - Type 'exit' or use Ctrl+C to quit"
         echo ""
 
-        # Start interactive Crush session with unattended flag if set
-        if [ -n "$UNATTENDED_FLAG" ]; then
-            crush $UNATTENDED_FLAG
-        else
-            crush
-        fi
+        # Start interactive Crush session (UNATTENDED_FLAG will be omitted if empty)
+        # shellcheck disable=SC2086
+        crush $UNATTENDED_FLAG
         ;;
 esac
