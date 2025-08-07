@@ -151,3 +151,32 @@ chmod 777 output/  # Never use 777
 # ❌ Direct tool invocation
 black .  # Should use containerized version
 ```
+
+## PR Comment Guidelines
+
+### Using Custom Reaction Images
+
+When commenting on PRs, use our custom reaction images for a more engaging experience:
+
+- **Available reactions**: https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/config.yaml
+- **Format**: `![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/[filename])`
+
+**Common reactions to use:**
+- `teamwork.webp` - After successful collaboration or fixes
+- `youre_absolutely_right.webp` - When agreeing with feedback
+- `miku_typing.webp`, `konata_typing.webp`, `yuki_typing.webp` - When actively reviewing
+- `confused.gif` - When something needs clarification
+- `felix.webp` - General positive reaction
+
+**Example usage:**
+```markdown
+Great work on simplifying the code! The refactoring makes it much cleaner.
+
+![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/teamwork.webp)
+```
+
+**Best practices:**
+- Use sparingly - one reaction per comment is usually enough
+- Place at natural break points in your comment
+- Don't use at the beginning of comments
+- Adds personality while maintaining professionalism
