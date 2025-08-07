@@ -5,6 +5,14 @@ set -e
 
 echo "🚀 Starting OpenCode CLI"
 
+# Auto-load .env file if it exists and OPENROUTER_API_KEY is not set
+if [ -z "$OPENROUTER_API_KEY" ] && [ -f ".env" ]; then
+    echo "📄 Loading environment from .env file..."
+    set -a  # Enable auto-export
+    source .env
+    set +a  # Disable auto-export
+fi
+
 # Check for API key
 if [ -z "$OPENROUTER_API_KEY" ]; then
     echo "❌ OPENROUTER_API_KEY not set. Please export your API key:"
@@ -118,6 +126,6 @@ else
     echo "   - Use 'exit' or Ctrl+C to quit"
     echo ""
 
-    # Start interactive OpenCode
-    opencode interactive
+    # Start interactive OpenCode (just call opencode without arguments for TUI)
+    opencode
 fi
