@@ -1,6 +1,6 @@
 # MCP-Enabled Project Template
 
-A container-first, self-hosted project template using Model Context Protocol (MCP) tools with zero-cost infrastructure.
+A comprehensive development ecosystem with 7 AI agents, 8 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
 
 ![MCP Demo](docs/template-repo.webp)
 
@@ -18,33 +18,49 @@ This project follows a **container-first approach**:
   - Content Creation MCP (port 8011)
   - Gaea2 MCP (port 8007)
   - Gemini MCP (port 8006, host-only)
+  - OpenCode MCP (port 8014)
+  - Crush MCP (port 8015)
+  - AI Toolkit MCP (port 8012)
+  - ComfyUI MCP (port 8013)
 
 ## AI Agents
 
-This repository leverages **five AI agents** for development and automation:
+This repository leverages **seven AI agents** for development and automation:
 
 1. **Claude Code** (Primary Development)
    - Main development assistant via claude.ai/code
    - Handles code implementation, refactoring, and documentation
    - Follows guidelines in CLAUDE.md
 
-2. **Gemini CLI** (PR Code Review)
+2. **OpenCode** (Comprehensive Code Generation)
+   - Advanced code generation using Qwen 2.5 Coder model
+   - Supports refactoring, review, and multi-step planning
+   - Available via MCP, CLI, and GitHub triggers
+   - See [OpenCode & Crush Integration](docs/OPENCODE_CRUSH_INTEGRATION.md)
+
+3. **Crush** (Fast Code Generation)
+   - Optimized for quick code snippets and conversions
+   - Rapid prototyping and language translation
+   - Lightweight and responsive
+   - See [Quick Reference](docs/OPENCODE_CRUSH_QUICK_REFERENCE.md)
+
+4. **Gemini CLI** (PR Code Review)
    - Automatically reviews all pull requests
    - Provides security, quality, and architecture feedback
    - Runs on self-hosted runners with project context
 
-3. **GitHub Copilot** (Code Review)
+5. **GitHub Copilot** (Code Review)
    - Reviews code changes and suggests improvements
    - Provides inline review comments in pull requests
    - Complements Gemini's automated reviews
 
-4. **Issue Monitor Agent** (Automated Issue Management)
+6. **Issue Monitor Agent** (Automated Issue Management)
    - Monitors GitHub issues for completeness
    - Automatically creates PRs from well-described issues
    - Triggered by keyword commands like `[Approved][Claude]`
    - Runs every hour via GitHub Actions
 
-5. **PR Review Monitor Agent** (Automated Review Response)
+7. **PR Review Monitor Agent** (Automated Review Response)
    - Monitors PR reviews and implements requested changes
    - Uses Claude Code CLI to address feedback automatically
    - Triggered by keyword commands like `[Fix][Claude]`
@@ -62,7 +78,7 @@ This repository leverages **five AI agents** for development and automation:
 - **LaTeX Compilation** - Document generation
 - **Self-Hosted Runners** - GitHub Actions with local infrastructure
 - **Docker Compose** - Containerized services
-- **AI-Powered Development** - Five AI agents working in harmony
+- **AI-Powered Development** - Seven AI agents working in harmony
 - **Automated Issue Processing** - Issues automatically converted to PRs
 - **Automated Review Response** - PR feedback automatically implemented
 
@@ -73,20 +89,51 @@ This repository leverages **five AI agents** for development and automation:
    - Docker (v20.10+) and Docker Compose (v2.0+) installed
    - No other dependencies required!
 
-2. **Clone and start**
+2. **Clone and setup**
 
    ```bash
    git clone https://github.com/AndrewAltimit/template-repo
    cd template-repo
 
-   # Start main MCP server (containerized)
-   docker-compose up -d mcp-server
+   # Install AI agents package (for CLI tools)
+   pip3 install -e ./packages/github_ai_agents
+
+   # Set up API keys (if using AI features)
+   export OPENROUTER_API_KEY="your-key-here"  # For OpenCode/Crush
+   export GEMINI_API_KEY="your-key-here"      # For Gemini
+   ```
+
+3. **Start services**
+
+   ```bash
+   # Start all MCP servers (containerized)
+   docker-compose up -d
+
+   # Or start specific servers
+   docker-compose up -d mcp-code-quality mcp-content-creation
+   docker-compose up -d mcp-opencode mcp-crush
 
    # Start Gemini MCP server (must run on host)
    python -m tools.mcp.gemini.server
+
+   # Quick test all servers
+   python scripts/mcp/test_all_servers.py --quick
    ```
 
-3. **For CI/CD (optional)**
+4. **Use AI agents**
+
+   ```bash
+   # Interactive AI sessions
+   ./tools/utilities/run_claude.sh     # Claude Code
+   ./tools/utilities/run_opencode.sh   # OpenCode
+   ./tools/utilities/run_crush.sh      # Crush
+
+   # Quick code generation
+   ./tools/utilities/run_opencode.sh -q "Create a REST API"
+   ./tools/utilities/run_crush.sh -q "Binary search function"
+   ```
+
+5. **For CI/CD (optional)**
    - Set up a self-hosted runner following [this guide](docs/SELF_HOSTED_RUNNER_SETUP.md)
    - All CI operations run in containers - no local tool installation needed
 
@@ -96,27 +143,37 @@ This repository leverages **five AI agents** for development and automation:
 .
 ├── .github/workflows/      # GitHub Actions workflows
 ├── docker/                 # Docker configurations
-├── tools/                  # MCP and other tools
-│   ├── mcp/               # MCP server and tools
-│   └── gemini/            # Gemini AI integration
-├── scripts/               # Utility scripts
-├── examples/              # Example usage
+├── packages/               # Installable packages
+│   └── github_ai_agents/  # AI agent implementations
+├── tools/                  # MCP servers and utilities
+│   ├── mcp/               # Modular MCP servers
+│   │   ├── code_quality/  # Formatting & linting (8010)
+│   │   ├── content_creation/ # Manim & LaTeX (8011)
+│   │   ├── gemini/        # AI consultation (8006)
+│   │   ├── gaea2/         # Terrain generation (8007)
+│   │   ├── opencode/      # Code generation (8014)
+│   │   ├── crush/         # Fast generation (8015)
+│   │   ├── ai_toolkit/    # LoRA training (8012)
+│   │   └── comfyui/       # Image generation (8013)
+│   └── utilities/         # Helper scripts
+├── scripts/               # CI/CD and utility scripts
 ├── tests/                 # Test files
 ├── docs/                  # Documentation
-└── PROJECT_CONTEXT.md     # Context for AI code reviewers
+├── CLAUDE.md             # Claude Code instructions
+└── PROJECT_CONTEXT.md    # Context for AI reviewers
 ```
 
 ## MCP Tools Available
 
-### Main MCP Server (Port 8005)
+### Code Quality MCP Server (Port 8010)
+- `format_check` - Check code formatting (Python, JS, TS, Go, Rust)
+- `lint` - Run static analysis with multiple linters
+- `autoformat` - Automatically format code files
 
-**Code Quality:**
-- `format_check` - Check code formatting
-- `lint` - Run linting
-
-**Content Creation:**
-- `create_manim_animation` - Create animations
-- `compile_latex` - Generate documents
+### Content Creation MCP Server (Port 8011)
+- `create_manim_animation` - Create mathematical/technical animations
+- `compile_latex` - Generate PDF/DVI/PS documents from LaTeX
+- `render_tikz` - Render TikZ diagrams as standalone images
 
 **Gaea2 Terrain Generation:**
 - `create_gaea2_project` - Create custom terrain projects with automatic validation
@@ -126,18 +183,47 @@ This repository leverages **five AI agents** for development and automation:
 - `repair_gaea2_project` - Fix damaged project files automatically
 - Plus 5 more tools - see [Gaea2 documentation](docs/gaea2/README.md)
 
+### AI Code Generation MCP Servers
+
+**OpenCode MCP Server (Port 8014):**
+- `consult_opencode` - Generate, refactor, review, or explain code
+- `clear_opencode_history` - Clear conversation history
+- `opencode_status` - Get integration status and statistics
+- `toggle_opencode_auto_consult` - Control auto-consultation
+
+**Crush MCP Server (Port 8015):**
+- `consult_crush` - Quick code generation and conversion
+- `clear_crush_history` - Clear conversation history
+- `crush_status` - Get integration status
+- `toggle_crush_auto_consult` - Control auto-consultation
+
 ### Gemini MCP Server (Port 8006)
 
 **AI Integration (Host-only):**
 - `consult_gemini` - Get AI assistance
 - `clear_gemini_history` - Clear conversation history
+- `gemini_status` - Get integration status
+- `toggle_gemini_auto_consult` - Control auto-consultation
 
 **Note:** The Gemini MCP server must run on the host system due to Docker requirements.
 
-### Remote Services
+### AI Toolkit MCP Server (Port 8012)
+- LoRA training management
+- Dataset uploads and job monitoring
+- Model export and download capabilities
+- Bridge to remote AI Toolkit instance
+
+### ComfyUI MCP Server (Port 8013)
+- AI image generation workflows
+- LoRA model management and transfer
+- Custom workflow execution
+- Bridge to remote ComfyUI instance
+
+### Remote Services Setup
 
 - **ComfyUI workflows** - [Setup guide](https://gist.github.com/AndrewAltimit/f2a21b1a075cc8c9a151483f89e0f11e)
 - **AI Toolkit LoRA training** - [Setup guide](https://gist.github.com/AndrewAltimit/2703c551eb5737de5a4c6767d3626cb8)
+- **Integration Guide** - [AI Toolkit & ComfyUI Integration](docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md)
 
 ## Configuration
 
@@ -180,9 +266,11 @@ See [setup guide](docs/GEMINI_SETUP.md) for details.
 
 ### AI Agents Configuration
 
-This project uses five AI agents. See [AI Agents Documentation](docs/AI_AGENTS.md) for details on:
+This project uses seven AI agents. See [AI Agents Documentation](docs/AI_AGENTS.md) for details on:
 
 - Claude Code (primary development)
+- OpenCode (comprehensive code generation) - [Integration Guide](docs/OPENCODE_CRUSH_INTEGRATION.md)
+- Crush (fast code generation) - [Quick Reference](docs/OPENCODE_CRUSH_QUICK_REFERENCE.md)
 - Gemini CLI (automated PR reviews)
 - GitHub Copilot (code review suggestions)
 - Issue Monitor Agent (automated issue management)
@@ -276,3 +364,30 @@ docker-compose logs -f
 # Run any Python command in the CI container
 docker-compose run --rm python-ci python --version
 ```
+
+## Documentation
+
+### Quick References
+- [OpenCode & Crush Quick Reference](docs/OPENCODE_CRUSH_QUICK_REFERENCE.md) - Command cheatsheet
+- [MCP Tools Reference](docs/MCP_TOOLS.md) - All available MCP tools
+- [CLAUDE.md](CLAUDE.md) - Project-specific Claude Code instructions
+
+### Integration Guides
+- [OpenCode & Crush Integration](docs/OPENCODE_CRUSH_INTEGRATION.md) - Complete guide for AI code generation
+- [AI Toolkit & ComfyUI Integration](docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md) - LoRA training and image generation
+- [Gaea2 Documentation](docs/gaea2/README.md) - Terrain generation with 185 nodes
+
+### Setup & Configuration
+- [Self-Hosted Runner Setup](docs/SELF_HOSTED_RUNNER_SETUP.md) - GitHub Actions runner configuration
+- [GitHub Environments Setup](docs/GITHUB_ENVIRONMENTS_SETUP.md) - Secure token management
+- [Gemini Setup](docs/GEMINI_SETUP.md) - Gemini CLI configuration
+- [Containerized CI](docs/CONTAINERIZED_CI.md) - Docker-based CI/CD
+
+### AI Agents & Security
+- [AI Agents Documentation](docs/AI_AGENTS.md) - Overview of all 7 AI agents
+- [AI Agents Security](docs/AI_AGENTS_SECURITY.md) - Security model and configuration
+- [Agent Containerization Strategy](docs/AGENT_CONTAINERIZATION_STRATEGY.md) - Container vs host execution
+
+### MCP Architecture
+- [MCP Architecture](docs/mcp/README.md) - Modular server design patterns
+- [MCP Servers](docs/MCP_SERVERS.md) - Individual server documentation

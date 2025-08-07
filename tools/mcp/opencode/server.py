@@ -122,6 +122,7 @@ class OpenCodeMCPServer(BaseMCPServer):
                         "context": {
                             "type": "string",
                             "description": "Additional context or existing code",
+                            "default": "",
                         },
                         "mode": {
                             "type": "string",
@@ -161,6 +162,7 @@ class OpenCodeMCPServer(BaseMCPServer):
                             "description": "Enable or disable auto-consultation",
                         }
                     },
+                    "required": [],
                 },
             },
         }

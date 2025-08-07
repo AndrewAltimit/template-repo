@@ -122,6 +122,7 @@ class CrushMCPServer(BaseMCPServer):
                         "context": {
                             "type": "string",
                             "description": "Additional context or target language for conversion",
+                            "default": "",
                         },
                         "mode": {
                             "type": "string",
@@ -161,6 +162,7 @@ class CrushMCPServer(BaseMCPServer):
                             "description": "Enable or disable auto-consultation",
                         }
                     },
+                    "required": [],
                 },
             },
         }

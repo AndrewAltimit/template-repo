@@ -161,6 +161,11 @@ docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-m
 # Or use specific containerized agents:
 docker-compose run --rm openrouter-agents crush run -q "Write a Python function"
 
+# Direct host execution with helper scripts:
+./tools/utilities/run_claude.sh     # Interactive Claude session with Node.js 22
+./tools/utilities/run_opencode.sh   # OpenCode CLI for comprehensive code generation
+./tools/utilities/run_crush.sh      # Crush CLI for fast code generation
+
 # Host agent execution (Claude, Gemini only):
 python3 -m github_ai_agents.cli issue-monitor
 python3 -m github_ai_agents.cli pr-monitor
@@ -423,6 +428,7 @@ For detailed information on specific topics, refer to these documentation files:
 - `docs/MCP_TOOLS.md` - Available MCP tools reference
 
 ### Integrations
+- `docs/OPENCODE_CRUSH_INTEGRATION.md` - **Comprehensive OpenCode & Crush documentation** (MCP calls, CLI usage, git workflows)
 - `docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md` - LoRA training and image generation
 - `docs/LORA_TRANSFER_DOCUMENTATION.md` - LoRA model transfer between services
 - `docs/GEMINI_SETUP.md` - Gemini CLI setup and configuration
