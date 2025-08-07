@@ -1,0 +1,14 @@
+{
+  "monitor_direct_urls": true,
+  "monitor_scraped_templates": true,
+  "check_content_changes": true,
+  "extract_text_from_pdfs": true,
+  "track_field_changes": true,
+  "critical_fields": [
+    "PROV_ID",
+    "MEMBER_MONTHS",
+    "PAID_AMT"
+  ],
+  "notification_threshold": "warning",
+  "max_snapshots_per_url": 10
+}

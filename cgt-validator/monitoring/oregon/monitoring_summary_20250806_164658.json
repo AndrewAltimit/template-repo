@@ -1,0 +1,178 @@
+{
+  "state": "oregon",
+  "monitoring_date": "2025-08-06T16:46:58.494090",
+  "duration_seconds": 16.269095,
+  "total_urls_monitored": 7,
+  "changes_detected": 7,
+  "changes_by_type": {
+    "new": 7
+  },
+  "changes_by_severity": {
+    "info": 7
+  },
+  "critical_changes": [],
+  "changes": [
+    {
+      "url": "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/CGT-1-Data-Submission-Template.xlsx",
+      "change_type": "new",
+      "old_snapshot": null,
+      "new_snapshot": {
+        "url": "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/CGT-1-Data-Submission-Template.xlsx",
+        "file_hash": "e5fa0ee8ca9b44d30025b21d27585ffb64a81e56777697781c15429e234d9074",
+        "file_size": 9124246,
+        "content_hash": null,
+        "metadata": {
+          "filename": "CGT-1-Data-Submission-Template.xlsx",
+          "download_date": "2025-08-06T16:47:03.523963",
+          "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "last_modified": "Wed, 11 Jun 2025 21:13:21 GMT"
+        },
+        "snapshot_date": "2025-08-06T16:47:03.524086"
+      },
+      "description": "New template discovered: CGT-1 Data Submission Template (2025)",
+      "severity": "info",
+      "detected_at": "2025-08-06T16:47:03.524625"
+    },
+    {
+      "url": "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/CGT-2-Data-Specification-Manual.pdf",
+      "change_type": "new",
+      "old_snapshot": null,
+      "new_snapshot": {
+        "url": "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/CGT-2-Data-Specification-Manual.pdf",
+        "file_hash": "10027d9a5acba3b3e7c2be62b1a782f2185939fde32578eed4680572bb662ac5",
+        "file_size": 1126289,
+        "content_hash": null,
+        "metadata": {
+          "filename": "CGT-2-Data-Specification-Manual.pdf",
+          "download_date": "2025-08-06T16:47:04.274209",
+          "content_type": "application/pdf",
+          "last_modified": "Wed, 11 Jun 2025 21:11:26 GMT"
+        },
+        "snapshot_date": "2025-08-06T16:47:04.274297"
+      },
+      "description": "New template discovered: CGT-2 Data Specification Manual v5.0 (Sept 2025 submission)",
+      "severity": "info",
+      "detected_at": "2025-08-06T16:47:04.274331"
+    },
+    {
+      "url": "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/CGT-2024-data-submission-training.pdf",
+      "change_type": "new",
+      "old_snapshot": null,
+      "new_snapshot": {
+        "url": "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/CGT-2024-data-submission-training.pdf",
+        "file_hash": "9077ae4ee103317663b11b51efbe257ff2102bc805c331735a7f117baea46d2c",
+        "file_size": 2027158,
+        "content_hash": null,
+        "metadata": {
+          "filename": "CGT-2024-data-submission-training.pdf",
+          "download_date": "2025-08-06T16:47:05.969832",
+          "content_type": "application/pdf",
+          "last_modified": "Wed, 12 Jun 2024 23:14:19 GMT",
+          "title": "Webinar slide deck",
+          "version": "2024",
+          "file_type": "pdf"
+        },
+        "snapshot_date": "2025-08-06T16:47:05.969924"
+      },
+      "description": "New template discovered: Webinar slide deck",
+      "severity": "info",
+      "detected_at": "2025-08-06T16:47:05.969965"
+    },
+    {
+      "url": "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/CGT-1-Supplemental-Expanded-Demographic-Table.xlsx",
+      "change_type": "new",
+      "old_snapshot": null,
+      "new_snapshot": {
+        "url": "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/CGT-1-Supplemental-Expanded-Demographic-Table.xlsx",
+        "file_hash": "a1ab4330a2235587493c31494d47ccbde2741ba30c0b526beff93ec730e49594",
+        "file_size": 48147,
+        "content_hash": null,
+        "metadata": {
+          "filename": "CGT-1-Supplemental-Expanded-Demographic-Table.xlsx",
+          "download_date": "2025-08-06T16:47:11.065095",
+          "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "last_modified": "Thu, 18 Aug 2022 21:04:29 GMT",
+          "title": "Supplemental Expanded Demographic Table",
+          "version": "",
+          "file_type": "xlsx"
+        },
+        "snapshot_date": "2025-08-06T16:47:11.065180"
+      },
+      "description": "New template discovered: Supplemental Expanded Demographic Table",
+      "severity": "info",
+      "detected_at": "2025-08-06T16:47:11.065205"
+    },
+    {
+      "url": "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/CGT-2-Supplemental-SD-calculation.xlsx",
+      "change_type": "new",
+      "old_snapshot": null,
+      "new_snapshot": {
+        "url": "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/CGT-2-Supplemental-SD-calculation.xlsx",
+        "file_hash": "40154d0a1948534b146683e8608fcaa5fdd5b59149eaa24e6df2e45dd3b609f4",
+        "file_size": 452103,
+        "content_hash": null,
+        "metadata": {
+          "filename": "CGT-2-Supplemental-SD-calculation.xlsx",
+          "download_date": "2025-08-06T16:47:12.169222",
+          "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "last_modified": "Thu, 28 Jul 2022 21:42:45 GMT",
+          "title": "Supplemental SD Calculation",
+          "version": "",
+          "file_type": "xlsx"
+        },
+        "snapshot_date": "2025-08-06T16:47:12.169310"
+      },
+      "description": "New template discovered: Supplemental SD Calculation",
+      "severity": "info",
+      "detected_at": "2025-08-06T16:47:12.169340"
+    },
+    {
+      "url": "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/CGT-2-Supplemental-BH-codes.xlsx",
+      "change_type": "new",
+      "old_snapshot": null,
+      "new_snapshot": {
+        "url": "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/CGT-2-Supplemental-BH-codes.xlsx",
+        "file_hash": "a5e26c55d43f8e5485ba269d5b7e2de1e9f5a291daae8735462a17db3777bc18",
+        "file_size": 186285,
+        "content_hash": null,
+        "metadata": {
+          "filename": "CGT-2-Supplemental-BH-codes.xlsx",
+          "download_date": "2025-08-06T16:47:12.444425",
+          "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "last_modified": "Thu, 28 Jul 2022 22:15:22 GMT",
+          "title": "Supplemental BH Codes",
+          "version": "",
+          "file_type": "xlsx"
+        },
+        "snapshot_date": "2025-08-06T16:47:12.444512"
+      },
+      "description": "New template discovered: Supplemental BH Codes",
+      "severity": "info",
+      "detected_at": "2025-08-06T16:47:12.444543"
+    },
+    {
+      "url": "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/CGT-1-Data-Submission-Template-ver4.0_training-mock-data.xlsx",
+      "change_type": "new",
+      "old_snapshot": null,
+      "new_snapshot": {
+        "url": "https://www.oregon.gov/oha/HPA/HP/Cost%20Growth%20Target%20documents/CGT-1-Data-Submission-Template-ver4.0_training-mock-data.xlsx",
+        "file_hash": "a52071f60f374423f32d38c6f334c5c2b596074bba1b81eb7c06f67c6c63d7b9",
+        "file_size": 4066579,
+        "content_hash": null,
+        "metadata": {
+          "filename": "CGT-1-Data-Submission-Template-ver4.0_training-mock-data.xlsx",
+          "download_date": "2025-08-06T16:47:14.762349",
+          "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "last_modified": "Thu, 13 Jun 2024 21:18:19 GMT",
+          "title": "CGT-1 with mock data",
+          "version": "",
+          "file_type": "xlsx"
+        },
+        "snapshot_date": "2025-08-06T16:47:14.762454"
+      },
+      "description": "New template discovered: CGT-1 with mock data",
+      "severity": "info",
+      "detected_at": "2025-08-06T16:47:14.762492"
+    }
+  ]
+}

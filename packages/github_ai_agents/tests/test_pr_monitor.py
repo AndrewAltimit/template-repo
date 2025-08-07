@@ -4,7 +4,6 @@ import json
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from github_ai_agents.monitors.pr import PRMonitor
 
 

@@ -1,0 +1,3 @@
+# Core dependencies - redirects to main requirements file
+# This file is kept for backwards compatibility
+-r requirements-cgt.txt
