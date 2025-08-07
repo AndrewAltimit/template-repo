@@ -407,6 +407,30 @@ The repository includes comprehensive CI/CD workflows:
 
 This prevents accidentally notifying random GitHub users who happen to share names with our AI tools.
 
+### PR Comments and Reactions
+
+**Use Custom Reaction Images**: When commenting on PRs and issues, prefer using our custom reaction images over standard emojis for a more unique and engaging experience.
+
+- **Available reactions** are defined in: https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/config.yaml
+- **Format**: `![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/[filename])`
+- **When to use**: Add reactions sparingly where they enhance communication:
+  - After successfully completing tasks (teamwork.webp, felix.webp)
+  - When actively working on something (miku_typing.webp, konata_typing.webp, yuki_typing.webp)
+  - When agreeing with feedback (youre_absolutely_right.webp)
+  - When something needs clarification (confused.gif)
+- **Best practices**:
+  - Don't overuse reactions - one per comment is usually enough
+  - Place reactions at natural break points in your comment
+  - Use them to add personality without distracting from the content
+  - Fetch the latest config when needed as new reactions may be added
+
+Example usage:
+```markdown
+Thanks for the review! Working on the fixes now.
+
+![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/miku_typing.webp)
+```
+
 ## Additional Documentation
 
 For detailed information on specific topics, refer to these documentation files:
