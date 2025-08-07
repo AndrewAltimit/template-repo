@@ -431,7 +431,16 @@ Thanks for the review! Working on the fixes now.
 ![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/miku_typing.webp)
 ```
 
-**Technical Note for gh CLI**: When posting comments with reaction images via `gh pr comment`, use `--body-file` with a temporary file or a heredoc with quoted delimiter (`'EOF'`) to prevent markdown escaping issues. Direct `--body` flag may escape the `!` in `![Reaction]`.
+**Technical Note for gh CLI**: When posting comments with reaction images via `gh pr comment`:
+1. **Use the Write tool** to create a temporary markdown file (avoids shell escaping)
+2. Then use `gh pr comment --body-file /tmp/filename.md`
+3. **Avoid**: Direct `--body` flag, heredocs, or echo/printf - these will escape the `!` in `![Reaction]`
+
+Example:
+```bash
+# First: Use Write tool to create /tmp/comment.md with your content including images
+# Then: gh pr comment 47 --body-file /tmp/comment.md
+```
 
 ## Additional Documentation
 
