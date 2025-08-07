@@ -41,6 +41,29 @@ if ! command -v crush &> /dev/null; then
     fi
 fi
 
+# Ask about unattended mode for interactive sessions
+UNATTENDED_FLAG=""
+if [ $# -eq 0 ]; then
+    # Only ask if no arguments provided (interactive mode)
+    echo "🤖 Crush Configuration"
+    echo ""
+    echo "Would you like to run Crush in unattended mode?"
+    echo "This will allow Crush to execute commands without asking for approval."
+    echo ""
+    read -p "Use unattended mode? (y/N): " -n 1 -r
+    echo ""
+
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        UNATTENDED_FLAG="-y"
+        echo "⚡ Will run Crush in UNATTENDED mode (--yolo)..."
+        echo "⚠️  Crush will execute commands without asking for approval!"
+        echo ""
+    else
+        echo "🔒 Will run Crush in NORMAL mode (with approval prompts)..."
+        echo ""
+    fi
+fi
+
 # Parse command line arguments
 MODE="interactive"
 QUERY=""
@@ -137,8 +160,12 @@ case $MODE in
                 ;;
         esac
 
-        # Run crush with the query
-        crush run -q "$FULL_QUERY"
+        # Run crush with the query (include unattended flag if set in single mode)
+        if [ -n "$UNATTENDED_FLAG" ]; then
+            crush run $UNATTENDED_FLAG -q "$FULL_QUERY"
+        else
+            crush run -q "$FULL_QUERY"
+        fi
         ;;
 
     explain)
@@ -151,7 +178,11 @@ case $MODE in
         echo ""
 
         CODE_CONTENT=$(cat "$CODE_FILE")
-        crush run -q "Explain this code in detail:\n\n$CODE_CONTENT"
+        if [ -n "$UNATTENDED_FLAG" ]; then
+            crush run $UNATTENDED_FLAG -q "Explain this code in detail:\n\n$CODE_CONTENT"
+        else
+            crush run -q "Explain this code in detail:\n\n$CODE_CONTENT"
+        fi
         ;;
 
     convert)
@@ -170,7 +201,11 @@ case $MODE in
         echo ""
 
         CODE_CONTENT=$(cat "$CODE_FILE")
-        crush run -q "Convert this code to $CONVERT_TO, preserving all functionality:\n\n$CODE_CONTENT"
+        if [ -n "$UNATTENDED_FLAG" ]; then
+            crush run $UNATTENDED_FLAG -q "Convert this code to $CONVERT_TO, preserving all functionality:\n\n$CODE_CONTENT"
+        else
+            crush run -q "Convert this code to $CONVERT_TO, preserving all functionality:\n\n$CODE_CONTENT"
+        fi
         ;;
 
     interactive)
@@ -181,7 +216,11 @@ case $MODE in
         echo "   - Type 'exit' or use Ctrl+C to quit"
         echo ""
 
-        # Start interactive Crush session
-        crush
+        # Start interactive Crush session with unattended flag if set
+        if [ -n "$UNATTENDED_FLAG" ]; then
+            crush $UNATTENDED_FLAG
+        else
+            crush
+        fi
         ;;
 esac

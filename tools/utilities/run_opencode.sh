@@ -43,11 +43,23 @@ if ! command -v opencode &> /dev/null; then
     fi
 fi
 
+# Note about OpenCode permissions
+if [ $# -eq 0 ]; then
+    # Only show note if no arguments provided (interactive mode)
+    echo "🤖 OpenCode Configuration"
+    echo ""
+    echo "ℹ️  Note: OpenCode runs in autonomous mode by default."
+    echo "Unlike some AI tools, it doesn't require approval for code generation."
+    echo ""
+    read -r -p "Press Enter to continue to interactive mode, or Ctrl+C to cancel... "
+    echo ""
+fi
+
 # Parse command line arguments
 MODE="interactive"
 QUERY=""
 CONTEXT=""
-PLAN_MODE=false
+# PLAN_MODE=false  # Not currently implemented
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -61,7 +73,9 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         -p|--plan)
-            PLAN_MODE=true
+            # PLAN_MODE is not currently used but kept for future implementation
+            # PLAN_MODE=true
+            echo "Note: Plan mode is not yet implemented in this script"
             shift
             ;;
         -h|--help)
@@ -82,8 +96,7 @@ while [[ $# -gt 0 ]]; do
             echo "With Context:"
             echo "  $0 -q 'Refactor this code' -c existing_code.py"
             echo ""
-            echo "Plan Mode:"
-            echo "  $0 -q 'Build a REST API with authentication' -p"
+            echo "Note: OpenCode runs autonomously without requiring approval prompts."
             exit 0
             ;;
         *)
@@ -102,18 +115,24 @@ if [ "$MODE" = "single" ]; then
     # Build command array for safer execution
     CMD_ARRAY=("opencode" "run")
 
-    if [ -n "$QUERY" ]; then
-        CMD_ARRAY+=("-q" "$QUERY")
+    # Add model if specified
+    if [ -n "$OPENCODE_MODEL" ]; then
+        CMD_ARRAY+=("-m" "openrouter/$OPENCODE_MODEL")
     fi
 
+    # For context, we need to combine it with the query
     if [ -n "$CONTEXT" ] && [ -f "$CONTEXT" ]; then
         echo "📄 Including context from: $CONTEXT"
         CONTEXT_CONTENT=$(cat "$CONTEXT")
-        CMD_ARRAY+=("-c" "$CONTEXT_CONTENT")
+        # Combine context with query
+        FULL_QUERY="Context from $CONTEXT:\n\n$CONTEXT_CONTENT\n\nTask: $QUERY"
+    else
+        FULL_QUERY="$QUERY"
     fi
 
-    if [ "$PLAN_MODE" = true ]; then
-        CMD_ARRAY+=("--plan")
+    # Add the query as positional argument (not with -q flag)
+    if [ -n "$FULL_QUERY" ]; then
+        CMD_ARRAY+=("$FULL_QUERY")
     fi
 
     # Execute safely without eval
