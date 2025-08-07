@@ -1,9 +1,9 @@
 #!/bin/bash
-# run_opencode.sh - Start OpenCode CLI for code generation
+# run_opencode_container.sh - Run OpenCode CLI in Docker container
 
 set -e
 
-echo "🚀 Starting OpenCode CLI"
+echo "🐳 Starting OpenCode CLI in Container"
 
 # Auto-load .env file if it exists and OPENROUTER_API_KEY is not set
 if [ -z "$OPENROUTER_API_KEY" ] && [ -f ".env" ]; then
@@ -27,21 +27,6 @@ if [ -z "$OPENCODE_MODEL" ]; then
     export OPENCODE_MODEL="qwen/qwen-2.5-coder-32b-instruct"
 fi
 echo "🤖 Using model: $OPENCODE_MODEL"
-
-# Check if opencode CLI is available
-if ! command -v opencode &> /dev/null; then
-    echo "⚠️  opencode CLI not found. Installing from GitHub AI Agents package..."
-    echo ""
-
-    # Install the package
-    if [ -d "./packages/github_ai_agents" ]; then
-        pip3 install -e ./packages/github_ai_agents
-    else
-        echo "❌ GitHub AI Agents package not found at ./packages/github_ai_agents"
-        echo "   Please run this script from the repository root."
-        exit 1
-    fi
-fi
 
 # Parse command line arguments
 MODE="interactive"
@@ -74,7 +59,7 @@ while [[ $# -gt 0 ]]; do
             echo "  -h, --help              Show this help message"
             echo ""
             echo "Interactive Mode (default):"
-            echo "  Start an interactive session with OpenCode"
+            echo "  Start an interactive session with OpenCode in a container"
             echo ""
             echo "Single Query Mode:"
             echo "  $0 -q 'Write a Python function to calculate fibonacci'"
@@ -94,38 +79,52 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Build Docker command
+DOCKER_CMD="docker-compose run --rm"
+DOCKER_CMD="$DOCKER_CMD -e OPENROUTER_API_KEY=$OPENROUTER_API_KEY"
+DOCKER_CMD="$DOCKER_CMD -e OPENCODE_MODEL=$OPENCODE_MODEL"
+
+# Mount context file if provided
+if [ -n "$CONTEXT" ] && [ -f "$CONTEXT" ]; then
+    CONTEXT_DIR=$(dirname "$(realpath "$CONTEXT")")
+    CONTEXT_FILE=$(basename "$CONTEXT")
+    DOCKER_CMD="$DOCKER_CMD -v $CONTEXT_DIR:/workspace"
+    CONTEXT_PATH="/workspace/$CONTEXT_FILE"
+else
+    CONTEXT_PATH=""
+fi
+
 # Execute based on mode
 if [ "$MODE" = "single" ]; then
-    echo "📝 Running single query..."
+    echo "📝 Running single query in container..."
     echo ""
 
-    # Build command array for safer execution
-    CMD_ARRAY=("opencode" "run")
+    # Build command for container
+    CMD="opencode run"
 
     if [ -n "$QUERY" ]; then
-        CMD_ARRAY+=("-q" "$QUERY")
+        CMD="$CMD -q '$QUERY'"
     fi
 
-    if [ -n "$CONTEXT" ] && [ -f "$CONTEXT" ]; then
+    if [ -n "$CONTEXT_PATH" ]; then
         echo "📄 Including context from: $CONTEXT"
-        CONTEXT_CONTENT=$(cat "$CONTEXT")
-        CMD_ARRAY+=("-c" "$CONTEXT_CONTENT")
+        CMD="$CMD -c '$CONTEXT_PATH'"
     fi
 
     if [ "$PLAN_MODE" = true ]; then
-        CMD_ARRAY+=("--plan")
+        CMD="$CMD --plan"
     fi
 
-    # Execute safely without eval
-    "${CMD_ARRAY[@]}"
+    # Execute in container
+    $DOCKER_CMD openrouter-agents sh -c "$CMD"
 else
-    echo "🔄 Starting interactive session..."
+    echo "🔄 Starting interactive session in container..."
     echo "💡 Tips:"
     echo "   - Use 'clear' to clear conversation history"
     echo "   - Use 'status' to see current configuration"
     echo "   - Use 'exit' or Ctrl+C to quit"
     echo ""
 
-    # Start interactive OpenCode (just call opencode without arguments for TUI)
-    opencode
+    # Start interactive session in container
+    $DOCKER_CMD -it openrouter-agents opencode
 fi

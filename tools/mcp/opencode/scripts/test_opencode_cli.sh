@@ -24,19 +24,24 @@ echo ""
 # Test 2: Code with context
 echo "Test 2: Code with Context"
 echo "-------------------------"
-cat > /tmp/test_context.py << EOF
+TMP_CONTEXT=$(mktemp --suffix=.py)
+trap 'rm -f "$TMP_CONTEXT"' EXIT
+
+cat > "$TMP_CONTEXT" << EOF
 def process_data(data):
     # TODO: Implement data processing
     pass
 EOF
 
-opencode run -q "Complete the process_data function to filter and transform data" -c /tmp/test_context.py || echo "❌ Test 2 failed"
+opencode run -q "Complete the process_data function to filter and transform data" -c "$TMP_CONTEXT" || echo "❌ Test 2 failed"
 echo ""
 
 # Test 3: Code refactoring
 echo "Test 3: Code Refactoring"
 echo "------------------------"
-cat > /tmp/test_refactor.py << EOF
+TMP_REFACTOR=$(mktemp --suffix=.py)
+
+cat > "$TMP_REFACTOR" << EOF
 def calc(x,y,op):
     if op=='+':return x+y
     if op=='-':return x-y
@@ -44,19 +49,23 @@ def calc(x,y,op):
     if op=='/':return x/y
 EOF
 
-opencode refactor -f /tmp/test_refactor.py -i "Improve code style and add error handling" || echo "❌ Test 3 failed"
+opencode refactor -f "$TMP_REFACTOR" -i "Improve code style and add error handling" || echo "❌ Test 3 failed"
+rm -f "$TMP_REFACTOR"
 echo ""
 
 # Test 4: Code review
 echo "Test 4: Code Review"
 echo "-------------------"
-cat > /tmp/test_review.py << EOF
+TMP_REVIEW=$(mktemp --suffix=.py)
+
+cat > "$TMP_REVIEW" << EOF
 def authenticate(username, password):
     users = {"admin": "password123", "user": "test"}
     return users.get(username) == password
 EOF
 
-opencode review -f /tmp/test_review.py --focus security || echo "❌ Test 4 failed"
+opencode review -f "$TMP_REVIEW" --focus security || echo "❌ Test 4 failed"
+rm -f "$TMP_REVIEW"
 echo ""
 
 # Test 5: Status check
@@ -68,6 +77,3 @@ echo ""
 echo "✅ All OpenCode CLI tests completed!"
 echo ""
 echo "Note: Review the output above to verify functionality"
-
-# Cleanup
-rm -f /tmp/test_*.py
