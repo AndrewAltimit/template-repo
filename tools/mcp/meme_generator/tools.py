@@ -332,8 +332,6 @@ async def generate_meme(
         import tempfile
         import time
 
-        global output_directory
-
         # Use output_directory if set, otherwise fallback to temp
         if output_directory and os.path.exists(output_directory):
             save_dir = output_directory
@@ -391,7 +389,6 @@ async def get_meme_template_info(template_id: str) -> Dict[str, Any]:
 async def test_minimal() -> Dict[str, Any]:
     """Minimal test tool that returns a tiny response"""
     # Test if generator affects response size
-    global generator
     result = {"success": True, "message": "This is a minimal response", "size": 42}
     if generator:
         result["generator_exists"] = True

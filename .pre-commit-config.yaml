@@ -7,7 +7,7 @@
 repos:
   # Python formatting
   - repo: https://github.com/psf/black
-    rev: 23.12.1
+    rev: 25.1.0
     hooks:
       - id: black
         language_version: python3.10
@@ -15,21 +15,21 @@ repos:
 
   # Python import sorting
   - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
+    rev: 6.0.1
     hooks:
       - id: isort
         # Profile and line length configured in pyproject.toml
 
   # Python linting
   - repo: https://github.com/pycqa/flake8
-    rev: 7.0.0
+    rev: 7.3.0
     hooks:
       - id: flake8
         # Max line length and ignores configured in .flake8
 
   # YAML formatting
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -47,7 +47,7 @@ repos:
 
   # YAML linting
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.33.0
+    rev: v1.37.1
     hooks:
       - id: yamllint
         args: [-c, .yamllint.yml]
@@ -55,13 +55,13 @@ repos:
 
   # GitHub Actions workflow linting
   - repo: https://github.com/rhysd/actionlint
-    rev: v1.6.26
+    rev: v1.7.7
     hooks:
       - id: actionlint
 
   # Shell script linting
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.9.0.6
+    rev: v0.10.0.1
     hooks:
       - id: shellcheck
         types: [shell]
@@ -69,7 +69,7 @@ repos:
 
   # Python type checking
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.8.0
+    rev: v1.17.1
     hooks:
       - id: mypy
         args: [--ignore-missing-imports, --no-error-summary, --explicit-package-bases]
