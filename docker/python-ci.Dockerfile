@@ -22,6 +22,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy linting configuration files
 COPY .isort.cfg .flake8 .pylintrc ./
+# Copy pyproject.toml files for proper isort configuration
+COPY pyproject.toml ./
+# Create directory structure for package configs
+RUN mkdir -p packages/github_ai_agents
+COPY packages/github_ai_agents/pyproject.toml ./packages/github_ai_agents/
 
 # Python environment configuration to prevent cache issues
 ENV PYTHONUNBUFFERED=1 \
