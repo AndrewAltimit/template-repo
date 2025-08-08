@@ -80,14 +80,53 @@ case "$STAGE" in
   full)
     echo "=== Running full linting suite ==="
 
-    # Run all basic checks
-    ./scripts/run-lint-stage.sh basic
+    # Run all basic checks but capture their output
+    # Note: basic stage will exit, so we need to re-run those checks here
+    # or extract the values from its output
+
+    # Format checks
+    echo "🔍 Checking formatting..."
+    docker-compose run --rm python-ci black --check . 2>&1 | tee lint-output.txt || true
+    docker-compose run --rm python-ci isort --check-only . 2>&1 | tee -a lint-output.txt || true
+
+    # Flake8 linting
+    echo "🔍 Running Flake8..."
+    docker-compose run --rm python-ci flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics 2>&1 | tee -a lint-output.txt || errors=$((errors + 1))
+    docker-compose run --rm python-ci flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics 2>&1 | tee -a lint-output.txt
+
+    # Count Flake8 issues
+    if [ -f lint-output.txt ]; then
+      flake8_errors=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: [EF][0-9]+" lint-output.txt 2>/dev/null || echo 0)
+      flake8_warnings=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: [WC][0-9]+" lint-output.txt 2>/dev/null || echo 0)
+      # Ensure values are numeric
+      flake8_errors=$(echo "$flake8_errors" | grep -E '^[0-9]+$' | head -1 || echo 0)
+      flake8_warnings=$(echo "$flake8_warnings" | grep -E '^[0-9]+$' | head -1 || echo 0)
+      errors=$((errors + ${flake8_errors:-0}))
+      warnings=$((warnings + ${flake8_warnings:-0}))
+    fi
+
+    # Pylint
+    echo "🔍 Running Pylint..."
+    docker-compose run --rm python-ci bash -c 'find . -name "*.py" -not -path "./venv/*" -not -path "./.venv/*" | xargs pylint --output-format=parseable --exit-zero' 2>&1 | tee -a lint-output.txt || true
+
+    # Count Pylint issues
+    if [ -f lint-output.txt ]; then
+      pylint_errors=$(grep -cE ":[0-9]+: \[E[0-9]+.*\]" lint-output.txt 2>/dev/null || echo 0)
+      pylint_warnings=$(grep -cE ":[0-9]+: \[W[0-9]+.*\]" lint-output.txt 2>/dev/null || echo 0)
+      # Ensure values are numeric
+      pylint_errors=$(echo "$pylint_errors" | grep -E '^[0-9]+$' | head -1 || echo 0)
+      pylint_warnings=$(echo "$pylint_warnings" | grep -E '^[0-9]+$' | head -1 || echo 0)
+      errors=$((errors + ${pylint_errors:-0}))
+      warnings=$((warnings + ${pylint_warnings:-0}))
+    fi
 
     # Type checking with MyPy
     echo "🔍 Running MyPy type checker..."
     docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && mypy . --ignore-missing-imports --no-error-summary" 2>&1 | tee -a lint-output.txt || true
-    mypy_errors=$(grep -c "error:" lint-output.txt || echo 0)
-    errors=$((errors + mypy_errors))
+    mypy_errors=$(grep -c "error:" lint-output.txt 2>/dev/null || echo 0)
+    # Ensure value is numeric
+    mypy_errors=$(echo "$mypy_errors" | grep -E '^[0-9]+$' | head -1 || echo 0)
+    errors=$((errors + ${mypy_errors:-0}))
 
     # Security scanning with Bandit
     echo "🔍 Running Bandit security scanner..."
