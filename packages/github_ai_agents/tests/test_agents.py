@@ -14,8 +14,8 @@ class TestBaseAgent:
 
     def test_agent_abstract(self):
         """Test that BaseAgent is abstract."""
-        with pytest.raises(TypeError):
-            BaseAgent("test")  # Should fail, abstract class
+        with pytest.raises(TypeError, match="Can't instantiate abstract class"):
+            BaseAgent("test")  # pylint: disable=abstract-class-instantiated
 
 
 class TestOpenCodeAgent:

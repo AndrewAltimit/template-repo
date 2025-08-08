@@ -72,12 +72,12 @@ class TestIssueMonitor:
                 {"comments": [{"body": "Regular comment"}, {"body": "[AI Agent] I've created a PR"}]}
             )
 
-            assert monitor._has_agent_comment(1) is True
+            assert monitor._has_agent_comment(1, "issue") is True
 
             # Mock issue without agent comment
             mock_gh.return_value = json.dumps({"comments": [{"body": "Regular comment"}, {"body": "Another regular comment"}]})
 
-            assert monitor._has_agent_comment(2) is False
+            assert monitor._has_agent_comment(2, "issue") is False
 
     @patch.dict(os.environ, {"GITHUB_REPOSITORY": "test/repo"})
     @patch("github_ai_agents.monitors.issue.get_github_token")
@@ -288,7 +288,7 @@ class TestPRMonitor:
         mock_get_token.return_value = "test-token"
         monitor = PRMonitor()
 
-        monitor._post_error_comment(10, "Test error message")
+        monitor._post_error_comment(10, "Test error message", "pr")
 
         # Should call gh command with correct parameters
         mock_gh_command.assert_called_once()

@@ -136,20 +136,36 @@ case "$STAGE" in
       warnings=$((warnings + bandit_issues))
     fi
 
-    # Dependency security check with Safety (using new scan command)
+    # Dependency security check - try Safety first, fallback to pip-audit
     echo "🔍 Checking dependency security..."
     if [ -f requirements.txt ]; then
-      # Use the new 'safety scan' command which replaces deprecated 'safety check'
-      # Use -T flag to disable TTY allocation and --disable-optional-telemetry to prevent prompts
-      safety_output=$(docker-compose run --rm -T python-ci safety scan --disable-optional-telemetry --output json 2>&1 || true)
-      echo "$safety_output" | tee -a lint-output.txt
-      # Parse the new JSON format from safety scan
-      if [[ "$safety_output" == *"{"* ]] && [[ "$safety_output" != *"Unhandled exception"* ]]; then
-        # Valid JSON output, count vulnerabilities from the new format
-        safety_issues=$(echo "$safety_output" | docker-compose run --rm python-ci python3 -c "import sys, json; data=json.load(sys.stdin); vulns=data.get('vulnerabilities', []); print(len(vulns))" 2>/dev/null || echo 0)
-        # Ensure safety_issues is a valid number
-        if [[ "$safety_issues" =~ ^[0-9]+$ ]]; then
-          warnings=$((warnings + safety_issues))
+      # Check if SAFETY_API_KEY is available
+      if [ -n "$SAFETY_API_KEY" ]; then
+        echo "Using Safety with API key..."
+        # Use safety scan with API key
+        safety_output=$(docker-compose run --rm -T -e SAFETY_API_KEY="$SAFETY_API_KEY" python-ci safety scan --key "$SAFETY_API_KEY" --disable-optional-telemetry --output json 2>&1 || true)
+        echo "$safety_output" | tee -a lint-output.txt
+        # Parse the new JSON format from safety scan
+        if [[ "$safety_output" == *"{"* ]] && [[ "$safety_output" != *"Unhandled exception"* ]]; then
+          # Valid JSON output, count vulnerabilities from the new format
+          safety_issues=$(echo "$safety_output" | docker-compose run --rm python-ci python3 -c "import sys, json; data=json.load(sys.stdin); vulns=data.get('vulnerabilities', []); print(len(vulns))" 2>/dev/null || echo 0)
+          # Ensure safety_issues is a valid number
+          if [[ "$safety_issues" =~ ^[0-9]+$ ]]; then
+            warnings=$((warnings + safety_issues))
+          fi
+        fi
+      else
+        echo "No SAFETY_API_KEY found, using pip-audit instead..."
+        # Use pip-audit as fallback (run as module since it's in user directory)
+        pip_audit_output=$(docker-compose run --rm -T python-ci python -m pip_audit --format json 2>&1 || true)
+        echo "$pip_audit_output" | tee -a lint-output.txt
+        # Parse pip-audit JSON output
+        if [[ "$pip_audit_output" == *"{"* ]]; then
+          audit_issues=$(echo "$pip_audit_output" | docker-compose run --rm python-ci python3 -c "import sys, json; data=json.load(sys.stdin); vulns=data.get('vulnerabilities', []); print(len(vulns))" 2>/dev/null || echo 0)
+          # Ensure audit_issues is a valid number
+          if [[ "$audit_issues" =~ ^[0-9]+$ ]]; then
+            warnings=$((warnings + audit_issues))
+          fi
         fi
       fi
     fi

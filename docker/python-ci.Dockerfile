@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y \
 # Create working directory
 WORKDIR /workspace
 
+# Update pip and setuptools to secure versions
+RUN pip install --no-cache-dir --upgrade pip>=23.3 setuptools>=78.1.1
+
 # Copy requirements first to leverage Docker layer caching
 COPY requirements.txt ./
 

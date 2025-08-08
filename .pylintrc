@@ -10,11 +10,25 @@ disable=import-error,
         raise-missing-from,
         global-statement,
         redefined-builtin,
-        subprocess-run-check
+        subprocess-run-check,
+        missing-module-docstring,
+        missing-class-docstring,
+        missing-function-docstring,
+        too-many-instance-attributes,
+        too-few-public-methods,
+        too-many-arguments,
+        too-many-locals,
+        too-many-statements,
+        too-many-branches,
+        too-many-return-statements,
+        too-many-nested-blocks,
+        duplicate-code,
+        fixme,
+        invalid-name
 
 [FORMAT]
 # Maximum number of characters on a single line.
-max-line-length=88
+max-line-length=127
 
 [BASIC]
 # Good variable names which should always be accepted

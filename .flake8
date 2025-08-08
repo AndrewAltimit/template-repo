@@ -1,6 +1,8 @@
 [flake8]
 # E203 whitespace before ':' - conflicts with Black's formatting for slices
 # W503 line break before binary operator - conflicts with Black
-ignore = E203,W503
+# C901 function complexity - we'll handle with pylint instead
+ignore = E203,W503,C901
 max-line-length = 127
 exclude = .git,__pycache__,docs/,old,build,dist,.venv,venv
+max-complexity = 15

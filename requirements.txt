@@ -1,5 +1,5 @@
 # MCP Server Requirements
-mcp==0.9.1
+mcp>=1.10.0
 pydantic>=2.0.0
 typing-extensions>=4.0.0
 
@@ -34,10 +34,13 @@ pytest-json-report>=1.5.0
 black>=23.0.0
 isort==6.0.1
 flake8>=6.0.0
+pylint>=3.0.0
 mypy>=1.0.0
 types-requests>=2.31.0
+types-PyYAML>=6.0.0
 bandit==1.8.6
 safety==3.6.0
+pip-audit>=2.6.0
 yamllint==1.37.1
 pre-commit>=3.5.0
 

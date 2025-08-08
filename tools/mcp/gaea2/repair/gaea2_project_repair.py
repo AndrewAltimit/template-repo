@@ -66,6 +66,9 @@ class Gaea2ProjectRepair:
     ) -> Dict[str, Any]:
         """Repair project issues"""
         try:
+            # Initialize backup_data
+            backup_data = None
+
             # Create backup if requested
             if create_backup:
                 backup_data = json.loads(json.dumps(project_data))

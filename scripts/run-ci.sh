@@ -49,8 +49,14 @@ case "$STAGE" in
   security)
     echo "=== Running security scans ==="
     docker-compose run --rm python-ci bandit -r . -f json -o bandit-report.json || true
-    # Use new 'safety scan' command (replaces deprecated 'safety check')
-    docker-compose run --rm -T python-ci safety scan --disable-optional-telemetry --output json > safety-report.json || true
+    # Dependency security check - try Safety with API key, fallback to pip-audit
+    if [ -n "$SAFETY_API_KEY" ]; then
+      echo "Using Safety with API key..."
+      docker-compose run --rm -T -e SAFETY_API_KEY="$SAFETY_API_KEY" python-ci safety scan --key "$SAFETY_API_KEY" --disable-optional-telemetry --output json > safety-report.json || true
+    else
+      echo "No SAFETY_API_KEY found, using pip-audit instead..."
+      docker-compose run --rm -T python-ci python -m pip_audit --format json > safety-report.json || true
+    fi
     ;;
 
   test)
