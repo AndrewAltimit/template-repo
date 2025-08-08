@@ -153,7 +153,6 @@ class MemeGenerator:
         font_size_override: Optional[Dict[str, int]] = None,
         auto_resize: bool = True,
         thumbnail_only: bool = False,
-        return_path_only: bool = False,
     ) -> Dict[str, Any]:
         """Generate a meme from template with text overlays"""
         if template_id not in self.templates:
@@ -208,65 +207,35 @@ class MemeGenerator:
                         stroke_width=area.get("stroke_width", 2),
                     )
 
-            # If return_path_only, save directly to file without generating base64
-            if return_path_only:
-                import tempfile
+            # Generate image with base64 encoding
+            if thumbnail_only:
+                max_width = 150  # Very small thumbnail
+                if img.width > max_width:
+                    ratio = max_width / img.width
+                    new_height = int(img.height * ratio)
+                    img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
 
-                # Resize for thumbnail
-                if thumbnail_only:
-                    max_width = 150  # Very small thumbnail
-                    if img.width > max_width:
-                        ratio = max_width / img.width
-                        new_height = int(img.height * ratio)
-                        img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
-
-                # Save directly to file
-                temp_dir = tempfile.gettempdir()
-                output_path = os.path.join(temp_dir, f"meme_{template_id}_{os.getpid()}.webp")
-                img.save(output_path, format="WEBP", quality=30 if thumbnail_only else 75, method=6)
-
-                # Get file size
-                file_size_kb = os.path.getsize(output_path) / 1024
-
-                return {
-                    "success": True,
-                    "output_path": output_path,
-                    "template_used": template_id,
-                    "text_positions": text_positions,
-                    "size_kb": file_size_kb,
-                    "thumbnail": thumbnail_only,
-                    "format": "webp",
-                }
+                # Save as WebP with aggressive compression
+                buffer = io.BytesIO()
+                img.save(buffer, format="WEBP", quality=30, method=6)
+                img_data = buffer.getvalue()
+                format_type = "webp"
             else:
-                # Original behavior for non-MCP uses
-                if thumbnail_only:
-                    max_width = 150  # Very small thumbnail
-                    if img.width > max_width:
-                        ratio = max_width / img.width
-                        new_height = int(img.height * ratio)
-                        img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
+                # Full size PNG
+                buffer = io.BytesIO()
+                img.save(buffer, format="PNG", optimize=True)
+                img_data = buffer.getvalue()
+                format_type = "png"
 
-                    # Save as WebP with aggressive compression
-                    buffer = io.BytesIO()
-                    img.save(buffer, format="WEBP", quality=30, method=6)
-                    img_data = buffer.getvalue()
-                    format_type = "webp"
-                else:
-                    # Full size PNG
-                    buffer = io.BytesIO()
-                    img.save(buffer, format="PNG", optimize=True)
-                    img_data = buffer.getvalue()
-                    format_type = "png"
-
-                return {
-                    "success": True,
-                    "image_data": base64.b64encode(img_data).decode("utf-8"),
-                    "format": format_type,
-                    "template_used": template_id,
-                    "text_positions": text_positions,
-                    "size_kb": len(img_data) / 1024,
-                    "thumbnail": thumbnail_only,
-                }
+            return {
+                "success": True,
+                "image_data": base64.b64encode(img_data).decode("utf-8"),
+                "format": format_type,
+                "template_used": template_id,
+                "text_positions": text_positions,
+                "size_kb": len(img_data) / 1024,
+                "thumbnail": thumbnail_only,
+            }
 
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -323,7 +292,6 @@ async def generate_meme(
         font_size_override,
         auto_resize,
         thumbnail_only=True,
-        return_path_only=False,  # Return base64 like LaTeX
     )
 
     if result.get("success"):

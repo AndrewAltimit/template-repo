@@ -12,6 +12,16 @@ GROUP_ID=$(id -g)
 export USER_ID
 export GROUP_ID
 
+# Helper function to ensure numeric value
+ensure_numeric() {
+  local value="${1:-0}"
+  if [[ "$value" =~ ^[0-9]+$ ]]; then
+    echo "$value"
+  else
+    echo 0
+  fi
+}
+
 # Initialize counters
 errors=0
 warnings=0
@@ -55,8 +65,8 @@ case "$STAGE" in
       flake8_errors=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: [EF][0-9]+" lint-output.txt 2>/dev/null || echo 0)
       flake8_warnings=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: [WC][0-9]+" lint-output.txt 2>/dev/null || echo 0)
       # Ensure values are numeric
-      flake8_errors=$(echo "$flake8_errors" | grep -E '^[0-9]+$' | head -1 || echo 0)
-      flake8_warnings=$(echo "$flake8_warnings" | grep -E '^[0-9]+$' | head -1 || echo 0)
+      flake8_errors=$(ensure_numeric "$flake8_errors")
+      flake8_warnings=$(ensure_numeric "$flake8_warnings")
       errors=$((errors + ${flake8_errors:-0}))
       warnings=$((warnings + ${flake8_warnings:-0}))
     fi
@@ -70,8 +80,8 @@ case "$STAGE" in
       pylint_errors=$(grep -cE ":[0-9]+: \[E[0-9]+.*\]" lint-output.txt 2>/dev/null || echo 0)
       pylint_warnings=$(grep -cE ":[0-9]+: \[W[0-9]+.*\]" lint-output.txt 2>/dev/null || echo 0)
       # Ensure values are numeric
-      pylint_errors=$(echo "$pylint_errors" | grep -E '^[0-9]+$' | head -1 || echo 0)
-      pylint_warnings=$(echo "$pylint_warnings" | grep -E '^[0-9]+$' | head -1 || echo 0)
+      pylint_errors=$(ensure_numeric "$pylint_errors")
+      pylint_warnings=$(ensure_numeric "$pylint_warnings")
       errors=$((errors + ${pylint_errors:-0}))
       warnings=$((warnings + ${pylint_warnings:-0}))
     fi
@@ -99,8 +109,8 @@ case "$STAGE" in
       flake8_errors=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: [EF][0-9]+" lint-output.txt 2>/dev/null || echo 0)
       flake8_warnings=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: [WC][0-9]+" lint-output.txt 2>/dev/null || echo 0)
       # Ensure values are numeric
-      flake8_errors=$(echo "$flake8_errors" | grep -E '^[0-9]+$' | head -1 || echo 0)
-      flake8_warnings=$(echo "$flake8_warnings" | grep -E '^[0-9]+$' | head -1 || echo 0)
+      flake8_errors=$(ensure_numeric "$flake8_errors")
+      flake8_warnings=$(ensure_numeric "$flake8_warnings")
       errors=$((errors + ${flake8_errors:-0}))
       warnings=$((warnings + ${flake8_warnings:-0}))
     fi
@@ -114,8 +124,8 @@ case "$STAGE" in
       pylint_errors=$(grep -cE ":[0-9]+: \[E[0-9]+.*\]" lint-output.txt 2>/dev/null || echo 0)
       pylint_warnings=$(grep -cE ":[0-9]+: \[W[0-9]+.*\]" lint-output.txt 2>/dev/null || echo 0)
       # Ensure values are numeric
-      pylint_errors=$(echo "$pylint_errors" | grep -E '^[0-9]+$' | head -1 || echo 0)
-      pylint_warnings=$(echo "$pylint_warnings" | grep -E '^[0-9]+$' | head -1 || echo 0)
+      pylint_errors=$(ensure_numeric "$pylint_errors")
+      pylint_warnings=$(ensure_numeric "$pylint_warnings")
       errors=$((errors + ${pylint_errors:-0}))
       warnings=$((warnings + ${pylint_warnings:-0}))
     fi
@@ -125,7 +135,7 @@ case "$STAGE" in
     docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && mypy . --ignore-missing-imports --no-error-summary" 2>&1 | tee -a lint-output.txt || true
     mypy_errors=$(grep -c "error:" lint-output.txt 2>/dev/null || echo 0)
     # Ensure value is numeric
-    mypy_errors=$(echo "$mypy_errors" | grep -E '^[0-9]+$' | head -1 || echo 0)
+    mypy_errors=$(ensure_numeric "$mypy_errors")
     errors=$((errors + ${mypy_errors:-0}))
 
     # Security scanning with Bandit
@@ -175,8 +185,8 @@ case "$STAGE" in
       total_errors=$(grep -cE "(error:|ERROR:|Error:)" lint-output.txt 2>/dev/null || echo 0)
       total_warnings=$(grep -cE "(warning:|WARNING:|Warning:)" lint-output.txt 2>/dev/null || echo 0)
       # Ensure values are numeric
-      total_errors=$(echo "$total_errors" | grep -E '^[0-9]+$' | head -1 || echo 0)
-      total_warnings=$(echo "$total_warnings" | grep -E '^[0-9]+$' | head -1 || echo 0)
+      total_errors=$(ensure_numeric "$total_errors")
+      total_warnings=$(ensure_numeric "$total_warnings")
     else
       total_errors=0
       total_warnings=0
