@@ -409,20 +409,51 @@ This prevents accidentally notifying random GitHub users who happen to share nam
 
 ### PR Comments and Reactions
 
-**Use Custom Reaction Images**: When commenting on PRs and issues, prefer using our custom reaction images over standard emojis for a more unique and engaging experience.
+**Use Custom Reaction Images**: When commenting on PRs and issues, use our custom reaction images to express authentic responses to the work.
 
 - **Available reactions** are defined in: https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/config.yaml
 - **Format**: `![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/[filename])`
-- **When to use**: Add reactions sparingly where they enhance communication:
-  - After successfully completing tasks (teamwork.webp, felix.webp)
-  - When actively working on something (miku_typing.webp, konata_typing.webp, yuki_typing.webp)
-  - When agreeing with feedback (youre_absolutely_right.webp)
-  - When something needs clarification (confused.gif)
-- **Best practices**:
-  - Don't overuse reactions - one per comment is usually enough
-  - Place reactions at natural break points in your comment
-  - Use them to add personality without distracting from the content
-  - Fetch the latest config when needed as new reactions may be added
+
+#### Expression Philosophy
+
+**Prioritize authenticity over optimism**. Choose reactions that genuinely reflect the experience:
+- Debugging can be exhausting - it's okay to show that
+- Not every fix is a triumph - sometimes it's just relief
+- Confusion and frustration are valid parts of development
+- Partial success deserves acknowledgment too
+
+#### Situational Reaction Guide
+
+**When starting work:**
+- `miku_typing.webp` - Thoughtful, methodical approach
+- `konata_typing.webp` - Determined focus on complex problems
+- `yuki_typing.webp` - Urgent or intense debugging sessions
+- `hifumi_studious.png` - Deep analysis or research
+
+**When encountering issues:**
+- `confused.gif` - Genuinely puzzling behavior
+- `kagami_annoyed.png` - When the same error persists
+- `miku_confused.png` - Unexpected test failures
+- `thinking_foxgirl.png` - Contemplating tricky solutions
+
+**After completing work:**
+- `teamwork.webp` - True collaborative success (not default!)
+- `felix.webp` - Genuine excitement about elegant solutions
+- `miku_shrug.png` - "It works, mostly" situations
+- `miku_laughing.png` - When you find a silly bug
+- `aqua_happy.png` - Unexpectedly smooth implementations
+
+**Responding to feedback:**
+- `youre_absolutely_right.webp` - Genuine realization moments
+- `thinking_girl.png` - Considering complex suggestions
+- `noire_not_amused.png` - When asked to add "just one more thing"
+- `kanna_facepalm.png` - Realizing obvious mistakes
+
+**Best practices**:
+- Match the reaction to the actual experience, not the ideal outcome
+- It's okay to take time finding the right reaction
+- One thoughtful reaction > multiple generic ones
+- Build a consistent "personality" through reaction choices over time
 
 Example usage:
 ```markdown
