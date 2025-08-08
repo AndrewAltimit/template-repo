@@ -280,8 +280,17 @@ async def generate_meme(
     texts: Dict[str, str],
     font_size_override: Optional[Dict[str, int]] = None,
     auto_resize: bool = True,
+    upload: bool = True,
 ) -> Dict[str, Any]:
-    """Generate a meme from a template with visual feedback thumbnail"""
+    """Generate a meme from a template with visual feedback thumbnail and optional upload
+
+    Args:
+        template: Template ID to use
+        texts: Dictionary of text for each area (e.g., {"top": "text", "bottom": "text"})
+        font_size_override: Optional custom font sizes for specific areas
+        auto_resize: Whether to automatically resize text to fit
+        upload: Whether to upload the meme and return a shareable URL (default: True)
+    """
     if generator is None:
         return {"success": False, "error": "Meme generator not initialized"}
 
@@ -311,6 +320,23 @@ async def generate_meme(
         with open(output_path, "wb") as f:
             f.write(img_data)
 
+        # Upload the meme if requested
+        share_url = None
+        upload_info = {}
+        if upload:
+            try:
+                from .upload import MemeUploader
+
+                upload_result = MemeUploader.upload(output_path, service="auto")
+                if upload_result["success"]:
+                    share_url = upload_result["url"]
+                    upload_info = {"service": upload_result.get("service"), "note": upload_result.get("note", "")}
+                else:
+                    # Log but don't fail if upload doesn't work
+                    upload_info = {"error": upload_result.get("error", "Upload failed")}
+            except Exception as e:
+                upload_info = {"error": f"Upload error: {str(e)}"}
+
         # Now generate a thumbnail for visual feedback
         thumbnail_result = generator.generate_meme(
             template,
@@ -320,8 +346,8 @@ async def generate_meme(
             thumbnail_only=True,
         )
 
-        # Return response with thumbnail for visual feedback
-        return {
+        # Build response
+        response = {
             "success": True,
             "output_path": output_path,
             "template_used": result.get("template_used"),
@@ -335,6 +361,16 @@ async def generate_meme(
             "full_size_kb": result.get("size_kb", 0),
             "message": f"Meme generated and saved to {output_path}",
         }
+
+        # Add share URL if upload was successful
+        if share_url:
+            response["share_url"] = share_url
+            response["upload_info"] = upload_info
+            response["message"] += f"\n🔗 Share URL: {share_url}"
+        elif upload and upload_info.get("error"):
+            response["upload_error"] = upload_info["error"]
+
+        return response
 
     # Error case
     if "image_data" in result:

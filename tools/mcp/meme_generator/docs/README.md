@@ -21,6 +21,7 @@ Memes are cultural artifacts with specific contexts, formats, and usage patterns
 - **Template-Based Generation**: Pre-configured meme templates with optimal text areas
 - **Auto-Resize Text**: Automatically adjusts font size to fit text within designated areas
 - **Visual Feedback**: Returns base64-encoded images for AI agents to verify text placement
+- **Automatic Upload**: Generates shareable URLs via free hosting services (0x0.st)
 - **Custom Font Sizes**: Override default font sizes for specific text areas
 - **Text Wrapping**: Intelligent text wrapping to fit within boundaries
 - **Stroke Effects**: Text with outlines for better readability on any background
@@ -64,6 +65,7 @@ Generate a meme from a template with text overlays.
 - `texts` (object, required): Text for each area (e.g., `{"top": "When...", "bottom": "Ol' Reliable"}`)
 - `font_size_override` (object, optional): Custom font sizes for specific areas
 - `auto_resize` (boolean, optional): Auto-adjust font size to fit text (default: true)
+- `upload` (boolean, optional): Upload to get shareable URL (default: true)
 
 **Example:**
 ```python
@@ -73,8 +75,20 @@ result = await generate_meme(
         "top": "When the code won't compile",
         "bottom": "print('hello world')"
     },
-    auto_resize=True
+    auto_resize=True,
+    upload=True  # Automatically uploads and returns share_url
 )
+
+# Response includes:
+# - output_path: Local file path
+# - share_url: https://0x0.st/XXXX.png (ready to share!)
+# - visual_feedback: Thumbnail preview
+```
+
+**Sharing the Meme:**
+```markdown
+# Use the share_url directly in markdown
+![My Meme](https://0x0.st/XXXX.png)
 ```
 
 **Response:**
@@ -346,11 +360,16 @@ The Meme Generator MCP Server is designed for seamless integration with AI agent
 - Memory usage: ~50MB base + image data
 - Concurrent requests: Supported via async handlers
 
+## Additional Documentation
+
+- **[MEME_USAGE_GUIDE.md](./MEME_USAGE_GUIDE.md)** - Understanding meme culture and proper usage
+- **[UPLOAD_GUIDE.md](./UPLOAD_GUIDE.md)** - How automatic upload and sharing works
+
 ## Security
 
 - Read-only template access
 - Sandboxed file operations
-- No external network calls
+- External network calls only for optional upload feature
 - Input validation on all parameters
 - Safe image processing with Pillow
 

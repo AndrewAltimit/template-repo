@@ -89,6 +89,11 @@ class MemeGeneratorMCPServer(BaseMCPServer):
                             "default": True,
                             "description": "Automatically resize font to fit text",
                         },
+                        "upload": {
+                            "type": "boolean",
+                            "default": True,
+                            "description": "Upload meme to get shareable URL (uses 0x0.st)",
+                        },
                     },
                     "required": ["template", "texts"],
                 },
@@ -146,21 +151,23 @@ class MemeGeneratorMCPServer(BaseMCPServer):
         texts: Dict[str, str],
         font_size_override: Optional[Dict[str, int]] = None,
         auto_resize: bool = True,
+        upload: bool = True,
     ) -> Dict[str, Any]:
-        """Generate a meme with visual feedback
+        """Generate a meme with visual feedback and optional upload
 
         Args:
             template: Template ID
             texts: Text for each area
             font_size_override: Custom font sizes
             auto_resize: Auto-adjust font size
+            upload: Upload to get shareable URL
 
         Returns:
-            Dictionary with meme data and visual feedback
+            Dictionary with meme data, visual feedback, and optional share URL
         """
         try:
-            # Generate meme (now returns compact WebP with visual feedback)
-            result = await generate_meme(template, texts, font_size_override, auto_resize)
+            # Generate meme (now returns compact WebP with visual feedback and optional upload)
+            result = await generate_meme(template, texts, font_size_override, auto_resize, upload)
 
             # The tool now returns a compact response with visual feedback included
             return dict(result)
