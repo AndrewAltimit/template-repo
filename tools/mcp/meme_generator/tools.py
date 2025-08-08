@@ -285,17 +285,17 @@ async def generate_meme(
     if generator is None:
         return {"success": False, "error": "Meme generator not initialized"}
 
-    # Generate meme with base64 data (like LaTeX tool does)
+    # Generate full-size meme first
     result = generator.generate_meme(
         template,
         texts,
         font_size_override,
         auto_resize,
-        thumbnail_only=True,
+        thumbnail_only=False,
     )
 
     if result.get("success"):
-        # Save to file for reference using configured output directory
+        # Save full-size image to file
         import base64
         import tempfile
         import time
@@ -305,13 +305,22 @@ async def generate_meme(
 
         # Create unique filename
         timestamp = int(time.time())
-        output_path = os.path.join(save_dir, f"meme_{template}_{timestamp}_{os.getpid()}.webp")
+        output_path = os.path.join(save_dir, f"meme_{template}_{timestamp}_{os.getpid()}.png")
 
         img_data = base64.b64decode(result["image_data"])
         with open(output_path, "wb") as f:
             f.write(img_data)
 
-        # Return response WITH base64 visual feedback (like LaTeX tool)
+        # Now generate a thumbnail for visual feedback
+        thumbnail_result = generator.generate_meme(
+            template,
+            texts,
+            font_size_override,
+            auto_resize,
+            thumbnail_only=True,
+        )
+
+        # Return response with thumbnail for visual feedback
         return {
             "success": True,
             "output_path": output_path,
@@ -320,9 +329,10 @@ async def generate_meme(
             "visual_feedback": {
                 "format": "webp",
                 "encoding": "base64",
-                "data": result["image_data"],  # Include base64 like LaTeX does
-                "size_kb": result.get("size_kb", 0),
+                "data": thumbnail_result.get("image_data", ""),  # Use thumbnail data
+                "size_kb": thumbnail_result.get("size_kb", 0),
             },
+            "full_size_kb": result.get("size_kb", 0),
             "message": f"Meme generated and saved to {output_path}",
         }
 

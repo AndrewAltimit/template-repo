@@ -25,37 +25,58 @@
     {
       "id": "bottom",
       "position": {
-        "x": 370,
-        "y": 450
+        "x": 480,
+        "y": 1155
       },
-      "width": 320,
-      "height": 80,
-      "default_font_size": 36,
-      "max_font_size": 50,
-      "min_font_size": 20,
+      "width": 768,
+      "height": 144,
+      "default_font_size": 48,
+      "max_font_size": 72,
+      "min_font_size": 24,
       "text_align": "center",
-      "text_color": "white",
-      "stroke_color": "black",
+      "text_color": "black",
+      "stroke_color": "white",
       "stroke_width": 2,
       "max_chars": 25,
       "recommended_text": "Ol' Reliable",
-      "usage": "The reliable solution/thing (usually keep as 'Ol' Reliable')"
+      "usage": "The reliable solution/thing (goes on the spatula box)"
     }
   ],
   "usage_rules": [
-    "Top text describes a situation where you need something reliable",
-    "Bottom text is typically 'Ol' Reliable' or a variation",
-    "Used to show trust in a tried-and-true solution",
-    "Works best when the 'reliable' thing is actually simple/basic"
+    "CONTEXT: SpongeBob proudly shows his spatula 'Ol' Reliable' when he needs something trustworthy",
+    "TOP TEXT: Describe a complex problem or situation that needs solving (usually starts with 'When...')",
+    "BOTTOM TEXT: The simple, tried-and-true solution you always fall back on",
+    "IMPORTANT: The bottom text goes IN THE WHITE LABEL on the spatula box, not below the image",
+    "TONE: Affectionate nostalgia for simple solutions that just work",
+    "BEST FOR: Celebrating basic tools/methods that consistently solve complex problems"
   ],
+  "cultural_context": "From SpongeBob SquarePants S2E15 where SpongeBob shows his trusty spatula. The meme celebrates returning to simple, reliable solutions when faced with complex problems. The humor comes from the contrast between the problem's complexity and the solution's simplicity.",
+  "text_positioning_note": "The 'solution' text MUST be placed in the white label area on the spatula box (75-85% down from top), NOT as a caption below the image. This is what makes it look like the spatula's actual name.",
   "examples": [
     {
       "top": "When the code won't compile",
-      "bottom": "print('hello world')"
+      "bottom": "print('hello world')",
+      "explanation": "Classic debugging by going back to basics"
     },
     {
       "top": "When you need to debug",
-      "bottom": "console.log()"
+      "bottom": "console.log()",
+      "explanation": "The most basic but effective debugging tool"
+    },
+    {
+      "top": "When you need to ship an entire OS just for your app",
+      "bottom": "Docker",
+      "explanation": "Docker as the go-to containerization solution"
+    },
+    {
+      "top": "When the modern framework is too complex",
+      "bottom": "vanilla JS",
+      "explanation": "Going back to plain JavaScript"
+    },
+    {
+      "top": "When machine learning fails",
+      "bottom": "if/else",
+      "explanation": "Simple logic beats complex AI"
     }
   ]
 }

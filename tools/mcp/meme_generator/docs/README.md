@@ -6,6 +6,16 @@ Generate memes from templates with customizable text overlays and visual feedbac
 
 The Meme Generator MCP Server provides tools for creating memes from predefined templates with intelligent text placement, auto-resizing, and visual feedback for AI agents to confirm proper text rendering.
 
+## Important: Understanding Meme Culture
+
+**Before using this tool, please read the [MEME_USAGE_GUIDE.md](./MEME_USAGE_GUIDE.md)**
+
+Memes are cultural artifacts with specific contexts, formats, and usage patterns. Using them incorrectly defeats their purpose. Each template includes:
+- **Cultural context**: The origin and meaning
+- **Text positioning**: Where text MUST appear (e.g., "Ol' Reliable" goes IN the spatula label)
+- **Phrasing patterns**: How to structure the text
+- **Tone and intent**: The emotional context
+
 ## Features
 
 - **Template-Based Generation**: Pre-configured meme templates with optimal text areas
@@ -14,6 +24,7 @@ The Meme Generator MCP Server provides tools for creating memes from predefined 
 - **Custom Font Sizes**: Override default font sizes for specific text areas
 - **Text Wrapping**: Intelligent text wrapping to fit within boundaries
 - **Stroke Effects**: Text with outlines for better readability on any background
+- **Cultural Documentation**: Each template includes usage rules and context
 
 ## Quick Start
 
