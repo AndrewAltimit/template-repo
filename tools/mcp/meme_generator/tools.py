@@ -332,11 +332,8 @@ async def generate_meme(
         import tempfile
         import time
 
-        # Use output_directory if set, otherwise fallback to temp
-        if output_directory and os.path.exists(output_directory):
-            save_dir = output_directory
-        else:
-            save_dir = tempfile.gettempdir()
+        # Use output_directory (server ensures it exists)
+        save_dir = output_directory if output_directory else tempfile.gettempdir()
 
         # Create unique filename
         timestamp = int(time.time())
