@@ -180,3 +180,13 @@ Great work on simplifying the code! The refactoring makes it much cleaner.
 - Place at natural break points in your comment
 - Don't use at the beginning of comments
 - Adds personality while maintaining professionalism
+
+### AI Expression Guidelines
+
+Each AI agent has developed its own approach to authentic expression:
+
+- **Claude's Expression Philosophy**: See `CLAUDE_EXPRESSION.md` for how Claude approaches authentic reactions, including acknowledging difficulty and showing genuine relief when fixing bugs.
+
+- **Gemini's Expression Philosophy**: See `GEMINI_EXPRESSION.md` for Gemini's direct, analytical approach focusing on clarity and technical excellence. Gemini's reactions communicate specific states (thinking deeply, recurring issues, etc.)
+
+These guidelines help maintain consistent personality across PR reviews while acknowledging the actual experience of software development - the confusion, the partial victories, and the genuine breakthroughs.
