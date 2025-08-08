@@ -50,7 +50,7 @@ case "$STAGE" in
     echo "=== Running security scans ==="
     docker-compose run --rm python-ci bandit -r . -f json -o bandit-report.json || true
     # Use new 'safety scan' command (replaces deprecated 'safety check')
-    docker-compose run --rm python-ci safety scan --output json > safety-report.json || true
+    docker-compose run --rm -T python-ci safety scan --disable-optional-telemetry --output json > safety-report.json || true
     ;;
 
   test)

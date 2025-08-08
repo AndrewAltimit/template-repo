@@ -51,20 +51,30 @@ case "$STAGE" in
     docker-compose run --rm python-ci flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics 2>&1 | tee -a lint-output.txt
 
     # Count Flake8 issues
-    flake8_errors=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: [EF][0-9]+" lint-output.txt || echo 0)
-    flake8_warnings=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: [WC][0-9]+" lint-output.txt || echo 0)
-    errors=$((errors + flake8_errors))
-    warnings=$((warnings + flake8_warnings))
+    if [ -f lint-output.txt ]; then
+      flake8_errors=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: [EF][0-9]+" lint-output.txt 2>/dev/null || echo 0)
+      flake8_warnings=$(grep -cE "^[^:]+:[0-9]+:[0-9]+: [WC][0-9]+" lint-output.txt 2>/dev/null || echo 0)
+      # Ensure values are numeric
+      flake8_errors=$(echo "$flake8_errors" | grep -E '^[0-9]+$' | head -1 || echo 0)
+      flake8_warnings=$(echo "$flake8_warnings" | grep -E '^[0-9]+$' | head -1 || echo 0)
+      errors=$((errors + ${flake8_errors:-0}))
+      warnings=$((warnings + ${flake8_warnings:-0}))
+    fi
 
     # Pylint
     echo "🔍 Running Pylint..."
     docker-compose run --rm python-ci bash -c 'find . -name "*.py" -not -path "./venv/*" -not -path "./.venv/*" | xargs pylint --output-format=parseable --exit-zero' 2>&1 | tee -a lint-output.txt || true
 
     # Count Pylint issues
-    pylint_errors=$(grep -cE ":[0-9]+: \[E[0-9]+.*\]" lint-output.txt || echo 0)
-    pylint_warnings=$(grep -cE ":[0-9]+: \[W[0-9]+.*\]" lint-output.txt || echo 0)
-    errors=$((errors + pylint_errors))
-    warnings=$((warnings + pylint_warnings))
+    if [ -f lint-output.txt ]; then
+      pylint_errors=$(grep -cE ":[0-9]+: \[E[0-9]+.*\]" lint-output.txt 2>/dev/null || echo 0)
+      pylint_warnings=$(grep -cE ":[0-9]+: \[W[0-9]+.*\]" lint-output.txt 2>/dev/null || echo 0)
+      # Ensure values are numeric
+      pylint_errors=$(echo "$pylint_errors" | grep -E '^[0-9]+$' | head -1 || echo 0)
+      pylint_warnings=$(echo "$pylint_warnings" | grep -E '^[0-9]+$' | head -1 || echo 0)
+      errors=$((errors + ${pylint_errors:-0}))
+      warnings=$((warnings + ${pylint_warnings:-0}))
+    fi
     ;;
 
   full)
@@ -91,19 +101,31 @@ case "$STAGE" in
     echo "🔍 Checking dependency security..."
     if [ -f requirements.txt ]; then
       # Use the new 'safety scan' command which replaces deprecated 'safety check'
-      safety_output=$(docker-compose run --rm python-ci safety scan --output json 2>&1 || true)
+      # Use -T flag to disable TTY allocation and --disable-optional-telemetry to prevent prompts
+      safety_output=$(docker-compose run --rm -T python-ci safety scan --disable-optional-telemetry --output json 2>&1 || true)
       echo "$safety_output" | tee -a lint-output.txt
       # Parse the new JSON format from safety scan
-      if [[ "$safety_output" == *"{"* ]]; then
+      if [[ "$safety_output" == *"{"* ]] && [[ "$safety_output" != *"Unhandled exception"* ]]; then
         # Valid JSON output, count vulnerabilities from the new format
         safety_issues=$(echo "$safety_output" | docker-compose run --rm python-ci python3 -c "import sys, json; data=json.load(sys.stdin); vulns=data.get('vulnerabilities', []); print(len(vulns))" 2>/dev/null || echo 0)
-        warnings=$((warnings + safety_issues))
+        # Ensure safety_issues is a valid number
+        if [[ "$safety_issues" =~ ^[0-9]+$ ]]; then
+          warnings=$((warnings + safety_issues))
+        fi
       fi
     fi
 
     # Count all issues from lint-output.txt
-    total_errors=$(grep -cE "(error:|ERROR:|Error:)" lint-output.txt || echo 0)
-    total_warnings=$(grep -cE "(warning:|WARNING:|Warning:)" lint-output.txt || echo 0)
+    if [ -f lint-output.txt ]; then
+      total_errors=$(grep -cE "(error:|ERROR:|Error:)" lint-output.txt 2>/dev/null || echo 0)
+      total_warnings=$(grep -cE "(warning:|WARNING:|Warning:)" lint-output.txt 2>/dev/null || echo 0)
+      # Ensure values are numeric
+      total_errors=$(echo "$total_errors" | grep -E '^[0-9]+$' | head -1 || echo 0)
+      total_warnings=$(echo "$total_warnings" | grep -E '^[0-9]+$' | head -1 || echo 0)
+    else
+      total_errors=0
+      total_warnings=0
+    fi
     errors=$((errors + total_errors))
     warnings=$((warnings + total_warnings))
     ;;
@@ -115,9 +137,11 @@ case "$STAGE" in
     ;;
 esac
 
-# Export results for GitHub Actions
-echo "errors=$errors" >> "$GITHUB_ENV"
-echo "warnings=$warnings" >> "$GITHUB_ENV"
+# Export results for GitHub Actions (if running in GitHub Actions)
+if [ -n "$GITHUB_ENV" ]; then
+  echo "errors=$errors" >> "$GITHUB_ENV"
+  echo "warnings=$warnings" >> "$GITHUB_ENV"
+fi
 
 # Summary
 echo ""
