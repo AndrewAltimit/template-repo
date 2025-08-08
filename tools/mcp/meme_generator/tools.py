@@ -293,13 +293,16 @@ class MemeGenerator:
         return {"success": True, "templates": template_list}
 
 
+# Global instances
 generator = None
+output_directory = None
 
 
-def initialize_generator(templates_dir: str) -> None:
-    """Initialize the meme generator"""
-    global generator
+def initialize_generator(templates_dir: str, output_dir: Optional[str] = None) -> None:
+    """Initialize the meme generator with output directory"""
+    global generator, output_directory
     generator = MemeGenerator(templates_dir)
+    output_directory = output_dir
 
 
 @register_tool("generate_meme")
@@ -324,12 +327,22 @@ async def generate_meme(
     )
 
     if result.get("success"):
-        # Save to file for reference
+        # Save to file for reference using configured output directory
         import base64
         import tempfile
+        import time
 
-        temp_dir = tempfile.gettempdir()
-        output_path = os.path.join(temp_dir, f"meme_{template}_{os.getpid()}.webp")
+        global output_directory
+
+        # Use output_directory if set, otherwise fallback to temp
+        if output_directory and os.path.exists(output_directory):
+            save_dir = output_directory
+        else:
+            save_dir = tempfile.gettempdir()
+
+        # Create unique filename
+        timestamp = int(time.time())
+        output_path = os.path.join(save_dir, f"meme_{template}_{timestamp}_{os.getpid()}.webp")
 
         img_data = base64.b64decode(result["image_data"])
         with open(output_path, "wb") as f:

@@ -1,12 +1,8 @@
 """Meme Generator MCP Server - Create memes from templates with text overlays"""
 
-import base64
-import io
 import os
 import tempfile
 from typing import Any, Dict, Optional
-
-from PIL import Image
 
 from ..core.base_server import BaseMCPServer
 from ..core.utils import ensure_directory, setup_logging
@@ -64,7 +60,7 @@ class MemeGeneratorMCPServer(BaseMCPServer):
             self.meme_output_dir = ensure_directory(os.path.join(temp_dir, "memes"))
             self.logger.warning(f"Using fallback temp directory: {temp_dir}")
 
-        initialize_generator(self.templates_dir)
+        initialize_generator(self.templates_dir, self.meme_output_dir)
 
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return available meme generation tools"""
@@ -223,52 +219,6 @@ class MemeGeneratorMCPServer(BaseMCPServer):
         """
         result: Dict[str, Any] = await test_fake_meme(template, texts)
         return result
-
-    def _process_image_for_feedback(self, img_data: bytes) -> Dict[str, Any]:
-        """Process image for visual feedback using tiny thumbnail
-
-        Args:
-            img_data: Raw image bytes
-
-        Returns:
-            Dictionary with visual feedback data
-        """
-        try:
-            img = Image.open(io.BytesIO(img_data))
-
-            # Create a tiny thumbnail for visual feedback (max 200px width)
-            max_width = 200
-            if img.width > max_width:
-                ratio = max_width / img.width
-                new_height = int(img.height * ratio)
-                img = img.resize((max_width, new_height), Image.Resampling.LANCZOS)
-
-            # Convert RGBA/LA to RGB for WebP
-            if img.mode in ("RGBA", "LA"):
-                background = Image.new("RGB", img.size, (255, 255, 255))
-                if img.mode == "RGBA":
-                    background.paste(img, mask=img.split()[3])
-                else:
-                    background.paste(img, mask=img.split()[1])
-                img = background
-
-            # Use aggressive WebP compression for tiny size
-            buffer = io.BytesIO()
-            img.save(buffer, format="WEBP", quality=60, method=6)
-            webp_data = buffer.getvalue()
-
-            return {
-                "format": "webp",
-                "encoding": "base64",
-                "data": base64.b64encode(webp_data).decode("utf-8"),
-                "size_kb": len(webp_data) / 1024,
-                "dimensions": f"{img.width}x{img.height}",
-                "thumbnail": True,
-            }
-
-        except Exception as e:
-            self.logger.warning(f"Failed to process image for feedback: {e}")
-            return {"error": str(e)}
 
 
 def main():
