@@ -26,6 +26,9 @@ ensure_numeric() {
 errors=0
 warnings=0
 
+# Clear any previous lint output
+rm -f lint-output.txt
+
 # Build the CI image if needed
 echo "🔨 Building CI image..."
 docker-compose build python-ci

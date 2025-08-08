@@ -20,6 +20,9 @@ COPY requirements.txt ./
 # Install all dependencies from the requirements file
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy linting configuration files
+COPY .isort.cfg .flake8 .pylintrc ./
+
 # Python environment configuration to prevent cache issues
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

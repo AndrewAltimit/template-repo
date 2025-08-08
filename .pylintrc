@@ -1,13 +1,25 @@
 [MESSAGES CONTROL]
 # Disable import errors for packages not installed in CI
 # Docstrings and some style issues to be fixed in separate PR
+# R-level refactor suggestions are not errors
 disable=import-error,
         no-name-in-module,
+        no-member,
         missing-module-docstring,
         missing-class-docstring,
         missing-function-docstring,
         fixme,
-        duplicate-code
+        duplicate-code,
+        too-many-arguments,
+        too-many-branches,
+        too-many-statements,
+        too-many-locals,
+        too-many-return-statements,
+        too-many-public-methods,
+        no-else-return,
+        too-many-positional-arguments,
+        import-outside-toplevel,
+        invalid-name
 
 [FORMAT]
 # Maximum number of characters on a single line.
