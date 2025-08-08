@@ -96,6 +96,24 @@
         "--mode",
         "stdio"
       ]
+    },
+    "meme-generator": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-meme-generator",
+        "python",
+        "-m",
+        "tools.mcp.meme_generator.server",
+        "--mode",
+        "stdio"
+      ]
     }
   }
 }

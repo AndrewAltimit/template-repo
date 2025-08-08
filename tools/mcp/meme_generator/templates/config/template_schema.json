@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Meme Template Configuration",
+  "type": "object",
+  "required": [
+    "name",
+    "template_file",
+    "text_areas"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Human-readable name of the meme template"
+    },
+    "template_file": {
+      "type": "string",
+      "description": "Filename of the template image"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the meme and its typical usage"
+    },
+    "text_areas": {
+      "type": "array",
+      "description": "Array of text overlay areas",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "position",
+          "width",
+          "height",
+          "default_font_size"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for this text area"
+          },
+          "position": {
+            "type": "object",
+            "properties": {
+              "x": {
+                "type": "number"
+              },
+              "y": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "x",
+              "y"
+            ],
+            "description": "Center position of text area"
+          },
+          "width": {
+            "type": "number",
+            "description": "Width of text area in pixels"
+          },
+          "height": {
+            "type": "number",
+            "description": "Height of text area in pixels"
+          },
+          "default_font_size": {
+            "type": "number",
+            "description": "Default font size for this area"
+          },
+          "max_font_size": {
+            "type": "number",
+            "description": "Maximum allowed font size"
+          },
+          "min_font_size": {
+            "type": "number",
+            "description": "Minimum allowed font size"
+          },
+          "text_align": {
+            "type": "string",
+            "enum": [
+              "left",
+              "center",
+              "right"
+            ],
+            "default": "center"
+          },
+          "text_color": {
+            "type": "string",
+            "default": "white"
+          },
+          "stroke_color": {
+            "type": "string",
+            "default": "black"
+          },
+          "stroke_width": {
+            "type": "number",
+            "default": 2
+          },
+          "max_chars": {
+            "type": "number",
+            "description": "Recommended maximum characters"
+          },
+          "recommended_text": {
+            "type": "string",
+            "description": "Example or template text"
+          },
+          "usage": {
+            "type": "string",
+            "description": "How this text area should be used"
+          }
+        }
+      }
+    },
+    "usage_rules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Rules and guidelines for using this meme template"
+    },
+    "examples": {
+      "type": "array",
+      "description": "Example text combinations",
+      "items": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

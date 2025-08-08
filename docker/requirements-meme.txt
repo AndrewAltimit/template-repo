@@ -1,0 +1,21 @@
+# MCP Meme Generator Server Requirements
+# Core MCP dependencies
+fastapi>=0.100.0
+uvicorn[standard]>=0.22.0
+pydantic>=2.0.0
+python-multipart>=0.0.6
+mcp
+
+# Image processing
+Pillow>=10.0.0
+
+# HTTP client for testing
+httpx>=0.24.0
+
+# Async support
+asyncio>=3.4.3
+aiofiles
+aiohttp
+
+# JSON handling
+jsonschema>=4.0.0

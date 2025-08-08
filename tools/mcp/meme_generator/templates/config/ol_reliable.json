@@ -1,0 +1,61 @@
+{
+  "name": "Ol' Reliable",
+  "template_file": "ol_reliable.jpg",
+  "description": "SpongeBob slapping his spatula, 'Ol' Reliable', used to show trust in something reliable",
+  "text_areas": [
+    {
+      "id": "top",
+      "position": {
+        "x": 370,
+        "y": 50
+      },
+      "width": 320,
+      "height": 100,
+      "default_font_size": 40,
+      "max_font_size": 60,
+      "min_font_size": 20,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 2,
+      "max_chars": 30,
+      "recommended_text": "When [situation]",
+      "usage": "Describe the situation or problem"
+    },
+    {
+      "id": "bottom",
+      "position": {
+        "x": 370,
+        "y": 450
+      },
+      "width": 320,
+      "height": 80,
+      "default_font_size": 36,
+      "max_font_size": 50,
+      "min_font_size": 20,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 2,
+      "max_chars": 25,
+      "recommended_text": "Ol' Reliable",
+      "usage": "The reliable solution/thing (usually keep as 'Ol' Reliable')"
+    }
+  ],
+  "usage_rules": [
+    "Top text describes a situation where you need something reliable",
+    "Bottom text is typically 'Ol' Reliable' or a variation",
+    "Used to show trust in a tried-and-true solution",
+    "Works best when the 'reliable' thing is actually simple/basic"
+  ],
+  "examples": [
+    {
+      "top": "When the code won't compile",
+      "bottom": "print('hello world')"
+    },
+    {
+      "top": "When you need to debug",
+      "bottom": "console.log()"
+    }
+  ]
+}
