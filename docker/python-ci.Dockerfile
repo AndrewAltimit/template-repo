@@ -20,13 +20,16 @@ COPY requirements.txt ./
 # Install all dependencies from the requirements file
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy linting configuration files
+# Copy linting configuration files to both /workspace and /app
 COPY .isort.cfg .flake8 .pylintrc ./
+COPY .isort.cfg .flake8 .pylintrc /app/
 # Copy pyproject.toml files for proper isort configuration
 COPY pyproject.toml ./
+COPY pyproject.toml /app/
 # Create directory structure for package configs
-RUN mkdir -p packages/github_ai_agents
+RUN mkdir -p packages/github_ai_agents /app/packages/github_ai_agents
 COPY packages/github_ai_agents/pyproject.toml ./packages/github_ai_agents/
+COPY packages/github_ai_agents/pyproject.toml /app/packages/github_ai_agents/
 
 # Python environment configuration to prevent cache issues
 ENV PYTHONUNBUFFERED=1 \
