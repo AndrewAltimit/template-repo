@@ -1,0 +1,81 @@
+{
+  "name": "Handshake Office",
+  "template_file": "handshake_office.jpg",
+  "description": "The Office handshake meme - showing disproportionate praise for simple actions",
+  "text_areas": [
+    {
+      "id": "left",
+      "position": {
+        "x": 150,
+        "y": 205
+      },
+      "width": 180,
+      "height": 90,
+      "default_font_size": 32,
+      "max_font_size": 48,
+      "min_font_size": 16,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 2,
+      "max_chars": 50,
+      "recommended_text": "My parents thanking me for fixing the router",
+      "usage": "The person/entity offering praise or thanks"
+    },
+    {
+      "id": "right",
+      "position": {
+        "x": 370,
+        "y": 250
+      },
+      "width": 180,
+      "height": 80,
+      "default_font_size": 32,
+      "max_font_size": 48,
+      "min_font_size": 16,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 2,
+      "max_chars": 50,
+      "recommended_text": "Me when I just unplug and plug it again",
+      "usage": "The person doing the simple/unimpressive action"
+    }
+  ],
+  "usage_rules": [
+    "CONTEXT: From The Office episode 'Nepotism' - a formal handshake between mismatched characters",
+    "LEFT TEXT: The person/entity offering excessive praise, thanks, or respect",
+    "RIGHT TEXT: The person who did something very simple or basic to earn that praise",
+    "TONE: Highlights the contrast between formal recognition and minimal effort",
+    "BEST FOR: Situations where simple actions receive disproportionate appreciation"
+  ],
+  "cultural_context": "From The Office S7E1 'Nepotism', showing a handshake between two mismatched characters. The humor comes from the contrast between the formal, professional handshake and the often trivial action that prompted it.",
+  "text_positioning_note": "Left text goes over the suited man (left side), right text goes over the casually-dressed man with fanny pack (right side).",
+  "examples": [
+    {
+      "left": "My parents thanking me for fixing the router",
+      "right": "Me when I just unplug and plug it again",
+      "explanation": "Classic IT 'fix' that seems magical to non-tech people"
+    },
+    {
+      "left": "The client praising our solution",
+      "right": "Me who just changed the font color",
+      "explanation": "Minor cosmetic changes being treated as major improvements"
+    },
+    {
+      "left": "Boss congratulating me for the quick fix",
+      "right": "Me who just restarted the service",
+      "explanation": "Simple server restart solving complex-seeming issues"
+    },
+    {
+      "left": "Team celebrating the bug fix",
+      "right": "Me who just added a semicolon",
+      "explanation": "Single character fix for a major issue"
+    },
+    {
+      "left": "Customer service thanking me for patience",
+      "right": "Me who was just playing on my phone",
+      "explanation": "Being thanked for doing nothing special"
+    }
+  ]
+}
