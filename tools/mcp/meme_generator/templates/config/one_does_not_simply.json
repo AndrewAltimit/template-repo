@@ -1,0 +1,82 @@
+{
+  "name": "One Does Not Simply",
+  "template_file": "one_does_not_simply.jpg",
+  "description": "Boromir from Lord of the Rings explaining that something cannot be done easily",
+  "text_areas": [
+    {
+      "id": "top",
+      "position": {
+        "x": 284,
+        "y": 45
+      },
+      "width": 528,
+      "height": 60,
+      "default_font_size": 36,
+      "max_font_size": 48,
+      "min_font_size": 24,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 3,
+      "max_chars": 40,
+      "recommended_text": "ONE DOES NOT SIMPLY",
+      "usage": "Setup phrase (usually 'ONE DOES NOT SIMPLY')"
+    },
+    {
+      "id": "bottom",
+      "position": {
+        "x": 284,
+        "y": 280
+      },
+      "width": 528,
+      "height": 60,
+      "default_font_size": 36,
+      "max_font_size": 48,
+      "min_font_size": 24,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 3,
+      "max_chars": 50,
+      "recommended_text": "WALK INTO MORDOR",
+      "usage": "The action that cannot be done simply"
+    }
+  ],
+  "usage_rules": [
+    "CONTEXT: Boromir explaining something can't be done easily in Lord of the Rings",
+    "TOP TEXT: Almost always 'ONE DOES NOT SIMPLY' - this is the classic setup",
+    "BOTTOM TEXT: The difficult or impossible action (e.g., 'WALK INTO MORDOR', 'FIX A BUG IN PRODUCTION')",
+    "FORMAT: Both texts are typically in ALL CAPS for impact",
+    "TONE: Emphasizing the difficulty or impossibility of a task",
+    "BEST FOR: Highlighting things that are harder than they seem or impossible to do casually"
+  ],
+  "cultural_context": "From The Lord of the Rings: The Fellowship of the Ring (2001), where Boromir warns 'One does not simply walk into Mordor.' The meme is used to emphasize that something cannot be done easily or casually, often applied to everyday frustrations or technical challenges.",
+  "text_positioning_note": "Text is placed above and below Boromir's face. The top text is positioned in the upper portion of the image, while the bottom text sits in the lower portion.",
+  "examples": [
+    {
+      "top": "ONE DOES NOT SIMPLY",
+      "bottom": "WALK INTO MORDOR",
+      "explanation": "The original quote from the movie"
+    },
+    {
+      "top": "ONE DOES NOT SIMPLY",
+      "bottom": "PAUSE AN ONLINE GAME",
+      "explanation": "Parents don't understand online gaming"
+    },
+    {
+      "top": "ONE DOES NOT SIMPLY",
+      "bottom": "FIX A BUG IN PRODUCTION",
+      "explanation": "Programming humor about production issues"
+    },
+    {
+      "top": "ONE DOES NOT SIMPLY",
+      "bottom": "MERGE WITHOUT CONFLICTS",
+      "explanation": "Git merge conflicts are inevitable"
+    },
+    {
+      "top": "ONE DOES NOT SIMPLY",
+      "bottom": "EXIT VIM",
+      "explanation": "Classic joke about Vim's confusing exit commands"
+    }
+  ]
+}
