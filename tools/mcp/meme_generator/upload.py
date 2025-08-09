@@ -61,6 +61,67 @@ class MemeUploader:
             return {"success": False, "error": str(e)}
 
     @staticmethod
+    def upload_to_tmpfiles(file_path: str) -> Dict[str, Any]:
+        """
+        Upload image to tmpfiles.org - reliable free hosting service.
+        Files expire after 1 hour of no downloads, or max 30 days.
+
+        Args:
+            file_path: Path to the image file
+
+        Returns:
+            Dict with 'success', 'url', 'embed_url' and optional 'error' keys
+        """
+        if not os.path.exists(file_path):
+            return {"success": False, "error": f"File not found: {file_path}"}
+
+        try:
+            with open(file_path, "rb") as f:
+                files = {"file": (os.path.basename(file_path), f)}
+
+                with httpx.Client() as client:
+                    response = client.post("https://tmpfiles.org/api/v1/upload", files=files, timeout=30)
+
+            if response.status_code == 200 and response.text:
+                try:
+                    response_data = json.loads(response.text)
+                    if response_data.get("status") == "success" and response_data.get("data", {}).get("url"):
+                        # Extract the file ID from the URL for creating the direct link
+                        url = response_data["data"]["url"]
+                        # Convert http://tmpfiles.org/123456/filename.png to direct link
+                        if "/tmpfiles.org/" in url:
+                            parts = url.split("/")
+                            if len(parts) >= 5:
+                                file_id = parts[3]
+                                filename = parts[4] if len(parts) > 4 else "image.png"
+                                embed_url = f"https://tmpfiles.org/dl/{file_id}/{filename}"
+                            else:
+                                embed_url = url.replace("http://", "https://")
+                        else:
+                            embed_url = url
+
+                        return {
+                            "success": True,
+                            "url": url,
+                            "embed_url": embed_url,  # Direct link for embedding in GitHub
+                            "service": "tmpfiles.org",
+                            "note": "Link expires after 1 hour of inactivity or max 30 days",
+                        }
+                    else:
+                        return {"success": False, "error": response_data.get("message", "Upload failed")}
+                except json.JSONDecodeError:
+                    return {"success": False, "error": f"Invalid response: {response.text[:200]}"}
+            elif response.status_code == 403:
+                return {"success": False, "error": "Access forbidden - service may be blocking automated uploads"}
+            else:
+                return {"success": False, "error": f"Upload failed with status {response.status_code}"}
+
+        except httpx.TimeoutException:
+            return {"success": False, "error": "Upload timed out after 30 seconds"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    @staticmethod
     def upload_to_fileio(file_path: str, expires: str = "1d") -> Dict[str, Any]:
         """
         Upload image to file.io - another free, no-auth service.
@@ -112,10 +173,10 @@ class MemeUploader:
 
         Args:
             file_path: Path to the image file
-            service: Service to use ('0x0st', 'fileio', or 'auto' to try all)
+            service: Service to use ('tmpfiles', '0x0st', 'fileio', or 'auto' to try all)
 
         Returns:
-            Dict with 'success', 'url', 'service', and optional 'error' keys
+            Dict with 'success', 'url', 'embed_url', 'service', and optional 'error' keys
         """
         # Check file exists and size
         if not os.path.exists(file_path):
@@ -123,27 +184,49 @@ class MemeUploader:
 
         file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
         if file_size_mb > 512:  # Most free services have limits
-            return {"success": False, "error": f"File too large: {file_size_mb:.1f}MB"}
+            return {"success": False, "error": f"File too large: {file_size_mb:.1f}MB (max 512MB)"}
 
-        if service == "0x0st":
+        if service == "tmpfiles":
+            return MemeUploader.upload_to_tmpfiles(file_path)
+        elif service == "0x0st":
             return MemeUploader.upload_to_0x0st(file_path)
         elif service == "fileio":
             return MemeUploader.upload_to_fileio(file_path)
         elif service == "auto":
-            # Try 0x0.st first (more reliable, longer retention)
+            errors = []
+
+            # Try tmpfiles.org first (most reliable in our testing)
+            logger.info("Trying tmpfiles.org...")
+            result = MemeUploader.upload_to_tmpfiles(file_path)
+            if result["success"]:
+                logger.info("Successfully uploaded to tmpfiles.org")
+                return result
+            errors.append(f"tmpfiles.org: {result.get('error', 'Unknown error')}")
+
+            # Try 0x0.st second (good retention but often blocks)
+            logger.info("tmpfiles.org failed, trying 0x0.st...")
             result = MemeUploader.upload_to_0x0st(file_path)
             if result["success"]:
+                logger.info("Successfully uploaded to 0x0.st")
+                # Add embed_url for consistency
+                result["embed_url"] = result["url"]
                 return result
+            errors.append(f"0x0.st: {result.get('error', 'Unknown error')}")
 
-            # Fallback to file.io
-            logger.warning(f"0x0.st failed: {result.get('error')}, trying file.io")
+            # Try file.io last
+            logger.info("0x0.st failed, trying file.io...")
             result = MemeUploader.upload_to_fileio(file_path)
             if result["success"]:
+                logger.info("Successfully uploaded to file.io")
+                # Add embed_url for consistency
+                result["embed_url"] = result["url"]
                 return result
+            errors.append(f"file.io: {result.get('error', 'Unknown error')}")
 
-            return {"success": False, "error": "All upload services failed"}
+            # All services failed, return detailed error
+            return {"success": False, "error": "All upload services failed", "details": errors}
         else:
-            return {"success": False, "error": f"Unknown service: {service}"}
+            return {"success": False, "error": f"Unknown service: {service}. Available: tmpfiles, 0x0st, fileio, auto"}
 
 
 def upload_meme(file_path: str, service: str = "auto") -> Optional[str]:

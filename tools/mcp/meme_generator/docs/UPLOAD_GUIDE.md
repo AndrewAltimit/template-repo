@@ -44,18 +44,26 @@ result = await mcp.generate_meme(
 
 ## Upload Services
 
-The system uses free, no-authentication services:
+The system uses free, no-authentication services with automatic fallback:
 
-### Primary: 0x0.st
+### Primary: tmpfiles.org
+- **Most reliable** - Works consistently in our testing
+- **No authentication required**
+- **File retention**: 1 hour of inactivity or max 30 days
+- **Direct embed URLs**: Returns both page and direct image links
+- **Best for GitHub**: Provides `/dl/` URLs for embedding
+
+### Secondary: 0x0.st
 - **No authentication required**
 - **File retention**: 365 days for files <512KB, shorter for larger
 - **Max size**: 512MB (but we limit to reasonable sizes)
-- **Direct URLs**: Clean, shareable links
+- **Note**: Often blocks automated uploads (403 errors)
 
-### Fallback: file.io (if implemented)
+### Tertiary: file.io
 - **No authentication required**
 - **Configurable expiration**: 1 day to 1 month
 - **Good for temporary shares**
+- **Note**: May redirect or have connection issues
 
 ## For AI Agents
 
@@ -68,13 +76,20 @@ result = mcp.generate_meme(
     texts={"top": "When PR needs validation", "bottom": "Generate a meme"}
 )
 
-# Get the share URL
-share_url = result.get("share_url")  # e.g., https://0x0.st/8FrM.png
+# Get the embed URL (preferred for GitHub)
+embed_url = result.get("embed_url")  # Direct image link for embedding
+share_url = result.get("share_url")  # Fallback if no embed_url
 
-# Use in GitHub comment
-comment = f"![Validation Meme]({share_url})"
+# Use in GitHub comment - embed_url displays image inline!
+comment = f"![Validation Meme]({embed_url or share_url})"
 gh.pr.comment(comment)
 ```
+
+### Why Use embed_url?
+- **Direct image display**: Shows inline in GitHub comments
+- **No redirects**: Direct link to image file
+- **Better UX**: Users see the meme immediately
+- **Example**: `https://tmpfiles.org/dl/123456/meme.png` vs `http://tmpfiles.org/123456/meme.png`
 
 ### Response Structure
 
@@ -82,10 +97,12 @@ gh.pr.comment(comment)
 {
     "success": true,
     "output_path": "/local/path/to/meme.png",
-    "share_url": "https://0x0.st/XXXX.png",  // <-- Shareable URL!
+    "share_url": "http://tmpfiles.org/123456/meme.png",  // Page URL
+    "embed_url": "https://tmpfiles.org/dl/123456/meme.png",  // Direct image for embedding!
     "upload_info": {
-        "service": "0x0.st",
-        "note": "Link expires based on file size (365 days for <512KB)"
+        "service": "tmpfiles.org",
+        "note": "Link expires after 1 hour of inactivity or max 30 days",
+        "embed_url": "https://tmpfiles.org/dl/123456/meme.png"
     },
     "visual_feedback": {
         "format": "webp",
@@ -94,7 +111,7 @@ gh.pr.comment(comment)
         "size_kb": 4.8
     },
     "full_size_kb": 1344.6,
-    "message": "Meme generated and saved to /path/meme.png\n🔗 Share URL: https://0x0.st/XXXX.png"
+    "message": "Meme generated and saved to /path/meme.png\n🔗 Share URL: http://tmpfiles.org/123456/meme.png\n📎 Embed URL: https://tmpfiles.org/dl/123456/meme.png"
 }
 ```
 
@@ -148,6 +165,44 @@ You can force a specific service:
 MemeUploader.upload(file_path, service="0x0st")  # Force 0x0.st
 ```
 
+## GitHub Embedding Best Practices
+
+### Quick Guide for AI Agents
+
+1. **Always use embed_url when available**:
+   ```python
+   url = result.get("embed_url") or result.get("share_url")
+   ```
+
+2. **Format for GitHub comments**:
+   ```markdown
+   ![Description](https://tmpfiles.org/dl/123456/meme.png)
+   ```
+
+3. **Complete example**:
+   ```python
+   # Generate meme
+   result = await mcp.generate_meme(
+       template="ol_reliable",
+       texts={"top": "Security issue", "bottom": "httpx library"}
+   )
+
+   # Get best URL for embedding
+   url = result.get("embed_url") or result.get("share_url")
+
+   # Create comment with embedded image
+   comment = f"""
+   ## Fixed the security issue! ✅
+
+   ![Meme showing the fix]({url})
+
+   Refactored to use httpx instead of subprocess.
+   """
+
+   # Post to GitHub
+   gh pr comment 48 --body "{comment}"
+   ```
+
 ## Examples
 
 ### GitHub PR Comment
@@ -156,7 +211,7 @@ MemeUploader.upload(file_path, service="0x0st")  # Force 0x0.st
 
 I tested the feature and it works!
 
-![Test Result](https://0x0.st/XXXX.png)
+![Test Result](https://tmpfiles.org/dl/123456/meme.png)
 ```
 
 ### Discord/Slack Share

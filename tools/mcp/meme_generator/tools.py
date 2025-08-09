@@ -330,10 +330,17 @@ async def generate_meme(
                 upload_result = MemeUploader.upload(output_path, service="auto")
                 if upload_result["success"]:
                     share_url = upload_result["url"]
-                    upload_info = {"service": upload_result.get("service"), "note": upload_result.get("note", "")}
+                    embed_url = upload_result.get("embed_url", share_url)  # Use embed_url if available
+                    upload_info = {
+                        "service": upload_result.get("service"),
+                        "note": upload_result.get("note", ""),
+                        "embed_url": embed_url,  # Include direct link for embedding
+                    }
                 else:
                     # Log but don't fail if upload doesn't work
                     upload_info = {"error": upload_result.get("error", "Upload failed")}
+                    if upload_result.get("details"):
+                        upload_info["details"] = upload_result["details"]
             except Exception as e:
                 upload_info = {"error": f"Upload error: {str(e)}"}
 
@@ -366,9 +373,17 @@ async def generate_meme(
         if share_url:
             response["share_url"] = share_url
             response["upload_info"] = upload_info
-            response["message"] += f"\n🔗 Share URL: {share_url}"
+            # Include embed URL for GitHub/Markdown embedding
+            if upload_info.get("embed_url"):
+                response["embed_url"] = upload_info["embed_url"]
+                response["message"] += f"\n🔗 Share URL: {share_url}"
+                response["message"] += f"\n📎 Embed URL: {upload_info['embed_url']}"
+            else:
+                response["message"] += f"\n🔗 Share URL: {share_url}"
         elif upload and upload_info.get("error"):
             response["upload_error"] = upload_info["error"]
+            if upload_info.get("details"):
+                response["upload_error_details"] = upload_info["details"]
 
         return response
 
