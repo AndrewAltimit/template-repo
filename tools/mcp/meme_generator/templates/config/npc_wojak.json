@@ -1,0 +1,87 @@
+{
+  "name": "NPC Wojak Reaction",
+  "template_file": "npc_wojak.jpg",
+  "description": "NPC makes a claim, gets challenged with a question, then goes silent and angry. Used to show when someone's confident statement is challenged in a way they don't like.",
+  "text_areas": [
+    {
+      "id": "claim",
+      "position": {
+        "x": 180,
+        "y": 25
+      },
+      "width": 280,
+      "height": 80,
+      "default_font_size": 28,
+      "max_font_size": 36,
+      "min_font_size": 18,
+      "text_align": "center",
+      "text_color": "black",
+      "stroke_color": "white",
+      "stroke_width": 0,
+      "max_chars": 40,
+      "recommended_text": "You can't just add print statements to debug",
+      "usage": "NPC's confident claim (Panel 1, top-left)"
+    },
+    {
+      "id": "challenge",
+      "position": {
+        "x": 540,
+        "y": 25
+      },
+      "width": 280,
+      "height": 80,
+      "default_font_size": 28,
+      "max_font_size": 36,
+      "min_font_size": 18,
+      "text_align": "center",
+      "text_color": "black",
+      "stroke_color": "white",
+      "stroke_width": 0,
+      "max_chars": 35,
+      "recommended_text": "Why not?",
+      "usage": "The challenging question (Panel 2, top-right)"
+    }
+  ],
+  "usage_rules": [
+    "CONTEXT: NPC makes bold claim, gets simple challenge, becomes silent then angry",
+    "CLAIM: Confident/pretentious statement from the NPC (Panel 1)",
+    "CHALLENGE: Simple but devastating counter-question (Panel 2)",
+    "PANELS 3-4: Silent then angry reaction (no text needed)",
+    "TONE: Shows inability to defend an overconfident position",
+    "BEST FOR: Exposing gatekeeping, pretentious takes, or unfounded confidence"
+  ],
+  "cultural_context": "The NPC Wojak meme shows the 'Non-Player Character' archetype - someone who repeats common talking points without deeper understanding. The format highlights when someone's confident assertion crumbles under the simplest scrutiny.",
+  "text_positioning_note": "Text goes above the characters' heads in panels 1 and 2. Panels 3 and 4 are reaction panels without text.",
+  "examples": [
+    {
+      "claim": "You can't just add print statements to debug",
+      "challenge": "Why not?",
+      "explanation": "Gatekeeping debugging methods"
+    },
+    {
+      "claim": "Real programmers don't use Stack Overflow",
+      "challenge": "How did you learn?",
+      "explanation": "Pretentious coding attitudes"
+    },
+    {
+      "claim": "You need to understand the entire codebase before making changes",
+      "challenge": "Do you?",
+      "explanation": "Unrealistic standards"
+    },
+    {
+      "claim": "AI will never be able to write good code",
+      "challenge": "Have you tried it?",
+      "explanation": "Dismissing new technology"
+    },
+    {
+      "claim": "Comments are for bad code",
+      "challenge": "What about documentation?",
+      "explanation": "Code purist takes"
+    },
+    {
+      "claim": "You should never use global variables",
+      "challenge": "What about constants?",
+      "explanation": "Absolute programming rules"
+    }
+  ]
+}
