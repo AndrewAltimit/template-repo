@@ -4,6 +4,10 @@
 # Usage: ./monitor.sh [PR_NUMBER]
 # Returns: JSON with comment data when admin/Gemini comment detected
 
+# Exit on error and fail on pipe errors for robustness
+set -e
+set -o pipefail
+
 PR_NUMBER=${1:-}
 
 if [ -z "$PR_NUMBER" ]; then
