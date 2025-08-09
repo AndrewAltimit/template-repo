@@ -153,8 +153,21 @@ class MemeGenerator:
         font_size_override: Optional[Dict[str, int]] = None,
         auto_resize: bool = True,
         thumbnail_only: bool = False,
+        return_pil_image: bool = False,
     ) -> Dict[str, Any]:
-        """Generate a meme from template with text overlays"""
+        """Generate a meme from template with text overlays
+
+        Args:
+            template_id: ID of the template to use
+            texts: Dictionary of text for each area
+            font_size_override: Optional custom font sizes
+            auto_resize: Whether to auto-resize text
+            thumbnail_only: Generate only a thumbnail
+            return_pil_image: Return PIL Image object in addition to base64
+
+        Returns:
+            Dict with success status, image data, and optional PIL Image
+        """
         if template_id not in self.templates:
             return {"success": False, "error": f"Template '{template_id}' not found"}
 
@@ -227,7 +240,7 @@ class MemeGenerator:
                 img_data = buffer.getvalue()
                 format_type = "png"
 
-            return {
+            result = {
                 "success": True,
                 "image_data": base64.b64encode(img_data).decode("utf-8"),
                 "format": format_type,
@@ -237,6 +250,46 @@ class MemeGenerator:
                 "thumbnail": thumbnail_only,
             }
 
+            # Optionally return the PIL Image object for reuse
+            if return_pil_image:
+                result["pil_image"] = img
+
+            return result
+
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def create_thumbnail_from_image(self, img: Image.Image, max_width: int = 150) -> Dict[str, Any]:
+        """Create a thumbnail from an existing PIL Image
+
+        Args:
+            img: PIL Image object
+            max_width: Maximum width for thumbnail
+
+        Returns:
+            Dict with thumbnail data in base64
+        """
+        try:
+            # Create a copy to avoid modifying the original
+            thumbnail = img.copy()
+
+            # Resize if needed
+            if thumbnail.width > max_width:
+                ratio = max_width / thumbnail.width
+                new_height = int(thumbnail.height * ratio)
+                thumbnail = thumbnail.resize((max_width, new_height), Image.Resampling.LANCZOS)
+
+            # Save as WebP with aggressive compression
+            buffer = io.BytesIO()
+            thumbnail.save(buffer, format="WEBP", quality=30, method=6)
+            img_data = buffer.getvalue()
+
+            return {
+                "success": True,
+                "image_data": base64.b64encode(img_data).decode("utf-8"),
+                "format": "webp",
+                "size_kb": len(img_data) / 1024,
+            }
         except Exception as e:
             return {"success": False, "error": str(e)}
 
@@ -294,13 +347,14 @@ async def generate_meme(
     if generator is None:
         return {"success": False, "error": "Meme generator not initialized"}
 
-    # Generate full-size meme first
+    # Generate full-size meme with PIL image returned for thumbnail creation
     result = generator.generate_meme(
         template,
         texts,
         font_size_override,
         auto_resize,
         thumbnail_only=False,
+        return_pil_image=True,  # Request PIL image for efficient thumbnail generation
     )
 
     if result.get("success"):
@@ -344,14 +398,19 @@ async def generate_meme(
             except Exception as e:
                 upload_info = {"error": f"Upload error: {str(e)}"}
 
-        # Now generate a thumbnail for visual feedback
-        thumbnail_result = generator.generate_meme(
-            template,
-            texts,
-            font_size_override,
-            auto_resize,
-            thumbnail_only=True,
-        )
+        # Create thumbnail from the already-generated PIL image (optimization)
+        if "pil_image" in result:
+            # Use the existing PIL image to create thumbnail - avoids re-rendering
+            thumbnail_result = generator.create_thumbnail_from_image(result["pil_image"])
+        else:
+            # Fallback to old method if PIL image not available
+            thumbnail_result = generator.generate_meme(
+                template,
+                texts,
+                font_size_override,
+                auto_resize,
+                thumbnail_only=True,
+            )
 
         # Build response
         response = {

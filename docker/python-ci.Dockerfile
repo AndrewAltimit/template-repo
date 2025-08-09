@@ -21,9 +21,14 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy linting configuration files to both /workspace and /app
+# Note: Files are copied to both locations to support different tool contexts:
+# - /workspace is the primary working directory for most CI operations
+# - /app is used by some tools that expect absolute paths or when running
+#   with read-only mounts where the code is mounted at /app
 COPY .isort.cfg .flake8 .pylintrc ./
 COPY .isort.cfg .flake8 .pylintrc /app/
 # Copy pyproject.toml files for proper isort configuration
+# Duplicated to ensure tools can find configs regardless of working directory
 COPY pyproject.toml ./
 COPY pyproject.toml /app/
 # Create directory structure for package configs
