@@ -1,0 +1,146 @@
+{
+  "name": "Who Wants to Be a Millionaire?",
+  "template_file": "millionaire.jpg",
+  "description": "The iconic quiz show answer screen format, used to present absurd or impossible questions",
+  "text_areas": [
+    {
+      "id": "question",
+      "position": {
+        "x": 320,
+        "y": 305
+      },
+      "width": 460,
+      "height": 30,
+      "default_font_size": 20,
+      "max_font_size": 24,
+      "min_font_size": 14,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 1,
+      "max_chars": 80,
+      "recommended_text": "What [absurd question]?",
+      "usage": "The main question or prompt"
+    },
+    {
+      "id": "a",
+      "position": {
+        "x": 200,
+        "y": 355
+      },
+      "width": 200,
+      "height": 30,
+      "default_font_size": 18,
+      "max_font_size": 22,
+      "min_font_size": 12,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 1,
+      "max_chars": 30,
+      "recommended_text": "[option]",
+      "usage": "Answer option A (no prefix needed)"
+    },
+    {
+      "id": "b",
+      "position": {
+        "x": 445,
+        "y": 355
+      },
+      "width": 200,
+      "height": 30,
+      "default_font_size": 18,
+      "max_font_size": 22,
+      "min_font_size": 12,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 1,
+      "max_chars": 30,
+      "recommended_text": "[option]",
+      "usage": "Answer option B (no prefix needed)"
+    },
+    {
+      "id": "c",
+      "position": {
+        "x": 200,
+        "y": 395
+      },
+      "width": 200,
+      "height": 30,
+      "default_font_size": 18,
+      "max_font_size": 22,
+      "min_font_size": 12,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 1,
+      "max_chars": 30,
+      "recommended_text": "[option]",
+      "usage": "Answer option C (no prefix needed)"
+    },
+    {
+      "id": "d",
+      "position": {
+        "x": 445,
+        "y": 395
+      },
+      "width": 200,
+      "height": 30,
+      "default_font_size": 18,
+      "max_font_size": 22,
+      "min_font_size": 12,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 1,
+      "max_chars": 30,
+      "recommended_text": "[option]",
+      "usage": "Answer option D (no prefix needed)"
+    }
+  ],
+  "usage_rules": [
+    "CONTEXT: The quiz show format presents a question with 4 multiple choice answers",
+    "QUESTION: Should be an absurd, impossible, or humorous question that sets up the joke",
+    "ANSWERS: Four options that are either all ridiculous, all true, or highlight the absurdity",
+    "FORMAT: Do NOT include 'A:', 'B:', 'C:', 'D:' prefixes - they are already in the template",
+    "TONE: Mock-serious presentation of ridiculous scenarios",
+    "BEST FOR: Presenting impossible choices, highlighting absurd situations, or making fun of difficult decisions"
+  ],
+  "cultural_context": "From the TV game show 'Who Wants to Be a Millionaire?' where contestants answer increasingly difficult questions for money. The meme format is often combined with reaction images (like someone looking shocked) to emphasize how difficult or absurd the question is.",
+  "text_positioning_note": "The question goes in the horizontal bar above the answer boxes. Each answer (A, B, C, D) goes in its respective quadrant below.",
+  "examples": [
+    {
+      "question": "What will fix the bug in production?",
+      "a": "More coffee",
+      "b": "git push --force",
+      "c": "Blame the intern",
+      "d": "All of the above",
+      "explanation": "Developer humor about debugging in production"
+    },
+    {
+      "question": "How many unit tests should you write?",
+      "a": "Yes",
+      "b": "All of them",
+      "c": "Until it works",
+      "d": "What are tests?",
+      "explanation": "Making fun of testing culture debates"
+    },
+    {
+      "question": "When will the project be done?",
+      "a": "Two weeks",
+      "b": "It's always two weeks",
+      "c": "When it's done",
+      "d": "Next sprint for sure",
+      "explanation": "Classic software estimation humor"
+    },
+    {
+      "question": "What's the best programming language?",
+      "a": "The one you know",
+      "b": "Not PHP",
+      "c": "JavaScript everywhere",
+      "d": "*starts holy war*",
+      "explanation": "Programming language debate satire"
+    }
+  ]
+}
