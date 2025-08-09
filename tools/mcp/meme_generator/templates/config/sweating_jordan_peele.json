@@ -1,0 +1,82 @@
+{
+  "name": "Sweating Jordan Peele",
+  "template_file": "sweating_jordan_peele.jpg",
+  "description": "Jordan Peele sweating profusely, used to show extreme nervousness, awkwardness, or tension",
+  "text_areas": [
+    {
+      "id": "top",
+      "position": {
+        "x": 300,
+        "y": 30
+      },
+      "width": 540,
+      "height": 60,
+      "default_font_size": 36,
+      "max_font_size": 48,
+      "min_font_size": 20,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 3,
+      "max_chars": 40,
+      "recommended_text": "",
+      "usage": "Optional top text (rarely used)"
+    },
+    {
+      "id": "bottom",
+      "position": {
+        "x": 300,
+        "y": 290
+      },
+      "width": 540,
+      "height": 60,
+      "default_font_size": 40,
+      "max_font_size": 56,
+      "min_font_size": 24,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 3,
+      "max_chars": 45,
+      "recommended_text": "When [stressful situation]",
+      "usage": "Primary caption describing the stressful/awkward situation"
+    }
+  ],
+  "usage_rules": [
+    "CONTEXT: Jordan Peele sweating nervously, from a Key & Peele sketch",
+    "PRIMARY TEXT: Usually just bottom text describing an awkward or stressful situation",
+    "TOP TEXT: Optional - rarely used, only when needed for setup",
+    "TONE: Extreme anxiety, nervousness, or uncomfortable tension",
+    "BEST FOR: Relatable moments of stress, decision paralysis, or social awkwardness",
+    "FORMAT: Often uses 'When...' to describe the situation"
+  ],
+  "cultural_context": "From a Key & Peele sketch where Jordan Peele sweats profusely. The meme captures that feeling of extreme nervous tension in everyday situations. It's perfect for those moments where you're internally panicking while trying to appear calm.",
+  "text_positioning_note": "Most commonly uses only the bottom caption. The sweating face is the main visual element, so text should be concise and not obstruct the expression.",
+  "examples": [
+    {
+      "bottom": "When you see a bug in your car but don't know if it's inside or outside",
+      "explanation": "The classic uncertainty that causes maximum stress"
+    },
+    {
+      "bottom": "When someone says 'we need to talk' and you have to wait 3 hours",
+      "explanation": "The anxiety of waiting for an unknown conversation"
+    },
+    {
+      "bottom": "When you're not sure if you locked the door but you're already at work",
+      "explanation": "That nagging uncertainty about daily routines"
+    },
+    {
+      "bottom": "When the teacher says 'okay let's go around the room and introduce ourselves'",
+      "explanation": "Social anxiety in forced participation"
+    },
+    {
+      "bottom": "When you wave back at someone who wasn't waving at you",
+      "explanation": "Peak social awkwardness"
+    },
+    {
+      "top": "Code works in dev",
+      "bottom": "Deploying to production",
+      "explanation": "The terror of pushing code live"
+    }
+  ]
+}
