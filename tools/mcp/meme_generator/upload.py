@@ -3,10 +3,12 @@ Image upload utilities for sharing memes online.
 Supports multiple free hosting services without authentication.
 """
 
+import json
 import logging
 import os
-import subprocess
 from typing import Any, Dict, Optional
+
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -30,16 +32,16 @@ class MemeUploader:
             return {"success": False, "error": f"File not found: {file_path}"}
 
         try:
-            # Use curl with proper user agent (0x0.st blocks certain user agents)
-            result = subprocess.run(
-                ["curl", "-A", "curl/7.68.0", "-F", f"file=@{file_path}", "https://0x0.st"],
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
+            with open(file_path, "rb") as f:
+                files = {"file": (os.path.basename(file_path), f)}
+                # Use proper user agent (0x0.st blocks certain user agents)
+                headers = {"User-Agent": "curl/7.68.0"}
 
-            if result.returncode == 0 and result.stdout:
-                url = result.stdout.strip()
+                with httpx.Client() as client:
+                    response = client.post("https://0x0.st", files=files, headers=headers, timeout=30)
+
+            if response.status_code == 200 and response.text:
+                url = response.text.strip()
                 # Check if response looks like a URL
                 if url.startswith("https://0x0.st/"):
                     return {
@@ -51,9 +53,9 @@ class MemeUploader:
                 else:
                     return {"success": False, "error": f"Unexpected response: {url}"}
             else:
-                return {"success": False, "error": f"Upload failed: {result.stderr or 'Unknown error'}"}
+                return {"success": False, "error": f"Upload failed with status {response.status_code}: {response.text}"}
 
-        except subprocess.TimeoutExpired:
+        except httpx.TimeoutException:
             return {"success": False, "error": "Upload timed out after 30 seconds"}
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -74,34 +76,31 @@ class MemeUploader:
             return {"success": False, "error": f"File not found: {file_path}"}
 
         try:
-            result = subprocess.run(
-                ["curl", "-F", f"file=@{file_path}", f"https://file.io/?expires={expires}"],
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
+            with open(file_path, "rb") as f:
+                files = {"file": (os.path.basename(file_path), f)}
 
-            if result.returncode == 0 and result.stdout:
-                import json
+                with httpx.Client() as client:
+                    response = client.post(f"https://file.io/?expires={expires}", files=files, timeout=30)
 
+            if response.status_code == 200 and response.text:
                 try:
-                    response = json.loads(result.stdout)
-                    if response.get("success") and response.get("link"):
+                    response_data = json.loads(response.text)
+                    if response_data.get("success") and response_data.get("link"):
                         return {
                             "success": True,
-                            "url": response["link"],
+                            "url": response_data["link"],
                             "service": "file.io",
                             "expires": expires,
-                            "key": response.get("key"),
+                            "key": response_data.get("key"),
                         }
                     else:
-                        return {"success": False, "error": response.get("message", "Upload failed")}
+                        return {"success": False, "error": response_data.get("message", "Upload failed")}
                 except json.JSONDecodeError:
-                    return {"success": False, "error": f"Invalid response: {result.stdout}"}
+                    return {"success": False, "error": f"Invalid response: {response.text}"}
             else:
-                return {"success": False, "error": f"Upload failed: {result.stderr or 'Unknown error'}"}
+                return {"success": False, "error": f"Upload failed with status {response.status_code}: {response.text}"}
 
-        except subprocess.TimeoutExpired:
+        except httpx.TimeoutException:
             return {"success": False, "error": "Upload timed out after 30 seconds"}
         except Exception as e:
             return {"success": False, "error": str(e)}
