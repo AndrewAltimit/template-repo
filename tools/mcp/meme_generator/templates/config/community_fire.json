@@ -1,0 +1,154 @@
+{
+  "name": "Community Fire (Troy walks in with pizza)",
+  "template_file": "community_fire.jpg",
+  "description": "Troy walks in with pizza to find everything on fire - used to show arriving to unexpected chaos",
+  "text_areas": [
+    {
+      "id": "expectation",
+      "position": {
+        "x": 421,
+        "y": 100
+      },
+      "width": 700,
+      "height": 120,
+      "default_font_size": 42,
+      "max_font_size": 56,
+      "min_font_size": 28,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 3,
+      "max_chars": 40,
+      "recommended_text": "ME RETURNING TO THE CODEBASE AFTER VACATION",
+      "usage": "The person arriving with normal expectations (Frame 1)"
+    },
+    {
+      "id": "chaos1",
+      "position": {
+        "x": 150,
+        "y": 620
+      },
+      "width": 220,
+      "height": 80,
+      "default_font_size": 32,
+      "max_font_size": 42,
+      "min_font_size": 20,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 3,
+      "max_chars": 20,
+      "recommended_text": "MERGE CONFLICTS",
+      "usage": "First chaotic element (left side, Frame 2)"
+    },
+    {
+      "id": "chaos2",
+      "position": {
+        "x": 421,
+        "y": 770
+      },
+      "width": 280,
+      "height": 80,
+      "default_font_size": 32,
+      "max_font_size": 42,
+      "min_font_size": 20,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 3,
+      "max_chars": 25,
+      "recommended_text": "BROKEN TESTS",
+      "usage": "Second chaotic element (center flames, Frame 2)"
+    },
+    {
+      "id": "chaos3",
+      "position": {
+        "x": 660,
+        "y": 620
+      },
+      "width": 300,
+      "height": 80,
+      "default_font_size": 28,
+      "max_font_size": 38,
+      "min_font_size": 18,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 3,
+      "max_chars": 30,
+      "recommended_text": "PRODUCTION OUTAGE",
+      "usage": "Third chaotic element (right side, Frame 2)"
+    },
+    {
+      "id": "chaos4",
+      "position": {
+        "x": 660,
+        "y": 850
+      },
+      "width": 280,
+      "height": 80,
+      "default_font_size": 32,
+      "max_font_size": 42,
+      "min_font_size": 20,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 3,
+      "max_chars": 25,
+      "recommended_text": "NEW REQUIREMENTS",
+      "usage": "Fourth chaotic element (bottom right, Frame 2)"
+    }
+  ],
+  "usage_rules": [
+    "CONTEXT: Troy from Community walks in with pizza expecting normalcy but finds complete chaos",
+    "EXPECTATION: What the person is trying to do/enjoy normally (Frame 1, above pizza boxes)",
+    "CHAOS1-4: Various chaotic elements happening in the room (Frame 2, labeled around the chaos)",
+    "IMPORTANT: This is a multi-label meme - all text areas should work together to tell the story",
+    "TONE: Overwhelming chaos contrasted with innocent expectations",
+    "BEST FOR: Showing how multiple things go wrong simultaneously when you expected peace"
+  ],
+  "cultural_context": "From Community S3E4 'Remedial Chaos Theory' where Troy returns with pizza to find the apartment on fire. The meme captures the feeling of walking into an unexpectedly chaotic situation when you were expecting normalcy. Perfect for depicting multiple simultaneous disasters.",
+  "text_positioning_note": "Frame 1 has one centered text above Troy. Frame 2 has 4 different text areas positioned around various chaotic elements in the burning room.",
+  "examples": [
+    {
+      "expectation": "ME RETURNING TO THE CODEBASE AFTER VACATION",
+      "chaos1": "MERGE CONFLICTS",
+      "chaos2": "BROKEN TESTS",
+      "chaos3": "PRODUCTION OUTAGE",
+      "chaos4": "NEW REQUIREMENTS",
+      "explanation": "Coming back to work chaos - the default example"
+    },
+    {
+      "expectation": "ME TRYING TO ENJOY THANKSGIVING",
+      "chaos1": "POLITICS",
+      "chaos2": "THE TURKEY",
+      "chaos3": "THE MACY'S DAY PARADE",
+      "chaos4": "THE KIDS TABLE",
+      "explanation": "Classic Thanksgiving chaos with multiple disasters"
+    },
+    {
+      "expectation": "ME OPENING TWITTER FOR 5 MINUTES",
+      "chaos1": "DISCOURSE",
+      "chaos2": "BAD TAKES",
+      "chaos3": "MAIN CHARACTER",
+      "chaos4": "RATIO'D POSTS",
+      "explanation": "Social media chaos"
+    },
+    {
+      "expectation": "ME JOINING THE STANDUP MEETING",
+      "chaos1": "SCOPE CREEP",
+      "chaos2": "DEADLINE MOVED UP",
+      "chaos3": "NEW URGENT BUGS",
+      "chaos4": "TEAM MEMBER QUIT",
+      "explanation": "Work meeting disasters"
+    },
+    {
+      "expectation": "ME CHECKING MY PR AFTER REVIEWS",
+      "chaos1": "REQUESTED CHANGES",
+      "chaos2": "FAILED CI",
+      "chaos3": "MERGE CONFLICTS",
+      "chaos4": "NITPICK COMMENTS",
+      "explanation": "PR review chaos"
+    }
+  ]
+}
