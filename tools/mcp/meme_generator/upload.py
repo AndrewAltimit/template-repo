@@ -35,7 +35,7 @@ class MemeUploader:
             with open(file_path, "rb") as f:
                 files = {"file": (os.path.basename(file_path), f)}
                 # Use proper user agent (0x0.st blocks certain user agents)
-                headers = {"User-Agent": "curl/7.68.0"}
+                headers = {"User-Agent": "curl/8.0.0"}
 
                 with httpx.Client() as client:
                     response = client.post("https://0x0.st", files=files, headers=headers, timeout=30)
@@ -195,16 +195,8 @@ class MemeUploader:
         elif service == "auto":
             errors = []
 
-            # Try tmpfiles.org first (most reliable in our testing)
-            logger.info("Trying tmpfiles.org...")
-            result = MemeUploader.upload_to_tmpfiles(file_path)
-            if result["success"]:
-                logger.info("Successfully uploaded to tmpfiles.org")
-                return result
-            errors.append(f"tmpfiles.org: {result.get('error', 'Unknown error')}")
-
-            # Try 0x0.st second (good retention but often blocks)
-            logger.info("tmpfiles.org failed, trying 0x0.st...")
+            # Try 0x0.st first (better retention - 365 days for <512KB files)
+            logger.info("Trying 0x0.st...")
             result = MemeUploader.upload_to_0x0st(file_path)
             if result["success"]:
                 logger.info("Successfully uploaded to 0x0.st")
@@ -212,6 +204,14 @@ class MemeUploader:
                 result["embed_url"] = result["url"]
                 return result
             errors.append(f"0x0.st: {result.get('error', 'Unknown error')}")
+
+            # Try tmpfiles.org second (shorter retention but reliable)
+            logger.info("0x0.st failed, trying tmpfiles.org...")
+            result = MemeUploader.upload_to_tmpfiles(file_path)
+            if result["success"]:
+                logger.info("Successfully uploaded to tmpfiles.org")
+                return result
+            errors.append(f"tmpfiles.org: {result.get('error', 'Unknown error')}")
 
             # Try file.io last
             logger.info("0x0.st failed, trying file.io...")
