@@ -47,6 +47,29 @@ The AI agents implement a comprehensive multi-layer security model with command-
 
 ## Commands
 
+### PR Monitoring
+
+```bash
+# Monitor a PR for admin/Gemini comments
+./scripts/pr-monitoring/monitor-pr 48
+
+# Monitor with custom timeout (30 minutes)
+./scripts/pr-monitoring/monitor-pr 48 --timeout 1800
+
+# Get JSON output for automation
+./scripts/pr-monitoring/monitor-pr 48 --json
+
+# When asked to "monitor the PR for new comments", use:
+python scripts/pr-monitoring/pr_monitor_agent.py PR_NUMBER
+```
+
+**PR Monitoring Usage**: When users ask you to monitor a PR or end requests with "and monitor for comments", automatically start the monitoring agent. It will:
+1. Watch for new comments from admin (AndrewAltimit) or Gemini reviews
+2. Return structured data when relevant comments are detected
+3. Allow you to respond appropriately based on comment type
+
+See `docs/PR_MONITORING.md` for full documentation.
+
 ### Running Tests
 
 ```bash

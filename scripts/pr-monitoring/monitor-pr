@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Convenience wrapper for PR monitoring
+# Usage: monitor-pr PR_NUMBER [OPTIONS]
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Check if PR number provided
+if [ -z "$1" ]; then
+    echo "Usage: monitor-pr PR_NUMBER [--timeout SECONDS] [--json]"
+    echo ""
+    echo "Examples:"
+    echo "  monitor-pr 48                  # Monitor PR #48"
+    echo "  monitor-pr 48 --timeout 1800   # Monitor for 30 minutes"
+    echo "  monitor-pr 48 --json           # Output only JSON"
+    exit 1
+fi
+
+# Run the Python agent
+python3 "$SCRIPT_DIR/pr_monitor_agent.py" "$@"
