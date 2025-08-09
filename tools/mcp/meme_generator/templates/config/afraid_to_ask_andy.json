@@ -1,0 +1,82 @@
+{
+  "name": "Afraid to Ask Andy",
+  "template_file": "afraid_to_ask_andy.jpg",
+  "description": "Andy Dwyer from Parks and Recreation expressing confusion about something but being too afraid to ask",
+  "text_areas": [
+    {
+      "id": "top",
+      "position": {
+        "x": 310,
+        "y": 70
+      },
+      "width": 580,
+      "height": 100,
+      "default_font_size": 36,
+      "max_font_size": 48,
+      "min_font_size": 20,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 2,
+      "max_chars": 60,
+      "recommended_text": "I don't know what [thing] is",
+      "usage": "State what you don't understand or are confused about"
+    },
+    {
+      "id": "bottom",
+      "position": {
+        "x": 310,
+        "y": 520
+      },
+      "width": 580,
+      "height": 100,
+      "default_font_size": 36,
+      "max_font_size": 48,
+      "min_font_size": 20,
+      "text_align": "center",
+      "text_color": "white",
+      "stroke_color": "black",
+      "stroke_width": 2,
+      "max_chars": 60,
+      "recommended_text": "And at this point I'm too afraid to ask",
+      "usage": "Express reluctance to ask about it"
+    }
+  ],
+  "usage_rules": [
+    "CONTEXT: Andy Dwyer (Chris Pratt) from Parks and Recreation looking confused and embarrassed",
+    "TOP TEXT: State something you don't understand or are confused about (often starts with 'I don't know what...')",
+    "BOTTOM TEXT: Express being too embarrassed to ask about it (typically 'And at this point I'm too afraid to ask')",
+    "TONE: Self-deprecating humor about not understanding something that seems obvious to everyone else",
+    "BEST FOR: Admitting ignorance about topics that feel too basic to ask about",
+    "CLASSIC FORMAT: Keep bottom text as the standard phrase for maximum recognition"
+  ],
+  "cultural_context": "From Parks and Recreation, this meme captures the universal feeling of being confused about something that seems like common knowledge, and being too embarrassed to ask for clarification after a certain point. It's widely used in tech communities for concepts everyone seems to understand except you.",
+  "text_positioning_note": "Both text areas should be clearly visible against Andy's face, with the classic white text/black outline format for maximum readability.",
+  "examples": [
+    {
+      "top": "I don't know what Kubernetes is",
+      "bottom": "And at this point I'm too afraid to ask",
+      "explanation": "Classic tech confusion about a widely-discussed technology"
+    },
+    {
+      "top": "I don't know what a REST API is",
+      "bottom": "And at this point I'm too afraid to ask",
+      "explanation": "Admitting confusion about fundamental web concepts"
+    },
+    {
+      "top": "I don't know what Docker does",
+      "bottom": "And at this point I'm too afraid to ask",
+      "explanation": "The containerization confusion everyone has at first"
+    },
+    {
+      "top": "I don't know how Git rebase works",
+      "bottom": "And at this point I'm too afraid to ask",
+      "explanation": "Advanced Git operations that many developers avoid"
+    },
+    {
+      "top": "I don't know what Web3 actually means",
+      "bottom": "And at this point I'm too afraid to ask",
+      "explanation": "Buzzword confusion in tech"
+    }
+  ]
+}
