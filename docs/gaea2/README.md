@@ -725,7 +725,6 @@ Based on analysis of 31 real projects:
 
 ## 🔗 Related Documentation
 
-- [Gaea2 Official Documentation](https://docs.quadspinner.com/gaea/)
 - [MCP Protocol Specification](https://docs.anthropic.com/mcp)
 - [Template Repository](https://github.com/AndrewAltimit/template-repo)
 
