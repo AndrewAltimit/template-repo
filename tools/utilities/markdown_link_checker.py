@@ -156,9 +156,8 @@ class MarkdownLinkChecker:
         try:
             content = file_path.read_text(encoding="utf-8")
 
-            # Remove code blocks before parsing
-            # While mistune handles inline links in code correctly,
-            # it may interpret some code syntax (like pipes) as markdown
+            # Remove code blocks before parsing to prevent false positives
+            # While mistune should handle this, it sometimes extracts text from code blocks
             # Remove fenced code blocks (```...```)
             content = re.sub(r"```[\s\S]*?```", "", content)
             # Remove inline code (`...`)

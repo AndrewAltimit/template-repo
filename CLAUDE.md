@@ -530,6 +530,7 @@ For detailed information on specific topics, refer to these documentation files:
 - `docs/SELF_HOSTED_RUNNER_SETUP.md` - Self-hosted GitHub Actions runner configuration
 - `docs/GITHUB_ENVIRONMENTS_SETUP.md` - GitHub environments and secrets setup
 - `docs/CONTAINERIZED_CI.md` - Container-based CI/CD philosophy and implementation
+- `docs/CLAUDE_CODE_HOOKS.md` - Claude Code hook system for enforcing best practices
 
 ### AI Agents & Security
 - `packages/github_ai_agents/docs/security.md` - Comprehensive AI agent security documentation

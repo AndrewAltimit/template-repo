@@ -58,8 +58,12 @@ jobs:
           # The Python script handles the exit code and GITHUB_OUTPUT directly
           echo "Checking links in markdown files..."
 
+          # Export user to run container as non-root
+          export USER_ID=$(id -u)
+          export GROUP_ID=$(id -g)
+
           # Build base docker command
-          DOCKER_CMD="docker run --rm -v ${GITHUB_WORKSPACE}:/workspace -w /workspace"
+          DOCKER_CMD="docker run --rm --user ${USER_ID}:${GROUP_ID} -v ${GITHUB_WORKSPACE}:/workspace -w /workspace"
 
           # Add GITHUB_OUTPUT mount if available
           if [ -n "${GITHUB_OUTPUT}" ]; then

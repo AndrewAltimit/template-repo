@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "PreToolUse": {
+      "Bash": "python3 /home/miku/Documents/repos/template-repo/scripts/claude-hooks/gh-comment-validator.py"
+    }
+  }
+}
