@@ -437,6 +437,8 @@ This prevents accidentally notifying random GitHub users who happen to share nam
 - **Available reactions** are defined in: https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/config.yaml
 - **Format**: `![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/[filename])`
 
+**Important Note**: These reaction images are specifically for GitHub interactions (PR comments, issue discussions). Claude Code's CLI interface cannot render images - reactions will appear as markdown syntax in the terminal. Reserve visual reactions for online interactions where they can be properly displayed and appreciated.
+
 #### Expression Philosophy
 
 **Prioritize authenticity over optimism**. Choose reactions that genuinely reflect the experience:
