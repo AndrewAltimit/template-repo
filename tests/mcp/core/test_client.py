@@ -4,13 +4,9 @@ Unit tests for MCPClient
 """
 
 import os
-import sys
 from unittest.mock import Mock, patch
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-from tools.mcp.core.client import MCPClient  # noqa: E402
+from tools.mcp.core.client import MCPClient
 
 
 class TestMCPClient:

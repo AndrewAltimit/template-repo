@@ -49,7 +49,7 @@ class MCPClient:
             result = response.json()
             assert isinstance(result, dict)  # Type assertion for mypy
             return result
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             logger.error(f"Error executing tool {tool}: {e}")
             return {"success": False, "error": str(e)}
 
@@ -63,7 +63,7 @@ class MCPClient:
             result = response.json()
             assert isinstance(result, dict)  # Type assertion for mypy
             return result
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             logger.error(f"Error listing tools: {e}")
             return {}
 
