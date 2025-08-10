@@ -98,16 +98,21 @@ curl -X POST http://localhost:<port>/mcp/execute \
 **STDIO Mode:**
 Servers running in STDIO mode communicate through standard input/output using the MCP protocol and don't expose HTTP endpoints.
 
-**Port Reference:**
-- Code Quality: 8010
-- Content Creation: 8011
-- Gemini: 8006
-- Gaea2: 8007
-- AI Toolkit: 8012
-- ComfyUI: 8013
-- OpenCode: 8014
-- Crush: 8015
-- Meme Generator: 8016
+### Quick Reference Table
+
+| Server Name | Port | Primary Mode | Description |
+|-------------|------|--------------|-------------|
+| Code Quality | 8010 | STDIO (Docker) | Code formatting and linting |
+| Content Creation | 8011 | STDIO (Docker) | Manim animations and LaTeX |
+| Gemini | 8006 | STDIO (Host) | AI consultation (must run on host) |
+| Gaea2 | 8007 | HTTP (Bridge) | Terrain generation (remote server) |
+| AI Toolkit | 8012 | HTTP (Bridge) | LoRA training (remote server) |
+| ComfyUI | 8013 | HTTP (Bridge) | Image generation (remote server) |
+| OpenCode | 8014 | STDIO (Docker) | AI code generation |
+| Crush | 8015 | STDIO (Docker) | Fast code generation |
+| Meme Generator | N/A | STDIO (Docker) | Meme creation with visual feedback |
+
+**Note**: Ports listed are for development/testing when servers run in HTTP mode. Most servers use STDIO mode through Docker Compose in production.
 
 ## Core Tools
 

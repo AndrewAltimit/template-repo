@@ -14,7 +14,7 @@ The MCP functionality is split across modular servers:
 6. **ComfyUI MCP Server** (Port 8013) - Bridge to remote ComfyUI for image generation
 7. **OpenCode MCP Server** (Port 8014) - AI-powered code generation (stdio/HTTP)
 8. **Crush MCP Server** (Port 8015) - Fast code generation (stdio/HTTP)
-9. **Meme Generator MCP Server** (Port 8016) - Containerized, creates memes with visual feedback
+9. **Meme Generator MCP Server** - Containerized meme creation with visual feedback (STDIO mode)
 
 This modular architecture ensures better separation of concerns, easier maintenance, and the ability to scale individual services independently.
 
@@ -308,24 +308,21 @@ curl http://localhost:8015/health
 
 See `tools/mcp/crush/README.md` and `docs/OPENCODE_CRUSH_INTEGRATION.md` for detailed documentation.
 
-## Meme Generator MCP Server (Port 8016)
+## Meme Generator MCP Server
 
-The Meme Generator server creates memes from templates with customizable text overlays and visual feedback.
+The Meme Generator server creates memes from templates with customizable text overlays and visual feedback. It runs in STDIO mode through Docker Compose for local use.
 
 ### Starting the Server
 
 ```bash
-# Start via Docker Compose (recommended)
-docker-compose up -d mcp-meme-generator
+# The server is configured in .mcp.json and runs automatically through Claude Desktop
+# It uses docker-compose in STDIO mode
 
-# Or run locally for development
-python -m tools.mcp.meme_generator.server --mode http
+# For manual testing or development:
+docker-compose run --rm -T mcp-meme-generator python -m tools.mcp.meme_generator.server --mode stdio
 
-# View logs
+# View container logs
 docker-compose logs -f mcp-meme-generator
-
-# Test health
-curl http://localhost:8016/health
 ```
 
 ### Available Tools
@@ -407,16 +404,25 @@ The modular servers are configured in `.mcp.json`:
       "args": ["-m", "tools.mcp.crush.server", "--mode", "stdio"]
     },
     "meme-generator": {
-      "type": "http",
-      "url": "http://localhost:8016/messages"
+      "command": "docker-compose",
+      "args": [
+        "-f", "./docker-compose.yml", "--profile", "services",
+        "run", "--rm", "-T", "mcp-meme-generator",
+        "python", "-m", "tools.mcp.meme_generator.server",
+        "--mode", "stdio"
+      ]
     }
   }
 }
 ```
 
-**Important**: The `/messages` endpoint shown above is for MCP protocol (JSON-RPC) communication used by Claude Desktop and MCP-compliant clients. For direct HTTP API tool execution, use the `/mcp/execute` endpoint instead. See [MCP Tools Documentation](MCP_TOOLS.md#tool-execution) for details on both interfaces.
+**Important Notes**:
+1. Most servers in the actual `.mcp.json` configuration use **STDIO mode through Docker Compose**, not HTTP mode. The configuration above shows a simplified example.
+2. The actual `.mcp.json` uses `docker-compose run` commands to start servers in STDIO mode within containers.
+3. Remote servers (Gaea2, AI Toolkit, ComfyUI) use HTTP mode with the `/messages` endpoint.
+4. The `/messages` endpoint is for MCP protocol (JSON-RPC) communication. For direct HTTP API tool execution during development, use the `/mcp/execute` endpoint instead.
 
-**Note**: OpenCode and Crush use STDIO mode by default for local Claude Desktop integration but can also run in HTTP mode.
+See the actual `.mcp.json` file for the precise configuration used by Claude Desktop.
 
 ## Client Usage
 
