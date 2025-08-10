@@ -63,22 +63,23 @@ jobs:
           export GROUP_ID=$(id -g)
 
           # Build base docker command
-          DOCKER_CMD="docker run --rm --user ${USER_ID}:${GROUP_ID} -v ${GITHUB_WORKSPACE}:/workspace -w /workspace"
+          DOCKER_CMD="docker run --rm --user ${USER_ID}:${GROUP_ID} -v \"${GITHUB_WORKSPACE}\":/workspace -w /workspace"
 
           # Add GITHUB_OUTPUT mount if available
           if [ -n "${GITHUB_OUTPUT}" ]; then
             GITHUB_OUTPUT_DIR=$(dirname "${GITHUB_OUTPUT}")
             GITHUB_OUTPUT_FILE=$(basename "${GITHUB_OUTPUT}")
-            DOCKER_CMD="${DOCKER_CMD} -v ${GITHUB_OUTPUT_DIR}:/github -e GITHUB_OUTPUT=/github/${GITHUB_OUTPUT_FILE}"
+            DOCKER_CMD="${DOCKER_CMD} -v \"${GITHUB_OUTPUT_DIR}\":/github -e GITHUB_OUTPUT=/github/${GITHUB_OUTPUT_FILE}"
           fi
 
           # Run the container with link checker
-          ${DOCKER_CMD} mcp-code-quality:latest \
+          # Use eval to properly handle the command with potential spaces in paths
+          eval "${DOCKER_CMD} mcp-code-quality:latest \
             python /workspace/scripts/check-markdown-links.py \
               /workspace \
               --format github \
               --output /workspace/link_check_summary.md \
-              ${{ github.event.inputs.check_external == 'false' && '--internal-only' || '' }}
+              ${{ github.event.inputs.check_external == 'false' && '--internal-only' || '' }}"
 
       - name: Upload results
         if: always()
