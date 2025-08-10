@@ -391,3 +391,9 @@ docker-compose run --rm python-ci python --version
 ### MCP Architecture
 - [MCP Architecture](docs/mcp/README.md) - Modular server design patterns
 - [MCP Servers](docs/MCP_SERVERS.md) - Individual server documentation
+
+## License
+
+This project is released under the [Unlicense](LICENSE) (public domain dedication).
+
+**For jurisdictions that do not recognize public domain:** As a fallback, this project is also available under the [MIT License](LICENSE-MIT).
