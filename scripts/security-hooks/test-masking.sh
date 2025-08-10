@@ -29,9 +29,12 @@ export PRIVATE_DATA="private_data_value"
 export PUBLIC_KEY="this_should_not_be_masked"  # Excluded pattern
 
 echo "=== Test 1: GitHub Token Masking ==="
-result=$(echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Token is ghp_test1234567890abcdefghijklmnopqrstuv\""}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null | jq -r '.tool_input.command')
+json_output=$(echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Token is ghp_test1234567890abcdefghijklmnopqrstuv\""}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null)
+result=$(echo "$json_output" | jq -r '.tool_input.command')
+permission=$(echo "$json_output" | jq -r '.permissionDecision')
 echo "Result: $result"
-if [[ "$result" == *"[MASKED_GITHUB_TOKEN]"* ]]; then
+echo "Permission: $permission"
+if [[ "$result" == *"[MASKED_GITHUB_TOKEN]"* ]] && [[ "$permission" == "allow_with_modifications" ]]; then
     echo "✓ PASSED"
 else
     echo "✗ FAILED"
@@ -39,9 +42,12 @@ fi
 echo
 
 echo "=== Test 2: Multiple Secrets ==="
-result=$(echo '{"tool_name":"Bash","tool_input":{"command":"gh issue comment 1 --body \"API: sk-or-v1-testkey1234567890abcdefghijklmnop DB: database_password_123\""}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null | jq -r '.tool_input.command')
+json_output=$(echo '{"tool_name":"Bash","tool_input":{"command":"gh issue comment 1 --body \"API: sk-or-v1-testkey1234567890abcdefghijklmnop DB: database_password_123\""}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null)
+result=$(echo "$json_output" | jq -r '.tool_input.command')
+permission=$(echo "$json_output" | jq -r '.permissionDecision')
 echo "Result: $result"
-if [[ "$result" == *"[MASKED_OPENROUTER_API_KEY]"* ]] && [[ "$result" == *"[MASKED_DB_PASSWORD]"* ]]; then
+echo "Permission: $permission"
+if [[ "$result" == *"[MASKED_OPENROUTER_API_KEY]"* ]] && [[ "$result" == *"[MASKED_DB_PASSWORD]"* ]] && [[ "$permission" == "allow_with_modifications" ]]; then
     echo "✓ PASSED"
 else
     echo "✗ FAILED"
@@ -49,9 +55,12 @@ fi
 echo
 
 echo "=== Test 3: Auto-Detection (*_TOKEN, *_SECRET) ==="
-result=$(echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Token: custom_token_value_789 Secret: auto_detected_secret\""}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null | jq -r '.tool_input.command')
+json_output=$(echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Token: custom_token_value_789 Secret: auto_detected_secret\""}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null)
+result=$(echo "$json_output" | jq -r '.tool_input.command')
+permission=$(echo "$json_output" | jq -r '.permissionDecision')
 echo "Result: $result"
-if [[ "$result" == *"[MASKED_MY_CUSTOM_TOKEN]"* ]] && [[ "$result" == *"[MASKED_SOMETHING_SECRET]"* ]]; then
+echo "Permission: $permission"
+if [[ "$result" == *"[MASKED_MY_CUSTOM_TOKEN]"* ]] && [[ "$result" == *"[MASKED_SOMETHING_SECRET]"* ]] && [[ "$permission" == "allow_with_modifications" ]]; then
     echo "✓ PASSED"
 else
     echo "✗ FAILED"
@@ -59,19 +68,27 @@ fi
 echo
 
 echo "=== Test 4: Excluded Pattern (PUBLIC_KEY) ==="
-result=$(echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Key: this_should_not_be_masked\""}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null | jq -r '.tool_input.command')
+json_output=$(echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Key: this_should_not_be_masked\""}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null)
+# When no modifications, tool_input is not included in response
+result=$(echo "$json_output" | jq -r '.tool_input.command // "not_modified"')
+permission=$(echo "$json_output" | jq -r '.permissionDecision')
 echo "Result: $result"
-if [[ "$result" == *"this_should_not_be_masked"* ]] && [[ "$result" != *"[MASKED"* ]]; then
-    echo "✓ PASSED - PUBLIC_KEY not masked"
+echo "Permission: $permission"
+# Check that no modifications were made (result is "not_modified") and permission is "allow"
+if [[ "$result" == "not_modified" ]] && [[ "$permission" == "allow" ]]; then
+    echo "✓ PASSED - PUBLIC_KEY not masked, permission=allow"
 else
-    echo "✗ FAILED - PUBLIC_KEY was masked"
+    echo "✗ FAILED - PUBLIC_KEY was masked or wrong permission"
 fi
 echo
 
 echo "=== Test 5: Pattern Detection (AWS, Stripe, JWT) ==="
-result=$(echo '{"tool_name":"Bash","tool_input":{"command":"gh pr create --body \"AWS: AKIAIOSFODNN7EXAMPLE Stripe: sk_test_fake123456789012345678901234\""}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null | jq -r '.tool_input.command')
+json_output=$(echo '{"tool_name":"Bash","tool_input":{"command":"gh pr create --body \"AWS: AKIAIOSFODNN7EXAMPLE Stripe: sk_test_fake123456789012345678901234\""}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null)
+result=$(echo "$json_output" | jq -r '.tool_input.command')
+permission=$(echo "$json_output" | jq -r '.permissionDecision')
 echo "Result: $result"
-if [[ "$result" == *"[MASKED_AWS_ACCESS_KEY"* ]] && [[ "$result" == *"[MASKED_STRIPE"* ]]; then
+echo "Permission: $permission"
+if [[ "$result" == *"[MASKED_AWS_ACCESS_KEY"* ]] && [[ "$result" == *"[MASKED_STRIPE"* ]] && [[ "$permission" == "allow_with_modifications" ]]; then
     echo "✓ PASSED"
 else
     echo "✗ FAILED"
@@ -80,12 +97,17 @@ echo
 
 echo "=== Test 6: Non-GitHub Command (Should Pass Through) ==="
 # shellcheck disable=SC2016
-result=$(echo '{"tool_name":"Bash","tool_input":{"command":"echo $GITHUB_TOKEN $DB_PASSWORD"}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null | jq -r '.tool_input.command')
+json_output=$(echo '{"tool_name":"Bash","tool_input":{"command":"echo $GITHUB_TOKEN $DB_PASSWORD"}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null)
+# When no modifications, tool_input is not included in response
+result=$(echo "$json_output" | jq -r '.tool_input.command // "not_modified"')
+permission=$(echo "$json_output" | jq -r '.permissionDecision')
 echo "Result: $result"
-if [[ "$result" == "echo \$GITHUB_TOKEN \$DB_PASSWORD" ]]; then
-    echo "✓ PASSED - Non-gh command unchanged"
+echo "Permission: $permission"
+# Check that no modifications were made (result is "not_modified") and permission is "allow"
+if [[ "$result" == "not_modified" ]] && [[ "$permission" == "allow" ]]; then
+    echo "✓ PASSED - Non-gh command unchanged, permission=allow"
 else
-    echo "✗ FAILED - Non-gh command was modified"
+    echo "✗ FAILED - Non-gh command was modified or wrong permission"
 fi
 echo
 
@@ -102,9 +124,12 @@ fi
 echo
 
 echo "=== Test 8: URL with Embedded Credentials ==="
-result=$(echo '{"tool_name":"Bash","tool_input":{"command":"gh issue comment 1 --body \"URL: https://user:password123@example.com/api\""}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null | jq -r '.tool_input.command')
+json_output=$(echo '{"tool_name":"Bash","tool_input":{"command":"gh issue comment 1 --body \"URL: https://user:password123@example.com/api\""}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null)
+result=$(echo "$json_output" | jq -r '.tool_input.command')
+permission=$(echo "$json_output" | jq -r '.permissionDecision')
 echo "Result: $result"
-if [[ "$result" == *"[MASKED_URL_WITH_AUTH]"* ]]; then
+echo "Permission: $permission"
+if [[ "$result" == *"[MASKED_URL_WITH_AUTH]"* ]] && [[ "$permission" == "allow_with_modifications" ]]; then
     echo "✓ PASSED"
 else
     echo "✗ FAILED"
@@ -112,9 +137,12 @@ fi
 echo
 
 echo "=== Test 9: Bearer Token ==="
-result=$(echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Auth: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\""}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null | jq -r '.tool_input.command')
+json_output=$(echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Auth: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\""}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null)
+result=$(echo "$json_output" | jq -r '.tool_input.command')
+permission=$(echo "$json_output" | jq -r '.permissionDecision')
 echo "Result: $result"
-if [[ "$result" == *"[MASKED_BEARER_TOKEN]"* ]]; then
+echo "Permission: $permission"
+if [[ "$result" == *"[MASKED_BEARER_TOKEN]"* ]] && [[ "$permission" == "allow_with_modifications" ]]; then
     echo "✓ PASSED"
 else
     echo "✗ FAILED"

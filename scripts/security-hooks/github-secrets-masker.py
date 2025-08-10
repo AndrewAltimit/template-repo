@@ -141,7 +141,8 @@ class SecretMasker:
         mask_format = settings.get("mask_format", "[MASKED_{name}]")
 
         # First mask known environment secrets (longest first to avoid partial matches)
-        # Sort by length to mask longer secrets first
+        # Sort by length (longest first) to prevent partial masking,
+        # e.g., masking "SECRET" inside "SUPER_SECRET"
         sorted_secrets = sorted(self.secrets.items(), key=lambda x: len(x[1]), reverse=True)
 
         for key, value in sorted_secrets:
