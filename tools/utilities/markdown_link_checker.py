@@ -5,9 +5,44 @@ import asyncio
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import aiohttp
+import mistune
+from mistune.renderers.rst import RSTRenderer
+
+
+class LinkExtractorRenderer(RSTRenderer):
+    """Custom mistune renderer to extract links from markdown"""
+
+    def __init__(self):
+        super().__init__()
+        self.links: Set[str] = set()
+
+    def link(self, token, state) -> str:
+        """Extract link URLs during rendering"""
+        attrs = token.get("attrs", {})
+        url = attrs.get("url", "")
+        if url:
+            self.links.add(url)
+        return ""
+
+    def image(self, token, state) -> str:
+        """Extract image URLs during rendering"""
+        attrs = token.get("attrs", {})
+        url = attrs.get("url", "")
+        if url:
+            self.links.add(url)
+        return ""
+
+    def autolink(self, token, state) -> str:
+        """Extract autolink URLs"""
+        children = token.get("children", [])
+        if children and isinstance(children, list) and len(children) > 0:
+            url = children[0].get("raw", "")
+            if url and not url.startswith("mailto:"):
+                self.links.add(url)
+        return ""
 
 
 class MarkdownLinkChecker:
@@ -25,6 +60,9 @@ class MarkdownLinkChecker:
             r"^file://",
             r"^ftp://",
         ]
+        # Create markdown parser with link extractor
+        self.link_renderer = LinkExtractorRenderer()
+        self.markdown = mistune.create_markdown(renderer=self.link_renderer)
 
     async def check_markdown_links(
         self,
@@ -114,53 +152,35 @@ class MarkdownLinkChecker:
         }
 
     async def _extract_links_from_markdown(self, file_path: Path) -> List[str]:
-        """Extract all links from a markdown file"""
+        """Extract all links from a markdown file using mistune parser"""
         try:
             content = file_path.read_text(encoding="utf-8")
 
             # Remove code blocks to avoid false positives
+            # This is still needed as code blocks may contain example URLs
             # Remove fenced code blocks (```...```)
             content = re.sub(r"```[\s\S]*?```", "", content)
             # Remove inline code (`...`)
             content = re.sub(r"`[^`]+`", "", content)
 
-            # Use regex to find all links in markdown
-            link_patterns = [
-                r"\[([^\]]+)\]\(([^)]+)\)",  # [text](url)
-                r"<(https?://[^>]+)>",  # <url>
-                r"(?<!\[)(?<![\(\<])(https?://[^\s\)]+)",  # Raw URLs
-            ]
+            # Clear previous links and parse with mistune
+            self.link_renderer.links.clear()
+            self.markdown(content)
 
-            # Skip patterns that are clearly not links (placeholders, code examples)
-            skip_patterns = [
-                r"^\{.*\}$",  # {placeholder}
-                r"^\.{3}$",  # ...
-                r".*\|.*",  # TypeScript types
-                r"^(share_url|embed_url|url)$",  # Variable names
-                r".*;$",  # Lines ending with semicolon (code)
-            ]
+            # Get extracted links
+            links = list(self.link_renderer.links)
 
-            links = []
-            compiled_skip = [re.compile(p) for p in skip_patterns]
-
-            for pattern in link_patterns:
-                matches = re.finditer(pattern, content)
-                for match in matches:
-                    # Get the URL part (last group for markdown links)
-                    url = match.group(2) if match.lastindex == 2 else match.group(1)
-                    if url:
-                        # Skip if it matches any skip pattern
-                        if not any(skip.match(url) for skip in compiled_skip):
-                            links.append(url)
-
-            # Also look for reference-style links
+            # Also check for reference-style links that mistune might miss
+            # Some edge cases with reference links
             ref_pattern = r"^\[([^\]]+)\]:\s*(.+)$"
             for line in content.split("\n"):
                 ref_match = re.match(ref_pattern, line.strip())
                 if ref_match is not None:
-                    links.append(ref_match.group(2))
+                    url = ref_match.group(2).strip()
+                    if url not in links:
+                        links.append(url)
 
-            return list(set(links))  # Remove duplicates
+            return links
 
         except Exception as e:
             print(f"Error extracting links from {file_path}: {str(e)}", file=sys.stderr)
