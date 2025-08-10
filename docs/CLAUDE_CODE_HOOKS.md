@@ -32,7 +32,7 @@ Hooks are configured in `.claude/settings.json`:
 {
   "hooks": {
     "PreToolUse": {
-      "Bash": "python3 /home/miku/Documents/repos/template-repo/scripts/claude-hooks/gh-comment-validator.py"
+      "Bash": "./scripts/claude-hooks/run-validator.sh"
     }
   }
 }
