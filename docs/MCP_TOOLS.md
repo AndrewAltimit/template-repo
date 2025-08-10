@@ -666,8 +666,9 @@ docker-compose logs -f mcp-server
 
 - `GET /` - Server information
 - `GET /health` - Health check
-- `GET /tools` - List available tools
-- `POST /tools/execute` - Execute a tool
+- `GET /mcp/tools` - List available tools
+- `POST /mcp/execute` - Execute a tool (direct API)
+- `POST /messages` - MCP protocol endpoint (JSON-RPC)
 - `GET /tools/{tool_name}` - Get tool details
 
 ### Response Format

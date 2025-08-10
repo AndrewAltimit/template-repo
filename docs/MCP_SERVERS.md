@@ -80,6 +80,44 @@ Output directory is configured via the `MCP_OUTPUT_DIR` environment variable (de
 
 See `tools/mcp/content_creation/docs/README.md` for detailed documentation.
 
+## Gemini MCP Server (Port 8006)
+
+The Gemini server provides AI assistance through the Gemini CLI. It **must run on the host system** because it requires Docker access.
+
+### Starting the Server
+
+```bash
+# Must run on host system (not in container)
+python -m tools.mcp.gemini.server
+
+# Or use HTTP mode
+python -m tools.mcp.gemini.server --mode http
+
+# Or use the helper script
+./tools/mcp/gemini/scripts/start_server.sh
+
+# Test health
+curl http://localhost:8006/health
+```
+
+### Available Tools
+
+- **consult_gemini** - Get AI assistance for technical questions
+- **clear_gemini_history** - Clear conversation history
+- **gemini_status** - Get integration status
+- **toggle_gemini_auto_consult** - Control auto-consultation
+
+### Container Detection
+
+The server includes automatic container detection and will exit with an error if run in a container:
+
+```bash
+# This will fail with a helpful error message
+docker-compose run --rm python-ci python -m tools.mcp.gemini.server
+```
+
+See `tools/mcp/gemini/docs/README.md` for detailed documentation.
+
 ## Gaea2 MCP Server (Port 8007)
 
 The Gaea2 server provides comprehensive terrain generation capabilities with support for all 185 documented Gaea2 nodes.
@@ -124,44 +162,6 @@ curl http://localhost:8007/health
 - For containerized deployment: Works out of the box
 - For Windows deployment with CLI features: Set `GAEA2_PATH` environment variable
 - See `tools/mcp/gaea2/docs/README.md` for complete documentation
-
-## Gemini MCP Server (Port 8006)
-
-The Gemini server provides AI assistance through the Gemini CLI. It **must run on the host system** because it requires Docker access.
-
-### Starting the Server
-
-```bash
-# Must run on host system (not in container)
-python -m tools.mcp.gemini.server
-
-# Or use HTTP mode
-python -m tools.mcp.gemini.server --mode http
-
-# Or use the helper script
-./tools/mcp/gemini/scripts/start_server.sh
-
-# Test health
-curl http://localhost:8006/health
-```
-
-### Available Tools
-
-- **consult_gemini** - Get AI assistance for technical questions
-- **clear_gemini_history** - Clear conversation history
-- **gemini_status** - Get integration status
-- **toggle_gemini_auto_consult** - Control auto-consultation
-
-### Container Detection
-
-The server includes automatic container detection and will exit with an error if run in a container:
-
-```bash
-# This will fail with a helpful error message
-docker-compose run --rm python-ci python -m tools.mcp.gemini.server
-```
-
-See `tools/mcp/gemini/docs/README.md` for detailed documentation.
 
 ## AI Toolkit MCP Server (Port 8012)
 
