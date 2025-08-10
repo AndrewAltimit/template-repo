@@ -55,48 +55,35 @@ jobs:
       - name: Check markdown links
         id: link_check
         run: |
-          set +e  # Don't exit on error
-
-          # Determine if we should check external links
-          check_external="${{ github.event.inputs.check_external }}"
-          if [ "$check_external" = "false" ]; then
-            check_args="--internal-only"
-          else
-            check_args=""
-          fi
-
-          # Run link check in container
+          # The Python script handles the exit code and GITHUB_OUTPUT directly
           echo "Checking links in markdown files..."
-          docker run --rm \
-            -v "${GITHUB_WORKSPACE}:/workspace" \
-            -w /workspace \
-            mcp-code-quality:latest \
-            python /workspace/scripts/check-markdown-links.py \
-              /workspace \
-              --format github \
-              --output /workspace/link_check_summary.md \
-              $check_args
-
-          exit_code=$?
-
-          # Set outputs based on results
-          if [ -f link_check_summary.md ]; then
-            # Extract stats from the markdown file
-            broken_count=$(grep -oP 'Broken links\*\*: \K\d+' link_check_summary.md || echo "0")
-            total_count=$(grep -oP 'Total links\*\*: \K\d+' link_check_summary.md || echo "0")
-            files_count=$(grep -oP 'Files checked\*\*: \K\d+' link_check_summary.md || echo "0")
-
-            echo "failed_files=$broken_count" >> $GITHUB_OUTPUT
-            echo "total_errors=$broken_count" >> $GITHUB_OUTPUT
-            echo "files_found=$files_count" >> $GITHUB_OUTPUT
+          # Mount GITHUB_OUTPUT file into container if it exists
+          if [ -n "${GITHUB_OUTPUT}" ]; then
+            GITHUB_OUTPUT_DIR=$(dirname "${GITHUB_OUTPUT}")
+            GITHUB_OUTPUT_FILE=$(basename "${GITHUB_OUTPUT}")
+            docker run --rm \
+              -v "${GITHUB_WORKSPACE}:/workspace" \
+              -v "${GITHUB_OUTPUT_DIR}:/github" \
+              -w /workspace \
+              -e GITHUB_OUTPUT="/github/${GITHUB_OUTPUT_FILE}" \
+              mcp-code-quality:latest \
+              python /workspace/scripts/check-markdown-links.py \
+                /workspace \
+                --format github \
+                --output /workspace/link_check_summary.md \
+                ${{ github.event.inputs.check_external == 'false' && '--internal-only' || '' }}
           else
-            echo "failed_files=0" >> $GITHUB_OUTPUT
-            echo "total_errors=0" >> $GITHUB_OUTPUT
-            echo "files_found=0" >> $GITHUB_OUTPUT
+            # Fallback for local testing without GitHub Actions
+            docker run --rm \
+              -v "${GITHUB_WORKSPACE}:/workspace" \
+              -w /workspace \
+              mcp-code-quality:latest \
+              python /workspace/scripts/check-markdown-links.py \
+                /workspace \
+                --format github \
+                --output /workspace/link_check_summary.md \
+                ${{ github.event.inputs.check_external == 'false' && '--internal-only' || '' }}
           fi
-
-          # Exit with appropriate code
-          exit $exit_code
 
       - name: Upload results
         if: always()

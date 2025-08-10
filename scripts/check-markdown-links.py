@@ -84,8 +84,10 @@ def format_results_github(results):
 def write_github_outputs(results):
     """Write outputs to GITHUB_OUTPUT if running in GitHub Actions"""
     if "GITHUB_OUTPUT" in os.environ:
+        broken_links = results.get("broken_links", 0)
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-            f.write(f"total_errors={results.get('broken_links', 0)}\n")
+            f.write(f"total_errors={broken_links}\n")
+            f.write(f"failed_files={broken_links}\n")  # For backward compatibility
             f.write(f"files_found={results.get('files_checked', 0)}\n")
             f.write(f"all_valid={'true' if results.get('all_valid', False) else 'false'}\n")
 
