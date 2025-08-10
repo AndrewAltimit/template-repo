@@ -49,8 +49,8 @@ def main():
 
     # Check for problematic patterns
     problematic_patterns = [
-        # Direct --body flag with markdown image (handles escaped quotes in JSON)
-        (r'--body\s+[\\"\']+.*!\[.*\]', "Direct --body flag with reaction images"),
+        # Direct --body flag with markdown image
+        (r'--body\s+["\'].*!\[.*\]', "Direct --body flag with reaction images"),
         (r"--body\s+\S*.*!\[.*\]", "Direct --body flag with reaction images"),
         # Heredocs
         (r'<<\s*[\'"]?EOF', "Heredoc (cat <<EOF)"),
@@ -70,8 +70,13 @@ def main():
             violations.append(description)
 
     # Check if command contains reaction images at all
-    # Note: In JSON input, the ! might be escaped as \!
-    has_reaction_image = bool(re.search(r"\\?!\[.*\]\(.*reaction.*\)", command, re.IGNORECASE))
+    # Note: In JSON input, the ! is typically escaped as \!
+    # Check for both escaped and unescaped versions, and look for common reaction URLs
+    has_reaction_image = bool(
+        re.search(r"\\?!\[.*\]\(.*reaction.*\)", command, re.IGNORECASE)
+        or re.search(r"\\?!\[.*\]\(.*githubusercontent.com/AndrewAltimit/Media.*\)", command, re.IGNORECASE)
+        or re.search(r"\\?!\[Reaction\]", command, re.IGNORECASE)
+    )
 
     if violations and has_reaction_image:
         # Block the command and provide guidance
