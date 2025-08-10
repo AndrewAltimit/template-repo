@@ -31,15 +31,15 @@ MCP tools are functions that can be executed through the MCP servers to perform 
 
 The MCP functionality is distributed across specialized servers:
 
-1. **Code Quality MCP Server** (Port 8010) - Formatting and linting tools
-2. **Content Creation MCP Server** (Port 8011) - Manim and LaTeX tools
-3. **Gemini MCP Server** (Port 8006) - AI consultation (host-only)
+1. **Code Quality MCP Server** - Formatting and linting tools (STDIO mode)
+2. **Content Creation MCP Server** - Manim and LaTeX tools (STDIO mode)
+3. **Gemini MCP Server** - AI consultation (STDIO mode, host-only)
 4. **Gaea2 MCP Server** (Port 8007) - Terrain generation
 5. **AI Toolkit MCP Server** (Port 8012) - LoRA training bridge
 6. **ComfyUI MCP Server** (Port 8013) - Image generation bridge
-7. **OpenCode MCP Server** (Port 8014) - AI code generation
-8. **Crush MCP Server** (Port 8015) - Fast code generation
-9. **Meme Generator MCP Server** (Port 8016) - Meme creation
+7. **OpenCode MCP Server** - AI code generation (STDIO mode)
+8. **Crush MCP Server** - Fast code generation (STDIO mode)
+9. **Meme Generator MCP Server** - Meme creation (STDIO mode)
 
 See [MCP Servers Documentation](MCP_SERVERS.md) for detailed information.
 
@@ -116,7 +116,7 @@ Servers running in STDIO mode communicate through standard input/output using th
 
 ## Core Tools
 
-### Code Quality Tools (Port 8010)
+### Code Quality Tools
 
 #### format_check
 
@@ -220,7 +220,7 @@ These scripts leverage the containerized Python CI environment.
 
 ## AI Integration Tools
 
-### Gemini Tools (Port 8006)
+### Gemini Tools
 
 #### consult_gemini
 
@@ -256,7 +256,7 @@ Get integration status and statistics.
 
 Toggle automatic consultation on uncertainty detection.
 
-### OpenCode Tools (Port 8014)
+### OpenCode Tools
 
 #### consult_opencode
 
@@ -280,7 +280,7 @@ AI-powered code generation using Qwen 2.5 Coder.
 }
 ```
 
-### Crush Tools (Port 8015)
+### Crush Tools
 
 #### consult_crush
 
@@ -306,7 +306,7 @@ Fast code generation optimized for speed.
 
 ## Content Creation Tools
 
-### Content Creation Tools (Port 8011)
+### Content Creation Tools
 
 #### create_manim_animation
 
@@ -362,7 +362,7 @@ Render TikZ diagrams as standalone images.
 - `tikz_code` (string, required): TikZ code
 - `output_format` (string): Output format (pdf, png, svg)
 
-### Meme Generator Tools (Port 8016)
+### Meme Generator Tools
 
 #### generate_meme
 
