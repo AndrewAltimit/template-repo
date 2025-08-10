@@ -95,7 +95,10 @@ echo "🔧 Fixing output/outputs directories..."
 if [ "$MINIMAL_MODE" = true ]; then
     process_directories "outputs" "fix"
     process_directories "output" "fix"
-    process_directories "mcp-*" "fix"
+    # More specific patterns for MCP output directories
+    for pattern in "mcp-content" "mcp-memes" "mcp-gaea2"; do
+        process_directories "$pattern" "fix"
+    done
 else
     process_directories "outputs" "remove"
     process_directories "output" "remove"

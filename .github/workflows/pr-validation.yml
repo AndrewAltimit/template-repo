@@ -48,9 +48,6 @@ jobs:
     steps:
       - name: Pre-checkout cleanup
         run: |
-          # Export user IDs for proper Docker permissions
-          export USER_ID=$(id -u)
-          export GROUP_ID=$(id -g)
           # Configure git safe directory
           git config --global --add safe.directory "${GITHUB_WORKSPACE:-$PWD}" 2>/dev/null || true
 
@@ -404,6 +401,8 @@ jobs:
           lfs: true
 
       - name: Run tests
+        env:
+          MCP_GAEA2_URL: http://192.168.0.152:8007
         run: |
           echo "🧪 Running test suite..."
           # Export user IDs for Docker permissions

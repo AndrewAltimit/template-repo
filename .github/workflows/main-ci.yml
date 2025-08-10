@@ -70,8 +70,13 @@ jobs:
           lfs: true
 
       - name: Run tests
+        env:
+          MCP_GAEA2_URL: http://192.168.0.152:8007
         run: |
           echo "🧪 Running test suite..."
+          # Export user IDs for Docker permissions
+          export USER_ID=$(id -u)
+          export GROUP_ID=$(id -g)
           ./scripts/run-ci.sh test --cov-report=html --timeout=300 --junitxml=test-results.xml
 
       - name: Upload test results
