@@ -44,69 +44,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install markdown-link-check
-        run: npm install -g markdown-link-check@3.12.2
-
-      - name: Create default config if not exists
-        run: |
-          if [ ! -f .markdown-link-check.json ]; then
-            echo '{
-              "ignorePatterns": [
-                {
-                  "pattern": "^http://localhost"
-                },
-                {
-                  "pattern": "^http://127\\.0\\.0\\.1"
-                },
-                {
-                  "pattern": "^http://192\\.168\\."
-                }
-              ],
-              "replacementPatterns": [],
-              "httpHeaders": [
-                {
-                  "urls": ["https://github.com", "https://raw.githubusercontent.com"],
-                  "headers": {
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-                  }
-                }
-              ],
-              "timeout": "20s",
-              "retryOn429": true,
-              "retryCount": 3,
-              "fallbackRetryDelay": "30s",
-              "aliveStatusCodes": [200, 201, 202, 203, 204, 206, 301, 302, 303, 307, 308]
-            }' > .markdown-link-check.json
-          fi
-
-      - name: Find all markdown files
-        id: find_files
-        run: |
-          # Find all markdown files, excluding common directories
-          find . -name "*.md" \
-            -not -path "./node_modules/*" \
-            -not -path "./.git/*" \
-            -not -path "./vendor/*" \
-            -not -path "./.github/ISSUE_TEMPLATE/*" \
-            -not -path "./.venv/*" \
-            -not -path "./venv/*" \
-            -not -path "./__pycache__/*" \
-            -not -path "./.pytest_cache/*" \
-            -not -path "./.mypy_cache/*" \
-            > markdown_files.txt
-
-          echo "Found $(wc -l < markdown_files.txt) markdown files"
-          echo "files_found=$(wc -l < markdown_files.txt)" >> $GITHUB_OUTPUT
-
-      - name: Check markdown links
+      - name: Run link check in container
         id: link_check
         run: |
           set +e  # Don't exit on error
+
+          # Get the workspace directory
+          WORKSPACE_DIR="${GITHUB_WORKSPACE:-$(pwd)}"
+          echo "Using workspace: $WORKSPACE_DIR"
 
           # Initialize counters
           total_files=0
@@ -123,34 +68,61 @@ jobs:
           check_external="${{ github.event.inputs.check_external }}"
           if [ "$check_external" = "false" ]; then
             echo "ℹ️ Checking internal links only (external link checking disabled)" >> link_check_summary.md
-            config_args="--config .markdown-link-check-internal.json"
 
-            # Create internal-only config
-            jq '. + {"ignorePatterns": (.ignorePatterns + [{"pattern": "^https?://"}])}' \
-              .markdown-link-check.json > .markdown-link-check-internal.json
+            # Create internal-only config using jq directly
+            if command -v jq >/dev/null 2>&1; then
+              jq '. + {"ignorePatterns": (.ignorePatterns + [{"pattern": "^https?://"}])}' \
+                .markdown-link-check.json > .markdown-link-check-internal.json
+            else
+              # Fallback: use Docker for jq if not available
+              docker run --rm -v "$WORKSPACE_DIR:/workspace" node:20-alpine sh -c "
+                apk add --no-cache jq &&
+                jq '. + {\"ignorePatterns\": (.ignorePatterns + [{\"pattern\": \"^https?://\"}])}' \
+                  /workspace/.markdown-link-check.json > /workspace/.markdown-link-check-internal.json
+              "
+            fi
+            config_file=".markdown-link-check-internal.json"
           else
             echo "ℹ️ Checking both internal and external links" >> link_check_summary.md
-            config_args="--config .markdown-link-check.json"
+            config_file=".markdown-link-check.json"
           fi
 
           echo "" >> link_check_summary.md
           echo "## Detailed Results" >> link_check_summary.md
           echo "" >> link_check_summary.md
 
-          # Process each file
+          # Find all markdown files
+          find . -name "*.md" \
+            -not -path "./node_modules/*" \
+            -not -path "./.git/*" \
+            -not -path "./vendor/*" \
+            -not -path "./.github/ISSUE_TEMPLATE/*" \
+            -not -path "./.venv/*" \
+            -not -path "./venv/*" \
+            -not -path "./__pycache__/*" \
+            -not -path "./.pytest_cache/*" \
+            -not -path "./.mypy_cache/*" \
+            > markdown_files.txt
+
+          echo "Found $(wc -l < markdown_files.txt) markdown files"
+
+          # Process each file using Docker container
           while IFS= read -r file; do
             total_files=$((total_files + 1))
             echo "Checking: $file"
 
-            # Run link check and capture output
-            output=$(markdown-link-check $config_args "$file" 2>&1)
-            exit_code=$?
+            # Run link check in container and capture output
+            # Note: We capture both stdout and stderr but filter out the deprecation warning
+            output=$(docker run --rm -v "$WORKSPACE_DIR:/workspace" -w /workspace \
+              ghcr.io/tcort/markdown-link-check:3.12.2 \
+              -c "$config_file" "$file" 2>&1 | grep -v "DEP0040" | grep -v "node --trace-deprecation" || true)
+            exit_code=${PIPESTATUS[0]}
 
             if [ $exit_code -ne 0 ]; then
               failed_files=$((failed_files + 1))
 
               # Count errors in this file
-              file_errors=$(echo "$output" | grep -c "✖")
+              file_errors=$(echo "$output" | grep -c "✖" || echo 0)
               total_errors=$((total_errors + file_errors))
 
               # Add to summary
@@ -187,9 +159,15 @@ jobs:
 
           mv link_check_final.md link_check_summary.md
 
+          # Clean up temporary config
+          if [ "$check_external" = "false" ] && [ -f ".markdown-link-check-internal.json" ]; then
+            rm -f .markdown-link-check-internal.json
+          fi
+
           # Set outputs
           echo "failed_files=$failed_files" >> $GITHUB_OUTPUT
           echo "total_errors=$total_errors" >> $GITHUB_OUTPUT
+          echo "files_found=$total_files" >> $GITHUB_OUTPUT
 
           # Exit with appropriate code
           if [ $failed_files -gt 0 ]; then
