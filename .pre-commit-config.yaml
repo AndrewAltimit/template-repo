@@ -98,15 +98,14 @@ repos:
   #   hooks:
   #     - id: markdownlint
 
-  # Markdown link checking (internal links only for pre-commit)
+  # Markdown link checking (containerized for consistency)
   - repo: local
     hooks:
       - id: check-markdown-links
-        name: Check markdown links
-        entry: python scripts/check-markdown-links.py
+        name: Check markdown links (containerized)
+        entry: docker run --rm -v "$(pwd):/workspace" -w /workspace mcp-code-quality:latest python /workspace/scripts/check-markdown-links.py /workspace --internal-only
         language: system
         files: '\.md$'
         pass_filenames: false
-        args: ['.', '--internal-only']
         stages: [commit]
   #       args: [--fix]

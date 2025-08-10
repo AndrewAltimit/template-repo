@@ -111,11 +111,7 @@ class TestPRMonitor:
         mock_gh_command.side_effect = [
             # Reviews
             json.dumps(
-                {
-                    "reviews": [
-                        {"id": "R1", "body": "[Fix][Claude] this issue", "author": {"login": "unauthorized_user"}}
-                    ]
-                }
+                {"reviews": [{"id": "R1", "body": "[Fix][Claude] this issue", "author": {"login": "unauthorized_user"}}]}
             ),
             # Comments
             json.dumps({"comments": []}),
