@@ -8,6 +8,9 @@
 #
 # The secret masker is the single source of truth for permission decisions
 
+# Shell hardening: exit on error, undefined variables, and pipe failures
+set -euo pipefail
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Read input once

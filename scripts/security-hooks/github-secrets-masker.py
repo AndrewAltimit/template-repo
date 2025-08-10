@@ -40,18 +40,10 @@ class SecretMasker:
                 except (FileNotFoundError, yaml.YAMLError, json.JSONDecodeError) as e:
                     print(f"[Secret Masker] Warning: Could not load config from {config_path}: {e}", file=sys.stderr)
 
-        # Fallback to minimal config if no config file found
-        print("[Secret Masker] Warning: No config file found, using defaults", file=sys.stderr)
-        return {
-            "environment_variables": ["GITHUB_TOKEN", "API_KEY", "SECRET_KEY", "PASSWORD"],
-            "patterns": [],
-            "auto_detection": {
-                "enabled": True,
-                "include_patterns": ["*_TOKEN", "*_SECRET", "*_KEY", "*_PASSWORD"],
-                "exclude_patterns": ["PUBLIC_*"],
-            },
-            "settings": {"minimum_secret_length": 4, "case_sensitive_patterns": False, "mask_format": "[MASKED_{name}]"},
-        }
+        # Fail-closed: deny commands if no config file found (security-critical component)
+        print("[Secret Masker] ERROR: No configuration file found. Blocking command for security.", file=sys.stderr)
+        print("[Secret Masker] Please ensure .secrets.yaml exists in repository root.", file=sys.stderr)
+        raise FileNotFoundError("Security configuration file .secrets.yaml not found - failing closed for security")
 
     def _load_secrets(self):
         """Load all potential secrets from environment based on config."""
@@ -243,9 +235,14 @@ def main():
 
     command = input_data.get("tool_input", {}).get("command", "")
 
-    # Initialize masker and process
-    masker = SecretMasker()
-    masked_command = masker.process_command(command)
+    try:
+        # Initialize masker and process
+        masker = SecretMasker()
+        masked_command = masker.process_command(command)
+    except FileNotFoundError as e:
+        # Fail-closed: block the command if config not found
+        print(json.dumps({"permissionDecision": "block", "reason": str(e)}))
+        return
 
     # Prepare the response
     response = {}

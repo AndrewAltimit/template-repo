@@ -2,6 +2,9 @@
 # Test script for security hooks and secret masking
 # Tests both the YAML configuration and masking functionality
 
+# Shell hardening: exit on error, undefined variables, and pipe failures
+set -euo pipefail
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "Testing Security Hooks with .secrets.yaml Configuration"
@@ -120,9 +123,9 @@ echo
 
 echo "=== Test 10: Configuration Loading ==="
 echo -n "Checking if .secrets.yaml is loaded... "
-output=$(echo '{"tool_name":"Bash","tool_input":{"command":"test"}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>&1 1>/dev/null)
-if [[ "$output" == *"Warning: No config file found"* ]]; then
-    echo "✗ WARNING - Using fallback config"
+output=$(echo '{"tool_name":"Bash","tool_input":{"command":"test"}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>&1 1>/dev/null || true)
+if [[ "$output" == *"ERROR: No configuration file found"* ]]; then
+    echo "✗ ERROR - Would block commands (fail-closed)"
 else
     echo "✓ Config loaded successfully"
 fi
@@ -147,7 +150,7 @@ fi
 
 # Test that secrets are still masked even without validator
 test_input='{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Token is ghp_test1234567890abcdefghijklmnopqrstuv\""}}'
-result=$(echo "$test_input" | "${SCRIPT_DIR}/bash-pretooluse-hook.sh" 2>/dev/null)
+result=$(echo "$test_input" | "${SCRIPT_DIR}/bash-pretooluse-hook.sh" 2>/dev/null || true)
 
 # Check if the result contains proper permission decision and masked token
 if echo "$result" | jq -e '.permissionDecision' >/dev/null 2>&1; then
@@ -175,6 +178,44 @@ fi
 
 if [ "$CLAUDE_VALIDATOR_RENAMED" = true ]; then
     mv "${SCRIPT_DIR}/../claude-hooks/gh-comment-validator.py.bak" "${SCRIPT_DIR}/../claude-hooks/gh-comment-validator.py"
+fi
+
+echo
+
+echo "=== Test 12: Fail-Closed Behavior (No Config File) ==="
+echo "Testing behavior when .secrets.yaml is not found..."
+
+# Temporarily rename config file to test fail-closed behavior
+CONFIG_RENAMED=false
+if [ -f "${SCRIPT_DIR}/../../.secrets.yaml" ]; then
+    mv "${SCRIPT_DIR}/../../.secrets.yaml" "${SCRIPT_DIR}/../../.secrets.yaml.bak"
+    CONFIG_RENAMED=true
+fi
+
+# Test that commands are blocked when config is missing
+test_input='{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"This should be blocked\""}}'
+result=$(echo "$test_input" | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null || true)
+
+# Check if the command was blocked
+if echo "$result" | jq -e '.permissionDecision' >/dev/null 2>&1; then
+    permission=$(echo "$result" | jq -r '.permissionDecision')
+    if [[ "$permission" == "block" ]]; then
+        reason=$(echo "$result" | jq -r '.reason // ""')
+        if [[ "$reason" == *"failing closed for security"* ]]; then
+            echo "✓ PASSED - Commands blocked when config missing (fail-closed)"
+        else
+            echo "✗ FAILED - Wrong block reason: $reason"
+        fi
+    else
+        echo "✗ FAILED - Command not blocked: $permission"
+    fi
+else
+    echo "✗ FAILED - Invalid response when config missing"
+fi
+
+# Restore config file
+if [ "$CONFIG_RENAMED" = true ]; then
+    mv "${SCRIPT_DIR}/../../.secrets.yaml.bak" "${SCRIPT_DIR}/../../.secrets.yaml"
 fi
 
 echo
