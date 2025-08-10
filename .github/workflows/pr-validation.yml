@@ -46,11 +46,6 @@ jobs:
       docs_changed: ${{ steps.changes.outputs.docs_changed }}
       files_changed: ${{ steps.changes.outputs.files_changed }}
     steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Configure git safe directory
-          git config --global --add safe.directory "${GITHUB_WORKSPACE:-$PWD}" 2>/dev/null || true
-
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -405,8 +400,6 @@ jobs:
           MCP_GAEA2_URL: http://192.168.0.152:8007
         run: |
           echo "🧪 Running test suite..."
-          export USER_ID=$(id -u)
-          export GROUP_ID=$(id -g)
           ./scripts/run-ci.sh test
 
       - name: Upload coverage reports

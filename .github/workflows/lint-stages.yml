@@ -34,18 +34,6 @@ jobs:
       errors: ${{ steps.result.outputs.errors }}
       warnings: ${{ steps.result.outputs.warnings }}
     steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Export user IDs for proper Docker permissions
-          export USER_ID=$(id -u)
-          export GROUP_ID=$(id -g)
-          # Run cleanup script if it exists
-          if [ -f "./scripts/fix-runner-permissions.sh" ]; then
-            ./scripts/fix-runner-permissions.sh --minimal
-          fi
-          # Configure git safe directory
-          git config --global --add safe.directory "${GITHUB_WORKSPACE:-$PWD}" 2>/dev/null || true
-
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -54,6 +42,13 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
+
+      - name: Post-checkout cleanup
+        run: |
+          # Run cleanup script if it exists
+          if [ -f "./scripts/fix-runner-permissions.sh" ]; then
+            ./scripts/fix-runner-permissions.sh --minimal
+          fi
 
       # Docker CI image will be built automatically by run-ci.sh script
 

@@ -52,14 +52,6 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 20
     steps:
-      - name: Pre-checkout cleanup
-        run: |
-          # Export user IDs for proper Docker permissions
-          export USER_ID=$(id -u)
-          export GROUP_ID=$(id -g)
-          # Configure git safe directory
-          git config --global --add safe.directory "${GITHUB_WORKSPACE:-$PWD}" 2>/dev/null || true
-
       - name: Checkout code
         uses: actions/checkout@v4
         with:
@@ -74,9 +66,6 @@ jobs:
           MCP_GAEA2_URL: http://192.168.0.152:8007
         run: |
           echo "🧪 Running test suite..."
-          # Export user IDs for Docker permissions
-          export USER_ID=$(id -u)
-          export GROUP_ID=$(id -g)
           ./scripts/run-ci.sh test --cov-report=html --timeout=300 --junitxml=test-results.xml
 
       - name: Upload test results
