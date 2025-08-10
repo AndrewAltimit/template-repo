@@ -254,6 +254,19 @@ jobs:
       upload_artifacts: true
     secrets: inherit
 
+  # Stage 3d: Link check for documentation
+  link-check:
+    name: Documentation Link Check
+    needs: [detect-changes, gemini-review]
+    if: |
+      needs.detect-changes.outputs.docs_changed == 'true' ||
+      !github.event.pull_request.draft
+    uses: ./.github/workflows/lint-stages.yml
+    with:
+      stage: links
+      upload_artifacts: true
+    secrets: inherit
+
   # Stage 4: YAML/JSON validation
   config-validation:
     name: Config File Validation
@@ -388,7 +401,7 @@ jobs:
           ./scripts/run-ci.sh test
 
       - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
           flags: unittests
@@ -645,6 +658,7 @@ jobs:
       - format-check
       - basic-lint
       - full-lint
+      - link-check
       - config-validation
       - workflow-validation
       - yaml-lint
@@ -671,6 +685,7 @@ jobs:
           echo "- Format Check: ${{ needs.format-check.result }}"
           echo "- Basic Lint: ${{ needs.basic-lint.result }}"
           echo "- Full Lint: ${{ needs.full-lint.result }}"
+          echo "- Link Check: ${{ needs.link-check.result }}"
           echo "- Config Validation: ${{ needs.config-validation.result }}"
           echo "- Workflow Validation: ${{ needs.workflow-validation.result }}"
           echo "- YAML Lint: ${{ needs.yaml-lint.result }}"
@@ -684,6 +699,7 @@ jobs:
                 "${{ needs.format-check.result }}" == "failure" ||
                 "${{ needs.basic-lint.result }}" == "failure" ||
                 "${{ needs.full-lint.result }}" == "failure" ||
+                "${{ needs.link-check.result }}" == "failure" ||
                 "${{ needs.config-validation.result }}" == "failure" ||
                 "${{ needs.workflow-validation.result }}" == "failure" ||
                 "${{ needs.yaml-lint.result }}" == "failure" ||
@@ -711,6 +727,7 @@ jobs:
               'format-check': '${{ needs.format-check.result }}',
               'basic-lint': '${{ needs.basic-lint.result }}',
               'full-lint': '${{ needs.full-lint.result }}',
+              'link-check': '${{ needs.link-check.result }}',
               'config-validation': '${{ needs.config-validation.result }}',
               'workflow-validation': '${{ needs.workflow-validation.result }}',
               'yaml-lint': '${{ needs.yaml-lint.result }}',

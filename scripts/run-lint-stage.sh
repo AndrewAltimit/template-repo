@@ -198,9 +198,55 @@ case "$STAGE" in
     warnings=$((warnings + total_warnings))
     ;;
 
+  links)
+    echo "=== Running markdown link check ==="
+
+    # Build MCP Code Quality container if needed
+    echo "🔨 Building MCP Code Quality container..."
+    docker build -f docker/mcp-code-quality.Dockerfile -t mcp-code-quality:latest .
+
+    echo "🔍 Checking links in markdown files..."
+
+    # Export user to run container as non-root
+    USER_ID=$(id -u)
+    GROUP_ID=$(id -g)
+    export USER_ID
+    export GROUP_ID
+
+    # Build base docker command
+    DOCKER_CMD="docker run --rm --user ${USER_ID}:${GROUP_ID} -v \"${GITHUB_WORKSPACE:-$(pwd)}\":/workspace -w /workspace"
+
+    # Add GITHUB_OUTPUT mount if available
+    if [ -n "${GITHUB_OUTPUT}" ]; then
+      GITHUB_OUTPUT_DIR=$(dirname "${GITHUB_OUTPUT}")
+      GITHUB_OUTPUT_FILE=$(basename "${GITHUB_OUTPUT}")
+      DOCKER_CMD="${DOCKER_CMD} -v \"${GITHUB_OUTPUT_DIR}\":/github -e GITHUB_OUTPUT=/github/${GITHUB_OUTPUT_FILE}"
+    fi
+
+    # Run the container with link checker
+    # Default to internal-only for PR checks (faster)
+    eval "${DOCKER_CMD} mcp-code-quality:latest \
+      python /workspace/scripts/check-markdown-links.py \
+        /workspace \
+        --format github \
+        --output /workspace/link_check_summary.md \
+        --internal-only" 2>&1 | tee lint-output.txt
+
+    # Check if link check failed
+    if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+      errors=$((errors + 1))
+    fi
+
+    # Count broken links from the output
+    if [ -f link_check_summary.md ]; then
+      broken_links=$(grep -oP 'Broken links: \K\d+' link_check_summary.md || echo 0)
+      errors=$((errors + broken_links))
+    fi
+    ;;
+
   *)
     echo "Invalid stage: $STAGE"
-    echo "Available stages: format, basic, full"
+    echo "Available stages: format, basic, full, links"
     exit 1
     ;;
 esac

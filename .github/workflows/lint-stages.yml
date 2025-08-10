@@ -5,7 +5,7 @@ on:
   workflow_call:
     inputs:
       stage:
-        description: 'Linting stage to run (format, basic, full)'
+        description: 'Linting stage to run (format, basic, full, links)'
         required: true
         type: string
       upload_artifacts:
@@ -28,7 +28,7 @@ jobs:
   lint:
     name: Lint Stage - ${{ inputs.stage }}
     runs-on: self-hosted
-    timeout-minutes: ${{ inputs.stage == 'format' && 5 || inputs.stage == 'basic' && 10 || 20 }}
+    timeout-minutes: ${{ inputs.stage == 'format' && 5 || inputs.stage == 'basic' && 10 || inputs.stage == 'links' && 10 || 20 }}
     outputs:
       status: ${{ steps.result.outputs.status }}
       errors: ${{ steps.result.outputs.errors }}
@@ -93,5 +93,49 @@ jobs:
             isort-output.txt
             bandit-report.json
             safety-report.json
+            link_check_summary.md
           retention-days: 7
           if-no-files-found: ignore
+
+      - name: Comment on PR with link check results
+        if: inputs.stage == 'links' && github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            let summary = '';
+
+            try {
+              summary = fs.readFileSync('link_check_summary.md', 'utf8');
+            } catch (e) {
+              summary = '## ❌ Link Check Failed\n\nCould not read results file.';
+            }
+
+            // Find and update or create comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Link Check Results')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: summary
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: summary
+              });
+            }
