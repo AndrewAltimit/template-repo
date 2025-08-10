@@ -156,8 +156,9 @@ class MarkdownLinkChecker:
         try:
             content = file_path.read_text(encoding="utf-8")
 
-            # Remove code blocks to avoid false positives
-            # This is still needed as code blocks may contain example URLs
+            # Remove code blocks before parsing
+            # While mistune handles inline links in code correctly,
+            # it may interpret some code syntax (like pipes) as markdown
             # Remove fenced code blocks (```...```)
             content = re.sub(r"```[\s\S]*?```", "", content)
             # Remove inline code (`...`)
@@ -170,8 +171,7 @@ class MarkdownLinkChecker:
             # Get extracted links
             links = list(self.link_renderer.links)
 
-            # Also check for reference-style links that mistune might miss
-            # Some edge cases with reference links
+            # Also check for reference-style links (mistune handles these but just to be sure)
             ref_pattern = r"^\[([^\]]+)\]:\s*(.+)$"
             for line in content.split("\n"):
                 ref_match = re.match(ref_pattern, line.strip())
