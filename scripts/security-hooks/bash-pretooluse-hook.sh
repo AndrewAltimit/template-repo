@@ -30,9 +30,6 @@ if [[ "$permission" == "allow" ]] || [[ "$permission" == "allow_with_modificatio
         # Pass the masker's output through the validator
         # The validator can further modify or block the command
         echo "$masked_output" | python3 "${SCRIPT_DIR}/gh-comment-validator.py"
-    elif [ -f "${SCRIPT_DIR}/../claude-hooks/gh-comment-validator.py" ]; then
-        # Fallback to claude-hooks location for compatibility
-        echo "$masked_output" | python3 "${SCRIPT_DIR}/../claude-hooks/gh-comment-validator.py"
     else
         # No additional validators - return the masker's output directly
         echo "$masked_output"

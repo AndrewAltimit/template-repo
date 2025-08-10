@@ -2,6 +2,9 @@
 # Includes Python linting/formatting tools that agents need to run
 # when fixing CI/CD pipeline failures
 
+# Security hook dependencies
+PyYAML>=6.0.0
+
 # Linting and formatting tools
 black>=23.0.0
 isort==6.0.1
