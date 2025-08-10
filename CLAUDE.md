@@ -417,6 +417,7 @@ The repository includes comprehensive CI/CD workflows:
 - Always follow the container-first philosophy - use Docker for all Python operations
 - Remember that Gemini CLI cannot be containerized (needs Docker access)
 - Use pytest fixtures and mocks for testing external dependencies
+- **NEVER use Unicode emoji characters** in code, commits, or comments - they may display as corrupted characters. Use reaction images instead for GitHub interactions
 
 ## GitHub Etiquette
 
