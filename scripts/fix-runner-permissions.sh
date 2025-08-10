@@ -1,13 +1,25 @@
 #!/bin/bash
-# One-time fix for existing permission issues on self-hosted runner
-# Run this script as the runner user to fix permission issues
+# Fix permission issues on self-hosted runner
+# This script fixes ownership issues caused by Docker containers running as different users
+
+set -e
 
 echo "🔧 Fixing permission issues in GitHub Actions runner workspace"
 
 # Find the runner work directory
 RUNNER_WORKSPACE="${GITHUB_WORKSPACE:-$HOME/Documents/repos/actions-runner-template-repo/_work}"
 
+# Support minimal mode for pre-checkout cleanup
+MINIMAL_MODE=false
+if [ "$1" = "--minimal" ]; then
+    MINIMAL_MODE=true
+fi
+
 if [ ! -d "$RUNNER_WORKSPACE" ]; then
+    if [ "$MINIMAL_MODE" = true ]; then
+        # In minimal mode, just exit silently if workspace doesn't exist
+        exit 0
+    fi
     echo "❌ Runner workspace not found at: $RUNNER_WORKSPACE"
     echo "Please set GITHUB_WORKSPACE environment variable or update the path"
     exit 1
@@ -15,161 +27,85 @@ fi
 
 echo "📁 Found runner workspace: $RUNNER_WORKSPACE"
 
-# Fix permissions on all Python cache files
-echo "🔨 Fixing permissions on Python cache files..."
+# Export user IDs for Docker to use
+USER_ID=$(id -u)
+GROUP_ID=$(id -g)
+export USER_ID
+export GROUP_ID
 
-# Track results
-fixed_count=0
-failed_count=0
+echo "👤 Running as user: $USER (UID: $USER_ID, GID: $GROUP_ID)"
 
-# Use sudo if available, otherwise try without
-if command -v sudo &> /dev/null; then
-    echo "Using sudo to fix permissions..."
+# Function to safely process directories
+process_directories() {
+    local pattern="$1"
+    local action="$2"
 
-    # Fix directory permissions
-    if sudo find "$RUNNER_WORKSPACE" -type d -name "__pycache__" -exec chmod -R 755 {} + 2>/dev/null; then
-        ((fixed_count++))
-    else
-        echo "⚠️  Some __pycache__ directories couldn't be fixed"
-        ((failed_count++))
-    fi
-
-    # Fix file permissions
-    if sudo find "$RUNNER_WORKSPACE" -type f -name "*.pyc" -exec chmod 644 {} + 2>/dev/null; then
-        ((fixed_count++))
-    else
-        echo "⚠️  Some .pyc files couldn't be fixed"
-        ((failed_count++))
-    fi
-
-    # Fix ownership
-    if sudo chown -R "$USER:$USER" "$RUNNER_WORKSPACE" 2>/dev/null; then
-        echo "✅ Ownership fixed"
-    else
-        echo "⚠️  Could not change ownership of all files"
-        ((failed_count++))
-    fi
-else
-    echo "Attempting to fix permissions without sudo..."
-    echo "⚠️  This may not work for files owned by other users"
-
-    find "$RUNNER_WORKSPACE" -type d -name "__pycache__" -user "$USER" -exec chmod -R 755 {} + 2>/dev/null
-    find "$RUNNER_WORKSPACE" -type f -name "*.pyc" -user "$USER" -exec chmod 644 {} + 2>/dev/null
-fi
-
-# Remove cache files if possible
-echo "🗑️ Attempting to remove cache files..."
-removed_count=0
-
-for pattern in "__pycache__" ".pytest_cache"; do
-    count=$(find "$RUNNER_WORKSPACE" -name "$pattern" -type d 2>/dev/null | wc -l)
-    if [ "$count" -gt 0 ]; then
-        echo "Found $count $pattern directories"
-        if find "$RUNNER_WORKSPACE" -name "$pattern" -type d -exec rm -rf {} + 2>/dev/null; then
-            ((removed_count+=count))
-        else
-            echo "⚠️  Could not remove all $pattern directories"
-        fi
-    fi
-done
-
-# Remove .pyc files
-pyc_count=$(find "$RUNNER_WORKSPACE" -name "*.pyc" -type f 2>/dev/null | wc -l)
-if [ "$pyc_count" -gt 0 ]; then
-    echo "Found $pyc_count .pyc files"
-    if find "$RUNNER_WORKSPACE" -type f -name "*.pyc" -delete 2>/dev/null; then
-        ((removed_count+=pyc_count))
-    else
-        echo "⚠️  Could not remove all .pyc files"
-    fi
-fi
-
-# Fix output and outputs directories (including Docker-created ones)
-echo ""
-echo "🔧 Fixing output/outputs directories (including Docker-created)..."
-
-# Find both 'output' and 'outputs' directories
-output_dirs=$(find "$RUNNER_WORKSPACE" -type d \( -name "output" -o -name "outputs" \) 2>/dev/null | head -50)
-
-if [ -n "$output_dirs" ]; then
-    echo "Found output/outputs directories:"
-    echo "$output_dirs" | head -10
-    total_count=$(echo "$output_dirs" | wc -l)
-    echo "Total found: $total_count directories"
-
-    for dir in $output_dirs; do
+    # Use while loop with IFS to handle paths with spaces correctly
+    find "$RUNNER_WORKSPACE" -type d -name "$pattern" 2>/dev/null | while IFS= read -r dir; do
         echo "Processing: $dir"
 
-        # Try to fix permissions first
+        # Try to fix ownership if we have sudo
         if command -v sudo &> /dev/null; then
-            # First try to change permissions to allow deletion
-            sudo chmod -R 777 "$dir" 2>/dev/null
-
-            # Change ownership to current user
-            if sudo chown -R "$USER:$USER" "$dir" 2>/dev/null; then
+            # Change ownership to current user (no chmod 777!)
+            if sudo chown -R "$USER_ID:$GROUP_ID" "$dir" 2>/dev/null; then
                 echo "✅ Fixed ownership: $dir"
-                # Then try to remove it
-                if rm -rf "$dir" 2>/dev/null; then
-                    echo "✅ Removed: $dir"
-                    ((removed_count++))
+
+                if [ "$action" = "remove" ]; then
+                    if rm -rf "$dir" 2>/dev/null; then
+                        echo "✅ Removed: $dir"
+                    fi
                 fi
             else
                 # If can't fix ownership, try to remove with sudo
-                if sudo rm -rf "$dir" 2>/dev/null; then
+                if [ "$action" = "remove" ] && sudo rm -rf "$dir" 2>/dev/null; then
                     echo "✅ Removed with sudo: $dir"
-                    ((removed_count++))
-                else
-                    echo "❌ Could not fix or remove: $dir"
+                    else
+                    echo "⚠️  Could not fix: $dir"
                 fi
             fi
         else
-            # No sudo available, try normal removal
-            if rm -rf "$dir" 2>/dev/null; then
+            # No sudo available, try normal operations
+            if [ "$action" = "remove" ] && rm -rf "$dir" 2>/dev/null; then
                 echo "✅ Removed: $dir"
-                ((removed_count++))
             else
-                echo "❌ Could not remove (no sudo available): $dir"
+                echo "⚠️  Could not process (no sudo): $dir"
+                ((failed_count++))
             fi
         fi
     done
-else
-    echo "No output/outputs directories found"
+}
+
+if [ "$MINIMAL_MODE" != true ]; then
+    # Full cleanup mode
+    echo "🔨 Fixing permissions on Python cache files..."
+
+    # Process Python cache directories
+    process_directories "__pycache__" "remove"
+    process_directories ".pytest_cache" "remove"
+
+    # Remove .pyc files
+    find "$RUNNER_WORKSPACE" -type f -name "*.pyc" -delete 2>/dev/null || true
 fi
 
-# Specifically handle MCP-related directories that Docker might have created
+# Fix output and outputs directories (these often have Docker permission issues)
 echo ""
-echo "🔧 Fixing MCP and Docker-created directories..."
-mcp_patterns=("mcp-*" "manim_*" "latex_*" "*.tex" "*.pdf" "*.mp4")
+echo "🔧 Fixing output/outputs directories..."
 
-for pattern in "${mcp_patterns[@]}"; do
-    mcp_dirs=$(find "$RUNNER_WORKSPACE" -type d -name "$pattern" 2>/dev/null | head -20)
-    if [ -n "$mcp_dirs" ]; then
-        echo "Found $pattern directories:"
-        for dir in $mcp_dirs; do
-            if command -v sudo &> /dev/null; then
-                sudo chmod -R 777 "$dir" 2>/dev/null
-                sudo chown -R "$USER:$USER" "$dir" 2>/dev/null
-                if rm -rf "$dir" 2>/dev/null || sudo rm -rf "$dir" 2>/dev/null; then
-                    echo "✅ Removed: $dir"
-                    ((removed_count++))
-                else
-                    echo "❌ Could not remove: $dir"
-                fi
-            else
-                if rm -rf "$dir" 2>/dev/null; then
-                    echo "✅ Removed: $dir"
-                    ((removed_count++))
-                fi
-            fi
-        done
-    fi
-done
+# Process output directories - just fix ownership, don't remove in minimal mode
+if [ "$MINIMAL_MODE" = true ]; then
+    process_directories "outputs" "fix"
+    process_directories "output" "fix"
+    process_directories "mcp-*" "fix"
+else
+    process_directories "outputs" "remove"
+    process_directories "output" "remove"
+    process_directories "mcp-*" "remove"
+fi
 
 echo ""
 echo "🔧 Configuring git safe directories..."
 # Add workspace to git safe directories to prevent ownership issues
 if command -v git &> /dev/null; then
-    # Add the runner workspace to safe directories
     git config --global --add safe.directory "$RUNNER_WORKSPACE" 2>/dev/null || true
     git config --global --add safe.directory "$RUNNER_WORKSPACE/template-repo" 2>/dev/null || true
     git config --global --add safe.directory "$RUNNER_WORKSPACE/template-repo/template-repo" 2>/dev/null || true
@@ -178,18 +114,12 @@ else
     echo "⚠️  Git not found, skipping safe directory configuration"
 fi
 
-echo ""
-echo "✅ Permission fix complete!"
-echo ""
-echo "📌 Summary:"
-echo "- Removed/fixed: $removed_count items"
-echo "- Failed: $failed_count items"
-echo ""
-echo "📌 Next steps:"
-echo "1. Try running your GitHub Actions workflow again"
-echo "2. If issues persist, you may need to manually remove the workspace:"
-echo "   sudo rm -rf $RUNNER_WORKSPACE/template-repo"
-echo "3. The prevention measures now in place should prevent this from happening again:"
-echo "   - MCP containers run with proper user permissions"
-echo "   - Output directories are cleaned before each run"
-echo "   - Git safe directories are configured"
+if [ "$MINIMAL_MODE" != true ]; then
+    echo ""
+    echo "✅ Permission fix complete!"
+    echo ""
+    echo "📌 Prevention measures:"
+    echo "1. Ensure USER_ID and GROUP_ID are exported before running Docker"
+    echo "2. Docker containers should run with: --user \"\$(id -u):\$(id -g)\""
+    echo "3. docker-compose.yml should include: user: \"\${USER_ID:-1000}:\${GROUP_ID:-1000}\""
+fi
