@@ -34,6 +34,26 @@ jobs:
       errors: ${{ steps.result.outputs.errors }}
       warnings: ${{ steps.result.outputs.warnings }}
     steps:
+      - name: Pre-checkout cleanup
+        run: |
+          echo "🧹 Pre-checkout cleanup for self-hosted runner"
+          WORKSPACE="${GITHUB_WORKSPACE:-$PWD}"
+
+          # Remove Docker-created directories with permission issues
+          if [ -d "$WORKSPACE" ]; then
+            # Use sudo if available to fix permissions
+            if command -v sudo &> /dev/null; then
+              sudo find "$WORKSPACE" -type d \( -name "outputs" -o -name "output" -o -name "mcp-*" \) -exec chmod -R 777 {} + 2>/dev/null || true
+              sudo find "$WORKSPACE" -type d \( -name "outputs" -o -name "output" -o -name "mcp-*" \) -exec rm -rf {} + 2>/dev/null || true
+            else
+              find "$WORKSPACE" -type d \( -name "outputs" -o -name "output" -o -name "mcp-*" \) -exec rm -rf {} + 2>/dev/null || true
+            fi
+          fi
+
+          # Configure git safe directory
+          git config --global --add safe.directory "$WORKSPACE" 2>/dev/null || true
+          echo "✅ Pre-checkout cleanup complete"
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:

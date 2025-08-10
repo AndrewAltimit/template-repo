@@ -43,7 +43,7 @@ if command -v sudo &> /dev/null; then
     fi
 
     # Fix ownership
-    if sudo chown -R $USER:$USER "$RUNNER_WORKSPACE" 2>/dev/null; then
+    if sudo chown -R "$USER:$USER" "$RUNNER_WORKSPACE" 2>/dev/null; then
         echo "✅ Ownership fixed"
     else
         echo "⚠️  Could not change ownership of all files"
@@ -84,22 +84,29 @@ if [ "$pyc_count" -gt 0 ]; then
     fi
 fi
 
-# Fix output directories
+# Fix output and outputs directories (including Docker-created ones)
 echo ""
-echo "🔧 Fixing output directories..."
-output_dirs=$(find "$RUNNER_WORKSPACE" -type d -name "output" 2>/dev/null | head -20)
+echo "🔧 Fixing output/outputs directories (including Docker-created)..."
+
+# Find both 'output' and 'outputs' directories
+output_dirs=$(find "$RUNNER_WORKSPACE" -type d \( -name "output" -o -name "outputs" \) 2>/dev/null | head -50)
 
 if [ -n "$output_dirs" ]; then
-    echo "Found output directories:"
-    echo "$output_dirs"
+    echo "Found output/outputs directories:"
+    echo "$output_dirs" | head -10
+    total_count=$(echo "$output_dirs" | wc -l)
+    echo "Total found: $total_count directories"
 
     for dir in $output_dirs; do
         echo "Processing: $dir"
 
         # Try to fix permissions first
         if command -v sudo &> /dev/null; then
+            # First try to change permissions to allow deletion
+            sudo chmod -R 777 "$dir" 2>/dev/null
+
             # Change ownership to current user
-            if sudo chown -R $USER:$USER "$dir" 2>/dev/null; then
+            if sudo chown -R "$USER:$USER" "$dir" 2>/dev/null; then
                 echo "✅ Fixed ownership: $dir"
                 # Then try to remove it
                 if rm -rf "$dir" 2>/dev/null; then
@@ -126,8 +133,37 @@ if [ -n "$output_dirs" ]; then
         fi
     done
 else
-    echo "No output directories found"
+    echo "No output/outputs directories found"
 fi
+
+# Specifically handle MCP-related directories that Docker might have created
+echo ""
+echo "🔧 Fixing MCP and Docker-created directories..."
+mcp_patterns=("mcp-*" "manim_*" "latex_*" "*.tex" "*.pdf" "*.mp4")
+
+for pattern in "${mcp_patterns[@]}"; do
+    mcp_dirs=$(find "$RUNNER_WORKSPACE" -type d -name "$pattern" 2>/dev/null | head -20)
+    if [ -n "$mcp_dirs" ]; then
+        echo "Found $pattern directories:"
+        for dir in $mcp_dirs; do
+            if command -v sudo &> /dev/null; then
+                sudo chmod -R 777 "$dir" 2>/dev/null
+                sudo chown -R "$USER:$USER" "$dir" 2>/dev/null
+                if rm -rf "$dir" 2>/dev/null || sudo rm -rf "$dir" 2>/dev/null; then
+                    echo "✅ Removed: $dir"
+                    ((removed_count++))
+                else
+                    echo "❌ Could not remove: $dir"
+                fi
+            else
+                if rm -rf "$dir" 2>/dev/null; then
+                    echo "✅ Removed: $dir"
+                    ((removed_count++))
+                fi
+            fi
+        done
+    fi
+done
 
 echo ""
 echo "🔧 Configuring git safe directories..."
