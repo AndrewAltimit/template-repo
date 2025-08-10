@@ -210,7 +210,45 @@ fi
 
 echo
 
-echo "=== Test 12: Fail-Closed Behavior (No Config File) ==="
+echo "=== Test 12: Stdin Security Bypass Protection ==="
+echo "Testing that --body-file - commands are blocked..."
+json_output=$(echo '{"tool_name":"Bash","tool_input":{"command":"echo \"Token ghp_test1234567890abcdefghijklmnopqrstuv\" | gh pr comment 123 --body-file -"}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null)
+permission=$(echo "$json_output" | jq -r '.permissionDecision')
+reason=$(echo "$json_output" | jq -r '.reason // ""')
+echo "Permission: $permission"
+echo "Reason: $reason"
+if [[ "$permission" == "block" ]] && [[ "$reason" == *"stdin"* ]]; then
+    echo "✓ PASSED - stdin commands blocked for security"
+else
+    echo "✗ FAILED - stdin commands not blocked!"
+fi
+echo
+
+echo "=== Test 13: Stdin with Equals Sign Also Blocked ==="
+echo "Testing that --body-file=- format is also blocked..."
+json_output=$(echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 123 --body-file=-"}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null)
+permission=$(echo "$json_output" | jq -r '.permissionDecision')
+echo "Permission: $permission"
+if [[ "$permission" == "block" ]]; then
+    echo "✓ PASSED - --body-file=- format blocked"
+else
+    echo "✗ FAILED - --body-file=- format not blocked!"
+fi
+echo
+
+echo "=== Test 14: Regular --body-file with Filename Allowed ==="
+echo "Testing that --body-file with actual filename is still allowed..."
+json_output=$(echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 123 --body-file /tmp/comment.md"}}' | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>/dev/null)
+permission=$(echo "$json_output" | jq -r '.permissionDecision')
+echo "Permission: $permission"
+if [[ "$permission" == "allow" ]]; then
+    echo "✓ PASSED - regular file usage allowed"
+else
+    echo "✗ FAILED - regular file usage blocked incorrectly"
+fi
+echo
+
+echo "=== Test 15: Fail-Closed Behavior (No Config File) ==="
 echo "Testing behavior when .secrets.yaml is not found..."
 
 # Temporarily rename config file to test fail-closed behavior

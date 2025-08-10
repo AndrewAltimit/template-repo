@@ -177,6 +177,11 @@ class SecretMasker:
         if not is_gh_comment:
             return command  # Not a gh comment, return unchanged
 
+        # Security check: Block commands that read body from stdin (--body-file - or --body-file=-)
+        # This is necessary because we cannot inspect or sanitize stdin content
+        if re.search(r"--body-file(\s+|=)-(\s|$)", command):
+            return "BLOCK_STDIN"
+
         # Handle different body formats
 
         # Pattern 1: --body with quotes (single or double)
@@ -239,11 +244,28 @@ def main():
     try:
         # Initialize masker and process
         masker = SecretMasker()
-        masked_command = masker.process_command(command)
+        processed_result = masker.process_command(command)
     except FileNotFoundError as e:
         # Fail-closed: block the command if config not found
         print(json.dumps({"permissionDecision": "block", "reason": str(e)}))
         return
+
+    # Check if command should be blocked due to stdin usage
+    if processed_result == "BLOCK_STDIN":
+        print(
+            json.dumps(
+                {
+                    "permissionDecision": "block",
+                    "reason": (
+                        "Security risk: Reading comment body from stdin (--body-file -) "
+                        "is not allowed as it cannot be sanitized for secrets."
+                    ),
+                }
+            )
+        )
+        return
+
+    masked_command = processed_result
 
     # Prepare the response
     response = {}
