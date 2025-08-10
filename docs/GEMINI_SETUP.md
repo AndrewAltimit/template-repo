@@ -201,5 +201,5 @@ If Gemini reviews aren't working:
 ## References
 
 - [Gemini CLI Documentation](https://github.com/google/gemini-cli)
-- [Gemini MCP Server Docs](tools/mcp/gemini/docs/README.md)
+- [Gemini MCP Server Docs](../tools/mcp/gemini/docs/README.md)
 - [Setup Guide](https://gist.github.com/AndrewAltimit/fc5ba068b73e7002cbe4e9721cebb0f5)

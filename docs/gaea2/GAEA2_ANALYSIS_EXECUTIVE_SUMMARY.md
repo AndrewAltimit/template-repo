@@ -244,8 +244,8 @@ The analysis reveals that while our Gaea2 MCP system has a solid foundation, sig
 
 ## Appendix: Generated Documentation
 
-1. [Project Analysis](GAEA2_PROJECT_ANALYSIS.md) - Raw findings from terrain files
-2. [Gap Analysis](GAEA2_GAP_ANALYSIS.md) - Detailed comparison with current system
+1. Project Analysis - Raw findings from terrain files (documentation in progress)
+2. Gap Analysis - Detailed comparison with current system (documentation in progress)
 3. [Advanced Patterns](GAEA2_ADVANCED_PATTERNS.md) - Workflow and usage patterns
 4. [Extended Properties](GAEA2_NODE_PROPERTIES_EXTENDED.md) - Complete property documentation
 5. [Executive Summary](GAEA2_ANALYSIS_EXECUTIVE_SUMMARY.md) - This document

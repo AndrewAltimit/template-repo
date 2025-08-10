@@ -168,15 +168,13 @@ MIT License - see LICENSE file for details.
 ## Documentation
 
 - [Architecture Overview](docs/architecture.md)
-- [Usage Guide](docs/usage.md)
 - [Security Documentation](docs/security.md)
-- [API Reference](docs/api.md)
 
 ## Implementation Status
 
 Both monitors are fully functional with automated code modification capabilities:
 
-- **Issue Monitor**: Creates PRs with AI-generated implementations (see [Issue Monitor Status](../../docs/ISSUE_MONITOR_IMPLEMENTATION_STATUS.md))
-- **PR Monitor**: Applies fixes directly to PR branches (see [PR Monitor Status](../../docs/PR_MONITOR_IMPLEMENTATION_STATUS.md))
+- **Issue Monitor**: Creates PRs with AI-generated implementations
+- **PR Monitor**: Applies fixes directly to PR branches
 
 The security model ensures only authorized users can trigger code changes through explicit commands.

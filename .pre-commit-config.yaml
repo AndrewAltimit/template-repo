@@ -97,4 +97,16 @@ repos:
   #   rev: v0.39.0
   #   hooks:
   #     - id: markdownlint
+
+  # Markdown link checking (internal links only for pre-commit)
+  - repo: local
+    hooks:
+      - id: check-markdown-links
+        name: Check markdown links
+        entry: python scripts/check-markdown-links.py
+        language: system
+        files: '\.md$'
+        pass_filenames: false
+        args: ['.', '--internal-only']
+        stages: [commit]
   #       args: [--fix]

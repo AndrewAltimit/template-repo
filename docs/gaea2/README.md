@@ -259,7 +259,7 @@ print(f"Fixes Applied: {len(result['fixes']['applied'])}")
 
 ## 📚 Documentation
 
-- [Comprehensive Guide](../GAEA2_MCP_COMPREHENSIVE_GUIDE.md) - Complete user guide
+- [Legacy Comprehensive Guide](LEGACY_COMPREHENSIVE_GUIDE.md) - Complete user guide
 - [Knowledge Base](GAEA2_KNOWLEDGE_BASE.md) - Patterns from real projects
 - [API Reference](GAEA2_API_REFERENCE.md) - Detailed API documentation
 - [Examples](GAEA2_EXAMPLES.md) - Code examples and patterns

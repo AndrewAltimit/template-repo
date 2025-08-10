@@ -13,3 +13,8 @@ httpx
 pydantic
 aiohttp
 mcp
+
+# Markdown link checking dependencies
+mistune>=3.0.0
+beautifulsoup4
+lxml

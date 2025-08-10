@@ -1,6 +1,6 @@
 ---
 name: Link Check
-# Automated link checking for all markdown documentation
+# Automated link checking for all markdown documentation using containerized Python
 
 'on':
   push:
@@ -8,12 +8,16 @@ name: Link Check
     paths:
       - '**.md'
       - '.github/workflows/link-check.yml'
-      - '.markdown-link-check.json'
+      - 'scripts/check-markdown-links.py'
+      - 'docker/mcp-code-quality.Dockerfile'
+      - 'docker/requirements-code-quality.txt'
   pull_request:
     paths:
       - '**.md'
       - '.github/workflows/link-check.yml'
-      - '.markdown-link-check.json'
+      - 'scripts/check-markdown-links.py'
+      - 'docker/mcp-code-quality.Dockerfile'
+      - 'docker/requirements-code-quality.txt'
   schedule:
     # Run weekly on Sundays at 2 AM UTC
     - cron: '0 2 * * 0'
@@ -44,135 +48,55 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run link check in container
+      - name: Build MCP Code Quality container
+        run: |
+          docker build -f docker/mcp-code-quality.Dockerfile -t mcp-code-quality:latest .
+
+      - name: Check markdown links
         id: link_check
         run: |
           set +e  # Don't exit on error
 
-          # Get the workspace directory
-          WORKSPACE_DIR="${GITHUB_WORKSPACE:-$(pwd)}"
-          echo "Using workspace: $WORKSPACE_DIR"
-
-          # Initialize counters
-          total_files=0
-          failed_files=0
-          total_errors=0
-
-          # Create summary file
-          echo "# Link Check Results" > link_check_summary.md
-          echo "" >> link_check_summary.md
-          echo "## Summary" >> link_check_summary.md
-          echo "" >> link_check_summary.md
-
-          # Check if we should check external links
+          # Determine if we should check external links
           check_external="${{ github.event.inputs.check_external }}"
           if [ "$check_external" = "false" ]; then
-            echo "ℹ️ Checking internal links only (external link checking disabled)" >> link_check_summary.md
-
-            # Create internal-only config using jq directly
-            if command -v jq >/dev/null 2>&1; then
-              jq '. + {"ignorePatterns": (.ignorePatterns + [{"pattern": "^https?://"}])}' \
-                .markdown-link-check.json > .markdown-link-check-internal.json
-            else
-              # Fallback: use Docker for jq if not available
-              docker run --rm -v "$WORKSPACE_DIR:/workspace" node:20-alpine sh -c "
-                apk add --no-cache jq &&
-                jq '. + {\"ignorePatterns\": (.ignorePatterns + [{\"pattern\": \"^https?://\"}])}' \
-                  /workspace/.markdown-link-check.json > /workspace/.markdown-link-check-internal.json
-              "
-            fi
-            config_file=".markdown-link-check-internal.json"
+            check_args="--internal-only"
           else
-            echo "ℹ️ Checking both internal and external links" >> link_check_summary.md
-            config_file=".markdown-link-check.json"
+            check_args=""
           fi
 
-          echo "" >> link_check_summary.md
-          echo "## Detailed Results" >> link_check_summary.md
-          echo "" >> link_check_summary.md
+          # Run link check in container
+          echo "Checking links in markdown files..."
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/workspace" \
+            -w /workspace \
+            mcp-code-quality:latest \
+            python /workspace/scripts/check-markdown-links.py \
+              /workspace \
+              --format github \
+              --output /workspace/link_check_summary.md \
+              $check_args
 
-          # Find all markdown files
-          find . -name "*.md" \
-            -not -path "./node_modules/*" \
-            -not -path "./.git/*" \
-            -not -path "./vendor/*" \
-            -not -path "./.github/ISSUE_TEMPLATE/*" \
-            -not -path "./.venv/*" \
-            -not -path "./venv/*" \
-            -not -path "./__pycache__/*" \
-            -not -path "./.pytest_cache/*" \
-            -not -path "./.mypy_cache/*" \
-            > markdown_files.txt
+          exit_code=$?
 
-          echo "Found $(wc -l < markdown_files.txt) markdown files"
+          # Set outputs based on results
+          if [ -f link_check_summary.md ]; then
+            # Extract stats from the markdown file
+            broken_count=$(grep -oP 'Broken links\*\*: \K\d+' link_check_summary.md || echo "0")
+            total_count=$(grep -oP 'Total links\*\*: \K\d+' link_check_summary.md || echo "0")
+            files_count=$(grep -oP 'Files checked\*\*: \K\d+' link_check_summary.md || echo "0")
 
-          # Process each file using Docker container
-          while IFS= read -r file; do
-            total_files=$((total_files + 1))
-            echo "Checking: $file"
-
-            # Run link check in container and capture output
-            # Note: We capture both stdout and stderr but filter out the deprecation warning
-            output=$(docker run --rm -v "$WORKSPACE_DIR:/workspace" -w /workspace \
-              ghcr.io/tcort/markdown-link-check:3.12.2 \
-              -c "$config_file" "$file" 2>&1 | grep -v "DEP0040" | grep -v "node --trace-deprecation" || true)
-            exit_code=${PIPESTATUS[0]}
-
-            if [ $exit_code -ne 0 ]; then
-              failed_files=$((failed_files + 1))
-
-              # Count errors in this file
-              file_errors=$(echo "$output" | grep -c "✖" || echo 0)
-              total_errors=$((total_errors + file_errors))
-
-              # Add to summary
-              echo "### ❌ $file" >> link_check_summary.md
-              echo '```' >> link_check_summary.md
-              echo "$output" | grep -E "✖|→" >> link_check_summary.md
-              echo '```' >> link_check_summary.md
-              echo "" >> link_check_summary.md
-            else
-              echo "✅ $file - All links valid"
-            fi
-          done < markdown_files.txt
-
-          # Update summary header
-          {
-            echo "# Link Check Results"
-            echo ""
-            echo "## Summary"
-            echo ""
-            echo "- **Total files checked**: $total_files"
-            echo "- **Files with broken links**: $failed_files"
-            echo "- **Total broken links**: $total_errors"
-            echo ""
-
-            if [ $failed_files -eq 0 ]; then
-              echo "✅ **All links are valid!**"
-            else
-              echo "❌ **Found broken links in $failed_files file(s)**"
-            fi
-
-            echo ""
-            cat link_check_summary.md | tail -n +6
-          } > link_check_final.md
-
-          mv link_check_final.md link_check_summary.md
-
-          # Clean up temporary config
-          if [ "$check_external" = "false" ] && [ -f ".markdown-link-check-internal.json" ]; then
-            rm -f .markdown-link-check-internal.json
+            echo "failed_files=$broken_count" >> $GITHUB_OUTPUT
+            echo "total_errors=$broken_count" >> $GITHUB_OUTPUT
+            echo "files_found=$files_count" >> $GITHUB_OUTPUT
+          else
+            echo "failed_files=0" >> $GITHUB_OUTPUT
+            echo "total_errors=0" >> $GITHUB_OUTPUT
+            echo "files_found=0" >> $GITHUB_OUTPUT
           fi
-
-          # Set outputs
-          echo "failed_files=$failed_files" >> $GITHUB_OUTPUT
-          echo "total_errors=$total_errors" >> $GITHUB_OUTPUT
-          echo "files_found=$total_files" >> $GITHUB_OUTPUT
 
           # Exit with appropriate code
-          if [ $failed_files -gt 0 ]; then
-            exit 1
-          fi
+          exit $exit_code
 
       - name: Upload results
         if: always()
@@ -181,7 +105,6 @@ jobs:
           name: link-check-results
           path: |
             link_check_summary.md
-            markdown_files.txt
 
       - name: Comment on PR
         if: github.event_name == 'pull_request' && always()
@@ -190,11 +113,15 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            const summary = fs.readFileSync('link_check_summary.md', 'utf8');
-            const failed = ${{ steps.link_check.outputs.failed_files || 0 }};
+            let summary = '';
 
-            const status = failed === 0 ? '✅' : '❌';
-            const title = `${status} Link Check Results`;
+            try {
+              summary = fs.readFileSync('link_check_summary.md', 'utf8');
+            } catch (e) {
+              summary = '## ❌ Link Check Failed\n\nCould not read results file.';
+            }
+
+            const failed = ${{ steps.link_check.outputs.failed_files || 0 }};
 
             // Find and update or create comment
             const { data: comments } = await github.rest.issues.listComments({
@@ -208,21 +135,19 @@ jobs:
               comment.body.includes('Link Check Results')
             );
 
-            const body = `## ${title}\n\n${summary}`;
-
             if (botComment) {
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 comment_id: botComment.id,
-                body: body
+                body: summary
               });
             } else {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.issue.number,
-                body: body
+                body: summary
               });
             }
 
@@ -233,7 +158,13 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-            const summary = fs.readFileSync('link_check_summary.md', 'utf8');
+            let summary = '';
+
+            try {
+              summary = fs.readFileSync('link_check_summary.md', 'utf8');
+            } catch (e) {
+              summary = '## ❌ Link Check Failed\n\nCould not read results file.';
+            }
 
             await github.rest.issues.create({
               owner: context.repo.owner,

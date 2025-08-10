@@ -1,0 +1,331 @@
+#!/usr/bin/env python3
+"""Direct markdown link checker using the same logic as MCP server"""
+
+import argparse
+import asyncio
+import json
+import re
+import sys
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import aiohttp
+
+
+class MarkdownLinkChecker:
+    """Check links in markdown files"""
+
+    def __init__(self):
+        self.default_ignore_patterns = [
+            r"^http://localhost",
+            r"^http://127\.0\.0\.1",
+            r"^http://192\.168\.",
+            r"^http://0\.0\.0\.0",
+            r"^#",
+            r"^mailto:",
+            r"^chrome://",
+            r"^file://",
+            r"^ftp://",
+        ]
+
+    async def check_markdown_links(
+        self,
+        path: str,
+        check_external: bool = True,
+        ignore_patterns: List[str] = None,
+        timeout: int = 10,
+        concurrent_checks: int = 10,
+    ) -> Dict[str, Any]:
+        """Check links in markdown files for validity"""
+
+        if ignore_patterns is None:
+            ignore_patterns = self.default_ignore_patterns
+
+        # Compile ignore patterns
+        compiled_patterns = [re.compile(pattern) for pattern in ignore_patterns]
+
+        # Find all markdown files
+        markdown_files = []
+        path_obj = Path(path)
+
+        if path_obj.is_file() and path_obj.suffix in [".md", ".markdown"]:
+            markdown_files = [path_obj]
+        elif path_obj.is_dir():
+            markdown_files = list(path_obj.rglob("*.md")) + list(path_obj.rglob("*.markdown"))
+        else:
+            return {"success": False, "error": f"Path {path} is not a valid markdown file or directory"}
+
+        if not markdown_files:
+            return {"success": True, "files_checked": 0, "message": "No markdown files found"}
+
+        # Process all files
+        all_results = []
+        total_links = 0
+        broken_links = 0
+
+        for md_file in markdown_files:
+            try:
+                links = await self._extract_links_from_markdown(md_file)
+                file_results = {"file": str(md_file), "links": [], "broken_count": 0, "total_count": len(links)}
+
+                # Filter out ignored patterns
+                links_to_check = []
+                for link in links:
+                    should_ignore = any(pattern.match(link) for pattern in compiled_patterns)
+                    if not should_ignore:
+                        if not check_external and link.startswith(("http://", "https://")):
+                            continue
+                        links_to_check.append(link)
+
+                # Check links concurrently
+                if links_to_check:
+                    link_results = await self._check_links_batch(links_to_check, md_file.parent, timeout, concurrent_checks)
+
+                    for link, is_valid, error in link_results:
+                        file_results["links"].append({"url": link, "valid": is_valid, "error": error})
+                        total_links += 1
+                        if not is_valid:
+                            broken_links += 1
+                            file_results["broken_count"] += 1
+
+                all_results.append(file_results)
+
+            except Exception as e:
+                print(f"Error processing {md_file}: {str(e)}", file=sys.stderr)
+                all_results.append({"file": str(md_file), "error": str(e)})
+
+        return {
+            "success": True,
+            "files_checked": len(markdown_files),
+            "total_links": total_links,
+            "broken_links": broken_links,
+            "all_valid": broken_links == 0,
+            "results": all_results,
+        }
+
+    async def _extract_links_from_markdown(self, file_path: Path) -> List[str]:
+        """Extract all links from a markdown file"""
+        try:
+            content = file_path.read_text(encoding="utf-8")
+
+            # Remove code blocks to avoid false positives
+            # Remove fenced code blocks (```...```)
+            content = re.sub(r"```[\s\S]*?```", "", content)
+            # Remove inline code (`...`)
+            content = re.sub(r"`[^`]+`", "", content)
+
+            # Use regex to find all links in markdown
+            link_patterns = [
+                r"\[([^\]]+)\]\(([^)]+)\)",  # [text](url)
+                r"<(https?://[^>]+)>",  # <url>
+                r"(?<!\[)(?<![\(\<])(https?://[^\s\)]+)",  # Raw URLs
+            ]
+
+            # Skip patterns that are clearly not links (placeholders, code examples)
+            skip_patterns = [
+                r"^\{.*\}$",  # {placeholder}
+                r"^\.{3}$",  # ...
+                r".*\|.*",  # TypeScript types
+                r"^(share_url|embed_url|url)$",  # Variable names
+                r".*;$",  # Lines ending with semicolon (code)
+            ]
+
+            links = []
+            compiled_skip = [re.compile(p) for p in skip_patterns]
+
+            for pattern in link_patterns:
+                matches = re.finditer(pattern, content)
+                for match in matches:
+                    # Get the URL part (last group for markdown links)
+                    url = match.group(2) if match.lastindex == 2 else match.group(1)
+                    if url:
+                        # Skip if it matches any skip pattern
+                        if not any(skip.match(url) for skip in compiled_skip):
+                            links.append(url)
+
+            # Also look for reference-style links
+            ref_pattern = r"^\[([^\]]+)\]:\s*(.+)$"
+            for line in content.split("\n"):
+                match = re.match(ref_pattern, line.strip())
+                if match is not None:
+                    links.append(match.group(2))
+
+            return list(set(links))  # Remove duplicates
+
+        except Exception as e:
+            print(f"Error extracting links from {file_path}: {str(e)}", file=sys.stderr)
+            return []
+
+    async def _check_links_batch(
+        self, links: List[str], base_dir: Path, timeout: int, max_concurrent: int
+    ) -> List[Tuple[str, bool, Optional[str]]]:
+        """Check multiple links concurrently"""
+        semaphore = asyncio.Semaphore(max_concurrent)
+
+        async def check_single_link(link: str) -> Tuple[str, bool, Optional[str]]:
+            async with semaphore:
+                return await self._check_single_link(link, base_dir, timeout)
+
+        tasks = [check_single_link(link) for link in links]
+        return await asyncio.gather(*tasks)
+
+    async def _check_single_link(self, link: str, base_dir: Path, timeout: int) -> Tuple[str, bool, Optional[str]]:
+        """Check if a single link is valid"""
+        try:
+            # Check if it's a relative file link
+            if not link.startswith(("http://", "https://", "ftp://", "//")):
+                # Handle relative paths
+                if link.startswith("/"):
+                    # Absolute path from repo root
+                    file_path = Path(link[1:])
+                else:
+                    # Relative to current file
+                    file_path = base_dir / link
+
+                # Remove anchor if present
+                if "#" in str(file_path):
+                    file_path = Path(str(file_path).split("#")[0])
+
+                # Check if file exists
+                if file_path.exists():
+                    return (link, True, None)
+                else:
+                    return (link, False, "File not found")
+
+            # Check external links
+            if link.startswith("//"):
+                link = "https:" + link
+
+            # Use aiohttp to check HTTP/HTTPS links
+            timeout_config = aiohttp.ClientTimeout(total=timeout)
+            async with aiohttp.ClientSession(timeout=timeout_config) as session:
+                try:
+                    async with session.head(link, allow_redirects=True) as response:
+                        if response.status < 400:
+                            return (link, True, None)
+                        else:
+                            return (link, False, f"HTTP {response.status}")
+                except aiohttp.ClientError as e:
+                    # Try GET if HEAD fails
+                    try:
+                        async with session.get(link, allow_redirects=True) as response:
+                            if response.status < 400:
+                                return (link, True, None)
+                            else:
+                                return (link, False, f"HTTP {response.status}")
+                    except Exception:
+                        return (link, False, str(e))
+
+        except Exception as e:
+            return (link, False, str(e))
+
+
+def format_results_text(results: Dict[str, Any]) -> str:
+    """Format results as human-readable text"""
+    output = []
+
+    if not results.get("success"):
+        output.append(f"❌ Error: {results.get('error', 'Unknown error')}")
+        return "\n".join(output)
+
+    output.append("# Link Check Results\n")
+    output.append(f"Files checked: {results.get('files_checked', 0)}")
+    output.append(f"Total links: {results.get('total_links', 0)}")
+    output.append(f"Broken links: {results.get('broken_links', 0)}\n")
+
+    if results.get("all_valid"):
+        output.append("✅ All links are valid!")
+    else:
+        output.append("❌ Found broken links:\n")
+
+        for file_result in results.get("results", []):
+            if file_result.get("broken_count", 0) > 0:
+                output.append(f"\n## {file_result.get('file')}")
+                output.append(f"   Broken: {file_result.get('broken_count')} / {file_result.get('total_count')}")
+
+                for link_info in file_result.get("links", []):
+                    if not link_info.get("valid"):
+                        output.append(f"   ✖ {link_info.get('url')}")
+                        if link_info.get("error"):
+                            output.append(f"     Error: {link_info.get('error')}")
+
+    return "\n".join(output)
+
+
+def format_results_github(results: Dict[str, Any]) -> str:
+    """Format results as GitHub Actions summary markdown"""
+    output = []
+
+    if not results.get("success"):
+        output.append(f"## ❌ Link Check Failed\n\n{results.get('error', 'Unknown error')}")
+        return "\n".join(output)
+
+    output.append("## Link Check Results\n")
+    output.append(f"- **Files checked**: {results.get('files_checked', 0)}")
+    output.append(f"- **Total links**: {results.get('total_links', 0)}")
+    output.append(f"- **Broken links**: {results.get('broken_links', 0)}\n")
+
+    if results.get("all_valid"):
+        output.append("### ✅ All links are valid!")
+    else:
+        output.append("### ❌ Found broken links\n")
+
+        for file_result in results.get("results", []):
+            if file_result.get("broken_count", 0) > 0:
+                output.append(f"#### `{file_result.get('file')}`")
+                output.append(f"Broken: {file_result.get('broken_count')} / {file_result.get('total_count')}\n")
+                output.append("```")
+
+                for link_info in file_result.get("links", []):
+                    if not link_info.get("valid"):
+                        output.append(f"✖ {link_info.get('url')}")
+                        if link_info.get("error"):
+                            output.append(f"  → {link_info.get('error')}")
+
+                output.append("```\n")
+
+    return "\n".join(output)
+
+
+async def main():
+    parser = argparse.ArgumentParser(description="Check markdown links")
+    parser.add_argument("path", help="Path to markdown file or directory")
+    parser.add_argument("--internal-only", action="store_true", help="Only check internal links")
+    parser.add_argument("--format", choices=["text", "json", "github"], default="text", help="Output format (default: text)")
+    parser.add_argument("--timeout", type=int, default=10, help="Timeout for HTTP requests in seconds (default: 10)")
+    parser.add_argument("--output", help="Output file (default: stdout)")
+
+    args = parser.parse_args()
+
+    # Create checker and run
+    checker = MarkdownLinkChecker()
+    results = await checker.check_markdown_links(
+        path=args.path,
+        check_external=not args.internal_only,
+        timeout=args.timeout,
+    )
+
+    # Format output
+    if args.format == "json":
+        output = json.dumps(results, indent=2)
+    elif args.format == "github":
+        output = format_results_github(results)
+    else:
+        output = format_results_text(results)
+
+    # Write output
+    if args.output:
+        Path(args.output).write_text(output)
+        print(f"Results written to {args.output}")
+    else:
+        print(output)
+
+    # Exit with error code if broken links found
+    if not results.get("success") or results.get("broken_links", 0) > 0:
+        sys.exit(1)
+
+    sys.exit(0)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
