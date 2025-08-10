@@ -237,8 +237,8 @@ def main():
 
     # Only process Bash commands
     if input_data.get("tool_name") != "Bash":
-        # Pass through the original input for chaining
-        print(json.dumps(input_data))
+        # Pass through non-Bash commands unchanged with permission
+        print(json.dumps({"permissionDecision": "allow"}))
         return
 
     command = input_data.get("tool_input", {}).get("command", "")
@@ -247,6 +247,9 @@ def main():
     masker = SecretMasker()
     masked_command = masker.process_command(command)
 
+    # Prepare the response
+    response = {}
+
     # If command was modified, update it and log
     if masked_command != command:
         # Log what we masked (for debugging) - to stderr so it doesn't affect the JSON output
@@ -254,12 +257,16 @@ def main():
         if settings.get("log_masked_secrets", True):
             print("[Secret Masker] Automatically masked secrets in GitHub comment", file=sys.stderr)
 
-        # Update the command in the input data
-        input_data["tool_input"]["command"] = masked_command
+        # Return modified command with appropriate permission
+        response["permissionDecision"] = "allow_with_modifications"
+        response["tool_input"] = input_data.get("tool_input", {}).copy()
+        response["tool_input"]["command"] = masked_command
+    else:
+        # No modifications needed, allow the original command
+        response["permissionDecision"] = "allow"
 
-    # Pass through the (potentially modified) input data for chaining
-    # This allows the next validator in the pipeline to work with masked content
-    print(json.dumps(input_data))
+    # Output the complete response
+    print(json.dumps(response))
 
 
 if __name__ == "__main__":

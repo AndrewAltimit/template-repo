@@ -128,6 +128,57 @@ else
 fi
 echo
 
+echo "=== Test 11: Hook Fallback Scenario (No Validator) ==="
+echo "Testing behavior when gh-comment-validator.py is not present..."
+
+# Temporarily rename validator files if they exist
+VALIDATOR_RENAMED=false
+CLAUDE_VALIDATOR_RENAMED=false
+
+if [ -f "${SCRIPT_DIR}/gh-comment-validator.py" ]; then
+    mv "${SCRIPT_DIR}/gh-comment-validator.py" "${SCRIPT_DIR}/gh-comment-validator.py.bak"
+    VALIDATOR_RENAMED=true
+fi
+
+if [ -f "${SCRIPT_DIR}/../claude-hooks/gh-comment-validator.py" ]; then
+    mv "${SCRIPT_DIR}/../claude-hooks/gh-comment-validator.py" "${SCRIPT_DIR}/../claude-hooks/gh-comment-validator.py.bak"
+    CLAUDE_VALIDATOR_RENAMED=true
+fi
+
+# Test that secrets are still masked even without validator
+test_input='{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Token is ghp_test1234567890abcdefghijklmnopqrstuv\""}}'
+result=$(echo "$test_input" | "${SCRIPT_DIR}/bash-pretooluse-hook.sh" 2>/dev/null)
+
+# Check if the result contains proper permission decision and masked token
+if echo "$result" | jq -e '.permissionDecision' >/dev/null 2>&1; then
+    permission=$(echo "$result" | jq -r '.permissionDecision')
+    if [[ "$permission" == "allow_with_modifications" ]]; then
+        command=$(echo "$result" | jq -r '.tool_input.command')
+        if [[ "$command" == *"[MASKED_GITHUB_TOKEN]"* ]]; then
+            echo "✓ PASSED - Secrets masked even without validator"
+        else
+            echo "✗ FAILED - Secrets not masked in fallback scenario!"
+            echo "  Command: $command"
+        fi
+    else
+        echo "✗ FAILED - Wrong permission decision: $permission"
+    fi
+else
+    echo "✗ FAILED - Invalid JSON response in fallback scenario"
+    echo "  Response: $result"
+fi
+
+# Restore validator files
+if [ "$VALIDATOR_RENAMED" = true ]; then
+    mv "${SCRIPT_DIR}/gh-comment-validator.py.bak" "${SCRIPT_DIR}/gh-comment-validator.py"
+fi
+
+if [ "$CLAUDE_VALIDATOR_RENAMED" = true ]; then
+    mv "${SCRIPT_DIR}/../claude-hooks/gh-comment-validator.py.bak" "${SCRIPT_DIR}/../claude-hooks/gh-comment-validator.py"
+fi
+
+echo
+
 echo "========================================================"
 echo "Testing complete!"
 echo

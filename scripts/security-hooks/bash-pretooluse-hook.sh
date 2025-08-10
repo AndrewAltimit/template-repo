@@ -4,30 +4,37 @@
 #
 # Security features:
 # 1. Automatic secret masking in GitHub comments
-# 2. GitHub comment formatting validation
+# 2. GitHub comment formatting validation (when validator is available)
 #
-# Order matters:
-# 1. First mask any secrets in GitHub comments (transparent modification)
-# 2. Then validate GitHub comment formatting (may block with guidance)
+# The secret masker is the single source of truth for permission decisions
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Read input once
 input=$(cat)
 
-# Pass through secret masker first (modifies commands transparently)
-# The masker returns the modified input data for chaining
-masked_input=$(echo "$input" | python3 "${SCRIPT_DIR}/github-secrets-masker.py")
+# Pass through secret masker - it handles permission decisions and modifications
+# The masker returns a complete JSON response with permissionDecision
+masked_output=$(echo "$input" | python3 "${SCRIPT_DIR}/github-secrets-masker.py")
 
-# Check if gh-comment-validator exists (for Claude-specific validation)
-# Other agents may not need this specific validation
-if [ -f "${SCRIPT_DIR}/gh-comment-validator.py" ]; then
-    echo "$masked_input" | python3 "${SCRIPT_DIR}/gh-comment-validator.py"
-elif [ -f "${SCRIPT_DIR}/../claude-hooks/gh-comment-validator.py" ]; then
-    # Fallback to claude-hooks location for compatibility
-    echo "$masked_input" | python3 "${SCRIPT_DIR}/../claude-hooks/gh-comment-validator.py"
+# Check if gh-comment-validator exists for additional validation
+# Only apply validator if masker allowed the command (with or without modifications)
+permission=$(echo "$masked_output" | python3 -c "import json, sys; print(json.loads(sys.stdin.read()).get('permissionDecision', 'allow'))" 2>/dev/null || echo "allow")
+
+if [[ "$permission" == "allow" ]] || [[ "$permission" == "allow_with_modifications" ]]; then
+    # Command was allowed by masker, check for additional validators
+    if [ -f "${SCRIPT_DIR}/gh-comment-validator.py" ]; then
+        # Pass the masker's output through the validator
+        # The validator can further modify or block the command
+        echo "$masked_output" | python3 "${SCRIPT_DIR}/gh-comment-validator.py"
+    elif [ -f "${SCRIPT_DIR}/../claude-hooks/gh-comment-validator.py" ]; then
+        # Fallback to claude-hooks location for compatibility
+        echo "$masked_output" | python3 "${SCRIPT_DIR}/../claude-hooks/gh-comment-validator.py"
+    else
+        # No additional validators - return the masker's output directly
+        echo "$masked_output"
+    fi
 else
-    # If no comment validator exists, just return the masked input as allowed
-    # Extract the command from the masked input and return permission
-    echo '{"permissionDecision": "allow"}'
+    # Command was blocked by masker - return its decision
+    echo "$masked_output"
 fi
