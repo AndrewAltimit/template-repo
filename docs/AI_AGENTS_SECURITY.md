@@ -80,25 +80,58 @@ The implementation includes multiple security layers:
 3. **Automatic Injection**: GitHub injects secrets only when needed
 4. **Logging Redaction**: All tokens are automatically redacted from logs
 
-### 4. Verification
+### 4. Automatic Secret Masking
+
+The system includes **automatic, real-time secret masking** for all GitHub comments:
+
+#### Configuration
+Secrets are defined in `.secrets.yaml` in repository root:
+```yaml
+environment_variables:
+  - GITHUB_TOKEN
+  - OPENROUTER_API_KEY
+  - DB_PASSWORD
+
+patterns:
+  - name: GITHUB_TOKEN
+    pattern: "ghp_[A-Za-z0-9_]{36,}"
+
+auto_detection:
+  enabled: true
+  include_patterns: ["*_TOKEN", "*_SECRET", "*_KEY"]
+```
+
+#### How It Works
+- **PreToolUse Hooks**: Intercept all `gh` commands before execution
+- **Pattern Matching**: Detect secrets by patterns and environment values
+- **Automatic Masking**: Replace with `[MASKED_VARNAME]` placeholders
+- **Transparent**: Agents don't know masking occurred
+
+#### Testing
+```bash
+# Test secret masking
+./scripts/security-hooks/test-masking.sh
+
+# Manual test
+export GITHUB_TOKEN="ghp_test123"
+echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Token ghp_test123\""}}' | \
+  python3 scripts/security-hooks/github-secrets-masker.py
+# Output: Token is [MASKED_GITHUB_TOKEN]
+```
+
+### 5. Verification
 
 To verify your security setup:
 
 ```bash
-# Check that .secrets is in .gitignore
-grep -E "^\.secrets" .gitignore
+# Check that .secrets.yaml exists
+test -f .secrets.yaml && echo "✓ Secrets config exists"
 
 # Verify no secrets in git history
-git log -p | grep -E "(ghp_|github_pat_)" || echo "No tokens found"
+git log -p | grep -E "(ghp_|github_pat_)" || echo "✓ No tokens found"
 
-# Test secret redaction
-docker-compose run --rm ai-agents python -c "
-from github_ai_agents.utils.logging import setup_secure_logging, get_secure_logger
-setup_secure_logging()
-logger = get_secure_logger('test')
-logger.info('Token: ghp_1234567890abcdef1234567890abcdef12345678')
-"
-# Should output: Token: [REDACTED]
+# Test PreToolUse hooks
+./scripts/security-hooks/test-masking.sh
 ```
 
 ## Common Issues
@@ -134,3 +167,5 @@ logger = get_secure_logger(__name__)
 ❌ **NEVER** use tokens in command line arguments (they appear in process lists)
 ❌ **NEVER** share tokens between environments (use separate environments)
 ❌ **NEVER** disable environment protection rules for production
+❌ **NEVER** disable automatic secret masking in `.secrets.yaml`
+❌ **NEVER** bypass PreToolUse hooks when posting GitHub comments

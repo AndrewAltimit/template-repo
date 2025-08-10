@@ -16,8 +16,9 @@ This repository uses AI agents with a comprehensive multi-layer security model.
 - **Command-based control**: `[Action][Agent]` format prevents prompt injection
 - **User authorization**: Only pre-approved users can trigger agents
 - **Commit validation**: Prevents code injection after approval
-- **Secret masking**: Multi-layer system prevents credential exposure
+- **Automatic secret masking**: Real-time masking in GitHub comments via PreToolUse hooks
 - **Environment isolation**: Agents restricted to development environments only
+- **Centralized secrets config**: `.secrets.yaml` defines all sensitive patterns
 
 ### Reporting Security Vulnerabilities
 

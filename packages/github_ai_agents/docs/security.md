@@ -199,29 +199,65 @@ fi
 - Drops all work if PR was modified during processing
 - Prevents race conditions and TOCTOU attacks
 
-### 2. Secret Masking in Public Comments
+### 2. Automatic Secret Masking via PreToolUse Hooks
 
-The PR monitoring agent includes comprehensive secret masking to prevent accidental exposure of sensitive information in public PR comments:
+The system implements real-time secret masking through PreToolUse hooks that intercept and sanitize all GitHub comments before they are posted. This is a **deterministic, automatic process** that ensures secrets can never appear in public comments.
+
+#### Architecture
+
+```
+Agent Tool Call → PreToolUse Hook → Secret Masker → GitHub Comment
+```
 
 #### How It Works
 
-1. **Workflow Configuration**: Define which environment variables to mask in the workflow YAML:
+1. **Central Configuration** (`.secrets.yaml`):
    ```yaml
-   env:
-     MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN,ANTHROPIC_API_KEY"
+   environment_variables:
+     - GITHUB_TOKEN
+     - OPENROUTER_API_KEY
+     - DB_PASSWORD
+
+   patterns:
+     - name: GITHUB_TOKEN
+       pattern: "ghp_[A-Za-z0-9_]{36,}"
+
+   auto_detection:
+     enabled: true
+     include_patterns: ["*_TOKEN", "*_SECRET", "*_KEY"]
+     exclude_patterns: ["PUBLIC_*"]
    ```
 
-2. **Auto-Detection**: The agent automatically detects sensitive variables based on naming patterns:
-   - Variables starting with: `SECRET_`, `TOKEN_`, `API_`, `KEY_`, `PASSWORD_`, `PRIVATE_`
-   - Variables ending with: `_SECRET`, `_TOKEN`, `_API_KEY`, `_KEY`, `_PASSWORD`, `_PRIVATE_KEY`
+2. **Hook Integration** (`scripts/security-hooks/`):
+   - `bash-pretooluse-hook.sh` - Entry point for all agents
+   - `github-secrets-masker.py` - Universal secret masking engine
+   - Works transparently - agents don't know masking occurred
 
-3. **Pattern Matching**: Common secret patterns are always masked:
+3. **Auto-Detection**: The system automatically detects sensitive variables:
+   - Variables matching patterns: `*_TOKEN`, `*_SECRET`, `*_KEY`, `*_PASSWORD`
+   - Excludes safe patterns: `PUBLIC_*`, `*_ENABLED`
+
+4. **Pattern Matching**: Common secret formats are detected and masked:
    - GitHub tokens: `ghp_*`, `ghs_*`, `github_pat_*`
    - API keys: `sk-*`, `pk-*`
+   - JWT tokens: `eyJ*`
    - Bearer tokens
    - URLs with embedded credentials
+   - Private key blocks
 
-4. **Error Log Masking**: When pipeline fixes fail, error details are automatically masked before posting to PR comments
+5. **Real-time Processing**:
+   - Intercepts `gh pr comment`, `gh issue comment`, `gh pr create` commands
+   - Extracts body content from `--body` flags
+   - Replaces secrets with `[MASKED_VARNAME]` placeholders
+   - Returns modified command for execution
+
+#### Benefits
+
+- **Universal**: Works with all AI agents and automation tools
+- **Automatic**: No agent configuration required
+- **Comprehensive**: Covers environment variables, patterns, and auto-detection
+- **Transparent**: Agents are unaware of masking
+- **Centralized**: Single configuration file for all secrets
 
 ### 3. Deduplication and State Management
 

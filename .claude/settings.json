@@ -1,7 +1,7 @@
 {
   "hooks": {
     "PreToolUse": {
-      "Bash": "./scripts/claude-hooks/run-validator.sh"
+      "Bash": "./scripts/security-hooks/bash-pretooluse-hook.sh"
     }
   }
 }

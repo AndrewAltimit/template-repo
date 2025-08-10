@@ -8,34 +8,70 @@ Claude Code supports custom hooks that run before or after tool executions. Thes
 
 ## Current Hooks
 
-### GitHub Comment Formatter Hook
+### Security Hooks (Universal)
 
-**Purpose**: Prevents incorrect GitHub comment formatting that would cause shell escaping issues with reaction images.
+**Purpose**: Automatic secret masking and validation for all agents.
 
-**Location**: `scripts/claude-hooks/gh-comment-validator.py`
+**Main Hook**: `scripts/security-hooks/bash-pretooluse-hook.sh`
 
-**Type**: PreToolUse hook for Bash tool
+**Components**:
+
+1. **Secret Masker** (`scripts/security-hooks/github-secrets-masker.py`)
+   - Automatically masks secrets in GitHub comments
+   - Uses `.secrets.yaml` configuration from repository root
+   - Works transparently - agents don't know masking occurred
+   - Prevents exposure of API keys, tokens, passwords, etc.
+
+2. **GitHub Comment Formatter** (`scripts/claude-hooks/gh-comment-validator.py`)
+   - Prevents incorrect GitHub comment formatting
+   - Ensures reaction images aren't escaped
+   - Claude-specific but available to all agents
 
 **What it prevents**:
+- Secrets appearing in public GitHub comments
 - Direct `--body` flag usage with reaction images
 - Heredocs (`cat <<EOF`) that can escape special characters
 - Echo/printf piped to gh commands
 - Command substitution containing reaction images
 
-**Why this matters**: Shell escaping can turn `![Reaction]` into `\![Reaction]`, breaking image display in GitHub comments.
+**Why this matters**:
+- Secrets in public comments are a security risk
+- Shell escaping can turn `![Reaction]` into `\![Reaction]`, breaking image display
 
 ## Configuration
 
+### Claude Code
 Hooks are configured in `.claude/settings.json`:
 
 ```json
 {
   "hooks": {
     "PreToolUse": {
-      "Bash": "./scripts/claude-hooks/run-validator.sh"
+      "Bash": "./scripts/security-hooks/bash-pretooluse-hook.sh"
     }
   }
 }
+```
+
+### Secret Masking
+Secrets to mask are configured in `.secrets.yaml` in repository root:
+
+```yaml
+environment_variables:
+  - GITHUB_TOKEN
+  - OPENROUTER_API_KEY
+  - DB_PASSWORD
+  # ... more variables
+
+patterns:
+  - name: GITHUB_TOKEN
+    pattern: "ghp_[A-Za-z0-9_]{36,}"
+  # ... more patterns
+
+auto_detection:
+  enabled: true
+  include_patterns: ["*_TOKEN", "*_SECRET", "*_KEY"]
+  exclude_patterns: ["PUBLIC_*"]
 ```
 
 ## How It Works
