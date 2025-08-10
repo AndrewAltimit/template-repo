@@ -158,9 +158,6 @@ python tools/mcp/gaea2/scripts/test_server.py
 python tools/mcp/ai_toolkit/scripts/test_server.py
 python tools/mcp/comfyui/scripts/test_server.py
 
-# Run the main application
-python main.py
-
 # For local development without Docker
 pip install -r requirements.txt
 ```
@@ -387,9 +384,9 @@ The repository includes comprehensive CI/CD workflows:
    - Coverage reporting with pytest-cov
    - No pytest cache to avoid permission issues
 
-3. **Client Pattern** (`main.py`):
-   - MCPClient class for interacting with MCP server
-   - Example workflow demonstrating tool usage
+3. **Client Pattern** (`tools/mcp/core/client.py`):
+   - MCPClient class for interacting with MCP servers
+   - Supports all MCP server endpoints (ports 8006-8015)
    - Environment-based configuration
 
 ### Security Considerations

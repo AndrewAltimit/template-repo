@@ -429,17 +429,22 @@ See the actual `.mcp.json` file for the precise configuration used by Claude Des
 
 ## Client Usage
 
-The `main.py` client can target specific servers:
+Use the MCPClient from `tools.mcp.core` to interact with MCP servers:
 
 ```python
-# Target a specific server
-export MCP_SERVER_NAME=gaea2
-python main.py
+from tools.mcp.core import MCPClient
 
-# Or use the server URL directly
-export MCP_SERVER_URL=http://localhost:8007
-python main.py
+# Target a specific server by name
+client = MCPClient(server_name="gaea2")
+
+# Or use a server URL directly
+client = MCPClient(base_url="http://localhost:8007")
+
+# Execute tools
+result = client.execute_tool("tool_name", {"arg": "value"})
 ```
+
+For complete examples, see the test scripts in `tools/mcp/*/scripts/test_server.py`
 
 ## Troubleshooting
 

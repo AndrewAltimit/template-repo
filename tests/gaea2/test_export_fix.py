@@ -8,7 +8,7 @@ import sys
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
-from main import MCPClient  # noqa: E402
+from tools.mcp.core import MCPClient  # noqa: E402
 
 
 def test_export_node():
