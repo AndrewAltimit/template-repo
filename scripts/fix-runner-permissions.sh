@@ -96,13 +96,16 @@ if [ "$MINIMAL_MODE" = true ]; then
     process_directories "outputs" "fix"
     process_directories "output" "fix"
     # More specific patterns for MCP output directories
-    for pattern in "mcp-content" "mcp-memes" "mcp-gaea2"; do
+    for pattern in "mcp-content" "mcp-memes" "mcp-gaea2" "mcp-code-quality"; do
         process_directories "$pattern" "fix"
     done
 else
     process_directories "outputs" "remove"
     process_directories "output" "remove"
-    process_directories "mcp-*" "remove"
+    # Be more specific with MCP directories to avoid unintended matches
+    for pattern in "mcp-content" "mcp-memes" "mcp-gaea2" "mcp-code-quality"; do
+        process_directories "$pattern" "remove"
+    done
 fi
 
 echo ""

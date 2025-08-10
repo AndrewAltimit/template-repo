@@ -405,7 +405,6 @@ jobs:
           MCP_GAEA2_URL: http://192.168.0.152:8007
         run: |
           echo "🧪 Running test suite..."
-          # Export user IDs for Docker permissions
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
           ./scripts/run-ci.sh test
