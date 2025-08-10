@@ -8,12 +8,13 @@ The MCP functionality is split across modular servers:
 
 1. **Code Quality MCP Server** (Port 8010) - Containerized, provides code formatting and linting tools
 2. **Content Creation MCP Server** (Port 8011) - Containerized, provides Manim animations and LaTeX compilation
-3. **Gaea2 MCP Server** (Port 8007) - Containerized, provides terrain generation and workflow management
-4. **Gemini MCP Server** (Port 8006) - Host-only, provides Gemini AI integration (requires Docker access)
+3. **Gemini MCP Server** (Port 8006) - Host-only, provides Gemini AI integration (requires Docker access)
+4. **Gaea2 MCP Server** (Port 8007) - Containerized, provides terrain generation and workflow management
 5. **AI Toolkit MCP Server** (Port 8012) - Bridge to remote AI Toolkit for LoRA training
 6. **ComfyUI MCP Server** (Port 8013) - Bridge to remote ComfyUI for image generation
-7. **OpenCode MCP Server** (Port 8014) - Containerized, AI-powered code generation (stdio/HTTP)
-8. **Crush MCP Server** (Port 8015) - Containerized, fast code generation (stdio/HTTP)
+7. **OpenCode MCP Server** (Port 8014) - AI-powered code generation (stdio/HTTP)
+8. **Crush MCP Server** (Port 8015) - Fast code generation (stdio/HTTP)
+9. **Meme Generator MCP Server** (Port 8016) - Containerized, creates memes with visual feedback
 
 This modular architecture ensures better separation of concerns, easier maintenance, and the ability to scale individual services independently.
 
@@ -162,6 +163,192 @@ docker-compose run --rm python-ci python -m tools.mcp.gemini.server
 
 See `tools/mcp/gemini/docs/README.md` for detailed documentation.
 
+## AI Toolkit MCP Server (Port 8012)
+
+The AI Toolkit server provides a bridge to remote AI Toolkit for LoRA training operations.
+
+### Starting the Server
+
+```bash
+# Start via Docker Compose (if configured)
+docker-compose up -d mcp-ai-toolkit
+
+# Or run locally as bridge
+python -m tools.mcp.ai_toolkit.server
+
+# Test health
+curl http://localhost:8012/health
+```
+
+### Available Tools
+
+- **create_training_config** - Create new training configurations
+- **upload_dataset** - Upload images for dataset creation (supports chunked upload for large files)
+- **start_training** - Start LoRA training jobs
+- **get_training_status** - Monitor training progress
+- **export_model** - Export trained models
+- **download_model** - Download trained models
+- **list_configs**, **list_datasets**, **list_training_jobs**, **list_exported_models** - List resources
+- **get_system_stats** - Get system statistics
+- **get_training_logs** - Get training logs
+
+### Configuration
+
+- **Remote Bridge**: Connects to AI Toolkit at `192.168.0.152:8012`
+- **Dataset Paths**: Use absolute paths starting with `/ai-toolkit/datasets/`
+- **Chunked Upload**: Automatically used for files >100MB
+
+See `tools/mcp/ai_toolkit/docs/README.md` and `docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md` for detailed documentation.
+
+## ComfyUI MCP Server (Port 8013)
+
+The ComfyUI server provides a bridge to remote ComfyUI for AI image generation.
+
+### Starting the Server
+
+```bash
+# Start via Docker Compose (if configured)
+docker-compose up -d mcp-comfyui
+
+# Or run locally as bridge
+python -m tools.mcp.comfyui.server
+
+# Test health
+curl http://localhost:8013/health
+```
+
+### Available Tools
+
+- **generate_image** - Generate images using ComfyUI workflows
+- **list_workflows** - List available workflows
+- **get_workflow** - Get specific workflow details
+- **list_models** - List available models (checkpoints, LoRAs, etc.)
+- **execute_workflow** - Execute custom workflows
+- **transfer_lora** - Transfer LoRA models from AI Toolkit
+
+### Configuration
+
+- **Remote Bridge**: Connects to ComfyUI at `192.168.0.152:8013`
+- **FLUX Support**: Different workflows for FLUX models (cfg=1.0, special nodes)
+- **LoRA Transfer**: Automatic transfer from AI Toolkit to ComfyUI
+
+See `tools/mcp/comfyui/docs/README.md` and `docs/LORA_TRANSFER_DOCUMENTATION.md` for detailed documentation.
+
+## OpenCode MCP Server (Port 8014)
+
+The OpenCode server provides AI-powered code generation using OpenRouter API.
+
+### Starting the Server
+
+```bash
+# Run in STDIO mode (for local Claude Desktop)
+python -m tools.mcp.opencode.server --mode stdio
+
+# Or HTTP mode for remote access
+python -m tools.mcp.opencode.server --mode http
+
+# Or use the helper script
+./tools/utilities/run_opencode.sh
+
+# Test health (HTTP mode)
+curl http://localhost:8014/health
+```
+
+### Available Tools
+
+- **consult_opencode** - Generate, refactor, review, or explain code
+  - Modes: `generate`, `refactor`, `review`, `explain`
+  - Supports comparison with previous Claude responses
+- **clear_opencode_history** - Clear conversation history
+- **opencode_status** - Get integration status and statistics
+- **toggle_opencode_auto_consult** - Control auto-consultation on uncertainty
+
+### Configuration
+
+- **Model**: Uses Qwen 2.5 Coder via OpenRouter
+- **API Key**: Requires `OPENROUTER_API_KEY` environment variable
+- **Modes**: Supports both STDIO (local) and HTTP (remote) modes
+
+See `tools/mcp/opencode/README.md` and `docs/OPENCODE_CRUSH_INTEGRATION.md` for detailed documentation.
+
+## Crush MCP Server (Port 8015)
+
+The Crush server provides fast code generation using OpenRouter API with optimized models.
+
+### Starting the Server
+
+```bash
+# Run in STDIO mode (for local Claude Desktop)
+python -m tools.mcp.crush.server --mode stdio
+
+# Or HTTP mode for remote access
+python -m tools.mcp.crush.server --mode http
+
+# Or use the helper script
+./tools/utilities/run_crush.sh
+
+# Test health (HTTP mode)
+curl http://localhost:8015/health
+```
+
+### Available Tools
+
+- **consult_crush** - Quick code generation and conversion
+  - Modes: `generate`, `explain`, `convert`, `quick`
+  - Optimized for speed with smaller models
+- **clear_crush_history** - Clear conversation history
+- **crush_status** - Get integration status and statistics
+- **toggle_crush_auto_consult** - Control auto-consultation
+
+### Configuration
+
+- **Model**: Uses optimized models via OpenRouter for speed
+- **API Key**: Requires `OPENROUTER_API_KEY` environment variable
+- **Modes**: Supports both STDIO (local) and HTTP (remote) modes
+
+See `tools/mcp/crush/README.md` and `docs/OPENCODE_CRUSH_INTEGRATION.md` for detailed documentation.
+
+## Meme Generator MCP Server (Port 8016)
+
+The Meme Generator server creates memes from templates with customizable text overlays and visual feedback.
+
+### Starting the Server
+
+```bash
+# Start via Docker Compose (recommended)
+docker-compose up -d mcp-meme-generator
+
+# Or run locally for development
+python -m tools.mcp.meme_generator.server --mode http
+
+# View logs
+docker-compose logs -f mcp-meme-generator
+
+# Test health
+curl http://localhost:8016/health
+```
+
+### Available Tools
+
+- **generate_meme** - Generate memes from templates with text overlays
+  - Auto-resize text to fit areas
+  - Visual feedback for AI verification
+  - Automatic upload to 0x0.st for sharing
+- **list_meme_templates** - List all available templates
+- **get_meme_template_info** - Get detailed template information
+- **test_minimal** - Minimal test tool
+- **test_fake_meme** - Test without creating images
+
+### Features
+
+- **7+ Built-in Templates**: Including "Ol' Reliable", Drake, Distracted Boyfriend, etc.
+- **Cultural Documentation**: Each template includes usage rules and context
+- **Visual Feedback**: Base64-encoded preview for AI agents
+- **Auto Upload**: Generates shareable URLs via 0x0.st
+- **Text Auto-Resize**: Automatically adjusts font size to fit
+
+See `tools/mcp/meme_generator/docs/README.md` and `tools/mcp/meme_generator/docs/MEME_USAGE_GUIDE.md` for detailed documentation.
+
 ## Unified Testing
 
 Test all servers at once:
@@ -188,25 +375,46 @@ The modular servers are configured in `.mcp.json`:
 {
   "mcpServers": {
     "code-quality": {
-      "name": "Code Quality MCP Server",
-      "url": "http://localhost:8010"
+      "type": "http",
+      "url": "http://localhost:8010/messages"
     },
     "content-creation": {
-      "name": "Content Creation MCP Server",
-      "url": "http://localhost:8011"
-    },
-    "gaea2": {
-      "name": "Gaea2 MCP Server",
-      "url": "${GAEA2_REMOTE_URL:-http://localhost:8007}"
+      "type": "http",
+      "url": "http://localhost:8011/messages"
     },
     "gemini": {
-      "name": "Gemini MCP Server",
-      "url": "http://localhost:8006",
-      "note": "Must run on host system"
+      "type": "http",
+      "url": "http://localhost:8006/messages"
+    },
+    "gaea2": {
+      "type": "http",
+      "url": "${GAEA2_REMOTE_URL:-http://localhost:8007}/messages"
+    },
+    "ai-toolkit": {
+      "type": "http",
+      "url": "http://localhost:8012/messages"
+    },
+    "comfyui": {
+      "type": "http",
+      "url": "http://localhost:8013/messages"
+    },
+    "opencode": {
+      "command": "python",
+      "args": ["-m", "tools.mcp.opencode.server", "--mode", "stdio"]
+    },
+    "crush": {
+      "command": "python",
+      "args": ["-m", "tools.mcp.crush.server", "--mode", "stdio"]
+    },
+    "meme-generator": {
+      "type": "http",
+      "url": "http://localhost:8016/messages"
     }
   }
 }
 ```
+
+**Note**: OpenCode and Crush use STDIO mode by default for local Claude Desktop integration but can also run in HTTP mode.
 
 ## Client Usage
 

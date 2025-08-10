@@ -25,30 +25,31 @@ Most MCP tools run in Docker containers as part of this project's philosophy:
 
 ## Overview
 
-MCP tools are functions that can be executed through the MCP server to perform various development and content creation tasks. They are accessible via HTTP API or through the MCP protocol.
+MCP tools are functions that can be executed through the MCP servers to perform various development and content creation tasks. They are accessible via HTTP API or through the MCP protocol.
 
 **Server Architecture:**
 
-The MCP functionality is split across two servers:
+The MCP functionality is distributed across specialized servers:
 
-1. **Main MCP Server**
-   - **Port**: 8005 (containerized)
-   - **Container**: `mcp-server`
-   - **Tools**: Code quality, content creation
-
-2. **Gemini MCP Server**
-   - **Port**: 8006 (host-only)
-   - **Container**: Cannot run in container
-   - **Tools**: AI consultation, history management
+1. **Code Quality MCP Server** (Port 8010) - Formatting and linting tools
+2. **Content Creation MCP Server** (Port 8011) - Manim and LaTeX tools
+3. **Gemini MCP Server** (Port 8006) - AI consultation (host-only)
+4. **Gaea2 MCP Server** (Port 8007) - Terrain generation
+5. **AI Toolkit MCP Server** (Port 8012) - LoRA training bridge
+6. **ComfyUI MCP Server** (Port 8013) - Image generation bridge
+7. **OpenCode MCP Server** (Port 8014) - AI code generation
+8. **Crush MCP Server** (Port 8015) - Fast code generation
+9. **Meme Generator MCP Server** (Port 8016) - Meme creation
 
 See [MCP Servers Documentation](MCP_SERVERS.md) for detailed information.
 
 ### Tool Execution
 
-All tools can be executed via POST request to `/tools/execute`:
+Tools can be executed via HTTP API (for HTTP servers) or MCP protocol (for STDIO servers):
 
+**HTTP API Example (for servers running in HTTP mode):**
 ```bash
-curl -X POST http://localhost:8005/tools/execute \
+curl -X POST http://localhost:<port>/mcp/execute \
   -H "Content-Type: application/json" \
   -d '{
     "tool": "tool_name",
@@ -59,20 +60,34 @@ curl -X POST http://localhost:8005/tools/execute \
   }'
 ```
 
+**MCP Protocol (for STDIO mode):**
+Servers in STDIO mode communicate through standard input/output using the MCP protocol.
+
+**Port Reference:**
+- Code Quality: 8010
+- Content Creation: 8011
+- Gemini: 8006
+- Gaea2: 8007
+- AI Toolkit: 8012
+- ComfyUI: 8013
+- OpenCode: 8014
+- Crush: 8015
+- Meme Generator: 8016
+
 ## Core Tools
 
-### format_check
+### Code Quality Tools (Port 8010)
+
+#### format_check
 
 Check code formatting according to language-specific standards.
 
 **Parameters:**
-
-- `path` (string): Path to the file or directory to check
+- `path` (string, required): Path to the file or directory to check
 - `language` (string): Programming language (python, javascript, typescript, go, rust)
 
 **Example:**
-
-```python
+```json
 {
   "tool": "format_check",
   "arguments": {
@@ -83,43 +98,65 @@ Check code formatting according to language-specific standards.
 ```
 
 **Response:**
-
 ```json
 {
+  "success": true,
   "formatted": true,
-  "output": "All files formatted correctly"
+  "output": "All files formatted correctly",
+  "command": "black --check ./src"
 }
 ```
 
-### lint
+#### lint
 
 Run static code analysis to find potential issues.
 
 **Parameters:**
-
-- `path` (string): Path to analyze
+- `path` (string, required): Path to analyze
+- `linter` (string): Linter to use (flake8, pylint, eslint, golint, clippy)
 - `config` (string, optional): Path to linting configuration file
 
 **Example:**
-
-```python
+```json
 {
   "tool": "lint",
   "arguments": {
     "path": "./src",
+    "linter": "flake8",
     "config": ".flake8"
   }
 }
 ```
 
 **Response:**
-
 ```json
 {
   "success": true,
+  "passed": false,
   "issues": [
     "src/main.py:10:1: E302 expected 2 blank lines, found 1"
-  ]
+  ],
+  "issue_count": 1,
+  "command": "flake8 --config .flake8 ./src"
+}
+```
+
+#### autoformat
+
+Automatically format code files.
+
+**Parameters:**
+- `path` (string, required): Path to format
+- `language` (string): Programming language
+
+**Example:**
+```json
+{
+  "tool": "autoformat",
+  "arguments": {
+    "path": "./src",
+    "language": "python"
+  }
 }
 ```
 
@@ -143,275 +180,334 @@ These scripts leverage the containerized Python CI environment.
 
 ## AI Integration Tools
 
-### consult_gemini
+### Gemini Tools (Port 8006)
+
+#### consult_gemini
 
 Get AI assistance from Google's Gemini model for technical questions, code review, and suggestions.
 
 **Parameters:**
-
-- `question` (string): The question or request
-- `context` (string, optional): Additional context or code
+- `query` (string, required): The question or code to consult about
+- `context` (string, optional): Additional context
+- `comparison_mode` (boolean): Compare with previous Claude response
+- `force` (boolean): Force consultation even if disabled
 
 **Example:**
-
-```python
+```json
 {
   "tool": "consult_gemini",
   "arguments": {
-    "question": "How can I optimize this function for better performance?",
-    "context": "def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)"
+    "query": "How can I optimize this function?",
+    "context": "def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)",
+    "comparison_mode": true
   }
 }
 ```
 
-**Response:**
+#### clear_gemini_history
 
-```json
-{
-  "response": "The current implementation has exponential time complexity. Here's an optimized version using memoization...",
-  "model": "gemini-pro",
-  "tokens_used": 245
-}
-```
+Clear Gemini's conversation history.
 
-### clear_gemini_history
+#### gemini_status
 
-Clear Gemini's conversation history to ensure fresh responses without cached context.
+Get integration status and statistics.
+
+#### toggle_gemini_auto_consult
+
+Toggle automatic consultation on uncertainty detection.
+
+### OpenCode Tools (Port 8014)
+
+#### consult_opencode
+
+AI-powered code generation using Qwen 2.5 Coder.
 
 **Parameters:**
-
-- None
+- `query` (string, required): The coding question or task
+- `mode` (string): generate, refactor, review, or explain
+- `context` (string, optional): Existing code or context
+- `comparison_mode` (boolean): Compare with previous response
 
 **Example:**
-
-```python
-{
-  "tool": "clear_gemini_history",
-  "arguments": {}
-}
-```
-
-**Response:**
-
 ```json
 {
-  "status": "success",
-  "message": "Cleared 5 conversation entries",
-  "cleared_entries": 5
+  "tool": "consult_opencode",
+  "arguments": {
+    "query": "Create a REST API endpoint for user authentication",
+    "mode": "generate",
+    "context": "Using FastAPI and JWT"
+  }
 }
 ```
 
-**Use Cases:**
+### Crush Tools (Port 8015)
 
-- **Automatically called before PR reviews** to ensure fresh analysis
-- When switching between different contexts
-- To reset after errors or incorrect responses
-- Prevents bias from previous conversations
+#### consult_crush
 
-### Advanced Gemini Features
+Fast code generation optimized for speed.
 
-The Gemini integration supports several specialized functions:
+**Parameters:**
+- `query` (string, required): The coding question or task
+- `mode` (string): generate, explain, convert, or quick
+- `context` (string, optional): Target language for conversion
+- `comparison_mode` (boolean): Compare with previous response
 
-1. **Code Analysis**
-
-   ```python
-   gemini.analyze_code(code, language="python")
-   ```
-
-2. **Error Explanation**
-
-   ```python
-   gemini.explain_error(error_message, code_context)
-   ```
-
-3. **Documentation Generation**
-
-   ```python
-   gemini.generate_documentation(code, style="google")
-   ```
-
-4. **Test Suggestion**
-
-   ```python
-   gemini.suggest_tests(code, framework="pytest")
-   ```
+**Example:**
+```json
+{
+  "tool": "consult_crush",
+  "arguments": {
+    "query": "def add(a, b): return a + b",
+    "mode": "convert",
+    "context": "TypeScript"
+  }
+}
+```
 
 ## Content Creation Tools
 
-### create_manim_animation
+### Content Creation Tools (Port 8011)
+
+#### create_manim_animation
 
 Create mathematical and technical animations using Manim.
 
 **Parameters:**
-
-- `script` (string): Manim Python script
-- `output_format` (string): Output format (mp4, gif, webm)
+- `script` (string, required): Manim Python script
+- `output_format` (string): Output format (mp4, gif, png, webm)
+- `quality` (string): Rendering quality (low, medium, high, fourk)
+- `preview` (boolean): Generate preview frame only
 
 **Example:**
-
-```python
+```json
 {
   "tool": "create_manim_animation",
   "arguments": {
-    "script": "from manim import *\n\nclass Example(Scene):\n    def construct(self):\n        text = Text('Hello, MCP!')\n        self.play(Write(text))",
-    "output_format": "mp4"
+    "script": "from manim import *\n\nclass Example(Scene):\n    def construct(self):\n        text = Text('Hello!')\n        self.play(Write(text))",
+    "output_format": "mp4",
+    "quality": "medium",
+    "preview": false
   }
 }
 ```
 
-**Response:**
+#### compile_latex
 
-```json
-{
-  "success": true,
-  "output_path": "/app/output/manim/Example.mp4",
-  "format": "mp4"
-}
-```
-
-### compile_latex
-
-Compile LaTeX documents to various formats.
+Compile LaTeX documents with visual feedback.
 
 **Parameters:**
-
-- `content` (string): LaTeX document content
+- `content` (string, required): LaTeX document content
 - `format` (string): Output format (pdf, dvi, ps)
+- `template` (string): Document template (article, report, book, beamer, custom)
+- `visual_feedback` (boolean): Return PNG preview image
 
 **Example:**
-
-```python
+```json
 {
   "tool": "compile_latex",
   "arguments": {
-    "content": "\\documentclass{article}\\begin{document}\\title{Test}\\maketitle\\end{document}",
-    "format": "pdf"
+    "content": "\\section{Introduction}\\nContent here",
+    "format": "pdf",
+    "template": "article",
+    "visual_feedback": true
   }
 }
 ```
 
-**Response:**
+#### render_tikz
 
+Render TikZ diagrams as standalone images.
+
+**Parameters:**
+- `tikz_code` (string, required): TikZ code
+- `output_format` (string): Output format (pdf, png, svg)
+
+### Meme Generator Tools (Port 8016)
+
+#### generate_meme
+
+Generate memes from templates with text overlays.
+
+**Parameters:**
+- `template` (string, required): Template ID
+- `texts` (object, required): Text for each area
+- `font_size_override` (object, optional): Custom font sizes
+- `auto_resize` (boolean): Auto-adjust font size
+- `upload` (boolean): Upload to get shareable URL
+
+**Example:**
 ```json
 {
-  "success": true,
-  "output_path": "/app/output/latex/document_12345.pdf",
-  "format": "pdf"
+  "tool": "generate_meme",
+  "arguments": {
+    "template": "drake",
+    "texts": {
+      "reject": "Writing documentation",
+      "prefer": "Generated docs"
+    },
+    "upload": true
+  }
 }
 ```
 
 ## Remote Services
 
-### ComfyUI Integration
+### Gaea2 Tools (Port 8007)
 
-Access ComfyUI workflows for image generation.
+#### Terrain Generation
+- `create_gaea2_project`: Create custom terrain projects
+- `create_gaea2_from_template`: Use professional templates
+- `validate_and_fix_workflow`: Validate and repair workflows
+- `analyze_workflow_patterns`: Pattern-based analysis
+- `optimize_gaea2_properties`: Optimize for performance/quality
+- `suggest_gaea2_nodes`: Get intelligent node suggestions
+- `repair_gaea2_project`: Repair damaged projects
+- `run_gaea2_project`: CLI automation (Windows only)
 
-**Setup Instructions:**
+**Features:**
+- Support for all 185 Gaea2 nodes
+- 11 professional templates
+- Automatic error correction
+- Performance optimization
 
-For detailed setup instructions, see the [ComfyUI MCP Server Setup Guide](https://gist.github.com/AndrewAltimit/f2a21b1a075cc8c9a151483f89e0f11e).
+### ComfyUI Tools (Port 8013)
 
-**Available Tools:**
-
+#### Image Generation
 - `generate_image`: Generate images using workflows
 - `list_workflows`: List available workflows
-- `execute_workflow`: Execute specific workflow
+- `get_workflow`: Get workflow details
+- `list_models`: List available models
+- `execute_workflow`: Execute custom workflows
+- `transfer_lora`: Transfer LoRA from AI Toolkit
 
 **Configuration:**
-
 ```bash
-COMFYUI_SERVER_URL=http://192.168.0.152:8189
+COMFYUI_SERVER_URL=http://192.168.0.152:8013
 ```
 
-### AI Toolkit Integration
+### AI Toolkit Tools (Port 8012)
 
-Train LoRA models using AI Toolkit.
-
-**Setup Instructions:**
-
-For detailed setup instructions, see the [AI Toolkit MCP Server Setup Guide](https://gist.github.com/AndrewAltimit/2703c551eb5737de5a4c6767d3626cb8).
-
-**Available Tools:**
-
-- `upload_dataset`: Upload training dataset
-- `create_training_config`: Configure training parameters
+#### LoRA Training
+- `create_training_config`: Configure training
+- `upload_dataset`: Upload images (chunked for >100MB)
 - `start_training`: Begin training job
-- `check_training_status`: Monitor progress
-- `list_models`: List trained models
+- `get_training_status`: Monitor progress
+- `stop_training`: Stop training
+- `export_model`: Export trained model
+- `download_model`: Download model
+- `list_configs`, `list_datasets`, `list_training_jobs`: List resources
+- `get_system_stats`: System statistics
+- `get_training_logs`: Training logs
 
 **Configuration:**
-
 ```bash
-AI_TOOLKIT_SERVER_URL=http://192.168.0.152:8190
+AI_TOOLKIT_SERVER_URL=http://192.168.0.152:8012
 ```
 
 ## Custom Tool Development
 
-### Creating a New Tool
+### Creating a New MCP Server
 
-1. **Define the tool function in mcp_server.py:**
+1. **Create a new directory under `tools/mcp/`:**
+```bash
+mkdir tools/mcp/my_server
+```
 
+2. **Create server.py inheriting from BaseMCPServer:**
 ```python
-# tools/mcp/mcp_server.py
-class MCPTools:
-    @staticmethod
-    async def my_custom_tool(param1: str, param2: int = 10) -> Dict[str, Any]:
-    """
-    My custom tool description.
+# tools/mcp/my_server/server.py
+from ..core.base_server import BaseMCPServer
+from ..core.utils import setup_logging
 
-    Args:
-        param1: Description of param1
-        param2: Description of param2
+class MyMCPServer(BaseMCPServer):
+    def __init__(self):
+        super().__init__(
+            name="My MCP Server",
+            version="1.0.0",
+            port=8020  # Choose an unused port
+        )
+        self.logger = setup_logging("MyMCP")
 
-    Returns:
-        Dictionary with results
-    """
-    # Tool implementation
-    result = process_data(param1, param2)
-
-    return {
-        "success": True,
-        "result": result,
-        "metadata": {
-            "param1": param1,
-            "param2": param2
+    def get_tools(self) -> Dict[str, Dict[str, Any]]:
+        return {
+            "my_tool": {
+                "description": "My custom tool",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "param1": {
+                            "type": "string",
+                            "description": "Parameter 1"
+                        }
+                    },
+                    "required": ["param1"]
+                }
+            }
         }
-    }
+
+    async def my_tool(self, param1: str) -> Dict[str, Any]:
+        """Tool implementation"""
+        return {
+            "success": True,
+            "result": f"Processed: {param1}"
+        }
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", choices=["http", "stdio"], default="http")
+    args = parser.parse_args()
+
+    server = MyMCPServer()
+    server.run(mode=args.mode)
+
+if __name__ == "__main__":
+    main()
 ```
 
-2. **Handle in execute_tool endpoint:**
-
-```python
-# tools/mcp/mcp_server.py
-@app.post("/tools/execute")
-async def execute_tool(request: ToolRequest):
-    # ... existing code
-    elif tool_name == "my_custom_tool":
-        result = await MCPTools.my_custom_tool(**request.arguments)
-```
-
-3. **Update configuration:**
-
+3. **Add to .mcp.json configuration:**
 ```json
-// .mcp.json
 {
-  "tools": {
-    "my_custom_tool": {
-      "description": "My custom tool description",
-      "parameters": {
-        "param1": {
-          "type": "string",
-          "description": "Description of param1",
-          "required": true
-        },
-        "param2": {
-          "type": "integer",
-          "description": "Description of param2",
-          "default": 10
-        }
-      }
+  "mcpServers": {
+    "my-server": {
+      "type": "http",
+      "url": "http://localhost:8020/messages"
     }
   }
 }
+```
+
+4. **Create documentation:**
+```bash
+mkdir tools/mcp/my_server/docs
+echo "# My MCP Server" > tools/mcp/my_server/docs/README.md
+```
+
+5. **Add test script:**
+```python
+# tools/mcp/my_server/scripts/test_server.py
+import asyncio
+import aiohttp
+
+async def test_server():
+    async with aiohttp.ClientSession() as session:
+        # Test health endpoint
+        async with session.get("http://localhost:8020/health") as resp:
+            assert resp.status == 200
+
+        # Test tool execution
+        async with session.post(
+            "http://localhost:8020/mcp/execute",
+            json={
+                "tool": "my_tool",
+                "arguments": {"param1": "test"}
+            }
+        ) as resp:
+            result = await resp.json()
+            assert result["success"] is True
+
+if __name__ == "__main__":
+    asyncio.run(test_server())
 ```
 
 ### Tool Guidelines

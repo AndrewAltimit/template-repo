@@ -38,7 +38,7 @@ Create mathematical animations using the Manim library.
 
 ### compile_latex
 
-Compile LaTeX documents to various formats.
+Compile LaTeX documents to various formats with optional visual feedback.
 
 **Parameters:**
 - `content` (required): LaTeX document content
@@ -46,6 +46,8 @@ Compile LaTeX documents to various formats.
   - Options: pdf, dvi, ps
 - `template`: Document template (default: "article")
   - Options: article, report, book, beamer, custom
+- `visual_feedback`: Return PNG preview image for visual verification (default: true)
+  - When enabled, returns a base64-encoded JPEG preview of the first page
 
 **Example:**
 ```json
@@ -54,7 +56,23 @@ Compile LaTeX documents to various formats.
   "arguments": {
     "content": "\\section{Introduction}\nThis is my document.",
     "format": "pdf",
-    "template": "article"
+    "template": "article",
+    "visual_feedback": true
+  }
+}
+```
+
+**Response Structure:**
+```json
+{
+  "success": true,
+  "output_path": "/app/output/latex/document_12345.pdf",
+  "format": "pdf",
+  "visual_feedback": {
+    "format": "jpeg",
+    "encoding": "base64",
+    "data": "<base64_encoded_image>",
+    "size_kb": 45.2
   }
 }
 ```
@@ -113,33 +131,31 @@ The following tools must be installed for full functionality:
 
 ## Docker Support
 
-The Content Creation MCP Server is designed to run in a container with all dependencies:
+The Content Creation MCP Server runs in a container with all dependencies pre-installed:
 
-```dockerfile
-FROM python:3.11
+### Using Docker Compose (Recommended)
 
-# Install LaTeX
-RUN apt-get update && apt-get install -y \
-    texlive-full \
-    poppler-utils \
-    pdf2svg
+```bash
+# Start the server
+docker-compose up -d mcp-content-creation
 
-# Install Manim dependencies
-RUN apt-get install -y \
-    ffmpeg \
-    libcairo2-dev \
-    libpango1.0-dev
+# View logs
+docker-compose logs -f mcp-content-creation
 
-# Install Manim
-RUN pip install manim
-
-# Copy server code
-COPY tools/mcp/content_creation /app/content_creation
-COPY tools/mcp/core /app/core
-
-WORKDIR /app
-CMD ["python", "-m", "content_creation.server"]
+# Stop the server
+docker-compose down mcp-content-creation
 ```
+
+### Docker Image Details
+
+The server uses a custom Docker image with:
+- Python 3.11 base image
+- Complete TeXLive installation for LaTeX support
+- Manim and its dependencies (FFmpeg, Cairo, Pango)
+- Pillow for image processing and visual feedback
+- PDF manipulation tools (poppler-utils, pdf2svg)
+
+The Dockerfile is located at `docker/mcp-content.Dockerfile`.
 
 ## Output Directory Structure
 
@@ -246,23 +262,44 @@ The server provides detailed error messages:
 
 ## Performance Considerations
 
-- Manim animations can be CPU-intensive
-- Use lower quality settings for faster preview generation
-- LaTeX compilation runs twice to resolve references
-- Consider using preview mode for Manim during development
+- **Manim animations** can be CPU-intensive
+  - Use `quality: "low"` for quick previews
+  - Use `preview: true` to generate only the final frame
+  - Higher quality settings ("high", "fourk") take significantly longer
+
+- **LaTeX compilation** runs twice to resolve references
+  - First pass: Generate auxiliary files
+  - Second pass: Resolve cross-references and citations
+  - Large documents may require additional passes
+
+- **Visual feedback** optimization
+  - Images are automatically compressed to JPEG format
+  - Maximum size limit of 100KB for feedback images
+  - Lower DPI (72) used for preview generation
+
+- **Resource usage**
+  - Consider container memory limits for large documents
+  - Temporary files are cleaned up after processing
+  - Output directory should have sufficient space
 
 ## Testing
 
 Run the test script to verify the server is working:
 
 ```bash
+# Test the server directly
 python tools/mcp/content_creation/scripts/test_server.py
+
+# Or run through Docker
+docker-compose run --rm python-ci python tools/mcp/content_creation/scripts/test_server.py
 ```
 
 The test script will:
-1. Check server health
-2. List available tools
-3. Test LaTeX compilation
-4. Test TikZ rendering
-5. Test Manim animation creation
-6. Verify error handling
+1. Check server health and connectivity
+2. List available tools and their parameters
+3. Test LaTeX compilation with visual feedback
+4. Test TikZ diagram rendering
+5. Test Manim animation creation (mp4, gif, png formats)
+6. Verify error handling for invalid inputs
+7. Test preview generation modes
+8. Validate output file creation and cleanup
