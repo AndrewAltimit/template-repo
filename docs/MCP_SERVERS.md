@@ -414,6 +414,8 @@ The modular servers are configured in `.mcp.json`:
 }
 ```
 
+**Important**: The `/messages` endpoint shown above is for MCP protocol (JSON-RPC) communication used by Claude Desktop and MCP-compliant clients. For direct HTTP API tool execution, use the `/mcp/execute` endpoint instead. See [MCP Tools Documentation](MCP_TOOLS.md#tool-execution) for details on both interfaces.
+
 **Note**: OpenCode and Crush use STDIO mode by default for local Claude Desktop integration but can also run in HTTP mode.
 
 ## Client Usage

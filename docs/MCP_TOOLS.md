@@ -45,9 +45,44 @@ See [MCP Servers Documentation](MCP_SERVERS.md) for detailed information.
 
 ### Tool Execution
 
-Tools can be executed via HTTP API (for HTTP servers) or MCP protocol (for STDIO servers):
+MCP servers provide two different interfaces for tool execution:
 
-**HTTP API Example (for servers running in HTTP mode):**
+#### 1. MCP Protocol Interface (`/messages` endpoint)
+Used by Claude Desktop and MCP-compliant clients for JSON-RPC communication. This is the endpoint configured in `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "server-name": {
+      "type": "http",
+      "url": "http://localhost:<port>/messages"
+    }
+  }
+}
+```
+
+**Example JSON-RPC request to `/messages`:**
+```bash
+curl -X POST http://localhost:<port>/messages \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+      "name": "tool_name",
+      "arguments": {
+        "arg1": "value1",
+        "arg2": "value2"
+      }
+    },
+    "id": 1
+  }'
+```
+
+#### 2. Direct HTTP API (`/mcp/execute` endpoint)
+For direct REST API tool execution without MCP protocol overhead. Useful for testing and direct integration:
+
+**Example direct API request:**
 ```bash
 curl -X POST http://localhost:<port>/mcp/execute \
   -H "Content-Type: application/json" \
@@ -60,8 +95,8 @@ curl -X POST http://localhost:<port>/mcp/execute \
   }'
 ```
 
-**MCP Protocol (for STDIO mode):**
-Servers in STDIO mode communicate through standard input/output using the MCP protocol.
+**STDIO Mode:**
+Servers running in STDIO mode communicate through standard input/output using the MCP protocol and don't expose HTTP endpoints.
 
 **Port Reference:**
 - Code Quality: 8010
