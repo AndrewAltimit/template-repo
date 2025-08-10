@@ -1,0 +1,266 @@
+---
+name: Link Check
+# Automated link checking for all markdown documentation
+
+'on':
+  push:
+    branches: [main, refine]
+    paths:
+      - '**.md'
+      - '.github/workflows/link-check.yml'
+      - '.markdown-link-check.json'
+  pull_request:
+    paths:
+      - '**.md'
+      - '.github/workflows/link-check.yml'
+      - '.markdown-link-check.json'
+  schedule:
+    # Run weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      check_external:
+        description: 'Check external links (slower but more thorough)'
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: link-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  link-check:
+    name: Check Documentation Links
+    runs-on: [self-hosted, Linux]
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install markdown-link-check
+        run: npm install -g markdown-link-check@3.12.2
+
+      - name: Create default config if not exists
+        run: |
+          if [ ! -f .markdown-link-check.json ]; then
+            echo '{
+              "ignorePatterns": [
+                {
+                  "pattern": "^http://localhost"
+                },
+                {
+                  "pattern": "^http://127\\.0\\.0\\.1"
+                },
+                {
+                  "pattern": "^http://192\\.168\\."
+                }
+              ],
+              "replacementPatterns": [],
+              "httpHeaders": [
+                {
+                  "urls": ["https://github.com", "https://raw.githubusercontent.com"],
+                  "headers": {
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+                  }
+                }
+              ],
+              "timeout": "20s",
+              "retryOn429": true,
+              "retryCount": 3,
+              "fallbackRetryDelay": "30s",
+              "aliveStatusCodes": [200, 201, 202, 203, 204, 206, 301, 302, 303, 307, 308]
+            }' > .markdown-link-check.json
+          fi
+
+      - name: Find all markdown files
+        id: find_files
+        run: |
+          # Find all markdown files, excluding common directories
+          find . -name "*.md" \
+            -not -path "./node_modules/*" \
+            -not -path "./.git/*" \
+            -not -path "./vendor/*" \
+            -not -path "./.github/ISSUE_TEMPLATE/*" \
+            -not -path "./.venv/*" \
+            -not -path "./venv/*" \
+            -not -path "./__pycache__/*" \
+            -not -path "./.pytest_cache/*" \
+            -not -path "./.mypy_cache/*" \
+            > markdown_files.txt
+
+          echo "Found $(wc -l < markdown_files.txt) markdown files"
+          echo "files_found=$(wc -l < markdown_files.txt)" >> $GITHUB_OUTPUT
+
+      - name: Check markdown links
+        id: link_check
+        run: |
+          set +e  # Don't exit on error
+
+          # Initialize counters
+          total_files=0
+          failed_files=0
+          total_errors=0
+
+          # Create summary file
+          echo "# Link Check Results" > link_check_summary.md
+          echo "" >> link_check_summary.md
+          echo "## Summary" >> link_check_summary.md
+          echo "" >> link_check_summary.md
+
+          # Check if we should check external links
+          check_external="${{ github.event.inputs.check_external }}"
+          if [ "$check_external" = "false" ]; then
+            echo "ℹ️ Checking internal links only (external link checking disabled)" >> link_check_summary.md
+            config_args="--config .markdown-link-check-internal.json"
+
+            # Create internal-only config
+            jq '. + {"ignorePatterns": (.ignorePatterns + [{"pattern": "^https?://"}])}' \
+              .markdown-link-check.json > .markdown-link-check-internal.json
+          else
+            echo "ℹ️ Checking both internal and external links" >> link_check_summary.md
+            config_args="--config .markdown-link-check.json"
+          fi
+
+          echo "" >> link_check_summary.md
+          echo "## Detailed Results" >> link_check_summary.md
+          echo "" >> link_check_summary.md
+
+          # Process each file
+          while IFS= read -r file; do
+            total_files=$((total_files + 1))
+            echo "Checking: $file"
+
+            # Run link check and capture output
+            output=$(markdown-link-check $config_args "$file" 2>&1)
+            exit_code=$?
+
+            if [ $exit_code -ne 0 ]; then
+              failed_files=$((failed_files + 1))
+
+              # Count errors in this file
+              file_errors=$(echo "$output" | grep -c "✖")
+              total_errors=$((total_errors + file_errors))
+
+              # Add to summary
+              echo "### ❌ $file" >> link_check_summary.md
+              echo '```' >> link_check_summary.md
+              echo "$output" | grep -E "✖|→" >> link_check_summary.md
+              echo '```' >> link_check_summary.md
+              echo "" >> link_check_summary.md
+            else
+              echo "✅ $file - All links valid"
+            fi
+          done < markdown_files.txt
+
+          # Update summary header
+          {
+            echo "# Link Check Results"
+            echo ""
+            echo "## Summary"
+            echo ""
+            echo "- **Total files checked**: $total_files"
+            echo "- **Files with broken links**: $failed_files"
+            echo "- **Total broken links**: $total_errors"
+            echo ""
+
+            if [ $failed_files -eq 0 ]; then
+              echo "✅ **All links are valid!**"
+            else
+              echo "❌ **Found broken links in $failed_files file(s)**"
+            fi
+
+            echo ""
+            cat link_check_summary.md | tail -n +6
+          } > link_check_final.md
+
+          mv link_check_final.md link_check_summary.md
+
+          # Set outputs
+          echo "failed_files=$failed_files" >> $GITHUB_OUTPUT
+          echo "total_errors=$total_errors" >> $GITHUB_OUTPUT
+
+          # Exit with appropriate code
+          if [ $failed_files -gt 0 ]; then
+            exit 1
+          fi
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: link-check-results
+          path: |
+            link_check_summary.md
+            markdown_files.txt
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('link_check_summary.md', 'utf8');
+            const failed = ${{ steps.link_check.outputs.failed_files || 0 }};
+
+            const status = failed === 0 ? '✅' : '❌';
+            const title = `${status} Link Check Results`;
+
+            // Find and update or create comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Link Check Results')
+            );
+
+            const body = `## ${title}\n\n${summary}`;
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: Create issue for broken links (scheduled runs)
+        if: github.event_name == 'schedule' && steps.link_check.outputs.failed_files != '0'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('link_check_summary.md', 'utf8');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🔗 Broken links detected in documentation',
+              body: summary,
+              labels: ['documentation', 'automated', 'link-check']
+            });

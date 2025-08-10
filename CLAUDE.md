@@ -246,6 +246,11 @@ docker-compose build python-ci
 
 # Fix runner permission issues
 ./scripts/fix-runner-permissions.sh
+
+# Check markdown links locally
+./scripts/check-links.sh                # Check all links in all markdown files
+./scripts/check-links.sh --internal-only # Check only internal links
+./scripts/check-links.sh --file docs/   # Check only files in docs directory
 ```
 
 ## Architecture
@@ -344,6 +349,7 @@ The repository includes comprehensive CI/CD workflows:
 - **PR Validation**: Automatic Gemini AI code review with history clearing
 - **Testing Pipeline**: Containerized pytest with coverage reporting
 - **Code Quality**: Multi-stage linting in Docker containers
+- **Link Checking**: Automated markdown link validation with weekly scheduled runs
 - **Self-hosted Runners**: All workflows run on self-hosted infrastructure
 - **Runner Maintenance**: Automated cleanup and health checks
 
