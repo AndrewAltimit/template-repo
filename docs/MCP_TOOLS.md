@@ -100,19 +100,19 @@ Servers running in STDIO mode communicate through standard input/output using th
 
 ### Quick Reference Table
 
-| Server Name | Port | Primary Mode | Description |
-|-------------|------|--------------|-------------|
-| Code Quality | 8010 | STDIO (Docker) | Code formatting and linting |
-| Content Creation | 8011 | STDIO (Docker) | Manim animations and LaTeX |
-| Gemini | 8006 | STDIO (Host) | AI consultation (must run on host) |
-| Gaea2 | 8007 | HTTP (Bridge) | Terrain generation (remote server) |
-| AI Toolkit | 8012 | HTTP (Bridge) | LoRA training (remote server) |
-| ComfyUI | 8013 | HTTP (Bridge) | Image generation (remote server) |
-| OpenCode | 8014 | STDIO (Docker) | AI code generation |
-| Crush | 8015 | STDIO (Docker) | Fast code generation |
-| Meme Generator | N/A | STDIO (Docker) | Meme creation with visual feedback |
+| Server Name | Primary Mode | HTTP Port (Dev) | Description |
+|-------------|--------------|-----------------|-------------|
+| Code Quality | STDIO (Docker) | 8010 | Code formatting and linting |
+| Content Creation | STDIO (Docker) | 8011 | Manim animations and LaTeX |
+| Gemini | STDIO (Host) | 8006 | AI consultation (must run on host) |
+| Gaea2 | HTTP (Bridge) | 8007 | Terrain generation (remote server) |
+| AI Toolkit | HTTP (Bridge) | 8012 | LoRA training (remote server) |
+| ComfyUI | HTTP (Bridge) | 8013 | Image generation (remote server) |
+| OpenCode | STDIO (Docker) | 8014 | AI code generation |
+| Crush | STDIO (Docker) | 8015 | Fast code generation |
+| Meme Generator | STDIO (Docker) | N/A | Meme creation with visual feedback |
 
-**Note**: Ports listed are for development/testing when servers run in HTTP mode. Most servers use STDIO mode through Docker Compose in production.
+**Note**: The default configuration uses STDIO mode for local servers through Docker Compose. HTTP ports are only used when manually running servers in HTTP mode for development/testing.
 
 ## Core Tools
 

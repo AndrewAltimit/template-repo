@@ -4,7 +4,7 @@ This repository contains a modular collection of MCP servers that provide variou
 
 ## Available MCP Servers
 
-### 1. Code Quality MCP Server (Port 8010)
+### 1. Code Quality MCP Server (STDIO mode)
 **Location**: `tools/mcp/code_quality/`
 **Documentation**: [Code Quality MCP Documentation](../../tools/mcp/code_quality/docs/README.md)
 
@@ -13,7 +13,7 @@ Provides code formatting and linting tools for multiple languages:
 - Linting with various tools (flake8, pylint, eslint, etc.)
 - Auto-formatting capabilities
 
-### 2. Content Creation MCP Server (Port 8011)
+### 2. Content Creation MCP Server (STDIO mode)
 **Location**: `tools/mcp/content_creation/`
 **Documentation**: [Content Creation MCP Documentation](../../tools/mcp/content_creation/docs/README.md)
 
@@ -23,7 +23,7 @@ Tools for creating mathematical animations and documents:
 - TikZ diagram rendering
 - Preview generation and compression
 
-### 3. Gemini AI Integration MCP Server (Port 8006)
+### 3. Gemini AI Integration MCP Server (STDIO mode)
 **Location**: `tools/mcp/gemini/`
 **Documentation**: [Gemini MCP Documentation](../../tools/mcp/gemini/docs/README.md)
 
@@ -72,7 +72,7 @@ Bridge to remote ComfyUI for AI image generation:
 
 **Remote Bridge**: Connects to ComfyUI at `192.168.0.152:8013`
 
-### 7. OpenCode MCP Server (Port 8014)
+### 7. OpenCode MCP Server (STDIO mode)
 **Location**: `tools/mcp/opencode/`
 **Documentation**: [OpenCode MCP Documentation](../../tools/mcp/opencode/README.md)
 
@@ -85,7 +85,7 @@ AI-powered code generation using OpenRouter:
 
 **Modes**: Supports both STDIO (local) and HTTP (remote) modes
 
-### 8. Crush MCP Server (Port 8015)
+### 8. Crush MCP Server (STDIO mode)
 **Location**: `tools/mcp/crush/`
 **Documentation**: [Crush MCP Documentation](../../tools/mcp/crush/README.md)
 
@@ -97,7 +97,7 @@ Fast code generation using OpenRouter:
 
 **Modes**: Supports both STDIO (local) and HTTP (remote) modes
 
-### 9. Meme Generator MCP Server (Port 8016)
+### 9. Meme Generator MCP Server (STDIO mode)
 **Location**: `tools/mcp/meme_generator/`
 **Documentation**: [Meme Generator MCP Documentation](../../tools/mcp/meme_generator/docs/README.md)
 
@@ -142,15 +142,15 @@ tools/mcp/
 │   ├── client_registry.py  # Client registry management
 │   └── utils.py            # Common utilities
 │
-├── code_quality/           # Code quality tools (Port 8010)
-├── content_creation/       # Manim & LaTeX tools (Port 8011)
-├── gemini/                 # AI integration (Port 8006)
-├── gaea2/                  # Terrain generation (Port 8007)
-├── ai_toolkit/             # LoRA training bridge (Port 8012)
-├── comfyui/                # Image generation bridge (Port 8013)
-├── opencode/               # AI code generation (Port 8014)
-├── crush/                  # Fast code generation (Port 8015)
-└── meme_generator/         # Meme creation (Port 8016)
+├── code_quality/           # Code quality tools (STDIO)
+├── content_creation/       # Manim & LaTeX tools (STDIO)
+├── gemini/                 # AI integration (STDIO, host-only)
+├── gaea2/                  # Terrain generation (HTTP bridge, port 8007)
+├── ai_toolkit/             # LoRA training (HTTP bridge, port 8012)
+├── comfyui/                # Image generation (HTTP bridge, port 8013)
+├── opencode/               # AI code generation (STDIO)
+├── crush/                  # Fast code generation (STDIO)
+└── meme_generator/         # Meme creation (STDIO)
 ```
 
 ## Running MCP Servers
@@ -249,10 +249,9 @@ services:
     build:
       context: .
       dockerfile: docker/mcp-meme.Dockerfile
-    ports:
-      - "8016:8016"
     volumes:
       - ./output:/app/output
+    # Runs in STDIO mode - no ports exposed
 
   # OpenRouter-based agents container
   openrouter-agents:
@@ -293,17 +292,27 @@ python scripts/mcp/test_all_servers.py
 
 ## Common Issues
 
-### Port Conflicts
-Each server uses a different port:
-- Gemini: 8006 (host-only)
-- Gaea2: 8007
+### Server Modes and Ports
+
+**STDIO Mode (Default - no ports exposed):**
+- Code Quality (via Docker Compose)
+- Content Creation (via Docker Compose)
+- Gemini (host-only, requires Docker access)
+- OpenCode (via Docker Compose)
+- Crush (via Docker Compose)
+- Meme Generator (via Docker Compose)
+
+**HTTP Bridge Mode (Remote servers):**
+- Gaea2: 8007 (remote at 192.168.0.152)
+- AI Toolkit: 8012 (remote at 192.168.0.152)
+- ComfyUI: 8013 (remote at 192.168.0.152)
+
+**Development Ports (when running servers in HTTP mode):**
 - Code Quality: 8010
 - Content Creation: 8011
-- AI Toolkit: 8012 (bridge)
-- ComfyUI: 8013 (bridge)
+- Gemini: 8006
 - OpenCode: 8014
 - Crush: 8015
-- Meme Generator: 8016
 
 ### Container Restrictions
 - **Gemini**: Cannot run in container (needs Docker access)

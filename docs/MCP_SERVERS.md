@@ -6,19 +6,22 @@ This project uses a modular architecture with multiple Model Context Protocol (M
 
 The MCP functionality is split across modular servers:
 
-1. **Code Quality MCP Server** (Port 8010) - Containerized, provides code formatting and linting tools
-2. **Content Creation MCP Server** (Port 8011) - Containerized, provides Manim animations and LaTeX compilation
-3. **Gemini MCP Server** (Port 8006) - Host-only, provides Gemini AI integration (requires Docker access)
-4. **Gaea2 MCP Server** (Port 8007) - Containerized, provides terrain generation and workflow management
-5. **AI Toolkit MCP Server** (Port 8012) - Bridge to remote AI Toolkit for LoRA training
-6. **ComfyUI MCP Server** (Port 8013) - Bridge to remote ComfyUI for image generation
-7. **OpenCode MCP Server** (Port 8014) - AI-powered code generation (stdio/HTTP)
-8. **Crush MCP Server** (Port 8015) - Fast code generation (stdio/HTTP)
-9. **Meme Generator MCP Server** - Containerized meme creation with visual feedback (STDIO mode)
+**STDIO Mode (Default - local execution):**
+1. **Code Quality MCP Server** - Containerized code formatting and linting tools
+2. **Content Creation MCP Server** - Containerized Manim animations and LaTeX compilation
+3. **Gemini MCP Server** - Host-only AI integration (requires Docker access)
+4. **OpenCode MCP Server** - Containerized AI-powered code generation
+5. **Crush MCP Server** - Containerized fast code generation
+6. **Meme Generator MCP Server** - Containerized meme creation with visual feedback
+
+**HTTP Bridge Mode (Remote servers):**
+7. **Gaea2 MCP Server** (Port 8007) - Bridge to remote terrain generation
+8. **AI Toolkit MCP Server** (Port 8012) - Bridge to remote AI Toolkit for LoRA training
+9. **ComfyUI MCP Server** (Port 8013) - Bridge to remote ComfyUI for image generation
 
 This modular architecture ensures better separation of concerns, easier maintenance, and the ability to scale individual services independently.
 
-## Code Quality MCP Server (Port 8010)
+## Code Quality MCP Server
 
 The code quality server provides formatting and linting tools for multiple programming languages.
 
@@ -48,7 +51,7 @@ curl http://localhost:8010/health
 
 See `tools/mcp/code_quality/docs/README.md` for detailed configuration options.
 
-## Content Creation MCP Server (Port 8011)
+## Content Creation MCP Server
 
 The content creation server provides tools for creating animations and compiling documents.
 
@@ -80,7 +83,7 @@ Output directory is configured via the `MCP_OUTPUT_DIR` environment variable (de
 
 See `tools/mcp/content_creation/docs/README.md` for detailed documentation.
 
-## Gemini MCP Server (Port 8006)
+## Gemini MCP Server
 
 The Gemini server provides AI assistance through the Gemini CLI. It **must run on the host system** because it requires Docker access.
 
@@ -234,7 +237,7 @@ curl http://localhost:8013/health
 
 See `tools/mcp/comfyui/docs/README.md` and `docs/LORA_TRANSFER_DOCUMENTATION.md` for detailed documentation.
 
-## OpenCode MCP Server (Port 8014)
+## OpenCode MCP Server
 
 The OpenCode server provides AI-powered code generation using OpenRouter API.
 
@@ -271,7 +274,7 @@ curl http://localhost:8014/health
 
 See `tools/mcp/opencode/README.md` and `docs/OPENCODE_CRUSH_INTEGRATION.md` for detailed documentation.
 
-## Crush MCP Server (Port 8015)
+## Crush MCP Server
 
 The Crush server provides fast code generation using OpenRouter API with optimized models.
 
