@@ -11,7 +11,6 @@ This script creates various demonstration projects that showcase:
 - Animations
 """
 
-import json
 import time
 from typing import Any, Dict
 
@@ -42,7 +41,7 @@ class BlenderMCPDemo:
             "create_blender_project",
             {"name": "demo_abstract_art", "template": "empty", "settings": {"resolution": [1920, 1080], "engine": "CYCLES"}},
         )
-        print(f"✓ Project created: demo_abstract_art.blend")
+        print("✓ Project created: demo_abstract_art.blend")
         time.sleep(2)
 
         # Add multiple colored spheres
@@ -67,14 +66,14 @@ class BlenderMCPDemo:
 
             spheres.append({"type": "sphere", "name": f"Sphere_{i+1}", "location": [x, y, z], "scale": [0.8, 0.8, 0.8]})
 
-        result = self.call_tool("add_primitive_objects", {"project": "demo_abstract_art", "objects": spheres})
+        result = self.call_tool("add_primitive_objects", {"project": "demo_abstract_art", "objects": spheres})  # noqa: F841
         print(f"✓ Added {len(spheres)} colorful spheres")
         time.sleep(2)
 
         # Apply emission materials
         print("Applying emission materials...")
         for i, color in enumerate(colors):
-            result = self.call_tool(
+            _ = self.call_tool(  # Result checked in loop
                 "apply_material",
                 {
                     "project": "demo_abstract_art",
@@ -86,7 +85,7 @@ class BlenderMCPDemo:
 
         # Add ground plane
         print("Adding reflective ground...")
-        result = self.call_tool(
+        self.call_tool(
             "add_primitive_objects",
             {
                 "project": "demo_abstract_art",
@@ -95,7 +94,7 @@ class BlenderMCPDemo:
         )
 
         # Apply reflective material to ground
-        result = self.call_tool(
+        self.call_tool(
             "apply_material",
             {
                 "project": "demo_abstract_art",
@@ -123,7 +122,7 @@ class BlenderMCPDemo:
                 "settings": {"resolution": [1920, 1080], "fps": 30, "engine": "EEVEE"},
             },
         )
-        print(f"✓ Project created: demo_physics.blend")
+        print("✓ Project created: demo_physics.blend")
         time.sleep(2)
 
         # Add stacked cubes
@@ -137,14 +136,14 @@ class BlenderMCPDemo:
 
                 cubes.append({"type": "cube", "name": f"Cube_{i}_{j}", "location": [x, y, z], "scale": [0.5, 0.5, 0.5]})
 
-        result = self.call_tool("add_primitive_objects", {"project": "demo_physics", "objects": cubes})
+        result = self.call_tool("add_primitive_objects", {"project": "demo_physics", "objects": cubes})  # noqa: F841
         print(f"✓ Added {len(cubes)} cubes in pyramid formation")
         time.sleep(2)
 
         # Apply physics to cubes
         print("Setting up physics for cubes...")
         for cube in cubes:
-            result = self.call_tool(
+            _ = self.call_tool(  # Result checked in loop
                 "setup_physics",
                 {
                     "project": "demo_physics",
@@ -157,7 +156,7 @@ class BlenderMCPDemo:
 
         # Add a tilted platform
         print("Adding tilted platform...")
-        result = self.call_tool(
+        result = self.call_tool(  # noqa: F841
             "add_primitive_objects",
             {
                 "project": "demo_physics",
@@ -174,7 +173,7 @@ class BlenderMCPDemo:
         )
 
         # Make platform static physics object
-        result = self.call_tool(
+        self.call_tool(
             "setup_physics",
             {
                 "project": "demo_physics",
@@ -203,7 +202,7 @@ class BlenderMCPDemo:
                 "settings": {"resolution": [1920, 1080], "fps": 60, "engine": "EEVEE"},
             },
         )
-        print(f"✓ Project created: demo_animated_logo.blend")
+        print("✓ Project created: demo_animated_logo.blend")
         time.sleep(2)
 
         # Add logo elements
@@ -267,7 +266,7 @@ class BlenderMCPDemo:
             y = math.sin(angle) * 1.5
             keyframes.append({"frame": frame, "location": [x, y, 0]})
 
-        result = self.call_tool(
+        result = self.call_tool(  # noqa: F841
             "create_animation",
             {"project": "demo_animated_logo", "object_name": "Logo_Cube", "keyframes": keyframes, "interpolation": "BEZIER"},
         )
@@ -275,7 +274,7 @@ class BlenderMCPDemo:
 
         # Apply metallic materials
         print("Applying metallic materials...")
-        result = self.call_tool(
+        self.call_tool(
             "apply_material",
             {
                 "project": "demo_animated_logo",
@@ -284,7 +283,7 @@ class BlenderMCPDemo:
             },
         )
 
-        result = self.call_tool(
+        self.call_tool(
             "apply_material",
             {
                 "project": "demo_animated_logo",
@@ -293,7 +292,7 @@ class BlenderMCPDemo:
             },
         )
 
-        result = self.call_tool(
+        self.call_tool(
             "apply_material",
             {
                 "project": "demo_animated_logo",
@@ -317,7 +316,7 @@ class BlenderMCPDemo:
             "create_blender_project",
             {"name": "demo_landscape", "template": "empty", "settings": {"resolution": [2560, 1440], "engine": "CYCLES"}},
         )
-        print(f"✓ Project created: demo_landscape.blend")
+        print("✓ Project created: demo_landscape.blend")
         time.sleep(2)
 
         # Add base terrain
@@ -368,7 +367,7 @@ class BlenderMCPDemo:
 
         # Setup natural lighting
         print("Setting up natural lighting...")
-        result = self.call_tool(
+        result = self.call_tool(  # noqa: F841
             "setup_lighting",
             {
                 "project": "demo_landscape",
@@ -380,7 +379,7 @@ class BlenderMCPDemo:
 
         # Apply materials
         print("Applying terrain materials...")
-        result = self.call_tool(
+        self.call_tool(
             "apply_material",
             {
                 "project": "demo_landscape",
@@ -389,7 +388,7 @@ class BlenderMCPDemo:
             },
         )
 
-        result = self.call_tool(
+        self.call_tool(
             "apply_material",
             {
                 "project": "demo_landscape",

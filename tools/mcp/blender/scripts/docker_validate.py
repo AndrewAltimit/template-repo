@@ -2,8 +2,6 @@
 """Validation script for Blender MCP server running in Docker."""
 
 import asyncio
-import json
-from pathlib import Path
 from typing import Any, Dict
 
 import httpx
@@ -70,13 +68,13 @@ async def validate_server():
 
         if "error" not in result:
             print(f"✓ Created project: {result['result']['project_path']}")
-            basic_project = result["result"]["project_path"]
+            # basic_project = result["result"]["project_path"]  # Store if needed later
             job_id = result["result"]["job_id"]
 
             # Wait for job to complete
             job_result = await wait_for_job(client, base_url, job_id)
             if job_result:
-                print(f"✓ Job completed successfully")
+                print("✓ Job completed successfully")
         else:
             print(f"✗ Failed to create project: {result['error']}")
             return
@@ -96,7 +94,7 @@ async def validate_server():
 
         if "error" not in result:
             print(f"✓ Created project: {result['result']['project_path']}")
-            studio_project = result["result"]["project_path"]
+            # studio_project = result["result"]["project_path"]  # Store if needed later
             job_id = result["result"]["job_id"]
             await wait_for_job(client, base_url, job_id)
         else:

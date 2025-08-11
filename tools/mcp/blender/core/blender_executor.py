@@ -5,7 +5,6 @@ import json
 import logging
 import os
 import subprocess
-import tempfile
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -79,9 +78,8 @@ class BlenderExecutor:
 
         if not script_path.exists():
             logger.error(f"Script not found: {script_path}")
-            logger.error(
-                f"Available files in {self.script_dir}: {list(self.script_dir.glob('*')) if self.script_dir.exists() else 'Directory does not exist'}"
-            )
+            files = list(self.script_dir.glob("*")) if self.script_dir.exists() else []
+            logger.error(f"Available files in {self.script_dir}: {files or 'Directory does not exist'}")
             raise FileNotFoundError(f"Script not found: {script_path}")
 
         # Create temporary file for arguments in a directory accessible to Blender
