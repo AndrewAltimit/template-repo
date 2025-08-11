@@ -2,7 +2,7 @@
 
 # Blender MCP Server Quick Start Script
 
-set -e
+set -eu
 
 echo "🎬 Blender MCP Server Quick Start"
 echo "================================="
