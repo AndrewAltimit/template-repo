@@ -1,6 +1,6 @@
 # Security Hooks
 
-This directory contains security hooks used by AI agents and automation tools to prevent accidental exposure of secrets in public outputs.
+This directory contains agent-agnostic security hooks that can be used by any AI agent or automation tool to prevent accidental exposure of secrets and ensure proper formatting in public outputs.
 
 ## Overview
 
@@ -36,10 +36,30 @@ The security hooks system provides automatic secret masking for all GitHub comme
 - Gracefully handles missing validators
 - Maintains compatibility with agent-specific hooks
 
-### 3. `gh-comment-validator.py` (in claude-hooks/)
-**Purpose**: Validates GitHub comment formatting for reaction images.
+### 3. `gh-comment-validator.py`
+**Purpose**: Validates GitHub comment formatting for reaction images and prevents Unicode emoji corruption.
 
-**Note**: This is Claude-specific but can be used by other agents if needed.
+**Features**:
+- Prevents incorrect markdown formatting that would escape `!` characters
+- Blocks Unicode emojis that may appear corrupted in GitHub
+- Enforces proper use of `--body-file` for complex markdown
+
+### 4. `gh-wrapper.sh` (NEW - Agent-Agnostic)
+**Purpose**: Wrapper script for gh CLI that any agent can use via alias.
+
+**Features**:
+- Works with any AI agent or automation tool
+- Applies same validations as Claude Code hooks
+- Can be enabled via simple alias setup
+- Transparent operation - agents use `gh` normally
+
+### 5. `setup-agent-hooks.sh` (NEW - Agent-Agnostic)
+**Purpose**: Setup script to enable security hooks for any agent.
+
+**Features**:
+- One-line setup for any shell environment
+- Creates gh alias automatically
+- Can be sourced in containers or shell configs
 
 ## Configuration
 
@@ -73,22 +93,56 @@ auto_detection:
 
 ## Installation
 
-### For Claude Code
+### Method 1: For Claude Code
 
 Add to `.claude/settings.json`:
 ```json
 {
   "hooks": {
-    "PreToolUse": {
-      "Bash": "./scripts/security-hooks/bash-pretooluse-hook.sh"
-    }
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/security-hooks/bash-pretooluse-hook.sh"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
-### For Other Agents
+### Method 2: For Any Agent (Agent-Agnostic)
 
-Agents that support hooks can use the same configuration format or call the scripts directly.
+Use the wrapper script approach:
+
+```bash
+# One-time setup
+source /path/to/scripts/security-hooks/setup-agent-hooks.sh
+
+# Or add to shell configuration for permanent setup
+echo 'source /path/to/scripts/security-hooks/setup-agent-hooks.sh' >> ~/.bashrc
+```
+
+### Method 3: For Docker/Containers
+
+```dockerfile
+# In your Dockerfile
+COPY scripts/security-hooks /app/security-hooks
+RUN chmod +x /app/security-hooks/*.sh
+RUN echo 'source /app/security-hooks/setup-agent-hooks.sh' >> /etc/bash.bashrc
+```
+
+### Method 4: For Python Agents
+
+```python
+import os
+# Add wrapper to PATH
+os.environ['PATH'] = f"/path/to/scripts/security-hooks:{os.environ['PATH']}"
+# Now subprocess calls to 'gh' will use the wrapper
+```
 
 ## Testing
 
