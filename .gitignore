@@ -179,6 +179,3 @@ reference projects/**/*.jpg
 # Crush agent
 .crush/
 lint-output.txt
-
-# Claude Code temporary files
-.git-push-reminder.txt
