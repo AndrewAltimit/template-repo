@@ -9,6 +9,8 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from .status_manager import StatusManager
+
 logger = logging.getLogger(__name__)
 
 
@@ -28,6 +30,9 @@ class BlenderExecutor:
         self.base_dir = Path(base_dir)
         self.processes: Dict[str, asyncio.subprocess.Process] = {}  # Track running processes by job_id
         self.script_dir = Path(__file__).parent.parent / "scripts"
+
+        # Initialize status manager
+        self.status_manager = StatusManager(output_dir)
 
         # Limit concurrent Blender processes to prevent resource exhaustion
         # Use half the CPU cores or minimum 1
@@ -91,10 +96,8 @@ class BlenderExecutor:
                 if not Path(self.blender_path).exists():
                     raise FileNotFoundError(f"Blender not found at {self.blender_path}")
 
-                # Create status file
-                status_file = self.output_dir / f"{job_id}.status"
-                status_file.parent.mkdir(parents=True, exist_ok=True)
-                status_file.write_text(json.dumps({"status": "RUNNING", "progress": 0, "message": "Starting Blender process"}))
+                # Update status using centralized manager
+                self.status_manager.update_status(job_id, status="RUNNING", progress=0, message="Starting Blender process")
 
                 # Start process
                 process = await asyncio.create_subprocess_exec(
@@ -105,19 +108,15 @@ class BlenderExecutor:
                 self.processes[job_id] = process
 
                 # Monitor process output
-                asyncio.create_task(self._monitor_process(process, job_id, status_file))
+                asyncio.create_task(self._monitor_process(process, job_id))
 
                 return {"success": True, "job_id": job_id, "pid": process.pid}
 
             except Exception as e:
                 logger.error(f"Failed to execute script: {e}")
 
-                # Update status file if it was created
-                try:
-                    if "status_file" in locals() and status_file.exists():
-                        status_file.write_text(json.dumps({"status": "FAILED", "error": str(e)}))
-                except Exception:
-                    pass  # Ignore errors updating status
+                # Update status using centralized manager
+                self.status_manager.update_status(job_id, status="FAILED", error=str(e))
 
                 raise
 
@@ -126,13 +125,12 @@ class BlenderExecutor:
                 if os.path.exists(args_file):
                     os.remove(args_file)
 
-    async def _monitor_process(self, process: asyncio.subprocess.Process, job_id: str, status_file: Path):
+    async def _monitor_process(self, process: asyncio.subprocess.Process, job_id: str):
         """Monitor a running Blender process.
 
         Args:
             process: The subprocess to monitor
             job_id: Job identifier
-            status_file: Path to status file
         """
         try:
             # Read output streams
@@ -140,27 +138,27 @@ class BlenderExecutor:
 
             # Check exit code
             if process.returncode == 0:
-                # Success
-                status_file.write_text(
-                    json.dumps({"status": "COMPLETED", "progress": 100, "message": "Process completed successfully"})
+                # Success - update using centralized manager
+                self.status_manager.update_status(
+                    job_id, status="COMPLETED", progress=100, message="Process completed successfully"
                 )
 
                 # Check for output file
                 output_path = self.output_dir / f"{job_id}.png"
                 if output_path.exists():
-                    status_data = json.loads(status_file.read_text())
-                    status_data["output_path"] = str(output_path)
-                    status_file.write_text(json.dumps(status_data))
+                    self.status_manager.update_status(job_id, status="COMPLETED", output_path=str(output_path))
 
             else:
-                # Error
+                # Error - update using centralized manager
                 error_msg = stderr.decode() if stderr else "Unknown error"
-                status_file.write_text(json.dumps({"status": "FAILED", "error": error_msg, "exit_code": process.returncode}))
+                self.status_manager.update_status(
+                    job_id, status="FAILED", error=f"{error_msg} (exit code: {process.returncode})"
+                )
                 logger.error(f"Blender process failed: {error_msg}")
 
         except Exception as e:
             logger.error(f"Error monitoring process: {e}")
-            status_file.write_text(json.dumps({"status": "FAILED", "error": str(e)}))
+            self.status_manager.update_status(job_id, status="FAILED", error=str(e))
 
         finally:
             # Remove from active processes

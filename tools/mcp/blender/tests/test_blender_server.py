@@ -49,11 +49,23 @@ def test_server_endpoints():
         server_thread = threading.Thread(target=run_server, args=(server, port), daemon=True)
         server_thread.start()
 
-        # Wait for server to start
+        # Wait for server to start with polling loop
         print("Waiting for server to start...")
-        time.sleep(2)
-
         base_url = f"http://127.0.0.1:{port}"
+
+        # Poll for up to 5 seconds (10 attempts with 0.5s delay)
+        for attempt in range(10):
+            try:
+                response = requests.get(f"{base_url}/health", timeout=1)
+                if response.status_code == 200:
+                    print(f"Server started after {(attempt + 1) * 0.5:.1f} seconds")
+                    break
+            except (requests.ConnectionError, requests.Timeout):
+                pass
+            time.sleep(0.5)
+        else:
+            print("   ✗ Server did not start within 5 seconds")
+            return False
 
         # Test health endpoint
         print("\n1. Testing health endpoint...")
