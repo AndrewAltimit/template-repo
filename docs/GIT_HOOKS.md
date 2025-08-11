@@ -46,10 +46,29 @@ This will watch for:
 
 ### Installation
 
-The hook is already installed in `.git/hooks/pre-push`. It's a local git hook that:
-- Is NOT tracked in the repository (stays local to your clone)
-- Combines with existing Git LFS functionality
-- Requires `gh` CLI to be installed for PR detection
+#### Automatic Installation
+
+To install the pre-push hook in your local repository:
+
+```bash
+# Copy the pre-push hook to your git hooks directory
+cp scripts/git-hooks/pre-push .git/hooks/pre-push
+chmod +x .git/hooks/pre-push
+```
+
+#### Manual Installation
+
+If you prefer to install manually or need to combine with existing hooks:
+
+1. Create or edit `.git/hooks/pre-push`
+2. Add the monitoring reminder functionality (see `scripts/git-hooks/pre-push` for reference)
+3. Make the hook executable: `chmod +x .git/hooks/pre-push`
+
+#### Important Notes
+
+- This is a local git hook that is NOT tracked in the repository (stays local to your clone)
+- If you have Git LFS installed, the hook will automatically combine with LFS functionality
+- Requires `gh` CLI to be installed for PR detection to work
 
 ### Customization
 

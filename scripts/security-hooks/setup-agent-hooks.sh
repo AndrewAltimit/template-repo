@@ -73,6 +73,12 @@ agent_hooks_status() {
     fi
 }
 
+# Check for Python 3 dependency
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "⚠️  Warning: 'python3' command not found. The gh security wrapper will not function." >&2
+    echo "    Please install Python 3 or run in a container with Python available." >&2
+fi
+
 # Print confirmation
 echo "Agent security hooks activated!"
 echo "  - gh commands will now be validated for security and formatting"
