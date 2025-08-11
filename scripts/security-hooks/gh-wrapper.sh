@@ -46,7 +46,16 @@ needs_validation() {
 # Validate command using Python validators
 validate_command() {
     cmd="$*"
-    temp_stderr="/tmp/gh-wrapper-stderr-$$"
+
+    # Create temporary file for stderr capture (more robust with mktemp if available)
+    if command -v mktemp >/dev/null 2>&1; then
+        temp_stderr=$(mktemp)
+    else
+        temp_stderr="/tmp/gh-wrapper-stderr-$$"
+    fi
+
+    # Set up cleanup trap to ensure temp file is removed
+    trap 'rm -f "$temp_stderr"' EXIT INT TERM
 
     # Create a JSON input similar to what Claude Code hooks expect
     json_input=$(cat <<EOF
@@ -138,7 +147,12 @@ main() {
         fi
 
         # Execute the validated/modified command
-        # Use eval to correctly handle arguments with spaces
+        # SECURITY NOTE: eval is necessary here to correctly handle arguments with spaces.
+        # This is safe because:
+        # 1. $REAL_GH is determined by command -v gh (trusted system path)
+        # 2. $validated_cmd comes from our trusted Python validators
+        # 3. The validators only modify specific argument values, not the command structure
+        # The risk is minimal as all inputs are from trusted internal sources.
         eval exec "\"$REAL_GH\" $validated_cmd"
     else
         # No validation needed, execute directly
