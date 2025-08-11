@@ -88,7 +88,10 @@ def main():
     # Check if the command was a git push
     tool_input = input_data.get("tool_input", {})
     command = tool_input.get("command", "")
-    tool_output = input_data.get("tool_output", "")
+
+    # Extract output from tool_response structure
+    tool_response = input_data.get("tool_response", {})
+    tool_output = tool_response.get("stdout", "") + tool_response.get("stderr", "")
 
     # Detect git push command
     if not ("git push" in command or "git push" in tool_output):
