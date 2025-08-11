@@ -282,7 +282,7 @@ await blender.import_model(
 ## 📖 Documentation
 
 - [Full API Reference](docs/README.md)
-- [Examples](examples/)
+- [Examples](examples/basic_usage.py)
 - [Architecture Details](docs/README.md#architecture)
 
 ## 🤝 Contributing

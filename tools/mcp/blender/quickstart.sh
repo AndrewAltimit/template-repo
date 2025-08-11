@@ -41,6 +41,10 @@ case $COMMAND in
     start)
         echo "🚀 Starting Blender MCP Server..."
 
+        # Ensure host directories exist with correct permissions
+        echo -e "${YELLOW}Creating host directories...${NC}"
+        mkdir -p ../../../blender/{projects,assets,outputs,templates}
+
         # Build the container
         echo -e "${YELLOW}Building container...${NC}"
         docker-compose build mcp-blender
