@@ -110,7 +110,6 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    command: ["python3", "-m", "uvicorn", "blender.server:app", "--host", "0.0.0.0", "--port", "8017"]
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8017/health"]
