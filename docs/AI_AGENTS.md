@@ -181,14 +181,14 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 
 ### Division of Labor
 
-| Task | Claude Code | Gemini CLI | Copilot | Issue Monitor | PR Review Monitor |
-|------|------------|------------|---------|---------------|-------------------|
-| Architecture Design | ✅ Primary | ❌ | ❌ | ❌ | ❌ |
-| Implementation | ✅ Primary | ❌ | ❌ | ✅ Uses Claude | ✅ Uses Claude |
-| Documentation | ✅ Primary | ❌ | ❌ | ❌ | ❌ |
-| Code Review | ❌ | ✅ Primary | ✅ Secondary | ❌ | ❌ |
-| Issue Triage | ❌ | ❌ | ❌ | ✅ Primary | ❌ |
-| Review Response | ❌ | ❌ | ❌ | ❌ | ✅ Primary |
+| Task | Claude Code | Gemini CLI | Copilot | OpenCode | Crush |
+|------|------------|------------|---------|----------|--------|
+| Architecture Design | ✅ Primary | ❌ | ❌ | ✅ Secondary | ✅ Secondary |
+| Implementation | ✅ Primary | ❌ | ❌ | ✅ Secondary | ✅ Secondary |
+| Documentation | ✅ Primary | ❌ | ❌ | ✅ Secondary | ✅ Secondary |
+| Code Review | ✅ Secondary | ✅ Primary | ✅ Secondary | ✅ Secondary | ✅ Secondary |
+| Issue Triage | ✅ Secondary | ❌ | ❌ | ✅ Secondary | ✅ Secondary |
+| Review Response | ✅ Secondary | ❌ | ❌ | ✅ Secondary | ✅ Secondary |
 
 ## Configuration
 
