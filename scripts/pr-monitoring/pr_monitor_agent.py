@@ -6,11 +6,12 @@ This agent monitors a PR for new comments from administrators or AI reviewers,
 analyzes them, and returns structured data for the main Claude agent to process.
 
 Usage:
-    python pr_monitor_agent.py PR_NUMBER [--timeout MINUTES]
+    python pr_monitor_agent.py PR_NUMBER [--timeout MINUTES] [--since-commit SHA]
 
 Example:
     python pr_monitor_agent.py 48
     python pr_monitor_agent.py 48 --timeout 30
+    python pr_monitor_agent.py 48 --since-commit abc1234
 """
 
 import argparse
@@ -20,17 +21,22 @@ import sys
 from pathlib import Path
 
 
-def run_monitor(pr_number, timeout=600):
+def run_monitor(pr_number, timeout=600, since_commit=None):
     """Run the monitoring script and get returned comment."""
     print(f"Starting PR #{pr_number} monitoring subagent...", file=sys.stderr)
+    if since_commit:
+        print(f"Monitoring for comments after commit: {since_commit}", file=sys.stderr)
 
     script_path = Path(__file__).parent / "monitor.sh"
 
     try:
+        # Build command with optional commit SHA
+        cmd = ["/bin/bash", str(script_path), str(pr_number)]
+        if since_commit:
+            cmd.append(since_commit)
+
         # Run the monitor script
-        result = subprocess.run(
-            ["/bin/bash", str(script_path), str(pr_number)], capture_output=True, text=True, timeout=timeout
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
         if result.returncode == 0 and result.stdout:
             # Parse the returned comment
@@ -103,6 +109,7 @@ def main():
     parser.add_argument("pr_number", type=int, help="PR number to monitor")
     parser.add_argument("--timeout", type=int, default=600, help="Timeout in seconds (default: 600)")
     parser.add_argument("--json", action="store_true", help="Output only JSON (no stderr messages)")
+    parser.add_argument("--since-commit", type=str, help="Only monitor comments after this commit SHA")
 
     args = parser.parse_args()
 
@@ -112,7 +119,7 @@ def main():
         print("=" * 60, file=sys.stderr)
 
     # Run monitor and get comment
-    comment = run_monitor(args.pr_number, args.timeout)
+    comment = run_monitor(args.pr_number, args.timeout, args.since_commit)
 
     if comment:
         # Analyze and decide

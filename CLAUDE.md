@@ -56,17 +56,25 @@ The AI agents implement a comprehensive multi-layer security model with command-
 # Monitor with custom timeout (30 minutes)
 ./scripts/pr-monitoring/monitor-pr 48 --timeout 1800
 
+# Monitor from a specific commit (for post-push feedback)
+./scripts/pr-monitoring/monitor-pr 48 --since-commit abc1234
+
 # Get JSON output for automation
 ./scripts/pr-monitoring/monitor-pr 48 --json
 
 # When asked to "monitor the PR for new comments", use:
 python scripts/pr-monitoring/pr_monitor_agent.py PR_NUMBER
+
+# After pushing commits, monitor from that commit:
+python scripts/pr-monitoring/pr_monitor_agent.py PR_NUMBER --since-commit SHA
 ```
 
 **PR Monitoring Usage**: When users ask you to monitor a PR or end requests with "and monitor for comments", automatically start the monitoring agent. It will:
 1. Watch for new comments from admin (AndrewAltimit) or Gemini reviews
 2. Return structured data when relevant comments are detected
 3. Allow you to respond appropriately based on comment type
+
+**Post-Push Monitoring**: After pushing commits, a hook will remind you to monitor for feedback and show the exact command with the commit SHA. This enables tight feedback loops during pair programming sessions.
 
 See `docs/PR_MONITORING.md` for full documentation.
 

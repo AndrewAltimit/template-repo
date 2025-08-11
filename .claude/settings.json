@@ -2,6 +2,9 @@
   "hooks": {
     "PreToolUse": {
       "Bash": "./scripts/security-hooks/bash-pretooluse-hook.sh"
+    },
+    "PostToolUse": {
+      "Bash": "./scripts/claude-hooks/git-push-posttooluse-hook.py"
     }
   }
 }

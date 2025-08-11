@@ -8,6 +8,25 @@ Claude Code supports custom hooks that run before or after tool executions. Thes
 
 ## Current Hooks
 
+### PR Monitoring Hook
+
+**Purpose**: Automatic PR feedback monitoring reminder after git pushes.
+
+**Hook**: `scripts/claude-hooks/git-push-posttooluse-hook.py`
+
+**Functionality**:
+- Detects when git push commands are executed
+- Identifies the current branch and associated PR
+- Extracts the pushed commit SHA
+- Reminds agents to monitor for feedback
+- Provides exact monitoring command with commit starting point
+
+**What it enables**:
+- Tight feedback loops during pair programming
+- Focused monitoring on newly pushed changes
+- Automatic context-aware reminders
+- Integration with commit-based monitoring
+
 ### Security Hooks (Universal)
 
 **Purpose**: Automatic secret masking and validation for all agents.
@@ -48,6 +67,9 @@ Hooks are configured in `.claude/settings.json`:
   "hooks": {
     "PreToolUse": {
       "Bash": "./scripts/security-hooks/bash-pretooluse-hook.sh"
+    },
+    "PostToolUse": {
+      "Bash": "./scripts/claude-hooks/git-push-posttooluse-hook.py"
     }
   }
 }
@@ -76,12 +98,21 @@ auto_detection:
 
 ## How It Works
 
+### PreToolUse Hooks
 1. When Claude Code attempts to use a tool, the PreToolUse hook is triggered
 2. The hook receives tool parameters as JSON on stdin
 3. The hook validates the parameters and returns a permission decision:
    - `{"permissionDecision": "allow"}` - Tool execution proceeds
    - `{"permissionDecision": "deny", "permissionDecisionReason": "..."}` - Tool is blocked with explanation
    - `{"permissionDecision": "ask"}` - User is prompted for confirmation
+
+### PostToolUse Hooks
+1. After a tool completes execution, the PostToolUse hook is triggered
+2. The hook receives tool execution data including:
+   - Tool name and input parameters
+   - Tool output and return code
+3. The hook can provide feedback or reminders to the agent
+4. Output is displayed to stderr for agent awareness
 
 ## Correct GitHub Comment Method
 
@@ -165,6 +196,9 @@ Potential areas for additional hooks:
 - Security checks for sensitive file operations
 - Docker command validation for proper user permissions
 - API key exposure prevention
+- Automatic PR creation detection and setup
+- Test failure analysis and suggestions
+- Build completion notifications
 
 ## References
 

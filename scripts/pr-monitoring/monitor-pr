@@ -7,12 +7,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Check if PR number provided
 if [ -z "$1" ]; then
-    echo "Usage: monitor-pr PR_NUMBER [--timeout SECONDS] [--json]"
+    echo "Usage: monitor-pr PR_NUMBER [--timeout SECONDS] [--json] [--since-commit SHA]"
     echo ""
     echo "Examples:"
-    echo "  monitor-pr 48                  # Monitor PR #48"
-    echo "  monitor-pr 48 --timeout 1800   # Monitor for 30 minutes"
-    echo "  monitor-pr 48 --json           # Output only JSON"
+    echo "  monitor-pr 48                          # Monitor PR #48"
+    echo "  monitor-pr 48 --timeout 1800           # Monitor for 30 minutes"
+    echo "  monitor-pr 48 --json                   # Output only JSON"
+    echo "  monitor-pr 48 --since-commit abc1234   # Monitor comments after commit"
     exit 1
 fi
 
