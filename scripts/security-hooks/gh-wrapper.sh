@@ -23,6 +23,13 @@ if [ -z "$REAL_GH" ]; then
     exit 127
 fi
 
+# Check for Python 3 dependency (required for validators)
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "ERROR: 'python3' command not found. The gh security wrapper requires Python 3." >&2
+    echo "Please install Python 3 or run in a container with Python available." >&2
+    exit 127
+fi
+
 # Check if this command needs validation based on arguments
 needs_validation() {
     # Check if command contains arguments that accept user content
