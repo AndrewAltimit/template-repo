@@ -36,9 +36,12 @@ execute_gh_with_modifications() {
     # original_args="$1"  # Reserved for future use
     modified_command_string="$2"
 
-    # For now, let's use the safer eval approach with proper escaping
-    # This is the most reliable way to handle the modified command
-    # SECURITY: This is safe because the modified command comes from our trusted validators
+    # SECURITY: The 'eval' command is used here to execute the command string
+    # returned by the trusted internal Python validators. This is considered
+    # safe because the validators are part of the project's trusted codebase.
+    # Do not modify validators without a thorough security review.
+    # The validators only mask secrets and validate formatting - they don't
+    # introduce arbitrary commands.
     eval "exec \"$REAL_GH\" $modified_command_string"
 }
 

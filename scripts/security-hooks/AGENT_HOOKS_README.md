@@ -339,12 +339,34 @@ All should trigger validation if they contain sensitive content
    bash scripts/security-hooks/gh-wrapper.sh --version
    ```
 
+## Limitations
+
+### Alias-Based System Limitations
+
+The security framework relies on the `gh` command being aliased to the wrapper script. This approach has inherent limitations:
+
+**The hooks can be bypassed by:**
+- Using `command gh ...` to explicitly bypass aliases
+- Calling `gh` via its absolute path (e.g., `/usr/bin/gh`)
+- Executing `gh` from a script or environment where shell profiles haven't been sourced
+- Using `unalias gh` to remove the alias
+- Starting a new shell without the proper initialization files
+
+**Mitigation strategies:**
+- For critical security environments, consider using a more robust approach like:
+  - Renaming the actual `gh` binary and replacing it with the wrapper
+  - Using mandatory access controls (e.g., AppArmor, SELinux)
+  - Running agents in containers with the wrapper as the only available `gh`
+- Regularly audit agent logs to ensure the wrapper is being used
+- Implement additional monitoring at the GitHub API level
+
 ## Security Considerations
 
 - These hooks run with the same permissions as the calling agent
 - They do not prevent all security issues, only common ones
 - Always review agent-generated commands before production use
 - Consider additional sandboxing for untrusted agents
+- The `eval` command in `gh-wrapper.sh` is used safely with trusted validators, but validators must never be modified without security review
 
 ## Contributing
 

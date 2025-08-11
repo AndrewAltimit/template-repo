@@ -48,9 +48,8 @@ RUN useradd -m -u 1000 ciuser
 # Copy security hooks and set up universal gh alias
 COPY scripts/security-hooks /app/security-hooks
 RUN chmod +x /app/security-hooks/*.sh && \
-    echo 'alias gh="/app/security-hooks/gh-wrapper.sh"' >> /etc/bash.bashrc && \
-    echo 'alias gh="/app/security-hooks/gh-wrapper.sh"' >> /home/ciuser/.bashrc && \
-    echo 'alias gh="/app/security-hooks/gh-wrapper.sh"' >> /etc/profile
+    echo 'alias gh="/app/security-hooks/gh-wrapper.sh"' > /etc/profile.d/99-gh-wrapper.sh && \
+    chmod +x /etc/profile.d/99-gh-wrapper.sh
 
 # Default command
 CMD ["bash"]
