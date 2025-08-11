@@ -44,21 +44,24 @@ The security hooks system provides automatic secret masking for all GitHub comme
 - Blocks Unicode emojis that may appear corrupted in GitHub
 - Enforces proper use of `--body-file` for complex markdown
 
-### 4. `gh-wrapper.sh` (NEW - Agent-Agnostic)
+### 4. `gh-wrapper.sh` (Agent-Agnostic)
 **Purpose**: Wrapper script for gh CLI that any agent can use via alias.
 
 **Features**:
 - Works with any AI agent or automation tool
-- Applies same validations as Claude Code hooks
-- Can be enabled via simple alias setup
+- Validates based on arguments (--body, --notes, --message, etc.)
+- POSIX-compliant for maximum shell compatibility
+- Captures and displays stderr from validators for debugging
 - Transparent operation - agents use `gh` normally
 
-### 5. `setup-agent-hooks.sh` (NEW - Agent-Agnostic)
+### 5. `setup-agent-hooks.sh` (Agent-Agnostic)
 **Purpose**: Setup script to enable security hooks for any agent.
 
 **Features**:
 - One-line setup for any shell environment
+- POSIX-compliant (works with sh, dash, bash, zsh)
 - Creates gh alias automatically
+- Provides diagnostic function (agent_hooks_status)
 - Can be sourced in containers or shell configs
 
 ## Configuration
