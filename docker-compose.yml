@@ -85,6 +85,44 @@ services:
     profiles:
       - services
 
+  # Blender MCP Server
+  mcp-blender:
+    build:
+      context: .
+      dockerfile: docker/blender-mcp.Dockerfile
+    container_name: mcp-blender
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    ports:
+      - "8017:8017"
+    volumes:
+      - ./blender/projects:/app/projects
+      - ./blender/assets:/app/assets
+      - ./blender/outputs:/app/outputs
+      - ./blender/templates:/app/templates
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8017
+    networks:
+      - mcp-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: ["python3", "-m", "blender.server"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8017/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    profiles:
+      - services
+      - gpu
+
   # Gaea2 MCP Server (Windows host required for full functionality)
   mcp-gaea2:
     build:
@@ -306,6 +344,7 @@ services:
       - mcp-gaea2
       - mcp-crush
       - mcp-opencode
+      - mcp-blender
     profiles:
       - all
 

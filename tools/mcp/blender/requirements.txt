@@ -1,0 +1,15 @@
+# Blender MCP Server Requirements
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+httpx==0.25.0
+aiofiles==23.2.1
+python-multipart==0.0.6
+
+# For MCP compatibility
+jsonschema==4.20.0
+typing-extensions==4.8.0
+
+# Utilities
+Pillow==10.1.0  # For image processing
+numpy==1.24.4   # For numerical operations
