@@ -1,6 +1,6 @@
 # MCP-Enabled Project Template
 
-A comprehensive development ecosystem with 7 AI agents, 9 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
+A comprehensive development ecosystem with 7 AI agents, 10 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
 
 ![MCP Demo](docs/template-repo.webp)
 
@@ -31,7 +31,7 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 
 ## Features
 
-- **9 MCP Servers** - Modular tools for code quality, content creation, AI assistance, and more
+- **10 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D rendering, and more
 - **7 AI Agents** - Comprehensive development automation
 - **Gaea2 Terrain Generation** - All 185 nodes supported
 - **ComfyUI & AI Toolkit** - Image generation and LoRA training
@@ -96,6 +96,7 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 │   │   ├── opencode/      # Code generation (STDIO)
 │   │   ├── crush/         # Fast generation (STDIO)
 │   │   ├── meme_generator/# Meme creation
+│   │   ├── blender/       # 3D content creation & rendering
 │   │   ├── ai_toolkit/    # LoRA training bridge
 │   │   ├── comfyui/       # Image generation bridge
 │   │   └── core/          # Shared components
@@ -118,8 +119,9 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 5. **OpenCode** - Comprehensive code generation (STDIO mode via Claude)
 6. **Crush** - Fast code snippets (STDIO mode via Claude)
 7. **Meme Generator** - Create memes with templates
-8. **AI Toolkit** - LoRA training bridge (remote: 192.168.0.152:8012)
-9. **ComfyUI** - Image generation bridge (remote: 192.168.0.152:8013)
+8. **Blender** - 3D content creation, rendering, physics simulation
+9. **AI Toolkit** - LoRA training bridge (remote: 192.168.0.152:8012)
+10. **ComfyUI** - Image generation bridge (remote: 192.168.0.152:8013)
 
 ### Usage Modes
 

@@ -40,6 +40,7 @@ The MCP functionality is distributed across specialized servers:
 7. **OpenCode MCP Server** - AI code generation (STDIO mode)
 8. **Crush MCP Server** - Fast code generation (STDIO mode)
 9. **Meme Generator MCP Server** - Meme creation (STDIO mode)
+10. **Blender MCP Server** (Port 8016) - 3D content creation and rendering
 
 See [MCP Servers Documentation](MCP_SERVERS.md) for detailed information.
 
@@ -389,6 +390,127 @@ Generate memes from templates with text overlays.
   }
 }
 ```
+
+### Blender Tools
+
+#### create_blender_project
+
+Create a new Blender project from template.
+
+**Parameters:**
+- `name` (string, required): Project name
+- `template` (string): Template type (empty, basic_scene, studio_lighting, procedural, animation)
+- `settings` (object): Project settings (resolution, fps, engine)
+
+#### add_primitive_objects
+
+Add primitive objects to the scene.
+
+**Parameters:**
+- `project` (string, required): Project file path
+- `objects` (array, required): List of objects to add (cube, sphere, cylinder, cone, torus, plane, monkey)
+
+#### setup_lighting
+
+Configure professional lighting setups.
+
+**Parameters:**
+- `project` (string, required): Project file path
+- `type` (string, required): Lighting type (three_point, studio, hdri, sun, area)
+- `settings` (object): Lighting settings (strength, color, hdri_path)
+
+#### apply_material
+
+Apply PBR materials to objects.
+
+**Parameters:**
+- `project` (string, required): Project file path
+- `object_name` (string, required): Object to apply material to
+- `material` (object): Material properties (type, base_color, metallic, roughness)
+
+#### render_image
+
+Render a single frame with Cycles or Eevee.
+
+**Parameters:**
+- `project` (string, required): Project file path
+- `frame` (integer): Frame number to render
+- `settings` (object): Render settings (resolution, samples, engine, format)
+
+#### render_animation
+
+Render an animation sequence.
+
+**Parameters:**
+- `project` (string, required): Project file path
+- `start_frame` (integer): Start frame
+- `end_frame` (integer): End frame
+- `settings` (object): Animation settings (resolution, samples, engine, format)
+
+#### setup_physics
+
+Setup physics simulation for objects.
+
+**Parameters:**
+- `project` (string, required): Project file path
+- `object_name` (string, required): Object to apply physics to
+- `physics_type` (string, required): Type (rigid_body, soft_body, cloth, fluid)
+- `settings` (object): Physics settings (mass, friction, bounce)
+
+#### bake_simulation
+
+Bake physics simulation to keyframes.
+
+**Parameters:**
+- `project` (string, required): Project file path
+- `start_frame` (integer): Start frame
+- `end_frame` (integer): End frame
+
+#### create_animation
+
+Create keyframe animation for objects.
+
+**Parameters:**
+- `project` (string, required): Project file path
+- `object_name` (string, required): Object to animate
+- `keyframes` (array, required): List of keyframes with frame, location, rotation, scale
+- `interpolation` (string): Interpolation type (LINEAR, BEZIER, CONSTANT)
+
+#### create_geometry_nodes
+
+Create procedural geometry with nodes.
+
+**Parameters:**
+- `project` (string, required): Project file path
+- `object_name` (string, required): Object to apply nodes to
+- `node_setup` (string, required): Setup type (scatter, array, curve, volume, custom)
+- `parameters` (object): Node parameters (count, seed, scale_variance)
+
+#### import_model
+
+Import 3D models into project.
+
+**Parameters:**
+- `project` (string, required): Project file path
+- `model_path` (string, required): Path to model file
+- `format` (string): Model format (FBX, OBJ, GLTF, STL, PLY)
+- `location` (array): Import location
+
+#### export_scene
+
+Export scene to various formats.
+
+**Parameters:**
+- `project` (string, required): Project file path
+- `format` (string, required): Export format (FBX, OBJ, GLTF, STL, USD)
+- `selected_only` (boolean): Export only selected objects
+
+#### Job Management Tools
+
+- `get_job_status`: Check rendering job status
+- `get_job_result`: Get completed job result
+- `cancel_job`: Cancel running job
+- `list_projects`: List available Blender projects
 
 ## Remote Services
 
