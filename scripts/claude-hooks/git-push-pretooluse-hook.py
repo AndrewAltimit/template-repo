@@ -6,6 +6,7 @@ When a git push command is detected, this hook modifies it to include
 a reminder message that displays after successful push.
 """
 
+import datetime
 import json
 import re
 import subprocess
@@ -50,6 +51,11 @@ def main():
         # No valid input, pass through
         print(json.dumps({"permissionDecision": "allow"}))
         return
+
+    # Debug: write to file to verify hook is being called
+    with open(".hook-trace.log", "a") as f:
+        cmd = input_data.get("tool_input", {}).get("command", "")[:50]
+        f.write(f"{datetime.datetime.now()}: Hook called with tool_name={input_data.get('tool_name')}, command={cmd}\n")
 
     # Check if this is a Bash tool execution
     tool_name = input_data.get("tool_name")
@@ -108,8 +114,8 @@ This will watch for:
 """
 
     # Modify the command to include the reminder on success
-    # Use a subshell to ensure the reminder shows even if there are warnings
-    modified_command = f'({command}) && echo -e "{reminder}"'
+    # Try a simpler approach without subshell
+    modified_command = f'{command} && echo "{reminder}"'
 
     # Update the input data with modified command
     input_data["tool_input"]["command"] = modified_command

@@ -1,12 +1,12 @@
 {
   "hooks": {
-    "PreToolUse": [
+    "PostToolUse": [
       {
         "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ./scripts/claude-hooks/git-push-pretooluse-hook.py"
+            "command": "python3 ./scripts/claude-hooks/git-push-posttooluse-hook.py"
           }
         ]
       }
