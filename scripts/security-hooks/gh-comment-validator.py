@@ -2,12 +2,16 @@
 """
 Claude Code PreToolUse hook to validate GitHub comment formatting.
 
-This hook prevents incorrect GitHub comment/PR description formatting that would
-escape the ! character in ![Reaction] image tags. It enforces the proper method:
+This hook prevents:
+1. Incorrect formatting that would escape the ! character in ![Reaction] image tags
+2. Unicode emoji characters that may display as corrupted (�) in GitHub
+
+It enforces the proper method:
 1. Use Write tool to create a temporary markdown file
 2. Use gh comment --body-file to post the comment
+3. Use ASCII characters or reaction images instead of Unicode emojis
 
-This prevents shell escaping issues with heredocs, echo, printf, and direct --body flags.
+This prevents shell escaping issues and character corruption.
 """
 
 import json
@@ -68,6 +72,67 @@ def main():
     for pattern, description in problematic_patterns:
         if re.search(pattern, command, re.IGNORECASE | re.DOTALL):
             violations.append(description)
+
+    # Check for Unicode emoji characters that may get corrupted
+    def contains_unicode_emoji(text):
+        """Check if text contains Unicode emoji characters."""
+        emoji_ranges = [
+            (0x1F600, 0x1F64F),  # Emoticons
+            (0x1F300, 0x1F5FF),  # Misc Symbols and Pictographs
+            (0x1F680, 0x1F6FF),  # Transport and Map
+            (0x1F900, 0x1F9FF),  # Supplemental Symbols and Pictographs
+            (0x2600, 0x26FF),  # Misc symbols
+            (0x2700, 0x27BF),  # Dingbats (includes checkmark 0x2705)
+            (0x1F1E0, 0x1F1FF),  # Regional indicator symbols (flags)
+            (0x1FA70, 0x1FAFF),  # Symbols and Pictographs Extended-A
+        ]
+
+        for char in text:
+            code_point = ord(char)
+            for start, end in emoji_ranges:
+                if start <= code_point <= end:
+                    return True, char
+        return False, None
+
+    has_emoji, emoji_char = contains_unicode_emoji(command)
+
+    # Check if this is posting content (not just reading/listing)
+    is_posting_content = bool(
+        re.search(r"--body", command)
+        or re.search(r"--body-file", command)
+        or re.search(r"comment", command, re.IGNORECASE)
+        or re.search(r"create", command, re.IGNORECASE)
+    )
+
+    if has_emoji and is_posting_content:
+        # Block commands with Unicode emojis in GitHub comments
+        error_message = f"""[ERROR] Unicode emoji detected in GitHub comment!
+
+Found Unicode emoji character that may display as corrupted (replacement character) in GitHub.
+Detected emoji: {repr(emoji_char)} (Unicode {hex(ord(emoji_char))})
+
+[!] PROBLEM: Unicode emojis often appear corrupted in GitHub comments.
+
+[SOLUTIONS]:
+1. Use ASCII alternatives:
+   - Instead of checkmark emoji use: [x] or DONE
+   - Instead of X emoji use: [ ] or TODO
+   - Instead of refresh emoji use: (refresh) or [SYNC]
+   - Instead of pin emoji use: -> or [PIN]
+
+2. Use reaction images for visual elements:
+   ![Reaction](https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/...)
+
+3. Use markdown formatting:
+   - **Bold** for emphasis
+   - _Italic_ for notes
+   - `code` for technical terms
+   - > Blockquotes for important messages
+
+This prevents character corruption and ensures your message displays correctly.
+"""
+        print(json.dumps({"permissionDecision": "deny", "permissionDecisionReason": error_message}))
+        return
 
     # Check if command contains reaction images at all
     # Note: In JSON input, the ! is typically escaped as \!

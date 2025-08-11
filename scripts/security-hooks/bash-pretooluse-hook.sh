@@ -27,9 +27,9 @@ permission=$(echo "$masked_output" | python3 -c "import json, sys; print(json.lo
 if [[ "$permission" == "allow" ]] || [[ "$permission" == "allow_with_modifications" ]]; then
     # Command was allowed by masker, check for additional validators
     if [ -f "${SCRIPT_DIR}/gh-comment-validator.py" ]; then
-        # Pass the masker's output through the validator
-        # The validator can further modify or block the command
-        echo "$masked_output" | python3 "${SCRIPT_DIR}/gh-comment-validator.py"
+        # Pass the original input through the validator
+        # The validator needs the original tool input to check for issues
+        echo "$input" | python3 "${SCRIPT_DIR}/gh-comment-validator.py"
     else
         # No additional validators - return the masker's output directly
         echo "$masked_output"
