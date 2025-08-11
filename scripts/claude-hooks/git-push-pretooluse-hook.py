@@ -54,8 +54,8 @@ def main():
     # Check if this is a Bash tool execution
     tool_name = input_data.get("tool_name")
     if tool_name != "Bash":
-        # Not a bash command, pass through
-        print(json.dumps(input_data))
+        # Not a bash command, pass through with allow permission
+        print(json.dumps({"permissionDecision": "allow"}))
         return
 
     # Check if the command is a git push
@@ -64,15 +64,15 @@ def main():
 
     # Only process git push commands (not pull, clone, etc)
     if not re.search(r"\bgit\s+push\b", command):
-        # Not a git push, pass through
-        print(json.dumps(input_data))
+        # Not a git push, pass through with allow permission
+        print(json.dumps({"permissionDecision": "allow"}))
         return
 
     # Get current branch and PR info
     branch = get_current_branch()
     if not branch:
         # Can't determine branch, pass through original
-        print(json.dumps(input_data))
+        print(json.dumps({"permissionDecision": "allow"}))
         return
 
     pr_number = get_pr_for_branch(branch)
@@ -115,9 +115,13 @@ This will watch for:
     input_data["tool_input"]["command"] = modified_command
 
     # Return the modified input with permission to proceed
-    output = {"permissionDecision": "allow_with_modifications", "tool_input": input_data["tool_input"]}
+    # Match the exact structure of the working security hook
+    response = {}
+    response["permissionDecision"] = "allow_with_modifications"
+    response["tool_input"] = input_data.get("tool_input", {}).copy()
+    response["tool_input"]["command"] = modified_command
 
-    print(json.dumps(output))
+    print(json.dumps(response))
 
 
 if __name__ == "__main__":
