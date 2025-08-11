@@ -111,6 +111,10 @@ services:
     #         - driver: nvidia
     #           count: 1
     #           capabilities: [gpu]
+    #     # Optional resource limits to prevent excessive consumption
+    #     limits:
+    #       cpus: '4.0'
+    #       memory: 8G
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8017/health"]
