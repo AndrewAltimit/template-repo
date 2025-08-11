@@ -26,8 +26,14 @@ class BlenderExecutor:
         self.blender_path = blender_path
         self.output_dir = Path(output_dir)
         self.base_dir = Path(base_dir)
-        self.processes = {}  # Track running processes by job_id
+        self.processes: Dict[str, asyncio.subprocess.Process] = {}  # Track running processes by job_id
         self.script_dir = Path(__file__).parent.parent / "scripts"
+
+        # Limit concurrent Blender processes to prevent resource exhaustion
+        # Use half the CPU cores or minimum 1
+        max_concurrent = max(1, (os.cpu_count() or 4) // 2)
+        self.concurrency_limit = asyncio.Semaphore(max_concurrent)
+        logger.info(f"Blender executor initialized with max {max_concurrent} concurrent processes")
 
         # Verify Blender installation
         if not Path(blender_path).exists():
@@ -78,45 +84,47 @@ class BlenderExecutor:
         # Pass arguments file path
         cmd.extend(["--", args_file, job_id])
 
-        try:
-            # Check if Blender exists
-            if not Path(self.blender_path).exists():
-                raise FileNotFoundError(f"Blender not found at {self.blender_path}")
-
-            # Create status file
-            status_file = self.output_dir / f"{job_id}.status"
-            status_file.parent.mkdir(parents=True, exist_ok=True)
-            status_file.write_text(json.dumps({"status": "RUNNING", "progress": 0, "message": "Starting Blender process"}))
-
-            # Start process
-            process = await asyncio.create_subprocess_exec(
-                *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, cwd=str(self.base_dir)
-            )
-
-            # Store process reference
-            self.processes[job_id] = process
-
-            # Monitor process output
-            asyncio.create_task(self._monitor_process(process, job_id, status_file))
-
-            return {"success": True, "job_id": job_id, "pid": process.pid}
-
-        except Exception as e:
-            logger.error(f"Failed to execute script: {e}")
-
-            # Update status file if it was created
+        # Acquire semaphore to limit concurrent processes
+        async with self.concurrency_limit:
             try:
-                if "status_file" in locals() and status_file.exists():
-                    status_file.write_text(json.dumps({"status": "FAILED", "error": str(e)}))
-            except Exception:
-                pass  # Ignore errors updating status
+                # Check if Blender exists
+                if not Path(self.blender_path).exists():
+                    raise FileNotFoundError(f"Blender not found at {self.blender_path}")
 
-            raise
+                # Create status file
+                status_file = self.output_dir / f"{job_id}.status"
+                status_file.parent.mkdir(parents=True, exist_ok=True)
+                status_file.write_text(json.dumps({"status": "RUNNING", "progress": 0, "message": "Starting Blender process"}))
 
-        finally:
-            # Clean up arguments file
-            if os.path.exists(args_file):
-                os.remove(args_file)
+                # Start process
+                process = await asyncio.create_subprocess_exec(
+                    *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, cwd=str(self.base_dir)
+                )
+
+                # Store process reference
+                self.processes[job_id] = process
+
+                # Monitor process output
+                asyncio.create_task(self._monitor_process(process, job_id, status_file))
+
+                return {"success": True, "job_id": job_id, "pid": process.pid}
+
+            except Exception as e:
+                logger.error(f"Failed to execute script: {e}")
+
+                # Update status file if it was created
+                try:
+                    if "status_file" in locals() and status_file.exists():
+                        status_file.write_text(json.dumps({"status": "FAILED", "error": str(e)}))
+                except Exception:
+                    pass  # Ignore errors updating status
+
+                raise
+
+            finally:
+                # Clean up arguments file
+                if os.path.exists(args_file):
+                    os.remove(args_file)
 
     async def _monitor_process(self, process: asyncio.subprocess.Process, job_id: str, status_file: Path):
         """Monitor a running Blender process.
