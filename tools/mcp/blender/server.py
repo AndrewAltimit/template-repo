@@ -39,8 +39,15 @@ class BlenderMCPServer(BaseMCPServer):
         self.temp_dir = self.base_dir / "temp"
 
         # Initialize managers with configured paths
-        self.blender_executor = BlenderExecutor(output_dir=str(self.outputs_dir), base_dir=str(self.base_dir))
-        self.job_manager = JobManager(str(self.outputs_dir))
+        # Use the correct Blender path in container
+        # Organize job files in outputs/jobs folder
+        jobs_output_dir = self.outputs_dir / "jobs"
+        jobs_output_dir.mkdir(parents=True, exist_ok=True)
+
+        self.blender_executor = BlenderExecutor(
+            blender_path="/usr/local/bin/blender", output_dir=str(jobs_output_dir), base_dir=str(self.base_dir)
+        )
+        self.job_manager = JobManager(str(jobs_output_dir))
         self.asset_manager = AssetManager(str(self.projects_dir), str(self.assets_dir))
         self.template_manager = TemplateManager(str(self.templates_dir))
 
@@ -110,6 +117,8 @@ class BlenderMCPServer(BaseMCPServer):
     def _validate_project_path(self, project_path: str) -> Path:
         """Validate a project file path."""
         # Handle both full paths and just project names
+        # Look for projects in projects directory
+
         if project_path.endswith(".blend"):
             return self._validate_path(project_path, self.projects_dir, "project")
         else:
@@ -510,11 +519,14 @@ class BlenderMCPServer(BaseMCPServer):
 
     async def _create_project(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new Blender project."""
+        logger.info(f"_create_project called with args: {args}")
         project_name = args["name"]
         template = args.get("template", "basic_scene")
         settings = args.get("settings", {})
 
-        # Generate project path
+        # Generate project path in projects directory
+        # Ensure projects directory exists
+        self.projects_dir.mkdir(parents=True, exist_ok=True)
         project_path = str(self.projects_dir / f"{project_name}.blend")
 
         # Create project from template
@@ -528,7 +540,13 @@ class BlenderMCPServer(BaseMCPServer):
         # Execute Blender script
         script_args = {"operation": "create_project", "project_path": project_path, "template": template, "settings": settings}
 
-        await self.blender_executor.execute_script("scene_builder.py", script_args, job_id)
+        try:
+            logger.info(f"Calling execute_script for job {job_id} with args: {script_args}")
+            result = await self.blender_executor.execute_script("scene_builder.py", script_args, job_id)
+            logger.info(f"execute_script completed for job {job_id}: {result}")
+        except Exception as e:
+            logger.error(f"Failed to execute script for job {job_id}: {e}", exc_info=True)
+            raise
 
         return {
             "success": True,
@@ -597,13 +615,17 @@ class BlenderMCPServer(BaseMCPServer):
         job_id = str(uuid.uuid4())
         self.job_manager.create_job(job_id=job_id, job_type="render_image", parameters=args)
 
+        # Organize renders in outputs/renders folder
+        renders_output_dir = self.outputs_dir / "renders"
+        renders_output_dir.mkdir(parents=True, exist_ok=True)
+
         # Start async rendering
         script_args = {
             "operation": "render_image",
             "project": project,
             "frame": frame,
             "settings": settings,
-            "output_path": str(self.outputs_dir / f"{job_id}.png"),
+            "output_path": str(renders_output_dir / f"{job_id}.png"),
         }
 
         # This runs asynchronously
@@ -628,13 +650,17 @@ class BlenderMCPServer(BaseMCPServer):
         job_id = str(uuid.uuid4())
         self.job_manager.create_job(job_id=job_id, job_type="render_animation", parameters=args)
 
+        # Organize animations in outputs/animations folder
+        animations_output_dir = self.outputs_dir / "animations" / job_id
+        animations_output_dir.mkdir(parents=True, exist_ok=True)
+
         script_args = {
             "operation": "render_animation",
             "project": project,
             "start_frame": start_frame,
             "end_frame": end_frame,
             "settings": settings,
-            "output_path": str(self.outputs_dir / job_id) + "/",
+            "output_path": str(animations_output_dir) + "/",
         }
 
         # Start async rendering
@@ -848,8 +874,18 @@ class BlenderMCPServer(BaseMCPServer):
 
 def main():
     """Main entry point."""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Blender MCP Server")
+    parser.add_argument(
+        "--mode",
+        choices=["http", "stdio"],
+        default="http",
+        help="Server mode (http or stdio)",
+    )
+    args = parser.parse_args()
     server = BlenderMCPServer()
-    server.run()
+    server.run(mode=args.mode)
 
 
 if __name__ == "__main__":

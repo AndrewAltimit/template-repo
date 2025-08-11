@@ -29,7 +29,16 @@ class BlenderExecutor:
         self.output_dir = Path(output_dir)
         self.base_dir = Path(base_dir)
         self.processes: Dict[str, asyncio.subprocess.Process] = {}  # Track running processes by job_id
-        self.script_dir = Path(__file__).parent.parent / "scripts"
+        # In Docker, scripts are at /app/blender/scripts
+        # Locally, they're at parent.parent/scripts
+        # Check both locations
+        docker_script_dir = Path("/app/blender/scripts")
+        local_script_dir = Path(__file__).parent.parent / "scripts"
+
+        if docker_script_dir.exists():
+            self.script_dir = docker_script_dir
+        else:
+            self.script_dir = local_script_dir
 
         # Initialize status manager
         self.status_manager = StatusManager(output_dir)
@@ -63,15 +72,26 @@ class BlenderExecutor:
         Returns:
             Execution result
         """
+        logger.info(f"Executing script {script_name} for job {job_id}")
+        logger.info(f"Script dir: {self.script_dir}")
         script_path = self.script_dir / script_name
+        logger.info(f"Script path: {script_path}")
 
         if not script_path.exists():
+            logger.error(f"Script not found: {script_path}")
+            logger.error(
+                f"Available files in {self.script_dir}: {list(self.script_dir.glob('*')) if self.script_dir.exists() else 'Directory does not exist'}"
+            )
             raise FileNotFoundError(f"Script not found: {script_path}")
 
-        # Create temporary file for arguments
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+        # Create temporary file for arguments in a directory accessible to Blender
+        # Use the output directory which is persistent
+        temp_dir = Path(self.output_dir) / "temp"
+        temp_dir.mkdir(exist_ok=True)
+        args_file = str(temp_dir / f"{job_id}_args.json")
+
+        with open(args_file, "w") as f:
             json.dump(arguments, f)
-            args_file = f.name
 
         # Build Blender command
         cmd = [self.blender_path]
@@ -79,14 +99,14 @@ class BlenderExecutor:
         if background:
             cmd.append("--background")
 
-        # Add project file if specified
-        if "project" in arguments:
-            cmd.extend(["--", arguments["project"]])
+        # Add project file if specified (Blender loads .blend files directly)
+        if "project" in arguments and Path(arguments["project"]).exists():
+            cmd.append(arguments["project"])
 
         # Add Python script
         cmd.extend(["--python", str(script_path)])
 
-        # Pass arguments file path
+        # Pass arguments file path and job_id as script arguments after --
         cmd.extend(["--", args_file, job_id])
 
         # Acquire semaphore to limit concurrent processes
@@ -99,16 +119,19 @@ class BlenderExecutor:
                 # Update status using centralized manager
                 self.status_manager.update_status(job_id, status="RUNNING", progress=0, message="Starting Blender process")
 
+                # Log the command for debugging
+                logger.info(f"Running command: {' '.join(cmd)}")
+
                 # Start process
                 process = await asyncio.create_subprocess_exec(
                     *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, cwd=str(self.base_dir)
                 )
 
-                # Store process reference
+                # Store process reference and args file for cleanup
                 self.processes[job_id] = process
 
-                # Monitor process output
-                asyncio.create_task(self._monitor_process(process, job_id))
+                # Monitor process output and cleanup args file when done
+                asyncio.create_task(self._monitor_process(process, job_id, args_file))
 
                 return {"success": True, "job_id": job_id, "pid": process.pid}
 
@@ -121,20 +144,26 @@ class BlenderExecutor:
                 raise
 
             finally:
-                # Clean up arguments file
-                if os.path.exists(args_file):
-                    os.remove(args_file)
+                # Args file cleanup moved to _monitor_process
+                pass
 
-    async def _monitor_process(self, process: asyncio.subprocess.Process, job_id: str):
+    async def _monitor_process(self, process: asyncio.subprocess.Process, job_id: str, args_file: str = None):
         """Monitor a running Blender process.
 
         Args:
             process: The subprocess to monitor
             job_id: Job identifier
+            args_file: Temporary arguments file to cleanup when done
         """
         try:
             # Read output streams
             stdout, stderr = await process.communicate()
+
+            # Log Blender output for debugging
+            if stdout:
+                logger.info(f"Blender stdout for job {job_id}: {stdout.decode()[:500]}")
+            if stderr:
+                logger.warning(f"Blender stderr for job {job_id}: {stderr.decode()[:500]}")
 
             # Check exit code
             if process.returncode == 0:
@@ -164,6 +193,14 @@ class BlenderExecutor:
             # Remove from active processes
             if job_id in self.processes:
                 del self.processes[job_id]
+
+            # Clean up arguments file
+            if args_file and os.path.exists(args_file):
+                try:
+                    os.remove(args_file)
+                    logger.debug(f"Cleaned up args file: {args_file}")
+                except Exception as e:
+                    logger.warning(f"Failed to cleanup args file {args_file}: {e}")
 
     def kill_process(self, job_id: str) -> bool:
         """Kill a running Blender process.

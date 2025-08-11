@@ -114,6 +114,24 @@
         "--mode",
         "stdio"
       ]
+    },
+    "blender": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-blender",
+        "python",
+        "-m",
+        "tools.mcp.blender.server",
+        "--mode",
+        "stdio"
+      ]
     }
   }
 }

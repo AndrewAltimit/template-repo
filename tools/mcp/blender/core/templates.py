@@ -167,7 +167,10 @@ class TemplateManager:
         for template_id, template_data in self.templates.items():
             template_file = self.templates_dir / f"{template_id}.json"
             if not template_file.exists():
-                template_file.write_text(json.dumps(template_data, indent=2))
+                try:
+                    template_file.write_text(json.dumps(template_data, indent=2))
+                except PermissionError:
+                    logger.warning(f"Could not create template {template_id}.json - permission denied. Continuing without it.")
 
     def get_template(self, template_id: str) -> Optional[Dict[str, Any]]:
         """Get template configuration.

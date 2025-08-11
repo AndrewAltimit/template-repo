@@ -61,7 +61,10 @@ class AssetManager:
         subdirs = ["textures", "models", "hdri", "materials", "references", "scripts"]
 
         for subdir in subdirs:
-            (self.assets_dir / subdir).mkdir(exist_ok=True)
+            try:
+                (self.assets_dir / subdir).mkdir(exist_ok=True)
+            except PermissionError:
+                logger.warning(f"Could not create {subdir} directory - permission denied. Continuing without it.")
 
     def list_projects(self) -> List[Dict[str, Any]]:
         """List all Blender projects.

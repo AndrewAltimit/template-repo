@@ -60,4 +60,4 @@ USER blender
 EXPOSE 8017
 
 # Run the server
-CMD ["python3", "-m", "uvicorn", "blender.server:app", "--host", "0.0.0.0", "--port", "8017"]
+CMD ["python3", "-m", "blender.server"]

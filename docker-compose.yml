@@ -95,28 +95,30 @@ services:
     ports:
       - "8017:8017"
     volumes:
-      - ./blender/projects:/app/projects
-      - ./blender/assets:/app/assets
-      - ./blender/outputs:/app/outputs
-      - ./blender/templates:/app/templates
+      - ./outputs/blender/projects:/app/projects
+      - ./outputs/blender/assets:/app/assets
+      - ./outputs/blender/renders:/app/outputs
+      - ./outputs/blender/templates:/app/templates
     environment:
       - PYTHONUNBUFFERED=1
     networks:
       - mcp-network
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # GPU support (optional - uncomment if GPU available)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8017/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+    # Temporarily disabled - curl not installed in container
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8017/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 30s
     profiles:
       - services
       - gpu
