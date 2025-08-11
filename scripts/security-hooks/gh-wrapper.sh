@@ -71,9 +71,11 @@ validate_command() {
         else
             # Properly quote arguments that contain spaces or special characters
             case "$arg" in
-                *' '* | *'"'* | *"'"* | *'$'* | *'`'*)
-                    # Need to quote this argument
-                    cmd="$cmd \"$(echo "$arg" | sed 's/\"/\\"/g')\""
+                *[\ \	\'\"$\`\(\)\{\}\[\]\*\?\#\~\!\&\;\|\<\>\\]*)
+                    # Need to quote this argument - it contains special characters
+                    # Escape any existing quotes in the argument
+                    escaped_arg=$(printf '%s' "$arg" | sed 's/\\/\\\\/g; s/"/\\"/g')
+                    cmd="$cmd \"$escaped_arg\""
                     ;;
                 *)
                     cmd="$cmd $arg"
@@ -93,11 +95,13 @@ validate_command() {
     trap 'rm -f "$temp_stderr"' EXIT INT TERM
 
     # Create a JSON input similar to what Claude Code hooks expect
+    # Escape the command for JSON - the $cmd already has quotes in it
+    json_cmd=$(printf '%s' "gh $cmd" | sed 's/\\/\\\\/g; s/"/\\"/g')
     json_input=$(cat <<EOF
 {
     "tool_name": "Bash",
     "tool_input": {
-        "command": "gh $cmd"
+        "command": "$json_cmd"
     }
 }
 EOF
@@ -106,8 +110,8 @@ EOF
     # Run through the secret masker, capturing stderr
     masked_output=$(echo "$json_input" | python3 "${SCRIPT_DIR}/github-secrets-masker.py" 2>"$temp_stderr")
 
-    # Extract permission decision
-    permission=$(echo "$masked_output" | python3 -c "import json, sys; data = json.loads(sys.stdin.read()); print(data.get('permissionDecision', 'allow'))" 2>/dev/null || echo "allow")
+    # Extract permission decision - use printf to handle multiline JSON properly
+    permission=$(printf '%s' "$masked_output" | python3 -c "import json, sys; data = json.loads(sys.stdin.read()); print(data.get('permissionDecision', 'allow'))" 2>/dev/null || echo "allow")
 
     if [ "$permission" = "deny" ]; then
         reason=$(echo "$masked_output" | python3 -c "import json, sys; data = json.loads(sys.stdin.read()); print(data.get('permissionDecisionReason', 'Command blocked'))" 2>/dev/null || echo "Command blocked")
@@ -143,17 +147,21 @@ except:
 
     # Run through the comment validator if it exists
     if [ -f "${SCRIPT_DIR}/gh-comment-validator.py" ]; then
+        # Escape the command for JSON - the $cmd already has quotes in it
+        # We need to escape any backslashes first, then quotes
+        json_cmd=$(printf '%s' "gh $cmd" | sed 's/\\/\\\\/g; s/"/\\"/g')
         json_input=$(cat <<EOF
 {
     "tool_name": "Bash",
     "tool_input": {
-        "command": "gh $cmd"
+        "command": "$json_cmd"
     }
 }
 EOF
 )
         validator_output=$(echo "$json_input" | python3 "${SCRIPT_DIR}/gh-comment-validator.py" 2>"$temp_stderr")
-        permission=$(echo "$validator_output" | python3 -c "import json, sys; data = json.loads(sys.stdin.read()); print(data.get('permissionDecision', 'allow'))" 2>/dev/null || echo "allow")
+        # Parse JSON carefully - validator output might have newlines in the reason
+        permission=$(printf '%s' "$validator_output" | python3 -c "import json, sys; data = json.loads(sys.stdin.read()); print(data.get('permissionDecision', 'allow'))" 2>/dev/null || echo "allow")
 
         if [ "$permission" = "deny" ]; then
             reason=$(echo "$validator_output" | python3 -c "import json, sys; data = json.loads(sys.stdin.read()); print(data.get('permissionDecisionReason', 'Command blocked'))" 2>/dev/null || echo "Command blocked")

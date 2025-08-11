@@ -28,13 +28,8 @@ nvm use 22.16.0
 NODE_VERSION=$(node --version)
 echo "✅ Using Node.js: $NODE_VERSION"
 
-# Set up security hooks for gh commands
-SCRIPT_DIR="$(cd "$(dirname "$0")/../../" && pwd)"
-if [ -f "$SCRIPT_DIR/scripts/security-hooks/setup-agent-hooks.sh" ]; then
-    echo "🔒 Setting up security hooks..."
-    # shellcheck source=/dev/null
-    source "$SCRIPT_DIR/scripts/security-hooks/setup-agent-hooks.sh"
-fi
+# Security hooks are now automatically loaded via /etc/bash.bashrc
+# No need to source them manually anymore
 
 # Ask about unattended mode
 echo "🤖 Claude Code Configuration"

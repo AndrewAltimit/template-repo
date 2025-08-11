@@ -22,13 +22,8 @@ fi
 
 echo "✅ Using OpenRouter API key: ****${OPENROUTER_API_KEY: -4}"
 
-# Set up security hooks for gh commands
-SCRIPT_DIR="$(cd "$(dirname "$0")/../../" && pwd)"
-if [ -f "$SCRIPT_DIR/scripts/security-hooks/setup-agent-hooks.sh" ]; then
-    echo "🔒 Setting up security hooks..."
-    # shellcheck source=/dev/null
-    source "$SCRIPT_DIR/scripts/security-hooks/setup-agent-hooks.sh"
-fi
+# Security hooks are now automatically loaded via /etc/bash.bashrc
+# No need to source them manually anymore
 
 # Check if crush CLI is available
 if ! command -v crush &> /dev/null; then
