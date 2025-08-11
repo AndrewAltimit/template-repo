@@ -1,18 +1,34 @@
 # Security Hooks
 
-This directory contains agent-agnostic security hooks that can be used by any AI agent or automation tool to prevent accidental exposure of secrets and ensure proper formatting in public outputs.
+This directory contains universal security hooks that work with ALL AI agents and automation tools (including Claude Code) to prevent accidental exposure of secrets and ensure proper formatting in public outputs.
 
 ## Overview
 
-The security hooks system provides automatic secret masking for all GitHub comments and public outputs, ensuring that sensitive information is never exposed in:
+The security hooks system provides automatic secret masking for all GitHub comments and public outputs through a universal wrapper approach, ensuring that sensitive information is never exposed in:
 - Pull request comments
 - Issue comments
 - PR descriptions
 - Review comments
 
+## Universal Approach
+
+**ALL agents, including Claude Code, use the same security framework via shell aliasing.** There are no agent-specific hooks - everyone uses the same `gh-wrapper.sh` through an alias.
+
 ## Components
 
-### 1. `github-secrets-masker.py`
+### 1. `gh-wrapper.sh` (Universal Wrapper)
+**Purpose**: Wrapper script for gh CLI that ALL agents use via alias.
+
+**Features**:
+- Works with every AI agent and automation tool
+- Validates based on arguments (--body, --notes, --message, etc.)
+- POSIX-compliant for maximum shell compatibility
+- Captures and displays stderr from validators for debugging
+- Dynamic gh binary discovery
+- Python 3 dependency checking
+- Transparent operation - agents use `gh` normally
+
+### 2. `github-secrets-masker.py`
 **Purpose**: Automatically masks secrets in GitHub comments before they are posted.
 
 **Features**:
@@ -27,15 +43,6 @@ The security hooks system provides automatic secret masking for all GitHub comme
 3. Replaces any detected secrets with `[MASKED_VARNAME]`
 4. Returns modified command for execution
 
-### 2. `bash-pretooluse-hook.sh`
-**Purpose**: Main entry point for Bash command validation and security.
-
-**Features**:
-- Chains multiple security validators
-- Works with any AI agent that supports hooks
-- Gracefully handles missing validators
-- Maintains compatibility with agent-specific hooks
-
 ### 3. `gh-comment-validator.py`
 **Purpose**: Validates GitHub comment formatting for reaction images and prevents Unicode emoji corruption.
 
@@ -44,18 +51,8 @@ The security hooks system provides automatic secret masking for all GitHub comme
 - Blocks Unicode emojis that may appear corrupted in GitHub
 - Enforces proper use of `--body-file` for complex markdown
 
-### 4. `gh-wrapper.sh` (Agent-Agnostic)
-**Purpose**: Wrapper script for gh CLI that any agent can use via alias.
-
-**Features**:
-- Works with any AI agent or automation tool
-- Validates based on arguments (--body, --notes, --message, etc.)
-- POSIX-compliant for maximum shell compatibility
-- Captures and displays stderr from validators for debugging
-- Transparent operation - agents use `gh` normally
-
-### 5. `setup-agent-hooks.sh` (Agent-Agnostic)
-**Purpose**: Setup script to enable security hooks for any agent.
+### 4. `setup-agent-hooks.sh` (Universal Setup)
+**Purpose**: Setup script to enable security hooks for any environment.
 
 **Features**:
 - One-line setup for any shell environment
@@ -63,6 +60,7 @@ The security hooks system provides automatic secret masking for all GitHub comme
 - Creates gh alias automatically
 - Provides diagnostic function (agent_hooks_status)
 - Can be sourced in containers or shell configs
+- Works for Claude Code, other AI agents, and human developers
 
 ## Configuration
 
@@ -96,40 +94,17 @@ auto_detection:
 
 ## Installation
 
-### Method 1: For Claude Code
-
-Add to `.claude/settings.json`:
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "./scripts/security-hooks/bash-pretooluse-hook.sh"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-### Method 2: For Any Agent (Agent-Agnostic)
-
-Use the wrapper script approach:
+### Universal Setup (All Agents Including Claude Code)
 
 ```bash
-# One-time setup
+# One-time setup for current session
 source /path/to/scripts/security-hooks/setup-agent-hooks.sh
 
 # Or add to shell configuration for permanent setup
 echo 'source /path/to/scripts/security-hooks/setup-agent-hooks.sh' >> ~/.bashrc
 ```
 
-### Method 3: For Docker/Containers
+### For Docker/Containers
 
 ```dockerfile
 # In your Dockerfile
@@ -138,7 +113,7 @@ RUN chmod +x /app/security-hooks/*.sh
 RUN echo 'source /app/security-hooks/setup-agent-hooks.sh' >> /etc/bash.bashrc
 ```
 
-### Method 4: For Python Agents
+### For Python Agents
 
 ```python
 import os
@@ -147,12 +122,28 @@ os.environ['PATH'] = f"/path/to/scripts/security-hooks:{os.environ['PATH']}"
 # Now subprocess calls to 'gh' will use the wrapper
 ```
 
+### For CI/CD Pipelines
+
+```yaml
+# GitHub Actions example
+- name: Setup security hooks
+  run: |
+    source scripts/security-hooks/setup-agent-hooks.sh
+    # All subsequent gh commands will be validated
+```
+
 ## Testing
 
 Test the secret masking:
 ```bash
-# Run the test script
-./scripts/security-hooks/test-masking.sh
+# Check if hooks are active
+agent_hooks_status
+
+# Test secret masking
+export TEST_SECRET="super-secret-value"
+echo "  - TEST_SECRET" >> .secrets.yaml
+gh pr comment 1 --body "Secret is super-secret-value"
+# Should mask the secret
 
 # Test individual components
 echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Token is ghp_test123\""}}' | \
@@ -171,12 +162,22 @@ echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Toke
 
 ## Security Considerations
 
+- **Universal protection** - All agents use the same security validation
 - **Never disable masking** in production environments
 - **Test thoroughly** when adding new patterns to avoid over-masking
 - **Keep `.secrets.yaml` updated** as new services are added
 - **Review logs** periodically for masking effectiveness
 
 ## Troubleshooting
+
+### Hooks not active
+```bash
+# Check status
+agent_hooks_status
+
+# Re-source the setup script
+source scripts/security-hooks/setup-agent-hooks.sh
+```
 
 ### Secrets not being masked
 1. Check if environment variable is in `.secrets.yaml`
@@ -189,10 +190,11 @@ echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Toke
 2. Adjust `minimum_secret_length` if needed
 3. Make patterns more specific
 
-### Hook not working
-1. Verify hook script is executable: `chmod +x scripts/security-hooks/*.sh`
-2. Check agent configuration points to correct path
-3. Test hook directly with sample input
+### Python not found
+```bash
+# Install Python 3 or run in container
+# The wrapper requires Python 3 for validators
+```
 
 ## Contributing
 
@@ -205,17 +207,15 @@ When adding new services or API integrations:
 ## Architecture
 
 ```
-Agent Tool Call
+Agent executes: gh [command]
       ↓
-PreToolUse Hook
-      ↓
-bash-pretooluse-hook.sh
+gh alias → gh-wrapper.sh
       ↓
 github-secrets-masker.py (masks secrets)
       ↓
-gh-comment-validator.py (optional, validates formatting)
+gh-comment-validator.py (validates formatting)
       ↓
-Tool Execution (with masked content)
+Actual gh execution (with masked content)
 ```
 
-This layered approach ensures secrets are masked before any validation or execution occurs.
+This unified approach ensures ALL agents (including Claude Code) use the same security validation path through shell aliasing. No agent-specific hooks are needed.

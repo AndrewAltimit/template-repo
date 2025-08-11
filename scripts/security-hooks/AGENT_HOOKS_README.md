@@ -1,6 +1,6 @@
-# Agent-Agnostic Security Hooks
+# Universal Security Hooks
 
-This directory contains security hooks that can be used by any AI agent or automation tool, not just Claude Code.
+This directory contains security hooks that work with ALL AI agents and automation tools through a unified wrapper approach.
 
 ## Overview
 
@@ -9,33 +9,25 @@ The security hooks provide:
 2. **Format validation** - Ensures correct markdown formatting for GitHub comments
 3. **Unicode emoji prevention** - Blocks Unicode emojis that may appear corrupted
 
+## Universal Approach
+
+**ALL agents, including Claude Code, use the same `gh-wrapper.sh` through shell aliasing.** There are no agent-specific configurations or hooks - everyone uses the same security validation path.
+
 ## Components
 
-### For Claude Code
-
-Claude Code uses hooks via `.claude/settings.json`:
-- `bash-pretooluse-hook.sh` - Main hook chain for Bash commands
+- `gh-wrapper.sh` - Universal wrapper script for gh CLI commands
+- `setup-agent-hooks.sh` - Setup script to enable the wrapper
 - `github-secrets-masker.py` - Masks sensitive information
 - `gh-comment-validator.py` - Validates GitHub comment formatting
 
-### For Other AI Agents
-
-Other agents can use the wrapper approach:
-- `gh-wrapper.sh` - Wrapper script for gh CLI commands
-- `setup-agent-hooks.sh` - Setup script to enable the wrapper
-
 ## Usage
 
-### Method 1: Claude Code (Automatic)
-
-Claude Code automatically uses these hooks via the configuration in `.claude/settings.json`. No setup required.
-
-### Method 2: Wrapper Script (For Other Agents)
+### Universal Setup (For ALL Agents)
 
 #### One-time Setup
 
 ```bash
-# Source the setup script in your agent's environment
+# Source the setup script in your environment
 source /path/to/scripts/security-hooks/setup-agent-hooks.sh
 ```
 
@@ -43,7 +35,7 @@ This creates an alias for `gh` that routes commands through the validation wrapp
 
 #### Permanent Setup
 
-Add to your agent's shell configuration (`.bashrc`, `.zshrc`, etc.):
+Add to your shell configuration (`.bashrc`, `.zshrc`, etc.):
 
 ```bash
 # Enable security hooks for GitHub operations
@@ -83,7 +75,7 @@ result = subprocess.run(
 )
 ```
 
-### Method 3: Direct Validation (API)
+### Direct Validation (API)
 
 For agents that need programmatic validation:
 
@@ -122,6 +114,8 @@ The following commands are validated:
 - `gh issue comment`
 - `gh pr create`
 - `gh issue create`
+- `gh release create` (with --notes)
+- Any command with `--body`, `--body-file`, `--notes`, `--notes-file`, `--title`, or `--message`
 
 ### Validation Rules
 
@@ -269,7 +263,7 @@ EOF
 
 **Symptom**: "Command blocked" but no details about why
 
-**Solution**: The updated wrapper now shows stderr from validators. If you're still not seeing details:
+**Solution**: The wrapper shows stderr from validators. If you're still not seeing details:
 ```bash
 # Test validators manually
 echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"test\""}}' | \
@@ -356,6 +350,5 @@ All should trigger validation if they contain sensitive content
 
 When adding new validators:
 1. Create a new Python script following the existing pattern
-2. Add it to the hook chain in `bash-pretooluse-hook.sh`
-3. Update `gh-wrapper.sh` to include the new validator
-4. Add tests and documentation
+2. Add it to the validation chain in `gh-wrapper.sh`
+3. Add tests and documentation

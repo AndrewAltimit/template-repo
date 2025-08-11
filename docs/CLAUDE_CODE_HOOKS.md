@@ -1,81 +1,67 @@
-# Claude Code Hooks
+# Security Hooks (Universal Approach)
 
-This document describes the Claude Code hook system that helps enforce best practices and prevent common mistakes when using Claude Code.
+This document describes the universal security hook system that works with ALL agents including Claude Code.
 
 ## Overview
 
-Claude Code supports custom hooks that run before or after tool executions. These hooks can validate parameters, block problematic commands, or provide guidance to ensure correct usage patterns.
+**Important Change**: Claude Code no longer uses agent-specific hooks. Instead, ALL agents (including Claude Code) use the same universal wrapper approach through shell aliasing.
 
-## Current Hooks
+## Universal Security System
 
-### PR Monitoring Hook
+### How It Works
 
-**Purpose**: Automatic PR feedback monitoring reminder after git pushes.
+All agents use the same security validation path:
+1. Agent executes `gh` command
+2. Shell alias redirects to `gh-wrapper.sh`
+3. Wrapper validates command through Python validators
+4. If validated, actual `gh` command executes
 
-**Hook**: `scripts/claude-hooks/git-push-posttooluse-hook.py`
+### Setup
 
-**Functionality**:
-- Detects when git push commands are executed
-- Identifies the current branch and associated PR
-- Extracts the pushed commit SHA
-- Reminds agents to monitor for feedback
-- Provides exact monitoring command with commit starting point
+For ALL agents including Claude Code:
 
-**What it enables**:
-- Tight feedback loops during pair programming
-- Focused monitoring on newly pushed changes
-- Automatic context-aware reminders
-- Integration with commit-based monitoring
+```bash
+# One-time setup
+source scripts/security-hooks/setup-agent-hooks.sh
 
-### Security Hooks (Universal)
+# Or add to shell configuration for permanent setup
+echo 'source /path/to/scripts/security-hooks/setup-agent-hooks.sh' >> ~/.bashrc
+```
 
-**Purpose**: Automatic secret masking and validation for all agents.
+### Components
 
-**Main Hook**: `scripts/security-hooks/bash-pretooluse-hook.sh`
+1. **Universal Wrapper** (`scripts/security-hooks/gh-wrapper.sh`)
+   - POSIX-compliant shell script
+   - Works with all shells (sh, dash, bash, zsh)
+   - Validates based on arguments (--body, --notes, --message, etc.)
+   - Dynamic gh binary discovery
+   - Python 3 dependency checking
 
-**Components**:
-
-1. **Secret Masker** (`scripts/security-hooks/github-secrets-masker.py`)
+2. **Secret Masker** (`scripts/security-hooks/github-secrets-masker.py`)
    - Automatically masks secrets in GitHub comments
    - Uses `.secrets.yaml` configuration from repository root
    - Works transparently - agents don't know masking occurred
    - Prevents exposure of API keys, tokens, passwords, etc.
 
-2. **GitHub Comment Formatter** (`scripts/claude-hooks/gh-comment-validator.py`)
+3. **GitHub Comment Validator** (`scripts/security-hooks/gh-comment-validator.py`)
    - Prevents incorrect GitHub comment formatting
+   - Blocks Unicode emojis that may appear corrupted
    - Ensures reaction images aren't escaped
-   - Claude-specific but available to all agents
-
-**What it prevents**:
-- Secrets appearing in public GitHub comments
-- Direct `--body` flag usage with reaction images
-- Heredocs (`cat <<EOF`) that can escape special characters
-- Echo/printf piped to gh commands
-- Command substitution containing reaction images
-
-**Why this matters**:
-- Secrets in public comments are a security risk
-- Shell escaping can turn `![Reaction]` into `\![Reaction]`, breaking image display
+   - Enforces proper use of `--body-file` for complex markdown
 
 ## Configuration
 
-### Claude Code
-Hooks are configured in `.claude/settings.json`:
+### `.claude/settings.json`
 
+Now simplified to an empty configuration:
 ```json
-{
-  "hooks": {
-    "PreToolUse": {
-      "Bash": "./scripts/security-hooks/bash-pretooluse-hook.sh"
-    },
-    "PostToolUse": {
-      "Bash": "./scripts/claude-hooks/git-push-posttooluse-hook.py"
-    }
-  }
-}
+{}
 ```
 
-### Secret Masking
+No hooks are needed - Claude Code uses the universal wrapper like all other agents.
+
+### Secret Masking (`.secrets.yaml`)
+
 Secrets to mask are configured in `.secrets.yaml` in repository root:
 
 ```yaml
@@ -96,23 +82,14 @@ auto_detection:
   exclude_patterns: ["PUBLIC_*"]
 ```
 
-## How It Works
+## What It Prevents
 
-### PreToolUse Hooks
-1. When Claude Code attempts to use a tool, the PreToolUse hook is triggered
-2. The hook receives tool parameters as JSON on stdin
-3. The hook validates the parameters and returns a permission decision:
-   - `{"permissionDecision": "allow"}` - Tool execution proceeds
-   - `{"permissionDecision": "deny", "permissionDecisionReason": "..."}` - Tool is blocked with explanation
-   - `{"permissionDecision": "ask"}` - User is prompted for confirmation
-
-### PostToolUse Hooks
-1. After a tool completes execution, the PostToolUse hook is triggered
-2. The hook receives tool execution data including:
-   - Tool name and input parameters
-   - Tool output and return code
-3. The hook can provide feedback or reminders to the agent
-4. Output is displayed to stderr for agent awareness
+- Secrets appearing in public GitHub comments
+- Direct `--body` flag usage with reaction images
+- Heredocs (`cat <<EOF`) that can escape special characters
+- Echo/printf piped to gh commands
+- Command substitution containing reaction images
+- Unicode emojis that display as corrupted characters
 
 ## Correct GitHub Comment Method
 
@@ -132,76 +109,71 @@ Bash("gh pr comment 50 --body-file /tmp/comment.md")
 
 This preserves markdown formatting and prevents shell escaping issues.
 
-## Creating New Hooks
+## Testing
 
-To add a new hook:
-
-1. Create a Python script in `scripts/claude-hooks/`
-2. Read tool input from stdin as JSON
-3. Implement validation logic
-4. Return permission decision as JSON
-5. Register in `.claude/settings.json`
-
-Example hook structure:
-
-```python
-#!/usr/bin/env python3
-import json
-import sys
-
-def main():
-    try:
-        input_data = json.loads(sys.stdin.read())
-    except json.JSONDecodeError:
-        print(json.dumps({"permissionDecision": "allow"}))
-        return
-
-    # Validation logic here
-    tool_name = input_data.get("tool_name")
-    tool_input = input_data.get("tool_input", {})
-
-    # Return decision
-    if some_condition:
-        print(json.dumps({
-            "permissionDecision": "deny",
-            "permissionDecisionReason": "Explanation of why blocked"
-        }))
-    else:
-        print(json.dumps({"permissionDecision": "allow"}))
-
-if __name__ == "__main__":
-    main()
+### Check if hooks are active
+```bash
+agent_hooks_status
 ```
 
-## Testing Hooks
-
-Test hooks manually by piping JSON input:
-
+### Test secret masking
 ```bash
-echo '{"tool_name": "Bash", "tool_input": {"command": "test command"}}' | \
-  python3 scripts/claude-hooks/your-hook.py
+export TEST_SECRET="super-secret-value"
+echo "  - TEST_SECRET" >> .secrets.yaml
+gh pr comment 1 --body "Secret is super-secret-value"
+# Should mask the secret
+```
+
+### Test validators directly
+```bash
+echo '{"tool_name": "Bash", "tool_input": {"command": "gh pr comment 1 --body \"Token is ghp_test123\""}}' | \
+  python3 scripts/security-hooks/github-secrets-masker.py
 ```
 
 ## Benefits
 
+- **Universal Protection**: All agents use the same security validation
+- **No Configuration Needed**: Works automatically through shell aliasing
 - **Prevents Common Mistakes**: Catches issues before they happen
 - **Provides Guidance**: Explains the correct approach when blocking
 - **Maintains Code Quality**: Enforces project conventions automatically
 - **Learning Tool**: Helps users understand best practices
 
-## Future Enhancements
+## Troubleshooting
 
-Potential areas for additional hooks:
-- Git commit message formatting validation
-- Security checks for sensitive file operations
-- Docker command validation for proper user permissions
-- API key exposure prevention
-- Automatic PR creation detection and setup
-- Test failure analysis and suggestions
-- Build completion notifications
+If security hooks aren't working:
+
+1. **Re-source the setup script**:
+   ```bash
+   source scripts/security-hooks/setup-agent-hooks.sh
+   ```
+
+2. **Check alias is active**:
+   ```bash
+   alias gh
+   # Should show: alias gh='/path/to/scripts/security-hooks/gh-wrapper.sh'
+   ```
+
+3. **Verify Python 3 is available**:
+   ```bash
+   python3 --version
+   ```
+
+4. **Check wrapper permissions**:
+   ```bash
+   chmod +x scripts/security-hooks/*.sh
+   ```
+
+## Migration from Claude Code Hooks
+
+If you previously used Claude Code hooks:
+1. The old hooks in `.claude/settings.json` have been removed
+2. The `bash-pretooluse-hook.sh` file has been removed
+3. Everything now works through the universal wrapper
+4. No action needed - just source the setup script
 
 ## References
 
-- [Claude Code Hooks Documentation](https://docs.anthropic.com/en/docs/claude-code/hooks)
+- [Universal Security Hooks Documentation](../scripts/security-hooks/README.md)
 - [GitHub Etiquette Guide](GITHUB_ETIQUETTE_FOR_AI_AGENTS.md)
 - [Project Instructions](../CLAUDE.md)

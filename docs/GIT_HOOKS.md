@@ -77,16 +77,17 @@ To modify or disable the hook, edit `.git/hooks/pre-push` in your local reposito
 ### Related Tools
 
 - **PR Monitor Agent**: `scripts/pr-monitoring/pr_monitor_agent.py`
-- **Claude Code Hooks**: Security hooks in `.claude/settings.json`
+- **Universal Security Hooks**: See `scripts/security-hooks/README.md`
 - **GitHub AI Agents**: Automated PR and issue monitoring
 
-## Security Hooks (Claude Code)
+## Security Hooks (Universal)
 
-The repository also includes Claude Code security hooks configured in `.claude/settings.json`:
+The repository includes universal security hooks that work with ALL agents through shell aliasing:
 
-- **PreToolUse Bash Hook**: `scripts/security-hooks/bash-pretooluse-hook.sh`
+- **Universal Wrapper**: `scripts/security-hooks/gh-wrapper.sh`
   - Masks secrets in GitHub comments
   - Validates command safety
-  - Configured for all Bash commands in Claude Code
+  - Works for all agents including Claude Code
+  - Setup via: `source scripts/security-hooks/setup-agent-hooks.sh`
 
-These hooks ensure that sensitive information is never accidentally posted to GitHub through automation tools.
+These hooks ensure that sensitive information is never accidentally posted to GitHub through any automation tool or manual operation.
