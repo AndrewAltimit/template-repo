@@ -1,0 +1,75 @@
+#!/bin/sh
+# Git pre-push hook for PR monitoring reminders
+#
+# This hook reminds developers to monitor their PR for feedback after pushing commits.
+# It detects if the current branch has an open PR and provides monitoring instructions.
+#
+# Installation:
+#   cp scripts/git-hooks/pre-push .git/hooks/pre-push
+#   chmod +x .git/hooks/pre-push
+#
+# Or combine with existing hooks:
+#   cat scripts/git-hooks/pre-push >> .git/hooks/pre-push
+
+# Check if this is a Git LFS pre-push hook that needs to chain to LFS
+if [ -f .git/hooks/pre-push.lfs ]; then
+    # Run Git LFS hook first
+    .git/hooks/pre-push.lfs "$@"
+    lfs_result=$?
+    if [ $lfs_result -ne 0 ]; then
+        exit $lfs_result
+    fi
+fi
+
+# Only proceed if gh CLI is available
+if ! command -v gh >/dev/null 2>&1; then
+    # gh not available, skip PR monitoring reminder
+    exit 0
+fi
+
+# Get the current branch name
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+# Skip if on main/master branch
+if [ "$current_branch" = "main" ] || [ "$current_branch" = "master" ]; then
+    exit 0
+fi
+
+# Try to find PR number for current branch
+pr_number=$(gh pr view --json number -q .number 2>/dev/null || echo "")
+
+# If no PR found, exit quietly
+if [ -z "$pr_number" ]; then
+    exit 0
+fi
+
+# Get the latest commit SHA being pushed
+latest_commit=$(git rev-parse HEAD)
+
+# Display monitoring reminder
+cat << EOF
+
+============================================================
+🔄 PR FEEDBACK MONITORING REMINDER
+============================================================
+
+You're pushing commits to PR #${pr_number} on branch '${current_branch}'.
+After push completes, consider monitoring for feedback:
+
+  📍 Monitor from this commit onwards:
+     python scripts/pr-monitoring/pr_monitor_agent.py ${pr_number} --since-commit ${latest_commit}
+
+  🔄 Or monitor all new comments:
+     python scripts/pr-monitoring/pr_monitor_agent.py ${pr_number}
+
+This will watch for:
+  • Admin comments and commands
+  • Gemini AI code review feedback
+  • CI/CD validation results
+
+💡 The monitor will return structured data when relevant comments are detected.
+============================================================
+EOF
+
+# Always exit successfully (this is just a reminder)
+exit 0
