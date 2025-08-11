@@ -15,7 +15,13 @@
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REAL_GH="/usr/bin/gh"  # Path to actual gh binary
+
+# Find the real 'gh' binary, avoiding the alias itself
+REAL_GH=$(command -v gh)
+if [ -z "$REAL_GH" ]; then
+    echo "ERROR: 'gh' command not found." >&2
+    exit 127
+fi
 
 # Check if this command needs validation based on arguments
 needs_validation() {
@@ -125,9 +131,8 @@ main() {
         fi
 
         # Execute the validated/modified command
-        # Note: We need to split the command properly
-        # shellcheck disable=SC2086
-        exec "$REAL_GH" $validated_cmd
+        # Use eval to correctly handle arguments with spaces
+        eval exec "\"$REAL_GH\" $validated_cmd"
     else
         # No validation needed, execute directly
         exec "$REAL_GH" "$@"
