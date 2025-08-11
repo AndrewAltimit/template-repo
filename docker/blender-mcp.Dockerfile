@@ -9,6 +9,7 @@ ENV BLENDER_VERSION=4.0.2
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     wget \
+    curl \
     xz-utils \
     python3 \
     python3-pip \
