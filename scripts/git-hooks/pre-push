@@ -1,5 +1,6 @@
 #!/bin/sh
 # Git pre-push hook for PR monitoring reminders
+set -e
 #
 # This hook reminds developers to monitor their PR for feedback after pushing commits.
 # It detects if the current branch has an open PR and provides monitoring instructions.
