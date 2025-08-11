@@ -59,9 +59,5 @@ USER blender
 # Expose port
 EXPOSE 8017
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl --fail http://localhost:8017/health || exit 1
-
 # Run the server
 CMD ["python3", "-m", "uvicorn", "blender.server:app", "--host", "0.0.0.0", "--port", "8017"]

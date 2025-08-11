@@ -101,7 +101,6 @@ services:
       - ./blender/templates:/app/templates
     environment:
       - PYTHONUNBUFFERED=1
-      - PORT=8017
     networks:
       - mcp-network
     deploy:
