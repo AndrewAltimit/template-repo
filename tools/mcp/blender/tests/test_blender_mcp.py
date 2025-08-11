@@ -1,21 +1,19 @@
 """Tests for Blender MCP Server."""
 
-import asyncio
-import json
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from blender.core.asset_manager import AssetManager
-from blender.core.blender_executor import BlenderExecutor
-from blender.core.job_manager import JobManager
-from blender.core.templates import TemplateManager
-from blender.server import BlenderMCPServer
+from blender.core.asset_manager import AssetManager  # noqa: E402
+from blender.core.blender_executor import BlenderExecutor  # noqa: E402
+from blender.core.job_manager import JobManager  # noqa: E402
+from blender.core.templates import TemplateManager  # noqa: E402
+from blender.server import BlenderMCPServer  # noqa: E402
 
 
 class TestBlenderMCPServer:

@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 """Test Blender MCP server HTTP functionality."""
 
-import asyncio
-import json
-import os
 import sys
 import tempfile
 import threading
@@ -16,7 +13,7 @@ import uvicorn
 # Add paths
 sys.path.insert(0, str(Path(__file__).parent))
 
-from tools.mcp.blender.server import BlenderMCPServer
+from tools.mcp.blender.server import BlenderMCPServer  # noqa: E402
 
 
 def run_server(server, port):
@@ -116,7 +113,7 @@ def test_server_endpoints():
                 if isinstance(project_result, dict):
                     print(f"   ✓ Project created: {project_result.get('project_path')}")
                 else:
-                    print(f"   ✓ Project created")
+                    print("   ✓ Project created")
             else:
                 # Extract error message
                 error_msg = "Unknown error"

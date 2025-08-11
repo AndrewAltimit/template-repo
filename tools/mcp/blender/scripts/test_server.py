@@ -2,18 +2,18 @@
 """Test script for Blender MCP Server."""
 
 import sys
+import time
+from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict
 
 # Add parent directories to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-import asyncio
-import time
-from datetime import datetime
-from typing import Any, Dict, Optional
+import asyncio  # noqa: E402
 
-from tools.mcp.core.client import MCPClient
+from tools.mcp.core.client import MCPClient  # noqa: E402
 
 
 class BlenderMCPClient(MCPClient):
@@ -135,7 +135,7 @@ class BlenderMCPClient(MCPClient):
         # Apply materials
         print("\n3. Applying materials...")
         for obj_name, mat_type in [("Suzanne", "metal"), ("Torus", "glass"), ("Cube", "emission")]:
-            mat_result = await self.call_tool(
+            await self.call_tool(
                 "apply_material",
                 {
                     "project": project["project_path"],

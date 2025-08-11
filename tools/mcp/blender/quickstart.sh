@@ -8,6 +8,10 @@ echo "🎬 Blender MCP Server Quick Start"
 echo "================================="
 echo
 
+# Export USER_ID and GROUP_ID for Docker volume permissions
+export USER_ID="${USER_ID:-$(id -u)}"
+export GROUP_ID="${GROUP_ID:-$(id -g)}"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
