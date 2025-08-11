@@ -125,5 +125,11 @@ COPY --chown=node:node packages/github_ai_agents/configs/crush-data.json /home/n
 # This ensures the user can write to all necessary locations
 RUN chown -R node:node /home/node
 
+# Copy security hooks and set up alias
+COPY scripts/security-hooks /app/security-hooks
+RUN chmod +x /app/security-hooks/*.sh && \
+    echo 'source /app/security-hooks/setup-agent-hooks.sh' >> /etc/bash.bashrc && \
+    echo 'source /app/security-hooks/setup-agent-hooks.sh' >> /home/node/.bashrc
+
 # Default command
 CMD ["bash"]

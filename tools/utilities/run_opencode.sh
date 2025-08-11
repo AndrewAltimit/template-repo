@@ -22,6 +22,14 @@ fi
 
 echo "✅ Using OpenRouter API key: ****${OPENROUTER_API_KEY: -4}"
 
+# Set up security hooks for gh commands
+SCRIPT_DIR="$(cd "$(dirname "$0")/../../" && pwd)"
+if [ -f "$SCRIPT_DIR/scripts/security-hooks/setup-agent-hooks.sh" ]; then
+    echo "🔒 Setting up security hooks..."
+    # shellcheck source=/dev/null
+    source "$SCRIPT_DIR/scripts/security-hooks/setup-agent-hooks.sh"
+fi
+
 # Default model if not set
 if [ -z "$OPENCODE_MODEL" ]; then
     export OPENCODE_MODEL="qwen/qwen-2.5-coder-32b-instruct"

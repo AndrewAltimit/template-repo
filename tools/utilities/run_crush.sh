@@ -22,6 +22,14 @@ fi
 
 echo "✅ Using OpenRouter API key: ****${OPENROUTER_API_KEY: -4}"
 
+# Set up security hooks for gh commands
+SCRIPT_DIR="$(cd "$(dirname "$0")/../../" && pwd)"
+if [ -f "$SCRIPT_DIR/scripts/security-hooks/setup-agent-hooks.sh" ]; then
+    echo "🔒 Setting up security hooks..."
+    # shellcheck source=/dev/null
+    source "$SCRIPT_DIR/scripts/security-hooks/setup-agent-hooks.sh"
+fi
+
 # Check if crush CLI is available
 if ! command -v crush &> /dev/null; then
     echo "⚠️  crush CLI not found. Installing..."
