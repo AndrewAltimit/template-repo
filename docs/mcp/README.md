@@ -109,21 +109,6 @@ Generate memes with customizable text overlays:
 - Cultural context documentation
 - 7+ built-in templates with more being added
 
-### 10. Blender MCP Server (Port 8016)
-**Location**: `tools/mcp/blender/`
-**Documentation**: [Blender MCP Documentation](../../tools/mcp/blender/docs/README.md)
-
-Comprehensive 3D content creation and rendering:
-- Scene generation with primitives and templates
-- Professional lighting setups (three-point, studio, HDRI)
-- PBR material application
-- Single frame and animation rendering (Cycles/Eevee)
-- Physics simulation (rigid body, soft body, cloth, fluid)
-- Keyframe animation and geometry nodes
-- 3D model import/export (FBX, OBJ, GLTF, STL, USD)
-- GPU-accelerated rendering with NVIDIA CUDA
-- Asynchronous job management for long operations
-
 ## Configuration and Transport
 
 ### HTTP Streamable Transport
@@ -165,8 +150,7 @@ tools/mcp/
 ├── comfyui/                # Image generation (HTTP bridge, port 8013)
 ├── opencode/               # AI code generation (STDIO)
 ├── crush/                  # Fast code generation (STDIO)
-├── meme_generator/         # Meme creation (STDIO)
-└── blender/                # 3D content creation (HTTP/STDIO, port 8016)
+└── meme_generator/         # Meme creation (STDIO)
 ```
 
 ## Running MCP Servers

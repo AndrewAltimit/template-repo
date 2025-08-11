@@ -132,7 +132,6 @@ docker-compose run --rm python-ci mypy . --ignore-missing-imports
 docker-compose up -d mcp-code-quality        # Port 8010 - Code formatting/linting
 docker-compose up -d mcp-content-creation    # Port 8011 - Manim & LaTeX
 docker-compose up -d mcp-gaea2               # Port 8007 - Terrain generation
-docker-compose up -d mcp-blender              # Port 8016 - 3D content creation
 
 # For local development (when actively developing server code)
 python -m tools.mcp.code_quality.server      # Port 8010
@@ -142,7 +141,6 @@ python -m tools.mcp.ai_toolkit.server        # Port 8012 (bridge to remote)
 python -m tools.mcp.comfyui.server           # Port 8013 (bridge to remote)
 python -m tools.mcp.opencode.server          # Port 8014 - AI code generation (HTTP mode)
 python -m tools.mcp.crush.server             # Port 8015 - Fast code generation (HTTP mode)
-python -m tools.mcp.blender.server           # Port 8016 - 3D content creation
 
 # Note: OpenCode and Crush run in STDIO mode through .mcp.json for local use,
 # HTTP mode is for cross-machine access or when running standalone
@@ -167,7 +165,6 @@ python tools/mcp/gemini/scripts/test_server.py
 python tools/mcp/gaea2/scripts/test_server.py
 python tools/mcp/ai_toolkit/scripts/test_server.py
 python tools/mcp/comfyui/scripts/test_server.py
-python tools/mcp/blender/scripts/test_server.py
 
 # For local development without Docker
 pip install -r requirements.txt
@@ -229,7 +226,6 @@ docker-compose up -d
 docker-compose logs -f mcp-code-quality
 docker-compose logs -f mcp-content-creation
 docker-compose logs -f mcp-gaea2
-docker-compose logs -f mcp-blender
 docker-compose logs -f python-ci
 
 # Stop services
@@ -239,7 +235,6 @@ docker-compose down
 docker-compose build mcp-code-quality
 docker-compose build mcp-content-creation
 docker-compose build mcp-gaea2
-docker-compose build mcp-blender
 docker-compose build python-ci
 ```
 
@@ -340,29 +335,12 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - Runs locally via stdio for better integration
    - See `tools/mcp/crush/docs/README.md` for documentation
 
-9. **Blender MCP Server** (`tools/mcp/blender/`): HTTP API on port 8016
-   - **3D Content Creation & Rendering**:
-     - `create_blender_project` - Create projects from templates
-     - `add_primitive_objects` - Add 3D primitives to scenes
-     - `setup_lighting` - Professional lighting setups
-     - `apply_material` - PBR material application
-     - `render_image` - Single frame rendering (Cycles/Eevee)
-     - `render_animation` - Animation sequence rendering
-     - `setup_physics` - Physics simulation (rigid body, cloth, fluid)
-     - `create_animation` - Keyframe animation
-     - `create_geometry_nodes` - Procedural geometry with nodes
-     - `import_model` - Import 3D models (FBX, OBJ, GLTF, STL)
-     - `export_scene` - Export scenes to various formats
-   - GPU-accelerated rendering with NVIDIA CUDA
-   - Asynchronous job management for long operations
-   - See `tools/mcp/blender/docs/README.md` for documentation
-
-10. **Shared Core Components** (`tools/mcp/core/`):
+9. **Shared Core Components** (`tools/mcp/core/`):
    - `BaseMCPServer` - Base class for all MCP servers
    - `HTTPBridge` - Bridge for remote MCP servers
    - Common utilities and helpers
 
-11. **Containerized CI/CD**:
+10. **Containerized CI/CD**:
    - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools
    - **Helper Scripts**: Centralized CI operations
    - **Individual MCP Containers**: Each server can run in its own optimized container
@@ -416,7 +394,7 @@ The repository includes comprehensive CI/CD workflows:
 
 3. **Client Pattern** (`tools/mcp/core/client.py`):
    - MCPClient class for interacting with MCP servers
-   - Supports all MCP server endpoints (ports 8006-8016)
+   - Supports all MCP server endpoints (ports 8006-8015)
    - Environment-based configuration
 
 ### Security Considerations

@@ -18,7 +18,6 @@ The MCP functionality is split across modular servers:
 7. **Gaea2 MCP Server** (Port 8007) - Bridge to remote terrain generation
 8. **AI Toolkit MCP Server** (Port 8012) - Bridge to remote AI Toolkit for LoRA training
 9. **ComfyUI MCP Server** (Port 8013) - Bridge to remote ComfyUI for image generation
-10. **Blender MCP Server** (Port 8016) - Containerized 3D content creation and rendering
 
 This modular architecture ensures better separation of concerns, easier maintenance, and the ability to scale individual services independently.
 
@@ -350,66 +349,6 @@ docker-compose logs -f mcp-meme-generator
 
 See `tools/mcp/meme_generator/docs/README.md` and `tools/mcp/meme_generator/docs/MEME_USAGE_GUIDE.md` for detailed documentation.
 
-## Blender MCP Server (Port 8016)
-
-The Blender server provides comprehensive 3D content creation, rendering, and simulation capabilities. It can run in both HTTP and STDIO modes.
-
-### Starting the Server
-
-```bash
-# Start via Docker Compose (recommended)
-docker-compose up -d mcp-blender
-
-# Or run locally for development
-python -m tools.mcp.blender.server --mode http
-
-# View logs
-docker-compose logs -f mcp-blender
-
-# Test health
-curl http://localhost:8016/health
-```
-
-### Available Tools
-
-**Project Management:**
-- **create_blender_project** - Create new projects from templates
-- **list_projects** - List available Blender projects
-
-**Scene Generation:**
-- **add_primitive_objects** - Add 3D primitives (cube, sphere, cylinder, etc.)
-- **setup_lighting** - Configure professional lighting (three-point, studio, HDRI)
-- **apply_material** - Apply PBR materials to objects
-
-**Rendering:**
-- **render_image** - Single frame rendering with Cycles or Eevee
-- **render_animation** - Animation sequence rendering
-
-**Physics & Animation:**
-- **setup_physics** - Configure physics simulations (rigid body, cloth, fluid)
-- **bake_simulation** - Bake physics to keyframes
-- **create_animation** - Create keyframe animations
-- **create_geometry_nodes** - Procedural geometry with nodes
-
-**Import/Export:**
-- **import_model** - Import 3D models (FBX, OBJ, GLTF, STL, PLY)
-- **export_scene** - Export scenes to various formats
-
-**Job Management:**
-- **get_job_status** - Check rendering job status
-- **get_job_result** - Get completed job result
-- **cancel_job** - Cancel running job
-
-### Features
-
-- **GPU Acceleration**: NVIDIA CUDA support for fast rendering
-- **Asynchronous Jobs**: Long operations run in background
-- **Multiple Templates**: Empty, basic scene, studio lighting, procedural, animation
-- **Professional Rendering**: Cycles and Eevee engines with configurable quality
-- **Comprehensive Physics**: Rigid body, soft body, cloth, and fluid simulations
-
-See `tools/mcp/blender/docs/README.md` for detailed documentation.
-
 ## Unified Testing
 
 Test all servers at once:
@@ -426,7 +365,6 @@ python tools/mcp/code_quality/scripts/test_server.py
 python tools/mcp/content_creation/scripts/test_server.py
 python tools/mcp/gaea2/scripts/test_server.py
 python tools/mcp/gemini/scripts/test_server.py
-python tools/mcp/blender/scripts/test_server.py
 ```
 
 ## Configuration
