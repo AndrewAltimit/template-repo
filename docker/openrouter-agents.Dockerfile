@@ -128,8 +128,10 @@ RUN chown -R node:node /home/node
 # Copy security hooks and set up alias
 COPY scripts/security-hooks /app/security-hooks
 RUN chmod +x /app/security-hooks/*.sh && \
-    echo 'source /app/security-hooks/setup-agent-hooks.sh' >> /etc/bash.bashrc && \
-    echo 'source /app/security-hooks/setup-agent-hooks.sh' >> /home/node/.bashrc
+    echo 'alias gh="/app/security-hooks/gh-wrapper.sh"' >> /etc/bash.bashrc && \
+    echo 'alias gh="/app/security-hooks/gh-wrapper.sh"' >> /home/node/.bashrc && \
+    echo 'alias gh="/app/security-hooks/gh-wrapper.sh"' >> /home/node/.profile && \
+    echo 'alias gh="/app/security-hooks/gh-wrapper.sh"' >> /etc/profile
 
 # Default command
 CMD ["bash"]
