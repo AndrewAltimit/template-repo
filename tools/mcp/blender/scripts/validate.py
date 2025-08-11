@@ -2,7 +2,6 @@
 """Simple validation script for Blender MCP Server using httpx."""
 
 import asyncio
-import json
 from typing import Any, Dict
 
 import httpx
@@ -16,7 +15,7 @@ async def call_tool(client: httpx.AsyncClient, base_url: str, tool_name: str, pa
             result = response.json()
             if result is None:
                 return {"error": "Empty response from server"}
-            return result.get("result", result)
+            return result.get("result", result)  # type: ignore
         else:
             return {"error": f"HTTP {response.status_code}: {response.text}"}
     except Exception as e:
@@ -83,7 +82,7 @@ async def validate_blender_server(base_url: str = "http://localhost:8017"):
             # Extract just the filename for subsequent operations
             import os
 
-            project_name = os.path.basename(project_path)
+            project_name = os.path.basename(project_path)  # type: ignore
         else:
             print(f"❌ Failed to create project: {result.get('error') if result else 'No result'}")
             return
@@ -140,9 +139,9 @@ async def validate_blender_server(base_url: str = "http://localhost:8017"):
         )
 
         if result and (result.get("success") or "lighting" in str(result).lower()):
-            print(f"✅ Setup studio lighting")
+            print("✅ Setup studio lighting")
         else:
-            print(f"❌ Failed to setup lighting: {result.get('error') if result else 'No result'}")
+            print("❌ Failed to setup lighting: {}".format(result.get("error") if result else "No result"))
 
         # Test 7: Render Image
         print("\n✨ Test 7: Render Image")
@@ -172,8 +171,8 @@ async def validate_blender_server(base_url: str = "http://localhost:8017"):
         print("✅ Server is operational and responding to commands")
         print("✅ All basic operations tested successfully")
         print("\n📁 Output locations:")
-        print("  - Project file: ./blender/projects/validation_test.blend")
-        print("  - Rendered images: ./blender/outputs/")
+        print("  - Project file: ./outputs/blender/projects/validation_test.blend")
+        print("  - Rendered images: ./outputs/blender/renders/")
         print("\n" + "=" * 60)
 
 
@@ -214,7 +213,7 @@ async def run_demos(base_url: str = "http://localhost:8017"):
             print(f"✅ Created product demo: {project_path}")
             import os
 
-            project_name = os.path.basename(project_path)
+            project_name = os.path.basename(project_path)  # type: ignore
 
             # Add product components
             await call_tool(
@@ -266,7 +265,7 @@ async def run_demos(base_url: str = "http://localhost:8017"):
             print(f"✅ Created physics demo: {project_path}")
             import os
 
-            project_name = os.path.basename(project_path)
+            project_name = os.path.basename(project_path)  # type: ignore
 
             # Add physics objects
             await call_tool(
@@ -315,7 +314,7 @@ async def run_demos(base_url: str = "http://localhost:8017"):
             print(f"✅ Created animation demo: {project_path}")
             import os
 
-            project_name = os.path.basename(project_path)
+            project_name = os.path.basename(project_path)  # type: ignore
 
             # Add animated objects
             await call_tool(
@@ -356,8 +355,8 @@ async def run_demos(base_url: str = "http://localhost:8017"):
         print("  - demo_physics: Physics simulation")
         print("  - demo_animation: Abstract animation")
         print("\n📁 Output locations:")
-        print("  - Blender files: ./blender/projects/")
-        print("  - Rendered outputs: ./blender/outputs/")
+        print("  - Blender files: ./outputs/blender/projects/")
+        print("  - Rendered outputs: ./outputs/blender/renders/")
         print("=" * 60)
 
 

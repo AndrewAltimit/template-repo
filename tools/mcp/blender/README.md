@@ -197,10 +197,10 @@ BLENDER_MEMORY_LIMIT=8G
 ### Volume Mounts
 ```yaml
 volumes:
-  - ./blender/projects:/app/projects    # Blender project files
-  - ./blender/assets:/app/assets        # Textures, models, HDRIs
-  - ./blender/outputs:/app/outputs      # Rendered images/videos
-  - ./blender/templates:/app/templates  # Project templates
+  - ./outputs/blender/projects:/app/projects    # Blender project files
+  - ./outputs/blender/assets:/app/assets        # Textures, models, HDRIs
+  - ./outputs/blender/renders:/app/outputs      # Rendered images/videos
+  - ./outputs/blender/templates:/app/templates  # Project templates
 ```
 
 ## 🎯 Use Cases

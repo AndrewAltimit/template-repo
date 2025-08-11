@@ -140,9 +140,9 @@ python tools/mcp/blender/scripts/demo_projects.py --demo 1
 
 After running tests/demos, find outputs in:
 ```
-blender/
+outputs/blender/
 ├── projects/     # .blend project files
-├── outputs/      # Rendered images and animations
+├── renders/      # Rendered images and animations
 ├── assets/       # Textures, models, HDRIs
 └── templates/    # Project templates
 ```
@@ -255,7 +255,7 @@ docker run --rm --gpus all nvidia/cuda:12.1.1-base-ubuntu22.04 nvidia-smi
 ### Permission Issues
 ```bash
 # Fix directory permissions
-sudo chown -R $USER:$USER blender/
+sudo chown -R $USER:$USER outputs/blender/
 ```
 
 ### Out of Memory
@@ -295,7 +295,7 @@ await blender_client.import_model(terrain["mesh_path"])
 1. **Start Small**: Begin with simple scenes before complex projects
 2. **Use Templates**: Leverage the 11 built-in templates
 3. **Monitor Logs**: Keep `docker-compose logs -f mcp-blender` open
-4. **Check Outputs**: Regularly check `blender/outputs/` for results
+4. **Check Outputs**: Regularly check `outputs/blender/renders/` for results
 5. **Iterate Quickly**: Use EEVEE for rapid iteration, CYCLES for final
 
 ## 🆘 Getting Help

@@ -8,7 +8,7 @@ different features of the Blender MCP server.
 import asyncio
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import List
 
 # Add parent directories to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -19,7 +19,7 @@ try:
 except ImportError:
     # Try alternative import for Docker environment
     sys.path.insert(0, "/app")
-    from core.client import MCPClient
+    from core.client import MCPClient  # type: ignore[no-redef]
 
 
 class BlenderDemoProjects:
@@ -27,7 +27,7 @@ class BlenderDemoProjects:
 
     def __init__(self, base_url: str = "http://localhost:8017"):
         self.client = MCPClient(base_url)
-        self.demos_created = []
+        self.demos_created: List[tuple] = []
 
     async def demo_1_product_visualization(self):
         """Demo 1: Product Visualization - Luxury Watch.
@@ -660,9 +660,9 @@ class BlenderDemoProjects:
             print(f"  ✅ {name}: {path}")
 
         print("\n📁 Output locations:")
-        print("  - Blender files: ./blender/projects/")
-        print("  - Rendered images: ./blender/outputs/")
-        print("  - Animations: ./blender/outputs/")
+        print("  - Blender files: ./outputs/blender/projects/")
+        print("  - Rendered images: ./outputs/blender/renders/")
+        print("  - Animations: ./outputs/blender/renders/")
 
         print("\n" + "=" * 60)
         print("All demos complete!")

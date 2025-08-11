@@ -43,17 +43,24 @@ COMMAND=${1:-help}
 
 case $COMMAND in
     start)
-        echo "🚀 Starting Blender MCP Server..."
+        # Check for GPU flag
+        GPU_FLAG=""
+        if [[ "$2" == "--gpu" ]]; then
+            GPU_FLAG="--profile gpu"
+            echo "🚀 Starting Blender MCP Server with GPU support..."
+        else
+            echo "🚀 Starting Blender MCP Server..."
+        fi
 
         # Ensure host directories exist with correct permissions
         echo -e "${YELLOW}Creating host directories...${NC}"
         # Get the script's directory and repository root
         SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
         REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-        mkdir -p "${REPO_ROOT}/blender/projects"
-        mkdir -p "${REPO_ROOT}/blender/assets"
-        mkdir -p "${REPO_ROOT}/blender/outputs"
-        mkdir -p "${REPO_ROOT}/blender/templates"
+        mkdir -p "${REPO_ROOT}/outputs/blender/projects"
+        mkdir -p "${REPO_ROOT}/outputs/blender/assets"
+        mkdir -p "${REPO_ROOT}/outputs/blender/renders"
+        mkdir -p "${REPO_ROOT}/outputs/blender/templates"
 
         # Build the container
         echo -e "${YELLOW}Building container...${NC}"
@@ -61,7 +68,11 @@ case $COMMAND in
 
         # Start the server
         echo -e "${YELLOW}Starting server...${NC}"
-        docker-compose up -d mcp-blender
+        if [ -n "$GPU_FLAG" ]; then
+            docker-compose --profile gpu up -d mcp-blender
+        else
+            docker-compose up -d mcp-blender
+        fi
 
         # Wait for server to be ready
         echo -n "Waiting for server to be ready"
@@ -206,8 +217,8 @@ case $COMMAND in
         read -p "Remove output files? (y/N): " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
-            rm -rf blender/outputs/*
-            rm -rf blender/projects/*
+            rm -rf outputs/blender/renders/*
+            rm -rf outputs/blender/projects/*
             echo -e "${GREEN}✅ Output files removed${NC}"
         fi
 
@@ -222,6 +233,7 @@ Usage: ./quickstart.sh [COMMAND]
 
 Commands:
   start       - Build and start the Blender MCP server
+  start --gpu - Start with GPU support (NVIDIA)
   stop        - Stop the server
   restart     - Restart the server
   status      - Check server status
@@ -234,9 +246,10 @@ Commands:
   help        - Show this help message
 
 Examples:
-  ./quickstart.sh start     # Start the server
-  ./quickstart.sh demo      # Run demos
-  ./quickstart.sh logs      # View logs
+  ./quickstart.sh start       # Start the server
+  ./quickstart.sh start --gpu # Start with GPU support
+  ./quickstart.sh demo        # Run demos
+  ./quickstart.sh logs        # View logs
 
 Documentation:
   tools/mcp/blender/docs/README.md
