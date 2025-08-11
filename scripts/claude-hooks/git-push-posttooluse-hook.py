@@ -108,9 +108,12 @@ def main():
 
     pr_number = get_pr_for_branch(branch)
     if not pr_number:
-        # No PR exists yet, might want to create one
-        print("\n💡 **Tip**: You just pushed commits but there's no open PR for this branch.", file=sys.stderr)
-        print("   Consider creating a PR with: `gh pr create`", file=sys.stderr)
+        # No PR exists yet, might want to create one (output to stdout for Claude Code)
+        tip = """
+💡 **Tip**: You just pushed commits but there's no open PR for this branch.
+   Consider creating a PR with: `gh pr create`
+"""
+        print(tip)
         return
 
     # Extract the pushed commit SHA
@@ -118,22 +121,30 @@ def main():
     if not commit_sha:
         commit_sha = get_last_commit_sha()
 
-    # Generate the monitoring reminder
-    print("\n" + "=" * 60, file=sys.stderr)
-    print("🔄 **PR FEEDBACK MONITORING REMINDER**", file=sys.stderr)
-    print("=" * 60, file=sys.stderr)
-    print(f"\nYou just pushed commits to PR #{pr_number} on branch '{branch}'.", file=sys.stderr)
-    print("Consider monitoring for feedback on your changes:", file=sys.stderr)
-    print("\n  📍 Monitor from this commit onwards:", file=sys.stderr)
-    print(f"     `python scripts/pr-monitoring/pr_monitor_agent.py {pr_number} --since-commit {commit_sha}`", file=sys.stderr)
-    print("\n  🔄 Or monitor all new comments:", file=sys.stderr)
-    print(f"     `python scripts/pr-monitoring/pr_monitor_agent.py {pr_number}`", file=sys.stderr)
-    print("\nThis will watch for:", file=sys.stderr)
-    print("  • Admin comments and commands", file=sys.stderr)
-    print("  • Gemini AI code review feedback", file=sys.stderr)
-    print("  • CI/CD validation results", file=sys.stderr)
-    print("\n💡 The monitor will return structured data when relevant comments are detected.", file=sys.stderr)
-    print("=" * 60 + "\n", file=sys.stderr)
+    # Generate the monitoring reminder (output to stdout for Claude Code)
+    reminder = f"""
+{"=" * 60}
+🔄 **PR FEEDBACK MONITORING REMINDER**
+{"=" * 60}
+
+You just pushed commits to PR #{pr_number} on branch '{branch}'.
+Consider monitoring for feedback on your changes:
+
+  📍 Monitor from this commit onwards:
+     `python scripts/pr-monitoring/pr_monitor_agent.py {pr_number} --since-commit {commit_sha}`
+
+  🔄 Or monitor all new comments:
+     `python scripts/pr-monitoring/pr_monitor_agent.py {pr_number}`
+
+This will watch for:
+  • Admin comments and commands
+  • Gemini AI code review feedback
+  • CI/CD validation results
+
+💡 The monitor will return structured data when relevant comments are detected.
+{"=" * 60}
+"""
+    print(reminder)
 
 
 if __name__ == "__main__":
