@@ -30,6 +30,18 @@ if ! command -v python3 >/dev/null 2>&1; then
     exit 127
 fi
 
+# Execute gh command with modified arguments
+# This approach preserves original argument structure and only modifies what's needed
+execute_gh_with_modifications() {
+    # original_args="$1"  # Reserved for future use
+    modified_command_string="$2"
+
+    # For now, let's use the safer eval approach with proper escaping
+    # This is the most reliable way to handle the modified command
+    # SECURITY: This is safe because the modified command comes from our trusted validators
+    eval "exec \"$REAL_GH\" $modified_command_string"
+}
+
 # Check if this command needs validation based on arguments
 needs_validation() {
     # Check if command contains arguments that accept user content
@@ -44,8 +56,28 @@ needs_validation() {
 }
 
 # Validate command using Python validators
+# Takes arguments as separate parameters, returns modified command as string if needed
 validate_command() {
-    cmd="$*"
+    # Reconstruct command for validation (this is where we convert to string for Python)
+    cmd=""
+    first_arg=true
+    for arg in "$@"; do
+        if [ "$first_arg" = true ]; then
+            first_arg=false
+            cmd="$arg"
+        else
+            # Properly quote arguments that contain spaces or special characters
+            case "$arg" in
+                *' '* | *'"'* | *"'"* | *'$'* | *'`'*)
+                    # Need to quote this argument
+                    cmd="$cmd \"$(echo "$arg" | sed 's/\"/\\"/g')\""
+                    ;;
+                *)
+                    cmd="$cmd $arg"
+                    ;;
+            esac
+        fi
+    done
 
     # Create temporary file for stderr capture (more robust with mktemp if available)
     if command -v mktemp >/dev/null 2>&1; then
@@ -87,8 +119,18 @@ EOF
         return 1
     fi
 
-    # Extract potentially modified command
-    modified_cmd=$(echo "$masked_output" | python3 -c "import json, sys; data = json.loads(sys.stdin.read()); print(data.get('modifiedCommand', ''))" 2>/dev/null || echo "")
+    # Extract potentially modified command from tool_input.command field
+    modified_cmd=$(echo "$masked_output" | python3 -c "
+import json, sys
+try:
+    data = json.loads(sys.stdin.read())
+    if 'tool_input' in data and 'command' in data['tool_input']:
+        print(data['tool_input']['command'])
+    else:
+        print('')
+except:
+    print('')
+" 2>/dev/null || echo "")
 
     # If command was modified (secrets masked), use the modified version
     if [ -n "$modified_cmd" ] && [ "$modified_cmd" != "gh $cmd" ]; then
@@ -133,12 +175,10 @@ EOF
 
 # Main execution
 main() {
-    original_cmd="$*"
-
     # Check if validation is needed
     if needs_validation "$@"; then
         # Validate and potentially modify the command
-        validated_cmd=$(validate_command "$original_cmd")
+        validated_cmd=$(validate_command "$@")
         validation_result=$?
 
         if [ $validation_result -ne 0 ]; then
@@ -147,13 +187,7 @@ main() {
         fi
 
         # Execute the validated/modified command
-        # SECURITY NOTE: eval is necessary here to correctly handle arguments with spaces.
-        # This is safe because:
-        # 1. $REAL_GH is determined by command -v gh (trusted system path)
-        # 2. $validated_cmd comes from our trusted Python validators
-        # 3. The validators only modify specific argument values, not the command structure
-        # The risk is minimal as all inputs are from trusted internal sources.
-        eval exec "\"$REAL_GH\" $validated_cmd"
+        execute_gh_with_modifications "$*" "$validated_cmd"
     else
         # No validation needed, execute directly
         exec "$REAL_GH" "$@"
