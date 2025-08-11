@@ -121,7 +121,7 @@ def main():
     if not commit_sha:
         commit_sha = get_last_commit_sha()
 
-    # Generate the monitoring reminder (output to stdout for Claude Code)
+    # Generate the monitoring reminder (write to file for Claude to read)
     reminder = f"""
 {"=" * 60}
 🔄 **PR FEEDBACK MONITORING REMINDER**
@@ -144,6 +144,12 @@ This will watch for:
 💡 The monitor will return structured data when relevant comments are detected.
 {"=" * 60}
 """
+
+    # Write reminder to a file that Claude can check
+    with open(".git-push-reminder.txt", "w") as f:
+        f.write(reminder)
+
+    # Also print for debugging
     print(reminder)
 
 

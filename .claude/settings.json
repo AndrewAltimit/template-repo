@@ -17,11 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./scripts/claude-hooks/test-posttooluse.sh"
-          },
-          {
-            "type": "command",
-            "command": "python3 ./scripts/claude-hooks/git-push-posttooluse-hook.py"
+            "command": "./scripts/claude-hooks/simple-push-detector.sh"
           }
         ]
       }
