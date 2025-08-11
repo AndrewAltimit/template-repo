@@ -43,7 +43,13 @@ case $COMMAND in
 
         # Ensure host directories exist with correct permissions
         echo -e "${YELLOW}Creating host directories...${NC}"
-        mkdir -p ../../../blender/{projects,assets,outputs,templates}
+        # Get the script's directory and repository root
+        SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+        mkdir -p "${REPO_ROOT}/blender/projects"
+        mkdir -p "${REPO_ROOT}/blender/assets"
+        mkdir -p "${REPO_ROOT}/blender/outputs"
+        mkdir -p "${REPO_ROOT}/blender/templates"
 
         # Build the container
         echo -e "${YELLOW}Building container...${NC}"
@@ -55,7 +61,7 @@ case $COMMAND in
 
         # Wait for server to be ready
         echo -n "Waiting for server to be ready"
-        for i in {1..30}; do
+        for _ in {1..30}; do
             if check_server; then
                 echo
                 echo -e "${GREEN}✅ Server is running at http://localhost:8017${NC}"
@@ -137,7 +143,7 @@ case $COMMAND in
         echo "  4) Geometry Nodes - Procedural generation"
         echo "  5) All demos"
         echo
-        read -p "Enter choice (1-5): " choice
+        read -r -p "Enter choice (1-5): " choice
 
         case $choice in
             1) python3 tools/mcp/blender/scripts/test_server.py --demo render ;;

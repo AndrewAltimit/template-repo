@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Blender MCP Server - 3D content creation, rendering, and simulation."""
 
-import os
 import sys
 from pathlib import Path
 
@@ -9,11 +8,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import asyncio
-import json
 import logging
 import uuid
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from blender.core.asset_manager import AssetManager
 from blender.core.blender_executor import BlenderExecutor
@@ -55,6 +52,69 @@ class BlenderMCPServer(BaseMCPServer):
         dirs = [self.projects_dir, self.assets_dir, self.outputs_dir, self.templates_dir, self.temp_dir]
         for dir_path in dirs:
             dir_path.mkdir(parents=True, exist_ok=True)
+
+    def _validate_path(self, user_path: str, base_dir: Path, path_type: str = "file") -> Path:
+        """Validate and resolve a user-provided path to prevent traversal attacks.
+
+        Args:
+            user_path: User-provided path (can be relative or absolute)
+            base_dir: The base directory that the path must be within
+            path_type: Type of path for error messages ("file" or "directory")
+
+        Returns:
+            Resolved safe path within base_dir
+
+        Raises:
+            ValueError: If path would escape base_dir (traversal attack)
+        """
+        # Reject empty paths
+        if not user_path:
+            raise ValueError(f"Invalid {path_type} path: empty path")
+
+        # Reject absolute paths
+        if Path(user_path).is_absolute():
+            raise ValueError(f"Invalid {path_type} path: absolute paths not allowed")
+
+        # Reject paths with parent directory references
+        if ".." in user_path:
+            raise ValueError(f"Invalid {path_type} path: parent directory references not allowed")
+
+        # Reject single dot (current directory)
+        if user_path == "." or user_path == "./":
+            raise ValueError(f"Invalid {path_type} path: current directory reference not allowed")
+
+        # Reject current directory references in path parts
+        path_parts = Path(user_path).parts
+        if "." in path_parts or "" in path_parts:
+            raise ValueError(f"Invalid {path_type} path: invalid path components")
+
+        # For simple filenames, use them directly
+        # For paths with subdirectories, validate each component
+        if "/" in user_path:
+            # Validate each path component
+            for part in path_parts:
+                if not part or part.startswith("."):
+                    raise ValueError(f"Invalid {path_type} path: invalid path component '{part}'")
+
+        # Construct the safe path within base_dir
+        safe_path = (base_dir / user_path).resolve()
+
+        # Verify the resolved path is within base_dir
+        try:
+            safe_path.relative_to(base_dir.resolve())
+        except ValueError:
+            raise ValueError(f"Invalid {path_type} path: traversal attempt detected")
+
+        return safe_path
+
+    def _validate_project_path(self, project_path: str) -> Path:
+        """Validate a project file path."""
+        # Handle both full paths and just project names
+        if project_path.endswith(".blend"):
+            return self._validate_path(project_path, self.projects_dir, "project")
+        else:
+            # Assume it's just a project name, add .blend extension
+            return self._validate_path(f"{project_path}.blend", self.projects_dir, "project")
 
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return dictionary of available tools and their metadata."""
@@ -394,80 +454,58 @@ class BlenderMCPServer(BaseMCPServer):
 
     async def execute_tool(self, request: ToolRequest):
         """Execute a tool with given arguments."""
-        # Override base class to use our centralized handler
+        # Tool handler mapping for cleaner dispatch
+        tool_handlers = {
+            # Project Management
+            "create_blender_project": self._create_project,
+            # Scene Generation
+            "add_primitive_objects": self._add_primitives,
+            "setup_lighting": self._setup_lighting,
+            "apply_material": self._apply_material,
+            # Rendering
+            "render_image": self._render_image,
+            "render_animation": self._render_animation,
+            # Physics
+            "setup_physics": self._setup_physics,
+            "bake_simulation": self._bake_simulation,
+            # Animation
+            "create_animation": self._create_animation,
+            # Geometry Nodes
+            "create_geometry_nodes": self._create_geometry_nodes,
+            # Job Management (special handling)
+            "get_job_status": self._get_job_status,
+            "get_job_result": self._get_job_result,
+            "cancel_job": self._cancel_job,
+            # Asset Management (special handling)
+            "list_projects": lambda _: self._list_projects(),  # No args needed
+            "import_model": self._import_model,
+            "export_scene": self._export_scene,
+        }
 
         try:
             name = request.tool
-            arguments = request.get_args()
-            # Project Management
-            if name == "create_blender_project":
-                result = await self._create_project(arguments)
-                return ToolResponse(success=result.get("success", True), result=result)
+            handler = tool_handlers.get(name)
 
-            # Scene Generation
-            elif name == "add_primitive_objects":
-                result = await self._add_primitives(arguments)
-                return ToolResponse(success=result.get("success", True), result=result)
-            elif name == "setup_lighting":
-                result = await self._setup_lighting(arguments)
-                return ToolResponse(success=result.get("success", True), result=result)
-            elif name == "apply_material":
-                result = await self._apply_material(arguments)
-                return ToolResponse(success=result.get("success", True), result=result)
-
-            # Rendering
-            elif name == "render_image":
-                result = await self._render_image(arguments)
-                return ToolResponse(success=result.get("success", True), result=result)
-            elif name == "render_animation":
-                result = await self._render_animation(arguments)
-                return ToolResponse(success=result.get("success", True), result=result)
-
-            # Physics
-            elif name == "setup_physics":
-                result = await self._setup_physics(arguments)
-                return ToolResponse(success=result.get("success", True), result=result)
-            elif name == "bake_simulation":
-                result = await self._bake_simulation(arguments)
-                return ToolResponse(success=result.get("success", True), result=result)
-
-            # Animation
-            elif name == "create_animation":
-                result = await self._create_animation(arguments)
-                return ToolResponse(success=result.get("success", True), result=result)
-
-            # Geometry Nodes
-            elif name == "create_geometry_nodes":
-                result = await self._create_geometry_nodes(arguments)
-                return ToolResponse(success=result.get("success", True), result=result)
-
-            # Job Management
-            elif name == "get_job_status":
-                result = await self._get_job_status(arguments)
-                return ToolResponse(success=not bool(result.get("error")), result=result)
-            elif name == "get_job_result":
-                result = await self._get_job_result(arguments)
-                return ToolResponse(success=not bool(result.get("error")), result=result)
-            elif name == "cancel_job":
-                result = await self._cancel_job(arguments)
-                return ToolResponse(success=result.get("success", True), result=result)
-
-            # Asset Management
-            elif name == "list_projects":
-                result = await self._list_projects()
-                return ToolResponse(success=result.get("success", True), result=result)
-            elif name == "import_model":
-                result = await self._import_model(arguments)
-                return ToolResponse(success=result.get("success", True), result=result)
-            elif name == "export_scene":
-                result = await self._export_scene(arguments)
-                return ToolResponse(success=result.get("success", True), result=result)
-
-            else:
+            if not handler:
                 return ToolResponse(success=False, result=None, error=f"Unknown tool: {name}")
 
+            # Execute the handler
+            if name == "list_projects":
+                result = await handler(None)  # No arguments needed
+            else:
+                arguments = request.get_args()
+                result = await handler(arguments)
+
+            # Special handling for job status queries
+            if name in ("get_job_status", "get_job_result"):
+                success = not bool(result.get("error"))
+            else:
+                success = result.get("success", True)
+
+            return ToolResponse(success=success, result=result)
+
         except Exception as e:
-            logger.error(f"Error in {name}: {str(e)}")
+            logger.error(f"Error in {request.tool}: {str(e)}")
             return ToolResponse(success=False, result=None, error=str(e))
 
     async def _create_project(self, args: Dict[str, Any]) -> Dict[str, Any]:
@@ -481,7 +519,7 @@ class BlenderMCPServer(BaseMCPServer):
 
         # Create project from template
         job_id = str(uuid.uuid4())
-        job = self.job_manager.create_job(
+        self.job_manager.create_job(
             job_id=job_id,
             job_type="create_project",
             parameters={"project_path": project_path, "template": template, "settings": settings},
@@ -501,11 +539,11 @@ class BlenderMCPServer(BaseMCPServer):
 
     async def _add_primitives(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Add primitive objects to scene."""
-        project = args["project"]
+        project = str(self._validate_project_path(args["project"]))
         objects = args["objects"]
 
         job_id = str(uuid.uuid4())
-        job = self.job_manager.create_job(job_id=job_id, job_type="add_objects", parameters=args)
+        self.job_manager.create_job(job_id=job_id, job_type="add_objects", parameters=args)
 
         script_args = {"operation": "add_primitives", "project": project, "objects": objects}
 
@@ -520,7 +558,7 @@ class BlenderMCPServer(BaseMCPServer):
 
     async def _setup_lighting(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Setup scene lighting."""
-        project = args["project"]
+        project = str(self._validate_project_path(args["project"]))
         lighting_type = args["type"]
         settings = args.get("settings", {})
 
@@ -533,7 +571,7 @@ class BlenderMCPServer(BaseMCPServer):
 
     async def _apply_material(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Apply material to object."""
-        project = args["project"]
+        project = str(self._validate_project_path(args["project"]))
         object_name = args["object_name"]
         material = args.get("material", {})
 
@@ -551,13 +589,13 @@ class BlenderMCPServer(BaseMCPServer):
 
     async def _render_image(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Render a single frame."""
-        project = args["project"]
+        project = str(self._validate_project_path(args["project"]))
         frame = args.get("frame", 1)
         settings = args.get("settings", {})
 
         # Create render job
         job_id = str(uuid.uuid4())
-        job = self.job_manager.create_job(job_id=job_id, job_type="render_image", parameters=args)
+        self.job_manager.create_job(job_id=job_id, job_type="render_image", parameters=args)
 
         # Start async rendering
         script_args = {
@@ -581,14 +619,14 @@ class BlenderMCPServer(BaseMCPServer):
 
     async def _render_animation(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Render animation sequence."""
-        project = args["project"]
+        project = str(self._validate_project_path(args["project"]))
         start_frame = args.get("start_frame", 1)
         end_frame = args.get("end_frame", 250)
         settings = args.get("settings", {})
 
         # Create render job
         job_id = str(uuid.uuid4())
-        job = self.job_manager.create_job(job_id=job_id, job_type="render_animation", parameters=args)
+        self.job_manager.create_job(job_id=job_id, job_type="render_animation", parameters=args)
 
         script_args = {
             "operation": "render_animation",
@@ -613,7 +651,7 @@ class BlenderMCPServer(BaseMCPServer):
 
     async def _setup_physics(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Setup physics simulation."""
-        project = args["project"]
+        project = str(self._validate_project_path(args["project"]))
         object_name = args["object_name"]
         physics_type = args["physics_type"]
         settings = args.get("settings", {})
@@ -638,12 +676,12 @@ class BlenderMCPServer(BaseMCPServer):
 
     async def _bake_simulation(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Bake physics simulation."""
-        project = args["project"]
+        project = str(self._validate_project_path(args["project"]))
         start_frame = args.get("start_frame", 1)
         end_frame = args.get("end_frame", 250)
 
         job_id = str(uuid.uuid4())
-        job = self.job_manager.create_job(job_id=job_id, job_type="bake_simulation", parameters=args)
+        self.job_manager.create_job(job_id=job_id, job_type="bake_simulation", parameters=args)
 
         script_args = {"operation": "bake_simulation", "project": project, "start_frame": start_frame, "end_frame": end_frame}
 
@@ -658,7 +696,7 @@ class BlenderMCPServer(BaseMCPServer):
 
     async def _create_animation(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Create keyframe animation."""
-        project = args["project"]
+        project = str(self._validate_project_path(args["project"]))
         object_name = args["object_name"]
         keyframes = args["keyframes"]
         interpolation = args.get("interpolation", "BEZIER")
@@ -683,7 +721,7 @@ class BlenderMCPServer(BaseMCPServer):
 
     async def _create_geometry_nodes(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Create geometry nodes setup."""
-        project = args["project"]
+        project = str(self._validate_project_path(args["project"]))
         object_name = args["object_name"]
         node_setup = args["node_setup"]
         parameters = args.get("parameters", {})
@@ -762,8 +800,9 @@ class BlenderMCPServer(BaseMCPServer):
 
     async def _import_model(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Import 3D model."""
-        project = args["project"]
-        model_path = args["model_path"]
+        project = str(self._validate_project_path(args["project"]))
+        # Validate model path to prevent traversal
+        model_path = str(self._validate_path(args["model_path"], self.assets_dir, "model"))
         format = self.asset_manager.detect_format(model_path)
         location = args.get("location", [0, 0, 0])
 
@@ -782,7 +821,7 @@ class BlenderMCPServer(BaseMCPServer):
 
     async def _export_scene(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Export scene to format."""
-        project = args["project"]
+        project = str(self._validate_project_path(args["project"]))
         export_format = args["format"]
         selected_only = args.get("selected_only", False)
 
