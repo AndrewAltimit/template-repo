@@ -114,7 +114,7 @@ jobs:
         if: contains(inputs.agents, 'opencode') || contains(inputs.agents, 'crush') || github.event_name == 'schedule'
         run: |
           echo "[INFO] Building containers for OpenRouter agents..."
-          docker-compose -f config/docker/docker-compose.yml --profile agents build openrouter-agents
+          docker-compose --profile agents build openrouter-agents
           echo "[INFO] Container build complete"
 
       - name: Set up Node.js for Claude (if needed)

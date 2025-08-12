@@ -11,7 +11,7 @@ EXTRA_ARGS=("${@:2}")
 # Get the script's directory to find the config path
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-COMPOSE_FILE="$PROJECT_ROOT/config/docker/docker-compose.yml"
+COMPOSE_FILE="$PROJECT_ROOT/docker-compose.yml"
 
 # Change to project root so relative paths in docker-compose.yml work correctly
 cd "$PROJECT_ROOT"

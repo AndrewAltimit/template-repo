@@ -68,7 +68,7 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 4. **For standalone usage**
    ```bash
    # Start HTTP servers for testing/development
-   docker-compose -f config/docker/docker-compose.yml up -d
+   docker-compose up -d
 
    # Test all servers
    python automation/testing/test_all_servers.py --quick
@@ -146,7 +146,7 @@ See `.env.example` for all available options.
 ### Key Configuration Files
 
 - `.mcp.json` - MCP server configuration for Claude Code
-- `config/docker/docker-compose.yml` - Container services configuration
+- `docker-compose.yml` - Container services configuration
 - `CLAUDE.md` - Project-specific Claude Code instructions (root directory)
 - `CRUSH.md` - Crush AI assistant instructions (root directory)
 - `.context/PROJECT_CONTEXT.md` - Context for AI reviewers
@@ -172,7 +172,7 @@ All Python operations run in Docker containers:
 ./automation/ci-cd/run-ci.sh full        # Full CI pipeline
 
 # Run specific tests
-docker-compose -f config/docker/docker-compose.yml run --rm python-ci pytest tests/test_mcp_tools.py -v
+docker-compose run --rm python-ci pytest tests/test_mcp_tools.py -v
 ```
 
 ### GitHub Actions

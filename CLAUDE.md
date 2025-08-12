@@ -82,13 +82,13 @@ See `docs/PR_MONITORING.md` for full documentation.
 
 ```bash
 # Run all tests with coverage (containerized)
-docker-compose -f config/docker/docker-compose.yml run --rm python-ci pytest tests/ -v --cov=. --cov-report=xml
+docker-compose run --rm python-ci pytest tests/ -v --cov=. --cov-report=xml
 
 # Run a specific test file
-docker-compose -f config/docker/docker-compose.yml run --rm python-ci pytest tests/test_mcp_tools.py -v
+docker-compose run --rm python-ci pytest tests/test_mcp_tools.py -v
 
 # Run tests with specific test name pattern
-docker-compose -f config/docker/docker-compose.yml run --rm python-ci pytest -k "test_format" -v
+docker-compose run --rm python-ci pytest -k "test_format" -v
 
 # Quick test run using helper script (excludes gaea2 tests)
 ./automation/ci-cd/run-ci.sh test
@@ -112,10 +112,10 @@ docker-compose -f config/docker/docker-compose.yml run --rm python-ci pytest -k 
 ./automation/ci-cd/run-ci.sh autoformat   # Auto-format code
 
 # Direct Docker Compose commands
-docker-compose -f config/docker/docker-compose.yml run --rm python-ci black --check .
-docker-compose -f config/docker/docker-compose.yml run --rm python-ci flake8 .
-docker-compose -f config/docker/docker-compose.yml run --rm python-ci pylint tools/ automation/
-docker-compose -f config/docker/docker-compose.yml run --rm python-ci mypy . --ignore-missing-imports
+docker-compose run --rm python-ci black --check .
+docker-compose run --rm python-ci flake8 .
+docker-compose run --rm python-ci pylint tools/ automation/
+docker-compose run --rm python-ci mypy . --ignore-missing-imports
 
 # Note: All Python CI/CD tools run in containers to ensure consistency
 
@@ -129,9 +129,9 @@ docker-compose -f config/docker/docker-compose.yml run --rm python-ci mypy . --i
 # MODULAR MCP SERVERS (Container-First Approach)
 
 # Start servers in Docker (recommended for consistency)
-docker-compose -f config/docker/docker-compose.yml up -d mcp-code-quality        # Port 8010 - Code formatting/linting
-docker-compose -f config/docker/docker-compose.yml up -d mcp-content-creation    # Port 8011 - Manim & LaTeX
-docker-compose -f config/docker/docker-compose.yml up -d mcp-gaea2               # Port 8007 - Terrain generation
+docker-compose up -d mcp-code-quality        # Port 8010 - Code formatting/linting
+docker-compose up -d mcp-content-creation    # Port 8011 - Manim & LaTeX
+docker-compose up -d mcp-gaea2               # Port 8007 - Terrain generation
 
 # For local development (when actively developing server code)
 python -m tools.mcp.code_quality.server      # Port 8010
@@ -156,7 +156,7 @@ python automation/testing/test_all_servers.py
 python automation/testing/test_all_servers.py --quick
 
 # View logs for specific servers
-docker-compose -f config/docker/docker-compose.yml logs -f mcp-code-quality
+docker-compose logs -f mcp-code-quality
 
 # Test individual servers
 python tools/mcp/code_quality/scripts/test_server.py
@@ -184,10 +184,10 @@ pip install -r config/python/requirements.txt
 
 # Containerized Agents (OpenRouter-compatible):
 # OpenCode, Crush - run in openrouter-agents container
-docker-compose -f config/docker/docker-compose.yml run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
+docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
 
 # Or use specific containerized agents:
-docker-compose -f config/docker/docker-compose.yml run --rm openrouter-agents crush run -q "Write a Python function"
+docker-compose run --rm openrouter-agents crush run -q "Write a Python function"
 
 # Direct host execution with helper scripts:
 ./tools/cli/agents/run_claude.sh     # Interactive Claude session with Node.js 22
@@ -220,22 +220,22 @@ pip3 install --user -r docker/requirements-agents.txt
 
 ```bash
 # Build and start all services
-docker-compose -f config/docker/docker-compose.yml up -d
+docker-compose up -d
 
 # View logs
-docker-compose -f config/docker/docker-compose.yml logs -f mcp-code-quality
-docker-compose -f config/docker/docker-compose.yml logs -f mcp-content-creation
-docker-compose -f config/docker/docker-compose.yml logs -f mcp-gaea2
-docker-compose -f config/docker/docker-compose.yml logs -f python-ci
+docker-compose logs -f mcp-code-quality
+docker-compose logs -f mcp-content-creation
+docker-compose logs -f mcp-gaea2
+docker-compose logs -f python-ci
 
 # Stop services
-docker-compose -f config/docker/docker-compose.yml down
+docker-compose down
 
 # Rebuild after changes
-docker-compose -f config/docker/docker-compose.yml build mcp-code-quality
-docker-compose -f config/docker/docker-compose.yml build mcp-content-creation
-docker-compose -f config/docker/docker-compose.yml build mcp-gaea2
-docker-compose -f config/docker/docker-compose.yml build python-ci
+docker-compose build mcp-code-quality
+docker-compose build mcp-content-creation
+docker-compose build mcp-gaea2
+docker-compose build python-ci
 ```
 
 ### Helper Scripts

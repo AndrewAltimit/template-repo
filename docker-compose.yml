@@ -2,14 +2,14 @@ services:
   # Code Quality MCP Server
   mcp-code-quality:
     build:
-      context: ../..
+      context: .
       dockerfile: docker/mcp-code-quality.Dockerfile
     container_name: mcp-code-quality
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8010:8010"
     volumes:
-      - ../../:/app:ro  # Read-only mount for security
+      - ./:/app:ro  # Read-only mount for security
       - /tmp:/tmp   # For temporary files
     environment:
       - PYTHONUNBUFFERED=1
@@ -30,15 +30,15 @@ services:
   # Content Creation MCP Server
   mcp-content-creation:
     build:
-      context: ../..
+      context: .
       dockerfile: docker/mcp-content.Dockerfile
     container_name: mcp-content-creation
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8011:8011"
     volumes:
-      - ../../:/app:ro
-      - ../../outputs/mcp-content:/output  # Bind mount to local outputs directory
+      - ./:/app:ro
+      - ./outputs/mcp-content:/output  # Bind mount to local outputs directory
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8011
@@ -59,15 +59,15 @@ services:
   # Meme Generator MCP Server
   mcp-meme-generator:
     build:
-      context: ../..
+      context: .
       dockerfile: docker/mcp-meme.Dockerfile
     container_name: mcp-meme-generator
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8016:8016"
     volumes:
-      - ../../:/app:ro
-      - ../../outputs/mcp-memes:/output  # Bind mount to local outputs directory
+      - ./:/app:ro
+      - ./outputs/mcp-memes:/output  # Bind mount to local outputs directory
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8016
@@ -88,17 +88,17 @@ services:
   # Blender MCP Server
   mcp-blender:
     build:
-      context: ../..
+      context: .
       dockerfile: docker/blender-mcp.Dockerfile
     container_name: mcp-blender
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8017:8017"
     volumes:
-      - ../../outputs/blender/projects:/app/projects
-      - ../../outputs/blender/assets:/app/assets
-      - ../../outputs/blender/renders:/app/outputs
-      - ../../outputs/blender/templates:/app/templates
+      - ./outputs/blender/projects:/app/projects
+      - ./outputs/blender/assets:/app/assets
+      - ./outputs/blender/renders:/app/outputs
+      - ./outputs/blender/templates:/app/templates
     environment:
       - PYTHONUNBUFFERED=1
     networks:
@@ -129,15 +129,15 @@ services:
   # Gaea2 MCP Server (Windows host required for full functionality)
   mcp-gaea2:
     build:
-      context: ../..
+      context: .
       dockerfile: docker/mcp-gaea2.Dockerfile
     container_name: mcp-gaea2
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8007:8007"
     volumes:
-      - ../../:/app:ro
-      - ../../outputs/mcp-gaea2:/output/gaea2  # Bind mount to local outputs directory
+      - ./:/app:ro
+      - ./outputs/mcp-gaea2:/output/gaea2  # Bind mount to local outputs directory
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8007
@@ -158,14 +158,14 @@ services:
   # OpenCode MCP Server
   mcp-opencode:
     build:
-      context: ../..
+      context: .
       dockerfile: docker/mcp-opencode.Dockerfile
     container_name: mcp-opencode
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8014:8014"
     volumes:
-      - ../../:/app:ro
+      - ./:/app:ro
       - /tmp:/tmp
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
@@ -191,14 +191,14 @@ services:
   # Crush MCP Server
   mcp-crush:
     build:
-      context: ../..
+      context: .
       dockerfile: docker/mcp-crush.Dockerfile
     container_name: mcp-crush
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8015:8015"
     volumes:
-      - ../../:/app:ro
+      - ./:/app:ro
       - /tmp:/tmp
       - crush-data:/home/node/.crush
       - crush-local-data:/home/node/.local/share/crush
@@ -224,12 +224,12 @@ services:
   # AI Agents container for GitHub automation
   ai-agents:
     build:
-      context: ../..
+      context: .
       dockerfile: docker/ai-agents.Dockerfile
     container_name: ai-agents
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
-      - ../../:/workspace
+      - ./:/workspace
     environment:
       - PYTHONUNBUFFERED=1
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
@@ -250,12 +250,12 @@ services:
   # OpenRouter Agents container (OpenCode, Crush)
   openrouter-agents:
     build:
-      context: ../..
+      context: .
       dockerfile: docker/openrouter-agents.Dockerfile
     container_name: openrouter-agents
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
-      - ../../:/workspace
+      - ./:/workspace
       # SECURITY: Use environment variables for credentials instead of mounting host directories
       # This prevents exposing host filesystem paths to the container
       # API keys should be passed via OPENROUTER_API_KEY environment variable
@@ -276,12 +276,12 @@ services:
   # Python CI container for running tests and linting
   python-ci:
     build:
-      context: ../..
+      context: .
       dockerfile: docker/python-ci.Dockerfile
     container_name: python-ci
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
-      - ../../:/app
+      - ./:/app
       - ~/.cache/pre-commit:/home/user/.cache/pre-commit
     environment:
       - PYTHONUNBUFFERED=1

@@ -314,10 +314,10 @@ jobs:
           echo "🔍 Validating GitHub Actions workflow files..."
 
           # Build the CI image if needed
-          docker-compose -f config/docker/docker-compose.yml build python-ci
+          docker-compose build python-ci
 
           # Validate all workflow files
-          docker-compose -f config/docker/docker-compose.yml run --rm python-ci bash -c '
+          docker-compose run --rm python-ci bash -c '
             echo "Checking workflow files in .github/workflows/..."
             workflow_errors=0
 
@@ -517,18 +517,18 @@ jobs:
           done
 
           # Run comprehensive tests
-          docker-compose -f config/docker/docker-compose.yml run --rm python-ci python automation/testing/test_all_servers.py --quick
+          docker-compose run --rm python-ci python automation/testing/test_all_servers.py --quick
 
       - name: View MCP server logs
         if: failure()
         run: |
           echo "📋 MCP server logs:"
-          docker-compose -f config/docker/docker-compose.yml logs mcp-code-quality mcp-content-creation mcp-gaea2
+          docker-compose logs mcp-code-quality mcp-content-creation mcp-gaea2
 
       - name: Stop MCP server
         if: always()
         run: |
-          docker-compose -f config/docker/docker-compose.yml down
+          docker-compose down
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh
 
@@ -647,7 +647,7 @@ jobs:
       - name: Stop services
         if: always()
         run: |
-          docker-compose -f config/docker/docker-compose.yml down
+          docker-compose down
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh
 
