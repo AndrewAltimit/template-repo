@@ -126,9 +126,9 @@
         "--rm",
         "-T",
         "mcp-blender",
-        "python",
+        "python3",
         "-m",
-        "tools.mcp.blender.server",
+        "blender.server",
         "--mode",
         "stdio"
       ]
