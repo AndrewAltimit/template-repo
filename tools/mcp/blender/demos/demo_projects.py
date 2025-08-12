@@ -40,7 +40,7 @@ class BlenderMCPDemo:
 
         # Create project
         print("Creating abstract art project...")
-        result = self.call_tool(
+        self.call_tool(
             "create_blender_project",
             {
                 "name": "demo_abstract_art",
