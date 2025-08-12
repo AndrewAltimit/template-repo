@@ -213,21 +213,44 @@ def chunk_diff_by_files(diff: str) -> List[Tuple[str, str]]:
 
 
 def get_project_context() -> str:
-    """Get project context for better code review"""
-    context_file = Path("PROJECT_CONTEXT.md")
-    if context_file.exists():
+    """Get project context for better code review, including Gemini's expression philosophy"""
+    combined_context = []
+
+    # First, try to read the main project context
+    project_context_file = Path(".context/PROJECT_CONTEXT.md")
+    if not project_context_file.exists():
+        # Try alternate location
+        project_context_file = Path("PROJECT_CONTEXT.md")
+
+    if project_context_file.exists():
         try:
-            return context_file.read_text()
+            combined_context.append(project_context_file.read_text())
         except Exception as e:
             print(f"Warning: Could not read project context: {e}")
 
-    # Fallback context
-    return (
-        "This is a container-first project where all Python tools run in "
-        "Docker containers. It's maintained by a single developer with "
-        "self-hosted infrastructure. Focus on code quality, security, and "
-        "container configurations."
-    )
+    # If no project context found, use fallback
+    if not combined_context:
+        combined_context.append(
+            "This is a container-first project where all Python tools run in "
+            "Docker containers. It's maintained by a single developer with "
+            "self-hosted infrastructure. Focus on code quality, security, and "
+            "container configurations."
+        )
+
+    # Now append Gemini's expression philosophy for personality and style
+    gemini_expression_file = Path(".context/GEMINI_EXPRESSION.md")
+    if gemini_expression_file.exists():
+        try:
+            print("📝 Including Gemini expression philosophy in review context...")
+            expression_content = gemini_expression_file.read_text()
+            combined_context.append("\n\n---\n\n")
+            combined_context.append(expression_content)
+        except Exception as e:
+            print(f"Warning: Could not read Gemini expression file: {e}")
+    else:
+        print("Note: Gemini expression file not found at .context/GEMINI_EXPRESSION.md")
+
+    return "".join(combined_context)
 
 
 def get_recent_pr_comments(pr_number: str) -> str:
