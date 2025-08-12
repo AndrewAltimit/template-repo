@@ -249,12 +249,90 @@ class CrushIntegration:
         except asyncio.TimeoutError:
             raise Exception(f"Crush timed out after {self.timeout} seconds")
 
+    async def _execute_crush_local(self, prompt: str) -> Dict[str, Any]:
+        """Execute Crush locally when not in container"""
+        start_time = time.time()
+        logger.info(f"Starting local crush execution with prompt: {prompt[:50]}...")
+
+        # Build crush command
+        cmd = ["crush", "run"]
+
+        # Add quiet flag if enabled
+        if self.quiet_mode:
+            cmd.append("-q")
+
+        # Add the prompt
+        cmd.append(prompt)
+
+        logger.info(f"Command: {' '.join(cmd)}")
+
+        try:
+            # Set environment for the subprocess
+            env = os.environ.copy()
+            env["OPENROUTER_API_KEY"] = self.api_key
+            env["OPENAI_API_KEY"] = self.api_key  # Some tools expect this
+            env["TERM"] = "dumb"  # Disable TTY features
+            env["NO_COLOR"] = "1"  # Disable color output
+
+            # Create process
+            logger.info("Creating crush subprocess...")
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdin=asyncio.subprocess.DEVNULL,  # Explicitly close stdin
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                env=env,
+            )
+
+            # Get output with timeout
+            logger.info("Waiting for crush process to complete...")
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(),
+                timeout=self.timeout,
+            )
+            logger.info(f"Process completed with return code: {process.returncode}")
+
+            execution_time = time.time() - start_time
+
+            if process.returncode != 0:
+                error_msg = stderr.decode() if stderr else "Unknown error"
+                raise Exception(f"Crush failed with exit code {process.returncode}: {error_msg}")
+
+            output = stdout.decode().strip()
+            logger.info(f"Crush output: {output[:100]}...")
+
+            # Log stderr if present (might contain warnings)
+            if stderr:
+                stderr_str = stderr.decode()
+                if stderr_str.strip():
+                    logger.warning(f"Crush stderr: {stderr_str}")
+
+            return {"output": output, "execution_time": execution_time}
+
+        except asyncio.TimeoutError:
+            raise Exception(f"Crush timed out after {self.timeout} seconds")
+
     async def _execute_crush_docker(self, prompt: str) -> Dict[str, Any]:
         """Execute Crush via Docker container"""
         # If we're already in a container, use direct execution
         if self._is_running_in_container():
             logger.info("Running in container, using direct crush execution")
             return await self._execute_crush_direct(prompt)
+
+        # If crush is available locally, use local execution
+        try:
+            result = await asyncio.create_subprocess_exec(
+                "which",
+                "crush",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+            stdout, _ = await result.communicate()
+            if result.returncode == 0 and stdout.strip():
+                logger.info("Crush found locally, using local execution")
+                return await self._execute_crush_local(prompt)
+        except Exception:
+            pass
 
         start_time = time.time()
 

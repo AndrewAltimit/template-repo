@@ -1,11 +1,11 @@
 {
   "models": {
     "large": {
-      "model": "anthropic/claude-sonnet-4",
+      "model": "anthropic/claude-3.5-sonnet",
       "provider": "openrouter"
     },
     "small": {
-      "model": "anthropic/claude-3.5-haiku",
+      "model": "anthropic/claude-3.5-haiku-20241022",
       "provider": "openrouter",
       "max_tokens": 4096
     }
