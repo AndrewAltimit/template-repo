@@ -6,11 +6,11 @@ set -e
 # It detects if the current branch has an open PR and provides monitoring instructions.
 #
 # Installation:
-#   cp scripts/git-hooks/pre-push .git/hooks/pre-push
+#   cp automation/setup/git/hooks/pre-push .git/hooks/pre-push
 #   chmod +x .git/hooks/pre-push
 #
 # Or combine with existing hooks:
-#   cat scripts/git-hooks/pre-push >> .git/hooks/pre-push
+#   cat automation/setup/git/hooks/pre-push >> .git/hooks/pre-push
 
 # Check if this is a Git LFS pre-push hook that needs to chain to LFS
 if [ -f .git/hooks/pre-push.lfs ]; then
@@ -58,10 +58,10 @@ You're pushing commits to PR #${pr_number} on branch '${current_branch}'.
 After push completes, consider monitoring for feedback:
 
   📍 Monitor from this commit onwards:
-     python scripts/pr-monitoring/pr_monitor_agent.py ${pr_number} --since-commit ${latest_commit}
+     python automation/monitoring/pr/pr_monitor_agent.py ${pr_number} --since-commit ${latest_commit}
 
   🔄 Or monitor all new comments:
-     python scripts/pr-monitoring/pr_monitor_agent.py ${pr_number}
+     python automation/monitoring/pr/pr_monitor_agent.py ${pr_number}
 
 This will watch for:
   • Admin comments and commands
