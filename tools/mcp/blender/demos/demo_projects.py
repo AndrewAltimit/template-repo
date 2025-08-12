@@ -80,10 +80,10 @@ class BlenderMCPDemo:
                 }
             )
 
-        result = self.call_tool(
+        self.call_tool(
             "add_primitive_objects",
             {"project": "demo_abstract_art", "objects": spheres},
-        )  # noqa: F841
+        )
         print(f"✓ Added {len(spheres)} colorful spheres")
         time.sleep(2)
 
