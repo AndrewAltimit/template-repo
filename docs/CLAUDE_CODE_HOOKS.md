@@ -51,14 +51,16 @@ echo 'source /path/to/scripts/security-hooks/setup-agent-hooks.sh' >> ~/.bashrc
 
 ## Configuration
 
-### `.claude/settings.json`
+### `.claude/settings.json` and `.claude/README.md`
 
-Now simplified to an empty configuration:
+The `.claude/settings.json` is now simplified to an empty configuration:
 ```json
 {}
 ```
 
 No hooks are needed - Claude Code uses the universal wrapper like all other agents.
+
+For more details, see `.claude/README.md` which explains the empty configuration and the universal security wrapper approach.
 
 ### Secret Masking (`.secrets.yaml`)
 
@@ -167,7 +169,7 @@ If security hooks aren't working:
 ## Migration from Claude Code Hooks
 
 If you previously used Claude Code hooks:
-1. The old hooks in `.claude/settings.json` have been removed
+1. The old hooks in `.claude/settings.json` have been removed (see `.claude/README.md` for details)
 2. The `bash-pretooluse-hook.sh` file has been removed
 3. Everything now works through the universal wrapper
 4. No action needed - just source the setup script
