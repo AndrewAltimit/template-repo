@@ -74,8 +74,8 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
    python automation/testing/test_all_servers.py --quick
 
    # Use AI agents directly
-   ./tools/cli/runners/run_opencode.sh -q "Create a REST API"
-   ./tools/cli/runners/run_crush.sh -q "Binary search function"
+   ./tools/cli/agents/run_opencode.sh -q "Create a REST API"
+   ./tools/cli/agents/run_crush.sh -q "Binary search function"
    ```
 
 For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)

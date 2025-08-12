@@ -190,9 +190,9 @@ docker-compose -f config/docker/docker-compose.yml run --rm openrouter-agents py
 docker-compose -f config/docker/docker-compose.yml run --rm openrouter-agents crush run -q "Write a Python function"
 
 # Direct host execution with helper scripts:
-./tools/cli/runners/run_claude.sh     # Interactive Claude session with Node.js 22
-./tools/cli/runners/run_opencode.sh   # OpenCode CLI for comprehensive code generation
-./tools/cli/runners/run_crush.sh      # Crush CLI for fast code generation
+./tools/cli/agents/run_claude.sh     # Interactive Claude session with Node.js 22
+./tools/cli/agents/run_opencode.sh   # OpenCode CLI for comprehensive code generation
+./tools/cli/agents/run_crush.sh      # Crush CLI for fast code generation
 
 # Host agent execution (Claude, Gemini only):
 python3 -m github_ai_agents.cli issue-monitor
