@@ -5,11 +5,17 @@ Quick-start scripts for monitoring GitHub Pull Requests for new comments.
 ## Quick Usage
 
 ```bash
-# Monitor PR #48
-./monitor-pr 48
+# Basic monitoring
+./scripts/pr-monitoring/monitor-pr 48
 
-# Monitor with 30-minute timeout
-./monitor-pr 48 --timeout 1800
+# With custom timeout (30 minutes)
+./scripts/pr-monitoring/monitor-pr 48 --timeout 1800
+
+# JSON output only (for automation)
+./scripts/pr-monitoring/monitor-pr 48 --json
+
+# Monitor comments after a specific commit
+./scripts/pr-monitoring/monitor-pr 48 --since-commit abc1234
 ```
 
 ## Files
