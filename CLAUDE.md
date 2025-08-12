@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**For Claude's expression philosophy and communication style, see** `.context/CLAUDE_EXPRESSION.md`
+
 ## Project Context
 
 This is a **single-maintainer project** by @AndrewAltimit with a **container-first philosophy**:
@@ -543,6 +545,8 @@ For detailed information on specific topics, refer to these documentation files:
 - `docs/AI_AGENTS.md` - AI agent system overview
 - `docs/AI_AGENTS_SECURITY.md` - Security-focused agent documentation
 - `docs/AI_AGENTS_CLAUDE_AUTH.md` - Why AI agents run on host (Claude auth limitation)
+- `.context/CLAUDE_EXPRESSION.md` - Claude's expression philosophy and communication style
+- `.context/GEMINI_EXPRESSION.md` - Gemini's expression philosophy and review patterns
 
 ### MCP Servers
 - `docs/mcp/README.md` - MCP architecture and design patterns
