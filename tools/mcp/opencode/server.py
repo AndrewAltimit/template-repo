@@ -126,8 +126,8 @@ class OpenCodeMCPServer(BaseMCPServer):
                         },
                         "mode": {
                             "type": "string",
-                            "enum": ["generate", "refactor", "review", "explain"],
-                            "default": "generate",
+                            "enum": ["generate", "refactor", "review", "explain", "quick"],
+                            "default": "quick",
                             "description": "Consultation mode",
                         },
                         "comparison_mode": {
@@ -171,7 +171,7 @@ class OpenCodeMCPServer(BaseMCPServer):
         self,
         query: str,
         context: str = "",
-        mode: str = "generate",
+        mode: str = "quick",
         comparison_mode: bool = True,
         force: bool = False,
     ) -> Dict[str, Any]:
@@ -180,7 +180,7 @@ class OpenCodeMCPServer(BaseMCPServer):
         Args:
             query: The question, task, or code to consult about
             context: Additional context
-            mode: Consultation mode (generate, refactor, review, explain)
+            mode: Consultation mode (generate, refactor, review, explain, quick)
             comparison_mode: Compare with previous Claude response
             force: Force consultation even if disabled
 
@@ -206,8 +206,15 @@ class OpenCodeMCPServer(BaseMCPServer):
             prompt = f"Explain the following code: {query}"
             if context:
                 prompt += f"\n\nSpecific focus: {context}"
-        else:  # generate mode
+        elif mode == "generate":
             prompt = query
+            if context:
+                prompt += f"\n\nContext: {context}"
+        else:  # quick mode (default)
+            # Quick mode handles general queries without specific formatting
+            prompt = query
+            if context:
+                prompt += f"\n\nContext: {context}"
 
         # Consult OpenCode
         if hasattr(self.opencode, "consult_opencode"):

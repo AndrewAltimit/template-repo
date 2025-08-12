@@ -18,7 +18,7 @@ This document provides comprehensive documentation for the OpenCode and Crush AI
 
 OpenCode and Crush are AI-powered code generation agents that integrate with our development workflow through multiple interfaces:
 
-- **OpenCode**: Specialized for comprehensive code generation, refactoring, and review using the Qwen 2.5 Coder model
+- **OpenCode**: Specialized for comprehensive code generation, refactoring, and review using the Qwen 2.5 Coder model. Now includes a "quick" mode (default) for general queries without specific formatting, similar to Crush.
 - **Crush**: Optimized for fast, concise code generation and conversions using lightweight models
 
 Both agents use the OpenRouter API and can be accessed through:
@@ -122,7 +122,7 @@ Consult OpenCode for code generation, refactoring, or review.
 {
     "query": str,           # Required: The coding question or task
     "context": str,         # Optional: Additional context or existing code
-    "mode": str,            # Optional: "generate", "refactor", "review", "explain"
+    "mode": str,            # Optional: "generate", "refactor", "review", "explain", "quick" (default: "quick")
     "comparison_mode": bool,# Optional: Compare with previous response
     "force": bool           # Optional: Force consultation even if disabled
 }

@@ -68,36 +68,32 @@ docker run -p 8014:8014 -e OPENROUTER_API_KEY="your-key" mcp-opencode
 
 ## Available Tools
 
-### generate_code
-Generate code based on a prompt with optional context.
+### consult_opencode
+Consult OpenCode for code generation, refactoring, review, or general queries.
 
 Parameters:
-- `prompt` (required): The coding task or question
+- `query` (required): The coding question, task, or code to consult about
 - `context`: Additional context or existing code
-- `language`: Programming language (optional)
-- `include_tests`: Include unit tests (default: false)
-- `plan_mode`: Use plan mode for multi-step tasks (default: false)
-
-### refactor_code
-Refactor existing code according to instructions.
-
-Parameters:
-- `code` (required): The code to refactor
-- `instructions` (required): Refactoring instructions
-- `preserve_functionality`: Ensure functionality is preserved (default: true)
-
-### review_code
-Review code and provide feedback.
-
-Parameters:
-- `code` (required): The code to review
-- `focus_areas`: Specific areas to focus on (array of strings)
+- `mode`: Consultation mode - "generate", "refactor", "review", "explain", or "quick" (default: "quick")
+  - **quick** (default): General queries without specific formatting, handles any coding question
+  - **generate**: Focused code generation with optional context
+  - **refactor**: Refactor existing code with instructions
+  - **review**: Review code and provide feedback
+  - **explain**: Explain code functionality
+- `comparison_mode`: Compare with previous Claude response (default: true)
+- `force`: Force consultation even if disabled (default: false)
 
 ### clear_opencode_history
 Clear the conversation history.
 
 ### opencode_status
 Get server status and statistics.
+
+### toggle_opencode_auto_consult
+Toggle automatic OpenCode consultation on uncertainty detection.
+
+Parameters:
+- `enable`: Enable or disable auto-consultation
 
 ## Testing
 
@@ -113,10 +109,10 @@ curl http://localhost:8014/tools
 ## Integration with Claude
 
 Once the server is running, it will be available as MCP tools in Claude:
-- `mcp__opencode__generate_code`
-- `mcp__opencode__refactor_code`
-- `mcp__opencode__review_code`
-- etc.
+- `mcp__opencode__consult_opencode` - Main consultation tool with multiple modes
+- `mcp__opencode__clear_opencode_history` - Clear conversation history
+- `mcp__opencode__opencode_status` - Get status and statistics
+- `mcp__opencode__toggle_opencode_auto_consult` - Control auto-consultation
 
 ## Troubleshooting
 
