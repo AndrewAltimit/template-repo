@@ -126,10 +126,9 @@ COPY --chown=node:node packages/github_ai_agents/configs/crush-data.json /home/n
 RUN chown -R node:node /home/node
 
 # Copy security hooks and set up alias
-# TODO: Add security hooks when scripts/security-hooks directory is created
-# COPY scripts/security-hooks /app/security-hooks
-# RUN chmod +x /app/security-hooks/*.sh && \
-#     echo 'alias gh="/app/security-hooks/gh-wrapper.sh"' >> /etc/bash.bashrc
+COPY automation/security /app/security-hooks
+RUN chmod +x /app/security-hooks/*.sh && \
+    echo 'alias gh="/app/security-hooks/gh-wrapper.sh"' >> /etc/bash.bashrc
 
 # Default command
 CMD ["bash"]
