@@ -131,7 +131,14 @@ Detected emoji: {repr(emoji_char)} (Unicode {hex(ord(emoji_char))})
 
 This prevents character corruption and ensures your message displays correctly.
 """
-        print(json.dumps({"permissionDecision": "deny", "permissionDecisionReason": error_message}))
+        print(
+            json.dumps(
+                {
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": error_message,
+                }
+            )
+        )
         return
 
     # Check if command contains reaction images at all
@@ -139,7 +146,11 @@ This prevents character corruption and ensures your message displays correctly.
     # Check for both escaped and unescaped versions, and look for common reaction URLs
     has_reaction_image = bool(
         re.search(r"\\?!\[.*\]\(.*reaction.*\)", command, re.IGNORECASE)
-        or re.search(r"\\?!\[.*\]\(.*githubusercontent.com/AndrewAltimit/Media.*\)", command, re.IGNORECASE)
+        or re.search(
+            r"\\?!\[.*\]\(.*githubusercontent.com/AndrewAltimit/Media.*\)",
+            command,
+            re.IGNORECASE,
+        )
         or re.search(r"\\?!\[Reaction\]", command, re.IGNORECASE)
     )
 
@@ -160,7 +171,14 @@ The command contains reaction images but uses methods that will escape the '!' c
 This preserves markdown formatting and prevents shell escaping issues.
 """
 
-        print(json.dumps({"permissionDecision": "deny", "permissionDecisionReason": error_message}))
+        print(
+            json.dumps(
+                {
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": error_message,
+                }
+            )
+        )
         return
 
     # Check for --body-file usage (the correct method)

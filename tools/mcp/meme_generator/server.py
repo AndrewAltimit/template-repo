@@ -27,7 +27,12 @@ MAX_IMAGE_SIZE_PNG = 200000
 class MemeGeneratorMCPServer(BaseMCPServer):
     """MCP Server for meme generation with templates and visual feedback"""
 
-    def __init__(self, templates_dir: Optional[str] = None, output_dir: str = "/app/output", stdio_mode: bool = False):
+    def __init__(
+        self,
+        templates_dir: Optional[str] = None,
+        output_dir: str = "/app/output",
+        stdio_mode: bool = False,
+    ):
         super().__init__(
             name="Meme Generator MCP Server",
             version="1.0.0",

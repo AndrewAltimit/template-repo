@@ -109,9 +109,25 @@ async def validate_server():
             {
                 "project": "test_basic_scene",
                 "objects": [
-                    {"type": "cube", "name": "TestCube", "location": [0, 0, 1], "rotation": [0, 0, 0.785], "scale": [1, 1, 1]},
-                    {"type": "sphere", "name": "TestSphere", "location": [3, 0, 1], "scale": [0.5, 0.5, 0.5]},
-                    {"type": "monkey", "name": "Suzanne", "location": [-3, 0, 1], "rotation": [0, 0.785, 0]},
+                    {
+                        "type": "cube",
+                        "name": "TestCube",
+                        "location": [0, 0, 1],
+                        "rotation": [0, 0, 0.785],
+                        "scale": [1, 1, 1],
+                    },
+                    {
+                        "type": "sphere",
+                        "name": "TestSphere",
+                        "location": [3, 0, 1],
+                        "scale": [0.5, 0.5, 0.5],
+                    },
+                    {
+                        "type": "monkey",
+                        "name": "Suzanne",
+                        "location": [-3, 0, 1],
+                        "rotation": [0, 0.785, 0],
+                    },
                 ],
             },
         )
@@ -126,9 +142,19 @@ async def validate_server():
         # Test 4: Apply materials
         print("\n4. Applying materials to objects...")
         materials = [
-            ("TestCube", {"type": "metal", "base_color": [0.8, 0.6, 0.2, 1.0], "roughness": 0.3}),
+            (
+                "TestCube",
+                {"type": "metal", "base_color": [0.8, 0.6, 0.2, 1.0], "roughness": 0.3},
+            ),
             ("TestSphere", {"type": "glass", "roughness": 0.0}),
-            ("Suzanne", {"type": "emission", "base_color": [0.2, 0.8, 1.0, 1.0], "emission_strength": 2.0}),
+            (
+                "Suzanne",
+                {
+                    "type": "emission",
+                    "base_color": [0.2, 0.8, 1.0, 1.0],
+                    "emission_strength": 2.0,
+                },
+            ),
         ]
 
         for obj_name, material in materials:
@@ -136,7 +162,11 @@ async def validate_server():
                 client,
                 base_url,
                 "apply_material",
-                {"project": "test_basic_scene", "object_name": obj_name, "material": material},
+                {
+                    "project": "test_basic_scene",
+                    "object_name": obj_name,
+                    "material": material,
+                },
             )
 
             if "error" not in result:
@@ -154,7 +184,12 @@ async def validate_server():
                 "project": "test_basic_scene",
                 "object_name": "TestCube",
                 "physics_type": "rigid_body",
-                "settings": {"mass": 5.0, "friction": 0.5, "bounce": 0.3, "collision_shape": "box"},
+                "settings": {
+                    "mass": 5.0,
+                    "friction": 0.5,
+                    "bounce": 0.3,
+                    "collision_shape": "box",
+                },
             },
         )
 
@@ -210,7 +245,12 @@ async def validate_server():
             {
                 "project": "test_basic_scene",
                 "frame": 1,
-                "settings": {"resolution": [1920, 1080], "samples": 64, "engine": "EEVEE", "format": "PNG"},
+                "settings": {
+                    "resolution": [1920, 1080],
+                    "samples": 64,
+                    "engine": "EEVEE",
+                    "format": "PNG",
+                },
             },
         )
 

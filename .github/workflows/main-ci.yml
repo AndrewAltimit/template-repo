@@ -66,7 +66,7 @@ jobs:
           MCP_GAEA2_URL: http://192.168.0.152:8007
         run: |
           echo "🧪 Running test suite..."
-          ./scripts/run-ci.sh test --cov-report=html --timeout=300 --junitxml=test-results.xml
+          ./automation/ci-cd/run-ci.sh test --cov-report=html --timeout=300 --junitxml=test-results.xml
 
       - name: Upload test results
         if: always()
@@ -146,11 +146,11 @@ jobs:
           echo "🤖 Testing modular MCP server functionality..."
 
           # Build the CI image if needed
-          docker-compose build python-ci
+          docker-compose -f config/docker/docker-compose.yml build python-ci
 
           # Test Code Quality MCP server
-          docker-compose run --rm python-ci bash -c "
-          pip install -r requirements.txt && python3 -c '
+          docker-compose -f config/docker/docker-compose.yml run --rm python-ci bash -c "
+          pip install -r config/python/requirements.txt && python3 -c '
           import sys
           sys.path.insert(0, \".\")
 
@@ -247,9 +247,9 @@ jobs:
       - name: Stop MCP servers
         if: always()
         run: |
-          docker-compose down
+          docker-compose -f config/docker/docker-compose.yml down
           # Clean up output directories using Docker to handle permissions
-          ./scripts/cleanup-outputs.sh
+          ./automation/ci-cd/cleanup-outputs.sh
 
   # Stage 6: Documentation build
   docs-build:
@@ -268,7 +268,7 @@ jobs:
           # Check for required documentation files
           required_docs=(
             "README.md"
-            "requirements.txt"
+            "config/python/requirements.txt"
           )
 
           for doc in "${required_docs[@]}"; do
@@ -305,11 +305,11 @@ jobs:
       - name: Run security scans
         run: |
           echo "🔒 Running security scans..."
-          ./scripts/run-ci.sh security
+          ./automation/ci-cd/run-ci.sh security
 
           # Display summary
           if [ -f bandit-report.json ]; then
-            docker-compose run --rm python-ci python3 -c "
+            docker-compose -f config/docker/docker-compose.yml run --rm python-ci python3 -c "
           import json
           with open('bandit-report.json') as f:
               data = json.load(f)
@@ -332,7 +332,7 @@ jobs:
 
           if [ -f safety-report.json ] && [ -s safety-report.json ]; then
             echo "### Dependency Vulnerabilities" >> $GITHUB_STEP_SUMMARY
-            docker-compose run --rm python-ci python3 -c "
+            docker-compose -f config/docker/docker-compose.yml run --rm python-ci python3 -c "
           import json
           with open('safety-report.json') as f:
               vulns = json.load(f)
@@ -344,7 +344,7 @@ jobs:
           fi
 
           # Run pip-audit
-          docker-compose run --rm python-ci bash -c "pip install -r requirements.txt && pip-audit --desc || true"
+          docker-compose -f config/docker/docker-compose.yml run --rm python-ci bash -c "pip install -r config/python/requirements.txt && pip-audit --desc || true"
 
       - name: Upload security reports
         if: always()
@@ -492,9 +492,9 @@ jobs:
       - name: Stop services
         if: always()
         run: |
-          docker-compose down
+          docker-compose -f config/docker/docker-compose.yml down
           # Clean up output directories using Docker to handle permissions
-          ./scripts/cleanup-outputs.sh
+          ./automation/ci-cd/cleanup-outputs.sh
 
   # Stage 9: Integration tests
   integration-tests:
@@ -509,7 +509,7 @@ jobs:
 
       - name: Set up Docker Compose
         run: |
-          docker-compose version
+          docker-compose -f config/docker/docker-compose.yml version
 
       - name: Start services for integration tests
         uses: ./.github/actions/docker-compose-health-check
@@ -524,15 +524,15 @@ jobs:
           echo "🧪 Running integration tests..."
           # Run integration test suite if available
           if [ -f "tests/integration_test.py" ]; then
-            docker-compose exec -T python-ci pytest tests/integration_test.py -v
+            docker-compose -f config/docker/docker-compose.yml exec -T python-ci pytest tests/integration_test.py -v
           fi
 
       - name: Clean up services
         if: always()
         run: |
-          docker-compose down
+          docker-compose -f config/docker/docker-compose.yml down
           # Clean up output directories using Docker to handle permissions
-          ./scripts/cleanup-outputs.sh
+          ./automation/ci-cd/cleanup-outputs.sh
 
   # Stage 10: Deploy (placeholder)
   deploy:

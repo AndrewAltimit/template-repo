@@ -22,28 +22,28 @@ For ALL agents including Claude Code:
 
 ```bash
 # One-time setup
-source scripts/security-hooks/setup-agent-hooks.sh
+source automation/security/setup-agent-hooks.sh
 
 # Or add to shell configuration for permanent setup
-echo 'source /path/to/scripts/security-hooks/setup-agent-hooks.sh' >> ~/.bashrc
+echo 'source /path/to/automation/security/setup-agent-hooks.sh' >> ~/.bashrc
 ```
 
 ### Components
 
-1. **Universal Wrapper** (`scripts/security-hooks/gh-wrapper.sh`)
+1. **Universal Wrapper** (`automation/security/gh-wrapper.sh`)
    - POSIX-compliant shell script
    - Works with all shells (sh, dash, bash, zsh)
    - Validates based on arguments (--body, --notes, --message, etc.)
    - Dynamic gh binary discovery
    - Python 3 dependency checking
 
-2. **Secret Masker** (`scripts/security-hooks/github-secrets-masker.py`)
+2. **Secret Masker** (`automation/security/github-secrets-masker.py`)
    - Automatically masks secrets in GitHub comments
    - Uses `.secrets.yaml` configuration from repository root
    - Works transparently - agents don't know masking occurred
    - Prevents exposure of API keys, tokens, passwords, etc.
 
-3. **GitHub Comment Validator** (`scripts/security-hooks/gh-comment-validator.py`)
+3. **GitHub Comment Validator** (`automation/security/gh-comment-validator.py`)
    - Prevents incorrect GitHub comment formatting
    - Blocks Unicode emojis that may appear corrupted
    - Ensures reaction images aren't escaped
@@ -129,7 +129,7 @@ gh pr comment 1 --body "Secret is super-secret-value"
 ### Test validators directly
 ```bash
 echo '{"tool_name": "Bash", "tool_input": {"command": "gh pr comment 1 --body \"Token is ghp_test123\""}}' | \
-  python3 scripts/security-hooks/github-secrets-masker.py
+  python3 automation/security/github-secrets-masker.py
 ```
 
 ## Benefits
@@ -147,13 +147,13 @@ If security hooks aren't working:
 
 1. **Re-source the setup script**:
    ```bash
-   source scripts/security-hooks/setup-agent-hooks.sh
+   source automation/security/setup-agent-hooks.sh
    ```
 
 2. **Check alias is active**:
    ```bash
    alias gh
-   # Should show: alias gh='/path/to/scripts/security-hooks/gh-wrapper.sh'
+   # Should show: alias gh='/path/to/automation/security/gh-wrapper.sh'
    ```
 
 3. **Verify Python 3 is available**:
@@ -163,7 +163,7 @@ If security hooks aren't working:
 
 4. **Check wrapper permissions**:
    ```bash
-   chmod +x scripts/security-hooks/*.sh
+   chmod +x automation/security/*.sh
    ```
 
 ## Migration from Claude Code Hooks
@@ -176,6 +176,6 @@ If you previously used Claude Code hooks:
 
 ## References
 
-- [Universal Security Hooks Documentation](../scripts/security-hooks/README.md)
+- [Universal Security Hooks Documentation](../automation/security/README.md)
 - [GitHub Etiquette Guide](GITHUB_ETIQUETTE_FOR_AI_AGENTS.md)
 - [Project Instructions](../CLAUDE.md)

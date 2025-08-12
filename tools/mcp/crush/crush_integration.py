@@ -118,7 +118,10 @@ class CrushIntegration:
         This is an alias for generate_response that follows the Gemini-style consultation pattern.
         """
         if not self.auto_consult and not force_consult:
-            return {"status": "disabled", "message": "Crush auto-consultation is disabled. Use force=True to override."}
+            return {
+                "status": "disabled",
+                "message": "Crush auto-consultation is disabled. Use force=True to override.",
+            }
 
         # Map consultation to generate_response
         return await self.generate_response(prompt=query)

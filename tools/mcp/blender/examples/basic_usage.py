@@ -43,7 +43,11 @@ async def create_simple_scene() -> Dict[str, Any]:
     }
 
     example_flow["step4"] = "Render the scene"
-    example_flow["render_settings"] = {"samples": 128, "resolution": [1920, 1080], "format": "PNG"}
+    example_flow["render_settings"] = {
+        "samples": 128,
+        "resolution": [1920, 1080],
+        "format": "PNG",
+    }
 
     return example_flow
 
@@ -82,9 +86,16 @@ async def physics_simulation_example() -> Dict[str, Any]:
             {
                 "action": "Setup physics",
                 "tool": "setup_physics",
-                "params": {"physics_type": "rigid_body", "settings": {"mass": 1.0, "friction": 0.5, "bounce": 0.3}},
+                "params": {
+                    "physics_type": "rigid_body",
+                    "settings": {"mass": 1.0, "friction": 0.5, "bounce": 0.3},
+                },
             },
-            {"action": "Bake simulation", "tool": "bake_simulation", "params": {"start_frame": 1, "end_frame": 120}},
+            {
+                "action": "Bake simulation",
+                "tool": "bake_simulation",
+                "params": {"start_frame": 1, "end_frame": 120},
+            },
             {
                 "action": "Render animation",
                 "tool": "render_animation",
@@ -108,10 +119,25 @@ async def procedural_generation_example() -> Dict[str, Any]:
     example_flow = {
         "description": "Procedural scatter system using geometry nodes",
         "workflow": {
-            "base_object": {"type": "plane", "name": "ScatterPlane", "scale": [10, 10, 1]},
-            "geometry_nodes": {"node_setup": "scatter", "parameters": {"count": 500, "seed": 42, "scale_variance": 0.3}},
-            "instance_object": {"type": "cube", "name": "InstanceCube", "scale": [0.1, 0.1, 0.1]},
-            "render_settings": {"engine": "EEVEE", "samples": 64, "resolution": [1920, 1080]},
+            "base_object": {
+                "type": "plane",
+                "name": "ScatterPlane",
+                "scale": [10, 10, 1],
+            },
+            "geometry_nodes": {
+                "node_setup": "scatter",
+                "parameters": {"count": 500, "seed": 42, "scale_variance": 0.3},
+            },
+            "instance_object": {
+                "type": "cube",
+                "name": "InstanceCube",
+                "scale": [0.1, 0.1, 0.1],
+            },
+            "render_settings": {
+                "engine": "EEVEE",
+                "samples": 64,
+                "resolution": [1920, 1080],
+            },
         },
     }
 

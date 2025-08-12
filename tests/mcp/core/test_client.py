@@ -48,7 +48,8 @@ class TestMCPClient:
         # Verify
         assert result == {"success": True, "result": {"data": "test"}}
         mock_post.assert_called_once_with(
-            "http://localhost:8010/tools/execute", json={"tool": "test_tool", "arguments": {"param": "value"}}
+            "http://localhost:8010/tools/execute",
+            json={"tool": "test_tool", "arguments": {"param": "value"}},
         )
 
     @patch("tools.mcp.core.client.requests.post")

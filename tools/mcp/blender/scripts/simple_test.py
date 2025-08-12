@@ -12,7 +12,11 @@ def test_server():
 
     # Test 1: List projects
     print("1. Testing list_projects...")
-    response = httpx.post(f"{base_url}/mcp/execute", json={"tool": "list_projects", "arguments": {}}, timeout=10.0)
+    response = httpx.post(
+        f"{base_url}/mcp/execute",
+        json={"tool": "list_projects", "arguments": {}},
+        timeout=10.0,
+    )
     result = response.json()
     print(f"   Response: {json.dumps(result, indent=2)}")
 
@@ -20,7 +24,10 @@ def test_server():
     print("\n2. Testing create_blender_project...")
     response = httpx.post(
         f"{base_url}/mcp/execute",
-        json={"tool": "create_blender_project", "arguments": {"name": "test_from_script", "template": "studio_lighting"}},
+        json={
+            "tool": "create_blender_project",
+            "arguments": {"name": "test_from_script", "template": "studio_lighting"},
+        },
         timeout=10.0,
     )
     result = response.json()
@@ -36,7 +43,9 @@ def test_server():
         time.sleep(3)  # Wait for job to complete
 
         response = httpx.post(
-            f"{base_url}/mcp/execute", json={"tool": "get_job_status", "arguments": {"job_id": job_id}}, timeout=10.0
+            f"{base_url}/mcp/execute",
+            json={"tool": "get_job_status", "arguments": {"job_id": job_id}},
+            timeout=10.0,
         )
         result = response.json()
         print(f"   Response: {json.dumps(result, indent=2)}")

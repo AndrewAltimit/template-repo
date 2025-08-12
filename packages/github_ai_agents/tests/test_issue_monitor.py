@@ -4,7 +4,6 @@ import json
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from github_ai_agents.monitors.issue import IssueMonitor
 
 
@@ -67,8 +66,15 @@ class TestIssueMonitor:
         }
 
         # Mock security check
-        issue_monitor.security_manager.check_trigger_comment.return_value = ("Approved", "Claude", "authorized_user")
-        issue_monitor.security_manager.perform_full_security_check.return_value = (True, None)
+        issue_monitor.security_manager.check_trigger_comment.return_value = (
+            "Approved",
+            "Claude",
+            "authorized_user",
+        )
+        issue_monitor.security_manager.perform_full_security_check.return_value = (
+            True,
+            None,
+        )
 
         # Mock has_agent_comment to return False
         mock_gh_command.side_effect = [
@@ -90,8 +96,15 @@ class TestIssueMonitor:
     @patch("github_ai_agents.monitors.issue.run_gh_command")
     def test_handle_close_action(self, mock_gh_command, issue_monitor):
         """Test handling close action."""
-        issue_monitor.security_manager.check_trigger_comment.return_value = ("Close", "Claude", "authorized_user")
-        issue_monitor.security_manager.perform_full_security_check.return_value = (True, None)
+        issue_monitor.security_manager.check_trigger_comment.return_value = (
+            "Close",
+            "Claude",
+            "authorized_user",
+        )
+        issue_monitor.security_manager.perform_full_security_check.return_value = (
+            True,
+            None,
+        )
 
         # Mock no existing comments
         mock_gh_command.side_effect = [
@@ -110,11 +123,21 @@ class TestIssueMonitor:
     @patch("github_ai_agents.monitors.issue.run_gh_command")
     def test_handle_summarize_action(self, mock_gh_command, issue_monitor):
         """Test handling summarize action."""
-        issue_monitor.security_manager.check_trigger_comment.return_value = ("Summarize", "Claude", "authorized_user")
-        issue_monitor.security_manager.perform_full_security_check.return_value = (True, None)
+        issue_monitor.security_manager.check_trigger_comment.return_value = (
+            "Summarize",
+            "Claude",
+            "authorized_user",
+        )
+        issue_monitor.security_manager.perform_full_security_check.return_value = (
+            True,
+            None,
+        )
 
         # Mock no existing comments
-        mock_gh_command.side_effect = [json.dumps({"comments": []}), None]  # No existing agent comments  # Post summary
+        mock_gh_command.side_effect = [
+            json.dumps({"comments": []}),
+            None,
+        ]  # No existing agent comments  # Post summary
 
         issue = {
             "number": 101,
@@ -134,8 +157,15 @@ class TestIssueMonitor:
     @patch("github_ai_agents.monitors.issue.run_gh_command")
     def test_security_rejection(self, mock_gh_command, issue_monitor):
         """Test security rejection flow."""
-        issue_monitor.security_manager.check_trigger_comment.return_value = ("Approved", "Claude", "unauthorized_user")
-        issue_monitor.security_manager.perform_full_security_check.return_value = (False, "User not in allow list")
+        issue_monitor.security_manager.check_trigger_comment.return_value = (
+            "Approved",
+            "Claude",
+            "unauthorized_user",
+        )
+        issue_monitor.security_manager.perform_full_security_check.return_value = (
+            False,
+            "User not in allow list",
+        )
 
         mock_gh_command.return_value = None
 
@@ -150,8 +180,15 @@ class TestIssueMonitor:
     @patch("github_ai_agents.monitors.issue.run_gh_command")
     def test_containerized_agent_error(self, mock_gh_command, issue_monitor):
         """Test error when requesting containerized agent on host."""
-        issue_monitor.security_manager.check_trigger_comment.return_value = ("Approved", "OpenCode", "authorized_user")
-        issue_monitor.security_manager.perform_full_security_check.return_value = (True, None)
+        issue_monitor.security_manager.check_trigger_comment.return_value = (
+            "Approved",
+            "OpenCode",
+            "authorized_user",
+        )
+        issue_monitor.security_manager.perform_full_security_check.return_value = (
+            True,
+            None,
+        )
 
         # Mock no existing comments
         mock_gh_command.side_effect = [

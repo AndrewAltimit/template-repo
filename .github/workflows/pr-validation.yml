@@ -201,7 +201,7 @@ jobs:
           nvm use 22.16.0
 
           # Run the Gemini review script
-          python3 scripts/gemini-pr-review.py
+          python3 automation/review/gemini-pr-review.py
 
       - name: Upload review artifact
         if: always()
@@ -289,8 +289,8 @@ jobs:
       - name: Validate YAML and JSON files
         run: |
           echo "🔍 Validating configuration files..."
-          ./scripts/run-ci.sh yaml-lint
-          ./scripts/run-ci.sh json-lint
+          ./automation/ci-cd/run-ci.sh yaml-lint
+          ./automation/ci-cd/run-ci.sh json-lint
 
   # Stage 4b: Workflow file validation (always run)
   workflow-validation:
@@ -314,10 +314,10 @@ jobs:
           echo "🔍 Validating GitHub Actions workflow files..."
 
           # Build the CI image if needed
-          docker-compose build python-ci
+          docker-compose -f config/docker/docker-compose.yml build python-ci
 
           # Validate all workflow files
-          docker-compose run --rm python-ci bash -c '
+          docker-compose -f config/docker/docker-compose.yml run --rm python-ci bash -c '
             echo "Checking workflow files in .github/workflows/..."
             workflow_errors=0
 
@@ -371,7 +371,7 @@ jobs:
       - name: Run YAML lint on all files
         run: |
           echo "🔍 Running comprehensive YAML linting..."
-          ./scripts/run-ci.sh yaml-lint
+          ./automation/ci-cd/run-ci.sh yaml-lint
 
   # Stage 5: Test execution
   test-suite:
@@ -400,7 +400,7 @@ jobs:
           MCP_GAEA2_URL: http://192.168.0.152:8007
         run: |
           echo "🧪 Running test suite..."
-          ./scripts/run-ci.sh test
+          ./automation/ci-cd/run-ci.sh test
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
@@ -457,7 +457,7 @@ jobs:
       # Set Docker user environment variables
       - name: Set Docker user environment
         run: |
-          source ./scripts/set-docker-user.sh
+          source ./automation/setup/docker/set-docker-user.sh
 
       # No need to install Python or dependencies - Docker handles it
 
@@ -517,20 +517,20 @@ jobs:
           done
 
           # Run comprehensive tests
-          docker-compose run --rm python-ci python scripts/mcp/test_all_servers.py --quick
+          docker-compose -f config/docker/docker-compose.yml run --rm python-ci python automation/testing/test_all_servers.py --quick
 
       - name: View MCP server logs
         if: failure()
         run: |
           echo "📋 MCP server logs:"
-          docker-compose logs mcp-code-quality mcp-content-creation mcp-gaea2
+          docker-compose -f config/docker/docker-compose.yml logs mcp-code-quality mcp-content-creation mcp-gaea2
 
       - name: Stop MCP server
         if: always()
         run: |
-          docker-compose down
+          docker-compose -f config/docker/docker-compose.yml down
           # Clean up output directories using Docker to handle permissions
-          ./scripts/cleanup-outputs.sh
+          ./automation/ci-cd/cleanup-outputs.sh
 
   # Stage 7: Gaea2 MCP Integration Tests
   gaea2-integration-tests:
@@ -647,9 +647,9 @@ jobs:
       - name: Stop services
         if: always()
         run: |
-          docker-compose down
+          docker-compose -f config/docker/docker-compose.yml down
           # Clean up output directories using Docker to handle permissions
-          ./scripts/cleanup-outputs.sh
+          ./automation/ci-cd/cleanup-outputs.sh
 
   # Final status and summary
   pr-status:

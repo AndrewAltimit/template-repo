@@ -144,7 +144,10 @@ def greet(name):
         # Test 6: Toggle auto-consultation
         print("\n6. Testing auto-consultation toggle...")
         try:
-            payload = {"tool": "toggle_crush_auto_consult", "arguments": {"enable": False}}
+            payload = {
+                "tool": "toggle_crush_auto_consult",
+                "arguments": {"enable": False},
+            }
             async with session.post(f"{base_url}/mcp/execute", json=payload) as resp:
                 if resp.status == 200:
                     result = await resp.json()
@@ -198,8 +201,14 @@ def greet(name):
         # Test 9: Test different modes
         print("\n9. Testing different consultation modes...")
         test_cases = [
-            {"mode": "quick", "query": "Create a function to check if a number is prime"},
-            {"mode": "generate", "query": "Create a detailed function to check if a number is prime with comments"},
+            {
+                "mode": "quick",
+                "query": "Create a function to check if a number is prime",
+            },
+            {
+                "mode": "generate",
+                "query": "Create a detailed function to check if a number is prime with comments",
+            },
         ]
         for test in test_cases:
             try:

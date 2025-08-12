@@ -15,7 +15,7 @@ WORKDIR /workspace
 RUN pip install --no-cache-dir --upgrade pip>=23.3 setuptools>=78.1.1
 
 # Copy requirements first to leverage Docker layer caching
-COPY requirements.txt ./
+COPY config/python/requirements.txt ./
 
 # Install all dependencies from the requirements file
 RUN pip install --no-cache-dir -r requirements.txt
@@ -25,12 +25,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # - /workspace is the primary working directory for most CI operations
 # - /app is used by some tools that expect absolute paths or when running
 #   with read-only mounts where the code is mounted at /app
-COPY .isort.cfg .flake8 .pylintrc ./
-COPY .isort.cfg .flake8 .pylintrc /app/
-# Copy pyproject.toml files for proper isort configuration
+COPY .flake8 .pylintrc ./
+COPY .flake8 .pylintrc /app/
+# Copy pyproject.toml files for proper isort and black configuration
 # Duplicated to ensure tools can find configs regardless of working directory
-COPY pyproject.toml ./
-COPY pyproject.toml /app/
+COPY pyproject.toml ./pyproject.toml
+COPY pyproject.toml /app/pyproject.toml
 # Create directory structure for package configs
 RUN mkdir -p packages/github_ai_agents /app/packages/github_ai_agents
 COPY packages/github_ai_agents/pyproject.toml ./packages/github_ai_agents/
@@ -46,7 +46,7 @@ ENV PYTHONUNBUFFERED=1 \
 RUN useradd -m -u 1000 ciuser
 
 # Copy security hooks and set up universal gh alias
-COPY scripts/security-hooks /app/security-hooks
+COPY automation/security /app/security-hooks
 RUN chmod +x /app/security-hooks/*.sh && \
     echo 'alias gh="/app/security-hooks/gh-wrapper.sh"' >> /etc/bash.bashrc
 

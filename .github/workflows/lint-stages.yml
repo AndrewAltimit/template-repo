@@ -46,8 +46,8 @@ jobs:
       - name: Post-checkout cleanup
         run: |
           # Run cleanup script if it exists
-          if [ -f "./scripts/fix-runner-permissions.sh" ]; then
-            ./scripts/fix-runner-permissions.sh --minimal
+          if [ -f "./automation/setup/runner/fix-runner-permissions.sh" ]; then
+            ./automation/setup/runner/fix-runner-permissions.sh --minimal
           fi
 
       # Docker CI image will be built automatically by run-ci.sh script
@@ -56,7 +56,7 @@ jobs:
         id: lint
         shell: bash
         run: |
-          ./scripts/run-lint-stage.sh ${{ inputs.stage }}
+          ./automation/ci-cd/run-lint-stage.sh ${{ inputs.stage }}
           # Script handles all the logic and exports errors/warnings to GITHUB_ENV
 
       - name: Parse results

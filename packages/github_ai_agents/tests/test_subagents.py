@@ -53,7 +53,11 @@ class TestSubagentManager:
         """Test listing available personas."""
         manager = SubagentManager()
         # Mock some personas
-        manager.personas = {"tech-lead": "content", "qa-reviewer": "content", "security-auditor": "content"}
+        manager.personas = {
+            "tech-lead": "content",
+            "qa-reviewer": "content",
+            "security-auditor": "content",
+        }
 
         personas = manager.list_personas()
         assert len(personas) == 3

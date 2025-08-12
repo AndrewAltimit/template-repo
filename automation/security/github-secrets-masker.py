@@ -38,11 +38,20 @@ class SecretMasker:
                         else:
                             return json.load(f)
                 except (FileNotFoundError, yaml.YAMLError, json.JSONDecodeError) as e:
-                    print(f"[Secret Masker] Warning: Could not load config from {config_path}: {e}", file=sys.stderr)
+                    print(
+                        f"[Secret Masker] Warning: Could not load config from {config_path}: {e}",
+                        file=sys.stderr,
+                    )
 
         # Fail-closed: deny commands if no config file found (security-critical component)
-        print("[Secret Masker] ERROR: No configuration file found. Blocking command for security.", file=sys.stderr)
-        print("[Secret Masker] Please ensure .secrets.yaml exists in repository root.", file=sys.stderr)
+        print(
+            "[Secret Masker] ERROR: No configuration file found. Blocking command for security.",
+            file=sys.stderr,
+        )
+        print(
+            "[Secret Masker] Please ensure .secrets.yaml exists in repository root.",
+            file=sys.stderr,
+        )
         raise FileNotFoundError("Security configuration file .secrets.yaml not found - failing closed for security")
 
     def _load_secrets(self):
@@ -130,7 +139,10 @@ class SecretMasker:
                     compiled = re.compile(pattern, flags)
                     patterns.append((compiled, name))
                 except re.error as e:
-                    print(f"[Secret Masker] Invalid regex pattern for {name}: {e}", file=sys.stderr)
+                    print(
+                        f"[Secret Masker] Invalid regex pattern for {name}: {e}",
+                        file=sys.stderr,
+                    )
 
         return patterns
 
@@ -275,7 +287,10 @@ def main():
         # Log what we masked (for debugging) - to stderr so it doesn't affect the JSON output
         settings = masker.config.get("settings", {})
         if settings.get("log_masked_secrets", True):
-            print("[Secret Masker] Automatically masked secrets in GitHub comment", file=sys.stderr)
+            print(
+                "[Secret Masker] Automatically masked secrets in GitHub comment",
+                file=sys.stderr,
+            )
 
         # Return modified command with appropriate permission
         response["permissionDecision"] = "allow_with_modifications"

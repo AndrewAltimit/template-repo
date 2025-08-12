@@ -50,7 +50,11 @@ class SubagentManager:
         return personas
 
     def execute_with_persona(
-        self, persona: str, task: str, context: Optional[Dict[str, Any]] = None, agent_name: Optional[str] = None
+        self,
+        persona: str,
+        task: str,
+        context: Optional[Dict[str, Any]] = None,
+        agent_name: Optional[str] = None,
     ) -> Tuple[bool, str, str]:
         """Execute a task using a specific persona.
 

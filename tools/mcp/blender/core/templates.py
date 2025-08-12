@@ -26,14 +26,38 @@ class TemplateManager:
             "empty": {
                 "name": "Empty Scene",
                 "description": "Blank Blender project with default settings",
-                "settings": {"engine": "CYCLES", "samples": 128, "resolution": [1920, 1080], "fps": 24},
+                "settings": {
+                    "engine": "CYCLES",
+                    "samples": 128,
+                    "resolution": [1920, 1080],
+                    "fps": 24,
+                },
             },
             "basic_scene": {
                 "name": "Basic Scene",
                 "description": "Simple scene with camera, light, and ground plane",
-                "settings": {"engine": "CYCLES", "samples": 128, "resolution": [1920, 1080], "fps": 24},
-                "objects": [{"type": "plane", "name": "Ground", "location": [0, 0, 0], "scale": [10, 10, 1]}],
-                "lights": [{"type": "sun", "name": "Sun", "strength": 5.0, "rotation": [0.785, 0, 0.785]}],
+                "settings": {
+                    "engine": "CYCLES",
+                    "samples": 128,
+                    "resolution": [1920, 1080],
+                    "fps": 24,
+                },
+                "objects": [
+                    {
+                        "type": "plane",
+                        "name": "Ground",
+                        "location": [0, 0, 0],
+                        "scale": [10, 10, 1],
+                    }
+                ],
+                "lights": [
+                    {
+                        "type": "sun",
+                        "name": "Sun",
+                        "strength": 5.0,
+                        "rotation": [0.785, 0, 0.785],
+                    }
+                ],
                 "camera": {"location": [7, -7, 5], "rotation": [1.1, 0, 0.785]},
             },
             "studio_lighting": {
@@ -72,14 +96,31 @@ class TemplateManager:
                         "size": 1.5,
                     },
                 ],
-                "camera": {"location": [4, -4, 2], "rotation": [1.4, 0, 0.785], "focal_length": 85},
-                "world": {"use_nodes": True, "background_color": [0.05, 0.05, 0.05], "background_strength": 1.0},
+                "camera": {
+                    "location": [4, -4, 2],
+                    "rotation": [1.4, 0, 0.785],
+                    "focal_length": 85,
+                },
+                "world": {
+                    "use_nodes": True,
+                    "background_color": [0.05, 0.05, 0.05],
+                    "background_strength": 1.0,
+                },
             },
             "procedural": {
                 "name": "Procedural Setup",
                 "description": "Scene prepared for procedural generation",
-                "settings": {"engine": "EEVEE", "samples": 64, "resolution": [1920, 1080], "fps": 30},
-                "modifiers": {"subdivision": True, "array": True, "geometry_nodes": True},
+                "settings": {
+                    "engine": "EEVEE",
+                    "samples": 64,
+                    "resolution": [1920, 1080],
+                    "fps": 30,
+                },
+                "modifiers": {
+                    "subdivision": True,
+                    "array": True,
+                    "geometry_nodes": True,
+                },
             },
             "animation": {
                 "name": "Animation Ready",
@@ -92,13 +133,27 @@ class TemplateManager:
                     "frame_start": 1,
                     "frame_end": 250,
                 },
-                "timeline": {"auto_keying": True, "frame_rate": 24, "time_unit": "FRAMES"},
+                "timeline": {
+                    "auto_keying": True,
+                    "frame_rate": 24,
+                    "time_unit": "FRAMES",
+                },
             },
             "physics": {
                 "name": "Physics Simulation",
                 "description": "Scene ready for physics simulations",
-                "settings": {"engine": "EEVEE", "samples": 32, "resolution": [1920, 1080], "fps": 30, "frame_end": 500},
-                "physics": {"gravity": [0, 0, -9.81], "scene_scale": 1.0, "collision_margin": 0.04},
+                "settings": {
+                    "engine": "EEVEE",
+                    "samples": 32,
+                    "resolution": [1920, 1080],
+                    "fps": 30,
+                    "frame_end": 500,
+                },
+                "physics": {
+                    "gravity": [0, 0, -9.81],
+                    "scene_scale": 1.0,
+                    "collision_margin": 0.04,
+                },
                 "objects": [
                     {
                         "type": "plane",
@@ -112,9 +167,19 @@ class TemplateManager:
             "architectural": {
                 "name": "Architectural Visualization",
                 "description": "Setup for architectural rendering",
-                "settings": {"engine": "CYCLES", "samples": 512, "resolution": [3840, 2160], "fps": 24, "use_denoising": True},
+                "settings": {
+                    "engine": "CYCLES",
+                    "samples": 512,
+                    "resolution": [3840, 2160],
+                    "fps": 24,
+                    "use_denoising": True,
+                },
                 "camera": {"type": "PERSP", "focal_length": 24, "sensor_width": 36},
-                "world": {"hdri": "studio_small_09_4k.hdr", "hdri_strength": 1.0, "hdri_rotation": [0, 0, 0]},
+                "world": {
+                    "hdri": "studio_small_09_4k.hdr",
+                    "hdri_strength": 1.0,
+                    "hdri_rotation": [0, 0, 0],
+                },
             },
             "product": {
                 "name": "Product Visualization",
@@ -126,8 +191,19 @@ class TemplateManager:
                     "fps": 24,
                     "film_transparent": True,
                 },
-                "lights": [{"type": "hdri", "hdri_path": "studio_small_03_4k.hdr", "strength": 0.5}],
-                "camera": {"type": "ORTHO", "ortho_scale": 3.0, "location": [0, -5, 0], "rotation": [1.5708, 0, 0]},
+                "lights": [
+                    {
+                        "type": "hdri",
+                        "hdri_path": "studio_small_03_4k.hdr",
+                        "strength": 0.5,
+                    }
+                ],
+                "camera": {
+                    "type": "ORTHO",
+                    "ortho_scale": 3.0,
+                    "location": [0, -5, 0],
+                    "rotation": [1.5708, 0, 0],
+                },
             },
             "vfx": {
                 "name": "VFX Compositing",
@@ -146,14 +222,31 @@ class TemplateManager:
             "game_asset": {
                 "name": "Game Asset",
                 "description": "Optimized for game asset creation",
-                "settings": {"engine": "EEVEE", "samples": 16, "resolution": [1024, 1024], "fps": 30},
-                "export": {"format": "FBX", "apply_modifiers": True, "triangulate": True},
+                "settings": {
+                    "engine": "EEVEE",
+                    "samples": 16,
+                    "resolution": [1024, 1024],
+                    "fps": 30,
+                },
+                "export": {
+                    "format": "FBX",
+                    "apply_modifiers": True,
+                    "triangulate": True,
+                },
             },
             "sculpting": {
                 "name": "Sculpting",
                 "description": "Prepared for digital sculpting",
-                "settings": {"engine": "WORKBENCH", "shading": "MATCAP", "resolution": [1920, 1080]},
-                "sculpt": {"dyntopo": True, "symmetry_x": True, "matcap": "clay_brown.exr"},
+                "settings": {
+                    "engine": "WORKBENCH",
+                    "shading": "MATCAP",
+                    "resolution": [1920, 1080],
+                },
+                "sculpt": {
+                    "dyntopo": True,
+                    "symmetry_x": True,
+                    "matcap": "clay_brown.exr",
+                },
             },
         }
 
@@ -215,7 +308,10 @@ class TemplateManager:
         return template_list
 
     def create_from_template(
-        self, template_id: str, output_path: str, custom_settings: Optional[Dict[str, Any]] = None
+        self,
+        template_id: str,
+        output_path: str,
+        custom_settings: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Create a new project from template.
 
@@ -257,7 +353,12 @@ class TemplateManager:
                 return {"error": str(e)}
         else:
             # Return template configuration for script-based creation
-            return {"success": True, "template_config": template, "template_id": template_id, "output_path": str(output)}
+            return {
+                "success": True,
+                "template_config": template,
+                "template_id": template_id,
+                "output_path": str(output),
+            }
 
     def save_as_template(self, project_path: str, template_name: str, description: str = "") -> Dict[str, Any]:
         """Save an existing project as a template.
@@ -288,7 +389,12 @@ class TemplateManager:
             config = {
                 "name": template_name,
                 "description": description,
-                "settings": {"engine": "CYCLES", "samples": 128, "resolution": [1920, 1080], "fps": 24},
+                "settings": {
+                    "engine": "CYCLES",
+                    "samples": 128,
+                    "resolution": [1920, 1080],
+                    "fps": 24,
+                },
                 "custom": True,
                 "source_project": source.name,
             }

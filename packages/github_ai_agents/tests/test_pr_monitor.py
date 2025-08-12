@@ -4,7 +4,6 @@ import json
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from github_ai_agents.monitors.pr import PRMonitor
 
 
@@ -41,7 +40,14 @@ class TestPRMonitor:
     def test_get_open_prs(self, mock_gh_command, pr_monitor):
         """Test getting open PRs."""
         mock_gh_command.return_value = json.dumps(
-            [{"number": 123, "title": "Test PR", "updatedAt": "2024-01-20T10:00:00Z", "headRefName": "feature-branch"}]
+            [
+                {
+                    "number": 123,
+                    "title": "Test PR",
+                    "updatedAt": "2024-01-20T10:00:00Z",
+                    "headRefName": "feature-branch",
+                }
+            ]
         )
 
         prs = pr_monitor.get_open_prs()
@@ -111,7 +117,15 @@ class TestPRMonitor:
         mock_gh_command.side_effect = [
             # Reviews
             json.dumps(
-                {"reviews": [{"id": "R1", "body": "[Fix][Claude] this issue", "author": {"login": "unauthorized_user"}}]}
+                {
+                    "reviews": [
+                        {
+                            "id": "R1",
+                            "body": "[Fix][Claude] this issue",
+                            "author": {"login": "unauthorized_user"},
+                        }
+                    ]
+                }
             ),
             # Comments
             json.dumps({"comments": []}),
@@ -120,7 +134,10 @@ class TestPRMonitor:
         ]
 
         # Mock security check to fail
-        pr_monitor.security_manager.perform_full_security_check.return_value = (False, "User not authorized")
+        pr_monitor.security_manager.perform_full_security_check.return_value = (
+            False,
+            "User not authorized",
+        )
 
         pr_monitor._process_single_pr(pr)
 

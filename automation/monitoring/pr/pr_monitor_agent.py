@@ -127,7 +127,10 @@ def main():
 
         if decision:
             if not args.json and decision["needs_response"]:
-                print(f"\n✓ Action required for {decision['response_type']}", file=sys.stderr)
+                print(
+                    f"\n✓ Action required for {decision['response_type']}",
+                    file=sys.stderr,
+                )
                 print(f"  Priority: {decision['priority']}", file=sys.stderr)
                 print(f"  Action: {decision['action_required']}", file=sys.stderr)
 

@@ -138,7 +138,10 @@ def calc(x, y):
         # Test 6: Toggle auto-consultation
         print("\n6. Testing auto-consultation toggle...")
         try:
-            payload = {"tool": "toggle_opencode_auto_consult", "arguments": {"enable": False}}
+            payload = {
+                "tool": "toggle_opencode_auto_consult",
+                "arguments": {"enable": False},
+            }
             async with session.post(f"{base_url}/mcp/execute", json=payload) as resp:
                 if resp.status == 200:
                     result = await resp.json()

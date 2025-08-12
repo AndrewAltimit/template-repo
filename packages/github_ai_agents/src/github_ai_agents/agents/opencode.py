@@ -19,7 +19,13 @@ class OpenCodeAgent(ContainerizedCLIAgent):
 
     def __init__(self, config=None) -> None:
         """Initialize OpenCode agent."""
-        super().__init__("opencode", "opencode", docker_service="openrouter-agents", timeout=300, config=config)
+        super().__init__(
+            "opencode",
+            "opencode",
+            docker_service="openrouter-agents",
+            timeout=300,
+            config=config,
+        )
 
         # Set up environment variables
         if api_key := os.environ.get("OPENROUTER_API_KEY"):
@@ -69,7 +75,12 @@ class OpenCodeAgent(ContainerizedCLIAgent):
             if e.stderr:
                 logger.error(f"OpenCode stderr: {e.stderr}")
             # Re-raise the error with more context
-            raise AgentExecutionError(self.name, e.exit_code, e.stdout, e.stderr or "No error output from opencode command")
+            raise AgentExecutionError(
+                self.name,
+                e.exit_code,
+                e.stdout,
+                e.stderr or "No error output from opencode command",
+            )
 
     def _build_command(self) -> List[str]:
         """Build OpenCode CLI command for stdin usage."""
@@ -126,7 +137,8 @@ class OpenCodeAgent(ContainerizedCLIAgent):
 
             try:
                 stdout, stderr = await asyncio.wait_for(
-                    proc.communicate(input=stdin_input.encode("utf-8")), timeout=self.timeout
+                    proc.communicate(input=stdin_input.encode("utf-8")),
+                    timeout=self.timeout,
                 )
 
                 stdout_str = stdout.decode("utf-8", errors="replace")

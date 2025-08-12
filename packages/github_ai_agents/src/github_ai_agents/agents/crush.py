@@ -15,7 +15,13 @@ class CrushAgent(ContainerizedCLIAgent):
     def __init__(self, config=None):
         """Initialize Crush agent."""
         # Use the actual Crush CLI from Charm Bracelet
-        super().__init__("crush", "crush", docker_service="openrouter-agents", timeout=300, config=config)
+        super().__init__(
+            "crush",
+            "crush",
+            docker_service="openrouter-agents",
+            timeout=300,
+            config=config,
+        )
 
         # Set up environment variables
         if api_key := os.environ.get("OPENROUTER_API_KEY"):

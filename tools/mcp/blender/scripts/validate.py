@@ -113,12 +113,20 @@ async def validate_blender_server(base_url: str = "http://localhost:8017"):
         print("\n✨ Test 5: Apply Materials")
         print("-" * 40)
         materials_applied = 0
-        for obj_name, material_type in [("Suzanne", "metal"), ("Cube", "glass"), ("Sphere", "emission")]:
+        for obj_name, material_type in [
+            ("Suzanne", "metal"),
+            ("Cube", "glass"),
+            ("Sphere", "emission"),
+        ]:
             result = await call_tool(
                 client,
                 base_url,
                 "apply_material",
-                {"project": project_name, "object_name": obj_name, "material": {"type": material_type, "roughness": 0.3}},
+                {
+                    "project": project_name,
+                    "object_name": obj_name,
+                    "material": {"type": material_type, "roughness": 0.3},
+                },
             )
             if result and (result.get("success") or "material" in str(result).lower()):
                 materials_applied += 1
@@ -135,7 +143,11 @@ async def validate_blender_server(base_url: str = "http://localhost:8017"):
             client,
             base_url,
             "setup_lighting",
-            {"project": project_name, "type": "studio", "settings": {"strength": 2.0, "color": [1, 0.95, 0.9]}},
+            {
+                "project": project_name,
+                "type": "studio",
+                "settings": {"strength": 2.0, "color": [1, 0.95, 0.9]},
+            },
         )
 
         if result and (result.get("success") or "lighting" in str(result).lower()):
@@ -153,7 +165,12 @@ async def validate_blender_server(base_url: str = "http://localhost:8017"):
             {
                 "project": project_name,
                 "frame": 1,
-                "settings": {"resolution": [1280, 720], "samples": 32, "engine": "EEVEE", "format": "PNG"},
+                "settings": {
+                    "resolution": [1280, 720],
+                    "samples": 32,
+                    "engine": "EEVEE",
+                    "format": "PNG",
+                },
             },
         )
 
@@ -205,7 +222,11 @@ async def run_demos(base_url: str = "http://localhost:8017"):
             client,
             base_url,
             "create_blender_project",
-            {"name": "demo_product", "template": "product", "settings": {"resolution": [1920, 1080], "engine": "CYCLES"}},
+            {
+                "name": "demo_product",
+                "template": "product",
+                "settings": {"resolution": [1920, 1080], "engine": "CYCLES"},
+            },
         )
 
         if result and result.get("success"):
@@ -223,8 +244,18 @@ async def run_demos(base_url: str = "http://localhost:8017"):
                 {
                     "project": project_name,
                     "objects": [
-                        {"type": "cylinder", "name": "Product", "location": [0, 0, 1], "scale": [1.5, 1.5, 0.5]},
-                        {"type": "plane", "name": "Surface", "location": [0, 0, 0], "scale": [10, 10, 1]},
+                        {
+                            "type": "cylinder",
+                            "name": "Product",
+                            "location": [0, 0, 1],
+                            "scale": [1.5, 1.5, 0.5],
+                        },
+                        {
+                            "type": "plane",
+                            "name": "Surface",
+                            "location": [0, 0, 0],
+                            "scale": [10, 10, 1],
+                        },
                     ],
                 },
             )
@@ -245,7 +276,14 @@ async def run_demos(base_url: str = "http://localhost:8017"):
 
             # Setup lighting
             await call_tool(
-                client, base_url, "setup_lighting", {"project": project_name, "type": "studio", "settings": {"strength": 3.0}}
+                client,
+                base_url,
+                "setup_lighting",
+                {
+                    "project": project_name,
+                    "type": "studio",
+                    "settings": {"strength": 3.0},
+                },
             )
             print("✅ Setup studio lighting")
 
@@ -257,7 +295,11 @@ async def run_demos(base_url: str = "http://localhost:8017"):
             client,
             base_url,
             "create_blender_project",
-            {"name": "demo_physics", "template": "physics", "settings": {"resolution": [1920, 1080], "fps": 30}},
+            {
+                "name": "demo_physics",
+                "template": "physics",
+                "settings": {"resolution": [1920, 1080], "fps": 30},
+            },
         )
 
         if result and result.get("success"):
@@ -275,7 +317,12 @@ async def run_demos(base_url: str = "http://localhost:8017"):
                 {
                     "project": project_name,
                     "objects": [
-                        {"type": "plane", "name": "Ground", "location": [0, 0, 0], "scale": [10, 10, 1]},
+                        {
+                            "type": "plane",
+                            "name": "Ground",
+                            "location": [0, 0, 0],
+                            "scale": [10, 10, 1],
+                        },
                         {"type": "cube", "name": "Box1", "location": [0, 0, 5]},
                         {"type": "sphere", "name": "Ball", "location": [1, 0, 7]},
                     ],
@@ -293,7 +340,11 @@ async def run_demos(base_url: str = "http://localhost:8017"):
                         "project": project_name,
                         "object_name": obj_name,
                         "physics_type": "rigid_body",
-                        "settings": {"mass": 0 if obj_name == "Ground" else 1.0, "friction": 0.5, "bounce": 0.3},
+                        "settings": {
+                            "mass": 0 if obj_name == "Ground" else 1.0,
+                            "friction": 0.5,
+                            "bounce": 0.3,
+                        },
                     },
                 )
             print("✅ Setup physics simulation")
@@ -306,7 +357,11 @@ async def run_demos(base_url: str = "http://localhost:8017"):
             client,
             base_url,
             "create_blender_project",
-            {"name": "demo_animation", "template": "animation", "settings": {"resolution": [1920, 1080], "fps": 60}},
+            {
+                "name": "demo_animation",
+                "template": "animation",
+                "settings": {"resolution": [1920, 1080], "fps": 60},
+            },
         )
 
         if result and result.get("success"):
@@ -333,7 +388,11 @@ async def run_demos(base_url: str = "http://localhost:8017"):
             print("✅ Added animated objects")
 
             # Apply emission materials
-            for obj_name, color in [("Core", [1, 1, 1, 1]), ("Ring1", [1, 0.5, 0, 1]), ("Cube1", [0, 0.5, 1, 1])]:
+            for obj_name, color in [
+                ("Core", [1, 1, 1, 1]),
+                ("Ring1", [1, 0.5, 0, 1]),
+                ("Cube1", [0, 0.5, 1, 1]),
+            ]:
                 await call_tool(
                     client,
                     base_url,
@@ -341,7 +400,11 @@ async def run_demos(base_url: str = "http://localhost:8017"):
                     {
                         "project": project_name,
                         "object_name": obj_name,
-                        "material": {"type": "emission", "base_color": color, "emission_strength": 3.0},
+                        "material": {
+                            "type": "emission",
+                            "base_color": color,
+                            "emission_strength": 3.0,
+                        },
                     },
                 )
             print("✅ Applied emission materials")
@@ -366,7 +429,12 @@ async def main():
 
     parser = argparse.ArgumentParser(description="Blender MCP Server Validation")
     parser.add_argument("--server-url", default="http://localhost:8017", help="Blender MCP server URL")
-    parser.add_argument("--mode", choices=["validate", "demos", "both"], default="both", help="What to run")
+    parser.add_argument(
+        "--mode",
+        choices=["validate", "demos", "both"],
+        default="both",
+        help="What to run",
+    )
 
     args = parser.parse_args()
 

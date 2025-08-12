@@ -9,7 +9,13 @@ from .utils import setup_logging, validate_environment
 try:
     from .client import MCPClient  # noqa: F401
 
-    __all__ = ["BaseMCPServer", "MCPClient", "HTTPBridge", "setup_logging", "validate_environment"]
+    __all__ = [
+        "BaseMCPServer",
+        "MCPClient",
+        "HTTPBridge",
+        "setup_logging",
+        "validate_environment",
+    ]
 except ImportError:
     # Client not available (likely running in server container without requests)
     __all__ = ["BaseMCPServer", "HTTPBridge", "setup_logging", "validate_environment"]

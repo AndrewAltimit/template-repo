@@ -24,7 +24,7 @@ try:
     from tools.mcp.gaea2.utils.gaea2_workflow_analyzer import Gaea2WorkflowAnalyzer
 except ImportError:
     print("Error: Unable to import Gaea2 modules. Please run from project root:")
-    print("  python scripts/analyze_gaea_projects.py")
+    print("  python automation/analysis/analyze_gaea_projects.py")
     print("Or set PYTHONPATH:")
     print("  PYTHONPATH=/path/to/project python analyze_gaea_projects.py")
     sys.exit(1)

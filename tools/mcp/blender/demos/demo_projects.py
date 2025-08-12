@@ -26,7 +26,10 @@ class BlenderMCPDemo:
 
     def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Call a tool via the MCP server."""
-        response = self.client.post(f"{self.base_url}/mcp/execute", json={"tool": tool_name, "arguments": arguments})
+        response = self.client.post(
+            f"{self.base_url}/mcp/execute",
+            json={"tool": tool_name, "arguments": arguments},
+        )
         return response.json()
 
     def demo_1_abstract_art(self):
@@ -39,7 +42,11 @@ class BlenderMCPDemo:
         print("Creating abstract art project...")
         result = self.call_tool(
             "create_blender_project",
-            {"name": "demo_abstract_art", "template": "empty", "settings": {"resolution": [1920, 1080], "engine": "CYCLES"}},
+            {
+                "name": "demo_abstract_art",
+                "template": "empty",
+                "settings": {"resolution": [1920, 1080], "engine": "CYCLES"},
+            },
         )
         print("✓ Project created: demo_abstract_art.blend")
         time.sleep(2)
@@ -64,9 +71,19 @@ class BlenderMCPDemo:
             y = math.sin(angle) * 3
             z = 1.5
 
-            spheres.append({"type": "sphere", "name": f"Sphere_{i+1}", "location": [x, y, z], "scale": [0.8, 0.8, 0.8]})
+            spheres.append(
+                {
+                    "type": "sphere",
+                    "name": f"Sphere_{i+1}",
+                    "location": [x, y, z],
+                    "scale": [0.8, 0.8, 0.8],
+                }
+            )
 
-        result = self.call_tool("add_primitive_objects", {"project": "demo_abstract_art", "objects": spheres})  # noqa: F841
+        result = self.call_tool(
+            "add_primitive_objects",
+            {"project": "demo_abstract_art", "objects": spheres},
+        )  # noqa: F841
         print(f"✓ Added {len(spheres)} colorful spheres")
         time.sleep(2)
 
@@ -78,7 +95,11 @@ class BlenderMCPDemo:
                 {
                     "project": "demo_abstract_art",
                     "object_name": f"Sphere_{i+1}",
-                    "material": {"type": "emission", "base_color": color, "emission_strength": 2.0},
+                    "material": {
+                        "type": "emission",
+                        "base_color": color,
+                        "emission_strength": 2.0,
+                    },
                 },
             )
         print("✓ Applied glowing materials to spheres")
@@ -89,7 +110,14 @@ class BlenderMCPDemo:
             "add_primitive_objects",
             {
                 "project": "demo_abstract_art",
-                "objects": [{"type": "plane", "name": "Ground", "location": [0, 0, 0], "scale": [10, 10, 1]}],
+                "objects": [
+                    {
+                        "type": "plane",
+                        "name": "Ground",
+                        "location": [0, 0, 0],
+                        "scale": [10, 10, 1],
+                    }
+                ],
             },
         )
 
@@ -99,7 +127,12 @@ class BlenderMCPDemo:
             {
                 "project": "demo_abstract_art",
                 "object_name": "Ground",
-                "material": {"type": "principled", "base_color": [0.1, 0.1, 0.1, 1.0], "metallic": 0.9, "roughness": 0.1},
+                "material": {
+                    "type": "principled",
+                    "base_color": [0.1, 0.1, 0.1, 1.0],
+                    "metallic": 0.9,
+                    "roughness": 0.1,
+                },
             },
         )
         print("✓ Added reflective ground plane")
@@ -134,7 +167,14 @@ class BlenderMCPDemo:
                 y = 0
                 z = i * 1.2 + 1
 
-                cubes.append({"type": "cube", "name": f"Cube_{i}_{j}", "location": [x, y, z], "scale": [0.5, 0.5, 0.5]})
+                cubes.append(
+                    {
+                        "type": "cube",
+                        "name": f"Cube_{i}_{j}",
+                        "location": [x, y, z],
+                        "scale": [0.5, 0.5, 0.5],
+                    }
+                )
 
         result = self.call_tool("add_primitive_objects", {"project": "demo_physics", "objects": cubes})  # noqa: F841
         print(f"✓ Added {len(cubes)} cubes in pyramid formation")
@@ -149,7 +189,12 @@ class BlenderMCPDemo:
                     "project": "demo_physics",
                     "object_name": cube["name"],
                     "physics_type": "rigid_body",
-                    "settings": {"mass": 1.0, "friction": 0.5, "bounce": 0.3, "collision_shape": "box"},
+                    "settings": {
+                        "mass": 1.0,
+                        "friction": 0.5,
+                        "bounce": 0.3,
+                        "collision_shape": "box",
+                    },
                 },
             )
         print("✓ Physics applied to all cubes")
@@ -212,9 +257,24 @@ class BlenderMCPDemo:
             {
                 "project": "demo_animated_logo",
                 "objects": [
-                    {"type": "torus", "name": "Logo_Ring", "location": [0, 0, 0], "scale": [2, 2, 0.5]},
-                    {"type": "sphere", "name": "Logo_Core", "location": [0, 0, 0], "scale": [0.8, 0.8, 0.8]},
-                    {"type": "cube", "name": "Logo_Cube", "location": [0, 0, 0], "scale": [0.5, 0.5, 0.5]},
+                    {
+                        "type": "torus",
+                        "name": "Logo_Ring",
+                        "location": [0, 0, 0],
+                        "scale": [2, 2, 0.5],
+                    },
+                    {
+                        "type": "sphere",
+                        "name": "Logo_Core",
+                        "location": [0, 0, 0],
+                        "scale": [0.8, 0.8, 0.8],
+                    },
+                    {
+                        "type": "cube",
+                        "name": "Logo_Cube",
+                        "location": [0, 0, 0],
+                        "scale": [0.5, 0.5, 0.5],
+                    },
                 ],
             },
         )
@@ -268,7 +328,12 @@ class BlenderMCPDemo:
 
         result = self.call_tool(  # noqa: F841
             "create_animation",
-            {"project": "demo_animated_logo", "object_name": "Logo_Cube", "keyframes": keyframes, "interpolation": "BEZIER"},
+            {
+                "project": "demo_animated_logo",
+                "object_name": "Logo_Cube",
+                "keyframes": keyframes,
+                "interpolation": "BEZIER",
+            },
         )
         print("✓ Cube orbit animation created")
 
@@ -279,7 +344,11 @@ class BlenderMCPDemo:
             {
                 "project": "demo_animated_logo",
                 "object_name": "Logo_Ring",
-                "material": {"type": "metal", "base_color": [0.9, 0.7, 0.3, 1.0], "roughness": 0.3},  # Gold
+                "material": {
+                    "type": "metal",
+                    "base_color": [0.9, 0.7, 0.3, 1.0],
+                    "roughness": 0.3,
+                },  # Gold
             },
         )
 
@@ -288,7 +357,11 @@ class BlenderMCPDemo:
             {
                 "project": "demo_animated_logo",
                 "object_name": "Logo_Core",
-                "material": {"type": "emission", "base_color": [0.3, 0.6, 1.0, 1.0], "emission_strength": 3.0},  # Blue glow
+                "material": {
+                    "type": "emission",
+                    "base_color": [0.3, 0.6, 1.0, 1.0],
+                    "emission_strength": 3.0,
+                },  # Blue glow
             },
         )
 
@@ -297,7 +370,11 @@ class BlenderMCPDemo:
             {
                 "project": "demo_animated_logo",
                 "object_name": "Logo_Cube",
-                "material": {"type": "metal", "base_color": [0.8, 0.8, 0.9, 1.0], "roughness": 0.2},  # Silver
+                "material": {
+                    "type": "metal",
+                    "base_color": [0.8, 0.8, 0.9, 1.0],
+                    "roughness": 0.2,
+                },  # Silver
             },
         )
         print("✓ Materials applied to logo elements")
@@ -314,7 +391,11 @@ class BlenderMCPDemo:
         print("Creating procedural landscape project...")
         result = self.call_tool(
             "create_blender_project",
-            {"name": "demo_landscape", "template": "empty", "settings": {"resolution": [2560, 1440], "engine": "CYCLES"}},
+            {
+                "name": "demo_landscape",
+                "template": "empty",
+                "settings": {"resolution": [2560, 1440], "engine": "CYCLES"},
+            },
         )
         print("✓ Project created: demo_landscape.blend")
         time.sleep(2)
@@ -325,7 +406,14 @@ class BlenderMCPDemo:
             "add_primitive_objects",
             {
                 "project": "demo_landscape",
-                "objects": [{"type": "plane", "name": "Terrain", "location": [0, 0, 0], "scale": [20, 20, 1]}],
+                "objects": [
+                    {
+                        "type": "plane",
+                        "name": "Terrain",
+                        "location": [0, 0, 0],
+                        "scale": [20, 20, 1],
+                    }
+                ],
             },
         )
         print("✓ Base terrain added")
@@ -349,7 +437,14 @@ class BlenderMCPDemo:
             "add_primitive_objects",
             {
                 "project": "demo_landscape",
-                "objects": [{"type": "cone", "name": "Tree_Base", "location": [0, 0, 0], "scale": [0.5, 0.5, 2]}],
+                "objects": [
+                    {
+                        "type": "cone",
+                        "name": "Tree_Base",
+                        "location": [0, 0, 0],
+                        "scale": [0.5, 0.5, 2],
+                    }
+                ],
             },
         )
 
@@ -372,7 +467,10 @@ class BlenderMCPDemo:
             {
                 "project": "demo_landscape",
                 "type": "sun",
-                "settings": {"strength": 3.0, "color": [1.0, 0.95, 0.8]},  # Warm sunlight
+                "settings": {
+                    "strength": 3.0,
+                    "color": [1.0, 0.95, 0.8],
+                },  # Warm sunlight
             },
         )
         print("✓ Natural sunlight configured")
@@ -384,7 +482,11 @@ class BlenderMCPDemo:
             {
                 "project": "demo_landscape",
                 "object_name": "Terrain",
-                "material": {"type": "principled", "base_color": [0.3, 0.5, 0.2, 1.0], "roughness": 0.8},  # Grass green
+                "material": {
+                    "type": "principled",
+                    "base_color": [0.3, 0.5, 0.2, 1.0],
+                    "roughness": 0.8,
+                },  # Grass green
             },
         )
 
@@ -393,7 +495,11 @@ class BlenderMCPDemo:
             {
                 "project": "demo_landscape",
                 "object_name": "Tree_Base",
-                "material": {"type": "principled", "base_color": [0.2, 0.4, 0.1, 1.0], "roughness": 0.9},  # Tree green
+                "material": {
+                    "type": "principled",
+                    "base_color": [0.2, 0.4, 0.1, 1.0],
+                    "roughness": 0.9,
+                },  # Tree green
             },
         )
         print("✓ Natural materials applied")

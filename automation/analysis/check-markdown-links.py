@@ -9,9 +9,9 @@ import sys
 from pathlib import Path
 
 # Add parent directory to path to import from tools
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from tools.utilities.markdown_link_checker import MarkdownLinkChecker  # noqa: E402
+from tools.cli.utilities.markdown_link_checker import MarkdownLinkChecker  # noqa: E402
 
 
 def format_results_text(results):
@@ -96,8 +96,18 @@ async def main():
     parser = argparse.ArgumentParser(description="Check markdown links")
     parser.add_argument("path", help="Path to markdown file or directory")
     parser.add_argument("--internal-only", action="store_true", help="Only check internal links")
-    parser.add_argument("--format", choices=["text", "json", "github"], default="text", help="Output format (default: text)")
-    parser.add_argument("--timeout", type=int, default=10, help="Timeout for HTTP requests in seconds (default: 10)")
+    parser.add_argument(
+        "--format",
+        choices=["text", "json", "github"],
+        default="text",
+        help="Output format (default: text)",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=10,
+        help="Timeout for HTTP requests in seconds (default: 10)",
+    )
     parser.add_argument("--output", help="Output file (default: stdout)")
 
     args = parser.parse_args()

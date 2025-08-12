@@ -310,7 +310,11 @@ class ContentCreationMCPServer(BaseMCPServer):
             return {"success": False, "error": str(e)}
 
     async def compile_latex(
-        self, content: str, format: str = "pdf", template: str = "article", visual_feedback: bool = True
+        self,
+        content: str,
+        format: str = "pdf",
+        template: str = "article",
+        visual_feedback: bool = True,
     ) -> Dict[str, Any]:
         """Compile LaTeX document to various formats
 
@@ -480,7 +484,8 @@ class ContentCreationMCPServer(BaseMCPServer):
                 if output_format == "png":
                     # Use pdftoppm for PNG conversion
                     self._run_subprocess_with_logging(
-                        ["pdftoppm", "-png", "-singlefile", pdf_path, output_path[:-4]], check=True
+                        ["pdftoppm", "-png", "-singlefile", pdf_path, output_path[:-4]],
+                        check=True,
                     )
                 elif output_format == "svg":
                     # Use pdf2svg for SVG conversion
@@ -507,7 +512,11 @@ class ContentCreationMCPServer(BaseMCPServer):
                         try:
                             with open(output_path, "r") as svg_file:
                                 svg_content = svg_file.read()
-                                result_data["visual_feedback"] = {"format": "svg", "encoding": "text", "data": svg_content}
+                                result_data["visual_feedback"] = {
+                                    "format": "svg",
+                                    "encoding": "text",
+                                    "data": svg_content,
+                                }
                         except Exception as e:
                             self.logger.warning(f"Failed to read SVG for visual feedback: {e}")
                             result_data["visual_feedback_error"] = str(e)

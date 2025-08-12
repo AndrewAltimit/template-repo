@@ -43,12 +43,21 @@ class TestSecurityManager:
         manager = SecurityManager()
 
         # Valid triggers
-        assert manager.parse_trigger_comment("[Approved][Claude]") == ("approved", "claude")
+        assert manager.parse_trigger_comment("[Approved][Claude]") == (
+            "approved",
+            "claude",
+        )
         assert manager.parse_trigger_comment("[Fix][OpenCode]") == ("fix", "opencode")
-        assert manager.parse_trigger_comment("[IMPLEMENT][Gemini]") == ("implement", "gemini")
+        assert manager.parse_trigger_comment("[IMPLEMENT][Gemini]") == (
+            "implement",
+            "gemini",
+        )
 
         # Case insensitive
-        assert manager.parse_trigger_comment("[APPROVED][CLAUDE]") == ("approved", "claude")
+        assert manager.parse_trigger_comment("[APPROVED][CLAUDE]") == (
+            "approved",
+            "claude",
+        )
 
         # Invalid triggers
         assert manager.parse_trigger_comment("Just a comment") == (None, None)
@@ -155,7 +164,11 @@ class TestSecurityManager:
         manager = SecurityManager()
 
         is_allowed, reason = manager.perform_full_security_check(
-            username="hacker", action="issue_approved", repository="user/repo", entity_type="issue", entity_id="1"
+            username="hacker",
+            action="issue_approved",
+            repository="user/repo",
+            entity_type="issue",
+            entity_id="1",
         )
 
         assert is_allowed is False

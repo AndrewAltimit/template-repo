@@ -175,7 +175,10 @@ class MemeGenerator:
         template_path = os.path.join(self.templates_dir, template_config["template_file"])
 
         if not os.path.exists(template_path):
-            return {"success": False, "error": f"Template image not found: {template_path}"}
+            return {
+                "success": False,
+                "error": f"Template image not found: {template_path}",
+            }
 
         try:
             img = Image.open(template_path).convert("RGB")

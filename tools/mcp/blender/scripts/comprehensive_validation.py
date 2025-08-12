@@ -40,7 +40,12 @@ class BlenderValidationSuite:
 
     async def log_result(self, test_name: str, success: bool, details: str = ""):
         """Log test result."""
-        result = {"test": test_name, "success": success, "timestamp": datetime.now().isoformat(), "details": details}
+        result = {
+            "test": test_name,
+            "success": success,
+            "timestamp": datetime.now().isoformat(),
+            "details": details,
+        }
         self.test_results.append(result)
         status = "✅ PASSED" if success else "❌ FAILED"
         print(f"{status}: {test_name}")
@@ -74,7 +79,11 @@ class BlenderValidationSuite:
                     {
                         "name": project_name,
                         "template": template,
-                        "settings": {"resolution": [1920, 1080], "fps": 24, "engine": "EEVEE"},
+                        "settings": {
+                            "resolution": [1920, 1080],
+                            "fps": 24,
+                            "engine": "EEVEE",
+                        },
                     },
                 )
 
@@ -82,7 +91,11 @@ class BlenderValidationSuite:
                     self.created_projects.append(result.get("project_path"))
                     await self.log_result(f"Create {template} template", True, f"Project: {project_name}")
                 else:
-                    await self.log_result(f"Create {template} template", False, result.get("error", "Unknown error"))
+                    await self.log_result(
+                        f"Create {template} template",
+                        False,
+                        result.get("error", "Unknown error"),
+                    )
 
             except Exception as e:
                 await self.log_result(f"Create {template} template", False, str(e))
@@ -94,7 +107,12 @@ class BlenderValidationSuite:
 
         # Create a test project first
         project_result = await self.client.call_tool(
-            "create_blender_project", {"name": "object_test", "template": "empty", "settings": {"engine": "EEVEE"}}
+            "create_blender_project",
+            {
+                "name": "object_test",
+                "template": "empty",
+                "settings": {"engine": "EEVEE"},
+            },
         )
 
         if not project_result.get("success"):
@@ -105,7 +123,15 @@ class BlenderValidationSuite:
         self.created_projects.append(project_path)
 
         # Test all primitive types
-        object_types = ["cube", "sphere", "cylinder", "cone", "torus", "plane", "monkey"]
+        object_types = [
+            "cube",
+            "sphere",
+            "cylinder",
+            "cone",
+            "torus",
+            "plane",
+            "monkey",
+        ]
 
         objects_to_add = []
         for i, obj_type in enumerate(object_types):
@@ -121,9 +147,16 @@ class BlenderValidationSuite:
             )
 
         try:
-            result = await self.client.call_tool("add_primitive_objects", {"project": project_path, "objects": objects_to_add})
+            result = await self.client.call_tool(
+                "add_primitive_objects",
+                {"project": project_path, "objects": objects_to_add},
+            )
 
-            await self.log_result("Add primitive objects", result.get("success", False), f"Added {len(object_types)} objects")
+            await self.log_result(
+                "Add primitive objects",
+                result.get("success", False),
+                f"Added {len(object_types)} objects",
+            )
 
         except Exception as e:
             await self.log_result("Add primitive objects", False, str(e))
@@ -135,7 +168,8 @@ class BlenderValidationSuite:
 
         # Create a test project
         project_result = await self.client.call_tool(
-            "create_blender_project", {"name": "materials_test", "template": "basic_scene"}
+            "create_blender_project",
+            {"name": "materials_test", "template": "basic_scene"},
         )
 
         if not project_result.get("success"):
@@ -168,11 +202,18 @@ class BlenderValidationSuite:
         for obj_name, material in material_tests:
             try:
                 result = await self.client.call_tool(
-                    "apply_material", {"project": project_path, "object_name": obj_name, "material": material}
+                    "apply_material",
+                    {
+                        "project": project_path,
+                        "object_name": obj_name,
+                        "material": material,
+                    },
                 )
 
                 await self.log_result(
-                    f"Apply {material['type']} material", result.get("success", False), f"Applied to {obj_name}"
+                    f"Apply {material['type']} material",
+                    result.get("success", False),
+                    f"Applied to {obj_name}",
                 )
 
             except Exception as e:
@@ -185,7 +226,11 @@ class BlenderValidationSuite:
             try:
                 result = await self.client.call_tool(
                     "setup_lighting",
-                    {"project": project_path, "type": light_type, "settings": {"strength": 2.0, "color": [1, 0.95, 0.8]}},
+                    {
+                        "project": project_path,
+                        "type": light_type,
+                        "settings": {"strength": 2.0, "color": [1, 0.95, 0.8]},
+                    },
                 )
 
                 await self.log_result(f"Setup {light_type} lighting", result.get("success", False))
@@ -210,10 +255,20 @@ class BlenderValidationSuite:
 
         # Create a physics scene: ground plane and falling objects
         objects = [
-            {"type": "plane", "name": "Ground", "location": [0, 0, 0], "scale": [10, 10, 1]},
+            {
+                "type": "plane",
+                "name": "Ground",
+                "location": [0, 0, 0],
+                "scale": [10, 10, 1],
+            },
             {"type": "cube", "name": "FallingBox1", "location": [0, 0, 5]},
             {"type": "sphere", "name": "FallingBall", "location": [2, 0, 7]},
-            {"type": "cube", "name": "FallingBox2", "location": [-2, 0, 9], "rotation": [0.5, 0.3, 0.2]},
+            {
+                "type": "cube",
+                "name": "FallingBox2",
+                "location": [-2, 0, 9],
+                "rotation": [0.5, 0.3, 0.2],
+            },
             {"type": "cylinder", "name": "FallingCylinder", "location": [0, 2, 6]},
         ]
 
@@ -235,7 +290,12 @@ class BlenderValidationSuite:
             await self.log_result("Setup ground physics", False, str(e))
 
         # Setup physics for falling objects
-        falling_objects = ["FallingBox1", "FallingBall", "FallingBox2", "FallingCylinder"]
+        falling_objects = [
+            "FallingBox1",
+            "FallingBall",
+            "FallingBox2",
+            "FallingCylinder",
+        ]
 
         for obj_name in falling_objects:
             try:
@@ -245,7 +305,12 @@ class BlenderValidationSuite:
                         "project": project_path,
                         "object_name": obj_name,
                         "physics_type": "rigid_body",
-                        "settings": {"mass": 1.0, "friction": 0.5, "bounce": 0.3, "collision_shape": "convex_hull"},
+                        "settings": {
+                            "mass": 1.0,
+                            "friction": 0.5,
+                            "bounce": 0.3,
+                            "collision_shape": "convex_hull",
+                        },
                     },
                 )
                 await self.log_result(f"Setup physics for {obj_name}", result.get("success", False))
@@ -255,9 +320,14 @@ class BlenderValidationSuite:
         # Bake the simulation
         try:
             result = await self.client.call_tool(
-                "bake_simulation", {"project": project_path, "start_frame": 1, "end_frame": 120}
+                "bake_simulation",
+                {"project": project_path, "start_frame": 1, "end_frame": 120},
             )
-            await self.log_result("Bake physics simulation", result.get("success", False), "120 frames baked")
+            await self.log_result(
+                "Bake physics simulation",
+                result.get("success", False),
+                "120 frames baked",
+            )
         except Exception as e:
             await self.log_result("Bake physics simulation", False, str(e))
 
@@ -268,7 +338,8 @@ class BlenderValidationSuite:
 
         # Create animation test project
         project_result = await self.client.call_tool(
-            "create_blender_project", {"name": "animation_test", "template": "animation"}
+            "create_blender_project",
+            {"name": "animation_test", "template": "animation"},
         )
 
         if not project_result.get("success"):
@@ -322,7 +393,10 @@ class BlenderValidationSuite:
                         "keyframes": anim["keyframes"],
                     },
                 )
-                await self.log_result(f"Animate {anim['object']} {anim['property']}", result.get("success", False))
+                await self.log_result(
+                    f"Animate {anim['object']} {anim['property']}",
+                    result.get("success", False),
+                )
             except Exception as e:
                 await self.log_result(f"Animate {anim['object']} {anim['property']}", False, str(e))
 
@@ -333,7 +407,8 @@ class BlenderValidationSuite:
 
         # Create procedural test project
         project_result = await self.client.call_tool(
-            "create_blender_project", {"name": "geometry_nodes_test", "template": "procedural"}
+            "create_blender_project",
+            {"name": "geometry_nodes_test", "template": "procedural"},
         )
 
         if not project_result.get("success"):
@@ -346,7 +421,10 @@ class BlenderValidationSuite:
         # Add base object for geometry nodes
         await self.client.call_tool(
             "add_primitive_objects",
-            {"project": project_path, "objects": [{"type": "plane", "name": "ScatterBase", "scale": [10, 10, 1]}]},
+            {
+                "project": project_path,
+                "objects": [{"type": "plane", "name": "ScatterBase", "scale": [10, 10, 1]}],
+            },
         )
 
         # Test different geometry node setups
@@ -354,9 +432,18 @@ class BlenderValidationSuite:
             {
                 "name": "Point scatter",
                 "type": "scatter",
-                "settings": {"count": 100, "seed": 42, "scale_min": 0.5, "scale_max": 1.5},
+                "settings": {
+                    "count": 100,
+                    "seed": 42,
+                    "scale_min": 0.5,
+                    "scale_max": 1.5,
+                },
             },
-            {"name": "Array modifier", "type": "array", "settings": {"count": 10, "offset": [2, 0, 0]}},
+            {
+                "name": "Array modifier",
+                "type": "array",
+                "settings": {"count": 10, "offset": [2, 0, 0]},
+            },
         ]
 
         for test in geometry_tests:
@@ -381,7 +468,8 @@ class BlenderValidationSuite:
 
         # Create a beautiful test scene for rendering
         project_result = await self.client.call_tool(
-            "create_blender_project", {"name": "render_showcase", "template": "studio_lighting"}
+            "create_blender_project",
+            {"name": "render_showcase", "template": "studio_lighting"},
         )
 
         if not project_result.get("success"):
@@ -394,31 +482,83 @@ class BlenderValidationSuite:
         # Create an interesting scene
         objects = [
             {"type": "monkey", "name": "MainSubject", "location": [0, 0, 1.5]},
-            {"type": "torus", "name": "Decoration1", "location": [2.5, 0, 1], "scale": [0.7, 0.7, 0.7]},
-            {"type": "sphere", "name": "Decoration2", "location": [-2.5, 0, 1], "scale": [0.8, 0.8, 0.8]},
-            {"type": "plane", "name": "Floor", "location": [0, 0, 0], "scale": [10, 10, 1]},
+            {
+                "type": "torus",
+                "name": "Decoration1",
+                "location": [2.5, 0, 1],
+                "scale": [0.7, 0.7, 0.7],
+            },
+            {
+                "type": "sphere",
+                "name": "Decoration2",
+                "location": [-2.5, 0, 1],
+                "scale": [0.8, 0.8, 0.8],
+            },
+            {
+                "type": "plane",
+                "name": "Floor",
+                "location": [0, 0, 0],
+                "scale": [10, 10, 1],
+            },
         ]
 
         await self.client.call_tool("add_primitive_objects", {"project": project_path, "objects": objects})
 
         # Apply nice materials
         materials = [
-            ("MainSubject", {"type": "metal", "roughness": 0.3, "base_color": [0.8, 0.6, 0.2, 1.0]}),
+            (
+                "MainSubject",
+                {"type": "metal", "roughness": 0.3, "base_color": [0.8, 0.6, 0.2, 1.0]},
+            ),
             ("Decoration1", {"type": "glass", "roughness": 0.0}),
-            ("Decoration2", {"type": "emission", "emission_strength": 2.0, "base_color": [0.2, 0.5, 1.0, 1.0]}),
-            ("Floor", {"type": "principled", "roughness": 0.8, "base_color": [0.3, 0.3, 0.3, 1.0]}),
+            (
+                "Decoration2",
+                {
+                    "type": "emission",
+                    "emission_strength": 2.0,
+                    "base_color": [0.2, 0.5, 1.0, 1.0],
+                },
+            ),
+            (
+                "Floor",
+                {
+                    "type": "principled",
+                    "roughness": 0.8,
+                    "base_color": [0.3, 0.3, 0.3, 1.0],
+                },
+            ),
         ]
 
         for obj_name, material in materials:
             await self.client.call_tool(
-                "apply_material", {"project": project_path, "object_name": obj_name, "material": material}
+                "apply_material",
+                {
+                    "project": project_path,
+                    "object_name": obj_name,
+                    "material": material,
+                },
             )
 
         # Test different render engines and settings
         render_tests = [
-            {"name": "EEVEE preview", "engine": "EEVEE", "samples": 32, "resolution": [1280, 720]},
-            {"name": "CYCLES high quality", "engine": "CYCLES", "samples": 128, "resolution": [1920, 1080]},
-            {"name": "WORKBENCH technical", "engine": "WORKBENCH", "samples": 1, "resolution": [1280, 720]},
+            {
+                "name": "EEVEE preview",
+                "engine": "EEVEE",
+                "samples": 32,
+                "resolution": [1280, 720],
+            },
+            {
+                "name": "CYCLES high quality",
+                "engine": "CYCLES",
+                "samples": 128,
+                "resolution": [1920, 1080],
+            },
+            {
+                "name": "WORKBENCH technical",
+                "engine": "WORKBENCH",
+                "samples": 1,
+                "resolution": [1280, 720],
+            },
         ]
 
         for test in render_tests:
@@ -443,7 +583,9 @@ class BlenderValidationSuite:
                         await self.wait_for_job(result["job_id"])
 
                     await self.log_result(
-                        f"Render {test['name']}", True, f"{test['engine']} @ {test['resolution'][0]}x{test['resolution'][1]}"
+                        f"Render {test['name']}",
+                        True,
+                        f"{test['engine']} @ {test['resolution'][0]}x{test['resolution'][1]}",
                     )
                 else:
                     await self.log_result(f"Render {test['name']}", False, result.get("error"))
@@ -458,7 +600,8 @@ class BlenderValidationSuite:
 
         # Create test project
         project_result = await self.client.call_tool(
-            "create_blender_project", {"name": "import_export_test", "template": "empty"}
+            "create_blender_project",
+            {"name": "import_export_test", "template": "empty"},
         )
 
         if not project_result.get("success"):

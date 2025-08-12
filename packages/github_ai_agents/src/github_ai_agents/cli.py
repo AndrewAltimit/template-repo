@@ -26,7 +26,12 @@ def main():
     # Issue monitor command
     issue_parser = subparsers.add_parser("issue-monitor", help="Monitor GitHub issues")
     issue_parser.add_argument("--continuous", action="store_true", help="Run continuously")
-    issue_parser.add_argument("--interval", type=int, default=300, help="Check interval in seconds (default: 300)")
+    issue_parser.add_argument(
+        "--interval",
+        type=int,
+        default=300,
+        help="Check interval in seconds (default: 300)",
+    )
 
     # PR monitor command
     pr_parser = subparsers.add_parser("pr-monitor", help="Monitor GitHub PRs")

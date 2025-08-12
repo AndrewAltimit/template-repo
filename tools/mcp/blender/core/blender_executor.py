@@ -16,7 +16,12 @@ logger = logging.getLogger(__name__)
 class BlenderExecutor:
     """Manages Blender subprocess execution."""
 
-    def __init__(self, blender_path: str = "/opt/blender/blender", output_dir: str = "/app/outputs", base_dir: str = "/app"):
+    def __init__(
+        self,
+        blender_path: str = "/opt/blender/blender",
+        output_dir: str = "/app/outputs",
+        base_dir: str = "/app",
+    ):
         """Initialize Blender executor.
 
         Args:
@@ -58,7 +63,11 @@ class BlenderExecutor:
                 logger.warning(f"Blender not found at {blender_path}")
 
     async def execute_script(
-        self, script_name: str, arguments: Dict[str, Any], job_id: str, background: bool = True
+        self,
+        script_name: str,
+        arguments: Dict[str, Any],
+        job_id: str,
+        background: bool = True,
     ) -> Dict[str, Any]:
         """Execute a Blender Python script.
 
@@ -115,14 +124,22 @@ class BlenderExecutor:
                     raise FileNotFoundError(f"Blender not found at {self.blender_path}")
 
                 # Update status using centralized manager
-                self.status_manager.update_status(job_id, status="RUNNING", progress=0, message="Starting Blender process")
+                self.status_manager.update_status(
+                    job_id,
+                    status="RUNNING",
+                    progress=0,
+                    message="Starting Blender process",
+                )
 
                 # Log the command for debugging
                 logger.info(f"Running command: {' '.join(cmd)}")
 
                 # Start process
                 process = await asyncio.create_subprocess_exec(
-                    *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, cwd=str(self.base_dir)
+                    *cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    cwd=str(self.base_dir),
                 )
 
                 # Store process reference and args file for cleanup
@@ -167,7 +184,10 @@ class BlenderExecutor:
             if process.returncode == 0:
                 # Success - update using centralized manager
                 self.status_manager.update_status(
-                    job_id, status="COMPLETED", progress=100, message="Process completed successfully"
+                    job_id,
+                    status="COMPLETED",
+                    progress=100,
+                    message="Process completed successfully",
                 )
 
                 # Check for output file
@@ -179,7 +199,9 @@ class BlenderExecutor:
                 # Error - update using centralized manager
                 error_msg = stderr.decode() if stderr else "Unknown error"
                 self.status_manager.update_status(
-                    job_id, status="FAILED", error=f"{error_msg} (exit code: {process.returncode})"
+                    job_id,
+                    status="FAILED",
+                    error=f"{error_msg} (exit code: {process.returncode})",
                 )
                 logger.error(f"Blender process failed: {error_msg}")
 
@@ -241,7 +263,12 @@ class BlenderExecutor:
             Version string or None if Blender not found
         """
         try:
-            result = subprocess.run([self.blender_path, "--version"], capture_output=True, text=True, timeout=5)
+            result = subprocess.run(
+                [self.blender_path, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
             if result.returncode == 0:
                 # Parse version from output
                 lines = result.stdout.split("\n")

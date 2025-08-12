@@ -130,7 +130,10 @@ class JobManager:
             return None
 
     def list_jobs(
-        self, status: Optional[str] = None, job_type: Optional[str] = None, limit: int = 100
+        self,
+        status: Optional[str] = None,
+        job_type: Optional[str] = None,
+        limit: int = 100,
     ) -> List[Dict[str, Any]]:
         """List jobs with optional filtering.
 

@@ -555,7 +555,10 @@ Do not provide implementation code. Focus on analysis and feedback only."""
 
 def main():
     """Main entry point."""
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
 
     monitor = IssueMonitor()
 

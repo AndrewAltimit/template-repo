@@ -69,13 +69,25 @@ class TestIssueMonitor:
         with patch("github_ai_agents.monitors.issue.run_gh_command") as mock_gh:
             # Mock issue with agent comment
             mock_gh.return_value = json.dumps(
-                {"comments": [{"body": "Regular comment"}, {"body": "[AI Agent] I've created a PR"}]}
+                {
+                    "comments": [
+                        {"body": "Regular comment"},
+                        {"body": "[AI Agent] I've created a PR"},
+                    ]
+                }
             )
 
             assert monitor._has_agent_comment(1, "issue") is True
 
             # Mock issue without agent comment
-            mock_gh.return_value = json.dumps({"comments": [{"body": "Regular comment"}, {"body": "Another regular comment"}]})
+            mock_gh.return_value = json.dumps(
+                {
+                    "comments": [
+                        {"body": "Regular comment"},
+                        {"body": "Another regular comment"},
+                    ]
+                }
+            )
 
             assert monitor._has_agent_comment(2, "issue") is False
 
@@ -104,7 +116,12 @@ class TestIssueMonitor:
                     mock_has_comment.return_value = False
 
                     with patch.object(monitor, "_handle_implementation") as mock_impl:
-                        issue = {"number": 1, "title": "Test issue", "body": "Issue body", "author": {"login": "user1"}}
+                        issue = {
+                            "number": 1,
+                            "title": "Test issue",
+                            "body": "Issue body",
+                            "author": {"login": "user1"},
+                        }
 
                         monitor._process_single_issue(issue)
 
@@ -208,7 +225,11 @@ class TestPRMonitor:
         with patch.object(monitor.security_manager, "check_trigger_comment") as mock_check:
             mock_check.return_value = ("fix", "claude", "AndrewAltimit")
 
-            pr = {"number": 10, "body": "PR with [Fix][Claude]", "author": {"login": "user1"}}
+            pr = {
+                "number": 10,
+                "body": "PR with [Fix][Claude]",
+                "author": {"login": "user1"},
+            }
 
             result = monitor._check_trigger_comment(pr)
             assert result == ("fix", "claude", "AndrewAltimit")

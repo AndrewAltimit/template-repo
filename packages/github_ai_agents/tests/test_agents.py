@@ -5,7 +5,6 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
-
 from github_ai_agents.agents import BaseAgent, ClaudeAgent, CrushAgent, GeminiAgent, OpenCodeAgent
 
 
@@ -77,7 +76,13 @@ class TestOpenCodeAgent:
 
                 # Docker check should be called first
                 mock_run.assert_called_once_with(
-                    ["docker-compose", "-f", "/fake/root/docker-compose.yml", "config", "--services"],
+                    [
+                        "docker-compose",
+                        "-f",
+                        "/fake/root/docker-compose.yml",
+                        "config",
+                        "--services",
+                    ],
                     capture_output=True,
                     timeout=5,
                     text=True,

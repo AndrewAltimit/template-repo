@@ -23,7 +23,7 @@ class AccurateGaea2Validator:
                 self.schema = json.load(f)
         else:
             # Fallback to embedded schema
-            from scripts.generate_gaea2_schema import GAEA2_COMPLETE_SCHEMA
+            from automation.analysis.generate_gaea2_schema import GAEA2_COMPLETE_SCHEMA
 
             self.schema = GAEA2_COMPLETE_SCHEMA
             # Convert set to list if needed

@@ -66,7 +66,11 @@ class TestBlenderMCPServer:
         server.blender_executor.execute_script = AsyncMock(return_value={"success": True})
 
         result = await server._create_project(
-            {"name": "test_project", "template": "basic_scene", "settings": {"resolution": [1920, 1080]}}
+            {
+                "name": "test_project",
+                "template": "basic_scene",
+                "settings": {"resolution": [1920, 1080]},
+            }
         )
 
         assert result["success"] is True
@@ -80,7 +84,11 @@ class TestBlenderMCPServer:
         server.blender_executor.execute_script = AsyncMock(return_value={"success": True})
 
         result = await server._render_image(
-            {"project": "/app/projects/test.blend", "frame": 1, "settings": {"engine": "CYCLES", "samples": 128}}
+            {
+                "project": "/app/projects/test.blend",
+                "frame": 1,
+                "settings": {"engine": "CYCLES", "samples": 128},
+            }
         )
 
         assert result["success"] is True
@@ -108,7 +116,12 @@ class TestBlenderMCPServer:
     @pytest.mark.asyncio
     async def test_job_status(self, server):
         """Test job status retrieval."""
-        mock_job = {"status": "RUNNING", "progress": 50, "message": "Rendering", "created_at": "2024-01-01T00:00:00"}
+        mock_job = {
+            "status": "RUNNING",
+            "progress": 50,
+            "message": "Rendering",
+            "created_at": "2024-01-01T00:00:00",
+        }
         server.job_manager.get_job = Mock(return_value=mock_job)
 
         result = await server._get_job_status({"job_id": "test-job"})

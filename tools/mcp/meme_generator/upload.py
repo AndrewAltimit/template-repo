@@ -53,7 +53,10 @@ class MemeUploader:
                 else:
                     return {"success": False, "error": f"Unexpected response: {url}"}
             else:
-                return {"success": False, "error": f"Upload failed with status {response.status_code}: {response.text}"}
+                return {
+                    "success": False,
+                    "error": f"Upload failed with status {response.status_code}: {response.text}",
+                }
 
         except httpx.TimeoutException:
             return {"success": False, "error": "Upload timed out after 30 seconds"}
@@ -108,13 +111,25 @@ class MemeUploader:
                             "note": "Link expires after 1 hour of inactivity or max 30 days",
                         }
                     else:
-                        return {"success": False, "error": response_data.get("message", "Upload failed")}
+                        return {
+                            "success": False,
+                            "error": response_data.get("message", "Upload failed"),
+                        }
                 except json.JSONDecodeError:
-                    return {"success": False, "error": f"Invalid response: {response.text[:200]}"}
+                    return {
+                        "success": False,
+                        "error": f"Invalid response: {response.text[:200]}",
+                    }
             elif response.status_code == 403:
-                return {"success": False, "error": "Access forbidden - service may be blocking automated uploads"}
+                return {
+                    "success": False,
+                    "error": "Access forbidden - service may be blocking automated uploads",
+                }
             else:
-                return {"success": False, "error": f"Upload failed with status {response.status_code}"}
+                return {
+                    "success": False,
+                    "error": f"Upload failed with status {response.status_code}",
+                }
 
         except httpx.TimeoutException:
             return {"success": False, "error": "Upload timed out after 30 seconds"}
@@ -155,11 +170,20 @@ class MemeUploader:
                             "key": response_data.get("key"),
                         }
                     else:
-                        return {"success": False, "error": response_data.get("message", "Upload failed")}
+                        return {
+                            "success": False,
+                            "error": response_data.get("message", "Upload failed"),
+                        }
                 except json.JSONDecodeError:
-                    return {"success": False, "error": f"Invalid response: {response.text}"}
+                    return {
+                        "success": False,
+                        "error": f"Invalid response: {response.text}",
+                    }
             else:
-                return {"success": False, "error": f"Upload failed with status {response.status_code}: {response.text}"}
+                return {
+                    "success": False,
+                    "error": f"Upload failed with status {response.status_code}: {response.text}",
+                }
 
         except httpx.TimeoutException:
             return {"success": False, "error": "Upload timed out after 30 seconds"}
@@ -184,7 +208,10 @@ class MemeUploader:
 
         file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
         if file_size_mb > 512:  # Most free services have limits
-            return {"success": False, "error": f"File too large: {file_size_mb:.1f}MB (max 512MB)"}
+            return {
+                "success": False,
+                "error": f"File too large: {file_size_mb:.1f}MB (max 512MB)",
+            }
 
         if service == "tmpfiles":
             return MemeUploader.upload_to_tmpfiles(file_path)
@@ -224,9 +251,16 @@ class MemeUploader:
             errors.append(f"file.io: {result.get('error', 'Unknown error')}")
 
             # All services failed, return detailed error
-            return {"success": False, "error": "All upload services failed", "details": errors}
+            return {
+                "success": False,
+                "error": "All upload services failed",
+                "details": errors,
+            }
         else:
-            return {"success": False, "error": f"Unknown service: {service}. Available: tmpfiles, 0x0st, fileio, auto"}
+            return {
+                "success": False,
+                "error": f"Unknown service: {service}. Available: tmpfiles, 0x0st, fileio, auto",
+            }
 
 
 def upload_meme(file_path: str, service: str = "auto") -> Optional[str]:

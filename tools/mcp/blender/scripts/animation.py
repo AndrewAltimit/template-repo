@@ -363,7 +363,9 @@ def create_nla_tracks(args, job_id):
 
                 # Create strip
                 strip = track.strips.new(
-                    name=strip_data.get("name", action_name), start=strip_data.get("start", 1), action=action
+                    name=strip_data.get("name", action_name),
+                    start=strip_data.get("start", 1),
+                    action=action,
                 )
 
                 # Configure strip

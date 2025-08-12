@@ -121,7 +121,10 @@ class OpenCodeIntegration:
         This is an alias for generate_code that follows the Gemini-style consultation pattern.
         """
         if not self.auto_consult and not force_consult:
-            return {"status": "disabled", "message": "OpenCode auto-consultation is disabled. Use force=True to override."}
+            return {
+                "status": "disabled",
+                "message": "OpenCode auto-consultation is disabled. Use force=True to override.",
+            }
 
         # Map consultation to generate_code
         return await self.generate_code(
@@ -230,7 +233,10 @@ class OpenCodeIntegration:
 
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    url, headers=headers, json=data, timeout=aiohttp.ClientTimeout(total=self.timeout)
+                    url,
+                    headers=headers,
+                    json=data,
+                    timeout=aiohttp.ClientTimeout(total=self.timeout),
                 ) as response:
                     if response.status != 200:
                         error_text = await response.text()

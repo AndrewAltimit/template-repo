@@ -38,7 +38,10 @@ async def test_get_template_info():
     async with httpx.AsyncClient() as client:
         response = await client.post(
             f"{SERVER_URL}/mcp/execute",
-            json={"tool": "get_meme_template_info", "arguments": {"template_id": "ol_reliable"}},
+            json={
+                "tool": "get_meme_template_info",
+                "arguments": {"template_id": "ol_reliable"},
+            },
         )
         print(f"Status: {response.status_code}")
         result = response.json()

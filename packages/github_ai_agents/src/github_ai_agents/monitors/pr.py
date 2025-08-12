@@ -303,7 +303,14 @@ Requirements:
             logger.error(f"Agent {agent.name} failed: {e}")
             raise
 
-    async def _apply_review_fixes(self, pr: Dict, agent_name: str, implementation: str, branch_name: str, comment_id: str):
+    async def _apply_review_fixes(
+        self,
+        pr: Dict,
+        agent_name: str,
+        implementation: str,
+        branch_name: str,
+        comment_id: str,
+    ):
         """Apply review fixes to the PR branch."""
         pr_number = pr["number"]
 
@@ -517,7 +524,10 @@ Do not provide implementation code. Focus on review feedback only."""
 
 def main():
     """Main entry point."""
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
 
     monitor = PRMonitor()
 

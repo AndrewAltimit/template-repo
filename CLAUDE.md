@@ -51,22 +51,22 @@ The AI agents implement a comprehensive multi-layer security model with command-
 
 ```bash
 # Monitor a PR for admin/Gemini comments
-./scripts/pr-monitoring/monitor-pr.sh 48
+./automation/monitoring/pr/monitor-pr.sh 48
 
 # Monitor with custom timeout (30 minutes)
-./scripts/pr-monitoring/monitor-pr.sh 48 --timeout 1800
+./automation/monitoring/pr/monitor-pr.sh 48 --timeout 1800
 
 # Monitor from a specific commit (for post-push feedback)
-./scripts/pr-monitoring/monitor-pr.sh 48 --since-commit abc1234
+./automation/monitoring/pr/monitor-pr.sh 48 --since-commit abc1234
 
 # Get JSON output for automation
-./scripts/pr-monitoring/monitor-pr.sh 48 --json
+./automation/monitoring/pr/monitor-pr.sh 48 --json
 
 # When asked to "monitor the PR for new comments", use:
-python scripts/pr-monitoring/pr_monitor_agent.py PR_NUMBER
+python automation/monitoring/pr/pr_monitor_agent.py PR_NUMBER
 
 # After pushing commits, monitor from that commit:
-python scripts/pr-monitoring/pr_monitor_agent.py PR_NUMBER --since-commit SHA
+python automation/monitoring/pr/pr_monitor_agent.py PR_NUMBER --since-commit SHA
 ```
 
 **PR Monitoring Usage**: When users ask you to monitor a PR or end requests with "and monitor for comments", automatically start the monitoring agent. It will:
@@ -82,22 +82,22 @@ See `docs/PR_MONITORING.md` for full documentation.
 
 ```bash
 # Run all tests with coverage (containerized)
-docker-compose run --rm python-ci pytest tests/ -v --cov=. --cov-report=xml
+docker-compose -f config/docker/docker-compose.yml run --rm python-ci pytest tests/ -v --cov=. --cov-report=xml
 
 # Run a specific test file
-docker-compose run --rm python-ci pytest tests/test_mcp_tools.py -v
+docker-compose -f config/docker/docker-compose.yml run --rm python-ci pytest tests/test_mcp_tools.py -v
 
 # Run tests with specific test name pattern
-docker-compose run --rm python-ci pytest -k "test_format" -v
+docker-compose -f config/docker/docker-compose.yml run --rm python-ci pytest -k "test_format" -v
 
 # Quick test run using helper script (excludes gaea2 tests)
-./scripts/run-ci.sh test
+./automation/ci-cd/run-ci.sh test
 
 # Run only Gaea2 tests (requires remote server at 192.168.0.152:8007)
-./scripts/run-ci.sh test-gaea2
+./automation/ci-cd/run-ci.sh test-gaea2
 
 # Run all tests including Gaea2 (gaea2 tests may fail if server unavailable)
-./scripts/run-ci.sh test-all
+./automation/ci-cd/run-ci.sh test-all
 ```
 
 **Note**: Gaea2 integration tests are separated from the main test suite because they require the remote Gaea2 MCP server to be available. In PR validation, these tests run in a separate job that checks server availability first.
@@ -106,21 +106,21 @@ docker-compose run --rm python-ci pytest -k "test_format" -v
 
 ```bash
 # Using containerized CI scripts (recommended)
-./scripts/run-ci.sh format      # Check formatting
-./scripts/run-ci.sh lint-basic   # Basic linting
-./scripts/run-ci.sh lint-full    # Full linting suite
-./scripts/run-ci.sh autoformat   # Auto-format code
+./automation/ci-cd/run-ci.sh format      # Check formatting
+./automation/ci-cd/run-ci.sh lint-basic   # Basic linting
+./automation/ci-cd/run-ci.sh lint-full    # Full linting suite
+./automation/ci-cd/run-ci.sh autoformat   # Auto-format code
 
 # Direct Docker Compose commands
-docker-compose run --rm python-ci black --check .
-docker-compose run --rm python-ci flake8 .
-docker-compose run --rm python-ci pylint tools/ scripts/
-docker-compose run --rm python-ci mypy . --ignore-missing-imports
+docker-compose -f config/docker/docker-compose.yml run --rm python-ci black --check .
+docker-compose -f config/docker/docker-compose.yml run --rm python-ci flake8 .
+docker-compose -f config/docker/docker-compose.yml run --rm python-ci pylint tools/ automation/
+docker-compose -f config/docker/docker-compose.yml run --rm python-ci mypy . --ignore-missing-imports
 
 # Note: All Python CI/CD tools run in containers to ensure consistency
 
 # Run all checks at once
-./scripts/run-ci.sh full
+./automation/ci-cd/run-ci.sh full
 ```
 
 ### Development
@@ -129,9 +129,9 @@ docker-compose run --rm python-ci mypy . --ignore-missing-imports
 # MODULAR MCP SERVERS (Container-First Approach)
 
 # Start servers in Docker (recommended for consistency)
-docker-compose up -d mcp-code-quality        # Port 8010 - Code formatting/linting
-docker-compose up -d mcp-content-creation    # Port 8011 - Manim & LaTeX
-docker-compose up -d mcp-gaea2               # Port 8007 - Terrain generation
+docker-compose -f config/docker/docker-compose.yml up -d mcp-code-quality        # Port 8010 - Code formatting/linting
+docker-compose -f config/docker/docker-compose.yml up -d mcp-content-creation    # Port 8011 - Manim & LaTeX
+docker-compose -f config/docker/docker-compose.yml up -d mcp-gaea2               # Port 8007 - Terrain generation
 
 # For local development (when actively developing server code)
 python -m tools.mcp.code_quality.server      # Port 8010
@@ -150,13 +150,13 @@ python -m tools.mcp.gemini.server            # Port 8006 - AI integration (host 
 ./tools/mcp/gemini/scripts/start_server.sh --mode http
 
 # Test all MCP servers at once
-python scripts/mcp/test_all_servers.py
+python automation/testing/test_all_servers.py
 
 # Quick test of running servers
-python scripts/mcp/test_all_servers.py --quick
+python automation/testing/test_all_servers.py --quick
 
 # View logs for specific servers
-docker-compose logs -f mcp-code-quality
+docker-compose -f config/docker/docker-compose.yml logs -f mcp-code-quality
 
 # Test individual servers
 python tools/mcp/code_quality/scripts/test_server.py
@@ -167,7 +167,7 @@ python tools/mcp/ai_toolkit/scripts/test_server.py
 python tools/mcp/comfyui/scripts/test_server.py
 
 # For local development without Docker
-pip install -r requirements.txt
+pip install -r config/python/requirements.txt
 ```
 
 ### AI Agents
@@ -184,15 +184,15 @@ pip install -r requirements.txt
 
 # Containerized Agents (OpenRouter-compatible):
 # OpenCode, Crush - run in openrouter-agents container
-docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
+docker-compose -f config/docker/docker-compose.yml run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
 
 # Or use specific containerized agents:
-docker-compose run --rm openrouter-agents crush run -q "Write a Python function"
+docker-compose -f config/docker/docker-compose.yml run --rm openrouter-agents crush run -q "Write a Python function"
 
 # Direct host execution with helper scripts:
-./tools/utilities/run_claude.sh     # Interactive Claude session with Node.js 22
-./tools/utilities/run_opencode.sh   # OpenCode CLI for comprehensive code generation
-./tools/utilities/run_crush.sh      # Crush CLI for fast code generation
+./tools/cli/runners/run_claude.sh     # Interactive Claude session with Node.js 22
+./tools/cli/runners/run_opencode.sh   # OpenCode CLI for comprehensive code generation
+./tools/cli/runners/run_crush.sh      # Crush CLI for fast code generation
 
 # Host agent execution (Claude, Gemini only):
 python3 -m github_ai_agents.cli issue-monitor
@@ -220,42 +220,42 @@ pip3 install --user -r docker/requirements-agents.txt
 
 ```bash
 # Build and start all services
-docker-compose up -d
+docker-compose -f config/docker/docker-compose.yml up -d
 
 # View logs
-docker-compose logs -f mcp-code-quality
-docker-compose logs -f mcp-content-creation
-docker-compose logs -f mcp-gaea2
-docker-compose logs -f python-ci
+docker-compose -f config/docker/docker-compose.yml logs -f mcp-code-quality
+docker-compose -f config/docker/docker-compose.yml logs -f mcp-content-creation
+docker-compose -f config/docker/docker-compose.yml logs -f mcp-gaea2
+docker-compose -f config/docker/docker-compose.yml logs -f python-ci
 
 # Stop services
-docker-compose down
+docker-compose -f config/docker/docker-compose.yml down
 
 # Rebuild after changes
-docker-compose build mcp-code-quality
-docker-compose build mcp-content-creation
-docker-compose build mcp-gaea2
-docker-compose build python-ci
+docker-compose -f config/docker/docker-compose.yml build mcp-code-quality
+docker-compose -f config/docker/docker-compose.yml build mcp-content-creation
+docker-compose -f config/docker/docker-compose.yml build mcp-gaea2
+docker-compose -f config/docker/docker-compose.yml build python-ci
 ```
 
 ### Helper Scripts
 
 ```bash
 # CI/CD operations script
-./scripts/run-ci.sh [stage]
+./automation/ci-cd/run-ci.sh [stage]
 # Stages: format, lint-basic, lint-full, security, test, yaml-lint, json-lint, autoformat
 
 # Lint stage helper (used in workflows)
-./scripts/run-lint-stage.sh [stage]
+./automation/ci-cd/run-lint-stage.sh [stage]
 # Stages: format, basic, full
 
 # Fix runner permission issues
-./scripts/fix-runner-permissions.sh
+./automation/setup/runner/fix-runner-permissions.sh
 
 # Check markdown links locally
-./scripts/check-links.sh                # Check all links in all markdown files
-./scripts/check-links.sh --internal-only # Check only internal links
-./scripts/check-links.sh --file docs/   # Check only files in docs directory
+python automation/analysis/check-markdown-links.py                # Check all links in all markdown files
+python automation/analysis/check-markdown-links.py --internal-only # Check only internal links
+python automation/analysis/check-markdown-links.py --file docs/   # Check only files in docs directory
 ```
 
 ## Architecture
@@ -411,12 +411,12 @@ The repository includes comprehensive CI/CD workflows:
 - IMPORTANT: When you have completed a task, you MUST run the lint and quality checks:
   ```bash
   # Run full CI checks
-  ./scripts/run-ci.sh full
+  ./automation/ci-cd/run-ci.sh full
 
   # Or individual checks
-  ./scripts/run-ci.sh format
-  ./scripts/run-ci.sh lint-basic
-  ./scripts/run-ci.sh lint-full
+  ./automation/ci-cd/run-ci.sh format
+  ./automation/ci-cd/run-ci.sh lint-basic
+  ./automation/ci-cd/run-ci.sh lint-full
   ```
 - NEVER commit changes unless the user explicitly asks you to
 - Always follow the container-first philosophy - use Docker for all Python operations

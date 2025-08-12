@@ -45,7 +45,9 @@ class BlenderMCPServer(BaseMCPServer):
         jobs_output_dir.mkdir(parents=True, exist_ok=True)
 
         self.blender_executor = BlenderExecutor(
-            blender_path="/usr/local/bin/blender", output_dir=str(jobs_output_dir), base_dir=str(self.base_dir)
+            blender_path="/usr/local/bin/blender",
+            output_dir=str(jobs_output_dir),
+            base_dir=str(self.base_dir),
         )
         self.job_manager = JobManager(str(jobs_output_dir))
         self.asset_manager = AssetManager(str(self.projects_dir), str(self.assets_dir))
@@ -56,7 +58,13 @@ class BlenderMCPServer(BaseMCPServer):
 
     def setup_directories(self):
         """Create necessary directories."""
-        dirs = [self.projects_dir, self.assets_dir, self.outputs_dir, self.templates_dir, self.temp_dir]
+        dirs = [
+            self.projects_dir,
+            self.assets_dir,
+            self.outputs_dir,
+            self.templates_dir,
+            self.temp_dir,
+        ]
         for dir_path in dirs:
             dir_path.mkdir(parents=True, exist_ok=True)
 
@@ -138,7 +146,13 @@ class BlenderMCPServer(BaseMCPServer):
                         "name": {"type": "string", "description": "Project name"},
                         "template": {
                             "type": "string",
-                            "enum": ["empty", "basic_scene", "studio_lighting", "procedural", "animation"],
+                            "enum": [
+                                "empty",
+                                "basic_scene",
+                                "studio_lighting",
+                                "procedural",
+                                "animation",
+                            ],
                             "description": "Template to use",
                             "default": "basic_scene",
                         },
@@ -146,9 +160,17 @@ class BlenderMCPServer(BaseMCPServer):
                             "type": "object",
                             "description": "Project settings",
                             "properties": {
-                                "resolution": {"type": "array", "items": {"type": "integer"}, "default": [1920, 1080]},
+                                "resolution": {
+                                    "type": "array",
+                                    "items": {"type": "integer"},
+                                    "default": [1920, 1080],
+                                },
                                 "fps": {"type": "integer", "default": 24},
-                                "engine": {"type": "string", "enum": ["CYCLES", "EEVEE", "WORKBENCH"], "default": "CYCLES"},
+                                "engine": {
+                                    "type": "string",
+                                    "enum": ["CYCLES", "EEVEE", "WORKBENCH"],
+                                    "default": "CYCLES",
+                                },
                             },
                         },
                     },
@@ -162,7 +184,10 @@ class BlenderMCPServer(BaseMCPServer):
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "project": {"type": "string", "description": "Project file path"},
+                        "project": {
+                            "type": "string",
+                            "description": "Project file path",
+                        },
                         "objects": {
                             "type": "array",
                             "description": "List of objects to add",
@@ -171,13 +196,36 @@ class BlenderMCPServer(BaseMCPServer):
                                 "properties": {
                                     "type": {
                                         "type": "string",
-                                        "enum": ["cube", "sphere", "cylinder", "cone", "torus", "plane", "monkey"],
+                                        "enum": [
+                                            "cube",
+                                            "sphere",
+                                            "cylinder",
+                                            "cone",
+                                            "torus",
+                                            "plane",
+                                            "monkey",
+                                        ],
                                         "description": "Object type",
                                     },
-                                    "name": {"type": "string", "description": "Object name"},
-                                    "location": {"type": "array", "items": {"type": "number"}, "default": [0, 0, 0]},
-                                    "rotation": {"type": "array", "items": {"type": "number"}, "default": [0, 0, 0]},
-                                    "scale": {"type": "array", "items": {"type": "number"}, "default": [1, 1, 1]},
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Object name",
+                                    },
+                                    "location": {
+                                        "type": "array",
+                                        "items": {"type": "number"},
+                                        "default": [0, 0, 0],
+                                    },
+                                    "rotation": {
+                                        "type": "array",
+                                        "items": {"type": "number"},
+                                        "default": [0, 0, 0],
+                                    },
+                                    "scale": {
+                                        "type": "array",
+                                        "items": {"type": "number"},
+                                        "default": [1, 1, 1],
+                                    },
                                 },
                                 "required": ["type"],
                             },
@@ -193,7 +241,10 @@ class BlenderMCPServer(BaseMCPServer):
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "project": {"type": "string", "description": "Project file path"},
+                        "project": {
+                            "type": "string",
+                            "description": "Project file path",
+                        },
                         "type": {
                             "type": "string",
                             "enum": ["three_point", "studio", "hdri", "sun", "area"],
@@ -203,8 +254,15 @@ class BlenderMCPServer(BaseMCPServer):
                             "type": "object",
                             "properties": {
                                 "strength": {"type": "number", "default": 1.0},
-                                "color": {"type": "array", "items": {"type": "number"}, "default": [1, 1, 1]},
-                                "hdri_path": {"type": "string", "description": "Path to HDRI file (for hdri type)"},
+                                "color": {
+                                    "type": "array",
+                                    "items": {"type": "number"},
+                                    "default": [1, 1, 1],
+                                },
+                                "hdri_path": {
+                                    "type": "string",
+                                    "description": "Path to HDRI file (for hdri type)",
+                                },
                             },
                         },
                     },
@@ -218,17 +276,34 @@ class BlenderMCPServer(BaseMCPServer):
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "project": {"type": "string", "description": "Project file path"},
-                        "object_name": {"type": "string", "description": "Object to apply material to"},
+                        "project": {
+                            "type": "string",
+                            "description": "Project file path",
+                        },
+                        "object_name": {
+                            "type": "string",
+                            "description": "Object to apply material to",
+                        },
                         "material": {
                             "type": "object",
                             "properties": {
                                 "type": {
                                     "type": "string",
-                                    "enum": ["principled", "emission", "glass", "metal", "plastic", "wood"],
+                                    "enum": [
+                                        "principled",
+                                        "emission",
+                                        "glass",
+                                        "metal",
+                                        "plastic",
+                                        "wood",
+                                    ],
                                     "default": "principled",
                                 },
-                                "base_color": {"type": "array", "items": {"type": "number"}, "default": [0.8, 0.8, 0.8, 1.0]},
+                                "base_color": {
+                                    "type": "array",
+                                    "items": {"type": "number"},
+                                    "default": [0.8, 0.8, 0.8, 1.0],
+                                },
                                 "metallic": {"type": "number", "default": 0.0},
                                 "roughness": {"type": "number", "default": 0.5},
                                 "emission_strength": {"type": "number", "default": 0.0},
@@ -245,15 +320,30 @@ class BlenderMCPServer(BaseMCPServer):
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "project": {"type": "string", "description": "Project file path"},
+                        "project": {
+                            "type": "string",
+                            "description": "Project file path",
+                        },
                         "frame": {"type": "integer", "default": 1},
                         "settings": {
                             "type": "object",
                             "properties": {
-                                "resolution": {"type": "array", "items": {"type": "integer"}, "default": [1920, 1080]},
+                                "resolution": {
+                                    "type": "array",
+                                    "items": {"type": "integer"},
+                                    "default": [1920, 1080],
+                                },
                                 "samples": {"type": "integer", "default": 128},
-                                "engine": {"type": "string", "enum": ["CYCLES", "EEVEE"], "default": "CYCLES"},
-                                "format": {"type": "string", "enum": ["PNG", "JPEG", "EXR", "TIFF"], "default": "PNG"},
+                                "engine": {
+                                    "type": "string",
+                                    "enum": ["CYCLES", "EEVEE"],
+                                    "default": "CYCLES",
+                                },
+                                "format": {
+                                    "type": "string",
+                                    "enum": ["PNG", "JPEG", "EXR", "TIFF"],
+                                    "default": "PNG",
+                                },
                             },
                         },
                     },
@@ -266,16 +356,31 @@ class BlenderMCPServer(BaseMCPServer):
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "project": {"type": "string", "description": "Project file path"},
+                        "project": {
+                            "type": "string",
+                            "description": "Project file path",
+                        },
                         "start_frame": {"type": "integer", "default": 1},
                         "end_frame": {"type": "integer", "default": 250},
                         "settings": {
                             "type": "object",
                             "properties": {
-                                "resolution": {"type": "array", "items": {"type": "integer"}, "default": [1920, 1080]},
+                                "resolution": {
+                                    "type": "array",
+                                    "items": {"type": "integer"},
+                                    "default": [1920, 1080],
+                                },
                                 "samples": {"type": "integer", "default": 64},
-                                "engine": {"type": "string", "enum": ["CYCLES", "EEVEE"], "default": "EEVEE"},
-                                "format": {"type": "string", "enum": ["MP4", "AVI", "MOV", "FRAMES"], "default": "MP4"},
+                                "engine": {
+                                    "type": "string",
+                                    "enum": ["CYCLES", "EEVEE"],
+                                    "default": "EEVEE",
+                                },
+                                "format": {
+                                    "type": "string",
+                                    "enum": ["MP4", "AVI", "MOV", "FRAMES"],
+                                    "default": "MP4",
+                                },
                             },
                         },
                     },
@@ -289,8 +394,14 @@ class BlenderMCPServer(BaseMCPServer):
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "project": {"type": "string", "description": "Project file path"},
-                        "object_name": {"type": "string", "description": "Object to apply physics to"},
+                        "project": {
+                            "type": "string",
+                            "description": "Project file path",
+                        },
+                        "object_name": {
+                            "type": "string",
+                            "description": "Object to apply physics to",
+                        },
                         "physics_type": {
                             "type": "string",
                             "enum": ["rigid_body", "soft_body", "cloth", "fluid"],
@@ -319,7 +430,10 @@ class BlenderMCPServer(BaseMCPServer):
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "project": {"type": "string", "description": "Project file path"},
+                        "project": {
+                            "type": "string",
+                            "description": "Project file path",
+                        },
                         "start_frame": {"type": "integer", "default": 1},
                         "end_frame": {"type": "integer", "default": 250},
                     },
@@ -333,8 +447,14 @@ class BlenderMCPServer(BaseMCPServer):
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "project": {"type": "string", "description": "Project file path"},
-                        "object_name": {"type": "string", "description": "Object to animate"},
+                        "project": {
+                            "type": "string",
+                            "description": "Project file path",
+                        },
+                        "object_name": {
+                            "type": "string",
+                            "description": "Object to animate",
+                        },
                         "keyframes": {
                             "type": "array",
                             "description": "List of keyframes",
@@ -342,14 +462,27 @@ class BlenderMCPServer(BaseMCPServer):
                                 "type": "object",
                                 "properties": {
                                     "frame": {"type": "integer"},
-                                    "location": {"type": "array", "items": {"type": "number"}},
-                                    "rotation": {"type": "array", "items": {"type": "number"}},
-                                    "scale": {"type": "array", "items": {"type": "number"}},
+                                    "location": {
+                                        "type": "array",
+                                        "items": {"type": "number"},
+                                    },
+                                    "rotation": {
+                                        "type": "array",
+                                        "items": {"type": "number"},
+                                    },
+                                    "scale": {
+                                        "type": "array",
+                                        "items": {"type": "number"},
+                                    },
                                 },
                                 "required": ["frame"],
                             },
                         },
-                        "interpolation": {"type": "string", "enum": ["LINEAR", "BEZIER", "CONSTANT"], "default": "BEZIER"},
+                        "interpolation": {
+                            "type": "string",
+                            "enum": ["LINEAR", "BEZIER", "CONSTANT"],
+                            "default": "BEZIER",
+                        },
                     },
                     "required": ["project", "object_name", "keyframes"],
                 },
@@ -361,8 +494,14 @@ class BlenderMCPServer(BaseMCPServer):
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "project": {"type": "string", "description": "Project file path"},
-                        "object_name": {"type": "string", "description": "Object to apply geometry nodes to"},
+                        "project": {
+                            "type": "string",
+                            "description": "Project file path",
+                        },
+                        "object_name": {
+                            "type": "string",
+                            "description": "Object to apply geometry nodes to",
+                        },
                         "node_setup": {
                             "type": "string",
                             "enum": ["scatter", "array", "curve", "volume", "custom"],
@@ -395,7 +534,12 @@ class BlenderMCPServer(BaseMCPServer):
                 "description": "Get result of a completed job",
                 "inputSchema": {
                     "type": "object",
-                    "properties": {"job_id": {"type": "string", "description": "Job ID to retrieve"}},
+                    "properties": {
+                        "job_id": {
+                            "type": "string",
+                            "description": "Job ID to retrieve",
+                        }
+                    },
                     "required": ["job_id"],
                 },
             },
@@ -420,14 +564,24 @@ class BlenderMCPServer(BaseMCPServer):
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "project": {"type": "string", "description": "Project file path"},
-                        "model_path": {"type": "string", "description": "Path to model file"},
+                        "project": {
+                            "type": "string",
+                            "description": "Project file path",
+                        },
+                        "model_path": {
+                            "type": "string",
+                            "description": "Path to model file",
+                        },
                         "format": {
                             "type": "string",
                             "enum": ["FBX", "OBJ", "GLTF", "STL", "PLY"],
                             "description": "Model format",
                         },
-                        "location": {"type": "array", "items": {"type": "number"}, "default": [0, 0, 0]},
+                        "location": {
+                            "type": "array",
+                            "items": {"type": "number"},
+                            "default": [0, 0, 0],
+                        },
                     },
                     "required": ["project", "model_path"],
                 },
@@ -438,7 +592,10 @@ class BlenderMCPServer(BaseMCPServer):
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "project": {"type": "string", "description": "Project file path"},
+                        "project": {
+                            "type": "string",
+                            "description": "Project file path",
+                        },
                         "format": {
                             "type": "string",
                             "enum": ["FBX", "OBJ", "GLTF", "STL", "USD"],
@@ -534,11 +691,20 @@ class BlenderMCPServer(BaseMCPServer):
         self.job_manager.create_job(
             job_id=job_id,
             job_type="create_project",
-            parameters={"project_path": project_path, "template": template, "settings": settings},
+            parameters={
+                "project_path": project_path,
+                "template": template,
+                "settings": settings,
+            },
         )
 
         # Execute Blender script
-        script_args = {"operation": "create_project", "project_path": project_path, "template": template, "settings": settings}
+        script_args = {
+            "operation": "create_project",
+            "project_path": project_path,
+            "template": template,
+            "settings": settings,
+        }
 
         try:
             logger.info(f"Calling execute_script for job {job_id} with args: {script_args}")
@@ -563,7 +729,11 @@ class BlenderMCPServer(BaseMCPServer):
         job_id = str(uuid.uuid4())
         self.job_manager.create_job(job_id=job_id, job_type="add_objects", parameters=args)
 
-        script_args = {"operation": "add_primitives", "project": project, "objects": objects}
+        script_args = {
+            "operation": "add_primitives",
+            "project": project,
+            "objects": objects,
+        }
 
         await self.blender_executor.execute_script("scene_builder.py", script_args, job_id)
 
@@ -581,11 +751,20 @@ class BlenderMCPServer(BaseMCPServer):
         settings = args.get("settings", {})
 
         job_id = str(uuid.uuid4())
-        script_args = {"operation": "setup_lighting", "project": project, "lighting_type": lighting_type, "settings": settings}
+        script_args = {
+            "operation": "setup_lighting",
+            "project": project,
+            "lighting_type": lighting_type,
+            "settings": settings,
+        }
 
         await self.blender_executor.execute_script("scene_builder.py", script_args, job_id)
 
-        return {"success": True, "lighting_type": lighting_type, "message": f"Lighting setup '{lighting_type}' applied"}
+        return {
+            "success": True,
+            "lighting_type": lighting_type,
+            "message": f"Lighting setup '{lighting_type}' applied",
+        }
 
     async def _apply_material(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Apply material to object."""
@@ -594,7 +773,12 @@ class BlenderMCPServer(BaseMCPServer):
         material = args.get("material", {})
 
         job_id = str(uuid.uuid4())
-        script_args = {"operation": "apply_material", "project": project, "object_name": object_name, "material": material}
+        script_args = {
+            "operation": "apply_material",
+            "project": project,
+            "object_name": object_name,
+            "material": material,
+        }
 
         await self.blender_executor.execute_script("scene_builder.py", script_args, job_id)
 
@@ -709,7 +893,12 @@ class BlenderMCPServer(BaseMCPServer):
         job_id = str(uuid.uuid4())
         self.job_manager.create_job(job_id=job_id, job_type="bake_simulation", parameters=args)
 
-        script_args = {"operation": "bake_simulation", "project": project, "start_frame": start_frame, "end_frame": end_frame}
+        script_args = {
+            "operation": "bake_simulation",
+            "project": project,
+            "start_frame": start_frame,
+            "end_frame": end_frame,
+        }
 
         asyncio.create_task(self.blender_executor.execute_script("physics_sim.py", script_args, job_id))
 
@@ -843,7 +1032,12 @@ class BlenderMCPServer(BaseMCPServer):
         job_id = str(uuid.uuid4())
         await self.blender_executor.execute_script("scene_builder.py", script_args, job_id)
 
-        return {"success": True, "model_path": model_path, "format": format, "message": f"Model imported from '{model_path}'"}
+        return {
+            "success": True,
+            "model_path": model_path,
+            "format": format,
+            "message": f"Model imported from '{model_path}'",
+        }
 
     async def _export_scene(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Export scene to format."""

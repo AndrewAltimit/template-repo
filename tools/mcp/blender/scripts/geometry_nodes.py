@@ -95,8 +95,16 @@ def create_scatter_setup(nodes, links, input_node, output_node, parameters):
     random_value.location = (0, -100)
     random_value.data_type = "FLOAT_VECTOR"
     scale_var = parameters.get("scale_variance", 0.1)
-    random_value.inputs["Min"].default_value = (1 - scale_var, 1 - scale_var, 1 - scale_var)
-    random_value.inputs["Max"].default_value = (1 + scale_var, 1 + scale_var, 1 + scale_var)
+    random_value.inputs["Min"].default_value = (
+        1 - scale_var,
+        1 - scale_var,
+        1 - scale_var,
+    )
+    random_value.inputs["Max"].default_value = (
+        1 + scale_var,
+        1 + scale_var,
+        1 + scale_var,
+    )
 
     # Random rotation
     rotate = nodes.new("FunctionNodeRandomValue")

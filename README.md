@@ -68,14 +68,14 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 4. **For standalone usage**
    ```bash
    # Start HTTP servers for testing/development
-   docker-compose up -d
+   docker-compose -f config/docker/docker-compose.yml up -d
 
    # Test all servers
-   python scripts/mcp/test_all_servers.py --quick
+   python automation/testing/test_all_servers.py --quick
 
    # Use AI agents directly
-   ./tools/utilities/run_opencode.sh -q "Create a REST API"
-   ./tools/utilities/run_crush.sh -q "Binary search function"
+   ./tools/cli/runners/run_opencode.sh -q "Create a REST API"
+   ./tools/cli/runners/run_crush.sh -q "Binary search function"
    ```
 
 For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
@@ -101,12 +101,14 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 │   │   ├── ai_toolkit/    # LoRA training bridge
 │   │   ├── comfyui/       # Image generation bridge
 │   │   └── core/          # Shared components
-│   └── utilities/         # Helper scripts
-├── scripts/               # CI/CD and utility scripts
+│   └── cli/               # Command-line tools
+├── automation/            # CI/CD and automation scripts
 ├── tests/                 # Test files
 ├── docs/                  # Documentation
-├── CLAUDE.md             # Claude Code instructions
-└── PROJECT_CONTEXT.md    # Context for AI reviewers
+├── config/                # Configuration files
+├── .context/              # AI context files
+│   └── PROJECT_CONTEXT.md # Context for AI reviewers
+└── projects/              # Separate projects
 ```
 
 ## MCP Servers
@@ -144,9 +146,10 @@ See `.env.example` for all available options.
 ### Key Configuration Files
 
 - `.mcp.json` - MCP server configuration for Claude Code
-- `docker-compose.yml` - Container services configuration
-- `CLAUDE.md` - Project-specific Claude Code instructions
-- `PROJECT_CONTEXT.md` - Context for AI reviewers
+- `config/docker/docker-compose.yml` - Container services configuration
+- `CLAUDE.md` - Project-specific Claude Code instructions (root directory)
+- `CRUSH.md` - Crush AI assistant instructions (root directory)
+- `.context/PROJECT_CONTEXT.md` - Context for AI reviewers
 
 ### Setup Guides
 
@@ -163,13 +166,13 @@ All Python operations run in Docker containers:
 
 ```bash
 # Run CI operations
-./scripts/run-ci.sh format      # Check formatting
-./scripts/run-ci.sh lint-basic  # Basic linting
-./scripts/run-ci.sh test        # Run tests
-./scripts/run-ci.sh full        # Full CI pipeline
+./automation/ci-cd/run-ci.sh format      # Check formatting
+./automation/ci-cd/run-ci.sh lint-basic  # Basic linting
+./automation/ci-cd/run-ci.sh test        # Run tests
+./automation/ci-cd/run-ci.sh full        # Full CI pipeline
 
 # Run specific tests
-docker-compose run --rm python-ci pytest tests/test_mcp_tools.py -v
+docker-compose -f config/docker/docker-compose.yml run --rm python-ci pytest tests/test_mcp_tools.py -v
 ```
 
 ### GitHub Actions
@@ -186,6 +189,7 @@ All workflows run on self-hosted runners for zero-cost operation.
 
 ### Core Documentation
 - [CLAUDE.md](CLAUDE.md) - Project instructions and commands
+- [CRUSH.md](CRUSH.md) - Crush AI assistant instructions
 - [MCP Architecture](docs/mcp/README.md) - Modular server design
 - [AI Agents Documentation](docs/AI_AGENTS.md) - Seven AI agents overview
 

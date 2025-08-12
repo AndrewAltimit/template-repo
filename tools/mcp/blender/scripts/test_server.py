@@ -40,12 +40,19 @@ class BlenderMCPClient(MCPClient):
         Returns:
             Project creation result
         """
-        result = await self.call_tool("create_blender_project", {"name": name, "template": template, "settings": settings})
+        result = await self.call_tool(
+            "create_blender_project",
+            {"name": name, "template": template, "settings": settings},
+        )
 
         if result.get("success"):
             self.projects[name] = result["project_path"]
             if "job_id" in result:
-                self.jobs[result["job_id"]] = {"type": "create_project", "project": name, "started": datetime.now()}
+                self.jobs[result["job_id"]] = {
+                    "type": "create_project",
+                    "project": name,
+                    "started": datetime.now(),
+                }
 
         return result
 
@@ -67,10 +74,17 @@ class BlenderMCPClient(MCPClient):
         else:
             project_path = project
 
-        result = await self.call_tool("render_image", {"project": project_path, "frame": frame, "settings": settings})
+        result = await self.call_tool(
+            "render_image",
+            {"project": project_path, "frame": frame, "settings": settings},
+        )
 
         if result.get("success") and "job_id" in result:
-            self.jobs[result["job_id"]] = {"type": "render", "project": project, "started": datetime.now()}
+            self.jobs[result["job_id"]] = {
+                "type": "render",
+                "project": project,
+                "started": datetime.now(),
+            }
 
             if wait:
                 return await self.wait_for_job(result["job_id"])
@@ -124,9 +138,24 @@ class BlenderMCPClient(MCPClient):
             {
                 "project": project["project_path"],
                 "objects": [
-                    {"type": "monkey", "name": "Suzanne", "location": [0, 0, 2], "rotation": [0, 0.3, 0]},
-                    {"type": "torus", "name": "Torus", "location": [3, 0, 1], "scale": [1.5, 1.5, 1.5]},
-                    {"type": "cube", "name": "Cube", "location": [-3, 0, 1], "rotation": [0.5, 0.5, 0.5]},
+                    {
+                        "type": "monkey",
+                        "name": "Suzanne",
+                        "location": [0, 0, 2],
+                        "rotation": [0, 0.3, 0],
+                    },
+                    {
+                        "type": "torus",
+                        "name": "Torus",
+                        "location": [3, 0, 1],
+                        "scale": [1.5, 1.5, 1.5],
+                    },
+                    {
+                        "type": "cube",
+                        "name": "Cube",
+                        "location": [-3, 0, 1],
+                        "rotation": [0.5, 0.5, 0.5],
+                    },
                 ],
             },
         )
@@ -134,13 +163,20 @@ class BlenderMCPClient(MCPClient):
 
         # Apply materials
         print("\n3. Applying materials...")
-        for obj_name, mat_type in [("Suzanne", "metal"), ("Torus", "glass"), ("Cube", "emission")]:
+        for obj_name, mat_type in [
+            ("Suzanne", "metal"),
+            ("Torus", "glass"),
+            ("Cube", "emission"),
+        ]:
             await self.call_tool(
                 "apply_material",
                 {
                     "project": project["project_path"],
                     "object_name": obj_name,
-                    "material": {"type": mat_type, "roughness": 0.3 if mat_type == "metal" else 0.1},
+                    "material": {
+                        "type": mat_type,
+                        "roughness": 0.3 if mat_type == "metal" else 0.1,
+                    },
                 },
             )
             print(f"   Applied {mat_type} to {obj_name}")
@@ -196,7 +232,8 @@ class BlenderMCPClient(MCPClient):
         # Bake simulation
         print("\n4. Baking simulation...")
         bake_result = await self.call_tool(
-            "bake_simulation", {"project": project["project_path"], "start_frame": 1, "end_frame": 120}
+            "bake_simulation",
+            {"project": project["project_path"], "start_frame": 1, "end_frame": 120},
         )
 
         if "job_id" in bake_result:
@@ -217,7 +254,10 @@ class BlenderMCPClient(MCPClient):
         print("\n2. Adding object...")
         await self.call_tool(
             "add_primitive_objects",
-            {"project": project["project_path"], "objects": [{"type": "cube", "name": "AnimCube", "location": [0, 0, 2]}]},
+            {
+                "project": project["project_path"],
+                "objects": [{"type": "cube", "name": "AnimCube", "location": [0, 0, 2]}],
+            },
         )
 
         # Create animation
@@ -254,7 +294,10 @@ class BlenderMCPClient(MCPClient):
         print("\n2. Adding base object...")
         await self.call_tool(
             "add_primitive_objects",
-            {"project": project["project_path"], "objects": [{"type": "plane", "name": "ScatterPlane", "scale": [10, 10, 1]}]},
+            {
+                "project": project["project_path"],
+                "objects": [{"type": "plane", "name": "ScatterPlane", "scale": [10, 10, 1]}],
+            },
         )
 
         # Apply geometry nodes
@@ -408,7 +451,11 @@ async def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Test Blender MCP Server")
-    parser.add_argument("--demo", choices=["render", "physics", "animation", "geometry", "all"], help="Run a specific demo")
+    parser.add_argument(
+        "--demo",
+        choices=["render", "physics", "animation", "geometry", "all"],
+        help="Run a specific demo",
+    )
     parser.add_argument("--interactive", action="store_true", help="Start interactive mode")
     parser.add_argument("--url", default="http://localhost:8017", help="Blender MCP server URL")
 

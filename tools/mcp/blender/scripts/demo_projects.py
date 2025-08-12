@@ -41,7 +41,11 @@ class BlenderDemoProjects:
         # Create project with studio lighting template
         project = await self.client.call_tool(
             "create_blender_project",
-            {"name": "demo_luxury_watch", "template": "product", "settings": {"resolution": [2560, 1440], "engine": "CYCLES"}},
+            {
+                "name": "demo_luxury_watch",
+                "template": "product",
+                "settings": {"resolution": [2560, 1440], "engine": "CYCLES"},
+            },
         )
 
         if not project.get("success"):
@@ -60,9 +64,19 @@ class BlenderDemoProjects:
                 "project": project_path,
                 "objects": [
                     # Watch face
-                    {"type": "cylinder", "name": "WatchFace", "location": [0, 0, 0.5], "scale": [2, 2, 0.1]},
+                    {
+                        "type": "cylinder",
+                        "name": "WatchFace",
+                        "location": [0, 0, 0.5],
+                        "scale": [2, 2, 0.1],
+                    },
                     # Watch band
-                    {"type": "torus", "name": "WatchBand", "location": [0, 0, 0.5], "scale": [2.2, 2.2, 0.3]},
+                    {
+                        "type": "torus",
+                        "name": "WatchBand",
+                        "location": [0, 0, 0.5],
+                        "scale": [2.2, 2.2, 0.3],
+                    },
                     # Crown
                     {
                         "type": "cylinder",
@@ -72,7 +86,12 @@ class BlenderDemoProjects:
                         "rotation": [0, 1.57, 0],
                     },
                     # Display surface
-                    {"type": "plane", "name": "Display", "location": [0, 0, 0], "scale": [8, 8, 1]},
+                    {
+                        "type": "plane",
+                        "name": "Display",
+                        "location": [0, 0, 0],
+                        "scale": [8, 8, 1],
+                    },
                 ],
             },
         )
@@ -82,23 +101,59 @@ class BlenderDemoProjects:
         materials = [
             (
                 "WatchFace",
-                {"type": "metal", "base_color": [0.95, 0.85, 0.6, 1.0], "metallic": 1.0, "roughness": 0.1},  # Gold color
+                {
+                    "type": "metal",
+                    "base_color": [0.95, 0.85, 0.6, 1.0],
+                    "metallic": 1.0,
+                    "roughness": 0.1,
+                },  # Gold color
             ),
-            ("WatchBand", {"type": "principled", "base_color": [0.1, 0.05, 0.02, 1.0], "roughness": 0.7}),  # Dark leather
-            ("Crown", {"type": "metal", "base_color": [0.95, 0.85, 0.6, 1.0], "metallic": 1.0, "roughness": 0.15}),  # Gold
-            ("Display", {"type": "principled", "base_color": [0.9, 0.9, 0.9, 1.0], "roughness": 0.3}),  # Light grey
+            (
+                "WatchBand",
+                {
+                    "type": "principled",
+                    "base_color": [0.1, 0.05, 0.02, 1.0],
+                    "roughness": 0.7,
+                },
+            ),  # Dark leather
+            (
+                "Crown",
+                {
+                    "type": "metal",
+                    "base_color": [0.95, 0.85, 0.6, 1.0],
+                    "metallic": 1.0,
+                    "roughness": 0.15,
+                },
+            ),  # Gold
+            (
+                "Display",
+                {
+                    "type": "principled",
+                    "base_color": [0.9, 0.9, 0.9, 1.0],
+                    "roughness": 0.3,
+                },
+            ),  # Light grey
         ]
 
         for obj_name, material in materials:
             await self.client.call_tool(
-                "apply_material", {"project": project_path, "object_name": obj_name, "material": material}
+                "apply_material",
+                {
+                    "project": project_path,
+                    "object_name": obj_name,
+                    "material": material,
+                },
             )
 
         # Setup professional studio lighting
         print("  Setting up studio lighting...")
         await self.client.call_tool(
             "setup_lighting",
-            {"project": project_path, "type": "studio", "settings": {"strength": 3.0, "color": [1, 0.98, 0.95]}},
+            {
+                "project": project_path,
+                "type": "studio",
+                "settings": {"strength": 3.0, "color": [1, 0.98, 0.95]},
+            },
         )
 
         # Render high-quality image
@@ -108,7 +163,12 @@ class BlenderDemoProjects:
             {
                 "project": project_path,
                 "frame": 1,
-                "settings": {"resolution": [2560, 1440], "samples": 256, "engine": "CYCLES", "format": "PNG"},
+                "settings": {
+                    "resolution": [2560, 1440],
+                    "samples": 256,
+                    "engine": "CYCLES",
+                    "format": "PNG",
+                },
             },
         )
 
@@ -147,7 +207,14 @@ class BlenderDemoProjects:
             "add_primitive_objects",
             {
                 "project": project_path,
-                "objects": [{"type": "plane", "name": "Ground", "location": [0, 0, 0], "scale": [20, 20, 1]}],
+                "objects": [
+                    {
+                        "type": "plane",
+                        "name": "Ground",
+                        "location": [0, 0, 0],
+                        "scale": [20, 20, 1],
+                    }
+                ],
             },
         )
 
@@ -172,7 +239,14 @@ class BlenderDemoProjects:
             )
 
         # Add trigger ball
-        dominos.append({"type": "sphere", "name": "TriggerBall", "location": [-9, 0, 3], "scale": [0.5, 0.5, 0.5]})
+        dominos.append(
+            {
+                "type": "sphere",
+                "name": "TriggerBall",
+                "location": [-9, 0, 3],
+                "scale": [0.5, 0.5, 0.5],
+            }
+        )
 
         await self.client.call_tool("add_primitive_objects", {"project": project_path, "objects": dominos})
 
@@ -196,7 +270,12 @@ class BlenderDemoProjects:
                     "project": project_path,
                     "object_name": f"Domino_{i:02d}",
                     "physics_type": "rigid_body",
-                    "settings": {"mass": 0.5, "friction": 0.5, "bounce": 0.1, "collision_shape": "box"},
+                    "settings": {
+                        "mass": 0.5,
+                        "friction": 0.5,
+                        "bounce": 0.1,
+                        "collision_shape": "box",
+                    },
                 },
             )
 
@@ -207,7 +286,12 @@ class BlenderDemoProjects:
                 "project": project_path,
                 "object_name": "TriggerBall",
                 "physics_type": "rigid_body",
-                "settings": {"mass": 2.0, "friction": 0.3, "bounce": 0.3, "collision_shape": "sphere"},
+                "settings": {
+                    "mass": 2.0,
+                    "friction": 0.3,
+                    "bounce": 0.3,
+                    "collision_shape": "sphere",
+                },
             },
         )
 
@@ -220,13 +304,20 @@ class BlenderDemoProjects:
                 {
                     "project": project_path,
                     "object_name": f"Domino_{i:02d}",
-                    "material": {"type": "principled", "base_color": [hue, 1.0 - hue * 0.5, 1.0 - hue, 1.0], "roughness": 0.4},
+                    "material": {
+                        "type": "principled",
+                        "base_color": [hue, 1.0 - hue * 0.5, 1.0 - hue, 1.0],
+                        "roughness": 0.4,
+                    },
                 },
             )
 
         # Bake simulation
         print("  Baking physics simulation...")
-        await self.client.call_tool("bake_simulation", {"project": project_path, "start_frame": 1, "end_frame": 150})
+        await self.client.call_tool(
+            "bake_simulation",
+            {"project": project_path, "start_frame": 1, "end_frame": 150},
+        )
 
         # Render animation
         print("  Rendering animation...")
@@ -236,7 +327,12 @@ class BlenderDemoProjects:
                 "project": project_path,
                 "start_frame": 1,
                 "end_frame": 150,
-                "settings": {"resolution": [1920, 1080], "samples": 32, "engine": "EEVEE", "format": "MP4"},
+                "settings": {
+                    "resolution": [1920, 1080],
+                    "samples": 32,
+                    "engine": "EEVEE",
+                    "format": "MP4",
+                },
             },
         )
 
@@ -280,10 +376,24 @@ class BlenderDemoProjects:
             x = radius * __import__("math").cos(angle)
             y = radius * __import__("math").sin(angle)
 
-            shapes.append({"type": shape_type, "name": f"Shape_{shape_type}", "location": [x, y, 2], "scale": [1, 1, 1]})
+            shapes.append(
+                {
+                    "type": shape_type,
+                    "name": f"Shape_{shape_type}",
+                    "location": [x, y, 2],
+                    "scale": [1, 1, 1],
+                }
+            )
 
         # Add central emissive sphere
-        shapes.append({"type": "sphere", "name": "CentralCore", "location": [0, 0, 2], "scale": [1.5, 1.5, 1.5]})
+        shapes.append(
+            {
+                "type": "sphere",
+                "name": "CentralCore",
+                "location": [0, 0, 2],
+                "scale": [1.5, 1.5, 1.5],
+            }
+        )
 
         await self.client.call_tool("add_primitive_objects", {"project": project_path, "objects": shapes})
 
@@ -304,7 +414,11 @@ class BlenderDemoProjects:
                 {
                     "project": project_path,
                     "object_name": f"Shape_{shape_type}",
-                    "material": {"type": "emission", "base_color": colors[i], "emission_strength": 2.0},
+                    "material": {
+                        "type": "emission",
+                        "base_color": colors[i],
+                        "emission_strength": 2.0,
+                    },
                 },
             )
 
@@ -314,7 +428,11 @@ class BlenderDemoProjects:
             {
                 "project": project_path,
                 "object_name": "CentralCore",
-                "material": {"type": "emission", "base_color": [1.0, 1.0, 1.0, 1.0], "emission_strength": 5.0},
+                "material": {
+                    "type": "emission",
+                    "base_color": [1.0, 1.0, 1.0, 1.0],
+                    "emission_strength": 5.0,
+                },
             },
         )
 
@@ -349,7 +467,10 @@ class BlenderDemoProjects:
                     "project": project_path,
                     "object_name": f"Shape_{shape_type}",
                     "property_path": "rotation",
-                    "keyframes": [{"frame": 1, "value": [0, 0, 0]}, {"frame": 240, "value": [6.28318, 6.28318, 6.28318]}],
+                    "keyframes": [
+                        {"frame": 1, "value": [0, 0, 0]},
+                        {"frame": 240, "value": [6.28318, 6.28318, 6.28318]},
+                    ],
                 },
             )
 
@@ -382,7 +503,12 @@ class BlenderDemoProjects:
                 "project": project_path,
                 "start_frame": 1,
                 "end_frame": 240,
-                "settings": {"resolution": [1920, 1080], "samples": 64, "engine": "EEVEE", "format": "MP4"},
+                "settings": {
+                    "resolution": [1920, 1080],
+                    "samples": 64,
+                    "engine": "EEVEE",
+                    "format": "MP4",
+                },
             },
         )
 
@@ -419,11 +545,26 @@ class BlenderDemoProjects:
         print("  Building house structure...")
         house_parts = [
             # Foundation/Ground
-            {"type": "plane", "name": "Ground", "location": [0, 0, 0], "scale": [30, 30, 1]},
+            {
+                "type": "plane",
+                "name": "Ground",
+                "location": [0, 0, 0],
+                "scale": [30, 30, 1],
+            },
             # Main building
-            {"type": "cube", "name": "MainBuilding", "location": [0, 0, 2], "scale": [5, 4, 2]},
+            {
+                "type": "cube",
+                "name": "MainBuilding",
+                "location": [0, 0, 2],
+                "scale": [5, 4, 2],
+            },
             # Roof
-            {"type": "cube", "name": "Roof", "location": [0, 0, 4.2], "scale": [5.5, 4.5, 0.2]},
+            {
+                "type": "cube",
+                "name": "Roof",
+                "location": [0, 0, 4.2],
+                "scale": [5.5, 4.5, 0.2],
+            },
             # Windows (glass panels)
             {
                 "type": "plane",
@@ -447,12 +588,37 @@ class BlenderDemoProjects:
                 "rotation": [1.57, 0, 1.57],
             },
             # Door
-            {"type": "cube", "name": "Door", "location": [0, -4.01, 1], "scale": [0.8, 0.1, 1.8]},
+            {
+                "type": "cube",
+                "name": "Door",
+                "location": [0, -4.01, 1],
+                "scale": [0.8, 0.1, 1.8],
+            },
             # Garden elements
-            {"type": "cylinder", "name": "Tree1", "location": [-8, -6, 2], "scale": [0.5, 0.5, 2]},
-            {"type": "sphere", "name": "TreeTop1", "location": [-8, -6, 4.5], "scale": [2, 2, 2]},
-            {"type": "cylinder", "name": "Tree2", "location": [8, -6, 2], "scale": [0.5, 0.5, 2]},
-            {"type": "sphere", "name": "TreeTop2", "location": [8, -6, 4.5], "scale": [2, 2, 2]},
+            {
+                "type": "cylinder",
+                "name": "Tree1",
+                "location": [-8, -6, 2],
+                "scale": [0.5, 0.5, 2],
+            },
+            {
+                "type": "sphere",
+                "name": "TreeTop1",
+                "location": [-8, -6, 4.5],
+                "scale": [2, 2, 2],
+            },
+            {
+                "type": "cylinder",
+                "name": "Tree2",
+                "location": [8, -6, 2],
+                "scale": [0.5, 0.5, 2],
+            },
+            {
+                "type": "sphere",
+                "name": "TreeTop2",
+                "location": [8, -6, 4.5],
+                "scale": [2, 2, 2],
+            },
         ]
 
         await self.client.call_tool("add_primitive_objects", {"project": project_path, "objects": house_parts})
@@ -460,35 +626,100 @@ class BlenderDemoProjects:
         # Apply realistic materials
         print("  Applying architectural materials...")
         materials = [
-            ("Ground", {"type": "principled", "base_color": [0.3, 0.5, 0.2, 1.0], "roughness": 0.9}),  # Grass green
+            (
+                "Ground",
+                {
+                    "type": "principled",
+                    "base_color": [0.3, 0.5, 0.2, 1.0],
+                    "roughness": 0.9,
+                },
+            ),  # Grass green
             (
                 "MainBuilding",
-                {"type": "principled", "base_color": [0.9, 0.9, 0.85, 1.0], "roughness": 0.7},  # Off-white concrete
+                {
+                    "type": "principled",
+                    "base_color": [0.9, 0.9, 0.85, 1.0],
+                    "roughness": 0.7,
+                },  # Off-white concrete
             ),
             (
                 "Roof",
-                {"type": "principled", "base_color": [0.2, 0.2, 0.2, 1.0], "roughness": 0.8, "metallic": 0.3},  # Dark roof
+                {
+                    "type": "principled",
+                    "base_color": [0.2, 0.2, 0.2, 1.0],
+                    "roughness": 0.8,
+                    "metallic": 0.3,
+                },  # Dark roof
             ),
-            ("FrontWindow", {"type": "glass", "base_color": [0.8, 0.9, 1.0, 0.1], "roughness": 0.0}),
-            ("SideWindow1", {"type": "glass", "base_color": [0.8, 0.9, 1.0, 0.1], "roughness": 0.0}),
-            ("SideWindow2", {"type": "glass", "base_color": [0.8, 0.9, 1.0, 0.1], "roughness": 0.0}),
-            ("Door", {"type": "wood", "base_color": [0.4, 0.2, 0.1, 1.0], "roughness": 0.6}),
-            ("Tree1", {"type": "principled", "base_color": [0.3, 0.2, 0.1, 1.0], "roughness": 0.9}),  # Tree trunk
-            ("TreeTop1", {"type": "principled", "base_color": [0.2, 0.6, 0.1, 1.0], "roughness": 0.8}),  # Leaves
-            ("Tree2", {"type": "principled", "base_color": [0.3, 0.2, 0.1, 1.0], "roughness": 0.9}),
-            ("TreeTop2", {"type": "principled", "base_color": [0.2, 0.6, 0.1, 1.0], "roughness": 0.8}),
+            (
+                "FrontWindow",
+                {"type": "glass", "base_color": [0.8, 0.9, 1.0, 0.1], "roughness": 0.0},
+            ),
+            (
+                "SideWindow1",
+                {"type": "glass", "base_color": [0.8, 0.9, 1.0, 0.1], "roughness": 0.0},
+            ),
+            (
+                "SideWindow2",
+                {"type": "glass", "base_color": [0.8, 0.9, 1.0, 0.1], "roughness": 0.0},
+            ),
+            (
+                "Door",
+                {"type": "wood", "base_color": [0.4, 0.2, 0.1, 1.0], "roughness": 0.6},
+            ),
+            (
+                "Tree1",
+                {
+                    "type": "principled",
+                    "base_color": [0.3, 0.2, 0.1, 1.0],
+                    "roughness": 0.9,
+                },
+            ),  # Tree trunk
+            (
+                "TreeTop1",
+                {
+                    "type": "principled",
+                    "base_color": [0.2, 0.6, 0.1, 1.0],
+                    "roughness": 0.8,
+                },
+            ),  # Leaves
+            (
+                "Tree2",
+                {
+                    "type": "principled",
+                    "base_color": [0.3, 0.2, 0.1, 1.0],
+                    "roughness": 0.9,
+                },
+            ),
+            (
+                "TreeTop2",
+                {
+                    "type": "principled",
+                    "base_color": [0.2, 0.6, 0.1, 1.0],
+                    "roughness": 0.8,
+                },
+            ),
         ]
 
         for obj_name, material in materials:
             await self.client.call_tool(
-                "apply_material", {"project": project_path, "object_name": obj_name, "material": material}
+                "apply_material",
+                {
+                    "project": project_path,
+                    "object_name": obj_name,
+                    "material": material,
+                },
             )
 
         # Setup outdoor lighting (sun + sky)
         print("  Setting up outdoor lighting...")
         await self.client.call_tool(
             "setup_lighting",
-            {"project": project_path, "type": "sun", "settings": {"strength": 5.0, "color": [1.0, 0.95, 0.8]}},
+            {
+                "project": project_path,
+                "type": "sun",
+                "settings": {"strength": 5.0, "color": [1.0, 0.95, 0.8]},
+            },
         )
 
         # Render architectural visualization
@@ -498,7 +729,12 @@ class BlenderDemoProjects:
             {
                 "project": project_path,
                 "frame": 1,
-                "settings": {"resolution": [2560, 1440], "samples": 256, "engine": "CYCLES", "format": "PNG"},
+                "settings": {
+                    "resolution": [2560, 1440],
+                    "samples": 256,
+                    "engine": "CYCLES",
+                    "format": "PNG",
+                },
             },
         )
 
@@ -537,7 +773,14 @@ class BlenderDemoProjects:
             "add_primitive_objects",
             {
                 "project": project_path,
-                "objects": [{"type": "plane", "name": "Terrain", "location": [0, 0, 0], "scale": [20, 20, 1]}],
+                "objects": [
+                    {
+                        "type": "plane",
+                        "name": "Terrain",
+                        "location": [0, 0, 0],
+                        "scale": [20, 20, 1],
+                    }
+                ],
             },
         )
 
@@ -547,7 +790,12 @@ class BlenderDemoProjects:
         for i in range(3):  # Create 3 tree variations
             tree_instances.extend(
                 [
-                    {"type": "cylinder", "name": f"TreeTrunk{i}", "location": [25 + i * 2, 0, 1], "scale": [0.2, 0.2, 1]},
+                    {
+                        "type": "cylinder",
+                        "name": f"TreeTrunk{i}",
+                        "location": [25 + i * 2, 0, 1],
+                        "scale": [0.2, 0.2, 1],
+                    },
                     {
                         "type": "cone",
                         "name": f"TreeLeaves{i}",
@@ -557,7 +805,10 @@ class BlenderDemoProjects:
                 ]
             )
 
-        await self.client.call_tool("add_primitive_objects", {"project": project_path, "objects": tree_instances})
+        await self.client.call_tool(
+            "add_primitive_objects",
+            {"project": project_path, "objects": tree_instances},
+        )
 
         # Setup geometry nodes for scattering
         print("  Setting up procedural scattering...")
@@ -567,28 +818,60 @@ class BlenderDemoProjects:
                 "project": project_path,
                 "object_name": "Terrain",
                 "node_type": "scatter",
-                "settings": {"count": 200, "seed": 12345, "scale_min": 0.8, "scale_max": 1.2, "rotation_variance": 0.3},
+                "settings": {
+                    "count": 200,
+                    "seed": 12345,
+                    "scale_min": 0.8,
+                    "scale_max": 1.2,
+                    "rotation_variance": 0.3,
+                },
             },
         )
 
         # Apply nature materials
         print("  Applying materials...")
         materials = [
-            ("Terrain", {"type": "principled", "base_color": [0.2, 0.4, 0.1, 1.0], "roughness": 0.95})  # Forest floor
+            (
+                "Terrain",
+                {
+                    "type": "principled",
+                    "base_color": [0.2, 0.4, 0.1, 1.0],
+                    "roughness": 0.95,
+                },
+            )  # Forest floor
         ]
 
         # Tree materials
         for i in range(3):
             materials.extend(
                 [
-                    (f"TreeTrunk{i}", {"type": "principled", "base_color": [0.3 - i * 0.05, 0.2, 0.1, 1.0], "roughness": 0.9}),
-                    (f"TreeLeaves{i}", {"type": "principled", "base_color": [0.1, 0.5 + i * 0.1, 0.1, 1.0], "roughness": 0.7}),
+                    (
+                        f"TreeTrunk{i}",
+                        {
+                            "type": "principled",
+                            "base_color": [0.3 - i * 0.05, 0.2, 0.1, 1.0],
+                            "roughness": 0.9,
+                        },
+                    ),
+                    (
+                        f"TreeLeaves{i}",
+                        {
+                            "type": "principled",
+                            "base_color": [0.1, 0.5 + i * 0.1, 0.1, 1.0],
+                            "roughness": 0.7,
+                        },
+                    ),
                 ]
             )
 
         for obj_name, material in materials:
             await self.client.call_tool(
-                "apply_material", {"project": project_path, "object_name": obj_name, "material": material}
+                "apply_material",
+                {
+                    "project": project_path,
+                    "object_name": obj_name,
+                    "material": material,
+                },
             )
 
         # Add atmospheric lighting
@@ -598,7 +881,10 @@ class BlenderDemoProjects:
             {
                 "project": project_path,
                 "type": "sun",
-                "settings": {"strength": 3.0, "color": [1.0, 0.9, 0.7]},  # Warm sunlight through trees
+                "settings": {
+                    "strength": 3.0,
+                    "color": [1.0, 0.9, 0.7],
+                },  # Warm sunlight through trees
             },
         )
 
@@ -609,7 +895,12 @@ class BlenderDemoProjects:
             {
                 "project": project_path,
                 "frame": 1,
-                "settings": {"resolution": [1920, 1080], "samples": 64, "engine": "EEVEE", "format": "PNG"},
+                "settings": {
+                    "resolution": [1920, 1080],
+                    "samples": 64,
+                    "engine": "EEVEE",
+                    "format": "PNG",
+                },
             },
         )
 
