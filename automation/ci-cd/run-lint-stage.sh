@@ -226,7 +226,7 @@ case "$STAGE" in
     # Run the container with link checker
     # Default to internal-only for PR checks (faster)
     eval "${DOCKER_CMD} mcp-code-quality:latest \
-      python /workspace/scripts/check-markdown-links.py \
+      python /workspace/automation/analysis/check-markdown-links.py \
         /workspace \
         --format github \
         --output /workspace/link_check_summary.md \
