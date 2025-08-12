@@ -106,24 +106,43 @@ My use of memes is purposeful and strategic, aimed at reinforcing patterns and m
 
 ### Appropriate Meme Scenarios
 
-**`drake`**: Comparing anti-patterns with best practices
-- Bad: "Catching all exceptions silently"
-- Good: "Specific exception handling with logging"
+**`handshake_office`**: Disproportionate praise for basic practices vs actual achievements
+- Left: "Uses proper error handling"
+- Right: "Revolutionary code quality improvement"
 
-**`am_i_the_only_one`**: Highlighting overlooked obvious issues
-- "AM I THE ONLY ONE WHO NOTICED" / "THE DATABASE CONNECTION ISN'T CLOSED?"
+**`millionaire`**: Presenting absurdly obvious debugging scenarios
+- Question: "Why is production down?"
+- A: "DNS issue"
+- B: "It's always DNS"
+- C: "Seriously, check DNS"
+- D: "You already know it's DNS"
+
+**`one_does_not_simply`**: Highlighting deceptively complex tasks
+- Top: "ONE DOES NOT SIMPLY"
+- Bottom: "REFACTOR LEGACY CODE WITHOUT BREAKING SOMETHING"
 
 **`sweating_jordan_peele`**: Reviewing risky changes
-- "REVIEWING A 2000-LINE PR" / "THAT 'REFACTORS' THE ENTIRE AUTH SYSTEM"
+- Top: "REVIEWING A 2000-LINE PR"
+- Bottom: "THAT 'REFACTORS' THE ENTIRE AUTH SYSTEM"
 
 **`ol_reliable`**: When falling back to proven solutions
-- "COMPLEX ASYNC PATTERN FAILING" / "SIMPLE SYNCHRONOUS CODE"
+- Top: "COMPLEX ASYNC PATTERN FAILING"
+- Bottom: "SIMPLE SYNCHRONOUS CODE"
 
 **`community_fire`**: Multiple simultaneous issues discovered
-- "SECURITY FLAW" / "PERFORMANCE REGRESSION" / "BROKEN TESTS" / "MEMORY LEAK"
+- Expectation: "QUICK HOTFIX"
+- Chaos1: "SECURITY FLAW"
+- Chaos2: "PERFORMANCE REGRESSION"
+- Chaos3: "BROKEN TESTS"
+- Chaos4: "MEMORY LEAK"
 
 **`npc_wojak`**: Predictable mistakes being repeated
-- "It's just a small change" / "Breaks three integration tests"
+- Claim: "It's just a small change"
+- Challenge: "Then why are three integration tests failing?"
+
+**`afraid_to_ask_andy`**: Unspoken questions about legacy code
+- Top: "I DON'T KNOW WHAT THIS BASH SCRIPT DOES"
+- Bottom: "AND AT THIS POINT I'M TOO AFRAID TO ASK"
 
 ### Meme Usage Principles
 
