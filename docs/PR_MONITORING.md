@@ -26,19 +26,19 @@ Claude Code (Main agent responder)
 
 ```bash
 # Basic monitoring
-./scripts/pr-monitoring/monitor-pr.sh 48
+./automation/monitoring/pr/monitor-pr.sh 48
 
 # With custom timeout (30 minutes)
-./scripts/pr-monitoring/monitor-pr.sh 48 --timeout 1800
+./automation/monitoring/pr/monitor-pr.sh 48 --timeout 1800
 
 # JSON output only (for automation)
-./scripts/pr-monitoring/monitor-pr.sh 48 --json
+./automation/monitoring/pr/monitor-pr.sh 48 --json
 
 # Monitor comments after a specific commit
-./scripts/pr-monitoring/monitor-pr.sh 48 --since-commit abc1234
+./automation/monitoring/pr/monitor-pr.sh 48 --since-commit abc1234
 
 # Combine options
-./scripts/pr-monitoring/monitor-pr.sh 48 --since-commit abc1234 --timeout 1800
+./automation/monitoring/pr/monitor-pr.sh 48 --since-commit abc1234 --timeout 1800
 ```
 
 ### In Claude Code
@@ -58,7 +58,7 @@ import json
 
 # Run monitor and get structured response
 result = subprocess.run(
-    ["./scripts/pr-monitoring/monitor-pr.sh", "48", "--json"],
+    ["./automation/monitoring/pr/monitor-pr.sh", "48", "--json"],
     capture_output=True,
     text=True
 )
@@ -70,7 +70,7 @@ if result.returncode == 0:
 
 # Monitor from a specific commit
 result = subprocess.run(
-    ["./scripts/pr-monitoring/monitor-pr.sh", "48",
+    ["./automation/monitoring/pr/monitor-pr.sh", "48",
      "--since-commit", "abc1234", "--json"],
     capture_output=True,
     text=True
@@ -146,10 +146,10 @@ You just pushed commits to PR #48 on branch 'feature-branch'.
 Consider monitoring for feedback on your changes:
 
   📍 Monitor from this commit onwards:
-     python scripts/pr-monitoring/pr_monitor_agent.py 48 --since-commit abc1234
+     python automation/monitoring/pr/pr_monitor_agent.py 48 --since-commit abc1234
 
   🔄 Or monitor all new comments:
-     python scripts/pr-monitoring/pr_monitor_agent.py 48
+     python automation/monitoring/pr/pr_monitor_agent.py 48
 ```
 
 ## Integration with Claude Code
@@ -217,7 +217,7 @@ Claude: Admin posted: "[ADMIN] Please add tests"
 
 1. Check GitHub CLI authentication: `gh auth status`
 2. Verify PR exists: `gh pr view PR_NUMBER`
-3. Check script permissions: `chmod +x scripts/pr-monitoring/*`
+3. Check script permissions: `chmod +x automation/monitoring/pr/*`
 
 ### Escaping Issues in Responses
 
@@ -243,12 +243,12 @@ monitor-pr.sh 48 --timeout 3600  # 1 hour
 ### File Locations
 
 ```
-scripts/pr-monitoring/
+automation/monitoring/pr/
 ├── monitor.sh           # Core monitoring script (supports --since-commit)
 ├── pr_monitor_agent.py  # Intelligent analyzer
 └── monitor-pr.sh       # User-friendly wrapper
 
-scripts/claude-hooks/
+.claude/hooks/
 └── git-push-posttooluse-hook.py  # Auto-detects pushes and suggests monitoring
 
 .claude/

@@ -9,7 +9,7 @@ echo "1️⃣ Checking if gh alias is configured..."
 if alias gh 2>/dev/null | grep -q "gh-wrapper.sh"; then
     echo "   ✅ gh alias is correctly set to use gh-wrapper.sh"
 else
-    echo "   ❌ gh alias is NOT set. Run: source scripts/security-hooks/setup-agent-hooks.sh"
+    echo "   ❌ gh alias is NOT set. Run: source automation/security/setup-agent-hooks.sh"
     exit 1
 fi
 
@@ -31,7 +31,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 if [ -x "$SCRIPT_DIR/gh-wrapper.sh" ]; then
     echo "   ✅ gh-wrapper.sh is executable"
 else
-    echo "   ❌ gh-wrapper.sh is not executable. Run: chmod +x scripts/security-hooks/*.sh"
+    echo "   ❌ gh-wrapper.sh is not executable. Run: chmod +x automation/security/*.sh"
     exit 1
 fi
 

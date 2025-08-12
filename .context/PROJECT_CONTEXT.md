@@ -66,7 +66,7 @@ As the PR reviewer, focus on security, containers, and project standards.
 - Python code should handle async/await properly
 - No `chmod 777` or overly permissive operations
 - Helper scripts should be simple wrappers around docker-compose
-- Use `./scripts/run-ci.sh` for all CI operations
+- Use `./automation/ci-cd/run-ci.sh` for all CI operations
 - Mock external dependencies in tests (subprocess, requests)
 - Clear Gemini history before PR reviews
 
@@ -100,14 +100,14 @@ This is NOT a bug or oversight - it's a deliberate architectural decision based 
 ```
 ├── docker/              # Container definitions
 ├── tools/               # MCP server and tools
-├── scripts/             # Helper scripts (run-ci.sh, etc.)
+├── automation/          # Automation scripts (CI/CD, monitoring, etc.)
 ├── .github/workflows/   # Self-hosted runner workflows
 └── tests/              # Pytest test suite
 ```
 
 ## Key Patterns
 
-- Use `./scripts/run-ci.sh` for all CI operations
+- Use `./automation/ci-cd/run-ci.sh` for all CI operations
 - Docker Compose for service orchestration
 - Mock external services in tests
 - Clear separation of containerized vs host tools
@@ -117,9 +117,9 @@ This is NOT a bug or oversight - it's a deliberate architectural decision based 
 1. **docker-compose.yml** - Service definitions, ports, volumes
 2. **docker/*.Dockerfile** - Container definitions, security
 3. **.github/workflows/*.yml** - Must use self-hosted runners
-4. **scripts/*.sh** - Shell script correctness and permissions
+4. **automation/**/*.sh** - Shell script correctness and permissions
 5. **tools/mcp/mcp_server.py** - Core MCP functionality
-6. **scripts/run-ci.sh** - Main CI/CD entry point
+6. **automation/ci-cd/run-ci.sh** - Main CI/CD entry point
 7. **.mcp.json** - Tool configuration and rate limits
 
 ## Code Review Examples
@@ -131,7 +131,7 @@ export USER_ID=$(id -u)
 export GROUP_ID=$(id -g)
 
 # ✅ Using helper scripts
-./scripts/run-ci.sh format
+./automation/ci-cd/run-ci.sh format
 
 # ✅ Container with user permissions
 docker-compose run --rm --user "${USER_ID}:${GROUP_ID}" python-ci command

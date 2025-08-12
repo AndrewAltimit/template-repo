@@ -7,13 +7,13 @@ This file contains essential commands and guidelines for agentic coding agents w
 ### Build and Code Quality
 ```bash
 # Full CI pipeline (formatting, linting, testing)
-./scripts/run-ci.sh full
+./automation/ci-cd/run-ci.sh full
 
 # Individual stages
-./scripts/run-ci.sh format      # Check formatting
-./scripts/run-ci.sh lint-basic  # Basic linting
-./scripts/run-ci.sh lint-full   # Full linting suite
-./scripts/run-ci.sh autoformat  # Auto-format code
+./automation/ci-cd/run-ci.sh format      # Check formatting
+./automation/ci-cd/run-ci.sh lint-basic  # Basic linting
+./automation/ci-cd/run-ci.sh lint-full   # Full linting suite
+./automation/ci-cd/run-ci.sh autoformat  # Auto-format code
 
 # Run a specific test file
 docker-compose run --rm python-ci pytest tests/test_specific.py -v

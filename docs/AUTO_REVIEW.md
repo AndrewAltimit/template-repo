@@ -36,13 +36,13 @@ Use the test script for local testing:
 
 ```bash
 # Review all open issues and PRs with Claude and Gemini
-./scripts/test-auto-review.sh
+./automation/ci-cd/test-auto-review.sh
 
 # Review only PRs with OpenCode
-./scripts/test-auto-review.sh "opencode" "pull-requests"
+./automation/ci-cd/test-auto-review.sh "opencode" "pull-requests"
 
 # Thorough review with all agents
-./scripts/test-auto-review.sh "claude,gemini,opencode,crush" "both" "thorough"
+./automation/ci-cd/test-auto-review.sh "claude,gemini,opencode,crush" "both" "thorough"
 ```
 
 ## Configuration

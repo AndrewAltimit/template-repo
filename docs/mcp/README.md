@@ -286,7 +286,7 @@ python tools/mcp/<server_name>/scripts/test_server.py
 
 Test all servers:
 ```bash
-python scripts/mcp/test_all_servers.py
+python automation/testing/test_all_servers.py
 ```
 
 

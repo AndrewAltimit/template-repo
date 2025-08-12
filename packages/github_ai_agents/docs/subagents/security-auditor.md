@@ -247,7 +247,7 @@ docker-compose logs ai-agents | grep -E "(ERROR|SECURITY)"
 git checkout -b security-fix-CVE-YYYY-NNNN
 
 # 5. TEST: Validate fix
-./scripts/run-ci.sh security
+./automation/ci-cd/run-ci.sh security
 
 # 6. DEPLOY: With announcement
 ```

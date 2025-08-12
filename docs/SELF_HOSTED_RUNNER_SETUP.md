@@ -200,7 +200,7 @@ If you encounter permission errors:
 1. Ensure your user is in the `docker` group
 2. Verify the UID/GID environment variables are set correctly
 3. Check that the workspace directory has proper permissions
-4. Use the fix script: `./scripts/fix-runner-permissions.sh`
+4. Use the fix script: `./automation/setup/runner/fix-runner-permissions.sh`
 
 **Python Cache Prevention:**
 The CI/CD system prevents Python cache issues by:
@@ -235,7 +235,7 @@ The CI/CD system prevents Python cache issues by:
 2. **Permission denied on files created by containers**:
    ```bash
    # Use the fix script
-   ./scripts/fix-runner-permissions.sh
+   ./automation/setup/runner/fix-runner-permissions.sh
    ```
 
 3. **Out of space errors**:

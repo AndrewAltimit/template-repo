@@ -30,10 +30,10 @@ You're pushing commits to PR #54 on branch 'refine'.
 After push completes, consider monitoring for feedback:
 
   📍 Monitor from this commit onwards:
-     python scripts/pr-monitoring/pr_monitor_agent.py 54 --since-commit abc1234
+     python automation/monitoring/pr/pr_monitor_agent.py 54 --since-commit abc1234
 
   🔄 Or monitor all new comments:
-     python scripts/pr-monitoring/pr_monitor_agent.py 54
+     python automation/monitoring/pr/pr_monitor_agent.py 54
 
 This will watch for:
   • Admin comments and commands
@@ -76,18 +76,18 @@ To modify or disable the hook, edit `.git/hooks/pre-push` in your local reposito
 
 ### Related Tools
 
-- **PR Monitor Agent**: `scripts/pr-monitoring/pr_monitor_agent.py`
-- **Universal Security Hooks**: See `scripts/security-hooks/README.md`
+- **PR Monitor Agent**: `automation/monitoring/pr/pr_monitor_agent.py`
+- **Universal Security Hooks**: See `automation/security/README.md`
 - **GitHub AI Agents**: Automated PR and issue monitoring
 
 ## Security Hooks (Universal)
 
 The repository includes universal security hooks that work with ALL agents through shell aliasing:
 
-- **Universal Wrapper**: `scripts/security-hooks/gh-wrapper.sh`
+- **Universal Wrapper**: `automation/security/gh-wrapper.sh`
   - Masks secrets in GitHub comments
   - Validates command safety
   - Works for all agents including Claude Code
-  - Setup via: `source scripts/security-hooks/setup-agent-hooks.sh`
+  - Setup via: `source automation/security/setup-agent-hooks.sh`
 
 These hooks ensure that sensitive information is never accidentally posted to GitHub through any automation tool or manual operation.

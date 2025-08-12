@@ -145,7 +145,7 @@ python tools/mcp/opencode/scripts/test_server.py
 python tools/mcp/crush/scripts/test_server.py
 
 # Test all MCP servers
-python scripts/mcp/test_all_servers.py
+python automation/testing/test_all_servers.py
 ```
 
 ## When to Use Which?

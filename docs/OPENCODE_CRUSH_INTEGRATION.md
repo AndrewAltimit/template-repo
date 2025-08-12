@@ -647,7 +647,7 @@ export CRUSH_LOG_LEVEL=DEBUG
 
 ```bash
 # Test all MCP servers
-python scripts/mcp/test_all_servers.py
+python automation/testing/test_all_servers.py
 
 # Test specific servers
 python tools/mcp/opencode/scripts/test_server.py

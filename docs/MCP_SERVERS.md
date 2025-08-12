@@ -355,10 +355,10 @@ Test all servers at once:
 
 ```bash
 # Test all running servers
-python scripts/mcp/test_all_servers.py
+python automation/testing/test_all_servers.py
 
 # Quick connectivity test only
-python scripts/mcp/test_all_servers.py --quick
+python automation/testing/test_all_servers.py --quick
 
 # Test individual servers
 python tools/mcp/code_quality/scripts/test_server.py
@@ -461,7 +461,7 @@ docker-compose down mcp-code-quality
 ### Container Permission Issues
 
 ```bash
-./scripts/fix-runner-permissions.sh
+./automation/setup/runner/fix-runner-permissions.sh
 ```
 
 ### Gemini Server Issues

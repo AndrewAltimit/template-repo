@@ -12,7 +12,7 @@ The project uses the standard pre-commit framework. To set it up:
 
 ```bash
 # Install pre-commit hooks
-./scripts/setup-pre-commit.sh
+./automation/setup/git/setup-pre-commit.sh
 ```
 
 This installs the pre-commit hooks defined in `.pre-commit-config.yaml`, which include:

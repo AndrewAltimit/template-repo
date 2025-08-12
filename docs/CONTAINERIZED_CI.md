@@ -61,27 +61,27 @@ The `run-ci.sh` script provides a simple interface:
 
 ```bash
 # Format checking
-./scripts/run-ci.sh format
+./automation/ci-cd/run-ci.sh format
 
 # Linting
-./scripts/run-ci.sh lint-basic
-./scripts/run-ci.sh lint-full
+./automation/ci-cd/run-ci.sh lint-basic
+./automation/ci-cd/run-ci.sh lint-full
 
 # Testing
-./scripts/run-ci.sh test
+./automation/ci-cd/run-ci.sh test
 
 # Security scanning
-./scripts/run-ci.sh security
+./automation/ci-cd/run-ci.sh security
 
 # Auto-formatting
-./scripts/run-ci.sh autoformat
+./automation/ci-cd/run-ci.sh autoformat
 
 # Full CI pipeline (all checks)
-./scripts/run-ci.sh full
+./automation/ci-cd/run-ci.sh full
 
 # YAML/JSON validation
-./scripts/run-ci.sh yaml-lint
-./scripts/run-ci.sh json-lint
+./automation/ci-cd/run-ci.sh yaml-lint
+./automation/ci-cd/run-ci.sh json-lint
 ```
 
 ### Direct Docker Compose Commands
@@ -121,11 +121,11 @@ GitHub Actions workflows use the containerized approach:
 ```yaml
 - name: Run Python Linting
   run: |
-    ./scripts/run-ci.sh lint-basic
+    ./automation/ci-cd/run-ci.sh lint-basic
 
 - name: Run Tests with Coverage
   run: |
-    ./scripts/run-ci.sh test
+    ./automation/ci-cd/run-ci.sh test
 ```
 
 This ensures:

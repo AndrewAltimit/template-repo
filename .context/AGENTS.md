@@ -13,11 +13,11 @@ docker-compose run --rm python-ci pytest tests/test_mcp_tools.py -v
 docker-compose run --rm python-ci pytest -k "test_format" -v
 
 # Code quality checks
-./scripts/run-ci.sh format      # Check formatting
-./scripts/run-ci.sh lint-basic   # Basic linting
-./scripts/run-ci.sh lint-full    # Full linting suite
-./scripts/run-ci.sh autoformat   # Auto-format code
-./scripts/run-ci.sh full        # Run all checks
+./automation/ci-cd/run-ci.sh format      # Check formatting
+./automation/ci-cd/run-ci.sh lint-basic   # Basic linting
+./automation/ci-cd/run-ci.sh lint-full    # Full linting suite
+./automation/ci-cd/run-ci.sh autoformat   # Auto-format code
+./automation/ci-cd/run-ci.sh full        # Run all checks
 ```
 
 ## Code Style Guidelines

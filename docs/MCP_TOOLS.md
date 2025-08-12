@@ -208,14 +208,14 @@ While not a direct MCP tool, the full CI/CD pipeline can be executed via:
 
 ```bash
 # Run complete CI pipeline
-./scripts/run-ci.sh full
+./automation/ci-cd/run-ci.sh full
 
 # Individual stages
-./scripts/run-ci.sh format
-./scripts/run-ci.sh lint-basic
-./scripts/run-ci.sh lint-full
-./scripts/run-ci.sh security
-./scripts/run-ci.sh test
+./automation/ci-cd/run-ci.sh format
+./automation/ci-cd/run-ci.sh lint-basic
+./automation/ci-cd/run-ci.sh lint-full
+./automation/ci-cd/run-ci.sh security
+./automation/ci-cd/run-ci.sh test
 ```
 
 These scripts leverage the containerized Python CI environment.

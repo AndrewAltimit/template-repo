@@ -186,8 +186,8 @@ if [ -f /.dockerenv ] || [ -n "$CONTAINER" ]; then
     else
         echo "Warning: pytest not available in container"
     fi
-elif [ -f "./scripts/run-ci.sh" ]; then
-    ./scripts/run-ci.sh test
+elif [ -f "./automation/ci-cd/run-ci.sh" ]; then
+    ./automation/ci-cd/run-ci.sh test
 else
     echo "Warning: run-ci.sh not found, skipping tests"
 fi

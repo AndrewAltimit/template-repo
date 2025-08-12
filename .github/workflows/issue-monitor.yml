@@ -99,7 +99,7 @@ jobs:
           echo "[INFO] Using hybrid agent support: Claude/Gemini on host, OpenRouter agents in containers"
 
           # Run the hybrid issue monitor script
-          ./scripts/run-issue-monitor-hybrid.sh || {
+          ./automation/monitoring/issues/run-issue-monitor-hybrid.sh || {
               exit_code=$?
               echo "[ERROR] Issue monitor script failed with exit code: $exit_code"
               exit $exit_code

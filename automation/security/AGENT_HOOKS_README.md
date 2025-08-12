@@ -28,7 +28,7 @@ The security hooks provide:
 
 ```bash
 # Source the setup script in your environment
-source /path/to/scripts/security-hooks/setup-agent-hooks.sh
+source /path/to/automation/security/setup-agent-hooks.sh
 ```
 
 This creates an alias for `gh` that routes commands through the validation wrapper.
@@ -39,7 +39,7 @@ Add to your shell configuration (`.bashrc`, `.zshrc`, etc.):
 
 ```bash
 # Enable security hooks for GitHub operations
-source /path/to/template-repo/scripts/security-hooks/setup-agent-hooks.sh
+source /path/to/template-repo/automation/security/setup-agent-hooks.sh
 ```
 
 #### Docker/Container Setup
@@ -48,7 +48,7 @@ In your Dockerfile or entrypoint script:
 
 ```dockerfile
 # Copy hooks
-COPY scripts/security-hooks /app/security-hooks
+COPY automation/security /app/security-hooks
 
 # Set up alias in container
 RUN echo 'source /app/security-hooks/setup-agent-hooks.sh' >> /etc/bash.bashrc
@@ -64,7 +64,7 @@ import os
 
 # Set up environment with gh alias
 env = os.environ.copy()
-hooks_dir = "/path/to/scripts/security-hooks"
+hooks_dir = "/path/to/automation/security"
 env['PATH'] = f"{hooks_dir}:{env['PATH']}"
 
 # Now gh commands will use the wrapper
@@ -139,7 +139,7 @@ The following commands are validated:
 
 ```bash
 # Source the setup
-source scripts/security-hooks/setup-agent-hooks.sh
+source automation/security/setup-agent-hooks.sh
 
 # Test with a valid command
 gh pr list
@@ -159,11 +159,11 @@ gh pr comment 123 --body-file /tmp/comment.md
 ```bash
 # Test secret masking
 echo '{"tool_name": "Bash", "tool_input": {"command": "gh pr comment 123 --body \"API_KEY=sk-1234\""}}' | \
-  python3 scripts/security-hooks/github-secrets-masker.py
+  python3 automation/security/github-secrets-masker.py
 
 # Test comment validation
 echo '{"tool_name": "Bash", "tool_input": {"command": "gh pr comment 123 --body \"![Reaction](url)\""}}' | \
-  python3 scripts/security-hooks/gh-comment-validator.py
+  python3 automation/security/gh-comment-validator.py
 ```
 
 ## Troubleshooting
@@ -180,7 +180,7 @@ Expected output when working:
 Agent security hooks status:
   - gh wrapper: active (aliased)
   - Status: ✓ Active
-  - Hooks directory: /path/to/scripts/security-hooks
+  - Hooks directory: /path/to/automation/security
   - Wrapper script: ✓ Found
   - Secret masker: ✓ Found
   - Comment validator: ✓ Found
@@ -198,14 +198,14 @@ Agent security hooks status:
 alias gh
 
 # Check if wrapper is executable
-ls -l scripts/security-hooks/gh-wrapper.sh
+ls -l automation/security/gh-wrapper.sh
 
 # Test wrapper directly
-/path/to/scripts/security-hooks/gh-wrapper.sh pr list
+/path/to/automation/security/gh-wrapper.sh pr list
 ```
 
 **Solutions**:
-- Re-source the setup script: `. scripts/security-hooks/setup-agent-hooks.sh`
+- Re-source the setup script: `. automation/security/setup-agent-hooks.sh`
 - Check that you're in the correct shell session
 - Verify the alias is set: `type gh`
 
@@ -215,7 +215,7 @@ ls -l scripts/security-hooks/gh-wrapper.sh
 
 **Solution**:
 ```bash
-chmod +x scripts/security-hooks/*.sh
+chmod +x automation/security/*.sh
 ```
 
 #### 3. Python Module Errors
@@ -267,7 +267,7 @@ EOF
 ```bash
 # Test validators manually
 echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"test\""}}' | \
-  python3 scripts/security-hooks/github-secrets-masker.py
+  python3 automation/security/github-secrets-masker.py
 
 # Check Python errors
 python3 -c "import yaml; import json; print('Dependencies OK')"
@@ -285,7 +285,7 @@ echo "  - TEST_SECRET" >> .secrets.yaml
 
 # Test masking
 echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Secret is super-secret-value\""}}' | \
-  python3 scripts/security-hooks/github-secrets-masker.py
+  python3 automation/security/github-secrets-masker.py
 ```
 
 Expected: Command should be modified to mask the secret
@@ -334,9 +334,9 @@ All should trigger validation if they contain sensitive content
 4. **Verify shell compatibility**:
    ```bash
    # Test with different shells
-   sh scripts/security-hooks/gh-wrapper.sh --version
-   dash scripts/security-hooks/gh-wrapper.sh --version
-   bash scripts/security-hooks/gh-wrapper.sh --version
+   sh automation/security/gh-wrapper.sh --version
+   dash automation/security/gh-wrapper.sh --version
+   bash automation/security/gh-wrapper.sh --version
    ```
 
 ## Limitations

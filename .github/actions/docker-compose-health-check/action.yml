@@ -120,8 +120,8 @@ runs:
       shell: bash
       run: |
         # Use the cleanup script that handles permissions properly
-        if [ -f scripts/cleanup-outputs.sh ]; then
-          ./scripts/cleanup-outputs.sh
+        if [ -f automation/ci-cd/cleanup-outputs.sh ]; then
+          ./automation/ci-cd/cleanup-outputs.sh
         else
           echo "⚠️  Cleanup script not found, skipping cleanup"
         fi

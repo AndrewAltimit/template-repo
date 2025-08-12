@@ -22,9 +22,9 @@ elif [ -n "${ZSH_VERSION:-}" ]; then
     # shellcheck disable=SC3057  # Zsh-specific string indexing intentionally used
     if [ -n "${0:-}" ]; then
         # Try to use $0 in Zsh (it usually contains the full path when sourced)
-        HOOKS_DIR="$(cd "$(dirname "$0")" && pwd)" 2>/dev/null || HOOKS_DIR="$(pwd)/scripts/security-hooks"
+        HOOKS_DIR="$(cd "$(dirname "$0")" && pwd)" 2>/dev/null || HOOKS_DIR="$(pwd)/automation/security"
     else
-        HOOKS_DIR="$(pwd)/scripts/security-hooks"
+        HOOKS_DIR="$(pwd)/automation/security"
     fi
 else
     # POSIX fallback - may not work when sourced

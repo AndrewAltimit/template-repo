@@ -103,7 +103,7 @@ jobs:
           "
 
       - name: Upload tool output
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: mcp-tool-output
           path: tool_output.json
@@ -142,7 +142,7 @@ jobs:
           fi
           docker-compose down
           # Clean up output directories using Docker to handle permissions
-          ./scripts/cleanup-outputs.sh
+          ./automation/ci-cd/cleanup-outputs.sh
 
   gemini-consultation:
     name: Gemini AI Consultation

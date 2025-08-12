@@ -65,7 +65,7 @@ We provide a setup script to help prepare your host machine:
 
 ```bash
 # Run from the project root directory
-./scripts/setup-host-for-agents.sh
+./automation/setup/agents/setup-host-for-agents.sh
 ```
 
 This script will:

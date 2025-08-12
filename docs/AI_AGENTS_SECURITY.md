@@ -110,12 +110,12 @@ auto_detection:
 #### Testing
 ```bash
 # Test secret masking
-./scripts/security-hooks/test-masking.sh
+./automation/security/test-masking.sh
 
 # Manual test
 export GITHUB_TOKEN="ghp_test123"
 echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Token ghp_test123\""}}' | \
-  python3 scripts/security-hooks/github-secrets-masker.py
+  python3 automation/security/github-secrets-masker.py
 # Output: Token is [MASKED_GITHUB_TOKEN]
 ```
 
@@ -131,7 +131,7 @@ test -f .secrets.yaml && echo "✓ Secrets config exists"
 git log -p | grep -E "(ghp_|github_pat_)" || echo "✓ No tokens found"
 
 # Test PreToolUse hooks
-./scripts/security-hooks/test-masking.sh
+./automation/security/test-masking.sh
 ```
 
 ## Common Issues

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Test script to verify gh-wrapper alias is set up correctly
-# This script should be sourced, not executed: . scripts/security-hooks/test-alias-sourced.sh
+# This script should be sourced, not executed: . automation/security/test-alias-sourced.sh
 
 echo "🔍 Testing gh-wrapper alias setup..."
 echo ""

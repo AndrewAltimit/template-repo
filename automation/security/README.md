@@ -98,17 +98,17 @@ auto_detection:
 
 ```bash
 # One-time setup for current session
-source /path/to/scripts/security-hooks/setup-agent-hooks.sh
+source /path/to/automation/security/setup-agent-hooks.sh
 
 # Or add to shell configuration for permanent setup
-echo 'source /path/to/scripts/security-hooks/setup-agent-hooks.sh' >> ~/.bashrc
+echo 'source /path/to/automation/security/setup-agent-hooks.sh' >> ~/.bashrc
 ```
 
 ### For Docker/Containers
 
 ```dockerfile
 # In your Dockerfile
-COPY scripts/security-hooks /app/security-hooks
+COPY automation/security /app/security-hooks
 RUN chmod +x /app/security-hooks/*.sh
 RUN echo 'source /app/security-hooks/setup-agent-hooks.sh' >> /etc/bash.bashrc
 ```
@@ -118,7 +118,7 @@ RUN echo 'source /app/security-hooks/setup-agent-hooks.sh' >> /etc/bash.bashrc
 ```python
 import os
 # Add wrapper to PATH
-os.environ['PATH'] = f"/path/to/scripts/security-hooks:{os.environ['PATH']}"
+os.environ['PATH'] = f"/path/to/automation/security:{os.environ['PATH']}"
 # Now subprocess calls to 'gh' will use the wrapper
 ```
 
@@ -128,7 +128,7 @@ os.environ['PATH'] = f"/path/to/scripts/security-hooks:{os.environ['PATH']}"
 # GitHub Actions example
 - name: Setup security hooks
   run: |
-    source scripts/security-hooks/setup-agent-hooks.sh
+    source automation/security/setup-agent-hooks.sh
     # All subsequent gh commands will be validated
 ```
 
@@ -147,7 +147,7 @@ gh pr comment 1 --body "Secret is super-secret-value"
 
 # Test individual components
 echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Token is ghp_test123\""}}' | \
-  python3 scripts/security-hooks/github-secrets-masker.py
+  python3 automation/security/github-secrets-masker.py
 ```
 
 ## How to Add New Secrets
@@ -176,7 +176,7 @@ echo '{"tool_name":"Bash","tool_input":{"command":"gh pr comment 1 --body \"Toke
 agent_hooks_status
 
 # Re-source the setup script
-source scripts/security-hooks/setup-agent-hooks.sh
+source automation/security/setup-agent-hooks.sh
 ```
 
 ### Secrets not being masked

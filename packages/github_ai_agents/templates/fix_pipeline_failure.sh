@@ -81,9 +81,9 @@ if [ -n "$LINT_FAILURES" ]; then
         # Run Python formatting tools directly
         black . || echo "Black formatting completed"
         isort . || echo "Isort formatting completed"
-    elif [ -f "./scripts/run-ci.sh" ]; then
+    elif [ -f "./automation/ci-cd/run-ci.sh" ]; then
         echo "Running auto-format via run-ci.sh..."
-        ./scripts/run-ci.sh autoformat || echo "Auto-format completed with warnings"
+        ./automation/ci-cd/run-ci.sh autoformat || echo "Auto-format completed with warnings"
     else
         echo "Warning: No formatting tools available"
     fi
@@ -225,19 +225,19 @@ if [ -f /.dockerenv ] || [ -n "$CONTAINER" ]; then
             echo "Warning: pytest not available in container"
         fi
     fi
-elif [ -f "./scripts/run-ci.sh" ]; then
+elif [ -f "./automation/ci-cd/run-ci.sh" ]; then
     # Run format check
     echo "Checking code formatting..."
-    ./scripts/run-ci.sh format || echo "Format check completed"
+    ./automation/ci-cd/run-ci.sh format || echo "Format check completed"
 
     # Run basic linting
     echo "Running basic linting..."
-    ./scripts/run-ci.sh lint-basic || echo "Basic lint completed"
+    ./automation/ci-cd/run-ci.sh lint-basic || echo "Basic lint completed"
 
     # Run tests if we fixed test failures
     if [ -n "$TEST_FAILURES" ]; then
         echo "Running tests..."
-        ./scripts/run-ci.sh test || echo "Tests completed"
+        ./automation/ci-cd/run-ci.sh test || echo "Tests completed"
     fi
 else
     echo "Warning: run-ci.sh not found, skipping verification"
