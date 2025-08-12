@@ -4,6 +4,13 @@
 
 set -e
 
+# Get the script's directory to find the project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Change to project root so relative paths in docker-compose.yml work correctly
+cd "$PROJECT_ROOT"
+
 STAGE=${1:-format}
 
 # Export user IDs for docker-compose
