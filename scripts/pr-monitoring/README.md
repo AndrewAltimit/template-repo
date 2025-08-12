@@ -6,23 +6,23 @@ Quick-start scripts for monitoring GitHub Pull Requests for new comments.
 
 ```bash
 # Basic monitoring
-./scripts/pr-monitoring/monitor-pr 48
+./scripts/pr-monitoring/monitor-pr.sh 48
 
 # With custom timeout (30 minutes)
-./scripts/pr-monitoring/monitor-pr 48 --timeout 1800
+./scripts/pr-monitoring/monitor-pr.sh 48 --timeout 1800
 
 # JSON output only (for automation)
-./scripts/pr-monitoring/monitor-pr 48 --json
+./scripts/pr-monitoring/monitor-pr.sh 48 --json
 
 # Monitor comments after a specific commit
-./scripts/pr-monitoring/monitor-pr 48 --since-commit abc1234
+./scripts/pr-monitoring/monitor-pr.sh 48 --since-commit abc1234
 ```
 
 ## Files
 
 - **monitor.sh** - Core bash monitoring script
 - **pr_monitor_agent.py** - Intelligent Python agent for comment analysis
-- **monitor-pr** - User-friendly wrapper script
+- **monitor-pr.sh** - User-friendly wrapper script
 
 ## How It Works
 

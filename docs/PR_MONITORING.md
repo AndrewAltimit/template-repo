@@ -26,19 +26,19 @@ Claude Code (Main agent responder)
 
 ```bash
 # Basic monitoring
-./scripts/pr-monitoring/monitor-pr 48
+./scripts/pr-monitoring/monitor-pr.sh 48
 
 # With custom timeout (30 minutes)
-./scripts/pr-monitoring/monitor-pr 48 --timeout 1800
+./scripts/pr-monitoring/monitor-pr.sh 48 --timeout 1800
 
 # JSON output only (for automation)
-./scripts/pr-monitoring/monitor-pr 48 --json
+./scripts/pr-monitoring/monitor-pr.sh 48 --json
 
 # Monitor comments after a specific commit
-./scripts/pr-monitoring/monitor-pr 48 --since-commit abc1234
+./scripts/pr-monitoring/monitor-pr.sh 48 --since-commit abc1234
 
 # Combine options
-./scripts/pr-monitoring/monitor-pr 48 --since-commit abc1234 --timeout 1800
+./scripts/pr-monitoring/monitor-pr.sh 48 --since-commit abc1234 --timeout 1800
 ```
 
 ### In Claude Code
@@ -58,7 +58,7 @@ import json
 
 # Run monitor and get structured response
 result = subprocess.run(
-    ["./scripts/pr-monitoring/monitor-pr", "48", "--json"],
+    ["./scripts/pr-monitoring/monitor-pr.sh", "48", "--json"],
     capture_output=True,
     text=True
 )
@@ -70,7 +70,7 @@ if result.returncode == 0:
 
 # Monitor from a specific commit
 result = subprocess.run(
-    ["./scripts/pr-monitoring/monitor-pr", "48",
+    ["./scripts/pr-monitoring/monitor-pr.sh", "48",
      "--since-commit", "abc1234", "--json"],
     capture_output=True,
     text=True
@@ -235,7 +235,7 @@ gh pr comment PR --body "![Reaction](...)"  # Will escape !
 
 Increase timeout for long-running reviews:
 ```bash
-monitor-pr 48 --timeout 3600  # 1 hour
+monitor-pr.sh 48 --timeout 3600  # 1 hour
 ```
 
 ## Implementation Details
@@ -246,7 +246,7 @@ monitor-pr 48 --timeout 3600  # 1 hour
 scripts/pr-monitoring/
 ├── monitor.sh           # Core monitoring script (supports --since-commit)
 ├── pr_monitor_agent.py  # Intelligent analyzer
-└── monitor-pr          # User-friendly wrapper
+└── monitor-pr.sh       # User-friendly wrapper
 
 scripts/claude-hooks/
 └── git-push-posttooluse-hook.py  # Auto-detects pushes and suggests monitoring
