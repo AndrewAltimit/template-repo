@@ -1,7 +1,7 @@
 FROM python:3.10-slim
 
 # Install basic dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update || true && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -14,7 +14,7 @@ COPY docker/requirements-http-bridge.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy bridge script
-COPY scripts/mcp-http-bridge.py .
+COPY tools/cli/bridges/mcp-http-bridge.py .
 
 # Set environment variables to prevent cache issues
 ENV PYTHONUNBUFFERED=1
