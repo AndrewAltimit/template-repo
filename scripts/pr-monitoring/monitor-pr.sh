@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Convenience wrapper for PR monitoring
 # Usage: monitor-pr.sh PR_NUMBER [OPTIONS]
