@@ -35,11 +35,12 @@ The MCP functionality is distributed across specialized servers:
 2. **Content Creation MCP Server** - Manim and LaTeX tools (STDIO mode)
 3. **Gemini MCP Server** - AI consultation (STDIO mode, host-only)
 4. **Gaea2 MCP Server** (Port 8007) - Terrain generation
-5. **AI Toolkit MCP Server** (Port 8012) - LoRA training bridge
-6. **ComfyUI MCP Server** (Port 8013) - Image generation bridge
-7. **OpenCode MCP Server** - AI code generation (STDIO mode)
-8. **Crush MCP Server** - Fast code generation (STDIO mode)
-9. **Meme Generator MCP Server** - Meme creation (STDIO mode)
+5. **Blender MCP Server** (Port 8017) - 3D content creation and rendering
+6. **AI Toolkit MCP Server** (Port 8012) - LoRA training bridge
+7. **ComfyUI MCP Server** (Port 8013) - Image generation bridge
+8. **OpenCode MCP Server** - AI code generation (STDIO mode)
+9. **Crush MCP Server** - Fast code generation (STDIO mode)
+10. **Meme Generator MCP Server** - Meme creation (STDIO mode)
 
 See [MCP Servers Documentation](MCP_SERVERS.md) for detailed information.
 
@@ -106,6 +107,7 @@ Servers running in STDIO mode communicate through standard input/output using th
 | Content Creation | STDIO (Docker) | 8011 | Manim animations and LaTeX |
 | Gemini | STDIO (Host) | 8006 | AI consultation (must run on host) |
 | Gaea2 | HTTP (Bridge) | 8007 | Terrain generation (remote server) |
+| Blender | HTTP (Docker) | 8017 | 3D content creation, rendering, physics |
 | AI Toolkit | HTTP (Bridge) | 8012 | LoRA training (remote server) |
 | ComfyUI | HTTP (Bridge) | 8013 | Image generation (remote server) |
 | OpenCode | STDIO (Docker) | 8014 | AI code generation |
@@ -409,6 +411,46 @@ Generate memes from templates with text overlays.
 - 11 professional templates
 - Automatic error correction
 - Performance optimization
+
+### Blender Tools (Port 8017)
+
+#### 3D Content Creation
+- `create_blender_project`: Create new projects from templates
+- `add_primitive_objects`: Add cubes, spheres, cylinders, etc.
+- `setup_lighting`: Professional lighting setups (three-point, studio, HDRI)
+- `apply_material`: Apply PBR materials and textures
+- `import_model`: Import 3D models (FBX, OBJ, GLTF, STL, USD)
+- `export_model`: Export to various formats
+
+#### Rendering
+- `render_frame`: Single frame rendering (Cycles/Eevee)
+- `render_animation`: Animation sequence rendering
+- `get_render_status`: Monitor rendering progress
+- `cancel_render`: Stop ongoing render jobs
+
+#### Physics & Simulation
+- `setup_physics_simulation`: Configure rigid body, soft body, cloth
+- `add_fluid_simulation`: Fluid dynamics setup
+- `add_particle_system`: Particle effects and systems
+- `run_simulation`: Execute physics simulation
+
+#### Animation
+- `create_keyframe_animation`: Keyframe-based animation
+- `setup_armature`: Rigging and bone systems
+- `add_animation_constraint`: Animation constraints
+- `create_shape_keys`: Deformation shape keys
+
+#### Geometry Nodes
+- `create_geometry_nodes`: Procedural geometry generation
+- `create_scatter_system`: Object scattering/distribution
+- `create_array_modifier`: Array and grid layouts
+
+**Features:**
+- GPU-accelerated rendering with NVIDIA CUDA
+- Headless Blender for server operations
+- Asynchronous job system for long operations
+- Professional templates (studio, animation, VFX, architectural)
+- Full Docker support with GPU passthrough
 
 ### ComfyUI Tools (Port 8013)
 

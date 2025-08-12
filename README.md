@@ -1,6 +1,6 @@
 # MCP-Enabled Project Template
 
-A comprehensive development ecosystem with 7 AI agents, 9 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
+A comprehensive development ecosystem with 7 AI agents, 10 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
 
 ![MCP Demo](docs/template-repo.webp)
 
@@ -31,9 +31,10 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 
 ## Features
 
-- **9 MCP Servers** - Modular tools for code quality, content creation, AI assistance, and more
+- **10 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, and more
 - **7 AI Agents** - Comprehensive development automation
 - **Gaea2 Terrain Generation** - All 185 nodes supported
+- **Blender 3D Creation** - Full 3D content creation, rendering, and simulation
 - **ComfyUI & AI Toolkit** - Image generation and LoRA training
 - **Container-First Architecture** - Maximum portability and consistency
 - **Self-Hosted CI/CD** - Zero-cost GitHub Actions infrastructure
@@ -93,6 +94,7 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 │   │   ├── content_creation/ # Manim & LaTeX
 │   │   ├── gemini/        # AI consultation
 │   │   ├── gaea2/         # Terrain generation
+│   │   ├── blender/       # 3D content creation
 │   │   ├── opencode/      # Code generation (STDIO)
 │   │   ├── crush/         # Fast generation (STDIO)
 │   │   ├── meme_generator/# Meme creation
@@ -114,12 +116,13 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 1. **Code Quality** - Formatting, linting, auto-formatting
 2. **Content Creation** - Manim animations, LaTeX, TikZ diagrams
 3. **Gaea2** - Terrain generation with 185 nodes ([Documentation](docs/gaea2/README.md))
-4. **Gemini** - AI consultation (host-only due to Docker requirements)
-5. **OpenCode** - Comprehensive code generation (STDIO mode via Claude)
-6. **Crush** - Fast code snippets (STDIO mode via Claude)
-7. **Meme Generator** - Create memes with templates
-8. **AI Toolkit** - LoRA training bridge (remote: 192.168.0.152:8012)
-9. **ComfyUI** - Image generation bridge (remote: 192.168.0.152:8013)
+4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/blender/docs/README.md))
+5. **Gemini** - AI consultation (host-only due to Docker requirements)
+6. **OpenCode** - Comprehensive code generation (STDIO mode via Claude)
+7. **Crush** - Fast code snippets (STDIO mode via Claude)
+8. **Meme Generator** - Create memes with templates
+9. **AI Toolkit** - LoRA training bridge (remote: 192.168.0.152:8012)
+10. **ComfyUI** - Image generation bridge (remote: 192.168.0.152:8013)
 
 ### Usage Modes
 
