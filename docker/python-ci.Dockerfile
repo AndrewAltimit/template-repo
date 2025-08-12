@@ -46,9 +46,9 @@ ENV PYTHONUNBUFFERED=1 \
 RUN useradd -m -u 1000 ciuser
 
 # Copy security hooks and set up universal gh alias
-COPY automation/security /app/security-hooks
-RUN chmod +x /app/security-hooks/*.sh && \
-    echo 'alias gh="/app/security-hooks/gh-wrapper.sh"' >> /etc/bash.bashrc
+COPY automation/security /app/security
+RUN chmod +x /app/security/*.sh && \
+    echo 'alias gh="/app/security/gh-wrapper.sh"' >> /etc/bash.bashrc
 
 # Default command
 CMD ["bash"]
