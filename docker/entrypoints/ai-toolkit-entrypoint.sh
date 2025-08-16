@@ -7,8 +7,21 @@ cd /ai-toolkit/ui
 npm start &
 AI_TOOLKIT_PID=$!
 
-# Give the web UI time to start
-sleep 10
+# Wait for the web UI to be ready (with timeout)
+echo "Waiting for AI Toolkit UI to be available on port 8675..."
+MAX_ATTEMPTS=30  # 30 attempts * 2 seconds = 60 seconds max wait
+ATTEMPT=0
+while ! curl -s http://localhost:8675/ > /dev/null 2>&1; do
+    ATTEMPT=$((ATTEMPT + 1))
+    if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
+        echo "ERROR: AI Toolkit UI failed to start after 60 seconds"
+        kill $AI_TOOLKIT_PID 2>/dev/null
+        exit 1
+    fi
+    echo -n "."
+    sleep 2
+done
+echo " AI Toolkit UI is ready!"
 
 # Start MCP server
 echo "Starting AI Toolkit MCP Server on port 8012..."
