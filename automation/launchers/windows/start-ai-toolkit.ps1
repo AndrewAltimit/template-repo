@@ -32,11 +32,12 @@ $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Join-Path $scriptPath "../../.."
 Set-Location $repoRoot
 
-Write-Host "Starting AI Toolkit container..." -ForegroundColor Yellow
-Write-Host "This may take a while on first run as it builds the container"
-Write-Host ""
+Write-Host "Building AI Toolkit container..." -ForegroundColor Yellow
+Write-Host "This may take a while on first run or after updates"
+docker-compose build mcp-ai-toolkit
 
-# Start the AI Toolkit service
+Write-Host ""
+Write-Host "Starting AI Toolkit container..." -ForegroundColor Yellow
 docker-compose --profile ai-services up -d mcp-ai-toolkit
 
 # Check if the container started successfully

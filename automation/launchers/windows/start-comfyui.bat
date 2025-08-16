@@ -29,11 +29,12 @@ if errorlevel 1 (
 REM Navigate to repository root (3 levels up from this script)
 cd /d "%~dp0\..\..\..\"
 
-echo Starting ComfyUI container...
-echo This may take a while on first run as it builds the container
-echo.
+echo Building ComfyUI container...
+echo This may take a while on first run or after updates
+docker-compose build mcp-comfyui
 
-REM Start the ComfyUI service
+echo.
+echo Starting ComfyUI container...
 docker-compose --profile ai-services up -d mcp-comfyui
 
 REM Check if the container started successfully

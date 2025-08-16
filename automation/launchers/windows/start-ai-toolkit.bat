@@ -29,11 +29,12 @@ if errorlevel 1 (
 REM Navigate to repository root (3 levels up from this script)
 cd /d "%~dp0\..\..\..\"
 
-echo Starting AI Toolkit container...
-echo This may take a while on first run as it builds the container
-echo.
+echo Building AI Toolkit container...
+echo This may take a while on first run or after updates
+docker-compose build mcp-ai-toolkit
 
-REM Start the AI Toolkit service
+echo.
+echo Starting AI Toolkit container...
 docker-compose --profile ai-services up -d mcp-ai-toolkit
 
 REM Check if the container started successfully

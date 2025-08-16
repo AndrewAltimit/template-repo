@@ -29,11 +29,12 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 REPO_ROOT="$SCRIPT_DIR/../../.."
 cd "$REPO_ROOT" || exit 1
 
-echo -e "\033[33mStarting ComfyUI container...\033[0m"
-echo "This may take a while on first run as it builds the container"
-echo
+echo -e "\033[33mBuilding ComfyUI container...\033[0m"
+echo "This may take a while on first run or after updates"
+docker-compose build mcp-comfyui
 
-# Start the ComfyUI service
+echo
+echo -e "\033[33mStarting ComfyUI container...\033[0m"
 docker-compose --profile ai-services up -d mcp-comfyui
 
 # Check if the container started successfully

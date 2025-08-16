@@ -32,11 +32,12 @@ $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Join-Path $scriptPath "../../.."
 Set-Location $repoRoot
 
-Write-Host "Starting ComfyUI container..." -ForegroundColor Yellow
-Write-Host "This may take a while on first run as it builds the container"
-Write-Host ""
+Write-Host "Building ComfyUI container..." -ForegroundColor Yellow
+Write-Host "This may take a while on first run or after updates"
+docker-compose build mcp-comfyui
 
-# Start the ComfyUI service
+Write-Host ""
+Write-Host "Starting ComfyUI container..." -ForegroundColor Yellow
 docker-compose --profile ai-services up -d mcp-comfyui
 
 # Check if the container started successfully
