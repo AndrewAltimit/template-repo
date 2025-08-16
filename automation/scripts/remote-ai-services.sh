@@ -22,7 +22,7 @@ case "${1:-start}" in
         echo "========================================="
         echo ""
         echo "AI Toolkit:"
-        echo "  - Web UI: http://$(hostname -I | awk '{print $1}'):3000"
+        echo "  - Web UI: http://$(hostname -I | awk '{print $1}'):8675"
         echo "  - MCP Server: http://$(hostname -I | awk '{print $1}'):8012"
         echo ""
         echo "ComfyUI:"

@@ -60,7 +60,7 @@ RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
 # Start AI Toolkit web UI in background\n\
-echo "Starting AI Toolkit Web UI on port 3000..."\n\
+echo "Starting AI Toolkit Web UI on port 8675..."\n\
 cd /ai-toolkit/ui\n\
 npm start &\n\
 AI_TOOLKIT_PID=$!\n\
@@ -77,19 +77,19 @@ MCP_PID=$!\n\
 # Keep container running and handle shutdown\n\
 trap "kill $AI_TOOLKIT_PID $MCP_PID; exit" SIGTERM SIGINT\n\
 \n\
-echo "AI Toolkit Web UI: http://0.0.0.0:3000"\n\
+echo "AI Toolkit Web UI: http://0.0.0.0:8675"\n\
 echo "AI Toolkit MCP Server: http://0.0.0.0:8190"\n\
 \n\
 # Wait for processes\n\
 wait $AI_TOOLKIT_PID $MCP_PID\n\
 ' > /entrypoint.sh && chmod +x /entrypoint.sh
 
-# Expose ports (3000 for Node.js UI, 8190 for MCP)
-EXPOSE 3000 8190
+# Expose ports (8675 for Next.js UI, 8190 for MCP)
+EXPOSE 8675 8190
 
 # Health check for web UI
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:3000/ || exit 1
+    CMD curl -f http://localhost:8675/ || exit 1
 
 # Run entrypoint
 CMD ["/entrypoint.sh"]

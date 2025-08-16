@@ -163,7 +163,7 @@ services:
     container_name: ai-toolkit
     runtime: nvidia
     ports:
-      - "3000:3000"   # Web UI (Node.js app)
+      - "8675:8675"   # Web UI (Next.js app)
       - "8012:8190"   # MCP Server (map 8190 internal to 8012 external for compatibility)
     volumes:
       - ./:/workspace/repo:ro

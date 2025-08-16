@@ -56,7 +56,7 @@ Write-Host "AI Toolkit is starting up..." -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Services:" -ForegroundColor Yellow
-Write-Host "  Web UI:     http://localhost:3000" -ForegroundColor Cyan
+Write-Host "  Web UI:     http://localhost:8675" -ForegroundColor Cyan
 Write-Host "  MCP Server: http://localhost:8012" -ForegroundColor Cyan
 Write-Host ""
 
@@ -66,7 +66,7 @@ Start-Sleep -Seconds 10
 
 # Open the web UI in default browser
 Write-Host "Opening AI Toolkit Web UI in your browser..." -ForegroundColor Green
-Start-Process "http://localhost:3000"
+Start-Process "http://localhost:8675"
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
