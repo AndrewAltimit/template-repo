@@ -16,6 +16,7 @@ from blender.core.asset_manager import AssetManager  # noqa: E402
 from blender.core.blender_executor import BlenderExecutor  # noqa: E402
 from blender.core.job_manager import JobManager  # noqa: E402
 from blender.core.templates import TemplateManager  # noqa: E402
+from blender.server_enhancements import NEW_TOOLS  # noqa: E402
 from core.base_server import BaseMCPServer, ToolRequest, ToolResponse  # noqa: E402
 
 # Configure logging
@@ -616,6 +617,9 @@ class BlenderMCPServer(BaseMCPServer):
             },
         ]
 
+        # Add enhanced tools from server_enhancements.py
+        tools.extend(NEW_TOOLS)
+
         # Convert list to dictionary format expected by base class
         tool_dict = {}
         for tool in tools:
@@ -654,6 +658,19 @@ class BlenderMCPServer(BaseMCPServer):
             "list_projects": lambda _: self._list_projects(),  # No args needed
             "import_model": self._import_model,
             "export_scene": self._export_scene,
+            # Enhanced tools from server_enhancements.py
+            "setup_camera": self._setup_camera,
+            "add_camera_track": self._add_camera_track,
+            "add_modifier": self._add_modifier,
+            "add_particle_system": self._add_particle_system,
+            "add_smoke_simulation": self._add_smoke_simulation,
+            "add_texture": self._add_texture,
+            "add_uv_map": self._add_uv_map,
+            "setup_compositor": self._setup_compositor,
+            "analyze_scene": self._analyze_scene,
+            "optimize_scene": self._optimize_scene,
+            "batch_render": self._batch_render,
+            "setup_world_environment": self._setup_world_environment,
         }
 
         try:
@@ -1072,6 +1089,319 @@ class BlenderMCPServer(BaseMCPServer):
             "output_path": output_path,
             "format": export_format,
             "message": f"Scene exported to '{output_path}'",
+        }
+
+    # Enhanced tool handlers
+    async def _setup_camera(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Setup camera in the scene."""
+        project = str(self._validate_project_path(args["project"]))
+        camera_name = args.get("camera_name", "Camera")
+        location = args.get("location", [7, -7, 5])
+        rotation = args.get("rotation", [1.1, 0, 0.785])
+        focal_length = args.get("focal_length", 50)
+        dof = args.get("depth_of_field", {})
+
+        script_args = {
+            "operation": "setup_camera",
+            "project": project,
+            "camera_name": camera_name,
+            "location": location,
+            "rotation": rotation,
+            "focal_length": focal_length,
+            "depth_of_field": dof,
+        }
+
+        job_id = str(uuid.uuid4())
+        await self.blender_executor.execute_script("camera_tools.py", script_args, job_id)
+
+        return {
+            "success": True,
+            "camera_name": camera_name,
+            "message": f"Camera '{camera_name}' configured successfully",
+        }
+
+    async def _add_camera_track(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Add tracking constraint to camera."""
+        project = str(self._validate_project_path(args["project"]))
+        camera_name = args.get("camera_name", "Camera")
+        target_object = args["target_object"]
+        track_type = args.get("track_type", "TRACK_TO")
+
+        script_args = {
+            "operation": "add_camera_track",
+            "project": project,
+            "camera_name": camera_name,
+            "target_object": target_object,
+            "track_type": track_type,
+        }
+
+        job_id = str(uuid.uuid4())
+        await self.blender_executor.execute_script("camera_tools.py", script_args, job_id)
+
+        return {
+            "success": True,
+            "camera_name": camera_name,
+            "target": target_object,
+            "message": f"Camera tracking added to '{camera_name}'",
+        }
+
+    async def _add_modifier(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Add modifier to an object."""
+        project = str(self._validate_project_path(args["project"]))
+        object_name = args["object_name"]
+        modifier_type = args["modifier_type"]
+        settings = args.get("settings", {})
+
+        script_args = {
+            "operation": "add_modifier",
+            "project": project,
+            "object_name": object_name,
+            "modifier_type": modifier_type,
+            "settings": settings,
+        }
+
+        job_id = str(uuid.uuid4())
+        await self.blender_executor.execute_script("modifiers.py", script_args, job_id)
+
+        return {
+            "success": True,
+            "object": object_name,
+            "modifier": modifier_type,
+            "message": f"Modifier '{modifier_type}' added to '{object_name}'",
+        }
+
+    async def _add_particle_system(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Add particle system to an object."""
+        project = str(self._validate_project_path(args["project"]))
+        object_name = args["object_name"]
+        particle_type = args.get("particle_type", "EMITTER")
+        settings = args.get("settings", {})
+
+        script_args = {
+            "operation": "add_particle_system",
+            "project": project,
+            "object_name": object_name,
+            "particle_type": particle_type,
+            "settings": settings,
+        }
+
+        job_id = str(uuid.uuid4())
+        await self.blender_executor.execute_script("particles.py", script_args, job_id)
+
+        return {
+            "success": True,
+            "object": object_name,
+            "particle_type": particle_type,
+            "message": f"Particle system added to '{object_name}'",
+        }
+
+    async def _add_smoke_simulation(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Add smoke or fire simulation."""
+        project = str(self._validate_project_path(args["project"]))
+        emitter_name = args["emitter_name"]
+        domain_name = args.get("domain_name", "SmokeDomain")
+        simulation_type = args.get("simulation_type", "SMOKE")
+        settings = args.get("settings", {})
+
+        # First create domain
+        domain_args = {
+            "operation": "add_smoke_domain",
+            "project": project,
+            "domain_name": domain_name,
+            "resolution": settings.get("resolution", 32),
+        }
+
+        job_id = str(uuid.uuid4())
+        await self.blender_executor.execute_script("particles.py", domain_args, job_id)
+
+        # Then setup emitter
+        emitter_args = {
+            "operation": "add_smoke_emitter",
+            "project": project,
+            "object_name": emitter_name,
+            "simulation_type": simulation_type,
+            "settings": settings,
+        }
+
+        await self.blender_executor.execute_script("particles.py", emitter_args, job_id)
+
+        return {
+            "success": True,
+            "emitter": emitter_name,
+            "domain": domain_name,
+            "type": simulation_type,
+            "message": f"{simulation_type} simulation setup complete",
+        }
+
+    async def _add_texture(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Add texture to a material."""
+        project = str(self._validate_project_path(args["project"]))
+        object_name = args["object_name"]
+        texture_type = args["texture_type"]
+        texture_settings = args.get("texture_settings", {})
+
+        script_args = {
+            "operation": "add_texture",
+            "project": project,
+            "object_name": object_name,
+            "texture_type": texture_type,
+            "settings": texture_settings,
+        }
+
+        job_id = str(uuid.uuid4())
+        await self.blender_executor.execute_script("materials.py", script_args, job_id)
+
+        return {
+            "success": True,
+            "object": object_name,
+            "texture_type": texture_type,
+            "message": f"Texture '{texture_type}' added to '{object_name}'",
+        }
+
+    async def _add_uv_map(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Add UV mapping to an object."""
+        project = str(self._validate_project_path(args["project"]))
+        object_name = args["object_name"]
+        uv_type = args.get("uv_type", "SMART_PROJECT")
+        settings = args.get("settings", {})
+
+        script_args = {
+            "operation": "add_uv_map",
+            "project": project,
+            "object_name": object_name,
+            "uv_type": uv_type,
+            "settings": settings,
+        }
+
+        job_id = str(uuid.uuid4())
+        await self.blender_executor.execute_script("uv_tools.py", script_args, job_id)
+
+        return {
+            "success": True,
+            "object": object_name,
+            "uv_type": uv_type,
+            "message": f"UV mapping added to '{object_name}'",
+        }
+
+    async def _setup_compositor(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Setup compositor nodes for post-processing."""
+        project = str(self._validate_project_path(args["project"]))
+        effects = args["effects"]
+        settings = args.get("settings", {})
+
+        script_args = {
+            "operation": "setup_compositor",
+            "project": project,
+            "effects": effects,
+            "settings": settings,
+        }
+
+        job_id = str(uuid.uuid4())
+        await self.blender_executor.execute_script("compositor.py", script_args, job_id)
+
+        return {
+            "success": True,
+            "effects": effects,
+            "message": f"Compositor setup with {len(effects)} effects",
+        }
+
+    async def _analyze_scene(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze scene statistics."""
+        project = str(self._validate_project_path(args["project"]))
+        include_details = args.get("include_details", ["OBJECTS", "MATERIALS"])
+
+        script_args = {
+            "operation": "analyze_scene",
+            "project": project,
+            "include_details": include_details,
+        }
+
+        job_id = str(uuid.uuid4())
+        result = await self.blender_executor.execute_script("scene_analyzer.py", script_args, job_id)
+
+        return {
+            "success": True,
+            "analysis": result,
+            "message": "Scene analysis complete",
+        }
+
+    async def _optimize_scene(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Optimize scene for better performance."""
+        project = str(self._validate_project_path(args["project"]))
+        optimization_type = args["optimization_type"]
+        settings = args.get("settings", {})
+
+        script_args = {
+            "operation": "optimize_scene",
+            "project": project,
+            "optimization_type": optimization_type,
+            "settings": settings,
+        }
+
+        job_id = str(uuid.uuid4())
+        await self.blender_executor.execute_script("scene_optimizer.py", script_args, job_id)
+
+        return {
+            "success": True,
+            "optimizations": optimization_type,
+            "message": f"Applied {len(optimization_type)} optimizations",
+        }
+
+    async def _batch_render(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Render multiple projects or frames in batch."""
+        projects = args["projects"]
+        settings = args.get("settings", {})
+
+        batch_id = str(uuid.uuid4())
+        job_ids = []
+
+        for project_config in projects:
+            project = str(self._validate_project_path(project_config["project"]))
+            frames = project_config.get("frames", [1])
+            output_name = project_config.get("output_name", Path(project).stem)
+
+            for frame in frames:
+                job_id = str(uuid.uuid4())
+                job_ids.append(job_id)
+
+                script_args = {
+                    "operation": "render_frame",
+                    "project": project,
+                    "frame": frame,
+                    "output_path": str(self.outputs_dir / f"{output_name}_frame_{frame}.png"),
+                    "settings": settings,
+                }
+
+                await self.blender_executor.execute_script("renderer.py", script_args, job_id)
+
+        return {
+            "success": True,
+            "batch_id": batch_id,
+            "job_ids": job_ids,
+            "total_renders": len(job_ids),
+            "message": f"Batch render started with {len(job_ids)} jobs",
+        }
+
+    async def _setup_world_environment(self, args: Dict[str, Any]) -> Dict[str, Any]:
+        """Setup world environment and background."""
+        project = str(self._validate_project_path(args["project"]))
+        environment_type = args["environment_type"]
+        settings = args.get("settings", {})
+
+        script_args = {
+            "operation": "setup_world",
+            "project": project,
+            "environment_type": environment_type,
+            "settings": settings,
+        }
+
+        job_id = str(uuid.uuid4())
+        await self.blender_executor.execute_script("world_setup.py", script_args, job_id)
+
+        return {
+            "success": True,
+            "environment_type": environment_type,
+            "message": f"World environment set to '{environment_type}'",
         }
 
 
