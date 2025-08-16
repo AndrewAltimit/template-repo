@@ -44,6 +44,23 @@ This will watch for:
 ============================================================
 ```
 
+### Dependencies
+
+For optimal functionality, install these tools:
+
+```bash
+# GitHub CLI (required for PR detection)
+# Ubuntu/Debian:
+sudo apt install gh
+# Or download from: https://cli.github.com/
+
+# jq (recommended for robust JSON parsing)
+# Ubuntu/Debian:
+sudo apt install jq
+# macOS:
+brew install jq
+```
+
 ### Installation
 
 #### Automatic Installation
@@ -69,6 +86,7 @@ If you prefer to install manually or need to combine with existing hooks:
 - This is a local git hook that is NOT tracked in the repository (stays local to your clone)
 - If you have Git LFS installed, the hook will automatically combine with LFS functionality
 - Requires `gh` CLI to be installed for PR detection to work
+- Recommends `jq` for robust JSON parsing (falls back to grep if not available)
 
 ### Customization
 
