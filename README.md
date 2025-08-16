@@ -2,7 +2,7 @@
 
 A comprehensive development ecosystem with 7 AI agents, 10 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
 
-![MCP Demo](docs/template-repo.webp)
+![MCP Demo](docs/mcp/mcp-demo.gif)
 
 ## Project Philosophy
 
