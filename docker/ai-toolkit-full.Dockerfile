@@ -32,8 +32,8 @@ RUN pip3 install --no-cache-dir \
     aiofiles \
     psutil
 
-# Copy MCP server code from our repo
-COPY tools/mcp/ai_toolkit /workspace/mcp_server
+# Copy entire tools directory to maintain proper Python module structure
+COPY tools /workspace/tools
 
 # Create directories
 RUN mkdir -p /ai-toolkit/datasets \
@@ -54,7 +54,7 @@ set -e\n\
 # Start AI Toolkit web UI in background\n\
 echo "Starting AI Toolkit Web UI on port 8675..."\n\
 cd /ai-toolkit\n\
-python3 app.py --host 0.0.0.0 --port 8675 &\n\
+python3 flux_train_ui.py --host 0.0.0.0 --port 8675 &\n\
 AI_TOOLKIT_PID=$!\n\
 \n\
 # Give the web UI time to start\n\
@@ -63,7 +63,7 @@ sleep 5\n\
 # Start MCP server\n\
 echo "Starting AI Toolkit MCP Server on port 8190..."\n\
 cd /workspace\n\
-python3 -m mcp_server.server --mode http --host 0.0.0.0 --port 8190 &\n\
+python3 -m tools.mcp.ai_toolkit.server --mode http --host 0.0.0.0 --port 8190 &\n\
 MCP_PID=$!\n\
 \n\
 # Keep container running and handle shutdown\n\

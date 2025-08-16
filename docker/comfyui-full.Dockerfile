@@ -48,8 +48,8 @@ RUN pip3 install --no-cache-dir \
     psutil \
     websocket-client
 
-# Copy MCP server code from our repo
-COPY tools/mcp/comfyui /workspace/mcp_server
+# Copy entire tools directory to maintain proper Python module structure
+COPY tools /workspace/tools
 
 # Create directories
 RUN mkdir -p /comfyui/models/checkpoints \
@@ -75,7 +75,7 @@ set -e\n\
 # Start ComfyUI web UI in background\n\
 echo "Starting ComfyUI Web UI on port 8188..."\n\
 cd /comfyui\n\
-python3 main.py --listen 0.0.0.0 --port 8188 --gpu-only --highvram &\n\
+python3 main.py --listen 0.0.0.0 --port 8188 --highvram &\n\
 COMFYUI_PID=$!\n\
 \n\
 # Give the web UI time to start\n\
@@ -84,7 +84,7 @@ sleep 10\n\
 # Start MCP server\n\
 echo "Starting ComfyUI MCP Server on port 8189..."\n\
 cd /workspace\n\
-python3 -m mcp_server.server --mode http --host 0.0.0.0 --port 8189 &\n\
+python3 -m tools.mcp.comfyui.server --mode http --host 0.0.0.0 --port 8189 &\n\
 MCP_PID=$!\n\
 \n\
 # Keep container running and handle shutdown\n\
