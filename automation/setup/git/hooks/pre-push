@@ -47,8 +47,13 @@ if [ -z "$pr_info" ] || [ "$pr_info" = "[]" ]; then
     exit 0
 fi
 
-# Extract PR number from JSON response
-pr_number=$(echo "$pr_info" | grep -o '"number":[0-9]*' | grep -o '[0-9]*' || echo "")
+# Extract PR number from JSON response using jq for robust parsing
+# Falls back to grep if jq is not available
+if command -v jq >/dev/null 2>&1; then
+    pr_number=$(echo "$pr_info" | jq -r '.[0].number // ""' 2>/dev/null || echo "")
+else
+    pr_number=$(echo "$pr_info" | grep -o '"number":[0-9]*' | grep -o '[0-9]*' || echo "")
+fi
 
 # Double-check we got a valid PR number
 if [ -z "$pr_number" ]; then
