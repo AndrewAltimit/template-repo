@@ -1,0 +1,26 @@
+# ComfyUI MCP Server dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+httpx==0.25.0
+pydantic==2.4.2
+aiofiles==23.2.1
+typing-extensions==4.8.0
+python-multipart==0.0.6
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+transformers>=4.30.0
+diffusers>=0.21.0
+accelerate>=0.20.0
+safetensors>=0.3.1
+xformers>=0.0.20
+opencv-python-headless>=4.8.0
+Pillow>=10.0.0
+numpy>=1.24.0
+scipy>=1.11.0
+tqdm>=4.65.0
+psutil>=5.9.0
+matplotlib>=3.7.0
+kornia>=0.7.0
+einops>=0.7.0
+websocket-client>=1.6.0

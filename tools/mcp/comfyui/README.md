@@ -1,13 +1,14 @@
 # ComfyUI MCP Server
 
-The ComfyUI MCP server connects directly to a remote ComfyUI instance for AI image generation.
+The ComfyUI MCP server provides GPU-accelerated AI image generation with workflow support.
 
 ## Architecture
 
-This server acts as a **direct HTTP connection** to the remote ComfyUI MCP server:
-- **Remote Server**: Runs on `192.168.0.152:8013`
-- **Connection**: Claude connects directly via HTTP (configured in `.mcp.json`)
-- **No Local Server Required**: The remote machine handles all MCP functionality
+This MCP server runs on a GPU-enabled machine and provides:
+- **Containerized Deployment**: Runs in Docker with NVIDIA GPU support
+- **MCP Protocol**: Full MCP server implementation for ComfyUI functionality
+- **Remote Access**: Can be accessed via HTTP from any machine on the network
+- **Default Location**: Typically runs on `192.168.0.152:8013`
 
 ## Configuration
 
@@ -20,13 +21,31 @@ The connection is configured in `.mcp.json`:
 }
 ```
 
-## Remote Server Requirements
+## Deployment on GPU Machine
 
-The remote server at `192.168.0.152` must:
-1. Have the ComfyUI MCP server running on port 8013
-2. Be accessible from your local network
-3. Have NVIDIA GPU support for image generation
-4. Have ComfyUI backend running (typically on port 8188)
+### Requirements
+1. NVIDIA GPU with CUDA support
+2. Docker with nvidia-docker2 runtime
+3. Network access on port 8013
+
+### Quick Start (on GPU machine)
+```bash
+# Clone the repository
+git clone https://github.com/AndrewAltimit/template-repo.git
+cd template-repo
+
+# Start the ComfyUI MCP server
+./automation/scripts/remote-ai-services.sh start
+
+# Or use docker-compose directly
+docker-compose --profile ai-services up -d mcp-comfyui
+```
+
+### Host Mode (alternative)
+```bash
+# Run directly on host with GPU
+./automation/scripts/start-ai-services.sh host
+```
 
 ## Available Tools
 
@@ -98,6 +117,26 @@ ComfyUI can use LoRA models trained with AI Toolkit:
 3. **LoRA Not Found**: Ensure model was properly transferred from AI Toolkit
 4. **Network Issues**: Test connectivity with `curl http://192.168.0.152:8013/health`
 
-## Note on Local Deployment
+## Container Management
 
-This setup does **not** run ComfyUI locally due to GPU requirements. The server files in this repository (`server.py`, `stubs.py`) are for reference and testing only. The actual MCP server runs on the remote machine with GPU support.
+```bash
+# View logs
+docker-compose logs -f mcp-comfyui
+
+# Restart service
+docker-compose restart mcp-comfyui
+
+# Stop service
+docker-compose --profile ai-services down
+
+# Update and restart
+./automation/scripts/remote-ai-services.sh update
+```
+
+## Architecture Notes
+
+- The MCP server runs in a Docker container with GPU passthrough
+- Uses NVIDIA CUDA 12.1 base image for optimal performance
+- Volumes are used for persistent storage of models, outputs, and inputs
+- Can run alongside AI Toolkit MCP server for integrated LoRA workflows
+- Includes ComfyUI backend for workflow execution

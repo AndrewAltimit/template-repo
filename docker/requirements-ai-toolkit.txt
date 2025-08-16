@@ -1,0 +1,24 @@
+# AI Toolkit MCP Server dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+httpx==0.25.0
+pydantic==2.4.2
+aiofiles==23.2.1
+typing-extensions==4.8.0
+python-multipart==0.0.6
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.30.0
+diffusers>=0.21.0
+accelerate>=0.20.0
+safetensors>=0.3.1
+xformers>=0.0.20
+bitsandbytes>=0.41.0
+peft>=0.4.0
+datasets>=2.14.0
+wandb>=0.15.0
+tensorboard>=2.13.0
+Pillow>=10.0.0
+numpy>=1.24.0
+opencv-python-headless>=4.8.0
+tqdm>=4.65.0

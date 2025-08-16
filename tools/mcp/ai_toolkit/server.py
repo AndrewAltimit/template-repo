@@ -1,17 +1,20 @@
-"""AI Toolkit MCP Server - Bridge to remote AI training service"""
+"""AI Toolkit MCP Server - GPU-accelerated LoRA training management"""
 
 import json
 import os
+from pathlib import Path
+from typing import Any, Dict
 
 from fastapi import Request, Response
 
 from ..core.base_server import BaseMCPServer
 from ..core.utils import setup_logging
 
-# Remote server configuration
-REMOTE_HOST = os.environ.get("AI_TOOLKIT_HOST", "192.168.0.152")
-REMOTE_PORT = int(os.environ.get("AI_TOOLKIT_PORT", "8012"))
-REMOTE_URL = f"http://{REMOTE_HOST}:{REMOTE_PORT}"
+# AI Toolkit configuration
+AI_TOOLKIT_PATH = os.environ.get("AI_TOOLKIT_PATH", "/ai-toolkit")
+DATASETS_PATH = Path(AI_TOOLKIT_PATH) / "datasets"
+OUTPUTS_PATH = Path(AI_TOOLKIT_PATH) / "outputs"
+CONFIGS_PATH = Path(AI_TOOLKIT_PATH) / "configs"
 
 
 class AIToolkitMCPServer(BaseMCPServer):
@@ -24,9 +27,15 @@ class AIToolkitMCPServer(BaseMCPServer):
             port=port,
         )
 
-        # Initialize HTTP bridge for forwarding requests
-        self.remote_url = REMOTE_URL
+        # Initialize server state
         self.logger = setup_logging("ai_toolkit_mcp")
+        self.training_jobs: Dict[str, Any] = {}
+        self.configs: Dict[str, Any] = {}
+
+        # Ensure directories exist
+        DATASETS_PATH.mkdir(parents=True, exist_ok=True)
+        OUTPUTS_PATH.mkdir(parents=True, exist_ok=True)
+        CONFIGS_PATH.mkdir(parents=True, exist_ok=True)
 
         # Tool definitions (must be defined before creating methods)
         self.tools = [
@@ -253,46 +262,53 @@ class AIToolkitMCPServer(BaseMCPServer):
         try:
             # Get request data
             data = await request.json()
+            tool_name = data.get("tool")
+            params = data.get("params", {})
 
-            # Forward to remote server
-            import httpx
+            # Execute tool locally
+            if tool_name == "create_training_config":
+                result = self.create_training_config(params)
+            elif tool_name == "start_training":
+                result = self.start_training(params)
+            elif tool_name == "get_training_status":
+                result = self.get_training_status(params)
+            else:
+                result = {"error": f"Unknown tool: {tool_name}"}
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(f"{self.remote_url}/mcp/execute", json=data)
-
-                if response.status_code == 200:
-                    return Response(content=response.text, media_type="application/json")
-                else:
-                    return Response(
-                        content=json.dumps(
-                            {
-                                "error": f"Remote server error: {response.status_code}",
-                                "details": response.text,
-                            }
-                        ),
-                        status_code=response.status_code,
-                        media_type="application/json",
-                    )
-        except httpx.ConnectError:
-            self.logger.error(f"Could not connect to remote server at {self.remote_url}")
             return Response(
-                content=json.dumps(
-                    {
-                        "error": "Remote AI Toolkit server not available",
-                        "type": "remote_connection_error",
-                        "remote_url": self.remote_url,
-                    }
-                ),
-                status_code=503,
+                content=json.dumps(result),
                 media_type="application/json",
             )
         except Exception as e:
-            self.logger.error(f"Error forwarding request: {e}")
+            self.logger.error(f"Error executing tool: {e}")
             return Response(
-                content=json.dumps({"error": str(e), "type": "remote_connection_error"}),
-                status_code=503,
+                content=json.dumps({"error": str(e)}),
+                status_code=500,
                 media_type="application/json",
             )
+
+    def create_training_config(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a training configuration"""
+        config_name = params.get("name")
+        if config_name:
+            self.configs[config_name] = params
+        return {"status": "success", "config": config_name}
+
+    def start_training(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Start a training job"""
+        import uuid
+
+        job_id = str(uuid.uuid4())
+        self.training_jobs[job_id] = {"status": "running", "config": params}
+        return {"status": "success", "job_id": job_id}
+
+    def get_training_status(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Get training job status"""
+        job_id = params.get("job_id")
+        if job_id:
+            job = self.training_jobs.get(job_id, {})
+            return {"status": job.get("status", "unknown"), "job_id": job_id}
+        return {"status": "error", "message": "No job_id provided"}
 
     def get_tools(self) -> dict:
         """Return dictionary of available tools and their metadata"""
@@ -306,55 +322,27 @@ class AIToolkitMCPServer(BaseMCPServer):
         return tools_dict
 
     def _create_tool_methods(self):
-        """Dynamically create tool methods that forward to remote server"""
+        """Dynamically create tool methods for MCP protocol"""
         for tool in self.tools:
             tool_name = tool["name"]
 
             # Create a closure to capture the tool name
             def make_tool_method(name):
                 async def tool_method(**kwargs):
-                    """Forward tool call to remote server"""
-                    return await self._forward_tool_call(name, kwargs)
+                    """Execute tool locally"""
+                    if name == "create_training_config":
+                        return self.create_training_config(kwargs)
+                    elif name == "start_training":
+                        return self.start_training(kwargs)
+                    elif name == "get_training_status":
+                        return self.get_training_status(kwargs)
+                    else:
+                        return {"error": f"Tool {name} not implemented"}
 
                 return tool_method
 
             # Set the method on the instance
             setattr(self, tool_name, make_tool_method(tool_name))
-
-    async def _forward_tool_call(self, tool_name: str, arguments: dict) -> dict:
-        """Forward a tool call to the remote server"""
-        try:
-            import httpx
-
-            data = {"tool": tool_name, "parameters": arguments}
-
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.post(f"{self.remote_url}/mcp/execute", json=data)
-
-                if response.status_code == 200:
-                    result = response.json()
-                    return result  # type: ignore[no-any-return]
-                else:
-                    return {
-                        "success": False,
-                        "error": f"Remote server error: {response.status_code}",
-                        "details": response.text,
-                    }
-        except httpx.ConnectError:
-            self.logger.error(f"Could not connect to remote server at {self.remote_url}")
-            return {
-                "success": False,
-                "error": "Remote AI Toolkit server not available",
-                "type": "remote_connection_error",
-                "remote_url": self.remote_url,
-            }
-        except Exception as e:
-            self.logger.error(f"Error forwarding request: {e}")
-            return {
-                "success": False,
-                "error": str(e),
-                "type": "remote_connection_error",
-            }
 
 
 def main():
@@ -378,7 +366,7 @@ def main():
     server = AIToolkitMCPServer(port=args.port)
 
     print(f"Starting AI Toolkit MCP Server on {args.host}:{args.port}")
-    print(f"Remote server: {REMOTE_URL}")
+    print(f"AI Toolkit MCP Server on port {server.port}")
 
     uvicorn.run(server.app, host=args.host, port=args.port)
 

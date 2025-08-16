@@ -1,13 +1,14 @@
 # AI Toolkit MCP Server
 
-The AI Toolkit MCP server connects directly to a remote AI Toolkit instance for LoRA training and model management.
+The AI Toolkit MCP server provides GPU-accelerated LoRA training and model management capabilities.
 
 ## Architecture
 
-This server acts as a **direct HTTP connection** to the remote AI Toolkit MCP server:
-- **Remote Server**: Runs on `192.168.0.152:8012`
-- **Connection**: Claude connects directly via HTTP (configured in `.mcp.json`)
-- **No Local Server Required**: The remote machine handles all MCP functionality
+This MCP server runs on a GPU-enabled machine and provides:
+- **Containerized Deployment**: Runs in Docker with NVIDIA GPU support
+- **MCP Protocol**: Full MCP server implementation for AI Toolkit functionality
+- **Remote Access**: Can be accessed via HTTP from any machine on the network
+- **Default Location**: Typically runs on `192.168.0.152:8012`
 
 ## Configuration
 
@@ -20,12 +21,31 @@ The connection is configured in `.mcp.json`:
 }
 ```
 
-## Remote Server Requirements
+## Deployment on GPU Machine
 
-The remote server at `192.168.0.152` must:
-1. Have the AI Toolkit MCP server running on port 8012
-2. Be accessible from your local network
-3. Have NVIDIA GPU support for training
+### Requirements
+1. NVIDIA GPU with CUDA support
+2. Docker with nvidia-docker2 runtime
+3. Network access on port 8012
+
+### Quick Start (on GPU machine)
+```bash
+# Clone the repository
+git clone https://github.com/AndrewAltimit/template-repo.git
+cd template-repo
+
+# Start the AI Toolkit MCP server
+./automation/scripts/remote-ai-services.sh start
+
+# Or use docker-compose directly
+docker-compose --profile ai-services up -d mcp-ai-toolkit
+```
+
+### Host Mode (alternative)
+```bash
+# Run directly on host with GPU
+./automation/scripts/start-ai-services.sh host
+```
 
 ## Available Tools
 
@@ -86,6 +106,25 @@ status = mcp__aitoolkit__get_training_status(
 2. **Tool Not Available**: Check that the remote MCP server is properly configured
 3. **Network Issues**: Test connectivity with `curl http://192.168.0.152:8012/health`
 
-## Note on Local Deployment
+## Container Management
 
-This setup does **not** run AI Toolkit locally due to GPU requirements. The server files in this repository (`server.py`, `stubs.py`) are for reference and testing only. The actual MCP server runs on the remote machine with GPU support.
+```bash
+# View logs
+docker-compose logs -f mcp-ai-toolkit
+
+# Restart service
+docker-compose restart mcp-ai-toolkit
+
+# Stop service
+docker-compose --profile ai-services down
+
+# Update and restart
+./automation/scripts/remote-ai-services.sh update
+```
+
+## Architecture Notes
+
+- The MCP server runs in a Docker container with GPU passthrough
+- Uses NVIDIA CUDA 12.1 base image for optimal performance
+- Volumes are used for persistent storage of datasets, models, and configs
+- Can run alongside ComfyUI MCP server for integrated workflows

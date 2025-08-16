@@ -155,6 +155,88 @@ services:
     profiles:
       - services
 
+  # AI Toolkit MCP Server (GPU-accelerated LoRA training)
+  mcp-ai-toolkit:
+    build:
+      context: .
+      dockerfile: docker/mcp-ai-toolkit.Dockerfile
+    container_name: mcp-ai-toolkit
+    runtime: nvidia
+    ports:
+      - "8012:8012"
+    volumes:
+      - ./:/app:ro
+      - ai-toolkit-datasets:/ai-toolkit/datasets
+      - ai-toolkit-outputs:/ai-toolkit/outputs
+      - ai-toolkit-configs:/ai-toolkit/configs
+      - ai-toolkit-logs:/app/logs
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
+      - PYTHONUNBUFFERED=1
+      - PORT=8012
+      - AI_TOOLKIT_PATH=/ai-toolkit
+    networks:
+      - mcp-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8012/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    profiles:
+      - ai-services
+      - gpu
+
+  # ComfyUI MCP Server (GPU-accelerated image generation)
+  mcp-comfyui:
+    build:
+      context: .
+      dockerfile: docker/mcp-comfyui.Dockerfile
+    container_name: mcp-comfyui
+    runtime: nvidia
+    ports:
+      - "8013:8013"
+    volumes:
+      - ./:/app:ro
+      - comfyui-models:/comfyui/models
+      - comfyui-output:/comfyui/output
+      - comfyui-input:/comfyui/input
+      - comfyui-logs:/app/logs
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
+      - PYTHONUNBUFFERED=1
+      - PORT=8013
+      - COMFYUI_PATH=/comfyui
+    networks:
+      - mcp-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8013/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    profiles:
+      - ai-services
+      - gpu
+
 
   # OpenCode MCP Server
   mcp-opencode:
@@ -346,6 +428,8 @@ services:
       - mcp-code-quality
       - mcp-content-creation
       - mcp-gaea2
+      - mcp-ai-toolkit
+      - mcp-comfyui
       - mcp-crush
       - mcp-opencode
       - mcp-blender
@@ -368,6 +452,16 @@ volumes:
   crush-data: {}
   crush-local-data: {}
   crush-cache: {}
+  # AI Toolkit volumes
+  ai-toolkit-datasets: {}
+  ai-toolkit-outputs: {}
+  ai-toolkit-configs: {}
+  ai-toolkit-logs: {}
+  # ComfyUI volumes
+  comfyui-models: {}
+  comfyui-output: {}
+  comfyui-input: {}
+  comfyui-logs: {}
 
 # Secrets are managed at runtime by GitHub Actions or local setup script
 # Never commit actual secret files to the repository!
