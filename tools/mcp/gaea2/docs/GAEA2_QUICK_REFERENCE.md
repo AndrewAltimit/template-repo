@@ -190,7 +190,7 @@ From 31 real projects:
 
 ## Documentation
 
-- **Main Guide**: `docs/gaea2/README.md`
-- **API Reference**: `docs/gaea2/GAEA2_API_REFERENCE.md`
-- **Examples**: `docs/gaea2/GAEA2_EXAMPLES.md`
-- **Knowledge Base**: `docs/gaea2/GAEA2_KNOWLEDGE_BASE.md`
+- **Main Guide**: [README.md](README.md)
+- **API Reference**: [GAEA2_API_REFERENCE.md](GAEA2_API_REFERENCE.md)
+- **Examples**: [GAEA2_EXAMPLES.md](GAEA2_EXAMPLES.md)
+- **Knowledge Base**: [GAEA2_KNOWLEDGE_BASE.md](GAEA2_KNOWLEDGE_BASE.md)

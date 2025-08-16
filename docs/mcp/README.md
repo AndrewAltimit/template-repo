@@ -37,7 +37,7 @@ AI integration for second opinions and code validation:
 
 ### 4. Gaea2 Terrain Generation MCP Server (Port 8007)
 **Location**: `tools/mcp/gaea2/`
-**Documentation**: [Gaea2 MCP Documentation](../gaea2/README.md) | [Full Documentation Index](../gaea2/INDEX.md)
+**Documentation**: [Gaea2 MCP Documentation](../../tools/mcp/gaea2/docs/README.md) | [Full Documentation Index](../../tools/mcp/gaea2/docs/INDEX.md)
 
 Comprehensive terrain generation with Gaea2:
 - Support for all 185 Gaea2 nodes

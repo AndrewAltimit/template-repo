@@ -560,9 +560,9 @@ For detailed information on specific topics, refer to these documentation files:
 - `docs/GEMINI_SETUP.md` - Gemini CLI setup and configuration
 
 ### Gaea2 Terrain Generation
-- `docs/gaea2/INDEX.md` - Complete Gaea2 documentation index
-- `docs/gaea2/README.md` - Main Gaea2 MCP documentation
-- `docs/gaea2/GAEA2_QUICK_REFERENCE.md` - Quick reference guide
+- `tools/mcp/gaea2/docs/INDEX.md` - Complete Gaea2 documentation index
+- `tools/mcp/gaea2/docs/README.md` - Main Gaea2 MCP documentation
+- `tools/mcp/gaea2/docs/GAEA2_QUICK_REFERENCE.md` - Quick reference guide
 
 ## AI Toolkit & ComfyUI Integration
 
@@ -584,7 +584,7 @@ The Gaea2 MCP server provides comprehensive terrain generation capabilities:
 - **Windows Requirement**: Must run on Windows with Gaea2 installed
 
 **For complete Gaea2 documentation:**
-- `docs/gaea2/INDEX.md` - Documentation index
-- `docs/gaea2/README.md` - Main documentation
-- `docs/gaea2/GAEA2_API_REFERENCE.md` - API reference
-- `docs/gaea2/GAEA2_EXAMPLES.md` - Usage examples
+- `tools/mcp/gaea2/docs/INDEX.md` - Documentation index
+- `tools/mcp/gaea2/docs/README.md` - Main documentation
+- `tools/mcp/gaea2/docs/GAEA2_API_REFERENCE.md` - API reference
+- `tools/mcp/gaea2/docs/GAEA2_EXAMPLES.md` - Usage examples

@@ -117,7 +117,7 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 
 1. **Code Quality** - Formatting, linting, auto-formatting
 2. **Content Creation** - Manim animations, LaTeX, TikZ diagrams
-3. **Gaea2** - Terrain generation with 185 nodes ([Documentation](docs/gaea2/README.md))
+3. **Gaea2** - Terrain generation with 185 nodes ([Documentation](tools/mcp/gaea2/docs/README.md))
 4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/blender/docs/README.md))
 5. **Gemini** - AI consultation (host-only due to Docker requirements)
 6. **OpenCode** - Comprehensive code generation (STDIO mode via Claude)
@@ -196,12 +196,12 @@ All workflows run on self-hosted runners for zero-cost operation.
 ### Quick References
 - [OpenCode & Crush Quick Reference](docs/OPENCODE_CRUSH_QUICK_REFERENCE.md)
 - [MCP Tools Reference](docs/MCP_TOOLS.md)
-- [Gaea2 Quick Reference](docs/gaea2/GAEA2_QUICK_REFERENCE.md)
+- [Gaea2 Quick Reference](tools/mcp/gaea2/docs/GAEA2_QUICK_REFERENCE.md)
 
 ### Integration Guides
 - [OpenCode & Crush Integration](docs/OPENCODE_CRUSH_INTEGRATION.md)
 - [AI Toolkit & ComfyUI Integration](docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md)
-- [Gaea2 Documentation](docs/gaea2/README.md)
+- [Gaea2 Documentation](tools/mcp/gaea2/docs/README.md)
 
 ### Setup & Configuration
 - [Self-Hosted Runner Setup](docs/SELF_HOSTED_RUNNER_SETUP.md)
