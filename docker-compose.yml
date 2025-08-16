@@ -155,6 +155,89 @@ services:
     profiles:
       - services
 
+  # AI Toolkit (Web UI and MCP Server)
+  mcp-ai-toolkit:
+    build:
+      context: .
+      dockerfile: docker/ai-toolkit.Dockerfile
+    container_name: ai-toolkit
+    runtime: nvidia
+    ports:
+      - "8675:8675"   # Web UI (Next.js app)
+      - "8012:8012"   # MCP Server
+    volumes:
+      - ./:/workspace/repo:ro
+      - ai-toolkit-datasets:/ai-toolkit/datasets
+      - ai-toolkit-outputs:/ai-toolkit/outputs
+      - ai-toolkit-configs:/ai-toolkit/configs
+      - ai-toolkit-logs:/workspace/logs
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
+      - PYTHONUNBUFFERED=1
+      - AI_TOOLKIT_PATH=/ai-toolkit
+    networks:
+      - mcp-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8675/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - ai-services
+      - gpu
+
+  # ComfyUI (Web UI and MCP Server)
+  mcp-comfyui:
+    build:
+      context: .
+      dockerfile: docker/comfyui.Dockerfile
+    container_name: comfyui
+    runtime: nvidia
+    ports:
+      - "8188:8188"   # Web UI
+      - "8013:8013"   # MCP Server
+    volumes:
+      - ./:/workspace/repo:ro
+      - comfyui-models:/comfyui/models
+      - comfyui-output:/comfyui/output
+      - comfyui-input:/comfyui/input
+      - comfyui-logs:/workspace/logs
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
+      - PYTHONUNBUFFERED=1
+      - COMFYUI_PATH=/comfyui
+    networks:
+      - mcp-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8188/system_stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - ai-services
+      - gpu
+
+
   # OpenCode MCP Server
   mcp-opencode:
     build:
@@ -345,6 +428,8 @@ services:
       - mcp-code-quality
       - mcp-content-creation
       - mcp-gaea2
+      - mcp-ai-toolkit
+      - mcp-comfyui
       - mcp-crush
       - mcp-opencode
       - mcp-blender
@@ -367,6 +452,16 @@ volumes:
   crush-data: {}
   crush-local-data: {}
   crush-cache: {}
+  # AI Toolkit volumes
+  ai-toolkit-datasets: {}
+  ai-toolkit-outputs: {}
+  ai-toolkit-configs: {}
+  ai-toolkit-logs: {}
+  # ComfyUI volumes
+  comfyui-models: {}
+  comfyui-output: {}
+  comfyui-input: {}
+  comfyui-logs: {}
 
 # Secrets are managed at runtime by GitHub Actions or local setup script
 # Never commit actual secret files to the repository!

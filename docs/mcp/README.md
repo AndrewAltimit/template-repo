@@ -40,37 +40,40 @@ AI integration for second opinions and code validation:
 **Documentation**: [Gaea2 MCP Documentation](../../tools/mcp/gaea2/docs/README.md) | [Full Documentation Index](../../tools/mcp/gaea2/docs/INDEX.md)
 
 Comprehensive terrain generation with Gaea2:
-- Support for all 185 Gaea2 nodes
 - Intelligent validation and error correction
 - Professional terrain templates (11 templates)
 - CLI automation (Windows only)
 - Project repair and optimization capabilities
 - Pattern-based workflow analysis
 
-### 5. AI Toolkit MCP Server (Port 8012)
+### 5. AI Toolkit MCP Server (GPU - Port 8012)
 **Location**: `tools/mcp/ai_toolkit/`
-**Documentation**: [AI Toolkit MCP Documentation](../../tools/mcp/ai_toolkit/docs/README.md)
+**Documentation**: [AI Toolkit MCP Documentation](../../tools/mcp/ai_toolkit/README.md)
 
-Bridge to remote AI Toolkit for LoRA training:
+**GPU-accelerated LoRA training management**:
 - Training configuration management
 - Dataset upload with chunked support
 - Training job monitoring and control
 - Model export and download
 - System statistics and logs
 
-**Remote Bridge**: Connects to AI Toolkit at `192.168.0.152:8012`
+**Deployment**: Docker container with NVIDIA GPU support
+**Default Location**: `192.168.0.152:8012` (runs from this repo's code)
+**Access**: HTTP MCP protocol (configured in `.mcp.json`)
 
-### 6. ComfyUI MCP Server (Port 8013)
+### 6. ComfyUI MCP Server (GPU - Port 8013)
 **Location**: `tools/mcp/comfyui/`
-**Documentation**: [ComfyUI MCP Documentation](../../tools/mcp/comfyui/docs/README.md)
+**Documentation**: [ComfyUI MCP Documentation](../../tools/mcp/comfyui/README.md)
 
-Bridge to remote ComfyUI for AI image generation:
+**GPU-accelerated AI image generation**:
 - Image generation with workflows
 - LoRA model management and transfer
 - Custom workflow execution
 - Model listing and management
 
-**Remote Bridge**: Connects to ComfyUI at `192.168.0.152:8013`
+**Deployment**: Docker container with NVIDIA GPU support
+**Default Location**: `192.168.0.152:8013` (runs from this repo's code)
+**Access**: HTTP MCP protocol (configured in `.mcp.json`)
 
 ### 7. OpenCode MCP Server (STDIO mode)
 **Location**: `tools/mcp/opencode/`

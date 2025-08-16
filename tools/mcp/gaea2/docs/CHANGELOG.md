@@ -53,7 +53,6 @@ All notable changes to the Gaea2 MCP Server are documented here.
 
 ### Added
 - Initial Gaea2 MCP server implementation
-- Support for 185 Gaea2 nodes
 - Automatic validation and fixing
 - Pattern-based intelligence from 31 real projects
 - Professional templates

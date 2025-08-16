@@ -85,6 +85,13 @@ Enable or disable automatic Gemini consultation when uncertainty is detected.
 
 1. **Gemini CLI**: Install the Gemini CLI tool and ensure it's in your PATH
 2. **Authentication**: Configure Gemini CLI authentication
+
+   **⚠️ IMPORTANT - Use Web Login for Free Tier!**
+   - The Gemini CLI should use **Google web login (OAuth)** for authentication
+   - This provides a **FREE TIER** with 60 requests/min, 1,000 requests/day, 4M tokens/day
+   - **CAUTION**: Using API keys instead of web login will result in **charges** for usage
+   - For single-maintainer projects, the free tier via web login is recommended
+
 3. **Host System**: Must run on the host, not in a container
 
 ### stdio Mode (Recommended for Claude Desktop)
@@ -212,8 +219,9 @@ If you see this error, you're trying to run the server inside Docker. Exit the c
 ### Authentication Issues
 
 1. Run `gemini auth` to configure authentication
-2. Ensure your API credentials are valid
-3. Check the Gemini CLI documentation
+2. Use **Google web login** (OAuth) for free tier access
+3. **AVOID using API keys** - they will incur charges
+4. Check the Gemini CLI documentation
 
 ### Timeout Errors
 
@@ -250,7 +258,8 @@ await client.execute_tool("toggle_gemini_auto_consult", {"enable": False})
 
 ## Security Considerations
 
-- API keys are managed by the Gemini CLI
+- Authentication is managed by the Gemini CLI (use web login for free tier)
 - No credentials are stored in the MCP server
+- **Cost consideration**: Web login provides free tier; API keys incur charges
 - Consultation logs can be disabled for sensitive code
 - Sandbox mode available for testing without API calls
