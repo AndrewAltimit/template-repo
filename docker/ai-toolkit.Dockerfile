@@ -1,4 +1,4 @@
-# Full AI Toolkit with Web UI and MCP Server
+# AI Toolkit with Web UI and MCP Server
 FROM nvidia/cuda:12.1.0-base-ubuntu22.04
 
 # Install system dependencies including Node.js

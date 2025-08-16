@@ -155,7 +155,7 @@ services:
     profiles:
       - services
 
-  # AI Toolkit Application with Web UI and MCP Server
+  # AI Toolkit (Web UI and MCP Server)
   mcp-ai-toolkit:
     build:
       context: .
@@ -196,7 +196,7 @@ services:
       - ai-services
       - gpu
 
-  # ComfyUI Application with Web UI and MCP Server
+  # ComfyUI (Web UI and MCP Server)
   mcp-comfyui:
     build:
       context: .
@@ -235,88 +235,6 @@ services:
       start_period: 60s
     profiles:
       - ai-services
-      - gpu
-
-  # Lightweight AI Toolkit MCP Server Only (API only, no web UI)
-  mcp-ai-toolkit-lite:
-    build:
-      context: .
-      dockerfile: docker/mcp-ai-toolkit.Dockerfile
-    container_name: mcp-ai-toolkit-lite
-    runtime: nvidia
-    ports:
-      - "8012:8012"
-    volumes:
-      - ./:/app:ro
-      - ai-toolkit-datasets:/ai-toolkit/datasets
-      - ai-toolkit-outputs:/ai-toolkit/outputs
-      - ai-toolkit-configs:/ai-toolkit/configs
-      - ai-toolkit-logs:/app/logs
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
-      - PYTHONUNBUFFERED=1
-      - PORT=8012
-      - AI_TOOLKIT_PATH=/ai-toolkit
-    networks:
-      - mcp-network
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8012/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    profiles:
-      - mcp-lite
-      - gpu
-
-  # Lightweight ComfyUI MCP Server Only (API only, no web UI)
-  mcp-comfyui-lite:
-    build:
-      context: .
-      dockerfile: docker/mcp-comfyui.Dockerfile
-    container_name: mcp-comfyui-lite
-    runtime: nvidia
-    ports:
-      - "8013:8013"
-    volumes:
-      - ./:/app:ro
-      - comfyui-models:/comfyui/models
-      - comfyui-output:/comfyui/output
-      - comfyui-input:/comfyui/input
-      - comfyui-logs:/app/logs
-    environment:
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
-      - PYTHONUNBUFFERED=1
-      - PORT=8013
-      - COMFYUI_PATH=/comfyui
-    networks:
-      - mcp-network
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8013/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    profiles:
-      - mcp-lite
       - gpu
 
 
