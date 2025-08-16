@@ -27,7 +27,13 @@ def create_project(args, job_id):
 
         # Configure render settings
         scene = bpy.context.scene
-        scene.render.engine = settings.get("engine", "CYCLES")
+        # Handle both old and new engine names
+        engine = settings.get("engine", "CYCLES")
+        if engine == "EEVEE":
+            engine = "BLENDER_EEVEE"
+        elif engine == "WORKBENCH":
+            engine = "BLENDER_WORKBENCH"
+        scene.render.engine = engine
         scene.render.resolution_x = settings.get("resolution", [1920, 1080])[0]
         scene.render.resolution_y = settings.get("resolution", [1920, 1080])[1]
         scene.render.fps = settings.get("fps", 24)

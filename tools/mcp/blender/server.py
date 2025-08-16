@@ -127,6 +127,14 @@ class BlenderMCPServer(BaseMCPServer):
         # Handle both full paths and just project names
         # Look for projects in projects directory
 
+        # If it's already a full container path, validate it directly
+        if project_path.startswith(str(self.projects_dir)):
+            path = Path(project_path)
+            if path.exists() or path.parent == self.projects_dir:
+                return path
+            raise ValueError(f"Project not found: {project_path}")
+
+        # Otherwise treat it as a relative path
         if project_path.endswith(".blend"):
             return self._validate_path(project_path, self.projects_dir, "project")
         else:
@@ -168,7 +176,7 @@ class BlenderMCPServer(BaseMCPServer):
                                 "fps": {"type": "integer", "default": 24},
                                 "engine": {
                                     "type": "string",
-                                    "enum": ["CYCLES", "EEVEE", "WORKBENCH"],
+                                    "enum": ["CYCLES", "BLENDER_EEVEE", "BLENDER_WORKBENCH"],
                                     "default": "CYCLES",
                                 },
                             },
@@ -336,7 +344,7 @@ class BlenderMCPServer(BaseMCPServer):
                                 "samples": {"type": "integer", "default": 128},
                                 "engine": {
                                     "type": "string",
-                                    "enum": ["CYCLES", "EEVEE"],
+                                    "enum": ["CYCLES", "BLENDER_EEVEE"],
                                     "default": "CYCLES",
                                 },
                                 "format": {
@@ -373,8 +381,8 @@ class BlenderMCPServer(BaseMCPServer):
                                 "samples": {"type": "integer", "default": 64},
                                 "engine": {
                                     "type": "string",
-                                    "enum": ["CYCLES", "EEVEE"],
-                                    "default": "EEVEE",
+                                    "enum": ["CYCLES", "BLENDER_EEVEE"],
+                                    "default": "BLENDER_EEVEE",
                                 },
                                 "format": {
                                     "type": "string",
@@ -716,7 +724,8 @@ class BlenderMCPServer(BaseMCPServer):
 
         return {
             "success": True,
-            "project_path": project_path,
+            "project_path": f"{project_name}.blend",  # Return relative path for subsequent use
+            "full_path": project_path,  # Also include full path if needed
             "job_id": job_id,
             "message": f"Project '{project_name}' created successfully",
         }
