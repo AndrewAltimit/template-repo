@@ -41,6 +41,15 @@ The workflow will attempt to install Gemini CLI automatically if Node.js is avai
    gemini
    ```
 
+   **⚠️ IMPORTANT: Authentication Method & Costs**
+
+   The Gemini CLI uses **Google web login (OAuth)** which provides a **FREE TIER** with generous limits:
+   - 60 requests per minute
+   - 1,000 requests per day
+   - 4 million tokens per day
+
+   **CAUTION: Do NOT use API keys!** If you configure Gemini with an API key instead of web login, you will be **charged** for usage. The web login method is recommended as it provides the free tier suitable for most single-maintainer projects.
+
 That's it! The next time you open a pull request, Gemini will automatically review your code.
 
 ## How It Works
@@ -156,13 +165,15 @@ echo "Technical question" | gemini -m gemini-2.5-pro
 
 ## Rate Limits
 
-Free tier limits:
+**Free tier limits (when using Google web login/OAuth):**
 
 - 60 requests per minute
 - 1,000 requests per day
 - 4 million tokens per day
 
 For most single-maintainer projects, these limits are more than sufficient.
+
+**⚠️ Remember:** These free tier limits only apply when using the **Google web login method**. Using API keys will result in charges based on usage!
 
 ## Customization
 

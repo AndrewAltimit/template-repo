@@ -7,9 +7,9 @@ This document clarifies which AI agents are available in different execution env
 | Agent | Host Machine | Container | Authentication Method |
 |-------|--------------|-----------|---------------------|
 | Claude | ✅ | ❌ | Subscription via ~/.claude.json |
-| Gemini | ✅ | ❌ | API key + Docker socket access |
-| OpenCode | ❌ | ✅ | OpenRouter API key |
-| Crush | ❌ | ✅ | OpenRouter API key |
+| Gemini | ✅ | ❌ | Web login (free) or API key (paid) + Docker socket |
+| OpenCode | ✅ | ✅ | OpenRouter API key |
+| Crush | ✅ | ✅ | OpenRouter API key |
 
 ## Execution Environments
 
@@ -19,16 +19,21 @@ When running agents directly on the host machine (e.g., GitHub Actions self-host
 
 **Available Agents:**
 - **Claude**: Requires user-specific subscription authentication
-- **Gemini**: Requires Docker socket access for some operations
+- **Gemini**: Requires Docker socket access for some operations (use web login for free tier)
+- **OpenCode**: Can run via STDIO mode or HTTP server on host
+- **Crush**: Can run via STDIO mode or HTTP server on host
 
 **Use Cases:**
 - Issue monitoring (`issue-monitor`)
 - PR review monitoring (`pr-review-monitor`)
 - Local development and testing
+- Direct CLI usage for code generation
 
 **Example:**
 ```bash
 python3 -m github_ai_agents.cli issue-monitor
+./tools/cli/agents/run_opencode.sh
+./tools/cli/agents/run_crush.sh
 ```
 
 ### 2. Container Execution
@@ -51,15 +56,17 @@ docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-m
 
 ## Configuration
 
-The `.agents.yaml` file should only enable agents available in your execution environment:
+The `.agents.yaml` file should enable agents based on your execution environment and available authentication:
 
 ```yaml
-# For host execution (default)
+# For host execution with all agents
 enabled_agents:
-  - claude
-  - gemini
+  - claude      # Requires subscription auth
+  - gemini      # Free with web login, paid with API key
+  - opencode    # Requires OpenRouter API key
+  - crush       # Requires OpenRouter API key
 
-# For container execution
+# For container execution (OpenRouter agents only)
 # enabled_agents:
 #   - opencode
 #   - crush
@@ -70,20 +77,21 @@ enabled_agents:
 When an agent is requested but not available in the current environment, you'll see:
 
 ```
-Agent 'OpenCode' is only available in the containerized environment.
+Agent 'Claude' is not available in the current environment.
 
-This agent runs in the `openrouter-agents` Docker container and is not available
-when the issue monitor runs on the host (required for Claude authentication).
+This agent requires specific authentication that may not be configured.
+Please check your authentication setup and .agents.yaml configuration.
 
-Available host agents: ['claude', 'gemini']
+Available agents: [list of configured agents]
 ```
 
 ## Why This Design?
 
 1. **Authentication Constraints**: Claude requires user-specific subscription auth that can't be easily containerized
 2. **Security**: Gemini needs Docker socket access, which is risky to expose in containers
-3. **Isolation**: OpenRouter agents are fully containerized for better security and portability
-4. **Flexibility**: Different agents for different use cases and environments
+3. **Flexibility**: OpenRouter agents (OpenCode, Crush) can run both on host and in containers for maximum flexibility
+4. **Cost Optimization**: Gemini uses free tier with web login, OpenRouter agents use pay-per-use API keys
+5. **Multiple Options**: Different agents for different use cases and environments
 
 ## Future Improvements
 
