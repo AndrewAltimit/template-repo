@@ -1,9 +1,10 @@
 """AI Toolkit MCP Server - Functional implementation with actual AI Toolkit integration"""
 
+import asyncio
 import base64
+import binascii
 import os
 import shutil
-import subprocess
 import sys
 import uuid
 from pathlib import Path
@@ -35,7 +36,7 @@ class AIToolkitMCPServer(BaseMCPServer):
         # Initialize server state
         self.logger = setup_logging("ai_toolkit_mcp")
         self.training_jobs: Dict[str, Any] = {}
-        self.training_processes: Dict[str, subprocess.Popen] = {}
+        self.training_processes: Dict[str, asyncio.subprocess.Process] = {}
 
         # Ensure directories exist
         DATASETS_PATH.mkdir(parents=True, exist_ok=True)
@@ -230,9 +231,9 @@ class AIToolkitMCPServer(BaseMCPServer):
 
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return available tools as a dictionary"""
-        tools_dict = {}
+        tools_dict: Dict[str, Dict[str, Any]] = {}
         for tool in self.tools:
-            tool_name = tool["name"]
+            tool_name = str(tool["name"])
             tools_dict[tool_name] = {"description": tool.get("description", ""), "parameters": tool.get("inputSchema", {})}
         return tools_dict
 
@@ -309,8 +310,14 @@ class AIToolkitMCPServer(BaseMCPServer):
 
             self.logger.info(f"Created training config: {config_path}")
             return {"status": "success", "config": config_name, "path": str(config_path)}
+        except OSError as e:
+            self.logger.error(f"Failed to save config file: {e}")
+            return {"error": f"Failed to save config file: {str(e)}"}
+        except yaml.YAMLError as e:
+            self.logger.error(f"Failed to serialize config to YAML: {e}")
+            return {"error": f"Failed to serialize config: {str(e)}"}
         except Exception as e:
-            self.logger.error(f"Failed to create config: {e}")
+            self.logger.error(f"Unexpected error creating config: {e}")
             return {"error": f"Failed to create config: {str(e)}"}
 
     async def list_configs(self, **kwargs) -> Dict[str, Any]:
@@ -332,14 +339,21 @@ class AIToolkitMCPServer(BaseMCPServer):
                 with open(config_path, "r") as f:
                     config = yaml.safe_load(f)
                 return {"config": config}
+            except yaml.YAMLError as e:
+                return {"error": f"Invalid YAML format: {str(e)}"}
+            except OSError as e:
+                return {"error": f"Failed to read config file: {str(e)}"}
             except Exception as e:
-                return {"error": f"Failed to read config: {str(e)}"}
+                return {"error": f"Unexpected error reading config: {str(e)}"}
         return {"error": "Configuration not found"}
 
     async def upload_dataset(self, **kwargs) -> Dict[str, Any]:
         """Upload images to create a dataset"""
         dataset_name = kwargs.get("dataset_name")
         images = kwargs.get("images", [])
+
+        if not dataset_name:
+            return {"error": "Missing required field: dataset_name"}
 
         dataset_path = DATASETS_PATH / dataset_name
         dataset_path.mkdir(parents=True, exist_ok=True)
@@ -362,8 +376,14 @@ class AIToolkitMCPServer(BaseMCPServer):
                     f.write(caption)
 
                 saved_images.append(filename)
+            except KeyError as e:
+                self.logger.error(f"Missing required field in image data: {e}")
+            except binascii.Error as e:
+                self.logger.error(f"Invalid base64 encoding for image {img_data.get('filename', 'unknown')}: {e}")
+            except OSError as e:
+                self.logger.error(f"Failed to save image {img_data.get('filename', 'unknown')}: {e}")
             except Exception as e:
-                self.logger.error(f"Failed to save image {filename}: {e}")
+                self.logger.error(f"Unexpected error processing image {img_data.get('filename', 'unknown')}: {e}")
 
         return {
             "status": "success",
@@ -392,7 +412,7 @@ class AIToolkitMCPServer(BaseMCPServer):
         job_id = str(uuid.uuid4())
 
         try:
-            # Start training process
+            # Start training process using asyncio for non-blocking execution
             cmd = [
                 sys.executable,
                 "run.py",
@@ -400,14 +420,17 @@ class AIToolkitMCPServer(BaseMCPServer):
             ]
 
             log_file = OUTPUTS_PATH / f"training_{job_id}.log"
-            with open(log_file, "w") as log:
-                process = subprocess.Popen(
-                    cmd,
-                    cwd=AI_TOOLKIT_PATH,
-                    stdout=log,
-                    stderr=subprocess.STDOUT,
-                    text=True,
-                )
+
+            # Open log file for writing
+            log_handle = open(log_file, "w")
+
+            # Use asyncio.create_subprocess_exec for non-blocking execution
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                cwd=AI_TOOLKIT_PATH,
+                stdout=log_handle,
+                stderr=asyncio.subprocess.STDOUT,
+            )
 
             self.training_processes[job_id] = process
             self.training_jobs[job_id] = {
@@ -415,11 +438,18 @@ class AIToolkitMCPServer(BaseMCPServer):
                 "config": config_name,
                 "log_file": str(log_file),
                 "pid": process.pid,
+                "log_handle": log_handle,  # Store handle for cleanup
             }
 
             self.logger.info(f"Started training job {job_id} with config {config_name}")
             return {"status": "success", "job_id": job_id, "pid": process.pid}
 
+        except FileNotFoundError as e:
+            self.logger.error(f"Training script not found: {e}")
+            return {"error": f"Training script not found: {str(e)}"}
+        except PermissionError as e:
+            self.logger.error(f"Permission denied to start training: {e}")
+            return {"error": f"Permission denied: {str(e)}"}
         except Exception as e:
             self.logger.error(f"Failed to start training: {e}")
             return {"error": f"Failed to start training: {str(e)}"}
@@ -430,13 +460,20 @@ class AIToolkitMCPServer(BaseMCPServer):
 
         if job_id in self.training_processes:
             process = self.training_processes[job_id]
-            if process.poll() is None:  # Still running
+            if process.returncode is None:  # Still running
                 process.terminate()
                 try:
-                    process.wait(timeout=10)
-                except subprocess.TimeoutExpired:
+                    # Wait for process to terminate with timeout
+                    await asyncio.wait_for(process.wait(), timeout=10)
+                except asyncio.TimeoutError:
+                    # Force kill if termination timeout
                     process.kill()
-                    process.wait()
+                    await process.wait()
+
+                # Close log file handle if exists
+                job_info = self.training_jobs.get(job_id, {})
+                if "log_handle" in job_info:
+                    job_info["log_handle"].close()
 
                 self.training_jobs[job_id]["status"] = "stopped"
                 del self.training_processes[job_id]
@@ -455,11 +492,14 @@ class AIToolkitMCPServer(BaseMCPServer):
             # Check if process is still running
             if job_id in self.training_processes:
                 process = self.training_processes[job_id]
-                if process.poll() is None:
+                if process.returncode is None:
                     job["status"] = "running"
                 else:
                     job["status"] = "completed"
                     job["exit_code"] = process.returncode
+                    # Close log file handle if exists
+                    if "log_handle" in job:
+                        job["log_handle"].close()
                     del self.training_processes[job_id]
 
             # Try to parse progress from log file
@@ -497,7 +537,7 @@ class AIToolkitMCPServer(BaseMCPServer):
             # Update status for running jobs
             if job_id in self.training_processes:
                 process = self.training_processes[job_id]
-                if process.poll() is not None:
+                if process.returncode is not None:
                     job_data["status"] = "completed"
                     del self.training_processes[job_id]
 
@@ -647,7 +687,7 @@ class AIToolkitMCPServer(BaseMCPServer):
         # Update job statuses
         for job_id in list(self.training_processes.keys()):
             process = self.training_processes[job_id]
-            if process.poll() is not None:
+            if process.returncode is not None:
                 self.training_jobs[job_id]["status"] = "completed"
                 del self.training_processes[job_id]
 
