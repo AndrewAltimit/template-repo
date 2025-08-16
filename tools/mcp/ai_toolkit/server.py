@@ -712,15 +712,7 @@ def main():
     args = parser.parse_args()
 
     server = AIToolkitMCPServer(port=args.port)
-
-    if args.mode == "stdio":
-        import asyncio as aio
-
-        aio.run(server.run_stdio())
-    else:
-        import uvicorn
-
-        uvicorn.run(server.create_app(), host=args.host, port=args.port)
+    server.run(mode=args.mode)
 
 
 if __name__ == "__main__":

@@ -572,15 +572,7 @@ def main():
     args = parser.parse_args()
 
     server = ComfyUIMCPServer(port=args.port)
-
-    if args.mode == "stdio":
-        import asyncio
-
-        asyncio.run(server.run_stdio())
-    else:
-        import uvicorn
-
-        uvicorn.run(server.create_app(), host=args.host, port=args.port)
+    server.run(mode=args.mode)
 
 
 if __name__ == "__main__":
