@@ -57,9 +57,25 @@ echo   Web UI:     http://localhost:8675
 echo   MCP Server: http://localhost:8012
 echo.
 
-REM Wait a bit for services to initialize
-echo Waiting for services to initialize...
-timeout /t 10 /nobreak >nul
+REM Wait for services to initialize with healthcheck polling
+echo Waiting for AI Toolkit to initialize...
+set MAX_ATTEMPTS=30
+set ATTEMPT=0
+:wait_loop
+if %ATTEMPT% GEQ %MAX_ATTEMPTS% goto timeout_warning
+curl -f http://localhost:8675/ >nul 2>&1
+if %errorlevel% EQU 0 (
+    echo AI Toolkit is ready!
+    goto continue_start
+)
+echo|set /p="."
+timeout /t 2 /nobreak >nul
+set /a ATTEMPT=%ATTEMPT%+1
+goto wait_loop
+:timeout_warning
+echo.
+echo Warning: AI Toolkit may still be starting up
+:continue_start
 
 REM Open the web UI in default browser
 echo Opening AI Toolkit Web UI in your browser...

@@ -90,7 +90,7 @@ WORKDIR /workspace
 RUN chown -R node:node /workspace
 
 # Copy agent-specific requirements
-COPY docker/requirements-agents.txt ./
+COPY docker/requirements/requirements-agents.txt ./
 RUN pip install --no-cache-dir --break-system-packages -r requirements-agents.txt
 
 # Python environment configuration

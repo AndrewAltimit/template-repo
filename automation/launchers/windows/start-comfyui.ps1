@@ -60,9 +60,28 @@ Write-Host "  Web UI:     http://localhost:8188" -ForegroundColor Cyan
 Write-Host "  MCP Server: http://localhost:8013" -ForegroundColor Cyan
 Write-Host ""
 
-# Wait for services to initialize
-Write-Host "Waiting for services to initialize..." -ForegroundColor Yellow
-Start-Sleep -Seconds 15
+# Wait for services to initialize with healthcheck polling
+Write-Host "Waiting for ComfyUI to initialize..." -ForegroundColor Yellow
+$maxAttempts = 30
+$attempt = 0
+while ($attempt -lt $maxAttempts) {
+    try {
+        $response = Invoke-WebRequest -Uri "http://localhost:8188/system_stats" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
+        if ($response.StatusCode -eq 200) {
+            Write-Host "`nComfyUI is ready!" -ForegroundColor Green
+            break
+        }
+    } catch {
+        # Service not ready yet
+    }
+    Write-Host "." -NoNewline
+    Start-Sleep -Seconds 2
+    $attempt++
+}
+if ($attempt -eq $maxAttempts) {
+    Write-Host ""
+    Write-Host "Warning: ComfyUI may still be starting up" -ForegroundColor Yellow
+}
 
 # Open the web UI in default browser
 Write-Host "Opening ComfyUI Web UI in your browser..." -ForegroundColor Green

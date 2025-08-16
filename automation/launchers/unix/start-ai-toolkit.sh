@@ -56,9 +56,22 @@ echo -e "  \033[36mWeb UI:\033[0m     http://localhost:8675"
 echo -e "  \033[36mMCP Server:\033[0m http://localhost:8012"
 echo
 
-# Wait for services to initialize
-echo -e "\033[33mWaiting for services to initialize...\033[0m"
-sleep 10
+# Wait for services to initialize with healthcheck polling
+echo -e "\033[33mWaiting for AI Toolkit to initialize...\033[0m"
+MAX_ATTEMPTS=30
+ATTEMPT=0
+while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+    if curl -f http://localhost:8675/ >/dev/null 2>&1; then
+        echo -e "\033[32mAI Toolkit is ready!\033[0m"
+        break
+    fi
+    echo -n "."
+    sleep 2
+    ATTEMPT=$((ATTEMPT + 1))
+done
+if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+    echo -e "\n\033[33mWarning: AI Toolkit may still be starting up\033[0m"
+fi
 
 # Function to open URL based on platform
 open_url() {

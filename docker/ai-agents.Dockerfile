@@ -28,7 +28,7 @@ RUN npm install -g @anthropic-ai/claude-code@latest && \
 WORKDIR /workspace
 
 # Copy agent-specific requirements
-COPY docker/requirements-agents.txt ./
+COPY docker/requirements/requirements-agents.txt ./
 RUN pip install --no-cache-dir -r requirements-agents.txt
 
 # Python environment configuration

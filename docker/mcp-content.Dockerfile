@@ -34,7 +34,7 @@ RUN mkdir -p /output && \
     chmod -R 755 /output
 
 # Copy requirements first for better layer caching
-COPY docker/requirements-content.txt /app/requirements.txt
+COPY docker/requirements/requirements-content.txt /app/requirements.txt
 
 # Install Manim and MCP server dependencies
 RUN pip install --no-cache-dir -r requirements.txt

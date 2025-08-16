@@ -159,7 +159,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 # Check if requirements file exists
-REQUIREMENTS_FILE="$PROJECT_ROOT/docker/requirements-agents.txt"
+REQUIREMENTS_FILE="$PROJECT_ROOT/docker/requirements/requirements-agents.txt"
 if [ -f "$REQUIREMENTS_FILE" ]; then
     echo "[INFO] Installing from: $REQUIREMENTS_FILE"
     pip3 install --user -r "$REQUIREMENTS_FILE" || {

@@ -108,7 +108,7 @@ jobs:
 
           # Install additional requirements
           echo "[INFO] Installing additional requirements..."
-          pip3 install --user -r docker/requirements-agents.txt
+          pip3 install --user -r docker/requirements/requirements-agents.txt
 
       - name: Build Docker containers for containerized agents
         if: contains(inputs.agents, 'opencode') || contains(inputs.agents, 'crush') || github.event_name == 'schedule'

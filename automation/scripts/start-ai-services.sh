@@ -129,8 +129,8 @@ case $MODE in
         source "$REPO_ROOT/venv/bin/activate"
 
         echo "Installing dependencies..."
-        pip install -q -r "$REPO_ROOT/docker/requirements-ai-toolkit.txt"
-        pip install -q -r "$REPO_ROOT/docker/requirements-comfyui.txt"
+        pip install -q -r "$REPO_ROOT/docker/requirements/requirements-ai-toolkit.txt"
+        pip install -q -r "$REPO_ROOT/docker/requirements/requirements-comfyui.txt"
 
         # Start AI Toolkit MCP Server
         echo "Starting AI Toolkit MCP Server..."

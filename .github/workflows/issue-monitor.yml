@@ -71,7 +71,7 @@ jobs:
 
           # Install additional requirements if needed
           echo "[INFO] Installing additional requirements..."
-          pip3 install --user -r docker/requirements-agents.txt
+          pip3 install --user -r docker/requirements/requirements-agents.txt
 
       - name: Build Docker containers for OpenRouter agents
         run: |

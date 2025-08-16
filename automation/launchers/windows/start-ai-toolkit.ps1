@@ -60,9 +60,28 @@ Write-Host "  Web UI:     http://localhost:8675" -ForegroundColor Cyan
 Write-Host "  MCP Server: http://localhost:8012" -ForegroundColor Cyan
 Write-Host ""
 
-# Wait for services to initialize
-Write-Host "Waiting for services to initialize..." -ForegroundColor Yellow
-Start-Sleep -Seconds 10
+# Wait for services to initialize with healthcheck polling
+Write-Host "Waiting for AI Toolkit to initialize..." -ForegroundColor Yellow
+$maxAttempts = 30
+$attempt = 0
+while ($attempt -lt $maxAttempts) {
+    try {
+        $response = Invoke-WebRequest -Uri "http://localhost:8675/" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
+        if ($response.StatusCode -eq 200) {
+            Write-Host "`nAI Toolkit is ready!" -ForegroundColor Green
+            break
+        }
+    } catch {
+        # Service not ready yet
+    }
+    Write-Host "." -NoNewline
+    Start-Sleep -Seconds 2
+    $attempt++
+}
+if ($attempt -eq $maxAttempts) {
+    Write-Host ""
+    Write-Host "Warning: AI Toolkit may still be starting up" -ForegroundColor Yellow
+}
 
 # Open the web UI in default browser
 Write-Host "Opening AI Toolkit Web UI in your browser..." -ForegroundColor Green

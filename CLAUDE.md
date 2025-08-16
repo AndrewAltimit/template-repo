@@ -214,7 +214,7 @@ pr-monitor
 pip3 install -e ./packages/github_ai_agents
 
 # Step 2: If running Claude or Gemini on host, install host-specific dependencies:
-pip3 install --user -r docker/requirements-agents.txt
+pip3 install --user -r docker/requirements/requirements-agents.txt
 
 # Note: Step 2 is only needed if you plan to use Claude or Gemini agents.
 # Containerized agents (OpenCode, Crush) don't require host dependencies.
