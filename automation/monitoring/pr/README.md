@@ -33,7 +33,7 @@ Quick-start scripts for monitoring GitHub Pull Requests for new comments.
 
 ## Full Documentation
 
-See [/docs/PR_MONITORING.md](/docs/PR_MONITORING.md) for complete documentation.
+See [/docs/ai-agents/pr-monitoring.md](/docs/ai-agents/pr-monitoring.md) for complete documentation.
 
 ## Example Output
 

@@ -284,6 +284,6 @@ Trained LoRA models can be transferred to ComfyUI using the ComfyUI MCP server's
 
 ## See Also
 
-- [AI Toolkit & ComfyUI Integration Guide](../../../../docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md)
-- [LoRA Transfer Documentation](../../../../docs/LORA_TRANSFER_DOCUMENTATION.md)
+- [AI Toolkit & ComfyUI Integration Guide](../../../../docs/integrations/creative-tools/ai-toolkit-comfyui.md)
+- [LoRA Transfer Documentation](../../../../docs/integrations/creative-tools/lora-transfer.md)
 - [ComfyUI MCP Server](../../comfyui/docs/README.md)

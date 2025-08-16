@@ -114,7 +114,7 @@ Generate memes with customizable text overlays:
 ### HTTP Streamable Transport
 
 MCP servers can use HTTP transport for remote deployment. For detailed configuration and troubleshooting:
-- **[MCP Server Modes: STDIO vs HTTP](STDIO_VS_HTTP_MODES.md)** - Complete guide for MCP server modes and HTTP implementation
+- **[MCP Server Modes: STDIO vs HTTP](architecture/stdio-vs-http.md)** - Complete guide for MCP server modes and HTTP implementation
 - **[MCP Specification](https://modelcontextprotocol.io/specification/2025-06-18)** - Official protocol specification
 
 ### Configuration File (.mcp.json)

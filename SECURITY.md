@@ -30,8 +30,8 @@ This repository uses AI agents with a comprehensive multi-layer security model.
 ## Additional Resources
 
 - **Full Security Documentation**: [`packages/github_ai_agents/docs/security.md`](packages/github_ai_agents/docs/security.md)
-- **Agent Architecture**: [`docs/AGENT_CONTAINERIZATION_STRATEGY.md`](docs/AGENT_CONTAINERIZATION_STRATEGY.md)
-- **Claude Authentication**: [`docs/AI_AGENTS_CLAUDE_AUTH.md`](docs/AI_AGENTS_CLAUDE_AUTH.md)
+- **Agent Architecture**: [`docs/ai-agents/containerization-strategy.md`](docs/ai-agents/containerization-strategy.md)
+- **Claude Authentication**: [`docs/ai-agents/claude-auth.md`](docs/ai-agents/claude-auth.md)
 
 ## Responsible Disclosure
 

@@ -42,7 +42,7 @@ The MCP functionality is distributed across specialized servers:
 9. **Crush MCP Server** - Fast code generation (STDIO mode)
 10. **Meme Generator MCP Server** - Meme creation (STDIO mode)
 
-See [MCP Servers Documentation](MCP_SERVERS.md) for detailed information.
+See [MCP Servers Documentation](servers.md) for detailed information.
 
 ### Tool Execution
 

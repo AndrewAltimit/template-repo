@@ -78,7 +78,7 @@ python automation/monitoring/pr/pr_monitor_agent.py PR_NUMBER --since-commit SHA
 
 **Post-Push Monitoring**: After pushing commits, a hook will remind you to monitor for feedback and show the exact command with the commit SHA. This enables tight feedback loops during pair programming sessions.
 
-See `docs/PR_MONITORING.md` for full documentation.
+See `docs/ai-agents/pr-monitoring.md` for full documentation.
 
 ### Running Tests
 
@@ -177,12 +177,12 @@ pip install -r config/python/requirements.txt
 ```bash
 # IMPORTANT: Agent Containerization Strategy
 # Some agents run on host, others can be containerized
-# See docs/AGENT_CONTAINERIZATION_STRATEGY.md for complete details
+# See docs/ai-agents/containerization-strategy.md for complete details
 
 # Host-Only Agents (authentication constraints):
 # 1. Claude CLI - requires subscription auth (machine-specific)
 # 2. Gemini CLI - requires Docker socket access
-# See docs/AI_AGENTS_CLAUDE_AUTH.md for Claude auth details
+# See docs/ai-agents/claude-auth.md for Claude auth details
 
 # Containerized Agents (OpenRouter-compatible):
 # OpenCode, Crush - run in openrouter-agents container
@@ -367,7 +367,7 @@ The repository includes comprehensive CI/CD workflows:
    - MCP servers run in their own containers
    - **Exceptions due to authentication requirements**:
      - Gemini CLI (requires Docker access)
-     - AI Agents using Claude CLI (requires host subscription auth - see `docs/AI_AGENTS_CLAUDE_AUTH.md`)
+     - AI Agents using Claude CLI (requires host subscription auth - see `docs/ai-agents/claude-auth.md`)
    - All containers run with user permissions (non-root)
 
 2. **Zero Local Dependencies**:
@@ -535,29 +535,29 @@ Bash("gh pr comment 47 --body-file /tmp/pr_comment.md")
 For detailed information on specific topics, refer to these documentation files:
 
 ### Infrastructure & Setup
-- `docs/SELF_HOSTED_RUNNER_SETUP.md` - Self-hosted GitHub Actions runner configuration
-- `docs/GITHUB_ENVIRONMENTS_SETUP.md` - GitHub environments and secrets setup
-- `docs/CONTAINERIZED_CI.md` - Container-based CI/CD philosophy and implementation
-- `docs/CLAUDE_CODE_HOOKS.md` - Claude Code hook system for enforcing best practices
+- `docs/infrastructure/self-hosted-runner.md` - Self-hosted GitHub Actions runner configuration
+- `docs/infrastructure/github-environments.md` - GitHub environments and secrets setup
+- `docs/infrastructure/containerization.md` - Container-based CI/CD philosophy and implementation
+- `docs/developer/claude-code-hooks.md` - Claude Code hook system for enforcing best practices
 
 ### AI Agents & Security
 - `packages/github_ai_agents/docs/security.md` - Comprehensive AI agent security documentation
-- `docs/AI_AGENTS.md` - AI agent system overview
-- `docs/AI_AGENTS_SECURITY.md` - Security-focused agent documentation
-- `docs/AI_AGENTS_CLAUDE_AUTH.md` - Why AI agents run on host (Claude auth limitation)
+- `docs/ai-agents/README.md` - AI agent system overview
+- `docs/ai-agents/security.md` - Security-focused agent documentation
+- `docs/ai-agents/claude-auth.md` - Why AI agents run on host (Claude auth limitation)
 - `.context/CLAUDE_EXPRESSION.md` - Claude's expression philosophy and communication style
 - `.context/GEMINI_EXPRESSION.md` - Gemini's expression philosophy and review patterns
 
 ### MCP Servers
 - `docs/mcp/README.md` - MCP architecture and design patterns
-- `docs/MCP_SERVERS.md` - Individual server documentation
-- `docs/MCP_TOOLS.md` - Available MCP tools reference
+- `docs/mcp/servers.md` - Individual server documentation
+- `docs/mcp/tools.md` - Available MCP tools reference
 
 ### Integrations
-- `docs/OPENCODE_CRUSH_INTEGRATION.md` - **Comprehensive OpenCode & Crush documentation** (MCP calls, CLI usage, git workflows)
-- `docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md` - LoRA training and image generation
-- `docs/LORA_TRANSFER_DOCUMENTATION.md` - LoRA model transfer between services
-- `docs/GEMINI_SETUP.md` - Gemini CLI setup and configuration
+- `docs/integrations/ai-services/opencode-crush.md` - **Comprehensive OpenCode & Crush documentation** (MCP calls, CLI usage, git workflows)
+- `docs/integrations/creative-tools/ai-toolkit-comfyui.md` - LoRA training and image generation
+- `docs/integrations/creative-tools/lora-transfer.md` - LoRA model transfer between services
+- `docs/integrations/ai-services/gemini-setup.md` - Gemini CLI setup and configuration
 
 ### Gaea2 Terrain Generation
 - `tools/mcp/gaea2/docs/INDEX.md` - Complete Gaea2 documentation index
@@ -572,7 +572,7 @@ The AI Toolkit and ComfyUI MCP servers provide bridges to remote instances for L
 - **Chunked Upload**: Required for files >100MB
 - **FLUX Workflows**: Different from SD workflows (cfg=1.0, special nodes)
 
-**For comprehensive integration guide, see** `docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md`
+**For comprehensive integration guide, see** `docs/integrations/creative-tools/ai-toolkit-comfyui.md`
 
 ## Gaea2 MCP Integration
 

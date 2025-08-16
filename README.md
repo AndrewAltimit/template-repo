@@ -2,7 +2,7 @@
 
 A comprehensive development ecosystem with 7 AI agents, 10 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
 
-![MCP Demo](docs/mcp/mcp-demo.gif)
+![MCP Demo](docs/mcp/architecture/demo.gif)
 
 ## Project Philosophy
 
@@ -17,17 +17,17 @@ This project follows a **container-first approach**:
 
 ## AI Agents
 
-Seven AI agents working in harmony for development and automation. See [AI Agents Documentation](docs/AI_AGENTS.md) for complete details:
+Seven AI agents working in harmony for development and automation. See [AI Agents Documentation](docs/ai-agents/README.md) for complete details:
 
 1. **Claude Code** - Primary development assistant
-2. **OpenCode** - Comprehensive code generation ([Integration Guide](docs/OPENCODE_CRUSH_INTEGRATION.md))
-3. **Crush** - Fast code generation ([Quick Reference](docs/OPENCODE_CRUSH_QUICK_REFERENCE.md))
+2. **OpenCode** - Comprehensive code generation ([Integration Guide](docs/integrations/ai-services/opencode-crush.md))
+3. **Crush** - Fast code generation ([Quick Reference](docs/integrations/ai-services/opencode-crush-ref.md))
 4. **Gemini CLI** - Automated PR reviews
 5. **GitHub Copilot** - Code review suggestions
 6. **Issue Monitor Agent** - Automated issue management
 7. **PR Review Monitor Agent** - Automated review response
 
-**Security**: Keyword triggers, user allow list, secure token management. See [AI Agents Security](docs/AI_AGENTS_SECURITY.md)
+**Security**: Keyword triggers, user allow list, secure token management. See [AI Agents Security](docs/ai-agents/security.md)
 
 ## Features
 
@@ -131,11 +131,11 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 - **STDIO Mode** (for Claude Code): Configured in `.mcp.json`, auto-started by Claude
 - **HTTP Mode** (for testing/APIs): Run with `docker-compose up`
 
-See [MCP Architecture Documentation](docs/mcp/README.md) and [STDIO vs HTTP Modes](docs/mcp/STDIO_VS_HTTP_MODES.md) for details.
+See [MCP Architecture Documentation](docs/mcp/README.md) and [STDIO vs HTTP Modes](docs/mcp/architecture/stdio-vs-http.md) for details.
 
 ### Tool Reference
 
-For complete tool listings, see [MCP Tools Reference](docs/MCP_TOOLS.md)
+For complete tool listings, see [MCP Tools Reference](docs/mcp/tools.md)
 
 ## Configuration
 
@@ -153,10 +153,10 @@ See `.env.example` for all available options.
 
 ### Setup Guides
 
-- [Self-Hosted Runner Setup](docs/SELF_HOSTED_RUNNER_SETUP.md)
-- [GitHub Environments Setup](docs/GITHUB_ENVIRONMENTS_SETUP.md)
-- [Gemini Setup](docs/GEMINI_SETUP.md)
-- [Containerized CI](docs/CONTAINERIZED_CI.md)
+- [Self-Hosted Runner Setup](docs/infrastructure/self-hosted-runner.md)
+- [GitHub Environments Setup](docs/infrastructure/github-environments.md)
+- [Gemini Setup](docs/integrations/ai-services/gemini-setup.md)
+- [Containerized CI](docs/infrastructure/containerization.md)
 
 ## Development Workflow
 
@@ -191,22 +191,22 @@ All workflows run on self-hosted runners for zero-cost operation.
 - [CLAUDE.md](CLAUDE.md) - Project instructions and commands
 - [CRUSH.md](CRUSH.md) - Crush AI assistant instructions
 - [MCP Architecture](docs/mcp/README.md) - Modular server design
-- [AI Agents Documentation](docs/AI_AGENTS.md) - Seven AI agents overview
+- [AI Agents Documentation](docs/ai-agents/README.md) - Seven AI agents overview
 
 ### Quick References
-- [OpenCode & Crush Quick Reference](docs/OPENCODE_CRUSH_QUICK_REFERENCE.md)
-- [MCP Tools Reference](docs/MCP_TOOLS.md)
+- [OpenCode & Crush Quick Reference](docs/integrations/ai-services/opencode-crush-ref.md)
+- [MCP Tools Reference](docs/mcp/tools.md)
 - [Gaea2 Quick Reference](tools/mcp/gaea2/docs/GAEA2_QUICK_REFERENCE.md)
 
 ### Integration Guides
-- [OpenCode & Crush Integration](docs/OPENCODE_CRUSH_INTEGRATION.md)
-- [AI Toolkit & ComfyUI Integration](docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md)
+- [OpenCode & Crush Integration](docs/integrations/ai-services/opencode-crush.md)
+- [AI Toolkit & ComfyUI Integration](docs/integrations/creative-tools/ai-toolkit-comfyui.md)
 - [Gaea2 Documentation](tools/mcp/gaea2/docs/README.md)
 
 ### Setup & Configuration
-- [Self-Hosted Runner Setup](docs/SELF_HOSTED_RUNNER_SETUP.md)
-- [GitHub Environments Setup](docs/GITHUB_ENVIRONMENTS_SETUP.md)
-- [Containerized CI](docs/CONTAINERIZED_CI.md)
+- [Self-Hosted Runner Setup](docs/infrastructure/self-hosted-runner.md)
+- [GitHub Environments Setup](docs/infrastructure/github-environments.md)
+- [Containerized CI](docs/infrastructure/containerization.md)
 
 ## License
 

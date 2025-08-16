@@ -15,4 +15,4 @@ The empty JSON object ensures compatibility with Claude Code while indicating th
 
 For more information, see:
 - `automation/security/README.md` - Universal security hooks documentation
-- `docs/CLAUDE_CODE_HOOKS.md` - Migration guide from old hooks
+- `docs/developer/claude-code-hooks.md` - Migration guide from old hooks

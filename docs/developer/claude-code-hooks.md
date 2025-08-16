@@ -176,6 +176,6 @@ If you previously used Claude Code hooks:
 
 ## References
 
-- [Universal Security Hooks Documentation](../automation/security/README.md)
-- [GitHub Etiquette Guide](GITHUB_ETIQUETTE_FOR_AI_AGENTS.md)
-- [Project Instructions](../CLAUDE.md)
+- [Universal Security Hooks Documentation](../../automation/security/README.md)
+- [GitHub Etiquette Guide](../ai-agents/github-etiquette.md)
+- [Project Instructions](../../CLAUDE.md)

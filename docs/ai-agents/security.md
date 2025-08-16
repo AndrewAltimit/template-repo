@@ -29,7 +29,7 @@ jobs:
 4. Add variable: `ENABLE_AI_AGENTS` = `true` (to enable the feature)
 5. Configure protection rules as needed
 
-See [GitHub Environments Setup Guide](./GITHUB_ENVIRONMENTS_SETUP.md) for detailed instructions.
+See [GitHub Environments Setup Guide](../infrastructure/github-environments.md) for detailed instructions.
 
 ### 2. Local Development
 

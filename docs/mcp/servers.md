@@ -235,7 +235,7 @@ curl http://localhost:8013/health
 - **FLUX Support**: Different workflows for FLUX models (cfg=1.0, special nodes)
 - **LoRA Transfer**: Automatic transfer from AI Toolkit to ComfyUI
 
-See `tools/mcp/comfyui/docs/README.md` and `docs/LORA_TRANSFER_DOCUMENTATION.md` for detailed documentation.
+See `tools/mcp/comfyui/docs/README.md` and `docs/integrations/creative-tools/lora-transfer.md` for detailed documentation.
 
 ## OpenCode MCP Server
 
@@ -272,7 +272,7 @@ curl http://localhost:8014/health
 - **API Key**: Requires `OPENROUTER_API_KEY` environment variable
 - **Modes**: Supports both STDIO (local) and HTTP (remote) modes
 
-See `tools/mcp/opencode/README.md` and `docs/OPENCODE_CRUSH_INTEGRATION.md` for detailed documentation.
+See `tools/mcp/opencode/README.md` and `docs/integrations/ai-services/opencode-crush.md` for detailed documentation.
 
 ## Crush MCP Server
 
@@ -309,7 +309,7 @@ curl http://localhost:8015/health
 - **API Key**: Requires `OPENROUTER_API_KEY` environment variable
 - **Modes**: Supports both STDIO (local) and HTTP (remote) modes
 
-See `tools/mcp/crush/README.md` and `docs/OPENCODE_CRUSH_INTEGRATION.md` for detailed documentation.
+See `tools/mcp/crush/README.md` and `docs/integrations/ai-services/opencode-crush.md` for detailed documentation.
 
 ## Meme Generator MCP Server
 
