@@ -1,11 +1,8 @@
 """AI Toolkit MCP Server - GPU-accelerated LoRA training management"""
 
-import json
 import os
 from pathlib import Path
 from typing import Any, Dict
-
-from fastapi import Request, Response
 
 from ..core.base_server import BaseMCPServer
 from ..core.utils import setup_logging
@@ -247,69 +244,6 @@ class AIToolkitMCPServer(BaseMCPServer):
             },
         ]
 
-        # Create dynamic tool methods after tools are defined
-        self._create_tool_methods()
-
-    async def handle_tools_list(self, request: Request) -> Response:
-        """Handle tools list request"""
-        return Response(
-            content=json.dumps({"tools": self.tools}),
-            media_type="application/json",
-        )
-
-    async def handle_execute(self, request: Request) -> Response:
-        """Handle tool execution request"""
-        try:
-            # Get request data
-            data = await request.json()
-            tool_name = data.get("tool")
-            params = data.get("params", {})
-
-            # Execute tool locally
-            if tool_name == "create_training_config":
-                result = self.create_training_config(params)
-            elif tool_name == "start_training":
-                result = self.start_training(params)
-            elif tool_name == "get_training_status":
-                result = self.get_training_status(params)
-            else:
-                result = {"error": f"Unknown tool: {tool_name}"}
-
-            return Response(
-                content=json.dumps(result),
-                media_type="application/json",
-            )
-        except Exception as e:
-            self.logger.error(f"Error executing tool: {e}")
-            return Response(
-                content=json.dumps({"error": str(e)}),
-                status_code=500,
-                media_type="application/json",
-            )
-
-    def create_training_config(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a training configuration"""
-        config_name = params.get("name")
-        if config_name:
-            self.configs[config_name] = params
-        return {"status": "success", "config": config_name}
-
-    def start_training(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Start a training job"""
-        import uuid
-
-        job_id = str(uuid.uuid4())
-        self.training_jobs[job_id] = {"status": "running", "config": params}
-        return {"status": "success", "job_id": job_id}
-
-    def get_training_status(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Get training job status"""
-        job_id = params.get("job_id")
-        if job_id:
-            job = self.training_jobs.get(job_id, {})
-            return {"status": job.get("status", "unknown"), "job_id": job_id}
-        return {"status": "error", "message": "No job_id provided"}
-
     def get_tools(self) -> dict:
         """Return dictionary of available tools and their metadata"""
         # Convert tools list to dictionary format expected by base class
@@ -321,28 +255,144 @@ class AIToolkitMCPServer(BaseMCPServer):
             }
         return tools_dict
 
-    def _create_tool_methods(self):
-        """Dynamically create tool methods for MCP protocol"""
-        for tool in self.tools:
-            tool_name = tool["name"]
+    # Tool implementation methods
+    async def create_training_config(self, **kwargs) -> Dict[str, Any]:
+        """Create a training configuration"""
+        config_name = kwargs.get("name")
+        if config_name:
+            self.configs[config_name] = kwargs
+        return {"status": "success", "config": config_name}
 
-            # Create a closure to capture the tool name
-            def make_tool_method(name):
-                async def tool_method(**kwargs):
-                    """Execute tool locally"""
-                    if name == "create_training_config":
-                        return self.create_training_config(kwargs)
-                    elif name == "start_training":
-                        return self.start_training(kwargs)
-                    elif name == "get_training_status":
-                        return self.get_training_status(kwargs)
-                    else:
-                        return {"error": f"Tool {name} not implemented"}
+    async def list_configs(self, **kwargs) -> Dict[str, Any]:
+        """List all training configurations"""
+        return {"configs": list(self.configs.keys())}
 
-                return tool_method
+    async def get_config(self, **kwargs) -> Dict[str, Any]:
+        """Get a specific configuration"""
+        config_name = kwargs.get("name")
+        if config_name and config_name in self.configs:
+            return {"config": self.configs[config_name]}
+        return {"error": "Configuration not found"}
 
-            # Set the method on the instance
-            setattr(self, tool_name, make_tool_method(tool_name))
+    async def upload_dataset(self, **kwargs) -> Dict[str, Any]:
+        """Upload a dataset"""
+        dataset_name = kwargs.get("dataset_name")
+        return {"status": "success", "dataset": dataset_name}
+
+    async def list_datasets(self, **kwargs) -> Dict[str, Any]:
+        """List available datasets"""
+        # In a real implementation, this would list actual datasets
+        return {"datasets": []}
+
+    async def start_training(self, **kwargs) -> Dict[str, Any]:
+        """Start a training job"""
+        import uuid
+
+        config_name = kwargs.get("config_name")
+        job_id = str(uuid.uuid4())
+        self.training_jobs[job_id] = {"status": "running", "config": config_name, "progress": 0}
+        return {"status": "success", "job_id": job_id}
+
+    async def stop_training(self, **kwargs) -> Dict[str, Any]:
+        """Stop a training job"""
+        job_id = kwargs.get("job_id")
+        if job_id and job_id in self.training_jobs:
+            self.training_jobs[job_id]["status"] = "stopped"
+            return {"status": "success", "job_id": job_id}
+        return {"error": "Job not found"}
+
+    async def get_training_status(self, **kwargs) -> Dict[str, Any]:
+        """Get training job status"""
+        job_id = kwargs.get("job_id")
+        if job_id and job_id in self.training_jobs:
+            job = self.training_jobs[job_id]
+            return {"status": job.get("status", "unknown"), "job_id": job_id, "progress": job.get("progress", 0)}
+        return {"status": "error", "message": "Job not found"}
+
+    async def list_training_jobs(self, **kwargs) -> Dict[str, Any]:
+        """List all training jobs"""
+        jobs = []
+        for job_id, job_data in self.training_jobs.items():
+            jobs.append({"job_id": job_id, "status": job_data.get("status"), "config": job_data.get("config")})
+        return {"jobs": jobs}
+
+    async def export_model(self, **kwargs) -> Dict[str, Any]:
+        """Export a trained model"""
+        model_name = kwargs.get("model_name")
+        output_path = kwargs.get("output_path", f"/ai-toolkit/outputs/{model_name}")
+        return {"status": "success", "path": output_path}
+
+    async def list_exported_models(self, **kwargs) -> Dict[str, Any]:
+        """List exported models"""
+        # In a real implementation, this would list actual models
+        return {"models": []}
+
+    async def download_model(self, **kwargs) -> Dict[str, Any]:
+        """Download a model"""
+        model_name = kwargs.get("model_name")
+        # In a real implementation, this would return the model data
+        return {"status": "success", "model": model_name}
+
+    async def get_system_stats(self, **kwargs) -> Dict[str, Any]:
+        """Get system statistics"""
+        import psutil
+
+        return {
+            "cpu_percent": psutil.cpu_percent(),
+            "memory_percent": psutil.virtual_memory().percent,
+            "disk_usage": psutil.disk_usage("/").percent,
+        }
+
+    async def get_training_logs(self, **kwargs) -> Dict[str, Any]:
+        """Get training logs"""
+        job_id = kwargs.get("job_id")
+        lines = kwargs.get("lines", 100)
+        # In a real implementation, this would return actual logs
+        return {"job_id": job_id, "logs": [], "lines": lines}
+
+    async def delete_config(self, **kwargs) -> Dict[str, Any]:
+        """Delete a configuration"""
+        config_name = kwargs.get("name")
+        if config_name and config_name in self.configs:
+            del self.configs[config_name]
+            return {"status": "success", "message": f"Deleted config: {config_name}"}
+        return {"error": "Configuration not found"}
+
+    async def update_config(self, **kwargs) -> Dict[str, Any]:
+        """Update a configuration"""
+        config_name = kwargs.get("name")
+        if config_name and config_name in self.configs:
+            # Update with new values, keeping existing ones
+            self.configs[config_name].update(kwargs)
+            return {"status": "success", "config": config_name}
+        return {"error": "Configuration not found"}
+
+    async def delete_dataset(self, **kwargs) -> Dict[str, Any]:
+        """Delete a dataset"""
+        dataset_name = kwargs.get("name")
+        return {"status": "success", "message": f"Deleted dataset: {dataset_name}"}
+
+    async def get_model_info(self, **kwargs) -> Dict[str, Any]:
+        """Get model information"""
+        model_name = kwargs.get("name")
+        return {"model": model_name, "info": {}}
+
+    async def delete_model(self, **kwargs) -> Dict[str, Any]:
+        """Delete a model"""
+        model_name = kwargs.get("name")
+        return {"status": "success", "message": f"Deleted model: {model_name}"}
+
+    async def list_models(self, **kwargs) -> Dict[str, Any]:
+        """List available models"""
+        return {"models": []}
+
+    async def get_training_info(self, **kwargs) -> Dict[str, Any]:
+        """Get training information"""
+        return {
+            "total_jobs": len(self.training_jobs),
+            "active_jobs": sum(1 for j in self.training_jobs.values() if j.get("status") == "running"),
+            "configs": len(self.configs),
+        }
 
 
 def main():

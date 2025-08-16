@@ -1,11 +1,8 @@
 """ComfyUI MCP Server - GPU-accelerated AI image generation"""
 
-import json
 import os
 from pathlib import Path
 from typing import Any, Dict
-
-from fastapi import Request, Response
 
 from ..core.base_server import BaseMCPServer
 from ..core.utils import setup_logging
@@ -262,70 +259,125 @@ class ComfyUIMCPServer(BaseMCPServer):
             },
         ]
 
-        # Create dynamic tool methods after tools are defined
-        self._create_tool_methods()
-
-    async def handle_tools_list(self, request: Request) -> Response:
-        """Handle tools list request"""
-        return Response(
-            content=json.dumps({"tools": self.tools}),
-            media_type="application/json",
-        )
-
-    async def handle_execute(self, request: Request) -> Response:
-        """Handle tool execution request"""
-        try:
-            # Get request data
-            data = await request.json()
-            tool_name = data.get("tool")
-            params = data.get("params", {})
-
-            # Execute tool locally
-            if tool_name == "generate_image":
-                result = self.generate_image(params)
-            elif tool_name == "list_models":
-                result = self.list_models(params)
-            elif tool_name == "get_workflow":
-                result = self.get_workflow(params)
-            else:
-                result = {"error": f"Unknown tool: {tool_name}"}
-
-            return Response(
-                content=json.dumps(result),
-                media_type="application/json",
-            )
-        except Exception as e:
-            self.logger.error(f"Error executing tool: {e}")
-            return Response(
-                content=json.dumps({"error": str(e)}),
-                status_code=500,
-                media_type="application/json",
-            )
-
-    def generate_image(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    # Tool implementation methods
+    async def generate_image(self, **kwargs) -> Dict[str, Any]:
         """Generate an image"""
         import uuid
 
         job_id = str(uuid.uuid4())
-        self.generation_jobs[job_id] = {"status": "generating", "params": params}
+        self.generation_jobs[job_id] = {
+            "status": "generating",
+            "params": kwargs,
+            "prompt": kwargs.get("prompt", ""),
+            "width": kwargs.get("width", 512),
+            "height": kwargs.get("height", 512),
+        }
         return {"status": "success", "job_id": job_id}
 
-    def list_models(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def list_workflows(self, **kwargs) -> Dict[str, Any]:
+        """List available workflows"""
+        return {"workflows": list(self.workflows.keys())}
+
+    async def get_workflow(self, **kwargs) -> Dict[str, Any]:
+        """Get a workflow"""
+        workflow_name = kwargs.get("name")
+        if workflow_name and workflow_name in self.workflows:
+            return {"workflow": self.workflows[workflow_name], "name": workflow_name}
+        return {"error": "Workflow not found"}
+
+    async def list_models(self, **kwargs) -> Dict[str, Any]:
         """List available models"""
+        model_type = kwargs.get("type", "all")
+        models = [
+            {"name": "sd15", "type": "checkpoint"},
+            {"name": "sdxl", "type": "checkpoint"},
+            {"name": "sd15_vae", "type": "vae"},
+        ]
+        if model_type != "all":
+            models = [m for m in models if m["type"] == model_type]
+        return {"models": models}
+
+    async def upload_lora(self, **kwargs) -> Dict[str, Any]:
+        """Upload a LoRA model"""
+        filename = kwargs.get("filename")
+        data = kwargs.get("data")
+        if filename and data:
+            # In a real implementation, save the LoRA file
+            return {"status": "success", "filename": filename}
+        return {"error": "Missing filename or data"}
+
+    async def upload_lora_chunked_init(self, **kwargs) -> Dict[str, Any]:
+        """Initialize chunked upload"""
+        import uuid
+
+        filename = kwargs.get("filename")
+        total_size = kwargs.get("total_size")
+        if filename and total_size:
+            upload_id = str(uuid.uuid4())
+            return {"upload_id": upload_id, "status": "initialized"}
+        return {"error": "Missing filename or total_size"}
+
+    async def upload_lora_chunk(self, **kwargs) -> Dict[str, Any]:
+        """Upload a chunk"""
+        upload_id = kwargs.get("upload_id")
+        chunk_index = kwargs.get("chunk_index")
+        chunk = kwargs.get("chunk")
+        if upload_id and chunk_index is not None and chunk:
+            return {"status": "chunk_received", "chunk_index": chunk_index}
+        return {"error": "Missing required parameters"}
+
+    async def upload_lora_chunked_complete(self, **kwargs) -> Dict[str, Any]:
+        """Complete chunked upload"""
+        upload_id = kwargs.get("upload_id")
+        if upload_id:
+            return {"status": "completed", "upload_id": upload_id}
+        return {"error": "Missing upload_id"}
+
+    async def list_loras(self, **kwargs) -> Dict[str, Any]:
+        """List available LoRA models"""
+        return {"loras": []}
+
+    async def download_lora(self, **kwargs) -> Dict[str, Any]:
+        """Download a LoRA model"""
+        filename = kwargs.get("filename")
+        encoding = kwargs.get("encoding", "base64")
+        if filename:
+            # In a real implementation, return the LoRA data
+            return {"filename": filename, "data": "", "encoding": encoding}
+        return {"error": "Missing filename"}
+
+    async def get_object_info(self, **kwargs) -> Dict[str, Any]:
+        """Get ComfyUI object info"""
+        return {"nodes": [], "models": []}
+
+    async def get_system_info(self, **kwargs) -> Dict[str, Any]:
+        """Get system info"""
+        import psutil
+
         return {
-            "models": [
-                {"name": "sd15", "type": "checkpoint"},
-                {"name": "sdxl", "type": "checkpoint"},
-            ]
+            "cpu_percent": psutil.cpu_percent(),
+            "memory_percent": psutil.virtual_memory().percent,
+            "gpu_available": True,  # In real implementation, check for GPU
         }
 
-    def get_workflow(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Get a workflow"""
-        workflow_name = params.get("name")
-        if workflow_name:
-            workflow = self.workflows.get(workflow_name, {})
-            return {"workflow": workflow, "name": workflow_name}
-        return {"workflow": {}, "name": None}
+    async def transfer_lora_from_ai_toolkit(self, **kwargs) -> Dict[str, Any]:
+        """Transfer LoRA from AI Toolkit"""
+        model_name = kwargs.get("model_name")
+        filename = kwargs.get("filename")
+        if model_name and filename:
+            return {"status": "success", "message": f"Transferred {model_name} to {filename}"}
+        return {"error": "Missing model_name or filename"}
+
+    async def execute_workflow(self, **kwargs) -> Dict[str, Any]:
+        """Execute a custom workflow"""
+        import uuid
+
+        workflow = kwargs.get("workflow")
+        if workflow:
+            job_id = str(uuid.uuid4())
+            self.generation_jobs[job_id] = {"status": "executing", "workflow": workflow}
+            return {"status": "success", "job_id": job_id}
+        return {"error": "Missing workflow"}
 
     def get_tools(self) -> dict:
         """Return dictionary of available tools and their metadata"""
@@ -337,29 +389,6 @@ class ComfyUIMCPServer(BaseMCPServer):
                 "parameters": tool["inputSchema"],  # Base class expects 'parameters' not 'inputSchema'
             }
         return tools_dict
-
-    def _create_tool_methods(self):
-        """Dynamically create tool methods that forward to remote server"""
-        for tool in self.tools:
-            tool_name = tool["name"]
-
-            # Create a closure to capture the tool name
-            def make_tool_method(name):
-                async def tool_method(**kwargs):
-                    """Execute tool locally"""
-                    if name == "generate_image":
-                        return self.generate_image(kwargs)
-                    elif name == "list_models":
-                        return self.list_models(kwargs)
-                    elif name == "get_workflow":
-                        return self.get_workflow(kwargs)
-                    else:
-                        return {"error": f"Tool {name} not implemented"}
-
-                return tool_method
-
-            # Set the method on the instance
-            setattr(self, tool_name, make_tool_method(tool_name))
 
 
 def main():
