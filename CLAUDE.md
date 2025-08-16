@@ -139,10 +139,11 @@ docker-compose up -d mcp-gaea2               # Port 8007 - Terrain generation
 python -m tools.mcp.code_quality.server      # Port 8010
 python -m tools.mcp.content_creation.server  # Port 8011
 python -m tools.mcp.gaea2.server             # Port 8007
-python -m tools.mcp.ai_toolkit.server        # Port 8012 (bridge to remote)
-python -m tools.mcp.comfyui.server           # Port 8013 (bridge to remote)
 python -m tools.mcp.opencode.server          # Port 8014 - AI code generation (HTTP mode)
 python -m tools.mcp.crush.server             # Port 8015 - Fast code generation (HTTP mode)
+
+# Note: AI Toolkit and ComfyUI MCP servers run on remote machine (192.168.0.152)
+# Ports 8012 and 8013 are used by the remote servers, not local instances
 
 # Note: OpenCode and Crush run in STDIO mode through .mcp.json for local use,
 # HTTP mode is for cross-machine access or when running standalone
@@ -165,8 +166,9 @@ python tools/mcp/code_quality/scripts/test_server.py
 python tools/mcp/content_creation/scripts/test_server.py
 python tools/mcp/gemini/scripts/test_server.py
 python tools/mcp/gaea2/scripts/test_server.py
-python tools/mcp/ai_toolkit/scripts/test_server.py
-python tools/mcp/comfyui/scripts/test_server.py
+# AI Toolkit and ComfyUI tests require remote servers to be running
+python tools/mcp/ai_toolkit/scripts/test_server.py  # Tests connection to 192.168.0.152:8012
+python tools/mcp/comfyui/scripts/test_server.py     # Tests connection to 192.168.0.152:8013
 
 # For local development without Docker
 pip install -r config/python/requirements.txt

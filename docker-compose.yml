@@ -155,6 +155,7 @@ services:
     profiles:
       - services
 
+
   # OpenCode MCP Server
   mcp-opencode:
     build:

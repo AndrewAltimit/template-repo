@@ -47,30 +47,32 @@ Comprehensive terrain generation with Gaea2:
 - Project repair and optimization capabilities
 - Pattern-based workflow analysis
 
-### 5. AI Toolkit MCP Server (Port 8012)
+### 5. AI Toolkit MCP Server (Remote - Port 8012)
 **Location**: `tools/mcp/ai_toolkit/`
-**Documentation**: [AI Toolkit MCP Documentation](../../tools/mcp/ai_toolkit/docs/README.md)
+**Documentation**: [AI Toolkit MCP Documentation](../../tools/mcp/ai_toolkit/README.md)
 
-Bridge to remote AI Toolkit for LoRA training:
+**Direct HTTP Connection** to remote AI Toolkit for LoRA training:
 - Training configuration management
 - Dataset upload with chunked support
 - Training job monitoring and control
 - Model export and download
 - System statistics and logs
 
-**Remote Bridge**: Connects to AI Toolkit at `192.168.0.152:8012`
+**Remote Server**: Runs on `192.168.0.152:8012` (configured in `.mcp.json`)
+**Note**: No local server required - Claude connects directly via HTTP
 
-### 6. ComfyUI MCP Server (Port 8013)
+### 6. ComfyUI MCP Server (Remote - Port 8013)
 **Location**: `tools/mcp/comfyui/`
-**Documentation**: [ComfyUI MCP Documentation](../../tools/mcp/comfyui/docs/README.md)
+**Documentation**: [ComfyUI MCP Documentation](../../tools/mcp/comfyui/README.md)
 
-Bridge to remote ComfyUI for AI image generation:
+**Direct HTTP Connection** to remote ComfyUI for AI image generation:
 - Image generation with workflows
 - LoRA model management and transfer
 - Custom workflow execution
 - Model listing and management
 
-**Remote Bridge**: Connects to ComfyUI at `192.168.0.152:8013`
+**Remote Server**: Runs on `192.168.0.152:8013` (configured in `.mcp.json`)
+**Note**: No local server required - Claude connects directly via HTTP
 
 ### 7. OpenCode MCP Server (STDIO mode)
 **Location**: `tools/mcp/opencode/`
