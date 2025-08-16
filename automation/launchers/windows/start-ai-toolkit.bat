@@ -53,7 +53,7 @@ echo AI Toolkit is starting up...
 echo ========================================
 echo.
 echo Services:
-echo   Web UI:     http://localhost:7860
+echo   Web UI:     http://localhost:3000
 echo   MCP Server: http://localhost:8012
 echo.
 
@@ -63,7 +63,7 @@ timeout /t 10 /nobreak >nul
 
 REM Open the web UI in default browser
 echo Opening AI Toolkit Web UI in your browser...
-start http://localhost:7860
+start http://localhost:3000
 
 echo.
 echo ========================================

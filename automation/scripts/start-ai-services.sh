@@ -92,7 +92,7 @@ case $MODE in
         echo -e "${GREEN}========================================${NC}"
         echo ""
         echo "AI Toolkit:"
-        echo -e "  ${BLUE}Web UI${NC}: http://0.0.0.0:7860"
+        echo -e "  ${BLUE}Web UI${NC}: http://0.0.0.0:3000"
         echo -e "  ${BLUE}MCP Server${NC}: http://0.0.0.0:8012"
         echo ""
         echo "ComfyUI:"

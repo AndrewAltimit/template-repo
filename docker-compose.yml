@@ -163,7 +163,7 @@ services:
     container_name: ai-toolkit
     runtime: nvidia
     ports:
-      - "7860:7860"   # Web UI (Gradio default)
+      - "3000:3000"   # Web UI (Node.js app)
       - "8012:8190"   # MCP Server (map 8190 internal to 8012 external for compatibility)
     volumes:
       - ./:/workspace/repo:ro

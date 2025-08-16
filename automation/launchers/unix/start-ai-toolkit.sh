@@ -51,7 +51,7 @@ echo -e "\033[32mAI Toolkit is starting up...\033[0m"
 echo -e "\033[36m========================================\033[0m"
 echo
 echo -e "\033[33mServices:\033[0m"
-echo -e "  \033[36mWeb UI:\033[0m     http://localhost:7860"
+echo -e "  \033[36mWeb UI:\033[0m     http://localhost:3000"
 echo -e "  \033[36mMCP Server:\033[0m http://localhost:8012"
 echo
 
@@ -80,7 +80,7 @@ open_url() {
 
 # Open the web UI in default browser
 echo -e "\033[32mOpening AI Toolkit Web UI in your browser...\033[0m"
-open_url "http://localhost:7860"
+open_url "http://localhost:3000"
 
 echo
 echo -e "\033[36m========================================\033[0m"
