@@ -186,12 +186,7 @@ services:
               count: 1
               capabilities: [gpu]
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8675/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+    # Healthcheck defined in Dockerfile
     profiles:
       - ai-services
       - gpu
@@ -227,12 +222,7 @@ services:
               count: 1
               capabilities: [gpu]
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8188/system_stats"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+    # Healthcheck defined in Dockerfile
     profiles:
       - ai-services
       - gpu
