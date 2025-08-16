@@ -14,13 +14,18 @@ The Gaea2 MCP server enables programmatic creation and manipulation of Gaea2 ter
 - **CLI Automation**: Run Gaea2 projects programmatically (Windows only)
 - **Auto-Fix Capabilities**: Automatic detection and correction of common issues
 - **Performance Optimization**: 19x speedup through intelligent caching
-- **HTTP Streamable Transport**: Supports remote server deployment
+- **HTTP Transport**: Uses HTTP transport for cross-machine communication
+
+## 🔌 Transport Mode: HTTP Only
+
+**Why HTTP Transport?**
+The Gaea2 server uses HTTP transport (not STDIO) because it must run on a Windows machine with Gaea2 software installed. This is a hardware/software constraint - most development environments run on Linux/Mac, but Gaea2 requires Windows.
 
 ## ⚠️ Important Requirements
 
 **This server MUST run on a Windows host system where Gaea2 is installed!**
 
-The server requires direct access to the Gaea2 executable (`Gaea.Swarm.exe`) for CLI automation and validation features. It cannot run inside a container.
+The server requires direct access to the Gaea2 executable (`Gaea.Swarm.exe`) for CLI automation and validation features. This Windows requirement is why the server uses HTTP transport for remote access from other machines.
 
 ## 📋 Prerequisites
 

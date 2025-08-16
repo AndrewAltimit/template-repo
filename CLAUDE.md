@@ -145,8 +145,8 @@ python -m tools.mcp.crush.server             # Port 8015 - Fast code generation 
 # Note: AI Toolkit and ComfyUI MCP servers run on remote machine (192.168.0.152)
 # Ports 8012 and 8013 are used by the remote servers, not local instances
 
-# Note: OpenCode and Crush run in STDIO mode through .mcp.json for local use,
-# HTTP mode is for cross-machine access or when running standalone
+# Note: OpenCode and Crush use STDIO mode (local process) through .mcp.json,
+# HTTP mode is only needed for cross-machine access or remote deployment
 
 # Gemini MUST run on host (requires Docker access)
 python -m tools.mcp.gemini.server            # Port 8006 - AI integration (host only)
@@ -268,21 +268,25 @@ python automation/analysis/check-markdown-links.py --file docs/   # Check only f
 
 The project uses a modular collection of Model Context Protocol (MCP) servers, each specialized for specific functionality:
 
-1. **Code Quality MCP Server** (`tools/mcp/code_quality/`): HTTP API on port 8010
+**Transport Modes**:
+- **STDIO**: For local processes running on the same machine as the client
+- **HTTP**: For remote machines or cross-machine communication due to hardware/software constraints
+
+1. **Code Quality MCP Server** (`tools/mcp/code_quality/`): STDIO (local) or HTTP port 8010
    - **Code Formatting & Linting**:
      - `format_check` - Check code formatting (Python, JS, TS, Go, Rust)
      - `lint` - Run static analysis with multiple linters
      - `autoformat` - Automatically format code files
    - See `tools/mcp/code_quality/docs/README.md` for documentation
 
-2. **Content Creation MCP Server** (`tools/mcp/content_creation/`): HTTP API on port 8011
+2. **Content Creation MCP Server** (`tools/mcp/content_creation/`): STDIO (local) or HTTP port 8011
    - **Manim & LaTeX Tools**:
      - `create_manim_animation` - Create mathematical/technical animations
      - `compile_latex` - Generate PDF/DVI/PS documents from LaTeX
      - `render_tikz` - Render TikZ diagrams as standalone images
    - See `tools/mcp/content_creation/docs/README.md` for documentation
 
-3. **Gemini MCP Server** (`tools/mcp/gemini/`): HTTP API on port 8006
+3. **Gemini MCP Server** (`tools/mcp/gemini/`): STDIO (local, host-only) or HTTP port 8006
    - **MUST run on host system** (not in container) due to Docker requirements
    - **AI Integration**:
      - `consult_gemini` - Get AI assistance for technical questions
@@ -291,7 +295,7 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
      - `toggle_gemini_auto_consult` - Control auto-consultation
    - See `tools/mcp/gemini/docs/README.md` for documentation
 
-4. **Gaea2 MCP Server** (`tools/mcp/gaea2/`): HTTP API on port 8007
+4. **Gaea2 MCP Server** (`tools/mcp/gaea2/`): HTTP port 8007 (remote Windows machine)
    - **Terrain Generation**:
      - `create_gaea2_project` - Create custom terrain projects
      - `create_gaea2_from_template` - Use professional templates
@@ -304,14 +308,14 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - Can run locally or on remote server (192.168.0.152:8007)
    - See `tools/mcp/gaea2/docs/README.md` for complete documentation
 
-5. **AI Toolkit MCP Server** (`tools/mcp/ai_toolkit/`): HTTP API on port 8012
+5. **AI Toolkit MCP Server** (`tools/mcp/ai_toolkit/`): HTTP port 8012 (remote GPU machine)
    - **LoRA Training Management**:
      - Training configurations, dataset uploads, job monitoring
      - Model export and download capabilities
    - Bridge to remote AI Toolkit instance at `192.168.0.152:8012`
    - See `tools/mcp/ai_toolkit/docs/README.md` for documentation
 
-6. **ComfyUI MCP Server** (`tools/mcp/comfyui/`): HTTP API on port 8013
+6. **ComfyUI MCP Server** (`tools/mcp/comfyui/`): HTTP port 8013 (remote GPU machine)
    - **AI Image Generation**:
      - Image generation with workflows
      - LoRA model management and transfer
@@ -319,7 +323,7 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - Bridge to remote ComfyUI instance at `192.168.0.152:8013`
    - See `tools/mcp/comfyui/docs/README.md` for documentation
 
-7. **OpenCode MCP Server** (`tools/mcp/opencode/`): Local STDIO interface
+7. **OpenCode MCP Server** (`tools/mcp/opencode/`): STDIO (local) or HTTP port 8014
    - **AI-Powered Code Generation**:
      - `consult_opencode` - Generate, refactor, review, or explain code
      - `clear_opencode_history` - Clear conversation history
@@ -329,7 +333,7 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - Runs locally via stdio for better integration
    - See `tools/mcp/opencode/docs/README.md` for documentation
 
-8. **Crush MCP Server** (`tools/mcp/crush/`): Local STDIO interface
+8. **Crush MCP Server** (`tools/mcp/crush/`): STDIO (local) or HTTP port 8015
    - **Fast Code Generation**:
      - `consult_crush` - Quick code generation and conversion
      - `clear_crush_history` - Clear conversation history

@@ -1,20 +1,40 @@
-# MCP Server Modes: STDIO vs HTTP
+# MCP Server Transport Modes: STDIO vs HTTP
+
+## The Fundamental Distinction
+
+**STDIO** = **Local Process Communication**
+- Server runs on the **same machine** as the client
+- Client spawns server as a child process
+- Communication via standard input/output streams
+
+**HTTP** = **Remote/Cross-Machine Communication**
+- Server runs on a **different machine** or requires special environment
+- Server runs independently as a network service
+- Communication via HTTP protocol over network
 
 ## Critical Understanding
 
-MCP servers in this project support **two different modes** that serve different purposes:
+MCP servers support two transport modes that serve fundamentally different purposes based on **where** and **how** the server runs:
 
-### STDIO Mode (for Claude Desktop/Code)
+### STDIO Mode (Local Process Communication)
+- **Purpose**: For **local processes** running on the same machine as the client
 - **Configuration**: `.mcp.json`
 - **Usage**: `mcp__<server>__<tool>` functions in Claude
-- **How it works**: Claude spawns the server process and communicates via stdin/stdout
-- **Lifecycle**: Started/stopped automatically by Claude as needed
+- **How it works**: Client spawns the server as a child process and communicates via stdin/stdout
+- **Lifecycle**: Started/stopped automatically by the client as needed
+- **When to use**: When the server can run in the same environment as the client
 
-### HTTP Mode (for Web APIs/Testing)
-- **Configuration**: `docker-compose.yml`
-- **Usage**: Direct HTTP calls to `http://localhost:<port>`
-- **How it works**: Runs as a persistent service
-- **Lifecycle**: Started with `docker-compose up`, runs continuously
+### HTTP Mode (Remote/Cross-Machine Communication)
+- **Purpose**: For **remote processes** or **cross-machine** communication
+- **Configuration**: `docker-compose.yml` or direct server startup
+- **Usage**: Direct HTTP calls to `http://host:<port>`
+- **How it works**: Runs as a persistent network service
+- **Lifecycle**: Started independently, runs continuously
+- **When to use**:
+  - Server runs on different machine (e.g., `192.168.0.152:8007`)
+  - Hardware constraints (e.g., Windows-only software like Gaea2)
+  - Software constraints (e.g., GPU requirements for AI models)
+  - Resource isolation (e.g., heavy compute workloads)
 
 ## Common Confusion Points
 
@@ -33,21 +53,33 @@ result = mcp__content-creation__compile_latex(content="...")
 
 ## Server-Specific Configurations
 
-### Content Creation Server
-- **STDIO**: Auto-started by Claude when using `mcp__content-creation__*` tools
-- **HTTP**: `docker-compose up mcp-content-creation` (port 8011)
+### Local-Only Servers (STDIO Preferred)
 
-### Code Quality Server
-- **STDIO**: Auto-started by Claude when using `mcp__code-quality__*` tools
-- **HTTP**: `docker-compose up mcp-code-quality` (port 8010)
+#### Content Creation Server
+- **STDIO**: Auto-started locally by Claude when using `mcp__content-creation__*` tools
+- **HTTP**: Available at port 8011 for testing or remote access
 
-### Gemini Server
-- **STDIO**: Must run on host (not in container)
-- **HTTP**: Also runs on host (port 8006)
+#### Code Quality Server
+- **STDIO**: Auto-started locally by Claude when using `mcp__code-quality__*` tools
+- **HTTP**: Available at port 8010 for testing or remote access
 
-### Gaea2 Server
-- **STDIO**: Can run locally or connect to remote
-- **HTTP**: Can run locally or at `192.168.0.152:8007`
+#### Gemini Server
+- **STDIO**: Runs locally on host (requires Docker access)
+- **HTTP**: Port 8006 for cross-process communication
+
+### Remote/Cross-Machine Servers (HTTP Required)
+
+#### Gaea2 Server
+- **Local STDIO**: When Gaea2 is installed locally on Windows
+- **Remote HTTP**: `192.168.0.152:8007` when Gaea2 runs on dedicated Windows machine
+
+#### AI Toolkit Server
+- **HTTP Only**: `192.168.0.152:8012` (runs on remote machine with GPU)
+- **Why**: Requires specific hardware (GPU) and software environment
+
+#### ComfyUI Server
+- **HTTP Only**: `192.168.0.152:8013` (runs on remote machine with GPU)
+- **Why**: Requires specific hardware (GPU) and software environment
 
 ## Volume Mounts and Output Directories
 
@@ -98,9 +130,10 @@ Both modes will write to `./outputs/mcp-content/` on the host.
 
 ## Summary
 
-- **Claude uses STDIO** - Configured in `.mcp.json`, started automatically
-- **HTTP is for APIs** - Configured in `docker-compose.yml`, started manually
-- **Don't mix them up** - They serve different purposes!
+- **STDIO = Local Process** - For servers running on the same machine as the client
+- **HTTP = Remote/Cross-Machine** - For servers on different machines or with special requirements
+- **Claude prefers STDIO** - Automatically manages local servers via `.mcp.json`
+- **Use HTTP when necessary** - Remote hardware, Windows-only software, GPU requirements, etc.
 
 ## HTTP Mode Technical Implementation
 

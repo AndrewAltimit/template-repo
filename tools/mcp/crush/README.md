@@ -1,6 +1,6 @@
 # Crush MCP Server
 
-The Crush MCP Server provides stdio and HTTP interfaces for fast AI-powered code generation using Crush.
+The Crush MCP Server provides fast AI-powered code generation using Crush, supporting both STDIO (local process) and HTTP (remote/cross-machine) transports.
 
 ## Overview
 
@@ -10,6 +10,18 @@ This MCP server wraps the Crush CLI agent to provide:
 - Code conversion between languages
 - State management with conversation history
 - Fast response times for rapid iteration
+
+## Transport Modes
+
+**STDIO Mode** (Default for Claude Code):
+- For local use on the same machine as the client
+- Automatically managed by Claude via `.mcp.json`
+- No manual startup required
+
+**HTTP Mode** (Port 8015):
+- For cross-machine access or containerized deployment
+- Runs as a persistent network service
+- Useful when the server needs to run on a different machine
 
 ## Configuration
 
@@ -38,20 +50,35 @@ You can also create `crush-config.json` in your project root:
 
 ## Running the Server
 
-### Local Use (via Claude/MCP)
+### STDIO Mode (Local Process)
 
-The server is configured to run in stdio mode through `.mcp.json` for seamless integration with Claude and other MCP clients on the same machine.
+For Claude Code and local MCP clients, the server is automatically started via `.mcp.json`. No manual startup needed - just use the tools:
 
-### Development and Cross-Machine Access
+```python
+# Claude automatically starts the server when you use it
+result = mcp__crush__consult_crush(query="Convert this to TypeScript...")
+```
+
+### HTTP Mode (Remote/Cross-Machine)
+
+For running on a different machine or in a container:
 
 ```bash
 # Set your API key
 export OPENROUTER_API_KEY="your-api-key-here"
 
-# Run in HTTP mode for cross-machine access
+# Start HTTP server on port 8015
 python -m tools.mcp.crush.server --mode http
 
-# Run in stdio mode (for MCP integrations)
+# The server will be available at http://localhost:8015
+```
+
+### Manual STDIO Mode
+
+For testing or development:
+
+```bash
+# Run in stdio mode manually
 python -m tools.mcp.crush.server --mode stdio
 ```
 

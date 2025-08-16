@@ -55,8 +55,14 @@ Both agents use the OpenRouter API and can be accessed through:
 
 ### Execution Modes
 
-1. **STDIO Mode** (Local MCP): Integrated with `.mcp.json` for Claude
-2. **HTTP Mode** (Cross-machine): Standalone servers on ports 8014/8015
+1. **STDIO Mode** (Local Process): MCP servers run as local child processes via `.mcp.json`
+   - Used when Claude and the server run on the same machine
+   - Communication via standard input/output streams
+
+2. **HTTP Mode** (Remote/Cross-Machine): Network servers on ports 8014/8015
+   - Used for remote machines or containerized deployments
+   - Communication via HTTP protocol over network
+
 3. **Container Mode** (GitHub): Runs in `openrouter-agents` container
 4. **Direct CLI Mode** (Host): Using run scripts or direct commands
 

@@ -4,8 +4,13 @@ This repository contains a modular collection of MCP servers that provide variou
 
 ## Available MCP Servers
 
-### 1. Code Quality MCP Server (STDIO mode)
+### Local Process Servers (STDIO Transport)
+
+These servers run as local processes on the same machine as the client:
+
+#### 1. Code Quality MCP Server
 **Location**: `tools/mcp/code_quality/`
+**Transport**: STDIO (local process)
 **Documentation**: [Code Quality MCP Documentation](../../tools/mcp/code_quality/docs/README.md)
 
 Provides code formatting and linting tools for multiple languages:
@@ -13,8 +18,9 @@ Provides code formatting and linting tools for multiple languages:
 - Linting with various tools (flake8, pylint, eslint, etc.)
 - Auto-formatting capabilities
 
-### 2. Content Creation MCP Server (STDIO mode)
+#### 2. Content Creation MCP Server
 **Location**: `tools/mcp/content_creation/`
+**Transport**: STDIO (local process)
 **Documentation**: [Content Creation MCP Documentation](../../tools/mcp/content_creation/docs/README.md)
 
 Tools for creating mathematical animations and documents:
@@ -23,8 +29,9 @@ Tools for creating mathematical animations and documents:
 - TikZ diagram rendering
 - Preview generation and compression
 
-### 3. Gemini AI Integration MCP Server (STDIO mode)
+#### 3. Gemini AI Integration MCP Server
 **Location**: `tools/mcp/gemini/`
+**Transport**: STDIO (local process, host-only)
 **Documentation**: [Gemini MCP Documentation](../../tools/mcp/gemini/docs/README.md)
 
 AI integration for second opinions and code validation:
@@ -35,48 +42,9 @@ AI integration for second opinions and code validation:
 
 **⚠️ Important**: Must run on host system (not in container) due to Docker access requirements
 
-### 4. Gaea2 Terrain Generation MCP Server (Port 8007)
-**Location**: `tools/mcp/gaea2/`
-**Documentation**: [Gaea2 MCP Documentation](../../tools/mcp/gaea2/docs/README.md) | [Full Documentation Index](../../tools/mcp/gaea2/docs/INDEX.md)
-
-Comprehensive terrain generation with Gaea2:
-- Intelligent validation and error correction
-- Professional terrain templates (11 templates)
-- CLI automation (Windows only)
-- Project repair and optimization capabilities
-- Pattern-based workflow analysis
-
-### 5. AI Toolkit MCP Server (GPU - Port 8012)
-**Location**: `tools/mcp/ai_toolkit/`
-**Documentation**: [AI Toolkit MCP Documentation](../../tools/mcp/ai_toolkit/README.md)
-
-**GPU-accelerated LoRA training management**:
-- Training configuration management
-- Dataset upload with chunked support
-- Training job monitoring and control
-- Model export and download
-- System statistics and logs
-
-**Deployment**: Docker container with NVIDIA GPU support
-**Default Location**: `192.168.0.152:8012` (runs from this repo's code)
-**Access**: HTTP MCP protocol (configured in `.mcp.json`)
-
-### 6. ComfyUI MCP Server (GPU - Port 8013)
-**Location**: `tools/mcp/comfyui/`
-**Documentation**: [ComfyUI MCP Documentation](../../tools/mcp/comfyui/README.md)
-
-**GPU-accelerated AI image generation**:
-- Image generation with workflows
-- LoRA model management and transfer
-- Custom workflow execution
-- Model listing and management
-
-**Deployment**: Docker container with NVIDIA GPU support
-**Default Location**: `192.168.0.152:8013` (runs from this repo's code)
-**Access**: HTTP MCP protocol (configured in `.mcp.json`)
-
-### 7. OpenCode MCP Server (STDIO mode)
+#### 4. OpenCode MCP Server
 **Location**: `tools/mcp/opencode/`
+**Transport**: STDIO (local) or HTTP (remote)
 **Documentation**: [OpenCode MCP Documentation](../../tools/mcp/opencode/README.md)
 
 AI-powered code generation using OpenRouter:
@@ -86,10 +54,9 @@ AI-powered code generation using OpenRouter:
 - Auto-consultation features
 - Uses Qwen 2.5 Coder model
 
-**Modes**: Supports both STDIO (local) and HTTP (remote) modes
-
-### 8. Crush MCP Server (STDIO mode)
+#### 5. Crush MCP Server
 **Location**: `tools/mcp/crush/`
+**Transport**: STDIO (local) or HTTP (remote)
 **Documentation**: [Crush MCP Documentation](../../tools/mcp/crush/README.md)
 
 Fast code generation using OpenRouter:
@@ -98,10 +65,9 @@ Fast code generation using OpenRouter:
 - Conversation history management
 - Auto-consultation features
 
-**Modes**: Supports both STDIO (local) and HTTP (remote) modes
-
-### 9. Meme Generator MCP Server (STDIO mode)
+#### 6. Meme Generator MCP Server
 **Location**: `tools/mcp/meme_generator/`
+**Transport**: STDIO (local process)
 **Documentation**: [Meme Generator MCP Documentation](../../tools/mcp/meme_generator/docs/README.md)
 
 Generate memes with customizable text overlays:
@@ -112,17 +78,89 @@ Generate memes with customizable text overlays:
 - Cultural context documentation
 - 7+ built-in templates with more being added
 
+### Remote/Cross-Machine Servers (HTTP Transport)
+
+These servers use HTTP transport for remote machines or special hardware/software requirements:
+
+#### 1. Gaea2 Terrain Generation MCP Server
+**Location**: `tools/mcp/gaea2/`
+**Transport**: HTTP (Port 8007)
+**Remote Location**: Can run at `192.168.0.152:8007`
+**Documentation**: [Gaea2 MCP Documentation](../../tools/mcp/gaea2/docs/README.md) | [Full Documentation Index](../../tools/mcp/gaea2/docs/INDEX.md)
+
+Comprehensive terrain generation with Gaea2:
+- Intelligent validation and error correction
+- Professional terrain templates (11 templates)
+- CLI automation (Windows only)
+- Project repair and optimization capabilities
+- Pattern-based workflow analysis
+
+**Why HTTP**: Requires Windows OS with Gaea2 software installed
+
+#### 2. AI Toolkit MCP Server
+**Location**: `tools/mcp/ai_toolkit/`
+**Transport**: HTTP (Port 8012)
+**Remote Location**: `192.168.0.152:8012`
+**Documentation**: [AI Toolkit MCP Documentation](../../tools/mcp/ai_toolkit/README.md)
+
+GPU-accelerated LoRA training management:
+- Training configuration management
+- Dataset upload with chunked support
+- Training job monitoring and control
+- Model export and download
+- System statistics and logs
+
+**Why HTTP**: Requires NVIDIA GPU and specific ML environment
+
+#### 3. ComfyUI MCP Server
+**Location**: `tools/mcp/comfyui/`
+**Transport**: HTTP (Port 8013)
+**Remote Location**: `192.168.0.152:8013`
+**Documentation**: [ComfyUI MCP Documentation](../../tools/mcp/comfyui/README.md)
+
+GPU-accelerated AI image generation:
+- Image generation with workflows
+- LoRA model management and transfer
+- Custom workflow execution
+- Model listing and management
+
+**Why HTTP**: Requires NVIDIA GPU and ComfyUI installation
+
 ## Configuration and Transport
 
-### HTTP Streamable Transport
+### Transport Mode Selection
 
-MCP servers can use HTTP transport for remote deployment. For detailed configuration and troubleshooting:
-- **[MCP Server Modes: STDIO vs HTTP](architecture/stdio-vs-http.md)** - Complete guide for MCP server modes and HTTP implementation
+**STDIO Transport**: Used for local processes running on the same machine as the client
+- Configured in `.mcp.json` with `command` and `args`
+- Client spawns server as child process
+- Communication via standard input/output
+
+**HTTP Transport**: Used for remote machines or special environment requirements
+- Configured in `.mcp.json` with `type: "http"` and `url`
+- Server runs independently as network service
+- Communication via HTTP protocol
+
+For detailed configuration and troubleshooting:
+- **[MCP Server Modes: STDIO vs HTTP](architecture/stdio-vs-http.md)** - Complete guide for transport modes
 - **[MCP Specification](https://modelcontextprotocol.io/specification/2025-06-18)** - Official protocol specification
 
 ### Configuration File (.mcp.json)
 
-All MCP servers are configured in the `.mcp.json` file at the project root. HTTP servers use the following format:
+All MCP servers are configured in the `.mcp.json` file at the project root.
+
+**STDIO servers** (local processes):
+```json
+{
+  "mcpServers": {
+    "server-name": {
+      "command": "python",
+      "args": ["-m", "tools.mcp.server_name.server"]
+    }
+  }
+}
+```
+
+**HTTP servers** (remote/cross-machine):
 
 ```json
 {
@@ -145,28 +183,40 @@ tools/mcp/
 │   ├── client_registry.py  # Client registry management
 │   └── utils.py            # Common utilities
 │
-├── code_quality/           # Code quality tools (STDIO)
-├── content_creation/       # Manim & LaTeX tools (STDIO)
-├── gemini/                 # AI integration (STDIO, host-only)
-├── gaea2/                  # Terrain generation (HTTP bridge, port 8007)
-├── ai_toolkit/             # LoRA training (HTTP bridge, port 8012)
-├── comfyui/                # Image generation (HTTP bridge, port 8013)
-├── opencode/               # AI code generation (STDIO)
-├── crush/                  # Fast code generation (STDIO)
-└── meme_generator/         # Meme creation (STDIO)
+# Local Process Servers (STDIO)
+├── code_quality/           # Code quality tools (local)
+├── content_creation/       # Manim & LaTeX tools (local)
+├── gemini/                 # AI integration (local, host-only)
+├── opencode/               # AI code generation (local/remote capable)
+├── crush/                  # Fast code generation (local/remote capable)
+├── meme_generator/         # Meme generation (local)
+│
+# Remote/Cross-Machine Servers (HTTP)
+├── gaea2/                  # Terrain generation (Windows requirement)
+├── ai_toolkit/             # LoRA training (GPU requirement)
+└── comfyui/                # Image generation (GPU requirement)
 ```
 
 ## Running MCP Servers
 
-Each server can run in two modes:
-
-### HTTP Mode
-For web API access and integration with other services:
-```bash
-python -m tools.mcp.<server_name>.server --mode http
+### Local Process Servers (STDIO)
+Claude Code automatically starts these servers when you use their tools. No manual startup required:
+```python
+# Just use the tool - Claude handles the rest
+result = mcp__code_quality__format_check(path="./src")
 ```
 
-### stdio Mode
+### Remote/Cross-Machine Servers (HTTP)
+These servers must be started independently on their host machines:
+```bash
+# Start on remote machine
+python -m tools.mcp.gaea2.server --mode http       # Windows machine with Gaea2
+python -m tools.mcp.ai_toolkit.server --mode http  # GPU machine
+python -m tools.mcp.comfyui.server --mode http     # GPU machine
+```
+
+### Dual-Mode Servers
+Some servers support both STDIO (local) and HTTP (remote) modes:
 For Claude Desktop integration:
 ```bash
 python -m tools.mcp.<server_name>.server --mode stdio

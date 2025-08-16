@@ -1,6 +1,6 @@
 # OpenCode MCP Server
 
-The OpenCode MCP Server provides stdio and HTTP interfaces for AI-powered code generation using OpenCode.
+The OpenCode MCP Server provides AI-powered code generation using OpenCode, supporting both STDIO (local process) and HTTP (remote/cross-machine) transports.
 
 ## Overview
 
@@ -10,6 +10,18 @@ This MCP server wraps the OpenCode CLI agent to provide:
 - Code review and analysis
 - Multi-language support
 - State management with conversation history
+
+## Transport Modes
+
+**STDIO Mode** (Default for Claude Code):
+- For local use on the same machine as the client
+- Automatically managed by Claude via `.mcp.json`
+- No manual startup required
+
+**HTTP Mode** (Port 8014):
+- For cross-machine access or containerized deployment
+- Runs as a persistent network service
+- Useful when the server needs to run on a different machine
 
 ## Configuration
 
@@ -39,20 +51,35 @@ You can also create `opencode-config.json` in your project root:
 
 ## Running the Server
 
-### Local Use (via Claude/MCP)
+### STDIO Mode (Local Process)
 
-The server is configured to run in stdio mode through `.mcp.json` for seamless integration with Claude and other MCP clients on the same machine.
+For Claude Code and local MCP clients, the server is automatically started via `.mcp.json`. No manual startup needed - just use the tools:
 
-### Development and Cross-Machine Access
+```python
+# Claude automatically starts the server when you use it
+result = mcp__opencode__consult_opencode(query="Write a Python function...")
+```
+
+### HTTP Mode (Remote/Cross-Machine)
+
+For running on a different machine or in a container:
 
 ```bash
 # Set your API key
 export OPENROUTER_API_KEY="your-api-key-here"
 
-# Run in HTTP mode for cross-machine access
+# Start HTTP server on port 8014
 python -m tools.mcp.opencode.server --mode http
 
-# Run in stdio mode (for MCP integrations)
+# The server will be available at http://localhost:8014
+```
+
+### Manual STDIO Mode
+
+For testing or development:
+
+```bash
+# Run in stdio mode manually
 python -m tools.mcp.opencode.server --mode stdio
 ```
 
