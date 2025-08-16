@@ -292,7 +292,7 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - See `tools/mcp/gemini/docs/README.md` for documentation
 
 4. **Gaea2 MCP Server** (`tools/mcp/gaea2/`): HTTP API on port 8007
-   - **Terrain Generation** (185 nodes supported):
+   - **Terrain Generation**:
      - `create_gaea2_project` - Create custom terrain projects
      - `create_gaea2_from_template` - Use professional templates
      - `validate_and_fix_workflow` - Comprehensive validation and repair

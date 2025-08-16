@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 # Start AI Toolkit Full Application (Web UI + MCP Server) in Docker
 # Automatically opens the web UI in your default browser
 

@@ -33,7 +33,7 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 
 - **10 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, and more
 - **7 AI Agents** - Comprehensive development automation
-- **Gaea2 Terrain Generation** - All 185 nodes supported
+- **Gaea2 Terrain Generation** - Terrain generation
 - **Blender 3D Creation** - Full 3D content creation, rendering, and simulation
 - **ComfyUI & AI Toolkit** - Image generation and LoRA training
 - **Container-First Architecture** - Maximum portability and consistency
@@ -117,7 +117,7 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 
 1. **Code Quality** - Formatting, linting, auto-formatting
 2. **Content Creation** - Manim animations, LaTeX, TikZ diagrams
-3. **Gaea2** - Terrain generation with 185 nodes ([Documentation](tools/mcp/gaea2/docs/README.md))
+3. **Gaea2** - Terrain generation ([Documentation](tools/mcp/gaea2/docs/README.md))
 4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/blender/docs/README.md))
 5. **Gemini** - AI consultation (host-only due to Docker requirements)
 6. **OpenCode** - Comprehensive code generation (STDIO mode via Claude)

@@ -224,7 +224,7 @@ for category_nodes in NODE_CATEGORIES.values():
     VALID_NODE_TYPES.update(category_nodes)
 
 # Common node properties with their types and typical ranges
-# Based on analysis of 185 nodes from documentation
+# Based on analysis from documentation
 COMMON_NODE_PROPERTIES = {
     # Most common properties (used in 10+ nodes)
     "Seed": {

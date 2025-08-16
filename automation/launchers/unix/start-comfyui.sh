@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 # Start ComfyUI Full Application (Web UI + MCP Server) in Docker
 # Automatically opens the web UI in your default browser
 

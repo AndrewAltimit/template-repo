@@ -147,7 +147,7 @@ curl http://localhost:8007/health
 
 ### Available Tools
 
-#### Terrain Generation Tools (185 nodes supported)
+#### Terrain Generation Tools
 - **create_gaea2_project** - Create custom terrain projects with automatic validation
 - **create_gaea2_from_template** - Use professional workflow templates
 - **validate_and_fix_workflow** - Comprehensive validation and automatic repair

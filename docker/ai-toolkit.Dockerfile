@@ -62,34 +62,14 @@ ENV PYTHONUNBUFFERED=1
 ENV AI_TOOLKIT_PATH=/ai-toolkit
 ENV NODE_ENV=production
 
-# Create entrypoint script
-RUN echo '#!/bin/bash\n\
-set -e\n\
-\n\
-# Start AI Toolkit web UI in background\n\
-echo "Starting AI Toolkit Web UI on port 8675..."\n\
-cd /ai-toolkit/ui\n\
-npm start &\n\
-AI_TOOLKIT_PID=$!\n\
-\n\
-# Give the web UI time to start\n\
-sleep 10\n\
-\n\
-# Start MCP server\n\
-echo "Starting AI Toolkit MCP Server on port 8190..."\n\
-cd /workspace\n\
-python3 -m tools.mcp.ai_toolkit.server --mode http --host 0.0.0.0 --port 8190 &\n\
-MCP_PID=$!\n\
-\n\
-# Keep container running and handle shutdown\n\
-trap "kill $AI_TOOLKIT_PID $MCP_PID; exit" SIGTERM SIGINT\n\
-\n\
-echo "AI Toolkit Web UI: http://0.0.0.0:8675"\n\
-echo "AI Toolkit MCP Server: http://0.0.0.0:8190"\n\
-\n\
-# Wait for processes\n\
-wait $AI_TOOLKIT_PID $MCP_PID\n\
-' > /entrypoint.sh && chmod +x /entrypoint.sh
+# Create non-root user
+RUN groupadd --gid 1000 appuser && \
+    useradd --uid 1000 --gid 1000 -m appuser && \
+    chown -R appuser:appuser /ai-toolkit /workspace
+
+# Copy entrypoint script
+COPY docker/entrypoints/ai-toolkit-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh && chown appuser:appuser /entrypoint.sh
 
 # Expose ports (8675 for Next.js UI, 8190 for MCP)
 EXPOSE 8675 8190
@@ -97,6 +77,9 @@ EXPOSE 8675 8190
 # Health check for web UI
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8675/ || exit 1
+
+# Switch to non-root user
+USER appuser
 
 # Run entrypoint
 CMD ["/entrypoint.sh"]
