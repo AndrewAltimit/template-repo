@@ -195,8 +195,13 @@ class ComfyUIMCPServer(BaseMCPServer):
             },
         ]
 
-        # Create method mappings
-        self._create_tool_methods()
+    def get_tools(self) -> Dict[str, Dict[str, Any]]:
+        """Return available tools as a dictionary"""
+        tools_dict = {}
+        for tool in self.tools:
+            tool_name = tool["name"]
+            tools_dict[tool_name] = {"description": tool.get("description", ""), "parameters": tool.get("inputSchema", {})}
+        return tools_dict
 
     def _create_default_workflow(
         self, prompt: str, negative_prompt: str, width: int, height: int, seed: int, steps: int, cfg_scale: float

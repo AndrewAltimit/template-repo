@@ -228,8 +228,13 @@ class AIToolkitMCPServer(BaseMCPServer):
             },
         ]
 
-        # Create method mappings
-        self._create_tool_methods()
+    def get_tools(self) -> Dict[str, Dict[str, Any]]:
+        """Return available tools as a dictionary"""
+        tools_dict = {}
+        for tool in self.tools:
+            tool_name = tool["name"]
+            tools_dict[tool_name] = {"description": tool.get("description", ""), "parameters": tool.get("inputSchema", {})}
+        return tools_dict
 
     async def create_training_config(self, **kwargs) -> Dict[str, Any]:
         """Create a new training configuration file for AI Toolkit"""
