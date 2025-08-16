@@ -34,9 +34,16 @@ RUN pip3 install --no-cache-dir \
     fastapi \
     uvicorn[standard] \
     httpx \
+    httpx-sse \
     pydantic \
+    pydantic-settings \
     aiofiles \
     psutil \
+    jsonschema \
+    anyio \
+    sse-starlette \
+    starlette \
+    python-multipart \
     mcp
 
 # Copy entire tools directory to maintain proper Python module structure
