@@ -20,8 +20,10 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /workspace
 
-# Clone ComfyUI
-RUN git clone https://github.com/comfyanonymous/ComfyUI.git /comfyui
+# Clone ComfyUI (pinned to specific commit for reproducibility)
+RUN git clone https://github.com/comfyanonymous/ComfyUI.git /comfyui && \
+    cd /comfyui && \
+    git checkout 20a84166
 
 # Install ComfyUI requirements
 WORKDIR /comfyui

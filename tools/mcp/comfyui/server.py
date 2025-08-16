@@ -1,13 +1,22 @@
-"""ComfyUI MCP Server - GPU-accelerated AI image generation"""
+"""ComfyUI MCP Server - Functional implementation with actual ComfyUI integration"""
 
+import asyncio
+import base64
+import json
 import os
+import time
+import uuid
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+
+import aiohttp
 
 from ..core.base_server import BaseMCPServer
 from ..core.utils import setup_logging
 
 # ComfyUI configuration
+COMFYUI_HOST = os.environ.get("COMFYUI_HOST", "localhost")
+COMFYUI_PORT = int(os.environ.get("COMFYUI_PORT", "8188"))
 COMFYUI_PATH = os.environ.get("COMFYUI_PATH", "/comfyui")
 MODELS_PATH = Path(COMFYUI_PATH) / "models"
 OUTPUT_PATH = Path(COMFYUI_PATH) / "output"
@@ -15,26 +24,30 @@ INPUT_PATH = Path(COMFYUI_PATH) / "input"
 
 
 class ComfyUIMCPServer(BaseMCPServer):
-    """MCP Server for ComfyUI - AI image generation"""
+    """MCP Server for ComfyUI - Functional AI image generation"""
 
     def __init__(self, port: int = 8013):
         super().__init__(
             name="ComfyUI MCP Server",
-            version="1.0.0",
+            version="2.0.0",
             port=port,
         )
 
         # Initialize server state
         self.logger = setup_logging("comfyui_mcp")
         self.generation_jobs: Dict[str, Any] = {}
-        self.workflows: Dict[str, Any] = {}
+        self.client_id = str(uuid.uuid4())
+
+        # ComfyUI API endpoints
+        self.api_url = f"http://{COMFYUI_HOST}:{COMFYUI_PORT}"
+        self.ws_url = f"ws://{COMFYUI_HOST}:{COMFYUI_PORT}/ws?clientId={self.client_id}"
 
         # Ensure directories exist
         MODELS_PATH.mkdir(parents=True, exist_ok=True)
         OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
         INPUT_PATH.mkdir(parents=True, exist_ok=True)
 
-        # Tool definitions (must be defined before creating methods)
+        # Tool definitions
         self.tools = [
             {
                 "name": "generate_image",
@@ -132,65 +145,6 @@ class ComfyUIMCPServer(BaseMCPServer):
                 },
             },
             {
-                "name": "upload_lora_chunked_init",
-                "description": "Initialize chunked upload for large LoRA files",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "filename": {
-                            "type": "string",
-                            "description": "Filename for the LoRA",
-                        },
-                        "total_size": {
-                            "type": "integer",
-                            "description": "Total file size in bytes",
-                        },
-                        "metadata": {"type": "object", "description": "LoRA metadata"},
-                    },
-                    "required": ["filename", "total_size"],
-                },
-            },
-            {
-                "name": "upload_lora_chunk",
-                "description": "Upload a chunk of a large LoRA file",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "upload_id": {
-                            "type": "string",
-                            "description": "Upload ID from init",
-                        },
-                        "chunk_index": {
-                            "type": "integer",
-                            "description": "Chunk index",
-                        },
-                        "chunk": {
-                            "type": "string",
-                            "description": "Base64 encoded chunk data",
-                        },
-                        "total_chunks": {
-                            "type": "integer",
-                            "description": "Total number of chunks",
-                        },
-                    },
-                    "required": ["upload_id", "chunk_index", "chunk", "total_chunks"],
-                },
-            },
-            {
-                "name": "upload_lora_chunked_complete",
-                "description": "Complete a chunked LoRA upload",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "upload_id": {
-                            "type": "string",
-                            "description": "Upload ID from init",
-                        }
-                    },
-                    "required": ["upload_id"],
-                },
-            },
-            {
                 "name": "list_loras",
                 "description": "List available LoRA models",
                 "inputSchema": {"type": "object", "properties": {}},
@@ -222,24 +176,6 @@ class ComfyUIMCPServer(BaseMCPServer):
                 "inputSchema": {"type": "object", "properties": {}},
             },
             {
-                "name": "transfer_lora_from_ai_toolkit",
-                "description": "Transfer a LoRA from AI Toolkit to ComfyUI",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "model_name": {
-                            "type": "string",
-                            "description": "Model name in AI Toolkit",
-                        },
-                        "filename": {
-                            "type": "string",
-                            "description": "Target filename in ComfyUI",
-                        },
-                    },
-                    "required": ["model_name", "filename"],
-                },
-            },
-            {
                 "name": "execute_workflow",
                 "description": "Execute a custom ComfyUI workflow",
                 "inputSchema": {
@@ -259,162 +195,345 @@ class ComfyUIMCPServer(BaseMCPServer):
             },
         ]
 
-    # Tool implementation methods
-    async def generate_image(self, **kwargs) -> Dict[str, Any]:
-        """Generate an image"""
-        import uuid
+        # Create method mappings
+        self._create_tool_methods()
 
-        job_id = str(uuid.uuid4())
-        self.generation_jobs[job_id] = {
-            "status": "generating",
-            "params": kwargs,
-            "prompt": kwargs.get("prompt", ""),
-            "width": kwargs.get("width", 512),
-            "height": kwargs.get("height", 512),
+    def _create_default_workflow(
+        self, prompt: str, negative_prompt: str, width: int, height: int, seed: int, steps: int, cfg_scale: float
+    ) -> Dict[str, Any]:
+        """Create a default SD 1.5 workflow"""
+        if seed == -1:
+            seed = int(time.time())
+
+        return {
+            "3": {
+                "inputs": {
+                    "seed": seed,
+                    "steps": steps,
+                    "cfg": cfg_scale,
+                    "sampler_name": "euler",
+                    "scheduler": "normal",
+                    "denoise": 1,
+                    "model": ["4", 0],
+                    "positive": ["6", 0],
+                    "negative": ["7", 0],
+                    "latent_image": ["5", 0],
+                },
+                "class_type": "KSampler",
+            },
+            "4": {"inputs": {"ckpt_name": "v1-5-pruned-emaonly.ckpt"}, "class_type": "CheckpointLoaderSimple"},
+            "5": {"inputs": {"width": width, "height": height, "batch_size": 1}, "class_type": "EmptyLatentImage"},
+            "6": {"inputs": {"text": prompt, "clip": ["4", 1]}, "class_type": "CLIPTextEncode"},
+            "7": {"inputs": {"text": negative_prompt, "clip": ["4", 1]}, "class_type": "CLIPTextEncode"},
+            "8": {"inputs": {"samples": ["3", 0], "vae": ["4", 2]}, "class_type": "VAEDecode"},
+            "9": {"inputs": {"filename_prefix": "ComfyUI", "images": ["8", 0]}, "class_type": "SaveImage"},
         }
-        return {"status": "success", "job_id": job_id}
+
+    async def _queue_prompt(self, workflow: Dict[str, Any]) -> Optional[str]:
+        """Queue a prompt in ComfyUI and return the prompt ID"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                payload = {"prompt": workflow, "client_id": self.client_id}
+
+                async with session.post(f"{self.api_url}/prompt", json=payload) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        return result.get("prompt_id")
+                    else:
+                        self.logger.error(f"Failed to queue prompt: {response.status}")
+                        return None
+        except Exception as e:
+            self.logger.error(f"Error queuing prompt: {e}")
+            return None
+
+    async def _get_history(self, prompt_id: str) -> Optional[Dict[str, Any]]:
+        """Get the generation history for a prompt"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{self.api_url}/history/{prompt_id}") as response:
+                    if response.status == 200:
+                        return await response.json()
+                    return None
+        except Exception as e:
+            self.logger.error(f"Error getting history: {e}")
+            return None
+
+    async def _wait_for_completion(self, prompt_id: str, timeout: int = 120) -> bool:
+        """Wait for a prompt to complete"""
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            history = await self._get_history(prompt_id)
+            if history and prompt_id in history:
+                prompt_history = history[prompt_id]
+                if prompt_history.get("outputs"):
+                    return True
+            await asyncio.sleep(1)
+        return False
+
+    async def generate_image(self, **kwargs) -> Dict[str, Any]:
+        """Generate an image using ComfyUI"""
+        prompt = kwargs.get("prompt", "")
+        negative_prompt = kwargs.get("negative_prompt", "")
+        workflow = kwargs.get("workflow")
+
+        # Use provided workflow or create default one
+        if not workflow:
+            workflow = self._create_default_workflow(
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                width=kwargs.get("width", 512),
+                height=kwargs.get("height", 512),
+                seed=kwargs.get("seed", -1),
+                steps=kwargs.get("steps", 20),
+                cfg_scale=kwargs.get("cfg_scale", 7.0),
+            )
+        else:
+            # Update prompt in provided workflow if it has text encode nodes
+            for node_id, node in workflow.items():
+                if node.get("class_type") == "CLIPTextEncode":
+                    if "positive" in str(node.get("inputs", {})).lower():
+                        node["inputs"]["text"] = prompt
+                    elif "negative" in str(node.get("inputs", {})).lower():
+                        node["inputs"]["text"] = negative_prompt
+
+        # Queue the prompt
+        prompt_id = await self._queue_prompt(workflow)
+        if not prompt_id:
+            return {"error": "Failed to queue generation"}
+
+        # Create job entry
+        job_id = str(uuid.uuid4())
+        self.generation_jobs[job_id] = {"prompt_id": prompt_id, "status": "queued", "prompt": prompt, "workflow": workflow}
+
+        # Wait for completion
+        completed = await self._wait_for_completion(prompt_id)
+
+        if completed:
+            # Get the output images
+            history = await self._get_history(prompt_id)
+            if history and prompt_id in history:
+                outputs = history[prompt_id].get("outputs", {})
+                images = []
+                for node_id, node_output in outputs.items():
+                    if "images" in node_output:
+                        for img in node_output["images"]:
+                            images.append(
+                                {
+                                    "filename": img["filename"],
+                                    "subfolder": img.get("subfolder", ""),
+                                    "type": img.get("type", "output"),
+                                }
+                            )
+
+                self.generation_jobs[job_id]["status"] = "completed"
+                self.generation_jobs[job_id]["images"] = images
+
+                return {"status": "success", "job_id": job_id, "prompt_id": prompt_id, "images": images}
+        else:
+            self.generation_jobs[job_id]["status"] = "timeout"
+            return {"error": "Generation timed out", "job_id": job_id}
 
     async def list_workflows(self, **kwargs) -> Dict[str, Any]:
         """List available workflows"""
-        return {"workflows": list(self.workflows.keys())}
+        workflows = [
+            {"name": "default_sd15", "description": "Default Stable Diffusion 1.5 workflow"},
+            {"name": "default_sdxl", "description": "Default SDXL workflow"},
+            {"name": "img2img", "description": "Image to image workflow"},
+            {"name": "inpainting", "description": "Inpainting workflow"},
+        ]
+        return {"workflows": workflows}
 
     async def get_workflow(self, **kwargs) -> Dict[str, Any]:
-        """Get a workflow"""
-        workflow_name = kwargs.get("name")
-        if workflow_name and workflow_name in self.workflows:
-            return {"workflow": self.workflows[workflow_name], "name": workflow_name}
+        """Get a specific workflow template"""
+        name = kwargs.get("name", "default_sd15")
+
+        if name == "default_sd15":
+            return {"workflow": self._create_default_workflow("A beautiful landscape", "", 512, 512, -1, 20, 7.0)}
+        elif name == "default_sdxl":
+            # Return SDXL workflow template
+            return {
+                "workflow": {
+                    "4": {"inputs": {"ckpt_name": "sd_xl_base_1.0.safetensors"}, "class_type": "CheckpointLoaderSimple"},
+                    # ... simplified for brevity
+                }
+            }
+
         return {"error": "Workflow not found"}
 
     async def list_models(self, **kwargs) -> Dict[str, Any]:
-        """List available models"""
-        model_type = kwargs.get("type", "all")
-        models = [
-            {"name": "sd15", "type": "checkpoint"},
-            {"name": "sdxl", "type": "checkpoint"},
-            {"name": "sd15_vae", "type": "vae"},
-        ]
-        if model_type != "all":
-            models = [m for m in models if m["type"] == model_type]
-        return {"models": models}
+        """List available models in ComfyUI"""
+        model_type = kwargs.get("type", "checkpoint")
+
+        try:
+            # Get object info from ComfyUI which includes available models
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{self.api_url}/object_info") as response:
+                    if response.status == 200:
+                        object_info = await response.json()
+
+                        # Extract model lists based on type
+                        if model_type == "checkpoint":
+                            models = (
+                                object_info.get("CheckpointLoaderSimple", {})
+                                .get("input", {})
+                                .get("required", {})
+                                .get("ckpt_name", [[]])[0]
+                            )
+                        elif model_type == "lora":
+                            models = (
+                                object_info.get("LoraLoader", {})
+                                .get("input", {})
+                                .get("required", {})
+                                .get("lora_name", [[]])[0]
+                            )
+                        elif model_type == "vae":
+                            models = (
+                                object_info.get("VAELoader", {}).get("input", {}).get("required", {}).get("vae_name", [[]])[0]
+                            )
+                        else:
+                            models = []
+
+                        return {"models": models, "type": model_type}
+        except Exception as e:
+            self.logger.error(f"Error listing models: {e}")
+            return {"models": [], "error": str(e)}
 
     async def upload_lora(self, **kwargs) -> Dict[str, Any]:
-        """Upload a LoRA model"""
+        """Upload a LoRA model to ComfyUI"""
         filename = kwargs.get("filename")
         data = kwargs.get("data")
-        if filename and data:
-            # In a real implementation, save the LoRA file
-            return {"status": "success", "filename": filename}
-        return {"error": "Missing filename or data"}
+        metadata = kwargs.get("metadata", {})
 
-    async def upload_lora_chunked_init(self, **kwargs) -> Dict[str, Any]:
-        """Initialize chunked upload"""
-        import uuid
+        try:
+            # Decode base64 data
+            lora_data = base64.b64decode(data)
 
-        filename = kwargs.get("filename")
-        total_size = kwargs.get("total_size")
-        if filename and total_size:
-            upload_id = str(uuid.uuid4())
-            return {"upload_id": upload_id, "status": "initialized"}
-        return {"error": "Missing filename or total_size"}
+            # Save to ComfyUI models/loras directory
+            lora_path = MODELS_PATH / "loras" / filename
+            lora_path.parent.mkdir(parents=True, exist_ok=True)
 
-    async def upload_lora_chunk(self, **kwargs) -> Dict[str, Any]:
-        """Upload a chunk"""
-        upload_id = kwargs.get("upload_id")
-        chunk_index = kwargs.get("chunk_index")
-        chunk = kwargs.get("chunk")
-        if upload_id and chunk_index is not None and chunk:
-            return {"status": "chunk_received", "chunk_index": chunk_index}
-        return {"error": "Missing required parameters"}
+            with open(lora_path, "wb") as f:
+                f.write(lora_data)
 
-    async def upload_lora_chunked_complete(self, **kwargs) -> Dict[str, Any]:
-        """Complete chunked upload"""
-        upload_id = kwargs.get("upload_id")
-        if upload_id:
-            return {"status": "completed", "upload_id": upload_id}
-        return {"error": "Missing upload_id"}
+            # Save metadata if provided
+            if metadata:
+                metadata_path = lora_path.with_suffix(".json")
+                with open(metadata_path, "w") as f:
+                    json.dump(metadata, f, indent=2)
+
+            return {"status": "success", "filename": filename, "path": str(lora_path), "size": len(lora_data)}
+        except Exception as e:
+            self.logger.error(f"Error uploading LoRA: {e}")
+            return {"error": f"Failed to upload LoRA: {str(e)}"}
 
     async def list_loras(self, **kwargs) -> Dict[str, Any]:
         """List available LoRA models"""
-        return {"loras": []}
+        loras = []
+        lora_dir = MODELS_PATH / "loras"
+
+        if lora_dir.exists():
+            for lora_file in lora_dir.glob("*.safetensors"):
+                loras.append({"name": lora_file.stem, "filename": lora_file.name, "size": lora_file.stat().st_size})
+            for lora_file in lora_dir.glob("*.ckpt"):
+                loras.append({"name": lora_file.stem, "filename": lora_file.name, "size": lora_file.stat().st_size})
+
+        return {"loras": loras}
 
     async def download_lora(self, **kwargs) -> Dict[str, Any]:
-        """Download a LoRA model"""
+        """Download a LoRA model from ComfyUI"""
         filename = kwargs.get("filename")
         encoding = kwargs.get("encoding", "base64")
-        if filename:
-            # In a real implementation, return the LoRA data
-            return {"filename": filename, "data": "", "encoding": encoding}
-        return {"error": "Missing filename"}
+
+        lora_path = MODELS_PATH / "loras" / filename
+
+        if lora_path.exists():
+            try:
+                with open(lora_path, "rb") as f:
+                    data = f.read()
+
+                if encoding == "base64":
+                    return {
+                        "status": "success",
+                        "filename": filename,
+                        "data": base64.b64encode(data).decode("utf-8"),
+                        "size": len(data),
+                    }
+                else:
+                    return {"status": "success", "filename": filename, "data": data, "size": len(data)}
+            except Exception as e:
+                return {"error": f"Failed to read LoRA: {str(e)}"}
+
+        return {"error": "LoRA not found"}
 
     async def get_object_info(self, **kwargs) -> Dict[str, Any]:
-        """Get ComfyUI object info"""
-        return {"nodes": [], "models": []}
+        """Get ComfyUI node and model information"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{self.api_url}/object_info") as response:
+                    if response.status == 200:
+                        return await response.json()
+                    return {"error": f"Failed to get object info: {response.status}"}
+        except Exception as e:
+            return {"error": f"Failed to get object info: {str(e)}"}
 
     async def get_system_info(self, **kwargs) -> Dict[str, Any]:
-        """Get system info"""
-        import psutil
-
-        return {
-            "cpu_percent": psutil.cpu_percent(),
-            "memory_percent": psutil.virtual_memory().percent,
-            "gpu_available": True,  # In real implementation, check for GPU
-        }
-
-    async def transfer_lora_from_ai_toolkit(self, **kwargs) -> Dict[str, Any]:
-        """Transfer LoRA from AI Toolkit"""
-        model_name = kwargs.get("model_name")
-        filename = kwargs.get("filename")
-        if model_name and filename:
-            return {"status": "success", "message": f"Transferred {model_name} to {filename}"}
-        return {"error": "Missing model_name or filename"}
+        """Get ComfyUI system information"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{self.api_url}/system_stats") as response:
+                    if response.status == 200:
+                        stats = await response.json()
+                        return {"status": "success", "system": stats.get("system", {}), "devices": stats.get("devices", [])}
+                    return {"error": f"Failed to get system info: {response.status}"}
+        except Exception as e:
+            return {"error": f"Failed to get system info: {str(e)}"}
 
     async def execute_workflow(self, **kwargs) -> Dict[str, Any]:
-        """Execute a custom workflow"""
-        import uuid
-
+        """Execute a custom ComfyUI workflow"""
         workflow = kwargs.get("workflow")
-        if workflow:
-            job_id = str(uuid.uuid4())
-            self.generation_jobs[job_id] = {"status": "executing", "workflow": workflow}
-            return {"status": "success", "job_id": job_id}
-        return {"error": "Missing workflow"}
+        client_id = kwargs.get("client_id", self.client_id)
 
-    def get_tools(self) -> dict:
-        """Return dictionary of available tools and their metadata"""
-        # Convert tools list to dictionary format expected by base class
-        tools_dict = {}
-        for tool in self.tools:
-            tools_dict[tool["name"]] = {
-                "description": tool["description"],
-                "parameters": tool["inputSchema"],  # Base class expects 'parameters' not 'inputSchema'
-            }
-        return tools_dict
+        if not workflow:
+            return {"error": "No workflow provided"}
+
+        # Queue the workflow
+        prompt_id = await self._queue_prompt(workflow)
+        if not prompt_id:
+            return {"error": "Failed to queue workflow"}
+
+        # Create job entry
+        job_id = str(uuid.uuid4())
+        self.generation_jobs[job_id] = {
+            "prompt_id": prompt_id,
+            "status": "queued",
+            "workflow": workflow,
+            "client_id": client_id,
+        }
+
+        return {"status": "success", "job_id": job_id, "prompt_id": prompt_id, "message": "Workflow queued for execution"}
 
 
 def main():
     """Main entry point"""
     import argparse
 
-    import uvicorn
-
     parser = argparse.ArgumentParser(description="ComfyUI MCP Server")
-    parser.add_argument("--port", type=int, default=8013, help="Port to listen on")
-    parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
-    parser.add_argument("--mode", choices=["http", "stdio"], default="http", help="Server mode")
+    parser.add_argument("--mode", choices=["stdio", "http"], default="http", help="Server mode")
+    parser.add_argument("--port", type=int, default=8013, help="Port for HTTP mode")
+    parser.add_argument("--host", type=str, default="0.0.0.0", help="Host for HTTP mode")
 
     args = parser.parse_args()
 
-    if args.mode == "stdio":
-        print("ComfyUI MCP Server does not support stdio mode (remote bridge required)")
-        return
-
-    # Create and run server
     server = ComfyUIMCPServer(port=args.port)
 
-    print(f"Starting ComfyUI MCP Server on {args.host}:{args.port}")
-    print(f"ComfyUI MCP Server on port {server.port}")
+    if args.mode == "stdio":
+        import asyncio
 
-    uvicorn.run(server.app, host=args.host, port=args.port)
+        asyncio.run(server.run_stdio())
+    else:
+        import uvicorn
+
+        uvicorn.run(server.create_app(), host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

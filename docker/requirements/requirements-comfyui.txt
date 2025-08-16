@@ -24,3 +24,4 @@ matplotlib>=3.7.0
 kornia>=0.7.0
 einops>=0.7.0
 websocket-client>=1.6.0
+aiohttp>=3.8.0
