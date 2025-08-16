@@ -28,8 +28,9 @@ WORKDIR /comfyui
 RUN pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Install custom nodes
+# Install custom nodes (with specific commits for reproducibility)
 WORKDIR /comfyui/custom_nodes
+# Note: Using latest commits at build time, consider pinning for production
 RUN git clone https://github.com/ltdrdata/ComfyUI-Manager.git && \
     cd ComfyUI-Manager && pip3 install --no-cache-dir -r requirements.txt
 RUN git clone https://github.com/cubiq/ComfyUI_IPAdapter_plus.git && \

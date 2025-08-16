@@ -4,11 +4,10 @@ A comprehensive, intelligent terrain generation toolkit for Gaea2, providing pro
 
 ## 🚀 Overview
 
-The Gaea2 MCP server enables programmatic creation and manipulation of Gaea2 terrain projects through the Model Context Protocol. It includes intelligent validation, automatic error recovery, pattern-based suggestions, and comprehensive node support for all 185 documented Gaea2 nodes.
+The Gaea2 MCP server enables programmatic creation and manipulation of Gaea2 terrain projects through the Model Context Protocol. It includes intelligent validation, automatic error recovery, pattern-based suggestions, and support for Gaea2 nodes.
 
 ### Key Features
 
-- **Complete Node Coverage**: Support for all 185 Gaea2 nodes across 9 categories
 - **Intelligent Validation**: Multi-level validation with automatic error correction
 - **Pattern Intelligence**: Learning from 31 real projects (374 nodes, 440 connections)
 - **Professional Templates**: 11 ready-to-use workflow templates

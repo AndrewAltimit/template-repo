@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 GAEA2_COMPLETE_SCHEMA: Dict[str, Any] = {
     "version": "2.0",
     "source": "Official Gaea2 Documentation + Real Project Analysis",
-    # All 185 documented nodes
     "valid_node_types": [
         # Primitive nodes (24)
         "Cellular",

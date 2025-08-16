@@ -18,8 +18,10 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /workspace
 
-# Clone AI Toolkit
-RUN git clone https://github.com/ostris/ai-toolkit.git /ai-toolkit
+# Clone AI Toolkit (pinned to specific commit for reproducibility)
+RUN git clone https://github.com/ostris/ai-toolkit.git /ai-toolkit && \
+    cd /ai-toolkit && \
+    git checkout be71cc75
 
 # Install AI Toolkit Python dependencies
 WORKDIR /ai-toolkit

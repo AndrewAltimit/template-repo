@@ -40,7 +40,6 @@ AI integration for second opinions and code validation:
 **Documentation**: [Gaea2 MCP Documentation](../../tools/mcp/gaea2/docs/README.md) | [Full Documentation Index](../../tools/mcp/gaea2/docs/INDEX.md)
 
 Comprehensive terrain generation with Gaea2:
-- Support for all 185 Gaea2 nodes
 - Intelligent validation and error correction
 - Professional terrain templates (11 templates)
 - CLI automation (Windows only)

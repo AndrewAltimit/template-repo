@@ -407,8 +407,7 @@ Generate memes from templates with text overlays.
 - `run_gaea2_project`: CLI automation (Windows only)
 
 **Features:**
-- Support for all 185 Gaea2 nodes
-- 11 professional templates
+- Professional templates
 - Automatic error correction
 - Performance optimization
 

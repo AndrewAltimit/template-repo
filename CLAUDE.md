@@ -580,9 +580,8 @@ The AI Toolkit and ComfyUI MCP servers provide bridges to remote instances for L
 
 The Gaea2 MCP server provides comprehensive terrain generation capabilities:
 
-- **Complete Node Support**: All 185 documented Gaea2 nodes
 - **Intelligent Validation**: Automatic error correction and optimization
-- **Professional Templates**: 11 ready-to-use terrain workflows
+- **Professional Templates**: Ready-to-use terrain workflows
 - **Windows Requirement**: Must run on Windows with Gaea2 installed
 
 **For complete Gaea2 documentation:**
