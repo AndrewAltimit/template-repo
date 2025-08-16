@@ -155,12 +155,94 @@ services:
     profiles:
       - services
 
-  # AI Toolkit MCP Server (GPU-accelerated LoRA training)
+  # AI Toolkit Full Application with Web UI and MCP Server
   mcp-ai-toolkit:
     build:
       context: .
+      dockerfile: docker/ai-toolkit-full.Dockerfile
+    container_name: ai-toolkit
+    runtime: nvidia
+    ports:
+      - "8675:8675"   # Web UI
+      - "8012:8190"   # MCP Server (map 8190 internal to 8012 external for compatibility)
+    volumes:
+      - ./:/workspace/repo:ro
+      - ai-toolkit-datasets:/ai-toolkit/datasets
+      - ai-toolkit-outputs:/ai-toolkit/outputs
+      - ai-toolkit-configs:/ai-toolkit/configs
+      - ai-toolkit-logs:/workspace/logs
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
+      - PYTHONUNBUFFERED=1
+      - AI_TOOLKIT_PATH=/ai-toolkit
+    networks:
+      - mcp-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8675/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - ai-services
+      - gpu
+
+  # ComfyUI Full Application with Web UI and MCP Server
+  mcp-comfyui:
+    build:
+      context: .
+      dockerfile: docker/comfyui-full.Dockerfile
+    container_name: comfyui
+    runtime: nvidia
+    ports:
+      - "8188:8188"   # Web UI
+      - "8013:8189"   # MCP Server (map 8189 internal to 8013 external for compatibility)
+    volumes:
+      - ./:/workspace/repo:ro
+      - comfyui-models:/comfyui/models
+      - comfyui-output:/comfyui/output
+      - comfyui-input:/comfyui/input
+      - comfyui-logs:/workspace/logs
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
+      - PYTHONUNBUFFERED=1
+      - COMFYUI_PATH=/comfyui
+    networks:
+      - mcp-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8188/system_stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - ai-services
+      - gpu
+
+  # Lightweight AI Toolkit MCP Server Only (API only, no web UI)
+  mcp-ai-toolkit-lite:
+    build:
+      context: .
       dockerfile: docker/mcp-ai-toolkit.Dockerfile
-    container_name: mcp-ai-toolkit
+    container_name: mcp-ai-toolkit-lite
     runtime: nvidia
     ports:
       - "8012:8012"
@@ -193,15 +275,15 @@ services:
       retries: 3
       start_period: 30s
     profiles:
-      - ai-services
+      - mcp-lite
       - gpu
 
-  # ComfyUI MCP Server (GPU-accelerated image generation)
-  mcp-comfyui:
+  # Lightweight ComfyUI MCP Server Only (API only, no web UI)
+  mcp-comfyui-lite:
     build:
       context: .
       dockerfile: docker/mcp-comfyui.Dockerfile
-    container_name: mcp-comfyui
+    container_name: mcp-comfyui-lite
     runtime: nvidia
     ports:
       - "8013:8013"
@@ -234,7 +316,7 @@ services:
       retries: 3
       start_period: 30s
     profiles:
-      - ai-services
+      - mcp-lite
       - gpu
 
 

@@ -14,11 +14,22 @@ cd "$REPO_ROOT"
 # Simple command based on first argument
 case "${1:-start}" in
     start)
-        echo "Starting AI MCP services..."
+        echo "Starting AI services with full web UIs..."
         docker-compose --profile ai-services up -d mcp-ai-toolkit mcp-comfyui
-        echo "Services started on:"
-        echo "  - AI Toolkit: http://$(hostname -I | awk '{print $1}'):8012"
-        echo "  - ComfyUI: http://$(hostname -I | awk '{print $1}'):8013"
+        echo ""
+        echo "========================================="
+        echo "Services started on $(hostname -I | awk '{print $1}'):"
+        echo "========================================="
+        echo ""
+        echo "AI Toolkit:"
+        echo "  - Web UI: http://$(hostname -I | awk '{print $1}'):8675"
+        echo "  - MCP Server: http://$(hostname -I | awk '{print $1}'):8012"
+        echo ""
+        echo "ComfyUI:"
+        echo "  - Web UI: http://$(hostname -I | awk '{print $1}'):8188"
+        echo "  - MCP Server: http://$(hostname -I | awk '{print $1}'):8013"
+        echo ""
+        echo "========================================="
         ;;
 
     stop)
