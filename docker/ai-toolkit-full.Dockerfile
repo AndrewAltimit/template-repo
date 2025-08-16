@@ -30,7 +30,8 @@ RUN pip3 install --no-cache-dir \
     httpx \
     pydantic \
     aiofiles \
-    psutil
+    psutil \
+    mcp
 
 # Copy entire tools directory to maintain proper Python module structure
 COPY tools /workspace/tools
@@ -52,9 +53,9 @@ RUN echo '#!/bin/bash\n\
 set -e\n\
 \n\
 # Start AI Toolkit web UI in background\n\
-echo "Starting AI Toolkit Web UI on port 8675..."\n\
+echo "Starting AI Toolkit Web UI on port 7860..."\n\
 cd /ai-toolkit\n\
-python3 flux_train_ui.py --host 0.0.0.0 --port 8675 &\n\
+python3 flux_train_ui.py &\n\
 AI_TOOLKIT_PID=$!\n\
 \n\
 # Give the web UI time to start\n\
@@ -69,7 +70,7 @@ MCP_PID=$!\n\
 # Keep container running and handle shutdown\n\
 trap "kill $AI_TOOLKIT_PID $MCP_PID; exit" SIGTERM SIGINT\n\
 \n\
-echo "AI Toolkit Web UI: http://0.0.0.0:8675"\n\
+echo "AI Toolkit Web UI: http://0.0.0.0:7860"\n\
 echo "AI Toolkit MCP Server: http://0.0.0.0:8190"\n\
 \n\
 # Wait for processes\n\
@@ -77,7 +78,7 @@ wait $AI_TOOLKIT_PID $MCP_PID\n\
 ' > /entrypoint.sh && chmod +x /entrypoint.sh
 
 # Expose ports
-EXPOSE 8675 8190
+EXPOSE 7860 8190
 
 # Health check for web UI
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \

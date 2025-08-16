@@ -46,7 +46,8 @@ RUN pip3 install --no-cache-dir \
     pydantic \
     aiofiles \
     psutil \
-    websocket-client
+    websocket-client \
+    mcp
 
 # Copy entire tools directory to maintain proper Python module structure
 COPY tools /workspace/tools
