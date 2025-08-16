@@ -36,7 +36,8 @@ echo Starting bridge server on http://localhost:8013
 echo Press Ctrl+C to stop the server
 echo.
 
-cd /d "%~dp0\.."
+REM Navigate to repository root (3 levels up from this script)
+cd /d "%~dp0\..\..\..\"
 python -m tools.mcp.comfyui.server --mode http %*
 
 pause

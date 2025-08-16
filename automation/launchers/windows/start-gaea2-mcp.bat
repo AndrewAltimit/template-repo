@@ -32,7 +32,8 @@ echo Starting server on http://localhost:8007
 echo Press Ctrl+C to stop the server
 echo.
 
-cd /d "%~dp0\.."
+REM Navigate to repository root (3 levels up from this script)
+cd /d "%~dp0\..\..\..\"
 python -m tools.mcp.gaea2.server --mode http %*
 
 pause
