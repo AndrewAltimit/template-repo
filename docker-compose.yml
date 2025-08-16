@@ -155,11 +155,11 @@ services:
     profiles:
       - services
 
-  # AI Toolkit Full Application with Web UI and MCP Server
+  # AI Toolkit Application with Web UI and MCP Server
   mcp-ai-toolkit:
     build:
       context: .
-      dockerfile: docker/ai-toolkit-full.Dockerfile
+      dockerfile: docker/ai-toolkit.Dockerfile
     container_name: ai-toolkit
     runtime: nvidia
     ports:
@@ -196,11 +196,11 @@ services:
       - ai-services
       - gpu
 
-  # ComfyUI Full Application with Web UI and MCP Server
+  # ComfyUI Application with Web UI and MCP Server
   mcp-comfyui:
     build:
       context: .
-      dockerfile: docker/comfyui-full.Dockerfile
+      dockerfile: docker/comfyui.Dockerfile
     container_name: comfyui
     runtime: nvidia
     ports:
