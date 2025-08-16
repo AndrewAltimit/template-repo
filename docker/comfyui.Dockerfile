@@ -30,25 +30,17 @@ WORKDIR /comfyui
 RUN pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Install custom nodes (pinned to specific commits for reproducibility)
+# Install custom nodes (using latest versions)
 WORKDIR /comfyui/custom_nodes
 RUN git clone https://github.com/ltdrdata/ComfyUI-Manager.git && \
     cd ComfyUI-Manager && \
-    git checkout 2.56.1 && \
     pip3 install --no-cache-dir -r requirements.txt
 RUN git clone https://github.com/cubiq/ComfyUI_IPAdapter_plus.git && \
     cd ComfyUI_IPAdapter_plus && \
-    git checkout 4e898fe && \
     pip3 install --no-cache-dir -r requirements.txt || true
-RUN git clone https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved.git && \
-    cd ComfyUI-AnimateDiff-Evolved && \
-    git checkout 0446508
-RUN git clone https://github.com/jags111/efficiency-nodes-comfyui.git && \
-    cd efficiency-nodes-comfyui && \
-    git checkout 51b758f
-RUN git clone https://github.com/WASasquatch/was-node-suite-comfyui.git && \
-    cd was-node-suite-comfyui && \
-    git checkout 820a8e6
+RUN git clone https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved.git
+RUN git clone https://github.com/jags111/efficiency-nodes-comfyui.git
+RUN git clone https://github.com/WASasquatch/was-node-suite-comfyui.git
 
 # Install additional dependencies for MCP server
 RUN pip3 install --no-cache-dir \
