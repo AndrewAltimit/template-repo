@@ -17,7 +17,8 @@ class BlenderDemoCreator:
         """Call a Blender MCP tool."""
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(f"{self.base_url}/mcp/execute", json={"tool": tool, "arguments": arguments})
-            return response.json()
+            data: Dict[str, Any] = response.json()
+            return data
 
     async def wait_for_job(self, job_id: str, max_attempts: int = 30) -> str:
         """Wait for a job to complete."""
@@ -25,7 +26,7 @@ class BlenderDemoCreator:
             result = await self.call_tool("get_job_status", {"job_id": job_id})
             status = result["result"]["status"]
             if status in ["COMPLETED", "FAILED"]:
-                return status
+                return str(status)
             await asyncio.sleep(2)
         return "TIMEOUT"
 

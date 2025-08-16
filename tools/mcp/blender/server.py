@@ -624,7 +624,7 @@ class BlenderMCPServer(BaseMCPServer):
                 "parameters": tool["inputSchema"],  # Base class expects 'parameters'
             }
 
-        return tool_dict
+        return tool_dict  # type: ignore
 
     async def execute_tool(self, request: ToolRequest):
         """Execute a tool with given arguments."""
@@ -665,7 +665,7 @@ class BlenderMCPServer(BaseMCPServer):
 
             # Execute the handler
             if name == "list_projects":
-                result = await handler(None)  # No arguments needed
+                result = await handler({})  # No arguments needed
             else:
                 arguments = request.get_args()
                 result = await handler(arguments)

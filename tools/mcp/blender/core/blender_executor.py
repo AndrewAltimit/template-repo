@@ -162,7 +162,7 @@ class BlenderExecutor:
                 # Args file cleanup moved to _monitor_process
                 pass
 
-    async def _monitor_process(self, process: asyncio.subprocess.Process, job_id: str, args_file: str = None):
+    async def _monitor_process(self, process: asyncio.subprocess.Process, job_id: str, args_file: Optional[str] = None):
         """Monitor a running Blender process.
 
         Args:

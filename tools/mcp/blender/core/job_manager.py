@@ -22,7 +22,7 @@ class JobManager:
         """
         self.jobs_dir = Path(jobs_dir)
         self.jobs_dir.mkdir(parents=True, exist_ok=True)
-        self.jobs = {}  # In-memory job cache
+        self.jobs: Dict[str, Dict[str, Any]] = {}  # In-memory job cache
         self._lock = threading.Lock()
 
         # Load existing jobs from disk
@@ -119,7 +119,7 @@ class JobManager:
         with self._lock:
             # Check memory cache first
             if job_id in self.jobs:
-                return self.jobs[job_id].copy()
+                return dict(self.jobs[job_id])
 
             # Try loading from disk
             job = self._load_job(job_id)
@@ -252,7 +252,8 @@ class JobManager:
         job_file = self.jobs_dir / f"{job_id}.job"
         if job_file.exists():
             try:
-                return json.loads(job_file.read_text())
+                data = json.loads(job_file.read_text())
+                return data  # type: ignore
             except Exception as e:
                 logger.error(f"Failed to load job {job_id}: {e}")
 

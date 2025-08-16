@@ -90,7 +90,7 @@ class AssetManager:
                 logger.error(f"Failed to stat project {project_file}: {e}")
 
         # Sort by modification time (newest first)
-        projects.sort(key=lambda p: p["modified"], reverse=True)
+        projects.sort(key=lambda p: float(p["modified"]), reverse=True)  # type: ignore
 
         return projects
 

@@ -26,8 +26,51 @@ class BlenderMCPClient(MCPClient):
             base_url: Base URL of the Blender MCP server
         """
         super().__init__(base_url)
-        self.projects = {}
-        self.jobs = {}
+        self.projects: Dict[str, str] = {}
+        self.jobs: Dict[str, Dict[str, Any]] = {}
+
+    async def call_tool(self, tool: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Call a tool asynchronously (wraps the sync execute_tool).
+
+        Args:
+            tool: Tool name to execute
+            arguments: Tool arguments
+
+        Returns:
+            Tool execution result
+        """
+        # Since MCPClient.execute_tool is synchronous, we wrap it
+        import asyncio
+
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self.execute_tool, tool, arguments)
+
+    async def health_check(self) -> Dict[str, Any]:  # type: ignore[override]
+        """Check server health asynchronously.
+
+        Returns:
+            Health check result
+        """
+        import httpx
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{self.base_url}/health")
+            data: Dict[str, Any] = response.json()
+            return data
+
+    async def list_tools(self) -> list:  # type: ignore[override]
+        """List available tools asynchronously.
+
+        Returns:
+            List of available tools
+        """
+        import httpx
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{self.base_url}/mcp/capabilities")
+            data = response.json()
+            tools = data.get("capabilities", {}).get("tools", {}).get("list", [])
+            return [{"name": tool} for tool in tools]
 
     async def create_project(self, name: str, template: str = "basic_scene", **settings) -> Dict[str, Any]:
         """Create a new Blender project.

@@ -275,13 +275,14 @@ class TemplateManager:
             Template configuration or None
         """
         if template_id in self.templates:
-            return self.templates[template_id].copy()
+            return dict(self.templates[template_id])  # type: ignore
 
         # Try loading from file
         template_file = self.templates_dir / f"{template_id}.json"
         if template_file.exists():
             try:
-                return json.loads(template_file.read_text())
+                data = json.loads(template_file.read_text())
+                return data  # type: ignore
             except Exception as e:
                 logger.error(f"Failed to load template {template_id}: {e}")
 
@@ -299,9 +300,13 @@ class TemplateManager:
             template_list.append(
                 {
                     "id": template_id,
-                    "name": template_data.get("name", template_id),
-                    "description": template_data.get("description", ""),
-                    "engine": template_data.get("settings", {}).get("engine", "CYCLES"),
+                    "name": template_data.get("name", template_id) if isinstance(template_data, dict) else template_id,
+                    "description": template_data.get("description", "") if isinstance(template_data, dict) else "",
+                    "engine": (
+                        template_data.get("settings", {}).get("engine", "CYCLES")
+                        if isinstance(template_data, dict)
+                        else "CYCLES"
+                    ),
                 }
             )
 
@@ -427,7 +432,11 @@ class TemplateManager:
             Deletion result
         """
         # Don't allow deletion of built-in templates
-        if template_id in self.templates and not self.templates[template_id].get("custom", False):
+        if (
+            template_id in self.templates
+            and isinstance(self.templates[template_id], dict)
+            and not self.templates[template_id].get("custom", False)  # type: ignore
+        ):
             return {"error": "Cannot delete built-in template"}
 
         # Remove files

@@ -64,13 +64,13 @@ class StatusManager:
 
             # Add optional fields
             if progress is not None:
-                status_data["progress"] = progress
+                status_data["progress"] = str(progress)
             if message:
                 status_data["message"] = message
             if error:
-                status_data["error"] = error
+                status_data["error"] = str(error)
             if result:
-                status_data["result"] = result
+                status_data["result"] = str(result)
             if output_path:
                 status_data["output_path"] = output_path
 
@@ -102,7 +102,8 @@ class StatusManager:
         try:
             status_file = self.output_dir / f"{job_id}.status"
             if status_file.exists():
-                return json.loads(status_file.read_text())
+                data = json.loads(status_file.read_text())
+                return data  # type: ignore
             return None
         except Exception as e:
             logger.error(f"Failed to get status for job {job_id}: {e}")
