@@ -3,7 +3,9 @@
 set -e
 #
 # This hook reminds developers to monitor their PR for feedback after pushing commits.
-# It detects if the current branch has an open PR and provides monitoring instructions.
+# It detects if the current branch has an OPEN PR and provides monitoring instructions.
+#
+# Note: Only shows reminders for open PRs to avoid confusion with reused branch names.
 #
 # Installation:
 #   cp automation/setup/git/hooks/pre-push .git/hooks/pre-push
@@ -36,10 +38,19 @@ if [ "$current_branch" = "main" ] || [ "$current_branch" = "master" ]; then
     exit 0
 fi
 
-# Try to find PR number for current branch
-pr_number=$(gh pr view --json number -q .number 2>/dev/null || echo "")
+# Try to find OPEN PR number for current branch
+# Use gh pr list to only get open PRs, then filter by head branch
+pr_info=$(gh pr list --head "$current_branch" --state open --json number,headRefName --limit 1 2>/dev/null || echo "")
 
-# If no PR found, exit quietly
+# If no open PR found, exit quietly
+if [ -z "$pr_info" ] || [ "$pr_info" = "[]" ]; then
+    exit 0
+fi
+
+# Extract PR number from JSON response
+pr_number=$(echo "$pr_info" | grep -o '"number":[0-9]*' | grep -o '[0-9]*' || echo "")
+
+# Double-check we got a valid PR number
 if [ -z "$pr_number" ]; then
     exit 0
 fi
