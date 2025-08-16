@@ -73,8 +73,8 @@ RUN groupadd --gid 1000 appuser && \
 COPY docker/entrypoints/ai-toolkit-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && chown appuser:appuser /entrypoint.sh
 
-# Expose ports (8675 for Next.js UI, 8190 for MCP)
-EXPOSE 8675 8190
+# Expose ports (8675 for Next.js UI, 8012 for MCP)
+EXPOSE 8675 8012
 
 # Health check for web UI
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

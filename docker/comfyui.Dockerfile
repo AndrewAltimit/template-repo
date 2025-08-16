@@ -87,7 +87,7 @@ COPY docker/entrypoints/comfyui-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && chown appuser:appuser /entrypoint.sh
 
 # Expose ports
-EXPOSE 8188 8189
+EXPOSE 8188 8013
 
 # Health check for web UI
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

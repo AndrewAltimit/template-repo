@@ -170,7 +170,7 @@ List all terrain files in the output directory.
 
 ## 📊 Node Categories & Support
 
-### Supported Node Categories (185 total)
+### Supported Node Categories
 
 1. **🟢 Primitive (24 nodes)** - Noise generators and basic patterns
 2. **🟢 Terrain (14 nodes)** - Primary terrain generators

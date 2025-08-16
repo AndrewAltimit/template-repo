@@ -123,7 +123,7 @@ See `tools/mcp/gemini/docs/README.md` for detailed documentation.
 
 ## Gaea2 MCP Server (Port 8007)
 
-The Gaea2 server provides comprehensive terrain generation capabilities with support for all 185 documented Gaea2 nodes.
+The Gaea2 server provides comprehensive terrain generation capabilities.
 
 ### Starting the Server
 

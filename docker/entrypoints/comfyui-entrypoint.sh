@@ -11,16 +11,16 @@ COMFYUI_PID=$!
 sleep 10
 
 # Start MCP server
-echo "Starting ComfyUI MCP Server on port 8189..."
+echo "Starting ComfyUI MCP Server on port 8013..."
 cd /workspace
-python3 -m tools.mcp.comfyui.server --mode http --host 0.0.0.0 --port 8189 &
+python3 -m tools.mcp.comfyui.server --mode http --host 0.0.0.0 --port 8013 &
 MCP_PID=$!
 
 # Keep container running and handle shutdown
 trap 'kill $COMFYUI_PID $MCP_PID; exit' SIGTERM SIGINT
 
 echo "ComfyUI Web UI: http://0.0.0.0:8188"
-echo "ComfyUI MCP Server: http://0.0.0.0:8189"
+echo "ComfyUI MCP Server: http://0.0.0.0:8013"
 
 # Wait for processes
 wait $COMFYUI_PID $MCP_PID
