@@ -48,8 +48,11 @@ RUN pip3 install --no-cache-dir \
     python-multipart \
     mcp
 
-# Copy entire tools directory to maintain proper Python module structure
-COPY tools /workspace/tools
+# Copy only necessary MCP server components for AI Toolkit
+COPY tools/__init__.py /workspace/tools/__init__.py
+COPY tools/mcp/__init__.py /workspace/tools/mcp/__init__.py
+COPY tools/mcp/core /workspace/tools/mcp/core
+COPY tools/mcp/ai_toolkit /workspace/tools/mcp/ai_toolkit
 
 # Create directories
 RUN mkdir -p /ai-toolkit/datasets \
