@@ -9,13 +9,8 @@ from typing import Dict, List, Optional, Tuple
 class PromptOptimizer:
     """Optimize prompts for ElevenLabs v3 synthesis based on best practices"""
 
-    # Minimum recommended prompt length for consistency
-    MIN_PROMPT_LENGTH = 250
-
     @staticmethod
-    def optimize_prompt(
-        text: str, add_pauses: bool = True, enhance_emphasis: bool = True, ensure_minimum_length: bool = True
-    ) -> str:
+    def optimize_prompt(text: str, add_pauses: bool = True, enhance_emphasis: bool = True) -> str:
         """
         Optimize prompt for better v3 synthesis
 
@@ -23,7 +18,6 @@ class PromptOptimizer:
             text: Original text
             add_pauses: Add ellipses for natural pauses
             enhance_emphasis: Use capitalization for emphasis
-            ensure_minimum_length: Pad short prompts for consistency
 
         Returns:
             Optimized text
@@ -37,10 +31,6 @@ class PromptOptimizer:
         # Enhance emphasis with capitalization
         if enhance_emphasis:
             result = PromptOptimizer._enhance_emphasis(result)
-
-        # Ensure minimum length for consistency
-        if ensure_minimum_length and len(result) < PromptOptimizer.MIN_PROMPT_LENGTH:
-            result = PromptOptimizer._pad_prompt(result)
 
         return result
 
@@ -71,20 +61,6 @@ class PromptOptimizer:
             result = re.sub(pattern, word.upper(), result, flags=re.IGNORECASE)
 
         return result
-
-    @staticmethod
-    def _pad_prompt(text: str) -> str:
-        """Pad short prompts to minimum length for consistency"""
-        if len(text) >= PromptOptimizer.MIN_PROMPT_LENGTH:
-            return text
-
-        # Add contextual padding using ellipses (works in all models)
-        # Avoid using [pause] as it's not supported in v2 models
-        padding = "... Let me continue with more details. "
-        while len(text) < PromptOptimizer.MIN_PROMPT_LENGTH:
-            text += padding
-
-        return text
 
 
 class DialogueFormatter:
