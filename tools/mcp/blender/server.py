@@ -34,10 +34,13 @@ class BlenderMCPServer(BaseMCPServer):
 
         # Set up paths
         if base_dir is None:
-            # Use temp directory if no base_dir specified
-            import tempfile
+            # Use /app directory in container, or temp directory if not in container
+            if os.path.exists("/app"):
+                base_dir = "/app"
+            else:
+                import tempfile
 
-            base_dir = os.path.join(tempfile.gettempdir(), "blender-mcp")
+                base_dir = os.path.join(tempfile.gettempdir(), "blender-mcp")
         self.base_dir = Path(base_dir)
         self.projects_dir = self.base_dir / "projects"
         self.assets_dir = self.base_dir / "assets"
@@ -49,7 +52,12 @@ class BlenderMCPServer(BaseMCPServer):
         # Use the correct Blender path in container
         # Organize job files in outputs/jobs folder
         jobs_output_dir = self.outputs_dir / "jobs"
-        jobs_output_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            jobs_output_dir.mkdir(parents=True, exist_ok=True)
+        except PermissionError:
+            # If we can't create the jobs dir, use the outputs dir directly
+            logger.warning(f"Cannot create {jobs_output_dir}, using {self.outputs_dir} instead")
+            jobs_output_dir = self.outputs_dir
 
         self.blender_executor = BlenderExecutor(
             blender_path="/usr/local/bin/blender",
