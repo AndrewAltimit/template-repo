@@ -1,30 +1,32 @@
 #!/usr/bin/env python3
 """Generate showcase scenes using Blender MCP Server."""
 
+import asyncio
 import random
 from typing import Any, Dict
 
-import requests
+import httpx
 
 BASE_URL = "http://localhost:8017"
 
 
-def call_tool(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+async def call_tool(client: httpx.AsyncClient, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
     """Call a tool on the Blender MCP server."""
     payload = {"tool": tool_name, "arguments": arguments}
-    response = requests.post(f"{BASE_URL}/mcp/execute", json=payload)
+    response = await client.post(f"{BASE_URL}/mcp/execute", json=payload)
     result: Dict[str, Any] = response.json()
     if not result.get("success"):
         print(f"Error calling {tool_name}: {result.get('error')}")
     return result
 
 
-def create_particle_fountain():
+async def create_particle_fountain(client: httpx.AsyncClient):
     """Create a fountain with particle system."""
     print("\n🎨 Creating Particle Fountain Scene...")
 
     # Create project
-    result = call_tool(
+    result = await call_tool(
+        client,
         "create_blender_project",
         {
             "name": "particle_fountain",
@@ -39,7 +41,8 @@ def create_particle_fountain():
     project = result["result"]["project_path"]
 
     # Create fountain base
-    call_tool(
+    await call_tool(
+        client,
         "add_primitive_objects",
         {
             "project": project,
@@ -52,7 +55,8 @@ def create_particle_fountain():
     )
 
     # Apply materials
-    call_tool(
+    await call_tool(
+        client,
         "apply_material",
         {
             "project": project,
@@ -61,7 +65,8 @@ def create_particle_fountain():
         },
     )
 
-    call_tool(
+    await call_tool(
+        client,
         "apply_material",
         {
             "project": project,
@@ -71,18 +76,21 @@ def create_particle_fountain():
     )
 
     # Setup area lighting for dramatic effect
-    call_tool("setup_lighting", {"project": project, "type": "area", "settings": {"strength": 3.0, "color": [0.8, 0.9, 1.0]}})
+    await call_tool(
+        client, "setup_lighting", {"project": project, "type": "area", "settings": {"strength": 3.0, "color": [0.8, 0.9, 1.0]}}
+    )
 
     print("✅ Particle Fountain scene created!")
     return project
 
 
-def create_abstract_motion_graphics():
+async def create_abstract_motion_graphics(client: httpx.AsyncClient):
     """Create an abstract motion graphics scene."""
     print("\n🎬 Creating Abstract Motion Graphics...")
 
     # Create project with animation template
-    result = call_tool(
+    result = await call_tool(
+        client,
         "create_blender_project",
         {
             "name": "motion_graphics",
@@ -106,7 +114,7 @@ def create_abstract_motion_graphics():
             {"type": shape_type, "name": f"Shape_{i}", "location": [x, 0, 0], "rotation": [0, 0, angle], "scale": [1, 1, 1]}
         )
 
-    call_tool("add_primitive_objects", {"project": project, "objects": shapes})
+    await call_tool(client, "add_primitive_objects", {"project": project, "objects": shapes})
 
     # Apply different materials with emission
     colors = [
@@ -118,7 +126,8 @@ def create_abstract_motion_graphics():
     ]
 
     for i in range(5):
-        call_tool(
+        await call_tool(
+            client,
             "apply_material",
             {
                 "project": project,
@@ -131,21 +140,22 @@ def create_abstract_motion_graphics():
         keyframes = []
         for frame in range(0, 181, 30):  # 0 to 180 frames, every 30 frames
             t = frame / 180.0
-            x = 3 * (i - 2) + 2 * (1 if i % 2 == 0 else -1) * (t if t < 0.5 else 1 - t)
-            y = 3 * (t * 2 - 1 if t < 0.5 else 2 - t * 2)
-            z = 2 * abs((t * 4) % 2 - 1)
+            anim_x: float = 3 * (i - 2) + 2 * (1 if i % 2 == 0 else -1) * (t if t < 0.5 else 1 - t)
+            anim_y: float = 3 * (t * 2 - 1 if t < 0.5 else 2 - t * 2)
+            anim_z: float = 2 * abs((t * 4) % 2 - 1)
             rotation = frame * 0.05 * (i + 1)
 
             keyframes.append(
                 {
                     "frame": frame + 1,
-                    "location": [x, y, z],
+                    "location": [anim_x, anim_y, anim_z],
                     "rotation": [rotation, rotation * 0.7, rotation * 1.3],
                     "scale": [1 + 0.5 * abs((t * 8) % 2 - 1)] * 3,
                 }
             )
 
-        call_tool(
+        await call_tool(
+            client,
             "create_animation",
             {"project": project, "object_name": f"Shape_{i}", "keyframes": keyframes, "interpolation": "BEZIER"},
         )
@@ -154,11 +164,12 @@ def create_abstract_motion_graphics():
     return project
 
 
-def create_sci_fi_corridor():
+async def create_sci_fi_corridor(client: httpx.AsyncClient):
     """Create a sci-fi corridor scene."""
     print("\n🚀 Creating Sci-Fi Corridor...")
 
-    result = call_tool(
+    result = await call_tool(
+        client,
         "create_blender_project",
         {
             "name": "scifi_corridor",
@@ -194,12 +205,13 @@ def create_sci_fi_corridor():
     for x in range(-6, 7, 3):
         corridor_parts.append({"type": "plane", "name": f"LightPanel_{x}", "location": [x, 0, 3.9], "scale": [1, 0.5, 1]})
 
-    call_tool("add_primitive_objects", {"project": project, "objects": corridor_parts})
+    await call_tool(client, "add_primitive_objects", {"project": project, "objects": corridor_parts})
 
     # Apply materials
     # Dark metal for structure
     for name in ["Floor", "Ceiling", "Wall_-1.5", "Wall_1.5"]:
-        call_tool(
+        await call_tool(
+            client,
             "apply_material",
             {
                 "project": project,
@@ -211,7 +223,8 @@ def create_sci_fi_corridor():
     # Blue-ish metal for pillars
     for x in range(-8, 9, 4):
         for y in [-1.4, 1.4]:
-            call_tool(
+            await call_tool(
+                client,
                 "apply_material",
                 {
                     "project": project,
@@ -222,7 +235,8 @@ def create_sci_fi_corridor():
 
     # Emissive light panels
     for x in range(-6, 7, 3):
-        call_tool(
+        await call_tool(
+            client,
             "apply_material",
             {
                 "project": project,
@@ -235,11 +249,12 @@ def create_sci_fi_corridor():
     return project
 
 
-def create_organic_growth():
+async def create_organic_growth(client: httpx.AsyncClient):
     """Create an organic growth animation using procedural generation."""
     print("\n🌿 Creating Organic Growth Scene...")
 
-    result = call_tool(
+    result = await call_tool(
+        client,
         "create_blender_project",
         {
             "name": "organic_growth",
@@ -254,7 +269,8 @@ def create_organic_growth():
     project = result["result"]["project_path"]
 
     # Create base mesh for growth
-    call_tool(
+    await call_tool(
+        client,
         "add_primitive_objects",
         {
             "project": project,
@@ -263,7 +279,8 @@ def create_organic_growth():
     )
 
     # Apply procedural geometry nodes
-    call_tool(
+    await call_tool(
+        client,
         "create_geometry_nodes",
         {
             "project": project,
@@ -279,13 +296,15 @@ def create_organic_growth():
         scale = 0.2 + (frame / 120) * 2
         growth_keyframes.append({"frame": frame, "scale": [scale, scale, scale * 1.2]})
 
-    call_tool(
+    await call_tool(
+        client,
         "create_animation",
         {"project": project, "object_name": "SeedPod", "keyframes": growth_keyframes, "interpolation": "BEZIER"},
     )
 
     # Apply organic material
-    call_tool(
+    await call_tool(
+        client,
         "apply_material",
         {
             "project": project,
@@ -295,17 +314,20 @@ def create_organic_growth():
     )
 
     # Setup natural lighting
-    call_tool("setup_lighting", {"project": project, "type": "sun", "settings": {"strength": 2.0, "color": [1, 0.95, 0.8]}})
+    await call_tool(
+        client, "setup_lighting", {"project": project, "type": "sun", "settings": {"strength": 2.0, "color": [1, 0.95, 0.8]}}
+    )
 
     print("✅ Organic Growth scene created!")
     return project
 
 
-def create_crystal_cave():
+async def create_crystal_cave(client: httpx.AsyncClient):
     """Create a crystal cave environment."""
     print("\n💎 Creating Crystal Cave...")
 
-    result = call_tool(
+    result = await call_tool(
+        client,
         "create_blender_project",
         {
             "name": "crystal_cave",
@@ -364,13 +386,14 @@ def create_crystal_cave():
             }
         )
 
-    call_tool("add_primitive_objects", {"project": project, "objects": cave_parts})
+    await call_tool(client, "add_primitive_objects", {"project": project, "objects": cave_parts})
 
     # Apply materials
     # Rock material for ground
     for x in range(-5, 6, 2):
         for y in range(-5, 6, 2):
-            call_tool(
+            await call_tool(
+                client,
                 "apply_material",
                 {
                     "project": project,
@@ -392,7 +415,8 @@ def create_crystal_cave():
 
     for i in range(len(crystal_positions)):
         # Glass material for crystals
-        call_tool(
+        await call_tool(
+            client,
             "apply_material",
             {
                 "project": project,
@@ -401,7 +425,8 @@ def create_crystal_cave():
             },
         )
 
-        call_tool(
+        await call_tool(
+            client,
             "apply_material",
             {
                 "project": project,
@@ -411,7 +436,8 @@ def create_crystal_cave():
         )
 
     # Add some emissive crystals for lighting
-    call_tool(
+    await call_tool(
+        client,
         "add_primitive_objects",
         {
             "project": project,
@@ -424,7 +450,8 @@ def create_crystal_cave():
 
     # Apply emission material to glow crystals
     for i in [1, 2]:
-        call_tool(
+        await call_tool(
+            client,
             "apply_material",
             {
                 "project": project,
@@ -437,34 +464,35 @@ def create_crystal_cave():
     return project
 
 
-def main():
+async def main():
     """Generate all showcase scenes."""
     print("=" * 60)
     print("🎨 Blender MCP Showcase Generator")
     print("=" * 60)
 
-    projects = []
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        projects = []
 
-    # Generate different types of scenes
-    projects.append(create_particle_fountain())
-    projects.append(create_abstract_motion_graphics())
-    projects.append(create_sci_fi_corridor())
-    projects.append(create_organic_growth())
-    projects.append(create_crystal_cave())
+        # Generate different types of scenes
+        projects.append(await create_particle_fountain(client))
+        projects.append(await create_abstract_motion_graphics(client))
+        projects.append(await create_sci_fi_corridor(client))
+        projects.append(await create_organic_growth(client))
+        projects.append(await create_crystal_cave(client))
 
-    print("\n" + "=" * 60)
-    print("✨ All showcase scenes generated successfully!")
-    print("=" * 60)
+        print("\n" + "=" * 60)
+        print("✨ All showcase scenes generated successfully!")
+        print("=" * 60)
 
-    print("\n📁 Created projects:")
-    for project in projects:
-        if project:
-            print(f"  - {project}")
+        print("\n📁 Created projects:")
+        for project in projects:
+            if project:
+                print(f"  - {project}")
 
-    # Optionally start rendering
-    print("\n🎬 You can now render these projects using the render tools")
-    print("   or open them in Blender for further editing.")
+        # Optionally start rendering
+        print("\n🎬 You can now render these projects using the render tools")
+        print("   or open them in Blender for further editing.")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

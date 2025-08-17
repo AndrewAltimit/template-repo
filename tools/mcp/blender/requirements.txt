@@ -18,6 +18,3 @@ typing-extensions>=4.8.0  # Extended type hints for compatibility
 # Image and data processing utilities
 Pillow>=10.1.0          # Image processing (metadata, thumbnails, formats)
 numpy>=1.24.4           # Numerical operations for Blender scripts
-
-# HTTP client for test scripts
-requests>=2.31.0        # HTTP library for API testing
