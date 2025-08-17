@@ -84,31 +84,31 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 
 ```
 .
-├── .github/workflows/      # GitHub Actions workflows
-├── docker/                 # Docker configurations
-├── packages/               # Installable packages
-│   └── github_ai_agents/  # AI agent implementations
-├── tools/                  # MCP servers and utilities
-│   ├── mcp/               # Modular MCP servers
-│   │   ├── code_quality/  # Formatting & linting
+├── .github/workflows/        # GitHub Actions workflows
+├── docker/                   # Docker configurations
+├── packages/                 # Installable packages
+│   └── github_ai_agents/     # AI agent implementations
+├── tools/                    # MCP servers and utilities
+│   ├── mcp/                  # Modular MCP servers
+│   │   ├── code_quality/     # Formatting & linting
 │   │   ├── content_creation/ # Manim & LaTeX
-│   │   ├── gemini/        # AI consultation
-│   │   ├── gaea2/         # Terrain generation
-│   │   ├── blender/       # 3D content creation
-│   │   ├── opencode/      # Code generation (STDIO)
-│   │   ├── crush/         # Fast generation (STDIO)
-│   │   ├── meme_generator/# Meme creation
-│   │   ├── ai_toolkit/    # LoRA training bridge
-│   │   ├── comfyui/       # Image generation bridge
-│   │   └── core/          # Shared components
-│   └── cli/               # Command-line tools
-├── automation/            # CI/CD and automation scripts
-├── tests/                 # Test files
-├── docs/                  # Documentation
-├── config/                # Configuration files
-├── .context/              # AI context files
-│   └── PROJECT_CONTEXT.md # Context for AI reviewers
-└── projects/              # Separate projects
+│   │   ├── gemini/           # AI consultation
+│   │   ├── gaea2/            # Terrain generation
+│   │   ├── blender/          # 3D content creation
+│   │   ├── opencode/         # Code generation
+│   │   ├── crush/            # Code generation
+│   │   ├── meme_generator/   # Meme creation
+│   │   ├── ai_toolkit/       # LoRA training bridge
+│   │   ├── comfyui/          # Image generation bridge
+│   │   └── core/             # Shared components
+│   └── cli/                  # Command-line tools
+├── automation/               # CI/CD and automation scripts
+├── tests/                    # Test files
+├── docs/                     # Documentation
+├── config/                   # Configuration files
+├── .context/                 # AI context files
+│   └── PROJECT_CONTEXT.md    # Context for AI reviewers
+└── projects/                 # Separate projects
 ```
 
 ## MCP Servers
