@@ -78,14 +78,30 @@ class ElevenLabsClient:
             if config.stream:
                 url += f"/stream?output_format={config.output_format.value}"
 
-            response = await self.client.post(
-                url,
-                json={
-                    "text": api_params["text"],
-                    "model_id": api_params["model_id"],
-                    "voice_settings": api_params["voice_settings"],
-                },
-            )
+            try:
+                response = await self.client.post(
+                    url,
+                    json={
+                        "text": api_params["text"],
+                        "model_id": api_params["model_id"],
+                        "voice_settings": api_params["voice_settings"],
+                    },
+                )
+                response.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                # Log safe error without exposing headers/API key
+                logger.error(f"ElevenLabs API error: {e.response.status_code} - Voice: {config.voice_id}")
+                return SynthesisResult(
+                    success=False,
+                    error=f"API request failed with status {e.response.status_code}",
+                    character_count=len(config.text),
+                )
+            except httpx.RequestError as e:
+                # Log connection error without exposing sensitive data
+                logger.error(f"Connection error to ElevenLabs API: {type(e).__name__}")
+                return SynthesisResult(
+                    success=False, error="Failed to connect to ElevenLabs API", character_count=len(config.text)
+                )
 
             if response.status_code == 200:
                 audio_data = response.content
@@ -121,8 +137,11 @@ class ElevenLabsClient:
                 return SynthesisResult(success=False, error=error_msg, character_count=len(config.text))
 
         except Exception as e:
-            logger.error(f"Synthesis error: {e}")
-            return SynthesisResult(success=False, error=str(e), character_count=len(config.text))
+            # Log safe error without exposing sensitive information
+            logger.error(f"Synthesis error: {type(e).__name__}")
+            return SynthesisResult(
+                success=False, error=f"Synthesis failed: {type(e).__name__}", character_count=len(config.text)
+            )
 
     async def synthesize_with_websocket(self, config: StreamConfig) -> AsyncGenerator[bytes, None]:
         """
@@ -195,9 +214,17 @@ class ElevenLabsClient:
             # Clamp duration
             duration_seconds = min(22.0, max(0.5, duration_seconds))
 
-            response = await self.client.post(
-                f"{self.BASE_URL}/sound-generation", json={"text": prompt, "duration_seconds": duration_seconds}
-            )
+            try:
+                response = await self.client.post(
+                    f"{self.BASE_URL}/sound-generation", json={"text": prompt, "duration_seconds": duration_seconds}
+                )
+                response.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                logger.error(f"Sound effect API error: {e.response.status_code}")
+                return SynthesisResult(success=False, error=f"API request failed with status {e.response.status_code}")
+            except httpx.RequestError as e:
+                logger.error(f"Connection error: {type(e).__name__}")
+                return SynthesisResult(success=False, error="Failed to connect to API")
 
             if response.status_code == 200:
                 audio_data = response.content
@@ -216,8 +243,9 @@ class ElevenLabsClient:
                 return SynthesisResult(success=False, error=error_msg)
 
         except Exception as e:
-            logger.error(f"Sound effect error: {e}")
-            return SynthesisResult(success=False, error=str(e))
+            # Log safe error without exposing sensitive information
+            logger.error(f"Sound effect error: {type(e).__name__}")
+            return SynthesisResult(success=False, error=f"Sound generation failed: {type(e).__name__}")
 
     async def get_voices(self) -> List[Dict[str, Any]]:
         """
@@ -234,8 +262,11 @@ class ElevenLabsClient:
             else:
                 logger.error(f"Failed to get voices: {response.status_code}")
                 return []
+        except httpx.RequestError as e:
+            logger.error(f"Error getting voices: {type(e).__name__}")
+            return []
         except Exception as e:
-            logger.error(f"Error getting voices: {e}")
+            logger.error(f"Unexpected error getting voices: {type(e).__name__}")
             return []
 
     async def get_voice_by_id(self, voice_id: str) -> Optional[Dict[str, Any]]:
@@ -255,8 +286,11 @@ class ElevenLabsClient:
             else:
                 logger.error(f"Voice not found: {voice_id}")
                 return None
+        except httpx.RequestError as e:
+            logger.error(f"Error getting voice details: {type(e).__name__}")
+            return None
         except Exception as e:
-            logger.error(f"Error getting voice: {e}")
+            logger.error(f"Unexpected error getting voice: {type(e).__name__}")
             return None
 
     async def get_user_info(self) -> Optional[Dict[str, Any]]:
@@ -273,8 +307,11 @@ class ElevenLabsClient:
             else:
                 logger.error(f"Failed to get user info: {response.status_code}")
                 return None
+        except httpx.RequestError as e:
+            logger.error(f"Error getting user info: {type(e).__name__}")
+            return None
         except Exception as e:
-            logger.error(f"Error getting user info: {e}")
+            logger.error(f"Unexpected error getting user info: {type(e).__name__}")
             return None
 
     async def get_models(self) -> List[Dict[str, Any]]:
@@ -291,8 +328,11 @@ class ElevenLabsClient:
             else:
                 logger.error(f"Failed to get models: {response.status_code}")
                 return []
+        except httpx.RequestError as e:
+            logger.error(f"Error getting models: {type(e).__name__}")
+            return []
         except Exception as e:
-            logger.error(f"Error getting models: {e}")
+            logger.error(f"Unexpected error getting models: {type(e).__name__}")
             return []
 
     async def _save_audio(

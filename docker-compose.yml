@@ -99,7 +99,7 @@ services:
       - ./outputs/elevenlabs_speech:/output  # Bind mount to local outputs directory
     environment:
       - PYTHONUNBUFFERED=1
-      - PORT=8018
+      - PORT=8018  # Note: If you change this port, also update the healthcheck below
       - MCP_OUTPUT_DIR=/output
       - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
       - ELEVENLABS_DEFAULT_MODEL=${ELEVENLABS_DEFAULT_MODEL:-eleven_multilingual_v2}
@@ -109,7 +109,7 @@ services:
     command: ["python", "-m", "tools.mcp.elevenlabs_speech.server", "--mode", "http"]
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8018/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8018/health"]  # Must match PORT above
       interval: 30s
       timeout: 10s
       retries: 3

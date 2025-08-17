@@ -9,6 +9,11 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
+# Configurable upload service URLs via environment variables
+UPLOAD_URL_0X0ST = os.getenv("UPLOAD_URL_0X0ST", "https://0x0.st")
+UPLOAD_URL_TMPFILES = os.getenv("UPLOAD_URL_TMPFILES", "https://tmpfiles.org/api/v1/upload")
+UPLOAD_URL_FILEIO = os.getenv("UPLOAD_URL_FILEIO", "https://file.io")
+
 
 class AudioUploader:
     """Upload audio files to free hosting services"""
@@ -35,12 +40,12 @@ class AudioUploader:
                 headers = {"User-Agent": "curl/8.0.0"}
 
                 with httpx.Client() as client:
-                    response = client.post("https://0x0.st", files=files, headers=headers, timeout=30)
+                    response = client.post(UPLOAD_URL_0X0ST, files=files, headers=headers, timeout=30)
 
             if response.status_code == 200 and response.text:
                 url = response.text.strip()
                 # Check if response looks like a URL
-                if url.startswith("https://0x0.st/"):
+                if url.startswith(f"{UPLOAD_URL_0X0ST}/") or url.startswith("https://"):
                     return {
                         "success": True,
                         "url": url,
@@ -80,7 +85,7 @@ class AudioUploader:
                 files = {"file": (os.path.basename(file_path), f)}
 
                 with httpx.Client() as client:
-                    response = client.post("https://tmpfiles.org/api/v1/upload", files=files, timeout=30)
+                    response = client.post(UPLOAD_URL_TMPFILES, files=files, timeout=30)
 
             if response.status_code == 200 and response.text:
                 try:
@@ -153,7 +158,7 @@ class AudioUploader:
                 files = {"file": (os.path.basename(file_path), f)}
 
                 with httpx.Client() as client:
-                    response = client.post(f"https://file.io/?expires={expires}", files=files, timeout=30)
+                    response = client.post(f"{UPLOAD_URL_FILEIO}/?expires={expires}", files=files, timeout=30)
 
             if response.status_code == 200 and response.text:
                 try:
