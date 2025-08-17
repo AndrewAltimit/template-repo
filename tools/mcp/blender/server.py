@@ -124,16 +124,26 @@ class BlenderMCPServer(BaseMCPServer):
         return safe_path
 
     def _validate_project_path(self, project_path: str) -> Path:
-        """Validate a project file path."""
+        """Validate a project file path with secure path traversal prevention."""
         # Handle both full paths and just project names
         # Look for projects in projects directory
 
-        # If it's already a full container path, validate it directly
+        # If it's already a full container path, validate it securely
         if project_path.startswith(str(self.projects_dir)):
-            path = Path(project_path)
-            if path.exists() or path.parent == self.projects_dir:
-                return path
-            raise ValueError(f"Project not found: {project_path}")
+            # Use resolve() to canonicalize the path and handle any .. components
+            try:
+                path = Path(project_path).resolve()
+                # Ensure the resolved path is actually within projects_dir
+                projects_dir_resolved = self.projects_dir.resolve()
+                # Check if projects_dir is in the path's parents or if it's the exact dir
+                if projects_dir_resolved in path.parents or path.parent == projects_dir_resolved:
+                    if path.exists() or path.parent == projects_dir_resolved:
+                        return path
+                    raise ValueError(f"Project not found: {project_path}")
+                else:
+                    raise ValueError(f"Path traversal attempt detected: {project_path}")
+            except Exception as e:
+                raise ValueError(f"Invalid project path: {e}")
 
         # Otherwise treat it as a relative path
         if project_path.endswith(".blend"):
