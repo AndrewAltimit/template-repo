@@ -132,6 +132,19 @@
         "--mode",
         "stdio"
       ]
+    },
+    "elevenlabs-speech": {
+      "command": "python3",
+      "args": [
+        "-m",
+        "tools.mcp.elevenlabs_speech.server",
+        "--mode",
+        "stdio"
+      ],
+      "env": {
+        "ELEVENLABS_DEFAULT_MODEL": "eleven_multilingual_v2",
+        "ELEVENLABS_DEFAULT_VOICE": "Rachel"
+      }
     }
   }
 }
