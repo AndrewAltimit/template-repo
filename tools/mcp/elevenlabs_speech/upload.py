@@ -46,6 +46,7 @@ class AudioUploader:
                 url = response.text.strip()
                 # Check if response looks like a URL
                 if url.startswith(f"{UPLOAD_URL_0X0ST}/") or url.startswith("https://"):
+                    logger.warning("Uploading audio to public service: 0x0.st - URL will be publicly accessible")
                     return {
                         "success": True,
                         "url": url,
@@ -105,6 +106,7 @@ class AudioUploader:
                         else:
                             embed_url = url
 
+                        logger.warning("Uploading audio to public service: tmpfiles.org - URL will be publicly accessible")
                         return {
                             "success": True,
                             "url": url,
@@ -164,6 +166,7 @@ class AudioUploader:
                 try:
                     response_data = json.loads(response.text)
                     if response_data.get("success") and response_data.get("link"):
+                        logger.warning("Uploading audio to public service: file.io - URL will be publicly accessible")
                         return {
                             "success": True,
                             "url": response_data["link"],
@@ -283,6 +286,7 @@ def upload_audio(file_path: str, service: str = "auto") -> Optional[str]:
     """
     result = AudioUploader.upload(file_path, service)
     if result["success"]:
+        logger.warning(f"Audio uploaded to public service {result.get('service')}: {result['url']}")
         logger.info(f"Uploaded audio to {result.get('service')}: {result['url']}")
         return str(result["url"])
     else:
