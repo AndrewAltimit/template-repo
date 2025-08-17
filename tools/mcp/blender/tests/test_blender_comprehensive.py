@@ -334,6 +334,61 @@ class TestBlenderMCPServer:
         assert response.success is False
         assert "Test error" in response.error
 
+    @pytest.mark.asyncio
+    async def test_path_traversal_prevention(self, server):
+        """Regression test: Ensure path traversal attacks are prevented.
+
+        This test verifies that the critical security fix in _validate_project_path
+        is working correctly and prevents directory traversal attacks.
+        """
+        # Test various path traversal attempts
+        malicious_paths = [
+            "../../../etc/passwd",
+            "../../sensitive_file.blend",
+            "/etc/passwd",
+            "../" * 10 + "root.blend",
+            "legitimate/../../../etc/passwd.blend",
+            "projects/../../outside.blend",
+            "./../../etc/shadow",
+        ]
+
+        for malicious_path in malicious_paths:
+            # Try to create a project with path traversal
+            request = ToolRequest(tool="create_blender_project", arguments={"name": malicious_path, "template": "basic_scene"})
+
+            response = await server.execute_tool(request)
+
+            # Assert that the request was rejected
+            assert response.success is False, f"Path traversal not blocked for: {malicious_path}"
+            assert (
+                "invalid" in response.error.lower() or "outside" in response.error.lower()
+            ), f"Expected security error for path: {malicious_path}, got: {response.error}"
+
+    @pytest.mark.asyncio
+    async def test_valid_project_paths(self, server):
+        """Test that legitimate project paths are accepted."""
+        valid_names = [
+            "my_project",
+            "test-project-123",
+            "animation_2024",
+            "scene.final.v2",
+        ]
+
+        for valid_name in valid_names:
+            request = ToolRequest(tool="create_blender_project", arguments={"name": valid_name, "template": "basic_scene"})
+
+            with patch.object(server.executor, "execute_script", new_callable=AsyncMock) as mock_execute:
+                mock_execute.return_value = {
+                    "success": True,
+                    "job_id": f"job-{valid_name}",
+                    "project_path": f"/app/projects/{valid_name}.blend",
+                }
+
+                response = await server.execute_tool(request)
+
+                # Valid paths should be accepted
+                assert response.success is True, f"Valid path rejected: {valid_name}"
+
 
 class TestBlenderExecutor:
     """Test BlenderExecutor class."""

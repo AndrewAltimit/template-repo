@@ -200,9 +200,9 @@ def check_reaction_urls_in_file(filepath: str) -> List[Tuple[str, str]]:
     except FileNotFoundError:
         # File doesn't exist yet (might be created later), skip validation
         pass
-    except Exception:
-        # Any other error reading the file, skip validation
-        pass
+    except Exception as e:
+        # Any other error reading the file, skip validation but log warning
+        print(f"Warning: Could not validate URLs in {filepath} due to an unexpected error: {e}", file=sys.stderr)
 
     return invalid_urls
 
