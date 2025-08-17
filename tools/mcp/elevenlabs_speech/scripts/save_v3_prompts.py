@@ -2,16 +2,18 @@
 """Save v3 creative prompts to JSON for manual testing in web UI"""
 
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
 
-# Voice IDs from your library
-VOICES = {
-    "Rachel": "21m00Tcm4TlvDq8ikWAM",  # Young female, casual American
-    "Clyde": "2EiwWnXFnvU5JabPnv8n",  # Middle-aged male, intense American
-    "Charlie": "IKne3meq5aSn9XLyUdCD",  # Young male, hyped Australian
-    "George": "JBFqnCBsd6RMkjVDRZzb",  # Middle-aged male, mature British
-}
+# Add parent directory to path for imports
+parent_dir = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(parent_dir))
+
+from elevenlabs_speech.voice_registry import VOICE_IDS  # noqa: E402
+
+# Use the comprehensive voice registry
+VOICES = VOICE_IDS
 
 
 def save_v3_examples():

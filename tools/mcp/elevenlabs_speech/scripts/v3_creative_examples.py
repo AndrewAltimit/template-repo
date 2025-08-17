@@ -21,14 +21,10 @@ if env_file.exists():
                 os.environ[key] = value.strip('"').strip("'")
 
 from elevenlabs_speech.server import ElevenLabsSpeechMCPServer  # noqa: E402
+from elevenlabs_speech.voice_registry import VOICE_IDS  # noqa: E402
 
-# Voice IDs from your library
-VOICES = {
-    "Rachel": "21m00Tcm4TlvDq8ikWAM",  # Young female, casual American
-    "Clyde": "2EiwWnXFnvU5JabPnv8n",  # Middle-aged male, intense American
-    "Charlie": "IKne3meq5aSn9XLyUdCD",  # Young male, hyped Australian
-    "George": "JBFqnCBsd6RMkjVDRZzb",  # Middle-aged male, mature British
-}
+# Use the comprehensive voice registry
+VOICES = VOICE_IDS
 
 
 async def example_1_tech_podcast():

@@ -33,6 +33,7 @@ from .models import (  # noqa: E402
 from .upload import upload_audio  # noqa: E402
 from .utils.model_aware_prompting import ModelAwarePrompter  # noqa: E402
 from .utils.prompting import EmotionalEnhancer, NaturalSpeechEnhancer, PromptOptimizer, VoiceDirector  # noqa: E402
+from .voice_registry import VOICE_IDS, get_voice_profile  # noqa: E402
 
 
 class ElevenLabsSpeechMCPServer(BaseMCPServer):
@@ -394,11 +395,24 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
     async def _initialize_voice_cache(self):
         """Initialize voice name to ID cache on startup"""
         try:
+            # Start with our local registry
+            for name, voice_id in VOICE_IDS.items():
+                self._voice_id_cache[name.lower()] = voice_id
+
+            # Optionally fetch additional voices from API
             if self.client:
-                voices = await self.client.get_voices()
-                for voice in voices:
-                    self._voice_id_cache[voice.get("name", "").lower()] = voice.get("voice_id")
-                self.logger.info(f"Cached {len(self._voice_id_cache)} voice mappings")
+                try:
+                    voices = await self.client.get_voices()
+                    for voice in voices:
+                        voice_name = voice.get("name", "").lower()
+                        voice_id = voice.get("voice_id")
+                        # Add voices not in our registry
+                        if voice_name and voice_id and voice_name not in self._voice_id_cache:
+                            self._voice_id_cache[voice_name] = voice_id
+                    self.logger.info(f"Cached {len(self._voice_id_cache)} voice mappings (registry + API)")
+                except Exception:
+                    # If API fails, we still have the registry
+                    self.logger.info(f"Using {len(self._voice_id_cache)} voices from local registry")
         except Exception as e:
             self.logger.warning(f"Could not initialize voice cache: {e}")
 
@@ -410,19 +424,13 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         if default_voice_name in self._voice_id_cache:
             return self._voice_id_cache[default_voice_name]  # type: ignore[no-any-return]
 
-        # Fallback to known IDs
-        fallback_voices = {
-            "rachel": "21m00Tcm4TlvDq8ikWAM",
-            "clyde": "2EiwWnXFnvU5JabPnv8n",
-            "aria": "9BWtsMINqrJLrRacOk9x",
-            "roger": "CwhRBWXzGAHq8TQ4Fs17",
-        }
-
-        if default_voice_name in fallback_voices:
-            return fallback_voices[default_voice_name]
+        # Try the voice registry
+        profile = get_voice_profile(self.config["default_voice"])
+        if profile:
+            return profile.voice_id
 
         # Ultimate fallback
-        return "21m00Tcm4TlvDq8ikWAM"  # Rachel voice as default
+        return VOICE_IDS.get("Rachel", "21m00Tcm4TlvDq8ikWAM")  # Rachel voice as default
 
     def _format_github_audio_comment(
         self, audio_url: str, duration: Optional[float] = None, tone: str = "professional"
