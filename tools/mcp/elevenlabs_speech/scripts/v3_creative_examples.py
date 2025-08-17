@@ -64,6 +64,9 @@ async def example_1_tech_podcast():
     """
 
     print("Generating ~25 second tech podcast drama...")
+    # NOTE: Using eleven_turbo_v2_5 as the best available public model.
+    # These prompts are designed for the upcoming v3 model and may not
+    # render all audio tags and effects correctly on older models.
     result = await server.synthesize_speech_v3(
         text=podcast_text.strip(),
         voice_id=VOICES["Rachel"],
@@ -123,6 +126,9 @@ async def example_2_action_movie_scene():
     """
 
     print("Generating ~25 second action scene...")
+    # NOTE: Using eleven_turbo_v2_5 as the best available public model.
+    # These prompts are designed for the upcoming v3 model and may not
+    # render all audio tags and effects correctly on older models.
     result = await server.synthesize_speech_v3(
         text=action_text.strip(),
         voice_id=VOICES["Clyde"],  # Intense voice for action
@@ -187,6 +193,9 @@ async def example_3_comedy_restaurant():
     """
 
     print("Generating ~30 second restaurant comedy...")
+    # NOTE: Using eleven_turbo_v2_5 as the best available public model.
+    # These prompts are designed for the upcoming v3 model and may not
+    # render all audio tags and effects correctly on older models.
     result = await server.synthesize_speech_v3(
         text=comedy_text.strip(),
         voice_id=VOICES["George"],  # British voice for the waiter

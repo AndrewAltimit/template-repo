@@ -27,7 +27,7 @@ import httpx  # noqa: E402
 async def test_server():
     """Test the ElevenLabs Speech MCP server"""
 
-    base_url = "http://localhost:8016"
+    base_url = "http://localhost:8018"
 
     print("🎙️  ElevenLabs Speech MCP Server Test")
     print("=" * 50)
