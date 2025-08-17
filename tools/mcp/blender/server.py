@@ -85,14 +85,17 @@ class BlenderMCPServer(BaseMCPServer):
         """
         # Reject empty paths
         if not user_path:
+            logger.warning(f"Empty path provided for {path_type}")
             raise ValueError(f"Invalid {path_type} path: empty path")
 
         # Reject absolute paths
         if Path(user_path).is_absolute():
+            logger.warning(f"Absolute path attempt blocked for {path_type}. Path: '{user_path}'")
             raise ValueError(f"Invalid {path_type} path: absolute paths not allowed")
 
         # Reject paths with parent directory references
         if ".." in user_path:
+            logger.warning(f"Path traversal attempt blocked for {path_type}. Path contains '..': '{user_path}'")
             raise ValueError(f"Invalid {path_type} path: parent directory references not allowed")
 
         # Reject single dot (current directory)
@@ -119,6 +122,9 @@ class BlenderMCPServer(BaseMCPServer):
         try:
             safe_path.relative_to(base_dir.resolve())
         except ValueError:
+            logger.warning(
+                f"Path traversal attempt blocked for {path_type}. Path: '{user_path}' resolved outside base_dir: '{base_dir}'"
+            )
             raise ValueError(f"Invalid {path_type} path: traversal attempt detected")
 
         return safe_path
@@ -141,8 +147,14 @@ class BlenderMCPServer(BaseMCPServer):
                         return path
                     raise ValueError(f"Project not found: {project_path}")
                 else:
+                    # Log security event before raising
+                    logger.warning(f"Potential path traversal attempt blocked. Path: '{project_path}'. Resolved to: '{path}'")
                     raise ValueError(f"Path traversal attempt detected: {project_path}")
+            except ValueError:
+                # Re-raise ValueError as-is (including path traversal)
+                raise
             except Exception as e:
+                logger.warning(f"Invalid project path attempted: '{project_path}'. Error: {e}")
                 raise ValueError(f"Invalid project path: {e}")
 
         # Otherwise treat it as a relative path
