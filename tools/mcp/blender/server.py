@@ -42,6 +42,10 @@ class BlenderMCPServer(BaseMCPServer):
 
                 base_dir = os.path.join(tempfile.gettempdir(), "blender-mcp")
         self.base_dir = Path(base_dir)
+
+        # Log the detected base directory for debugging
+        logger.info(f"Blender MCP Server initialized with base directory: {self.base_dir}")
+
         self.projects_dir = self.base_dir / "projects"
         self.assets_dir = self.base_dir / "assets"
         self.outputs_dir = self.base_dir / "outputs"
