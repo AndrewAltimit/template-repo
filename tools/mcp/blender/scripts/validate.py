@@ -2,30 +2,19 @@
 """Simple validation script for Blender MCP Server using httpx."""
 
 import asyncio
-from typing import Any, Dict
+import sys
+from pathlib import Path
 
-import httpx
+# Add parent directories to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-
-async def call_tool(client: httpx.AsyncClient, base_url: str, tool_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
-    """Call a tool via HTTP API."""
-    try:
-        response = await client.post(f"{base_url}/mcp/execute", json={"tool": tool_name, "arguments": params})
-        if response.status_code == 200:
-            result = response.json()
-            if result is None:
-                return {"error": "Empty response from server"}
-            return result.get("result", result)  # type: ignore
-        else:
-            return {"error": f"HTTP {response.status_code}: {response.text}"}
-    except Exception as e:
-        return {"error": str(e)}
+from tests.test_utils import TestClient  # noqa: E402
 
 
 async def validate_blender_server(base_url: str = "http://localhost:8017"):
     """Run validation tests for Blender MCP Server."""
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with TestClient(base_url) as client:
         print("\n" + "=" * 60)
         print("🎬 BLENDER MCP SERVER VALIDATION")
         print("=" * 60)
@@ -65,9 +54,7 @@ async def validate_blender_server(base_url: str = "http://localhost:8017"):
         # Test 3: Create Project
         print("\n✨ Test 3: Create Project")
         print("-" * 40)
-        result = await call_tool(
-            client,
-            base_url,
+        result = await client.call_tool(
             "create_blender_project",
             {
                 "name": "validation_test",
@@ -90,9 +77,7 @@ async def validate_blender_server(base_url: str = "http://localhost:8017"):
         # Test 4: Add Objects
         print("\n✨ Test 4: Add Objects")
         print("-" * 40)
-        result = await call_tool(
-            client,
-            base_url,
+        result = await client.call_tool(
             "add_primitive_objects",
             {
                 "project": project_name,
@@ -118,9 +103,7 @@ async def validate_blender_server(base_url: str = "http://localhost:8017"):
             ("Cube", "glass"),
             ("Sphere", "emission"),
         ]:
-            result = await call_tool(
-                client,
-                base_url,
+            result = await client.call_tool(
                 "apply_material",
                 {
                     "project": project_name,
@@ -139,9 +122,7 @@ async def validate_blender_server(base_url: str = "http://localhost:8017"):
         # Test 6: Setup Lighting
         print("\n✨ Test 6: Setup Lighting")
         print("-" * 40)
-        result = await call_tool(
-            client,
-            base_url,
+        result = await client.call_tool(
             "setup_lighting",
             {
                 "project": project_name,
@@ -158,9 +139,7 @@ async def validate_blender_server(base_url: str = "http://localhost:8017"):
         # Test 7: Render Image
         print("\n✨ Test 7: Render Image")
         print("-" * 40)
-        result = await call_tool(
-            client,
-            base_url,
+        result = await client.call_tool(
             "render_image",
             {
                 "project": project_name,
@@ -196,7 +175,7 @@ async def validate_blender_server(base_url: str = "http://localhost:8017"):
 async def run_demos(base_url: str = "http://localhost:8017"):
     """Run demonstration projects."""
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with TestClient(base_url) as client:
         print("\n" + "=" * 60)
         print("🎬 BLENDER MCP DEMO PROJECTS")
         print("=" * 60)
@@ -218,9 +197,7 @@ async def run_demos(base_url: str = "http://localhost:8017"):
         print("-" * 40)
 
         # Create project
-        result = await call_tool(
-            client,
-            base_url,
+        result = await client.call_tool(
             "create_blender_project",
             {
                 "name": "demo_product",
@@ -237,7 +214,7 @@ async def run_demos(base_url: str = "http://localhost:8017"):
             project_name = os.path.basename(project_path)  # type: ignore
 
             # Add product components
-            await call_tool(
+            await client.call_tool(
                 client,
                 base_url,
                 "add_primitive_objects",
@@ -262,7 +239,7 @@ async def run_demos(base_url: str = "http://localhost:8017"):
             print("✅ Added product objects")
 
             # Apply materials
-            await call_tool(
+            await client.call_tool(
                 client,
                 base_url,
                 "apply_material",
@@ -275,7 +252,7 @@ async def run_demos(base_url: str = "http://localhost:8017"):
             print("✅ Applied materials")
 
             # Setup lighting
-            await call_tool(
+            await client.call_tool(
                 client,
                 base_url,
                 "setup_lighting",
@@ -291,9 +268,7 @@ async def run_demos(base_url: str = "http://localhost:8017"):
         print("\n🎬 Demo 2: Physics Simulation")
         print("-" * 40)
 
-        result = await call_tool(
-            client,
-            base_url,
+        result = await client.call_tool(
             "create_blender_project",
             {
                 "name": "demo_physics",
@@ -310,7 +285,7 @@ async def run_demos(base_url: str = "http://localhost:8017"):
             project_name = os.path.basename(project_path)  # type: ignore
 
             # Add physics objects
-            await call_tool(
+            await client.call_tool(
                 client,
                 base_url,
                 "add_primitive_objects",
@@ -332,7 +307,7 @@ async def run_demos(base_url: str = "http://localhost:8017"):
 
             # Setup physics
             for obj_name in ["Ground", "Box1", "Ball"]:
-                await call_tool(
+                await client.call_tool(
                     client,
                     base_url,
                     "setup_physics",
@@ -353,9 +328,7 @@ async def run_demos(base_url: str = "http://localhost:8017"):
         print("\n🎬 Demo 3: Abstract Animation")
         print("-" * 40)
 
-        result = await call_tool(
-            client,
-            base_url,
+        result = await client.call_tool(
             "create_blender_project",
             {
                 "name": "demo_animation",
@@ -372,7 +345,7 @@ async def run_demos(base_url: str = "http://localhost:8017"):
             project_name = os.path.basename(project_path)  # type: ignore
 
             # Add animated objects
-            await call_tool(
+            await client.call_tool(
                 client,
                 base_url,
                 "add_primitive_objects",
@@ -393,7 +366,7 @@ async def run_demos(base_url: str = "http://localhost:8017"):
                 ("Ring1", [1, 0.5, 0, 1]),
                 ("Cube1", [0, 0.5, 1, 1]),
             ]:
-                await call_tool(
+                await client.call_tool(
                     client,
                     base_url,
                     "apply_material",

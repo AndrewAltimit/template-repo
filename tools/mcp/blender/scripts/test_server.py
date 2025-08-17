@@ -10,14 +10,15 @@ from typing import Any, Dict
 # Add parent directories to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import asyncio  # noqa: E402
 
-from tools.mcp.core.client import MCPClient  # noqa: E402
+from tools.mcp.blender.tests.test_utils import TestClient  # noqa: E402
 
 
-class BlenderMCPClient(MCPClient):
-    """Specialized client for Blender MCP Server."""
+class BlenderMCPClient(TestClient):
+    """Specialized client for Blender MCP Server using shared test utilities."""
 
     def __init__(self, base_url: str = "http://localhost:8017"):
         """Initialize Blender MCP client.
@@ -28,22 +29,6 @@ class BlenderMCPClient(MCPClient):
         super().__init__(base_url)
         self.projects: Dict[str, str] = {}
         self.jobs: Dict[str, Dict[str, Any]] = {}
-
-    async def call_tool(self, tool: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        """Call a tool asynchronously (wraps the sync execute_tool).
-
-        Args:
-            tool: Tool name to execute
-            arguments: Tool arguments
-
-        Returns:
-            Tool execution result
-        """
-        # Since MCPClient.execute_tool is synchronous, we wrap it
-        import asyncio
-
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self.execute_tool, tool, arguments)
 
     async def health_check(self) -> Dict[str, Any]:  # type: ignore[override]
         """Check server health asynchronously.
@@ -134,7 +119,7 @@ class BlenderMCPClient(MCPClient):
 
         return result
 
-    async def wait_for_job(self, job_id: str, timeout: int = 300, poll_interval: int = 2) -> Dict[str, Any]:
+    async def wait_for_job(self, job_id: str, timeout: int = 300, poll_interval: float = 2) -> Dict[str, Any]:
         """Wait for a job to complete.
 
         Args:

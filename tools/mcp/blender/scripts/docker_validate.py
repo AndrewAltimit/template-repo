@@ -2,28 +2,19 @@
 """Validation script for Blender MCP server running in Docker."""
 
 import asyncio
-from typing import Any, Dict
+import sys
+from pathlib import Path
 
-import httpx
+# Add parent directories to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-
-async def call_tool(client: httpx.AsyncClient, base_url: str, tool_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
-    """Call a tool via HTTP API."""
-    try:
-        response = await client.post(f"{base_url}/mcp/execute", json={"tool": tool_name, "arguments": params})
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        print(f"Error calling {tool_name}: {e}")
-        if hasattr(e, "response"):
-            print(f"Response: {e.response.text}")
-        return {"error": str(e)}
+from tests.test_utils import TestClient  # noqa: E402
 
 
-async def wait_for_job(client: httpx.AsyncClient, base_url: str, job_id: str, max_wait: int = 30):
-    """Wait for a job to complete."""
+async def wait_for_job_completion(client: TestClient, job_id: str, max_wait: int = 30):
+    """Wait for a job to complete using the shared test client."""
     for i in range(max_wait):
-        result = await call_tool(client, base_url, "get_job_status", {"job_id": job_id})
+        result = await client.call_tool("get_job_status", {"job_id": job_id})
 
         if "error" in result:
             print(f"Error checking job status: {result['error']}")
@@ -48,16 +39,14 @@ async def validate_server():
     """Run validation tests against the Blender MCP server."""
     base_url = "http://localhost:8017"
 
-    async with httpx.AsyncClient(timeout=httpx.Timeout(30.0)) as client:
+    async with TestClient(base_url) as client:
         print("=" * 60)
         print("Blender MCP Server Validation")
         print("=" * 60)
 
         # Test 1: Create a basic scene project
         print("\n1. Creating basic scene project...")
-        result = await call_tool(
-            client,
-            base_url,
+        result = await client.call_tool(
             "create_blender_project",
             {
                 "name": "test_basic_scene",
@@ -72,7 +61,7 @@ async def validate_server():
             job_id = result["result"]["job_id"]
 
             # Wait for job to complete
-            job_result = await wait_for_job(client, base_url, job_id)
+            job_result = await wait_for_job_completion(client, job_id)
             if job_result:
                 print("✓ Job completed successfully")
         else:
@@ -81,9 +70,7 @@ async def validate_server():
 
         # Test 2: Create a studio lighting project
         print("\n2. Creating studio lighting project...")
-        result = await call_tool(
-            client,
-            base_url,
+        result = await client.call_tool(
             "create_blender_project",
             {
                 "name": "test_studio",
@@ -96,15 +83,13 @@ async def validate_server():
             print(f"✓ Created project: {result['result']['project_path']}")
             # studio_project = result["result"]["project_path"]  # Store if needed later
             job_id = result["result"]["job_id"]
-            await wait_for_job(client, base_url, job_id)
+            await wait_for_job_completion(client, job_id)
         else:
             print(f"✗ Failed to create project: {result['error']}")
 
         # Test 3: Add primitive objects
         print("\n3. Adding primitive objects to scene...")
-        result = await call_tool(
-            client,
-            base_url,
+        result = await client.call_tool(
             "add_primitive_objects",
             {
                 "project": "test_basic_scene",
@@ -135,7 +120,7 @@ async def validate_server():
         if "error" not in result:
             print(f"✓ Added {result['result']['objects_added']} objects")
             job_id = result["result"]["job_id"]
-            await wait_for_job(client, base_url, job_id)
+            await wait_for_job_completion(client, job_id)
         else:
             print(f"✗ Failed to add objects: {result['error']}")
 
@@ -158,9 +143,7 @@ async def validate_server():
         ]
 
         for obj_name, material in materials:
-            result = await call_tool(
-                client,
-                base_url,
+            result = await client.call_tool(
                 "apply_material",
                 {
                     "project": "test_basic_scene",
@@ -176,9 +159,7 @@ async def validate_server():
 
         # Test 5: Setup physics
         print("\n5. Setting up physics simulation...")
-        result = await call_tool(
-            client,
-            base_url,
+        result = await client.call_tool(
             "setup_physics",
             {
                 "project": "test_basic_scene",
@@ -200,9 +181,7 @@ async def validate_server():
 
         # Test 6: Create animation
         print("\n6. Creating keyframe animation...")
-        result = await call_tool(
-            client,
-            base_url,
+        result = await client.call_tool(
             "create_animation",
             {
                 "project": "test_basic_scene",
@@ -226,7 +205,7 @@ async def validate_server():
 
         # Test 7: List projects
         print("\n7. Listing available projects...")
-        result = await call_tool(client, base_url, "list_projects", {})
+        result = await client.call_tool("list_projects", {})
 
         if "error" not in result:
             projects = result["result"]["projects"]
@@ -238,9 +217,7 @@ async def validate_server():
 
         # Test 8: Render image
         print("\n8. Starting render job...")
-        result = await call_tool(
-            client,
-            base_url,
+        result = await client.call_tool(
             "render_image",
             {
                 "project": "test_basic_scene",

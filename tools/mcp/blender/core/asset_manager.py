@@ -4,9 +4,45 @@ import logging
 import mimetypes
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TypedDict
 
 logger = logging.getLogger(__name__)
+
+
+class ProjectInfo(TypedDict):
+    """Type definition for project information."""
+
+    name: str
+    path: str
+    size: int
+    modified: float
+    created: float
+
+
+class DetailedProjectInfo(TypedDict, total=False):
+    """Type definition for detailed project information."""
+
+    name: str
+    path: str
+    size: int
+    size_mb: float
+    modified: float
+    created: float
+    extension: str
+    has_assets: bool
+    asset_count: int
+
+
+class AssetInfo(TypedDict):
+    """Type definition for asset information."""
+
+    name: str
+    path: str
+    type: str
+    size: int
+    extension: str
+    format: Optional[str]
+    category: Optional[str]
 
 
 class AssetManager:
@@ -66,35 +102,34 @@ class AssetManager:
             except PermissionError:
                 logger.warning(f"Could not create {subdir} directory - permission denied. Continuing without it.")
 
-    def list_projects(self) -> List[Dict[str, Any]]:
+    def list_projects(self) -> List[ProjectInfo]:
         """List all Blender projects.
 
         Returns:
             List of project information
         """
-        projects = []
+        projects: List[ProjectInfo] = []
 
         for project_file in self.projects_dir.glob("*.blend"):
             try:
                 stat = project_file.stat()
-                projects.append(
-                    {
-                        "name": project_file.stem,
-                        "path": str(project_file),
-                        "size": stat.st_size,
-                        "modified": stat.st_mtime,
-                        "created": stat.st_ctime,
-                    }
-                )
+                project_info: ProjectInfo = {
+                    "name": project_file.stem,
+                    "path": str(project_file),
+                    "size": stat.st_size,
+                    "modified": stat.st_mtime,
+                    "created": stat.st_ctime,
+                }
+                projects.append(project_info)
             except Exception as e:
                 logger.error(f"Failed to stat project {project_file}: {e}")
 
         # Sort by modification time (newest first)
-        projects.sort(key=lambda p: float(p["modified"]), reverse=True)  # type: ignore
+        projects.sort(key=lambda p: p["modified"], reverse=True)
 
         return projects
 
-    def get_project_info(self, project_path: str) -> Optional[Dict[str, Any]]:
+    def get_project_info(self, project_path: str) -> Optional[DetailedProjectInfo]:
         """Get detailed information about a project.
 
         Args:
@@ -112,7 +147,7 @@ class AssetManager:
             stat = path.stat()
 
             # Try to read blend file metadata (if possible)
-            info = {
+            info: DetailedProjectInfo = {
                 "name": path.stem,
                 "path": str(path),
                 "size": stat.st_size,
@@ -134,7 +169,7 @@ class AssetManager:
             logger.error(f"Failed to get project info: {e}")
             return None
 
-    def list_assets(self, asset_type: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_assets(self, asset_type: Optional[str] = None) -> List[AssetInfo]:
         """List available assets.
 
         Args:
@@ -143,7 +178,7 @@ class AssetManager:
         Returns:
             List of assets
         """
-        assets = []
+        assets: List[AssetInfo] = []
 
         if asset_type:
             search_dirs = [self.assets_dir / asset_type]
@@ -163,12 +198,14 @@ class AssetManager:
                 if asset_file.is_file():
                     try:
                         stat = asset_file.stat()
-                        asset_info = {
+                        asset_info: AssetInfo = {
                             "name": asset_file.name,
                             "path": str(asset_file),
                             "type": search_dir.name,
                             "size": stat.st_size,
                             "extension": asset_file.suffix.lower(),
+                            "format": None,
+                            "category": None,
                         }
 
                         # Detect format
