@@ -85,6 +85,38 @@ services:
     profiles:
       - services
 
+  # ElevenLabs Speech MCP Server
+  mcp-elevenlabs-speech:
+    build:
+      context: .
+      dockerfile: docker/elevenlabs.Dockerfile
+    container_name: mcp-elevenlabs-speech
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    ports:
+      - "8018:8018"
+    volumes:
+      - ./:/app:ro
+      - ./outputs/elevenlabs_speech:/output  # Bind mount to local outputs directory
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8018
+      - MCP_OUTPUT_DIR=/output
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
+      - ELEVENLABS_DEFAULT_MODEL=${ELEVENLABS_DEFAULT_MODEL:-eleven_multilingual_v2}
+      - ELEVENLABS_DEFAULT_VOICE=${ELEVENLABS_DEFAULT_VOICE:-Rachel}
+    networks:
+      - mcp-network
+    command: ["python", "-m", "tools.mcp.elevenlabs_speech.server", "--mode", "http"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8018/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    profiles:
+      - services
+
   # Blender MCP Server
   mcp-blender:
     build:
@@ -423,6 +455,7 @@ services:
       - mcp-crush
       - mcp-opencode
       - mcp-blender
+      - mcp-elevenlabs-speech
     profiles:
       - all
 

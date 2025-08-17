@@ -78,6 +78,21 @@ Generate memes with customizable text overlays:
 - Cultural context documentation
 - 7+ built-in templates with more being added
 
+#### 7. ElevenLabs Speech MCP Server
+**Location**: `tools/mcp/elevenlabs_speech/`
+**Transport**: STDIO (local) or HTTP (Port 8018)
+**Documentation**: [ElevenLabs MCP Documentation](../../tools/mcp/elevenlabs_speech/docs/README.md)
+
+Advanced text-to-speech synthesis with emotional control:
+- 14+ specialized synthesis tools
+- Multi-model support (v2 Pro plan, v3 future)
+- Audio tag support (emotions, pauses, sounds, effects)
+- Natural speech with hesitations and breathing
+- Emotional progression across narratives
+- Sound effect generation (up to 22 seconds)
+- Voice library with 10+ pre-configured voices
+- Automatic upload for sharing (0x0.st)
+
 ### Remote/Cross-Machine Servers (HTTP Transport)
 
 These servers use HTTP transport for remote machines or special hardware/software requirements:

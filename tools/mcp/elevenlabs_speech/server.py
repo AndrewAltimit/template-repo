@@ -41,7 +41,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         super().__init__(
             name="ElevenLabs Speech MCP Server",
             version="1.0.0",
-            port=8016,
+            port=8018,
         )
 
         self.logger = setup_logging("ElevenLabsSpeechMCP")
@@ -53,7 +53,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         # Initialize ElevenLabs client
         self.client = None
         if self.config.get("api_key"):
-            self.client = ElevenLabsClient(self.config["api_key"])
+            self.client = ElevenLabsClient(self.config["api_key"], project_root=self.project_root)
         else:
             self.logger.warning("No ElevenLabs API key configured")
 

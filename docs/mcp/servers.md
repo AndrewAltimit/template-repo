@@ -13,11 +13,12 @@ The MCP functionality is split across modular servers:
 4. **OpenCode MCP Server** - Containerized AI-powered code generation
 5. **Crush MCP Server** - Containerized fast code generation
 6. **Meme Generator MCP Server** - Containerized meme creation with visual feedback
+7. **ElevenLabs Speech MCP Server** - Containerized text-to-speech synthesis
 
 **HTTP Bridge Mode (Remote servers):**
-7. **Gaea2 MCP Server** (Port 8007) - Bridge to remote terrain generation
-8. **AI Toolkit MCP Server** (Port 8012) - Bridge to remote AI Toolkit for LoRA training
-9. **ComfyUI MCP Server** (Port 8013) - Bridge to remote ComfyUI for image generation
+8. **Gaea2 MCP Server** (Port 8007) - Bridge to remote terrain generation
+9. **AI Toolkit MCP Server** (Port 8012) - Bridge to remote AI Toolkit for LoRA training
+10. **ComfyUI MCP Server** (Port 8013) - Bridge to remote ComfyUI for image generation
 
 This modular architecture ensures better separation of concerns, easier maintenance, and the ability to scale individual services independently.
 
@@ -348,6 +349,66 @@ docker-compose logs -f mcp-meme-generator
 - **Text Auto-Resize**: Automatically adjusts font size to fit
 
 See `tools/mcp/meme_generator/docs/README.md` and `tools/mcp/meme_generator/docs/MEME_USAGE_GUIDE.md` for detailed documentation.
+
+## ElevenLabs Speech MCP Server
+
+The ElevenLabs Speech server provides advanced text-to-speech synthesis with emotional control, audio tags, and sound effects.
+
+### Starting the Server
+
+```bash
+# The server is configured in .mcp.json and runs automatically through Claude Desktop
+# It uses STDIO mode for seamless integration
+
+# For HTTP mode (testing/development):
+docker-compose up -d mcp-elevenlabs-speech
+
+# Or run locally
+python -m tools.mcp.elevenlabs_speech.server --mode http
+
+# View logs
+docker-compose logs -f mcp-elevenlabs-speech
+
+# Test health
+curl http://localhost:8018/health
+```
+
+### Available Tools
+
+- **synthesize_speech_v3** - Main synthesis with audio tag support
+  - Supports emotions, pauses, sounds, effects
+  - Model-aware processing (v2 vs v3)
+  - Automatic upload to 0x0.st
+- **synthesize_emotional** - Add emotional context with intensity control
+- **synthesize_dialogue** - Multi-character dialogue generation
+- **generate_sound_effect** - Create sound effects (up to 22 seconds)
+- **synthesize_natural_speech** - Natural speech with hesitations and breathing
+- **synthesize_emotional_progression** - Emotional transitions in narratives
+- **optimize_text_for_synthesis** - Improve text quality for synthesis
+- **list_available_voices** - List all available voices
+- **parse_audio_tags** - Parse and validate audio tags
+- **suggest_audio_tags** - Get tag suggestions for text
+
+### Features
+
+- **14+ Synthesis Tools**: Comprehensive speech generation capabilities
+- **Multi-Model Support**: v2 (Pro plan) and v3 (future compatibility)
+- **Audio Tag System**: Emotions, pauses, sounds, effects
+- **Voice Library**: 10+ pre-configured voices
+- **Local Caching**: Organized output structure
+- **Auto Upload**: Shareable URLs via 0x0.st
+- **Metadata Tracking**: Complete synthesis information in JSON
+
+### Configuration
+
+Add to `.env`:
+```bash
+ELEVENLABS_API_KEY=your_api_key_here
+ELEVENLABS_DEFAULT_MODEL=eleven_multilingual_v2
+ELEVENLABS_DEFAULT_VOICE=Rachel
+```
+
+See `tools/mcp/elevenlabs_speech/docs/README.md` for detailed documentation.
 
 ## Unified Testing
 

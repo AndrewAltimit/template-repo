@@ -1,6 +1,6 @@
 # MCP-Enabled Project Template
 
-A comprehensive development ecosystem with 7 AI agents, 10 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
+A comprehensive development ecosystem with 7 AI agents, 11 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
 
 ![MCP Demo](docs/mcp/architecture/demo.gif)
 
@@ -31,7 +31,7 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 
 ## Features
 
-- **10 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, and more
+- **11 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, speech synthesis, and more
 - **7 AI Agents** - Comprehensive development automation
 - **Gaea2 Terrain Generation** - Terrain generation
 - **Blender 3D Creation** - Full 3D content creation, rendering, and simulation
@@ -98,6 +98,7 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 │   │   ├── opencode/         # Code generation
 │   │   ├── crush/            # Code generation
 │   │   ├── meme_generator/   # Meme creation
+│   │   ├── elevenlabs_speech/# Speech synthesis
 │   │   ├── ai_toolkit/       # LoRA training bridge
 │   │   ├── comfyui/          # Image generation bridge
 │   │   └── core/             # Shared components
@@ -123,8 +124,9 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 6. **OpenCode** - Comprehensive code generation (STDIO mode via Claude)
 7. **Crush** - Fast code snippets (STDIO mode via Claude)
 8. **Meme Generator** - Create memes with templates
-9. **AI Toolkit** - LoRA training bridge (remote: 192.168.0.152:8012)
-10. **ComfyUI** - Image generation bridge (remote: 192.168.0.152:8013)
+9. **ElevenLabs Speech** - Advanced text-to-speech synthesis with emotional control
+10. **AI Toolkit** - LoRA training bridge (remote: 192.168.0.152:8012)
+11. **ComfyUI** - Image generation bridge (remote: 192.168.0.152:8013)
 
 ### Usage Modes
 
