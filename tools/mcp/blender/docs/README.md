@@ -4,6 +4,13 @@
 
 The Blender MCP Server provides comprehensive 3D content creation, rendering, and simulation capabilities through the Model Context Protocol. It enables programmatic control of Blender for creating scenes, rendering images/animations, physics simulations, and procedural generation.
 
+**Key Features:**
+- Blender 4.0+ compatibility with automatic engine name mapping
+- Path validation with support for both container and relative paths
+- Comprehensive error handling and job status tracking
+- GPU-accelerated rendering support
+- Fully containerized with Docker for consistency
+
 ## Architecture
 
 ### Hybrid Approach: FastAPI + Headless Blender
@@ -61,6 +68,60 @@ This design ensures:
 - Model import/export (FBX, OBJ, GLTF, STL, USD)
 - Texture management
 - Template library
+
+## Testing
+
+### Test Suite
+
+The server includes a comprehensive test suite with 20+ test cases covering:
+- Server initialization and tool registration
+- Path validation (valid and invalid cases)
+- Project creation with templates
+- Object manipulation and transformations
+- Material application and lighting
+- Rendering operations
+- Physics simulations
+- Animation creation and keyframes
+- Geometry nodes operations
+- Job management and async operations
+- Error handling and edge cases
+
+### Running Tests
+
+```bash
+# Run comprehensive test suite
+python tools/mcp/blender/tests/test_blender_comprehensive.py
+
+# Run simple functionality test
+python tools/mcp/blender/scripts/test_simple.py
+
+# Test with Docker
+docker-compose run --rm python-ci pytest tools/mcp/blender/tests/ -v
+```
+
+## Demo Projects
+
+The server includes a comprehensive demo creation system showcasing various capabilities:
+
+### Available Demos
+
+1. **Abstract Art Scene**: Procedural art with random geometric shapes and materials
+2. **Physics Simulation**: Domino effect with rigid body physics
+3. **Architectural Visualization**: Interior scene with realistic lighting
+4. **Animated Logo**: Motion graphics with glowing effects
+5. **Procedural Landscape**: Terrain generation using geometry nodes
+
+### Creating Demos
+
+```bash
+# Generate all demo projects
+python tools/mcp/blender/demos/create_demos.py
+
+# Demos will be created in the projects directory
+ls /app/projects/demo_*
+```
+
+Each demo showcases different aspects of the server's capabilities and serves as a reference for implementation patterns.
 
 ## Installation
 
@@ -599,7 +660,22 @@ deploy:
 
 ### Common Issues
 
-#### 1. Blender not found
+#### 1. Path Validation
+The server accepts both container paths (`/app/projects/...`) and relative paths. Responses return relative paths with `full_path` field for reference:
+```json
+{
+    "project_path": "my_scene.blend",
+    "full_path": "/app/projects/my_scene.blend"
+}
+```
+
+#### 2. Blender 4.0 Compatibility
+Engine names are automatically mapped for compatibility:
+- `EEVEE` → `BLENDER_EEVEE` (Blender 4.0+)
+- `WORKBENCH` → `BLENDER_WORKBENCH` (Blender 4.0+)
+- Backward compatibility is maintained
+
+#### 3. Blender not found
 ```bash
 # Check Blender installation
 docker exec mcp-blender blender --version
@@ -608,7 +684,7 @@ docker exec mcp-blender blender --version
 docker-compose build --no-cache mcp-blender
 ```
 
-#### 2. GPU not detected
+#### 4. GPU not detected
 ```bash
 # Check NVIDIA driver
 nvidia-smi
@@ -617,16 +693,31 @@ nvidia-smi
 docker run --rm --gpus all nvidia/cuda:12.1.1-base-ubuntu22.04 nvidia-smi
 ```
 
-#### 3. Rendering fails
+#### 5. Rendering fails
 - Check project file exists
 - Verify sufficient memory
 - Check render settings
 - Review Blender logs
 
-#### 4. Jobs stuck in QUEUED
+#### 6. Jobs stuck in QUEUED
 - Check server logs: `docker logs mcp-blender`
 - Verify Blender subprocess running
 - Check system resources
+
+#### 7. Known Limitations
+
+**Render Queue Processing:**
+- Renders may queue but not complete immediately
+- This is being investigated for async handling improvements
+- Workaround: Monitor job status and retry if needed
+
+**GPU Support:**
+- GPU rendering requires NVIDIA Container Toolkit
+- Enable with `--profile gpu` flag in docker-compose
+
+**HDRI Support:**
+- HDRI lighting requires asset files to be available
+- Place HDRI files in `/app/assets/hdri/` directory
 
 ### Debug Mode
 
@@ -640,6 +731,29 @@ View container logs:
 ```bash
 docker-compose logs -f mcp-blender
 ```
+
+## Performance Considerations
+
+### Resource Usage
+- **Async Operations**: All Blender operations run asynchronously
+- **Job Queue**: Supports multiple concurrent operations (max 4 by default)
+- **File I/O**: Optimized for container file system
+- **Memory Usage**: Each Blender process uses ~200-500MB RAM
+
+### Optimization Strategies
+1. Use appropriate render samples for quality vs speed
+2. Enable GPU acceleration when available
+3. Batch operations when possible
+4. Monitor job queues for optimal throughput
+
+## Security
+
+### Built-in Protections
+- **Path Traversal Protection**: Comprehensive validation prevents directory escape
+- **Input Validation**: All user inputs are validated before processing
+- **Process Isolation**: Each operation runs in isolated Blender process
+- **Container Security**: Runs as non-root user in Docker
+- **Resource Limits**: CPU and memory limits enforced via Docker
 
 ## Best Practices
 
@@ -697,13 +811,43 @@ blender_client.import_model({
 4. **Network isolation**: Isolated Docker network
 5. **Input validation**: All parameters validated
 
+## Future Enhancements
+
+### Planned Features
+
+1. **Advanced Rendering**:
+   - Render farm capabilities
+   - Support for render layers and compositing
+   - Progressive rendering with real-time status updates
+
+2. **Asset Management**:
+   - Texture library integration
+   - Model import/export pipeline improvements
+   - Material preset system
+
+3. **Workflow Automation**:
+   - Batch processing capabilities
+   - Template-based project generation
+   - Automated optimization tools
+
+4. **Integration Features**:
+   - WebSocket support for real-time updates
+   - Thumbnail generation for projects
+   - Version control for .blend files
+
+5. **Performance Optimization**:
+   - Render caching implementation
+   - Geometry node operation optimization
+   - LOD (Level of Detail) automation
+
 ## Support
 
 For issues or questions:
 1. Check the [troubleshooting section](#troubleshooting)
 2. Review server logs
-3. Open an issue on GitHub
-4. Contact the maintainer
+3. Run the test suite to verify functionality
+4. Try the demo projects for reference implementations
+5. Open an issue on GitHub
 
 ## License
 
