@@ -17,7 +17,6 @@ This prevents shell escaping issues and character corruption.
 import json
 import os
 import re
-import socket
 import sys
 import tempfile
 import urllib.error
@@ -27,54 +26,67 @@ from urllib.parse import urlparse
 
 
 def is_safe_url(url: str) -> Tuple[bool, str]:
-    """Check if a URL is safe from SSRF attacks.
+    """Check if a URL is safe from SSRF attacks using a whitelist approach.
+
+    To prevent DNS rebinding attacks, we use a strict whitelist of allowed
+    hostnames for reaction images rather than trying to validate IPs.
 
     Returns (is_safe, error_message)
     """
     try:
         parsed_url = urlparse(url)
         hostname = parsed_url.hostname
+        scheme = parsed_url.scheme
 
         if not hostname:
             return False, "Invalid URL: no hostname"
 
-        # Check for localhost references
-        if hostname.lower() in ["localhost", "localhost.localdomain"]:
-            return False, "URL points to localhost"
+        # Only allow HTTPS for security
+        if scheme != "https":
+            return False, f"Only HTTPS URLs are allowed, got: {scheme}"
 
-        # Resolve hostname to IP
-        try:
-            ip_address = socket.gethostbyname(hostname)
-        except socket.gaierror:
-            # Can't resolve hostname - might be temporary network issue
-            # We'll be lenient here but could be stricter
-            return True, ""
+        # Whitelist of allowed hostnames for reaction images
+        # This prevents DNS rebinding since we never resolve untrusted hostnames
+        ALLOWED_HOSTNAMES = [
+            "raw.githubusercontent.com",  # GitHub raw content
+            "github.com",  # GitHub main site
+            "user-images.githubusercontent.com",  # GitHub user images
+            "camo.githubusercontent.com",  # GitHub's image proxy
+        ]
 
-        # Check against private/reserved IP ranges
-        # IPv4 private ranges
-        if (
-            ip_address.startswith("127.")  # Loopback
-            or ip_address.startswith("10.")  # Private Class A
-            or ip_address.startswith("192.168.")  # Private Class C
-            or ip_address.startswith("169.254.")  # Link-local
-            or ip_address == "0.0.0.0"  # Invalid
-            or ip_address == "255.255.255.255"  # Broadcast
-        ):
-            return False, f"URL points to private/reserved IP: {ip_address}"
+        # Check if hostname is in our whitelist
+        hostname_lower = hostname.lower()
+        if hostname_lower not in ALLOWED_HOSTNAMES:
+            return False, f"Hostname not in whitelist: {hostname}"
 
-        # Check for private Class B (172.16.0.0 - 172.31.255.255)
-        if ip_address.startswith("172."):
-            second_octet = int(ip_address.split(".")[1])
-            if 16 <= second_octet <= 31:
-                return False, f"URL points to private IP: {ip_address}"
+        # Additional path validation for GitHub URLs
+        if hostname_lower == "raw.githubusercontent.com":
+            # Ensure it's a valid GitHub raw URL path
+            path = parsed_url.path
+            if not path:
+                return False, "Invalid GitHub raw URL: missing path"
 
-        # Check for AWS metadata endpoint
-        if ip_address == "169.254.169.254":
-            return False, "URL points to cloud metadata endpoint"
+            # Basic validation that it looks like a GitHub raw URL
+            # Format: /owner/repo/refs/heads/branch/path
+            path_parts = path.strip("/").split("/")
+            if len(path_parts) < 5:
+                return False, "Invalid GitHub raw URL format"
 
-        # Check for common Docker/Kubernetes service IPs
-        if ip_address.startswith("172.17.") or ip_address.startswith("10.0."):
-            return False, f"URL points to internal service IP: {ip_address}"
+            # Check that it's pointing to a reasonable file extension for images
+            if path_parts[-1]:
+                ext = path_parts[-1].split(".")[-1].lower() if "." in path_parts[-1] else ""
+                allowed_extensions = ["png", "jpg", "jpeg", "gif", "webp", "svg"]
+                if ext not in allowed_extensions:
+                    return False, f"Invalid image extension: {ext}"
+
+        # Reject any URL with numeric IP addresses (even in whitelist check above)
+        # This prevents bypasses like https://127.0.0.1 or https://192.168.1.1
+        if re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", hostname):
+            return False, "Direct IP addresses are not allowed"
+
+        # Reject IPv6 addresses
+        if ":" in hostname and "[" in hostname:
+            return False, "IPv6 addresses are not allowed"
 
         return True, ""
 
