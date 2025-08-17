@@ -15,11 +15,72 @@ This prevents shell escaping issues and character corruption.
 """
 
 import json
+import os
 import re
+import socket
 import sys
+import tempfile
 import urllib.error
 import urllib.request
 from typing import List, Tuple
+from urllib.parse import urlparse
+
+
+def is_safe_url(url: str) -> Tuple[bool, str]:
+    """Check if a URL is safe from SSRF attacks.
+
+    Returns (is_safe, error_message)
+    """
+    try:
+        parsed_url = urlparse(url)
+        hostname = parsed_url.hostname
+
+        if not hostname:
+            return False, "Invalid URL: no hostname"
+
+        # Check for localhost references
+        if hostname.lower() in ["localhost", "localhost.localdomain"]:
+            return False, "URL points to localhost"
+
+        # Resolve hostname to IP
+        try:
+            ip_address = socket.gethostbyname(hostname)
+        except socket.gaierror:
+            # Can't resolve hostname - might be temporary network issue
+            # We'll be lenient here but could be stricter
+            return True, ""
+
+        # Check against private/reserved IP ranges
+        # IPv4 private ranges
+        if (
+            ip_address.startswith("127.")  # Loopback
+            or ip_address.startswith("10.")  # Private Class A
+            or ip_address.startswith("192.168.")  # Private Class C
+            or ip_address.startswith("169.254.")  # Link-local
+            or ip_address == "0.0.0.0"  # Invalid
+            or ip_address == "255.255.255.255"  # Broadcast
+        ):
+            return False, f"URL points to private/reserved IP: {ip_address}"
+
+        # Check for private Class B (172.16.0.0 - 172.31.255.255)
+        if ip_address.startswith("172."):
+            second_octet = int(ip_address.split(".")[1])
+            if 16 <= second_octet <= 31:
+                return False, f"URL points to private IP: {ip_address}"
+
+        # Check for AWS metadata endpoint
+        if ip_address == "169.254.169.254":
+            return False, "URL points to cloud metadata endpoint"
+
+        # Check for common Docker/Kubernetes service IPs
+        if ip_address.startswith("172.17.") or ip_address.startswith("10.0."):
+            return False, f"URL points to internal service IP: {ip_address}"
+
+        return True, ""
+
+    except Exception as e:
+        # On any parsing error, reject the URL
+        return False, f"Error validating URL: {str(e)}"
 
 
 def extract_reaction_urls(text: str) -> List[Tuple[str, str]]:
@@ -53,6 +114,11 @@ def validate_reaction_url(url: str, timeout: int = 5) -> Tuple[bool, str]:
 
     Returns (is_valid, error_message)
     """
+    # First, check if the URL is safe from SSRF attacks
+    is_safe, safety_error = is_safe_url(url)
+    if not is_safe:
+        return False, f"Security violation: {safety_error}"
+
     try:
         # Create a HEAD request to check if the URL exists
         req = urllib.request.Request(url, method="HEAD")
@@ -86,8 +152,30 @@ def check_reaction_urls_in_file(filepath: str) -> List[Tuple[str, str]]:
     invalid_urls = []
 
     try:
+        # Security check: Ensure the file path is within allowed directories
+        # We allow temp directory and current working directory's temp files
+        temp_dir = os.path.realpath(tempfile.gettempdir())
+        cwd = os.path.realpath(os.getcwd())
+
+        # Resolve the filepath to prevent traversal attacks
+        resolved_path = os.path.realpath(filepath)
+
+        # Check if the resolved path is within allowed directories
+        allowed = False
+        if resolved_path.startswith(temp_dir):
+            allowed = True
+        elif resolved_path.startswith(cwd):
+            # Only allow if it's in a temp-like subdirectory of CWD
+            relative_path = os.path.relpath(resolved_path, cwd)
+            if relative_path.startswith("tmp") or relative_path.startswith(".tmp"):
+                allowed = True
+
+        if not allowed:
+            # Security violation - path traversal attempt or unauthorized location
+            return [(filepath, "Security violation: file path is outside allowed directories")]
+
         # Try to read the file that will be used
-        with open(filepath, "r") as f:
+        with open(resolved_path, "r") as f:
             content = f.read()
 
         # Extract and validate URLs
