@@ -43,15 +43,12 @@ COPY tools/mcp/core /app/core
 # Copy Blender MCP server
 COPY tools/mcp/blender /app/blender
 
-# Create non-root user for security
-# Create a non-root user with configurable UID/GID
+# Create non-root user, directories, and set permissions in one layer
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 RUN groupadd -g ${GROUP_ID} blender && \
-    useradd -m -u ${USER_ID} -g ${GROUP_ID} blender
-
-# Create necessary directories and set permissions
-RUN mkdir -p /app/projects /app/assets /app/outputs /app/temp /app/templates && \
+    useradd -m -u ${USER_ID} -g ${GROUP_ID} blender && \
+    mkdir -p /app/projects /app/assets /app/outputs /app/temp /app/templates && \
     chown -R blender:blender /app && \
     chmod -R 755 /app
 
