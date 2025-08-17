@@ -28,10 +28,11 @@ This design ensures:
 - Apply PBR materials and textures
 
 ### 🎬 Rendering
-- Single frame rendering (Cycles/Eevee)
+- Single frame rendering (Cycles/Eevee/Workbench)
 - Animation sequence rendering
 - GPU-accelerated rendering with NVIDIA CUDA
 - Multiple output formats (PNG, JPEG, EXR, MP4)
+- Blender 4.5.1 with latest features
 
 ### ⚛️ Physics Simulation
 - Rigid body dynamics

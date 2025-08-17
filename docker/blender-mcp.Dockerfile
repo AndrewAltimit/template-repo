@@ -4,7 +4,7 @@ FROM nvidia/cuda:12.1.1-base-ubuntu22.04
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
-ENV BLENDER_VERSION=4.0.2
+ENV BLENDER_VERSION=4.5.1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Download and install Blender
-RUN wget -q https://download.blender.org/release/Blender4.0/blender-${BLENDER_VERSION}-linux-x64.tar.xz \
+RUN wget -q https://download.blender.org/release/Blender4.5/blender-${BLENDER_VERSION}-linux-x64.tar.xz \
     && tar -xf blender-${BLENDER_VERSION}-linux-x64.tar.xz \
     && mv blender-${BLENDER_VERSION}-linux-x64 /opt/blender \
     && rm blender-${BLENDER_VERSION}-linux-x64.tar.xz \
