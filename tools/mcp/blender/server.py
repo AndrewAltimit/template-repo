@@ -54,9 +54,22 @@ class BlenderMCPServer(BaseMCPServer):
         jobs_output_dir = self.outputs_dir / "jobs"
         try:
             jobs_output_dir.mkdir(parents=True, exist_ok=True)
-        except PermissionError:
-            # If we can't create the jobs dir, use the outputs dir directly
-            logger.warning(f"Cannot create {jobs_output_dir}, using {self.outputs_dir} instead")
+        except PermissionError as e:
+            # Log detailed permission information to help debug volume mount issues
+            try:
+                parent_dir_stat = self.outputs_dir.stat()
+                logger.warning(
+                    f"Cannot create {jobs_output_dir} due to a permission error: {e}. "
+                    f"Parent directory '{self.outputs_dir}' has permissions: {oct(parent_dir_stat.st_mode)}. "
+                    f"Owner UID: {parent_dir_stat.st_uid}, GID: {parent_dir_stat.st_gid}. "
+                    f"Falling back to using the parent directory for output."
+                )
+            except Exception as stat_error:
+                logger.warning(
+                    f"Cannot create {jobs_output_dir} due to a permission error: {e}. "
+                    f"Failed to stat parent directory: {stat_error}. "
+                    f"Falling back to using {self.outputs_dir} instead."
+                )
             jobs_output_dir = self.outputs_dir
 
         self.blender_executor = BlenderExecutor(
