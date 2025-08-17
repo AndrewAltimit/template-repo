@@ -18,9 +18,6 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 COPY tools/mcp/elevenlabs_speech /app/tools/mcp/elevenlabs_speech
 COPY tools/mcp/core /app/tools/mcp/core
 
-# Create output directory
-RUN mkdir -p /app/outputs/elevenlabs_speech
-
 # Create non-root user for security
 RUN useradd -m -u 1000 mcp && \
     chown -R mcp:mcp /app

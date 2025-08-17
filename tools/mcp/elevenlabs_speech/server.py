@@ -50,10 +50,14 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         # Load configuration
         self.config = self._load_config()
 
+        # Get output directory from environment or use default
+        self.output_dir = Path(os.getenv("MCP_OUTPUT_DIR", self.project_root / "outputs" / "elevenlabs_speech"))
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
         # Initialize ElevenLabs client
         self.client = None
         if self.config.get("api_key"):
-            self.client = ElevenLabsClient(self.config["api_key"], project_root=self.project_root)
+            self.client = ElevenLabsClient(self.config["api_key"], project_root=self.project_root, output_dir=self.output_dir)
         else:
             self.logger.warning("No ElevenLabs API key configured")
 

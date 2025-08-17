@@ -22,13 +22,14 @@ class ElevenLabsClient:
     BASE_URL = "https://api.elevenlabs.io/v1"
     WS_URL = "wss://api.elevenlabs.io/v1/text-to-speech"
 
-    def __init__(self, api_key: Optional[str] = None, project_root: Optional[Path] = None):
+    def __init__(self, api_key: Optional[str] = None, project_root: Optional[Path] = None, output_dir: Optional[Path] = None):
         """
         Initialize ElevenLabs client
 
         Args:
             api_key: ElevenLabs API key (or from environment)
             project_root: Optional project root directory for outputs
+            output_dir: Optional specific output directory to use
         """
         self.api_key = api_key or os.getenv("ELEVENLABS_API_KEY")
         if not self.api_key:
@@ -36,8 +37,9 @@ class ElevenLabsClient:
 
         self.headers = {"xi-api-key": self.api_key, "Content-Type": "application/json"}
 
-        # Store project root for outputs
+        # Store project root and output directory
         self.project_root = project_root or Path.cwd()
+        self.output_dir = output_dir or self.project_root / "outputs" / "elevenlabs_speech"
 
         # Create HTTP client
         self.client = httpx.AsyncClient(headers=self.headers, timeout=httpx.Timeout(60.0))
@@ -344,8 +346,8 @@ class ElevenLabsClient:
 
         # Also save to outputs directory if requested
         if save_to_outputs:
-            # Use the configured project root
-            outputs_dir = self.project_root / "outputs" / "elevenlabs_speech"
+            # Use the configured output directory
+            outputs_dir = self.output_dir
             outputs_dir.mkdir(parents=True, exist_ok=True)
 
             # Organize by date
