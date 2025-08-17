@@ -17,6 +17,94 @@ This prevents shell escaping issues and character corruption.
 import json
 import re
 import sys
+import urllib.error
+import urllib.request
+from typing import List, Tuple
+
+
+def extract_reaction_urls(text: str) -> List[Tuple[str, str]]:
+    """Extract reaction image URLs from markdown text.
+
+    Returns list of tuples: (full_match, url)
+    """
+    urls = []
+
+    # Pattern to match reaction images
+    # Handles both escaped and unescaped versions
+    patterns = [
+        r"!\[([^\]]*)\]\((https?://[^)]+(?:reaction|Media)[^)]+)\)",
+        r"\\!\[([^\]]*)\]\((https?://[^)]+(?:reaction|Media)[^)]+)\)",
+    ]
+
+    for pattern in patterns:
+        matches = re.finditer(pattern, text, re.IGNORECASE)
+        for match in matches:
+            full_match = match.group(0)
+            url = match.group(2) if len(match.groups()) >= 2 else match.group(1)
+            # Clean up escaped quotes if present
+            url = url.replace('\\"', '"').replace("\\/", "/")
+            urls.append((full_match, url))
+
+    return urls
+
+
+def validate_reaction_url(url: str, timeout: int = 5) -> Tuple[bool, str]:
+    """Check if a reaction image URL exists.
+
+    Returns (is_valid, error_message)
+    """
+    try:
+        # Create a HEAD request to check if the URL exists
+        req = urllib.request.Request(url, method="HEAD")
+        req.add_header("User-Agent", "gh-comment-validator/1.0")
+
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            # Check if we got a successful response
+            if response.status == 200:
+                return True, ""
+            else:
+                return False, f"URL returned status {response.status}"
+
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return False, "Image not found (404)"
+        else:
+            return False, f"HTTP error {e.code}"
+    except urllib.error.URLError as e:
+        return False, f"URL error: {str(e)}"
+    except Exception as e:
+        # For any other errors, we'll be lenient and allow it
+        # (network might be down, etc.)
+        return True, f"Could not verify (network issue): {str(e)}"
+
+
+def check_reaction_urls_in_file(filepath: str) -> List[Tuple[str, str]]:
+    """Check reaction URLs in a file that will be used with --body-file.
+
+    Returns list of invalid URLs with error messages.
+    """
+    invalid_urls = []
+
+    try:
+        # Try to read the file that will be used
+        with open(filepath, "r") as f:
+            content = f.read()
+
+        # Extract and validate URLs
+        urls = extract_reaction_urls(content)
+        for full_match, url in urls:
+            is_valid, error = validate_reaction_url(url)
+            if not is_valid:
+                invalid_urls.append((url, error))
+
+    except FileNotFoundError:
+        # File doesn't exist yet (might be created later), skip validation
+        pass
+    except Exception:
+        # Any other error reading the file, skip validation
+        pass
+
+    return invalid_urls
 
 
 def main():
@@ -183,8 +271,49 @@ This preserves markdown formatting and prevents shell escaping issues.
 
     # Check for --body-file usage (the correct method)
     if re.search(r"--body-file\s+", command):
-        # This is the correct method, ensure the file was created with Write tool
-        # We can't check this directly, but we can allow it
+        # This is the correct method, but let's validate the reaction URLs
+        # Extract the filepath from the command
+        file_match = re.search(r"--body-file\s+([^\s]+)", command)
+        if file_match:
+            filepath = file_match.group(1)
+            # Remove quotes if present
+            filepath = filepath.strip('"').strip("'")
+
+            # Check reaction URLs in the file
+            invalid_urls = check_reaction_urls_in_file(filepath)
+
+            if invalid_urls:
+                # Build error message
+                error_lines = ["❌ Invalid reaction image URLs detected!"]
+                error_lines.append("")
+                for url, error in invalid_urls:
+                    error_lines.append(f"• {url}")
+                    error_lines.append(f"  Error: {error}")
+                    error_lines.append("")
+
+                error_lines.append("Please check that the reaction image URLs exist.")
+                error_lines.append("Available reactions: https://github.com/AndrewAltimit/Media/tree/main/reaction")
+                error_lines.append("")
+                error_lines.append("Common reaction images:")
+                error_lines.append("• teamwork.webp")
+                error_lines.append("• felix.webp")
+                error_lines.append("• miku_typing.webp")
+                error_lines.append("• confused.gif")
+                error_lines.append("• youre_absolutely_right.webp")
+
+                error_message = "\n".join(error_lines)
+
+                print(
+                    json.dumps(
+                        {
+                            "permissionDecision": "deny",
+                            "permissionDecisionReason": error_message,
+                        }
+                    )
+                )
+                return
+
+        # URLs are valid or couldn't be checked, allow the command
         print(json.dumps({"permissionDecision": "allow"}))
         return
 
