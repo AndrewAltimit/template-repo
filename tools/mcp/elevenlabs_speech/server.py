@@ -1,5 +1,6 @@
 """ElevenLabs Speech MCP Server"""
 
+import asyncio
 import json
 import os
 import sys
@@ -56,8 +57,11 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
 
         # Initialize ElevenLabs client
         self.client = None
+        self._voice_id_cache: Dict[str, str] = {}  # Cache for voice name to ID mapping
         if self.config.get("api_key"):
             self.client = ElevenLabsClient(self.config["api_key"], project_root=self.project_root, output_dir=self.output_dir)
+            # Initialize voice cache on startup
+            asyncio.create_task(self._initialize_voice_cache())
         else:
             self.logger.warning("No ElevenLabs API key configured")
 
@@ -387,11 +391,38 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         except Exception as e:
             return {"error": f"Failed to clear cache: {e}"}
 
+    async def _initialize_voice_cache(self):
+        """Initialize voice name to ID cache on startup"""
+        try:
+            if self.client:
+                voices = await self.client.get_voices()
+                for voice in voices:
+                    self._voice_id_cache[voice.get("name", "").lower()] = voice.get("voice_id")
+                self.logger.info(f"Cached {len(self._voice_id_cache)} voice mappings")
+        except Exception as e:
+            self.logger.warning(f"Could not initialize voice cache: {e}")
+
     def _get_default_voice_id(self) -> str:
         """Get default voice ID from name or return configured ID"""
-        # This would normally look up voice by name
-        # For now, return a default ID
-        return "JBFqnCBsd6RMkjVDRZzb"  # Rachel voice
+        default_voice_name = self.config["default_voice"].lower()
+
+        # Try to find voice ID from cache
+        if default_voice_name in self._voice_id_cache:
+            return self._voice_id_cache[default_voice_name]  # type: ignore[no-any-return]
+
+        # Fallback to known IDs
+        fallback_voices = {
+            "rachel": "21m00Tcm4TlvDq8ikWAM",
+            "clyde": "2EiwWnXFnvU5JabPnv8n",
+            "aria": "9BWtsMINqrJLrRacOk9x",
+            "roger": "CwhRBWXzGAHq8TQ4Fs17",
+        }
+
+        if default_voice_name in fallback_voices:
+            return fallback_voices[default_voice_name]
+
+        # Ultimate fallback
+        return "21m00Tcm4TlvDq8ikWAM"  # Rachel voice as default
 
     def _format_github_audio_comment(
         self, audio_url: str, duration: Optional[float] = None, tone: str = "professional"

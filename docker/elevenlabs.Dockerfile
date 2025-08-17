@@ -1,26 +1,38 @@
 # ElevenLabs Speech MCP Server Container
-FROM python:3.11-slim
+# Stage 1: Builder
+FROM python:3.11-slim as builder
 
-# Install system dependencies
+# Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+WORKDIR /build
+
+# Copy requirements and build wheels
+COPY docker/requirements/requirements-elevenlabs.txt .
+RUN pip wheel --no-cache-dir --wheel-dir=/build/wheels -r requirements-elevenlabs.txt
+
+# Stage 2: Final Image
+FROM python:3.11-slim
+
+# Create non-root user for security
+RUN useradd -m -u 1000 mcp
+
 WORKDIR /app
 
-# Copy requirements first for better caching
-COPY docker/requirements/requirements-elevenlabs.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+# Copy wheels from builder and install
+COPY --from=builder /build/wheels /build/wheels
+RUN pip install --no-cache-dir --no-index --find-links=/build/wheels /build/wheels/* && \
+    rm -rf /build/wheels
 
 # Copy the MCP server code
 COPY tools/mcp/elevenlabs_speech /app/tools/mcp/elevenlabs_speech
 COPY tools/mcp/core /app/tools/mcp/core
 
-# Create non-root user for security
-RUN useradd -m -u 1000 mcp && \
-    chown -R mcp:mcp /app
+# Set ownership to non-root user
+RUN chown -R mcp:mcp /app
 
 USER mcp
 
