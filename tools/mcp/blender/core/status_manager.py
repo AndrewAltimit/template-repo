@@ -53,24 +53,26 @@ class StatusManager:
             if status_file.exists():
                 try:
                     existing_data = json.loads(status_file.read_text())
-                except json.JSONDecodeError:
-                    logger.warning(f"Could not parse existing status file for {job_id}")
+                    if not isinstance(existing_data, dict):
+                        raise TypeError(f"Status data is not a dictionary: {type(existing_data)}")
+                except (json.JSONDecodeError, KeyError, TypeError) as e:
+                    logger.warning(f"Could not parse existing status file for {job_id}: {e}")
 
             # Build status data
-            status_data = {
+            status_data: Dict[str, Any] = {
                 "status": status,
                 "updated_at": datetime.now().isoformat(),
             }
 
-            # Add optional fields
+            # Add optional fields - keep native types for better API
             if progress is not None:
-                status_data["progress"] = str(progress)
+                status_data["progress"] = progress  # Keep as number
             if message:
                 status_data["message"] = message
             if error:
-                status_data["error"] = str(error)
+                status_data["error"] = error  # Keep as string/object
             if result:
-                status_data["result"] = str(result)
+                status_data["result"] = result  # Keep as object
             if output_path:
                 status_data["output_path"] = output_path
 
@@ -103,9 +105,11 @@ class StatusManager:
             status_file = self.output_dir / f"{job_id}.status"
             if status_file.exists():
                 data = json.loads(status_file.read_text())
+                if not isinstance(data, dict):
+                    raise TypeError(f"Status data is not a dictionary: {type(data)}")
                 return data  # type: ignore
             return None
-        except Exception as e:
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
             logger.error(f"Failed to get status for job {job_id}: {e}")
             return None
 
@@ -148,13 +152,16 @@ class StatusManager:
             for status_file in self.output_dir.glob("*.status"):
                 try:
                     data = json.loads(status_file.read_text())
+                    if not isinstance(data, dict):
+                        logger.warning(f"Invalid status file format {status_file}, skipping")
+                        continue
                     updated_at = data.get("updated_at", data.get("created_at"))
                     if updated_at:
                         update_time = datetime.fromisoformat(updated_at)
                         if update_time < cutoff_time:
                             status_file.unlink()
                             cleaned += 1
-                except Exception as e:
+                except (json.JSONDecodeError, KeyError, TypeError, ValueError) as e:
                     logger.warning(f"Could not process status file {status_file}: {e}")
 
             if cleaned > 0:

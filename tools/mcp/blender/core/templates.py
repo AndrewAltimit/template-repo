@@ -282,9 +282,11 @@ class TemplateManager:
         if template_file.exists():
             try:
                 data = json.loads(template_file.read_text())
+                if not isinstance(data, dict):
+                    raise TypeError(f"Template data is not a dictionary: {type(data)}")
                 return data  # type: ignore
-            except Exception as e:
-                logger.error(f"Failed to load template {template_id}: {e}")
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                logger.error(f"Failed to load or parse template {template_id}: {e}")
 
         return None
 

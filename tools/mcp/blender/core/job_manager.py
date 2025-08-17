@@ -253,15 +253,21 @@ class JobManager:
         if job_file.exists():
             try:
                 data = json.loads(job_file.read_text())
+                # Validate basic structure
+                if not isinstance(data, dict):
+                    raise TypeError(f"Job data is not a dictionary: {type(data)}")
                 return data  # type: ignore
-            except Exception as e:
-                logger.error(f"Failed to load job {job_id}: {e}")
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                logger.error(f"Failed to load or parse job {job_id}: {e}")
 
         # Also check for status file (from Blender process)
         status_file = self.jobs_dir / f"{job_id}.status"
         if status_file.exists():
             try:
                 status = json.loads(status_file.read_text())
+                # Validate status is a dictionary
+                if not isinstance(status, dict):
+                    raise TypeError(f"Status data is not a dictionary: {type(status)}")
                 # Create job from status
                 return {
                     "id": job_id,
@@ -273,8 +279,8 @@ class JobManager:
                     "created_at": datetime.now().isoformat(),
                     "updated_at": datetime.now().isoformat(),
                 }
-            except Exception as e:
-                logger.error(f"Failed to load status for {job_id}: {e}")
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                logger.error(f"Failed to load or parse status for {job_id}: {e}")
 
         return None
 
