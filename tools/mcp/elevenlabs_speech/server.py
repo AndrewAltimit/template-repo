@@ -1,6 +1,5 @@
 """ElevenLabs Speech MCP Server"""
 
-import asyncio
 import json
 import os
 import sys
@@ -33,7 +32,7 @@ from .models import (  # noqa: E402
 from .upload import upload_audio  # noqa: E402
 from .utils.model_aware_prompting import ModelAwarePrompter  # noqa: E402
 from .utils.prompting import EmotionalEnhancer, NaturalSpeechEnhancer, PromptOptimizer, VoiceDirector  # noqa: E402
-from .voice_registry import VOICE_IDS, get_voice_profile  # noqa: E402
+from .voice_registry import VOICE_IDS  # noqa: E402
 
 
 class ElevenLabsSpeechMCPServer(BaseMCPServer):
@@ -59,10 +58,9 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         # Initialize ElevenLabs client
         self.client = None
         self._voice_id_cache: Dict[str, str] = {}  # Cache for voice name to ID mapping
+        self._voice_cache_initialized = False
         if self.config.get("api_key"):
             self.client = ElevenLabsClient(self.config["api_key"], project_root=self.project_root, output_dir=self.output_dir)
-            # Initialize voice cache on startup
-            asyncio.create_task(self._initialize_voice_cache())
         else:
             self.logger.warning("No ElevenLabs API key configured")
 
@@ -132,6 +130,11 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         """
         if not self.client:
             return {"error": "ElevenLabs client not configured"}
+
+        # Initialize voice cache if not done yet
+        if not self._voice_cache_initialized:
+            await self._initialize_voice_cache()
+            self._voice_cache_initialized = True
 
         # Use defaults if not provided
         voice_id = voice_id or self._get_default_voice_id()
@@ -425,6 +428,8 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
             return self._voice_id_cache[default_voice_name]  # type: ignore[no-any-return]
 
         # Try the voice registry
+        from .voice_registry import get_voice_profile
+
         profile = get_voice_profile(self.config["default_voice"])
         if profile:
             return profile.voice_id

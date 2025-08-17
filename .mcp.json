@@ -134,8 +134,17 @@
       ]
     },
     "elevenlabs-speech": {
-      "command": "python3",
+      "command": "docker-compose",
       "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-elevenlabs-speech",
+        "python",
         "-m",
         "tools.mcp.elevenlabs_speech.server",
         "--mode",
