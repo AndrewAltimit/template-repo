@@ -486,13 +486,9 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         original_length = len(text)
 
         if optimization_level == "minimal":
-            optimized = PromptOptimizer.optimize_prompt(
-                text, add_pauses=False, enhance_emphasis=True, ensure_minimum_length=True
-            )
+            optimized = PromptOptimizer.optimize_prompt(text, add_pauses=False, enhance_emphasis=True)
         elif optimization_level == "moderate":
-            optimized = PromptOptimizer.optimize_prompt(
-                text, add_pauses=True, enhance_emphasis=True, ensure_minimum_length=True
-            )
+            optimized = PromptOptimizer.optimize_prompt(text, add_pauses=True, enhance_emphasis=True)
         else:  # full
             # Apply all optimizations
             optimized = PromptOptimizer.optimize_prompt(text)

@@ -35,7 +35,7 @@ class ElevenLabsClient:
         if not self.api_key:
             logger.warning("No ElevenLabs API key provided")
 
-        self.headers = {"xi-api-key": self.api_key, "Content-Type": "application/json"}
+        self.headers = {"xi-api-key": self.api_key or "", "Content-Type": "application/json"}
 
         # Store project root and output directory
         self.project_root = project_root or Path.cwd()
