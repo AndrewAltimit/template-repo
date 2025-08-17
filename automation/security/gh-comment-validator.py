@@ -15,6 +15,7 @@ This prevents shell escaping issues and character corruption.
 """
 
 import json
+import logging
 import os
 import re
 import sys
@@ -23,6 +24,9 @@ import urllib.error
 import urllib.request
 from typing import List, Tuple
 from urllib.parse import urlparse
+
+# Set up logging
+logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 
 
 def is_safe_url(url: str) -> Tuple[bool, str]:
@@ -153,6 +157,8 @@ def validate_reaction_url(url: str, timeout: int = 5) -> Tuple[bool, str]:
     except Exception as e:
         # For any other errors, we'll be lenient and allow it
         # (network might be down, etc.)
+        # Log the issue for visibility without failing the check
+        logging.warning(f"Could not verify URL {url}: {e}")
         return True, f"Could not verify (network issue): {str(e)}"
 
 
