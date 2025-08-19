@@ -5,13 +5,15 @@
 FROM node:20-slim
 
 # Define version arguments for better maintainability
-ARG GO_VERSION=1.24.5
-ARG GO_CHECKSUM_AMD64=10ad9e86233e74c0f6590fe5426895de6bf388964210eac34a6d83f38918ecdc
-ARG GO_CHECKSUM_ARM64=44e2d8b8e1b24a87dcab8c0bbf673cfcf92dc2ac0b3094df48b5c7fdb670cd5e
-ARG OPENCODE_VERSION=0.3.112
-ARG OPENCODE_CHECKSUM_AMD64=ce02926bbe94ca91c5a46e97565e3f8d275f1a6c2fd3352f7f99f558f6b60e09
-ARG OPENCODE_CHECKSUM_ARM64=6ceae43795a62b572866e50d30d99e266889b6aeae1da058aab34041cc5d49d8
-# Crush doesn't have stable releases yet, using latest
+ARG GO_VERSION=1.25.0
+ARG GO_CHECKSUM_AMD64=2852af0cb20a13139b3448992e69b868e50ed0f8a1e5940ee1de9e19a123b613
+ARG GO_CHECKSUM_ARM64=05de75d6994a2783699815ee553bd5a9327d8b79991de36e38b66862782f54ae
+ARG OPENCODE_VERSION=0.5.7
+ARG OPENCODE_CHECKSUM_AMD64=4850ccbda4ab9de82fe1bd22b5b0f5704a36e36f0d532ed1d35b40293bde27da
+ARG OPENCODE_CHECKSUM_ARM64=356bf8981172cc9806f2d393a068dff33812da917d6f7879aa3c3d2d7823ed6f
+ARG CRUSH_VERSION=0.6.3
+ARG CRUSH_CHECKSUM_AMD64=847d60dc567f43ed9115b10b5ad374fb58d120dbc7432658a7bd3633bfedfbd4
+ARG CRUSH_CHECKSUM_ARM64=94bd6600a975d318cffebce2c030fe29eee13d00ece1a6e8bb1428f7eba73b80
 
 # Install Python 3.11 and all system dependencies in one layer
 RUN apt-get update && apt-get install -y \
@@ -24,6 +26,7 @@ RUN apt-get update && apt-get install -y \
     jq \
     build-essential \
     unzip \
+    tar \
     && rm -rf /var/lib/apt/lists/*
 
 # Create symbolic links for Python
@@ -62,7 +65,6 @@ RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | 
 
 # Install OpenCode from GitHub releases
 # SECURITY: We verify checksums to ensure binary integrity
-# Checksums calculated on 2025-08-03 for v0.3.112 release
 RUN ARCH=$(dpkg --print-architecture) && \
     if [ "$ARCH" = "amd64" ]; then \
         ARCH="x64"; \
@@ -78,10 +80,22 @@ RUN ARCH=$(dpkg --print-architecture) && \
     chmod +x /usr/local/bin/opencode
 
 
-# Install Crush from Charm Bracelet - AI-powered shell
+# Install Crush from pre-built binaries - AI-powered shell
 # Crush is an AI-powered shell assistant from Charm Bracelet
-ENV GOBIN=/usr/local/bin
-RUN go install github.com/charmbracelet/crush@latest
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "amd64" ]; then \
+        ARCH="x86_64"; \
+        CHECKSUM="${CRUSH_CHECKSUM_AMD64}"; \
+    elif [ "$ARCH" = "arm64" ]; then \
+        ARCH="arm64"; \
+        CHECKSUM="${CRUSH_CHECKSUM_ARM64}"; \
+    fi && \
+    wget -q "https://github.com/charmbracelet/crush/releases/download/v${CRUSH_VERSION}/crush_${CRUSH_VERSION}_Linux_${ARCH}.tar.gz" -O /tmp/crush.tar.gz && \
+    echo "${CHECKSUM}  /tmp/crush.tar.gz" | sha256sum -c - && \
+    tar -xzf /tmp/crush.tar.gz -C /tmp && \
+    mv "/tmp/crush_${CRUSH_VERSION}_Linux_${ARCH}/crush" /usr/local/bin/crush && \
+    rm -rf "/tmp/crush_${CRUSH_VERSION}_Linux_${ARCH}" /tmp/crush.tar.gz && \
+    chmod +x /usr/local/bin/crush
 
 # Create working directory
 WORKDIR /workspace

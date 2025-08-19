@@ -34,8 +34,8 @@ RUN ARCH=$(dpkg --print-architecture) && \
     wget -q "https://github.com/charmbracelet/crush/releases/download/v${CRUSH_VERSION}/crush_${CRUSH_VERSION}_Linux_${ARCH}.tar.gz" -O /tmp/crush.tar.gz && \
     echo "${CHECKSUM}  /tmp/crush.tar.gz" | sha256sum -c - && \
     tar -xzf /tmp/crush.tar.gz -C /tmp && \
-    mv /tmp/crush_${CRUSH_VERSION}_Linux_${ARCH}/crush /usr/local/bin/crush && \
-    rm -rf /tmp/crush* && \
+    mv "/tmp/crush_${CRUSH_VERSION}_Linux_${ARCH}/crush" /usr/local/bin/crush && \
+    rm -rf "/tmp/crush_${CRUSH_VERSION}_Linux_${ARCH}" /tmp/crush.tar.gz && \
     chmod +x /usr/local/bin/crush
 
 # Install Python MCP dependencies
