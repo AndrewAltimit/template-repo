@@ -353,10 +353,14 @@ services:
       - agents
 
   # OpenRouter Agents container (OpenCode, Crush)
+  # NOTE: Requires mcp-opencode and mcp-crush images to be built first
   openrouter-agents:
     build:
       context: .
       dockerfile: docker/openrouter-agents.Dockerfile
+      args:
+        OPENCODE_IMAGE: template-repo-mcp-opencode:latest
+        CRUSH_IMAGE: template-repo-mcp-crush:latest
     container_name: openrouter-agents
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:

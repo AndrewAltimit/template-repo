@@ -1,16 +1,18 @@
-# OpenRouter Agents Image with Node.js and Go
+# OpenRouter Agents Image with Node.js
 # For agents that can be fully containerized (OpenCode, Crush)
+
+# Build arguments for source images (must be built first)
+ARG OPENCODE_IMAGE=template-repo-mcp-opencode:latest
+ARG CRUSH_IMAGE=template-repo-mcp-crush:latest
+
+# Build stages to copy binaries from the dedicated images
+FROM ${OPENCODE_IMAGE} AS opencode-source
+FROM ${CRUSH_IMAGE} AS crush-source
 
 # Use a base image that already has Node.js
 FROM node:20-slim
 
-# Define version arguments for better maintainability
-ARG OPENCODE_VERSION=0.5.7
-ARG OPENCODE_CHECKSUM_AMD64=4850ccbda4ab9de82fe1bd22b5b0f5704a36e36f0d532ed1d35b40293bde27da
-ARG OPENCODE_CHECKSUM_ARM64=356bf8981172cc9806f2d393a068dff33812da917d6f7879aa3c3d2d7823ed6f
-ARG CRUSH_VERSION=0.6.3
-ARG CRUSH_CHECKSUM_AMD64=847d60dc567f43ed9115b10b5ad374fb58d120dbc7432658a7bd3633bfedfbd4
-ARG CRUSH_CHECKSUM_ARM64=94bd6600a975d318cffebce2c030fe29eee13d00ece1a6e8bb1428f7eba73b80
+# No need for version arguments - binaries come from the source images
 
 # Install Python 3.11 and all system dependencies in one layer
 RUN apt-get update && apt-get install -y \
@@ -40,44 +42,13 @@ RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | 
     && apt-get install -y gh \
     && rm -rf /var/lib/apt/lists/*
 
-# Install OpenRouter-compatible CLI tools
+# Copy pre-built binaries from their respective images
+# This ensures single source of truth for installation logic
+COPY --from=opencode-source /usr/local/bin/opencode /usr/local/bin/opencode
+COPY --from=crush-source /usr/local/bin/crush /usr/local/bin/crush
 
-# Support multiple architectures using Docker's built-in TARGETARCH variable
-ARG TARGETARCH=amd64
-
-# Install OpenCode from GitHub releases
-# SECURITY: We verify checksums to ensure binary integrity
-RUN ARCH=$(dpkg --print-architecture) && \
-    if [ "$ARCH" = "amd64" ]; then \
-        ARCH="x64"; \
-        CHECKSUM="${OPENCODE_CHECKSUM_AMD64}"; \
-    elif [ "$ARCH" = "arm64" ]; then \
-        ARCH="arm64"; \
-        CHECKSUM="${OPENCODE_CHECKSUM_ARM64}"; \
-    fi && \
-    wget -q "https://github.com/sst/opencode/releases/download/v${OPENCODE_VERSION}/opencode-linux-${ARCH}.zip" -O /tmp/opencode.zip && \
-    echo "${CHECKSUM}  /tmp/opencode.zip" | sha256sum -c - && \
-    unzip -q /tmp/opencode.zip -d /usr/local/bin/ && \
-    rm /tmp/opencode.zip && \
-    chmod +x /usr/local/bin/opencode
-
-
-# Install Crush from pre-built binaries - AI-powered shell
-# Crush is an AI-powered shell assistant from Charm Bracelet
-RUN ARCH=$(dpkg --print-architecture) && \
-    if [ "$ARCH" = "amd64" ]; then \
-        ARCH="x86_64"; \
-        CHECKSUM="${CRUSH_CHECKSUM_AMD64}"; \
-    elif [ "$ARCH" = "arm64" ]; then \
-        ARCH="arm64"; \
-        CHECKSUM="${CRUSH_CHECKSUM_ARM64}"; \
-    fi && \
-    wget -q "https://github.com/charmbracelet/crush/releases/download/v${CRUSH_VERSION}/crush_${CRUSH_VERSION}_Linux_${ARCH}.tar.gz" -O /tmp/crush.tar.gz && \
-    echo "${CHECKSUM}  /tmp/crush.tar.gz" | sha256sum -c - && \
-    tar -xzf /tmp/crush.tar.gz -C /tmp && \
-    mv "/tmp/crush_${CRUSH_VERSION}_Linux_${ARCH}/crush" /usr/local/bin/crush && \
-    chmod +x /usr/local/bin/crush && \
-    rm -rf "/tmp/crush_${CRUSH_VERSION}_Linux_${ARCH}" /tmp/crush.tar.gz
+# Ensure binaries have correct permissions
+RUN chmod +x /usr/local/bin/opencode /usr/local/bin/crush
 
 # Create working directory
 WORKDIR /workspace
