@@ -5,9 +5,6 @@
 FROM node:20-slim
 
 # Define version arguments for better maintainability
-ARG GO_VERSION=1.25.0
-ARG GO_CHECKSUM_AMD64=2852af0cb20a13139b3448992e69b868e50ed0f8a1e5940ee1de9e19a123b613
-ARG GO_CHECKSUM_ARM64=05de75d6994a2783699815ee553bd5a9327d8b79991de36e38b66862782f54ae
 ARG OPENCODE_VERSION=0.5.7
 ARG OPENCODE_CHECKSUM_AMD64=4850ccbda4ab9de82fe1bd22b5b0f5704a36e36f0d532ed1d35b40293bde27da
 ARG OPENCODE_CHECKSUM_ARM64=356bf8981172cc9806f2d393a068dff33812da917d6f7879aa3c3d2d7823ed6f
@@ -24,7 +21,6 @@ RUN apt-get update && apt-get install -y \
     curl \
     wget \
     jq \
-    build-essential \
     unzip \
     tar \
     && rm -rf /var/lib/apt/lists/*
@@ -36,23 +32,6 @@ RUN ln -sf /usr/bin/python3.11 /usr/bin/python \
 # Use the existing node user (UID 1000) from the base image
 # This avoids UID conflicts and maintains consistency
 
-# Install Go in a separate layer (large download)
-# Checksum from https://go.dev/dl/
-# Support multiple architectures using Docker's built-in TARGETARCH variable
-ARG TARGETARCH=amd64
-RUN wget -q https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz && \
-    if [ "${TARGETARCH}" = "amd64" ]; then \
-        echo "${GO_CHECKSUM_AMD64}  go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" | sha256sum -c -; \
-    elif [ "${TARGETARCH}" = "arm64" ]; then \
-        echo "${GO_CHECKSUM_ARM64}  go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" | sha256sum -c -; \
-    fi && \
-    tar -C /usr/local -xzf go${GO_VERSION}.linux-${TARGETARCH}.tar.gz && \
-    rm go${GO_VERSION}.linux-${TARGETARCH}.tar.gz
-
-# Set Go environment variables
-ENV PATH="/usr/local/go/bin:/home/node/go/bin:${PATH}"
-ENV GOPATH="/home/node/go"
-
 # Install GitHub CLI (for agent operations) - using official method
 RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | tee /usr/share/keyrings/githubcli-archive-keyring.gpg > /dev/null \
     && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
@@ -62,6 +41,9 @@ RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | 
     && rm -rf /var/lib/apt/lists/*
 
 # Install OpenRouter-compatible CLI tools
+
+# Support multiple architectures using Docker's built-in TARGETARCH variable
+ARG TARGETARCH=amd64
 
 # Install OpenCode from GitHub releases
 # SECURITY: We verify checksums to ensure binary integrity
