@@ -103,7 +103,22 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 │   │   ├── comfyui/          # Image generation interface
 │   │   └── core/             # Shared components
 │   └── cli/                  # Command-line tools
+│       ├── agents/           # Agent runner scripts
+│       │   ├── run_claude.sh         # Interactive Claude session
+│       │   ├── run_opencode.sh       # OpenCode CLI runner
+│       │   ├── run_crush.sh          # Crush CLI runner
+│       │   └── run_gemini.sh         # Gemini CLI runner
+│       └── utilities/        # Other CLI utilities
 ├── automation/               # CI/CD and automation scripts
+│   ├── analysis/             # Code and project analysis tools
+│   ├── ci-cd/                # CI/CD pipeline scripts
+│   ├── launchers/            # Service launcher scripts
+│   ├── monitoring/           # Service and PR monitoring
+│   ├── review/               # Code review automation
+│   ├── scripts/              # Utility scripts
+│   ├── security/             # Security and validation
+│   ├── setup/                # Setup and installation scripts
+│   └── testing/              # Testing utilities
 ├── tests/                    # Test files
 ├── docs/                     # Documentation
 ├── config/                   # Configuration files
