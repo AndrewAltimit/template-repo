@@ -7,7 +7,7 @@ The MCP Core module provides shared base classes and utilities for building Mode
 The MCP Core module consists of four main components:
 
 1. **BaseMCPServer**: Abstract base class for all MCP servers
-2. **HTTPBridge**: HTTP bridge for forwarding requests to remote MCP servers
+2. **HTTPProxy**: HTTP proxy for forwarding requests to remote MCP servers
 3. **ClientRegistry**: Client registration and management (currently disabled for home lab use)
 4. **Utilities**: Common utility functions for logging, configuration, and environment management
 
@@ -68,9 +68,9 @@ class MyMCPServer(BaseMCPServer):
         return {"result": f"Processed: {input}"}
 ```
 
-### HTTPBridge
+### HTTPProxy
 
-The `HTTPBridge` class enables forwarding MCP requests to remote servers:
+The `HTTPProxy` class enables forwarding MCP requests to remote servers:
 
 - **Remote server proxying**: Forward requests to MCP servers on different hosts
 - **CORS support**: Enable cross-origin requests
@@ -86,11 +86,11 @@ The `HTTPBridge` class enables forwarding MCP requests to remote servers:
 
 **Usage Example:**
 ```python
-from tools.mcp.core import HTTPBridge
+from tools.mcp.core import HTTPProxy
 import uvicorn
 
-# Create bridge to remote MCP server
-bridge = HTTPBridge(
+# Create proxy to remote MCP server
+proxy = HTTPProxy(
     service_name="Remote Gaea2",
     remote_url="http://192.168.0.152:8007",
     port=8080,
@@ -98,9 +98,9 @@ bridge = HTTPBridge(
     enable_cors=True
 )
 
-# Run the bridge
+# Run the proxy
 if __name__ == "__main__":
-    uvicorn.run(bridge.app, host="0.0.0.0", port=bridge.port)
+    uvicorn.run(proxy.app, host="0.0.0.0", port=proxy.port)
 ```
 
 ### ClientRegistry (Currently Disabled)
@@ -193,8 +193,8 @@ else:
     print("Running on host")
 ```
 
-#### create_bridge_from_env(service_name: str, default_port: int = 8191) -> HTTPBridge
-Create an HTTP bridge using environment variables for configuration.
+#### create_proxy_from_env(service_name: str, default_port: int = 8191) -> HTTPProxy
+Create an HTTP proxy using environment variables for configuration.
 
 **Environment Variables:**
 - `REMOTE_MCP_URL`: Remote MCP server URL
@@ -203,14 +203,14 @@ Create an HTTP bridge using environment variables for configuration.
 
 **Example:**
 ```python
-from tools.mcp.core.http_bridge import create_bridge_from_env
+from tools.mcp.core.http_proxy import create_proxy_from_env
 
-# Create bridge using environment variables
-bridge = create_bridge_from_env("MyService", default_port=8080)
-bridge.run()
+# Create proxy using environment variables
+proxy = create_proxy_from_env("MyService", default_port=8080)
+proxy.run()
 ```
 
-**Note**: The core module exports only the most commonly used components: `BaseMCPServer`, `HTTPBridge`, `setup_logging`, and `validate_environment`. Other utilities like `ensure_directory`, `load_config`, and `check_container_environment` must be imported directly from `tools.mcp.core.utils`.
+**Note**: The core module exports only the most commonly used components: `BaseMCPServer`, `HTTPProxy`, `setup_logging`, and `validate_environment`. Other utilities like `ensure_directory`, `load_config`, and `check_container_environment` must be imported directly from `tools.mcp.core.utils`.
 
 ## Creating a New MCP Server
 
@@ -445,7 +445,7 @@ Common environment variables used by MCP servers:
 - `MCP_TIMEOUT`: Default timeout for operations
 - `MCP_MAX_RETRIES`: Maximum retry attempts
 
-For HTTPBridge:
+For HTTPProxy:
 - `REMOTE_MCP_URL`: Remote MCP server URL
 - `TIMEOUT`: Request timeout in seconds
 - `PORT`: Port to listen on

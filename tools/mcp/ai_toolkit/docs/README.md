@@ -4,7 +4,7 @@ The AI Toolkit MCP Server provides a Model Context Protocol interface for managi
 
 ## Overview
 
-This MCP server acts as a bridge to a remote AI Toolkit instance running on `192.168.0.152:8012`. It provides tools for:
+This MCP server provides an interface to a remote AI Toolkit instance running on `192.168.0.152:8012`. It provides tools for:
 
 - Creating and managing training configurations
 - Uploading and managing datasets
@@ -14,7 +14,7 @@ This MCP server acts as a bridge to a remote AI Toolkit instance running on `192
 
 ## Architecture
 
-The server follows a bridge pattern:
+The server follows a proxy pattern:
 1. Local MCP server runs on port 8012
 2. Forwards requests to remote AI Toolkit at `192.168.0.152:8012`
 3. Handles authentication and error handling
@@ -204,7 +204,7 @@ python tools/mcp/ai_toolkit/scripts/test_server.py
 
 ## Docker Support
 
-The AI Toolkit MCP server can run as a bridge in a container:
+The AI Toolkit MCP server can run as a proxy in a container:
 
 ```yaml
 # docker-compose.yml

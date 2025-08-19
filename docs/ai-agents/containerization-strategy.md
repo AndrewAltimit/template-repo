@@ -80,7 +80,7 @@ docker-compose --profile agents run --rm openrouter-agents \
 ```
 
 #### Option 3: Future Enhancement
-A potential solution would be to create a bridge service that:
+A potential solution would be to create a proxy service that:
 1. Runs on the host with Claude credentials
 2. Proxies requests to containerized agents when needed
 3. Handles the authentication handoff

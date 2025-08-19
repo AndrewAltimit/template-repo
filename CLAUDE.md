@@ -312,7 +312,7 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - **LoRA Training Management**:
      - Training configurations, dataset uploads, job monitoring
      - Model export and download capabilities
-   - Bridge to remote AI Toolkit instance at `192.168.0.152:8012`
+   - Connects to remote AI Toolkit instance at `192.168.0.152:8012`
    - See `tools/mcp/ai_toolkit/docs/README.md` for documentation
 
 6. **ComfyUI MCP Server** (`tools/mcp/comfyui/`): HTTP port 8013 (remote GPU machine)
@@ -320,7 +320,7 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
      - Image generation with workflows
      - LoRA model management and transfer
      - Custom workflow execution
-   - Bridge to remote ComfyUI instance at `192.168.0.152:8013`
+   - Connects to remote ComfyUI instance at `192.168.0.152:8013`
    - See `tools/mcp/comfyui/docs/README.md` for documentation
 
 7. **OpenCode MCP Server** (`tools/mcp/opencode/`): STDIO (local) or HTTP port 8014
@@ -345,7 +345,7 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
 
 9. **Shared Core Components** (`tools/mcp/core/`):
    - `BaseMCPServer` - Base class for all MCP servers
-   - `HTTPBridge` - Bridge for remote MCP servers
+   - `HTTPProxy` - HTTP proxy for remote MCP servers
    - Common utilities and helpers
 
 10. **Containerized CI/CD**:
@@ -572,7 +572,7 @@ For detailed information on specific topics, refer to these documentation files:
 
 ## AI Toolkit & ComfyUI Integration
 
-The AI Toolkit and ComfyUI MCP servers provide bridges to remote instances for LoRA training and image generation. Key points:
+The AI Toolkit and ComfyUI MCP servers provide interfaces to remote instances for LoRA training and image generation. Key points:
 
 - **Dataset Paths**: Use absolute paths starting with `/ai-toolkit/datasets/`
 - **Chunked Upload**: Required for files >100MB

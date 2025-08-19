@@ -97,7 +97,7 @@ Available agents: [list of configured agents]
 
 We're exploring options to:
 1. Create a hybrid execution model where host agents can delegate to containerized agents
-2. Implement a proxy service to bridge host and container agents
+2. Implement a proxy service to connect host and container agents
 3. Add more authentication methods for Claude to enable containerization
 
 For now, choose the appropriate execution environment based on which agents you need.

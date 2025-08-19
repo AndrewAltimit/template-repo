@@ -1,7 +1,7 @@
 """Core utilities and base classes for MCP servers"""
 
 from .base_server import BaseMCPServer
-from .http_bridge import HTTPBridge
+from .http_proxy import HTTPProxy
 from .utils import setup_logging, validate_environment
 
 # MCPClient is optional - only import if requests is available
@@ -12,10 +12,10 @@ try:
     __all__ = [
         "BaseMCPServer",
         "MCPClient",
-        "HTTPBridge",
+        "HTTPProxy",
         "setup_logging",
         "validate_environment",
     ]
 except ImportError:
     # Client not available (likely running in server container without requests)
-    __all__ = ["BaseMCPServer", "HTTPBridge", "setup_logging", "validate_environment"]
+    __all__ = ["BaseMCPServer", "HTTPProxy", "setup_logging", "validate_environment"]

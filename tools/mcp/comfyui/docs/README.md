@@ -4,7 +4,7 @@ The ComfyUI MCP Server provides a Model Context Protocol interface for AI image 
 
 ## Overview
 
-This MCP server acts as a bridge to a remote ComfyUI instance running on `192.168.0.152:8013`. It provides tools for:
+This MCP server provides an interface to a remote ComfyUI instance running on `192.168.0.152:8013`. It provides tools for:
 
 - Generating images with various workflows
 - Managing LoRA and checkpoint models
@@ -13,7 +13,7 @@ This MCP server acts as a bridge to a remote ComfyUI instance running on `192.16
 
 ## Architecture
 
-The server follows a bridge pattern:
+The server follows a proxy pattern:
 1. Local MCP server runs on port 8013
 2. Forwards requests to remote ComfyUI at `192.168.0.152:8013`
 3. Handles large file transfers with chunking

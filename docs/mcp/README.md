@@ -194,7 +194,7 @@ All MCP servers are configured in the `.mcp.json` file at the project root.
 tools/mcp/
 ├── core/                    # Shared utilities and base classes
 │   ├── base_server.py      # Base MCP server class
-│   ├── http_bridge.py      # HTTP bridge for remote servers
+│   ├── http_proxy.py       # HTTP proxy for remote servers
 │   ├── client_registry.py  # Client registry management
 │   └── utils.py            # Common utilities
 │
@@ -276,7 +276,7 @@ Add the desired servers to your Claude Desktop configuration:
 }
 ```
 
-**Note**: AI Toolkit and ComfyUI servers are bridges to remote services and typically run in HTTP mode.
+**Note**: AI Toolkit and ComfyUI servers connect to remote services and typically run in HTTP mode.
 
 ## Docker Support
 
@@ -331,7 +331,7 @@ services:
 
   # Note: Gemini must run on host (Docker access required)
   # Note: Gaea2 CLI features require Windows host
-  # Note: AI Toolkit and ComfyUI are bridges to remote services
+  # Note: AI Toolkit and ComfyUI connect to remote services
 ```
 
 ## Development
@@ -370,7 +370,7 @@ python automation/testing/test_all_servers.py
 - Crush (via Docker Compose)
 - Meme Generator (via Docker Compose)
 
-**HTTP Bridge Mode (Remote servers):**
+**HTTP Mode (Remote servers):**
 - Gaea2: 8007 (remote at 192.168.0.152)
 - AI Toolkit: 8012 (remote at 192.168.0.152)
 - ComfyUI: 8013 (remote at 192.168.0.152)
@@ -385,7 +385,7 @@ python automation/testing/test_all_servers.py
 ### Container Restrictions
 - **Gemini**: Cannot run in container (needs Docker access)
 - **Gaea2 CLI**: Requires Windows host with Gaea2 installed
-- **AI Toolkit/ComfyUI**: Bridges to remote services, require network access
+- **AI Toolkit/ComfyUI**: Connect to remote services, require network access
 - **OpenCode/Crush**: Can run in STDIO mode locally or HTTP mode in containers
 
 ### Missing Dependencies

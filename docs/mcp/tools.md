@@ -36,8 +36,8 @@ The MCP functionality is distributed across specialized servers:
 3. **Gemini MCP Server** - AI consultation (STDIO mode, host-only)
 4. **Gaea2 MCP Server** (Port 8007) - Terrain generation
 5. **Blender MCP Server** (Port 8017) - 3D content creation and rendering
-6. **AI Toolkit MCP Server** (Port 8012) - LoRA training bridge
-7. **ComfyUI MCP Server** (Port 8013) - Image generation bridge
+6. **AI Toolkit MCP Server** (Port 8012) - LoRA training interface
+7. **ComfyUI MCP Server** (Port 8013) - Image generation interface
 8. **OpenCode MCP Server** - AI code generation (STDIO mode)
 9. **Crush MCP Server** - Fast code generation (STDIO mode)
 10. **Meme Generator MCP Server** - Meme creation (STDIO mode)
@@ -106,10 +106,10 @@ Servers running in STDIO mode communicate through standard input/output using th
 | Code Quality | STDIO (Docker) | 8010 | Code formatting and linting |
 | Content Creation | STDIO (Docker) | 8011 | Manim animations and LaTeX |
 | Gemini | STDIO (Host) | 8006 | AI consultation (must run on host) |
-| Gaea2 | HTTP (Bridge) | 8007 | Terrain generation (remote server) |
+| Gaea2 | HTTP (Remote) | 8007 | Terrain generation (remote server) |
 | Blender | HTTP (Docker) | 8017 | 3D content creation, rendering, physics |
-| AI Toolkit | HTTP (Bridge) | 8012 | LoRA training (remote server) |
-| ComfyUI | HTTP (Bridge) | 8013 | Image generation (remote server) |
+| AI Toolkit | HTTP (Remote) | 8012 | LoRA training (remote server) |
+| ComfyUI | HTTP (Remote) | 8013 | Image generation (remote server) |
 | OpenCode | STDIO (Docker) | 8014 | AI code generation |
 | Crush | STDIO (Docker) | 8015 | Fast code generation |
 | Meme Generator | STDIO (Docker) | N/A | Meme creation with visual feedback |

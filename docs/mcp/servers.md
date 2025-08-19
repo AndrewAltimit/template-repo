@@ -15,10 +15,10 @@ The MCP functionality is split across modular servers:
 6. **Meme Generator MCP Server** - Containerized meme creation with visual feedback
 7. **ElevenLabs Speech MCP Server** - Containerized text-to-speech synthesis
 
-**HTTP Bridge Mode (Remote servers):**
-8. **Gaea2 MCP Server** (Port 8007) - Bridge to remote terrain generation
-9. **AI Toolkit MCP Server** (Port 8012) - Bridge to remote AI Toolkit for LoRA training
-10. **ComfyUI MCP Server** (Port 8013) - Bridge to remote ComfyUI for image generation
+**HTTP Mode (Remote servers):**
+8. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
+9. **AI Toolkit MCP Server** (Port 8012) - Remote AI Toolkit for LoRA training
+10. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
 
 This modular architecture ensures better separation of concerns, easier maintenance, and the ability to scale individual services independently.
 
@@ -169,7 +169,7 @@ curl http://localhost:8007/health
 
 ## AI Toolkit MCP Server (Port 8012)
 
-The AI Toolkit server provides a bridge to remote AI Toolkit for LoRA training operations.
+The AI Toolkit server provides an interface to remote AI Toolkit for LoRA training operations.
 
 ### Starting the Server
 
@@ -177,7 +177,7 @@ The AI Toolkit server provides a bridge to remote AI Toolkit for LoRA training o
 # Start via Docker Compose (if configured)
 docker-compose up -d mcp-ai-toolkit
 
-# Or run locally as bridge
+# Or run locally as proxy
 python -m tools.mcp.ai_toolkit.server
 
 # Test health
@@ -198,7 +198,7 @@ curl http://localhost:8012/health
 
 ### Configuration
 
-- **Remote Bridge**: Connects to AI Toolkit at `192.168.0.152:8012`
+- **Remote Connection**: Connects to AI Toolkit at `192.168.0.152:8012`
 - **Dataset Paths**: Use absolute paths starting with `/ai-toolkit/datasets/`
 - **Chunked Upload**: Automatically used for files >100MB
 
@@ -206,7 +206,7 @@ See `tools/mcp/ai_toolkit/docs/README.md` and `docs/AI_TOOLKIT_COMFYUI_INTEGRATI
 
 ## ComfyUI MCP Server (Port 8013)
 
-The ComfyUI server provides a bridge to remote ComfyUI for AI image generation.
+The ComfyUI server provides an interface to remote ComfyUI for AI image generation.
 
 ### Starting the Server
 
@@ -214,7 +214,7 @@ The ComfyUI server provides a bridge to remote ComfyUI for AI image generation.
 # Start via Docker Compose (if configured)
 docker-compose up -d mcp-comfyui
 
-# Or run locally as bridge
+# Or run locally as proxy
 python -m tools.mcp.comfyui.server
 
 # Test health
@@ -232,7 +232,7 @@ curl http://localhost:8013/health
 
 ### Configuration
 
-- **Remote Bridge**: Connects to ComfyUI at `192.168.0.152:8013`
+- **Remote Connection**: Connects to ComfyUI at `192.168.0.152:8013`
 - **FLUX Support**: Different workflows for FLUX models (cfg=1.0, special nodes)
 - **LoRA Transfer**: Automatic transfer from AI Toolkit to ComfyUI
 

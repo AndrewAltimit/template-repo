@@ -99,8 +99,8 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 │   │   ├── crush/            # Code generation
 │   │   ├── meme_generator/   # Meme creation
 │   │   ├── elevenlabs_speech/# Speech synthesis
-│   │   ├── ai_toolkit/       # LoRA training bridge
-│   │   ├── comfyui/          # Image generation bridge
+│   │   ├── ai_toolkit/       # LoRA training interface
+│   │   ├── comfyui/          # Image generation interface
 │   │   └── core/             # Shared components
 │   └── cli/                  # Command-line tools
 ├── automation/               # CI/CD and automation scripts
@@ -125,8 +125,8 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 7. **Crush** - Fast code snippets (STDIO mode via Claude)
 8. **Meme Generator** - Create memes with templates
 9. **ElevenLabs Speech** - Advanced text-to-speech synthesis with emotional control
-10. **AI Toolkit** - LoRA training bridge (remote: 192.168.0.152:8012)
-11. **ComfyUI** - Image generation bridge (remote: 192.168.0.152:8013)
+10. **AI Toolkit** - LoRA training interface (remote: 192.168.0.152:8012)
+11. **ComfyUI** - Image generation interface (remote: 192.168.0.152:8013)
 
 ### Usage Modes
 

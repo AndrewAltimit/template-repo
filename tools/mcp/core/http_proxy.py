@@ -1,4 +1,4 @@
-"""HTTP Bridge for forwarding MCP requests to remote servers"""
+"""HTTP Proxy for forwarding MCP requests to remote servers"""
 
 import logging
 import os
@@ -31,8 +31,8 @@ class ToolRequest(BaseModel):
     arguments: Dict[str, Any] = {}
 
 
-class HTTPBridge:
-    """HTTP Bridge for forwarding requests to remote MCP servers"""
+class HTTPProxy:
+    """HTTP Proxy for forwarding requests to remote MCP servers"""
 
     def __init__(
         self,
@@ -46,10 +46,10 @@ class HTTPBridge:
         self.remote_url = remote_url
         self.port = port
         self.timeout = timeout
-        self.logger = logging.getLogger(f"HTTPBridge.{service_name}")
+        self.logger = logging.getLogger(f"HTTPProxy.{service_name}")
 
         # Create FastAPI app
-        self.app = FastAPI(title=f"{service_name} MCP HTTP Bridge")
+        self.app = FastAPI(title=f"{service_name} MCP HTTP Proxy")
 
         # Add CORS if enabled
         if enable_cors:
@@ -75,7 +75,7 @@ class HTTPBridge:
     async def root(self):
         """Root endpoint"""
         return {
-            "service": f"{self.service_name} MCP HTTP Bridge",
+            "service": f"{self.service_name} MCP HTTP Proxy",
             "remote_url": self.remote_url,
             "status": "active",
         }
@@ -167,18 +167,18 @@ class HTTPBridge:
             raise HTTPException(status_code=500, detail=str(e))
 
     def run(self):
-        """Run the HTTP bridge server"""
+        """Run the HTTP proxy server"""
         import uvicorn
 
-        self.logger.info(f"Starting {self.service_name} MCP HTTP Bridge")
+        self.logger.info(f"Starting {self.service_name} MCP HTTP Proxy")
         self.logger.info(f"Forwarding to: {self.remote_url}")
         self.logger.info(f"Listening on port: {self.port}")
 
         uvicorn.run(self.app, host="0.0.0.0", port=self.port)
 
 
-def create_bridge_from_env(service_name: str, default_port: int = 8191) -> HTTPBridge:
-    """Create an HTTP bridge from environment variables
+def create_proxy_from_env(service_name: str, default_port: int = 8191) -> HTTPProxy:
+    """Create an HTTP proxy from environment variables
 
     Environment variables:
         REMOTE_MCP_URL: Remote MCP server URL
@@ -189,15 +189,15 @@ def create_bridge_from_env(service_name: str, default_port: int = 8191) -> HTTPB
     timeout = int(os.getenv("TIMEOUT", "30"))
     port = int(os.getenv("PORT", str(default_port)))
 
-    return HTTPBridge(service_name=service_name, remote_url=remote_url, port=port, timeout=timeout)
+    return HTTPProxy(service_name=service_name, remote_url=remote_url, port=port, timeout=timeout)
 
 
 if __name__ == "__main__":
     import argparse
 
     # Setup argument parser
-    parser = argparse.ArgumentParser(description="HTTP Bridge for MCP servers")
-    parser.add_argument("--service-name", default="MCP", help="Service name for the bridge")
+    parser = argparse.ArgumentParser(description="HTTP Proxy for MCP servers")
+    parser.add_argument("--service-name", default="MCP", help="Service name for the proxy")
     parser.add_argument("--remote-url", required=True, help="Remote MCP server URL")
     parser.add_argument("--port", type=int, default=8191, help="Port to listen on")
     parser.add_argument("--timeout", type=int, default=30, help="Request timeout in seconds")
@@ -208,8 +208,8 @@ if __name__ == "__main__":
     # Setup logging
     logging.basicConfig(level=logging.INFO)
 
-    # Create and run bridge
-    bridge = HTTPBridge(
+    # Create and run proxy
+    proxy = HTTPProxy(
         service_name=args.service_name,
         remote_url=args.remote_url,
         port=args.port,
@@ -217,4 +217,4 @@ if __name__ == "__main__":
         enable_cors=not args.no_cors,
     )
 
-    bridge.run()
+    proxy.run()
