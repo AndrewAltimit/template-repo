@@ -2,9 +2,9 @@
 FROM node:20-slim
 
 # Define version arguments
-ARG GO_VERSION=1.24.5
-ARG GO_CHECKSUM_AMD64=10ad9e86233e74c0f6590fe5426895de6bf388964210eac34a6d83f38918ecdc
-ARG GO_CHECKSUM_ARM64=44e2d8b8e1b24a87dcab8c0bbf673cfcf92dc2ac0b3094df48b5c7fdb670cd5e
+ARG CRUSH_VERSION=0.6.3
+ARG CRUSH_CHECKSUM_AMD64=847d60dc567f43ed9115b10b5ad374fb58d120dbc7432658a7bd3633bfedfbd4
+ARG CRUSH_CHECKSUM_ARM64=94bd6600a975d318cffebce2c030fe29eee13d00ece1a6e8bb1428f7eba73b80
 
 # Install Python 3.11 and all system dependencies
 RUN apt-get update && apt-get install -y \
@@ -14,31 +14,29 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     wget \
-    build-essential \
+    tar \
     && rm -rf /var/lib/apt/lists/*
 
 # Create symbolic links for Python
 RUN ln -sf /usr/bin/python3.11 /usr/bin/python \
     && ln -sf /usr/bin/pip3 /usr/bin/pip
 
-# Install Go for building Crush
+# Install Crush from pre-built binaries
 ARG TARGETARCH=amd64
-RUN wget -q https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz && \
-    if [ "${TARGETARCH}" = "amd64" ]; then \
-        echo "${GO_CHECKSUM_AMD64}  go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" | sha256sum -c -; \
-    elif [ "${TARGETARCH}" = "arm64" ]; then \
-        echo "${GO_CHECKSUM_ARM64}  go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" | sha256sum -c -; \
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "amd64" ]; then \
+        ARCH="x86_64"; \
+        CHECKSUM="${CRUSH_CHECKSUM_AMD64}"; \
+    elif [ "$ARCH" = "arm64" ]; then \
+        ARCH="arm64"; \
+        CHECKSUM="${CRUSH_CHECKSUM_ARM64}"; \
     fi && \
-    tar -C /usr/local -xzf go${GO_VERSION}.linux-${TARGETARCH}.tar.gz && \
-    rm go${GO_VERSION}.linux-${TARGETARCH}.tar.gz
-
-# Set Go environment variables
-ENV PATH="/usr/local/go/bin:/home/node/go/bin:${PATH}"
-ENV GOPATH="/home/node/go"
-
-# Install Crush from Charm Bracelet
-ENV GOBIN=/usr/local/bin
-RUN go install github.com/charmbracelet/crush@latest
+    wget -q "https://github.com/charmbracelet/crush/releases/download/v${CRUSH_VERSION}/crush_${CRUSH_VERSION}_Linux_${ARCH}.tar.gz" -O /tmp/crush.tar.gz && \
+    echo "${CHECKSUM}  /tmp/crush.tar.gz" | sha256sum -c - && \
+    tar -xzf /tmp/crush.tar.gz -C /tmp && \
+    mv /tmp/crush_${CRUSH_VERSION}_Linux_${ARCH}/crush /usr/local/bin/crush && \
+    rm -rf /tmp/crush* && \
+    chmod +x /usr/local/bin/crush
 
 # Install Python MCP dependencies
 RUN pip install --no-cache-dir --break-system-packages \
