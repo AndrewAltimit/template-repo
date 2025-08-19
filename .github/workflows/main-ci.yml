@@ -400,6 +400,7 @@ jobs:
           context: .
           file: docker/mcp-code-quality.Dockerfile
           push: false  # Disabled - network unreliable
+          load: true  # Load into Docker daemon for docker-compose
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-code-quality
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-code-quality-${{ github.sha }}
@@ -411,6 +412,7 @@ jobs:
           context: .
           file: docker/mcp-content.Dockerfile
           push: false  # Disabled - network unreliable
+          load: true  # Load into Docker daemon for docker-compose
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-content
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-content-${{ github.sha }}
@@ -422,6 +424,7 @@ jobs:
           context: .
           file: docker/mcp-gaea2.Dockerfile
           push: false  # Disabled - network unreliable
+          load: true  # Load into Docker daemon for docker-compose
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-gaea2
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-gaea2-${{ github.sha }}
@@ -433,6 +436,7 @@ jobs:
           context: .
           file: docker/mcp-http-bridge.Dockerfile
           push: false  # Disabled - network unreliable
+          load: true  # Load into Docker daemon for docker-compose
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-http-bridge
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-http-bridge-${{ github.sha }}
@@ -444,7 +448,9 @@ jobs:
           context: .
           file: docker/mcp-opencode.Dockerfile
           push: false  # Disabled - network unreliable
+          load: true  # Load into Docker daemon for multistage builds
           tags: |
+            template-repo-mcp-opencode:latest
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-opencode
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-opencode-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -455,7 +461,9 @@ jobs:
           context: .
           file: docker/mcp-crush.Dockerfile
           push: false  # Disabled - network unreliable
+          load: true  # Load into Docker daemon for multistage builds
           tags: |
+            template-repo-mcp-crush:latest
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-crush
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-mcp-crush-${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -466,6 +474,10 @@ jobs:
           context: .
           file: docker/openrouter-agents.Dockerfile
           push: false  # Disabled - network unreliable
+          load: true  # Load into Docker daemon for docker-compose
+          build-args: |
+            OPENCODE_IMAGE=template-repo-mcp-opencode:latest
+            CRUSH_IMAGE=template-repo-mcp-crush:latest
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-openrouter-agents
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-openrouter-agents-${{ github.sha }}
@@ -477,6 +489,7 @@ jobs:
           context: .
           file: docker/python-ci.Dockerfile
           push: false  # Disabled - network unreliable
+          load: true  # Load into Docker daemon for docker-compose
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-python-ci
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:main-python-ci-${{ github.sha }}

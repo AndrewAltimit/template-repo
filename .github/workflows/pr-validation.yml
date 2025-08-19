@@ -587,6 +587,7 @@ jobs:
           context: .
           file: docker/mcp-code-quality.Dockerfile
           push: false
+          load: true  # Load into Docker daemon for docker-compose
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-code-quality
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-code-quality-${{ github.sha }}
@@ -598,6 +599,7 @@ jobs:
           context: .
           file: docker/mcp-content.Dockerfile
           push: false
+          load: true  # Load into Docker daemon for docker-compose
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-content
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-content-${{ github.sha }}
@@ -609,6 +611,7 @@ jobs:
           context: .
           file: docker/mcp-gaea2.Dockerfile
           push: false
+          load: true  # Load into Docker daemon for docker-compose
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-gaea2
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-gaea2-${{ github.sha }}
@@ -620,6 +623,7 @@ jobs:
           context: .
           file: docker/mcp-http-bridge.Dockerfile
           push: false
+          load: true  # Load into Docker daemon for docker-compose
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-http-bridge
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-mcp-http-bridge-${{ github.sha }}
@@ -631,6 +635,7 @@ jobs:
           context: .
           file: docker/python-ci.Dockerfile
           push: false
+          load: true  # Load into Docker daemon for docker-compose
           tags: |
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-python-ci
             ${{ env.REGISTRY }}/andrewaltimit/template-repo:pr-${{ github.event.pull_request.number }}-python-ci-${{ github.sha }}
