@@ -477,7 +477,7 @@ def analyze_complete_diff(
         f"{format_workflow_contents(workflow_contents)}\n"
         f"**COMPLETE DIFF:**\n"
         f"```diff\n"
-        f"{diff[:500000]}  # Increased limit to 500KB - Gemini can handle it\n"
+        f"{diff[:500000]}\n"
         f"```\n"
     )
 
