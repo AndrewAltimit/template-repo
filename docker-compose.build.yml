@@ -1,0 +1,118 @@
+# docker-compose.build.yml
+# Dedicated compose file for CI/CD build operations
+# This file handles build dependencies correctly for multi-stage builds
+
+services:
+  # Base images that don't have dependencies
+  mcp-code-quality:
+    image: ghcr.io/andrewaltimit/template-repo:main-mcp-code-quality
+    build:
+      context: .
+      dockerfile: docker/mcp-code-quality.Dockerfile
+      tags:
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-code-quality
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-code-quality-${GITHUB_SHA:-local}
+
+  mcp-content-creation:
+    image: ghcr.io/andrewaltimit/template-repo:main-mcp-content
+    build:
+      context: .
+      dockerfile: docker/mcp-content.Dockerfile
+      tags:
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-content
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-content-${GITHUB_SHA:-local}
+
+  mcp-gaea2:
+    image: ghcr.io/andrewaltimit/template-repo:main-mcp-gaea2
+    build:
+      context: .
+      dockerfile: docker/mcp-gaea2.Dockerfile
+      tags:
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-gaea2
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-gaea2-${GITHUB_SHA:-local}
+
+  mcp-http-bridge:
+    image: ghcr.io/andrewaltimit/template-repo:main-mcp-http-bridge
+    build:
+      context: .
+      dockerfile: docker/mcp-http-bridge.Dockerfile
+      tags:
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-http-bridge
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-http-bridge-${GITHUB_SHA:-local}
+
+  # Build OpenCode and Crush first - these are used as base images
+  mcp-opencode:
+    image: template-repo-mcp-opencode:latest
+    build:
+      context: .
+      dockerfile: docker/mcp-opencode.Dockerfile
+      tags:
+        - template-repo-mcp-opencode:latest
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-opencode
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-opencode-${GITHUB_SHA:-local}
+
+  mcp-crush:
+    image: template-repo-mcp-crush:latest
+    build:
+      context: .
+      dockerfile: docker/mcp-crush.Dockerfile
+      tags:
+        - template-repo-mcp-crush:latest
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-crush
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-crush-${GITHUB_SHA:-local}
+
+  # OpenRouter Agents depends on OpenCode and Crush
+  openrouter-agents:
+    image: ghcr.io/andrewaltimit/template-repo:main-openrouter-agents
+    build:
+      context: .
+      dockerfile: docker/openrouter-agents.Dockerfile
+      args:
+        OPENCODE_IMAGE: template-repo-mcp-opencode:latest
+        CRUSH_IMAGE: template-repo-mcp-crush:latest
+      tags:
+        - ghcr.io/andrewaltimit/template-repo:main-openrouter-agents
+        - ghcr.io/andrewaltimit/template-repo:main-openrouter-agents-${GITHUB_SHA:-local}
+    depends_on:
+      - mcp-opencode
+      - mcp-crush
+
+  # Python CI image
+  python-ci:
+    image: ghcr.io/andrewaltimit/template-repo:main-python-ci
+    build:
+      context: .
+      dockerfile: docker/python-ci.Dockerfile
+      tags:
+        - ghcr.io/andrewaltimit/template-repo:main-python-ci
+        - ghcr.io/andrewaltimit/template-repo:main-python-ci-${GITHUB_SHA:-local}
+
+  # Blender MCP Server
+  mcp-blender:
+    image: ghcr.io/andrewaltimit/template-repo:main-mcp-blender
+    build:
+      context: .
+      dockerfile: docker/blender-mcp.Dockerfile
+      tags:
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-blender
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-blender-${GITHUB_SHA:-local}
+
+  # Meme Generator MCP Server
+  mcp-meme-generator:
+    image: ghcr.io/andrewaltimit/template-repo:main-mcp-meme
+    build:
+      context: .
+      dockerfile: docker/mcp-meme.Dockerfile
+      tags:
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-meme
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-meme-${GITHUB_SHA:-local}
+
+  # ElevenLabs Speech MCP Server
+  mcp-elevenlabs-speech:
+    image: ghcr.io/andrewaltimit/template-repo:main-mcp-elevenlabs
+    build:
+      context: .
+      dockerfile: docker/elevenlabs.Dockerfile
+      tags:
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-elevenlabs
+        - ghcr.io/andrewaltimit/template-repo:main-mcp-elevenlabs-${GITHUB_SHA:-local}
