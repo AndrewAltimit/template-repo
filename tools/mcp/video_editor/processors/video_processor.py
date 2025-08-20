@@ -226,7 +226,12 @@ class VideoProcessor:
     def render_video(
         self, video_clip: Any, output_path: str, output_settings: Dict[str, Any], progress_callback: Optional[callable] = None
     ) -> Dict[str, Any]:
-        """Render the final video to file"""
+        """Render the final video to file
+        
+        Note: progress_callback is accepted for API compatibility but MoviePy
+        doesn't support real-time progress callbacks. Progress bar will be
+        shown in logs if logger is enabled.
+        """
 
         self.logger.info(f"Rendering video to: {output_path}")
 
@@ -261,6 +266,8 @@ class VideoProcessor:
 
         try:
             # Write the video file
+            # Note: MoviePy doesn't support custom progress callbacks
+            # It will show a progress bar in the logs if logger is enabled
             video_clip.write_videofile(
                 output_path,
                 fps=fps,
@@ -270,13 +277,8 @@ class VideoProcessor:
                 ffmpeg_params=ffmpeg_params,
                 logger=None if not self.logger else "bar",
                 threads=4,
-                progress_bar=progress_callback is not None,
                 write_logfile=False,
             )
-            
-            # If progress callback provided, call it with completion
-            if progress_callback:
-                progress_callback(video_clip.duration, video_clip.duration)
 
             # Get file info
             file_stats = os.stat(output_path)

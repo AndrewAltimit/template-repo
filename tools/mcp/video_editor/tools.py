@@ -436,6 +436,7 @@ async def render_video(
                 if os.path.exists(audio_path):
                     os.unlink(audio_path)
 
+        # Update job status before rendering (MoviePy doesn't support real-time progress)
         _server.update_job(job_id, {"stage": "rendering", "progress": 60})
 
         # Adjust settings for preview mode
@@ -466,12 +467,12 @@ async def render_video(
         # Render the video
         output_path = output_settings.get("output_path")
 
-        def progress_callback(current, total):
-            progress = 60 + int((current / total) * 35)
-            _server.update_job(job_id, {"progress": progress})
+        # Note: MoviePy doesn't support real-time progress callbacks
+        # The rendering will show a progress bar in the logs
+        _server.logger.info("Starting video rendering (progress will be shown in logs)...")
+        render_result = _server.video_processor.render_video(composed_video, output_path, output_settings)
 
-        render_result = _server.video_processor.render_video(composed_video, output_path, output_settings, progress_callback)
-
+        # Update job status after rendering
         _server.update_job(job_id, {"stage": "finalizing", "progress": 95})
 
         # Generate transcript file if captions were added
