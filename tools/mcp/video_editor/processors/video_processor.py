@@ -270,7 +270,13 @@ class VideoProcessor:
                 ffmpeg_params=ffmpeg_params,
                 logger=None if not self.logger else "bar",
                 threads=4,
+                progress_bar=progress_callback is not None,
+                write_logfile=False,
             )
+            
+            # If progress callback provided, call it with completion
+            if progress_callback:
+                progress_callback(video_clip.duration, video_clip.duration)
 
             # Get file info
             file_stats = os.stat(output_path)
