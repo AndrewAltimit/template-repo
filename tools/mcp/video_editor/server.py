@@ -1,11 +1,9 @@
 """Video Editor MCP Server - Intelligent automated video editing"""
 
 import asyncio
-
 import os
 import shutil
 import tempfile
-
 from typing import Any, Dict
 
 from ..core.base_server import BaseMCPServer

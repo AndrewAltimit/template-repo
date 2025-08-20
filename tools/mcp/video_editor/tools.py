@@ -1,6 +1,5 @@
 """Video editor tools for MCP"""
 
-
 import json
 import os
 from pathlib import Path
@@ -531,6 +530,7 @@ async def extract_clips(
 
     try:
         clips_extracted = []
+        video_analysis = {}  # Initialize to avoid possibly-used-before-assignment
 
         # Analyze video if we need transcript or speaker info
         need_analysis = extraction_criteria.get("keywords") or extraction_criteria.get("speakers")
@@ -742,7 +742,7 @@ async def add_captions(
                     lang_output_path = output_path
 
                 # Render the video
-                render_result = _server.video_processor.render_video(
+                _server.video_processor.render_video(
                     video_with_captions,
                     lang_output_path,
                     {"fps": video_clip.fps, "resolution": f"{video_clip.w}x{video_clip.h}", "bitrate": "8M"},

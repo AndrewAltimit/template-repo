@@ -7,7 +7,7 @@
 repos:
   # Python formatting
   - repo: https://github.com/psf/black
-    rev: 25.1.0
+    rev: 24.4.2
     hooks:
       - id: black
         language_version: python3.10
@@ -15,7 +15,7 @@ repos:
 
   # Python import sorting
   - repo: https://github.com/pycqa/isort
-    rev: 6.0.1
+    rev: 5.13.2
     hooks:
       - id: isort
         # Profile and line length configured in pyproject.toml
@@ -26,6 +26,14 @@ repos:
     hooks:
       - id: flake8
         # Max line length and ignores configured in .flake8
+
+  # Pylint for catching E-level errors
+  - repo: https://github.com/pylint-dev/pylint
+    rev: v3.3.8
+    hooks:
+      - id: pylint
+        args: [--errors-only]
+        # Only check for errors (E-level), not warnings. Will fail on errors.
 
   # YAML formatting
   - repo: https://github.com/pre-commit/pre-commit-hooks

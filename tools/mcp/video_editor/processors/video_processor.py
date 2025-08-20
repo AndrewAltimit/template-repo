@@ -1,8 +1,6 @@
 """Video processing module for video editor - MoviePy integration for editing and effects"""
 
 import os
-
-
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np

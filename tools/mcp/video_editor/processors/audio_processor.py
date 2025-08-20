@@ -114,7 +114,7 @@ class AudioProcessor:
             if os.path.exists(audio_path):
                 os.unlink(audio_path)
             raise RuntimeError(f"Audio extraction failed: {e.stderr}")
-        except Exception as e:
+        except Exception:
             if os.path.exists(audio_path):
                 os.unlink(audio_path)
             raise
@@ -188,7 +188,7 @@ class AudioProcessor:
 
         try:
             # Run diarization
-            diarization = self.diart_pipeline(audio_path)
+            diarization = self.diart_pipeline(audio_path)  # pylint: disable=not-callable
 
             # Process results
             speakers_data = {"speakers": [], "segments": [], "timeline": []}

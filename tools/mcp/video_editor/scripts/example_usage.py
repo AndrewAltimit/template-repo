@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Example usage of the Video Editor MCP Server"""
 
-import asyncio
 import os
 import sys
 from pathlib import Path
@@ -9,10 +8,10 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from tools.mcp.core.client import MCPClient
+from tools.mcp.core.client import MCPClient  # noqa: E402
 
 
-async def example_interview_editing():
+def example_interview_editing():
     """Example: Edit a two-camera interview with automatic speaker switching"""
 
     print("=" * 60)
@@ -23,342 +22,420 @@ async def example_interview_editing():
     interviewer_video = "interviewer_camera.mp4"
     interviewee_video = "interviewee_camera.mp4"
 
-    async with MCPClient("video_editor", port=8019) as client:
+    port = int(os.environ.get("PORT", 8019))
+    base_url = f"http://localhost:{port}"
+    client = MCPClient(base_url=base_url)
 
-        # Step 1: Analyze both videos
-        print("\n1. Analyzing videos...")
-        analysis = await client.call(
-            "video_editor/analyze",
-            {
-                "video_inputs": [interviewer_video, interviewee_video],
-                "analysis_options": {
-                    "transcribe": True,
-                    "identify_speakers": True,
-                    "detect_scenes": False,
-                    "extract_highlights": True,
-                },
+    # Step 1: Analyze both videos
+    print("\n1. Analyzing videos...")
+    client.execute_tool(
+        "video_editor/analyze_video",
+        {
+            "video_inputs": [interviewer_video, interviewee_video],
+            "analysis_options": {
+                "transcribe": True,
+                "identify_speakers": True,
+                "detect_scenes": False,
+                "extract_metadata": True,
             },
-        )
+        },
+    )
 
-        if "error" in analysis:
-            print(f"Error: {analysis['error']}")
-            return
-
-        # Step 2: Create edit with speaker-based switching
-        print("\n2. Creating edit decision list...")
-        edit = await client.call(
-            "video_editor/create_edit",
-            {
-                "video_inputs": [interviewer_video, interviewee_video],
-                "editing_rules": {
-                    "switch_on_speaker": True,
-                    "speaker_switch_delay": 0.8,
-                    "picture_in_picture": "auto",
-                    "zoom_on_emphasis": True,
-                    "remove_silence": True,
-                    "silence_threshold": 2.0,
-                },
-                "speaker_mapping": {"SPEAKER_00": interviewer_video, "SPEAKER_01": interviewee_video},
+    # Step 2: Create an intelligent edit based on speaker detection
+    print("\n2. Creating automatic speaker-switching edit...")
+    edit_result = client.execute_tool(
+        "video_editor/create_edit",
+        {
+            "video_inputs": [interviewer_video, interviewee_video],
+            "edit_instructions": {
+                "mode": "interview",
+                "auto_switch_speakers": True,
+                "transitions": ["cut"],  # Quick cuts between speakers
+                "audio_mix": "active_speaker",  # Use audio from active speaker
+                "output_format": "mp4",
+                "resolution": "1920x1080",
+                "framerate": 30,
             },
-        )
+            "use_ai_assistance": True,  # Enable AI for smart cutting decisions
+        },
+    )
 
-        print(f"   Created EDL with {len(edit['edit_decision_list'])} decisions")
-        print(f"   Estimated duration: {edit['estimated_duration']:.2f} seconds")
+    print(f"\n✓ Edit created: {edit_result.get('output_path')}")
+    print(f"  Job ID: {edit_result.get('job_id')}")
 
-        # Step 3: Render the final video
-        print("\n3. Rendering final video...")
-        result = await client.call(
-            "video_editor/render",
-            {
-                "video_inputs": [interviewer_video, interviewee_video],
-                "edit_decision_list": edit["edit_decision_list"],
-                "output_settings": {
-                    "format": "mp4",
-                    "resolution": "1920x1080",
-                    "fps": 30,
-                    "bitrate": "8M",
-                    "output_path": "interview_edited.mp4",
-                },
-                "render_options": {"hardware_acceleration": True, "add_captions": True, "add_speaker_labels": True},
-            },
-        )
+    # Step 3: Check job progress
+    print("\n3. Monitoring job progress...")
+    job_status = client.execute_tool("video_editor/get_job_status", {"job_id": edit_result.get("job_id")})
 
-        print(f"   ✓ Video rendered: {result['output_path']}")
-        print(f"   Duration: {result['duration']:.2f} seconds")
-        print(f"   File size: {result['file_size'] / (1024*1024):.2f} MB")
-        if "transcript_path" in result:
-            print(f"   Transcript: {result['transcript_path']}")
+    print(f"  Status: {job_status.get('status')}")
+    print(f"  Progress: {job_status.get('progress', 0)}%")
 
-
-async def example_highlight_extraction():
-    """Example: Extract highlight clips from a presentation"""
-
-    print("=" * 60)
-    print("Example: Highlight Clip Extraction")
-    print("=" * 60)
-
-    presentation_video = "conference_presentation.mp4"
-
-    async with MCPClient("video_editor", port=8019) as client:
-
-        # Extract clips based on keywords
-        print("\n1. Extracting keyword-based highlights...")
-        result = await client.call(
-            "video_editor/extract_clips",
-            {
-                "video_input": presentation_video,
-                "extraction_criteria": {
-                    "keywords": ["important", "key point", "remember", "conclusion", "summary", "breakthrough"],
-                    "min_clip_length": 5.0,
-                    "max_clip_length": 30.0,
-                    "padding": 1.0,  # Add 1 second before/after
-                },
-                "output_dir": "highlights/",
-            },
-        )
-
-        if "error" not in result:
-            print(f"   Extracted {result['total_clips']} highlight clips:")
-            for clip in result["clips_extracted"]:
-                print(f"   - {clip['output_path']}")
-                print(f"     Duration: {clip['duration']:.2f}s")
-                print(f"     Criteria: {clip['criteria']}")
-                if "keyword" in clip:
-                    print(f"     Keyword: {clip['keyword']}")
-                print()
-
-
-async def example_multi_language_captions():
-    """Example: Add captions in multiple languages"""
-
-    print("=" * 60)
-    print("Example: Multi-Language Captioning")
-    print("=" * 60)
-
-    video_file = "presentation.mp4"
-
-    async with MCPClient("video_editor", port=8019) as client:
-
-        print("\n1. Adding captions in multiple languages...")
-        result = await client.call(
+    # Step 4: Add captions from transcription
+    if job_status.get("status") == "completed":
+        print("\n4. Adding captions...")
+        caption_result = client.execute_tool(
             "video_editor/add_captions",
             {
-                "video_input": video_file,
-                "caption_style": {
-                    "font": "Arial",
-                    "size": 48,
-                    "color": "#FFFFFF",
-                    "background": "#000000",
+                "video_input": edit_result.get("output_path"),
+                "caption_options": {
+                    "source": "transcription",  # Use the transcription from analysis
+                    "style": "professional",
                     "position": "bottom",
-                    "max_chars_per_line": 45,
-                    "display_speaker_names": True,
-                },
-                "languages": ["en", "es", "fr", "de", "ja"],
-            },
-        )
-
-        if "error" not in result:
-            print("   Generated captioned videos:")
-            for lang_result in result["languages_processed"]:
-                print(f"   - {lang_result['language']}: {lang_result['output_path']}")
-                print(f"     Captions: {lang_result['caption_count']}")
-                print(f"     SRT file: {lang_result['srt_path']}")
-                print()
-
-
-async def example_podcast_editing():
-    """Example: Edit a multi-person podcast with smart switching"""
-
-    print("=" * 60)
-    print("Example: Multi-Person Podcast Editing")
-    print("=" * 60)
-
-    # Multiple camera feeds
-    video_feeds = ["host_camera.mp4", "guest1_camera.mp4", "guest2_camera.mp4", "wide_shot.mp4"]
-
-    async with MCPClient("video_editor", port=8019) as client:
-
-        # Step 1: Analyze all feeds
-        print("\n1. Analyzing all camera feeds...")
-        analysis = await client.call(
-            "video_editor/analyze",
-            {
-                "video_inputs": video_feeds,
-                "analysis_options": {
-                    "transcribe": True,
-                    "identify_speakers": True,
-                    "detect_scenes": True,
-                    "extract_highlights": True,
+                    "font_size": "medium",
                 },
             },
         )
+        print(f"  ✓ Captions added: {caption_result.get('output_path')}")
 
-        # Step 2: Create dynamic edit
-        print("\n2. Creating podcast edit...")
-        edit = await client.call(
-            "video_editor/create_edit",
-            {
-                "video_inputs": video_feeds,
-                "editing_rules": {
-                    "switch_on_speaker": True,
-                    "speaker_switch_delay": 1.5,  # Slower switching for podcast
-                    "picture_in_picture": "auto",  # PiP for reactions
-                    "zoom_on_emphasis": False,  # No zoom for podcast
-                    "remove_silence": True,
-                    "silence_threshold": 3.0,
-                },
-            },
-        )
-
-        # Step 3: Render with preview mode first
-        print("\n3. Creating preview...")
-        preview = await client.call(
-            "video_editor/render",
-            {
-                "video_inputs": video_feeds,
-                "edit_decision_list": edit["edit_decision_list"],
-                "output_settings": {
-                    "format": "mp4",
-                    "resolution": "640x360",  # Low res for preview
-                    "fps": 15,
-                    "bitrate": "2M",
-                    "output_path": "podcast_preview.mp4",
-                },
-                "render_options": {"preview_mode": True, "add_captions": False},
-            },
-        )
-
-        print(f"   Preview created: {preview['output_path']}")
-
-        # Step 4: If preview looks good, render full quality
-        print("\n4. Rendering full quality...")
-        final = await client.call(
-            "video_editor/render",
-            {
-                "video_inputs": video_feeds,
-                "edit_decision_list": edit["edit_decision_list"],
-                "output_settings": {
-                    "format": "mp4",
-                    "resolution": "1920x1080",
-                    "fps": 30,
-                    "bitrate": "10M",
-                    "output_path": "podcast_final.mp4",
-                },
-                "render_options": {"hardware_acceleration": True, "add_captions": True, "add_speaker_labels": True},
-            },
-        )
-
-        print(f"   ✓ Final video: {final['output_path']}")
-        print(f"   Duration: {final['duration']:.2f} seconds")
-
-
-async def example_scene_based_editing():
-    """Example: Edit based on scene changes"""
-
-    print("=" * 60)
-    print("Example: Scene-Based Automatic Editing")
-    print("=" * 60)
-
-    video_files = ["camera1.mp4", "camera2.mp4", "camera3.mp4"]
-
-    async with MCPClient("video_editor", port=8019) as client:
-
-        # Analyze for scene changes
-        print("\n1. Detecting scene changes...")
-        analysis = await client.call(
-            "video_editor/analyze",
-            {
-                "video_inputs": video_files,
-                "analysis_options": {
-                    "transcribe": False,
-                    "identify_speakers": False,
-                    "detect_scenes": True,
-                    "extract_highlights": False,
-                },
-            },
-        )
-
-        # Create edit based on scenes
-        print("\n2. Creating scene-based edit...")
-        edit = await client.call(
-            "video_editor/create_edit",
-            {
-                "video_inputs": video_files,
-                "editing_rules": {
-                    "switch_on_speaker": False,
-                    "picture_in_picture": False,
-                    "zoom_on_emphasis": False,
-                    "remove_silence": False,
-                },
-            },
-        )
-
-        print(f"   Created {len(edit['edit_decision_list'])} scene-based cuts")
-
-
-def print_menu():
-    """Print the example menu"""
     print("\n" + "=" * 60)
-    print("Video Editor MCP Server - Examples")
-    print("=" * 60)
-    print("1. Two-Camera Interview Editing")
-    print("2. Highlight Clip Extraction")
-    print("3. Multi-Language Captioning")
-    print("4. Multi-Person Podcast Editing")
-    print("5. Scene-Based Automatic Editing")
-    print("6. Run All Examples")
-    print("0. Exit")
-    print("=" * 60)
+    print("Interview editing completed!")
 
 
-async def main():
-    """Main menu for examples"""
+def example_highlight_extraction():
+    """Example: Extract highlights from a long video based on keywords"""
+
+    print("=" * 60)
+    print("Example: Automatic Highlight Extraction")
+    print("=" * 60)
+
+    # Input video (update with your actual video file)
+    source_video = "conference_recording.mp4"
+
+    port = int(os.environ.get("PORT", 8019))
+    base_url = f"http://localhost:{port}"
+    client = MCPClient(base_url=base_url)
+
+    # Step 1: Analyze video for keywords
+    print("\n1. Analyzing video for key moments...")
+    client.execute_tool(
+        "video_editor/analyze_video",
+        {
+            "video_inputs": [source_video],
+            "analysis_options": {
+                "transcribe": True,
+                "detect_scenes": True,
+                "extract_metadata": True,
+            },
+        },
+    )
+
+    # Step 2: Extract clips based on keywords and scene detection
+    print("\n2. Extracting highlight clips...")
+    clips_result = client.execute_tool(
+        "video_editor/extract_clips",
+        {
+            "video_input": source_video,
+            "extraction_criteria": {
+                "keywords": ["important", "announcement", "breakthrough", "key point", "summary"],
+                "scene_changes": True,  # Also extract based on scene changes
+                "min_clip_length": 10,  # Minimum 10 seconds
+                "max_clip_length": 60,  # Maximum 60 seconds
+                "padding": 2,  # Add 2 seconds before/after each keyword
+            },
+        },
+    )
+
+    print(f"  ✓ Extracted {clips_result.get('clips_count', 0)} clips")
+    for clip in clips_result.get("clips", []):
+        print(f"    - {clip['output_path']}: {clip['duration']}s ({clip['criteria']})")
+
+    print("\n" + "=" * 60)
+    print("Highlight extraction completed!")
+
+
+def example_multi_language_captions():
+    """Example: Add multi-language captions to a video"""
+
+    print("=" * 60)
+    print("Example: Multi-Language Caption Generation")
+    print("=" * 60)
+
+    # Input video
+    source_video = "presentation.mp4"
+
+    port = int(os.environ.get("PORT", 8019))
+    base_url = f"http://localhost:{port}"
+    client = MCPClient(base_url=base_url)
+
+    # Step 1: Transcribe the video
+    print("\n1. Transcribing video...")
+    analysis = client.execute_tool(
+        "video_editor/analyze_video",
+        {
+            "video_inputs": [source_video],
+            "analysis_options": {"transcribe": True, "language": "auto"},  # Auto-detect language
+        },
+    )
+
+    transcript = analysis.get("analysis", {}).get(source_video, {}).get("transcript", {})
+    print("  ✓ Transcription completed")
+    print(f"    Language detected: {transcript.get('language', 'unknown')}")
+    print(f"    Duration: {transcript.get('duration', 0):.1f}s")
+
+    # Step 2: Generate captions in multiple languages
+    languages = ["en", "es", "fr", "de", "ja"]  # English, Spanish, French, German, Japanese
+
+    for lang in languages:
+        print(f"\n2. Adding {lang.upper()} captions...")
+        caption_result = client.execute_tool(
+            "video_editor/add_captions",
+            {
+                "video_input": source_video,
+                "caption_options": {
+                    "language": lang,
+                    "translate": lang != transcript.get("language", "en"),
+                    "style": "minimal",
+                    "burn_in": False,  # Create separate subtitle files
+                },
+            },
+        )
+        print(f"  ✓ {lang.upper()} captions: {caption_result.get('subtitle_file')}")
+
+    print("\n" + "=" * 60)
+    print("Multi-language captions completed!")
+
+
+def example_podcast_editing():
+    """Example: Edit a podcast with intro, outro, and chapter markers"""
+
+    print("=" * 60)
+    print("Example: Podcast Production Pipeline")
+    print("=" * 60)
+
+    # Input files
+    main_recording = "podcast_raw.mp4"
+    intro_clip = "intro.mp4"
+    outro_clip = "outro.mp4"
+    background_music = "background_music.mp3"
+
+    port = int(os.environ.get("PORT", 8019))
+    base_url = f"http://localhost:{port}"
+    client = MCPClient(base_url=base_url)
+
+    # Step 1: Analyze main recording for content
+    print("\n1. Analyzing podcast content...")
+    analysis = client.execute_tool(
+        "video_editor/analyze_video",
+        {
+            "video_inputs": [main_recording],
+            "analysis_options": {
+                "transcribe": True,
+                "identify_speakers": True,
+                "detect_silence": True,  # Detect long silences for removal
+            },
+        },
+    )
+
+    # Step 2: Create the podcast edit
+    print("\n2. Creating podcast edit...")
+    edit_result = client.execute_tool(
+        "video_editor/create_edit",
+        {
+            "video_inputs": [intro_clip, main_recording, outro_clip],
+            "edit_instructions": {
+                "timeline": [
+                    {"clip": 0, "start": 0, "end": None},  # Full intro
+                    {"clip": 1, "start": 0, "end": None, "remove_silence": True},  # Main content
+                    {"clip": 2, "start": 0, "end": None},  # Full outro
+                ],
+                "audio_tracks": [{"file": background_music, "volume": 0.1, "fade_in": 5, "fade_out": 5}],
+                "chapters": [  # Add chapter markers based on topics
+                    {"time": 0, "title": "Introduction"},
+                    {"time": 30, "title": "Topic 1: Getting Started"},
+                    {"time": 600, "title": "Topic 2: Deep Dive"},
+                    {"time": 1200, "title": "Topic 3: Best Practices"},
+                    {"time": 1800, "title": "Conclusion"},
+                ],
+                "normalize_audio": True,  # Normalize audio levels
+                "output_format": "mp4",
+                "audio_format": "aac",
+                "audio_bitrate": "192k",
+            },
+        },
+    )
+
+    print(f"  ✓ Podcast edit created: {edit_result.get('output_path')}")
+
+    # Step 3: Generate podcast description with timestamps
+    print("\n3. Generating show notes with timestamps...")
+    transcript = analysis.get("analysis", {}).get(main_recording, {}).get("transcript", {})
+
+    if transcript:
+        segments = transcript.get("segments", [])
+        print("\n  📝 Show Notes:")
+        print("  " + "-" * 40)
+
+        for segment in segments:
+            # Simple topic detection based on pauses or keywords
+            if segment.get("duration", 0) > 2 or "topic" in segment.get("text", "").lower():
+                timestamp = segment.get("start", 0)
+                minutes = int(timestamp // 60)
+                seconds = int(timestamp % 60)
+                text_preview = segment.get("text", "")[:100]
+                print(f"  [{minutes:02d}:{seconds:02d}] {text_preview}...")
+
+    print("\n" + "=" * 60)
+    print("Podcast production completed!")
+
+
+def example_scene_based_editing():
+    """Example: Create a dynamic edit based on scene detection"""
+
+    print("=" * 60)
+    print("Example: AI-Powered Scene-Based Editing")
+    print("=" * 60)
+
+    # Input video
+    source_video = "raw_footage.mp4"
+
+    port = int(os.environ.get("PORT", 8019))
+    base_url = f"http://localhost:{port}"
+    client = MCPClient(base_url=base_url)
+
+    # Step 1: Analyze video for scenes and content
+    print("\n1. Analyzing video scenes and content...")
+    analysis = client.execute_tool(
+        "video_editor/analyze_video",
+        {
+            "video_inputs": [source_video],
+            "analysis_options": {
+                "detect_scenes": True,
+                "analyze_motion": True,  # Detect high-motion scenes
+                "detect_faces": True,  # Detect scenes with faces
+                "extract_colors": True,  # Extract dominant colors per scene
+            },
+        },
+    )
+
+    scenes = analysis.get("analysis", {}).get(source_video, {}).get("scenes", [])
+    print(f"  ✓ Detected {len(scenes)} scenes")
+
+    # Step 2: Create a dynamic edit based on scene characteristics
+    print("\n2. Creating AI-powered edit...")
+
+    # Build edit instructions based on scene analysis
+    timeline = []
+    for i, scene in enumerate(scenes):
+        # Include scenes based on certain criteria
+        include = False
+        transition = "cut"
+
+        # Include scenes with faces
+        if scene.get("has_faces", False):
+            include = True
+            transition = "fade"
+
+        # Include high-motion scenes
+        if scene.get("motion_score", 0) > 0.7:
+            include = True
+            transition = "wipe"
+
+        # Include scenes with specific colors (e.g., warm colors)
+        dominant_color = scene.get("dominant_color", {})
+        if dominant_color.get("hue", 0) < 60:  # Warm colors (red/orange/yellow)
+            include = True
+
+        if include:
+            timeline.append(
+                {
+                    "scene_index": i,
+                    "start": scene.get("start", 0),
+                    "end": scene.get("end", 0),
+                    "transition": transition,
+                    "effect": "color_grade" if dominant_color else None,
+                }
+            )
+
+    edit_result = client.execute_tool(
+        "video_editor/create_edit",
+        {
+            "video_inputs": [source_video],
+            "edit_instructions": {
+                "timeline": timeline,
+                "auto_pace": True,  # Automatically adjust pacing
+                "music_sync": True,  # Sync cuts to music beat if audio present
+                "color_correction": "auto",  # Auto color correction
+                "stabilization": True,  # Apply stabilization to shaky footage
+                "output_format": "mp4",
+                "resolution": "1920x1080",
+                "quality": "high",
+            },
+        },
+    )
+
+    print(f"  ✓ Dynamic edit created: {edit_result.get('output_path')}")
+    print(f"    Included {len(timeline)} scenes from {len(scenes)} total")
+
+    # Step 3: Generate a preview/trailer
+    print("\n3. Generating 30-second trailer...")
+    trailer_result = client.execute_tool(
+        "video_editor/create_trailer",
+        {
+            "video_input": edit_result.get("output_path"),
+            "trailer_options": {
+                "duration": 30,
+                "style": "dynamic",  # fast-paced, energetic
+                "include_text": True,  # Add text overlays
+                "music": "epic",  # Add epic trailer music
+            },
+        },
+    )
+
+    print(f"  ✓ Trailer created: {trailer_result.get('output_path')}")
+
+    print("\n" + "=" * 60)
+    print("Scene-based editing completed!")
+
+
+def main():
+    """Run examples based on command-line argument"""
+    import sys
 
     examples = {
-        "1": example_interview_editing,
-        "2": example_highlight_extraction,
-        "3": example_multi_language_captions,
-        "4": example_podcast_editing,
-        "5": example_scene_based_editing,
+        "interview": example_interview_editing,
+        "highlights": example_highlight_extraction,
+        "captions": example_multi_language_captions,
+        "podcast": example_podcast_editing,
+        "scenes": example_scene_based_editing,
     }
 
-    while True:
-        print_menu()
-        choice = input("Select an example (0-6): ").strip()
-
-        if choice == "0":
-            print("Exiting...")
-            break
-        elif choice == "6":
-            # Run all examples
-            for name, func in examples.items():
-                try:
-                    await func()
-                except Exception as e:
-                    print(f"Error in example: {e}")
-                print("\nPress Enter to continue...")
-                input()
-        elif choice in examples:
-            try:
-                await examples[choice]()
-            except Exception as e:
-                print(f"Error: {e}")
-            print("\nPress Enter to continue...")
-            input()
+    if len(sys.argv) > 1:
+        example_name = sys.argv[1].lower()
+        if example_name in examples:
+            print(f"\n🎬 Running '{example_name}' example...")
+            print("=" * 60)
+            examples[example_name]()
         else:
-            print("Invalid choice. Please try again.")
+            print(f"❌ Unknown example: {example_name}")
+            print(f"Available examples: {', '.join(examples.keys())}")
+            sys.exit(1)
+    else:
+        # Run all examples
+        print("\n🎬 Video Editor MCP Server - Example Usage")
+        print("=" * 60)
+        print("Running all examples...")
+        print("(To run a specific example, use: python example_usage.py <example_name>)")
+        print()
+
+        for name, func in examples.items():
+            print(f"\n{'=' * 60}")
+            print(f"Running: {name}")
+            print("=" * 60)
+            try:
+                func()
+            except Exception as e:
+                print(f"❌ Example '{name}' failed: {e}")
+                continue
+
+            # Add a break between examples
+            if name != list(examples.keys())[-1]:
+                print("\nPress Enter to continue to next example...")
+                input()
+
+        print("\n" + "=" * 60)
+        print("✅ All examples completed!")
+        print("=" * 60)
 
 
 if __name__ == "__main__":
-    print("Video Editor MCP Server - Example Usage")
-    print("=" * 60)
-    print("Note: These examples assume you have video files available.")
-    print("Update the file paths in the examples to match your videos.")
-    print("=" * 60)
-
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\n\nExiting...")
-    except Exception as e:
-        print(f"Error: {e}")
+    main()

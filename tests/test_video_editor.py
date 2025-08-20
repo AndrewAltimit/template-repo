@@ -1,12 +1,9 @@
 """Comprehensive tests for the Video Editor MCP Server"""
 
-import asyncio
-import json
 import os
 import tempfile
 import unittest
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -443,6 +440,7 @@ class TestIntegration(unittest.TestCase):
 
                         # Step 3: Render the final video
                         render_result = await render_video(
+                            video_inputs=["video1.mp4", "video2.mp4"],
                             edl_file="/tmp/edl/edit.json",
                             output_settings={"resolution": "1920x1080", "fps": 30, "format": "mp4"},
                             _server=mock_server,
