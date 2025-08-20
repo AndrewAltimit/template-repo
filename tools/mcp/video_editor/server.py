@@ -4,7 +4,7 @@ import asyncio
 import os
 import shutil
 import tempfile
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from ..core.base_server import BaseMCPServer
 from ..core.utils import ensure_directory, setup_logging
