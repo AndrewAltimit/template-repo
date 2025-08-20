@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     # Audio libraries
     libsndfile1 \
+    # gosu for proper user switching
+    gosu \
     # Clean up
     && rm -rf /var/lib/apt/lists/*
 
@@ -38,12 +40,9 @@ RUN pip install --no-cache-dir \
 COPY tools/mcp/core /app/tools/mcp/core
 COPY tools/mcp/video_editor /app/tools/mcp/video_editor
 
-# Create non-root user
+# Create non-root user (but don't switch yet)
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app /output /cache /tmp/video_editor
-
-# Switch to non-root user
-USER appuser
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -56,11 +55,8 @@ ENV MCP_VIDEO_TEMP_DIR=/tmp/video_editor
 EXPOSE 8019
 
 # Copy entrypoint script
-COPY --chown=appuser:appuser docker/entrypoints/video-editor-entrypoint.sh /usr/local/bin/
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:8019/health || exit 1
+COPY docker/entrypoints/video-editor-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/video-editor-entrypoint.sh
 
 # Entrypoint for permission handling
 ENTRYPOINT ["/usr/local/bin/video-editor-entrypoint.sh"]
