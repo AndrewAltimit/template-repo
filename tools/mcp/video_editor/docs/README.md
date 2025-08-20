@@ -73,7 +73,13 @@ python -m tools.mcp.video_editor.server
 WHISPER_MODEL=medium          # Whisper model size (tiny, base, small, medium, large)
 WHISPER_DEVICE=cuda           # Device for Whisper (cuda or cpu)
 DIART_DEVICE=cuda             # Device for speaker diarization
-HUGGINGFACE_TOKEN=your_token  # Required for pyannote.audio models
+
+# CRITICAL: Required for full speaker diarization functionality
+# Speaker identification features require a Hugging Face token with access to pyannote models
+# Without this token, speaker diarization will be disabled (graceful degradation)
+# Get your token at: https://huggingface.co/settings/tokens
+# Accept pyannote terms at: https://huggingface.co/pyannote/speaker-diarization
+HUGGINGFACE_TOKEN=your_token  # Required for speaker diarization (pyannote.audio models)
 
 # Processing defaults
 TRANSITION_DURATION=0.5        # Default transition duration in seconds
@@ -281,7 +287,7 @@ import asyncio
 from tools.mcp.core.client import MCPClient
 
 async def edit_interview():
-    async with MCPClient("video_editor", port=8016) as client:
+    async with MCPClient("video_editor", port=8019) as client:
         # Analyze both camera feeds
         analysis = await client.call("video_editor/analyze", {
             "video_inputs": ["interviewer.mp4", "interviewee.mp4"]
@@ -314,7 +320,7 @@ asyncio.run(edit_interview())
 
 ```python
 async def create_highlights():
-    async with MCPClient("video_editor", port=8016) as client:
+    async with MCPClient("video_editor", port=8019) as client:
         # Extract clips with important moments
         clips = await client.call("video_editor/extract_clips", {
             "video_input": "conference_talk.mp4",
@@ -332,7 +338,7 @@ async def create_highlights():
 
 ```python
 async def add_multilingual_captions():
-    async with MCPClient("video_editor", port=8016) as client:
+    async with MCPClient("video_editor", port=8019) as client:
         result = await client.call("video_editor/add_captions", {
             "video_input": "presentation.mp4",
             "languages": ["en", "es", "fr", "de"],

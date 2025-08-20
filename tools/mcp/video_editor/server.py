@@ -14,7 +14,7 @@ from .tools import TOOLS
 class VideoEditorMCPServer(BaseMCPServer):
     """MCP Server for intelligent video editing with transcript analysis and speaker detection"""
 
-    def __init__(self, output_dir: str = "/app/output", cache_dir: str = None):
+    def __init__(self, output_dir: str = "/app/output", cache_dir: Optional[str] = None):
         super().__init__(
             name="Video Editor MCP Server",
             version="1.0.0",
@@ -61,7 +61,7 @@ class VideoEditorMCPServer(BaseMCPServer):
         self.config = self._load_config()
 
         # Job management
-        self.active_jobs = {}
+        self.active_jobs: Dict[str, Dict[str, Any]] = {}
         self.job_counter = 0
 
         # Initialize processors (will be lazy-loaded)
@@ -226,14 +226,30 @@ class VideoEditorMCPServer(BaseMCPServer):
 
 def main():
     """Main entry point for the video editor MCP server"""
-    import asyncio
+    import argparse
+    import os
 
-    server = VideoEditorMCPServer()
+    parser = argparse.ArgumentParser(description="Video Editor MCP Server")
+    parser.add_argument(
+        "--mode",
+        choices=["http", "stdio"],
+        default="stdio",  # STDIO is the default mode
+        help="Server mode (http or stdio, default: stdio)",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=os.environ.get("MCP_VIDEO_OUTPUT_DIR", "/app/output"),
+        help="Output directory for processed videos",
+    )
+    parser.add_argument(
+        "--cache-dir",
+        default=os.environ.get("MCP_VIDEO_CACHE_DIR", "/app/cache"),
+        help="Cache directory for temporary files",
+    )
+    args = parser.parse_args()
 
-    try:
-        asyncio.run(server.run())
-    except KeyboardInterrupt:
-        asyncio.run(server.shutdown())
+    server = VideoEditorMCPServer(output_dir=args.output_dir, cache_dir=args.cache_dir)
+    server.run(mode=args.mode)
 
 
 if __name__ == "__main__":

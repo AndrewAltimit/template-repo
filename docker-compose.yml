@@ -109,6 +109,9 @@ services:
       - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}
       - ENABLE_GPU=${ENABLE_GPU:-true}
       # GPU device selection for multi-GPU systems
+      # IMPORTANT: GPU_DEVICE should be set to a single device index (e.g., 0, 1, 2)
+      # Do NOT set GPU_DEVICE to "all" when using count: 1 in deploy.resources.reservations
+      # If you need all GPUs, remove the count: 1 constraint and set GPU_DEVICE=all
       - NVIDIA_VISIBLE_DEVICES=${GPU_DEVICE:-0}
       - CUDA_VISIBLE_DEVICES=${GPU_DEVICE:-0}
     networks:
