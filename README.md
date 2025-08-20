@@ -31,9 +31,10 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 
 ## Features
 
-- **11 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, speech synthesis, and more
+- **12 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, and more
 - **7 AI Agents** - Comprehensive development automation
-- **Gaea2 Terrain Generation** - Terrain generation
+- **Video Editor** - AI-powered video editing with transcription, speaker diarization, and intelligent scene detection
+- **Gaea2 Terrain Generation** - Professional terrain generation
 - **Blender 3D Creation** - Full 3D content creation, rendering, and simulation
 - **ComfyUI & AI Toolkit** - Image generation and LoRA training
 - **Container-First Architecture** - Maximum portability and consistency
@@ -97,6 +98,7 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 │   │   ├── blender/          # 3D content creation
 │   │   ├── opencode/         # Code generation
 │   │   ├── crush/            # Code generation
+│   │   ├── video_editor/     # AI-powered video editing
 │   │   ├── meme_generator/   # Meme creation
 │   │   ├── elevenlabs_speech/# Speech synthesis
 │   │   ├── ai_toolkit/       # LoRA training interface

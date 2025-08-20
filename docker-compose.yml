@@ -85,6 +85,57 @@ services:
     profiles:
       - services
 
+  # Video Editor MCP Server
+  mcp-video-editor:
+    build:
+      context: .
+      dockerfile: docker/mcp-video-editor.Dockerfile
+    container_name: mcp-video-editor
+    # Note: user directive removed - entrypoint handles user switching after permission setup
+    ports:
+      - "8019:8019"
+    volumes:
+      - ./:/app:ro
+      - ./outputs/video-editor:/output  # Output directory for rendered videos
+      - video-editor-cache:/cache  # Named volume for transcripts and analysis cache
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8019
+      - MCP_VIDEO_OUTPUT_DIR=/output
+      - MCP_VIDEO_CACHE_DIR=/cache
+      - WHISPER_MODEL=${WHISPER_MODEL:-medium}
+      - WHISPER_DEVICE=${WHISPER_DEVICE:-cuda}
+      - DIART_DEVICE=${DIART_DEVICE:-cuda}
+      - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}
+      - ENABLE_GPU=${ENABLE_GPU:-true}
+      # GPU device selection for multi-GPU systems
+      # IMPORTANT: GPU_DEVICE should be set to a single device index (e.g., 0, 1, 2)
+      # Do NOT set GPU_DEVICE to "all" when using count: 1 in deploy.resources.reservations
+      # If you need all GPUs, remove the count: 1 constraint and set GPU_DEVICE=all
+      - NVIDIA_VISIBLE_DEVICES=${GPU_DEVICE:-0}
+      - CUDA_VISIBLE_DEVICES=${GPU_DEVICE:-0}
+    networks:
+      - mcp-network
+    command: ["python", "-m", "tools.mcp.video_editor.server", "--mode", "http"]
+    restart: unless-stopped
+    # GPU support for AI models and video encoding
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8019/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    profiles:
+      - services
+      - gpu
+
   # ElevenLabs Speech MCP Server
   mcp-elevenlabs-speech:
     build:
@@ -479,6 +530,8 @@ volumes:
   crush-data: {}
   crush-local-data: {}
   crush-cache: {}
+  # Video Editor volumes
+  video-editor-cache: {}
   # AI Toolkit volumes
   ai-toolkit-datasets: {}
   ai-toolkit-outputs: {}

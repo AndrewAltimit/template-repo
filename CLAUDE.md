@@ -343,12 +343,41 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - Runs locally via stdio for better integration
    - See `tools/mcp/crush/docs/README.md` for documentation
 
-9. **Shared Core Components** (`tools/mcp/core/`):
+9. **Meme Generator MCP Server** (`tools/mcp/meme_generator/`): STDIO (local)
+   - **Meme Creation**:
+     - `generate_meme` - Generate memes from templates with text overlays
+     - `list_meme_templates` - List all available templates
+     - `get_meme_template_info` - Get detailed template information
+   - 7+ built-in templates with cultural context documentation
+   - Auto-upload to 0x0.st for sharing
+   - See `tools/mcp/meme_generator/docs/README.md` for documentation
+
+10. **ElevenLabs Speech MCP Server** (`tools/mcp/elevenlabs_speech/`): STDIO (local) or HTTP port 8018
+   - **Advanced Text-to-Speech**:
+     - `synthesize_speech_v3` - Main synthesis with audio tag support
+     - `synthesize_emotional` - Add emotional context
+     - `synthesize_dialogue` - Multi-character dialogue
+     - `generate_sound_effect` - Create sound effects (up to 22 seconds)
+   - Supports emotions, pauses, sounds, effects with audio tags
+   - Multi-model support (v2 Pro plan, v3 future)
+   - See `tools/mcp/elevenlabs_speech/docs/README.md` for documentation
+
+11. **Video Editor MCP Server** (`tools/mcp/video_editor/`): STDIO (local) or HTTP port 8019
+   - **AI-Powered Video Editing**:
+     - `process_video` - Transcription, diarization, scene detection
+     - `compose_videos` - Combine videos with transitions
+     - `extract_clips` - Extract clips by keywords/speakers
+     - `generate_captions` - Multi-language caption generation
+   - GPU acceleration with CUDA support
+   - Async job processing for long operations
+   - See `tools/mcp/video_editor/docs/README.md` for documentation
+
+12. **Shared Core Components** (`tools/mcp/core/`):
    - `BaseMCPServer` - Base class for all MCP servers
    - `HTTPProxy` - HTTP proxy for remote MCP servers
    - Common utilities and helpers
 
-10. **Containerized CI/CD**:
+13. **Containerized CI/CD**:
    - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools
    - **Helper Scripts**: Centralized CI operations
    - **Individual MCP Containers**: Each server can run in its own optimized container
