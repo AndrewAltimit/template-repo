@@ -85,6 +85,51 @@ services:
     profiles:
       - services
 
+  # Video Editor MCP Server
+  mcp-video-editor:
+    build:
+      context: .
+      dockerfile: docker/mcp-video-editor.Dockerfile
+    container_name: mcp-video-editor
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    ports:
+      - "8019:8019"
+    volumes:
+      - ./:/app:ro
+      - ./outputs/video-editor:/output  # Output directory for rendered videos
+      - ~/.cache/mcp_video_editor:/cache  # Cache for transcripts and analysis
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8019
+      - MCP_VIDEO_OUTPUT_DIR=/output
+      - MCP_VIDEO_CACHE_DIR=/cache
+      - WHISPER_MODEL=${WHISPER_MODEL:-medium}
+      - WHISPER_DEVICE=${WHISPER_DEVICE:-cuda}
+      - DIART_DEVICE=${DIART_DEVICE:-cuda}
+      - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}
+      - ENABLE_GPU=${ENABLE_GPU:-true}
+    networks:
+      - mcp-network
+    command: ["python", "-m", "tools.mcp.video_editor.server", "--mode", "http"]
+    restart: unless-stopped
+    # GPU support for AI models and video encoding
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8019/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    profiles:
+      - services
+      - gpu
+
   # ElevenLabs Speech MCP Server
   mcp-elevenlabs-speech:
     build:
