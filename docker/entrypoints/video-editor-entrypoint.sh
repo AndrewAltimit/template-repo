@@ -24,9 +24,6 @@ if [ -d "/tmp/video_editor" ]; then
     chown -R "${USER_ID:-1000}:${GROUP_ID:-1000}" /tmp/video_editor
 fi
 
-# Also ensure app directory is accessible
-chown -R "${USER_ID:-1000}:${GROUP_ID:-1000}" /app
-
 echo "Permissions configured, starting application as appuser..."
 
 # Execute the command as the non-root user using gosu
