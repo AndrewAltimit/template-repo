@@ -5,7 +5,6 @@ import json
 import os
 import subprocess
 import tempfile
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -105,7 +104,7 @@ class AudioProcessor:
                 audio_path,
             ]
 
-            result = subprocess.run(command, capture_output=True, text=True, check=True)
+            subprocess.run(command, capture_output=True, text=True, check=True)
 
             self.logger.info(f"Audio extracted to: {audio_path}")
             return audio_path
@@ -288,7 +287,7 @@ class AudioProcessor:
         in_silence = False
         start_time = 0
 
-        min_silence_samples = int(threshold_seconds * sr)
+        # min_silence_samples = int(threshold_seconds * sr)  # Not used currently
 
         for i in range(0, len(silent_samples), sr // 10):  # Check every 0.1 seconds
             window = silent_samples[i : i + sr // 10]

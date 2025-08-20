@@ -1,12 +1,12 @@
 """Video Editor MCP Server - Intelligent automated video editing"""
 
 import asyncio
-import json
+
 import os
 import shutil
 import tempfile
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+
+from typing import Any, Dict
 
 from ..core.base_server import BaseMCPServer
 from ..core.utils import ensure_directory, setup_logging

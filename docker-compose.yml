@@ -91,7 +91,7 @@ services:
       context: .
       dockerfile: docker/mcp-video-editor.Dockerfile
     container_name: mcp-video-editor
-    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    # Note: user directive removed - entrypoint handles user switching after permission setup
     ports:
       - "8019:8019"
     volumes:

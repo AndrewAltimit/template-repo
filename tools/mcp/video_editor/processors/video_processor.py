@@ -1,8 +1,8 @@
 """Video processing module for video editor - MoviePy integration for editing and effects"""
 
 import os
-import tempfile
-from pathlib import Path
+
+
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -85,7 +85,7 @@ class VideoProcessor:
         for path, clip in self._video_cache.items():
             try:
                 clip.close()
-            except:
+            except Exception:
                 pass
         self._video_cache.clear()
         self._cache_size = 0
@@ -302,7 +302,7 @@ class VideoProcessor:
             # Clean up
             try:
                 video_clip.close()
-            except:
+            except Exception:
                 pass
 
     def extract_clip(self, video_path: str, start_time: float, end_time: float, output_path: Optional[str] = None) -> Any:
@@ -518,5 +518,5 @@ class VideoProcessor:
             for file in os.listdir(self.temp_dir):
                 try:
                     os.unlink(os.path.join(self.temp_dir, file))
-                except:
+                except Exception:
                     pass

@@ -1,6 +1,6 @@
 """Video editor tools for MCP"""
 
-import asyncio
+
 import json
 import os
 from pathlib import Path
@@ -463,7 +463,7 @@ async def render_video(
                     output_settings["codec"] = "h264_qsv"
                 else:
                     output_settings["codec"] = "libx264"
-            except:
+            except Exception:
                 output_settings["codec"] = "libx264"
         else:
             output_settings["codec"] = "libx264"
