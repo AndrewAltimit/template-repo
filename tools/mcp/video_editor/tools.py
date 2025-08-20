@@ -195,14 +195,17 @@ async def create_edit(
                 if speaker_mapping and speaker in speaker_mapping:
                     source_video = speaker_mapping[speaker]
                 elif speaker and len(video_inputs) > 1:
-                    # Auto-map speakers to videos
-                    speaker_idx = hash(speaker) % len(video_inputs)
+                    # Use deterministic mapping based on speaker ID
+                    # Sort speaker ID to ensure consistent ordering
+                    import hashlib
+                    speaker_hash = hashlib.md5(speaker.encode()).hexdigest()
+                    speaker_idx = int(speaker_hash, 16) % len(video_inputs)
                     source_video = video_inputs[speaker_idx]
                     # Log warning about ambiguous mapping
                     _server.logger.warning(
                         f"No explicit mapping for speaker '{speaker}'. "
-                        f"Auto-mapping to video {speaker_idx} ({source_video}). "
-                        "Consider providing explicit speaker_mapping for better control."
+                        f"Auto-mapping to video {speaker_idx} ({source_video}) using deterministic hash. "
+                        "For predictable results, provide explicit speaker_mapping."
                     )
                 else:
                     source_video = primary_video
