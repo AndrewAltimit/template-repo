@@ -55,9 +55,15 @@ ENV MCP_VIDEO_TEMP_DIR=/tmp/video_editor
 # Expose the port
 EXPOSE 8019
 
+# Copy entrypoint script
+COPY --chown=appuser:appuser docker/entrypoints/video-editor-entrypoint.sh /usr/local/bin/
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8019/health || exit 1
+
+# Entrypoint for permission handling
+ENTRYPOINT ["/usr/local/bin/video-editor-entrypoint.sh"]
 
 # Default command
 CMD ["python", "-m", "tools.mcp.video_editor.server", "--mode", "http"]

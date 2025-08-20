@@ -55,10 +55,17 @@ class AudioProcessor:
             try:
                 from pyannote.audio import Pipeline
 
+                # Check for Hugging Face token
+                token = os.environ.get("HUGGINGFACE_TOKEN")
+                if not token:
+                    self.logger.warning("HUGGINGFACE_TOKEN not set. Speaker diarization will be unavailable.")
+                    self.logger.warning("To enable speaker diarization, set the HUGGINGFACE_TOKEN environment variable.")
+                    return None
+
                 self.logger.info("Loading diart/pyannote speaker diarization pipeline")
                 # Use pretrained pipeline
                 self._diart_pipeline = Pipeline.from_pretrained(
-                    "pyannote/speaker-diarization@2.1", use_auth_token=os.environ.get("HUGGINGFACE_TOKEN")
+                    "pyannote/speaker-diarization@2.1", use_auth_token=token
                 )
 
                 # Set device
