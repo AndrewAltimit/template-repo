@@ -1,6 +1,6 @@
 # MCP (Model Context Protocol) Servers
 
-This repository contains a modular collection of MCP servers that provide various development and content creation tools. Each server is specialized for specific functionality and can be run independently.
+This repository contains a modular collection of 12 MCP servers that provide various development and content creation tools. Each server is specialized for specific functionality and can be run independently.
 
 ## Available MCP Servers
 
@@ -92,6 +92,22 @@ Advanced text-to-speech synthesis with emotional control:
 - Sound effect generation (up to 22 seconds)
 - Voice library with 10+ pre-configured voices
 - Automatic upload for sharing (0x0.st)
+
+#### 8. Video Editor MCP Server
+**Location**: `tools/mcp/video_editor/`
+**Transport**: STDIO (local) or HTTP (Port 8019)
+**Documentation**: [Video Editor MCP Documentation](../../tools/mcp/video_editor/docs/README.md)
+
+AI-powered video editing with intelligent automation:
+- Automatic transcription using Whisper
+- Speaker diarization with pyannote
+- Scene detection and smart editing
+- Multi-video composition and transitions
+- Caption generation in multiple languages
+- Audio analysis and processing
+- GPU acceleration for rendering
+- Intelligent clip extraction based on keywords/speakers
+- Job-based async processing for long operations
 
 ### Remote/Cross-Machine Servers (HTTP Transport)
 

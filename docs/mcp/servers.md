@@ -14,11 +14,12 @@ The MCP functionality is split across modular servers:
 5. **Crush MCP Server** - Containerized fast code generation
 6. **Meme Generator MCP Server** - Containerized meme creation with visual feedback
 7. **ElevenLabs Speech MCP Server** - Containerized text-to-speech synthesis
+8. **Video Editor MCP Server** - Containerized AI-powered video editing
 
 **HTTP Mode (Remote servers):**
-8. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
-9. **AI Toolkit MCP Server** (Port 8012) - Remote AI Toolkit for LoRA training
-10. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
+9. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
+10. **AI Toolkit MCP Server** (Port 8012) - Remote AI Toolkit for LoRA training
+11. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
 
 This modular architecture ensures better separation of concerns, easier maintenance, and the ability to scale individual services independently.
 
@@ -409,6 +410,77 @@ ELEVENLABS_DEFAULT_VOICE=Rachel
 ```
 
 See `tools/mcp/elevenlabs_speech/docs/README.md` for detailed documentation.
+
+## Video Editor MCP Server
+
+The Video Editor server provides AI-powered video editing capabilities with automatic transcription, speaker diarization, and intelligent scene detection.
+
+### Starting the Server
+
+```bash
+# The server is configured in .mcp.json and runs automatically through Claude Desktop
+# It uses STDIO mode for seamless integration
+
+# For HTTP mode (testing/development):
+docker-compose up -d mcp-video-editor
+
+# Or run locally
+python -m tools.mcp.video_editor.server --mode http
+
+# View logs
+docker-compose logs -f mcp-video-editor
+
+# Test health
+curl http://localhost:8019/health
+```
+
+### Available Tools
+
+- **process_video** - Main processing endpoint with multiple operations
+  - Transcription with Whisper
+  - Speaker diarization with pyannote
+  - Scene detection and analysis
+  - Caption generation (SRT/VTT/TXT)
+- **compose_videos** - Combine multiple videos with transitions
+- **extract_clips** - Extract clips based on keywords or speakers
+- **generate_captions** - Create multi-language captions
+- **analyze_audio** - Audio analysis and processing
+- **apply_video_filter** - Apply visual filters and effects
+- **create_montage** - Create montages from multiple clips
+- **generate_highlights** - Auto-generate highlight reels
+- **job_status** - Check async job status
+- **get_job_result** - Retrieve completed job results
+
+### Features
+
+- **AI-Powered Processing**: Automatic transcription and speaker identification
+- **Scene Detection**: Intelligent scene boundary detection
+- **Multi-Language Support**: Caption generation in multiple languages
+- **GPU Acceleration**: CUDA support for faster processing
+- **Async Job Processing**: Long operations handled asynchronously
+- **Smart Editing**: Extract clips by keywords, speakers, or time ranges
+- **Audio Processing**: Advanced audio analysis and enhancement
+- **Transition Effects**: Professional transitions for video composition
+
+### Configuration
+
+Add to `.env`:
+```bash
+# Optional - Hugging Face for models
+HUGGINGFACE_TOKEN=your_token_here
+
+# Optional - GPU selection for multi-GPU systems
+GPU_DEVICE=0  # Select specific GPU (0, 1, 2, etc.)
+```
+
+### GPU Support
+
+The server supports GPU acceleration when available:
+- Automatic CUDA detection
+- Configurable GPU device selection via `GPU_DEVICE` env var
+- Falls back to CPU if GPU unavailable
+
+See `tools/mcp/video_editor/docs/README.md` for detailed documentation.
 
 ## Unified Testing
 

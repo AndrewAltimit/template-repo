@@ -392,6 +392,127 @@ Generate memes from templates with text overlays.
 }
 ```
 
+### Video Editor Tools
+
+#### process_video
+
+Comprehensive video processing with AI-powered features.
+
+**Parameters:**
+- `video_path` (string, required): Path to input video file
+- `operations` (array, required): List of operations to perform
+  - Options: transcribe, diarize, detect_scenes, generate_captions, analyze_audio
+- `output_dir` (string, optional): Output directory for results
+- `transcribe_options` (object, optional): Whisper transcription settings
+- `diarize_options` (object, optional): Speaker diarization settings
+
+**Example:**
+```json
+{
+  "tool": "process_video",
+  "arguments": {
+    "video_path": "/input/video.mp4",
+    "operations": ["transcribe", "diarize", "detect_scenes"],
+    "transcribe_options": {
+      "language": "en",
+      "model": "base"
+    }
+  }
+}
+```
+
+#### compose_videos
+
+Combine multiple videos with transitions.
+
+**Parameters:**
+- `video_inputs` (array, required): List of video file paths
+- `transitions` (array, optional): Transition effects between clips
+- `output_path` (string, required): Output file path
+- `duration` (number, optional): Transition duration in seconds
+
+**Example:**
+```json
+{
+  "tool": "compose_videos",
+  "arguments": {
+    "video_inputs": ["/video1.mp4", "/video2.mp4"],
+    "transitions": ["fade", "crossfade"],
+    "output_path": "/output/composed.mp4",
+    "duration": 1.0
+  }
+}
+```
+
+#### extract_clips
+
+Extract clips based on keywords, speakers, or time ranges.
+
+**Parameters:**
+- `video_path` (string, required): Input video path
+- `extraction_type` (string, required): keyword, speaker, or time_range
+- `criteria` (object, required): Extraction criteria
+- `output_dir` (string, required): Output directory
+
+**Example:**
+```json
+{
+  "tool": "extract_clips",
+  "arguments": {
+    "video_path": "/input/video.mp4",
+    "extraction_type": "keyword",
+    "criteria": {
+      "keywords": ["important", "highlight"],
+      "context_seconds": 5
+    },
+    "output_dir": "/output/clips"
+  }
+}
+```
+
+#### generate_captions
+
+Generate multi-language captions.
+
+**Parameters:**
+- `video_path` (string, required): Input video path
+- `languages` (array, optional): Target languages for translation
+- `format` (string, optional): Output format (srt, vtt, txt)
+- `style_options` (object, optional): Caption styling options
+
+**Example:**
+```json
+{
+  "tool": "generate_captions",
+  "arguments": {
+    "video_path": "/input/video.mp4",
+    "languages": ["en", "es", "fr"],
+    "format": "srt",
+    "style_options": {
+      "position": "bottom",
+      "font_size": 24
+    }
+  }
+}
+```
+
+#### Additional Video Tools
+
+- **analyze_audio**: Perform audio analysis (volume, speech detection, music detection)
+- **apply_video_filter**: Apply visual filters and effects
+- **create_montage**: Create montages from multiple clips
+- **generate_highlights**: Auto-generate highlight reels
+- **job_status**: Check status of async processing jobs
+- **get_job_result**: Retrieve results of completed jobs
+
+**Features:**
+- GPU acceleration with CUDA support
+- Automatic fallback to CPU if GPU unavailable
+- Async job processing for long operations
+- Multi-language support via Whisper
+- Speaker diarization with pyannote
+- Intelligent scene detection
+
 ## Remote Services
 
 ### Gaea2 Tools (Port 8007)
