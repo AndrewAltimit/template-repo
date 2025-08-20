@@ -198,6 +198,12 @@ async def create_edit(
                     # Auto-map speakers to videos
                     speaker_idx = hash(speaker) % len(video_inputs)
                     source_video = video_inputs[speaker_idx]
+                    # Log warning about ambiguous mapping
+                    _server.logger.warning(
+                        f"No explicit mapping for speaker '{speaker}'. "
+                        f"Auto-mapping to video {speaker_idx} ({source_video}). "
+                        "Consider providing explicit speaker_mapping for better control."
+                    )
                 else:
                     source_video = primary_video
 

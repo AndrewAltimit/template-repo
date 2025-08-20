@@ -381,9 +381,98 @@ class TestIntegration(unittest.TestCase):
     @patch("tools.mcp.video_editor.server.VideoEditorMCPServer")
     async def test_full_workflow(self, MockServer):
         """Test a complete video editing workflow"""
-        # This would test the full pipeline from analysis to rendering
-        # In a real scenario, this would use actual video files
-        pass
+        # Create a mock server instance
+        mock_server = MagicMock(spec=VideoEditorMCPServer)
+        mock_server.logger = MagicMock()
+        mock_server.renders_dir = "/tmp/renders"
+        mock_server.clips_dir = "/tmp/clips"
+        mock_server.edl_dir = "/tmp/edl"
+
+        # Mock audio processor
+        mock_audio = MagicMock(spec=AudioProcessor)
+        mock_audio.extract_audio.return_value = "/tmp/audio.wav"
+        mock_audio.transcribe.return_value = {
+            "text": "Speaker one talks. Then speaker two responds.",
+            "language": "en",
+            "segments": [
+                {"start": 0.0, "end": 3.0, "text": "Speaker one talks."},
+                {"start": 3.0, "end": 7.0, "text": "Then speaker two responds."},
+            ],
+        }
+        mock_audio.diarize_speakers.return_value = {
+            "speakers": [{"id": "SPEAKER_00", "total_speaking_time": 3.0}, {"id": "SPEAKER_01", "total_speaking_time": 4.0}],
+            "segments": [
+                {"speaker": "SPEAKER_00", "start": 0.0, "end": 3.0},
+                {"speaker": "SPEAKER_01", "start": 3.0, "end": 7.0},
+            ],
+        }
+        mock_audio.analyze_audio_levels.return_value = {
+            "duration": 7.0,
+            "silence_segments": [],
+            "volume_profile": [0.5] * 7,
+            "peak_moments": [1.5, 5.0],
+        }
+        mock_server.audio_processor = mock_audio
+
+        # Mock video processor
+        mock_video = MagicMock(spec=VideoProcessor)
+        mock_video.detect_scene_changes.return_value = [3.0]
+        mock_video.create_edit_from_edl.return_value = MagicMock()
+        mock_video.render_video.return_value = "/tmp/renders/final_output.mp4"
+        mock_video.extract_clip.return_value = "/tmp/clips/clip_001.mp4"
+        mock_server.video_processor = mock_video
+
+        # Test the full workflow with patches
+        with patch("os.path.exists", return_value=True):
+            with patch("os.path.getsize", return_value=1000000):
+                with patch("builtins.open", create=True):
+                    with patch("json.dump"):
+                        # Step 1: Analyze videos
+                        analysis_result = await analyze_video(video_inputs=["video1.mp4", "video2.mp4"], _server=mock_server)
+                        assert "error" not in analysis_result
+                        assert "analysis" in analysis_result
+
+                        # Step 2: Create edit with speaker mapping
+                        edit_result = await create_edit(
+                            video_inputs=["video1.mp4", "video2.mp4"],
+                            speaker_mapping={"SPEAKER_00": "video1.mp4", "SPEAKER_01": "video2.mp4"},
+                            _server=mock_server,
+                        )
+                        assert "error" not in edit_result
+                        assert "edit_decision_list" in edit_result
+
+                        # Step 3: Render the final video
+                        render_result = await render_video(
+                            edl_file="/tmp/edl/edit.json",
+                            output_settings={"resolution": "1920x1080", "fps": 30, "format": "mp4"},
+                            _server=mock_server,
+                        )
+                        assert "error" not in render_result
+                        assert "output_file" in render_result
+
+                        # Step 4: Extract clips based on keywords
+                        extract_result = await extract_clips(
+                            video_input="video1.mp4",
+                            extraction_criteria={"keywords": ["speaker", "talks"], "min_clip_length": 2.0},
+                            _server=mock_server,
+                        )
+                        assert "error" not in extract_result
+                        assert "clips_extracted" in extract_result
+
+                        # Step 5: Add captions to video
+                        caption_result = await add_captions(
+                            video_input="video1.mp4",
+                            transcript={"segments": [{"start": 0, "end": 3, "text": "Test caption"}]},
+                            _server=mock_server,
+                        )
+                        assert "error" not in caption_result
+                        assert "output_file" in caption_result
+
+                        # Verify all components were called appropriately
+                        mock_audio.extract_audio.assert_called()
+                        mock_audio.transcribe.assert_called()
+                        mock_video.render_video.assert_called()
+                        mock_video.extract_clip.assert_called()
 
 
 if __name__ == "__main__":

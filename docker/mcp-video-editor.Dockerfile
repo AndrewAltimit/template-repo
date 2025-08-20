@@ -24,31 +24,15 @@ WORKDIR /app
 RUN mkdir -p /output /cache /tmp/video_editor
 
 # Copy requirements first for better caching
-COPY config/python/requirements.txt /tmp/requirements.txt
+COPY tools/mcp/video_editor/requirements.txt /tmp/video_editor_requirements.txt
+COPY config/python/requirements.txt /tmp/base_requirements.txt
 
 # Install Python dependencies
 RUN pip install --no-cache-dir \
-    # MCP and async
-    mcp \
-    asyncio \
-    aiohttp \
-    # Video processing
-    moviepy \
-    opencv-python-headless \
-    # Audio processing
-    openai-whisper \
-    pyannote.audio \
-    librosa \
-    # ML dependencies
-    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 \
-    transformers \
-    # Image processing
-    Pillow \
-    # Utilities
-    numpy \
-    scipy \
-    # Install base requirements
-    -r /tmp/requirements.txt
+    # Install from the video editor requirements file
+    -r /tmp/video_editor_requirements.txt \
+    # Also install base requirements
+    -r /tmp/base_requirements.txt
 
 # Copy the application code
 COPY tools/mcp/core /app/tools/mcp/core

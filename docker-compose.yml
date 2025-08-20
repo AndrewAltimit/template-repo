@@ -97,7 +97,7 @@ services:
     volumes:
       - ./:/app:ro
       - ./outputs/video-editor:/output  # Output directory for rendered videos
-      - ~/.cache/mcp_video_editor:/cache  # Cache for transcripts and analysis
+      - video-editor-cache:/cache  # Named volume for transcripts and analysis cache
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8019
@@ -524,6 +524,8 @@ volumes:
   crush-data: {}
   crush-local-data: {}
   crush-cache: {}
+  # Video Editor volumes
+  video-editor-cache: {}
   # AI Toolkit volumes
   ai-toolkit-datasets: {}
   ai-toolkit-outputs: {}
