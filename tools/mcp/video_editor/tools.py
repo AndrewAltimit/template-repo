@@ -198,6 +198,7 @@ async def create_edit(
                     # Use deterministic mapping based on speaker ID
                     # Sort speaker ID to ensure consistent ordering
                     import hashlib
+
                     speaker_hash = hashlib.md5(speaker.encode()).hexdigest()
                     speaker_idx = int(speaker_hash, 16) % len(video_inputs)
                     source_video = video_inputs[speaker_idx]

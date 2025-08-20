@@ -227,7 +227,7 @@ class VideoProcessor:
         self, video_clip: Any, output_path: str, output_settings: Dict[str, Any], progress_callback: Optional[callable] = None
     ) -> Dict[str, Any]:
         """Render the final video to file
-        
+
         Note: progress_callback is accepted for API compatibility but MoviePy
         doesn't support real-time progress callbacks. Progress bar will be
         shown in logs if logger is enabled.

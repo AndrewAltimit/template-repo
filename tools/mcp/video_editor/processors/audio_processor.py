@@ -64,9 +64,7 @@ class AudioProcessor:
 
                 self.logger.info("Loading diart/pyannote speaker diarization pipeline")
                 # Use pretrained pipeline
-                self._diart_pipeline = Pipeline.from_pretrained(
-                    "pyannote/speaker-diarization@2.1", use_auth_token=token
-                )
+                self._diart_pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization@2.1", use_auth_token=token)
 
                 # Set device
                 import torch
