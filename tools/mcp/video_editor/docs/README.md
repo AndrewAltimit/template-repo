@@ -149,6 +149,12 @@ Generates an edit decision list (EDL) based on rules without rendering.
     }
 }
 
+# Note: Speaker Mapping Behavior
+# - If speaker_mapping is provided, speakers are explicitly mapped to videos
+# - If omitted with multiple videos, speakers are auto-mapped using deterministic MD5 hash
+# - Auto-mapping ensures consistent results across runs but may not match expectations
+# - For predictable results, always provide explicit speaker_mapping
+
 # Returns edit decision list with:
 # - Timestamp and duration for each segment
 # - Source video selection
