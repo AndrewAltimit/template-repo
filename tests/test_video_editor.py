@@ -1,16 +1,20 @@
 """Comprehensive tests for the Video Editor MCP Server"""
 
 import os
+import sys
 import tempfile
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+# Mock numpy before importing video editor components
+sys.modules["numpy"] = MagicMock()
+
 # Import the video editor components
-from tools.mcp.video_editor import VideoEditorMCPServer
-from tools.mcp.video_editor.processors import AudioProcessor, VideoProcessor
-from tools.mcp.video_editor.tools import add_captions, analyze_video, create_edit, extract_clips, render_video
+from tools.mcp.video_editor import VideoEditorMCPServer  # noqa: E402
+from tools.mcp.video_editor.processors import AudioProcessor, VideoProcessor  # noqa: E402
+from tools.mcp.video_editor.tools import add_captions, analyze_video, create_edit, extract_clips, render_video  # noqa: E402
 
 
 class TestVideoEditorMCPServer(unittest.TestCase):

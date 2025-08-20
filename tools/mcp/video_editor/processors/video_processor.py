@@ -1,12 +1,15 @@
 """Video processing module for video editor - MoviePy integration for editing and effects"""
 
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
-try:
+if TYPE_CHECKING:
     import numpy as np
-except ImportError:
-    np = None  # Handle missing numpy gracefully for testing
+else:
+    try:
+        import numpy as np
+    except ImportError:
+        np = None  # Handle missing numpy gracefully for testing
 
 
 class VideoProcessor:

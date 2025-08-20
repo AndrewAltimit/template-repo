@@ -5,12 +5,15 @@ import json
 import os
 import subprocess
 import tempfile
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
-try:
+if TYPE_CHECKING:
     import numpy as np
-except ImportError:
-    np = None  # Handle missing numpy gracefully for testing
+else:
+    try:
+        import numpy as np
+    except ImportError:
+        np = None  # Handle missing numpy gracefully for testing
 
 
 class AudioProcessor:
@@ -272,7 +275,7 @@ class AudioProcessor:
             self.logger.error(f"Audio analysis failed: {e}")
             raise
 
-    def _detect_silence(self, audio: np.ndarray, sr: int, threshold_seconds: float) -> List[Tuple[float, float]]:
+    def _detect_silence(self, audio: "np.ndarray", sr: int, threshold_seconds: float) -> List[Tuple[float, float]]:
         """Detect silence segments in audio"""
         import librosa
 
