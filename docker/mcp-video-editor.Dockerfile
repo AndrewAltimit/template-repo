@@ -37,6 +37,12 @@ RUN pip install --no-cache-dir \
     -r /tmp/base_requirements.txt
 
 # Copy the application code
+# NOTE: These COPY instructions are for building standalone production images.
+# In local development, docker-compose.yml mounts the project directory as a volume,
+# which overrides these copied files. This allows for:
+# - Live code reloading during development (via volume mount)
+# - Standalone image distribution without requiring source code mount
+# - Optimized Docker layer caching during builds
 COPY tools/mcp/core /app/tools/mcp/core
 COPY tools/mcp/video_editor /app/tools/mcp/video_editor
 

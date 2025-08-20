@@ -108,6 +108,9 @@ services:
       - DIART_DEVICE=${DIART_DEVICE:-cuda}
       - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}
       - ENABLE_GPU=${ENABLE_GPU:-true}
+      # GPU device selection for multi-GPU systems
+      - NVIDIA_VISIBLE_DEVICES=${GPU_DEVICE:-0}
+      - CUDA_VISIBLE_DEVICES=${GPU_DEVICE:-0}
     networks:
       - mcp-network
     command: ["python", "-m", "tools.mcp.video_editor.server", "--mode", "http"]
