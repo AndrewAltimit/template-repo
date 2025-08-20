@@ -3,7 +3,10 @@
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    np = None  # Handle missing numpy gracefully for testing
 
 
 class VideoProcessor:
