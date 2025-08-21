@@ -58,13 +58,12 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 
    # Set up API keys (if using AI features)
    export OPENROUTER_API_KEY="your-key-here"  # For OpenCode/Crush
-   export GEMINI_API_KEY="your-key-here"      # For Gemini
+   export GEMINI_API_KEY="your-key-here"      # For Gemini (dont use API key for free tier, use web auth)
    ```
 
-3. **Use MCP servers with Claude Code**
+3. **Use MCP servers with Claude Code and other agents**
    - MCP servers are configured in `.mcp.json`
-   - Claude Code automatically starts them via STDIO
-   - No manual startup required!
+   - No manual startup required! Agents can start the services themselves.
 
 4. **For standalone usage**
    ```bash
@@ -147,8 +146,8 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 
 ### Usage Modes
 
-- **STDIO Mode** (for Claude Code): Configured in `.mcp.json`, auto-started by Claude
-- **HTTP Mode** (for testing/APIs): Run with `docker-compose up`
+- **STDIO Mode** (local MCPs): Configured in `.mcp.json`, auto-started by Claude
+- **HTTP Mode** (remote MCPs): Run the MCP using docker-compose on the remote node.
 
 See [MCP Architecture Documentation](docs/mcp/README.md) and [STDIO vs HTTP Modes](docs/mcp/architecture/stdio-vs-http.md) for details.
 
