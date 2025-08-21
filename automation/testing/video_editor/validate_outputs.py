@@ -12,39 +12,32 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+# Add the project root to the path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 
-def run_command(cmd):
-    """Run a shell command and return output"""
-    import subprocess
-
-    try:
-        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
-        return result.stdout
-    except subprocess.CalledProcessError as e:
-        print(f"Command failed: {cmd}")
-        print(f"Error: {e.stderr}")
-        return None
+from automation.testing.video_editor.utils import (  # noqa: E402
+    get_audio_segment,
+    get_frame_at_timestamp,
+    run_command_safe,
+)
 
 
 def get_video_duration(video_path):
     """Get exact video duration in seconds"""
-    cmd = f'ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{video_path}"'
-    output = run_command(cmd)
+    args = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        str(video_path),
+    ]
+    output = run_command_safe(args)
     if output:
         return float(output.strip())
     return None
-
-
-def extract_frame_at_time(video_path, timestamp, output_path):
-    """Extract a single frame at specific timestamp"""
-    cmd = f'ffmpeg -ss {timestamp} -i "{video_path}" -vframes 1 "{output_path}" -y 2>/dev/null'
-    return run_command(cmd) is not None
-
-
-def extract_audio_segment(video_path, start_time, duration, output_path):
-    """Extract audio segment from specific timestamp"""
-    cmd = f'ffmpeg -ss {start_time} -i "{video_path}" -t {duration} -vn -acodec pcm_s16le "{output_path}" -y 2>/dev/null'
-    return run_command(cmd) is not None
 
 
 def analyze_frame(frame_path):
@@ -76,7 +69,7 @@ def analyze_frame(frame_path):
 def analyze_audio_segment(audio_path):
     """Analyze audio segment to get properties"""
     try:
-        with wave.open(audio_path, "rb") as wav:
+        with wave.open(str(audio_path), "rb") as wav:
             channels = wav.getnchannels()
             # sample_width = wav.getsampwidth()  # Not used currently
             framerate = wav.getframerate()
@@ -127,10 +120,10 @@ def sample_video_points(video_path, sample_points):
         audio_path = temp_dir / f"audio_{i}_{timestamp:.1f}s.wav"
 
         # Extract frame
-        frame_extracted = extract_frame_at_time(video_path, timestamp, frame_path)
+        frame_extracted = get_frame_at_timestamp(video_path, timestamp, frame_path)
 
         # Extract 1 second of audio
-        audio_extracted = extract_audio_segment(video_path, timestamp, 1.0, audio_path)
+        audio_extracted = get_audio_segment(video_path, timestamp, 1.0, audio_path)
 
         result = {"timestamp": timestamp, "frame": None, "audio": None}
 
@@ -241,7 +234,7 @@ def main():
         frame_valid = True
         for i, timestamp in enumerate(scene_times):
             frame_path = temp_dir / f"scene_{i+1}_at_{timestamp:.1f}s.jpg"
-            if extract_frame_at_time(test_video, timestamp, frame_path):
+            if get_frame_at_timestamp(test_video, timestamp, frame_path):
                 if frame_path.exists():
                     frame_info = analyze_frame(frame_path)
                     if frame_info:
@@ -282,7 +275,7 @@ def main():
 
                 for sample_time in sample_times:
                     if sample_time >= 0 and sample_time < duration:
-                        if extract_audio_segment(video_path, sample_time, 0.5, temp_audio):
+                        if get_audio_segment(video_path, sample_time, 0.5, temp_audio):
                             audio_info = analyze_audio_segment(temp_audio)
                             if audio_info:
                                 print(f"  ✓ {Path(video_path).name} - Audio at {sample_time:.1f}s")
