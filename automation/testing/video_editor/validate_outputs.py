@@ -5,7 +5,6 @@ This script validates that the video editor produces correct outputs
 """
 
 import os
-import subprocess
 import sys
 import wave
 from pathlib import Path
@@ -16,6 +15,8 @@ from PIL import Image
 
 def run_command(cmd):
     """Run a shell command and return output"""
+    import subprocess
+
     try:
         result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=True)
         return result.stdout
@@ -317,12 +318,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # Check for required libraries
-    try:
-        __import__("numpy")
-        __import__("PIL.Image")
-    except ImportError:
-        print("Installing required libraries...")
-        subprocess.run([sys.executable, "-m", "pip", "install", "numpy", "pillow"], check=True)
-
     sys.exit(main())

@@ -23,9 +23,10 @@ create_test_video() {
     echo "Creating $name.mp4 (${duration}s) - $text"
 
     # Create video with text overlay and audio tone
+    # Note: Using text without font file - ffmpeg will use built-in font
     ffmpeg -y -f lavfi -i "color=c=${bg_color}:s=640x360:d=${duration}" \
            -f lavfi -i "sine=frequency=${audio_tone}:duration=${duration}" \
-           -vf "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text='${text}':fontcolor=${text_color}:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2" \
+           -vf "drawtext=text='${text}':fontcolor=${text_color}:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2" \
            -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
            -c:a aac -b:a 128k \
            "${OUTPUT_DIR}/${name}.mp4" 2>/dev/null
