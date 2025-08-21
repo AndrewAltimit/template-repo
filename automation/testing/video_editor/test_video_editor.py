@@ -70,16 +70,19 @@ def detect_scene_changes(video_path):
 
 def test_video_composition(video1, video2, output_path):
     """Test basic video composition with transition"""
-    # Create a simple composition with crossfade transition
+    # Create a composition with crossfade for video and audio
     filter_complex = (
         "[0:v]trim=0:5,setpts=PTS-STARTPTS[v0];"
         "[1:v]trim=0:5,setpts=PTS-STARTPTS[v1];"
-        "[v0][v1]xfade=transition=fade:duration=1:offset=4[outv]"
+        "[v0][v1]xfade=transition=fade:duration=1:offset=4[outv];"
+        "[0:a]atrim=0:5,asetpts=PTS-STARTPTS[a0];"
+        "[1:a]atrim=0:5,asetpts=PTS-STARTPTS[a1];"
+        "[a0][a1]acrossfade=d=1[outa]"
     )
 
     cmd = (
         f'ffmpeg -i "{video1}" -i "{video2}" -filter_complex "{filter_complex}" '
-        f'-map "[outv]" -c:v libx264 -preset fast "{output_path}" -y 2>/dev/null'
+        f'-map "[outv]" -map "[outa]" -c:v libx264 -preset fast "{output_path}" -y 2>/dev/null'
     )
     return run_command(cmd) is not None
 
