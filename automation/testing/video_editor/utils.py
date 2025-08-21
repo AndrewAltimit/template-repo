@@ -5,37 +5,10 @@ Centralizes common functionality to avoid code duplication.
 """
 
 import json
+import os
 import subprocess
+import tempfile
 from typing import Any, Dict, List, Optional, Tuple
-
-
-def run_command(cmd: str, capture_output: bool = True, check: bool = True, debug: bool = False) -> Optional[str]:
-    """
-    Run a shell command and return output.
-
-    Args:
-        cmd: Command to execute
-        capture_output: Whether to capture stdout/stderr
-        check: Whether to raise exception on non-zero exit
-        debug: If True, show stderr output for debugging
-
-    Returns:
-        Command stdout if successful, None if failed
-    """
-    try:
-        if debug:
-            # Show stderr for debugging
-            result = subprocess.run(cmd, shell=True, capture_output=capture_output, text=True, check=check)
-            if result.stderr:
-                print(f"Debug stderr: {result.stderr}")
-        else:
-            result = subprocess.run(cmd, shell=True, capture_output=capture_output, text=True, check=check)
-        return result.stdout if capture_output else ""
-    except subprocess.CalledProcessError as e:
-        if debug or check:
-            print(f"Command failed: {cmd}")
-            print(f"Error: {e.stderr}")
-        return None
 
 
 def run_command_safe(args: List[str], capture_output: bool = True, check: bool = True, debug: bool = False) -> Optional[str]:
@@ -145,15 +118,17 @@ def detect_scene_changes(video_path: str, threshold: float = 0.4) -> List[float]
     Returns:
         List of scene change timestamps
     """
-    # This one requires shell=True due to complex filter syntax and grep
-    cmd = f'ffmpeg -i "{video_path}" -filter:v ' f"\"select='gt(scene,{threshold})',showinfo\" -f null - 2>&1 | grep showinfo"
+    # Run ffmpeg without shell=True and process stderr in Python
+    args = ["ffmpeg", "-i", str(video_path), "-filter:v", f"select='gt(scene,{threshold})',showinfo", "-f", "null", "-"]
 
-    output = run_command(cmd, check=False)
+    # Capture stderr where ffmpeg outputs the showinfo data
+    result = subprocess.run(args, capture_output=True, text=True)
+    output = result.stderr  # showinfo output goes to stderr
+
     scenes = []
-
     if output:
-        for line in output.split("\n"):
-            if "pts_time" in line:
+        for line in output.splitlines():
+            if "showinfo" in line and "pts_time" in line:
                 parts = line.split()
                 for part in parts:
                     if part.startswith("pts_time:"):
@@ -254,17 +229,26 @@ def add_caption_overlay(video_path: str, caption_text: str, output_path: str, de
     Returns:
         True if successful, False otherwise
     """
-    # Escape special characters in caption text
-    caption_text = caption_text.replace("'", "\\'").replace('"', '\\"')
+    # Use a temporary file for the text to avoid injection risks
+    with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as tmp:
+        tmp.write(caption_text)
+        text_filepath = tmp.name
 
-    filter_str = (
-        f"drawtext=text='{caption_text}':fontcolor=white:fontsize=24:box=1:"
-        f"boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=h-th-10"
-    )
+    try:
+        filter_str = (
+            f"drawtext=textfile='{text_filepath}':fontcolor=white:fontsize=24:box=1:"
+            f"boxcolor=black@0.5:boxborderw=5:x=(w-text_w)/2:y=h-th-10"
+        )
 
-    args = ["ffmpeg", "-i", str(video_path), "-vf", filter_str, "-codec:a", "copy", str(output_path), "-y"]
+        args = ["ffmpeg", "-i", str(video_path), "-vf", filter_str, "-codec:a", "copy", str(output_path), "-y"]
 
-    return run_command_safe(args, capture_output=not debug, debug=debug) is not None
+        result = run_command_safe(args, capture_output=not debug, debug=debug) is not None
+    finally:
+        # Clean up the temporary file
+        if os.path.exists(text_filepath):
+            os.remove(text_filepath)
+
+    return result
 
 
 def analyze_audio_levels(audio_path: str, noise_level: str = "-50dB", min_duration: float = 0.5) -> List[Tuple[float, float]]:
@@ -279,14 +263,16 @@ def analyze_audio_levels(audio_path: str, noise_level: str = "-50dB", min_durati
     Returns:
         List of (start, end) tuples for silence segments
     """
-    # This requires shell=True due to complex stderr parsing
-    cmd = f'ffmpeg -i "{audio_path}" ' f'-af "silencedetect=n={noise_level}:d={min_duration}" ' f"-f null - 2>&1"
+    # Run ffmpeg without shell=True and process stderr in Python
+    args = ["ffmpeg", "-i", str(audio_path), "-af", f"silencedetect=n={noise_level}:d={min_duration}", "-f", "null", "-"]
 
-    output = run_command(cmd, check=False)
+    # Capture stderr where ffmpeg outputs the silence detection info
+    result = subprocess.run(args, capture_output=True, text=True)
+    output = result.stderr  # silencedetect output goes to stderr
 
     silence_segments = []
     if output:
-        lines = output.split("\n")
+        lines = output.splitlines()
         start_time = None
 
         for line in lines:
