@@ -46,7 +46,7 @@ echo "Creating video with silence section..."
 # First part with audio (5s)
 ffmpeg -y -f lavfi -i "color=c=black:s=640x360:d=5" \
        -f lavfi -i "sine=frequency=440:duration=5" \
-       -vf "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text='Speaking Section':fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2" \
+       -vf "drawtext=text='Speaking Section':fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2" \
        -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
        -c:a aac -b:a 128k \
        "${OUTPUT_DIR}/part1_audio.mp4" 2>/dev/null
@@ -54,7 +54,7 @@ ffmpeg -y -f lavfi -i "color=c=black:s=640x360:d=5" \
 # Silent part (5s)
 ffmpeg -y -f lavfi -i "color=c=gray:s=640x360:d=5" \
        -f lavfi -i "anullsrc=duration=5" \
-       -vf "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text='Silent Section':fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2" \
+       -vf "drawtext=text='Silent Section':fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2" \
        -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
        -c:a aac -b:a 128k \
        "${OUTPUT_DIR}/part2_silence.mp4" 2>/dev/null
@@ -62,7 +62,7 @@ ffmpeg -y -f lavfi -i "color=c=gray:s=640x360:d=5" \
 # Last part with audio (5s)
 ffmpeg -y -f lavfi -i "color=c=black:s=640x360:d=5" \
        -f lavfi -i "sine=frequency=880:duration=5" \
-       -vf "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text='Speaking Again':fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2" \
+       -vf "drawtext=text='Speaking Again':fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2" \
        -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
        -c:a aac -b:a 128k \
        "${OUTPUT_DIR}/part3_audio.mp4" 2>/dev/null
@@ -85,7 +85,7 @@ colors=("navy" "darkgreen" "maroon" "purple")
 for i in {0..3}; do
     ffmpeg -y -f lavfi -i "color=c=${colors[$i]}:s=640x360:d=5" \
            -f lavfi -i "sine=frequency=$((440 + i*220)):duration=5" \
-           -vf "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text='${scenes[$i]}':fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2" \
+           -vf "drawtext=text='${scenes[$i]}':fontcolor=white:fontsize=24:x=(w-text_w)/2:y=(h-text_h)/2" \
            -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
            -c:a aac -b:a 128k \
            "${OUTPUT_DIR}/scene_${i}.mp4" 2>/dev/null
