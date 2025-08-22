@@ -21,7 +21,7 @@ The company uses a unique API format different from standard OpenAI/Anthropic AP
 
 **Endpoint Format:**
 ```
-https://aigateway-prod.apps-1.gp-1-prod.openshift.cignacloud.com/api/v1/AI/GenAIExplorationLab/Models/{model-endpoint}
+https://{your-company-api-gateway}/api/v1/AI/{your-lab}/Models/{model-endpoint}
 ```
 
 **Model Endpoints:**
@@ -176,7 +176,7 @@ export COMPANY_API_TOKEN=test-secret-token-123
 
 For production on company network:
 ```bash
-export COMPANY_API_BASE=https://aigateway-prod.apps-1.gp-1-prod.openshift.cignacloud.com
+export COMPANY_API_BASE=https://{your-company-api-gateway}
 export COMPANY_API_TOKEN=actual-token-here
 ```
 
@@ -207,7 +207,7 @@ opencode models             # List models (shows only 3)
 #### Production Mode (Real Company API)
 ```bash
 # Set your company credentials
-export COMPANY_API_BASE="https://aigateway-prod.apps-1.gp-1-prod.openshift.cignacloud.com"
+export COMPANY_API_BASE="https://{your-company-api-gateway}"
 export COMPANY_API_TOKEN="your-real-token"
 
 # Run in production mode

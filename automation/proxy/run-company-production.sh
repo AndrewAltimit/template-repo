@@ -25,7 +25,7 @@ fi
 
 # Get API credentials
 if [ -z "$COMPANY_API_BASE" ]; then
-    echo "Enter Company API Base URL (e.g., https://aigateway-prod.apps-1.gp-1-prod.openshift.cignacloud.com):"
+    echo "Enter Company API Base URL (e.g., https://your-company-api-gateway.example.com):"
     read -r COMPANY_API_BASE
 fi
 
