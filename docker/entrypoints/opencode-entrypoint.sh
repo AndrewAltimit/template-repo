@@ -12,7 +12,7 @@ echo ""
 
 # Dynamically generate OpenCode configuration at runtime
 CONFIG_DIR="/home/bun/.config/opencode"
-CONFIG_FILE="${CONFIG_DIR}/.opencode.json"
+CONFIG_FILE="${CONFIG_DIR}/opencode.json"
 WRAPPER_URL="http://localhost:${WRAPPER_PORT:-8052}/v1"
 
 # Ensure config directory exists

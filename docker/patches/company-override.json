@@ -2,6 +2,7 @@
   "openrouter": {
     "id": "openrouter",
     "name": "Company AI",
+    "api": "http://localhost:8052/v1",
     "npm": "@ai-sdk/openai-compatible",
     "env": [
       "OPENROUTER_API_KEY"
