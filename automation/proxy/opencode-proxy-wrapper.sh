@@ -17,11 +17,10 @@ if [ -t 1 ]; then
     GREEN='\033[0;32m'
     YELLOW='\033[1;33m'
     BLUE='\033[0;34m'
-    MAGENTA='\033[0;35m'
     CYAN='\033[0;36m'
     NC='\033[0m'
 else
-    RED=''; GREEN=''; YELLOW=''; BLUE=''; MAGENTA=''; CYAN=''; NC=''
+    RED=''; GREEN=''; YELLOW=''; BLUE=''; CYAN=''; NC=''
 fi
 
 # Function to check if a service is running
@@ -29,7 +28,7 @@ check_service() {
     local port=$1
     local service_name=$2
 
-    if nc -z localhost $port 2>/dev/null; then
+    if nc -z localhost "$port" 2>/dev/null; then
         return 0
     else
         return 1
@@ -45,7 +44,7 @@ wait_for_service() {
 
     echo -n "Waiting for $service_name"
     while [ $attempt -lt $max_attempts ]; do
-        if nc -z localhost $port 2>/dev/null; then
+        if nc -z localhost "$port" 2>/dev/null; then
             echo -e " ${GREEN}✓${NC}"
             return 0
         fi
@@ -89,12 +88,12 @@ if [ "$USE_PROXY" = "true" ]; then
     if [ "$MOCK_MODE" = "true" ]; then
         if ! check_service 8050 "Mock Company API"; then
             echo "Starting Mock Company API..."
-            python3 /workspace/automation/proxy/mock_company_api.py > $LOG_DIR/mock_api.log 2>&1 &
+            python3 /workspace/automation/proxy/mock_company_api.py > "$LOG_DIR"/mock_api.log 2>&1 &
             MOCK_PID=$!
 
             if ! wait_for_service 8050 "Mock Company API"; then
                 echo -e "${RED}Failed to start Mock Company API${NC}"
-                cat $LOG_DIR/mock_api.log
+                cat "$LOG_DIR"/mock_api.log
                 exit 1
             fi
         else
@@ -111,12 +110,12 @@ if [ "$USE_PROXY" = "true" ]; then
         export COMPANY_API_BASE=$COMPANY_API_BASE
         export COMPANY_API_TOKEN=$COMPANY_API_TOKEN
 
-        python3 /workspace/automation/proxy/api_translation_wrapper.py > $LOG_DIR/wrapper.log 2>&1 &
+        python3 /workspace/automation/proxy/api_translation_wrapper.py > "$LOG_DIR"/wrapper.log 2>&1 &
         WRAPPER_PID=$!
 
         if ! wait_for_service 8052 "API Translation Wrapper"; then
             echo -e "${RED}Failed to start API Translation Wrapper${NC}"
-            cat $LOG_DIR/wrapper.log
+            cat "$LOG_DIR"/wrapper.log
             exit 1
         fi
     else
