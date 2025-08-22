@@ -1,11 +1,16 @@
 # OpenCode with Company Integration and Working TUI
 # This version properly builds and includes the Go TUI binary
 
+# Clone the repository once for both builders
+FROM alpine/git AS source
+WORKDIR /source
+RUN git clone --depth 1 https://github.com/sst/opencode.git
+
 FROM golang:1.23 AS tui-builder
 
-# Build the TUI binary
+# Copy source from common stage
 WORKDIR /build
-RUN git clone --depth 1 https://github.com/sst/opencode.git
+COPY --from=source /source/opencode ./opencode
 
 WORKDIR /build/opencode/packages/tui
 
@@ -29,10 +34,11 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
 
 FROM oven/bun:1 AS opencode-builder
 
-RUN apt-get update && apt-get install -y git curl build-essential && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y curl build-essential && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
-RUN git clone --depth 1 https://github.com/sst/opencode.git
+# Copy source from common stage
+COPY --from=source /source/opencode ./opencode
 
 WORKDIR /build/opencode
 RUN bun install
@@ -90,84 +96,9 @@ WORKDIR /workspace
 COPY automation/proxy/mock_company_api.py .
 COPY automation/proxy/company_translation_wrapper.py .
 
-# Create a startup script
-RUN echo '#!/bin/bash\n\
-echo "[Company] Starting Company OpenCode Container"\n\
-echo "[Company] TUI binaries are installed at:"\n\
-ls -la /home/bun/.cache/opencode/tui/\n\
-echo ""\n\
-\n\
-# Auto-start mock services if COMPANY_MOCK_MODE is set\n\
-if [ "$COMPANY_MOCK_MODE" = "true" ]; then\n\
-    echo "[Company] Mock mode enabled - starting services..."\n\
-    echo "Starting mock API on port 8050..."\n\
-    python3 /workspace/mock_company_api.py > /tmp/mock_api.log 2>&1 &\n\
-    MOCK_PID=$!\n\
-    echo "Mock API started (PID: $MOCK_PID)"\n\
-    \n\
-    echo "Starting translation wrapper on port 8052..."\n\
-    python3 /workspace/company_translation_wrapper.py > /tmp/wrapper.log 2>&1 &\n\
-    WRAPPER_PID=$!\n\
-    echo "Translation wrapper started (PID: $WRAPPER_PID)"\n\
-    \n\
-    # Wait for services to be ready\n\
-    sleep 2\n\
-    \n\
-    # Check if services are running\n\
-    if nc -z localhost 8050 2>/dev/null; then\n\
-        echo "✅ Mock API is running on port 8050"\n\
-    else\n\
-        echo "⚠️  Mock API failed to start - check /tmp/mock_api.log"\n\
-    fi\n\
-    \n\
-    if nc -z localhost 8052 2>/dev/null; then\n\
-        echo "✅ Translation wrapper is running on port 8052"\n\
-    else\n\
-        echo "⚠️  Translation wrapper failed to start - check /tmp/wrapper.log"\n\
-    fi\n\
-    echo ""\n\
-    echo "[Company] Mock services started! Ready to use OpenCode."\n\
-else\n\
-    echo "[Company] Mock mode disabled. To enable, set COMPANY_MOCK_MODE=true"\n\
-    echo "[Company] Manual commands:"\n\
-    echo "  python3 mock_company_api.py &"\n\
-    echo "  python3 company_translation_wrapper.py &"\n\
-fi\n\
-\n\
-# Function to cleanup background processes on exit\n\
-cleanup() {\n\
-    echo ""\n\
-    echo "[Company] Shutting down services..."\n\
-    pkill -f mock_company_api.py 2>/dev/null || true\n\
-    pkill -f company_translation_wrapper.py 2>/dev/null || true\n\
-    exit 0\n\
-}\n\
-\n\
-# Set up cleanup trap\n\
-trap cleanup EXIT INT TERM\n\
-\n\
-# Check if we should auto-start OpenCode\n\
-if [ "$COMPANY_AUTO_START" = "true" ]; then\n\
-    echo ""\n\
-    echo "[Company] Auto-starting OpenCode TUI..."\n\
-    echo "========================================"\n\
-    echo ""\n\
-    # Give a moment for user to see startup messages\n\
-    sleep 1\n\
-    # Start OpenCode TUI directly\n\
-    exec opencode\n\
-else\n\
-    echo ""\n\
-    echo "[Company] Available commands:"\n\
-    echo "  opencode         - Start TUI (interactive mode)"\n\
-    echo "  opencode serve   - Start headless server"\n\
-    echo "  opencode run \"prompt\" - Run a single prompt"\n\
-    echo "  opencode models  - List available models"\n\
-    echo ""\n\
-    echo "[Company] To auto-start TUI, set COMPANY_AUTO_START=true"\n\
-    echo ""\n\
-    exec bash\n\
-fi' > /entrypoint.sh && chmod +x /entrypoint.sh
+# Copy entrypoint script from repository
+COPY docker/entrypoints/opencode-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 ENV OPENROUTER_API_KEY=sk-company-mock-api-key-123
 ENV HOME=/home/bun
