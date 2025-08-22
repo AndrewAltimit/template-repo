@@ -1,5 +1,7 @@
 # OpenCode Proxy System
 
+> **🎭 Enhanced Version Available**: For an improved user experience with automatic service startup and cleaner interface, see the [Proxy Wrapper Documentation](../../docs/features/opencode-proxy-wrapper.md).
+
 This directory contains a complete proxy solution that allows OpenCode to work with company internal AI APIs instead of OpenRouter.
 
 ## 🎯 Purpose

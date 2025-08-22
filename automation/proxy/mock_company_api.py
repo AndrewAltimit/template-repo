@@ -5,11 +5,9 @@ Mimics the company's AI Gateway API format for testing
 Always returns "Hatsune Miku" as response
 """
 
-import json
 import logging
 import time
 from datetime import datetime
-from typing import Any, Dict
 
 from flask import Flask, Response, jsonify, request
 from flask_cors import CORS
@@ -102,7 +100,8 @@ if __name__ == "__main__":
     port = 8050
     logger.info(f"Starting Mock Company API on port {port}")
     logger.info(f"Test token: {MOCK_SECRET_TOKEN}")
+    model_endpoint = "ai-coe-bedrock-claude35-sonnet-200k:analyze=null"
     logger.info(
-        f"Example endpoint: http://localhost:{port}/api/v1/AI/GenAIExplorationLab/Models/ai-coe-bedrock-claude35-sonnet-200k:analyze=null"
+        f"Example endpoint: http://localhost:{port}/api/v1/AI/GenAIExplorationLab/Models/{model_endpoint}"
     )
     app.run(host="0.0.0.0", port=port, debug=True)

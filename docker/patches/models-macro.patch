@@ -1,0 +1,4 @@
+import proxyModels from "../proxy-models.json"
+export async function data() {
+  return JSON.stringify(proxyModels)
+}

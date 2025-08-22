@@ -5,9 +5,7 @@ A simple CLI that mimics OpenCode but uses the proxy directly
 """
 
 import argparse
-import json
-import sys
-from typing import Any, Dict, List
+from typing import Dict, List
 
 import requests
 

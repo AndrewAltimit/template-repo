@@ -8,7 +8,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import requests
 from flask import Flask, Response, jsonify, request, stream_with_context

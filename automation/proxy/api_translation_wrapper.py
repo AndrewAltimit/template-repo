@@ -10,7 +10,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import requests
 from flask import Flask, Response, jsonify, request, stream_with_context
@@ -314,6 +314,6 @@ if __name__ == "__main__":
     logger.info(f"Available models: {list(MODEL_MAPPING.keys())}")
     logger.info("-" * 60)
     logger.info(f"OpenCode endpoint: http://localhost:{port}/v1/chat/completions")
-    logger.info(f"Configure OpenCode to use this as baseURL")
+    logger.info("Configure OpenCode to use this as baseURL")
     logger.info("=" * 60)
     app.run(host="0.0.0.0", port=port, debug=True)

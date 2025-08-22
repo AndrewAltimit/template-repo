@@ -8,8 +8,6 @@ import json
 import logging
 import subprocess
 import sys
-import time
-from typing import Any, Dict
 
 import requests
 
@@ -133,7 +131,7 @@ def test_translation_wrapper_streaming():
             logger.info("✓ Streaming is working correctly - returned 'Hatsune Miku'")
             return True
         else:
-            logger.error(f"✗ Streaming did not return expected response")
+            logger.error("✗ Streaming did not return expected response")
             return False
     except Exception as e:
         logger.error(f"✗ Failed streaming test: {e}")

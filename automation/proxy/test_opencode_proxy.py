@@ -6,7 +6,6 @@ Tests the translation wrapper directly without OpenCode CLI
 
 import json
 import sys
-from datetime import datetime
 
 import requests
 
@@ -165,7 +164,7 @@ def check_services():
             else:
                 print(f"  ❌ {name}: Not healthy")
                 all_running = False
-        except:
+        except Exception:
             print(f"  ❌ {name}: Not running")
             all_running = False
 
