@@ -65,15 +65,15 @@ if [ "$COMPANY_MOCK_MODE" = "true" ]; then
     # Wait for services to be ready with retry loop
     echo "Waiting for services to be ready..."
 
-    # Check mock API with retries
+    # Check mock API with retries using application-level health check
     mock_ready=false
     for i in {1..10}; do
-        if nc -z localhost "${MOCK_API_PORT:-8050}" 2>/dev/null; then
-            echo "✅ Mock API is running on port ${MOCK_API_PORT:-8050}"
+        if curl -fsS "http://localhost:${MOCK_API_PORT:-8050}/health" > /dev/null 2>&1; then
+            echo "✅ Mock API is healthy and ready on port ${MOCK_API_PORT:-8050}"
             mock_ready=true
             break
         fi
-        echo "  Waiting for mock API... ($i/10)"
+        echo "  Waiting for mock API to be ready... ($i/10)"
         sleep 1
     done
 
@@ -83,15 +83,15 @@ if [ "$COMPANY_MOCK_MODE" = "true" ]; then
         tail -10 /tmp/mock_api.log 2>/dev/null || echo "No log available"
     fi
 
-    # Check wrapper with retries
+    # Check wrapper with retries using application-level health check
     wrapper_ready=false
     for i in {1..10}; do
-        if nc -z localhost "${WRAPPER_PORT:-8052}" 2>/dev/null; then
-            echo "✅ Translation wrapper is running on port ${WRAPPER_PORT:-8052}"
+        if curl -fsS "http://localhost:${WRAPPER_PORT:-8052}/health" > /dev/null 2>&1; then
+            echo "✅ Translation wrapper is healthy and ready on port ${WRAPPER_PORT:-8052}"
             wrapper_ready=true
             break
         fi
-        echo "  Waiting for translation wrapper... ($i/10)"
+        echo "  Waiting for translation wrapper to be ready... ($i/10)"
         sleep 1
     done
 
@@ -103,6 +103,10 @@ if [ "$COMPANY_MOCK_MODE" = "true" ]; then
     echo ""
     echo "[Company] Mock services started! Ready to use OpenCode."
     echo "[Company] OpenCode is configured to connect to wrapper at: ${WRAPPER_URL}"
+    echo ""
+    echo "⚠️  IMPORTANT: Streaming is simulated - responses are buffered until complete."
+    echo "   Large responses may have noticeable latency before output appears."
+    echo ""
 else
     echo "[Company] Mock mode disabled. To enable, set COMPANY_MOCK_MODE=true"
     echo "[Company] Manual commands:"

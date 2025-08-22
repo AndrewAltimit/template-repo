@@ -109,7 +109,11 @@ fi
 **Trade-off**: Patches vs Fork
 - **Current**: Patches allow quick updates but may break
 - **Alternative**: Fork provides control but requires maintenance
-- **Recommendation**: Consider fork if patches break frequently
+- **STRONG RECOMMENDATION**: Create a fork for production use
+  - Patches are brittle and tightly coupled to OpenCode internals
+  - TUI patch especially fragile (hardcoded paths)
+  - Fork would eliminate surprise breakage from upstream changes
+  - Short-term pain (fork setup) for long-term gain (stability)
 
 ### 2. Simulated Streaming
 
@@ -166,9 +170,12 @@ cat /home/bun/.config/opencode/.opencode.json
 ## Future Improvements
 
 ### High Priority
-1. **Create OpenCode fork** - Eliminate patch maintenance
+1. **CREATE OPENCODE FORK** - Critical for production stability
+   - Current patches are brittle and will break with updates
+   - Fork provides control over integration points
+   - Strongly recommended by multiple code reviews
 2. **Implement true streaming** - If company API adds support
-3. **Add health checks** - Kubernetes/Docker Compose readiness
+3. **Monitor patch compatibility** - Until fork is created
 
 ### Nice to Have
 1. **Multi-stage config** - Separate dev/staging/prod configs

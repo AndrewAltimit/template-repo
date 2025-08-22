@@ -184,6 +184,9 @@ if __name__ == "__main__":
     logger.info("-" * 60)
     logger.info(f"OpenCode endpoint: http://localhost:{port}/v1/chat/completions")
     logger.info(f"Configure OpenCode to use baseURL: http://localhost:{port}/v1")
+    logger.info("-" * 60)
+    logger.warning("⚠️  IMPORTANT: Streaming is SIMULATED - responses are buffered")
+    logger.warning("Large responses will be delayed until fully received from upstream API")
     logger.info("=" * 60)
 
     debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
