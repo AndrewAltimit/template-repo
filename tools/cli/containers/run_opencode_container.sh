@@ -5,6 +5,47 @@ set -e
 
 echo "🐳 Starting OpenCode CLI in Container"
 
+# Check if required Docker images exist, build if not
+check_and_build_images() {
+    local images_missing=false
+
+    # Check for mcp-opencode image
+    if ! docker images | grep -q "template-repo-mcp-opencode"; then
+        echo "📦 OpenCode MCP image not found, building..."
+        images_missing=true
+    fi
+
+    # Check for mcp-crush image
+    if ! docker images | grep -q "template-repo-mcp-crush"; then
+        echo "📦 Crush MCP image not found, building..."
+        images_missing=true
+    fi
+
+    # Check for openrouter-agents image
+    if ! docker images | grep -q "template-repo-openrouter-agents"; then
+        echo "📦 OpenRouter agents image not found, building..."
+        images_missing=true
+    fi
+
+    # Build missing images
+    if [ "$images_missing" = true ]; then
+        echo "🔨 Building required Docker images..."
+        echo "This may take a few minutes on first run..."
+
+        # Build base MCP images first (required by openrouter-agents)
+        docker-compose build mcp-opencode mcp-crush
+
+        # Then build the openrouter-agents image
+        docker-compose build openrouter-agents
+
+        echo "✅ Docker images built successfully!"
+        echo ""
+    fi
+}
+
+# Build images if needed
+check_and_build_images
+
 # Auto-load .env file if it exists and OPENROUTER_API_KEY is not set
 if [ -z "$OPENROUTER_API_KEY" ] && [ -f ".env" ]; then
     echo "📄 Loading environment from .env file..."
