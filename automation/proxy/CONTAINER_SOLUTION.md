@@ -138,7 +138,7 @@ We use "Hatsune Miku" as the test response because:
 
 ## 📄 Files
 
-- `docker/opencode-company-tui-working.Dockerfile` - Working container definition with TUI
+- `docker/opencode-company-tui.Dockerfile` - Production container definition with TUI
 - `automation/proxy/mock_company_api.py` - Mock company API server
 - `automation/proxy/company_translation_wrapper.py` - Format translation layer
 - `automation/proxy/test-company-tui.sh` - Testing script

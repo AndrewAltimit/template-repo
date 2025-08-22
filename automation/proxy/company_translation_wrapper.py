@@ -171,7 +171,7 @@ def health():
 
 
 if __name__ == "__main__":
-    port = 8052
+    port = int(os.environ.get("WRAPPER_PORT", 8052))
     logger.info("=" * 60)
     logger.info("Company API Translation Wrapper")
     logger.info("=" * 60)
@@ -183,4 +183,5 @@ if __name__ == "__main__":
     logger.info(f"Configure OpenCode to use baseURL: http://localhost:{port}/v1")
     logger.info("=" * 60)
 
-    app.run(host="0.0.0.0", port=port, debug=True)
+    debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
+    app.run(host="0.0.0.0", port=port, debug=debug_mode)

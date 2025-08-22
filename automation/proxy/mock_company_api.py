@@ -6,6 +6,7 @@ Always returns "Hatsune Miku" as response
 """
 
 import logging
+import os
 import time
 from datetime import datetime
 
@@ -97,9 +98,10 @@ def root() -> Response:
 
 
 if __name__ == "__main__":
-    port = 8050
+    port = int(os.environ.get("MOCK_API_PORT", 8050))
     logger.info(f"Starting Mock Company API on port {port}")
     logger.info(f"Test token: {MOCK_SECRET_TOKEN}")
     model_endpoint = "ai-coe-bedrock-claude35-sonnet-200k:analyze=null"
     logger.info(f"Example endpoint: http://localhost:{port}/api/v1/AI/GenAIExplorationLab/Models/{model_endpoint}")
-    app.run(host="0.0.0.0", port=port, debug=True)
+    debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
+    app.run(host="0.0.0.0", port=port, debug=debug_mode)

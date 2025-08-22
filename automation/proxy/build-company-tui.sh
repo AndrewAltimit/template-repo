@@ -9,7 +9,7 @@ echo "============================================"
 
 # Build the Docker image
 echo "Building Docker image..."
-docker build -f docker/opencode-company-tui-working.Dockerfile -t opencode-company-tui:latest .
+docker build -f docker/opencode-company-tui.Dockerfile -t opencode-company-tui:latest .
 
 if [ $? -eq 0 ]; then
     echo ""

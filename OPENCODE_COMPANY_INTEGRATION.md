@@ -136,7 +136,7 @@ https://{your-company-api-gateway}/api/v1/AI/{your-lab}/Models/{model-endpoint}
 ### Key Files
 
 #### Docker Files
-- `docker/opencode-company-tui-working.Dockerfile` - **FIXED VERSION with working TUI**
+- `docker/opencode-company-tui.Dockerfile` - **Production-ready version with TUI support**
 - `docker/opencode-company-tui-fixed.Dockerfile` - Alternative TUI fix approach
 - `docker/opencode-company-final.Dockerfile` - Previous version (TUI broken)
 - `docker/opencode-company-simple.Dockerfile` - Simplified approach
@@ -291,7 +291,7 @@ The integration is considered complete when:
    - Provider now initializes correctly with mock API
 
 3. **Key Files**:
-   - `docker/opencode-company-tui-working.Dockerfile` - Complete working build
+   - `docker/opencode-company-tui.Dockerfile` - Complete production build
    - `docker/patches/company-override.json` - Provider configuration with npm and api fields
    - `docker/patches/tui-company-fix.ts` - TUI binary detection patch
    - `docker/patches/models-company-simple.ts` - Models limiting patch
