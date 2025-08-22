@@ -185,7 +185,7 @@ cat /home/bun/.config/opencode/.opencode.json
 ## References
 
 - [OpenCode Repository](https://github.com/sst/opencode)
-- [Original Integration Documentation](../../OPENCODE_COMPANY_INTEGRATION.md)
+- [Integration Documentation](../integrations/opencode-company-proxy.md)
 - [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
 
 ---
