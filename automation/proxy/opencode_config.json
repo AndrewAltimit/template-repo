@@ -1,0 +1,32 @@
+{
+  "provider": {
+    "company-proxy": {
+      "name": "Company Proxy",
+      "api": "http://localhost:8052/v1",
+      "env": [
+        "COMPANY_API_KEY"
+      ],
+      "models": {
+        "claude-3.5-sonnet": {
+          "name": "Claude 3.5 Sonnet (Company)",
+          "id": "company-proxy/claude-3.5-sonnet"
+        }
+      }
+    }
+  },
+  "model": "company-proxy/claude-3.5-sonnet",
+  "disabledProviders": [
+    "openrouter",
+    "anthropic",
+    "openai",
+    "google",
+    "xai",
+    "groq"
+  ],
+  "models": {
+    "company-proxy/claude-3.5-sonnet": {
+      "name": "Claude 3.5 Sonnet (Company Proxy)",
+      "provider": "company-proxy"
+    }
+  }
+}

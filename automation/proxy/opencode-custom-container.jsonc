@@ -1,0 +1,47 @@
+{
+  // OpenCode configuration for container to use host proxy
+  // Uses host.docker.internal to reach proxy on host machine
+
+  "$schema": "https://opencode.ai/config-schema.json",
+
+  "provider": {
+    "company-ai": {
+      "name": "Company AI Gateway",
+      // This allows container to reach proxy running on host
+      "api": "http://host.docker.internal:8052/v1",
+      "env": ["COMPANY_API_KEY"],
+      "models": {
+        "claude-3.5-sonnet": {
+          "name": "Claude 3.5 Sonnet (Company)",
+          "release_date": "2024-06-20",
+          "attachment": true,
+          "reasoning": false,
+          "temperature": true,
+          "tool_call": true,
+          "cost": {
+            "input": 3,
+            "output": 15,
+            "cache_read": 0.3,
+            "cache_write": 3.75
+          },
+          "limit": {
+            "context": 200000,
+            "output": 8192
+          }
+        }
+      },
+      "options": {
+        "apiKey": "mock-api-key-for-testing"
+      }
+    }
+  },
+
+  "disabled_providers": [
+    "openrouter",
+    "anthropic",
+    "openai"
+  ],
+
+  "model": "company-ai/claude-3.5-sonnet",
+  "small_model": "company-ai/claude-3.5-sonnet"
+}

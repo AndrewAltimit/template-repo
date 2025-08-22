@@ -1,0 +1,20 @@
+{
+  // Default OpenCode configuration for OpenRouter
+  // This is the standard configuration - OpenCode will use OpenRouter by default
+
+  "$schema": "https://opencode.ai/config-schema.json",
+
+  // Use default OpenRouter provider
+  // No custom provider needed - OpenCode has built-in OpenRouter support
+
+  // Optional: Set default model
+  "model": "qwen/qwen-2.5-coder-32b-instruct",
+
+  // Optional: Set a smaller model for quick tasks
+  "small_model": "anthropic/claude-3.5-haiku",
+
+  // Make sure OpenRouter is enabled (it is by default)
+  "disabled_providers": [
+    // Don't disable openrouter
+  ]
+}
