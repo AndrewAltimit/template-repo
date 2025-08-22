@@ -8,27 +8,22 @@ This solution packages OpenCode with an integrated proxy that allows it to work 
 
 ### 1. Build the Container
 ```bash
-docker build -f docker/opencode-with-proxy.Dockerfile -t opencode-with-proxy:latest .
+./automation/proxy/build-company-tui.sh
 ```
 
 ### 2. Run with Mock Mode (Testing)
 ```bash
-# Interactive mode
-docker run --rm -it opencode-with-proxy:latest
+# Interactive TUI mode (auto-starts)
+./automation/proxy/run-company-tui.sh
 
-# Single query
-docker run --rm opencode-with-proxy:latest bash -c "echo 'Your question' | opencode run"
+# All responses will be "Hatsune Miku" in mock mode to verify the proxy is working
 ```
-
-All responses will be "Hatsune Miku" in mock mode to verify the proxy is working.
 
 ### 3. Run with Real Company API
 ```bash
-docker run --rm -it \
-  -e PROXY_MOCK_MODE=false \
-  -e COMPANY_API_BASE=https://your-company-api.com \
-  -e COMPANY_API_TOKEN=your-real-token \
-  opencode-with-proxy:latest
+export COMPANY_API_BASE=https://your-company-api.com
+export COMPANY_API_TOKEN=your-real-token
+./automation/proxy/run-company-production.sh
 ```
 
 ## 📦 What's Included
@@ -101,9 +96,8 @@ To add this proxy capability to any container:
 
 1. **Copy the proxy scripts**:
 ```dockerfile
-COPY automation/proxy/mock_company_api.py /workspace/automation/proxy/
-COPY automation/proxy/api_translation_wrapper.py /workspace/automation/proxy/
-COPY automation/proxy/container_entrypoint.sh /workspace/automation/proxy/
+COPY automation/proxy/mock_company_api.py /workspace/
+COPY automation/proxy/company_translation_wrapper.py /workspace/
 ```
 
 2. **Install dependencies**:
@@ -144,11 +138,10 @@ We use "Hatsune Miku" as the test response because:
 
 ## 📄 Files
 
-- `docker/opencode-with-proxy.Dockerfile` - Container definition
-- `automation/proxy/container_entrypoint.sh` - Container startup script
+- `docker/opencode-company-tui-working.Dockerfile` - Working container definition with TUI
 - `automation/proxy/mock_company_api.py` - Mock company API server
-- `automation/proxy/api_translation_wrapper.py` - Format translation layer
-- `automation/proxy/test_container_proxy.sh` - Testing script
+- `automation/proxy/company_translation_wrapper.py` - Format translation layer
+- `automation/proxy/test-company-tui.sh` - Testing script
 
 ## ✨ Features
 
@@ -168,6 +161,5 @@ We use "Hatsune Miku" as the test response because:
 
 ## 📚 Additional Resources
 
-- [OpenCode Proxy Solution (Host)](./OPENCODE_PROXY_SOLUTION.md)
-- [API Translation Wrapper](./api_translation_wrapper.py)
+- [Company Translation Wrapper](./company_translation_wrapper.py)
 - [Mock Company API](./mock_company_api.py)
