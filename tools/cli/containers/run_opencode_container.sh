@@ -33,10 +33,16 @@ check_and_build_images() {
         echo "This may take a few minutes on first run..."
 
         # Build base MCP images first (required by openrouter-agents)
+        echo "Building MCP OpenCode and Crush images..."
         docker-compose build mcp-opencode mcp-crush
 
-        # Then build the openrouter-agents image
-        docker-compose build openrouter-agents
+        # Build the openrouter-agents image with local image references
+        # Using docker build directly to avoid Docker Hub lookup issues
+        echo "Building OpenRouter agents image..."
+        docker build -f docker/openrouter-agents.Dockerfile \
+            --build-arg OPENCODE_IMAGE=template-repo-mcp-opencode:latest \
+            --build-arg CRUSH_IMAGE=template-repo-mcp-crush:latest \
+            -t template-repo-openrouter-agents:latest .
 
         echo "✅ Docker images built successfully!"
         echo ""
