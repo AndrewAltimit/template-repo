@@ -1,5 +1,5 @@
-# OpenRouter Agents with Proxy Support
-# This version includes the proxy wrapper for OpenCode
+# OpenRouter Agents with Limited Model Display
+# This version intercepts models.dev API to show only proxy models
 
 # Build arguments for source images
 ARG OPENCODE_IMAGE=template-repo-mcp-opencode:latest
@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     tar \
     netcat-openbsd \
+    dnsmasq \
     && rm -rf /var/lib/apt/lists/*
 
 # Create symbolic links for Python
@@ -39,11 +40,11 @@ RUN wget -q -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg | 
     && rm -rf /var/lib/apt/lists/*
 
 # Copy pre-built binaries from their respective images
-COPY --from=opencode-source /usr/local/bin/opencode /usr/local/bin/opencode.real
+COPY --from=opencode-source /usr/local/bin/opencode /usr/local/bin/opencode
 COPY --from=crush-source /usr/local/bin/crush /usr/local/bin/crush
 
 # Ensure binaries have correct permissions
-RUN chmod +x /usr/local/bin/opencode.real /usr/local/bin/crush
+RUN chmod +x /usr/local/bin/opencode /usr/local/bin/crush
 
 # Create working directory
 WORKDIR /workspace
@@ -53,19 +54,6 @@ COPY automation/proxy/ /workspace/automation/proxy/
 
 # Make scripts executable
 RUN chmod +x /workspace/automation/proxy/*.sh
-
-# Create wrapper script that points to our interceptor
-RUN echo '#!/bin/bash' > /usr/local/bin/opencode && \
-    echo '# If running with proxy, use the interceptor' >> /usr/local/bin/opencode && \
-    echo 'if [ "$USE_PROXY" = "true" ]; then' >> /usr/local/bin/opencode && \
-    echo '    exec /workspace/automation/proxy/opencode-proxy-interceptor.sh "$@"' >> /usr/local/bin/opencode && \
-    echo 'else' >> /usr/local/bin/opencode && \
-    echo '    exec /usr/local/bin/opencode.real "$@"' >> /usr/local/bin/opencode && \
-    echo 'fi' >> /usr/local/bin/opencode && \
-    chmod +x /usr/local/bin/opencode
-
-# Change ownership of workspace to node user
-RUN chown -R node:node /workspace
 
 # Copy agent-specific requirements
 COPY docker/requirements/requirements-agents.txt ./
@@ -81,38 +69,42 @@ ENV PYTHONUNBUFFERED=1 \
 
 # Create necessary directories for node user
 RUN mkdir -p /home/node/.config/opencode \
-    /home/node/.config/crush \
-    /home/node/.cache \
     /home/node/.cache/opencode \
-    /home/node/.cache/crush \
-    /home/node/.local \
-    /home/node/.local/share \
-    /home/node/.local/share/opencode \
-    /home/node/.local/share/crush \
-    /home/node/.local/bin
+    /home/node/.local/share/opencode
 
-# Copy configurations for each agent
-# OpenCode configuration for proxy
+# Copy OpenCode configuration
 COPY docker/patches/opencode-config.json /home/node/.config/opencode/.opencode.json
 
-# Crush configuration
-COPY --chown=node:node packages/github_ai_agents/configs/crush.json /home/node/.config/crush/crush.json
-COPY --chown=node:node packages/github_ai_agents/configs/crush-data.json /home/node/.local/share/crush/crush.json
+# Create startup script that intercepts models.dev
+RUN cat > /usr/local/bin/start-limited-proxy.sh << 'EOF'
+#!/bin/bash
+set -e
 
-# Set ownership for all node user directories
-RUN chown -R node:node /home/node
+# Start the models interceptor in background
+echo "Starting models.dev interceptor..."
+python3 /workspace/automation/proxy/models-interceptor.py > /tmp/models-interceptor.log 2>&1 &
 
-# Copy security hooks and set up alias
-COPY automation/security /app/security
-RUN chmod +x /app/security/*.sh && \
-    echo 'alias gh="/app/security/gh-wrapper.sh"' >> /etc/bash.bashrc
+# Wait for interceptor
+sleep 2
+
+# Add hosts entry to redirect models.dev to our interceptor
+echo "127.0.0.1 models.dev" >> /etc/hosts
+
+# Start the regular proxy wrapper
+exec /workspace/automation/proxy/opencode-proxy-wrapper.sh "$@"
+EOF
+RUN chmod +x /usr/local/bin/start-limited-proxy.sh
+
+# Set ownership
+RUN chown -R node:node /home/node /workspace
 
 # Set environment to enable proxy by default
 ENV USE_PROXY=true \
     PROXY_MOCK_MODE=true
 
-# Note: We need to run as root to modify /etc/hosts for models.dev interception
-# USER node  # Commented out - need root for hosts file
+# Note: We need to run as root to modify /etc/hosts
+# This is a limitation of the interceptor approach
+USER root
 
-# Default command - start the proxy interceptor
-CMD ["/workspace/automation/proxy/opencode-proxy-interceptor.sh"]
+# Default command - start with interceptor
+CMD ["/usr/local/bin/start-limited-proxy.sh"]

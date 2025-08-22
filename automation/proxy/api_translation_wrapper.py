@@ -132,6 +132,65 @@ def translate_from_company_format(company_response: Dict[str, Any]) -> Dict[str,
     return opencode_response
 
 
+# Models.dev API interception - return our limited model list
+@app.route("/api.json", methods=["GET"])
+@app.route("/api", methods=["GET"])
+def models_api():
+    """
+    Intercept models.dev API request and return only our proxy models
+    OpenCode fetches this to get the list of available models
+    """
+    limited_models = {
+        "openrouter": {
+            "id": "openrouter",
+            "name": "Company Proxy",
+            "api": "https://openrouter.ai/api",
+            "env": ["OPENROUTER_API_KEY"],
+            "models": {
+                "openrouter/anthropic/claude-3.5-sonnet": {
+                    "id": "openrouter/anthropic/claude-3.5-sonnet",
+                    "name": "Claude 3.5 Sonnet (Company Proxy)",
+                    "release_date": "2024-10-22",
+                    "attachment": True,
+                    "reasoning": False,
+                    "temperature": True,
+                    "tool_call": True,
+                    "cost": {"input": 3, "output": 15, "cache_read": 0.3, "cache_write": 3.75},
+                    "limit": {"context": 200000, "output": 8192},
+                    "options": {},
+                },
+                "openrouter/anthropic/claude-3-opus": {
+                    "id": "openrouter/anthropic/claude-3-opus",
+                    "name": "Claude 3 Opus (Company Proxy)",
+                    "release_date": "2024-02-29",
+                    "attachment": True,
+                    "reasoning": False,
+                    "temperature": True,
+                    "tool_call": True,
+                    "cost": {"input": 15, "output": 75, "cache_read": 1.5, "cache_write": 18.75},
+                    "limit": {"context": 200000, "output": 4096},
+                    "options": {},
+                },
+                "openrouter/openai/gpt-4": {
+                    "id": "openrouter/openai/gpt-4",
+                    "name": "GPT-4 (Company Proxy)",
+                    "release_date": "2023-03-14",
+                    "attachment": False,
+                    "reasoning": False,
+                    "temperature": True,
+                    "tool_call": True,
+                    "cost": {"input": 30, "output": 60},
+                    "limit": {"context": 8192, "output": 4096},
+                    "options": {},
+                },
+            },
+        }
+    }
+
+    logger.info("Models.dev API intercepted - returning limited proxy models")
+    return jsonify(limited_models)
+
+
 @app.route("/v1/chat/completions", methods=["POST", "OPTIONS"])
 def handle_chat_completion() -> Response:
     """
@@ -314,6 +373,8 @@ if __name__ == "__main__":
     logger.info(f"Available models: {list(MODEL_MAPPING.keys())}")
     logger.info("-" * 60)
     logger.info(f"OpenCode endpoint: http://localhost:{port}/v1/chat/completions")
+    logger.info(f"Models.dev intercept: http://localhost:{port}/api.json")
     logger.info("Configure OpenCode to use this as baseURL")
+    logger.info("To intercept models list, add '127.0.0.1 models.dev' to /etc/hosts")
     logger.info("=" * 60)
     app.run(host="0.0.0.0", port=port, debug=True)
