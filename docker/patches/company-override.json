@@ -1,0 +1,67 @@
+{
+  "openrouter": {
+    "id": "openrouter",
+    "name": "Company AI",
+    "api": "http://localhost:8052/v1",
+    "npm": "@ai-sdk/openai-compatible",
+    "env": [
+      "OPENROUTER_API_KEY"
+    ],
+    "models": {
+      "openrouter/anthropic/claude-3.5-sonnet": {
+        "id": "openrouter/anthropic/claude-3.5-sonnet",
+        "name": "Claude 3.5 Sonnet (Company)",
+        "release_date": "2024-06-20",
+        "attachment": true,
+        "reasoning": true,
+        "temperature": true,
+        "tool_call": false,
+        "cost": {
+          "input": 0.003,
+          "output": 0.015
+        },
+        "limit": {
+          "context": 200000,
+          "output": 4096
+        },
+        "options": {}
+      },
+      "openrouter/anthropic/claude-3-opus": {
+        "id": "openrouter/anthropic/claude-3-opus",
+        "name": "Claude 3 Opus (Company)",
+        "release_date": "2024-02-29",
+        "attachment": true,
+        "reasoning": false,
+        "temperature": true,
+        "tool_call": false,
+        "cost": {
+          "input": 0.015,
+          "output": 0.075
+        },
+        "limit": {
+          "context": 200000,
+          "output": 4096
+        },
+        "options": {}
+      },
+      "openrouter/openai/gpt-4": {
+        "id": "openrouter/openai/gpt-4",
+        "name": "GPT-4 (Company)",
+        "release_date": "2023-03-14",
+        "attachment": false,
+        "reasoning": false,
+        "temperature": true,
+        "tool_call": false,
+        "cost": {
+          "input": 0.03,
+          "output": 0.06
+        },
+        "limit": {
+          "context": 128000,
+          "output": 4096
+        },
+        "options": {}
+      }
+    }
+  }
+}

@@ -33,6 +33,7 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 
 - **12 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, and more
 - **7 AI Agents** - Comprehensive development automation
+- **OpenCode Company Integration** - Custom OpenCode build for corporate AI APIs ([Documentation](docs/integrations/opencode-company-proxy.md))
 - **Video Editor** - AI-powered video editing with transcription, speaker diarization, and intelligent scene detection
 - **Gaea2 Terrain Generation** - Professional terrain generation
 - **Blender 3D Creation** - Full 3D content creation, rendering, and simulation

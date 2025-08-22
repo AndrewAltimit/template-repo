@@ -179,3 +179,4 @@ reference projects/**/*.jpg
 # Crush agent
 .crush/
 lint-output.txt
+node_modules/
