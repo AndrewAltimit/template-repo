@@ -1,10 +1,19 @@
 # OpenCode with Company Integration and Working TUI
 # This version properly builds and includes the Go TUI binary
 
+# Pin to a specific version for reproducible builds
+# Update this commit hash when you want to upgrade OpenCode
+ARG OPENCODE_VERSION=HEAD
+
 # Clone the repository once for both builders
 FROM alpine/git AS source
+ARG OPENCODE_VERSION
 WORKDIR /source
-RUN git clone --depth 1 https://github.com/sst/opencode.git
+RUN git clone https://github.com/sst/opencode.git && \
+    cd opencode && \
+    if [ "$OPENCODE_VERSION" != "HEAD" ]; then \
+        git checkout "$OPENCODE_VERSION"; \
+    fi
 
 FROM golang:1.23 AS tui-builder
 

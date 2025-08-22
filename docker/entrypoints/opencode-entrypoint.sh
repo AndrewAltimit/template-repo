@@ -20,20 +20,43 @@ if [ "$COMPANY_MOCK_MODE" = "true" ]; then
     WRAPPER_PID=$!
     echo "Translation wrapper started (PID: $WRAPPER_PID)"
 
-    # Wait for services to be ready
-    sleep 2
+    # Wait for services to be ready with retry loop
+    echo "Waiting for services to be ready..."
 
-    # Check if services are running
-    if nc -z localhost "${MOCK_API_PORT:-8050}" 2>/dev/null; then
-        echo "✅ Mock API is running on port ${MOCK_API_PORT:-8050}"
-    else
-        echo "⚠️  Mock API failed to start - check /tmp/mock_api.log"
+    # Check mock API with retries
+    mock_ready=false
+    for i in {1..10}; do
+        if nc -z localhost "${MOCK_API_PORT:-8050}" 2>/dev/null; then
+            echo "✅ Mock API is running on port ${MOCK_API_PORT:-8050}"
+            mock_ready=true
+            break
+        fi
+        echo "  Waiting for mock API... ($i/10)"
+        sleep 1
+    done
+
+    if [ "$mock_ready" = false ]; then
+        echo "⚠️  Mock API failed to start after 10 seconds - check /tmp/mock_api.log"
+        echo "Last 10 lines of mock API log:"
+        tail -10 /tmp/mock_api.log 2>/dev/null || echo "No log available"
     fi
 
-    if nc -z localhost "${WRAPPER_PORT:-8052}" 2>/dev/null; then
-        echo "✅ Translation wrapper is running on port ${WRAPPER_PORT:-8052}"
-    else
-        echo "⚠️  Translation wrapper failed to start - check /tmp/wrapper.log"
+    # Check wrapper with retries
+    wrapper_ready=false
+    for i in {1..10}; do
+        if nc -z localhost "${WRAPPER_PORT:-8052}" 2>/dev/null; then
+            echo "✅ Translation wrapper is running on port ${WRAPPER_PORT:-8052}"
+            wrapper_ready=true
+            break
+        fi
+        echo "  Waiting for translation wrapper... ($i/10)"
+        sleep 1
+    done
+
+    if [ "$wrapper_ready" = false ]; then
+        echo "⚠️  Translation wrapper failed to start after 10 seconds - check /tmp/wrapper.log"
+        echo "Last 10 lines of wrapper log:"
+        tail -10 /tmp/wrapper.log 2>/dev/null || echo "No log available"
     fi
     echo ""
     echo "[Company] Mock services started! Ready to use OpenCode."
