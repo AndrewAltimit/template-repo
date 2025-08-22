@@ -52,8 +52,8 @@ check_and_build_images() {
 # Build images if needed
 check_and_build_images
 
-# Auto-load .env file if it exists and OPENROUTER_API_KEY is not set
-if [ -z "$OPENROUTER_API_KEY" ] && [ -f ".env" ]; then
+# Auto-load .env file if it exists
+if [ -f ".env" ]; then
     echo "📄 Loading environment from .env file..."
     set -a  # Enable auto-export
     source .env
@@ -62,12 +62,20 @@ fi
 
 # Check for API key
 if [ -z "$OPENROUTER_API_KEY" ]; then
-    echo "❌ OPENROUTER_API_KEY not set. Please export your API key:"
+    echo "❌ OPENROUTER_API_KEY not set."
+    echo ""
+    echo "Please either:"
+    echo "1. Add it to your .env file:"
+    echo "   echo \"OPENROUTER_API_KEY='your-key-here'\" >> .env"
+    echo "2. Or export it directly:"
     echo "   export OPENROUTER_API_KEY='your-key-here'"
+    echo ""
+    echo "Get your API key at: https://openrouter.ai/keys"
     exit 1
 fi
 
 echo "✅ Using OpenRouter API key: ****${OPENROUTER_API_KEY: -4}"
+echo "   Key length: ${#OPENROUTER_API_KEY} characters"
 
 # Default model if not set
 if [ -z "$OPENCODE_MODEL" ]; then
@@ -126,19 +134,19 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Build Docker command
-DOCKER_CMD="docker-compose run --rm"
-DOCKER_CMD="$DOCKER_CMD -e OPENROUTER_API_KEY=$OPENROUTER_API_KEY"
-DOCKER_CMD="$DOCKER_CMD -e OPENCODE_MODEL=$OPENCODE_MODEL"
+# Export for docker-compose to pick up
+export OPENROUTER_API_KEY
+export OPENCODE_MODEL
 
-# Mount context file if provided
+# Setup context file if provided
 if [ -n "$CONTEXT" ] && [ -f "$CONTEXT" ]; then
     CONTEXT_DIR=$(dirname "$(realpath "$CONTEXT")")
     CONTEXT_FILE=$(basename "$CONTEXT")
-    DOCKER_CMD="$DOCKER_CMD -v $CONTEXT_DIR:/workspace"
     CONTEXT_PATH="/workspace/$CONTEXT_FILE"
+    VOLUME_MOUNT="-v $CONTEXT_DIR:/workspace"
 else
     CONTEXT_PATH=""
+    VOLUME_MOUNT=""
 fi
 
 # Execute based on mode
@@ -163,7 +171,20 @@ if [ "$MODE" = "single" ]; then
     fi
 
     # Execute in container
-    $DOCKER_CMD openrouter-agents sh -c "$CMD"
+    if [ -n "$VOLUME_MOUNT" ]; then
+        # shellcheck disable=SC2086
+        # VOLUME_MOUNT contains both flag and argument (e.g., "-v /path:/path")
+        docker-compose run --rm \
+            -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
+            -e OPENCODE_MODEL="$OPENCODE_MODEL" \
+            $VOLUME_MOUNT \
+            openrouter-agents sh -c "$CMD"
+    else
+        docker-compose run --rm \
+            -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
+            -e OPENCODE_MODEL="$OPENCODE_MODEL" \
+            openrouter-agents sh -c "$CMD"
+    fi
 else
     echo "🔄 Starting interactive session in container..."
     echo "💡 Tips:"
@@ -173,5 +194,8 @@ else
     echo ""
 
     # Start interactive session in container
-    $DOCKER_CMD -it openrouter-agents opencode
+    docker-compose run --rm -it \
+        -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
+        -e OPENCODE_MODEL="$OPENCODE_MODEL" \
+        openrouter-agents opencode
 fi
