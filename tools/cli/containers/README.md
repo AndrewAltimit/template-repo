@@ -83,7 +83,18 @@ Both scripts support:
 If the full infrastructure fails to build:
 1. Ensure docker-compose is installed
 2. Check Docker daemon is running
-3. Try building manually: `docker-compose build mcp-opencode mcp-crush openrouter-agents`
+3. The script now auto-builds missing images
+4. If issues persist, build manually:
+   ```bash
+   # Build base images
+   docker-compose build mcp-opencode mcp-crush
+
+   # Build agents image (uses docker build to avoid Docker Hub lookups)
+   docker build -f docker/openrouter-agents.Dockerfile \
+     --build-arg OPENCODE_IMAGE=template-repo-mcp-opencode:latest \
+     --build-arg CRUSH_IMAGE=template-repo-mcp-crush:latest \
+     -t template-repo-openrouter-agents:latest .
+   ```
 
 ### API Key Issues
 
