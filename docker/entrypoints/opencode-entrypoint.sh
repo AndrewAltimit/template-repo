@@ -2,6 +2,9 @@
 # OpenCode Company Integration Entrypoint Script
 # Manages mock services and OpenCode startup for containerized environment
 
+# Exit on any error to prevent running in broken state
+set -e
+
 echo "[Company] Starting Company OpenCode Container"
 echo "[Company] TUI binaries are installed at:"
 ls -la /home/bun/.cache/opencode/tui/
