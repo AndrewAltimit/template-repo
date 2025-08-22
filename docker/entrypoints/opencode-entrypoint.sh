@@ -35,15 +35,19 @@ fi
 # Generate configuration file at runtime
 cat > "${CONFIG_FILE}" <<EOF
 {
-  "provider": {
+  "providers": {
     "openrouter": {
-      "options": {
-        "apiKey": "${API_KEY}",
-        "baseURL": "${WRAPPER_URL}"
+      "apiKey": "${API_KEY}",
+      "baseURL": "${WRAPPER_URL}",
+      "models": {
+        "claude-sonnet": {
+          "id": "anthropic/claude-3.5-sonnet",
+          "name": "Claude 3.5 Sonnet"
+        }
       }
     }
   },
-  "model": "openrouter/anthropic/claude-3.5-sonnet"
+  "defaultModel": "openrouter/claude-sonnet"
 }
 EOF
 
@@ -140,7 +144,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # Export environment variables for OpenCode
-export OPENCODE_API_BASE="${WRAPPER_URL}"
+export OPENROUTER_BASE_URL="${WRAPPER_URL}"
 export OPENROUTER_API_KEY="${API_KEY}"
 
 # Check if we should auto-start OpenCode
