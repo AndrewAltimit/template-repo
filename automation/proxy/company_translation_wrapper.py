@@ -89,7 +89,10 @@ def chat_completions():
 
         # Handle streaming vs non-streaming
         if data.get("stream", False):
-            # Stream response
+            # NOTE: This is simulated streaming - we send the complete response as a single chunk
+            # True streaming would require the company API to support streaming responses
+            # and iterating over response chunks with requests.post(..., stream=True)
+            # Current implementation buffers the entire response for compatibility
             def generate():
                 # Send initial chunk
                 chunk = {

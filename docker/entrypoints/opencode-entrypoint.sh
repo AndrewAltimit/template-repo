@@ -10,6 +10,19 @@ echo "[Company] TUI binaries are installed at:"
 ls -la /home/bun/.cache/opencode/tui/
 echo ""
 
+# Dynamically configure OpenCode to use the correct wrapper port
+CONFIG_FILE="/home/bun/.config/opencode/.opencode.json"
+WRAPPER_URL="http://localhost:${WRAPPER_PORT:-8052}/v1"
+
+# Update the API URL in the config to match the actual wrapper port
+if [ -f "$CONFIG_FILE" ]; then
+    # Use sed to update the API URL in the JSON config
+    sed -i "s|http://localhost:[0-9]\+/v1|${WRAPPER_URL}|g" "${CONFIG_FILE}"
+    echo "[Company] Configured OpenCode to use wrapper at: ${WRAPPER_URL}"
+else
+    echo "[Company] Warning: Config file not found at ${CONFIG_FILE}"
+fi
+
 # Auto-start mock services if COMPANY_MOCK_MODE is set
 if [ "$COMPANY_MOCK_MODE" = "true" ]; then
     echo "[Company] Mock mode enabled - starting services..."
@@ -63,6 +76,7 @@ if [ "$COMPANY_MOCK_MODE" = "true" ]; then
     fi
     echo ""
     echo "[Company] Mock services started! Ready to use OpenCode."
+    echo "[Company] OpenCode is configured to connect to wrapper at: ${WRAPPER_URL}"
 else
     echo "[Company] Mock mode disabled. To enable, set COMPANY_MOCK_MODE=true"
     echo "[Company] Manual commands:"
@@ -94,6 +108,9 @@ cleanup() {
 
 # Set up cleanup trap
 trap cleanup EXIT INT TERM
+
+# Ensure OpenCode knows the correct wrapper URL
+export OPENCODE_API_BASE="${WRAPPER_URL}"
 
 # Check if we should auto-start OpenCode
 if [ "$COMPANY_AUTO_START" = "true" ]; then

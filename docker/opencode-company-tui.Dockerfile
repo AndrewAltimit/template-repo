@@ -29,16 +29,12 @@ ENV GOTOOLCHAIN=auto
 # This will automatically download and use Go 1.24 as required by go.mod
 RUN go mod download
 
-# Build TUI for Linux x64 (for our container)
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+# Build TUI for the target architecture only
+# TARGETARCH is automatically set by Docker buildx
+ARG TARGETARCH=amd64
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
     -ldflags="-s -w" \
-    -o tui-linux-x64 \
-    ./cmd/opencode/main.go
-
-# Also build for arm64 if needed
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
-    -ldflags="-s -w" \
-    -o tui-linux-arm64 \
+    -o tui-linux-${TARGETARCH} \
     ./cmd/opencode/main.go
 
 FROM oven/bun:1 AS opencode-builder
@@ -76,21 +72,21 @@ RUN apt-get update && apt-get install -y \
 COPY --from=opencode-builder /build/opencode/packages/opencode/opencode /usr/local/bin/opencode
 RUN chmod +x /usr/local/bin/opencode
 
-# Copy TUI binaries to the cache directory where our patched code looks for them
+# Copy TUI binary for the target architecture
+ARG TARGETARCH=amd64
 RUN mkdir -p /home/bun/.cache/opencode/tui
-COPY --from=tui-builder /build/opencode/packages/tui/tui-linux-x64 /home/bun/.cache/opencode/tui/
-COPY --from=tui-builder /build/opencode/packages/tui/tui-linux-arm64 /home/bun/.cache/opencode/tui/
+COPY --from=tui-builder /build/opencode/packages/tui/tui-linux-${TARGETARCH} /home/bun/.cache/opencode/tui/tui-linux-x64
 RUN chmod +x /home/bun/.cache/opencode/tui/*
 
 # Also copy to /usr/local/bin as a fallback
-COPY --from=tui-builder /build/opencode/packages/tui/tui-linux-x64 /usr/local/bin/opencode-tui
+COPY --from=tui-builder /build/opencode/packages/tui/tui-linux-${TARGETARCH} /usr/local/bin/opencode-tui
 RUN chmod +x /usr/local/bin/opencode-tui
 
 # Create config and cache directories with proper permissions
 RUN mkdir -p /home/bun/.config/opencode /home/bun/.cache/opencode /home/bun/.local/share/opencode && \
     chown -R bun:bun /home/bun/.cache /home/bun/.config /home/bun/.local
 
-# Ensure TUI binaries have correct permissions and test they're executable
+# Ensure TUI binary has correct permissions and test it's executable
 RUN chmod 755 /home/bun/.cache/opencode/tui/* && \
     chown bun:bun /home/bun/.cache/opencode/tui/* && \
     /home/bun/.cache/opencode/tui/tui-linux-x64 --help 2>/dev/null || true
