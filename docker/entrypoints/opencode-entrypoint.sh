@@ -10,15 +10,7 @@ echo "[Company] TUI binaries are installed at:"
 ls -la /home/bun/.cache/opencode/tui/
 echo ""
 
-# Dynamically generate OpenCode configuration at runtime
-CONFIG_DIR="/home/bun/.config/opencode"
-CONFIG_FILE="${CONFIG_DIR}/opencode.json"
-WRAPPER_URL="http://localhost:${WRAPPER_PORT:-8052}/v1"
-
-# Ensure config directory exists
-mkdir -p "${CONFIG_DIR}"
-
-# Determine API key based on mode
+# Set up API key based on mode
 if [ "$COMPANY_MOCK_MODE" = "true" ]; then
     # Use mock key for testing
     API_KEY="${OPENROUTER_API_KEY:-sk-mock-key-for-testing}"
@@ -32,26 +24,9 @@ else
     fi
 fi
 
-# Generate configuration file at runtime
-cat > "${CONFIG_FILE}" <<EOF
-{
-  "providers": {
-    "openrouter": {
-      "apiKey": "${API_KEY}",
-      "baseURL": "${WRAPPER_URL}",
-      "models": {
-        "claude-sonnet": {
-          "id": "anthropic/claude-3.5-sonnet",
-          "name": "Claude 3.5 Sonnet"
-        }
-      }
-    }
-  },
-  "defaultModel": "openrouter/claude-sonnet"
-}
-EOF
-
-echo "[Company] Generated OpenCode config with wrapper at: ${WRAPPER_URL}"
+WRAPPER_URL="http://localhost:${WRAPPER_PORT:-8052}/v1"
+echo "[Company] OpenCode will connect to wrapper at: ${WRAPPER_URL}"
+echo "[Company] Note: API endpoint is configured in the built-in models configuration"
 
 # Auto-start mock services if COMPANY_MOCK_MODE is set
 if [ "$COMPANY_MOCK_MODE" = "true" ]; then
@@ -144,8 +119,8 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 # Export environment variables for OpenCode
-export OPENROUTER_BASE_URL="${WRAPPER_URL}"
 export OPENROUTER_API_KEY="${API_KEY}"
+# Note: API endpoint is hardcoded in the models configuration at build time
 
 # Check if we should auto-start OpenCode
 if [ "$COMPANY_AUTO_START" = "true" ]; then
