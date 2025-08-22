@@ -3,7 +3,8 @@
 
 # Pin to a specific version for reproducible builds
 # Update this commit hash when you want to upgrade OpenCode
-ARG OPENCODE_VERSION=HEAD
+# Latest stable as of 2024-12: 3edab6056042
+ARG OPENCODE_VERSION=3edab6056042
 
 # Clone the repository once for both builders
 FROM alpine/git AS source
@@ -91,8 +92,8 @@ RUN chmod 755 /home/bun/.cache/opencode/tui/* && \
     chown bun:bun /home/bun/.cache/opencode/tui/* && \
     /home/bun/.cache/opencode/tui/tui-linux-x64 --help 2>/dev/null || true
 
-# Configure with standard openrouter model names
-RUN echo '{"provider":{"openrouter":{"options":{"apiKey":"sk-company-mock-api-key-123"}}},"model":"openrouter/anthropic/claude-3.5-sonnet"}' > /home/bun/.config/opencode/.opencode.json
+# Note: Configuration will be generated at runtime by entrypoint script
+# This ensures proper API key management and dynamic port configuration
 
 # Install Python dependencies for the proxy
 RUN pip install --no-cache-dir --break-system-packages flask flask-cors requests
@@ -105,7 +106,6 @@ COPY automation/proxy/company_translation_wrapper.py .
 COPY docker/entrypoints/opencode-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-ENV OPENROUTER_API_KEY=sk-company-mock-api-key-123
 ENV HOME=/home/bun
 
 USER bun

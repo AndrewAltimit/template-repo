@@ -10,18 +10,44 @@ echo "[Company] TUI binaries are installed at:"
 ls -la /home/bun/.cache/opencode/tui/
 echo ""
 
-# Dynamically configure OpenCode to use the correct wrapper port
-CONFIG_FILE="/home/bun/.config/opencode/.opencode.json"
+# Dynamically generate OpenCode configuration at runtime
+CONFIG_DIR="/home/bun/.config/opencode"
+CONFIG_FILE="${CONFIG_DIR}/.opencode.json"
 WRAPPER_URL="http://localhost:${WRAPPER_PORT:-8052}/v1"
 
-# Update the API URL in the config to match the actual wrapper port
-if [ -f "$CONFIG_FILE" ]; then
-    # Use sed to update the API URL in the JSON config
-    sed -i "s|http://localhost:[0-9]\+/v1|${WRAPPER_URL}|g" "${CONFIG_FILE}"
-    echo "[Company] Configured OpenCode to use wrapper at: ${WRAPPER_URL}"
+# Ensure config directory exists
+mkdir -p "${CONFIG_DIR}"
+
+# Determine API key based on mode
+if [ "$COMPANY_MOCK_MODE" = "true" ]; then
+    # Use mock key for testing
+    API_KEY="${OPENROUTER_API_KEY:-sk-mock-key-for-testing}"
+    echo "[Company] Using mock API key for testing"
 else
-    echo "[Company] Warning: Config file not found at ${CONFIG_FILE}"
+    # Use real API key from environment
+    API_KEY="${OPENROUTER_API_KEY}"
+    if [ -z "$API_KEY" ]; then
+        echo "[Company] WARNING: OPENROUTER_API_KEY not set"
+        API_KEY="sk-not-configured"
+    fi
 fi
+
+# Generate configuration file at runtime
+cat > "${CONFIG_FILE}" <<EOF
+{
+  "provider": {
+    "openrouter": {
+      "options": {
+        "apiKey": "${API_KEY}",
+        "baseURL": "${WRAPPER_URL}"
+      }
+    }
+  },
+  "model": "openrouter/anthropic/claude-3.5-sonnet"
+}
+EOF
+
+echo "[Company] Generated OpenCode config with wrapper at: ${WRAPPER_URL}"
 
 # Auto-start mock services if COMPANY_MOCK_MODE is set
 if [ "$COMPANY_MOCK_MODE" = "true" ]; then
@@ -109,8 +135,9 @@ cleanup() {
 # Set up cleanup trap
 trap cleanup EXIT INT TERM
 
-# Ensure OpenCode knows the correct wrapper URL
+# Export environment variables for OpenCode
 export OPENCODE_API_BASE="${WRAPPER_URL}"
+export OPENROUTER_API_KEY="${API_KEY}"
 
 # Check if we should auto-start OpenCode
 if [ "$COMPANY_AUTO_START" = "true" ]; then

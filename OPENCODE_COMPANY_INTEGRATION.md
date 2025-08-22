@@ -245,7 +245,10 @@ The TUI compilation issue has been resolved! The solution involved:
 
 ### Nice to Have (Future Improvements)
 
-1. **Streaming Support**: Add streaming responses for real-time output
+1. **Streaming Support**: Add true streaming responses for real-time output
+   - **Current Limitation**: The translation wrapper buffers the complete response before sending it
+   - **Impact**: Users may experience latency with large responses
+   - **Future**: Implement true streaming if/when the company API supports it
 2. **Better Model Names**: Show as "Company Claude 3.5" instead of full path
 3. **CI/CD Pipeline**: Automated builds when OpenCode updates
 4. **Configuration Management**: Environment-based config switching
