@@ -1,5 +1,6 @@
 #!/bin/bash
 # Example: Run PR review with TTS audio generation
+set -e
 
 echo "GitHub AI Agent PR Review with TTS"
 echo "===================================="

@@ -9,7 +9,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from github_ai_agents.tts.integration import TTSIntegration
+from github_ai_agents.tts.integration import TTSIntegration  # noqa: E402
 
 
 async def test_tts_integration():
@@ -41,24 +41,14 @@ async def test_tts_integration():
         print("\nTTS is disabled. To enable, set AGENT_TTS_ENABLED=true")
         return
 
-    # Test sentiment analysis
-    print("\n1. Testing sentiment analysis...")
-    emotions = tts.analyze_sentiment(review_text)
-    print(f"   Detected emotions: {emotions}")
-
-    # Test key sentence extraction
-    print("\n2. Testing key sentence extraction...")
-    key_sentences = tts.extract_key_sentences(review_text)
-    print(f"   Key sentences: {key_sentences[:100]}...")
-
-    # Test emotional tag addition
-    print("\n3. Testing emotional tag addition...")
-    tagged_text = tts.add_emotional_tags(key_sentences, emotions)
-    print(f"   Tagged text: {tagged_text[:150]}...")
+    # Test that agent text is preserved
+    print("\n1. Testing agent autonomy (text preservation)...")
+    print("   Agent's original text will be used AS IS for v3 synthesis")
+    print("   No automatic modification of prompts")
 
     # Test audio generation (if API key is available)
     if os.getenv("ELEVENLABS_API_KEY"):
-        print("\n4. Testing audio generation...")
+        print("\n2. Testing audio generation with unmodified text...")
         try:
             audio_url = await tts.generate_audio_review(review_text, agent_name="test", pr_number=999)
 
@@ -66,7 +56,7 @@ async def test_tts_integration():
                 print(f"   ✓ Audio generated: {audio_url}")
 
                 # Test GitHub comment formatting
-                print("\n5. Testing GitHub comment formatting...")
+                print("\n3. Testing GitHub comment formatting...")
                 formatted = tts.format_github_comment_with_audio(
                     "Original review text here...", audio_url, duration=8.5
                 )
@@ -77,11 +67,11 @@ async def test_tts_integration():
         except Exception as e:
             print(f"   ✗ Error: {e}")
     else:
-        print("\n4. Skipping audio generation (no API key)")
+        print("\n2. Skipping audio generation (no API key)")
         print("   Set ELEVENLABS_API_KEY to test audio generation")
 
     # Test full processing
-    print("\n6. Testing full review processing...")
+    print("\n4. Testing full review processing...")
     formatted_review, audio_url = await tts.process_review_with_tts(review_text, agent_name="gemini", pr_number=123)
 
     if audio_url:
