@@ -90,7 +90,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
 
         config = {
             "api_key": os.getenv("ELEVENLABS_API_KEY", ""),
-            "default_model": os.getenv("ELEVENLABS_DEFAULT_MODEL", "eleven_multilingual_v2"),
+            "default_model": os.getenv("ELEVENLABS_DEFAULT_MODEL", "eleven_v3"),
             "default_voice": os.getenv("ELEVENLABS_DEFAULT_VOICE", "Rachel"),
             "cache_dir": os.getenv("ELEVENLABS_CACHE_DIR", "/tmp/elevenlabs_cache"),
             "max_cache_size_gb": float(os.getenv("ELEVENLABS_MAX_CACHE_SIZE_GB", "10")),
@@ -511,26 +511,26 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
 
     async def get_v3_guidance(self, context: str = "review") -> Dict[str, Any]:
         """Get v3 prompting guidance and examples for agents.
-        
+
         This helps agents learn to write better v3 prompts WITHOUT modifying their text.
         """
         from github_ai_agents.tts.v3_agent_guide import V3AgentGuide
-        
+
         # Get example for context
         example = V3AgentGuide.get_example_for_context(context)
-        
+
         # Get best practices
         best_practices = V3AgentGuide.BEST_PRACTICES
-        
+
         # Get suggested tags
         sentiment_map = {
             "review": "thoughtful",
-            "critical": "critical", 
+            "critical": "critical",
             "positive": "positive",
             "casual": "casual",
         }
         suggested_tags = V3AgentGuide.suggest_tags_for_sentiment(sentiment_map.get(context, "thoughtful"))
-        
+
         return {
             "success": True,
             "context": context,
@@ -542,22 +542,22 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
                 "line_breaks": "Separate emotional sections with line breaks",
                 "punctuation": "Use '...' for pauses and CAPS for emphasis",
                 "voice_matching": "Choose tags that match your voice personality",
-            }
+            },
         }
-    
+
     async def check_v3_prompt(self, text: str) -> Dict[str, Any]:
         """Check if a prompt is optimized for v3 (without modifying it).
-        
+
         Helps agents understand if their prompt will work well with v3.
         """
         from github_ai_agents.tts.v3_agent_guide import V3AgentGuide
-        
+
         # Validate length
         validation = V3AgentGuide.validate_prompt_length(text)
-        
+
         # Analyze quality
         analysis = V3AgentGuide.analyze_prompt_quality(text)
-        
+
         return {
             "success": True,
             "valid": validation["valid"],
@@ -734,7 +734,11 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "context": {"type": "string", "description": "Context type (review, critical, positive, casual)", "default": "review"},
+                        "context": {
+                            "type": "string",
+                            "description": "Context type (review, critical, positive, casual)",
+                            "default": "review",
+                        },
                     },
                 },
             },

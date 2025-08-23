@@ -5,91 +5,102 @@ from typing import Dict, List
 
 class V3AgentGuide:
     """Provides v3 prompting guidance and examples for agents without modifying their text."""
-    
-    # Example templates showing proper v3 usage
+
+    # Example templates showing proper v3 usage - Discord/Reddit/programmer style
     V3_EXAMPLES = {
-        "emotional_review": """
-[thoughtful] This pull request demonstrates excellent architecture and careful consideration of edge cases.
+        "casual_review": """
+[amused] Yo, this pull request is actually pretty based.
 
-[impressed] The test coverage is particularly noteworthy... reaching 98% with meaningful assertions.
+[impressed] The way you handled that race condition?
 
-[concerned] However, there are some performance implications we should discuss.
+Chef's kiss.
 
-[analytical] The nested loops in the data processing module could become problematic at scale.
+[sarcastic] Though I see you're still using nested loops in 2024... brave choice.
 
-[hopeful] With some optimization, this could be a fantastic addition to our codebase!
+[friendly] Jokes aside, ship it after you fix that one cursed line in auth.js.
 """,
-        
         "critical_security": """
-[serious] I need to bring an urgent matter to your attention.
+[concerned] Okay... we've got a problem.
 
-[alarmed] Multiple CRITICAL security vulnerabilities have been detected in the authentication module.
+[serious] Someone could literally yeet our entire database with this SQL injection.
 
-[firm] These issues MUST be addressed before any merge can occur... the risk is too significant.
+[urgent] This is a certified "drop everything and fix" moment.
 
-[professional] I recommend immediate remediation following OWASP guidelines.
-
-[supportive] I'm here to help guide you through the fixes if needed.
+[supportive] Hit me up if you need help fixing this.
 """,
-        
         "enthusiastic_praise": """
-[excited] WOW! This is exactly what we've been looking for!
+[excited] Yooooo this slaps!
 
-[laughs] I can't believe how elegant this solution is... seriously impressive work.
+[laughs] Did you just solve our quadratic complexity problem with a cache? Galaxy brain move.
 
-[amazed] The performance improvements are... [pause] absolutely incredible. 300% faster!
+[amazed] Tests are green, performance is incredible... this is beautiful.
 
-[warm] This kind of innovation is what makes our project special.
-
-[grateful] Thank you for this outstanding contribution!
+[grateful] You absolute legend. This is going straight to production.
 """,
-        
-        "conversational_feedback": """
-[friendly] Hey! Thanks for submitting this PR. Let me share some thoughts...
+        "reddit_style": """
+[casual] Not gonna lie, this is pretty clean.
 
-[curious] So, I'm wondering about the architectural choice here. Could you elaborate?
+[analytical] Your implementation works, but that try-catch is doing too much heavy lifting.
 
-[thoughtful] Hmm... I see what you're going for. It's actually quite clever.
+[amused] Also... did you really name that variable "data"? Come on, be more specific.
 
-[hesitant] I'm... well, I'm a bit concerned about the error handling though.
-
-[encouraging] But overall? This is really solid work! Just needs a few tweaks.
+[encouraging] Fix those nitpicks and we're golden. Good stuff overall.
 """,
-        
-        "broadcast_style": """
-[clears throat] Good evening, developers. This is your automated code review system.
+        "discord_vibe": """
+[friendly] Alright, looked at your pull request.
 
-[dramatic] We interrupt our regular programming for an important bulletin.
+[explaining] You're treating that promise like it's synchronous... classic JavaScript moment.
 
-[serious] At approximately 14:32 UTC, our continuous integration pipeline detected... [pause] catastrophic failures.
+[helpful] Add an await on line 42 and it should stop crying.
 
-[urgent] Twenty-three test suites have gone dark. The build is completely broken.
+[casual] Also "temp" in production code? We're better than this.
+""",
+        "programmer_humor": """
+[deadpan] I see you've discovered copy-paste driven development.
 
-[determined] But fear not... we've identified the root cause and a path forward.
+[amused] You've got a race condition, a memory leak, AND an off-by-one error... achievement unlocked?
+
+[impressed] But somehow it works? Task failed successfully.
+
+[friendly] Clean up the war crimes in that useEffect and we're good.
+""",
+        "meme_review": """
+[laughs] This code is giving me "it works on my machine" energy.
+
+[sarcastic] Ah yes, the classic "TODO: fix this later" from 2019.
+
+[amused] That regex looks like you keyboard-smashed and called it a day.
+
+[encouraging] But hey, at least the tests pass... wait, you wrote tests, right?
+
+Right?
 """,
     }
-    
-    # Voice-specific guidance
+
+    # Voice-specific guidance - updated for casual tech culture
     VOICE_GUIDANCE = {
         "blondie": {
-            "character": "British, warm, conversational",
-            "best_tags": ["thoughtful", "curious", "warm", "laughs", "sighs"],
+            "character": "British wit meets Discord mod",
+            "best_tags": ["amused", "sarcastic", "deadpan", "laughs", "sighs"],
             "avoid_tags": ["shouting", "crying", "desperate"],
             "stability": 0.0,  # Maximum expression
-            "example_opener": "[warm] Let me review this pull request for you...",
+            "v3_compatible": True,  # Confirmed working with v3 tags
+            "example_opener": "[amused] Right, let's see what fresh hell you've created...",
         },
         "hope_conversational": {
-            "character": "Natural with imperfections (mmms, ahhs, chuckles)",
-            "best_tags": ["friendly", "curious", "laughs", "excited", "hesitant"],
+            "character": "That one friend who's always on Discord at 3am",
+            "best_tags": ["friendly", "casual", "laughs", "excited", "confused"],
             "avoid_tags": ["professional", "authoritative", "dramatic"],
             "stability": 0.0,  # Maximum natural expression
-            "example_opener": "[friendly] Hey! So... um, I've been looking at your code...",
+            "v3_compatible": True,  # Confirmed working with v3 tags
+            "example_opener": "[casual] So... about this code...",
         },
         "old_radio": {
             "character": "Distinguished, theatrical (Captain Picard-like)",
             "best_tags": ["dramatic", "serious", "concerned", "authoritative"],
             "avoid_tags": ["giggles", "cute", "mischievous"],
             "stability": 0.0,  # Maximum theatrical expression
+            "v3_compatible": True,  # Works well with dramatic v3 tags
             "example_opener": "[clears throat] [dramatic] Attention all developers...",
         },
         "peter": {
@@ -97,18 +108,20 @@ class V3AgentGuide:
             "best_tags": ["professional", "analytical", "explaining", "thoughtful"],
             "avoid_tags": ["laughs harder", "wheezing", "crying"],
             "stability": 0.5,  # Balanced for clarity
+            "v3_compatible": False,  # Less expressive, may read tags literally
             "example_opener": "[professional] Let me provide a comprehensive analysis...",
         },
     }
-    
+
     # Best practices for agents
     BEST_PRACTICES = """
 # V3 Prompting Best Practices for Agents
 
 ## Critical Requirements
-1. **Minimum 250 characters** - Short prompts cause inconsistencies
-2. **Voice must match tags** - Can't make a whisper voice shout
-3. **Line breaks between emotions** - Helps v3 understand transitions
+1. **MUST USE eleven_v3 MODEL** - Tags only work with v3, not v2 models!
+2. **Minimum 250 characters** - Short prompts cause inconsistencies
+3. **Voice must match tags** - Can't make a whisper voice shout
+4. **Line breaks between emotions** - Helps v3 understand transitions
 
 ## Punctuation Power
 - Use "..." for natural pauses and weight
@@ -131,6 +144,17 @@ class V3AgentGuide:
 - 0.3-0.6: Natural (balanced, closest to original voice)
 - 0.6-0.9: Robust (stable but less responsive to tags)
 
+## Model & Voice Compatibility
+
+### V3-Compatible Voices (confirmed):
+- **Blondie**: British wit, great with sarcasm
+- **Hope**: Casual bestie, natural emotions
+- **Old Radio**: Dramatic broadcast style
+
+### May NOT work with v3 tags:
+- Some professional/narrator voices may read tags literally
+- Test your voice first!
+
 ## Examples of Good Prompting
 
 ### Short Review (BAD - under 250 chars):
@@ -145,26 +169,26 @@ class V3AgentGuide:
 
 [encouraging] Once those are fixed, this will be ready to merge!"
 """
-    
+
     @classmethod
     def get_voice_guidance(cls, voice_name: str) -> Dict:
         """Get guidance for a specific voice without modifying agent text.
-        
+
         Args:
             voice_name: Name of the voice
-            
+
         Returns:
             Guidance dictionary for the voice
         """
         return cls.VOICE_GUIDANCE.get(voice_name, cls.VOICE_GUIDANCE["blondie"])
-    
+
     @classmethod
     def get_example_for_context(cls, context: str) -> str:
         """Get an example for a specific context.
-        
+
         Args:
             context: Type of review context
-            
+
         Returns:
             Example text showing proper v3 usage
         """
@@ -175,17 +199,17 @@ class V3AgentGuide:
             "casual": "conversational_feedback",
             "dramatic": "broadcast_style",
         }
-        
+
         example_key = context_map.get(context, "emotional_review")
         return cls.V3_EXAMPLES.get(example_key, cls.V3_EXAMPLES["emotional_review"])
-    
+
     @classmethod
     def suggest_tags_for_sentiment(cls, sentiment: str) -> List[str]:
         """Suggest appropriate tags for a sentiment without modifying text.
-        
+
         Args:
             sentiment: The sentiment to express
-            
+
         Returns:
             List of suggested tags
         """
@@ -196,21 +220,21 @@ class V3AgentGuide:
             "thoughtful": ["analytical", "curious", "thoughtful", "considering"],
             "casual": ["friendly", "relaxed", "conversational", "curious"],
         }
-        
+
         return sentiment_tags.get(sentiment, ["professional", "thoughtful"])
-    
+
     @classmethod
     def validate_prompt_length(cls, text: str) -> Dict:
         """Check if prompt meets v3 requirements without modifying it.
-        
+
         Args:
             text: The prompt text
-            
+
         Returns:
             Validation result with suggestions
         """
         length = len(text)
-        
+
         if length < 250:
             return {
                 "valid": False,
@@ -224,39 +248,41 @@ class V3AgentGuide:
                 "length": length,
                 "message": "Text length is good for v3.",
             }
-    
+
     @classmethod
     def analyze_prompt_quality(cls, text: str) -> Dict:
         """Analyze prompt quality for v3 without modifying it.
-        
+
         Args:
             text: The prompt to analyze
-            
+
         Returns:
             Analysis with suggestions
         """
+        suggestions: List[str] = []
+        text_length = len(text)
         analysis = {
             "has_tags": "[" in text and "]" in text,
             "has_line_breaks": "\n\n" in text,
             "has_emphasis": any(word.isupper() and len(word) > 2 for word in text.split()),
             "has_pauses": "..." in text,
-            "length": len(text),
-            "suggestions": [],
+            "length": text_length,
+            "suggestions": suggestions,
         }
-        
+
         if not analysis["has_tags"]:
-            analysis["suggestions"].append("Consider adding emotional tags like [thoughtful] or [excited]")
-        
+            suggestions.append("Consider adding emotional tags like [thoughtful] or [excited]")
+
         if not analysis["has_line_breaks"]:
-            analysis["suggestions"].append("Use line breaks between emotional transitions")
-        
+            suggestions.append("Use line breaks between emotional transitions")
+
         if not analysis["has_emphasis"]:
-            analysis["suggestions"].append("CAPITALIZE key words for emphasis")
-        
+            suggestions.append("CAPITALIZE key words for emphasis")
+
         if not analysis["has_pauses"]:
-            analysis["suggestions"].append("Use '...' for natural pauses")
-        
-        if analysis["length"] < 250:
-            analysis["suggestions"].append("Expand to at least 250 characters for stability")
-        
+            suggestions.append("Use '...' for natural pauses")
+
+        if text_length < 250:
+            suggestions.append("Expand to at least 250 characters for stability")
+
         return analysis
