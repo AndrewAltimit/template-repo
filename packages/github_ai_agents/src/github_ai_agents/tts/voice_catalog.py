@@ -258,28 +258,32 @@ VOICE_CATALOG = {
 # Agent personality to voice mapping based on characteristics
 AGENT_PERSONALITY_MAPPING = {
     "gemini": {
-        "default": "blondie",  # Warm, conversational
+        "default": "hope_conversational",  # Natural, friendly bestie
         "critical": "tia",  # Direct feedback
         "excited": "hope_upbeat",  # Positive reviews
         "thoughtful": "adam",  # Deep analysis
+        "broadcast": "old_radio",  # News bulletin style
     },
     "claude": {
-        "default": "jane",  # Professional, measured
+        "default": "blondie",  # Warm, conversational British
         "technical": "peter",  # Clear documentation
         "friendly": "cassidy",  # Conversational reviews
         "serious": "juniper",  # Business-like
+        "broadcast": "old_radio",  # News bulletin style
     },
     "opencode": {
         "default": "peter",  # Educational, clear
         "casual": "stokes",  # Relaxed explanations
         "enthusiastic": "amelia",  # Excited about code
         "professional": "juniper",  # Formal reviews
+        "broadcast": "old_radio",  # News bulletin style
     },
     "crush": {
         "default": "hope_conversational",  # Natural, friendly
         "energetic": "hope_upbeat",  # Quick, upbeat
         "calm": "rhea",  # Thoughtful responses
         "direct": "tia",  # No-nonsense feedback
+        "broadcast": "old_radio",  # News bulletin style
     },
 }
 
