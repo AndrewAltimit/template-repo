@@ -116,7 +116,7 @@ Separate different emotions with line breaks for better v3 understanding:
 - `[professional]`, `[analytical]`, `[casual]`
 
 ### Actions & Sounds
-- `[clears throat]`, `[pause]`, `[short pause]`
+- `[clears throat]`, `[pause]`, `[short pause]` *(Note: These work with v3 model, not v2)*
 - `[hesitant]`, `[firmly]`, `[gently]`
 - `[jumping in]`, `[responding]`, `[interrupting]`
 
