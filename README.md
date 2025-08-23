@@ -141,7 +141,7 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 6. **OpenCode** - Comprehensive code generation (STDIO mode via Claude)
 7. **Crush** - Fast code snippets (STDIO mode via Claude)
 8. **Meme Generator** - Create memes with templates
-9. **ElevenLabs Speech** - Advanced text-to-speech synthesis with emotional control
+9. **ElevenLabs Speech** - Advanced TTS with v3 model, 50+ audio tags, 74 languages ([Documentation](tools/mcp/elevenlabs_speech/docs/README.md))
 10. **AI Toolkit** - LoRA training interface (remote: 192.168.0.152:8012)
 11. **ComfyUI** - Image generation interface (remote: 192.168.0.152:8013)
 

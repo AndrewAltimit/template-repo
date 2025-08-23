@@ -1,6 +1,8 @@
 # ElevenLabs Speech MCP Server
 
-Advanced speech synthesis using ElevenLabs v3 with full emotional expression, audio tags, and sound effects generation.
+Advanced speech synthesis using ElevenLabs v3 (default model) with full emotional expression, audio tags, and sound effects generation.
+
+> **Note**: This server uses **eleven_v3** as the default model - ElevenLabs' most advanced model with full audio tag support, 74 languages, and highest quality synthesis.
 
 ## Features
 
@@ -61,7 +63,7 @@ Generate speech with full v3 capabilities and audio tags.
         "style": 0.3,          # Style exaggeration
         "use_speaker_boost": false
     },
-    "model": "eleven_v3",      # or eleven_multilingual_v2, eleven_flash_v2
+    "model": "eleven_v3",      # Default (recommended) - also: eleven_multilingual_v2, eleven_flash_v2
     "output_format": "mp3_44100_128",
     "language_code": "en",     # Optional, auto-detect if not provided
     "upload": true,            # Auto-upload to hosting
@@ -379,10 +381,32 @@ scene = {
 
 | Model | Languages | Speed | Quality | Audio Tags | Use Case |
 |-------|-----------|-------|---------|------------|----------|
-| `eleven_v3` | 74 | Medium | Highest | Full support | Expressive content |
-| `eleven_multilingual_v2` | 29 | Medium | High | Limited | Multi-language |
+| **`eleven_v3`** (default) | 74 | Medium | Highest | Full support | Expressive content, emotional speech |
+| `eleven_multilingual_v2` | 29 | Medium | High | Limited | Multi-language (v2 fallback) |
 | `eleven_flash_v2_5` | 32 | Fast | Good | Limited | Quick generation |
 | `eleven_turbo_v2_5` | 28 | Fastest | Good | Limited | Real-time/streaming |
+
+### Why eleven_v3 is Default
+
+- **Best Quality**: Highest quality synthesis available from ElevenLabs
+- **Full Audio Tags**: Complete support for all 50+ audio tags ([laughs], [whisper], etc.)
+- **74 Languages**: Broadest language support with automatic detection
+- **Emotional Range**: Most expressive and natural emotional rendering
+- **Latest Model**: As per [ElevenLabs v3 docs](https://elevenlabs.io/docs/models#eleven-v3-alpha)
+
+### ⚠️ Content Filtering Warning
+
+**Important**: The v3 model includes content filtering that may reject requests containing:
+- References to self-harm, violence, or disturbing content
+- Excessive negative emotional content (depression, suicide, etc.)
+- Potentially harmful or inappropriate material
+
+**Best Practices to Avoid Filters**:
+- Use mild emotional tags ([sad], [tired], [sighs]) instead of extreme ones
+- Avoid explicit references to violence, alcohol abuse, or self-harm
+- Keep emotional content balanced - mix neutral with emotional tags
+- If content is rejected, simplify tags and reduce intensity
+- For creative/theatrical content needing darker themes, use euphemisms or implications
 
 ## Troubleshooting
 
@@ -404,6 +428,9 @@ python tools/mcp/elevenlabs_speech/scripts/setup_api_key.py
 - Ensure using `eleven_v3` model
 - Check stability setting (lower = more expressive)
 - Some tags work better with specific voices
+- **Content may be filtered** - see Content Filtering Warning above
+- If getting 400 errors, try simpler/fewer tags
+- Start with basic tags ([pause], [sighs]) and build up
 
 ### Upload Failures
 - Check file size (<50MB)

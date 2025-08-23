@@ -84,14 +84,17 @@ Generate memes with customizable text overlays:
 **Documentation**: [ElevenLabs MCP Documentation](../../tools/mcp/elevenlabs_speech/docs/README.md)
 
 Advanced text-to-speech synthesis with emotional control:
+- **Default model**: eleven_v3 with full audio tag support
 - 14+ specialized synthesis tools
-- Multi-model support (v2 Pro plan, v3 future)
-- Audio tag support (emotions, pauses, sounds, effects)
+- Multi-model support (v3 default, v2 fallback)
+- 50+ audio tags ([laughs], [whispers], [pause], emotions, sounds)
+- 74 language support with automatic detection
 - Natural speech with hesitations and breathing
 - Emotional progression across narratives
 - Sound effect generation (up to 22 seconds)
-- Voice library with 10+ pre-configured voices
-- Automatic upload for sharing (0x0.st)
+- Voice library with 37+ voices (premade, professional, generated)
+- Automatic upload for sharing (tmpfiles.org, 0x0.st)
+- ⚠️ **Content filtering**: v3 model filters harmful/negative content
 
 #### 8. Video Editor MCP Server
 **Location**: `tools/mcp/video_editor/`
