@@ -59,9 +59,11 @@ async def test_voice_generation():
     """Test generating audio with different voices."""
     import os
 
-    # Skip if no API key
-    if not os.getenv("ELEVENLABS_API_KEY"):
-        print("\nSkipping audio generation test (no API key)")
+    # Default to mock mode unless explicitly running with real API
+    use_real_api = os.getenv("TTS_USE_REAL_API", "false").lower() == "true"
+
+    if use_real_api and not os.getenv("ELEVENLABS_API_KEY"):
+        print("\nSkipping real API test (no API key)")
         return
 
     from github_ai_agents.tts import TTSIntegration
@@ -76,8 +78,14 @@ async def test_voice_generation():
     print("\nTesting Voice Generation")
     print("=" * 60)
 
-    # Enable TTS for testing
+    # Enable TTS for testing (default to mock mode)
     os.environ["AGENT_TTS_ENABLED"] = "true"
+    if not use_real_api:
+        os.environ["TTS_MOCK_MODE"] = "true"
+        print("Running in MOCK MODE (no API credits used)")
+    else:
+        print("Running with REAL API (using credits)")
+
     tts = TTSIntegration()
 
     # Test each agent's voice with context
@@ -109,6 +117,8 @@ def main():
     else:
         print("\nTo test audio generation, run with --generate flag:")
         print("  python test_voice_profiles.py --generate")
+        print("\nBy default, tests run in MOCK MODE (no API credits used)")
+        print("To use real API (consumes credits), set TTS_USE_REAL_API=true")
 
 
 if __name__ == "__main__":

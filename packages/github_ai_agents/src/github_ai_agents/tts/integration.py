@@ -49,11 +49,14 @@ class TTSIntegration:
         self.mcp_base_url = os.getenv("ELEVENLABS_MCP_URL", "http://localhost:8018")
         self.api_key = os.getenv("ELEVENLABS_API_KEY")
 
+        # Check for mock mode (for testing without using API credits)
+        self.mock_mode = os.getenv("TTS_MOCK_MODE", "false").lower() == "true"
+
         # Check if TTS should be enabled
         self.enabled = self._is_tts_enabled()
 
-        # Only log warning if TTS was explicitly enabled but no API key
-        if self.enabled and not self.api_key:
+        # Only log warning if TTS was explicitly enabled but no API key (and not in mock mode)
+        if self.enabled and not self.api_key and not self.mock_mode:
             logger.info("TTS enabled but no ELEVENLABS_API_KEY found - will use MCP server's configured key")
 
     def _is_tts_enabled(self) -> bool:
@@ -88,6 +91,11 @@ class TTSIntegration:
         """
         if not self.enabled:
             return None
+
+        # Mock mode for testing without using API credits
+        if self.mock_mode:
+            logger.debug(f"Mock mode: Would generate audio for {agent_name} PR#{pr_number}")
+            return f"mock://audio/pr{pr_number}_{agent_name}.mp3"
 
         try:
             # Analyze the agent's prompt (without modifying it)

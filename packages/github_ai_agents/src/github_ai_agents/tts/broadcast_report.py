@@ -66,6 +66,9 @@ This is... this is history in the making!
     def should_use_broadcast(review_text: str, pr_metadata: dict) -> bool:
         """Determine if a review warrants broadcast treatment.
 
+        TODO: Replace keyword-based logic with more sophisticated NLP or ML approach
+              to reduce false positives/negatives as vocabulary evolves.
+
         Args:
             review_text: The review content
             pr_metadata: PR metadata including labels, CI status
@@ -231,6 +234,10 @@ This is... this is history in the making!
     @classmethod
     def format_for_tts(cls, script: str, voice_sequence: List[str]) -> List[dict]:
         """Format broadcast script for TTS synthesis.
+
+        TODO: Refactor parsing logic to be less tightly coupled to template structure.
+              Consider using structured data format (JSON/YAML) for templates instead
+              of regex-based parsing to improve robustness.
 
         Args:
             script: The broadcast script

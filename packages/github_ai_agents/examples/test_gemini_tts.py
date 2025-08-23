@@ -15,8 +15,14 @@ from github_ai_agents.tts import TTSIntegration, get_voice_profile  # noqa: E402
 async def test_gemini_review():
     """Test a realistic Gemini review with Blondie voice."""
 
-    # Enable TTS
+    # Enable TTS (default to mock mode unless real API requested)
     os.environ["AGENT_TTS_ENABLED"] = "true"
+
+    use_real_api = os.getenv("TTS_USE_REAL_API", "false").lower() == "true"
+    if not use_real_api:
+        os.environ["TTS_MOCK_MODE"] = "true"
+        print("Running in MOCK MODE (no API credits used)")
+        print("To use real API, set TTS_USE_REAL_API=true\n")
 
     # Sample Gemini-style review
     gemini_review = """
