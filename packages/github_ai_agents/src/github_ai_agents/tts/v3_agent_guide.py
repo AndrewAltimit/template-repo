@@ -1,4 +1,8 @@
-"""V3 prompting guide for AI agents - provides examples without modifying agent text."""
+"""V3 prompting guide for AI agents - provides examples without modifying agent text.
+
+NOTE: This file is duplicated in tools/mcp/elevenlabs_speech/v3_agent_guide.py
+      to maintain MCP server independence. Keep both files in sync when making changes.
+"""
 
 from typing import Dict, List
 
