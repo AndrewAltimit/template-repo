@@ -7,7 +7,7 @@ from typing import Dict, Optional, Tuple
 import httpx
 
 from .v3_agent_guide import V3AgentGuide
-from .voice_profiles import get_voice_profile, get_voice_settings
+from .voice_catalog import get_voice_for_context, get_voice_settings_for_emotion
 
 logger = logging.getLogger(__name__)
 
@@ -112,13 +112,34 @@ class TTSIntegration:
             # Use the agent's text AS IS - no modifications
             final_text = review_text
 
-            # Get voice profile if not specified
-            if not voice_id:
-                profile = get_voice_profile(agent_name)
-                voice_id = profile.voice_id
+            # Determine sentiment and criticality from review (for voice selection)
+            sentiment = "professional"  # default
+            criticality = "normal"  # default
 
-            # Get voice settings (but let agent control via their prompt)
-            voice_settings = get_voice_settings(agent_name)
+            # Simple sentiment detection for voice selection
+            review_lower = review_text.lower()
+            if any(word in review_lower for word in ["excellent", "great", "impressive", "perfect"]):
+                sentiment = "positive"
+            elif any(word in review_lower for word in ["critical", "severe", "urgent", "security"]):
+                sentiment = "critical"
+                criticality = "urgent"
+            elif any(word in review_lower for word in ["concern", "issue", "problem"]):
+                sentiment = "concerned"
+
+            # Get context-aware voice if not specified
+            if not voice_id:
+                voice = get_voice_for_context(agent_name, sentiment, criticality)
+                voice_id = voice.voice_id
+                # Get appropriate settings for the detected emotion
+                voice_settings = get_voice_settings_for_emotion(voice, emotion_intensity=0.7)
+            else:
+                # Use default settings if voice_id was provided
+                voice_settings = {
+                    "stability": 0.0,
+                    "similarity_boost": 0.75,
+                    "style": 0.0,
+                    "use_speaker_boost": True,
+                }
 
             # Call ElevenLabs MCP server
             async with httpx.AsyncClient() as client:

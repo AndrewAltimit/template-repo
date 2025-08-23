@@ -74,12 +74,13 @@ The TTS system automatically detects emotions from review text:
 ### V3-Compatible Voices
 Each agent has a carefully selected voice that matches their personality:
 
-- **Gemini**: *Blondie - Conversational* (British, casual, expressive)
-  - Low stability (0.0) for maximum emotional expression
+- **Gemini**: *Hope - Your conversational bestie* (American, casual, friendly)
+  - Low stability (0.0) for maximum natural expression
   - Speaker boost enabled for clarity
 
-- **Claude**: *Alice* (British, professional, thoughtful)
-  - Balanced stability (0.5) for professional tone
+- **Claude**: *Blondie - Conversational* (British, casual, expressive)
+  - Low stability (0.0) for maximum emotional expression
+  - Speaker boost enabled for warmth
 
 - **OpenCode**: *Daniel* (British, formal, educational)
   - Moderate stability (0.4) for clear explanations
