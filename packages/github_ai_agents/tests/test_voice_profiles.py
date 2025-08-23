@@ -35,7 +35,9 @@ def test_voice_catalog():
     print("-" * 40)
     for agent, personality in AGENT_PERSONALITY_MAPPING.items():
         print(f"  {agent:10} -> {personality['default']} voice")
-        print(f"               Context: {', '.join(personality['context_mapping'].keys())}")
+        # List all contexts except 'default'
+        context_keys = [k for k in personality.keys() if k != "default"]
+        print(f"               Contexts: {', '.join(context_keys)}")
 
     # Test voice selection logic
     print("\nContext-Aware Voice Selection:")

@@ -514,7 +514,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
 
         This helps agents learn to write better v3 prompts WITHOUT modifying their text.
         """
-        from github_ai_agents.tts.v3_agent_guide import V3AgentGuide
+        from .v3_agent_guide import V3AgentGuide
 
         # Get example for context
         example = V3AgentGuide.get_example_for_context(context)
@@ -550,7 +550,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
 
         Helps agents understand if their prompt will work well with v3.
         """
-        from github_ai_agents.tts.v3_agent_guide import V3AgentGuide
+        from .v3_agent_guide import V3AgentGuide
 
         # Validate length
         validation = V3AgentGuide.validate_prompt_length(text)
