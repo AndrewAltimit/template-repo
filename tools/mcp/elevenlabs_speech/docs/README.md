@@ -1,6 +1,8 @@
 # ElevenLabs Speech MCP Server
 
-Advanced speech synthesis using ElevenLabs v3 with full emotional expression, audio tags, and sound effects generation.
+Advanced speech synthesis using ElevenLabs v3 (default model) with full emotional expression, audio tags, and sound effects generation.
+
+> **Note**: This server uses **eleven_v3** as the default model - ElevenLabs' most advanced model with full audio tag support, 74 languages, and highest quality synthesis.
 
 ## Features
 
@@ -61,7 +63,7 @@ Generate speech with full v3 capabilities and audio tags.
         "style": 0.3,          # Style exaggeration
         "use_speaker_boost": false
     },
-    "model": "eleven_v3",      # or eleven_multilingual_v2, eleven_flash_v2
+    "model": "eleven_v3",      # Default (recommended) - also: eleven_multilingual_v2, eleven_flash_v2
     "output_format": "mp3_44100_128",
     "language_code": "en",     # Optional, auto-detect if not provided
     "upload": true,            # Auto-upload to hosting
@@ -379,10 +381,18 @@ scene = {
 
 | Model | Languages | Speed | Quality | Audio Tags | Use Case |
 |-------|-----------|-------|---------|------------|----------|
-| `eleven_v3` | 74 | Medium | Highest | Full support | Expressive content |
-| `eleven_multilingual_v2` | 29 | Medium | High | Limited | Multi-language |
+| **`eleven_v3`** (default) | 74 | Medium | Highest | Full support | Expressive content, emotional speech |
+| `eleven_multilingual_v2` | 29 | Medium | High | Limited | Multi-language (v2 fallback) |
 | `eleven_flash_v2_5` | 32 | Fast | Good | Limited | Quick generation |
 | `eleven_turbo_v2_5` | 28 | Fastest | Good | Limited | Real-time/streaming |
+
+### Why eleven_v3 is Default
+
+- **Best Quality**: Highest quality synthesis available from ElevenLabs
+- **Full Audio Tags**: Complete support for all 50+ audio tags ([laughs], [whisper], etc.)
+- **74 Languages**: Broadest language support with automatic detection
+- **Emotional Range**: Most expressive and natural emotional rendering
+- **Latest Model**: As per [ElevenLabs v3 docs](https://elevenlabs.io/docs/models#eleven-v3-alpha)
 
 ## Troubleshooting
 
