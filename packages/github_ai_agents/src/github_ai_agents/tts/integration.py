@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Tuple
 
 import httpx
 
+from .v3_optimization import V3OptimizationEngine, V3ReviewFormatter
 from .voice_profiles import get_voice_profile, get_voice_settings
 
 logger = logging.getLogger(__name__)
@@ -222,6 +223,7 @@ class TTSIntegration:
         agent_name: str,
         pr_number: Optional[int] = None,
         voice_id: Optional[str] = None,
+        use_v3_optimization: bool = True,
     ) -> Optional[str]:
         """Generate audio version of review with emotional context.
 
@@ -230,6 +232,7 @@ class TTSIntegration:
             agent_name: Name of the agent (gemini, claude, etc.)
             pr_number: Optional PR number for context
             voice_id: Optional specific voice to use
+            use_v3_optimization: Whether to apply v3 optimizations
 
         Returns:
             Audio URL if successful, None otherwise
@@ -238,33 +241,63 @@ class TTSIntegration:
             return None
 
         try:
-            # Extract key sentences
-            key_text = self.extract_key_sentences(review_text)
-
-            if not key_text:
-                logger.warning("No key sentences extracted from review")
-                return None
-
-            # Analyze sentiment
-            emotions = self.analyze_sentiment(review_text)
-
-            # Add emotional tags
-            tagged_text = self.add_emotional_tags(key_text, emotions)
-
-            # Get voice profile if not specified
-            if not voice_id:
-                profile = get_voice_profile(agent_name)
-                voice_id = profile.voice_id
-                voice_settings = get_voice_settings(agent_name)
+            # Determine severity for v3 optimization
+            severity = "normal"
+            if any(word in review_text.lower() for word in ["critical", "urgent", "blocker"]):
+                severity = "critical"
+            elif any(word in review_text.lower() for word in ["excellent", "perfect", "great"]):
+                severity = "positive"
+            
+            if use_v3_optimization:
+                # Use V3 optimization for better results
+                optimized_text = V3ReviewFormatter.format_review(
+                    review_text,
+                    agent_name,
+                    severity
+                )
+                
+                # Get optimal settings for v3
+                from .voice_catalog import AGENT_PERSONALITY_MAPPING
+                voice_key = AGENT_PERSONALITY_MAPPING.get(agent_name, {}).get("default", "blondie")
+                voice_settings = V3OptimizationEngine.get_optimal_settings(voice_key, "review")
+                
+                # Get voice ID
+                if not voice_id:
+                    profile = get_voice_profile(agent_name)
+                    voice_id = profile.voice_id
+                
+                final_text = optimized_text
             else:
-                voice_settings = get_voice_settings(agent_name)
+                # Original logic for backward compatibility
+                # Extract key sentences
+                key_text = self.extract_key_sentences(review_text)
+
+                if not key_text:
+                    logger.warning("No key sentences extracted from review")
+                    return None
+
+                # Analyze sentiment
+                emotions = self.analyze_sentiment(review_text)
+
+                # Add emotional tags
+                tagged_text = self.add_emotional_tags(key_text, emotions)
+                
+                final_text = tagged_text
+
+                # Get voice profile if not specified
+                if not voice_id:
+                    profile = get_voice_profile(agent_name)
+                    voice_id = profile.voice_id
+                    voice_settings = get_voice_settings(agent_name)
+                else:
+                    voice_settings = get_voice_settings(agent_name)
 
             # Call ElevenLabs MCP server
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     f"{self.mcp_base_url}/synthesize_speech_v3",
                     json={
-                        "text": tagged_text,
+                        "text": final_text,
                         "model": "eleven_v3",  # Use v3 for emotional support
                         "voice_id": voice_id,
                         "voice_settings": voice_settings,
