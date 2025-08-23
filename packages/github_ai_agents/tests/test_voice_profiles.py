@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test different voice profiles for AI agents."""
+"""Test voice catalog for AI agents."""
 
 import asyncio
 import sys
@@ -8,29 +8,49 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from github_ai_agents.tts import AGENT_VOICE_MAPPING, V3_COMPATIBLE_VOICES, get_voice_profile  # noqa: E402
+from github_ai_agents.tts import VOICE_CATALOG, get_voice_for_context, get_voice_settings_for_emotion  # noqa: E402
+from github_ai_agents.tts.voice_catalog import AGENT_PERSONALITY_MAPPING, VoiceCategory  # noqa: E402
 
 
-def test_voice_profiles():
-    """Test voice profile assignments."""
+def test_voice_catalog():
+    """Test voice catalog and agent personality mapping."""
 
-    print("Voice Profile Configuration")
+    print("Voice Catalog Configuration")
     print("=" * 60)
 
-    # Show available v3-compatible voices
-    print("\nAvailable V3-Compatible Voices:")
+    # Show available voices by category
+    print("\nAvailable Voices by Category:")
     print("-" * 40)
-    for key, profile in V3_COMPATIBLE_VOICES.items():
-        print(f"  {key:12} - {profile.name:30} ({profile.description})")
-        print(f"               Stability: {profile.stability:.1f}, Boost: {profile.use_speaker_boost}")
+    for category in VoiceCategory:
+        voices_in_cat = [k for k, v in VOICE_CATALOG.items() if v.category == category]
+        if voices_in_cat:
+            print(f"\n{category.value}:")
+            for key in voices_in_cat[:3]:  # Show first 3 per category
+                voice = VOICE_CATALOG[key]
+                print(f"  {key:20} - {voice.display_name:30}")
+                print(f"                       {voice.description[:50]}...")
 
-    # Show agent assignments
-    print("\nAgent Voice Assignments:")
+    # Show agent personality mappings
+    print("\nAgent Personality Mappings:")
     print("-" * 40)
-    for agent, voice_key in AGENT_VOICE_MAPPING.items():
-        profile = get_voice_profile(agent)
-        print(f"  {agent:10} -> {profile.name:30}")
-        print(f"               {profile.description}")
+    for agent, personality in AGENT_PERSONALITY_MAPPING.items():
+        print(f"  {agent:10} -> {personality['default']} voice")
+        print(f"               Context: {', '.join(personality['context_mapping'].keys())}")
+
+    # Test voice selection logic
+    print("\nContext-Aware Voice Selection:")
+    print("-" * 40)
+    test_cases = [
+        ("gemini", "positive", "normal"),
+        ("claude", "critical", "urgent"),
+        ("opencode", "professional", "normal"),
+    ]
+    for agent, sentiment, criticality in test_cases:
+        voice = get_voice_for_context(agent, sentiment, criticality)
+        settings = get_voice_settings_for_emotion(voice, 0.7)
+        print(f"  {agent} ({sentiment}/{criticality}):")
+        print(f"    Voice: {voice.display_name}")
+        print(f"    Stability: {settings['stability']:.2f}")
 
     print("\n" + "=" * 60)
 
@@ -60,10 +80,10 @@ async def test_voice_generation():
     os.environ["AGENT_TTS_ENABLED"] = "true"
     tts = TTSIntegration()
 
-    # Test each agent's voice
+    # Test each agent's voice with context
     for agent in ["gemini", "claude", "opencode", "crush"]:
-        profile = get_voice_profile(agent)
-        print(f"\nGenerating audio for {agent} ({profile.name})...")
+        voice = get_voice_for_context(agent, "professional", "normal")
+        print(f"\nGenerating audio for {agent} ({voice.display_name})...")
 
         try:
             audio_url = await tts.generate_audio_review(test_review, agent_name=agent, pr_number=999)
@@ -80,8 +100,8 @@ async def test_voice_generation():
 
 def main():
     """Run tests."""
-    # Test voice profiles
-    test_voice_profiles()
+    # Test voice catalog
+    test_voice_catalog()
 
     # Test generation if requested
     if "--generate" in sys.argv:

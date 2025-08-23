@@ -80,9 +80,10 @@ async def test_gemini_review():
         # Direct call to show exact parameters
         import httpx
 
+        mcp_url = os.getenv("ELEVENLABS_MCP_URL", "http://localhost:8018")
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                "http://localhost:8018/synthesize_speech_v3",
+                f"{mcp_url}/synthesize_speech_v3",
                 json={
                     "text": tagged_text,
                     "model": "eleven_v3",
