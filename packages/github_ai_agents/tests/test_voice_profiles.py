@@ -8,7 +8,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from github_ai_agents.tts import AGENT_VOICE_MAPPING, V3_COMPATIBLE_VOICES, get_voice_profile
+from github_ai_agents.tts import AGENT_VOICE_MAPPING, V3_COMPATIBLE_VOICES, get_voice_profile  # noqa: E402
 
 
 def test_voice_profiles():

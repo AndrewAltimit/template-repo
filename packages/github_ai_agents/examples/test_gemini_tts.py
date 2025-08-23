@@ -9,7 +9,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from github_ai_agents.tts import TTSIntegration, get_voice_profile
+from github_ai_agents.tts import TTSIntegration, get_voice_profile  # noqa: E402
 
 
 async def test_gemini_review():

@@ -7,16 +7,16 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from github_ai_agents.tts.broadcast_report import BroadcastReportGenerator, create_broadcast_review
-from github_ai_agents.tts.voice_catalog import VOICE_CATALOG
+from github_ai_agents.tts.broadcast_report import BroadcastReportGenerator  # noqa: E402
+from github_ai_agents.tts.voice_catalog import VOICE_CATALOG  # noqa: E402
 
 
 def test_broadcast_scenarios():
     """Test different broadcast scenarios."""
-    
+
     print("Broadcast Report Generation Test")
     print("=" * 80)
-    
+
     scenarios = [
         {
             "name": "Critical Security Alert",
@@ -28,7 +28,7 @@ def test_broadcast_scenarios():
                 This could allow unauthorized database access.
                 Immediate remediation required before any merge.
             """,
-            "metadata": {"labels": [{"name": "security"}], "ci_status": "failed"}
+            "metadata": {"labels": [{"name": "security"}], "ci_status": "failed"},
         },
         {
             "name": "Build Pipeline Failure",
@@ -40,7 +40,7 @@ def test_broadcast_scenarios():
                 Integration tests show complete system breakdown.
                 The application cannot compile in its current state.
             """,
-            "metadata": {"ci_status": "failed"}
+            "metadata": {"ci_status": "failed"},
         },
         {
             "name": "Exceptional Achievement",
@@ -52,7 +52,7 @@ def test_broadcast_scenarios():
                 Performance improved by 300%.
                 This is a historic achievement for our codebase.
             """,
-            "metadata": {"labels": [{"name": "enhancement"}]}
+            "metadata": {"labels": [{"name": "enhancement"}]},
         },
         {
             "name": "Performance Crisis",
@@ -64,33 +64,30 @@ def test_broadcast_scenarios():
                 Memory usage has doubled.
                 Application struggling under normal load.
             """,
-            "metadata": {}
-        }
+            "metadata": {},
+        },
     ]
-    
+
     for scenario in scenarios:
         print(f"\n{'='*60}")
         print(f"Scenario: {scenario['name']}")
         print(f"Agent: {scenario['agent']} | PR #{scenario['pr_number']}")
         print("-" * 60)
-        
+
         # Generate broadcast script
         generator = BroadcastReportGenerator()
         script, voice_sequence = generator.generate_broadcast_script(
-            scenario["review"],
-            scenario["agent"],
-            scenario["pr_number"],
-            scenario["metadata"]
+            scenario["review"], scenario["agent"], scenario["pr_number"], scenario["metadata"]
         )
-        
+
         print("\nGenerated Script:")
         print(script)
-        
+
         print(f"\nVoice Sequence: {' → '.join(voice_sequence)}")
-        
+
         # Format for TTS
         segments = generator.format_for_tts(script, voice_sequence)
-        
+
         print(f"\nTTS Segments: {len(segments)}")
         for i, segment in enumerate(segments, 1):
             voice_name = VOICE_CATALOG.get(segment["voice"], VOICE_CATALOG["old_radio"]).display_name
@@ -100,11 +97,11 @@ def test_broadcast_scenarios():
 
 def test_detection_logic():
     """Test broadcast detection logic."""
-    
+
     print("\n" + "=" * 80)
     print("Broadcast Detection Logic Test")
     print("=" * 80)
-    
+
     test_reviews = [
         ("This is a normal review with minor issues.", False),
         ("CRITICAL: Security vulnerability detected!", True),
@@ -113,9 +110,9 @@ def test_detection_logic():
         ("Perfect implementation with 100% coverage!", True),
         ("Some improvements needed in error handling.", False),
     ]
-    
+
     generator = BroadcastReportGenerator()
-    
+
     for review, expected in test_reviews:
         should_broadcast = generator.should_use_broadcast(review, {})
         status = "✓" if (should_broadcast == expected) else "✗"
@@ -127,7 +124,7 @@ def main():
     """Run all tests."""
     test_broadcast_scenarios()
     test_detection_logic()
-    
+
     print("\n" + "=" * 80)
     print("Broadcast Report Test Complete!")
     print("\nNote: Old Radio voice will be used for dramatic broadcast segments")
