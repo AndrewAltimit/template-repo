@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, Tuple
 
 import httpx
 
-from .v3_optimization import V3OptimizationEngine, V3ReviewFormatter
+from .v3_agent_guide import V3AgentGuide
 from .voice_profiles import get_voice_profile, get_voice_settings
 
 logger = logging.getLogger(__name__)
@@ -223,16 +223,16 @@ class TTSIntegration:
         agent_name: str,
         pr_number: Optional[int] = None,
         voice_id: Optional[str] = None,
-        use_v3_optimization: bool = True,
+        provide_guidance: bool = True,
     ) -> Optional[str]:
-        """Generate audio version of review with emotional context.
+        """Generate audio version of review WITHOUT modifying agent text.
 
         Args:
-            review_text: Full review text
+            review_text: Full review text FROM THE AGENT (not modified)
             agent_name: Name of the agent (gemini, claude, etc.)
             pr_number: Optional PR number for context
             voice_id: Optional specific voice to use
-            use_v3_optimization: Whether to apply v3 optimizations
+            provide_guidance: Whether to log v3 guidance for agents
 
         Returns:
             Audio URL if successful, None otherwise
@@ -241,56 +241,35 @@ class TTSIntegration:
             return None
 
         try:
-            # Determine severity for v3 optimization
-            severity = "normal"
-            if any(word in review_text.lower() for word in ["critical", "urgent", "blocker"]):
-                severity = "critical"
-            elif any(word in review_text.lower() for word in ["excellent", "perfect", "great"]):
-                severity = "positive"
+            # Analyze the agent's prompt (without modifying it)
+            if provide_guidance:
+                analysis = V3AgentGuide.analyze_prompt_quality(review_text)
+                validation = V3AgentGuide.validate_prompt_length(review_text)
+                
+                if not validation["valid"]:
+                    logger.info(f"V3 Guidance: {validation['message']}")
+                    logger.info(f"Suggestion: {validation['suggestion']}")
+                
+                if analysis["suggestions"]:
+                    logger.info("V3 Suggestions for better results:")
+                    for suggestion in analysis["suggestions"]:
+                        logger.info(f"  • {suggestion}")
+                
+                # Get voice guidance for the agent
+                voice_guidance = V3AgentGuide.get_voice_guidance(agent_name)
+                logger.debug(f"Voice guidance for {agent_name}: {voice_guidance['character']}")
+                logger.debug(f"Best tags: {', '.join(voice_guidance['best_tags'])}")
             
-            if use_v3_optimization:
-                # Use V3 optimization for better results
-                optimized_text = V3ReviewFormatter.format_review(
-                    review_text,
-                    agent_name,
-                    severity
-                )
-                
-                # Get optimal settings for v3
-                from .voice_catalog import AGENT_PERSONALITY_MAPPING
-                voice_key = AGENT_PERSONALITY_MAPPING.get(agent_name, {}).get("default", "blondie")
-                voice_settings = V3OptimizationEngine.get_optimal_settings(voice_key, "review")
-                
-                # Get voice ID
-                if not voice_id:
-                    profile = get_voice_profile(agent_name)
-                    voice_id = profile.voice_id
-                
-                final_text = optimized_text
-            else:
-                # Original logic for backward compatibility
-                # Extract key sentences
-                key_text = self.extract_key_sentences(review_text)
-
-                if not key_text:
-                    logger.warning("No key sentences extracted from review")
-                    return None
-
-                # Analyze sentiment
-                emotions = self.analyze_sentiment(review_text)
-
-                # Add emotional tags
-                tagged_text = self.add_emotional_tags(key_text, emotions)
-                
-                final_text = tagged_text
-
-                # Get voice profile if not specified
-                if not voice_id:
-                    profile = get_voice_profile(agent_name)
-                    voice_id = profile.voice_id
-                    voice_settings = get_voice_settings(agent_name)
-                else:
-                    voice_settings = get_voice_settings(agent_name)
+            # Use the agent's text AS IS - no modifications
+            final_text = review_text
+            
+            # Get voice profile if not specified
+            if not voice_id:
+                profile = get_voice_profile(agent_name)
+                voice_id = profile.voice_id
+            
+            # Get voice settings (but let agent control via their prompt)
+            voice_settings = get_voice_settings(agent_name)
 
             # Call ElevenLabs MCP server
             async with httpx.AsyncClient() as client:
