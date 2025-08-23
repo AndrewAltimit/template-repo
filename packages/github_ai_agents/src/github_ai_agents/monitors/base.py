@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Type
 from ..agents import ClaudeAgent, CrushAgent, GeminiAgent, OpenCodeAgent
 from ..config import AgentConfig
 from ..security import SecurityManager
+from ..tts import TTSIntegration
 from ..utils import get_github_token, run_gh_command
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,9 @@ class BaseMonitor(ABC):
         # Filter by target numbers if specified
         self.target_issue_numbers = self._parse_target_numbers(os.environ.get("TARGET_ISSUE_NUMBERS", ""))
         self.target_pr_numbers = self._parse_target_numbers(os.environ.get("TARGET_PR_NUMBERS", ""))
+
+        # Initialize TTS integration
+        self.tts_integration = TTSIntegration(config=self.config.config)
 
     def _initialize_agents(self) -> Dict[str, Any]:
         """Initialize available AI agents based on configuration."""

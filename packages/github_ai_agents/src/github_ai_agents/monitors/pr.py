@@ -514,7 +514,13 @@ Do not provide implementation code. Focus on review feedback only."""
 
                     # Post individual review if not using summary style
                     if self.comment_style != "summary":
-                        self._post_review_comment(pr_number, agent_name.title(), review, "pr")
+                        # Generate TTS if enabled
+                        formatted_review, audio_url = await self.tts_integration.process_review_with_tts(
+                            review,
+                            agent_name,
+                            pr_number,
+                        )
+                        self._post_review_comment(pr_number, agent_name.title(), formatted_review, "pr")
 
             except Exception as e:
                 logger.error(f"Failed to get review from {agent_name}: {e}")
