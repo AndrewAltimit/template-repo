@@ -2,8 +2,7 @@
 
 import logging
 import os
-import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import httpx
 
@@ -40,34 +39,6 @@ class TTSIntegration:
         "urgent": "[urgent]",
     }
 
-    # Keywords to emotion mapping for automatic detection
-    KEYWORD_TO_EMOTION = {
-        # Positive indicators
-        "impressive": "impressed",
-        "excellent": "happy",
-        "great": "happy",
-        "good job": "pleased",
-        "well done": "pleased",
-        "perfect": "excited",
-        "amazing": "excited",
-        # Negative indicators
-        "failing": "concerned",
-        "error": "concerned",
-        "issue": "concerned",
-        "problem": "concerned",
-        "blocker": "annoyed",
-        "critical": "urgent",
-        "bug": "disappointed",
-        "wrong": "disappointed",
-        # Neutral indicators
-        "however": "thoughtful",
-        "but": "thoughtful",
-        "consider": "thoughtful",
-        "suggest": "thoughtful",
-        "recommend": "professional",
-        "should": "professional",
-    }
-
     def __init__(self, config: Optional[Dict] = None):
         """Initialize TTS integration.
 
@@ -94,128 +65,6 @@ class TTSIntegration:
         config_enabled = self.config.get("tts", {}).get("enabled", False)
 
         return env_enabled or config_enabled
-
-    def analyze_sentiment(self, text: str) -> List[str]:
-        """Analyze text sentiment and return appropriate emotions.
-
-        Args:
-            text: Text to analyze
-
-        Returns:
-            List of detected emotions
-        """
-        emotions = []
-        text_lower = text.lower()
-
-        # Check for keyword matches
-        for keyword, emotion in self.KEYWORD_TO_EMOTION.items():
-            if keyword in text_lower and emotion not in emotions:
-                emotions.append(emotion)
-
-        # Default to professional if no emotions detected
-        if not emotions:
-            emotions = ["professional"]
-
-        # Limit to 3 emotions max
-        return emotions[:3]
-
-    def extract_key_sentences(self, review_text: str, max_sentences: int = 3) -> str:
-        """Extract key sentences from review for TTS.
-
-        Args:
-            review_text: Full review text
-            max_sentences: Maximum number of sentences to extract
-
-        Returns:
-            Extracted key sentences
-        """
-        # Split into sections
-        sections = review_text.split("\n\n")
-        key_sentences = []
-
-        # Priority patterns for important sentences
-        priority_patterns = [
-            r"^(Overall|In summary|My primary|The main)",
-            r"(critical|blocker|must|should|recommend)",
-            r"(impressive|excellent|well.?done|great)",
-        ]
-
-        for section in sections:
-            # Skip headers and lists
-            if section.startswith("#") or section.startswith("-") or section.startswith("*"):
-                continue
-
-            # Split into sentences
-            sentences = re.split(r"(?<=[.!?])\s+", section)
-
-            for sentence in sentences:
-                sentence = sentence.strip()
-                if not sentence or len(sentence) < 20:
-                    continue
-
-                # Check priority patterns
-                for pattern in priority_patterns:
-                    if re.search(pattern, sentence, re.IGNORECASE):
-                        if sentence not in key_sentences:
-                            key_sentences.append(sentence)
-                            if len(key_sentences) >= max_sentences:
-                                return " ".join(key_sentences)
-
-        # If not enough priority sentences, take first sentences
-        for section in sections:
-            if section.startswith("#") or section.startswith("-"):
-                continue
-
-            sentences = re.split(r"(?<=[.!?])\s+", section)
-            for sentence in sentences:
-                sentence = sentence.strip()
-                if sentence and len(sentence) > 20 and sentence not in key_sentences:
-                    key_sentences.append(sentence)
-                    if len(key_sentences) >= max_sentences:
-                        break
-
-        return " ".join(key_sentences[:max_sentences])
-
-    def add_emotional_tags(self, text: str, emotions: List[str]) -> str:
-        """Add emotional tags to text for v3 synthesis.
-
-        Args:
-            text: Text to add tags to
-            emotions: List of emotions to apply
-
-        Returns:
-            Text with emotional tags, one emotion per line for better generation
-        """
-        if not emotions:
-            return text
-
-        # Split text into sentences
-        sentences = re.split(r"(?<=[.!?])\s+", text)
-
-        # Apply emotions to sentences
-        tagged_sentences = []
-        emotion_index = 0
-
-        for i, sentence in enumerate(sentences):
-            if not sentence.strip():
-                continue
-
-            # Rotate through emotions if multiple sentences
-            emotion = emotions[emotion_index % len(emotions)]
-            emotion_tag = self.EMOTION_MAPPING.get(emotion, "")
-
-            if emotion_tag:
-                tagged_sentences.append(f"{emotion_tag} {sentence}")
-            else:
-                tagged_sentences.append(sentence)
-
-            # Move to next emotion for variety
-            if len(emotions) > 1:
-                emotion_index += 1
-
-        # Join with line breaks for better emotional separation
-        # This helps v3 model understand emotional transitions
-        return "\n\n".join(tagged_sentences)
 
     async def generate_audio_review(
         self,
@@ -245,29 +94,29 @@ class TTSIntegration:
             if provide_guidance:
                 analysis = V3AgentGuide.analyze_prompt_quality(review_text)
                 validation = V3AgentGuide.validate_prompt_length(review_text)
-                
+
                 if not validation["valid"]:
                     logger.info(f"V3 Guidance: {validation['message']}")
                     logger.info(f"Suggestion: {validation['suggestion']}")
-                
+
                 if analysis["suggestions"]:
                     logger.info("V3 Suggestions for better results:")
                     for suggestion in analysis["suggestions"]:
                         logger.info(f"  • {suggestion}")
-                
+
                 # Get voice guidance for the agent
                 voice_guidance = V3AgentGuide.get_voice_guidance(agent_name)
                 logger.debug(f"Voice guidance for {agent_name}: {voice_guidance['character']}")
                 logger.debug(f"Best tags: {', '.join(voice_guidance['best_tags'])}")
-            
+
             # Use the agent's text AS IS - no modifications
             final_text = review_text
-            
+
             # Get voice profile if not specified
             if not voice_id:
                 profile = get_voice_profile(agent_name)
                 voice_id = profile.voice_id
-            
+
             # Get voice settings (but let agent control via their prompt)
             voice_settings = get_voice_settings(agent_name)
 
@@ -287,9 +136,10 @@ class TTSIntegration:
 
                 if response.status_code == 200:
                     result = response.json()
-                    if result.get("success") and result.get("audio_url"):
-                        logger.info(f"Generated audio review for {agent_name}: {result['audio_url']}")
-                        return str(result["audio_url"])  # Cast to str for mypy
+                    audio_url = result.get("audio_url")
+                    if result.get("success") and isinstance(audio_url, str):
+                        logger.info(f"Generated audio review for {agent_name}: {audio_url}")
+                        return audio_url
                 else:
                     logger.error(f"TTS API error: {response.status_code}")
 

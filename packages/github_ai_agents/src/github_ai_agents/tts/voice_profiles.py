@@ -28,6 +28,24 @@ V3_COMPATIBLE_VOICES = {
         style=0.0,
         use_speaker_boost=True,
     ),
+    "hope": VoiceProfile(
+        voice_id="uYXf8XasLslADfZ2MB4u",
+        name="Hope - Your conversational bestie",
+        description="American, casual, friendly conversational",
+        stability=0.0,  # Maximum expression for natural emotions
+        similarity_boost=0.75,
+        style=0.0,
+        use_speaker_boost=True,
+    ),
+    "old_radio": VoiceProfile(
+        voice_id="77UfkmRb2Y7IilMQI9fM",
+        name="Old Radio",
+        description="Distinguished, theatrical broadcast style",
+        stability=0.0,  # Maximum theatrical expression
+        similarity_boost=0.75,
+        style=0.0,
+        use_speaker_boost=True,
+    ),
     "rachel": VoiceProfile(
         voice_id="21m00Tcm4TlvDq8ikWAM",
         name="Rachel",
@@ -66,12 +84,13 @@ V3_COMPATIBLE_VOICES = {
     ),
 }
 
-# Agent-specific voice assignments
+# Agent-specific voice assignments (matching voice_catalog.py)
 AGENT_VOICE_MAPPING = {
-    "gemini": "blondie",  # Conversational and expressive
-    "claude": "alice",  # Professional and thoughtful
+    "gemini": "hope",  # Natural, friendly bestie (v3 compatible)
+    "claude": "blondie",  # British wit, conversational (v3 compatible)
     "opencode": "daniel",  # Formal and educational
     "crush": "rachel",  # Young and casual
+    "broadcast": "old_radio",  # Dramatic broadcast reports (v3 compatible)
     "default": "river",  # Neutral fallback
 }
 
