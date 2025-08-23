@@ -1,4 +1,9 @@
-"""Complete voice catalog from ElevenLabs library with character profiles."""
+"""Complete voice catalog from ElevenLabs library with character profiles.
+
+TODO: Consider externalizing VOICE_CATALOG and AGENT_PERSONALITY_MAPPING to
+      YAML/JSON configuration files for easier maintenance without code changes.
+      This would decouple configuration from application logic.
+"""
 
 from dataclasses import dataclass
 from enum import Enum
@@ -7,7 +12,7 @@ from typing import Dict, List, Optional
 
 class VoiceCategory(Enum):
     """Voice categories for different use cases."""
-    
+
     CONVERSATIONAL = "conversational"
     NARRATIVE = "narrative"
     PROFESSIONAL = "professional"
@@ -19,7 +24,7 @@ class VoiceCategory(Enum):
 @dataclass
 class VoiceCharacter:
     """Complete voice character profile."""
-    
+
     voice_id: str
     name: str
     display_name: str
@@ -289,100 +294,88 @@ AGENT_PERSONALITY_MAPPING = {
 
 
 def get_voice_for_context(
-    agent_name: str,
-    review_sentiment: str = "default",
-    pr_criticality: str = "normal"
+    agent_name: str, review_sentiment: str = "default", pr_criticality: str = "normal"
 ) -> VoiceCharacter:
     """Get appropriate voice based on agent and context.
-    
+
     Args:
         agent_name: Name of the agent
         review_sentiment: Overall sentiment (default, critical, excited, thoughtful)
         pr_criticality: PR criticality level (normal, high, urgent)
-    
+
     Returns:
         VoiceCharacter for the context
     """
     # Get agent personality mapping
     agent_mapping = AGENT_PERSONALITY_MAPPING.get(
-        agent_name.lower(),
-        AGENT_PERSONALITY_MAPPING["gemini"]  # Default to Gemini
+        agent_name.lower(), AGENT_PERSONALITY_MAPPING["gemini"]  # Default to Gemini
     )
-    
+
     # For urgent/critical PRs, use more serious voices
     if pr_criticality == "urgent":
         if review_sentiment == "critical":
             return VOICE_CATALOG.get("reginald", VOICE_CATALOG["tia"])
         else:
             return VOICE_CATALOG.get("old_radio", VOICE_CATALOG["peter"])
-    
+
     # Get voice based on sentiment
     voice_key = agent_mapping.get(review_sentiment, agent_mapping["default"])
-    
+
     return VOICE_CATALOG.get(voice_key, VOICE_CATALOG["blondie"])
 
 
-def get_voice_settings_for_emotion(
-    voice: VoiceCharacter,
-    emotion_intensity: float = 0.5
-) -> Dict:
+def get_voice_settings_for_emotion(voice: VoiceCharacter, emotion_intensity: float = 0.5) -> Dict:
     """Get voice settings optimized for emotional expression.
-    
+
     Args:
         voice: Voice character to use
         emotion_intensity: How intense emotions should be (0.0-1.0)
-    
+
     Returns:
         Voice settings dictionary
     """
     # Calculate stability based on emotion intensity
     min_stability, max_stability = voice.stability_range
     stability = max_stability - (emotion_intensity * (max_stability - min_stability))
-    
+
     settings = {
         "stability": stability,
         "similarity_boost": 0.75,
         "style": emotion_intensity * 0.5,  # Style increases with emotion
         "use_speaker_boost": voice.use_speaker_boost,
     }
-    
+
     # Apply custom settings if any
     if voice.custom_settings:
         settings.update(voice.custom_settings)
-    
+
     return settings
 
 
 def list_voices_by_category(category: VoiceCategory) -> List[VoiceCharacter]:
     """Get all voices in a specific category.
-    
+
     Args:
         category: Voice category to filter by
-    
+
     Returns:
         List of voices in that category
     """
-    return [
-        voice for voice in VOICE_CATALOG.values()
-        if voice.category == category
-    ]
+    return [voice for voice in VOICE_CATALOG.values() if voice.category == category]
 
 
-def get_voice_recommendations(
-    content_type: str,
-    tone: str = "neutral"
-) -> List[VoiceCharacter]:
+def get_voice_recommendations(content_type: str, tone: str = "neutral") -> List[VoiceCharacter]:
     """Get voice recommendations for specific content.
-    
+
     Args:
         content_type: Type of content (review, documentation, etc.)
         tone: Desired tone (friendly, professional, critical, etc.)
-    
+
     Returns:
         List of recommended voices
     """
     recommendations = []
-    
+
     for voice in VOICE_CATALOG.values():
         # Check if content type matches best_for
         if any(content_type.lower() in use.lower() for use in voice.best_for):
@@ -390,5 +383,5 @@ def get_voice_recommendations(
         # Check if tone matches personality traits
         elif any(tone.lower() in trait.lower() for trait in voice.personality_traits):
             recommendations.append(voice)
-    
+
     return recommendations[:5]  # Return top 5 recommendations

@@ -35,7 +35,7 @@ echo ""
 
 # Start the ElevenLabs MCP server if not running
 echo "Checking ElevenLabs MCP server..."
-if ! curl -s "$ELEVENLABS_MCP_URL/health" > /dev/null 2>&1; then
+if ! curl -s -f "$ELEVENLABS_MCP_URL/health" > /dev/null; then
     echo "Starting ElevenLabs MCP server..."
     docker-compose up -d mcp-elevenlabs-speech || {
         echo "⚠️  Could not start MCP server via Docker"

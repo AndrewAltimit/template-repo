@@ -100,11 +100,14 @@ This is... this is history in the making!
 
         review_lower = review_text.lower()
 
-        # Check for critical issues
-        has_critical = any(keyword in review_lower for keyword in critical_keywords)
+        # Check for critical issues with word boundaries to avoid false positives
+        # e.g., "non-critical" won't match "critical"
+        has_critical = any(re.search(r"\b" + re.escape(keyword) + r"\b", review_lower) for keyword in critical_keywords)
 
-        # Check for exceptional achievements
-        has_exceptional = any(keyword in review_lower for keyword in positive_keywords)
+        # Check for exceptional achievements with word boundaries
+        has_exceptional = any(
+            re.search(r"\b" + re.escape(keyword) + r"\b", review_lower) for keyword in positive_keywords
+        )
 
         # Check PR metadata
         has_security_label = any(
@@ -128,13 +131,23 @@ This is... this is history in the making!
         """
         review_lower = review_text.lower()
 
-        if any(word in review_lower for word in ["security", "vulnerability", "exploit"]):
+        # Use word boundaries for more precise matching
+        if any(
+            re.search(r"\b" + re.escape(word) + r"\b", review_lower)
+            for word in ["security", "vulnerability", "exploit"]
+        ):
             return "security_critical"
-        elif any(word in review_lower for word in ["build fail", "ci fail", "test fail"]):
+        elif any(phrase in review_lower for phrase in ["build fail", "ci fail", "test fail"]):
             return "build_failure"
-        elif any(word in review_lower for word in ["performance", "slow", "memory", "latency"]):
+        elif any(
+            re.search(r"\b" + re.escape(word) + r"\b", review_lower)
+            for word in ["performance", "slow", "memory", "latency"]
+        ):
             return "performance_crisis"
-        elif any(word in review_lower for word in ["perfect", "exceptional", "100%"]):
+        elif (
+            any(re.search(r"\b" + re.escape(word) + r"\b", review_lower) for word in ["perfect", "exceptional"])
+            or "100%" in review_lower
+        ):
             return "major_achievement"
         else:
             return "security_critical"  # Default to critical
