@@ -2,14 +2,14 @@
 
 ## Key Learnings from Official Documentation Review
 
-After thoroughly reviewing the Eleven v3 documentation, I've implemented comprehensive optimizations that significantly improve our TTS generation quality. Here are the critical insights and their implementations:
+After thoroughly reviewing the Eleven v3 documentation, I've implemented a comprehensive guidance system that helps agents write better v3-compatible prompts. The system provides recommendations without modifying agent text, preserving their autonomy:
 
 ## 🎯 Critical Requirements
 
 ### 1. **Minimum Text Length: 250 Characters**
 - **Issue**: Very short prompts cause inconsistent outputs in v3
-- **Solution**: Automatically pad short reviews with contextual content
-- **Implementation**: Add natural extensions like "Let me elaborate on these findings..." 
+- **Solution**: Provide guidance to agents about minimum length requirements
+- **Implementation**: V3AgentGuide validates length and suggests expansion
 
 ### 2. **Voice Selection is Paramount**
 - **Issue**: Voice must match desired delivery style
@@ -42,11 +42,11 @@ Robust (0.6-0.9): Highly stable, less responsive to directional prompts
   - "must" → "MUST"
   - "never" → "NEVER"
 
-### Tag Compatibility System
-Automatically validates and adjusts incompatible tags:
-- **Old Radio + [giggles]** → **[amused]** (more appropriate)
-- **Tia + [whispers]** → **[quietly but firmly]** (maintains character)
-- **Hope + [professional]** → Keeps natural imperfections
+### Tag Compatibility Guidance
+Provides recommendations for compatible voice-tag combinations:
+- **Old Radio**: Works best with [dramatic], [serious], avoid [giggles]
+- **Tia**: Compatible with firm delivery, avoid whispering tags
+- **Hope**: Natural with casual tags, maintains imperfections
 
 ### Natural Speech Imperfections
 For conversational voices (Hope, Blondie):
