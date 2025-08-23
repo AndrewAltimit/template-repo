@@ -394,6 +394,20 @@ scene = {
 - **Emotional Range**: Most expressive and natural emotional rendering
 - **Latest Model**: As per [ElevenLabs v3 docs](https://elevenlabs.io/docs/models#eleven-v3-alpha)
 
+### ⚠️ Content Filtering Warning
+
+**Important**: The v3 model includes content filtering that may reject requests containing:
+- References to self-harm, violence, or disturbing content
+- Excessive negative emotional content (depression, suicide, etc.)
+- Potentially harmful or inappropriate material
+
+**Best Practices to Avoid Filters**:
+- Use mild emotional tags ([sad], [tired], [sighs]) instead of extreme ones
+- Avoid explicit references to violence, alcohol abuse, or self-harm
+- Keep emotional content balanced - mix neutral with emotional tags
+- If content is rejected, simplify tags and reduce intensity
+- For creative/theatrical content needing darker themes, use euphemisms or implications
+
 ## Troubleshooting
 
 ### No API Key Error
@@ -414,6 +428,9 @@ python tools/mcp/elevenlabs_speech/scripts/setup_api_key.py
 - Ensure using `eleven_v3` model
 - Check stability setting (lower = more expressive)
 - Some tags work better with specific voices
+- **Content may be filtered** - see Content Filtering Warning above
+- If getting 400 errors, try simpler/fewer tags
+- Start with basic tags ([pause], [sighs]) and build up
 
 ### Upload Failures
 - Check file size (<50MB)
