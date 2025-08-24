@@ -13,9 +13,12 @@ Hook system for enforcing best practices with Claude Code
 
 ## 🛠️ Developer Tools
 
-### Claude Code Configuration
-The project uses Claude Code as the primary development assistant. Key files:
-- `CLAUDE.md` - Project-specific instructions
+### AI Agent Configuration
+The project uses multiple AI agents for development. Key files:
+- `AGENTS.md` - Universal AI agent configuration
+- `CLAUDE.md` - Claude-specific instructions
+- `GEMINI.md` - Gemini project context
+- `CRUSH.md` - Crush agent configuration
 - `.claude/settings.json` - Claude Code settings
 - `.mcp.json` - MCP server configuration
 
@@ -70,6 +73,7 @@ docker-compose logs -f
 ## 📖 Related Documentation
 
 - [Main Documentation](../README.md)
+- [AGENTS.md](../../AGENTS.md) - Universal AI agent configuration
 - [Infrastructure Setup](../infrastructure/)
 - [MCP Architecture](../mcp/)
 - [AI Agents](../ai-agents/)

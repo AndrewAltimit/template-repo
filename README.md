@@ -171,6 +171,7 @@ See `.env.example` for all available options.
 - `docker-compose.yml` - Container services configuration
 - `CLAUDE.md` - Project-specific Claude Code instructions (root directory)
 - `CRUSH.md` - Crush AI assistant instructions (root directory)
+- `AGENTS.md` - Universal AI agent configuration and guidelines (root directory)
 - `.context/PROJECT_CONTEXT.md` - Context for AI reviewers
 
 ### Setup Guides
@@ -210,7 +211,8 @@ All workflows run on self-hosted runners for zero-cost operation.
 ## Documentation
 
 ### Core Documentation
-- [CLAUDE.md](CLAUDE.md) - Project instructions and commands
+- [AGENTS.md](AGENTS.md) - Universal AI agent configuration and guidelines
+- [CLAUDE.md](CLAUDE.md) - Claude-specific instructions and commands
 - [CRUSH.md](CRUSH.md) - Crush AI assistant instructions
 - [MCP Architecture](docs/mcp/README.md) - Modular server design
 - [AI Agents Documentation](docs/ai-agents/README.md) - Seven AI agents overview

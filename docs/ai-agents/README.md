@@ -14,7 +14,7 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 - Writing comprehensive documentation
 - Creating and modifying CI/CD pipelines
 - Test development and coverage improvement
-- Following project-specific guidelines in CLAUDE.md
+- Following project-specific guidelines in AGENTS.md and CLAUDE.md
 
 **Access**: claude.ai/code
 
@@ -246,7 +246,7 @@ pr-monitor
 - Include code examples when relevant
 
 ### For Claude Code
-- Provide clear CLAUDE.md guidelines
+- Provide clear AGENTS.md and CLAUDE.md guidelines
 - Use for complex, multi-file changes
 - Leverage for documentation and tests
 - Ask to follow container-first approach
