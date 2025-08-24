@@ -1,9 +1,9 @@
 # Virtual Character MCP Server Requirements
-# Minimal dependencies for the middleware server
+# Minimal production dependencies for the middleware server
 
-# Core async framework
+# Core async framework for client/server communication
+# Note: asyncio is part of Python standard library since 3.4, not needed here
 aiohttp>=3.9.0
-asyncio>=3.4.3
 
 # MCP dependencies
 fastapi>=0.104.0
@@ -16,10 +16,3 @@ numpy>=1.24.0
 
 # Image processing (for video frame handling)
 pillow>=10.0.0
-
-# Testing dependencies (optional, for development)
-pytest>=7.4.0
-pytest-asyncio>=0.21.0
-
-# Type checking
-mypy>=1.6.0
