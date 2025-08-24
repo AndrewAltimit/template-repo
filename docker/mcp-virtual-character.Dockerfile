@@ -4,7 +4,7 @@
 # VRChat itself must run on a Windows machine with GPU (cannot be containerized).
 # This server communicates with VRChat via OSC-over-HTTP bridge to a remote Windows host.
 #
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -14,10 +14,10 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy requirements
-COPY config/python/requirements.txt ./requirements.txt
+# Copy dedicated requirements for this service
+COPY docker/requirements/requirements-virtual-character.txt ./requirements.txt
 
-# Install Python dependencies
+# Install Python dependencies (minimal set for virtual character server)
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the virtual character server code
@@ -42,9 +42,7 @@ ENV DEFAULT_BACKEND=mock
 # Expose the server port
 EXPOSE 8020
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8020/health || exit 1
+# Health check is defined in docker-compose.yml for consistency
 
 # Run the server
 CMD ["python", "-m", "tools.mcp.virtual_character.server"]

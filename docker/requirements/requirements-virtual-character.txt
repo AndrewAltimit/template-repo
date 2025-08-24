@@ -1,0 +1,25 @@
+# Virtual Character MCP Server Requirements
+# Minimal dependencies for the middleware server
+
+# Core async framework
+aiohttp>=3.9.0
+asyncio>=3.4.3
+
+# MCP dependencies
+fastapi>=0.104.0
+uvicorn>=0.24.0
+pydantic>=2.4.0
+
+# Data handling
+pyyaml>=6.0
+numpy>=1.24.0
+
+# Image processing (for video frame handling)
+pillow>=10.0.0
+
+# Testing dependencies (optional, for development)
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# Type checking
+mypy>=1.6.0
