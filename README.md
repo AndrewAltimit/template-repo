@@ -22,7 +22,7 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 1. **Claude Code** - Primary development assistant
 2. **OpenCode** - Comprehensive code generation ([Integration Guide](docs/integrations/ai-services/opencode-crush.md))
 3. **Crush** - Fast code generation ([Quick Reference](docs/integrations/ai-services/opencode-crush-ref.md))
-4. **Gemini CLI** - Automated PR reviews
+4. **Gemini CLI** - Interactive development & automated PR reviews
 5. **GitHub Copilot** - Code review suggestions
 6. **Issue Monitor Agent** - Automated issue management
 7. **PR Review Monitor Agent** - Automated review response
@@ -77,6 +77,7 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
    # Use AI agents directly
    ./tools/cli/agents/run_opencode.sh -q "Create a REST API"
    ./tools/cli/agents/run_crush.sh -q "Binary search function"
+   ./tools/cli/agents/run_gemini.sh  # Interactive Gemini CLI session
    ```
 
 For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)

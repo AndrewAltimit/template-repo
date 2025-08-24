@@ -197,6 +197,7 @@ docker-compose run --rm openrouter-agents crush run -q "Write a Python function"
 ./tools/cli/agents/run_claude.sh     # Interactive Claude session with Node.js 22
 ./tools/cli/agents/run_opencode.sh   # OpenCode CLI for comprehensive code generation
 ./tools/cli/agents/run_crush.sh      # Crush CLI for fast code generation
+./tools/cli/agents/run_gemini.sh     # Interactive Gemini CLI session with approval modes
 
 # Host agent execution (Claude, Gemini only):
 python3 -m github_ai_agents.cli issue-monitor
