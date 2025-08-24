@@ -307,9 +307,7 @@ def get_voice_for_context(
         VoiceCharacter for the context
     """
     # Get agent personality mapping
-    agent_mapping = AGENT_PERSONALITY_MAPPING.get(
-        agent_name.lower(), AGENT_PERSONALITY_MAPPING["gemini"]  # Default to Gemini
-    )
+    agent_mapping = AGENT_PERSONALITY_MAPPING.get(agent_name.lower(), AGENT_PERSONALITY_MAPPING["gemini"])  # Default to Gemini
 
     # For urgent/critical PRs, use more serious voices
     if pr_criticality == "urgent":

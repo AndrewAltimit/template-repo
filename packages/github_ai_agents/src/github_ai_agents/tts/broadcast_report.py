@@ -108,14 +108,11 @@ This is... this is history in the making!
         has_critical = any(re.search(r"\b" + re.escape(keyword) + r"\b", review_lower) for keyword in critical_keywords)
 
         # Check for exceptional achievements with word boundaries
-        has_exceptional = any(
-            re.search(r"\b" + re.escape(keyword) + r"\b", review_lower) for keyword in positive_keywords
-        )
+        has_exceptional = any(re.search(r"\b" + re.escape(keyword) + r"\b", review_lower) for keyword in positive_keywords)
 
         # Check PR metadata
         has_security_label = any(
-            label.get("name", "").lower() in ["security", "critical", "urgent"]
-            for label in pr_metadata.get("labels", [])
+            label.get("name", "").lower() in ["security", "critical", "urgent"] for label in pr_metadata.get("labels", [])
         )
 
         ci_failed = pr_metadata.get("ci_status") == "failed"
@@ -135,16 +132,12 @@ This is... this is history in the making!
         review_lower = review_text.lower()
 
         # Use word boundaries for more precise matching
-        if any(
-            re.search(r"\b" + re.escape(word) + r"\b", review_lower)
-            for word in ["security", "vulnerability", "exploit"]
-        ):
+        if any(re.search(r"\b" + re.escape(word) + r"\b", review_lower) for word in ["security", "vulnerability", "exploit"]):
             return "security_critical"
         elif any(phrase in review_lower for phrase in ["build fail", "ci fail", "test fail"]):
             return "build_failure"
         elif any(
-            re.search(r"\b" + re.escape(word) + r"\b", review_lower)
-            for word in ["performance", "slow", "memory", "latency"]
+            re.search(r"\b" + re.escape(word) + r"\b", review_lower) for word in ["performance", "slow", "memory", "latency"]
         ):
             return "performance_crisis"
         elif (
@@ -296,9 +289,7 @@ This is... this is history in the making!
         return segments
 
 
-def create_broadcast_review(
-    review_text: str, agent_name: str, pr_number: int, pr_metadata: Optional[Dict] = None
-) -> str:
+def create_broadcast_review(review_text: str, agent_name: str, pr_number: int, pr_metadata: Optional[Dict] = None) -> str:
     """Create a dramatic broadcast-style review.
 
     Args:
