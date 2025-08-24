@@ -5,13 +5,16 @@ Claude Code PreToolUse hook to validate GitHub comment formatting.
 This hook prevents:
 1. Incorrect formatting that would escape the ! character in ![Reaction] image tags
 2. Unicode emoji characters that may display as corrupted (�) in GitHub
+3. Invalid reaction image URLs that don't exist (404 errors)
 
 It enforces the proper method:
 1. Use Write tool to create a temporary markdown file
 2. Use gh comment --body-file to post the comment
 3. Use ASCII characters or reaction images instead of Unicode emojis
+4. Only use reaction images that actually exist in the Media repository
 
-This prevents shell escaping issues and character corruption.
+Security: This validator fails closed - if it cannot verify a URL after 3 retries,
+it blocks the command to prevent posting broken images to GitHub.
 """
 
 import json
@@ -125,8 +128,8 @@ def extract_reaction_urls(text: str) -> List[Tuple[str, str]]:
     return urls
 
 
-def validate_reaction_url(url: str, timeout: int = 5) -> Tuple[bool, str]:
-    """Check if a reaction image URL exists.
+def validate_reaction_url(url: str, timeout: int = 5, max_retries: int = 3) -> Tuple[bool, str]:
+    """Check if a reaction image URL exists with retry logic.
 
     Returns (is_valid, error_message)
     """
@@ -135,31 +138,50 @@ def validate_reaction_url(url: str, timeout: int = 5) -> Tuple[bool, str]:
     if not is_safe:
         return False, f"Security violation: {safety_error}"
 
-    try:
-        # Create a HEAD request to check if the URL exists
-        req = urllib.request.Request(url, method="HEAD")
-        req.add_header("User-Agent", "gh-comment-validator/1.0")
+    last_error = ""
+    for attempt in range(max_retries):
+        try:
+            # Create a HEAD request to check if the URL exists
+            req = urllib.request.Request(url, method="HEAD")
+            req.add_header("User-Agent", "gh-comment-validator/1.0")
 
-        with urllib.request.urlopen(req, timeout=timeout) as response:
-            # Check if we got a successful response
-            if response.status == 200:
-                return True, ""
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                # Check if we got a successful response
+                if response.status == 200:
+                    return True, ""
+                else:
+                    # Non-200 status is a definitive failure, no retry needed
+                    return False, f"URL returned status {response.status}"
+
+        except urllib.error.HTTPError as e:
+            # 404 is definitive - no retry needed
+            if e.code == 404:
+                return False, "Image not found (404)"
+            # 5xx errors are often transient - retry
+            elif 500 <= e.code < 600:
+                last_error = f"Server error {e.code}"
+                if attempt < max_retries - 1:
+                    logging.debug(f"Retrying after server error {e.code} for {url}")
+                    continue
+            # Other HTTP errors (4xx) are definitive failures
             else:
-                return False, f"URL returned status {response.status}"
+                return False, f"HTTP error {e.code}"
+        except urllib.error.URLError as e:
+            # Network errors - retry
+            last_error = f"URL error: {str(e)}"
+            if attempt < max_retries - 1:
+                logging.debug(f"Retrying URL validation for {url} (attempt {attempt + 1}/{max_retries})")
+                continue
+        except Exception as e:
+            # Other errors - retry
+            last_error = f"Unexpected error: {str(e)}"
+            if attempt < max_retries - 1:
+                logging.debug(f"Retrying URL validation for {url} (attempt {attempt + 1}/{max_retries})")
+                continue
 
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            return False, "Image not found (404)"
-        else:
-            return False, f"HTTP error {e.code}"
-    except urllib.error.URLError as e:
-        return False, f"URL error: {str(e)}"
-    except Exception as e:
-        # For any other errors, we'll be lenient and allow it
-        # (network might be down, etc.)
-        # Log the issue for visibility without failing the check
-        logging.warning(f"Could not verify URL {url}: {e}")
-        return True, f"Could not verify (network issue): {str(e)}"
+    # All retries exhausted - FAIL CLOSED for security
+    logging.error(f"Failed to verify URL {url} after {max_retries} attempts: {last_error}")
+    return False, f"Could not verify after {max_retries} attempts: {last_error}"
 
 
 def check_reaction_urls_in_file(filepath: str) -> List[Tuple[str, str]]:
@@ -399,11 +421,16 @@ This preserves markdown formatting and prevents shell escaping issues.
 
                 error_lines.append("Please check that the reaction image URLs exist.")
                 error_lines.append("Available reactions: https://github.com/AndrewAltimit/Media/tree/main/reaction")
+                error_lines.append(
+                    "Config with all valid reactions: "
+                    "https://raw.githubusercontent.com/AndrewAltimit/Media/refs/heads/main/reaction/config.yaml"
+                )
                 error_lines.append("")
                 error_lines.append("Common reaction images:")
                 error_lines.append("• teamwork.webp")
                 error_lines.append("• felix.webp")
                 error_lines.append("• miku_typing.webp")
+                error_lines.append("• hifumi_studious.png (NOT miku_studious)")
                 error_lines.append("• confused.gif")
                 error_lines.append("• youre_absolutely_right.webp")
 

@@ -1,0 +1,19 @@
+# Virtual Character MCP Server - Development Dependencies
+# These are only needed for development and testing, not production
+# They should be installed in the CI environment, not the service container
+
+# Testing dependencies
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+
+# Type checking
+mypy>=1.6.0
+types-pyyaml>=6.0
+types-pillow>=10.0
+
+# Code quality tools (handled by CI container)
+black>=23.0.0
+isort>=5.12.0
+flake8>=6.0.0
+pylint>=3.0.0

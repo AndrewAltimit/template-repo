@@ -372,12 +372,40 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - Async job processing for long operations
    - See `tools/mcp/video_editor/docs/README.md` for documentation
 
-12. **Shared Core Components** (`tools/mcp/core/`):
+12. **Blender MCP Server** (`tools/mcp/blender/`): STDIO (local) or HTTP port 8016
+   - **3D Content Creation**:
+     - `create_blender_project` - Create projects from templates
+     - `render_image` - Render single frames with Cycles/Eevee
+     - `render_animation` - Render animation sequences
+     - `setup_physics` - Configure physics simulations
+     - `create_animation` - Keyframe animation creation
+     - `add_modifier` - Apply modifiers to objects
+     - `setup_camera` - Camera configuration and tracking
+     - `setup_compositor` - Post-processing nodes
+   - Support for geometry nodes, particle systems, UV mapping
+   - Import/export various 3D formats (FBX, OBJ, GLTF, STL)
+   - See `tools/mcp/blender/docs/README.md` for documentation
+
+13. **Virtual Character MCP Server** (`tools/mcp/virtual_character/`): STDIO (local) or HTTP port 8020
+   - **AI Agent Embodiment Middleware**:
+     - `connect_backend` - Connect to virtual world platforms
+     - `send_animation` - Send canonical animation data
+     - `send_audio` - Audio with lip-sync metadata
+     - `get_state` - Retrieve environment state
+     - `capture_video` - Get agent's visual perspective
+     - `list_backends` - Available backend plugins
+     - `switch_backend` - Hot-swap between platforms
+   - Plugin-based architecture for extensibility
+   - Supports VRChat (OSC), Blender, Unity (WebSocket)
+   - Remote Windows support for VRChat backend
+   - See `tools/mcp/virtual_character/README.md` for documentation
+
+14. **Shared Core Components** (`tools/mcp/core/`):
    - `BaseMCPServer` - Base class for all MCP servers
    - `HTTPProxy` - HTTP proxy for remote MCP servers
    - Common utilities and helpers
 
-13. **Containerized CI/CD**:
+15. **Containerized CI/CD**:
    - **Python CI Container** (`docker/python-ci.Dockerfile`): All Python tools
    - **Helper Scripts**: Centralized CI operations
    - **Individual MCP Containers**: Each server can run in its own optimized container

@@ -1,0 +1,51 @@
+{
+  "server": {
+    "name": "Virtual Character MCP Server",
+    "version": "1.0.0",
+    "port": 8020,
+    "host": "0.0.0.0"
+  },
+  "middleware": {
+    "default_backend": "mock",
+    "enable_video_capture": true,
+    "enable_multi_agent": false,
+    "video_capture_fps": 10,
+    "plugin_directory": null
+  },
+  "backends": {
+    "mock": {
+      "enabled": true,
+      "config": {
+        "world_name": "DefaultWorld",
+        "simulate_events": false
+      }
+    },
+    "vrchat_remote": {
+      "enabled": false,
+      "config": {
+        "remote_host": "192.168.0.150",
+        "bridge_port": 8021,
+        "stream_port": 8022,
+        "obs_port": 4455,
+        "avatar_config": "./config/avatars/default.yaml"
+      }
+    },
+    "blender": {
+      "enabled": false,
+      "config": {
+        "blender_path": "/usr/local/blender",
+        "scene_file": "./scenes/default.blend"
+      }
+    },
+    "unity_websocket": {
+      "enabled": false,
+      "config": {
+        "websocket_url": "ws://localhost:8080"
+      }
+    }
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  }
+}
