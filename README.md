@@ -44,6 +44,11 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 
 ## Quick Start
 
+> **📚 New to the template?** Check out our **[Template Quickstart Guide](docs/QUICKSTART.md)** for step-by-step customization instructions!
+> - Choose from 4 pre-configured paths (Minimal, AI-Powered, Content Creation, Full Stack)
+> - Learn what to enable/disable for your specific use case
+> - Get up and running in 15 minutes
+
 1. **Prerequisites**
    - Linux system (Ubuntu/Debian recommended)
    - Docker (v20.10+) and Docker Compose (v2.0+)
@@ -108,9 +113,9 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 │   │   └── core/             # Shared components
 │   └── cli/                  # Command-line tools
 │       ├── agents/           # Agent runner scripts
-│       │   ├── run_claude.sh         # Interactive Claude session
-│       │   ├── run_opencode.sh       # OpenCode CLI runner
-│       │   ├── run_crush.sh          # Crush CLI runner
+│       │   ├── run_claude.sh         # Claude Code Runner
+│       │   ├── run_opencode.sh       # OpenCode runner
+│       │   ├── run_crush.sh          # Crush runner
 │       │   └── run_gemini.sh         # Gemini CLI runner
 │       └── utilities/        # Other CLI utilities
 ├── automation/               # CI/CD and automation scripts
@@ -229,6 +234,7 @@ All workflows run on self-hosted runners for zero-cost operation.
 - [Gaea2 Documentation](tools/mcp/gaea2/docs/README.md)
 
 ### Setup & Configuration
+- **[Template Quickstart Guide](docs/QUICKSTART.md)** - Customize the template for your needs
 - [Self-Hosted Runner Setup](docs/infrastructure/self-hosted-runner.md)
 - [GitHub Environments Setup](docs/infrastructure/github-environments.md)
 - [Containerized CI](docs/infrastructure/containerization.md)
