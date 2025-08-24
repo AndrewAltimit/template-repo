@@ -42,6 +42,13 @@ Developer tools and configuration
 
 ## 🚀 Quick Start
 
+### **[📚 Template Quickstart Guide](./QUICKSTART.md)**
+**Start here!** Step-by-step guide to customize this template for your specific needs:
+- Choose from 4 pre-configured setup paths
+- Enable/disable features based on your requirements
+- Get running in 15 minutes
+
+### Additional Resources
 1. **New to the project?** Start with [AI Agents Overview](./ai-agents/README.md)
 2. **Setting up infrastructure?** See [Infrastructure Setup](./infrastructure/)
 3. **Working with MCP servers?** Check [MCP Architecture](./mcp/README.md)

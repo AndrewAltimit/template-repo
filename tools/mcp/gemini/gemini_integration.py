@@ -68,12 +68,14 @@ class GeminiIntegration:
         self.enabled = self.config.get("enabled", True)
         self.auto_consult = self.config.get("auto_consult", True)
         self.cli_command = self.config.get("cli_command", "gemini")
-        self.timeout = self.config.get("timeout", 60)
+        self.timeout = self.config.get("timeout", 600)  # 10 minutes for agentic model
         self.rate_limit_delay = self.config.get("rate_limit_delay", 2.0)
         self.last_consultation = 0
         self.consultation_log: List[Dict[str, Any]] = []
-        self.max_context_length = self.config.get("max_context_length", 4000)
-        self.model = self.config.get("model", "gemini-2.5-flash")
+        self.max_context_length = self.config.get(
+            "max_context_length", 100000
+        )  # Large context for comprehensive understanding
+        self.model = self.config.get("model", "gemini-2.5-pro")
 
         # Conversation history for maintaining state
         self.conversation_history: List[Tuple[str, str]] = []
@@ -249,28 +251,53 @@ class GeminiIntegration:
         """Execute Gemini CLI command and return results"""
         start_time = time.time()
 
-        # Build command
+        # Build command - use stdin for multi-line prompts
         cmd = [self.cli_command]
         if self.model:
             cmd.extend(["-m", self.model])
-        cmd.extend(["-p", query])  # Non-interactive mode
+
+        # For multi-line queries, use stdin + simple prompt
+        # For single-line queries, use -p flag directly
+        if "\n" in query:
+            # Multi-line: use stdin with a simple prompt
+            cmd.extend(["-p", "Please analyze the following:"])
+            stdin_input = query.encode()
+        else:
+            # Single-line: use -p flag directly
+            cmd.extend(["-p", query])
+            stdin_input = None
 
         try:
             process = await asyncio.create_subprocess_exec(
-                *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                *cmd,
+                stdin=asyncio.subprocess.PIPE if stdin_input else None,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
 
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=self.timeout)
+            stdout, stderr = await asyncio.wait_for(process.communicate(input=stdin_input), timeout=self.timeout)
 
             execution_time = time.time() - start_time
 
             if process.returncode != 0:
                 error_msg = stderr.decode() if stderr else "Unknown error"
-                if "authentication" in error_msg.lower():
-                    error_msg += "\nTip: Run 'gemini' interactively to authenticate"
+                if "authentication" in error_msg.lower() or "login required" in error_msg.lower():
+                    error_msg = (
+                        "Gemini authentication required. Please run 'gemini' interactively on the host "
+                        "to complete authentication. Note: Gemini uses Google account authentication, not API keys."
+                    )
                 raise Exception(f"Gemini CLI failed: {error_msg}")
 
-            return {"output": stdout.decode().strip(), "execution_time": execution_time}
+            output = stdout.decode().strip()
+
+            # Check for authentication messages in stdout
+            if "login required" in output.lower() or "waiting for authentication" in output.lower():
+                raise Exception(
+                    "Gemini authentication required. Please run 'gemini' interactively on the host "
+                    "to complete authentication. Note: Gemini uses Google account authentication, not API keys."
+                )
+
+            return {"output": output, "execution_time": execution_time}
 
         except asyncio.TimeoutError:
             raise Exception(f"Gemini CLI timed out after {self.timeout} seconds")
