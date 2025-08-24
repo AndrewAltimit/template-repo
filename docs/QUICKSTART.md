@@ -86,8 +86,8 @@ This template includes:
    ```bash
    git clone https://github.com/AndrewAltimit/template-repo your-project-name
    cd your-project-name
-   rm -rf .git  # Remove original git history
-   git init     # Start fresh
+   rm -rf .git  # Detach from the template's history to start your own project
+   git init     # Start fresh with your own Git history
    ```
 
 2. **Install Docker (if not already installed):**
