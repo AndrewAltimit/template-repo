@@ -22,7 +22,7 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 1. **Claude Code** - Primary development assistant
 2. **OpenCode** - Comprehensive code generation ([Integration Guide](docs/integrations/ai-services/opencode-crush.md))
 3. **Crush** - Fast code generation ([Quick Reference](docs/integrations/ai-services/opencode-crush-ref.md))
-4. **Gemini CLI** - Automated PR reviews
+4. **Gemini CLI** - Interactive development & automated PR reviews
 5. **GitHub Copilot** - Code review suggestions
 6. **Issue Monitor Agent** - Automated issue management
 7. **PR Review Monitor Agent** - Automated review response
@@ -77,6 +77,7 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
    # Use AI agents directly
    ./tools/cli/agents/run_opencode.sh -q "Create a REST API"
    ./tools/cli/agents/run_crush.sh -q "Binary search function"
+   ./tools/cli/agents/run_gemini.sh  # Interactive Gemini CLI session
    ```
 
 For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
@@ -171,6 +172,7 @@ See `.env.example` for all available options.
 - `docker-compose.yml` - Container services configuration
 - `CLAUDE.md` - Project-specific Claude Code instructions (root directory)
 - `CRUSH.md` - Crush AI assistant instructions (root directory)
+- `AGENTS.md` - Universal AI agent configuration and guidelines (root directory)
 - `.context/PROJECT_CONTEXT.md` - Context for AI reviewers
 
 ### Setup Guides
@@ -210,7 +212,8 @@ All workflows run on self-hosted runners for zero-cost operation.
 ## Documentation
 
 ### Core Documentation
-- [CLAUDE.md](CLAUDE.md) - Project instructions and commands
+- [AGENTS.md](AGENTS.md) - Universal AI agent configuration and guidelines
+- [CLAUDE.md](CLAUDE.md) - Claude-specific instructions and commands
 - [CRUSH.md](CRUSH.md) - Crush AI assistant instructions
 - [MCP Architecture](docs/mcp/README.md) - Modular server design
 - [AI Agents Documentation](docs/ai-agents/README.md) - Seven AI agents overview

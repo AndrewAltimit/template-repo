@@ -89,6 +89,24 @@ Gemini receives detailed project context from `PROJECT_CONTEXT.md`, which includ
 
 This ensures Gemini "hits the ground running" with relevant, actionable feedback.
 
+## Interactive Gemini CLI
+
+### Using the Run Script
+
+For interactive development sessions, use the provided runner script:
+
+```bash
+./tools/cli/agents/run_gemini.sh
+```
+
+This script provides:
+- **Node.js 22.16.0 setup** via NVM
+- **Three approval modes**:
+  - Normal mode - prompts for each tool approval (default)
+  - Auto-edit mode - auto-approves edit tools only
+  - YOLO mode - auto-approves ALL tools (use with caution)
+- **Optional checkpointing** for file edits (restore with `/restore`)
+
 ## MCP Server Integration
 
 This project includes a dedicated Gemini MCP server that provides AI consultation capabilities:

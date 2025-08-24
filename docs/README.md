@@ -50,5 +50,8 @@ Developer tools and configuration
 ## 📖 Additional Resources
 
 - [Main README](../README.md) - Project overview
+- [AGENTS.md](../AGENTS.md) - Universal AI agent configuration
 - [CLAUDE.md](../CLAUDE.md) - Claude Code instructions
+- [GEMINI.md](../GEMINI.md) - Gemini project context
+- [CRUSH.md](../CRUSH.md) - Crush agent configuration
 - [SECURITY.md](../SECURITY.md) - Security policies
