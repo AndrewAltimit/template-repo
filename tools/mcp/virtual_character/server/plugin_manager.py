@@ -54,11 +54,8 @@ class PluginManager:
         # Method 1: Entry points (for installed packages)
         discovered.extend(self._discover_entry_points())
 
-        # Method 2: Directory scanning
+        # Method 2: Directory scanning (includes built-in backends)
         discovered.extend(await self._discover_from_directories())
-
-        # Method 3: Built-in plugins
-        discovered.extend(self._discover_builtin())
 
         # Remove duplicates while preserving order
         seen = set()
@@ -128,28 +125,13 @@ class PluginManager:
         return discovered
 
     def _discover_builtin(self) -> List[str]:
-        """Discover built-in plugins."""
-        discovered = []
-
-        # Import built-in backends
-        builtin_backends = ["mock", "vrchat_remote", "blender", "unity_websocket"]  # For testing
-
-        for backend_name in builtin_backends:
-            try:
-                module = importlib.import_module(f"tools.mcp.virtual_character.backends.{backend_name}")
-
-                for name, obj in inspect.getmembers(module):
-                    if inspect.isclass(obj) and issubclass(obj, BackendAdapter) and obj != BackendAdapter:
-
-                        self.plugins[backend_name] = obj
-                        discovered.append(backend_name)
-                        logger.debug(f"Loaded built-in plugin: {backend_name}")
-                        break
-
-            except ImportError as e:
-                logger.debug(f"Built-in backend {backend_name} not available: {e}")
-
-        return discovered
+        """
+        DEPRECATED: Built-in plugins are now discovered via directory scanning.
+        This method is kept for backward compatibility but returns an empty list.
+        All backends in tools/mcp/virtual_character/backends/ are automatically discovered.
+        """
+        # No longer needed - directory scanning handles all backends
+        return []
 
     def _is_valid_plugin(self, plugin_class: Type) -> bool:
         """Check if a class is a valid plugin."""
