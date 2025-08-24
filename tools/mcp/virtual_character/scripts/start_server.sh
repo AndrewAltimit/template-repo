@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 # Start the Virtual Character MCP Server
 
 # Get the directory of this script

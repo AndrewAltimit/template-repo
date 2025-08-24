@@ -238,6 +238,42 @@ services:
     profiles:
       - services
 
+  # Virtual Character MCP Server (Middleware only - VRChat runs on remote Windows)
+  # This is the middleware that bridges AI agents to virtual platforms.
+  # For VRChat: Connects to Windows machine at VRCHAT_REMOTE_HOST (default 192.168.0.152)
+  mcp-virtual-character:
+    build:
+      context: .
+      dockerfile: docker/mcp-virtual-character.Dockerfile
+    container_name: mcp-virtual-character
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    ports:
+      - "8020:8020"
+    volumes:
+      - ./:/app:ro
+      - ./config/avatars:/app/config/avatars:ro  # Avatar configurations
+    environment:
+      - PYTHONUNBUFFERED=1
+      - VIRTUAL_CHARACTER_HOST=0.0.0.0
+      - VIRTUAL_CHARACTER_PORT=8020
+      - DEFAULT_BACKEND=mock
+      - VRCHAT_REMOTE_HOST=${VRCHAT_REMOTE_HOST:-192.168.0.152}
+      - OBS_PASSWORD=${OBS_PASSWORD}
+      - STREAM_AUTH_TOKEN=${STREAM_AUTH_TOKEN}
+      - UNITY_API_KEY=${UNITY_API_KEY}
+    networks:
+      - mcp-network
+    command: ["python", "-m", "tools.mcp.virtual_character.server"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8020/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    profiles:
+      - services
+
   # AI Toolkit (Web UI and MCP Server)
   mcp-ai-toolkit:
     build:
