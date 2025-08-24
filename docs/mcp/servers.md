@@ -15,11 +15,13 @@ The MCP functionality is split across modular servers:
 6. **Meme Generator MCP Server** - Containerized meme creation with visual feedback
 7. **ElevenLabs Speech MCP Server** - Containerized text-to-speech synthesis
 8. **Video Editor MCP Server** - Containerized AI-powered video editing
+9. **Blender MCP Server** - Containerized 3D content creation and rendering
+10. **Virtual Character MCP Server** - Containerized AI agent embodiment middleware
 
 **HTTP Mode (Remote servers):**
-9. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
-10. **AI Toolkit MCP Server** (Port 8012) - Remote AI Toolkit for LoRA training
-11. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
+11. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
+12. **AI Toolkit MCP Server** (Port 8012) - Remote AI Toolkit for LoRA training
+13. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
 
 This modular architecture ensures better separation of concerns, easier maintenance, and the ability to scale individual services independently.
 
@@ -122,6 +124,82 @@ docker-compose run --rm python-ci python -m tools.mcp.gemini.server
 ```
 
 See `tools/mcp/gemini/docs/README.md` for detailed documentation.
+
+## Blender MCP Server
+
+The Blender server provides comprehensive 3D content creation and rendering capabilities.
+
+### Starting the Server
+
+```bash
+# Start via Docker Compose (recommended for container-first approach)
+docker-compose up -d mcp-blender
+
+# Or run locally for development
+python -m tools.mcp.blender.server
+
+# View logs
+docker-compose logs -f mcp-blender
+
+# Test health
+curl http://localhost:8016/health
+```
+
+### Available Tools
+
+- **create_blender_project** - Create new Blender projects from templates
+- **add_primitive_objects** - Add basic 3D shapes to scenes
+- **setup_lighting** - Configure scene lighting (three-point, HDRI, etc.)
+- **apply_material** - Apply materials to objects
+- **render_image** - Render single frames
+- **render_animation** - Render animation sequences
+- **setup_physics** - Add physics simulations (rigid body, cloth, fluid)
+- **create_animation** - Create keyframe animations
+- **setup_camera** - Configure camera settings
+- **add_modifier** - Add modifiers to objects
+- **setup_compositor** - Configure post-processing
+
+See `tools/mcp/blender/docs/README.md` for detailed documentation.
+
+## Virtual Character MCP Server
+
+The Virtual Character server provides AI agent embodiment in virtual worlds through a plugin-based middleware architecture.
+
+### Starting the Server
+
+```bash
+# Start via Docker Compose (recommended for container-first approach)
+docker-compose up -d mcp-virtual-character
+
+# Or run locally for development
+python -m tools.mcp.virtual_character.server
+
+# View logs
+docker-compose logs -f mcp-virtual-character
+
+# Test health
+curl http://localhost:8020/health
+```
+
+### Available Tools
+
+- **connect_backend** - Connect to a virtual world backend (VRChat, Blender, Unity)
+- **send_animation** - Send animation data to the connected backend
+- **send_audio** - Send audio data with lip-sync metadata
+- **get_state** - Get current state from the virtual environment
+- **capture_video** - Capture video feed from agent's perspective
+- **list_backends** - List available backend plugins
+- **switch_backend** - Switch between different backends
+
+### Architecture
+
+The server acts as middleware between AI agents and various virtual world platforms:
+- **VRChat Backend** - OSC protocol communication (remote Windows support)
+- **Blender Backend** - Direct Python API integration
+- **Unity Backend** - WebSocket communication
+- **Plugin System** - Easy to add new backends
+
+See `tools/mcp/virtual_character/README.md` for detailed documentation.
 
 ## Gaea2 MCP Server (Port 8007)
 

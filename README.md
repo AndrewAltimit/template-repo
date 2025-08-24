@@ -1,6 +1,6 @@
 # MCP-Enabled Project Template
 
-A comprehensive development ecosystem with 7 AI agents, 11 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
+A comprehensive development ecosystem with 7 AI agents, 13 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
 
 ![MCP Demo](docs/mcp/architecture/demo.gif)
 
@@ -31,7 +31,7 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 
 ## Features
 
-- **12 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, and more
+- **13 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, and more
 - **7 AI Agents** - Comprehensive development automation
 - **OpenCode Company Integration** - Custom OpenCode build for corporate AI APIs ([Documentation](docs/integrations/opencode-company-proxy.md))
 - **Video Editor** - AI-powered video editing with transcription, speaker diarization, and intelligent scene detection
@@ -101,6 +101,7 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 │   │   ├── video_editor/     # AI-powered video editing
 │   │   ├── meme_generator/   # Meme creation
 │   │   ├── elevenlabs_speech/# Speech synthesis
+│   │   ├── virtual_character/# AI agent embodiment
 │   │   ├── ai_toolkit/       # LoRA training interface
 │   │   ├── comfyui/          # Image generation interface
 │   │   └── core/             # Shared components
@@ -142,8 +143,10 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 7. **Crush** - Fast code snippets (STDIO mode via Claude)
 8. **Meme Generator** - Create memes with templates
 9. **ElevenLabs Speech** - Advanced TTS with v3 model, 50+ audio tags, 74 languages ([Documentation](tools/mcp/elevenlabs_speech/docs/README.md))
-10. **AI Toolkit** - LoRA training interface (remote: 192.168.0.152:8012)
-11. **ComfyUI** - Image generation interface (remote: 192.168.0.152:8013)
+10. **Video Editor** - AI-powered video editing with transcription and scene detection ([Documentation](tools/mcp/video_editor/docs/README.md))
+11. **Virtual Character** - AI agent embodiment in virtual worlds (VRChat, Blender, Unity) ([Documentation](tools/mcp/virtual_character/README.md))
+12. **AI Toolkit** - LoRA training interface (remote: 192.168.0.152:8012)
+13. **ComfyUI** - Image generation interface (remote: 192.168.0.152:8013)
 
 ### Usage Modes
 

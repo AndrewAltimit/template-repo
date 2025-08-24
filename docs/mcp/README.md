@@ -1,6 +1,6 @@
 # MCP (Model Context Protocol) Servers
 
-This repository contains a modular collection of 12 MCP servers that provide various development and content creation tools. Each server is specialized for specific functionality and can be run independently.
+This repository contains a modular collection of 13 MCP servers that provide various development and content creation tools. Each server is specialized for specific functionality and can be run independently.
 
 ## Available MCP Servers
 
@@ -111,6 +111,37 @@ AI-powered video editing with intelligent automation:
 - GPU acceleration for rendering
 - Intelligent clip extraction based on keywords/speakers
 - Job-based async processing for long operations
+
+#### 9. Blender MCP Server
+**Location**: `tools/mcp/blender/`
+**Transport**: STDIO (local) or HTTP (Port 8016)
+**Documentation**: [Blender MCP Documentation](../../tools/mcp/blender/docs/README.md)
+
+3D content creation and rendering:
+- Create and manipulate 3D scenes
+- Physics simulations (rigid body, soft body, cloth, fluid)
+- Advanced rendering with Cycles and Eevee
+- Geometry nodes for procedural modeling
+- Animation and keyframing
+- Particle systems and modifiers
+- Camera setup and tracking
+- Compositor nodes for post-processing
+- Import/export various 3D formats
+
+#### 10. Virtual Character MCP Server
+**Location**: `tools/mcp/virtual_character/`
+**Transport**: STDIO (local) or HTTP (Port 8020)
+**Documentation**: [Virtual Character MCP Documentation](../../tools/mcp/virtual_character/README.md)
+
+AI agent embodiment in virtual worlds:
+- Plugin-based architecture for multiple backends
+- VRChat integration via OSC protocol (remote Windows support)
+- Blender character animation
+- Unity WebSocket integration
+- Canonical data model for cross-platform compatibility
+- Bidirectional communication (animation out, video feed in)
+- Multi-agent coordination support
+- State synchronization and caching
 
 ### Remote/Cross-Machine Servers (HTTP Transport)
 
@@ -224,6 +255,10 @@ tools/mcp/
 ├── opencode/               # AI code generation (local/remote capable)
 ├── crush/                  # Fast code generation (local/remote capable)
 ├── meme_generator/         # Meme generation (local)
+├── elevenlabs_speech/      # Text-to-speech synthesis (local)
+├── video_editor/           # AI-powered video editing (local)
+├── blender/                # 3D content creation (local)
+├── virtual_character/      # AI agent embodiment (local)
 │
 # Remote/Cross-Machine Servers (HTTP)
 ├── gaea2/                  # Terrain generation (Windows requirement)

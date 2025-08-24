@@ -572,6 +572,41 @@ Generate multi-language captions.
 - Professional templates (studio, animation, VFX, architectural)
 - Full Docker support with GPU passthrough
 
+### Virtual Character Tools (Port 8020)
+
+#### Backend Management
+- `connect_backend`: Connect to virtual world platforms (VRChat, Blender, Unity)
+- `disconnect_backend`: Disconnect from current backend
+- `list_backends`: List available backend plugins
+- `switch_backend`: Hot-swap between different backends
+- `get_backend_status`: Get current backend connection status
+
+#### Animation & Audio
+- `send_animation`: Send canonical animation data to backend
+- `send_audio`: Send audio with lip-sync metadata
+- `set_emotion`: Set character emotional state
+- `trigger_gesture`: Trigger predefined gestures
+- `set_locomotion`: Control character movement
+
+#### Environment Interaction
+- `get_state`: Retrieve current environment state
+- `capture_video`: Get agent's visual perspective
+- `get_nearby_agents`: List nearby agents/players
+- `send_message`: Send text/voice messages to world
+
+#### Configuration
+- `configure_avatar`: Set avatar parameters
+- `set_voice_settings`: Configure voice parameters
+- `calibrate_tracking`: Calibrate motion tracking
+
+**Features:**
+- Plugin-based architecture for multiple backends
+- Canonical data model for cross-platform compatibility
+- Remote Windows support for VRChat (OSC protocol)
+- Bidirectional communication (animation out, video in)
+- Multi-agent coordination support
+- State synchronization and caching
+
 ### ComfyUI Tools (Port 8013)
 
 #### Image Generation
