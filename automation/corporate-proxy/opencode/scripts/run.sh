@@ -37,9 +37,9 @@ if [ $# -gt 0 ]; then
         -e MOCK_API_PORT="8050" \
         -e OPENROUTER_API_KEY="test-secret-token-123" \
         -e OPENROUTER_BASE_URL="http://localhost:8052/v1" \
-        opencode-corporate:latest opencode "$@"
+        opencode-corporate:latest bash -c "cd /workspace && opencode $*"
 else
-    # No arguments - launch OpenCode TUI
+    # No arguments - launch OpenCode TUI in current directory
     docker run -it --rm \
         --name opencode-corporate \
         -v "$(pwd):/workspace" \
@@ -50,5 +50,5 @@ else
         -e MOCK_API_PORT="8050" \
         -e OPENROUTER_API_KEY="test-secret-token-123" \
         -e OPENROUTER_BASE_URL="http://localhost:8052/v1" \
-        opencode-corporate:latest opencode
+        opencode-corporate:latest bash -c "cd /workspace && opencode ."
 fi
