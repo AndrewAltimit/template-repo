@@ -115,11 +115,11 @@ RUN npm install -g @google/gemini-cli
 RUN mkdir -p /workspace
 WORKDIR /workspace
 
-# Set up non-root user
-RUN useradd -m -u 1000 gemini && \
-    chown -R gemini:gemini /workspace
+# Use the existing node user (UID 1000) instead of creating a new one
+# The node:20-slim image already has a 'node' user with UID 1000
+RUN chown -R node:node /workspace
 
-USER gemini
+USER node
 
 # Default to running Gemini CLI
 ENTRYPOINT ["gemini"]
@@ -171,13 +171,13 @@ echo ""
 
 # Run the container
 # Mount:
-# - Host's .gemini directory for authentication
+# - Host's .gemini directory for authentication (to node user's home)
 # - Current workspace for file access
 # - Pass through any extra arguments
 # shellcheck disable=SC2086
 docker run $TTY_FLAG --rm \
     --name "$CONTAINER_NAME" \
-    -v "$HOME/.gemini:/home/gemini/.gemini:ro" \
+    -v "$HOME/.gemini:/home/node/.gemini:ro" \
     -v "$WORKSPACE_DIR:/workspace" \
     $YOLO_ENV \
     "$IMAGE_NAME:$IMAGE_TAG" \
