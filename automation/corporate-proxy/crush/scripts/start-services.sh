@@ -80,9 +80,8 @@ if [ $# -gt 0 ]; then
     crush "$@"
     cleanup
 else
-    # Otherwise, start an interactive bash shell with access to crush
-    echo "Services are running. You can now use 'crush' commands."
-    echo "Type 'crush --help' to see available commands."
+    # Otherwise, start Crush in interactive mode
+    echo "Launching Crush interactive session..."
     echo ""
-    exec bash
+    exec crush
 fi
