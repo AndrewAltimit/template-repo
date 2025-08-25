@@ -63,10 +63,12 @@ case "$MODE" in
         # Pre-configure Gemini CLI to use API key auth
         # This avoids the auth prompt
         # Create config in home directory (always writable)
-        mkdir -p /home/appuser/.gemini
+        # Dynamically determine the home directory
+        USER_HOME="${HOME:-$(eval echo ~"$(whoami)")}"
+        mkdir -p "${USER_HOME}/.gemini"
 
         # Create settings file with correct auth type value (gemini-api-key for API key)
-        cat > /home/appuser/.gemini/settings.json << 'EOF'
+        cat > "${USER_HOME}/.gemini/settings.json" << 'EOF'
 {
   "selectedAuthType": "gemini-api-key"
 }
@@ -74,7 +76,7 @@ EOF
 
         # Try to create workspace config if possible (ignore errors)
         mkdir -p /workspace/.gemini 2>/dev/null || true
-        cp /home/appuser/.gemini/settings.json /workspace/.gemini/settings.json 2>/dev/null || true
+        cp "${USER_HOME}/.gemini/settings.json" /workspace/.gemini/settings.json 2>/dev/null || true
 
         echo ""
         echo "Services running:"
