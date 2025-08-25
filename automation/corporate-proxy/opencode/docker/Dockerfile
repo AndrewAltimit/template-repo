@@ -19,13 +19,9 @@ RUN pip3 install --break-system-packages flask flask-cors requests
 COPY shared/services/mock_api.py /app/mock_api.py
 COPY shared/services/translation_wrapper.py /app/translation_wrapper.py
 
-# Create startup script
-RUN echo '#!/bin/bash' > /app/start-services.sh && \
-    echo 'python3 /app/mock_api.py &' >> /app/start-services.sh && \
-    echo 'python3 /app/translation_wrapper.py &' >> /app/start-services.sh && \
-    echo 'sleep 3' >> /app/start-services.sh && \
-    echo 'exec "$@"' >> /app/start-services.sh && \
-    chmod +x /app/start-services.sh
+# Copy startup script
+COPY opencode/scripts/start-services.sh /app/start-services.sh
+RUN chmod +x /app/start-services.sh
 
 # Set proper ownership for app and workspace directories
 RUN chown -R appuser:appuser /app && \
