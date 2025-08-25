@@ -1,0 +1,43 @@
+diff --git a/packages/core/src/core/contentGenerator.ts b/packages/core/src/core/contentGenerator.ts
+index 1234567..abcdefg 100644
+--- a/packages/core/src/core/contentGenerator.ts
++++ b/packages/core/src/core/contentGenerator.ts
+@@ -4,6 +4,8 @@
+  * SPDX-License-Identifier: Apache-2.0
+  */
+
++// CORPORATE_PROXY_PATCHED - This file has been modified for corporate proxy support
++
+ import {
+   CountTokensResponse,
+   GenerateContentResponse,
+@@ -148,9 +150,24 @@ export async function createContentGenerator(
+       };
+     }
+     const httpOptions = { headers };
++
++    // Corporate proxy support - redirect to local proxy if configured
++    const proxyBaseUrl = process.env.GEMINI_PROXY_BASE_URL || process.env.GEMINI_API_BASE_URL;
++    const apiKeyOverride = process.env.GEMINI_API_KEY || config.apiKey;
++
++    let googleGenAIConfig: any = {
++      apiKey: apiKeyOverride === '' ? undefined : apiKeyOverride,
++      vertexai: config.vertexai,
++      httpOptions,
++    };
++
++    // If proxy URL is set, use it as the base URL
++    if (proxyBaseUrl) {
++      googleGenAIConfig.baseUrl = proxyBaseUrl;
++      console.log(`Using corporate proxy at: ${proxyBaseUrl}`);
++    }
+
+-    const googleGenAI = new GoogleGenAI({
+-      apiKey: config.apiKey === '' ? undefined : config.apiKey,
+-      vertexai: config.vertexai,
+-      httpOptions,
+-    });
++    const googleGenAI = new GoogleGenAI(googleGenAIConfig);
+     return new LoggingContentGenerator(googleGenAI.models, gcConfig);
+   }
+   throw new Error(

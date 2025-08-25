@@ -1,0 +1,31 @@
+diff --git a/packages/core/src/config/auth.ts b/packages/core/src/config/auth.ts
+index 1234567..abcdefg 100644
+--- a/packages/core/src/config/auth.ts
++++ b/packages/core/src/config/auth.ts
+@@ -50,6 +50,13 @@ export async function validateAuth(
+   authType: AuthType | undefined,
+ ): Promise<boolean> {
+   try {
++    // Corporate proxy bypass - if proxy URL is set, skip auth validation
++    const proxyUrl = process.env.GEMINI_API_BASE_URL || process.env.GEMINI_PROXY_BASE_URL;
++    if (proxyUrl && proxyUrl.includes('localhost')) {
++      console.log('Using corporate proxy, bypassing Google auth');
++      return true;
++    }
++
+     // If we are using Gemini API or Vertex AI, we need to validate the API key
+     if (authType === AuthType.USE_GEMINI) {
+       const geminiApiKey = process.env['GEMINI_API_KEY'];
+@@ -100,6 +107,12 @@ export async function getAuthType(): Promise<AuthType | undefined> {
+     return AuthType.CLOUD_SHELL;
+   }
+
++  // Check for corporate proxy configuration
++  const proxyUrl = process.env.GEMINI_API_BASE_URL || process.env.GEMINI_PROXY_BASE_URL;
++  if (proxyUrl) {
++    return AuthType.USE_GEMINI; // Pretend we're using Gemini API
++  }
++
+   // Check for OAuth setup
+   const oauthConfig = await loadOAuthConfig();
+   if (oauthConfig?.refreshToken) {
