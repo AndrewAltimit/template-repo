@@ -49,8 +49,9 @@ COPY opencode/scripts/start-services.sh /app/start-services.sh
 RUN chmod +x /app/start-services.sh
 
 # Set proper ownership for app and workspace directories
+# Create /workspace/opencode directory that OpenCode expects
 RUN chown -R appuser:appuser /app && \
-    mkdir -p /workspace && \
+    mkdir -p /workspace/opencode && \
     chown -R appuser:appuser /workspace
 
 WORKDIR /workspace
