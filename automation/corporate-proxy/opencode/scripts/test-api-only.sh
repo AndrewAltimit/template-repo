@@ -3,6 +3,7 @@ set -e
 
 # Get script directory and load common functions
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/../../shared/scripts/common-functions.sh"
 
 print_header "Testing OpenCode API Translation Layer"

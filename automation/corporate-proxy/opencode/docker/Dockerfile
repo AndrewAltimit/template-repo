@@ -21,13 +21,17 @@ WORKDIR /build/opencode/packages/opencode
 RUN bun build ./src/index.ts --compile --outfile opencode
 
 # Stage 3: Runtime container
-FROM node:20-alpine
+# Use debian-based image for glibc compatibility with bun-compiled binary
+FROM node:20-slim
 
 # Add a non-root user
-RUN adduser -D -u 1001 appuser
+RUN useradd -m -u 1001 appuser
 
 # Install Python for proxy services and runtime dependencies
-RUN apk add --no-cache python3 py3-pip bash curl git
+RUN apt-get update && apt-get install -y \
+    python3 python3-pip python3-venv \
+    bash curl git \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy the compiled OpenCode binary
 COPY --from=builder /build/opencode/packages/opencode/opencode /usr/local/bin/opencode

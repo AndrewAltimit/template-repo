@@ -9,6 +9,7 @@ echo ""
 # Function to cleanup on exit
 cleanup() {
     echo "Cleaning up services..."
+    # shellcheck disable=SC2046
     kill $(jobs -p) 2>/dev/null || true
     exit
 }
@@ -18,16 +19,18 @@ trap cleanup EXIT INT TERM
 # Start mock Company API (runs on port 8050)
 echo "Starting mock Company API on port 8050..."
 python3 /app/mock_api.py &
-MOCK_PID=$!
+
+# Give the service a moment to start before checking
+sleep 1
 
 # Wait for mock API to be ready
 echo "Waiting for mock API to be ready..."
 for i in {1..30}; do
-    if curl -fsS http://localhost:8050/health > /dev/null; then
+    if curl -fsS http://localhost:8050/health > /dev/null 2>&1; then
         echo "✓ Mock API is ready"
         break
     fi
-    if [ $i -eq 30 ]; then
+    if [ "$i" -eq 30 ]; then
         echo "✗ Mock API failed to start"
         exit 1
     fi
@@ -37,16 +40,18 @@ done
 # Start translation wrapper (runs on port 8052)
 echo "Starting translation wrapper on port 8052..."
 python3 /app/translation_wrapper.py &
-WRAPPER_PID=$!
+
+# Give the service a moment to start before checking
+sleep 1
 
 # Wait for wrapper to be ready
 echo "Waiting for translation wrapper to be ready..."
 for i in {1..30}; do
-    if curl -fsS http://localhost:8052/health > /dev/null; then
+    if curl -fsS http://localhost:8052/health > /dev/null 2>&1; then
         echo "✓ Translation wrapper is ready"
         break
     fi
-    if [ $i -eq 30 ]; then
+    if [ "$i" -eq 30 ]; then
         echo "✗ Translation wrapper failed to start"
         exit 1
     fi
