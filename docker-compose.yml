@@ -243,8 +243,10 @@ services:
     build:
       context: .
       dockerfile: docker/mcp-gemini.Dockerfile
+      args:
+        USER_ID: "${USER_ID:-1000}"
+        GROUP_ID: "${GROUP_ID:-1000}"
     container_name: mcp-gemini
-    # User is set in Dockerfile to ensure proper passwd entry
     volumes:
       - ~/.gemini:/home/geminiuser/.gemini  # Mount host Gemini auth
       - ./:/workspace:ro  # Mount workspace for file access (read-only)

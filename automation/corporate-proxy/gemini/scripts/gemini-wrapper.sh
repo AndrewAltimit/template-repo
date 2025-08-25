@@ -9,6 +9,12 @@ echo "=========================================="
 echo "Gemini CLI Corporate Proxy Wrapper"
 echo "=========================================="
 
+# Check if insecure TLS is explicitly enabled
+if [ "${GEMINI_ALLOW_INSECURE_TLS}" = "true" ]; then
+    echo "⚠️  WARNING: Insecure TLS mode enabled (GEMINI_ALLOW_INSECURE_TLS=true)"
+    export NODE_TLS_REJECT_UNAUTHORIZED=0
+fi
+
 # Function to cleanup on exit
 cleanup() {
     echo ""

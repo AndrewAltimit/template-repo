@@ -323,12 +323,11 @@ class GeminiIntegration:
         import shutil
         import tempfile
 
-        # For corporate proxy container, we need to use a different approach
-        if "corporate-proxy" in self.container_image:
-            # Use the simple Gemini CLI container instead
-            container_image = "google/gemini-cli:latest"
-        else:
-            container_image = self.container_image
+        # Use the configured container image
+        container_image = self.container_image
+
+        # For corporate proxy container, we may need special handling in the future
+        # but for now, use the configured image as-is
 
         # Create a temporary copy of .gemini directory for the container
         temp_gemini_dir = None
@@ -347,20 +346,25 @@ class GeminiIntegration:
                     elif os.path.isdir(src_item):
                         shutil.copytree(src_item, dst_item)
 
-                # Make temp dir world-writable for container
-                os.chmod(temp_gemini_dir, 0o777)
+                # Set appropriate permissions for container (user-readable, not world-writable)
+                os.chmod(temp_gemini_dir, 0o755)
                 for root, dirs, files in os.walk(temp_gemini_dir):
                     for d in dirs:
-                        os.chmod(os.path.join(root, d), 0o777)
+                        os.chmod(os.path.join(root, d), 0o755)
                     for f in files:
-                        os.chmod(os.path.join(root, f), 0o666)
+                        os.chmod(os.path.join(root, f), 0o644)
 
-            # Build Docker command
+            # Build Docker command with user mapping
+            user_id = os.getuid()
+            group_id = os.getgid()
+
             cmd = [
                 "docker",
                 "run",
                 "--rm",
                 "-i",
+                "-u",
+                f"{user_id}:{group_id}",  # Run as current user
                 "-v",
                 f"{temp_gemini_dir}:/home/node/.gemini",  # Use temp dir
                 "-v",

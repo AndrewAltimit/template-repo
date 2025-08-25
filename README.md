@@ -119,6 +119,7 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 │       │   └── run_gemini.sh              # Gemini CLI runner
 │       ├── containers/       # Container runner scripts
 │       │   ├── run_opencode_container.sh  # OpenCode in container
+│       │   ├── run_crush_container.sh     # Crush in container
 │       │   └── run_gemini_container.sh    # Gemini in container
 │       └── utilities/        # Other CLI utilities
 ├── automation/               # CI/CD and automation scripts

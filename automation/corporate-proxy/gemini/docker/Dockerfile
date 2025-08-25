@@ -33,8 +33,13 @@ RUN npm run build
 # Stage 3: Runtime container
 FROM node:20-slim
 
-# Add a non-root user
-RUN useradd -m -u 1001 appuser
+# Build arguments for dynamic user creation
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+# Add a non-root user with configurable UID/GID
+RUN groupadd -g ${GROUP_ID} appuser && \
+    useradd -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/bash appuser
 
 # Install Python for proxy services and runtime dependencies
 RUN apt-get update && apt-get install -y \
@@ -116,8 +121,10 @@ ENV GEMINI_PROXY_PORT="8053"
 ENV WRAPPER_PORT="8052"
 ENV MOCK_API_PORT="8050"
 
-# For corporate networks with self-signed certs
-ENV NODE_TLS_REJECT_UNAUTHORIZED=0
+# TLS verification - disabled by default for safety
+# Only enable this if you need it for corporate networks with self-signed certs
+# Set GEMINI_ALLOW_INSECURE_TLS=true at runtime if needed
+# ENV NODE_TLS_REJECT_UNAUTHORIZED=0
 
 EXPOSE 8050 8052 8053
 
