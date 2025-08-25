@@ -148,9 +148,12 @@ python -m tools.mcp.crush.server             # Port 8015 - Fast code generation 
 # Note: OpenCode and Crush use STDIO mode (local process) through .mcp.json,
 # HTTP mode is only needed for cross-machine access or remote deployment
 
-# Gemini MUST run on host (requires Docker access)
-python -m tools.mcp.gemini.server            # Port 8006 - AI integration (host only)
+# Gemini can run on host or in container
+python -m tools.mcp.gemini.server            # Port 8006 - AI integration
 ./tools/mcp/gemini/scripts/start_server.sh --mode http
+# Or use containerized version:
+./tools/cli/containers/run_gemini_container.sh  # Containerized Gemini CLI with host auth
+./automation/corporate-proxy/gemini/gemini      # Corporate proxy version (mock mode)
 
 # Test all MCP servers at once
 python automation/testing/test_all_servers.py
@@ -183,8 +186,10 @@ pip install -r config/python/requirements.txt
 
 # Host-Only Agents (authentication constraints):
 # 1. Claude CLI - requires subscription auth (machine-specific)
-# 2. Gemini CLI - requires Docker socket access
 # See docs/ai-agents/claude-auth.md for Claude auth details
+
+# Containerized Gemini:
+# Gemini CLI can now run in containers - see tools/cli/containers/run_gemini_container.sh
 
 # Containerized Agents (OpenRouter-compatible):
 # OpenCode, Crush - run in openrouter-agents container
@@ -287,8 +292,8 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
      - `render_tikz` - Render TikZ diagrams as standalone images
    - See `tools/mcp/content_creation/docs/README.md` for documentation
 
-3. **Gemini MCP Server** (`tools/mcp/gemini/`): STDIO (local, host-only) or HTTP port 8006
-   - **MUST run on host system** (not in container) due to Docker requirements
+3. **Gemini MCP Server** (`tools/mcp/gemini/`): STDIO (local) or HTTP port 8006
+   - Can run on host or in container (see `automation/corporate-proxy/gemini/`)
    - **AI Integration**:
      - `consult_gemini` - Get AI assistance for technical questions
      - `clear_gemini_history` - Clear conversation history for fresh responses
@@ -430,8 +435,8 @@ The repository includes comprehensive CI/CD workflows:
    - Python CI/CD tools run in `python-ci` container (Python 3.11)
    - MCP servers run in their own containers
    - **Exceptions due to authentication requirements**:
-     - Gemini CLI (requires Docker access)
      - AI Agents using Claude CLI (requires host subscription auth - see `docs/ai-agents/claude-auth.md`)
+   - **Now containerized**: Gemini CLI (see `automation/corporate-proxy/gemini/` and `tools/cli/containers/run_gemini_container.sh`)
    - All containers run with user permissions (non-root)
 
 2. **Zero Local Dependencies**:
@@ -447,7 +452,7 @@ The repository includes comprehensive CI/CD workflows:
 ### Key Integration Points
 
 1. **AI Services**:
-   - Gemini API for code review (runs on host due to Docker requirements)
+   - Gemini API for code review (can run on host or in container)
    - Support for Claude and OpenAI integrations
    - Remote ComfyUI workflows for image generation
 
@@ -486,7 +491,7 @@ The repository includes comprehensive CI/CD workflows:
   ```
 - NEVER commit changes unless the user explicitly asks you to
 - Always follow the container-first philosophy - use Docker for all Python operations
-- Remember that Gemini CLI cannot be containerized (needs Docker access)
+- Gemini CLI is now containerized (see `automation/corporate-proxy/gemini/` for corporate proxy version)
 - Use pytest fixtures and mocks for testing external dependencies
 - **NEVER use Unicode emoji characters** in code, commits, or comments - they may display as corrupted characters. Use reaction images instead for GitHub interactions
 

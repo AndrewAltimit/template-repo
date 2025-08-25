@@ -4,9 +4,11 @@ The Gemini MCP Server provides integration with Google's Gemini AI for getting s
 
 ## Important Requirements
 
-⚠️ **This server MUST run on the host system, not in a container!**
+The Gemini MCP server can run either on the host system or in a container:
 
-The Gemini CLI requires Docker access to function properly, which means it cannot run inside a container itself (would require Docker-in-Docker). Always launch this server directly on your host machine.
+- **Host mode**: Direct execution for development - `python -m tools.mcp.gemini.server`
+- **Containerized mode**: See `automation/corporate-proxy/gemini/` for full containerization
+- **Container with host auth**: Use `tools/cli/containers/run_gemini_container.sh` for containerized Gemini with your host authentication
 
 ## Features
 
