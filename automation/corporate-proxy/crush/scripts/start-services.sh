@@ -80,7 +80,9 @@ if [ $# -gt 0 ]; then
     crush "$@"
     cleanup
 else
-    # Otherwise, run interactively and keep services alive
-    echo "Services are running. Press Ctrl+C to stop."
-    wait
+    # Otherwise, start an interactive bash shell with access to crush
+    echo "Services are running. You can now use 'crush' commands."
+    echo "Type 'crush --help' to see available commands."
+    echo ""
+    exec bash
 fi

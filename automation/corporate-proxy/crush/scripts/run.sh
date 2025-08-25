@@ -19,9 +19,29 @@ cleanup_container "crush-corporate"
 
 # Prepare command based on arguments
 if [ $# -eq 0 ]; then
-    # No arguments - launch interactive shell
+    # No arguments - launch interactive shell (no args to container)
     print_info "Launching interactive shell with Crush..."
-    CONTAINER_CMD=("bash")
+    # Run the container
+    print_info "Starting Crush with mock services..."
+
+    # Detect if we have a TTY
+    if [ -t 0 ]; then
+        TTY_FLAG="-it"
+    else
+        TTY_FLAG=""
+    fi
+
+    # Note: Running as container's appuser to ensure proper permissions
+    # Don't pass any arguments - start-services.sh will run interactively
+    # shellcheck disable=SC2086
+    docker run $TTY_FLAG --rm \
+        --name crush-corporate \
+        -v "$(pwd):/workspace:rw" \
+        -e COMPANY_API_BASE="http://localhost:8050" \
+        -e COMPANY_API_TOKEN="test-secret-token-123" \
+        -e WRAPPER_PORT="8052" \
+        -e MOCK_API_PORT="8050" \
+        crush-corporate:latest
 elif [ "$1" = "run" ]; then
     # Explicit run command
     shift  # Remove 'run' from arguments
@@ -48,23 +68,26 @@ else
     CONTAINER_CMD=("run" "$*")
 fi
 
-# Run the container
-print_info "Starting Crush with mock services..."
+# For non-interactive modes, run with command
+if [ -n "${CONTAINER_CMD+x}" ]; then
+    # Run the container
+    print_info "Starting Crush with mock services..."
 
-# Detect if we have a TTY
-if [ -t 0 ]; then
-    TTY_FLAG="-it"
-else
-    TTY_FLAG=""
+    # Detect if we have a TTY
+    if [ -t 0 ]; then
+        TTY_FLAG="-it"
+    else
+        TTY_FLAG=""
+    fi
+
+    # Note: Running as container's appuser to ensure proper permissions
+    # shellcheck disable=SC2086
+    docker run $TTY_FLAG --rm \
+        --name crush-corporate \
+        -v "$(pwd):/workspace:rw" \
+        -e COMPANY_API_BASE="http://localhost:8050" \
+        -e COMPANY_API_TOKEN="test-secret-token-123" \
+        -e WRAPPER_PORT="8052" \
+        -e MOCK_API_PORT="8050" \
+        crush-corporate:latest "${CONTAINER_CMD[@]}"
 fi
-
-# Note: Running as container's appuser to ensure proper permissions
-# shellcheck disable=SC2086
-docker run $TTY_FLAG --rm \
-    --name crush-corporate \
-    -v "$(pwd):/workspace:rw" \
-    -e COMPANY_API_BASE="http://localhost:8050" \
-    -e COMPANY_API_TOKEN="test-secret-token-123" \
-    -e WRAPPER_PORT="8052" \
-    -e MOCK_API_PORT="8050" \
-    crush-corporate:latest "${CONTAINER_CMD[@]}"
