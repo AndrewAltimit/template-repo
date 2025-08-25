@@ -99,8 +99,13 @@ RUN chmod 755 /home/bun/.cache/opencode/tui/* && \
 RUN pip install --no-cache-dir --break-system-packages flask flask-cors requests
 
 WORKDIR /workspace
-COPY automation/proxy/mock_company_api.py .
-COPY automation/proxy/company_translation_wrapper.py .
+# Note: This Dockerfile is deprecated. Use automation/corporate-proxy/opencode/docker/Dockerfile instead
+# Legacy file copies - these files have been moved:
+# COPY automation/proxy/mock_company_api.py . (moved to automation/corporate-proxy/shared/services/mock_api.py)
+# COPY automation/proxy/company_translation_wrapper.py . (moved to automation/corporate-proxy/shared/services/translation_wrapper.py)
+# For now, copy from new location for backward compatibility
+COPY automation/corporate-proxy/shared/services/mock_api.py ./mock_company_api.py
+COPY automation/corporate-proxy/shared/services/translation_wrapper.py ./company_translation_wrapper.py
 
 # Copy entrypoint script from repository
 COPY docker/entrypoints/opencode-entrypoint.sh /entrypoint.sh

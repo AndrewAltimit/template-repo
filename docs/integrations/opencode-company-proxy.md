@@ -33,13 +33,21 @@ OpenCode (patched) → Translation Wrapper (port 8052) → Company API (port 805
 
 ### Quick Start with Mock Services
 
+**Note: This integration has been superseded by a more comprehensive solution.**
+
+Please use the new corporate proxy integration:
 ```bash
-# Build the container
-./automation/proxy/build-company-tui.sh
+# Build the new container
+cd automation/corporate-proxy/opencode
+./scripts/build.sh
 
 # Run with auto-starting mock services
-./automation/proxy/run-company-tui.sh
+./scripts/run.sh
 ```
+
+For complete documentation, see:
+- `/automation/corporate-proxy/opencode/README.md` - OpenCode integration
+- `/automation/corporate-proxy/shared/docs/ARCHITECTURE.md` - Architecture details
 
 The container automatically:
 - Starts mock Company API on port 8050
@@ -56,8 +64,9 @@ For use with real company APIs:
 export COMPANY_API_BASE="https://your-company-api-gateway"
 export COMPANY_API_TOKEN="your-token"
 
-# Run in production mode
-./automation/proxy/run-company-production.sh
+# Run in production mode (new approach)
+cd automation/corporate-proxy/opencode
+./scripts/run-production.sh
 ```
 
 ### Available Commands
@@ -120,8 +129,9 @@ Model configuration is defined in `docker/patches/company-override.json`.
 
 - `docker/opencode-company-tui.Dockerfile` - Container definition
 - `docker/patches/company-override.json` - Model configuration
-- `automation/proxy/company_translation_wrapper.py` - API translator
-- `automation/proxy/mock_company_api.py` - Mock service
+- `automation/corporate-proxy/shared/services/translation_wrapper.py` - API translator (new)
+- `automation/corporate-proxy/shared/services/mock_api.py` - Mock service (new)
+- ~~`automation/proxy/`~~ - Legacy scripts (deprecated, use `/automation/corporate-proxy/` instead)
 
 ### Environment Variables
 

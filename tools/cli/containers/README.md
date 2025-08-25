@@ -112,5 +112,5 @@ If you get permission errors:
 ## Company Integration
 
 For the company-specific OpenCode integration with proxy support, see:
-- `/automation/proxy/` - Company proxy scripts
+- `/automation/corporate-proxy/` - Corporate proxy integrations for Crush and OpenCode
 - `/OPENCODE_COMPANY_INTEGRATION.md` - Full documentation
