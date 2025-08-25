@@ -102,10 +102,15 @@ export OPENAI_API_KEY="${COMPANY_API_TOKEN:-test-secret-token-123}"
 # Set Catwalk URL to invalid URL to force cache usage
 export CATWALK_URL="http://localhost:9999"
 
-# Disable spinner in non-TTY environments
-export NO_COLOR=1
-export CRUSH_NO_SPINNER=1
-export CI=1
+# Only disable terminal features in non-TTY environments
+if [ ! -t 0 ]; then
+    export NO_COLOR=1
+    export CRUSH_NO_SPINNER=1
+    export CI=1
+else
+    # In TTY mode, ensure proper terminal settings
+    export TERM="${TERM:-xterm-256color}"
+fi
 
 echo -e "${GREEN}Starting Crush with bypassed provider validation...${NC}"
 

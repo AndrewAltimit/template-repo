@@ -69,6 +69,7 @@ fi
 docker run $TTY_FLAG --rm \
     --name opencode-corporate \
     -v "$(pwd):/workspace:rw" \
+    -e TERM="${TERM:-xterm-256color}" \
     -e COMPANY_API_BASE="http://localhost:8050" \
     -e COMPANY_API_TOKEN="test-secret-token-123" \
     -e WRAPPER_PORT="8052" \

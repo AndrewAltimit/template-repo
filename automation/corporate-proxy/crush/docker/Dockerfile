@@ -17,8 +17,8 @@ FROM python:3.11-alpine
 # Add a non-root user
 RUN adduser -D -u 1001 appuser
 
-# Install runtime dependencies
-RUN apk add --no-cache bash curl
+# Install runtime dependencies (including terminal support)
+RUN apk add --no-cache bash curl ncurses ncurses-terminfo
 
 # Copy Crush binary from downloader (renamed to avoid conflict with wrapper)
 COPY --from=downloader /tmp/crush_0.8.0-nightly_Linux_x86_64/crush /usr/local/bin/crush-binary
