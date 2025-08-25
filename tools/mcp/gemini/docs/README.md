@@ -4,11 +4,13 @@ The Gemini MCP Server provides integration with Google's Gemini AI for getting s
 
 ## Important Requirements
 
-The Gemini MCP server can run either on the host system or in a container:
+The Gemini MCP server now supports both host and containerized execution:
 
+- **Container mode (Default)**: Runs Gemini CLI in a Docker container with host authentication
 - **Host mode**: Direct execution for development - `python -m tools.mcp.gemini.server`
-- **Containerized mode**: See `automation/corporate-proxy/gemini/` for full containerization
-- **Container with host auth**: Use `tools/cli/containers/run_gemini_container.sh` for containerized Gemini with your host authentication
+- **Container options**:
+  - Corporate proxy version: `automation/corporate-proxy/gemini/`
+  - Simple container: `tools/cli/containers/run_gemini_container.sh`
 
 ## Features
 
@@ -85,16 +87,20 @@ Enable or disable automatic Gemini consultation when uncertainty is detected.
 
 ### Prerequisites
 
-1. **Gemini CLI**: Install the Gemini CLI tool and ensure it's in your PATH
-2. **Authentication**: Configure Gemini CLI authentication
+1. **Docker**: Required for container mode (default)
+2. **Gemini CLI Authentication**: Configure Gemini CLI authentication on the host
 
    **⚠️ IMPORTANT - Use Web Login for Free Tier!**
    - The Gemini CLI should use **Google web login (OAuth)** for authentication
    - This provides a **FREE TIER** with 60 requests/min, 1,000 requests/day, 4M tokens/day
    - **CAUTION**: Using API keys instead of web login will result in **charges** for usage
    - For single-maintainer projects, the free tier via web login is recommended
+   - Run `gemini` on the host to authenticate, this creates `~/.gemini` with your credentials
 
-3. **Host System**: Must run on the host, not in a container
+3. **Container Image**: Build the Gemini container if using container mode:
+   ```bash
+   ./automation/corporate-proxy/gemini/scripts/build.sh
+   ```
 
 ### stdio Mode (Recommended for Claude Desktop)
 
@@ -160,6 +166,12 @@ GEMINI_INCLUDE_HISTORY=true
 
 # Maximum history entries
 GEMINI_MAX_HISTORY=10
+
+# Container configuration
+GEMINI_USE_CONTAINER=true  # Use Docker container for Gemini CLI
+GEMINI_CONTAINER_IMAGE=gemini-corporate-proxy:latest
+GEMINI_CONTAINER_SCRIPT=/workspace/automation/corporate-proxy/gemini/scripts/run.sh
+GEMINI_YOLO_MODE=false  # Enable auto-approval for container mode
 ```
 
 ### Configuration File
@@ -173,7 +185,10 @@ Create `gemini-config.json` in your project root:
   "timeout": 60,
   "model": "gemini-2.5-flash",
   "max_context_length": 4000,
-  "rate_limit_delay": 2
+  "rate_limit_delay": 2,
+  "use_container": true,
+  "container_image": "gemini-corporate-proxy:latest",
+  "yolo_mode": false
 }
 ```
 
@@ -199,20 +214,25 @@ Add to your Claude Desktop configuration:
 
 ## Testing
 
-Run the test script to verify the server is working:
+Run the test scripts to verify the server is working:
 
 ```bash
-# Must run on host system
+# Test basic server functionality
 python tools/mcp/gemini/scripts/test_server.py
+
+# Test container mode specifically
+python tools/mcp/gemini/scripts/test_container.py
 ```
 
 ## Troubleshooting
 
-### "Cannot run in container" Error
+### Container Image Not Found
 
-If you see this error, you're trying to run the server inside Docker. Exit the container and run on your host system.
+If you see "Container image not found" error:
+1. Build the container: `./automation/corporate-proxy/gemini/scripts/build.sh`
+2. Or disable container mode: Set `GEMINI_USE_CONTAINER=false`
 
-### Gemini CLI Not Found
+### Gemini CLI Not Found (Host Mode)
 
 1. Install the Gemini CLI tool
 2. Add it to your PATH
