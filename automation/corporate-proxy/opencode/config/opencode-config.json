@@ -1,0 +1,45 @@
+{
+  "name": "OpenCode Company Integration",
+  "tool": "opencode",
+  "version": "1.0.0",
+  "container": {
+    "image": "opencode-corporate:latest",
+    "base_image": "golang:1.22-alpine",
+    "build_stages": [
+      "go",
+      "bun",
+      "runtime"
+    ]
+  },
+  "services": {
+    "translation_wrapper": {
+      "enabled": true,
+      "port": 8052,
+      "path": "../../shared/services/translation_wrapper.py"
+    },
+    "mock_api": {
+      "enabled": true,
+      "port": 8050,
+      "path": "../../shared/services/mock_api.py"
+    }
+  },
+  "patches": {
+    "models": {
+      "file": "src/lib/models/models.ts",
+      "patch": "docker/patches/models-override.ts"
+    },
+    "tui": {
+      "file": "src/bin/tui.ts",
+      "patch": "docker/patches/tui-fix.ts"
+    }
+  },
+  "environment": {
+    "OPENCODE_BASE_URL": "http://localhost:8052/v1",
+    "OPENCODE_API_KEY": "test-secret-token-123"
+  },
+  "startup": {
+    "command": "./opencode",
+    "args": [],
+    "auto_start_services": true
+  }
+}

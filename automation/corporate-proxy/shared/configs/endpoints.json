@@ -1,0 +1,39 @@
+{
+  "environments": {
+    "mock": {
+      "name": "Mock Testing",
+      "api_base": "http://localhost:8050",
+      "wrapper_base": "http://localhost:8052",
+      "api_token": "test-secret-token-123",
+      "description": "Local mock services for testing"
+    },
+    "production": {
+      "name": "Company Production",
+      "api_base": "${COMPANY_API_BASE}",
+      "wrapper_base": "http://localhost:8052",
+      "api_token": "${COMPANY_API_TOKEN}",
+      "description": "Real company API endpoints"
+    }
+  },
+  "services": {
+    "mock_api": {
+      "port": 8050,
+      "health_endpoint": "/health",
+      "api_path": "/api/v1/AI/GenAIExplorationLab/Models/"
+    },
+    "translation_wrapper": {
+      "port": 8052,
+      "health_endpoint": "/health",
+      "api_path": "/v1",
+      "endpoints": {
+        "chat": "/v1/chat/completions",
+        "models": "/v1/models"
+      }
+    }
+  },
+  "timeouts": {
+    "health_check": 30,
+    "api_request": 300,
+    "startup_wait": 5
+  }
+}

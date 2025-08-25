@@ -1,0 +1,46 @@
+{
+  "models": {
+    "claude-3.5-sonnet": {
+      "id": "company/claude-3.5-sonnet",
+      "name": "Claude 3.5 Sonnet (Company)",
+      "vendor": "anthropic",
+      "endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
+      "max_input_tokens": 200000,
+      "max_output_tokens": 8192,
+      "default_max_tokens": 4096,
+      "supports_streaming": false,
+      "supports_tools": true
+    },
+    "claude-3-opus": {
+      "id": "company/claude-3-opus",
+      "name": "Claude 3 Opus (Company)",
+      "vendor": "anthropic",
+      "endpoint": "ai-coe-bedrock-claude3-opus:analyze=null",
+      "max_input_tokens": 200000,
+      "max_output_tokens": 4096,
+      "default_max_tokens": 4096,
+      "supports_streaming": false,
+      "supports_tools": true
+    },
+    "gpt-4": {
+      "id": "company/gpt-4",
+      "name": "GPT-4 (Company)",
+      "vendor": "openai",
+      "endpoint": "ai-coe-bedrock-gpt4:analyze=null",
+      "max_input_tokens": 128000,
+      "max_output_tokens": 4096,
+      "default_max_tokens": 4096,
+      "supports_streaming": false,
+      "supports_tools": true
+    }
+  },
+  "model_aliases": {
+    "openrouter/anthropic/claude-3.5-sonnet": "claude-3.5-sonnet",
+    "openrouter/anthropic/claude-3-opus": "claude-3-opus",
+    "openrouter/openai/gpt-4": "gpt-4"
+  },
+  "defaults": {
+    "large": "claude-3.5-sonnet",
+    "small": "gpt-4"
+  }
+}

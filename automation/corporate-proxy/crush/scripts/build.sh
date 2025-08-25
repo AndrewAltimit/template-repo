@@ -1,0 +1,35 @@
+#!/bin/bash
+set -e
+
+# Get script directory and load common functions
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "$SCRIPT_DIR/../../shared/scripts/common-functions.sh"
+
+print_header "Building Crush Corporate Integration"
+
+# Check Docker
+check_docker
+
+# Navigate to Crush directory
+cd "$SCRIPT_DIR/.."
+
+# Build the Docker image
+print_info "Building Docker image..."
+docker build \
+    -f docker/Dockerfile \
+    -t crush-corporate:latest \
+    --build-arg SERVICES_DIR="$SERVICES_DIR" \
+    "$CORPORATE_PROXY_ROOT"
+
+if [ $? -eq 0 ]; then
+    print_info "Build successful!"
+    echo ""
+    echo "To run with mock services:"
+    echo "  ./scripts/run.sh"
+    echo ""
+    echo "To run with production API:"
+    echo "  ./scripts/run-production.sh"
+else
+    print_error "Build failed!"
+    exit 1
+fi
