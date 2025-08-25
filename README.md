@@ -116,8 +116,7 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 │       │   ├── run_claude.sh              # Claude Code Runner
 │       │   ├── run_opencode.sh            # OpenCode runner
 │       │   ├── run_crush.sh               # Crush runner
-│       │   ├── run_gemini.sh              # Gemini CLI runner
-│       │   └── run_gemini_container.sh    # Gemini container runner
+│       │   └── run_gemini.sh              # Gemini CLI runner
 │       ├── containers/       # Container runner scripts
 │       │   ├── run_opencode_container.sh  # OpenCode in container
 │       │   └── run_gemini_container.sh    # Gemini in container
