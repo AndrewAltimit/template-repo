@@ -15,6 +15,13 @@ RUN git clone https://github.com/sst/opencode.git && \
 FROM oven/bun:1 AS builder
 WORKDIR /build
 COPY --from=source /source/opencode ./opencode
+
+# Apply patches to customize OpenCode for corporate proxy
+# These patches configure models and API endpoints at build time
+COPY shared/patches/company-override.json /build/opencode/packages/opencode/src/company-models.json
+COPY shared/patches/models-company-simple.ts /build/opencode/packages/opencode/src/provider/models.ts
+COPY shared/patches/tui-company-fix.ts /build/opencode/packages/opencode/src/cli/cmd/tui.ts
+
 WORKDIR /build/opencode
 RUN bun install
 WORKDIR /build/opencode/packages/opencode
@@ -52,6 +59,10 @@ COPY shared/services/translation_wrapper.py /app/translation_wrapper.py
 COPY opencode/scripts/start-services.sh /app/start-services.sh
 RUN chmod +x /app/start-services.sh
 
+# Create OpenCode config directories
+RUN mkdir -p /home/appuser/.config/opencode /home/appuser/.cache/opencode && \
+    chown -R appuser:appuser /home/appuser/.config /home/appuser/.cache
+
 # Set proper ownership for app and workspace directories
 # Create /workspace/opencode directory that OpenCode expects
 RUN chown -R appuser:appuser /app && \
@@ -62,6 +73,9 @@ WORKDIR /workspace
 
 # Switch to the non-root user
 USER appuser
+
+# Set HOME for OpenCode to find config
+ENV HOME=/home/appuser
 
 # Environment variables for OpenCode to use our proxy
 ENV OPENROUTER_API_KEY="test-secret-token-123"

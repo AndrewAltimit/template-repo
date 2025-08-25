@@ -38,6 +38,7 @@ RUN chmod +x /app/start-services.sh /usr/local/bin/crush
 # Create config directories with proper ownership
 RUN mkdir -p /home/appuser/.config/crush && \
     mkdir -p /home/appuser/.local/share/crush && \
+    mkdir -p /workspace && \
     chown -R appuser:appuser /home/appuser && \
     chown -R appuser:appuser /app && \
     chown -R appuser:appuser /workspace
