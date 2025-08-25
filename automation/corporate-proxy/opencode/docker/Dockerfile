@@ -59,9 +59,10 @@ COPY shared/services/translation_wrapper.py /app/translation_wrapper.py
 COPY opencode/scripts/start-services.sh /app/start-services.sh
 RUN chmod +x /app/start-services.sh
 
-# Create OpenCode config directories
+# Create OpenCode config directories and Bun directories
 RUN mkdir -p /home/appuser/.config/opencode /home/appuser/.cache/opencode && \
-    chown -R appuser:appuser /home/appuser/.config /home/appuser/.cache
+    mkdir -p /home/appuser/.local/share /home/appuser/.local/bin && \
+    chown -R appuser:appuser /home/appuser/.config /home/appuser/.cache /home/appuser/.local
 
 # Set proper ownership for app and workspace directories
 # Create /workspace/opencode directory that OpenCode expects
