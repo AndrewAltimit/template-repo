@@ -9,16 +9,19 @@ echo ""
 # Function to cleanup on exit
 cleanup() {
     echo "Cleaning up services..."
+    # shellcheck disable=SC2046
     kill $(jobs -p) 2>/dev/null || true
     exit
 }
 
 trap cleanup EXIT INT TERM
 
+# Create log directory
+mkdir -p /tmp/logs
+
 # Start mock Company API (runs on port 8050)
 echo "Starting mock Company API on port 8050..."
-python /app/mock_api.py &
-MOCK_PID=$!
+python /app/mock_api.py > /tmp/logs/mock_api.log 2>&1 &
 
 # Wait for mock API to be ready
 echo "Waiting for mock API to be ready..."
@@ -27,8 +30,9 @@ for i in {1..30}; do
         echo "✓ Mock API is ready"
         break
     fi
-    if [ $i -eq 30 ]; then
+    if [ "$i" -eq 30 ]; then
         echo "✗ Mock API failed to start"
+        echo "Check logs at /tmp/logs/mock_api.log"
         exit 1
     fi
     sleep 1
@@ -36,8 +40,7 @@ done
 
 # Start translation wrapper (runs on port 8052)
 echo "Starting translation wrapper on port 8052..."
-python /app/translation_wrapper.py &
-WRAPPER_PID=$!
+python /app/translation_wrapper.py > /tmp/logs/translation_wrapper.log 2>&1 &
 
 # Wait for wrapper to be ready
 echo "Waiting for translation wrapper to be ready..."
@@ -46,8 +49,9 @@ for i in {1..30}; do
         echo "✓ Translation wrapper is ready"
         break
     fi
-    if [ $i -eq 30 ]; then
+    if [ "$i" -eq 30 ]; then
         echo "✗ Translation wrapper failed to start"
+        echo "Check logs at /tmp/logs/translation_wrapper.log"
         exit 1
     fi
     sleep 1
@@ -62,6 +66,10 @@ echo "Services running:"
 echo "  - Mock Company API: http://localhost:8050"
 echo "  - Translation Wrapper: http://localhost:8052"
 echo ""
+echo "Service logs:"
+echo "  - /tmp/logs/mock_api.log"
+echo "  - /tmp/logs/translation_wrapper.log"
+echo ""
 echo "Starting Crush..."
 echo "=========================================="
 echo ""
@@ -70,9 +78,7 @@ echo ""
 if [ $# -gt 0 ]; then
     # If arguments are provided, run crush with them
     crush "$@"
-    exit_code=$?
     cleanup
-    exit $exit_code
 else
     # Otherwise, run interactively and keep services alive
     echo "Services are running. Press Ctrl+C to stop."

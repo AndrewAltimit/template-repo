@@ -16,9 +16,12 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
+# Create log directory
+mkdir -p /tmp/logs
+
 # Start mock Company API (runs on port 8050)
 echo "Starting mock Company API on port 8050..."
-python3 /app/mock_api.py &
+python3 /app/mock_api.py > /tmp/logs/mock_api.log 2>&1 &
 
 # Give the service a moment to start before checking
 sleep 1
@@ -32,6 +35,7 @@ for i in {1..30}; do
     fi
     if [ "$i" -eq 30 ]; then
         echo "✗ Mock API failed to start"
+        echo "Check logs at /tmp/logs/mock_api.log"
         exit 1
     fi
     sleep 1
@@ -39,7 +43,7 @@ done
 
 # Start translation wrapper (runs on port 8052)
 echo "Starting translation wrapper on port 8052..."
-python3 /app/translation_wrapper.py &
+python3 /app/translation_wrapper.py > /tmp/logs/translation_wrapper.log 2>&1 &
 
 # Give the service a moment to start before checking
 sleep 1
@@ -53,6 +57,7 @@ for i in {1..30}; do
     fi
     if [ "$i" -eq 30 ]; then
         echo "✗ Translation wrapper failed to start"
+        echo "Check logs at /tmp/logs/translation_wrapper.log"
         exit 1
     fi
     sleep 1
@@ -66,6 +71,10 @@ echo ""
 echo "Services running:"
 echo "  - Mock Company API: http://localhost:8050"
 echo "  - Translation Wrapper: http://localhost:8052"
+echo ""
+echo "Service logs:"
+echo "  - /tmp/logs/mock_api.log"
+echo "  - /tmp/logs/translation_wrapper.log"
 echo ""
 echo "OpenCode environment ready"
 echo "=========================================="
