@@ -40,7 +40,7 @@ RUN chmod +x /usr/local/bin/opencode
 # Install Python dependencies for proxy
 RUN pip3 install --break-system-packages flask flask-cors requests
 
-# Copy shared services
+# Copy shared services (paths relative to corporate-proxy directory as build context)
 COPY shared/services/mock_api.py /app/mock_api.py
 COPY shared/services/translation_wrapper.py /app/translation_wrapper.py
 
