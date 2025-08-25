@@ -127,19 +127,6 @@ get_script_dir() {
     echo "$( cd -P "$( dirname "$source" )" && pwd )"
 }
 
-# Load configuration from JSON file
-load_json_config() {
-    local config_file=$1
-    local query=$2
-
-    if [ ! -f "$config_file" ]; then
-        print_error "Configuration file not found: $config_file"
-        return 1
-    fi
-
-    jq -r "$query" "$config_file" 2>/dev/null
-}
-
 # Export common paths
 export CORPORATE_PROXY_ROOT="$(cd "$(get_script_dir)/../.." && pwd)"
 export SHARED_DIR="$CORPORATE_PROXY_ROOT/shared"
