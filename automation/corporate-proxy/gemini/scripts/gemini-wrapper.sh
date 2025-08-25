@@ -112,10 +112,10 @@ EOF
         echo "=========================================="
         echo ""
 
-        # Start Gemini CLI directly in interactive mode
+        # Start Gemini CLI directly in interactive mode using the proxy wrapper
         echo "Starting Gemini CLI..."
         echo ""
-        exec gemini
+        exec /tmp/gemini-proxy
         ;;
 
     test)
