@@ -60,5 +60,6 @@ ENV MOCK_API_PORT="8050"
 # Expose ports
 EXPOSE 8050 8052
 
-# Start services and run Crush
-CMD ["/app/start-services.sh"]
+# Start services with entrypoint to ensure they always run
+ENTRYPOINT ["/app/start-services.sh"]
+CMD ["bash"]

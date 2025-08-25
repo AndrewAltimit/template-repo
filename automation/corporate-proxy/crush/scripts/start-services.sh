@@ -27,6 +27,10 @@ for i in {1..30}; do
         echo "✓ Mock API is ready"
         break
     fi
+    if [ $i -eq 30 ]; then
+        echo "✗ Mock API failed to start"
+        exit 1
+    fi
     sleep 1
 done
 
@@ -41,6 +45,10 @@ for i in {1..30}; do
     if curl -s http://localhost:8052/health > /dev/null; then
         echo "✓ Translation wrapper is ready"
         break
+    fi
+    if [ $i -eq 30 ]; then
+        echo "✗ Translation wrapper failed to start"
+        exit 1
     fi
     sleep 1
 done

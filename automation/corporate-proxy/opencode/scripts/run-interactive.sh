@@ -28,8 +28,31 @@ docker run --rm -it \
         echo "Starting translation wrapper..."
         python /app/translation_wrapper.py > /dev/null 2>&1 &
 
-        # Wait for services
-        sleep 3
+        # Wait for services with health checks
+        echo "Waiting for services to start..."
+        for i in {1..30}; do
+            if curl -s http://localhost:8050/health > /dev/null 2>&1; then
+                echo "✓ Mock API is ready"
+                break
+            fi
+            if [ $i -eq 30 ]; then
+                echo "✗ Mock API failed to start"
+                exit 1
+            fi
+            sleep 1
+        done
+
+        for i in {1..30}; do
+            if curl -s http://localhost:8052/health > /dev/null 2>&1; then
+                echo "✓ Translation wrapper is ready"
+                break
+            fi
+            if [ $i -eq 30 ]; then
+                echo "✗ Translation wrapper failed to start"
+                exit 1
+            fi
+            sleep 1
+        done
 
         echo ""
         echo "Services ready! You can now use OpenCode:"
