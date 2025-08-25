@@ -190,9 +190,15 @@ def chat_completions():
 
             return jsonify(openai_response)
 
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Company API request error: {e}")
+        return jsonify({"error": "Failed to connect to Company API", "details": str(e)}), 503
+    except KeyError as e:
+        logger.error(f"Response parsing error: {e}")
+        return jsonify({"error": "Invalid response format from Company API", "details": str(e)}), 502
     except Exception as e:
-        logger.error(f"Error processing request: {e}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Unexpected error processing request: {e}")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 
 @app.route("/v1/models", methods=["GET"])
