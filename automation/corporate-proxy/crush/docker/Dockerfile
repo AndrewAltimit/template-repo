@@ -63,4 +63,4 @@ EXPOSE 8050 8052
 
 # Start services with entrypoint to ensure they always run
 ENTRYPOINT ["/app/start-services.sh"]
-CMD ["bash"]
+# No CMD - start-services.sh handles both interactive and command modes
