@@ -261,6 +261,11 @@ services:
     # For stdio mode, we don't need a long-running service
     stdin_open: true
     tty: false
+    healthcheck:
+      test: ["CMD-SHELL", "gemini --help > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     profiles:
       - services
 
