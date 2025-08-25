@@ -1,45 +1,34 @@
 #!/bin/bash
-# run_gemini_container.sh - Run Gemini CLI in Docker container with corporate proxy
+# run_gemini_container.sh - Run official Gemini CLI in Docker container with host authentication
 
 set -e
 
-echo "🚀 Starting Gemini CLI in Container (Corporate Proxy Mode)"
+echo "🚀 Starting Gemini CLI in Container"
 echo ""
 
-# Script location
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-GEMINI_DIR="$PROJECT_ROOT/automation/corporate-proxy/gemini"
+# Check for required dependencies
+if ! command -v docker &> /dev/null; then
+    echo "❌ Docker is not installed or not in PATH"
+    exit 1
+fi
 
-# Check if Gemini container image exists, build if not
-check_and_build_image() {
-    local image_name="gemini-corporate-proxy"
-    local image_tag="latest"
-    local full_image="${image_name}:${image_tag}"
-
-    if ! docker images | grep -q "$image_name"; then
-        echo "📦 Gemini container image not found, building..."
-        echo "This may take a few minutes on first run..."
-
-        # Build the Gemini container
-        cd "$GEMINI_DIR"
-        ./scripts/build.sh
-        cd "$PROJECT_ROOT"
-
-        echo "✅ Gemini container built successfully!"
-        echo ""
-    else
-        echo "✅ Using existing Gemini container image: $full_image"
-    fi
-}
-
-# Build image if needed
-check_and_build_image
+# Check if host has Gemini auth configured
+if [ ! -d "$HOME/.gemini" ]; then
+    echo "❌ No Gemini configuration found at ~/.gemini"
+    echo ""
+    echo "Please authenticate with Gemini CLI on your host first:"
+    echo "  1. Install Gemini CLI: npm install -g @google/gemini-cli"
+    echo "  2. Run: gemini"
+    echo "  3. Complete the authentication flow"
+    echo ""
+    echo "This creates ~/.gemini with your authentication tokens"
+    exit 1
+fi
 
 # Parse command line arguments
-MODE="interactive"
 YOLO_MODE=false
 WORKSPACE_DIR="${WORKSPACE_DIR:-$(pwd)}"
+EXTRA_ARGS=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -47,48 +36,36 @@ while [[ $# -gt 0 ]]; do
             YOLO_MODE=true
             shift
             ;;
-        -d|--daemon)
-            MODE="daemon"
-            shift
-            ;;
-        -t|--test)
-            MODE="test"
-            shift
-            ;;
         -w|--workspace)
             WORKSPACE_DIR="$2"
             shift 2
             ;;
         -h|--help)
-            echo "Usage: $0 [options]"
+            echo "Usage: $0 [options] [-- gemini-args]"
             echo ""
             echo "Options:"
             echo "  -y, --yolo              Enable YOLO mode (auto-approve all actions)"
-            echo "  -d, --daemon            Run in background daemon mode"
-            echo "  -t, --test              Run tests and exit"
             echo "  -w, --workspace <dir>   Set workspace directory (default: current dir)"
             echo "  -h, --help              Show this help message"
             echo ""
-            echo "Interactive Mode (default):"
-            echo "  Start an interactive Gemini CLI session with corporate proxy"
+            echo "Pass-through arguments:"
+            echo "  Any arguments after -- are passed directly to Gemini CLI"
             echo ""
-            echo "YOLO Mode:"
-            echo "  $0 -y"
-            echo "  Automatically approve all Gemini actions (use with caution!)"
+            echo "Examples:"
+            echo "  $0                      # Interactive mode with YOLO prompt"
+            echo "  $0 -y                   # Force YOLO mode"
+            echo "  $0 -- --help            # Show Gemini CLI help"
+            echo "  $0 -- -p 'Write code'   # Run with specific prompt"
             echo ""
-            echo "Daemon Mode:"
-            echo "  $0 -d"
-            echo "  Run services in background, access with docker exec"
-            echo ""
-            echo "Test Mode:"
-            echo "  $0 -t"
-            echo "  Run integration tests to verify proxy functionality"
-            echo ""
-            echo "Environment Variables:"
-            echo "  COMPANY_API_BASE    - Corporate API endpoint (default: mock)"
-            echo "  COMPANY_API_TOKEN   - Authentication token"
-            echo "  USE_MOCK_API        - Use mock responses (default: true)"
+            echo "Authentication:"
+            echo "  This script uses your host's Gemini authentication from ~/.gemini"
+            echo "  Make sure you've authenticated with Gemini CLI on your host first"
             exit 0
+            ;;
+        --)
+            shift
+            EXTRA_ARGS="$*"
+            break
             ;;
         *)
             echo "Unknown option: $1"
@@ -98,8 +75,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Prompt for YOLO mode if not already set
-if [ "$YOLO_MODE" = false ] && [ "$MODE" = "interactive" ]; then
+# Prompt for YOLO mode if not already set and no extra args
+if [ "$YOLO_MODE" = false ] && [ -z "$EXTRA_ARGS" ]; then
     echo "🎯 YOLO Mode Configuration"
     echo ""
     echo "YOLO mode automatically approves all Gemini actions without prompting."
@@ -117,114 +94,94 @@ if [ "$YOLO_MODE" = false ] && [ "$MODE" = "interactive" ]; then
 fi
 
 # Configuration
-IMAGE_NAME="${IMAGE_NAME:-gemini-corporate-proxy}"
-IMAGE_TAG="${IMAGE_TAG:-latest}"
-FULL_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
-CONTAINER_NAME="${CONTAINER_NAME:-gemini-proxy}"
+IMAGE_NAME="google/gemini-cli"
+IMAGE_TAG="${GEMINI_VERSION:-latest}"
+CONTAINER_NAME="gemini-cli-session"
 
-# Check if container is already running (for daemon mode)
-if [ "$MODE" = "daemon" ]; then
-    if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-        echo "⚠️  Container '$CONTAINER_NAME' is already running"
-        echo ""
-        echo "To access it:"
-        echo "  docker exec -it $CONTAINER_NAME gemini"
-        echo ""
-        echo "To stop it:"
-        echo "  docker stop $CONTAINER_NAME"
-        exit 0
-    fi
-fi
+# Pull the official Gemini CLI image if needed
+echo "📦 Checking for Gemini CLI Docker image..."
+if ! docker pull "$IMAGE_NAME:$IMAGE_TAG" 2>/dev/null; then
+    echo "⚠️  Official Gemini CLI Docker image not available"
+    echo "Building custom image with Gemini CLI..."
 
-# Stop any existing container with the same name
-if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-    echo "Stopping existing container..."
-    docker stop "$CONTAINER_NAME" 2>/dev/null || true
-    docker rm "$CONTAINER_NAME" 2>/dev/null || true
+    # Create temporary Dockerfile
+    cat > /tmp/gemini-dockerfile <<'EOF'
+FROM node:20-slim
+
+# Install Gemini CLI globally
+RUN npm install -g @google/gemini-cli
+
+# Create workspace directory
+RUN mkdir -p /workspace
+WORKDIR /workspace
+
+# Set up non-root user
+RUN useradd -m -u 1000 gemini && \
+    chown -R gemini:gemini /workspace
+
+USER gemini
+
+# Default to running Gemini CLI
+ENTRYPOINT ["gemini"]
+EOF
+
+    # Build the image
+    docker build -t "$IMAGE_NAME:$IMAGE_TAG" -f /tmp/gemini-dockerfile /tmp/
+    rm /tmp/gemini-dockerfile
+
+    echo "✅ Gemini CLI container image built"
 fi
 
 # Set environment variables for YOLO mode
 if [ "$YOLO_MODE" = true ]; then
-    export GEMINI_YOLO_MODE=true
-    YOLO_ENV="-e GEMINI_YOLO_MODE=true"
+    YOLO_ENV="-e GEMINI_APPROVAL_MODE=yolo"
+    echo "⚡ YOLO mode environment set"
 else
     YOLO_ENV=""
 fi
 
 # Display current configuration
 echo "📋 Configuration:"
-echo "   Mode: $MODE"
-echo "   YOLO: $YOLO_MODE"
+echo "   YOLO Mode: $YOLO_MODE"
 echo "   Workspace: $WORKSPACE_DIR"
-echo "   Container: $FULL_IMAGE"
+echo "   Auth Source: ~/.gemini (host)"
+if [ -n "$EXTRA_ARGS" ]; then
+    echo "   Gemini Args: $EXTRA_ARGS"
+fi
 echo ""
 
-# Run based on mode
-case "$MODE" in
-    test)
-        echo "🧪 Running tests..."
-        docker run --rm \
-            "$FULL_IMAGE" \
-            test
-        ;;
+# Check if we're running with TTY
+if [ -t 0 ] && [ -z "$EXTRA_ARGS" ]; then
+    TTY_FLAG="-it"
+else
+    TTY_FLAG="-i"
+fi
 
-    daemon)
-        echo "👹 Starting in daemon mode..."
-        # shellcheck disable=SC2086
-        docker run -d \
-            --name "$CONTAINER_NAME" \
-            -v "$WORKSPACE_DIR:/workspace" \
-            -p 8050:8050 \
-            -p 8053:8053 \
-            $YOLO_ENV \
-            "$FULL_IMAGE" \
-            daemon
+# Run Gemini CLI in container with host authentication
+echo "🎮 Starting Gemini CLI..."
+echo ""
+echo "💡 Tips:"
+echo "   - Using your host authentication from ~/.gemini"
+echo "   - Type '/help' for available commands"
+echo "   - Type '/exit' or use Ctrl+C to quit"
+if [ "$YOLO_MODE" = true ]; then
+    echo "   - ⚡ YOLO mode is ACTIVE - actions auto-approved!"
+fi
+echo ""
 
-        echo ""
-        echo "✅ Container started in background: $CONTAINER_NAME"
-        echo ""
-        echo "📝 Usage:"
-        echo "   Access Gemini CLI:"
-        echo "     docker exec -it $CONTAINER_NAME gemini"
-        echo ""
-        echo "   View logs:"
-        echo "     docker logs -f $CONTAINER_NAME"
-        echo ""
-        echo "   Check services:"
-        echo "     docker exec $CONTAINER_NAME curl http://localhost:8050/health"
-        echo "     docker exec $CONTAINER_NAME curl http://localhost:8053/health"
-        echo ""
-        echo "   Stop container:"
-        echo "     docker stop $CONTAINER_NAME"
-        ;;
-
-    interactive|*)
-        echo "🎮 Starting interactive Gemini CLI session..."
-        echo ""
-        echo "💡 Tips:"
-        echo "   - Gemini will auto-start in the container"
-        echo "   - All prompts return 'Hatsune Miku' in mock mode"
-        echo "   - Type 'exit' or use Ctrl+C to quit"
-        if [ "$YOLO_MODE" = true ]; then
-            echo "   - ⚡ YOLO mode is ACTIVE - actions auto-approved!"
-        fi
-        echo ""
-        echo "🔗 Services:"
-        echo "   Mock API: http://localhost:8050"
-        echo "   Proxy: http://localhost:8053"
-        echo ""
-
-        # shellcheck disable=SC2086
-        docker run -it --rm \
-            --name "$CONTAINER_NAME" \
-            -v "$WORKSPACE_DIR:/workspace" \
-            -p 8050:8050 \
-            -p 8053:8053 \
-            $YOLO_ENV \
-            "$FULL_IMAGE" \
-            interactive
-        ;;
-esac
+# Run the container
+# Mount:
+# - Host's .gemini directory for authentication
+# - Current workspace for file access
+# - Pass through any extra arguments
+# shellcheck disable=SC2086
+docker run $TTY_FLAG --rm \
+    --name "$CONTAINER_NAME" \
+    -v "$HOME/.gemini:/home/gemini/.gemini:ro" \
+    -v "$WORKSPACE_DIR:/workspace" \
+    $YOLO_ENV \
+    "$IMAGE_NAME:$IMAGE_TAG" \
+    $EXTRA_ARGS
 
 echo ""
-echo "👋 Gemini container session ended"
+echo "👋 Gemini CLI session ended"
