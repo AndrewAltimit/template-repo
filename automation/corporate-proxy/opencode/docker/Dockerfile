@@ -11,7 +11,38 @@ RUN git clone https://github.com/sst/opencode.git && \
         git checkout "$OPENCODE_VERSION"; \
     fi
 
-# Stage 2: Build OpenCode
+# Stage 2: Build TUI with Go
+FROM golang:1.23 AS tui-builder
+WORKDIR /build
+COPY --from=source /source/opencode ./opencode
+WORKDIR /build/opencode/packages/tui
+
+# Enable Go toolchain to auto-download if needed
+ENV GOTOOLCHAIN=auto
+
+# Download dependencies
+RUN go mod download || true
+
+# Build TUI for the target architecture
+ARG TARGETARCH=amd64
+RUN if [ -f "./cmd/opencode/main.go" ]; then \
+        CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
+        -ldflags="-s -w" \
+        -o tui-linux-${TARGETARCH} \
+        ./cmd/opencode/main.go; \
+    elif [ -f "main.go" ]; then \
+        CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
+        -ldflags="-s -w" \
+        -o tui-linux-${TARGETARCH} \
+        main.go; \
+    else \
+        echo "Warning: TUI source not found, creating placeholder"; \
+        echo '#!/bin/sh' > tui-linux-${TARGETARCH}; \
+        echo 'echo "TUI not available in this build"' >> tui-linux-${TARGETARCH}; \
+        chmod +x tui-linux-${TARGETARCH}; \
+    fi
+
+# Stage 3: Build OpenCode
 FROM oven/bun:1 AS builder
 WORKDIR /build
 COPY --from=source /source/opencode ./opencode
@@ -27,7 +58,7 @@ RUN bun install
 WORKDIR /build/opencode/packages/opencode
 RUN bun build ./src/index.ts --compile --outfile opencode
 
-# Stage 3: Runtime container
+# Stage 4: Runtime container
 # Use debian-based image for glibc compatibility with bun-compiled binary
 FROM node:20-slim
 
@@ -43,6 +74,18 @@ RUN apt-get update && apt-get install -y \
 # Copy the compiled OpenCode binary
 COPY --from=builder /build/opencode/packages/opencode/opencode /usr/local/bin/opencode.bin
 RUN chmod +x /usr/local/bin/opencode.bin
+
+# Create TUI directory structure
+RUN mkdir -p /home/appuser/.cache/opencode/tui
+
+# Copy TUI binary for the target architecture
+ARG TARGETARCH=amd64
+COPY --from=tui-builder /build/opencode/packages/tui/tui-linux-${TARGETARCH} /home/appuser/.cache/opencode/tui/tui-linux-x64
+RUN chmod +x /home/appuser/.cache/opencode/tui/tui-linux-x64
+
+# Also copy to alternate location for compatibility
+COPY --from=tui-builder /build/opencode/packages/tui/tui-linux-${TARGETARCH} /usr/local/bin/opencode-tui
+RUN chmod +x /usr/local/bin/opencode-tui
 
 # Create a wrapper script to ensure OpenCode runs correctly
 RUN echo '#!/bin/bash\nexec /usr/local/bin/opencode.bin "$@"' > /usr/local/bin/opencode && \
