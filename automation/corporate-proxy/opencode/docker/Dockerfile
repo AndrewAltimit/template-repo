@@ -3,6 +3,9 @@
 
 FROM node:20-alpine
 
+# Add a non-root user
+RUN adduser -D -u 1001 appuser
+
 # Install Python for proxy services
 RUN apk add --no-cache python3 py3-pip bash curl
 
@@ -24,7 +27,15 @@ RUN echo '#!/bin/bash' > /app/start-services.sh && \
     echo 'exec "$@"' >> /app/start-services.sh && \
     chmod +x /app/start-services.sh
 
+# Set proper ownership for app and workspace directories
+RUN chown -R appuser:appuser /app && \
+    mkdir -p /workspace && \
+    chown -R appuser:appuser /workspace
+
 WORKDIR /workspace
+
+# Switch to the non-root user
+USER appuser
 
 # Environment variables for OpenCode to use our proxy
 ENV OPENROUTER_API_KEY="test-secret-token-123"

@@ -317,6 +317,63 @@ spec:
 - With connection pooling: ~500 req/s
 - Horizontal scaling: Linear with instances
 
+## Streaming Limitations
+
+### Current Implementation: Simulated Streaming
+
+The translation wrapper currently implements **simulated streaming** rather than true streaming. This is an important architectural limitation that affects performance for large responses.
+
+#### How It Works
+
+1. **Request Phase**: Client requests streaming response (`stream: true`)
+2. **Buffer Phase**: Wrapper makes complete request to Company API
+3. **Wait Phase**: Entire response is buffered in memory
+4. **Simulation Phase**: Response is sent as chunks to simulate streaming
+
+```python
+# Current implementation (simplified)
+def stream_response():
+    # Step 1: Get complete response from upstream
+    complete_response = company_api.call()  # BLOCKS until complete
+
+    # Step 2: Send as simulated chunks
+    yield f"data: {json.dumps(chunk_with_content)}\n\n"
+    yield f"data: {json.dumps(finish_chunk)}\n\n"
+    yield "data: [DONE]\n\n"
+```
+
+#### Impact on Large Responses
+
+For responses that take significant time to generate:
+
+| Response Size | Generation Time | Client Experience |
+|--------------|-----------------|-------------------|
+| Small (<1K tokens) | <5 seconds | Negligible impact |
+| Medium (1-4K tokens) | 5-15 seconds | Noticeable delay before first byte |
+| Large (4-8K tokens) | 15-30 seconds | **Risk of client timeout** |
+| Very Large (>8K tokens) | >30 seconds | **High risk of timeout** |
+
+#### Client Timeout Risks
+
+- **Crush/OpenCode Default Timeout**: 30 seconds
+- **First Byte Wait**: Entire generation time
+- **Mitigation**: Configure longer timeouts for large requests
+
+#### Why Not True Streaming?
+
+The Company Bedrock API does not currently support Server-Sent Events (SSE) or chunked responses. True streaming would require:
+
+1. Company API to support streaming responses
+2. Iterative processing with `requests.post(..., stream=True)`
+3. Real-time chunk transformation and forwarding
+
+#### Recommended Workarounds
+
+1. **Increase Client Timeouts**: For large generation tasks
+2. **Reduce Max Tokens**: Limit response size when possible
+3. **Use Non-Streaming Mode**: For better error handling
+4. **Monitor Response Times**: Track and alert on slow responses
+
 ## Failure Modes & Recovery
 
 ### Graceful Degradation

@@ -17,6 +17,10 @@ print_info "Running Crush with bypassed validation..."
 docker run --rm \
     -e COMPANY_API_BASE="http://localhost:8050" \
     -e COMPANY_API_TOKEN="test-secret-token-123" \
+    -e NO_COLOR=1 \
+    -e CRUSH_NO_SPINNER=1 \
+    -e CI=1 \
+    -t \
     crush-corporate:patched bash -c '
         # Start services
         python /app/mock_api.py > /dev/null 2>&1 &
@@ -30,8 +34,9 @@ docker run --rm \
         cd /workspace
 
         echo "Running Crush with a simple prompt..."
-        # Filter out the TTY error message while preserving the actual output
-        crush run "Say Hello from Crush Corporate Integration" 2>&1 | grep -v "Error running spinner"
+        # The wrapper script sets the environment variables to disable spinner
+        # But we also set them at container level for extra safety
+        crush run "Say Hello from Crush Corporate Integration"
     '
 
 print_success "Test completed!"

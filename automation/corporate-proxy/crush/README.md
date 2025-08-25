@@ -96,6 +96,31 @@ We implemented a wrapper script (`scripts/crush-wrapper.sh`) that creates a fake
 - Sets environment variables to force cache usage
 - Transparently launches the actual Crush binary
 
+### Important: Solution Fragility
+
+**Warning**: This bypass solution relies on Crush's internal implementation details and is inherently fragile:
+
+1. **Cache Path Dependency**: The solution assumes Crush stores its cache in `~/.local/share/crush`. If Crush changes this location in a future update, the bypass will fail.
+
+2. **Environment Variable Dependency**: We rely on the `CATWALK_URL` environment variable to force cache usage. If Crush changes how it handles provider validation or removes this override mechanism, the bypass will break.
+
+3. **Internal API Changes**: The structure of the `providers.json` cache file mimics Crush's internal format. Changes to this format will require updating our fake cache generation.
+
+4. **Version Sensitivity**: The solution is tested with Crush v0.8.0-nightly. Major version updates may introduce breaking changes.
+
+#### Mitigation Strategies
+
+While this fragility is acceptable for an internal corporate tool, consider these strategies:
+
+- **Version Pinning**: Always use a specific Crush version in the Dockerfile
+- **Automated Testing**: The test scripts help detect when the bypass breaks
+- **Fallback Options**: Keep OpenCode as an alternative if Crush bypass fails
+- **Monitor Updates**: Check Crush release notes for validation changes
+
+#### Long-term Solution
+
+The ideal solution would be for Crush to officially support custom provider configuration without Catwalk validation, or to allow disabling provider validation entirely for corporate use cases.
+
 ## Model Mapping
 
 | Crush Model | Company Endpoint |
