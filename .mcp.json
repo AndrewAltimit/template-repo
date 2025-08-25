@@ -37,8 +37,17 @@
       ]
     },
     "gemini": {
-      "command": "python3",
+      "command": "docker-compose",
       "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-gemini",
+        "python",
         "-m",
         "tools.mcp.gemini.server",
         "--mode",
@@ -46,7 +55,9 @@
       ],
       "env": {
         "GEMINI_MODEL": "gemini-2.5-pro",
-        "GEMINI_TIMEOUT": "300"
+        "GEMINI_TIMEOUT": "300",
+        "GEMINI_USE_CONTAINER": "false",
+        "_comment": "GEMINI_USE_CONTAINER is set to false to prevent docker-in-docker, as mcp-gemini itself runs in a container"
       }
     },
     "gaea2": {

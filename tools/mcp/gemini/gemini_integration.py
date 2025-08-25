@@ -77,6 +77,14 @@ class GeminiIntegration:
         )  # Large context for comprehensive understanding
         self.model = self.config.get("model", "gemini-2.5-pro")
 
+        # Container configuration
+        self.use_container = self.config.get("use_container", True)
+        self.container_image = self.config.get("container_image", "gemini-corporate-proxy:latest")
+        self.container_script = self.config.get(
+            "container_script", "/workspace/automation/corporate-proxy/gemini/scripts/run.sh"
+        )
+        self.yolo_mode = self.config.get("yolo_mode", False)
+
         # Conversation history for maintaining state
         self.conversation_history: List[Tuple[str, str]] = []
         self.max_history_entries = self.config.get("max_history_entries", 10)
@@ -251,6 +259,13 @@ class GeminiIntegration:
         """Execute Gemini CLI command and return results"""
         start_time = time.time()
 
+        if self.use_container:
+            return await self._execute_gemini_container(query, start_time)
+        else:
+            return await self._execute_gemini_direct(query, start_time)
+
+    async def _execute_gemini_direct(self, query: str, start_time: float) -> Dict[str, Any]:
+        """Execute Gemini CLI directly on the host"""
         # Build command - use stdin for multi-line prompts
         cmd = [self.cli_command]
         if self.model:
@@ -301,6 +316,127 @@ class GeminiIntegration:
 
         except asyncio.TimeoutError:
             raise Exception(f"Gemini CLI timed out after {self.timeout} seconds")
+
+    async def _execute_gemini_container(self, query: str, start_time: float) -> Dict[str, Any]:
+        """Execute Gemini CLI through Docker container"""
+        import os
+        import shutil
+        import tempfile
+
+        # Use the configured container image
+        container_image = self.container_image
+
+        # For corporate proxy container, we may need special handling in the future
+        # but for now, use the configured image as-is
+
+        # Create a temporary copy of .gemini directory for the container
+        temp_gemini_dir = None
+        try:
+            # Create temporary directory with proper permissions
+            temp_gemini_dir = tempfile.mkdtemp(prefix="gemini_")
+
+            # Copy .gemini contents to temp dir
+            src_gemini = os.path.expanduser("~/.gemini")
+            if os.path.exists(src_gemini):
+                for item in os.listdir(src_gemini):
+                    src_item = os.path.join(src_gemini, item)
+                    dst_item = os.path.join(temp_gemini_dir, item)
+                    if os.path.isfile(src_item):
+                        shutil.copy2(src_item, dst_item)
+                    elif os.path.isdir(src_item):
+                        shutil.copytree(src_item, dst_item)
+
+                # Set appropriate permissions for container (user-readable, not world-writable)
+                os.chmod(temp_gemini_dir, 0o755)
+                for root, dirs, files in os.walk(temp_gemini_dir):
+                    for d in dirs:
+                        os.chmod(os.path.join(root, d), 0o755)
+                    for f in files:
+                        os.chmod(os.path.join(root, f), 0o644)
+
+            # Build Docker command with user mapping
+            user_id = os.getuid()
+            group_id = os.getgid()
+
+            cmd = [
+                "docker",
+                "run",
+                "--rm",
+                "-i",
+                "-u",
+                f"{user_id}:{group_id}",  # Run as current user
+                "-v",
+                f"{temp_gemini_dir}:/home/node/.gemini",  # Use temp dir
+                "-v",
+                f"{os.getcwd()}:/workspace",
+            ]
+
+            # Add YOLO mode environment if configured
+            if self.yolo_mode:
+                cmd.extend(["-e", "GEMINI_APPROVAL_MODE=yolo"])
+
+            # Add the container image
+            cmd.append(container_image)
+
+            # Add Gemini command arguments (no need for "gemini" since it's the entrypoint)
+            if self.model:
+                cmd.extend(["-m", self.model])
+
+            # Add the prompt
+            cmd.extend(["-p", query])
+
+            # For multi-line queries, use stdin
+            if "\n" in query:
+                stdin_input = query.encode()
+                # Override with simple prompt when using stdin
+                cmd[-1] = "Please analyze the following:"
+            else:
+                stdin_input = None
+
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdin=asyncio.subprocess.PIPE if stdin_input else None,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+
+            stdout, stderr = await asyncio.wait_for(process.communicate(input=stdin_input), timeout=self.timeout)
+
+            execution_time = time.time() - start_time
+
+            if process.returncode != 0:
+                error_msg = stderr.decode() if stderr else "Unknown error"
+                if "authentication" in error_msg.lower() or "login required" in error_msg.lower():
+                    error_msg = (
+                        "Gemini authentication required. Please ensure ~/.gemini exists on the host "
+                        "with valid authentication. Run 'gemini' interactively on the host to authenticate."
+                    )
+                elif "docker" in error_msg.lower() and "not found" in error_msg.lower():
+                    error_msg = "Docker is not installed or not in PATH. Container mode requires Docker."
+                elif "no such image" in error_msg.lower():
+                    error_msg = f"Container image '{container_image}' not found. " "Please build or pull it first."
+                raise Exception(f"Gemini container execution failed: {error_msg}")
+
+            output = stdout.decode().strip()
+
+            # Check for authentication messages in stdout
+            if "login required" in output.lower() or "waiting for authentication" in output.lower():
+                raise Exception(
+                    "Gemini authentication required. Please ensure ~/.gemini exists on the host "
+                    "with valid authentication. Run 'gemini' interactively on the host to authenticate."
+                )
+
+            return {"output": output, "execution_time": execution_time}
+
+        except asyncio.TimeoutError:
+            raise Exception(f"Gemini container execution timed out after {self.timeout} seconds")
+        finally:
+            # Clean up temporary directory
+            if temp_gemini_dir and os.path.exists(temp_gemini_dir):
+                try:
+                    shutil.rmtree(temp_gemini_dir)
+                except Exception:
+                    pass
 
 
 # Singleton pattern implementation

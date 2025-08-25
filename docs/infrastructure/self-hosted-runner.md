@@ -70,7 +70,7 @@ This project uses **self-hosted runners exclusively** to:
    gemini
    ```
 
-   Note: Gemini CLI cannot be containerized as it may need to invoke Docker commands.
+   Note: Gemini CLI is now containerized. See `automation/corporate-proxy/gemini/` for implementation.
 
 6. **Python** (v3.11+)
 

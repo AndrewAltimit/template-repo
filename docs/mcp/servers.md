@@ -89,12 +89,12 @@ See `tools/mcp/content_creation/docs/README.md` for detailed documentation.
 
 ## Gemini MCP Server
 
-The Gemini server provides AI assistance through the Gemini CLI. It **must run on the host system** because it requires Docker access.
+The Gemini server provides AI assistance through the Gemini CLI. It can run on the host system or in a container.
 
 ### Starting the Server
 
 ```bash
-# Must run on host system (not in container)
+# Run on host system for development
 python -m tools.mcp.gemini.server
 
 # Or use HTTP mode
@@ -102,6 +102,12 @@ python -m tools.mcp.gemini.server --mode http
 
 # Or use the helper script
 ./tools/mcp/gemini/scripts/start_server.sh
+
+# Use containerized version with host auth
+./tools/cli/containers/run_gemini_container.sh
+
+# Or use corporate proxy version (mock mode)
+./automation/corporate-proxy/gemini/gemini
 
 # Test health
 curl http://localhost:8006/health
@@ -114,16 +120,20 @@ curl http://localhost:8006/health
 - **gemini_status** - Get integration status
 - **toggle_gemini_auto_consult** - Control auto-consultation
 
-### Container Detection
+### Containerization Options
 
-The server includes automatic container detection and will exit with an error if run in a container:
+Gemini CLI is now fully containerized with multiple options:
 
-```bash
-# This will fail with a helpful error message
-docker-compose run --rm python-ci python -m tools.mcp.gemini.server
-```
+1. **Standard container with host auth**: `tools/cli/containers/run_gemini_container.sh`
+   - Uses your host's `~/.gemini` authentication
+   - Supports YOLO mode for auto-approval
 
-See `tools/mcp/gemini/docs/README.md` for detailed documentation.
+2. **Corporate proxy version**: `automation/corporate-proxy/gemini/`
+   - Full containerization with mock API support
+   - Bypasses Google API validation
+   - Pre-configured authentication
+
+See `tools/mcp/gemini/docs/README.md` and `automation/corporate-proxy/gemini/README.md` for detailed documentation.
 
 ## Blender MCP Server
 

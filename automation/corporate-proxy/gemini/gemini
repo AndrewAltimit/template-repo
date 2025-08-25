@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Quick launcher for Gemini CLI with corporate proxy
+# Just run: ./gemini
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Run the container in interactive mode (auto-starts Gemini CLI)
+exec "$SCRIPT_DIR/scripts/run.sh" interactive

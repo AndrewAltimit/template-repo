@@ -23,9 +23,11 @@ These agents MUST run on the host system due to authentication requirements:
 - **Documentation**: See `docs/ai-agents/claude-auth.md`
 
 #### Gemini CLI
-- **Reason**: Requires Docker socket access for system operations
-- **Details**: Gemini needs to spawn containers and access Docker daemon
-- **Documentation**: See tools/mcp/gemini/docs/README.md
+- **UPDATE**: Now fully containerizable! See `automation/corporate-proxy/gemini/`
+- **Container Options**:
+  - Standard container with host auth: `tools/cli/containers/run_gemini_container.sh`
+  - Corporate proxy version: `automation/corporate-proxy/gemini/`
+- **Documentation**: See `automation/corporate-proxy/gemini/README.md`
 
 ### Containerizable Agents
 

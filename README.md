@@ -9,7 +9,7 @@ A comprehensive development ecosystem with 7 AI agents, 13 MCP servers, and comp
 This project follows a **container-first approach**:
 
 - **All Python tools and CI/CD operations run in Docker containers** for maximum portability
-- **MCP tools are containerized** except where Docker-in-Docker would be required (e.g., Gemini CLI)
+- **MCP tools are containerized** including Gemini CLI (see `automation/corporate-proxy/gemini/`)
 - **Zero external dependencies** - runs on any Linux system with Docker
 - **Self-hosted infrastructure** - no cloud costs, full control over runners
 - **Single maintainer design** - optimized for individual developer productivity
@@ -113,14 +113,23 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 │   │   └── core/             # Shared components
 │   └── cli/                  # Command-line tools
 │       ├── agents/           # Agent runner scripts
-│       │   ├── run_claude.sh         # Claude Code Runner
-│       │   ├── run_opencode.sh       # OpenCode runner
-│       │   ├── run_crush.sh          # Crush runner
-│       │   └── run_gemini.sh         # Gemini CLI runner
+│       │   ├── run_claude.sh              # Claude Code Runner
+│       │   ├── run_opencode.sh            # OpenCode runner
+│       │   ├── run_crush.sh               # Crush runner
+│       │   └── run_gemini.sh              # Gemini CLI runner
+│       ├── containers/       # Container runner scripts
+│       │   ├── run_opencode_container.sh  # OpenCode in container
+│       │   ├── run_crush_container.sh     # Crush in container
+│       │   └── run_gemini_container.sh    # Gemini in container
 │       └── utilities/        # Other CLI utilities
 ├── automation/               # CI/CD and automation scripts
 │   ├── analysis/             # Code and project analysis tools
 │   ├── ci-cd/                # CI/CD pipeline scripts
+│   ├── corporate-proxy/      # Corporate proxy integrations
+│   │   ├── gemini/           # Containerized Gemini CLI
+│   │   ├── opencode/         # OpenCode proxy wrapper
+│   │   ├── crush/            # Crush proxy wrapper
+│   │   └── shared/           # Shared proxy components
 │   ├── launchers/            # Service launcher scripts
 │   ├── monitoring/           # Service and PR monitoring
 │   ├── review/               # Code review automation
@@ -144,7 +153,7 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 2. **Content Creation** - Manim animations, LaTeX, TikZ diagrams
 3. **Gaea2** - Terrain generation ([Documentation](tools/mcp/gaea2/docs/README.md))
 4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/blender/docs/README.md))
-5. **Gemini** - AI consultation (host-only due to Docker requirements)
+5. **Gemini** - AI consultation (containerized and host modes available)
 6. **OpenCode** - Comprehensive code generation (STDIO mode via Claude)
 7. **Crush** - Fast code snippets (STDIO mode via Claude)
 8. **Meme Generator** - Create memes with templates

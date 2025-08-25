@@ -238,6 +238,37 @@ services:
     profiles:
       - services
 
+  # Gemini MCP Server
+  mcp-gemini:
+    build:
+      context: .
+      dockerfile: docker/mcp-gemini.Dockerfile
+      args:
+        USER_ID: "${USER_ID:-1000}"
+        GROUP_ID: "${GROUP_ID:-1000}"
+    container_name: mcp-gemini
+    volumes:
+      - ~/.gemini:/home/geminiuser/.gemini  # Mount host Gemini auth
+      - ./:/workspace:ro  # Mount workspace for file access (read-only)
+    environment:
+      - PYTHONUNBUFFERED=1
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-pro}
+      - GEMINI_TIMEOUT=${GEMINI_TIMEOUT:-300}
+      - GEMINI_USE_CONTAINER=false  # Disable nested containerization
+      - HOME=/home/geminiuser  # Set home directory for .gemini access
+    networks:
+      - mcp-network
+    # For stdio mode, we don't need a long-running service
+    stdin_open: true
+    tty: false
+    healthcheck:
+      test: ["CMD-SHELL", "gemini --help > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    profiles:
+      - services
+
   # Virtual Character MCP Server (Middleware only - VRChat runs on remote Windows)
   # This is the middleware that bridges AI agents to virtual platforms.
   # For VRChat: Connects to Windows machine at VRCHAT_REMOTE_HOST (default 192.168.0.152)

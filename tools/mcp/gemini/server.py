@@ -8,27 +8,13 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ..core.base_server import BaseMCPServer
-from ..core.utils import check_container_environment, setup_logging
+from ..core.utils import setup_logging
 
 
 class GeminiMCPServer(BaseMCPServer):
     """MCP Server for Gemini AI integration and consultation"""
 
     def __init__(self, project_root: Optional[str] = None):
-        # Check if running in container and exit if true
-        if check_container_environment():
-            print(
-                "ERROR: Gemini MCP Server cannot run inside a container!",
-                file=sys.stderr,
-            )
-            print(
-                "The Gemini CLI requires Docker access and must run on the host system.",
-                file=sys.stderr,
-            )
-            print("Please launch this server directly on the host with:", file=sys.stderr)
-            print("  python -m tools.mcp.gemini.server", file=sys.stderr)
-            sys.exit(1)
-
         super().__init__(
             name="Gemini MCP Server",
             version="1.0.0",
@@ -75,6 +61,12 @@ class GeminiMCPServer(BaseMCPServer):
             "debug_mode": os.getenv("GEMINI_DEBUG", "false").lower() == "true",
             "include_history": os.getenv("GEMINI_INCLUDE_HISTORY", "true").lower() == "true",
             "max_history_entries": int(os.getenv("GEMINI_MAX_HISTORY", "10")),
+            "use_container": os.getenv("GEMINI_USE_CONTAINER", "true").lower() == "true",
+            "container_image": os.getenv("GEMINI_CONTAINER_IMAGE", "gemini-corporate-proxy:latest"),
+            "container_script": os.getenv(
+                "GEMINI_CONTAINER_SCRIPT", "/workspace/automation/corporate-proxy/gemini/scripts/run.sh"
+            ),
+            "yolo_mode": os.getenv("GEMINI_YOLO_MODE", "false").lower() == "true",
         }
 
         # Try to load from config file
