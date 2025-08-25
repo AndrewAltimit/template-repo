@@ -36,6 +36,8 @@ cd "$CORPORATE_PROXY_DIR"
 if docker build \
     -f gemini/docker/Dockerfile \
     --build-arg GEMINI_VERSION="$GEMINI_VERSION" \
+    --build-arg USER_ID="$(id -u)" \
+    --build-arg GROUP_ID="$(id -g)" \
     -t "$FULL_IMAGE" \
     .; then
     echo ""

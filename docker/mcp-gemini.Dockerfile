@@ -16,8 +16,9 @@ ARG USER_ID=1000
 ARG GROUP_ID=1000
 
 # Create a user with proper passwd entry (matching host UID/GID)
-RUN groupadd -g ${GROUP_ID} geminiuser && \
-    useradd -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/bash geminiuser
+# Handle cases where the group/user might already exist
+RUN (getent group ${GROUP_ID} || groupadd -g ${GROUP_ID} geminiuser) && \
+    (getent passwd ${USER_ID} || useradd -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/bash geminiuser)
 
 # Set working directory
 WORKDIR /app

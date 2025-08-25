@@ -38,8 +38,16 @@ ARG USER_ID=1000
 ARG GROUP_ID=1000
 
 # Add a non-root user with configurable UID/GID
-RUN groupadd -g ${GROUP_ID} appuser && \
-    useradd -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/bash appuser
+# If the UID/GID already exists (e.g., node user), we'll use that
+# Store the actual username for later use
+RUN if getent passwd ${USER_ID} >/dev/null 2>&1; then \
+        APP_USER=$(getent passwd ${USER_ID} | cut -d: -f1); \
+    else \
+        APP_USER=appuser; \
+        groupadd -g ${GROUP_ID} ${APP_USER} || true; \
+        useradd -m -u ${USER_ID} -g ${GROUP_ID} -s /bin/bash ${APP_USER}; \
+    fi && \
+    echo "export APP_USER=${APP_USER:-appuser}" >> /etc/environment
 
 # Install Python for proxy services and runtime dependencies
 RUN apt-get update && apt-get install -y \
@@ -81,25 +89,29 @@ COPY gemini/scripts/gemini-wrapper.sh /app/gemini-wrapper.sh
 RUN chmod +x /app/gemini-wrapper.sh
 
 # Create Gemini config directories and pre-configure auth
-RUN mkdir -p /home/appuser/.config/gemini-cli /home/appuser/.cache/gemini-cli && \
-    mkdir -p /home/appuser/.local/share /home/appuser/.local/bin && \
-    mkdir -p /home/appuser/.gemini && \
-    echo '{"selectedAuthType":"gemini-api-key"}' > /home/appuser/.gemini/settings.json && \
-    chown -R appuser:appuser /home/appuser
+# Use the actual user ID to ensure ownership works
+RUN USER_HOME=$(getent passwd ${USER_ID} | cut -d: -f6) && \
+    mkdir -p ${USER_HOME}/.config/gemini-cli ${USER_HOME}/.cache/gemini-cli && \
+    mkdir -p ${USER_HOME}/.local/share ${USER_HOME}/.local/bin && \
+    mkdir -p ${USER_HOME}/.gemini && \
+    echo '{"selectedAuthType":"gemini-api-key"}' > ${USER_HOME}/.gemini/settings.json && \
+    chown -R ${USER_ID}:${GROUP_ID} ${USER_HOME}
 
 # Set proper ownership for app and workspace directories
-RUN chown -R appuser:appuser /app && \
+RUN chown -R ${USER_ID}:${GROUP_ID} /app && \
     mkdir -p /workspace && \
-    chown -R appuser:appuser /workspace && \
-    chown -R appuser:appuser /opt/gemini-cli
+    chown -R ${USER_ID}:${GROUP_ID} /workspace && \
+    chown -R ${USER_ID}:${GROUP_ID} /opt/gemini-cli
 
 WORKDIR /workspace
 
 # Switch to the non-root user
-USER appuser
+USER ${USER_ID}
 
 # Set HOME for Gemini CLI to find config
-ENV HOME=/home/appuser
+# Dynamically set based on the actual user
+RUN echo "export HOME=$(getent passwd ${USER_ID} | cut -d: -f6)" >> ~/.bashrc
+ENV HOME=/home/node
 
 # Environment variables for Gemini CLI to use our proxy
 ENV GEMINI_API_KEY="dummy-key-for-proxy"
