@@ -7,6 +7,7 @@ Translates between OpenAI format (from OpenCode) and Company Bedrock format
 import json
 import logging
 import os
+from pathlib import Path
 
 import requests
 from flask import Flask, Response, jsonify, request, stream_with_context
@@ -23,17 +24,54 @@ CORS(app)
 COMPANY_API_BASE = os.environ.get("COMPANY_API_BASE", "http://localhost:8050")
 COMPANY_API_TOKEN = os.environ.get("COMPANY_API_TOKEN", "test-secret-token-123")
 
-# Model mapping from OpenCode to Company endpoints
-MODEL_ENDPOINTS = {
-    # Company naming
-    "company/claude-3.5-sonnet": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
-    "company/claude-3-opus": "ai-coe-bedrock-claude3-opus:analyze=null",
-    "company/gpt-4": "ai-coe-bedrock-gpt4:analyze=null",
-    # OpenRouter naming (for compatibility)
-    "openrouter/anthropic/claude-3.5-sonnet": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
-    "openrouter/anthropic/claude-3-opus": "ai-coe-bedrock-claude3-opus:analyze=null",
-    "openrouter/openai/gpt-4": "ai-coe-bedrock-gpt4:analyze=null",
-}
+
+# Load model configuration from JSON file
+def load_model_config():
+    """Load model configuration from models.json"""
+    config_path = Path(__file__).parent.parent / "configs" / "models.json"
+    try:
+        with open(config_path, "r") as f:
+            config = json.load(f)
+
+        # Build MODEL_ENDPOINTS from config
+        endpoints = {}
+
+        # Add direct model mappings
+        for model_key, model_data in config.get("models", {}).items():
+            endpoints[model_data["id"]] = model_data["endpoint"]
+            # Also add by key for compatibility
+            endpoints[model_key] = model_data["endpoint"]
+
+        # Add model aliases
+        for alias, target in config.get("model_aliases", {}).items():
+            if target in config.get("models", {}):
+                endpoints[alias] = config["models"][target]["endpoint"]
+
+        # Add hardcoded OpenAI model mappings for Crush compatibility
+        # Maps common OpenAI model names to Company endpoints
+        if "claude-3.5-sonnet" in config.get("models", {}):
+            endpoints["gpt-4"] = config["models"]["claude-3.5-sonnet"]["endpoint"]
+        if "claude-3-opus" in config.get("models", {}):
+            endpoints["gpt-3.5-turbo"] = config["models"]["claude-3-opus"]["endpoint"]
+
+        return endpoints
+    except Exception as e:
+        logger.error(f"Failed to load models.json, using fallback configuration: {e}")
+        # Fallback to hardcoded values if config file is unavailable
+        return {
+            "gpt-4": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
+            "gpt-3.5-turbo": "ai-coe-bedrock-claude3-opus:analyze=null",
+            "company/claude-3.5-sonnet": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
+            "company/claude-3-opus": "ai-coe-bedrock-claude3-opus:analyze=null",
+            "company/gpt-4": "ai-coe-bedrock-gpt4:analyze=null",
+            "openrouter/anthropic/claude-3.5-sonnet": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
+            "openrouter/anthropic/claude-3-opus": "ai-coe-bedrock-claude3-opus:analyze=null",
+            "openrouter/openai/gpt-4": "ai-coe-bedrock-gpt4:analyze=null",
+        }
+
+
+# Load model endpoints from configuration
+MODEL_ENDPOINTS = load_model_config()
 
 
 @app.route("/v1/chat/completions", methods=["POST"])
@@ -152,9 +190,15 @@ def chat_completions():
 
             return jsonify(openai_response)
 
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Company API request error: {e}")
+        return jsonify({"error": "Failed to connect to Company API", "details": str(e)}), 503
+    except KeyError as e:
+        logger.error(f"Response parsing error: {e}")
+        return jsonify({"error": "Invalid response format from Company API", "details": str(e)}), 502
     except Exception as e:
-        logger.error(f"Error processing request: {e}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Unexpected error processing request: {e}")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
 
 
 @app.route("/v1/models", methods=["GET"])
