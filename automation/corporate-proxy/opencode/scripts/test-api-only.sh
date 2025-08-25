@@ -14,20 +14,28 @@ docker run --rm \
     -e COMPANY_API_BASE="http://localhost:8050" \
     -e COMPANY_API_TOKEN="test-secret-token-123" \
     -v "$SCRIPT_DIR/../../shared/services:/app:ro" \
-    python:3.11-alpine sh -c '
-        # Install dependencies
+    python:3.11-alpine /bin/sh -c '
+        # Install dependencies and curl for health checks
+        apk add --no-cache curl > /dev/null 2>&1
         pip install --quiet flask flask-cors requests
 
         # Start mock API in background
-        python /app/mock_api.py > /dev/null 2>&1 &
+        python /app/mock_api.py &
+        MOCK_PID=$!
 
         # Start translation wrapper in background
-        python /app/translation_wrapper.py > /dev/null 2>&1 &
+        python /app/translation_wrapper.py &
+        WRAPPER_PID=$!
+
+        # Give services a moment to start
+        sleep 2
 
         # Wait for services to start with health checks
         echo "Waiting for mock API to be ready..."
-        for i in {1..30}; do
-            if python -c "import requests; requests.get('http://localhost:8050/health')" 2>/dev/null; then
+        i=0
+        while [ $i -lt 30 ]; do
+            i=$((i + 1))
+            if curl -s http://localhost:8050/health > /dev/null 2>&1; then
                 echo "✓ Mock API is ready"
                 break
             fi
@@ -39,8 +47,10 @@ docker run --rm \
         done
 
         echo "Waiting for translation wrapper to be ready..."
-        for i in {1..30}; do
-            if python -c "import requests; requests.get('http://localhost:8052/health')" 2>/dev/null; then
+        i=0
+        while [ $i -lt 30 ]; do
+            i=$((i + 1))
+            if curl -s http://localhost:8052/health > /dev/null 2>&1; then
                 echo "✓ Translation wrapper is ready"
                 break
             fi

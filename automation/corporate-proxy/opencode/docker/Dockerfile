@@ -1,16 +1,37 @@
 # Simple OpenCode Corporate Proxy Container
-# Without patches - uses environment variables for configuration
+# Builds OpenCode from source and includes translation services
 
+# Stage 1: Clone OpenCode source
+FROM alpine/git AS source
+ARG OPENCODE_VERSION=3edab6056042
+WORKDIR /source
+RUN git clone https://github.com/sst/opencode.git && \
+    cd opencode && \
+    if [ "$OPENCODE_VERSION" != "HEAD" ]; then \
+        git checkout "$OPENCODE_VERSION"; \
+    fi
+
+# Stage 2: Build OpenCode
+FROM oven/bun:1 AS builder
+WORKDIR /build
+COPY --from=source /source/opencode ./opencode
+WORKDIR /build/opencode
+RUN bun install
+WORKDIR /build/opencode/packages/opencode
+RUN bun build ./src/index.ts --compile --outfile opencode
+
+# Stage 3: Runtime container
 FROM node:20-alpine
 
 # Add a non-root user
 RUN adduser -D -u 1001 appuser
 
-# Install Python for proxy services
-RUN apk add --no-cache python3 py3-pip bash curl
+# Install Python for proxy services and runtime dependencies
+RUN apk add --no-cache python3 py3-pip bash curl git
 
-# Install OpenCode CLI via npm
-RUN npm install -g @sst/opencode
+# Copy the compiled OpenCode binary
+COPY --from=builder /build/opencode/packages/opencode/opencode /usr/local/bin/opencode
+RUN chmod +x /usr/local/bin/opencode
 
 # Install Python dependencies for proxy
 RUN pip3 install --break-system-packages flask flask-cors requests
