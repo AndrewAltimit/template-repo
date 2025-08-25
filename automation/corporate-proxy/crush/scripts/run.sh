@@ -17,14 +17,54 @@ build_if_needed "crush-corporate:latest" "$SCRIPT_DIR/../docker/Dockerfile" "$CO
 # Clean up any existing container
 cleanup_container "crush-corporate"
 
+# Prepare command based on arguments
+if [ $# -eq 0 ]; then
+    # No arguments - launch interactive shell
+    print_info "Launching interactive shell with Crush..."
+    CONTAINER_CMD=("bash")
+elif [ "$1" = "run" ]; then
+    # Explicit run command
+    shift  # Remove 'run' from arguments
+    print_info "Running Crush with message: $*"
+    CONTAINER_CMD=("run" "$*")
+elif [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    # Show help
+    echo "Usage: $0 [OPTIONS] [COMMAND]"
+    echo ""
+    echo "Options:"
+    echo "  (no arguments)        Launch interactive shell"
+    echo "  <message>             Run Crush with a message"
+    echo "  run <message>         Explicitly run with a message"
+    echo "  --help, -h            Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                    # Launch interactive shell"
+    echo "  $0 'say hello'        # Run with message"
+    echo "  $0 run 'say hello'    # Explicitly run with message"
+    exit 0
+else
+    # Assume any other arguments are a message to run
+    print_info "Running Crush with message: $*"
+    CONTAINER_CMD=("run" "$*")
+fi
+
 # Run the container
 print_info "Starting Crush with mock services..."
+
+# Detect if we have a TTY
+if [ -t 0 ]; then
+    TTY_FLAG="-it"
+else
+    TTY_FLAG=""
+fi
+
 # Note: Running as container's appuser to ensure proper permissions
-docker run -it --rm \
+# shellcheck disable=SC2086
+docker run $TTY_FLAG --rm \
     --name crush-corporate \
     -v "$(pwd):/workspace:rw" \
     -e COMPANY_API_BASE="http://localhost:8050" \
     -e COMPANY_API_TOKEN="test-secret-token-123" \
     -e WRAPPER_PORT="8052" \
     -e MOCK_API_PORT="8050" \
-    crush-corporate:latest "$@"
+    crush-corporate:latest "${CONTAINER_CMD[@]}"

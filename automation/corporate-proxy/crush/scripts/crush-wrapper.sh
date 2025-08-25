@@ -4,9 +4,7 @@
 set -e
 
 # Colors for output
-RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Ensure cache directory exists
@@ -14,6 +12,10 @@ CRUSH_DATA_DIR="${HOME}/.local/share/crush"
 CRUSH_CONFIG_DIR="${HOME}/.config/crush"
 mkdir -p "${CRUSH_DATA_DIR}"
 mkdir -p "${CRUSH_CONFIG_DIR}"
+
+# Set Crush's project data directory to user's home
+export CRUSH_DIR="${HOME}/.crush"
+mkdir -p "${CRUSH_DIR}"
 
 # Create fake provider cache that matches Catwalk format
 # This cache tells Crush that OpenAI is a valid provider
@@ -106,6 +108,9 @@ export CRUSH_NO_SPINNER=1
 export CI=1
 
 echo -e "${GREEN}Starting Crush with bypassed provider validation...${NC}"
+
+# Change to home directory where we have write permissions
+cd "${HOME}"
 
 # Run the actual crush binary with all arguments
 exec /usr/local/bin/crush-binary "$@"
