@@ -34,8 +34,12 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the compiled OpenCode binary
-COPY --from=builder /build/opencode/packages/opencode/opencode /usr/local/bin/opencode
-RUN chmod +x /usr/local/bin/opencode
+COPY --from=builder /build/opencode/packages/opencode/opencode /usr/local/bin/opencode.bin
+RUN chmod +x /usr/local/bin/opencode.bin
+
+# Create a wrapper script to ensure OpenCode runs correctly
+RUN echo '#!/bin/bash\nexec /usr/local/bin/opencode.bin "$@"' > /usr/local/bin/opencode && \
+    chmod +x /usr/local/bin/opencode
 
 # Install Python dependencies for proxy
 RUN pip3 install --break-system-packages flask flask-cors requests

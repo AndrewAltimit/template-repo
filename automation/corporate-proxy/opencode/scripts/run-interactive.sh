@@ -3,6 +3,7 @@ set -e
 
 # Get script directory and load common functions
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# shellcheck source=/dev/null
 source "$SCRIPT_DIR/../../shared/scripts/common-functions.sh"
 
 print_header "Starting OpenCode Interactive Session"
@@ -10,9 +11,10 @@ print_header "Starting OpenCode Interactive Session"
 # Build if needed
 build_if_needed "opencode-corporate:latest" "$SCRIPT_DIR/../docker/Dockerfile" "$CORPORATE_PROXY_ROOT"
 
-print_info "Starting interactive OpenCode session..."
+print_info "Starting interactive shell with OpenCode environment..."
 print_info "Services will start automatically inside the container"
-print_info "Use 'opencode ask \"your question\"' to test"
+print_info "Use '/usr/local/bin/opencode' to run OpenCode"
+print_info "Or 'opencode run \"your question\"' for one-off queries"
 
 # Run interactive session
 docker run --rm -it \
