@@ -31,7 +31,7 @@ docker run --rm -it \
         # Wait for services with health checks
         echo "Waiting for services to start..."
         for i in {1..30}; do
-            if curl -s http://localhost:8050/health > /dev/null 2>&1; then
+            if curl -fsS http://localhost:8050/health > /dev/null; then
                 echo "✓ Mock API is ready"
                 break
             fi
@@ -43,7 +43,7 @@ docker run --rm -it \
         done
 
         for i in {1..30}; do
-            if curl -s http://localhost:8052/health > /dev/null 2>&1; then
+            if curl -fsS http://localhost:8052/health > /dev/null; then
                 echo "✓ Translation wrapper is ready"
                 break
             fi

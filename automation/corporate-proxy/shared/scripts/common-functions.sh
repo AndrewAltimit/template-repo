@@ -75,7 +75,7 @@ wait_for_service() {
     print_info "Waiting for $service_name to be ready..."
 
     for i in $(seq 1 $max_attempts); do
-        if curl -s "$url" > /dev/null 2>&1; then
+        if curl -fsS "$url" > /dev/null; then
             print_info "✓ $service_name is ready"
             return 0
         fi

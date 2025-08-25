@@ -23,7 +23,7 @@ MOCK_PID=$!
 # Wait for mock API to be ready
 echo "Waiting for mock API to be ready..."
 for i in {1..30}; do
-    if curl -s http://localhost:8050/health > /dev/null; then
+    if curl -fsS http://localhost:8050/health > /dev/null; then
         echo "✓ Mock API is ready"
         break
     fi
@@ -42,7 +42,7 @@ WRAPPER_PID=$!
 # Wait for wrapper to be ready
 echo "Waiting for translation wrapper to be ready..."
 for i in {1..30}; do
-    if curl -s http://localhost:8052/health > /dev/null; then
+    if curl -fsS http://localhost:8052/health > /dev/null; then
         echo "✓ Translation wrapper is ready"
         break
     fi
