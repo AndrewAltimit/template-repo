@@ -14,14 +14,16 @@ Movement now works! The issue was that emotes on this avatar are **toggle-based*
 - ✅ Movement commands (forward, backward, strafe)
 - ✅ Automatic emote clearing for movement
 
-## Important: Toggle-Based Emote Behavior
+## Important: Toggle-Based Emote Behavior (CORRECTED)
 
 This avatar uses **toggle-based emotes**, which means:
 - Emotes stay active until explicitly turned off
-- The same emote value must be sent again to toggle it off, OR
-- Send VRCEmote = 0 to clear any active emote
+- **To toggle OFF an emote: Send the SAME value again (not 0!)**
+- Example: Send VRCEmote=6 to start backflip, send VRCEmote=6 again to stop
+- Sending VRCEmote=0 does NOT clear emotes on this avatar
 - Some emotes (like backflip) lock movement while active
-- Movement commands automatically clear active emotes to prevent being stuck
+- Movement commands automatically toggle off active emotes using this method
+- When switching emotes, the system toggles off the current one first
 
 ## Movement System Overview
 
