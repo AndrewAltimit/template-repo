@@ -71,6 +71,53 @@ workflow = WorkflowFactory.create_sdxl_workflow(
 **Model Type**: FLUX
 **Default LoRA**: Inkpunk_Flux.safetensors
 
+### 7. WAN 2.2 Text-to-Video (`wan22_text2video`)
+**Description**: Generate videos from text prompts using WAN 2.2 model
+**Model Type**: Video
+**Default Parameters**:
+- Width/Height: 1280x704 (optimal resolution)
+- Video Frames: 121 frames (~5 seconds at 24fps)
+- Steps: 30
+- CFG Scale: 5.0
+- Sampler: uni_pc
+- Scheduler: simple
+- Output Format: WebP (animated) or WebM
+
+**Example**:
+```python
+workflow = WorkflowFactory.create_wan22_video_workflow(
+    prompt="a snowshow cat bobbing her head back and forth to the sound of music",
+    negative_prompt="static, blurry, low quality",
+    width=1280,
+    height=704,
+    video_frames=121,
+    steps=30,
+    cfg_scale=5.0,
+    output_format="webp"
+)
+```
+
+### 8. WAN 2.2 Image-to-Video (`wan22_image2video`)
+**Description**: Generate videos from a starting image using WAN 2.2 model
+**Model Type**: Video
+**Key Parameters**:
+- `start_image`: Base64 encoded starting image
+- Same parameters as text-to-video
+
+**Example**:
+```python
+with open("start_frame.jpg", "rb") as f:
+    image_data = base64.b64encode(f.read()).decode()
+
+workflow = WorkflowFactory.create_wan22_video_workflow(
+    prompt="make the cat dance to music",
+    start_image=image_data,
+    width=1280,
+    height=704,
+    video_frames=121
+)
+```
+
 ## Model Support
 
 ### Currently Supported Models
@@ -86,8 +133,14 @@ workflow = WorkflowFactory.create_sdxl_workflow(
 
 #### VAE Models
 - `ae.safetensors` - Standard autoencoder
-- `wan2.2_vae.safetensors` - WAN VAE version 2.2
+- `wan2.2_vae.safetensors` - WAN VAE version 2.2 (for video)
 - `wan_2.1_vae.safetensors` - WAN VAE version 2.1
+
+#### Video Models
+- `wan2.2_ti2v_5B_fp16.safetensors` - WAN 2.2 Text/Image-to-Video model (5B parameters)
+
+#### Video CLIP Models
+- `umt5_xxl_fp8_e4m3fn_scaled.safetensors` - UMT5 XXL for video text encoding
 
 ## Usage Examples
 
@@ -123,6 +176,31 @@ workflow = WorkflowFactory.create_flux_workflow(
 result = await mcp_client.call_tool("generate_image", workflow=workflow)
 ```
 
+### Video Generation
+
+```python
+# Text-to-Video
+workflow = WorkflowFactory.create_wan22_video_workflow(
+    prompt="a cat playing piano, smooth motion, high quality",
+    negative_prompt="static, stuttering, low fps, blurry",
+    video_frames=121,
+    fps=24,
+    output_format="webm"
+)
+result = await mcp_client.call_tool("generate_image", workflow=workflow)
+
+# Image-to-Video (animate a static image)
+with open("cat.jpg", "rb") as f:
+    start_img = base64.b64encode(f.read()).decode()
+
+workflow = WorkflowFactory.create_wan22_video_workflow(
+    prompt="cat turns head and blinks",
+    start_image=start_img,
+    video_frames=60  # Shorter animation
+)
+result = await mcp_client.call_tool("generate_image", workflow=workflow)
+```
+
 ### Image-to-Image
 
 ```python
@@ -152,6 +230,15 @@ result = await mcp_client.call_tool("generate_image", workflow=workflow)
 - **Scheduler**: karras
 - **Resolution**: 1024x1024
 
+### WAN 2.2 Video
+- **CFG Scale**: 4.0-6.0 (5.0 optimal)
+- **Steps**: 25-35 (30 optimal)
+- **Sampler**: uni_pc, dpmpp_2m
+- **Scheduler**: simple, normal
+- **Resolution**: 1280x704 (optimal), 960x544 (faster)
+- **Frames**: 121 (5 seconds), 61 (2.5 seconds), 241 (10 seconds)
+- **FPS**: 24 (standard), 30 (smooth), 12 (stylized)
+
 ## Advanced Features
 
 ### Custom Workflows
@@ -172,11 +259,46 @@ The workflow factory supports creating workflows with batch sizes > 1 for genera
 - Use `seed=-1` for random seeds
 - Provide specific seed values for reproducible results
 
+## Video Generation Tips
+
+### WAN 2.2 Best Practices
+
+1. **Resolution**: 1280x704 is optimal, but you can use:
+   - 960x544 for faster generation
+   - 1920x1056 for higher quality (slower)
+
+2. **Frame Count**:
+   - 61 frames (~2.5 seconds) - Quick tests
+   - 121 frames (~5 seconds) - Standard
+   - 241 frames (~10 seconds) - Extended (much slower)
+
+3. **Prompting for Video**:
+   - Include motion words: "walking", "turning", "dancing", "flowing"
+   - Specify camera movement: "camera pans left", "zoom in", "rotating view"
+   - Add temporal descriptions: "gradually", "slowly", "quickly"
+
+4. **Negative Prompts for Video**:
+   - Always include: "static", "still image", "no motion"
+   - Quality terms: "stuttering", "jerky motion", "inconsistent frames"
+   - Avoid artifacts: "morphing", "flickering", "unstable"
+
+5. **Image-to-Video Tips**:
+   - Start image should match the target resolution
+   - Clear subjects work better than busy scenes
+   - Prompt should describe the desired motion, not the image content
+
+### Output Formats
+
+- **WebP**: Smaller file size, good for web, wide support
+- **WebM**: Better quality, VP9 codec, ideal for video players
+
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Timeout Errors**: Increase timeout parameter or reduce image resolution/steps
+1. **Timeout Errors**:
+   - For images: Increase timeout or reduce resolution/steps
+   - For videos: Use timeout=600 or more (video generation is slow)
 2. **LoRA Not Working**: Ensure LoRA is compatible with the base model
 3. **VAE Errors**: Some models include VAE, others need explicit VAE loading
 
@@ -217,6 +339,9 @@ List available models by type (checkpoint, lora, vae, embeddings).
 - [ ] Inpainting workflow support
 - [ ] Multi-ControlNet support
 - [ ] IP-Adapter integration
-- [ ] AnimateDiff support
+- [x] Video generation support (WAN 2.2)
+- [ ] AnimateDiff support for SDXL video
 - [ ] Regional prompting
 - [ ] SDXL Refiner support
+- [ ] Video interpolation workflows
+- [ ] Video-to-video style transfer

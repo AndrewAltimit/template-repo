@@ -4,9 +4,10 @@ The ComfyUI MCP Server provides a Model Context Protocol interface for AI image 
 
 ## Overview
 
-This MCP server provides an interface to ComfyUI for AI image generation. It can run locally or connect to a remote instance. Features include:
+This MCP server provides an interface to ComfyUI for AI image and video generation. It can run locally or connect to a remote instance. Features include:
 
-- Advanced workflow system with FLUX and SDXL support
+- Advanced workflow system with FLUX, SDXL, and WAN 2.2 video support
+- Text-to-video and image-to-video generation
 - LoRA and checkpoint model management
 - Custom ComfyUI workflow execution
 - Image-to-image, upscaling, and ControlNet support
@@ -95,6 +96,31 @@ workflow = WorkflowFactory.create_flux_workflow(
 result = await generate_image(workflow=workflow)
 ```
 
+### Generate Video with WAN 2.2
+```python
+# Text-to-video generation
+workflow = WorkflowFactory.create_wan22_video_workflow(
+    prompt="a cat playing with a ball of yarn, smooth motion",
+    negative_prompt="static, blurry, choppy",
+    width=1280,
+    height=704,
+    video_frames=121,  # 5 seconds at 24fps
+    output_format="webm"
+)
+result = await generate_image(workflow=workflow, timeout=600)  # Longer timeout for video
+
+# Image-to-video (animate a still image)
+with open("cat.jpg", "rb") as f:
+    start_image = base64.b64encode(f.read()).decode()
+
+workflow = WorkflowFactory.create_wan22_video_workflow(
+    prompt="cat slowly turns head and blinks",
+    start_image=start_image,
+    video_frames=60  # 2.5 seconds
+)
+result = await generate_image(workflow=workflow)
+```
+
 ### Upload LoRA (Chunked)
 ```python
 # For files >100MB
@@ -121,6 +147,7 @@ await upload_lora_chunked_complete(upload_id=init_result["upload_id"])
 ### Current Models
 - **FLUX**: `flux1-dev-fp8.safetensors` - Latest FLUX development model
 - **SDXL**: `illustriousXL_smoothftSOLID.safetensors` - High-quality anime/illustration
+- **Video**: `wan2.2_ti2v_5B_fp16.safetensors` - WAN 2.2 text/image-to-video model
 - **LoRA**: `Inkpunk_Flux.safetensors` - Inkpunk art style for FLUX
 
 ### Model-Specific Settings
@@ -136,6 +163,13 @@ await upload_lora_chunked_complete(upload_id=init_result["upload_id"])
 - **Steps**: 25-40
 - **Sampler**: dpmpp_2m, dpmpp_sde
 - **Scheduler**: karras
+
+#### WAN 2.2 Video
+- **CFG Scale**: 4.0-6.0 (5.0 optimal)
+- **Steps**: 25-35 (30 optimal)
+- **Sampler**: uni_pc
+- **Resolution**: 1280x704 (optimal)
+- **Frames**: 121 frames (~5 seconds at 24fps)
 
 For comprehensive workflow documentation, see [WORKFLOWS.md](WORKFLOWS.md).
 

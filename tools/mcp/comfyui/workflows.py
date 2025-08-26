@@ -275,6 +275,128 @@ class WorkflowFactory:
         return workflow
 
     @staticmethod
+    def create_wan22_video_workflow(
+        prompt: str,
+        negative_prompt: str = "",
+        start_image: Optional[str] = None,  # Base64 encoded start image for img2video
+        width: int = 1280,
+        height: int = 704,
+        video_frames: int = 121,
+        seed: int = -1,
+        steps: int = 30,
+        cfg_scale: float = 5.0,
+        sampler_name: str = "uni_pc",
+        scheduler: str = "simple",
+        output_format: str = "webp",  # "webp" or "webm"
+        fps: float = 24.0,
+    ) -> Dict[str, Any]:
+        """Create a WAN 2.2 video generation workflow (text-to-video or image-to-video)"""
+        if seed == -1:
+            seed = random.randint(0, 2**32 - 1)
+
+        workflow: Dict[str, Any] = {
+            # Model loaders
+            "37": {
+                "inputs": {"unet_name": "wan2.2_ti2v_5B_fp16.safetensors", "weight_dtype": "default"},
+                "class_type": "UNETLoader",
+            },
+            "38": {
+                "inputs": {
+                    "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+                    "clip_name2": "wan",
+                    "type": "default",
+                },
+                "class_type": "CLIPLoader",
+            },
+            "39": {
+                "inputs": {"vae_name": "wan2.2_vae.safetensors"},
+                "class_type": "VAELoader",
+            },
+            # Model sampling configuration
+            "48": {
+                "inputs": {"shift": 8.0, "model": ["37", 0]},
+                "class_type": "ModelSamplingSD3",
+            },
+            # Text encoding
+            "6": {
+                "inputs": {"text": prompt, "clip": ["38", 0]},
+                "class_type": "CLIPTextEncode",
+            },
+            "7": {
+                "inputs": {"text": negative_prompt, "clip": ["38", 0]},
+                "class_type": "CLIPTextEncode",
+            },
+            # Video latent generation
+            "55": {
+                "inputs": {
+                    "width": width,
+                    "height": height,
+                    "length": video_frames,
+                    "batch_size": 1,
+                    "vae": ["39", 0],
+                },
+                "class_type": "Wan22ImageToVideoLatent",
+            },
+            # KSampler
+            "3": {
+                "inputs": {
+                    "seed": seed,
+                    "steps": steps,
+                    "cfg": cfg_scale,
+                    "sampler_name": sampler_name,
+                    "scheduler": scheduler,
+                    "denoise": 1.0,
+                    "model": ["48", 0],
+                    "positive": ["6", 0],
+                    "negative": ["7", 0],
+                    "latent_image": ["55", 0],
+                },
+                "class_type": "KSampler",
+            },
+            # VAE Decode
+            "8": {
+                "inputs": {"samples": ["3", 0], "vae": ["39", 0]},
+                "class_type": "VAEDecode",
+            },
+        }
+
+        # Add start image if provided (for image-to-video)
+        if start_image:
+            workflow["57"] = {
+                "inputs": {"image": start_image, "upload": "image"},
+                "class_type": "LoadImage",
+            }
+            # Connect start image to video latent node
+            workflow["55"]["inputs"]["start_image"] = ["57", 0]  # type: ignore
+
+        # Add output nodes based on format
+        if output_format == "webm":
+            workflow["47"] = {
+                "inputs": {
+                    "filename_prefix": "ComfyUI",
+                    "codec": "vp9",
+                    "fps": fps,
+                    "quality": 16,
+                    "images": ["8", 0],
+                },
+                "class_type": "SaveWEBM",
+            }
+        else:  # Default to WEBP
+            workflow["28"] = {
+                "inputs": {
+                    "filename_prefix": "ComfyUI",
+                    "fps": fps,
+                    "lossless": False,
+                    "quality": 90,
+                    "method": "default",
+                    "images": ["8", 0],
+                },
+                "class_type": "SaveAnimatedWEBP",
+            }
+
+        return workflow
+
+    @staticmethod
     def create_controlnet_workflow(
         control_image: str,
         prompt: str,
@@ -357,6 +479,20 @@ class WorkflowFactory:
 
 # Available workflow templates
 WORKFLOW_TEMPLATES = {
+    "wan22_text2video": {
+        "name": "WAN 2.2 Text-to-Video",
+        "description": "Generate videos from text prompts using WAN 2.2 model",
+        "model_type": "video",
+        "factory_method": WorkflowFactory.create_wan22_video_workflow,
+    },
+    "wan22_image2video": {
+        "name": "WAN 2.2 Image-to-Video",
+        "description": "Generate videos from a starting image using WAN 2.2 model",
+        "model_type": "video",
+        "factory_method": lambda **kwargs: WorkflowFactory.create_wan22_video_workflow(
+            **{**kwargs, "start_image": kwargs.get("start_image", "")}
+        ),
+    },
     "flux_default": {
         "name": "FLUX Default",
         "description": "Default FLUX workflow for text-to-image generation",
