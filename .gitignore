@@ -180,3 +180,6 @@ reference projects/**/*.jpg
 .crush/
 lint-output.txt
 node_modules/
+
+# ComfyUI Resources (e.g. models)
+/comfyui/
