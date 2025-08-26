@@ -353,10 +353,11 @@ services:
       - "8013:8013"   # MCP Server
     volumes:
       - ./:/workspace/repo:ro
-      - comfyui-models:/comfyui/models
-      - comfyui-output:/comfyui/output
-      - comfyui-input:/comfyui/input
-      - comfyui-logs:/workspace/logs
+      - ./models/loras:/comfyui/models/loras
+      - ./models/checkpoints:/comfyui/models/checkpoints
+      - ./models/vae:/comfyui/models/vae
+      - ./models/embeddings:/comfyui/models/embeddings
+      - ./models/controlnet:/comfyui/models/controlnet
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
@@ -605,11 +606,6 @@ volumes:
   ai-toolkit-outputs: {}
   ai-toolkit-configs: {}
   ai-toolkit-logs: {}
-  # ComfyUI volumes
-  comfyui-models: {}
-  comfyui-output: {}
-  comfyui-input: {}
-  comfyui-logs: {}
 
 # Secrets are managed at runtime by GitHub Actions or local setup script
 # Never commit actual secret files to the repository!
