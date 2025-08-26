@@ -1,8 +1,10 @@
 """Virtual Character MCP Server for AI Agent Embodiment"""
 
 import asyncio
+import json
 import logging
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -14,33 +16,190 @@ try:
 
     HAS_MCP = True
 except ImportError:
-    # For HTTP mode, we don't need the MCP library
+    # Minimal implementation for HTTP mode without full MCP library
     HAS_MCP = False
-    from fastapi import FastAPI
+    import uuid
+    from abc import ABC, abstractmethod
 
-    class BaseMCPServer:  # type: ignore
-        """Minimal base server for HTTP mode without MCP dependencies."""
+    from fastapi import FastAPI, Request, Response
+    from fastapi.responses import JSONResponse, StreamingResponse
 
-        def __init__(self, name: str, version: str, port: int):
+    class BaseMCPServer(ABC):  # type: ignore
+        """Minimal MCP server implementation for HTTP mode"""
+
+        def __init__(self, name: str, version: str = "1.0.0", port: int = 8000):
             self.name = name
             self.version = version
             self.port = port
+            self.logger = logging.getLogger(name)
             self.app = FastAPI(title=name, version=version)
+            self._setup_routes()
 
-        def setup_routes(self):
-            """Setup basic routes."""
+        def _setup_routes(self):
+            """Setup MCP routes"""
+            self.app.get("/health")(self.health_check)
+            self.app.get("/messages")(self.handle_messages_get)
+            self.app.post("/messages")(self.handle_messages)
+            self.app.get("/mcp/tools")(self.list_tools_http)
+            self.app.post("/mcp/execute")(self.execute_tool_http)
 
-            @self.app.get("/")
-            async def root():
-                return {"name": self.name, "version": self.version}
+        async def health_check(self):
+            return {"status": "healthy", "server": self.name, "version": self.version}
 
-        def get_tools(self):
-            """Return empty tools for HTTP mode."""
-            return {}
+        async def handle_messages_get(self, request: Request):
+            """Handle GET for SSE streaming"""
+            session_id = request.headers.get("Mcp-Session-Id", str(uuid.uuid4()))
 
-        async def execute_tool(self, request):
-            """Not used in HTTP mode."""
-            return {"error": "MCP tools not available in HTTP mode"}
+            async def event_generator():
+                connection_data = {"type": "connection", "sessionId": session_id, "status": "connected"}
+                yield f"data: {json.dumps(connection_data)}\n\n"
+
+                while True:
+                    await asyncio.sleep(15)
+                    ping_data = {"type": "ping", "timestamp": datetime.utcnow().isoformat()}
+                    yield f"data: {json.dumps(ping_data)}\n\n"
+
+            return StreamingResponse(
+                event_generator(),
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+            )
+
+        async def handle_messages(self, request: Request):
+            """Handle MCP messages"""
+            session_id = request.headers.get("Mcp-Session-Id")
+
+            try:
+                body = await request.json()
+                self.logger.info(f"Messages request: {json.dumps(body)}")
+
+                response = await self._process_jsonrpc_request(body)
+
+                if response:
+                    return JSONResponse(content=response, headers={"Mcp-Session-Id": session_id or ""})
+                else:
+                    return Response(status_code=202, headers={"Mcp-Session-Id": session_id or ""})
+
+            except Exception as e:
+                self.logger.error(f"Error handling message: {e}")
+                return JSONResponse(status_code=500, content={"error": str(e)})
+
+        async def _process_jsonrpc_request(self, request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+            """Process JSON-RPC request"""
+            jsonrpc = request.get("jsonrpc", "2.0")
+            method = request.get("method")
+            params = request.get("params", {})
+            req_id = request.get("id")
+
+            self.logger.info(f"Processing method: {method}")
+
+            try:
+                result = None
+
+                if method == "initialize":
+                    result = await self._jsonrpc_initialize(params)
+                elif method == "tools/list":
+                    result = await self._jsonrpc_list_tools(params)
+                elif method == "tools/call":
+                    result = await self._jsonrpc_call_tool(params)
+                else:
+                    self.logger.warning(f"Unknown method: {method}")
+                    if req_id is not None:
+                        return {
+                            "jsonrpc": jsonrpc,
+                            "error": {"code": -32601, "message": f"Method not found: {method}"},
+                            "id": req_id,
+                        }
+                    return None
+
+                if req_id is not None:
+                    return {"jsonrpc": jsonrpc, "result": result, "id": req_id}
+                return None
+
+            except Exception as e:
+                self.logger.error(f"Error processing method {method}: {e}")
+                if req_id is not None:
+                    return {
+                        "jsonrpc": jsonrpc,
+                        "error": {"code": -32603, "message": "Internal error", "data": str(e)},
+                        "id": req_id,
+                    }
+                return None
+
+        async def _jsonrpc_initialize(self, params: Dict[str, Any]) -> Dict[str, Any]:
+            """Handle initialize request"""
+            return {
+                "protocolVersion": params.get("protocolVersion", "2024-11-05"),
+                "serverInfo": {"name": self.name, "version": self.version},
+                "capabilities": {"tools": {"listChanged": True}, "resources": {}, "prompts": {}},
+            }
+
+        async def _jsonrpc_list_tools(self, params: Dict[str, Any]) -> Dict[str, Any]:
+            """Handle tools/list request"""
+            tools = self.get_tools()
+            tool_list = []
+
+            for tool_name, tool_info in tools.items():
+                tool_list.append(
+                    {
+                        "name": tool_name,
+                        "description": tool_info.get("description", ""),
+                        "inputSchema": tool_info.get("parameters", {}),
+                    }
+                )
+
+            return {"tools": tool_list}
+
+        async def _jsonrpc_call_tool(self, params: Dict[str, Any]) -> Dict[str, Any]:
+            """Handle tools/call request"""
+            tool_name = params.get("name")
+            arguments = params.get("arguments", {})
+
+            if not tool_name:
+                raise ValueError("Tool name is required")
+
+            tools = self.get_tools()
+            if tool_name not in tools:
+                raise ValueError(f"Tool '{tool_name}' not found")
+
+            # Get the tool method
+            tool_func = getattr(self, tool_name, None)
+            if not tool_func:
+                raise ValueError(f"Tool '{tool_name}' not implemented")
+
+            try:
+                result = await tool_func(**arguments)
+
+                if isinstance(result, dict):
+                    content_text = json.dumps(result, indent=2)
+                else:
+                    content_text = str(result)
+
+                return {"content": [{"type": "text", "text": content_text}]}
+            except Exception as e:
+                self.logger.error(f"Error calling tool {tool_name}: {e}")
+                return {"content": [{"type": "text", "text": f"Error: {str(e)}"}], "isError": True}
+
+        async def list_tools_http(self):
+            """List tools via HTTP endpoint"""
+            tools = self.get_tools()
+            return {"tools": list(tools.keys()), "count": len(tools)}
+
+        async def execute_tool_http(self, request: Dict[str, Any]):
+            """Execute tool via HTTP endpoint"""
+            tool_name = request.get("tool")
+            arguments = request.get("arguments", {})
+
+            try:
+                result = await self._jsonrpc_call_tool({"name": tool_name, "arguments": arguments})
+                return {"success": True, "result": result}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+
+        @abstractmethod
+        def get_tools(self) -> Dict[str, Dict[str, Any]]:
+            """Get available tools - must be implemented by subclass"""
+            pass
 
 
 from tools.mcp.virtual_character.backends.base import BackendAdapter  # noqa: E402
@@ -77,194 +236,237 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         self.current_backend: Optional[BackendAdapter] = None
         self.backend_name: Optional[str] = None
 
-    def get_tools(self):
-        """Return available MCP tools."""
-        return {}
+        # Setup additional routes
+        self.setup_routes()
 
     def setup_routes(self):
         """Setup FastAPI routes for virtual character control."""
-        super().setup_routes()
 
+        # Legacy HTTP endpoints for backward compatibility
         @self.app.post("/set_backend")
-        async def set_backend(request: Dict[str, Any]) -> Dict[str, Any]:
-            """Connect to a specific backend."""
-            backend = request.get("backend", "mock")
-            config = request.get("config", {})
-
-            try:
-                # Disconnect current backend if any
-                if self.current_backend:
-                    await self.current_backend.disconnect()
-
-                # Create and connect new backend
-                if backend not in self.backends:
-                    return {"success": False, "error": f"Unknown backend: {backend}"}
-
-                backend_class = self.backends[backend]
-                self.current_backend = backend_class()
-                success = await self.current_backend.connect(config)
-
-                if success:
-                    self.backend_name = backend
-                    return {"success": True, "backend": backend, "message": f"Connected to {backend}"}
-                else:
-                    return {"success": False, "error": f"Failed to connect to {backend}"}
-
-            except Exception as e:
-                logger.error(f"Error setting backend: {e}")
-                return {"success": False, "error": str(e)}
+        async def set_backend_http(request: Dict[str, Any]) -> Dict[str, Any]:
+            """Legacy HTTP endpoint"""
+            return await self.set_backend(backend=request.get("backend", "mock"), config=request.get("config", {}))
 
         @self.app.post("/send_animation")
-        async def send_animation(request: Dict[str, Any]) -> Dict[str, Any]:
-            """Send animation data to the current backend."""
-            if not self.current_backend:
-                return {"success": False, "error": "No backend connected"}
+        async def send_animation_http(request: Dict[str, Any]) -> Dict[str, Any]:
+            """Legacy HTTP endpoint"""
+            return await self.send_animation(**request)
 
-            try:
-                # Create animation data
-                animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
-
-                # Set emotion if provided
-                if "emotion" in request:
-                    emotion_str = request["emotion"]
-                    animation.emotion = EmotionType[emotion_str.upper()]
-                    animation.emotion_intensity = request.get("emotion_intensity", 1.0)
-
-                # Set gesture if provided
-                if "gesture" in request:
-                    gesture_str = request["gesture"]
-                    animation.gesture = GestureType[gesture_str.upper()]
-                    animation.gesture_intensity = request.get("gesture_intensity", 1.0)
-
-                # Set blend shapes if provided
-                if "blend_shapes" in request:
-                    animation.blend_shapes = request["blend_shapes"]
-
-                # Set parameters if provided
-                if "parameters" in request:
-                    animation.parameters = request["parameters"]
-
-                # Send to backend
-                success = await self.current_backend.send_animation_data(animation)
-
-                return {"success": success}
-
-            except KeyError as e:
-                return {"success": False, "error": f"Invalid enum value: {e}"}
-            except Exception as e:
-                logger.error(f"Error sending animation: {e}")
-                return {"success": False, "error": str(e)}
-
-        @self.app.post("/execute_behavior")
-        async def execute_behavior(request: Dict[str, Any]) -> Dict[str, Any]:
-            """Execute a high-level behavior."""
-            if not self.current_backend:
-                return {"success": False, "error": "No backend connected"}
-
-            try:
-                behavior = request.get("behavior", "")
-                parameters = request.get("parameters", {})
-
-                if not behavior:
-                    return {"success": False, "error": "No behavior specified"}
-
-                success = await self.current_backend.execute_behavior(behavior, parameters)
-
-                return {"success": success}
-
-            except Exception as e:
-                logger.error(f"Error executing behavior: {e}")
-                return {"success": False, "error": str(e)}
-
-        @self.app.get("/receive_state")
-        async def receive_state() -> Dict[str, Any]:
-            """Receive current state from the backend."""
-            if not self.current_backend:
-                return {"success": False, "error": "No backend connected"}
-
-            try:
-                state = await self.current_backend.receive_state()
-
-                if state:
-                    return {
-                        "success": True,
-                        "state": {
-                            "world_name": state.world_name,
-                            "agent_position": state.agent_position,
-                            "agent_rotation": state.agent_rotation,
+    def get_tools(self) -> Dict[str, Dict[str, Any]]:
+        """Return available MCP tools"""
+        return {
+            "set_backend": {
+                "description": "Connect to a virtual character backend (mock, vrchat_remote)",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "backend": {
+                            "type": "string",
+                            "enum": ["mock", "vrchat_remote"],
+                            "description": "Backend to connect to",
                         },
-                    }
-                else:
-                    return {"success": False, "error": "No state available"}
+                        "config": {
+                            "type": "object",
+                            "description": "Backend configuration",
+                            "properties": {
+                                "remote_host": {"type": "string", "description": "Remote host IP (for vrchat_remote)"},
+                                "use_vrcemote": {"type": "boolean", "description": "Use VRCEmote system for gestures"},
+                                "osc_in_port": {"type": "integer", "default": 9000, "description": "OSC input port"},
+                                "osc_out_port": {"type": "integer", "default": 9001, "description": "OSC output port"},
+                            },
+                        },
+                    },
+                    "required": ["backend"],
+                },
+            },
+            "send_animation": {
+                "description": "Send animation data to the current backend",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "emotion": {
+                            "type": "string",
+                            "enum": ["neutral", "happy", "sad", "angry", "surprised", "fearful", "disgusted"],
+                            "description": "Emotion to display",
+                        },
+                        "emotion_intensity": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1,
+                            "default": 1.0,
+                            "description": "Emotion intensity (0-1)",
+                        },
+                        "gesture": {
+                            "type": "string",
+                            "enum": ["none", "wave", "point", "thumbs_up", "nod", "shake_head", "clap", "dance"],
+                            "description": "Gesture to perform",
+                        },
+                        "gesture_intensity": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1,
+                            "default": 1.0,
+                            "description": "Gesture intensity (0-1)",
+                        },
+                        "parameters": {
+                            "type": "object",
+                            "description": "Movement parameters",
+                            "properties": {
+                                "move_forward": {"type": "number", "minimum": -1, "maximum": 1},
+                                "move_right": {"type": "number", "minimum": -1, "maximum": 1},
+                                "look_horizontal": {"type": "number", "minimum": -1, "maximum": 1},
+                                "look_vertical": {"type": "number", "minimum": -1, "maximum": 1},
+                                "jump": {"type": "boolean"},
+                                "crouch": {"type": "boolean"},
+                                "run": {"type": "boolean"},
+                            },
+                        },
+                    },
+                },
+            },
+            "execute_behavior": {
+                "description": "Execute a high-level behavior",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "behavior": {"type": "string", "description": "Behavior to execute (greet, dance, sit, stand, etc.)"},
+                        "parameters": {"type": "object", "description": "Behavior parameters"},
+                    },
+                    "required": ["behavior"],
+                },
+            },
+            "get_backend_status": {
+                "description": "Get current backend status and statistics",
+                "parameters": {"type": "object", "properties": {}},
+            },
+            "list_backends": {"description": "List available backends", "parameters": {"type": "object", "properties": {}}},
+        }
 
-            except Exception as e:
-                logger.error(f"Error receiving state: {e}")
-                return {"success": False, "error": str(e)}
+    async def set_backend(self, backend: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Connect to a specific backend."""
+        if config is None:
+            config = {}
 
-        @self.app.get("/list_backends")
-        async def list_backends() -> Dict[str, Any]:
-            """List available backends."""
-            try:
-                backends = []
-                for name, backend_class in self.backends.items():
-                    backend_info = {
-                        "name": name,
-                        "class": backend_class.__name__,
-                        "loaded": True,
-                        "active": name == self.backend_name,
-                    }
-                    backends.append(backend_info)
-
-                return {"success": True, "backends": backends}
-
-            except Exception as e:
-                logger.error(f"Error listing backends: {e}")
-                return {"success": False, "error": str(e)}
-
-        @self.app.get("/get_backend_status")
-        async def get_backend_status() -> Dict[str, Any]:
-            """Get status of current backend."""
-            if not self.current_backend:
-                return {
-                    "success": True,
-                    "backend": None,
-                    "connected": False,
-                    "health": "No backend connected",
-                }
-
-            try:
-                health = await self.current_backend.health_check()
-                stats = await self.current_backend.get_statistics()
-
-                return {
-                    "success": True,
-                    "backend": self.backend_name,
-                    "connected": self.current_backend.connected,
-                    "health": health,
-                    "statistics": stats,
-                }
-
-            except Exception as e:
-                logger.error(f"Error getting backend status: {e}")
-                return {"success": False, "error": str(e)}
-
-    async def execute_tool(self, request) -> Any:
-        """Execute MCP tool - maps tool names to backend methods."""
-        # Extract tool and arguments from request
-        tool = request.tool if hasattr(request, "tool") else request.get("tool")
-        # arguments = request.arguments if hasattr(request, 'arguments') else request.get('arguments', {})
-
-        # For now, just return a simple response indicating the tool isn't implemented via MCP
-        # The HTTP endpoints handle the actual functionality
-        return {"message": f"Tool {tool} should be called via HTTP endpoints", "success": False}
-
-    async def cleanup(self):
-        """Cleanup on server shutdown."""
-        if self.current_backend:
-            try:
+        try:
+            # Disconnect current backend if any
+            if self.current_backend:
                 await self.current_backend.disconnect()
-            except Exception as e:
-                logger.error(f"Error disconnecting backend: {e}")
+
+            # Create and connect new backend
+            if backend not in self.backends:
+                return {"success": False, "error": f"Unknown backend: {backend}"}
+
+            backend_class = self.backends[backend]
+            self.current_backend = backend_class()
+
+            # Set default config for vrchat_remote if not provided
+            if backend == "vrchat_remote" and "remote_host" not in config:
+                config["remote_host"] = "127.0.0.1"  # Local VRChat on Windows machine
+
+            success = await self.current_backend.connect(config)
+
+            if success:
+                self.backend_name = backend
+                return {"success": True, "backend": backend, "message": f"Connected to {backend}"}
+            else:
+                return {"success": False, "error": f"Failed to connect to {backend}"}
+
+        except Exception as e:
+            self.logger.error(f"Error setting backend: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def send_animation(
+        self,
+        emotion: Optional[str] = None,
+        emotion_intensity: float = 1.0,
+        gesture: Optional[str] = None,
+        gesture_intensity: float = 1.0,
+        parameters: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Send animation data to the current backend."""
+        if not self.current_backend:
+            return {"success": False, "error": "No backend connected. Use set_backend first."}
+
+        try:
+            # Create animation data
+            animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
+
+            # Set emotion if provided
+            if emotion:
+                animation.emotion = EmotionType[emotion.upper()]
+                animation.emotion_intensity = emotion_intensity
+
+            # Set gesture if provided
+            if gesture:
+                animation.gesture = GestureType[gesture.upper()]
+                animation.gesture_intensity = gesture_intensity
+
+            # Set parameters if provided
+            if parameters:
+                animation.parameters = parameters
+
+            # Send to backend
+            success = await self.current_backend.send_animation_data(animation)
+
+            return {"success": success}
+
+        except KeyError as e:
+            return {"success": False, "error": f"Invalid value: {e}"}
+        except Exception as e:
+            self.logger.error(f"Error sending animation: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def execute_behavior(self, behavior: str, parameters: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Execute a high-level behavior."""
+        if not self.current_backend:
+            return {"success": False, "error": "No backend connected. Use set_backend first."}
+
+        if parameters is None:
+            parameters = {}
+
+        try:
+            success = await self.current_backend.execute_behavior(behavior, parameters)
+            return {"success": success}
+
+        except Exception as e:
+            self.logger.error(f"Error executing behavior: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def get_backend_status(self) -> Dict[str, Any]:
+        """Get backend status."""
+        if not self.current_backend:
+            return {"success": True, "backend": None, "connected": False, "message": "No backend connected"}
+
+        try:
+            health = await self.current_backend.health_check()
+            stats = await self.current_backend.get_statistics()
+
+            return {
+                "success": True,
+                "backend": self.backend_name,
+                "connected": self.current_backend.connected,
+                "health": health,
+                "statistics": stats,
+            }
+
+        except Exception as e:
+            self.logger.error(f"Error getting backend status: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def list_backends(self) -> Dict[str, Any]:
+        """List available backends."""
+        try:
+            backends = []
+            for name, backend_class in self.backends.items():
+                backend_info = {"name": name, "class": backend_class.__name__, "active": name == self.backend_name}
+                backends.append(backend_info)
+
+            return {"success": True, "backends": backends}
+
+        except Exception as e:
+            self.logger.error(f"Error listing backends: {e}")
+            return {"success": False, "error": str(e)}
 
 
 def main():
