@@ -56,28 +56,28 @@ class VRChatRemoteBackend(BackendAdapter):
 
     # VRCEmote system (integer-based, common in many avatars)
     # This avatar uses a gesture wheel, not emotions
-    # Wheel positions (clockwise from top):
-    # 1=Back, 2=Wave, 3=Clap, 4=Point, 5=Cheer, 6=Dance, 7=Backflip, 8=Sadness, 9=Die
+    # Corrected wheel positions (clockwise from top):
+    # 0=None/Clear, 1=Wave, 2=Clap, 3=Point, 4=Cheer, 5=Dance, 6=Backflip, 7=Sadness, 8=Die
     VRCEMOTE_MAP = {
         EmotionType.NEUTRAL: 0,  # No gesture/back to normal
-        EmotionType.HAPPY: 5,  # Maps to Cheer
-        EmotionType.SAD: 8,  # Maps to Sadness gesture
-        EmotionType.ANGRY: 4,  # Maps to Point (assertive)
-        EmotionType.SURPRISED: 7,  # Maps to Backflip (excitement)
-        EmotionType.FEARFUL: 9,  # Maps to Die (dramatic)
-        EmotionType.DISGUSTED: 1,  # Maps to Back (turning away)
+        EmotionType.HAPPY: 4,  # Maps to Cheer
+        EmotionType.SAD: 7,  # Maps to Sadness gesture
+        EmotionType.ANGRY: 3,  # Maps to Point (assertive)
+        EmotionType.SURPRISED: 6,  # Maps to Backflip (excitement)
+        EmotionType.FEARFUL: 8,  # Maps to Die (dramatic)
+        EmotionType.DISGUSTED: 0,  # Clear gesture
     }
 
     # Alternative mapping for gesture-based avatars
     VRCEMOTE_GESTURE_MAP = {
         GestureType.NONE: 0,
-        GestureType.WAVE: 2,
-        GestureType.POINT: 4,
-        GestureType.THUMBS_UP: 5,  # Maps to Cheer
-        GestureType.NOD: 3,  # Maps to Clap (approval)
-        GestureType.SHAKE_HEAD: 1,  # Maps to Back
-        GestureType.CLAP: 3,
-        GestureType.DANCE: 6,
+        GestureType.WAVE: 1,
+        GestureType.POINT: 3,
+        GestureType.THUMBS_UP: 4,  # Maps to Cheer
+        GestureType.NOD: 2,  # Maps to Clap (approval)
+        GestureType.SHAKE_HEAD: 0,  # Clear gesture
+        GestureType.CLAP: 2,
+        GestureType.DANCE: 5,
     }
 
     GESTURE_PARAMS = {
