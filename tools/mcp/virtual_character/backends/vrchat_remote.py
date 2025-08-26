@@ -411,29 +411,53 @@ class VRChatRemoteBackend(BackendAdapter):
 
     async def _handle_movement_params(self, params: Dict[str, Any]) -> None:
         """Handle movement-related parameters."""
-        # Movement axes
+        # Movement axes - VRChat expects values between -1.0 and 1.0
         if "move_forward" in params:
-            await self._send_osc("/input/Vertical", float(params["move_forward"]))
+            value = float(params["move_forward"])
+            # Clamp to valid range
+            value = max(-1.0, min(1.0, value))
+            await self._send_osc("/input/Vertical", value)
+            logger.info(f"Sent movement Vertical: {value}")
+
         if "move_right" in params:
-            await self._send_osc("/input/Horizontal", float(params["move_right"]))
+            value = float(params["move_right"])
+            # Clamp to valid range
+            value = max(-1.0, min(1.0, value))
+            await self._send_osc("/input/Horizontal", value)
+            logger.info(f"Sent movement Horizontal: {value}")
 
         # Looking/turning
         if "look_horizontal" in params:
-            await self._send_osc("/input/LookHorizontal", float(params["look_horizontal"]))
+            value = float(params["look_horizontal"])
+            value = max(-1.0, min(1.0, value))
+            await self._send_osc("/input/LookHorizontal", value)
+            logger.info(f"Sent look horizontal: {value}")
+
         if "look_vertical" in params:
-            await self._send_osc("/input/LookVertical", float(params["look_vertical"]))
+            value = float(params["look_vertical"])
+            value = max(-1.0, min(1.0, value))
+            await self._send_osc("/input/LookVertical", value)
+            logger.info(f"Sent look vertical: {value}")
 
-        # Movement speed
-        if "move_speed" in params:
-            speed = float(params["move_speed"])
-            if speed > 0:
-                await self._send_osc("/input/Run", 1 if speed > 0.5 else 0)
+        # Movement speed modifier
+        if "run" in params:
+            # Run is a boolean toggle
+            run_value = 1 if params["run"] else 0
+            await self._send_osc("/input/Run", run_value)
+            logger.info(f"Sent run: {run_value}")
 
-        # Actions
+        # Actions (button-style inputs)
         if "jump" in params and params["jump"]:
             await self._send_osc("/input/Jump", 1)
+            logger.info("Sent jump: 1")
+            # Auto-release after short delay
+            await asyncio.sleep(0.1)
+            await self._send_osc("/input/Jump", 0)
+
         if "crouch" in params:
-            await self._send_osc("/input/Crouch", 1 if params["crouch"] else 0)
+            crouch_value = 1 if params["crouch"] else 0
+            await self._send_osc("/input/Crouch", crouch_value)
+            logger.info(f"Sent crouch: {crouch_value}")
 
     def _setup_osc_handlers(self) -> None:
         """Setup OSC message handlers for receiving from VRChat."""
