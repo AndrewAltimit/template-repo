@@ -443,6 +443,7 @@ class VRChatRemoteBackend(BackendAdapter):
 
             # If trying to activate the same gesture, toggle it off
             if self.emote_is_active and self.current_vrcemote == emote_value and emote_value != 0:
+                logger.info(f"Toggling off active emote {emote_value} (same as current)")
                 # Send the same value again to toggle off (not 0!)
                 await self._send_osc("/avatar/parameters/VRCEmote", emote_value)
                 self.emote_is_active = False
@@ -450,13 +451,15 @@ class VRChatRemoteBackend(BackendAdapter):
                 logger.info(f"Toggled off VRCEmote {emote_value} by resending")
             else:
                 # Clear different active emote first if needed
-                if self.emote_is_active and self.current_vrcemote != emote_value and emote_value != 0:
+                if self.emote_is_active and self.current_vrcemote != emote_value and self.current_vrcemote != 0:
+                    logger.info(f"Clearing previous emote {self.current_vrcemote} before setting {emote_value}")
                     # Toggle off the current emote by sending it again
                     await self._send_osc("/avatar/parameters/VRCEmote", self.current_vrcemote)
-                    await asyncio.sleep(0.1)  # Small delay for avatar to process
+                    await asyncio.sleep(0.2)  # Give more time for avatar to process
                     logger.info(f"Toggled off previous gesture {self.current_vrcemote}")
 
                 # Set the new gesture
+                logger.info(f"Setting new emote {emote_value} for gesture {gesture.value}")
                 await self._send_osc("/avatar/parameters/VRCEmote", emote_value)
                 self.current_vrcemote = emote_value
                 self.emote_is_active = emote_value != 0
@@ -465,7 +468,7 @@ class VRChatRemoteBackend(BackendAdapter):
                 if emote_value != 0:
                     self._start_emote_timeout(emote_value)
 
-                logger.info(f"Set VRCEmote to {emote_value} for gesture {gesture.value}")
+                logger.info(f"Set VRCEmote to {emote_value} for gesture {gesture.value}, active={self.emote_is_active}")
         elif gesture in self.GESTURE_PARAMS:
             # Use traditional gesture parameters
             gesture_id = self.GESTURE_PARAMS[gesture]
@@ -475,8 +478,17 @@ class VRChatRemoteBackend(BackendAdapter):
 
     async def _handle_movement_params(self, params: Dict[str, Any]) -> None:
         """Handle movement-related parameters with auto-stop."""
-        # Force clear any possible active emotes
-        await self._force_clear_emotes()
+        # Clear active emote if one is set (movement should override emotes)
+        if self.emote_is_active and self.current_vrcemote != 0:
+            logger.info(f"Clearing active emote {self.current_vrcemote} for movement")
+            # Send the same value to toggle it off
+            await self._send_osc("/avatar/parameters/VRCEmote", self.current_vrcemote)
+            await asyncio.sleep(0.2)  # Give time for toggle to register
+
+            # Update tracking
+            self.emote_is_active = False
+            self.current_vrcemote = 0
+            self.current_gesture = "none"
 
         # Cancel emote timer if running
         if self.emote_timer:
@@ -644,24 +656,27 @@ class VRChatRemoteBackend(BackendAdapter):
         # Add recently used emotes
         emotes_to_clear.extend(self.last_known_emotes)
 
-        # Remove duplicates
-        emotes_to_clear = list(set(emotes_to_clear))
+        # Remove duplicates while preserving order (most recent first)
+        seen = set()
+        unique_emotes = []
+        for emote in reversed(emotes_to_clear):
+            if emote not in seen and emote != 0:
+                seen.add(emote)
+                unique_emotes.append(emote)
 
-        if emotes_to_clear:
-            logger.info(f"Attempting to clear emotes: {emotes_to_clear}")
+        if unique_emotes:
+            logger.info(f"Attempting to clear emotes: {unique_emotes}")
 
-            # Try each emote value
-            for emote_val in emotes_to_clear:
-                if emote_val != 0:
-                    # Send twice to ensure toggle off
-                    await self._send_osc("/avatar/parameters/VRCEmote", emote_val)
-                    await asyncio.sleep(0.05)
-                    await self._send_osc("/avatar/parameters/VRCEmote", emote_val)
-                    await asyncio.sleep(0.05)
+            # Toggle off each emote (send once to toggle off)
+            for emote_val in unique_emotes:
+                logger.info(f"Toggling off emote {emote_val}")
+                await self._send_osc("/avatar/parameters/VRCEmote", emote_val)
+                await asyncio.sleep(0.1)  # Give time for toggle to register
 
         # Reset all tracking
         self.emote_is_active = False
         self.current_vrcemote = 0
+        self.current_gesture = "none"
         logger.info("Force clear complete")
 
     def _setup_osc_handlers(self) -> None:
