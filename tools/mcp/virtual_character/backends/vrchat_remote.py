@@ -130,6 +130,11 @@ class VRChatRemoteBackend(BackendAdapter):
         self.movement_active = False  # Track if movement is active
         self.movement_timer = None  # Timer for auto-stop
 
+        # Emote timeout tracking
+        self.emote_timer = None  # Timer for auto-clear emotes
+        self.emote_start_time = None  # When emote was activated
+        self.last_known_emotes = []  # Track last few emote values for recovery
+
         # Statistics
         self.stats = {
             "osc_messages_sent": 0,
@@ -414,6 +419,11 @@ class VRChatRemoteBackend(BackendAdapter):
                     await self._send_osc("/avatar/parameters/VRCEmote", emote_value)
                     self.current_vrcemote = emote_value
                     self.emote_is_active = emote_value != 0
+
+                    # Start timeout timer for emote (10 seconds)
+                    if emote_value != 0:
+                        self._start_emote_timeout(emote_value)
+
                     logger.info(f"Set VRCEmote to {emote_value} for {emotion.value}")
         else:
             # Use traditional individual emotion parameters
@@ -450,6 +460,11 @@ class VRChatRemoteBackend(BackendAdapter):
                 await self._send_osc("/avatar/parameters/VRCEmote", emote_value)
                 self.current_vrcemote = emote_value
                 self.emote_is_active = emote_value != 0
+
+                # Start timeout timer for emote (10 seconds)
+                if emote_value != 0:
+                    self._start_emote_timeout(emote_value)
+
                 logger.info(f"Set VRCEmote to {emote_value} for gesture {gesture.value}")
         elif gesture in self.GESTURE_PARAMS:
             # Use traditional gesture parameters
@@ -460,25 +475,13 @@ class VRChatRemoteBackend(BackendAdapter):
 
     async def _handle_movement_params(self, params: Dict[str, Any]) -> None:
         """Handle movement-related parameters with auto-stop."""
-        # Smart emote clearing - only clear if there's an active emote
-        if self.emote_is_active and self.current_vrcemote != 0:
-            logger.info(f"Movement requested. Clearing active emote: {self.current_vrcemote}")
+        # Force clear any possible active emotes
+        await self._force_clear_emotes()
 
-            # Send the value TWICE to ensure toggle off (once might activate if not active)
-            # First send
-            await self._send_osc("/avatar/parameters/VRCEmote", self.current_vrcemote)
-            await asyncio.sleep(0.1)
-
-            # Second send to ensure it's off
-            await self._send_osc("/avatar/parameters/VRCEmote", self.current_vrcemote)
-            await asyncio.sleep(0.1)
-
-            # Reset tracking
-            self.emote_is_active = False
-            self.current_vrcemote = 0
-            logger.info("Cleared emote for movement")
-        else:
-            logger.info("No active emote to clear")
+        # Cancel emote timer if running
+        if self.emote_timer:
+            self.emote_timer.cancel()
+            self.emote_timer = None
 
         # Cancel any existing movement timer
         if self.movement_timer:
@@ -597,6 +600,69 @@ class VRChatRemoteBackend(BackendAdapter):
         except Exception as e:
             logger.error(f"Failed to reset: {e}")
             return False
+
+    def _start_emote_timeout(self, emote_value: int) -> None:
+        """Start timeout timer for emote."""
+        # Cancel existing timer
+        if self.emote_timer:
+            self.emote_timer.cancel()
+
+        # Track this emote
+        if emote_value not in self.last_known_emotes:
+            self.last_known_emotes.append(emote_value)
+            # Keep only last 3 emotes
+            if len(self.last_known_emotes) > 3:
+                self.last_known_emotes.pop(0)
+
+        # Start new timer (10 seconds)
+        self.emote_timer = asyncio.create_task(self._emote_timeout(emote_value))
+        logger.info(f"Started 10-second timeout for emote {emote_value}")
+
+    async def _emote_timeout(self, emote_value: int) -> None:
+        """Auto-clear emote after timeout."""
+        try:
+            await asyncio.sleep(10.0)
+
+            # Force clear the emote
+            logger.info(f"Emote {emote_value} timed out, force clearing")
+            await self._force_clear_emotes()
+
+        except asyncio.CancelledError:
+            pass  # Timer was cancelled
+
+    async def _force_clear_emotes(self) -> None:
+        """Force clear all possible active emotes."""
+        logger.info("Force clearing emotes")
+
+        # Build list of emotes to try clearing
+        emotes_to_clear = []
+
+        # Add current tracked emote
+        if self.current_vrcemote != 0:
+            emotes_to_clear.append(self.current_vrcemote)
+
+        # Add recently used emotes
+        emotes_to_clear.extend(self.last_known_emotes)
+
+        # Remove duplicates
+        emotes_to_clear = list(set(emotes_to_clear))
+
+        if emotes_to_clear:
+            logger.info(f"Attempting to clear emotes: {emotes_to_clear}")
+
+            # Try each emote value
+            for emote_val in emotes_to_clear:
+                if emote_val != 0:
+                    # Send twice to ensure toggle off
+                    await self._send_osc("/avatar/parameters/VRCEmote", emote_val)
+                    await asyncio.sleep(0.05)
+                    await self._send_osc("/avatar/parameters/VRCEmote", emote_val)
+                    await asyncio.sleep(0.05)
+
+        # Reset all tracking
+        self.emote_is_active = False
+        self.current_vrcemote = 0
+        logger.info("Force clear complete")
 
     def _setup_osc_handlers(self) -> None:
         """Setup OSC message handlers for receiving from VRChat."""
