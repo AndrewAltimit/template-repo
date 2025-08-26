@@ -126,6 +126,9 @@ class VRChatRemoteBackend(BackendAdapter):
         self.move_speed = 0.0
         self.turn_speed = 0.0
         self.vertical_movement = 0.0
+        self.horizontal_movement = 0.0
+        self.movement_active = False  # Track if movement is active
+        self.movement_timer = None  # Timer for auto-stop
 
         # Statistics
         self.stats = {
@@ -456,10 +459,9 @@ class VRChatRemoteBackend(BackendAdapter):
             await self._send_osc("/avatar/parameters/GestureWeight", intensity)
 
     async def _handle_movement_params(self, params: Dict[str, Any]) -> None:
-        """Handle movement-related parameters."""
-        # Clear any active emote first to ensure movement works
-        # (Some emotes like backflip lock movement)
-        if self.emote_is_active and ("move_forward" in params or "move_right" in params):
+        """Handle movement-related parameters with auto-stop."""
+        # ALWAYS clear any active emote before movement
+        if self.emote_is_active:
             # Toggle off the current emote by sending it again
             await self._send_osc("/avatar/parameters/VRCEmote", self.current_vrcemote)
             self.emote_is_active = False
@@ -468,20 +470,41 @@ class VRChatRemoteBackend(BackendAdapter):
             await asyncio.sleep(0.1)  # Small delay to ensure emote clears
             logger.info(f"Toggled off emote {old_emote} to enable movement")
 
+        # Cancel any existing movement timer
+        if self.movement_timer:
+            self.movement_timer.cancel()
+            self.movement_timer = None
+
         # Movement axes - VRChat expects values between -1.0 and 1.0
+        forward_value = 0.0
+        right_value = 0.0
+
         if "move_forward" in params:
-            value = float(params["move_forward"])
+            forward_value = float(params["move_forward"])
             # Clamp to valid range
-            value = max(-1.0, min(1.0, value))
-            await self._send_osc("/input/Vertical", value)
-            logger.info(f"Sent movement Vertical: {value}")
+            forward_value = max(-1.0, min(1.0, forward_value))
+            self.vertical_movement = forward_value
+            await self._send_osc("/input/Vertical", forward_value)
+            logger.info(f"Sent movement Vertical: {forward_value}")
 
         if "move_right" in params:
-            value = float(params["move_right"])
+            right_value = float(params["move_right"])
             # Clamp to valid range
-            value = max(-1.0, min(1.0, value))
-            await self._send_osc("/input/Horizontal", value)
-            logger.info(f"Sent movement Horizontal: {value}")
+            right_value = max(-1.0, min(1.0, right_value))
+            self.horizontal_movement = right_value
+            await self._send_osc("/input/Horizontal", right_value)
+            logger.info(f"Sent movement Horizontal: {right_value}")
+
+        # Auto-stop movement after duration (default 2 seconds)
+        if forward_value != 0 or right_value != 0:
+            self.movement_active = True
+            duration = params.get("duration", 2.0)  # Default 2 second movement
+
+            # Schedule auto-stop
+            self.movement_timer = asyncio.create_task(self._auto_stop_movement(duration))
+            logger.info(f"Movement will auto-stop in {duration} seconds")
+        else:
+            self.movement_active = False
 
         # Looking/turning
         if "look_horizontal" in params:
@@ -515,6 +538,55 @@ class VRChatRemoteBackend(BackendAdapter):
             crouch_value = 1 if params["crouch"] else 0
             await self._send_osc("/input/Crouch", crouch_value)
             logger.info(f"Sent crouch: {crouch_value}")
+
+    async def _auto_stop_movement(self, duration: float) -> None:
+        """Automatically stop movement after duration."""
+        try:
+            await asyncio.sleep(duration)
+
+            # Stop all movement
+            if self.movement_active:
+                await self._send_osc("/input/Vertical", 0.0)
+                await self._send_osc("/input/Horizontal", 0.0)
+                self.vertical_movement = 0.0
+                self.horizontal_movement = 0.0
+                self.movement_active = False
+                logger.info("Auto-stopped movement after timeout")
+        except asyncio.CancelledError:
+            pass  # Timer was cancelled
+
+    async def reset_all(self) -> bool:
+        """Reset all states - clear emotes and stop movement."""
+        try:
+            # Clear any active emote
+            if self.emote_is_active and self.current_vrcemote != 0:
+                await self._send_osc("/avatar/parameters/VRCEmote", self.current_vrcemote)
+                self.emote_is_active = False
+                self.current_vrcemote = 0
+                logger.info("Reset: Cleared active emote")
+
+            # Stop all movement
+            await self._send_osc("/input/Vertical", 0.0)
+            await self._send_osc("/input/Horizontal", 0.0)
+            await self._send_osc("/input/Run", 0)
+            await self._send_osc("/input/Jump", 0)
+            await self._send_osc("/input/Crouch", 0)
+
+            # Reset state tracking
+            self.vertical_movement = 0.0
+            self.horizontal_movement = 0.0
+            self.movement_active = False
+
+            # Cancel any timers
+            if self.movement_timer:
+                self.movement_timer.cancel()
+                self.movement_timer = None
+
+            logger.info("Reset: All states cleared")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to reset: {e}")
+            return False
 
     def _setup_osc_handlers(self) -> None:
         """Setup OSC message handlers for receiving from VRChat."""

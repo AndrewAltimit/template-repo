@@ -320,6 +320,11 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                                 "jump": {"type": "boolean"},
                                 "crouch": {"type": "boolean"},
                                 "run": {"type": "boolean"},
+                                "duration": {
+                                    "type": "number",
+                                    "default": 2.0,
+                                    "description": "How long to move in seconds (auto-stops after)",
+                                },
                             },
                         },
                     },
@@ -334,6 +339,13 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                         "parameters": {"type": "object", "description": "Behavior parameters"},
                     },
                     "required": ["behavior"],
+                },
+            },
+            "reset": {
+                "description": "Reset all states - clear emotes and stop all movement",
+                "parameters": {
+                    "type": "object",
+                    "properties": {},
                 },
             },
             "get_backend_status": {
@@ -415,6 +427,22 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             return {"success": False, "error": f"Invalid value: {e}"}
         except Exception as e:
             self.logger.error(f"Error sending animation: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def reset(self) -> Dict[str, Any]:
+        """Reset all states - clear emotes and stop movement."""
+        if not self.current_backend:
+            return {"success": False, "error": "No backend connected. Use set_backend first."}
+
+        try:
+            # Call reset on the backend
+            if hasattr(self.current_backend, "reset_all"):
+                success = await self.current_backend.reset_all()
+                return {"success": success, "message": "All states reset"}
+            else:
+                return {"success": False, "error": "Backend does not support reset"}
+        except Exception as e:
+            self.logger.error(f"Error resetting: {e}")
             return {"success": False, "error": str(e)}
 
     async def execute_behavior(self, behavior: str, parameters: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
