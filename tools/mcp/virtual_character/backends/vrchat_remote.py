@@ -41,7 +41,7 @@ class VRChatRemoteBackend(BackendAdapter):
 
     # VRChat OSC standard ports
     VRCHAT_OSC_IN_PORT = 9000  # VRChat receives on this port
-    VRCHAT_OSC_OUT_PORT = 9002  # VRChat sends on this port (changed from 9001 to avoid conflicts)
+    VRCHAT_OSC_OUT_PORT = 9003  # VRChat sends on this port (using 9003 to avoid conflicts)
 
     # Avatar parameter mappings
     EMOTION_PARAMS = {
@@ -178,14 +178,20 @@ class VRChatRemoteBackend(BackendAdapter):
             # Create OSC client for sending to VRChat
             self.osc_client = udp_client.SimpleUDPClient(self.remote_host, osc_in_port)
 
-            # Create OSC server for receiving from VRChat
-            self.osc_dispatcher = Dispatcher()
-            self._setup_osc_handlers()
+            # Create OSC server for receiving from VRChat (optional)
+            try:
+                self.osc_dispatcher = Dispatcher()
+                self._setup_osc_handlers()
 
-            # Start OSC server
-            self.osc_server = AsyncIOOSCUDPServer(("0.0.0.0", osc_out_port), self.osc_dispatcher, asyncio.get_event_loop())
+                # Start OSC server
+                self.osc_server = AsyncIOOSCUDPServer(("0.0.0.0", osc_out_port), self.osc_dispatcher, asyncio.get_event_loop())
 
-            transport, protocol = await self.osc_server.create_serve_endpoint()
+                transport, protocol = await self.osc_server.create_serve_endpoint()
+                logger.info(f"OSC server listening on port {osc_out_port}")
+            except OSError as e:
+                logger.warning(f"Could not bind OSC server to port {osc_out_port}: {e}")
+                logger.warning("Continuing without OSC server (send-only mode)")
+                self.osc_server = None
 
             # Test connection with a simple parameter update
             await self._send_osc("/avatar/parameters/TestConnection", 1.0)
