@@ -460,15 +460,23 @@ class VRChatRemoteBackend(BackendAdapter):
 
     async def _handle_movement_params(self, params: Dict[str, Any]) -> None:
         """Handle movement-related parameters with auto-stop."""
-        # ALWAYS clear any active emote before movement
-        if self.emote_is_active:
-            # Toggle off the current emote by sending it again
-            await self._send_osc("/avatar/parameters/VRCEmote", self.current_vrcemote)
+        # Smart emote clearing - try multiple approaches
+        if self.emote_is_active or self.current_vrcemote != 0:
+            emote_to_clear = self.current_vrcemote if self.current_vrcemote != 0 else 5  # Default to dance if unknown
+            logger.info(f"Attempting to clear emote {emote_to_clear} before movement")
+
+            # Method 1: Send the emote value to toggle off
+            await self._send_osc("/avatar/parameters/VRCEmote", emote_to_clear)
+            await asyncio.sleep(0.15)
+
+            # Method 2: Try again in case first didn't work
+            await self._send_osc("/avatar/parameters/VRCEmote", emote_to_clear)
+            await asyncio.sleep(0.1)
+
+            # Reset tracking
             self.emote_is_active = False
-            old_emote = self.current_vrcemote
             self.current_vrcemote = 0
-            await asyncio.sleep(0.1)  # Small delay to ensure emote clears
-            logger.info(f"Toggled off emote {old_emote} to enable movement")
+            logger.info(f"Cleared emote {emote_to_clear} for movement")
 
         # Cancel any existing movement timer
         if self.movement_timer:
