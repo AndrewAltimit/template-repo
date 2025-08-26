@@ -460,23 +460,32 @@ class VRChatRemoteBackend(BackendAdapter):
 
     async def _handle_movement_params(self, params: Dict[str, Any]) -> None:
         """Handle movement-related parameters with auto-stop."""
-        # Smart emote clearing - try multiple approaches
-        if self.emote_is_active or self.current_vrcemote != 0:
-            emote_to_clear = self.current_vrcemote if self.current_vrcemote != 0 else 5  # Default to dance if unknown
-            logger.info(f"Attempting to clear emote {emote_to_clear} before movement")
+        # Aggressive emote clearing for reliable movement
+        # Always try to clear common stuck emotes
+        logger.info(f"Movement requested. Current emote state: active={self.emote_is_active}, value={self.current_vrcemote}")
 
-            # Method 1: Send the emote value to toggle off
-            await self._send_osc("/avatar/parameters/VRCEmote", emote_to_clear)
-            await asyncio.sleep(0.15)
+        # List of emotes to try clearing (most common ones that lock movement)
+        emotes_to_clear = []
 
-            # Method 2: Try again in case first didn't work
-            await self._send_osc("/avatar/parameters/VRCEmote", emote_to_clear)
-            await asyncio.sleep(0.1)
+        # Add tracked emote if any
+        if self.current_vrcemote != 0:
+            emotes_to_clear.append(self.current_vrcemote)
 
-            # Reset tracking
-            self.emote_is_active = False
-            self.current_vrcemote = 0
-            logger.info(f"Cleared emote {emote_to_clear} for movement")
+        # Always try to clear these problematic emotes that lock movement
+        emotes_to_clear.extend([6, 5, 2])  # Backflip, Dance, Clap - the most locking ones
+
+        for emote_val in emotes_to_clear:
+            logger.info(f"Clearing emote {emote_val}")
+            await self._send_osc("/avatar/parameters/VRCEmote", emote_val)
+            await asyncio.sleep(0.05)
+
+        # Final delay to ensure clearing
+        await asyncio.sleep(0.1)
+
+        # Reset tracking
+        self.emote_is_active = False
+        self.current_vrcemote = 0
+        logger.info("Cleared emotes for movement")
 
         # Cancel any existing movement timer
         if self.movement_timer:
