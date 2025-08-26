@@ -119,6 +119,8 @@ class VRChatRemoteBackend(BackendAdapter):
         self.current_gesture = GestureType.NONE
         self.avatar_params: Dict[str, Any] = {}
         self.use_vrcemote = True  # Most avatars use VRCEmote system
+        self.current_vrcemote = 0  # Track current emote for toggle behavior
+        self.emote_is_active = False  # Track if an emote is currently active
 
         # Movement parameters
         self.move_speed = 0.0
@@ -378,13 +380,30 @@ class VRChatRemoteBackend(BackendAdapter):
             self.stats["osc_messages_sent"] += 1
 
     async def _set_emotion(self, emotion: EmotionType, intensity: float = 1.0) -> None:
-        """Set avatar emotion."""
+        """Set avatar emotion with toggle behavior."""
         if self.use_vrcemote:
-            # Use VRCEmote integer system
+            # Use VRCEmote integer system with toggle behavior
             if emotion in self.VRCEMOTE_MAP:
                 emote_value = self.VRCEMOTE_MAP[emotion]
-                await self._send_osc("/avatar/parameters/VRCEmote", emote_value)
-                logger.info(f"Set VRCEmote to {emote_value} for {emotion.value}")
+
+                # If trying to activate the same emote, toggle it off
+                if self.emote_is_active and self.current_vrcemote == emote_value and emote_value != 0:
+                    await self._send_osc("/avatar/parameters/VRCEmote", 0)
+                    self.emote_is_active = False
+                    self.current_vrcemote = 0
+                    logger.info(f"Toggled off VRCEmote {emote_value}")
+                else:
+                    # Clear different active emote first if needed
+                    if self.emote_is_active and self.current_vrcemote != emote_value and emote_value != 0:
+                        await self._send_osc("/avatar/parameters/VRCEmote", 0)
+                        await asyncio.sleep(0.1)  # Small delay for avatar to process
+                        logger.info("Cleared previous emote")
+
+                    # Set the new emote
+                    await self._send_osc("/avatar/parameters/VRCEmote", emote_value)
+                    self.current_vrcemote = emote_value
+                    self.emote_is_active = emote_value != 0
+                    logger.info(f"Set VRCEmote to {emote_value} for {emotion.value}")
         else:
             # Use traditional individual emotion parameters
             # Clear all emotions first
@@ -396,12 +415,29 @@ class VRChatRemoteBackend(BackendAdapter):
                 await self._send_osc(self.EMOTION_PARAMS[emotion], intensity)
 
     async def _set_gesture(self, gesture: GestureType, intensity: float = 1.0) -> None:
-        """Set avatar gesture."""
+        """Set avatar gesture with toggle behavior."""
         if self.use_vrcemote and gesture in self.VRCEMOTE_GESTURE_MAP:
-            # Use VRCEmote for gesture-based avatars
+            # Use VRCEmote for gesture-based avatars with toggle behavior
             emote_value = self.VRCEMOTE_GESTURE_MAP[gesture]
-            await self._send_osc("/avatar/parameters/VRCEmote", emote_value)
-            logger.info(f"Set VRCEmote to {emote_value} for gesture {gesture.value}")
+
+            # If trying to activate the same gesture, toggle it off
+            if self.emote_is_active and self.current_vrcemote == emote_value and emote_value != 0:
+                await self._send_osc("/avatar/parameters/VRCEmote", 0)
+                self.emote_is_active = False
+                self.current_vrcemote = 0
+                logger.info(f"Toggled off VRCEmote {emote_value}")
+            else:
+                # Clear different active emote first if needed
+                if self.emote_is_active and self.current_vrcemote != emote_value and emote_value != 0:
+                    await self._send_osc("/avatar/parameters/VRCEmote", 0)
+                    await asyncio.sleep(0.1)  # Small delay for avatar to process
+                    logger.info("Cleared previous gesture")
+
+                # Set the new gesture
+                await self._send_osc("/avatar/parameters/VRCEmote", emote_value)
+                self.current_vrcemote = emote_value
+                self.emote_is_active = emote_value != 0
+                logger.info(f"Set VRCEmote to {emote_value} for gesture {gesture.value}")
         elif gesture in self.GESTURE_PARAMS:
             # Use traditional gesture parameters
             gesture_id = self.GESTURE_PARAMS[gesture]
@@ -411,6 +447,15 @@ class VRChatRemoteBackend(BackendAdapter):
 
     async def _handle_movement_params(self, params: Dict[str, Any]) -> None:
         """Handle movement-related parameters."""
+        # Clear any active emote first to ensure movement works
+        # (Some emotes like backflip lock movement)
+        if self.emote_is_active and ("move_forward" in params or "move_right" in params):
+            await self._send_osc("/avatar/parameters/VRCEmote", 0)
+            self.emote_is_active = False
+            self.current_vrcemote = 0
+            await asyncio.sleep(0.1)  # Small delay to ensure emote clears
+            logger.info("Cleared emote to enable movement")
+
         # Movement axes - VRChat expects values between -1.0 and 1.0
         if "move_forward" in params:
             value = float(params["move_forward"])
