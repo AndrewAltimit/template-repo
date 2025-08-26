@@ -55,15 +55,29 @@ class VRChatRemoteBackend(BackendAdapter):
     }
 
     # VRCEmote system (integer-based, common in many avatars)
-    # Based on your avatar's discovered values: 2, 3, 4, 8
+    # This avatar uses a gesture wheel, not emotions
+    # Wheel positions (clockwise from top):
+    # 1=Back, 2=Wave, 3=Clap, 4=Point, 5=Cheer, 6=Dance, 7=Backflip, 8=Sadness, 9=Die
     VRCEMOTE_MAP = {
-        EmotionType.NEUTRAL: 0,  # Usually 0 or no emote
-        EmotionType.HAPPY: 2,  # Observed value
-        EmotionType.SAD: 3,  # Observed value
-        EmotionType.ANGRY: 4,  # Observed value
-        EmotionType.SURPRISED: 8,  # Observed value
-        EmotionType.FEARFUL: 5,  # Common mapping
-        EmotionType.DISGUSTED: 6,  # Common mapping
+        EmotionType.NEUTRAL: 0,  # No gesture/back to normal
+        EmotionType.HAPPY: 5,  # Maps to Cheer
+        EmotionType.SAD: 8,  # Maps to Sadness gesture
+        EmotionType.ANGRY: 4,  # Maps to Point (assertive)
+        EmotionType.SURPRISED: 7,  # Maps to Backflip (excitement)
+        EmotionType.FEARFUL: 9,  # Maps to Die (dramatic)
+        EmotionType.DISGUSTED: 1,  # Maps to Back (turning away)
+    }
+
+    # Alternative mapping for gesture-based avatars
+    VRCEMOTE_GESTURE_MAP = {
+        GestureType.NONE: 0,
+        GestureType.WAVE: 2,
+        GestureType.POINT: 4,
+        GestureType.THUMBS_UP: 5,  # Maps to Cheer
+        GestureType.NOD: 3,  # Maps to Clap (approval)
+        GestureType.SHAKE_HEAD: 1,  # Maps to Back
+        GestureType.CLAP: 3,
+        GestureType.DANCE: 6,
     }
 
     GESTURE_PARAMS = {
@@ -383,7 +397,13 @@ class VRChatRemoteBackend(BackendAdapter):
 
     async def _set_gesture(self, gesture: GestureType, intensity: float = 1.0) -> None:
         """Set avatar gesture."""
-        if gesture in self.GESTURE_PARAMS:
+        if self.use_vrcemote and gesture in self.VRCEMOTE_GESTURE_MAP:
+            # Use VRCEmote for gesture-based avatars
+            emote_value = self.VRCEMOTE_GESTURE_MAP[gesture]
+            await self._send_osc("/avatar/parameters/VRCEmote", emote_value)
+            logger.info(f"Set VRCEmote to {emote_value} for gesture {gesture.value}")
+        elif gesture in self.GESTURE_PARAMS:
+            # Use traditional gesture parameters
             gesture_id = self.GESTURE_PARAMS[gesture]
             await self._send_osc("/avatar/parameters/GestureLeft", gesture_id)
             await self._send_osc("/avatar/parameters/GestureRight", gesture_id)

@@ -30,17 +30,19 @@ logger = logging.getLogger(__name__)
 
 async def test_vrcemote_emotions(backend: VRChatRemoteBackend):
     """Test VRCEmote values with canonical emotions."""
-    logger.info("\n═══ Testing VRCEmote Emotion Mapping ═══")
-    logger.info("Based on discovered avatar values: 2, 3, 4, 8")
+    logger.info("\n═══ Testing VRCEmote Gesture Wheel Mapping ═══")
+    logger.info("Avatar uses gesture wheel: Back, Wave, Clap, Point, Cheer, Dance, Backflip, Sadness, Die")
     logger.info("")
 
-    # Test each discovered emotion mapping
+    # Test emotion to gesture wheel mappings
     emotions = [
-        (EmotionType.NEUTRAL, 0, "😐 Neutral/None"),
-        (EmotionType.HAPPY, 2, "😊 Happy"),
-        (EmotionType.SAD, 3, "😢 Sad"),
-        (EmotionType.ANGRY, 4, "😠 Angry"),
-        (EmotionType.SURPRISED, 8, "😲 Surprised"),
+        (EmotionType.NEUTRAL, 0, "😐 Neutral (No gesture)"),
+        (EmotionType.HAPPY, 5, "😊 Happy → Cheer"),
+        (EmotionType.SAD, 8, "😢 Sad → Sadness gesture"),
+        (EmotionType.ANGRY, 4, "😠 Angry → Point"),
+        (EmotionType.SURPRISED, 7, "😲 Surprised → Backflip"),
+        (EmotionType.FEARFUL, 9, "😱 Fearful → Die"),
+        (EmotionType.DISGUSTED, 1, "🤢 Disgusted → Back"),
     ]
 
     for emotion_type, expected_value, label in emotions:

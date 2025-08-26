@@ -117,18 +117,19 @@ async def test_vrcemote_system(tester: VRChatOSCTester):
     logger.info("\n═══ Testing VRCEmote System (Integer-based) ═══")
     logger.info("(Used by many modern avatars)\n")
 
-    # Based on discovered values: 2, 3, 4, 8
-    logger.info("🎭 Testing VRCEmote values:")
+    # Avatar uses gesture wheel, not emotion states
+    logger.info("🎭 Testing VRCEmote gesture wheel positions:")
     emote_values = [
-        (0, "Neutral/None"),
-        (2, "Happy (discovered)"),
-        (3, "Sad (discovered)"),
-        (4, "Angry (discovered)"),
-        (8, "Surprised (discovered)"),
-        (5, "Fearful (common)"),
-        (6, "Disgusted (common)"),
-        (1, "Other 1"),
-        (7, "Other 7"),
+        (0, "Neutral/Clear"),
+        (1, "Back (top)"),
+        (2, "Wave (upper right)"),
+        (3, "Clap (right)"),
+        (4, "Point (lower right)"),
+        (5, "Cheer (lower slightly right)"),
+        (6, "Dance (bottom)"),
+        (7, "Backflip (lower left)"),
+        (8, "Sadness (left)"),
+        (9, "Die (upper left)"),
     ]
 
     for value, description in emote_values:
