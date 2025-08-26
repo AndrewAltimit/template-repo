@@ -209,6 +209,28 @@ class MockBackend(BackendAdapter):
 
         return self.environment_state  # type: ignore
 
+    async def reset_all(self) -> bool:
+        """
+        Reset all states to neutral/idle.
+
+        Returns:
+            True (always succeeds for mock)
+        """
+        # Clear animation state
+        self.current_animation = None
+        self.current_audio = None
+        self.animation_history.clear()
+        self.audio_history.clear()
+
+        # Reset environment to default position
+        self.environment_state.agent_position = Vector3(0.0, 0.0, 0.0)
+        self.environment_state.agent_rotation = Quaternion(1.0, 0.0, 0.0, 0.0)
+
+        # Emit reset event
+        await self._emit_event("reset", {"backend": self.backend_name})
+
+        return True
+
     async def capture_video_frame(self) -> Optional[VideoFrame]:
         """
         Capture a simulated video frame.
