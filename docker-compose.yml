@@ -348,6 +348,7 @@ services:
       dockerfile: docker/comfyui.Dockerfile
     container_name: comfyui
     runtime: nvidia
+    user: "${USER_ID}:${GROUP_ID}"
     ports:
       - "8188:8188"   # Web UI
       - "8013:8013"   # MCP Server
