@@ -342,7 +342,10 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 },
             },
             "reset": {
-                "description": "Reset all states - clear emotes and stop all movement",
+                "description": (
+                    "Reset all states - clear emotes and stop all movement. "
+                    "All backends must implement this method to return the character to a neutral idle state."
+                ),
                 "parameters": {
                     "type": "object",
                     "properties": {},

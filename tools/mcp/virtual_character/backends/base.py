@@ -190,6 +190,19 @@ class BackendAdapter(ABC):
         # Backends with environment control should override
         return False
 
+    @abstractmethod
+    async def reset_all(self) -> bool:
+        """
+        Reset all states - clear emotes, stop movement, reset to neutral.
+
+        This method should clear any active animations, emotes, or movements
+        and return the character to a neutral idle state.
+
+        Returns:
+            True if reset successful
+        """
+        pass
+
     async def execute_behavior(self, behavior: str, parameters: Dict[str, Any]) -> bool:
         """
         Execute a high-level behavior.

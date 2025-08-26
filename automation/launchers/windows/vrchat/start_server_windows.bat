@@ -39,20 +39,26 @@ REM Check if required packages are installed
 echo Checking dependencies...
 python -c "import pythonosc" >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Installing python-osc...
-    pip install python-osc
+    echo   Installing python-osc...
+    pip install --user python-osc
+) else (
+    echo   [OK] pythonosc installed
 )
 
 python -c "import fastapi" >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Installing FastAPI...
-    pip install fastapi "uvicorn[standard]"
+    echo   Installing FastAPI...
+    pip install --user fastapi "uvicorn[standard]"
+) else (
+    echo   [OK] fastapi installed
 )
 
 python -c "import aiohttp" >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Installing aiohttp...
-    pip install aiohttp
+    echo   Installing aiohttp...
+    pip install --user aiohttp
+) else (
+    echo   [OK] aiohttp installed
 )
 
 REM Navigate to the repository root (script is in automation/launchers/windows/vrchat)

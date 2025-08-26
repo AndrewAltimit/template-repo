@@ -47,13 +47,17 @@ $packages = @(
 )
 
 foreach ($pkg in $packages) {
-    try {
-        python -c "import $($pkg.Name)" 2>&1 | Out-Null
+    $testResult = python -c "import $($pkg.Name)" 2>&1
+    if ($LASTEXITCODE -eq 0) {
         Write-Host "  ✓ $($pkg.Name) installed" -ForegroundColor Green
     }
-    catch {
+    else {
         Write-Host "  Installing $($pkg.Package)..." -ForegroundColor Yellow
-        pip install $($pkg.Package)
+        pip install --user $($pkg.Package)
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  Warning: Failed to install $($pkg.Package). Trying without --user flag..." -ForegroundColor Yellow
+            pip install $($pkg.Package)
+        }
     }
 }
 
