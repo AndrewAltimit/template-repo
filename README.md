@@ -8,8 +8,7 @@ A comprehensive development ecosystem with 7 AI agents, 13 MCP servers, and comp
 
 This project follows a **container-first approach**:
 
-- **All Python tools and CI/CD operations run in Docker containers** for maximum portability
-- **MCP tools are containerized** including Gemini CLI (see `automation/corporate-proxy/gemini/`)
+- **All tools and CI/CD operations run in Docker containers** for maximum portability
 - **Zero external dependencies** - runs on any Linux system with Docker
 - **Self-hosted infrastructure** - no cloud costs, full control over runners
 - **Single maintainer design** - optimized for individual developer productivity
