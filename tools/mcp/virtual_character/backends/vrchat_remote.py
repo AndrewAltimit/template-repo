@@ -1,0 +1,425 @@
+"""
+VRChat Remote Backend Adapter.
+
+Controls VRChat avatars on a remote Windows machine using OSC protocol.
+"""
+
+import asyncio
+import logging
+from typing import Any, Dict, Optional
+
+from ..models.canonical import (
+    AudioData,
+    CanonicalAnimationData,
+    EmotionType,
+    EnvironmentState,
+    GestureType,
+    VideoFrame,
+)
+from .base import BackendAdapter
+
+logger = logging.getLogger(__name__)
+
+try:
+    from pythonosc import udp_client
+    from pythonosc.dispatcher import Dispatcher
+    from pythonosc.osc_server import AsyncIOOSCUDPServer
+
+    HAS_OSC = True
+except ImportError:
+    HAS_OSC = False
+    logger.warning("pythonosc not installed. Install with: pip install python-osc")
+
+
+class VRChatRemoteBackend(BackendAdapter):
+    """
+    Backend adapter for controlling VRChat avatars remotely.
+
+    Uses OSC (Open Sound Control) protocol to communicate with VRChat
+    and optional bridge server for advanced features like video capture.
+    """
+
+    # VRChat OSC standard ports
+    VRCHAT_OSC_IN_PORT = 9000  # VRChat receives on this port
+    VRCHAT_OSC_OUT_PORT = 9001  # VRChat sends on this port
+
+    # Avatar parameter mappings
+    EMOTION_PARAMS = {
+        EmotionType.NEUTRAL: "/avatar/parameters/EmotionNeutral",
+        EmotionType.HAPPY: "/avatar/parameters/EmotionHappy",
+        EmotionType.SAD: "/avatar/parameters/EmotionSad",
+        EmotionType.ANGRY: "/avatar/parameters/EmotionAngry",
+        EmotionType.SURPRISED: "/avatar/parameters/EmotionSurprised",
+        EmotionType.FEARFUL: "/avatar/parameters/EmotionFearful",
+        EmotionType.DISGUSTED: "/avatar/parameters/EmotionDisgusted",
+    }
+
+    GESTURE_PARAMS = {
+        GestureType.NONE: 0,
+        GestureType.WAVE: 1,
+        GestureType.POINT: 2,
+        GestureType.THUMBS_UP: 3,
+        GestureType.NOD: 4,
+        GestureType.SHAKE_HEAD: 5,
+        GestureType.CLAP: 6,
+        GestureType.DANCE: 7,
+    }
+
+    def __init__(self):
+        """Initialize VRChat remote backend."""
+        super().__init__()
+
+        # Set capabilities
+        self.capabilities.animation = True
+        self.capabilities.audio = False  # Can be added with bridge server
+        self.capabilities.video_capture = False  # Can be added with OBS
+        self.capabilities.bidirectional = True
+        self.capabilities.environment_control = False  # Limited to world switching
+        self.capabilities.streaming = True
+        self.capabilities.multi_agent = False
+
+        # OSC clients and servers
+        self.osc_client = None
+        self.osc_server = None
+        self.osc_dispatcher = None
+
+        # Remote configuration
+        self.remote_host = "127.0.0.1"
+        self.bridge_port = 8021
+        self.use_bridge = False
+
+        # Avatar state tracking
+        self.current_emotion = EmotionType.NEUTRAL
+        self.current_gesture = GestureType.NONE
+        self.avatar_params: Dict[str, Any] = {}
+
+        # Movement parameters
+        self.move_speed = 0.0
+        self.turn_speed = 0.0
+        self.vertical_movement = 0.0
+
+        # Statistics
+        self.stats = {
+            "osc_messages_sent": 0,
+            "osc_messages_received": 0,
+            "animation_frames": 0,
+            "errors": 0,
+        }
+
+    @property
+    def backend_name(self) -> str:
+        """Get backend name."""
+        return "vrchat_remote"
+
+    async def connect(self, config: Dict[str, Any]) -> bool:
+        """
+        Connect to VRChat via OSC.
+
+        Args:
+            config: Configuration including:
+                - remote_host: IP of VRChat machine
+                - bridge_port: Optional bridge server port
+                - use_bridge: Whether to use bridge server
+                - osc_in_port: Port for receiving from VRChat
+                - osc_out_port: Port for sending to VRChat
+
+        Returns:
+            True if connection successful
+        """
+        if not HAS_OSC:
+            logger.error("pythonosc not installed. Cannot connect to VRChat.")
+            return False
+
+        try:
+            self.config = config
+            self.remote_host = config.get("remote_host", "127.0.0.1")
+            self.bridge_port = config.get("bridge_port", 8021)
+            self.use_bridge = config.get("use_bridge", False)
+
+            # OSC ports
+            osc_in_port = config.get("osc_in_port", self.VRCHAT_OSC_IN_PORT)
+            osc_out_port = config.get("osc_out_port", self.VRCHAT_OSC_OUT_PORT)
+
+            # Create OSC client for sending to VRChat
+            self.osc_client = udp_client.SimpleUDPClient(self.remote_host, osc_in_port)
+
+            # Create OSC server for receiving from VRChat
+            self.osc_dispatcher = Dispatcher()
+            self._setup_osc_handlers()
+
+            # Start OSC server
+            self.osc_server = AsyncIOOSCUDPServer(("0.0.0.0", osc_out_port), self.osc_dispatcher, asyncio.get_event_loop())
+
+            transport, protocol = await self.osc_server.create_serve_endpoint()
+
+            # Test connection with a simple parameter update
+            await self._send_osc("/avatar/parameters/TestConnection", 1.0)
+
+            self.connected = True
+            logger.info(f"Connected to VRChat at {self.remote_host}:{osc_in_port}")
+
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to connect to VRChat: {e}")
+            self.stats["errors"] += 1
+            return False
+
+    async def disconnect(self) -> None:
+        """Disconnect from VRChat."""
+        try:
+            # Close OSC server
+            if self.osc_server:
+                self.osc_server.shutdown()
+
+            self.connected = False
+            logger.info("Disconnected from VRChat")
+
+        except Exception as e:
+            logger.error(f"Error during disconnect: {e}")
+            self.stats["errors"] += 1
+
+    async def send_animation_data(self, data: CanonicalAnimationData) -> bool:
+        """
+        Send animation data to VRChat avatar.
+
+        Args:
+            data: Animation data including emotion, gesture, and parameters
+
+        Returns:
+            True if successful
+        """
+        if not self.connected:
+            return False
+
+        try:
+            # Update emotion if changed
+            if data.emotion and data.emotion != self.current_emotion:
+                await self._set_emotion(data.emotion, data.emotion_intensity)
+                self.current_emotion = data.emotion
+
+            # Update gesture if changed
+            if data.gesture and data.gesture != self.current_gesture:
+                await self._set_gesture(data.gesture, data.gesture_intensity)
+                self.current_gesture = data.gesture
+
+            # Update blend shapes (if avatar supports them)
+            if data.blend_shapes:
+                for shape, value in data.blend_shapes.items():
+                    param_name = f"/avatar/parameters/BlendShape_{shape}"
+                    await self._send_osc(param_name, float(value))
+
+            # Handle movement parameters
+            if data.parameters:
+                await self._handle_movement_params(data.parameters)
+
+            # Update custom avatar parameters
+            if data.parameters and "avatar_params" in data.parameters:
+                for param, value in data.parameters["avatar_params"].items():
+                    await self._send_osc(f"/avatar/parameters/{param}", value)
+
+            self.stats["animation_frames"] += 1
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to send animation data: {e}")
+            self.stats["errors"] += 1
+            return False
+
+    async def send_audio_data(self, audio: AudioData) -> bool:
+        """
+        Send audio data (requires bridge server).
+
+        Args:
+            audio: Audio data with sync metadata
+
+        Returns:
+            True if successful
+        """
+        if not self.connected or not self.use_bridge:
+            logger.warning("Audio requires bridge server to be enabled")
+            return False
+
+        # TODO: Implement bridge server audio streaming
+        return False
+
+    async def receive_state(self) -> Optional[EnvironmentState]:
+        """
+        Receive current state from VRChat.
+
+        Returns:
+            Current environment state
+        """
+        if not self.connected:
+            return None
+
+        try:
+            # Create basic state from tracked parameters
+            state = EnvironmentState()
+            state.world_name = self.avatar_params.get("world_name", "Unknown")
+            state.agent_position = None  # Would need proper Vector3 type
+            state.agent_rotation = None  # Would need proper Quaternion type
+
+            return state
+
+        except Exception as e:
+            logger.error(f"Failed to receive state: {e}")
+            self.stats["errors"] += 1
+            return None
+
+    async def capture_video_frame(self) -> Optional[VideoFrame]:
+        """
+        Capture video frame (requires OBS or bridge server).
+
+        Returns:
+            Video frame if available
+        """
+        if not self.connected:
+            return None
+
+        # TODO: Implement OBS or bridge server video capture
+        return None
+
+    async def execute_behavior(self, behavior: str, parameters: Dict[str, Any]) -> bool:
+        """
+        Execute high-level behavior.
+
+        Args:
+            behavior: Behavior name
+            parameters: Behavior parameters
+
+        Returns:
+            True if successful
+        """
+        if not self.connected:
+            return False
+
+        try:
+            # Map behaviors to VRChat actions
+            behavior_map: Dict[str, Dict[str, Any]] = {
+                "greet": {"gesture": GestureType.WAVE, "emotion": EmotionType.HAPPY},
+                "dance": {"gesture": GestureType.DANCE},
+                "sit": {"avatar_params": {"Sitting": True}},
+                "stand": {"avatar_params": {"Sitting": False}},
+                "jump": {"input": "Jump"},
+                "crouch": {"avatar_params": {"Crouching": True}},
+            }
+
+            if behavior in behavior_map:
+                action = behavior_map[behavior]
+
+                # Apply gesture
+                if "gesture" in action:
+                    animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
+                    animation.gesture = action["gesture"]
+                    if "emotion" in action:
+                        animation.emotion = action["emotion"]
+                    await self.send_animation_data(animation)
+
+                # Apply avatar parameters
+                if "avatar_params" in action:
+                    avatar_params = action["avatar_params"]
+                    if isinstance(avatar_params, dict):
+                        for param, value in avatar_params.items():
+                            await self._send_osc(f"/avatar/parameters/{param}", value)
+
+                # Apply input
+                if "input" in action:
+                    await self._send_osc(f"/input/{action['input']}", 1)
+
+                return True
+
+            return False
+
+        except Exception as e:
+            logger.error(f"Failed to execute behavior: {e}")
+            self.stats["errors"] += 1
+            return False
+
+    # Private helper methods
+
+    async def _send_osc(self, address: str, value: Any) -> None:
+        """Send OSC message to VRChat."""
+        if self.osc_client:
+            self.osc_client.send_message(address, value)
+            self.stats["osc_messages_sent"] += 1
+
+    async def _set_emotion(self, emotion: EmotionType, intensity: float = 1.0) -> None:
+        """Set avatar emotion."""
+        # Clear all emotions first
+        for em_type, param in self.EMOTION_PARAMS.items():
+            await self._send_osc(param, 0.0)
+
+        # Set new emotion
+        if emotion in self.EMOTION_PARAMS:
+            await self._send_osc(self.EMOTION_PARAMS[emotion], intensity)
+
+    async def _set_gesture(self, gesture: GestureType, intensity: float = 1.0) -> None:
+        """Set avatar gesture."""
+        if gesture in self.GESTURE_PARAMS:
+            gesture_id = self.GESTURE_PARAMS[gesture]
+            await self._send_osc("/avatar/parameters/GestureLeft", gesture_id)
+            await self._send_osc("/avatar/parameters/GestureRight", gesture_id)
+            await self._send_osc("/avatar/parameters/GestureWeight", intensity)
+
+    async def _handle_movement_params(self, params: Dict[str, Any]) -> None:
+        """Handle movement-related parameters."""
+        # Movement axes
+        if "move_forward" in params:
+            await self._send_osc("/input/Vertical", float(params["move_forward"]))
+        if "move_right" in params:
+            await self._send_osc("/input/Horizontal", float(params["move_right"]))
+
+        # Looking/turning
+        if "look_horizontal" in params:
+            await self._send_osc("/input/LookHorizontal", float(params["look_horizontal"]))
+        if "look_vertical" in params:
+            await self._send_osc("/input/LookVertical", float(params["look_vertical"]))
+
+        # Movement speed
+        if "move_speed" in params:
+            speed = float(params["move_speed"])
+            if speed > 0:
+                await self._send_osc("/input/Run", 1 if speed > 0.5 else 0)
+
+        # Actions
+        if "jump" in params and params["jump"]:
+            await self._send_osc("/input/Jump", 1)
+        if "crouch" in params:
+            await self._send_osc("/input/Crouch", 1 if params["crouch"] else 0)
+
+    def _setup_osc_handlers(self) -> None:
+        """Setup OSC message handlers for receiving from VRChat."""
+        if not self.osc_dispatcher:
+            return
+
+        # Handle avatar parameter updates
+        def avatar_param_handler(address: str, *args):
+            """Handle incoming avatar parameter updates."""
+            param_name = address.replace("/avatar/parameters/", "")
+            if args:
+                self.avatar_params[param_name] = args[0]
+                self.stats["osc_messages_received"] += 1
+
+        # Register handlers
+        self.osc_dispatcher.map("/avatar/parameters/*", avatar_param_handler)
+
+        # Handle world/instance info if available
+        def world_handler(address: str, *args):
+            """Handle world information."""
+            if args:
+                self.avatar_params["world_name"] = args[0]
+
+        self.osc_dispatcher.map("/world/*", world_handler)
+
+    async def get_statistics(self) -> Dict[str, Any]:
+        """Get backend statistics."""
+        return {
+            "backend": self.backend_name,
+            "connected": self.connected,
+            "remote_host": self.remote_host,
+            **self.stats,
+            "current_emotion": self.current_emotion.value if self.current_emotion else "none",
+            "current_gesture": self.current_gesture.value if self.current_gesture else "none",
+            "tracked_params": len(self.avatar_params),
+        }

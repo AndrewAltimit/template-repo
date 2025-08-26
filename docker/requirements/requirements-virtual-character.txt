@@ -16,3 +16,6 @@ numpy>=1.24.0
 
 # Image processing (for video frame handling)
 pillow>=10.0.0
+
+# OSC communication (for VRChat backend)
+python-osc>=1.8.0
