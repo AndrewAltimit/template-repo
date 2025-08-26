@@ -65,8 +65,8 @@ pip install python-osc fastapi uvicorn aiohttp
 #### Option A: Using PowerShell Script (Recommended)
 
 ```powershell
-# Navigate to the scripts directory
-cd template-repo\tools\mcp\virtual_character\scripts
+# Navigate to the launchers directory
+cd template-repo\automation\launchers\vrchat
 
 # Run the PowerShell script
 .\start_server_windows.ps1 -Port 8020 -Host 0.0.0.0
@@ -75,8 +75,8 @@ cd template-repo\tools\mcp\virtual_character\scripts
 #### Option B: Using Batch Script
 
 ```cmd
-# Navigate to the scripts directory
-cd template-repo\tools\mcp\virtual_character\scripts
+# Navigate to the launchers directory
+cd template-repo\automation\launchers\vrchat
 
 # Run the batch file
 start_server_windows.bat 8020 0.0.0.0
@@ -88,6 +88,8 @@ start_server_windows.bat 8020 0.0.0.0
 # From repository root
 python -m tools.mcp.virtual_character.server --port 8020 --host 0.0.0.0 --mode http
 ```
+
+**Note:** Convenience scripts are also available in `tools\mcp\virtual_character\scripts\` that redirect to the main launchers.
 
 The server should start and display:
 ```
@@ -221,7 +223,7 @@ Emotions are mapped to appropriate gestures:
 
 To automatically start the server when Windows boots:
 
-1. Create a shortcut to `start_server_windows.bat`
+1. Create a shortcut to `automation\launchers\vrchat\start_server_windows.bat`
 2. Press `Win+R`, type `shell:startup`
 3. Copy the shortcut to the Startup folder
 
@@ -231,7 +233,7 @@ Or use Task Scheduler for more control:
 3. Trigger: When computer starts
 4. Action: Start a program
 5. Program: `powershell.exe`
-6. Arguments: `-ExecutionPolicy Bypass -File "C:\path\to\start_server_windows.ps1" -AutoStart`
+6. Arguments: `-ExecutionPolicy Bypass -File "C:\path\to\repo\automation\launchers\vrchat\start_server_windows.ps1" -AutoStart`
 
 ## Security Notes
 
