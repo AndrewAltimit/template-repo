@@ -4,13 +4,14 @@
 import asyncio
 import os
 import sys
+import traceback
 from pathlib import Path
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from tools.mcp.comfyui.workflows import WORKFLOW_TEMPLATES, WorkflowFactory
-from tools.mcp.core.client import MCPClient
+from tools.mcp.comfyui.workflows import WORKFLOW_TEMPLATES, WorkflowFactory  # noqa: E402
+from tools.mcp.core.client import MCPClient  # noqa: E402
 
 
 async def test_workflow_factory():
@@ -116,8 +117,6 @@ async def test_mcp_integration():
 
     except Exception as e:
         print(f"\n✗ Error during testing: {e}")
-        import traceback
-
         traceback.print_exc()
 
 

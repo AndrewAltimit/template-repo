@@ -81,8 +81,8 @@ class WorkflowFactory:
                 "class_type": "LoraLoader",
             }
             # Update CLIP connections to use LoRA output
-            workflow["2"]["inputs"]["clip"] = ["10", 1]
-            workflow["3"]["inputs"]["clip"] = ["10", 1]
+            workflow["2"]["inputs"]["clip"] = ["10", 1]  # type: ignore
+            workflow["3"]["inputs"]["clip"] = ["10", 1]  # type: ignore
 
         return workflow
 
@@ -160,8 +160,8 @@ class WorkflowFactory:
                 "class_type": "LoraLoader",
             }
             # Update CLIP connections to use LoRA output
-            workflow["2"]["inputs"]["clip"] = ["10", 1]
-            workflow["3"]["inputs"]["clip"] = ["10", 1]
+            workflow["2"]["inputs"]["clip"] = ["10", 1]  # type: ignore
+            workflow["3"]["inputs"]["clip"] = ["10", 1]  # type: ignore
 
         return workflow
 
@@ -242,7 +242,7 @@ class WorkflowFactory:
                 },
                 "class_type": "ImageScale",
             }
-            workflow["9"]["inputs"]["pixels"] = ["11", 0]
+            workflow["9"]["inputs"]["pixels"] = ["11", 0]  # type: ignore
 
         return workflow
 

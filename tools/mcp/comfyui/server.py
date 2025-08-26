@@ -227,14 +227,16 @@ class ComfyUIMCPServer(BaseMCPServer):
                         )
                         # Prefer FLUX model if available
                         for model in models:
-                            if "flux" in model.lower():
-                                return model
+                            model_str = str(model)
+                            if "flux" in model_str.lower():
+                                return model_str
                         # Then try SDXL/IllustriousXL
                         for model in models:
-                            if "xl" in model.lower():
-                                return model
+                            model_str = str(model)
+                            if "xl" in model_str.lower():
+                                return model_str
                         # Return first available model
-                        return models[0] if models else "flux1-dev-fp8.safetensors"
+                        return str(models[0]) if models else "flux1-dev-fp8.safetensors"
         except Exception:
             pass
         return "flux1-dev-fp8.safetensors"  # Default fallback
@@ -404,7 +406,10 @@ class ComfyUIMCPServer(BaseMCPServer):
                 sample_params["control_image"] = ""
                 sample_params["control_strength"] = 1.0
 
-            workflow = template["factory_method"](**sample_params)
+            factory_method = template.get("factory_method")
+            if not callable(factory_method):
+                return {"error": "Invalid workflow template"}
+            workflow = factory_method(**sample_params)
             return {
                 "workflow": workflow,
                 "description": template["description"],
