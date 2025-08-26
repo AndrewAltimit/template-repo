@@ -148,7 +148,7 @@ workflow = WorkflowFactory.create_wan22_video_workflow(
 
 ```python
 # Using FLUX
-result = await mcp_client.call_tool(
+result = await client.call_tool(
     "generate_image",
     prompt="A futuristic robot",
     width=1024,
@@ -162,7 +162,7 @@ workflow = WorkflowFactory.create_sdxl_workflow(
     prompt="anime girl with silver hair",
     model_name="illustriousXL_smoothftSOLID.safetensors"
 )
-result = await mcp_client.call_tool("generate_image", workflow=workflow)
+result = await client.call_tool("generate_image", workflow=workflow)
 ```
 
 ### Using LoRA
@@ -173,7 +173,7 @@ workflow = WorkflowFactory.create_flux_workflow(
     lora_name="Inkpunk_Flux.safetensors",
     lora_strength=0.8
 )
-result = await mcp_client.call_tool("generate_image", workflow=workflow)
+result = await client.call_tool("generate_image", workflow=workflow)
 ```
 
 ### Video Generation
@@ -187,7 +187,7 @@ workflow = WorkflowFactory.create_wan22_video_workflow(
     fps=24,
     output_format="webm"
 )
-result = await mcp_client.call_tool("generate_image", workflow=workflow)
+result = await client.call_tool("generate_image", workflow=workflow)
 
 # Image-to-Video (animate a static image)
 with open("cat.jpg", "rb") as f:
@@ -198,7 +198,7 @@ workflow = WorkflowFactory.create_wan22_video_workflow(
     start_image=start_img,
     video_frames=60  # Shorter animation
 )
-result = await mcp_client.call_tool("generate_image", workflow=workflow)
+result = await client.call_tool("generate_image", workflow=workflow)
 ```
 
 ### Image-to-Image
@@ -212,7 +212,7 @@ workflow = WorkflowFactory.create_img2img_workflow(
     prompt="transform to cyberpunk style",
     denoise=0.7  # Lower = preserve more original
 )
-result = await mcp_client.call_tool("generate_image", workflow=workflow)
+result = await client.call_tool("generate_image", workflow=workflow)
 ```
 
 ## Optimal Settings by Model
@@ -249,7 +249,7 @@ custom_workflow = {
     "1": {"inputs": {...}, "class_type": "CheckpointLoaderSimple"},
     # ... your custom nodes
 }
-result = await mcp_client.call_tool("generate_image", workflow=custom_workflow)
+result = await client.call_tool("generate_image", workflow=custom_workflow)
 ```
 
 ### Batch Processing

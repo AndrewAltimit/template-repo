@@ -25,8 +25,8 @@ The server includes a sophisticated workflow factory that creates optimized work
 
 ## Available Tools
 
-### Image Generation
-- `generate_image` - Generate images with text prompts
+### Image & Video Generation
+- `generate_image` - Generate images or videos with workflows
 - `execute_workflow` - Execute custom ComfyUI workflows
 
 ### Workflow Management
