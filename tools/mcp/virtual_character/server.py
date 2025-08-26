@@ -9,7 +9,40 @@ from typing import Any, Dict, Optional
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from tools.mcp.core.base_server import BaseMCPServer  # noqa: E402
+try:
+    from tools.mcp.core.base_server import BaseMCPServer  # noqa: E402
+
+    HAS_MCP = True
+except ImportError:
+    # For HTTP mode, we don't need the MCP library
+    HAS_MCP = False
+    from fastapi import FastAPI
+
+    class BaseMCPServer:  # type: ignore
+        """Minimal base server for HTTP mode without MCP dependencies."""
+
+        def __init__(self, name: str, version: str, port: int):
+            self.name = name
+            self.version = version
+            self.port = port
+            self.app = FastAPI(title=name, version=version)
+
+        def setup_routes(self):
+            """Setup basic routes."""
+
+            @self.app.get("/")
+            async def root():
+                return {"name": self.name, "version": self.version}
+
+        def get_tools(self):
+            """Return empty tools for HTTP mode."""
+            return {}
+
+        async def execute_tool(self, request):
+            """Not used in HTTP mode."""
+            return {"error": "MCP tools not available in HTTP mode"}
+
+
 from tools.mcp.virtual_character.backends.base import BackendAdapter  # noqa: E402
 from tools.mcp.virtual_character.backends.mock import MockBackend  # noqa: E402
 from tools.mcp.virtual_character.backends.vrchat_remote import VRChatRemoteBackend  # noqa: E402

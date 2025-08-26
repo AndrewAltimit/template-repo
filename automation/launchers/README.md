@@ -6,10 +6,12 @@ Centralized launcher scripts for various services and tools in the repository.
 
 ```
 launchers/
-├── vrchat/              # VRChat Virtual Character MCP Server
-│   ├── start_server_windows.bat      # Windows batch launcher
-│   ├── start_server_windows.ps1      # Windows PowerShell launcher
-│   └── start_virtual_character_server.sh  # Linux/Mac launcher
+├── windows/             # Windows-specific launchers
+│   └── vrchat/          # VRChat Virtual Character MCP Server
+│       ├── start_server_windows.bat      # Windows batch launcher
+│       └── start_server_windows.ps1      # Windows PowerShell launcher
+├── linux/               # Linux/Mac launchers
+│   └── vrchat_server.sh # VRChat server launcher
 └── README.md            # This file
 ```
 
@@ -21,20 +23,20 @@ Control VRChat avatars remotely via MCP server.
 
 **PowerShell (Recommended):**
 ```powershell
-cd automation\launchers\vrchat
+cd automation\launchers\windows\vrchat
 .\start_server_windows.ps1
 ```
 
 **Command Prompt:**
 ```cmd
-cd automation\launchers\vrchat
+cd automation\launchers\windows\vrchat
 start_server_windows.bat
 ```
 
 ### Linux/Mac
 
 ```bash
-./automation/launchers/vrchat/start_virtual_character_server.sh
+./automation/launchers/linux/vrchat_server.sh
 ```
 
 ### Configuration
@@ -50,7 +52,7 @@ All launchers accept these parameters:
 
 **Bash Example:**
 ```bash
-./start_virtual_character_server.sh 8020 0.0.0.0
+./vrchat_server.sh 8020 0.0.0.0
 ```
 
 ### Features

@@ -52,7 +52,7 @@ check_and_install() {
 }
 
 check_and_install "pythonosc" "python-osc"
-check_and_install "fastapi" "fastapi uvicorn"
+check_and_install "fastapi" "fastapi uvicorn[standard]"
 check_and_install "aiohttp" "aiohttp"
 
 echo ""

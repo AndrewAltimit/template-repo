@@ -42,7 +42,7 @@ Write-Host "Checking dependencies..." -ForegroundColor Yellow
 
 $packages = @(
     @{Name="pythonosc"; Package="python-osc"},
-    @{Name="fastapi"; Package="fastapi uvicorn"},
+    @{Name="fastapi"; Package="fastapi uvicorn[standard]"},
     @{Name="aiohttp"; Package="aiohttp"}
 )
 
@@ -59,7 +59,7 @@ foreach ($pkg in $packages) {
 
 # Get script directory and navigate to repo root
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repoRoot = Join-Path $scriptPath "..\..\.."
+$repoRoot = Join-Path $scriptPath "\..\..\..\."
 Set-Location $repoRoot
 
 Write-Host ""

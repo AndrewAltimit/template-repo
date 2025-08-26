@@ -46,7 +46,7 @@ if %errorlevel% neq 0 (
 python -c "import fastapi" >nul 2>&1
 if %errorlevel% neq 0 (
     echo Installing FastAPI...
-    pip install fastapi uvicorn
+    pip install fastapi "uvicorn[standard]"
 )
 
 python -c "import aiohttp" >nul 2>&1
@@ -55,8 +55,8 @@ if %errorlevel% neq 0 (
     pip install aiohttp
 )
 
-REM Navigate to the repository root (script is in automation/launchers/vrchat)
-cd /d "%~dp0\..\..\..\"
+REM Navigate to the repository root (script is in automation/launchers/windows/vrchat)
+cd /d "%~dp0\..\..\..\..\"
 
 echo.
 echo Starting Virtual Character MCP Server...
