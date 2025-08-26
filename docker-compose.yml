@@ -353,11 +353,24 @@ services:
       - "8013:8013"   # MCP Server
     volumes:
       - ./:/workspace/repo:ro
-      - ./models/loras:/comfyui/models/loras
-      - ./models/checkpoints:/comfyui/models/checkpoints
-      - ./models/vae:/comfyui/models/vae
-      - ./models/embeddings:/comfyui/models/embeddings
-      - ./models/controlnet:/comfyui/models/controlnet
+      # Model directories - persist between container restarts
+      - ./comfyui/models/checkpoints:/comfyui/models/checkpoints
+      - ./comfyui/models/clip:/comfyui/models/clip
+      - ./comfyui/models/clip_vision:/comfyui/models/clip_vision
+      - ./comfyui/models/controlnet:/comfyui/models/controlnet
+      - ./comfyui/models/diffusers:/comfyui/models/diffusers
+      - ./comfyui/models/embeddings:/comfyui/models/embeddings
+      - ./comfyui/models/gligen:/comfyui/models/gligen
+      - ./comfyui/models/hypernetworks:/comfyui/models/hypernetworks
+      - ./comfyui/models/loras:/comfyui/models/loras
+      - ./comfyui/models/style_models:/comfyui/models/style_models
+      - ./comfyui/models/unet:/comfyui/models/unet
+      - ./comfyui/models/upscale_models:/comfyui/models/upscale_models
+      - ./comfyui/models/vae:/comfyui/models/vae
+      - ./comfyui/models/vae_approx:/comfyui/models/vae_approx
+      # Output and input directories
+      - ./comfyui/output:/comfyui/output
+      - ./comfyui/input:/comfyui/input
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics

@@ -14,6 +14,7 @@ import aiohttp
 
 from ..core.base_server import BaseMCPServer
 from ..core.utils import setup_logging
+from .workflows import WORKFLOW_TEMPLATES, WorkflowFactory
 
 # ComfyUI configuration
 COMFYUI_HOST = os.environ.get("COMFYUI_HOST", "localhost")
@@ -211,36 +212,48 @@ class ComfyUIMCPServer(BaseMCPServer):
             tools_dict[tool_name] = {"description": tool.get("description", ""), "parameters": tool.get("inputSchema", {})}
         return tools_dict
 
+    async def _detect_available_model(self) -> str:
+        """Detect which model is available"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{self.api_url}/object_info") as response:
+                    if response.status == 200:
+                        object_info = await response.json()
+                        models = (
+                            object_info.get("CheckpointLoaderSimple", {})
+                            .get("input", {})
+                            .get("required", {})
+                            .get("ckpt_name", [[]])[0]
+                        )
+                        # Prefer FLUX model if available
+                        for model in models:
+                            if "flux" in model.lower():
+                                return model
+                        # Then try SDXL/IllustriousXL
+                        for model in models:
+                            if "xl" in model.lower():
+                                return model
+                        # Return first available model
+                        return models[0] if models else "flux1-dev-fp8.safetensors"
+        except Exception:
+            pass
+        return "flux1-dev-fp8.safetensors"  # Default fallback
+
     def _create_default_workflow(
         self, prompt: str, negative_prompt: str, width: int, height: int, seed: int, steps: int, cfg_scale: float
     ) -> Dict[str, Any]:
-        """Create a default SD 1.5 workflow"""
-        if seed == -1:
-            seed = int(time.time())
-
-        return {
-            "3": {
-                "inputs": {
-                    "seed": seed,
-                    "steps": steps,
-                    "cfg": cfg_scale,
-                    "sampler_name": "euler",
-                    "scheduler": "normal",
-                    "denoise": 1,
-                    "model": ["4", 0],
-                    "positive": ["6", 0],
-                    "negative": ["7", 0],
-                    "latent_image": ["5", 0],
-                },
-                "class_type": "KSampler",
-            },
-            "4": {"inputs": {"ckpt_name": "v1-5-pruned-emaonly.ckpt"}, "class_type": "CheckpointLoaderSimple"},
-            "5": {"inputs": {"width": width, "height": height, "batch_size": 1}, "class_type": "EmptyLatentImage"},
-            "6": {"inputs": {"text": prompt, "clip": ["4", 1]}, "class_type": "CLIPTextEncode"},
-            "7": {"inputs": {"text": negative_prompt, "clip": ["4", 1]}, "class_type": "CLIPTextEncode"},
-            "8": {"inputs": {"samples": ["3", 0], "vae": ["4", 2]}, "class_type": "VAEDecode"},
-            "9": {"inputs": {"filename_prefix": "ComfyUI", "images": ["8", 0]}, "class_type": "SaveImage"},
-        }
+        """Create a default workflow based on available models"""
+        # Try to detect if FLUX or SDXL is available
+        # For now, we'll use FLUX as default since we know it's available
+        return WorkflowFactory.create_flux_workflow(
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            width=width,
+            height=height,
+            seed=seed,
+            steps=steps,
+            cfg_scale=cfg_scale,
+        )
 
     async def _queue_prompt(self, workflow: Dict[str, Any]) -> Optional[str]:
         """Queue a prompt in ComfyUI and return the prompt ID"""
@@ -359,26 +372,43 @@ class ComfyUIMCPServer(BaseMCPServer):
     async def list_workflows(self, **kwargs) -> Dict[str, Any]:
         """List available workflows"""
         workflows = [
-            {"name": "default_sd15", "description": "Default Stable Diffusion 1.5 workflow"},
-            {"name": "default_sdxl", "description": "Default SDXL workflow"},
-            {"name": "img2img", "description": "Image to image workflow"},
-            {"name": "inpainting", "description": "Inpainting workflow"},
+            {"name": key, "description": template["description"], "model_type": template["model_type"]}
+            for key, template in WORKFLOW_TEMPLATES.items()
         ]
         return {"workflows": workflows}
 
     async def get_workflow(self, **kwargs) -> Dict[str, Any]:
         """Get a specific workflow template"""
-        name = kwargs.get("name", "default_sd15")
+        name = kwargs.get("name", "flux_default")
 
-        if name == "default_sd15":
-            return {"workflow": self._create_default_workflow("A beautiful landscape", "", 512, 512, -1, 20, 7.0)}
-        elif name == "default_sdxl":
-            # Return SDXL workflow template
+        if name in WORKFLOW_TEMPLATES:
+            template = WORKFLOW_TEMPLATES[name]
+            # Create a sample workflow with default parameters
+            sample_params = {
+                "prompt": "A beautiful landscape",
+                "negative_prompt": "",
+                "width": 1024 if "flux" in name or "sdxl" in name else 512,
+                "height": 1024 if "flux" in name or "sdxl" in name else 512,
+                "seed": -1,
+                "steps": 20,
+                "cfg_scale": 3.5 if "flux" in name else 7.0,
+            }
+
+            # Handle special workflow types
+            if "img2img" in name:
+                sample_params["image_data"] = ""  # Would be base64 encoded image
+                sample_params["denoise"] = 0.8
+            elif "upscale" in name:
+                sample_params = {"image_data": ""}  # Minimal params for upscale
+            elif "controlnet" in name:
+                sample_params["control_image"] = ""
+                sample_params["control_strength"] = 1.0
+
+            workflow = template["factory_method"](**sample_params)
             return {
-                "workflow": {
-                    "4": {"inputs": {"ckpt_name": "sd_xl_base_1.0.safetensors"}, "class_type": "CheckpointLoaderSimple"},
-                    # ... simplified for brevity
-                }
+                "workflow": workflow,
+                "description": template["description"],
+                "model_type": template["model_type"],
             }
         else:
             return {"error": "Workflow not found"}

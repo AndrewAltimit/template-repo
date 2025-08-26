@@ -4,20 +4,23 @@ The ComfyUI MCP Server provides a Model Context Protocol interface for AI image 
 
 ## Overview
 
-This MCP server provides an interface to a remote ComfyUI instance running on `192.168.0.152:8013`. It provides tools for:
+This MCP server provides an interface to ComfyUI for AI image generation. It can run locally or connect to a remote instance. Features include:
 
-- Generating images with various workflows
-- Managing LoRA and checkpoint models
-- Executing custom ComfyUI workflows
-- Transferring models between services
+- Advanced workflow system with FLUX and SDXL support
+- LoRA and checkpoint model management
+- Custom ComfyUI workflow execution
+- Image-to-image, upscaling, and ControlNet support
+- Model transfer between AI services
 
 ## Architecture
 
-The server follows a proxy pattern:
-1. Local MCP server runs on port 8013
-2. Forwards requests to remote ComfyUI at `192.168.0.152:8013`
-3. Handles large file transfers with chunking
-4. Provides a consistent MCP interface
+The server provides flexible deployment options:
+1. **Local Mode**: Runs alongside ComfyUI on the same machine
+2. **Remote Mode**: Connects to ComfyUI instance (e.g., `192.168.0.152:8188`)
+3. **Docker Mode**: Containerized deployment with GPU support
+
+### Workflow System
+The server includes a sophisticated workflow factory that creates optimized workflows for different model types. See [WORKFLOWS.md](WORKFLOWS.md) for detailed workflow documentation.
 
 ## Available Tools
 
@@ -48,21 +51,48 @@ The server follows a proxy pattern:
 ## Configuration
 
 Environment variables:
-- `COMFYUI_HOST` - Remote host (default: 192.168.0.152)
-- `COMFYUI_PORT` - Remote port (default: 8013)
+- `COMFYUI_HOST` - ComfyUI host (default: localhost)
+- `COMFYUI_PORT` - ComfyUI API port (default: 8188)
+- `COMFYUI_PATH` - ComfyUI installation path (default: /comfyui)
+- `COMFYUI_GENERATION_TIMEOUT` - Generation timeout in seconds (default: 300)
 
 ## Usage Examples
 
-### Generate Image
+### Generate Image with FLUX
 ```python
+# FLUX performs best with lower CFG values
 result = await generate_image(
-    prompt="a beautiful landscape, highly detailed",
-    negative_prompt="blurry, low quality",
+    prompt="a cyberpunk city at night, neon lights",
+    negative_prompt="",  # Can be empty for FLUX
     width=1024,
     height=1024,
     steps=20,
+    cfg_scale=3.5  # Lower CFG for FLUX
+)
+```
+
+### Generate with IllustriousXL
+```python
+from tools.mcp.comfyui.workflows import WorkflowFactory
+
+workflow = WorkflowFactory.create_sdxl_workflow(
+    prompt="anime character, silver hair, detailed",
+    negative_prompt="low quality, bad anatomy",
+    model_name="illustriousXL_smoothftSOLID.safetensors",
+    steps=30,
     cfg_scale=7.0
 )
+result = await generate_image(workflow=workflow)
+```
+
+### Using LoRA
+```python
+workflow = WorkflowFactory.create_flux_workflow(
+    prompt="robot in inkpunk art style",
+    lora_name="Inkpunk_Flux.safetensors",
+    lora_strength=0.8
+)
+result = await generate_image(workflow=workflow)
 ```
 
 ### Upload LoRA (Chunked)
@@ -86,12 +116,28 @@ for i, chunk in enumerate(chunks):
 await upload_lora_chunked_complete(upload_id=init_result["upload_id"])
 ```
 
-### FLUX Workflow Requirements
+## Supported Models
 
-When using FLUX models:
-- Use `FluxGuidance` node with guidance ~3.5
-- KSampler settings: cfg=1.0, sampler="heunpp2", scheduler="simple"
-- Negative prompt cannot be null (use empty string)
+### Current Models
+- **FLUX**: `flux1-dev-fp8.safetensors` - Latest FLUX development model
+- **SDXL**: `illustriousXL_smoothftSOLID.safetensors` - High-quality anime/illustration
+- **LoRA**: `Inkpunk_Flux.safetensors` - Inkpunk art style for FLUX
+
+### Model-Specific Settings
+
+#### FLUX
+- **CFG Scale**: 3.0-4.0 (lower is better)
+- **Steps**: 20-30
+- **Sampler**: euler, dpm++
+- **Resolution**: 1024x1024 minimum
+
+#### SDXL/IllustriousXL
+- **CFG Scale**: 6.0-8.0
+- **Steps**: 25-40
+- **Sampler**: dpmpp_2m, dpmpp_sde
+- **Scheduler**: karras
+
+For comprehensive workflow documentation, see [WORKFLOWS.md](WORKFLOWS.md).
 
 ## Testing
 
