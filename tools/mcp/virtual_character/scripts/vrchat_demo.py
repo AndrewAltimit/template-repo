@@ -236,7 +236,12 @@ async def main():
     # Get VRChat host from environment or use default
     vrchat_host = os.getenv("VRCHAT_HOST", "192.168.0.152")
 
+    # Check if we should use VRCEmote (can be set via environment)
+    use_vrcemote = os.getenv("VRCHAT_USE_VRCEMOTE", "").lower() in ["true", "1", "yes"]
+
     logger.info(f"🔌 Connecting to VRChat at {vrchat_host}...")
+    if use_vrcemote:
+        logger.info("📊 Using VRCEmote integer-based emotion system")
 
     # Create and connect backend
     backend = VRChatRemoteBackend()
@@ -247,6 +252,10 @@ async def main():
         "osc_in_port": 9000,
         "osc_out_port": 9001,
     }
+
+    # Configure emotion system if specified
+    if use_vrcemote:
+        config["use_vrcemote"] = True
 
     try:
         success = await backend.connect(config)

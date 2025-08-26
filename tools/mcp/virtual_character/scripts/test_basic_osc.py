@@ -112,6 +112,38 @@ async def test_universal_inputs(tester: VRChatOSCTester):
     logger.info("\n✅ Universal input test complete!")
 
 
+async def test_vrcemote_system(tester: VRChatOSCTester):
+    """Test VRCEmote integer-based emotion system."""
+    logger.info("\n═══ Testing VRCEmote System (Integer-based) ═══")
+    logger.info("(Used by many modern avatars)\n")
+
+    # Based on discovered values: 2, 3, 4, 8
+    logger.info("🎭 Testing VRCEmote values:")
+    emote_values = [
+        (0, "Neutral/None"),
+        (2, "Happy (discovered)"),
+        (3, "Sad (discovered)"),
+        (4, "Angry (discovered)"),
+        (8, "Surprised (discovered)"),
+        (5, "Fearful (common)"),
+        (6, "Disgusted (common)"),
+        (1, "Other 1"),
+        (7, "Other 7"),
+    ]
+
+    for value, description in emote_values:
+        logger.info(f"  VRCEmote = {value} ({description})")
+        tester.send("/avatar/parameters/VRCEmote", value)
+        await asyncio.sleep(2)
+
+    # Return to neutral
+    logger.info("  Returning to neutral (VRCEmote = 0)")
+    tester.send("/avatar/parameters/VRCEmote", 0)
+    await asyncio.sleep(1)
+
+    logger.info("\n✅ VRCEmote test complete!")
+
+
 async def test_common_parameters(tester: VRChatOSCTester):
     """Test commonly used avatar parameters."""
     logger.info("\n═══ Testing Common Avatar Parameters ═══")
@@ -276,7 +308,10 @@ async def main():
     parser = argparse.ArgumentParser(description="Test VRChat OSC - works with ANY avatar!")
     parser.add_argument("--host", default=os.getenv("VRCHAT_HOST", "192.168.0.152"), help="VRChat host IP address")
     parser.add_argument(
-        "--mode", choices=["universal", "common", "discover", "interactive", "all"], default="universal", help="Test mode"
+        "--mode",
+        choices=["universal", "common", "vrcemote", "discover", "interactive", "all"],
+        default="universal",
+        help="Test mode",
     )
 
     args = parser.parse_args()
@@ -294,6 +329,9 @@ async def main():
 
         if args.mode == "common" or args.mode == "all":
             await test_common_parameters(tester)
+
+        if args.mode == "vrcemote":
+            await test_vrcemote_system(tester)
 
         if args.mode == "discover" or args.mode == "all":
             await discover_parameters(tester)

@@ -54,6 +54,18 @@ class VRChatRemoteBackend(BackendAdapter):
         EmotionType.DISGUSTED: "/avatar/parameters/EmotionDisgusted",
     }
 
+    # VRCEmote system (integer-based, common in many avatars)
+    # Based on your avatar's discovered values: 2, 3, 4, 8
+    VRCEMOTE_MAP = {
+        EmotionType.NEUTRAL: 0,  # Usually 0 or no emote
+        EmotionType.HAPPY: 2,  # Observed value
+        EmotionType.SAD: 3,  # Observed value
+        EmotionType.ANGRY: 4,  # Observed value
+        EmotionType.SURPRISED: 8,  # Observed value
+        EmotionType.FEARFUL: 5,  # Common mapping
+        EmotionType.DISGUSTED: 6,  # Common mapping
+    }
+
     GESTURE_PARAMS = {
         GestureType.NONE: 0,
         GestureType.WAVE: 1,
@@ -92,6 +104,7 @@ class VRChatRemoteBackend(BackendAdapter):
         self.current_emotion = EmotionType.NEUTRAL
         self.current_gesture = GestureType.NONE
         self.avatar_params: Dict[str, Any] = {}
+        self.use_vrcemote = True  # Most avatars use VRCEmote system
 
         # Movement parameters
         self.move_speed = 0.0
@@ -122,6 +135,7 @@ class VRChatRemoteBackend(BackendAdapter):
                 - use_bridge: Whether to use bridge server
                 - osc_in_port: Port for receiving from VRChat
                 - osc_out_port: Port for sending to VRChat
+                - use_vrcemote: Force VRCEmote system (auto-detects if not set)
 
         Returns:
             True if connection successful
@@ -135,6 +149,11 @@ class VRChatRemoteBackend(BackendAdapter):
             self.remote_host = config.get("remote_host", "127.0.0.1")
             self.bridge_port = config.get("bridge_port", 8021)
             self.use_bridge = config.get("use_bridge", False)
+
+            # Emotion system configuration
+            if "use_vrcemote" in config:
+                self.use_vrcemote = config["use_vrcemote"]
+                logger.info(f"Using {'VRCEmote' if self.use_vrcemote else 'traditional'} emotion system (configured)")
 
             # OSC ports
             osc_in_port = config.get("osc_in_port", self.VRCHAT_OSC_IN_PORT)
@@ -346,13 +365,21 @@ class VRChatRemoteBackend(BackendAdapter):
 
     async def _set_emotion(self, emotion: EmotionType, intensity: float = 1.0) -> None:
         """Set avatar emotion."""
-        # Clear all emotions first
-        for em_type, param in self.EMOTION_PARAMS.items():
-            await self._send_osc(param, 0.0)
+        if self.use_vrcemote:
+            # Use VRCEmote integer system
+            if emotion in self.VRCEMOTE_MAP:
+                emote_value = self.VRCEMOTE_MAP[emotion]
+                await self._send_osc("/avatar/parameters/VRCEmote", emote_value)
+                logger.info(f"Set VRCEmote to {emote_value} for {emotion.value}")
+        else:
+            # Use traditional individual emotion parameters
+            # Clear all emotions first
+            for em_type, param in self.EMOTION_PARAMS.items():
+                await self._send_osc(param, 0.0)
 
-        # Set new emotion
-        if emotion in self.EMOTION_PARAMS:
-            await self._send_osc(self.EMOTION_PARAMS[emotion], intensity)
+            # Set new emotion
+            if emotion in self.EMOTION_PARAMS:
+                await self._send_osc(self.EMOTION_PARAMS[emotion], intensity)
 
     async def _set_gesture(self, gesture: GestureType, intensity: float = 1.0) -> None:
         """Set avatar gesture."""
@@ -400,6 +427,11 @@ class VRChatRemoteBackend(BackendAdapter):
             if args:
                 self.avatar_params[param_name] = args[0]
                 self.stats["osc_messages_received"] += 1
+
+                # Auto-detect VRCEmote system
+                if param_name == "VRCEmote" and not self.use_vrcemote:
+                    logger.info("VRCEmote detected! Switching to VRCEmote emotion system.")
+                    self.use_vrcemote = True
 
         # Register handlers
         self.osc_dispatcher.map("/avatar/parameters/*", avatar_param_handler)

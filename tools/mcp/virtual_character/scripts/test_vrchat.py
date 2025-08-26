@@ -27,9 +27,12 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 
-async def test_connection(host: str = "127.0.0.1", use_bridge: bool = False):
+async def test_connection(host: str = "127.0.0.1", use_bridge: bool = False, use_vrcemote: bool = False):
     """Test basic connection to VRChat."""
     logger.info("Testing VRChat connection...")
+
+    if use_vrcemote:
+        logger.info("Using VRCEmote integer-based emotion system")
 
     backend = VRChatRemoteBackend()
 
@@ -39,6 +42,9 @@ async def test_connection(host: str = "127.0.0.1", use_bridge: bool = False):
         "osc_in_port": 9000,
         "osc_out_port": 9001,
     }
+
+    if use_vrcemote:
+        config["use_vrcemote"] = True
 
     success = await backend.connect(config)
 
@@ -379,11 +385,12 @@ async def main():
         help="Which test to run",
     )
     parser.add_argument("--use-bridge", action="store_true", help="Use bridge server for advanced features")
+    parser.add_argument("--use-vrcemote", action="store_true", help="Use VRCEmote integer-based emotion system")
 
     args = parser.parse_args()
 
     # Connect to VRChat
-    backend = await test_connection(args.host, args.use_bridge)
+    backend = await test_connection(args.host, args.use_bridge, args.use_vrcemote)
 
     if not backend:
         logger.error("Could not establish connection. Exiting.")
