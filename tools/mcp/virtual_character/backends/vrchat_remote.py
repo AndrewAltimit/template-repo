@@ -168,10 +168,10 @@ class VRChatRemoteBackend(BackendAdapter):
     async def disconnect(self) -> None:
         """Disconnect from VRChat."""
         try:
-            # Close OSC server
-            if self.osc_server:
-                self.osc_server.shutdown()
-
+            # OSC server cleanup happens automatically when event loop ends
+            # AsyncIOOSCUDPServer doesn't have a shutdown method
+            self.osc_server = None
+            self.osc_client = None
             self.connected = False
             logger.info("Disconnected from VRChat")
 

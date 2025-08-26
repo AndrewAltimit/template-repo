@@ -306,7 +306,12 @@ async def main():
 
     finally:
         if tester.server:
-            tester.server.shutdown()
+            try:
+                # AsyncIOOSCUDPServer doesn't have shutdown method
+                # The transport is automatically cleaned up when the event loop ends
+                pass
+            except Exception:
+                pass
         logger.info("✅ Test complete!")
 
 
