@@ -392,6 +392,9 @@ class VRChatRemoteBackend(BackendAdapter):
         if self.osc_client:
             self.osc_client.send_message(address, value)
             self.stats["osc_messages_sent"] += 1
+            # Log important VRCEmote changes
+            if "VRCEmote" in address:
+                logger.info(f"OSC: Sent {address} = {value}")
 
     async def _set_emotion(self, emotion: EmotionType, intensity: float = 1.0) -> None:
         """Set avatar emotion with toggle behavior."""
@@ -481,14 +484,25 @@ class VRChatRemoteBackend(BackendAdapter):
         # Clear active emote if one is set (movement should override emotes)
         if self.emote_is_active and self.current_vrcemote != 0:
             logger.info(f"Clearing active emote {self.current_vrcemote} for movement")
-            # Send the same value to toggle it off
+
+            # Try multiple approaches to ensure emote clears
+            # First: Send 0 to potentially reset state
+            await self._send_osc("/avatar/parameters/VRCEmote", 0)
+            await asyncio.sleep(0.1)
+
+            # Second: Send the same value to toggle it off
             await self._send_osc("/avatar/parameters/VRCEmote", self.current_vrcemote)
-            await asyncio.sleep(0.2)  # Give time for toggle to register
+            await asyncio.sleep(0.1)
+
+            # Third: Send 0 again to ensure cleared
+            await self._send_osc("/avatar/parameters/VRCEmote", 0)
+            await asyncio.sleep(0.1)
 
             # Update tracking
             self.emote_is_active = False
             self.current_vrcemote = 0
             self.current_gesture = "none"
+            logger.info("Emote clearing sequence complete")
 
         # Cancel emote timer if running
         if self.emote_timer:
