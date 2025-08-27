@@ -171,12 +171,39 @@ class VirtualCharacterTester:
             # Create sequence
             await self.call_tool("create_sequence", {"name": "parallel_test"})
 
-            # Add parallel events (simplified - full parallel event creation needs more work)
+            # Add parallel events with proper nested structure
+            parallel_events = [
+                {
+                    "event_type": "expression",
+                    "expression": "happy",
+                    "expression_intensity": 0.8
+                },
+                {
+                    "event_type": "audio",
+                    "audio_data": base64.b64encode(b"parallel audio").decode(),
+                    "duration": 2.0
+                },
+                {
+                    "event_type": "movement",
+                    "movement_params": {"look_horizontal": 0.3, "look_vertical": 0.1}
+                }
+            ]
+            
             result = await self.call_tool(
-                "add_sequence_event", {"event_type": "parallel", "timestamp": 0.0, "parallel_events": []}  # Simplified for now
+                "add_sequence_event", 
+                {
+                    "event_type": "parallel", 
+                    "timestamp": 0.0, 
+                    "parallel_events": parallel_events
+                }
             )
             assert result.get("success"), "Failed to add parallel event"
-            print("✓ Parallel event added")
+            print("✓ Parallel event with nested events added")
+            
+            # Verify the sequence has the parallel event
+            status = await self.call_tool("get_sequence_status", {})
+            assert status.get("status", {}).get("event_count") == 1, "Wrong event count"
+            print("✓ Parallel event properly registered in sequence")
 
             return True
 

@@ -198,7 +198,7 @@ class VirtualCharacterWithVoice:
             self.vc_url, "create_sequence", {"name": "emotion_sound", "description": f"{emotion} with {sound_effect}"}
         )
 
-        # Add parallel events for emotion and sound
+        # Add parallel events for emotion and sound with proper format
         await self.call_mcp_tool(
             self.vc_url,
             "add_sequence_event",
@@ -206,8 +206,19 @@ class VirtualCharacterWithVoice:
                 "event_type": "parallel",
                 "timestamp": 0.0,
                 "parallel_events": [
-                    {"event_type": "expression", "expression": emotion, "expression_intensity": 1.0},
-                    {"event_type": "audio", "audio_data": sound_data, "duration": duration},
+                    {
+                        "event_type": "expression", 
+                        "expression": emotion, 
+                        "expression_intensity": 1.0,
+                        "timestamp": 0.0  # Nested events need their own timestamp
+                    },
+                    {
+                        "event_type": "audio", 
+                        "audio_data": sound_data, 
+                        "audio_format": "mp3",
+                        "duration": duration,
+                        "timestamp": 0.0
+                    },
                 ],
             },
         )

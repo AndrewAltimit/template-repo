@@ -745,9 +745,16 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             return {"success": False, "error": "No sequence created. Use create_sequence first."}
 
         try:
+            # Validate event_type
+            try:
+                event_type_enum = EventType[event_type.upper()]
+            except KeyError:
+                valid_types = [e.name.lower() for e in EventType]
+                return {"success": False, "error": f"Invalid event_type '{event_type}'. Must be one of {valid_types}"}
+            
             # Create the appropriate event based on type
             event = SequenceEvent(
-                event_type=EventType[event_type.upper()],
+                event_type=event_type_enum,
                 timestamp=timestamp,
                 duration=duration,
                 sync_with_audio=sync_with_audio,
@@ -789,9 +796,11 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             elif event_type == "parallel" and parallel_events:
                 # Recursively create parallel events
                 event.parallel_events = []
-                for p_event in parallel_events:
-                    # Simplified parallel event creation
-                    pass  # Would need full recursive parsing
+                for p_event_dict in parallel_events:
+                    # Recursively parse each parallel event
+                    p_event = await self._parse_event_dict(p_event_dict)
+                    if p_event:
+                        event.parallel_events.append(p_event)
 
             # Add event to sequence
             self.current_sequence.add_event(event)
@@ -926,6 +935,73 @@ class VirtualCharacterMCPServer(BaseMCPServer):
 
         return {"success": False, "error": "No sequence is playing"}
 
+    async def _parse_event_dict(self, event_dict: Dict[str, Any]) -> Optional[SequenceEvent]:
+        """Parse a dictionary into a SequenceEvent."""
+        try:
+            event_type = event_dict.get("event_type", "").upper()
+            if not event_type or event_type not in EventType.__members__:
+                return None
+            
+            event = SequenceEvent(
+                event_type=EventType[event_type],
+                timestamp=event_dict.get("timestamp", 0.0),
+                duration=event_dict.get("duration"),
+                sync_with_audio=event_dict.get("sync_with_audio", False)
+            )
+            
+            # Parse event-specific data based on type
+            if event_type == "ANIMATION":
+                animation_params = event_dict.get("animation_params", {})
+                if animation_params:
+                    animation = CanonicalAnimationData(timestamp=event.timestamp)
+                    if "emotion" in animation_params:
+                        animation.emotion = EmotionType[animation_params["emotion"].upper()]
+                        animation.emotion_intensity = animation_params.get("emotion_intensity", 1.0)
+                    if "gesture" in animation_params:
+                        animation.gesture = GestureType[animation_params["gesture"].upper()]
+                        animation.gesture_intensity = animation_params.get("gesture_intensity", 1.0)
+                    event.animation_data = animation
+                    
+            elif event_type == "AUDIO":
+                audio_data = event_dict.get("audio_data")
+                if audio_data:
+                    import base64
+                    if audio_data.startswith("data:"):
+                        audio_data = audio_data.split(",")[1]
+                    audio_bytes = base64.b64decode(audio_data)
+                    event.audio_data = AudioData(
+                        data=audio_bytes,
+                        format=event_dict.get("audio_format", "mp3"),
+                        duration=event_dict.get("duration", 0.0)
+                    )
+                    
+            elif event_type == "EXPRESSION":
+                expression = event_dict.get("expression")
+                if expression:
+                    event.expression = EmotionType[expression.upper()]
+                    event.expression_intensity = event_dict.get("expression_intensity", 1.0)
+                    
+            elif event_type == "MOVEMENT":
+                event.movement_params = event_dict.get("movement_params")
+                
+            elif event_type == "WAIT":
+                event.wait_duration = event_dict.get("wait_duration", event_dict.get("duration", 1.0))
+                
+            elif event_type == "PARALLEL":
+                # Recursively parse parallel events
+                parallel_events_data = event_dict.get("parallel_events", [])
+                event.parallel_events = []
+                for p_event_dict in parallel_events_data:
+                    p_event = await self._parse_event_dict(p_event_dict)
+                    if p_event:
+                        event.parallel_events.append(p_event)
+            
+            return event
+            
+        except Exception as e:
+            self.logger.error(f"Error parsing event dict: {e}")
+            return None
+    
     async def get_sequence_status(self) -> Dict[str, Any]:
         """Get status of current sequence playback."""
         status = {
