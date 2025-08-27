@@ -139,9 +139,6 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 ├── tests/                    # Test files
 ├── docs/                     # Documentation
 ├── config/                   # Configuration files
-├── .context/                 # AI context files
-│   └── PROJECT_CONTEXT.md    # Context for AI reviewers
-└── projects/                 # Separate projects
 ```
 
 ## MCP Servers
@@ -186,7 +183,7 @@ See `.env.example` for all available options.
 - `CLAUDE.md` - Project-specific Claude Code instructions (root directory)
 - `CRUSH.md` - Crush AI assistant instructions (root directory)
 - `AGENTS.md` - Universal AI agent configuration and guidelines (root directory)
-- `.context/PROJECT_CONTEXT.md` - Context for AI reviewers
+- `docs/ai-agents/project-context.md` - Context for AI reviewers
 
 ### Setup Guides
 
