@@ -98,13 +98,25 @@ class VirtualCharacterTester:
                 result = await self.call_tool("add_sequence_event", event)
                 assert result.get("success"), f"Failed to add {event['event_type']} event"
                 print(f"✓ Added {event['event_type']} event")
+            
+            # Test invalid event type validation
+            print("Testing invalid event type validation...")
+            result = await self.call_tool(
+                "add_sequence_event",
+                {"event_type": "invalid_type", "timestamp": 3.0}
+            )
+            assert not result.get("success"), "Should have failed with invalid event type"
+            error_msg = result.get("error", "")
+            assert "Invalid event_type" in error_msg, "Error message should mention invalid event_type"
+            assert "Must be one of" in error_msg, "Error message should list valid types"
+            print("✓ Invalid event type properly rejected with helpful error")
 
             # Check sequence status
             result = await self.call_tool("get_sequence_status", {})
             assert result.get("success"), "Failed to get sequence status"
             status = result.get("status", {})
             assert status.get("has_sequence"), "No sequence found"
-            assert status.get("event_count") == len(events), "Wrong event count"
+            assert status.get("event_count") == len(events), "Wrong event count (invalid event should not be added)"
             print(f"✓ Sequence has {status.get('event_count')} events")
 
             return True

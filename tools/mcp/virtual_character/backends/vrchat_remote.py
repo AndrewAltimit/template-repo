@@ -142,6 +142,9 @@ class VRChatRemoteBackend(BackendAdapter):
             "animation_frames": 0,
             "errors": 0,
         }
+        
+        # Task management for cleanup
+        self.pending_tasks: set = set()  # Set of asyncio.Task objects
 
     @property
     def backend_name(self) -> str:
@@ -217,6 +220,15 @@ class VRChatRemoteBackend(BackendAdapter):
     async def disconnect(self) -> None:
         """Disconnect from VRChat."""
         try:
+            # Cancel all pending tasks
+            for task in self.pending_tasks:
+                task.cancel()
+            
+            # Wait for tasks to complete cancellation
+            if self.pending_tasks:
+                await asyncio.gather(*self.pending_tasks, return_exceptions=True)
+            self.pending_tasks.clear()
+            
             # OSC server cleanup happens automatically when event loop ends
             # AsyncIOOSCUDPServer doesn't have a shutdown method
             self.osc_server = None
@@ -298,7 +310,9 @@ class VRChatRemoteBackend(BackendAdapter):
             if audio.viseme_timestamps:
                 # Schedule viseme updates based on timestamps
                 for timestamp, viseme, weight in audio.viseme_timestamps:
-                    asyncio.create_task(self._send_timed_viseme(timestamp, viseme, weight))
+                    task = asyncio.create_task(self._send_timed_viseme(timestamp, viseme, weight))
+                    self.pending_tasks.add(task)
+                    task.add_done_callback(self.pending_tasks.discard)
 
             # Send audio playback trigger
             # VRChat can trigger audio playback through avatar parameters
@@ -311,7 +325,9 @@ class VRChatRemoteBackend(BackendAdapter):
 
             # Schedule audio stop after duration
             if audio.duration > 0:
-                asyncio.create_task(self._stop_audio_after_delay(audio.duration))
+                task = asyncio.create_task(self._stop_audio_after_delay(audio.duration))
+                self.pending_tasks.add(task)
+                task.add_done_callback(self.pending_tasks.discard)
 
             # If using bridge server for actual audio streaming
             if self.use_bridge:
