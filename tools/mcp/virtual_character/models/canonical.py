@@ -221,6 +221,15 @@ class AudioData:
     language: Optional[str] = None
     voice: Optional[str] = None
 
+    # Lip sync and expression data
+    viseme_timestamps: Optional[List[tuple[float, VisemeType, float]]] = None  # (time, viseme, weight)
+    expression_tags: Optional[List[str]] = None  # ElevenLabs audio tags like [laughs], [whisper]
+
+    # For streaming
+    chunk_index: Optional[int] = None
+    total_chunks: Optional[int] = None
+    is_final_chunk: bool = True
+
 
 @dataclass
 class VideoFrame:
@@ -315,3 +324,98 @@ class AnimationSequence:
             return prev_frame
 
         return None
+
+
+class EventType(Enum):
+    """Types of events in a sequence."""
+
+    ANIMATION = "animation"  # Animation data
+    AUDIO = "audio"  # Audio playback
+    WAIT = "wait"  # Pause/delay
+    LOOP_START = "loop_start"  # Mark loop beginning
+    LOOP_END = "loop_end"  # Mark loop end
+    PARALLEL = "parallel"  # Events to run in parallel
+    EXPRESSION = "expression"  # Expression change
+    MOVEMENT = "movement"  # Movement command
+
+
+@dataclass
+class SequenceEvent:
+    """Individual event in an event sequence."""
+
+    event_type: EventType
+    timestamp: float  # When to trigger (relative to sequence start)
+    duration: Optional[float] = None  # Event duration (if applicable)
+
+    # Event-specific data
+    animation_data: Optional[CanonicalAnimationData] = None
+    audio_data: Optional[AudioData] = None
+    wait_duration: Optional[float] = None
+    loop_count: Optional[int] = None
+    parallel_events: Optional[List["SequenceEvent"]] = None
+
+    # For high-level events
+    expression: Optional[EmotionType] = None
+    expression_intensity: Optional[float] = None
+    movement_params: Optional[Dict[str, Any]] = None
+
+    # Sync settings
+    sync_with_audio: bool = False  # Sync animation timing with audio duration
+    fade_in: float = 0.0  # Fade in time
+    fade_out: float = 0.0  # Fade out time
+
+
+@dataclass
+class EventSequence:
+    """Complete sequence of synchronized events."""
+
+    name: str
+    description: Optional[str] = None
+    events: List[SequenceEvent] = field(default_factory=list)
+    total_duration: Optional[float] = None
+
+    # Playback settings
+    loop: bool = False
+    interrupt_current: bool = True  # Whether to interrupt current sequence
+    priority: int = 0  # Higher priority sequences override lower ones
+
+    # Metadata
+    created_timestamp: Optional[float] = None
+    tags: List[str] = field(default_factory=list)
+
+    def add_event(self, event: SequenceEvent) -> None:
+        """Add an event to the sequence."""
+        self.events.append(event)
+        # Update total duration if needed
+        if event.timestamp + (event.duration or 0) > (self.total_duration or 0):
+            self.total_duration = event.timestamp + (event.duration or 0)
+
+    def add_animation(self, timestamp: float, animation: CanonicalAnimationData, sync_with_audio: bool = False) -> None:
+        """Add animation event."""
+        self.add_event(
+            SequenceEvent(
+                event_type=EventType.ANIMATION, timestamp=timestamp, animation_data=animation, sync_with_audio=sync_with_audio
+            )
+        )
+
+    def add_audio(self, timestamp: float, audio: AudioData) -> None:
+        """Add audio event."""
+        self.add_event(
+            SequenceEvent(event_type=EventType.AUDIO, timestamp=timestamp, duration=audio.duration, audio_data=audio)
+        )
+
+    def add_wait(self, timestamp: float, duration: float) -> None:
+        """Add wait/delay event."""
+        self.add_event(SequenceEvent(event_type=EventType.WAIT, timestamp=timestamp, wait_duration=duration))
+
+    def add_parallel_events(self, timestamp: float, events: List[SequenceEvent]) -> None:
+        """Add events to run in parallel."""
+        self.add_event(SequenceEvent(event_type=EventType.PARALLEL, timestamp=timestamp, parallel_events=events))
+
+    def get_events_at_time(self, time: float, tolerance: float = 0.05) -> List[SequenceEvent]:
+        """Get events that should trigger at the given time."""
+        triggered_events = []
+        for event in self.events:
+            if abs(event.timestamp - time) <= tolerance:
+                triggered_events.append(event)
+        return triggered_events

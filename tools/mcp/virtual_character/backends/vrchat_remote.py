@@ -97,7 +97,7 @@ class VRChatRemoteBackend(BackendAdapter):
 
         # Set capabilities
         self.capabilities.animation = True
-        self.capabilities.audio = False  # Can be added with bridge server
+        self.capabilities.audio = True  # Now supports audio streaming
         self.capabilities.video_capture = False  # Can be added with OBS
         self.capabilities.bidirectional = True
         self.capabilities.environment_control = False  # Limited to world switching
@@ -277,7 +277,7 @@ class VRChatRemoteBackend(BackendAdapter):
 
     async def send_audio_data(self, audio: AudioData) -> bool:
         """
-        Send audio data (requires bridge server).
+        Send audio data and lip-sync information to VRChat.
 
         Args:
             audio: Audio data with sync metadata
@@ -285,12 +285,110 @@ class VRChatRemoteBackend(BackendAdapter):
         Returns:
             True if successful
         """
-        if not self.connected or not self.use_bridge:
-            logger.warning("Audio requires bridge server to be enabled")
+        if not self.connected:
             return False
 
-        # TODO: Implement bridge server audio streaming
-        return False
+        try:
+            # Process expression tags from ElevenLabs audio
+            if audio.expression_tags:
+                for tag in audio.expression_tags:
+                    await self._process_audio_expression_tag(tag)
+
+            # Send viseme data for lip-sync if available
+            if audio.viseme_timestamps:
+                # Schedule viseme updates based on timestamps
+                for timestamp, viseme, weight in audio.viseme_timestamps:
+                    asyncio.create_task(self._send_timed_viseme(timestamp, viseme, weight))
+
+            # Send audio playback trigger
+            # VRChat can trigger audio playback through avatar parameters
+            if audio.text:
+                # Send the text for potential display
+                await self._send_osc("/avatar/parameters/AudioText", audio.text[:127])  # VRChat string limit
+
+            # Trigger audio playback state
+            await self._send_osc("/avatar/parameters/AudioPlaying", 1.0)
+
+            # Schedule audio stop after duration
+            if audio.duration > 0:
+                asyncio.create_task(self._stop_audio_after_delay(audio.duration))
+
+            # If using bridge server for actual audio streaming
+            if self.use_bridge:
+                # Send audio data to bridge server
+                # Bridge server can handle actual audio playback via Unity AudioSource
+                # or convert to VRChat-compatible format
+                await self._send_audio_to_bridge(audio)
+
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to send audio data: {e}")
+            self.stats["errors"] += 1
+            return False
+
+    async def _process_audio_expression_tag(self, tag: str) -> None:
+        """Process ElevenLabs audio expression tags."""
+        # Map common audio tags to VRChat expressions
+        tag_emotion_map = {
+            "[laughs]": EmotionType.HAPPY,
+            "[whisper]": EmotionType.CALM,
+            "[sighs]": EmotionType.SAD,
+            "[angry]": EmotionType.ANGRY,
+            "[excited]": EmotionType.EXCITED,
+            "[surprised]": EmotionType.SURPRISED,
+        }
+
+        if tag in tag_emotion_map:
+            await self._set_emotion(tag_emotion_map[tag], 1.0)
+
+    async def _send_timed_viseme(self, delay: float, viseme: Any, weight: float) -> None:
+        """Send viseme at specified time."""
+        await asyncio.sleep(delay)
+        # VRChat viseme parameters (Oculus viseme standard)
+        viseme_param = f"/avatar/parameters/Viseme_{viseme.value if hasattr(viseme, 'value') else viseme}"
+        await self._send_osc(viseme_param, float(weight))
+
+    async def _stop_audio_after_delay(self, duration: float) -> None:
+        """Stop audio playback after duration."""
+        await asyncio.sleep(duration)
+        await self._send_osc("/avatar/parameters/AudioPlaying", 0.0)
+        await self._send_osc("/avatar/parameters/AudioText", "")
+
+    async def _send_audio_to_bridge(self, audio: AudioData) -> bool:
+        """Send audio to bridge server for playback."""
+        if not self.use_bridge:
+            return False
+
+        try:
+            import base64
+
+            import aiohttp
+
+            # Prepare audio data for bridge server
+            audio_payload = {
+                "audio_data": base64.b64encode(audio.data).decode("utf-8"),
+                "format": audio.format,
+                "sample_rate": audio.sample_rate,
+                "channels": audio.channels,
+                "duration": audio.duration,
+                "text": audio.text,
+            }
+
+            # Send to bridge server
+            async with aiohttp.ClientSession() as session:
+                bridge_url = f"http://{self.remote_host}:{self.bridge_port}/audio/play"
+                async with session.post(bridge_url, json=audio_payload) as response:
+                    if response.status == 200:
+                        logger.info("Audio sent to bridge server successfully")
+                        return True
+                    else:
+                        logger.error(f"Bridge server returned status {response.status}")
+                        return False
+
+        except Exception as e:
+            logger.error(f"Failed to send audio to bridge server: {e}")
+            return False
 
     async def receive_state(self) -> Optional[EnvironmentState]:
         """

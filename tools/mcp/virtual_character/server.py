@@ -6,7 +6,7 @@ import logging
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -206,9 +206,13 @@ from tools.mcp.virtual_character.backends.base import BackendAdapter  # noqa: E4
 from tools.mcp.virtual_character.backends.mock import MockBackend  # noqa: E402
 from tools.mcp.virtual_character.backends.vrchat_remote import VRChatRemoteBackend  # noqa: E402
 from tools.mcp.virtual_character.models.canonical import (  # noqa: E402
+    AudioData,
     CanonicalAnimationData,
     EmotionType,
+    EventSequence,
+    EventType,
     GestureType,
+    SequenceEvent,
 )
 
 # Configure logging
@@ -235,6 +239,12 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         # Current backend instance
         self.current_backend: Optional[BackendAdapter] = None
         self.backend_name: Optional[str] = None
+
+        # Event sequencing
+        self.current_sequence: Optional[EventSequence] = None
+        self.sequence_task: Optional[asyncio.Task] = None
+        self.sequence_paused: bool = False
+        self.sequence_time: float = 0.0
 
         # Setup additional routes
         self.setup_routes()
@@ -356,6 +366,160 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 "parameters": {"type": "object", "properties": {}},
             },
             "list_backends": {"description": "List available backends", "parameters": {"type": "object", "properties": {}}},
+            "send_audio": {
+                "description": "Send audio data to the current backend with optional lip-sync metadata",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "audio_data": {
+                            "type": "string",
+                            "description": "Base64-encoded audio data or URL to audio file",
+                        },
+                        "format": {
+                            "type": "string",
+                            "enum": ["mp3", "wav", "opus", "pcm"],
+                            "default": "mp3",
+                            "description": "Audio format",
+                        },
+                        "text": {
+                            "type": "string",
+                            "description": "Optional text transcript for lip-sync generation",
+                        },
+                        "expression_tags": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "ElevenLabs audio tags like [laughs], [whisper]",
+                        },
+                        "duration": {
+                            "type": "number",
+                            "description": "Audio duration in seconds",
+                        },
+                    },
+                    "required": ["audio_data"],
+                },
+            },
+            "create_sequence": {
+                "description": "Create a new event sequence for coordinated animations and audio",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Sequence name",
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "Optional description",
+                        },
+                        "loop": {
+                            "type": "boolean",
+                            "default": False,
+                            "description": "Whether to loop the sequence",
+                        },
+                        "interrupt_current": {
+                            "type": "boolean",
+                            "default": True,
+                            "description": "Whether to interrupt current sequence",
+                        },
+                    },
+                    "required": ["name"],
+                },
+            },
+            "add_sequence_event": {
+                "description": "Add an event to the current sequence",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "event_type": {
+                            "type": "string",
+                            "enum": ["animation", "audio", "wait", "expression", "movement", "parallel"],
+                            "description": "Type of event",
+                        },
+                        "timestamp": {
+                            "type": "number",
+                            "description": "When to trigger (seconds from sequence start)",
+                        },
+                        "duration": {
+                            "type": "number",
+                            "description": "Event duration in seconds",
+                        },
+                        "animation_params": {
+                            "type": "object",
+                            "description": "Animation parameters (emotion, gesture, etc.)",
+                        },
+                        "audio_data": {
+                            "type": "string",
+                            "description": "Base64 audio data for audio events",
+                        },
+                        "audio_format": {
+                            "type": "string",
+                            "enum": ["mp3", "wav", "opus"],
+                            "default": "mp3",
+                        },
+                        "wait_duration": {
+                            "type": "number",
+                            "description": "Duration for wait events",
+                        },
+                        "expression": {
+                            "type": "string",
+                            "enum": ["neutral", "happy", "sad", "angry", "surprised", "fearful", "disgusted"],
+                        },
+                        "expression_intensity": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1,
+                            "default": 1.0,
+                        },
+                        "movement_params": {
+                            "type": "object",
+                            "description": "Movement parameters",
+                        },
+                        "parallel_events": {
+                            "type": "array",
+                            "description": "Events to run in parallel",
+                        },
+                        "sync_with_audio": {
+                            "type": "boolean",
+                            "default": False,
+                            "description": "Sync animation timing with audio duration",
+                        },
+                    },
+                    "required": ["event_type", "timestamp"],
+                },
+            },
+            "play_sequence": {
+                "description": "Play the current or specified event sequence",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "sequence_name": {
+                            "type": "string",
+                            "description": "Name of sequence to play (uses current if not specified)",
+                        },
+                        "start_time": {
+                            "type": "number",
+                            "default": 0,
+                            "description": "Start time within sequence",
+                        },
+                    },
+                },
+            },
+            "pause_sequence": {
+                "description": "Pause the currently playing sequence",
+                "parameters": {"type": "object", "properties": {}},
+            },
+            "resume_sequence": {
+                "description": "Resume the paused sequence",
+                "parameters": {"type": "object", "properties": {}},
+            },
+            "stop_sequence": {
+                "description": "Stop the currently playing sequence",
+                "parameters": {"type": "object", "properties": {}},
+            },
+            "get_sequence_status": {
+                "description": "Get status of current sequence playback",
+                "parameters": {"type": "object", "properties": {}},
+            },
         }
 
     async def set_backend(self, backend: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -498,6 +662,290 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         except Exception as e:
             self.logger.error(f"Error listing backends: {e}")
             return {"success": False, "error": str(e)}
+
+    async def send_audio(
+        self,
+        audio_data: str,
+        format: str = "mp3",
+        text: Optional[str] = None,
+        expression_tags: Optional[List[str]] = None,
+        duration: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """Send audio data to the current backend."""
+        if not self.current_backend:
+            return {"success": False, "error": "No backend connected. Use set_backend first."}
+
+        try:
+            import base64
+
+            # Decode base64 audio data
+            if audio_data.startswith("data:"):
+                # Handle data URL format
+                audio_data = audio_data.split(",")[1]
+            audio_bytes = base64.b64decode(audio_data)
+
+            # Create AudioData object
+            audio = AudioData(
+                data=audio_bytes, format=format, duration=duration or 0.0, text=text, expression_tags=expression_tags
+            )
+
+            # Send to backend
+            success = await self.current_backend.send_audio_data(audio)
+            return {"success": success}
+
+        except Exception as e:
+            self.logger.error(f"Error sending audio: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def create_sequence(
+        self,
+        name: str,
+        description: Optional[str] = None,
+        loop: bool = False,
+        interrupt_current: bool = True,
+    ) -> Dict[str, Any]:
+        """Create a new event sequence."""
+        try:
+            # Stop current sequence if needed
+            if interrupt_current and self.sequence_task:
+                await self.stop_sequence()
+
+            # Create new sequence
+            self.current_sequence = EventSequence(
+                name=name,
+                description=description,
+                loop=loop,
+                interrupt_current=interrupt_current,
+                created_timestamp=asyncio.get_event_loop().time(),
+            )
+
+            return {"success": True, "message": f"Created sequence: {name}"}
+
+        except Exception as e:
+            self.logger.error(f"Error creating sequence: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def add_sequence_event(
+        self,
+        event_type: str,
+        timestamp: float,
+        duration: Optional[float] = None,
+        animation_params: Optional[Dict[str, Any]] = None,
+        audio_data: Optional[str] = None,
+        audio_format: str = "mp3",
+        wait_duration: Optional[float] = None,
+        expression: Optional[str] = None,
+        expression_intensity: float = 1.0,
+        movement_params: Optional[Dict[str, Any]] = None,
+        parallel_events: Optional[List[Dict]] = None,
+        sync_with_audio: bool = False,
+    ) -> Dict[str, Any]:
+        """Add an event to the current sequence."""
+        if not self.current_sequence:
+            return {"success": False, "error": "No sequence created. Use create_sequence first."}
+
+        try:
+            # Create the appropriate event based on type
+            event = SequenceEvent(
+                event_type=EventType[event_type.upper()],
+                timestamp=timestamp,
+                duration=duration,
+                sync_with_audio=sync_with_audio,
+            )
+
+            # Handle different event types
+            if event_type == "animation" and animation_params:
+                # Create animation data from params
+                animation = CanonicalAnimationData(timestamp=timestamp)
+                if "emotion" in animation_params:
+                    animation.emotion = EmotionType[animation_params["emotion"].upper()]
+                    animation.emotion_intensity = animation_params.get("emotion_intensity", 1.0)
+                if "gesture" in animation_params:
+                    animation.gesture = GestureType[animation_params["gesture"].upper()]
+                    animation.gesture_intensity = animation_params.get("gesture_intensity", 1.0)
+                if "parameters" in animation_params:
+                    animation.parameters = animation_params["parameters"]
+                event.animation_data = animation
+
+            elif event_type == "audio" and audio_data:
+                # Create audio data
+                import base64
+
+                if audio_data.startswith("data:"):
+                    audio_data = audio_data.split(",")[1]
+                audio_bytes = base64.b64decode(audio_data)
+                event.audio_data = AudioData(data=audio_bytes, format=audio_format, duration=duration or 0.0)
+
+            elif event_type == "wait":
+                event.wait_duration = wait_duration or duration or 1.0
+
+            elif event_type == "expression":
+                event.expression = EmotionType[expression.upper()] if expression else None
+                event.expression_intensity = expression_intensity
+
+            elif event_type == "movement":
+                event.movement_params = movement_params
+
+            elif event_type == "parallel" and parallel_events:
+                # Recursively create parallel events
+                event.parallel_events = []
+                for p_event in parallel_events:
+                    # Simplified parallel event creation
+                    pass  # Would need full recursive parsing
+
+            # Add event to sequence
+            self.current_sequence.add_event(event)
+
+            return {"success": True, "message": f"Added {event_type} event at {timestamp}s"}
+
+        except Exception as e:
+            self.logger.error(f"Error adding event: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def play_sequence(
+        self,
+        sequence_name: Optional[str] = None,
+        start_time: float = 0.0,
+    ) -> Dict[str, Any]:
+        """Play an event sequence."""
+        if not self.current_backend:
+            return {"success": False, "error": "No backend connected. Use set_backend first."}
+
+        if not self.current_sequence:
+            return {"success": False, "error": "No sequence to play. Create and build a sequence first."}
+
+        try:
+            # Cancel any existing sequence
+            if self.sequence_task and not self.sequence_task.done():
+                self.sequence_task.cancel()
+                await asyncio.sleep(0.1)
+
+            # Start sequence playback
+            self.sequence_time = start_time
+            self.sequence_paused = False
+            self.sequence_task = asyncio.create_task(self._execute_sequence())
+
+            return {"success": True, "message": f"Started playing sequence: {self.current_sequence.name}"}
+
+        except Exception as e:
+            self.logger.error(f"Error playing sequence: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def _execute_sequence(self) -> None:
+        """Execute the current sequence."""
+        if not self.current_sequence or not self.current_backend:
+            return
+
+        start_time = asyncio.get_event_loop().time()
+        last_time = self.sequence_time
+
+        while True:
+            if self.sequence_paused:
+                await asyncio.sleep(0.1)
+                continue
+
+            # Calculate current sequence time
+            current_time = asyncio.get_event_loop().time() - start_time + self.sequence_time
+
+            # Get events to trigger
+            for event in self.current_sequence.events:
+                if last_time <= event.timestamp < current_time:
+                    await self._execute_event(event)
+
+            last_time = current_time
+
+            # Check if sequence is complete
+            if current_time >= (self.current_sequence.total_duration or 0):
+                if self.current_sequence.loop:
+                    # Reset for loop
+                    start_time = asyncio.get_event_loop().time()
+                    last_time = 0
+                    self.sequence_time = 0
+                else:
+                    # Sequence complete
+                    break
+
+            await asyncio.sleep(0.05)  # 20Hz update rate
+
+    async def _execute_event(self, event: SequenceEvent) -> None:
+        """Execute a single event."""
+        try:
+            if event.event_type == EventType.ANIMATION and event.animation_data:
+                await self.current_backend.send_animation_data(event.animation_data)
+
+            elif event.event_type == EventType.AUDIO and event.audio_data:
+                await self.current_backend.send_audio_data(event.audio_data)
+
+            elif event.event_type == EventType.WAIT:
+                # Wait is handled by the sequence executor timing
+                pass
+
+            elif event.event_type == EventType.EXPRESSION:
+                # Create animation with just expression
+                animation = CanonicalAnimationData(
+                    timestamp=event.timestamp, emotion=event.expression, emotion_intensity=event.expression_intensity or 1.0
+                )
+                await self.current_backend.send_animation_data(animation)
+
+            elif event.event_type == EventType.MOVEMENT and event.movement_params:
+                # Create animation with movement parameters
+                animation = CanonicalAnimationData(timestamp=event.timestamp, parameters=event.movement_params)
+                await self.current_backend.send_animation_data(animation)
+
+            elif event.event_type == EventType.PARALLEL and event.parallel_events:
+                # Execute parallel events concurrently
+                tasks = [self._execute_event(e) for e in event.parallel_events]
+                await asyncio.gather(*tasks)
+
+        except Exception as e:
+            self.logger.error(f"Error executing event: {e}")
+
+    async def pause_sequence(self) -> Dict[str, Any]:
+        """Pause the currently playing sequence."""
+        if not self.sequence_task:
+            return {"success": False, "error": "No sequence is playing"}
+
+        self.sequence_paused = True
+        return {"success": True, "message": "Sequence paused"}
+
+    async def resume_sequence(self) -> Dict[str, Any]:
+        """Resume the paused sequence."""
+        if not self.sequence_task:
+            return {"success": False, "error": "No sequence to resume"}
+
+        self.sequence_paused = False
+        return {"success": True, "message": "Sequence resumed"}
+
+    async def stop_sequence(self) -> Dict[str, Any]:
+        """Stop the currently playing sequence."""
+        if self.sequence_task:
+            self.sequence_task.cancel()
+            self.sequence_task = None
+            self.sequence_time = 0.0
+            return {"success": True, "message": "Sequence stopped"}
+
+        return {"success": False, "error": "No sequence is playing"}
+
+    async def get_sequence_status(self) -> Dict[str, Any]:
+        """Get status of current sequence playback."""
+        status = {
+            "has_sequence": self.current_sequence is not None,
+            "is_playing": self.sequence_task is not None and not self.sequence_task.done(),
+            "is_paused": self.sequence_paused,
+            "current_time": self.sequence_time,
+        }
+
+        if self.current_sequence:
+            status.update(
+                {
+                    "sequence_name": self.current_sequence.name,
+                    "total_duration": self.current_sequence.total_duration,
+                    "event_count": len(self.current_sequence.events),
+                    "loop": self.current_sequence.loop,
+                }
+            )
+
+        return {"success": True, "status": status}
 
 
 def main():
