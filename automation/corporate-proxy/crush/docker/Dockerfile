@@ -26,9 +26,11 @@ COPY --from=downloader /tmp/crush_0.8.0-nightly_Linux_x86_64/crush /usr/local/bi
 # Install Python dependencies for translation services
 RUN pip install --no-cache-dir flask flask-cors requests
 
-# Copy shared services
+# Copy shared services (both basic and tool-enabled versions)
 COPY shared/services/translation_wrapper.py /app/translation_wrapper.py
 COPY shared/services/mock_api.py /app/mock_api.py
+COPY shared/services/translation_wrapper_with_tools.py /app/translation_wrapper_with_tools.py
+COPY shared/services/mock_api_with_tools.py /app/mock_api_with_tools.py
 
 # Copy scripts
 COPY crush/scripts/start-services.sh /app/start-services.sh

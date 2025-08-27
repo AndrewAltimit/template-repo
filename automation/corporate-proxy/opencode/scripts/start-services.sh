@@ -19,9 +19,14 @@ trap cleanup EXIT INT TERM
 # Create log directory
 mkdir -p /tmp/logs
 
-# Start mock Company API (runs on port 8050)
-echo "Starting mock Company API on port 8050..."
-python3 /app/mock_api.py > /tmp/logs/mock_api.log 2>&1 &
+# Start mock Company API with tool support (runs on port 8050)
+echo "Starting mock Company API with tool support on port 8050..."
+# Try the tool-enabled version first, fall back to basic if not available
+if [ -f /app/mock_api_with_tools.py ]; then
+    python3 /app/mock_api_with_tools.py > /tmp/logs/mock_api.log 2>&1 &
+else
+    python3 /app/mock_api.py > /tmp/logs/mock_api.log 2>&1 &
+fi
 
 # Give the service a moment to start before checking
 sleep 1
@@ -41,9 +46,14 @@ for i in {1..30}; do
     sleep 1
 done
 
-# Start translation wrapper (runs on port 8052)
-echo "Starting translation wrapper on port 8052..."
-python3 /app/translation_wrapper.py > /tmp/logs/translation_wrapper.log 2>&1 &
+# Start translation wrapper with tool support (runs on port 8052)
+echo "Starting translation wrapper with tool support on port 8052..."
+# Try the tool-enabled version first, fall back to basic if not available
+if [ -f /app/translation_wrapper_with_tools.py ]; then
+    python3 /app/translation_wrapper_with_tools.py > /tmp/logs/translation_wrapper.log 2>&1 &
+else
+    python3 /app/translation_wrapper.py > /tmp/logs/translation_wrapper.log 2>&1 &
+fi
 
 # Give the service a moment to start before checking
 sleep 1
