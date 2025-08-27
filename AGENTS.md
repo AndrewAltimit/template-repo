@@ -3,8 +3,8 @@
 This file provides comprehensive guidance for AI agents working with code in this repository.
 
 **For agent-specific expression philosophy and styles, see:**
-- Claude: `.context/CLAUDE_EXPRESSION.md`
-- Gemini: `.context/GEMINI_EXPRESSION.md`
+- Claude: `docs/ai-agents/claude-expression.md`
+- Gemini: `docs/ai-agents/gemini-expression.md`
 
 ## Project Context
 
