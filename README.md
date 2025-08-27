@@ -139,9 +139,6 @@ For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
 ├── tests/                    # Test files
 ├── docs/                     # Documentation
 ├── config/                   # Configuration files
-├── .context/                 # AI context files
-│   └── PROJECT_CONTEXT.md    # Context for AI reviewers
-└── projects/                 # Separate projects
 ```
 
 ## MCP Servers
