@@ -296,7 +296,7 @@ def generate_content(model):
                     logger.warning(f"Mock API error: {response.status_code}, using fallback response")
                     # Fallback response if mock API is not available
                     company_response = {
-                        "content": [{"text": "Mock API unavailable. This is a fallback response."}],
+                        "content": [{"text": f"Mock API unavailable at {mock_api_base}. This is a fallback response."}],
                         "usage": {"input_tokens": 10, "output_tokens": 20},
                     }
                 else:
@@ -305,7 +305,7 @@ def generate_content(model):
                 logger.warning("Could not connect to mock API, using fallback response")
                 # Fallback response if mock API is not available
                 company_response = {
-                    "content": [{"text": "Mock API unavailable. This is a fallback response."}],
+                    "content": [{"text": f"Mock API unavailable at {mock_api_base}. This is a fallback response."}],
                     "usage": {"input_tokens": 10, "output_tokens": 20},
                 }
         else:

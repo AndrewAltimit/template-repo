@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
+set -u
 set -o pipefail
+
+# Initialize PID variables to avoid unbound variable errors with set -u
+GEMINI_PID=""
+API_PID=""
+SERVER_PID=""
 
 # Cleanup function to ensure background processes are killed
 # shellcheck disable=SC2317  # Function is called by trap
