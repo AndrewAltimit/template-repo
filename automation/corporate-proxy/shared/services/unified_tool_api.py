@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # Configuration from environment
-API_MODE = os.getenv("API_MODE", "crush").lower()  # "crush" or "opencode"
+API_MODE = os.getenv("API_MODE", "crush").lower()  # "crush", "opencode", or "gemini"
 API_VERSION = os.getenv("API_VERSION", "v3")  # v1, v2, or v3
 DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
@@ -362,6 +362,48 @@ def chat_completions():
     return jsonify(response)
 
 
+@app.route("/api/v1/AI/GenAIExplorationLab/Models/<path:model_path>", methods=["POST"])
+def bedrock_endpoint(model_path):
+    """Bedrock-compatible endpoint that returns structured tool calls for Gemini mode"""
+    data = request.json
+    tools_present = "tools" in data or (
+        "messages" in data and any(msg.get("role") == "assistant" and "tool_calls" in msg for msg in data.get("messages", []))
+    )
+
+    # For Gemini mode, return a structured response with tool_calls
+    if API_MODE == "gemini" and tools_present:
+        # Return a response with structured tool_calls
+        response = {
+            "id": "msg_gemini_mock",
+            "type": "message",
+            "role": "assistant",
+            "model": "gemini-mock",
+            "content": [{"type": "text", "text": "I'll help you with that using the appropriate tool."}],
+            "tool_calls": [
+                {
+                    "id": "toolu_gemini_001",
+                    "type": "function",
+                    "function": {"name": "read_file", "arguments": json.dumps({"path": "test.py"})},
+                }
+            ],
+            "stop_reason": "tool_use",
+            "usage": {"input_tokens": 10, "output_tokens": 5},
+        }
+    else:
+        # Return simple text response for non-tool requests
+        response = {
+            "id": "msg_gemini_text",
+            "type": "message",
+            "role": "assistant",
+            "model": "gemini-mock",
+            "content": [{"type": "text", "text": "Hatsune Miku"}],
+            "stop_reason": "end_turn",
+            "usage": {"input_tokens": 10, "output_tokens": 3},
+        }
+
+    return jsonify(response)
+
+
 @app.route("/", methods=["GET"])
 def index():
     """Root endpoint with API info"""
@@ -375,12 +417,13 @@ def index():
                 "/tools": "List available tools",
                 "/execute": "Execute a tool",
                 "/chat/completions": "OpenAI-compatible chat endpoint",
+                "/api/v1/AI/GenAIExplorationLab/Models/*": "Bedrock-compatible endpoint",
                 "/v1/*": "Version 1 endpoints",
                 "/v2/*": "Version 2 endpoints",
                 "/v3/*": "Version 3 endpoints",
             },
             "configuration": {
-                "API_MODE": "Set to 'crush' or 'opencode'",
+                "API_MODE": "Set to 'crush', 'opencode', or 'gemini'",
                 "API_VERSION": "Set to 'v1', 'v2', or 'v3'",
                 "DEBUG_MODE": "Set to 'true' for verbose logging",
             },

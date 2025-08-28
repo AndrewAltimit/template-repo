@@ -9,7 +9,6 @@ import glob as glob_module
 import json
 import logging
 import os
-import re
 import shlex
 import subprocess
 import time
@@ -377,36 +376,24 @@ def translate_gemini_to_company(gemini_request):
 def translate_company_to_gemini(company_response, original_request, tools=None):
     """Translate Company API response back to Gemini format, checking for tool calls"""
 
-    # Check if the response contains structured tool calls (like Crush/OpenCode)
-    # This is the robust approach - looking for explicit tool_calls in the response
+    # Check if the response contains structured tool calls
+    # This is now the standard approach with unified_tool_api.py returning tool_calls for Gemini mode
     tool_calls = None
 
-    # First check if the Company API returned tool_calls in a structured format
+    # Check if the Company API returned tool_calls in a structured format
     if "tool_calls" in company_response:
-        tool_calls = company_response["tool_calls"]
-    # If not, check if we're in mock mode and should simulate tool calls
-    elif USE_MOCK and tools and company_response.get("content"):
-        # TODO: This mock tool detection is fragile and relies on specific response text patterns.
-        # Future improvement: Extend unified_tool_api.py to return structured mock tool calls
-        # for Gemini mode, similar to Crush/OpenCode handling.
-        # In mock mode, check if the response mentions using tools
-        response_text = company_response["content"][0]["text"]
-        # Only trigger if explicitly asking to use a tool with specific patterns
-        tool_patterns = [r"I'll use the (\w+) tool", r"Let me use the (\w+) tool", r"Using the (\w+) tool"]
-        for pattern in tool_patterns:
-            match = re.search(pattern, response_text, re.IGNORECASE)
-            if match:
-                tool_name = match.group(1).lower()
-                # Verify it's actually a valid tool
-                if tools:
-                    for tool in tools:
-                        if "functionDeclarations" in tool:
-                            for func in tool["functionDeclarations"]:
-                                if func.get("name", "").lower() == tool_name:
-                                    tool_calls = [{"name": func.get("name"), "args": {}}]
-                                    break
-                if tool_calls:
-                    break
+        # Extract tool calls and convert to Gemini format
+        tool_calls = []
+        for tc in company_response["tool_calls"]:
+            # Parse arguments if they're JSON strings
+            args = tc.get("function", {}).get("arguments", {})
+            if isinstance(args, str):
+                try:
+                    args = json.loads(args)
+                except json.JSONDecodeError:
+                    args = {}
+
+            tool_calls.append({"name": tc.get("function", {}).get("name"), "args": args, "id": tc.get("id")})
 
     # Build Gemini-style response
     if tool_calls and len(tool_calls) > 0:
@@ -498,11 +485,36 @@ def generate_content(model):
 
         # Make request to Company API or use mock
         if USE_MOCK:
-            # Mock response for testing
-            company_response = {
-                "content": [{"text": "I'll help you with that. Let me use the appropriate tool."}],
-                "usage": {"input_tokens": 10, "output_tokens": 20},
-            }
+            # In mock mode, call the unified_tool_api which now supports Gemini mode
+            mock_api_base = os.environ.get("MOCK_API_BASE", "http://localhost:8050")
+            company_url = f"{mock_api_base}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
+
+            logger.info(f"Mock mode: Forwarding to unified_tool_api: {company_url}")
+
+            try:
+                response = requests.post(
+                    company_url,
+                    json=company_request,
+                    headers={"Content-Type": "application/json"},
+                    timeout=10,
+                )
+
+                if response.status_code != 200:
+                    logger.warning(f"Mock API error: {response.status_code}, using fallback response")
+                    # Fallback response if mock API is not available
+                    company_response = {
+                        "content": [{"text": "Mock API unavailable. This is a fallback response."}],
+                        "usage": {"input_tokens": 10, "output_tokens": 20},
+                    }
+                else:
+                    company_response = response.json()
+            except (requests.exceptions.RequestException, requests.exceptions.Timeout):
+                logger.warning("Could not connect to mock API, using fallback response")
+                # Fallback response if mock API is not available
+                company_response = {
+                    "content": [{"text": "Mock API unavailable. This is a fallback response."}],
+                    "usage": {"input_tokens": 10, "output_tokens": 20},
+                }
         else:
             company_url = f"{COMPANY_API_BASE}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
 
