@@ -566,9 +566,73 @@ def stream_generate_content(model):
 
         # For streaming with tools, we need to handle it differently
         if tools:
-            # Can't truly stream with tools, so return a complete response
-            logger.warning("Streaming with tools is not fully supported; handling as a non-streaming request.")
-            return generate_content(model)
+            # Can't truly stream with tools, but we can simulate it
+            logger.warning("Streaming with tools is not fully supported; simulating streaming response.")
+
+            # Get the non-streaming response
+            endpoint, company_request, tools_list = translate_gemini_to_company(gemini_request)
+
+            if USE_MOCK:
+                # In mock mode, call the unified_tool_api
+                mock_api_base = os.environ.get("MOCK_API_BASE", "http://localhost:8050")
+                company_url = f"{mock_api_base}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
+
+                try:
+                    response = requests.post(
+                        company_url,
+                        json=company_request,
+                        headers={"Content-Type": "application/json"},
+                        timeout=10,
+                    )
+
+                    if response.status_code != 200:
+                        company_response = {
+                            "content": [{"text": "Mock API error. Fallback response."}],
+                            "usage": {"input_tokens": 10, "output_tokens": 5},
+                        }
+                    else:
+                        company_response = response.json()
+                except (requests.exceptions.RequestException, requests.exceptions.Timeout):
+                    company_response = {
+                        "content": [{"text": "Mock API unavailable. Fallback response."}],
+                        "usage": {"input_tokens": 10, "output_tokens": 5},
+                    }
+            else:
+                company_url = f"{COMPANY_API_BASE}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
+                response = requests.post(
+                    company_url,
+                    json=company_request,
+                    headers={"Content-Type": "application/json", "Authorization": f"Bearer {COMPANY_API_TOKEN}"},
+                    timeout=CONFIG["proxy_settings"]["timeout"],
+                )
+
+                if response.status_code != 200:
+                    company_response = {
+                        "content": [{"text": "API error occurred."}],
+                        "usage": {"input_tokens": 10, "output_tokens": 5},
+                    }
+                else:
+                    company_response = response.json()
+
+            # Convert to streaming format
+            gemini_response = translate_company_to_gemini(company_response, gemini_request, tools)
+
+            # Create a streaming response
+            def generate_tool_stream():
+                # Send the response as a single chunk for now
+                # This ensures proper JSON formatting
+                chunk = {
+                    "candidates": gemini_response.get("candidates", []),
+                    "promptFeedback": gemini_response.get("promptFeedback", {"safetyRatings": []}),
+                    "usageMetadata": gemini_response.get("usageMetadata", {}),
+                }
+                yield f"data: {json.dumps(chunk)}\n\n"
+
+            return Response(
+                stream_with_context(generate_tool_stream()),
+                mimetype="text/event-stream",
+                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+            )
 
         # Make request to Company API
         if USE_MOCK:
