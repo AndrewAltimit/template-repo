@@ -3,7 +3,7 @@ set -e
 
 # Get script directory and load common functions
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-# shellcheck source=/dev/null
+# shellcheck disable=SC1091  # File exists at runtime
 source "$SCRIPT_DIR/../../shared/scripts/common-functions.sh"
 
 print_header "Building Crush Corporate Integration"

@@ -14,11 +14,31 @@ if [ "${GEMINI_ALLOW_INSECURE_TLS}" = "true" ]; then
     export NODE_TLS_REJECT_UNAUTHORIZED=0
 fi
 
+# Store PIDs of background processes for cleanup
+API_PID=""
+PROXY_PID=""
+
 # Function to cleanup on exit
 cleanup() {
     echo ""
     echo "Shutting down services..."
+
+    # Kill specific processes if their PIDs are set
+    if [ -n "$API_PID" ]; then
+        kill "$API_PID" 2>/dev/null || true
+    fi
+    if [ -n "$PROXY_PID" ]; then
+        kill "$PROXY_PID" 2>/dev/null || true
+    fi
+
+    # Also kill any remaining jobs
     kill "$(jobs -p)" 2>/dev/null || true
+
+    # Clean up any stray processes by name
+    pkill -f unified_tool_api.py 2>/dev/null || true
+    pkill -f gemini_proxy_wrapper.py 2>/dev/null || true
+    pkill -f mock_api.py 2>/dev/null || true
+
     exit 0
 }
 
@@ -34,7 +54,7 @@ case "$MODE" in
         # Start unified tool API for Gemini
         echo "Starting unified tool API on port 8050..."
         API_MODE=gemini API_VERSION=v3 PORT=8050 python3 /app/unified_tool_api.py > /tmp/unified_api.log 2>&1 &
-        # Store PID for potential future use
+        API_PID=$!
 
         # Wait for unified API
         for _ in {1..10}; do
@@ -48,7 +68,7 @@ case "$MODE" in
         # Start Gemini proxy wrapper (includes tool support)
         echo "Starting Gemini proxy with tool support on port 8053..."
         python3 /app/gemini_proxy_wrapper.py > /tmp/gemini_proxy.log 2>&1 &
-        # Store PID for potential future use
+        PROXY_PID=$!
 
         # Wait for proxy
         for _ in {1..10}; do
@@ -124,8 +144,10 @@ EOF
 
         # Start services
         python3 /app/mock_api.py > /tmp/mock_api.log 2>&1 &
+        API_PID=$!
         sleep 2
         python3 /app/gemini_proxy_wrapper.py > /tmp/gemini_proxy.log 2>&1 &
+        PROXY_PID=$!
         sleep 2
 
         # Test 1: Check services are up
@@ -193,7 +215,9 @@ EOF
 
         # Start services
         python3 /app/mock_api.py > /tmp/mock_api.log 2>&1 &
+        API_PID=$!
         python3 /app/gemini_proxy_wrapper.py > /tmp/gemini_proxy.log 2>&1 &
+        PROXY_PID=$!
 
         echo "Services started. Container will remain running..."
         echo "Logs available at:"
