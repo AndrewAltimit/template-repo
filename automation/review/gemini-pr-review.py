@@ -278,7 +278,8 @@ def get_recent_pr_comments(pr_number: str) -> str:
         last_gemini_idx = -1
         for idx, comment in enumerate(comments):
             body = comment.get("body", "")
-            if "Gemini AI Code Review" in body:
+            # Look for the unique HTML comment marker for more robust detection
+            if "<!-- gemini-review-marker -->" in body:
                 last_gemini_idx = idx
 
         # Get comments after last Gemini review
@@ -529,6 +530,7 @@ def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: st
     else:
         model_display = "Error - No model available"
     comment = f"""## Gemini AI Code Review
+<!-- gemini-review-marker -->
 
 Hello @{pr_info['author']}! I've analyzed your pull request \
 "{pr_info['title']}" and here's my comprehensive feedback:
