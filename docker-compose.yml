@@ -580,6 +580,97 @@ services:
     profiles:
       - cache
 
+  # Corporate Proxy Services
+  # Crush Corporate Proxy
+  crush-proxy:
+    build:
+      context: automation/corporate-proxy
+      dockerfile: crush/docker/Dockerfile
+    container_name: crush-proxy
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    ports:
+      - "8051:8051"  # Crush proxy port
+    volumes:
+      - ./:/workspace:ro
+      - /tmp:/tmp
+    environment:
+      - USE_MOCK_API=${USE_MOCK_API:-true}
+      - API_MODE=crush
+      - PORT=8051
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8051/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    profiles:
+      - proxy
+      - crush-proxy
+
+  # OpenCode Corporate Proxy
+  opencode-proxy:
+    build:
+      context: automation/corporate-proxy
+      dockerfile: opencode/docker/Dockerfile
+    container_name: opencode-proxy
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    ports:
+      - "8052:8052"  # OpenCode proxy port
+    volumes:
+      - ./:/workspace:ro
+      - /tmp:/tmp
+    environment:
+      - USE_MOCK_API=${USE_MOCK_API:-true}
+      - API_MODE=opencode
+      - PORT=8052
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8052/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    profiles:
+      - proxy
+      - opencode-proxy
+
+  # Gemini Corporate Proxy
+  gemini-proxy:
+    build:
+      context: automation/corporate-proxy
+      dockerfile: gemini/docker/Dockerfile
+    container_name: gemini-proxy
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    ports:
+      - "8053:8053"  # Gemini proxy port
+      - "8050:8050"  # Unified API port for Gemini
+    volumes:
+      - ./:/workspace:ro
+      - /tmp:/tmp
+    environment:
+      - USE_MOCK_API=${USE_MOCK_API:-true}
+      - GEMINI_PROXY_PORT=8053
+      - GEMINI_MAX_OUTPUT_SIZE=${GEMINI_MAX_OUTPUT_SIZE:-102400}
+      - GEMINI_ALLOW_INSECURE_TLS=${GEMINI_ALLOW_INSECURE_TLS:-false}
+      - API_MODE=gemini
+    networks:
+      - mcp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8053/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    profiles:
+      - proxy
+      - gemini-proxy
+
   # All services combined (for development)
   all-services:
     image: busybox

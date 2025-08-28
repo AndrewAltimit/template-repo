@@ -46,20 +46,40 @@ The `shared/` directory contains reusable components:
 
 ## Quick Start
 
+### Building with Docker Compose
+
+All corporate proxy services are integrated into the project's Docker Compose configuration:
+
+```bash
+# Build all proxy services
+docker-compose build crush-proxy opencode-proxy gemini-proxy
+
+# Build a specific proxy
+docker-compose build gemini-proxy
+
+# Start proxy services
+docker-compose --profile proxy up -d
+
+# Or start a specific proxy
+docker-compose up -d gemini-proxy
+```
+
 ### Testing with Mock Services
 
 Both integrations can be tested without corporate network access:
 
 ```bash
-# Test Crush
-cd crush
-./scripts/test-patched.sh
+# Test Crush (containerized)
+docker-compose run --rm crush-proxy bash -c "./scripts/test-patched.sh"
 # Expected: "Hatsune Miku"
 
-# Test OpenCode
-cd opencode
-./scripts/test-api-only.sh
+# Test OpenCode (containerized)
+docker-compose run --rm opencode-proxy bash -c "./scripts/test-api-only.sh"
 # Expected: "Response: Hatsune Miku"
+
+# Test Gemini (containerized)
+docker-compose run --rm gemini-proxy bash -c "./scripts/test-tools.sh"
+# Expected: Tool test results
 ```
 
 ### Production Deployment
@@ -69,9 +89,15 @@ Set environment variables for your corporate API:
 ```bash
 export COMPANY_API_BASE="https://bedrock.internal.company.com"
 export COMPANY_API_TOKEN="your-actual-token"
+export USE_MOCK_API=false  # Disable mock mode
 ```
 
-Then run the proxy containers with these credentials.
+Then run the proxy services:
+
+```bash
+# Start all proxy services with production API
+docker-compose --profile proxy up -d
+```
 
 ## Model Mapping
 
