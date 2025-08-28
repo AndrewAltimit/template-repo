@@ -30,10 +30,17 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
 
     # Helper function to clean credential messages from output
     def clean_output(output: str) -> str:
-        if "Loaded cached credentials" in output:
-            lines = output.split("\n")
-            return "\n".join(line for line in lines if "Loaded cached credentials" not in line)
-        return output
+        lines = output.split("\n")
+        cleaned = []
+        for line in lines:
+            # Skip authentication and telemetry messages
+            if any(
+                skip in line
+                for skip in ["Loaded cached credentials", "Data collection is disabled", "Telemetry collection is disabled"]
+            ):
+                continue
+            cleaned.append(line)
+        return "\n".join(cleaned).strip()
 
     # Try with Pro model first
     try:
