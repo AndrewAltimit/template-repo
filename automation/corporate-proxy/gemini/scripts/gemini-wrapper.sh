@@ -32,23 +32,23 @@ case "$MODE" in
     interactive)
         echo "Starting services..."
 
-        # Start mock API
-        echo "Starting mock API on port 8050..."
-        python3 /app/mock_api.py > /tmp/mock_api.log 2>&1 &
+        # Start unified tool API for Gemini
+        echo "Starting unified tool API on port 8050..."
+        API_MODE=gemini API_VERSION=v3 PORT=8050 python3 /app/unified_tool_api.py > /tmp/unified_api.log 2>&1 &
         # Store PID for potential future use
 
-        # Wait for mock API
+        # Wait for unified API
         for _ in {1..10}; do
             if curl -s http://localhost:8050/health > /dev/null 2>&1; then
-                echo "✅ Mock API ready"
+                echo "✅ Unified tool API ready"
                 break
             fi
             sleep 1
         done
 
-        # Start Gemini proxy wrapper
-        echo "Starting Gemini proxy on port 8053..."
-        python3 /app/gemini_proxy_wrapper.py > /tmp/gemini_proxy.log 2>&1 &
+        # Start Gemini proxy wrapper with tools
+        echo "Starting Gemini proxy with tool support on port 8053..."
+        python3 /app/gemini_proxy_wrapper_with_tools.py > /tmp/gemini_proxy.log 2>&1 &
         # Store PID for potential future use
 
         # Wait for proxy

@@ -74,9 +74,10 @@ RUN echo '#!/bin/bash' > /usr/local/bin/gemini && \
 RUN pip3 install --break-system-packages flask flask-cors requests
 
 # Copy proxy services (paths relative to corporate-proxy directory as build context)
-COPY shared/services/mock_api.py /app/mock_api.py
+COPY shared/services/unified_tool_api.py /app/unified_tool_api.py
 COPY shared/services/translation_wrapper.py /app/translation_wrapper.py
 COPY gemini/gemini_proxy_wrapper.py /app/gemini_proxy_wrapper.py
+COPY gemini/gemini_proxy_wrapper_with_tools.py /app/gemini_proxy_wrapper_with_tools.py
 
 # Copy Gemini config
 COPY gemini/config/gemini-config.json /app/config/gemini-config.json

@@ -7,6 +7,7 @@ set -e
 #   --all          Run all tests
 #   --crush        Test Crush functionality
 #   --opencode     Test OpenCode functionality
+#   --gemini       Test Gemini functionality
 #   --api          Test API endpoints
 #   --integration  Run integration tests
 #   --quick        Run quick smoke tests
@@ -115,6 +116,50 @@ run_opencode_tests() {
     fi
 }
 
+# Gemini-specific tests
+run_gemini_tests() {
+    echo "Running Gemini tests..."
+    echo ""
+
+    # Test Gemini API with proper environment
+    TESTS_RUN=$((TESTS_RUN + 1))
+    if API_MODE=gemini run_test "Gemini API mode" "python -c \"import os; assert os.getenv('API_MODE') == 'gemini'\""; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+    fi
+
+    # Test Gemini Docker build
+    TESTS_RUN=$((TESTS_RUN + 1))
+    if run_test "Gemini Docker build" "docker-compose build gemini-proxy"; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+    fi
+
+    # Start Gemini proxy with tools
+    echo "Starting Gemini proxy with tool support..."
+    GEMINI_PROXY_PORT=8053 USE_MOCK_API=true python automation/corporate-proxy/gemini/gemini_proxy_wrapper_with_tools.py > /tmp/gemini_proxy.log 2>&1 &
+    GEMINI_PID=$!
+
+    # Start unified API for Gemini
+    API_MODE=gemini API_VERSION=v3 PORT=8050 python automation/corporate-proxy/shared/services/unified_tool_api.py > /tmp/gemini_api.log 2>&1 &
+    API_PID=$!
+
+    sleep 3
+
+    # Test Gemini tools
+    TESTS_RUN=$((TESTS_RUN + 1))
+    if run_test "Gemini tool tests" "python automation/corporate-proxy/tests/test_gemini_tools.py"; then
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+    else
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+    fi
+
+    # Clean up processes
+    kill $GEMINI_PID $API_PID 2>/dev/null || true
+}
+
 # API endpoint tests
 run_api_tests() {
     echo "Running API endpoint tests..."
@@ -179,6 +224,9 @@ case "${TEST_TYPE}" in
     --opencode)
         run_opencode_tests
         ;;
+    --gemini)
+        run_gemini_tests
+        ;;
     --api)
         run_api_tests
         ;;
@@ -192,17 +240,20 @@ case "${TEST_TYPE}" in
         echo ""
         run_opencode_tests
         echo ""
+        run_gemini_tests
+        echo ""
         run_api_tests
         echo ""
         run_integration_tests
         ;;
     *)
-        echo "Usage: $0 [--all|--crush|--opencode|--api|--integration|--quick]"
+        echo "Usage: $0 [--all|--crush|--opencode|--gemini|--api|--integration|--quick]"
         echo ""
         echo "Options:"
         echo "  --all          Run all tests"
         echo "  --crush        Test Crush functionality"
         echo "  --opencode     Test OpenCode functionality"
+        echo "  --gemini       Test Gemini functionality"
         echo "  --api          Test API endpoints"
         echo "  --integration  Run integration tests"
         echo "  --quick        Run quick smoke tests (default)"
