@@ -56,10 +56,11 @@ When the model wants to call a tool:
           {
             "functionCall": {
               "name": "tool_name",
-              "args": {
+              "args": {  // Note: "args" not "arguments"
                 "param1": "value1",
                 "param2": "value2"
-              }
+              },
+              "id": "call_123"  // Optional but used by Gemini CLI for correlation
             }
           }
         ],
@@ -80,25 +81,38 @@ When the model wants to call a tool:
 ```
 
 ### Tool Result Format
-When sending tool results back to Gemini:
+When Gemini CLI sends tool results back after execution:
 ```json
 {
   "contents": [
     {
-      "role": "function",
+      "role": "user",  // Always "user" for function responses in Gemini CLI
       "parts": [
         {
           "functionResponse": {
             "name": "tool_name",
+            "id": "call_123",  // Should match the functionCall id
             "response": {
-              "success": true,
-              "result": "tool execution result"
+              "output": "tool execution result"  // Use "output" for successful results
             }
           }
         }
       ]
     }
   ]
+}
+```
+
+For error responses:
+```json
+{
+  "functionResponse": {
+    "name": "tool_name",
+    "id": "call_123",
+    "response": {
+      "error": "Error message here"  // Use "error" for failures
+    }
+  }
 }
 ```
 
@@ -198,8 +212,12 @@ Last chunk has `"finishReason": "STOP"`
 - [ ] Response has `candidates` array
 - [ ] Each candidate has `content` object
 - [ ] Content has `parts` array and `role: "model"`
-- [ ] Parts contain either `text` or `functionCall`
+- [ ] Parts contain either `text`, `functionCall`, or `functionResponse`
 - [ ] Response includes `promptFeedback` object
 - [ ] Response includes `usageMetadata` with token counts
 - [ ] Tool calls use `functionCall` not `function_call`
 - [ ] Tool arguments use `args` not `arguments`
+- [ ] Function responses use role `"user"` not `"function"`
+- [ ] Function responses include `id` for correlation with calls
+- [ ] Success responses use `{"output": "..."}` format
+- [ ] Error responses use `{"error": "..."}` format

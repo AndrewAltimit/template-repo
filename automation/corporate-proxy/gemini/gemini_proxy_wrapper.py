@@ -266,19 +266,33 @@ def translate_gemini_to_company(gemini_request):
                     if "functionCall" in part:
                         tool_calls.append(part["functionCall"])
                     elif "functionResponse" in part:
-                        # Handle tool response
+                        # Handle tool response from Gemini CLI
                         tool_response = part["functionResponse"]
                         tool_name = tool_response.get("name", "unknown")
+                        tool_id = tool_response.get("id", "")
                         tool_result = tool_response.get("response", {})
-                        text_parts.append(f"Tool '{tool_name}' result: {json.dumps(tool_result)}")
+
+                        # Format based on response content
+                        if "output" in tool_result:
+                            formatted_result = f"Tool '{tool_name}' completed: {tool_result['output']}"
+                        elif "error" in tool_result:
+                            formatted_result = f"Tool '{tool_name}' failed: {tool_result['error']}"
+                        else:
+                            formatted_result = f"Tool '{tool_name}' result: {json.dumps(tool_result)}"
+
+                        if tool_id:
+                            formatted_result = f"[ID: {tool_id}] {formatted_result}"
+
+                        text_parts.append(formatted_result)
                     elif "text" in part:
                         text_parts.append(part["text"])
                 elif isinstance(part, str):
                     text_parts.append(part)
 
-            # If there are tool calls, we need to execute them
-            if tool_calls and role == "model":
-                # Execute tools and add results
+            # Only execute tool calls in mock mode for testing
+            # In production, Gemini CLI will execute tools and send back functionResponse
+            if tool_calls and role == "model" and USE_MOCK:
+                # Execute tools and add results (mock mode only)
                 for tool_call in tool_calls:
                     tool_name = tool_call.get("name")
                     tool_args = tool_call.get("args", {})
@@ -352,15 +366,22 @@ def translate_company_to_gemini(company_response, original_request, tools=None):
 
     # Build Gemini-style response
     if tool_calls and len(tool_calls) > 0:
-        # Return a function call response
-        # Use the first tool call (Gemini typically handles one at a time)
-        tool_call = tool_calls[0]
-        # Return a function call response
+        # Return function call response(s) in Gemini format
+        # Gemini can handle multiple function calls in one response
+        function_parts = []
+        for tool_call in tool_calls:
+            # Format the function call with proper structure
+            function_call_part = {"functionCall": {"name": tool_call.get("name"), "args": tool_call.get("args", {})}}
+            # Add ID if provided for correlation
+            if "id" in tool_call:
+                function_call_part["functionCall"]["id"] = tool_call["id"]
+            function_parts.append(function_call_part)
+
         gemini_response = {
             "candidates": [
                 {
                     "content": {
-                        "parts": [{"functionCall": {"name": tool_call.get("name"), "args": tool_call.get("args", {})}}],
+                        "parts": function_parts,
                         "role": "model",
                     },
                     "finishReason": "STOP",
