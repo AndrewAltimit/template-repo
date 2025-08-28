@@ -112,101 +112,129 @@ GEMINI_TOOLS = {
 }
 
 
+# Tool executor functions
+def _execute_read_file(parameters: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute read_file tool"""
+    path = parameters.get("path", "")
+    try:
+        with open(path, "r") as f:
+            content = f.read()
+        return {"success": True, "content": content, "path": path}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def _execute_write_file(parameters: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute write_file tool"""
+    path = parameters.get("path", "")
+    content = parameters.get("content", "")
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w") as f:
+            f.write(content)
+        return {"success": True, "message": f"Successfully wrote to {path}"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def _execute_run_command(parameters: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute run_command tool"""
+    command = parameters.get("command", "")
+    # Allow configurable timeout (default 30s, max 300s for safety)
+    timeout = min(parameters.get("timeout", 30), 300)
+
+    try:
+        # Use shlex.split to safely parse the command and avoid shell injection
+        cmd_list = shlex.split(command)
+        result = subprocess.run(cmd_list, capture_output=True, text=True, timeout=timeout)
+
+        # Truncate output if it's too large to prevent memory issues
+        stdout = result.stdout
+        stderr = result.stderr
+
+        if len(stdout) > MAX_OUTPUT_SIZE:
+            stdout = stdout[:MAX_OUTPUT_SIZE] + f"\n... (truncated, output was {len(result.stdout)} bytes)"
+        if len(stderr) > MAX_OUTPUT_SIZE:
+            stderr = stderr[:MAX_OUTPUT_SIZE] + f"\n... (truncated, output was {len(result.stderr)} bytes)"
+
+        return {"success": True, "stdout": stdout, "stderr": stderr, "exit_code": result.returncode}
+    except subprocess.TimeoutExpired:
+        return {"success": False, "error": f"Command timed out after {timeout} seconds"}
+    except ValueError as e:
+        # shlex.split can raise ValueError for unmatched quotes
+        return {"success": False, "error": f"Invalid command format: {e}"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def _execute_list_directory(parameters: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute list_directory tool"""
+    path = parameters.get("path", ".")
+    try:
+        items = os.listdir(path)
+        files = []
+        directories = []
+        for item in items:
+            item_path = os.path.join(path, item)
+            if os.path.isdir(item_path):
+                directories.append(item)
+            else:
+                files.append(item)
+        return {"success": True, "files": files, "directories": directories, "total": len(items)}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def _execute_search_files(parameters: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute search_files tool"""
+    pattern = parameters.get("pattern", "")
+    base_path = parameters.get("path", ".")
+    try:
+        # Use glob to find matching files
+        search_pattern = os.path.join(base_path, "**", pattern)
+        matches = glob_module.glob(search_pattern, recursive=True)
+        return {"success": True, "matches": matches, "count": len(matches)}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+def _execute_web_search(parameters: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute web_search tool"""
+    query = parameters.get("query", "")
+    # Mock web search result
+    return {
+        "success": True,
+        "results": [
+            {
+                "title": f"Search result for: {query}",
+                "snippet": "This is a mock search result. In production, this would connect to a search API.",
+                "url": f"https://example.com/search?q={query}",
+            }
+        ],
+    }
+
+
+# Dictionary-based tool dispatcher for better scalability
+TOOL_EXECUTORS = {
+    "read_file": _execute_read_file,
+    "write_file": _execute_write_file,
+    "run_command": _execute_run_command,
+    "list_directory": _execute_list_directory,
+    "search_files": _execute_search_files,
+    "web_search": _execute_web_search,
+}
+
+
 def execute_tool_call(tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
-    """Execute a tool call and return the result"""
+    """Execute a tool call and return the result using dictionary-based dispatch"""
 
     logger.info(f"Executing tool: {tool_name} with parameters: {parameters}")
 
     try:
-        if tool_name == "read_file":
-            path = parameters.get("path", "")
-            try:
-                with open(path, "r") as f:
-                    content = f.read()
-                return {"success": True, "content": content, "path": path}
-            except Exception as e:
-                return {"success": False, "error": str(e)}
-
-        elif tool_name == "write_file":
-            path = parameters.get("path", "")
-            content = parameters.get("content", "")
-            try:
-                os.makedirs(os.path.dirname(path), exist_ok=True)
-                with open(path, "w") as f:
-                    f.write(content)
-                return {"success": True, "message": f"Successfully wrote to {path}"}
-            except Exception as e:
-                return {"success": False, "error": str(e)}
-
-        elif tool_name == "run_command":
-            command = parameters.get("command", "")
-            # Allow configurable timeout (default 30s, max 300s for safety)
-            timeout = min(parameters.get("timeout", 30), 300)
-
-            try:
-                # Use shlex.split to safely parse the command and avoid shell injection
-                cmd_list = shlex.split(command)
-                result = subprocess.run(cmd_list, capture_output=True, text=True, timeout=timeout)
-
-                # Truncate output if it's too large to prevent memory issues
-                stdout = result.stdout
-                stderr = result.stderr
-
-                if len(stdout) > MAX_OUTPUT_SIZE:
-                    stdout = stdout[:MAX_OUTPUT_SIZE] + f"\n... (truncated, output was {len(result.stdout)} bytes)"
-                if len(stderr) > MAX_OUTPUT_SIZE:
-                    stderr = stderr[:MAX_OUTPUT_SIZE] + f"\n... (truncated, output was {len(result.stderr)} bytes)"
-
-                return {"success": True, "stdout": stdout, "stderr": stderr, "exit_code": result.returncode}
-            except subprocess.TimeoutExpired:
-                return {"success": False, "error": f"Command timed out after {timeout} seconds"}
-            except ValueError as e:
-                # shlex.split can raise ValueError for unmatched quotes
-                return {"success": False, "error": f"Invalid command format: {e}"}
-            except Exception as e:
-                return {"success": False, "error": str(e)}
-
-        elif tool_name == "list_directory":
-            path = parameters.get("path", ".")
-            try:
-                items = os.listdir(path)
-                files = []
-                directories = []
-                for item in items:
-                    item_path = os.path.join(path, item)
-                    if os.path.isdir(item_path):
-                        directories.append(item)
-                    else:
-                        files.append(item)
-                return {"success": True, "files": files, "directories": directories, "total": len(items)}
-            except Exception as e:
-                return {"success": False, "error": str(e)}
-
-        elif tool_name == "search_files":
-            pattern = parameters.get("pattern", "")
-            base_path = parameters.get("path", ".")
-            try:
-                # Use glob to find matching files
-                search_pattern = os.path.join(base_path, "**", pattern)
-                matches = glob_module.glob(search_pattern, recursive=True)
-                return {"success": True, "matches": matches, "count": len(matches)}
-            except Exception as e:
-                return {"success": False, "error": str(e)}
-
-        elif tool_name == "web_search":
-            query = parameters.get("query", "")
-            # Mock web search result
-            return {
-                "success": True,
-                "results": [
-                    {
-                        "title": f"Search result for: {query}",
-                        "snippet": "This is a mock search result. In production, this would connect to a search API.",
-                        "url": f"https://example.com/search?q={query}",
-                    }
-                ],
-            }
-
+        # Use dictionary dispatcher for better scalability
+        executor = TOOL_EXECUTORS.get(tool_name)
+        if executor:
+            return executor(parameters)
         else:
             return {"success": False, "error": f"Unknown tool: {tool_name}"}
 
