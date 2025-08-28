@@ -27,12 +27,12 @@ COPY --from=downloader /tmp/crush_0.8.0-nightly_Linux_x86_64/crush /usr/local/bi
 RUN pip install --no-cache-dir flask flask-cors requests
 
 # Copy shared services
-COPY shared/services/translation_wrapper.py /app/translation_wrapper.py
-COPY shared/services/mock_api.py /app/mock_api.py
+COPY automation/corporate-proxy/shared/services/translation_wrapper.py /app/translation_wrapper.py
+COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified_tool_api.py
 
 # Copy scripts
-COPY crush/scripts/start-services.sh /app/start-services.sh
-COPY crush/scripts/crush-wrapper.sh /usr/local/bin/crush
+COPY automation/corporate-proxy/crush/scripts/start-services.sh /app/start-services.sh
+COPY automation/corporate-proxy/crush/scripts/crush-wrapper.sh /usr/local/bin/crush
 RUN chmod +x /app/start-services.sh /usr/local/bin/crush
 
 # Create config directories with proper ownership
@@ -44,7 +44,7 @@ RUN mkdir -p /home/appuser/.config/crush && \
     chown -R appuser:appuser /workspace
 
 # Copy custom configuration (wrapper will place it correctly)
-COPY crush/config/crush-config.json /app/crush-config.json
+COPY automation/corporate-proxy/crush/config/crush-config.json /app/crush-config.json
 
 # Set working directory
 WORKDIR /workspace

@@ -57,7 +57,7 @@ else
 fi
 
 # Run Docker container with the prepared command
-# Note: Running as container's appuser to ensure proper permissions
+# Run with host user's UID to ensure proper file permissions
 # Detect if we have a TTY
 if [ -t 0 ]; then
     TTY_FLAG="-it"
@@ -68,7 +68,10 @@ fi
 # shellcheck disable=SC2086
 docker run $TTY_FLAG --rm \
     --name opencode-corporate \
+    --user "$(id -u):$(id -g)" \
     -v "$(pwd):/workspace:rw" \
+    -e HOME=/tmp \
+    -e USER="$(whoami)" \
     -e TERM="${TERM:-xterm-256color}" \
     -e COMPANY_API_BASE="http://localhost:8050" \
     -e COMPANY_API_TOKEN="test-secret-token-123" \

@@ -16,8 +16,12 @@ print_info "Services will start automatically inside the container"
 print_info "Use '/usr/local/bin/opencode' to run OpenCode"
 print_info "Or 'opencode run \"your question\"' for one-off queries"
 
-# Run interactive session
+# Run interactive session with host user's UID for proper file permissions
 docker run --rm -it \
+    --user "$(id -u):$(id -g)" \
+    -v "$(pwd):/workspace:rw" \
+    -e HOME=/tmp \
+    -e USER="$(whoami)" \
     -e COMPANY_API_BASE="http://localhost:8050" \
     -e COMPANY_API_TOKEN="test-secret-token-123" \
     -e OPENROUTER_API_KEY="test-secret-token-123" \
