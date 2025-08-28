@@ -584,8 +584,8 @@ services:
   # Crush Corporate Proxy
   crush-proxy:
     build:
-      context: automation/corporate-proxy
-      dockerfile: crush/docker/Dockerfile
+      context: .
+      dockerfile: automation/corporate-proxy/crush/docker/Dockerfile
     container_name: crush-proxy
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
@@ -613,8 +613,8 @@ services:
   # OpenCode Corporate Proxy
   opencode-proxy:
     build:
-      context: automation/corporate-proxy
-      dockerfile: opencode/docker/Dockerfile
+      context: .
+      dockerfile: automation/corporate-proxy/opencode/docker/Dockerfile
     container_name: opencode-proxy
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
@@ -642,8 +642,8 @@ services:
   # Gemini Corporate Proxy
   gemini-proxy:
     build:
-      context: automation/corporate-proxy
-      dockerfile: gemini/docker/Dockerfile
+      context: .
+      dockerfile: automation/corporate-proxy/gemini/docker/Dockerfile
     container_name: gemini-proxy
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
