@@ -386,6 +386,9 @@ def translate_company_to_gemini(company_response, original_request, tools=None):
         tool_calls = company_response["tool_calls"]
     # If not, check if we're in mock mode and should simulate tool calls
     elif USE_MOCK and tools and company_response.get("content"):
+        # TODO: This mock tool detection is fragile and relies on specific response text patterns.
+        # Future improvement: Extend unified_tool_api.py to return structured mock tool calls
+        # for Gemini mode, similar to Crush/OpenCode handling.
         # In mock mode, check if the response mentions using tools
         response_text = company_response["content"][0]["text"]
         # Only trigger if explicitly asking to use a tool with specific patterns
@@ -552,6 +555,7 @@ def stream_generate_content(model):
         # For streaming with tools, we need to handle it differently
         if tools:
             # Can't truly stream with tools, so return a complete response
+            logger.warning("Streaming with tools is not fully supported; handling as a non-streaming request.")
             return generate_content(model)
 
         # Make request to Company API
