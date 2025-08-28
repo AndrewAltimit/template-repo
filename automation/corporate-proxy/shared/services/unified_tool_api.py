@@ -147,43 +147,38 @@ CRUSH_TOOLS = {
     ),
 }
 
+
+def camel_to_snake_case(param_name: str) -> str:
+    """Convert camelCase parameter names to snake_case for OpenCode compatibility.
+
+    This maintains a clear mapping between Crush tools (camelCase) and
+    OpenCode tools (snake_case), ensuring consistency across both toolsets.
+    """
+    # Define explicit mappings for clarity
+    param_mappings = {
+        "filePath": "file_path",
+        "oldString": "old_string",
+        "newString": "new_string",
+        "replaceAll": "replace_all",
+        "outputMode": "output_mode",
+        "cellId": "cell_id",
+        "editMode": "edit_mode",
+        "subagentType": "subagent_type",
+    }
+
+    # Return mapped name or original if not in mapping
+    return param_mappings.get(param_name, param_name)
+
+
 # OpenCode uses the same tools but with different parameter naming conventions
+# Generate OPENCODE_TOOLS by converting CRUSH_TOOLS parameter names
 OPENCODE_TOOLS = {
     name: Tool(
         name=tool.name,
         description=tool.description,
         parameters=[
             ToolParameter(
-                # Convert camelCase to snake_case for OpenCode compatibility
-                (
-                    "file_path"
-                    if p.name == "filePath"
-                    else (
-                        "old_string"
-                        if p.name == "oldString"
-                        else (
-                            "new_string"
-                            if p.name == "newString"
-                            else (
-                                "replace_all"
-                                if p.name == "replaceAll"
-                                else (
-                                    "output_mode"
-                                    if p.name == "outputMode"
-                                    else (
-                                        "cell_id"
-                                        if p.name == "cellId"
-                                        else (
-                                            "edit_mode"
-                                            if p.name == "editMode"
-                                            else "subagent_type" if p.name == "subagentType" else p.name
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                ),
+                camel_to_snake_case(p.name),  # Convert parameter naming convention
                 p.type,
                 p.description,
                 p.required,

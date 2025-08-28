@@ -60,7 +60,10 @@ run_test() {
         return 0
     else
         echo -e "${RED}✗ FAILED${NC}"
-        echo "  See /tmp/test_output.log for details"
+        echo "  Output from failed test:"
+        echo "  ----------------------"
+        sed 's/^/  /' < /tmp/test_output.log  # Indent output for readability
+        echo "  ----------------------"
         return 1
     fi
 }
