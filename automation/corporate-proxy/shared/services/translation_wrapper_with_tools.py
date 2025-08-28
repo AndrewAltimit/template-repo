@@ -81,6 +81,17 @@ def chat_completions():
     try:
         data = request.json
         logger.info(f"Received request for model: {data.get('model')}")
+        logger.info(f"Full request data: {json.dumps(data, indent=2)}")
+
+        # Log specific details about messages and tools
+        if "messages" in data:
+            logger.info(f"Messages count: {len(data['messages'])}")
+            for i, msg in enumerate(data["messages"]):
+                logger.info(f"Message {i}: role={msg.get('role')}, content={msg.get('content', '')[:100]}")
+
+        if "tools" in data:
+            tool_list = [t.get("type", "unknown") + ":" + t.get("function", {}).get("name", "unnamed") for t in data["tools"]]
+            logger.info(f"Tools provided: {tool_list}")
 
         model = data.get("model", "company/claude-3.5-sonnet")
         endpoint = MODEL_ENDPOINTS.get(model)

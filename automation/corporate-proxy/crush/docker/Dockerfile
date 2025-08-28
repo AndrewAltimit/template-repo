@@ -31,6 +31,7 @@ COPY shared/services/translation_wrapper.py /app/translation_wrapper.py
 COPY shared/services/mock_api.py /app/mock_api.py
 COPY shared/services/translation_wrapper_with_tools.py /app/translation_wrapper_with_tools.py
 COPY shared/services/mock_api_with_tools.py /app/mock_api_with_tools.py
+COPY shared/services/mock_api_with_tools_v2.py /app/mock_api_with_tools_v2.py
 
 # Copy scripts
 COPY crush/scripts/start-services.sh /app/start-services.sh
