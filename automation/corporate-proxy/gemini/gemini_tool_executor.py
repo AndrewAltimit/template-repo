@@ -123,7 +123,9 @@ def _execute_run_command(parameters: Dict[str, Any]) -> Dict[str, Any]:
     timeout = min(parameters.get("timeout", 30), 300)
 
     try:
-        # Use shlex.split to safely parse the command and avoid shell injection
+        # Use shlex.split to safely parse the command and prevent shell injection vulnerabilities.
+        # This ensures that user input is properly tokenized without invoking a shell interpreter,
+        # preventing malicious command chaining or variable expansion attacks.
         cmd_list = shlex.split(command)
         result = subprocess.run(cmd_list, capture_output=True, text=True, timeout=timeout)
 

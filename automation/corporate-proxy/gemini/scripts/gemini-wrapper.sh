@@ -23,7 +23,8 @@ cleanup() {
     echo ""
     echo "Shutting down services..."
 
-    # Kill specific processes if their PIDs are set
+    # Multi-stage cleanup to ensure no orphaned processes:
+    # 1. First, try to kill the specific PIDs we started (most reliable)
     if [ -n "$API_PID" ]; then
         kill "$API_PID" 2>/dev/null || true
     fi
@@ -31,14 +32,16 @@ cleanup() {
         kill "$PROXY_PID" 2>/dev/null || true
     fi
 
-    # Also kill any remaining jobs
+    # 2. Then kill any remaining background jobs from this shell session
     kill "$(jobs -p)" 2>/dev/null || true
 
-    # Clean up any stray processes by name
+    # 3. Next, kill any stray processes by name (in case PIDs were lost)
+    # This catches processes that may have been orphaned or restarted
     pkill -f unified_tool_api.py 2>/dev/null || true
     pkill -f gemini_proxy_wrapper.py 2>/dev/null || true
 
-    # Final fallback: kill processes by port (if fuser is available)
+    # 4. Finally, as a last resort, kill any process listening on our ports
+    # This ensures ports are freed even if processes were started externally
     if command -v fuser >/dev/null 2>&1; then
         echo "Cleaning up ports..."
         fuser -k 8050/tcp 2>/dev/null || true
