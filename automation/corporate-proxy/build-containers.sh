@@ -78,6 +78,25 @@ else
 fi
 
 echo ""
+
+# Build Gemini
+echo "======================================"
+echo "Building Gemini Container"
+echo "======================================"
+if [ -f "$SCRIPT_DIR/gemini/docker/Dockerfile" ]; then
+    if build_container "Gemini" \
+        "$SCRIPT_DIR/gemini/docker/Dockerfile" \
+        "$SCRIPT_DIR" \
+        "gemini-corporate:latest"; then
+        echo -e "${GREEN}✓ Gemini container ready${NC}"
+    else
+        echo -e "${RED}✗ Gemini build failed${NC}"
+    fi
+else
+    echo -e "${YELLOW}Gemini Dockerfile not found${NC}"
+fi
+
+echo ""
 echo "======================================"
 echo "Build Summary"
 echo "======================================"
@@ -94,6 +113,12 @@ if docker images -q opencode-corporate:latest > /dev/null 2>&1; then
     echo -e "  ${GREEN}✓${NC} opencode-corporate:latest"
 else
     echo -e "  ${RED}✗${NC} opencode-corporate:latest"
+fi
+
+if docker images -q gemini-corporate:latest > /dev/null 2>&1; then
+    echo -e "  ${GREEN}✓${NC} gemini-corporate:latest"
+else
+    echo -e "  ${RED}✗${NC} gemini-corporate:latest"
 fi
 
 echo ""

@@ -67,7 +67,10 @@ GEMINI_TOOLS = {
         "description": "Execute a shell command",
         "parameters": {
             "type": "object",
-            "properties": {"command": {"type": "string", "description": "Command to execute"}},
+            "properties": {
+                "command": {"type": "string", "description": "Command to execute"},
+                "timeout": {"type": "number", "description": "Timeout in seconds (default: 30, max: 300)", "default": 30},
+            },
             "required": ["command"],
         },
     },
@@ -131,12 +134,14 @@ def execute_tool_call(tool_name: str, parameters: Dict[str, Any]) -> Dict[str, A
 
         elif tool_name == "run_command":
             command = parameters.get("command", "")
+            # Allow configurable timeout (default 30s, max 300s for safety)
+            timeout = min(parameters.get("timeout", 30), 300)
             MAX_OUTPUT_SIZE = 100 * 1024  # 100KB limit for stdout/stderr
 
             try:
                 # Use shlex.split to safely parse the command and avoid shell injection
                 cmd_list = shlex.split(command)
-                result = subprocess.run(cmd_list, capture_output=True, text=True, timeout=30)
+                result = subprocess.run(cmd_list, capture_output=True, text=True, timeout=timeout)
 
                 # Truncate output if it's too large to prevent memory issues
                 stdout = result.stdout
@@ -149,7 +154,7 @@ def execute_tool_call(tool_name: str, parameters: Dict[str, Any]) -> Dict[str, A
 
                 return {"success": True, "stdout": stdout, "stderr": stderr, "exit_code": result.returncode}
             except subprocess.TimeoutExpired:
-                return {"success": False, "error": "Command timed out after 30 seconds"}
+                return {"success": False, "error": f"Command timed out after {timeout} seconds"}
             except ValueError as e:
                 # shlex.split can raise ValueError for unmatched quotes
                 return {"success": False, "error": f"Invalid command format: {e}"}
