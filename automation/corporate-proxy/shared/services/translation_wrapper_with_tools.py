@@ -160,7 +160,13 @@ def chat_completions():
             def generate():
                 # Check if response contains tool calls
                 if "tool_calls" in company_response:
-                    # Send tool call chunk
+                    # Send tool call chunk with proper index for each tool call
+                    tool_calls_with_index = []
+                    for i, tc in enumerate(company_response["tool_calls"]):
+                        tc_copy = tc.copy()
+                        tc_copy["index"] = i
+                        tool_calls_with_index.append(tc_copy)
+
                     chunk = {
                         "id": company_response.get("id", "chatcmpl-123"),
                         "object": "chat.completion.chunk",
@@ -169,7 +175,7 @@ def chat_completions():
                         "choices": [
                             {
                                 "index": 0,
-                                "delta": {"role": "assistant", "tool_calls": company_response["tool_calls"]},
+                                "delta": {"role": "assistant", "tool_calls": tool_calls_with_index},
                                 "finish_reason": "tool_calls",
                             }
                         ],

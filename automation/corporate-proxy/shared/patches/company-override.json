@@ -15,7 +15,7 @@
         "attachment": true,
         "reasoning": true,
         "temperature": true,
-        "tool_call": false,
+        "tool_call": true,
         "cost": {
           "input": 0.003,
           "output": 0.015
@@ -33,7 +33,7 @@
         "attachment": true,
         "reasoning": false,
         "temperature": true,
-        "tool_call": false,
+        "tool_call": true,
         "cost": {
           "input": 0.015,
           "output": 0.075
@@ -51,7 +51,7 @@
         "attachment": false,
         "reasoning": false,
         "temperature": true,
-        "tool_call": false,
+        "tool_call": true,
         "cost": {
           "input": 0.03,
           "output": 0.06
