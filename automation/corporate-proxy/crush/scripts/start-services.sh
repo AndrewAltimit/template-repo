@@ -19,19 +19,9 @@ trap cleanup EXIT INT TERM
 # Create log directory
 mkdir -p /tmp/logs
 
-# Start mock Company API with tool support (runs on port 8050)
-echo "Starting mock Company API with tool support on port 8050..."
-# Try the tool-enabled versions in order: v2, v1, basic
-if [ -f /app/mock_api_with_tools_v2.py ]; then
-    echo "Using v2 mock API with enhanced pattern matching and debug logging"
-    FLASK_DEBUG=false MOCK_API_PORT=8050 python /app/mock_api_with_tools_v2.py > /tmp/logs/mock_api.log 2>&1 &
-elif [ -f /app/mock_api_with_tools.py ]; then
-    echo "Using v1 mock API with tool support"
-    python /app/mock_api_with_tools.py > /tmp/logs/mock_api.log 2>&1 &
-else
-    echo "Using basic mock API"
-    python /app/mock_api.py > /tmp/logs/mock_api.log 2>&1 &
-fi
+# Start unified tool API (runs on port 8050)
+echo "Starting unified tool API on port 8050..."
+API_MODE=crush API_VERSION=v3 PORT=8050 python /app/unified_tool_api.py > /tmp/logs/mock_api.log 2>&1 &
 
 # Wait for mock API to be ready
 echo "Waiting for mock API to be ready..."

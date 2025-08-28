@@ -19,25 +19,9 @@ trap cleanup EXIT INT TERM
 # Create log directory
 mkdir -p /tmp/logs
 
-# Start mock Company API with tool support (runs on port 8050)
-echo "Starting mock Company API with tool support on port 8050..."
-# Try the tool-enabled versions in order: fixed opencode, opencode-specific, v2, v1, basic
-if [ -f /app/mock_api_opencode_fixed.py ]; then
-    echo "Using FIXED OpenCode mock API with proper OpenAI tool format"
-    FLASK_DEBUG=false MOCK_API_PORT=8050 python3 /app/mock_api_opencode_fixed.py > /tmp/logs/mock_api.log 2>&1 &
-elif [ -f /app/mock_api_with_tools_opencode.py ]; then
-    echo "Using OpenCode-specific mock API with proper tool format"
-    FLASK_DEBUG=false MOCK_API_PORT=8050 python3 /app/mock_api_with_tools_opencode.py > /tmp/logs/mock_api.log 2>&1 &
-elif [ -f /app/mock_api_with_tools_v2.py ]; then
-    echo "Using v2 mock API with enhanced pattern matching and debug logging"
-    FLASK_DEBUG=false MOCK_API_PORT=8050 python3 /app/mock_api_with_tools_v2.py > /tmp/logs/mock_api.log 2>&1 &
-elif [ -f /app/mock_api_with_tools.py ]; then
-    echo "Using v1 mock API with tool support"
-    python3 /app/mock_api_with_tools.py > /tmp/logs/mock_api.log 2>&1 &
-else
-    echo "Using basic mock API"
-    python3 /app/mock_api.py > /tmp/logs/mock_api.log 2>&1 &
-fi
+# Start unified tool API (runs on port 8050)
+echo "Starting unified tool API on port 8050..."
+API_MODE=opencode API_VERSION=v3 PORT=8050 python3 /app/unified_tool_api.py > /tmp/logs/mock_api.log 2>&1 &
 
 # Give the service a moment to start before checking
 sleep 1
