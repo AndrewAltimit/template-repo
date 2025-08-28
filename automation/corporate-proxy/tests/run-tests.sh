@@ -167,7 +167,15 @@ run_gemini_tests() {
     API_MODE=gemini API_VERSION=v3 PORT=8050 python automation/corporate-proxy/shared/services/unified_tool_api.py > /tmp/gemini_api.log 2>&1 &
     API_PID=$!
 
-    sleep 3
+    # Use centralized health check utility
+    echo "Waiting for services to be ready..."
+    if python automation/corporate-proxy/shared/services/health_check.py localhost:8050 localhost:8053; then
+        echo "✅ Services ready"
+    else
+        echo "❌ Services failed to start"
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        return 1
+    fi
 
     # Test Gemini tools
     TESTS_RUN=$((TESTS_RUN + 1))
@@ -188,7 +196,16 @@ run_api_tests() {
     # Start test server
     API_MODE=crush PORT=8090 python automation/corporate-proxy/shared/services/unified_tool_api.py > /tmp/api_server.log 2>&1 &
     SERVER_PID=$!
-    sleep 2
+
+    # Use centralized health check utility
+    echo "Waiting for API server to be ready..."
+    if python automation/corporate-proxy/shared/services/health_check.py localhost:8090; then
+        echo "✅ API server ready"
+    else
+        echo "❌ API server failed to start"
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+        return 1
+    fi
 
     # Test endpoints
     TESTS_RUN=$((TESTS_RUN + 1))

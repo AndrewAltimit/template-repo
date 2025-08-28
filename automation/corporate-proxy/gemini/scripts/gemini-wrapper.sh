@@ -38,6 +38,13 @@ cleanup() {
     pkill -f unified_tool_api.py 2>/dev/null || true
     pkill -f gemini_proxy_wrapper.py 2>/dev/null || true
 
+    # Final fallback: kill processes by port (if fuser is available)
+    if command -v fuser >/dev/null 2>&1; then
+        echo "Cleaning up ports..."
+        fuser -k 8050/tcp 2>/dev/null || true
+        fuser -k 8053/tcp 2>/dev/null || true
+    fi
+
     exit 0
 }
 
