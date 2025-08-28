@@ -49,9 +49,9 @@ COPY --from=source /source/opencode ./opencode
 
 # Apply patches to customize OpenCode for corporate proxy
 # These patches configure models and API endpoints at build time
-COPY shared/patches/company-override.json /build/opencode/packages/opencode/src/company-models.json
-COPY shared/patches/models-company-simple.ts /build/opencode/packages/opencode/src/provider/models.ts
-COPY shared/patches/tui-company-fix.ts /build/opencode/packages/opencode/src/cli/cmd/tui.ts
+COPY automation/corporate-proxy/shared/patches/company-override.json /build/opencode/packages/opencode/src/company-models.json
+COPY automation/corporate-proxy/shared/patches/models-company-simple.ts /build/opencode/packages/opencode/src/provider/models.ts
+COPY automation/corporate-proxy/shared/patches/tui-company-fix.ts /build/opencode/packages/opencode/src/cli/cmd/tui.ts
 
 WORKDIR /build/opencode
 RUN bun install
@@ -95,11 +95,11 @@ RUN echo '#!/bin/bash\nexec /usr/local/bin/opencode.bin "$@"' > /usr/local/bin/o
 RUN pip3 install --break-system-packages flask flask-cors requests
 
 # Copy shared services
-COPY shared/services/translation_wrapper.py /app/translation_wrapper.py
-COPY shared/services/unified_tool_api.py /app/unified_tool_api.py
+COPY automation/corporate-proxy/shared/services/translation_wrapper.py /app/translation_wrapper.py
+COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified_tool_api.py
 
 # Copy startup script
-COPY opencode/scripts/start-services.sh /app/start-services.sh
+COPY automation/corporate-proxy/opencode/scripts/start-services.sh /app/start-services.sh
 RUN chmod +x /app/start-services.sh
 
 # Create OpenCode config directories and Bun directories

@@ -17,8 +17,8 @@ WORKDIR /build
 COPY --from=source /source/gemini-cli ./gemini-cli
 
 # Apply patches to redirect API calls to our proxy
-COPY gemini/patches/api-redirect.patch /tmp/api-redirect.patch
-COPY gemini/patches/auth-bypass.patch /tmp/auth-bypass.patch
+COPY automation/corporate-proxy/gemini/patches/api-redirect.patch /tmp/api-redirect.patch
+COPY automation/corporate-proxy/gemini/patches/auth-bypass.patch /tmp/auth-bypass.patch
 
 WORKDIR /build/gemini-cli
 
@@ -73,19 +73,19 @@ RUN echo '#!/bin/bash' > /usr/local/bin/gemini && \
 # Install Python dependencies for proxy
 RUN pip3 install --break-system-packages flask flask-cors requests
 
-# Copy proxy services (paths relative to corporate-proxy directory as build context)
-COPY shared/services/unified_tool_api.py /app/unified_tool_api.py
-COPY shared/services/translation_wrapper.py /app/translation_wrapper.py
-COPY gemini/gemini_proxy_wrapper.py /app/gemini_proxy_wrapper.py
+# Copy proxy services (paths relative to repository root as build context)
+COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified_tool_api.py
+COPY automation/corporate-proxy/shared/services/translation_wrapper.py /app/translation_wrapper.py
+COPY automation/corporate-proxy/gemini/gemini_proxy_wrapper.py /app/gemini_proxy_wrapper.py
 
 # Copy Gemini config
-COPY gemini/config/gemini-config.json /app/config/gemini-config.json
+COPY automation/corporate-proxy/gemini/config/gemini-config.json /app/config/gemini-config.json
 
 # Copy shared configs for translation wrapper
-COPY shared/configs /app/shared/configs
+COPY automation/corporate-proxy/shared/configs /app/shared/configs
 
 # Copy startup script
-COPY gemini/scripts/gemini-wrapper.sh /app/gemini-wrapper.sh
+COPY automation/corporate-proxy/gemini/scripts/gemini-wrapper.sh /app/gemini-wrapper.sh
 RUN chmod +x /app/gemini-wrapper.sh
 
 # Create Gemini config directories and pre-configure auth
