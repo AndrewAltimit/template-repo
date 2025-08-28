@@ -403,7 +403,9 @@ def bedrock_endpoint(model_path):
                 "usage": {"input_tokens": 10, "output_tokens": 5},
             }
         elif tools_present:
-            # Only trigger tool calls for action-oriented requests
+            # Heuristic to simulate LLM tool-use reasoning in mock mode.
+            # Only trigger tool calls for prompts containing action-oriented keywords.
+            # This prevents false positives for simple conversational requests.
             action_keywords = [
                 "read",
                 "write",
