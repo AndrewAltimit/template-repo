@@ -77,7 +77,6 @@ RUN pip3 install --break-system-packages flask flask-cors requests
 COPY shared/services/unified_tool_api.py /app/unified_tool_api.py
 COPY shared/services/translation_wrapper.py /app/translation_wrapper.py
 COPY gemini/gemini_proxy_wrapper.py /app/gemini_proxy_wrapper.py
-COPY gemini/gemini_proxy_wrapper_with_tools.py /app/gemini_proxy_wrapper_with_tools.py
 
 # Copy Gemini config
 COPY gemini/config/gemini-config.json /app/config/gemini-config.json

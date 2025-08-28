@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 """
-Gemini API Proxy Wrapper
+Gemini API Proxy Wrapper with Tool Support
 Intercepts Gemini API calls and redirects them through the corporate proxy
+Handles tool/function calls for Gemini CLI
 """
 
+import glob as glob_module
 import json
 import logging
 import os
+import subprocess
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict
 
 import requests
 from flask import Flask, Response, jsonify, request, stream_with_context
@@ -33,9 +37,157 @@ COMPANY_API_TOKEN = os.environ.get(CONFIG["corporate_api"]["token_env_var"], CON
 USE_MOCK = os.environ.get("USE_MOCK_API", str(CONFIG["mock_settings"]["enabled"])).lower() == "true"
 PROXY_PORT = int(os.environ.get("GEMINI_PROXY_PORT", CONFIG["proxy_settings"]["port"]))
 
+# Define Gemini tool schemas
+GEMINI_TOOLS = {
+    "read_file": {
+        "name": "read_file",
+        "description": "Read contents of a file",
+        "parameters": {
+            "type": "object",
+            "properties": {"path": {"type": "string", "description": "Path to the file to read"}},
+            "required": ["path"],
+        },
+    },
+    "write_file": {
+        "name": "write_file",
+        "description": "Write content to a file",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Path to the file"},
+                "content": {"type": "string", "description": "Content to write"},
+            },
+            "required": ["path", "content"],
+        },
+    },
+    "run_command": {
+        "name": "run_command",
+        "description": "Execute a shell command",
+        "parameters": {
+            "type": "object",
+            "properties": {"command": {"type": "string", "description": "Command to execute"}},
+            "required": ["command"],
+        },
+    },
+    "list_directory": {
+        "name": "list_directory",
+        "description": "List contents of a directory",
+        "parameters": {
+            "type": "object",
+            "properties": {"path": {"type": "string", "description": "Directory path", "default": "."}},
+        },
+    },
+    "search_files": {
+        "name": "search_files",
+        "description": "Search for files matching a pattern",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "pattern": {"type": "string", "description": "Search pattern or glob"},
+                "path": {"type": "string", "description": "Base path to search from", "default": "."},
+            },
+            "required": ["pattern"],
+        },
+    },
+    "web_search": {
+        "name": "web_search",
+        "description": "Search the web for information",
+        "parameters": {
+            "type": "object",
+            "properties": {"query": {"type": "string", "description": "Search query"}},
+            "required": ["query"],
+        },
+    },
+}
+
+
+def execute_tool_call(tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute a tool call and return the result"""
+
+    logger.info(f"Executing tool: {tool_name} with parameters: {parameters}")
+
+    try:
+        if tool_name == "read_file":
+            path = parameters.get("path", "")
+            try:
+                with open(path, "r") as f:
+                    content = f.read()
+                return {"success": True, "content": content, "path": path}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+
+        elif tool_name == "write_file":
+            path = parameters.get("path", "")
+            content = parameters.get("content", "")
+            try:
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                with open(path, "w") as f:
+                    f.write(content)
+                return {"success": True, "message": f"Successfully wrote to {path}"}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+
+        elif tool_name == "run_command":
+            command = parameters.get("command", "")
+            try:
+                result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=30)
+                return {"success": True, "stdout": result.stdout, "stderr": result.stderr, "exit_code": result.returncode}
+            except subprocess.TimeoutExpired:
+                return {"success": False, "error": "Command timed out after 30 seconds"}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+
+        elif tool_name == "list_directory":
+            path = parameters.get("path", ".")
+            try:
+                items = os.listdir(path)
+                files = []
+                directories = []
+                for item in items:
+                    item_path = os.path.join(path, item)
+                    if os.path.isdir(item_path):
+                        directories.append(item)
+                    else:
+                        files.append(item)
+                return {"success": True, "files": files, "directories": directories, "total": len(items)}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+
+        elif tool_name == "search_files":
+            pattern = parameters.get("pattern", "")
+            base_path = parameters.get("path", ".")
+            try:
+                # Use glob to find matching files
+                search_pattern = os.path.join(base_path, "**", pattern)
+                matches = glob_module.glob(search_pattern, recursive=True)
+                return {"success": True, "matches": matches, "count": len(matches)}
+            except Exception as e:
+                return {"success": False, "error": str(e)}
+
+        elif tool_name == "web_search":
+            query = parameters.get("query", "")
+            # Mock web search result
+            return {
+                "success": True,
+                "results": [
+                    {
+                        "title": f"Search result for: {query}",
+                        "snippet": "This is a mock search result. In production, this would connect to a search API.",
+                        "url": f"https://example.com/search?q={query}",
+                    }
+                ],
+            }
+
+        else:
+            return {"success": False, "error": f"Unknown tool: {tool_name}"}
+
+    except Exception as e:
+        logger.error(f"Tool execution error: {e}")
+        return {"success": False, "error": str(e)}
+
 
 def translate_gemini_to_company(gemini_request):
-    """Translate Gemini API request format to Company API format"""
+    """Translate Gemini API request format to Company API format, handling tools"""
 
     # Extract model and map it
     model = gemini_request.get("model", "gemini-2.5-flash")
@@ -46,6 +198,9 @@ def translate_gemini_to_company(gemini_request):
         model_config = CONFIG["models"]["gemini-2.5-flash"]
 
     endpoint = model_config["endpoint"]
+
+    # Check if tools are requested
+    tools = gemini_request.get("tools", [])
 
     # Convert Gemini format to Company format
     messages = []
@@ -58,17 +213,24 @@ def translate_gemini_to_company(gemini_request):
             role = msg.get("role", "user")
             content = msg.get("content", "")
 
-            if role == "system":
+            # Handle tool results
+            if role == "function":
+                # Tool result message
+                tool_response = msg.get("parts", [{}])[0].get("functionResponse", {})
+                tool_name = tool_response.get("name", "unknown")
+                tool_result = tool_response.get("response", {})
+                content = f"Tool '{tool_name}' result: {json.dumps(tool_result)}"
+                role = "user"
+            elif role == "model" and "functionCall" in msg.get("parts", [{}])[0]:
+                # Tool call from model
+                continue  # Skip tool calls in history
+            elif role == "system":
                 system_prompt = content
-            else:
-                # Map Gemini roles to Company roles
-                if role == "model":
-                    role = "assistant"
-                messages.append({"role": role, "content": content})
+                continue
+            elif role == "model":
+                role = "assistant"
 
-    elif "prompt" in gemini_request:
-        # Single prompt format
-        messages.append({"role": "user", "content": gemini_request["prompt"]})
+            messages.append({"role": role, "content": content})
 
     elif "contents" in gemini_request:
         # Contents format (used by Google AI SDK)
@@ -76,65 +238,132 @@ def translate_gemini_to_company(gemini_request):
             role = content.get("role", "user")
             parts = content.get("parts", [])
 
-            # Combine all text parts
+            # Check for tool calls in the parts
+            tool_calls = []
             text_parts = []
+
             for part in parts:
-                if isinstance(part, dict) and "text" in part:
-                    text_parts.append(part["text"])
+                if isinstance(part, dict):
+                    if "functionCall" in part:
+                        tool_calls.append(part["functionCall"])
+                    elif "functionResponse" in part:
+                        # Handle tool response
+                        tool_response = part["functionResponse"]
+                        tool_name = tool_response.get("name", "unknown")
+                        tool_result = tool_response.get("response", {})
+                        text_parts.append(f"Tool '{tool_name}' result: {json.dumps(tool_result)}")
+                    elif "text" in part:
+                        text_parts.append(part["text"])
                 elif isinstance(part, str):
                     text_parts.append(part)
 
+            # If there are tool calls, we need to execute them
+            if tool_calls and role == "model":
+                # Execute tools and add results
+                for tool_call in tool_calls:
+                    tool_name = tool_call.get("name")
+                    tool_args = tool_call.get("args", {})
+                    tool_result = execute_tool_call(tool_name, tool_args)
+                    text_parts.append(f"Tool '{tool_name}' result: {json.dumps(tool_result)}")
+
             combined_text = "\n".join(text_parts)
 
-            if role == "model":
-                role = "assistant"
+            if combined_text:
+                if role == "model":
+                    role = "assistant"
+                messages.append({"role": role, "content": combined_text})
 
-            messages.append({"role": role, "content": combined_text})
+    # Add tool descriptions to system prompt if tools are provided
+    if tools:
+        tool_descriptions = []
+        for tool in tools:
+            if "functionDeclarations" in tool:
+                for func in tool["functionDeclarations"]:
+                    name = func.get("name", "unknown")
+                    desc = func.get("description", "")
+                    tool_descriptions.append(f"- {name}: {desc}")
+
+        if tool_descriptions:
+            tool_prompt = "You have access to the following tools:\n" + "\n".join(tool_descriptions)
+            tool_prompt += "\n\nTo use a tool, respond with a function call in the appropriate format."
+            system_prompt = f"{system_prompt}\n\n{tool_prompt}" if system_prompt else tool_prompt
 
     # Build Company API request
     company_request = {
         "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": gemini_request.get("max_output_tokens", 1000),
+        "max_tokens": gemini_request.get("generationConfig", {}).get("maxOutputTokens", 1000),
         "system": system_prompt or "You are a helpful AI assistant",
         "messages": messages,
-        "temperature": gemini_request.get("temperature", 0.7),
+        "temperature": gemini_request.get("generationConfig", {}).get("temperature", 0.7),
     }
 
-    return endpoint, company_request
+    return endpoint, company_request, tools
 
 
-def translate_company_to_gemini(company_response, original_request):
-    """Translate Company API response back to Gemini format"""
+def translate_company_to_gemini(company_response, original_request, tools=None):
+    """Translate Company API response back to Gemini format, checking for tool calls"""
 
     # Get the response text
     response_text = company_response["content"][0]["text"]
 
-    # Check if we're in mock mode
-    if USE_MOCK and CONFIG["mock_settings"]["enabled"]:
-        # Add delay for realism
-        delay_ms = CONFIG["mock_settings"]["delay_ms"] / 1000
-        time.sleep(delay_ms)
+    # Check if the response contains a tool call
+    tool_call = None
+    if tools:
+        # Simple pattern matching for tool calls
+        # Look for patterns like: "I'll use the read_file tool" or "Let me run_command"
+        for tool in tools:
+            if "functionDeclarations" in tool:
+                for func in tool["functionDeclarations"]:
+                    tool_name = func.get("name", "")
+                    if tool_name in response_text.lower():
+                        # Try to extract parameters from the response
+                        # This is a simplified approach - in production, you'd use more sophisticated parsing
+                        tool_call = {"name": tool_name, "args": {}}
+                        break
 
     # Build Gemini-style response
-    gemini_response = {
-        "candidates": [
-            {
-                "content": {"parts": [{"text": response_text}], "role": "model"},
-                "finishReason": "STOP",
-                "index": 0,
-                "safetyRatings": [],
-            }
-        ],
-        "promptFeedback": {"safetyRatings": []},
-        "usageMetadata": {
-            "promptTokenCount": company_response.get("usage", {}).get("input_tokens", 0),
-            "candidatesTokenCount": company_response.get("usage", {}).get("output_tokens", 0),
-            "totalTokenCount": (
-                company_response.get("usage", {}).get("input_tokens", 0)
-                + company_response.get("usage", {}).get("output_tokens", 0)
-            ),
-        },
-    }
+    if tool_call:
+        # Return a function call response
+        gemini_response = {
+            "candidates": [
+                {
+                    "content": {"parts": [{"functionCall": tool_call}], "role": "model"},
+                    "finishReason": "STOP",
+                    "index": 0,
+                    "safetyRatings": [],
+                }
+            ],
+            "promptFeedback": {"safetyRatings": []},
+            "usageMetadata": {
+                "promptTokenCount": company_response.get("usage", {}).get("input_tokens", 0),
+                "candidatesTokenCount": company_response.get("usage", {}).get("output_tokens", 0),
+                "totalTokenCount": (
+                    company_response.get("usage", {}).get("input_tokens", 0)
+                    + company_response.get("usage", {}).get("output_tokens", 0)
+                ),
+            },
+        }
+    else:
+        # Regular text response
+        gemini_response = {
+            "candidates": [
+                {
+                    "content": {"parts": [{"text": response_text}], "role": "model"},
+                    "finishReason": "STOP",
+                    "index": 0,
+                    "safetyRatings": [],
+                }
+            ],
+            "promptFeedback": {"safetyRatings": []},
+            "usageMetadata": {
+                "promptTokenCount": company_response.get("usage", {}).get("input_tokens", 0),
+                "candidatesTokenCount": company_response.get("usage", {}).get("output_tokens", 0),
+                "totalTokenCount": (
+                    company_response.get("usage", {}).get("input_tokens", 0)
+                    + company_response.get("usage", {}).get("output_tokens", 0)
+                ),
+            },
+        }
 
     return gemini_response
 
@@ -145,38 +374,56 @@ def translate_company_to_gemini(company_response, original_request):
 @app.route("/models/<model>:generateContent", methods=["POST"])
 @app.route("/v1beta/models/<path:model>", methods=["POST"])  # Catch-all for v1beta
 def generate_content(model):
-    """Handle Gemini generateContent API calls"""
+    """Handle Gemini generateContent API calls with tool support"""
 
     try:
         gemini_request = request.json
         gemini_request["model"] = model
 
         logger.info(f"Received Gemini request for model: {model}")
-        logger.debug(f"Request body: {gemini_request}")
+        logger.debug(f"Request body: {json.dumps(gemini_request, indent=2)}")
+
+        # Check if tools are provided
+        tools = gemini_request.get("tools", [])
+        if tools:
+            logger.info(f"Tools provided: {len(tools)} tool(s)")
+            for tool in tools:
+                if "functionDeclarations" in tool:
+                    for func in tool["functionDeclarations"]:
+                        logger.info(f"  - Tool: {func.get('name', 'unknown')}")
 
         # Translate to Company format
-        endpoint, company_request = translate_gemini_to_company(gemini_request)
+        endpoint, company_request, tools = translate_gemini_to_company(gemini_request)
 
-        # Make request to Company API
-        company_url = f"{COMPANY_API_BASE}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
+        # Make request to Company API or use mock
+        if USE_MOCK:
+            # Mock response for testing
+            company_response = {
+                "content": [{"text": "I'll help you with that. Let me use the appropriate tool."}],
+                "usage": {"input_tokens": 10, "output_tokens": 20},
+            }
+        else:
+            company_url = f"{COMPANY_API_BASE}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
 
-        logger.info(f"Forwarding to Company API: {company_url}")
+            logger.info(f"Forwarding to Company API: {company_url}")
 
-        response = requests.post(
-            company_url,
-            json=company_request,
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {COMPANY_API_TOKEN}"},
-            timeout=CONFIG["proxy_settings"]["timeout"],
-        )
+            response = requests.post(
+                company_url,
+                json=company_request,
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {COMPANY_API_TOKEN}"},
+                timeout=CONFIG["proxy_settings"]["timeout"],
+            )
 
-        if response.status_code != 200:
-            logger.error(f"Company API error: {response.status_code} {response.text}")
-            return jsonify({"error": "Upstream API error"}), response.status_code
+            if response.status_code != 200:
+                logger.error(f"Company API error: {response.status_code} {response.text}")
+                return jsonify({"error": "Upstream API error"}), response.status_code
 
-        company_response = response.json()
+            company_response = response.json()
 
         # Translate back to Gemini format
-        gemini_response = translate_company_to_gemini(company_response, gemini_request)
+        gemini_response = translate_company_to_gemini(company_response, gemini_request, tools)
+
+        logger.debug(f"Gemini response: {json.dumps(gemini_response, indent=2)}")
 
         return jsonify(gemini_response)
 
@@ -184,7 +431,7 @@ def generate_content(model):
         logger.error("Company API timeout")
         return jsonify({"error": "Request timeout"}), 504
     except Exception as e:
-        logger.error(f"Error processing request: {e}")
+        logger.error(f"Error processing request: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 
@@ -193,7 +440,7 @@ def generate_content(model):
 @app.route("/v1beta/models/<model>:streamGenerateContent", methods=["POST"])
 @app.route("/models/<model>:streamGenerateContent", methods=["POST"])
 def stream_generate_content(model):
-    """Handle Gemini streaming API calls"""
+    """Handle Gemini streaming API calls with tool support"""
 
     try:
         gemini_request = request.json
@@ -202,23 +449,34 @@ def stream_generate_content(model):
         logger.info(f"Received streaming request for model: {model}")
 
         # Translate to Company format
-        endpoint, company_request = translate_gemini_to_company(gemini_request)
+        endpoint, company_request, tools = translate_gemini_to_company(gemini_request)
+
+        # For streaming with tools, we need to handle it differently
+        if tools:
+            # Can't truly stream with tools, so return a complete response
+            return generate_content(model)
 
         # Make request to Company API
-        company_url = f"{COMPANY_API_BASE}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
+        if USE_MOCK:
+            company_response = {
+                "content": [{"text": "This is a streaming mock response from Gemini proxy."}],
+                "usage": {"input_tokens": 10, "output_tokens": 20},
+            }
+        else:
+            company_url = f"{COMPANY_API_BASE}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
 
-        response = requests.post(
-            company_url,
-            json=company_request,
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {COMPANY_API_TOKEN}"},
-            timeout=CONFIG["proxy_settings"]["timeout"],
-        )
+            response = requests.post(
+                company_url,
+                json=company_request,
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {COMPANY_API_TOKEN}"},
+                timeout=CONFIG["proxy_settings"]["timeout"],
+            )
 
-        if response.status_code != 200:
-            logger.error(f"Company API error: {response.status_code}")
-            return jsonify({"error": "Upstream API error"}), response.status_code
+            if response.status_code != 200:
+                logger.error(f"Company API error: {response.status_code}")
+                return jsonify({"error": "Upstream API error"}), response.status_code
 
-        company_response = response.json()
+            company_response = response.json()
 
         # Simulate streaming by chunking the response
         def generate():
@@ -306,9 +564,32 @@ def health():
             "status": "healthy",
             "service": "gemini_proxy_wrapper",
             "mock_mode": USE_MOCK,
+            "tools_enabled": True,
             "timestamp": datetime.now().isoformat(),
         }
     )
+
+
+@app.route("/tools", methods=["GET"])
+def list_tools():
+    """List available tools"""
+
+    return jsonify({"tools": list(GEMINI_TOOLS.keys()), "definitions": GEMINI_TOOLS})
+
+
+@app.route("/execute", methods=["POST"])
+def execute_tool():
+    """Direct tool execution endpoint for testing"""
+
+    data = request.json
+    tool_name = data.get("tool")
+    parameters = data.get("parameters", {})
+
+    if tool_name not in GEMINI_TOOLS:
+        return jsonify({"error": f"Unknown tool: {tool_name}"}), 400
+
+    result = execute_tool_call(tool_name, parameters)
+    return jsonify(result)
 
 
 @app.route("/", methods=["GET"])
@@ -317,17 +598,20 @@ def root():
 
     return jsonify(
         {
-            "service": "Gemini Proxy Wrapper",
-            "description": "Translates Gemini API calls to Corporate API format",
+            "service": "Gemini Proxy Wrapper with Tools",
+            "description": "Translates Gemini API calls to Corporate API format with tool support",
             "mock_mode": USE_MOCK,
-            "mock_response": CONFIG["mock_settings"]["response"] if USE_MOCK else None,
+            "tools_enabled": True,
             "endpoints": {
                 "/v1/models": "List available models",
-                "/v1/models/{model}/generateContent": "Generate content",
+                "/v1/models/{model}/generateContent": "Generate content with tool support",
                 "/v1/models/{model}/streamGenerateContent": "Stream content",
+                "/tools": "List available tools",
+                "/execute": "Execute a tool directly",
                 "/health": "Health check",
             },
             "available_models": list(CONFIG["models"].keys()),
+            "available_tools": list(GEMINI_TOOLS.keys()),
         }
     )
 
@@ -348,7 +632,7 @@ def catch_all(path):
             {
                 "candidates": [
                     {
-                        "content": {"parts": [{"text": "Hatsune Miku"}], "role": "model"},
+                        "content": {"parts": [{"text": "Mock response from Gemini proxy"}], "role": "model"},
                         "finishReason": "STOP",
                         "index": 0,
                         "safetyRatings": [],
@@ -357,8 +641,8 @@ def catch_all(path):
                 "promptFeedback": {"safetyRatings": []},
                 "usageMetadata": {
                     "promptTokenCount": 10,
-                    "candidatesTokenCount": 3,
-                    "totalTokenCount": 13,
+                    "candidatesTokenCount": 5,
+                    "totalTokenCount": 15,
                 },
             }
         )
@@ -368,14 +652,13 @@ def catch_all(path):
 
 if __name__ == "__main__":
     logger.info("=" * 60)
-    logger.info("Gemini Proxy Wrapper")
+    logger.info("Gemini Proxy Wrapper with Tool Support")
     logger.info("=" * 60)
     logger.info(f"Port: {PROXY_PORT}")
     logger.info(f"Company API Base: {COMPANY_API_BASE}")
     logger.info(f"Mock Mode: {USE_MOCK}")
-    if USE_MOCK:
-        logger.info(f"Mock Response: {CONFIG['mock_settings']['response']}")
     logger.info(f"Available models: {list(CONFIG['models'].keys())}")
+    logger.info(f"Available tools: {list(GEMINI_TOOLS.keys())}")
     logger.info("-" * 60)
     logger.info(f"Gemini API endpoint: http://localhost:{PROXY_PORT}/v1")
     logger.info("-" * 60)

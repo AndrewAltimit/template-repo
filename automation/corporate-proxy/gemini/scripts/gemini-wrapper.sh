@@ -46,9 +46,9 @@ case "$MODE" in
             sleep 1
         done
 
-        # Start Gemini proxy wrapper with tools
+        # Start Gemini proxy wrapper (includes tool support)
         echo "Starting Gemini proxy with tool support on port 8053..."
-        python3 /app/gemini_proxy_wrapper_with_tools.py > /tmp/gemini_proxy.log 2>&1 &
+        python3 /app/gemini_proxy_wrapper.py > /tmp/gemini_proxy.log 2>&1 &
         # Store PID for potential future use
 
         # Wait for proxy

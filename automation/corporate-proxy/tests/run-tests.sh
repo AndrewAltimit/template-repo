@@ -137,9 +137,9 @@ run_gemini_tests() {
         TESTS_FAILED=$((TESTS_FAILED + 1))
     fi
 
-    # Start Gemini proxy with tools
+    # Start Gemini proxy (includes tool support)
     echo "Starting Gemini proxy with tool support..."
-    GEMINI_PROXY_PORT=8053 USE_MOCK_API=true python automation/corporate-proxy/gemini/gemini_proxy_wrapper_with_tools.py > /tmp/gemini_proxy.log 2>&1 &
+    GEMINI_PROXY_PORT=8053 USE_MOCK_API=true python automation/corporate-proxy/gemini/gemini_proxy_wrapper.py > /tmp/gemini_proxy.log 2>&1 &
     GEMINI_PID=$!
 
     # Start unified API for Gemini
