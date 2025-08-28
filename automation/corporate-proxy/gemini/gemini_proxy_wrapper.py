@@ -39,6 +39,12 @@ COMPANY_API_TOKEN = os.environ.get(CONFIG["corporate_api"]["token_env_var"], CON
 USE_MOCK = os.environ.get("USE_MOCK_API", str(CONFIG["mock_settings"]["enabled"])).lower() == "true"
 PROXY_PORT = int(os.environ.get("GEMINI_PROXY_PORT", CONFIG["proxy_settings"]["port"]))
 
+# Configurable output limit for run_command tool (default 100KB, max 10MB for safety)
+DEFAULT_MAX_OUTPUT_SIZE = 100 * 1024  # 100KB default
+MAX_OUTPUT_SIZE = min(
+    int(os.environ.get("GEMINI_MAX_OUTPUT_SIZE", DEFAULT_MAX_OUTPUT_SIZE)), 10 * 1024 * 1024  # 10MB hard limit for safety
+)
+
 # Define Gemini tool schemas
 GEMINI_TOOLS = {
     "read_file": {
@@ -136,7 +142,6 @@ def execute_tool_call(tool_name: str, parameters: Dict[str, Any]) -> Dict[str, A
             command = parameters.get("command", "")
             # Allow configurable timeout (default 30s, max 300s for safety)
             timeout = min(parameters.get("timeout", 30), 300)
-            MAX_OUTPUT_SIZE = 100 * 1024  # 100KB limit for stdout/stderr
 
             try:
                 # Use shlex.split to safely parse the command and avoid shell injection
@@ -719,6 +724,7 @@ if __name__ == "__main__":
     logger.info(f"Port: {PROXY_PORT}")
     logger.info(f"Company API Base: {COMPANY_API_BASE}")
     logger.info(f"Mock Mode: {USE_MOCK}")
+    logger.info(f"Max Output Size: {MAX_OUTPUT_SIZE / 1024:.0f}KB (configurable via GEMINI_MAX_OUTPUT_SIZE)")
     logger.info(f"Available models: {list(CONFIG['models'].keys())}")
     logger.info(f"Available tools: {list(GEMINI_TOOLS.keys())}")
     logger.info("-" * 60)

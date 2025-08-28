@@ -1,6 +1,28 @@
 #!/bin/bash
 set -e
 
+# Cleanup function to ensure background processes are killed
+# shellcheck disable=SC2317  # Function is called by trap
+cleanup() {
+    # Kill any background processes we started
+    # Using 2>/dev/null to suppress errors if processes don't exist
+    if [ -n "$GEMINI_PID" ]; then
+        kill "$GEMINI_PID" 2>/dev/null || true
+    fi
+    if [ -n "$API_PID" ]; then
+        kill "$API_PID" 2>/dev/null || true
+    fi
+    if [ -n "$SERVER_PID" ]; then
+        kill "$SERVER_PID" 2>/dev/null || true
+    fi
+    # Also cleanup any stray processes by name
+    pkill -f unified_tool_api 2>/dev/null || true
+    pkill -f gemini_proxy_wrapper 2>/dev/null || true
+}
+
+# Set up trap to ensure cleanup on script exit (normal or abnormal)
+trap cleanup EXIT INT TERM
+
 # Unified test runner for corporate proxy tools
 # Usage: ./run-tests.sh [OPTIONS]
 # Options:
@@ -68,8 +90,7 @@ run_quick_tests() {
         TESTS_FAILED=$((TESTS_FAILED + 1))
     fi
 
-    # Kill the test server
-    pkill -f unified_tool_api 2>/dev/null || true
+    # Cleanup is handled by trap function
 }
 
 # Crush-specific tests
@@ -156,8 +177,7 @@ run_gemini_tests() {
         TESTS_FAILED=$((TESTS_FAILED + 1))
     fi
 
-    # Clean up processes
-    kill $GEMINI_PID $API_PID 2>/dev/null || true
+    # Cleanup is handled by trap function
 }
 
 # API endpoint tests
@@ -192,8 +212,7 @@ run_api_tests() {
         TESTS_FAILED=$((TESTS_FAILED + 1))
     fi
 
-    # Kill test server
-    kill $SERVER_PID 2>/dev/null || true
+    # Cleanup is handled by trap function
 }
 
 # Integration tests
