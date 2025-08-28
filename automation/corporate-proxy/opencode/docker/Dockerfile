@@ -94,14 +94,10 @@ RUN echo '#!/bin/bash\nexec /usr/local/bin/opencode.bin "$@"' > /usr/local/bin/o
 # Install Python dependencies for proxy
 RUN pip3 install --break-system-packages flask flask-cors requests
 
-# Copy shared services (both basic and tool-enabled versions)
-COPY shared/services/mock_api.py /app/mock_api.py
+# Copy shared services
 COPY shared/services/translation_wrapper.py /app/translation_wrapper.py
-COPY shared/services/mock_api_with_tools.py /app/mock_api_with_tools.py
 COPY shared/services/translation_wrapper_with_tools.py /app/translation_wrapper_with_tools.py
-COPY shared/services/mock_api_with_tools_v2.py /app/mock_api_with_tools_v2.py
-COPY shared/services/mock_api_with_tools_opencode.py /app/mock_api_with_tools_opencode.py
-COPY shared/services/mock_api_opencode_fixed.py /app/mock_api_opencode_fixed.py
+COPY shared/services/unified_tool_api.py /app/unified_tool_api.py
 
 # Copy startup script
 COPY opencode/scripts/start-services.sh /app/start-services.sh

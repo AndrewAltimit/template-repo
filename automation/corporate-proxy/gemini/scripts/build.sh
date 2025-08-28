@@ -33,7 +33,7 @@ fi
 echo "Building Docker image..."
 cd "$CORPORATE_PROXY_DIR"
 
-if docker build \
+if docker build --pull \
     -f gemini/docker/Dockerfile \
     --build-arg GEMINI_VERSION="$GEMINI_VERSION" \
     --build-arg USER_ID="$(id -u)" \

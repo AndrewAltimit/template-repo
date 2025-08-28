@@ -26,7 +26,7 @@ build_container() {
 
     echo -e "${BLUE}Building $name...${NC}"
 
-    if docker build -f "$dockerfile" -t "$image_name" "$context"; then
+    if docker build --pull -f "$dockerfile" -t "$image_name" "$context"; then
         echo -e "${GREEN}✓ $name built successfully${NC}"
         return 0
     else

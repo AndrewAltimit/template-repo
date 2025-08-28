@@ -94,8 +94,7 @@ build_if_needed() {
 
     if ! docker image inspect "$image_name" >/dev/null 2>&1; then
         print_info "Image $image_name not found. Building..."
-        docker build -f "$dockerfile" -t "$image_name" "$build_context"
-        if [ $? -ne 0 ]; then
+        if ! docker build --pull -f "$dockerfile" -t "$image_name" "$build_context"; then
             print_error "Failed to build $image_name"
             exit 1
         fi

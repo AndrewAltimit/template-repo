@@ -33,10 +33,10 @@ cleanup_services
 
 echo -e "\n${BLUE}=== TESTING CRUSH TOOLS ===${NC}"
 
-# Start services for Crush (using v2 mock API)
+# Start services for Crush (using unified API)
 echo "Starting services for Crush..."
 cd shared/services
-python3 mock_api_with_tools_v2.py > /tmp/crush_mock.log 2>&1 &
+API_MODE=crush API_VERSION=v3 PORT=8050 python3 unified_tool_api.py > /tmp/crush_mock.log 2>&1 &
 MOCK_PID=$!
 sleep 1
 python3 translation_wrapper_with_tools.py > /tmp/crush_wrapper.log 2>&1 &

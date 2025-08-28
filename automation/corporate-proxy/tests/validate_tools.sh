@@ -62,7 +62,7 @@ echo -e "\n${YELLOW}=== VALIDATING CRUSH ===${NC}"
 # Start Crush services
 cleanup
 cd shared/services
-python3 mock_api_with_tools_v2.py > /tmp/crush_mock.log 2>&1 &
+API_MODE=crush API_VERSION=v3 PORT=8050 python3 unified_tool_api.py > /tmp/crush_mock.log 2>&1 &
 sleep 1
 UPSTREAM_URL=http://localhost:8050/api/v1/AI/GenAIExplorationLab/Models \
 LISTEN_PORT=8052 \
