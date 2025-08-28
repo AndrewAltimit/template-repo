@@ -96,7 +96,6 @@ RUN pip3 install --break-system-packages flask flask-cors requests
 
 # Copy shared services
 COPY shared/services/translation_wrapper.py /app/translation_wrapper.py
-COPY shared/services/translation_wrapper_with_tools.py /app/translation_wrapper_with_tools.py
 COPY shared/services/unified_tool_api.py /app/unified_tool_api.py
 
 # Copy startup script

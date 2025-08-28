@@ -41,14 +41,9 @@ for i in {1..30}; do
     sleep 1
 done
 
-# Start translation wrapper with tool support (runs on port 8052)
-echo "Starting translation wrapper with tool support on port 8052..."
-# Try the tool-enabled version first, fall back to basic if not available
-if [ -f /app/translation_wrapper_with_tools.py ]; then
-    python3 /app/translation_wrapper_with_tools.py > /tmp/logs/translation_wrapper.log 2>&1 &
-else
-    python3 /app/translation_wrapper.py > /tmp/logs/translation_wrapper.log 2>&1 &
-fi
+# Start translation wrapper (runs on port 8052)
+echo "Starting translation wrapper on port 8052..."
+python3 /app/translation_wrapper.py > /tmp/logs/translation_wrapper.log 2>&1 &
 
 # Give the service a moment to start before checking
 sleep 1
