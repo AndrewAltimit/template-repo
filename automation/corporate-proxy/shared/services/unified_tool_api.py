@@ -372,7 +372,7 @@ def bedrock_endpoint(model_path):
 
     # For Gemini mode, we need to be more selective about when to return tool calls
     # Only return tool calls if the user is explicitly asking for tool usage
-    if API_MODE == "gemini" and tools_present:
+    if API_MODE == "gemini":
         # Check if the last user message mentions using tools or performing actions
         messages = data.get("messages", [])
         last_user_msg = ""
@@ -381,30 +381,77 @@ def bedrock_endpoint(model_path):
                 last_user_msg = msg.get("content", "").lower()
                 break
 
-        # Only trigger tool calls for action-oriented requests
-        action_keywords = ["read", "write", "search", "list", "run", "execute", "show", "find", "create", "delete", "check"]
-        should_use_tools = any(keyword in last_user_msg for keyword in action_keywords)
+        # Check if this is a JSON generation request (Gemini CLI internal use)
+        # These requests typically ask for JSON output explicitly or analyze responses
+        is_json_request = (
+            "json" in last_user_msg
+            or ("return" in last_user_msg and "{" in last_user_msg)
+            or "analyze" in last_user_msg
+            and "who should" in last_user_msg
+            or "decision rules" in last_user_msg
+        )
 
-        if should_use_tools:
-            # Return a response with structured tool_calls
+        if is_json_request:
+            # Return a simple JSON response for Gemini CLI's internal operations
             response = {
-                "id": "msg_gemini_mock",
+                "id": "msg_gemini_json",
                 "type": "message",
                 "role": "assistant",
                 "model": "gemini-mock",
-                "content": [{"type": "text", "text": "I'll help you with that using the appropriate tool."}],
-                "tool_calls": [
-                    {
-                        "id": "toolu_gemini_001",
-                        "type": "function",
-                        "function": {"name": "read_file", "arguments": json.dumps({"path": "test.py"})},
-                    }
-                ],
-                "stop_reason": "tool_use",
+                "content": [{"type": "text", "text": '{"response": "continue", "shouldContinue": false}'}],
+                "stop_reason": "end_turn",
                 "usage": {"input_tokens": 10, "output_tokens": 5},
             }
+        elif tools_present:
+            # Only trigger tool calls for action-oriented requests
+            action_keywords = [
+                "read",
+                "write",
+                "search",
+                "list",
+                "run",
+                "execute",
+                "show",
+                "find",
+                "create",
+                "delete",
+                "check",
+            ]
+            should_use_tools = any(keyword in last_user_msg for keyword in action_keywords)
+
+            if should_use_tools:
+                # Return a response with structured tool_calls
+                response = {
+                    "id": "msg_gemini_mock",
+                    "type": "message",
+                    "role": "assistant",
+                    "model": "gemini-mock",
+                    "content": [{"type": "text", "text": "I'll help you with that using the appropriate tool."}],
+                    "tool_calls": [
+                        {
+                            "id": "toolu_gemini_001",
+                            "type": "function",
+                            "function": {"name": "read_file", "arguments": json.dumps({"path": "test.py"})},
+                        }
+                    ],
+                    "stop_reason": "tool_use",
+                    "usage": {"input_tokens": 10, "output_tokens": 5},
+                }
+            else:
+                # Return conversational response without tool calls
+                response = {
+                    "id": "msg_gemini_text",
+                    "type": "message",
+                    "role": "assistant",
+                    "model": "gemini-mock",
+                    "content": [
+                        {"type": "text", "text": "Hello! I'm Gemini running through a mock API. How can I help you today?"}
+                    ],
+                    "stop_reason": "end_turn",
+                    "usage": {"input_tokens": 10, "output_tokens": 12},
+                }
         else:
-            # Return conversational response without tool calls
+            # Return conversational response for non-tool requests
             response = {
                 "id": "msg_gemini_text",
                 "type": "message",
@@ -417,13 +464,13 @@ def bedrock_endpoint(model_path):
                 "usage": {"input_tokens": 10, "output_tokens": 12},
             }
     else:
-        # Return simple text response for non-tool requests
+        # Return simple text response for non-Gemini modes
         response = {
             "id": "msg_gemini_text",
             "type": "message",
             "role": "assistant",
             "model": "gemini-mock",
-            "content": [{"type": "text", "text": "Hello! I'm Gemini running through a mock API. How can I help you today?"}],
+            "content": [{"type": "text", "text": "Hello! I'm running through a mock API. How can I help you today?"}],
             "stop_reason": "end_turn",
             "usage": {"input_tokens": 10, "output_tokens": 12},
         }
