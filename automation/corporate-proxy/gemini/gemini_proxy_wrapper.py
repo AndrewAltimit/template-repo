@@ -9,6 +9,7 @@ import glob as glob_module
 import json
 import logging
 import os
+import re
 import shlex
 import subprocess
 import time
@@ -130,11 +131,23 @@ def execute_tool_call(tool_name: str, parameters: Dict[str, Any]) -> Dict[str, A
 
         elif tool_name == "run_command":
             command = parameters.get("command", "")
+            MAX_OUTPUT_SIZE = 100 * 1024  # 100KB limit for stdout/stderr
+
             try:
                 # Use shlex.split to safely parse the command and avoid shell injection
                 cmd_list = shlex.split(command)
                 result = subprocess.run(cmd_list, capture_output=True, text=True, timeout=30)
-                return {"success": True, "stdout": result.stdout, "stderr": result.stderr, "exit_code": result.returncode}
+
+                # Truncate output if it's too large to prevent memory issues
+                stdout = result.stdout
+                stderr = result.stderr
+
+                if len(stdout) > MAX_OUTPUT_SIZE:
+                    stdout = stdout[:MAX_OUTPUT_SIZE] + f"\n... (truncated, output was {len(result.stdout)} bytes)"
+                if len(stderr) > MAX_OUTPUT_SIZE:
+                    stderr = stderr[:MAX_OUTPUT_SIZE] + f"\n... (truncated, output was {len(result.stderr)} bytes)"
+
+                return {"success": True, "stdout": stdout, "stderr": stderr, "exit_code": result.returncode}
             except subprocess.TimeoutExpired:
                 return {"success": False, "error": "Command timed out after 30 seconds"}
             except ValueError as e:
@@ -309,31 +322,47 @@ def translate_gemini_to_company(gemini_request):
 def translate_company_to_gemini(company_response, original_request, tools=None):
     """Translate Company API response back to Gemini format, checking for tool calls"""
 
-    # Get the response text
-    response_text = company_response["content"][0]["text"]
+    # Check if the response contains structured tool calls (like Crush/OpenCode)
+    # This is the robust approach - looking for explicit tool_calls in the response
+    tool_calls = None
 
-    # Check if the response contains a tool call
-    tool_call = None
-    if tools:
-        # Simple pattern matching for tool calls
-        # Look for patterns like: "I'll use the read_file tool" or "Let me run_command"
-        for tool in tools:
-            if "functionDeclarations" in tool:
-                for func in tool["functionDeclarations"]:
-                    tool_name = func.get("name", "")
-                    if tool_name in response_text.lower():
-                        # Try to extract parameters from the response
-                        # This is a simplified approach - in production, you'd use more sophisticated parsing
-                        tool_call = {"name": tool_name, "args": {}}
-                        break
+    # First check if the Company API returned tool_calls in a structured format
+    if "tool_calls" in company_response:
+        tool_calls = company_response["tool_calls"]
+    # If not, check if we're in mock mode and should simulate tool calls
+    elif USE_MOCK and tools and company_response.get("content"):
+        # In mock mode, check if the response mentions using tools
+        response_text = company_response["content"][0]["text"]
+        # Only trigger if explicitly asking to use a tool with specific patterns
+        tool_patterns = [r"I'll use the (\w+) tool", r"Let me use the (\w+) tool", r"Using the (\w+) tool"]
+        for pattern in tool_patterns:
+            match = re.search(pattern, response_text, re.IGNORECASE)
+            if match:
+                tool_name = match.group(1).lower()
+                # Verify it's actually a valid tool
+                if tools:
+                    for tool in tools:
+                        if "functionDeclarations" in tool:
+                            for func in tool["functionDeclarations"]:
+                                if func.get("name", "").lower() == tool_name:
+                                    tool_calls = [{"name": func.get("name"), "args": {}}]
+                                    break
+                if tool_calls:
+                    break
 
     # Build Gemini-style response
-    if tool_call:
+    if tool_calls and len(tool_calls) > 0:
+        # Return a function call response
+        # Use the first tool call (Gemini typically handles one at a time)
+        tool_call = tool_calls[0]
         # Return a function call response
         gemini_response = {
             "candidates": [
                 {
-                    "content": {"parts": [{"functionCall": tool_call}], "role": "model"},
+                    "content": {
+                        "parts": [{"functionCall": {"name": tool_call.get("name"), "args": tool_call.get("args", {})}}],
+                        "role": "model",
+                    },
                     "finishReason": "STOP",
                     "index": 0,
                     "safetyRatings": [],
@@ -350,7 +379,8 @@ def translate_company_to_gemini(company_response, original_request, tools=None):
             },
         }
     else:
-        # Regular text response
+        # Regular text response - get the text from the response
+        response_text = company_response.get("content", [{"text": ""}])[0].get("text", "")
         gemini_response = {
             "candidates": [
                 {

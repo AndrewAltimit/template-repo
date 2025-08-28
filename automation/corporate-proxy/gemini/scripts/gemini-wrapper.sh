@@ -1,9 +1,8 @@
 #!/bin/bash
+set -e
 
 # Gemini CLI wrapper script for containerized environment
 # Starts proxy services and runs Gemini CLI
-
-set -e
 
 echo "=========================================="
 echo "Gemini CLI Corporate Proxy Wrapper"
