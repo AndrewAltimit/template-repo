@@ -70,7 +70,10 @@ GEMINI_TOOLS = {
     },
     "run_command": {
         "name": "run_command",
-        "description": "Execute a shell command",
+        "description": (
+            "Execute a system command with arguments. "
+            "Note: This does not support shell features like pipes, redirection, or variable expansion"
+        ),
         "parameters": {
             "type": "object",
             "properties": {
