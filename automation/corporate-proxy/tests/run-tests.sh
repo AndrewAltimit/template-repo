@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -o pipefail
 
 # Cleanup function to ensure background processes are killed
 # shellcheck disable=SC2317  # Function is called by trap

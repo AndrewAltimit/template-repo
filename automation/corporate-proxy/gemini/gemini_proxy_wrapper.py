@@ -5,20 +5,19 @@ Intercepts Gemini API calls and redirects them through the corporate proxy
 Handles tool/function calls for Gemini CLI
 """
 
-import glob as glob_module
 import json
 import logging
 import os
-import shlex
-import subprocess
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
 
 import requests
 from flask import Flask, Response, jsonify, request, stream_with_context
 from flask_cors import CORS
+
+# Import tool executor module
+from gemini_tool_executor import GEMINI_TOOLS, execute_tool_call
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -37,212 +36,6 @@ COMPANY_API_BASE = os.environ.get("COMPANY_API_BASE", CONFIG["corporate_api"]["b
 COMPANY_API_TOKEN = os.environ.get(CONFIG["corporate_api"]["token_env_var"], CONFIG["corporate_api"]["default_token"])
 USE_MOCK = os.environ.get("USE_MOCK_API", str(CONFIG["mock_settings"]["enabled"])).lower() == "true"
 PROXY_PORT = int(os.environ.get("GEMINI_PROXY_PORT", CONFIG["proxy_settings"]["port"]))
-
-# Configurable output limit for run_command tool (default 100KB, max 10MB for safety)
-DEFAULT_MAX_OUTPUT_SIZE = 100 * 1024  # 100KB default
-MAX_OUTPUT_SIZE = min(
-    int(os.environ.get("GEMINI_MAX_OUTPUT_SIZE", DEFAULT_MAX_OUTPUT_SIZE)), 10 * 1024 * 1024  # 10MB hard limit for safety
-)
-
-# Define Gemini tool schemas
-GEMINI_TOOLS = {
-    "read_file": {
-        "name": "read_file",
-        "description": "Read contents of a file",
-        "parameters": {
-            "type": "object",
-            "properties": {"path": {"type": "string", "description": "Path to the file to read"}},
-            "required": ["path"],
-        },
-    },
-    "write_file": {
-        "name": "write_file",
-        "description": "Write content to a file",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "path": {"type": "string", "description": "Path to the file"},
-                "content": {"type": "string", "description": "Content to write"},
-            },
-            "required": ["path", "content"],
-        },
-    },
-    "run_command": {
-        "name": "run_command",
-        "description": (
-            "Execute a system command with arguments. "
-            "Note: This does not support shell features like pipes, redirection, or variable expansion"
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "command": {"type": "string", "description": "Command to execute"},
-                "timeout": {"type": "number", "description": "Timeout in seconds (default: 30, max: 300)", "default": 30},
-            },
-            "required": ["command"],
-        },
-    },
-    "list_directory": {
-        "name": "list_directory",
-        "description": "List contents of a directory",
-        "parameters": {
-            "type": "object",
-            "properties": {"path": {"type": "string", "description": "Directory path", "default": "."}},
-        },
-    },
-    "search_files": {
-        "name": "search_files",
-        "description": "Search for files matching a pattern",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "pattern": {"type": "string", "description": "Search pattern or glob"},
-                "path": {"type": "string", "description": "Base path to search from", "default": "."},
-            },
-            "required": ["pattern"],
-        },
-    },
-    "web_search": {
-        "name": "web_search",
-        "description": "Search the web for information",
-        "parameters": {
-            "type": "object",
-            "properties": {"query": {"type": "string", "description": "Search query"}},
-            "required": ["query"],
-        },
-    },
-}
-
-
-# Tool executor functions
-def _execute_read_file(parameters: Dict[str, Any]) -> Dict[str, Any]:
-    """Execute read_file tool"""
-    path = parameters.get("path", "")
-    try:
-        with open(path, "r") as f:
-            content = f.read()
-        return {"success": True, "content": content, "path": path}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _execute_write_file(parameters: Dict[str, Any]) -> Dict[str, Any]:
-    """Execute write_file tool"""
-    path = parameters.get("path", "")
-    content = parameters.get("content", "")
-    try:
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w") as f:
-            f.write(content)
-        return {"success": True, "message": f"Successfully wrote to {path}"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _execute_run_command(parameters: Dict[str, Any]) -> Dict[str, Any]:
-    """Execute run_command tool"""
-    command = parameters.get("command", "")
-    # Allow configurable timeout (default 30s, max 300s for safety)
-    timeout = min(parameters.get("timeout", 30), 300)
-
-    try:
-        # Use shlex.split to safely parse the command and avoid shell injection
-        cmd_list = shlex.split(command)
-        result = subprocess.run(cmd_list, capture_output=True, text=True, timeout=timeout)
-
-        # Truncate output if it's too large to prevent memory issues
-        stdout = result.stdout
-        stderr = result.stderr
-
-        if len(stdout) > MAX_OUTPUT_SIZE:
-            stdout = stdout[:MAX_OUTPUT_SIZE] + f"\n... (truncated, output was {len(result.stdout)} bytes)"
-        if len(stderr) > MAX_OUTPUT_SIZE:
-            stderr = stderr[:MAX_OUTPUT_SIZE] + f"\n... (truncated, output was {len(result.stderr)} bytes)"
-
-        return {"success": True, "stdout": stdout, "stderr": stderr, "exit_code": result.returncode}
-    except subprocess.TimeoutExpired:
-        return {"success": False, "error": f"Command timed out after {timeout} seconds"}
-    except ValueError as e:
-        # shlex.split can raise ValueError for unmatched quotes
-        return {"success": False, "error": f"Invalid command format: {e}"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _execute_list_directory(parameters: Dict[str, Any]) -> Dict[str, Any]:
-    """Execute list_directory tool"""
-    path = parameters.get("path", ".")
-    try:
-        items = os.listdir(path)
-        files = []
-        directories = []
-        for item in items:
-            item_path = os.path.join(path, item)
-            if os.path.isdir(item_path):
-                directories.append(item)
-            else:
-                files.append(item)
-        return {"success": True, "files": files, "directories": directories, "total": len(items)}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _execute_search_files(parameters: Dict[str, Any]) -> Dict[str, Any]:
-    """Execute search_files tool"""
-    pattern = parameters.get("pattern", "")
-    base_path = parameters.get("path", ".")
-    try:
-        # Use glob to find matching files
-        search_pattern = os.path.join(base_path, "**", pattern)
-        matches = glob_module.glob(search_pattern, recursive=True)
-        return {"success": True, "matches": matches, "count": len(matches)}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-def _execute_web_search(parameters: Dict[str, Any]) -> Dict[str, Any]:
-    """Execute web_search tool"""
-    query = parameters.get("query", "")
-    # Mock web search result
-    return {
-        "success": True,
-        "results": [
-            {
-                "title": f"Search result for: {query}",
-                "snippet": "This is a mock search result. In production, this would connect to a search API.",
-                "url": f"https://example.com/search?q={query}",
-            }
-        ],
-    }
-
-
-# Dictionary-based tool dispatcher for better scalability
-TOOL_EXECUTORS = {
-    "read_file": _execute_read_file,
-    "write_file": _execute_write_file,
-    "run_command": _execute_run_command,
-    "list_directory": _execute_list_directory,
-    "search_files": _execute_search_files,
-    "web_search": _execute_web_search,
-}
-
-
-def execute_tool_call(tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
-    """Execute a tool call and return the result using dictionary-based dispatch"""
-
-    logger.info(f"Executing tool: {tool_name} with parameters: {parameters}")
-
-    try:
-        # Use dictionary dispatcher for better scalability
-        executor = TOOL_EXECUTORS.get(tool_name)
-        if executor:
-            return executor(parameters)
-        else:
-            return {"success": False, "error": f"Unknown tool: {tool_name}"}
-
-    except Exception as e:
-        logger.error(f"Tool execution error: {e}")
-        return {"success": False, "error": str(e)}
 
 
 def translate_gemini_to_company(gemini_request):
@@ -835,7 +628,7 @@ if __name__ == "__main__":
     logger.info(f"Port: {PROXY_PORT}")
     logger.info(f"Company API Base: {COMPANY_API_BASE}")
     logger.info(f"Mock Mode: {USE_MOCK}")
-    logger.info(f"Max Output Size: {MAX_OUTPUT_SIZE / 1024:.0f}KB (configurable via GEMINI_MAX_OUTPUT_SIZE)")
+    logger.info("Tool execution handled by gemini_tool_executor module")
     logger.info(f"Available models: {list(CONFIG['models'].keys())}")
     logger.info(f"Available tools: {list(GEMINI_TOOLS.keys())}")
     logger.info("-" * 60)
