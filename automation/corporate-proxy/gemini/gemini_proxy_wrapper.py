@@ -9,6 +9,7 @@ import glob as glob_module
 import json
 import logging
 import os
+import shlex
 import subprocess
 import time
 from datetime import datetime
@@ -130,10 +131,15 @@ def execute_tool_call(tool_name: str, parameters: Dict[str, Any]) -> Dict[str, A
         elif tool_name == "run_command":
             command = parameters.get("command", "")
             try:
-                result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=30)
+                # Use shlex.split to safely parse the command and avoid shell injection
+                cmd_list = shlex.split(command)
+                result = subprocess.run(cmd_list, capture_output=True, text=True, timeout=30)
                 return {"success": True, "stdout": result.stdout, "stderr": result.stderr, "exit_code": result.returncode}
             except subprocess.TimeoutExpired:
                 return {"success": False, "error": "Command timed out after 30 seconds"}
+            except ValueError as e:
+                # shlex.split can raise ValueError for unmatched quotes
+                return {"success": False, "error": f"Invalid command format: {e}"}
             except Exception as e:
                 return {"success": False, "error": str(e)}
 
