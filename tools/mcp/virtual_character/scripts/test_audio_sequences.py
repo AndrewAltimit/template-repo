@@ -98,13 +98,10 @@ class VirtualCharacterTester:
                 result = await self.call_tool("add_sequence_event", event)
                 assert result.get("success"), f"Failed to add {event['event_type']} event"
                 print(f"✓ Added {event['event_type']} event")
-            
+
             # Test invalid event type validation
             print("Testing invalid event type validation...")
-            result = await self.call_tool(
-                "add_sequence_event",
-                {"event_type": "invalid_type", "timestamp": 3.0}
-            )
+            result = await self.call_tool("add_sequence_event", {"event_type": "invalid_type", "timestamp": 3.0})
             assert not result.get("success"), "Should have failed with invalid event type"
             error_msg = result.get("error", "")
             assert "Invalid event_type" in error_msg, "Error message should mention invalid event_type"
@@ -188,30 +185,28 @@ class VirtualCharacterTester:
                 {
                     "event_type": "expression",
                     "expression": "happy",
-                    "expression_intensity": 0.8
+                    "expression_intensity": 0.8,
+                    "timestamp": 0.0,  # Nested events need their own timestamp
                 },
                 {
                     "event_type": "audio",
                     "audio_data": base64.b64encode(b"parallel audio").decode(),
-                    "duration": 2.0
+                    "duration": 2.0,
+                    "timestamp": 0.0,  # Nested events need their own timestamp
                 },
                 {
                     "event_type": "movement",
-                    "movement_params": {"look_horizontal": 0.3, "look_vertical": 0.1}
-                }
+                    "movement_params": {"look_horizontal": 0.3, "look_vertical": 0.1},
+                    "timestamp": 0.0,  # Nested events need their own timestamp
+                },
             ]
-            
+
             result = await self.call_tool(
-                "add_sequence_event", 
-                {
-                    "event_type": "parallel", 
-                    "timestamp": 0.0, 
-                    "parallel_events": parallel_events
-                }
+                "add_sequence_event", {"event_type": "parallel", "timestamp": 0.0, "parallel_events": parallel_events}
             )
             assert result.get("success"), "Failed to add parallel event"
             print("✓ Parallel event with nested events added")
-            
+
             # Verify the sequence has the parallel event
             status = await self.call_tool("get_sequence_status", {})
             assert status.get("status", {}).get("event_count") == 1, "Wrong event count"
