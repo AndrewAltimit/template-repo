@@ -8,6 +8,10 @@ RUN apk add --no-cache curl tar
 # Docker buildx automatically provides TARGETARCH
 ARG TARGETARCH
 
+# Crush version can be overridden at build time
+# Example: docker build --build-arg CRUSH_VERSION=0.9.0-nightly ...
+ARG CRUSH_VERSION=0.8.0-nightly
+
 # Map Docker arch to Crush release arch names
 # amd64 -> x86_64, arm64 -> aarch64
 RUN echo "Building for architecture: ${TARGETARCH}"
@@ -22,10 +26,10 @@ RUN if [ "${TARGETARCH}" = "amd64" ]; then \
         echo "Unsupported architecture: ${TARGETARCH}"; \
         exit 1; \
     fi && \
-    echo "Downloading Crush for ${CRUSH_ARCH}" && \
-    curl -L "https://github.com/charmbracelet/crush/releases/download/nightly/crush_0.8.0-nightly_Linux_${CRUSH_ARCH}.tar.gz" -o crush.tar.gz && \
+    echo "Downloading Crush version ${CRUSH_VERSION} for ${CRUSH_ARCH}" && \
+    curl -L "https://github.com/charmbracelet/crush/releases/download/nightly/crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}.tar.gz" -o crush.tar.gz && \
     tar -xzf crush.tar.gz && \
-    mv crush_0.8.0-nightly_Linux_${CRUSH_ARCH}/crush crush-binary && \
+    mv crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}/crush crush-binary && \
     chmod +x crush-binary
 
 # Stage 2: Runtime with Python translation services

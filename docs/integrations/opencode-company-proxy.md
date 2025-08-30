@@ -113,7 +113,7 @@ The integration limits available models to organization-specific options:
 - `company/claude-3-opus` - Claude 3 Opus
 - `company/gpt-4` - GPT-4
 
-Model configuration is defined in `docker/patches/company-override.json`.
+Model configuration is defined in `automation/corporate-proxy/opencode/docker/patches/company-override.json`.
 
 ## Technical Details
 
@@ -127,9 +127,9 @@ Model configuration is defined in `docker/patches/company-override.json`.
 
 ### Key Files
 
-- `docker/opencode-company-tui.Dockerfile` - Container definition
-- `docker/patches/company-override.json` - Model configuration
-- `automation/corporate-proxy/shared/services/translation_wrapper.py` - API translator (new)
+- `automation/corporate-proxy/opencode/docker/Dockerfile` - Container definition
+- `automation/corporate-proxy/opencode/docker/patches/company-override.json` - Model configuration
+- `automation/corporate-proxy/shared/services/translation_wrapper.py` - API translator
 - `automation/corporate-proxy/shared/services/mock_api.py` - Mock service (new)
 - ~~`automation/proxy/`~~ - Legacy scripts (deprecated, use `/automation/corporate-proxy/` instead)
 
