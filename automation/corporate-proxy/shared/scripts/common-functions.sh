@@ -32,15 +32,38 @@ print_success() {
     echo -e "${GREEN}✓ $1${NC}"
 }
 
-# Check if Docker is available
-check_docker() {
-    if ! command -v docker &> /dev/null; then
-        print_error "Docker is not installed or not in PATH"
+# Auto-detect container runtime (Docker or Podman)
+detect_container_runtime() {
+    if command -v docker &> /dev/null && docker info &> /dev/null 2>&1; then
+        export CONTAINER_RUNTIME="docker"
+
+        # Prefer modern 'docker compose' over legacy 'docker-compose'
+        if docker compose version &> /dev/null 2>&1; then
+            export COMPOSE_RUNTIME="docker compose"
+        elif command -v docker-compose &> /dev/null; then
+            export COMPOSE_RUNTIME="docker-compose"
+            print_warn "Using legacy docker-compose. Consider upgrading to Docker Compose V2."
+        else
+            print_error "No Docker Compose command available"
+            exit 1
+        fi
+    elif command -v podman &> /dev/null && podman info &> /dev/null 2>&1; then
+        export CONTAINER_RUNTIME="podman"
+        export COMPOSE_RUNTIME="podman-compose"
+    else
+        print_error "Neither Docker nor Podman is available or running"
         exit 1
     fi
 
-    if ! docker info &> /dev/null; then
-        print_error "Docker daemon is not running"
+    print_info "Using container runtime: $CONTAINER_RUNTIME"
+    print_info "Using compose runtime: $COMPOSE_RUNTIME"
+}
+
+# Check if Docker is available (backward compatibility)
+check_docker() {
+    detect_container_runtime
+    if [ "$CONTAINER_RUNTIME" = "" ]; then
+        print_error "Container runtime is not available"
         exit 1
     fi
 }
@@ -124,6 +147,95 @@ get_script_dir() {
         [[ $source != /* ]] && source="$dir/$source"
     done
     echo "$( cd -P "$( dirname "$source" )" && pwd )"
+}
+
+# Auto-detect architecture and map to Docker/Podman format
+detect_architecture() {
+    if [ -z "$TARGETARCH" ]; then
+        local ARCH=$(uname -m)
+        case $ARCH in
+            x86_64)
+                export TARGETARCH="amd64"
+                ;;
+            aarch64|arm64)
+                export TARGETARCH="arm64"
+                ;;
+            armv7l)
+                export TARGETARCH="arm"
+                ;;
+            ppc64le)
+                export TARGETARCH="ppc64le"
+                ;;
+            s390x)
+                export TARGETARCH="s390x"
+                ;;
+            *)
+                print_warn "Unknown architecture: $ARCH, defaulting to amd64"
+                export TARGETARCH="amd64"
+                ;;
+        esac
+    fi
+    print_info "Target architecture: $TARGETARCH"
+}
+
+# Check if buildx is available for multi-platform builds
+check_buildx() {
+    if [ "$CONTAINER_RUNTIME" = "docker" ]; then
+        if docker buildx version &> /dev/null; then
+            print_info "Docker buildx available for multi-arch support"
+            export USE_BUILDX="true"
+            export BUILD_CMD="docker buildx build --load"
+
+            # Ensure buildx builder is available
+            if ! docker buildx ls | grep -q "default.*running"; then
+                print_info "Creating buildx builder..."
+                docker buildx create --use --name multiarch-builder || \
+                docker buildx use multiarch-builder || true
+            fi
+        else
+            print_info "Docker buildx not available, using standard build"
+            export USE_BUILDX="false"
+            export BUILD_CMD="docker build"
+        fi
+    elif [ "$CONTAINER_RUNTIME" = "podman" ]; then
+        # Podman has built-in multi-arch support
+        export USE_BUILDX="false"
+        export BUILD_CMD="podman build"
+        print_info "Using Podman with built-in multi-arch support"
+    fi
+}
+
+# Wrapper for container commands that works with both Docker and Podman
+container_run() {
+    $CONTAINER_RUNTIME run "$@"
+}
+
+container_build() {
+    if [ "$USE_BUILDX" = "true" ]; then
+        docker buildx build "$@"
+    else
+        $CONTAINER_RUNTIME build "$@"
+    fi
+}
+
+container_exec() {
+    $CONTAINER_RUNTIME exec "$@"
+}
+
+compose_run() {
+    $COMPOSE_RUNTIME run "$@"
+}
+
+compose_build() {
+    $COMPOSE_RUNTIME build "$@"
+}
+
+compose_up() {
+    $COMPOSE_RUNTIME up "$@"
+}
+
+compose_down() {
+    $COMPOSE_RUNTIME down "$@"
 }
 
 # Export common paths

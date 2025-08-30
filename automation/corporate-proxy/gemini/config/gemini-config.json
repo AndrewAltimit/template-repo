@@ -3,22 +3,37 @@
     "gemini-2.5-flash": {
       "id": "gemini-2.5-flash",
       "endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
-      "description": "Maps to Claude 3.5 Sonnet in corporate API"
+      "description": "Maps to Claude 3.5 Sonnet in corporate API",
+      "tool_mode": "native",
+      "supports_tools": true
     },
     "gemini-2.5-pro": {
       "id": "gemini-2.5-pro",
       "endpoint": "ai-coe-bedrock-claude3-opus:analyze=null",
-      "description": "Maps to Claude 3 Opus in corporate API"
+      "description": "Maps to Claude 3 Opus in corporate API",
+      "tool_mode": "native",
+      "supports_tools": true
     },
     "gemini-1.5-flash": {
       "id": "gemini-1.5-flash",
       "endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
-      "description": "Legacy flash model, maps to Claude 3.5 Sonnet"
+      "description": "Legacy flash model, maps to Claude 3.5 Sonnet",
+      "tool_mode": "text",
+      "supports_tools": false
     },
     "gemini-1.5-pro": {
       "id": "gemini-1.5-pro",
       "endpoint": "ai-coe-bedrock-claude3-opus:analyze=null",
-      "description": "Legacy pro model, maps to Claude 3 Opus"
+      "description": "Legacy pro model, maps to Claude 3 Opus",
+      "tool_mode": "text",
+      "supports_tools": false
+    },
+    "gemini-experimental": {
+      "id": "gemini-experimental",
+      "endpoint": "ai-coe-experimental-model:analyze=null",
+      "description": "Experimental model with text-based tool parsing",
+      "tool_mode": "text",
+      "supports_tools": false
     }
   },
   "proxy_settings": {
@@ -36,5 +51,28 @@
     "base_url": "http://localhost:8050",
     "token_env_var": "COMPANY_API_TOKEN",
     "default_token": "test-secret-token-123"
+  },
+  "default_tool_mode": "native",
+  "max_tool_iterations": 5,
+  "tool_mode_descriptions": {
+    "native": {
+      "description": "Use tool-enabled API endpoints (structured tool calls)",
+      "requires_api_support": true,
+      "parsing_formats": [
+        "structured JSON tool_calls"
+      ]
+    },
+    "text": {
+      "description": "Parse tools from text responses (for non-tool-enabled endpoints)",
+      "requires_api_support": false,
+      "parsing_formats": [
+        "```tool_call```",
+        "<tool></tool>"
+      ]
+    }
+  },
+  "model_overrides": {
+    "_comment": "Override model settings via environment variables",
+    "_example": "GEMINI_MODEL_OVERRIDE_gemini-2.5-flash_tool_mode=text"
   }
 }
