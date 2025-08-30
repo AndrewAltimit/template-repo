@@ -1,6 +1,10 @@
 # Multi-stage build for Crush Company Integration
 # Stage 1: Download prebuilt Crush binary
-FROM alpine:latest AS downloader
+FROM alpine:3.20 AS downloader
+
+# Copy and run corporate certificate installation script (as root)
+COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
+RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
 
 # Install dependencies for downloading
 RUN apk add --no-cache curl tar
@@ -34,6 +38,10 @@ RUN if [ "${TARGETARCH}" = "amd64" ]; then \
 
 # Stage 2: Runtime with Python translation services
 FROM python:3.11-alpine
+
+# Copy and run corporate certificate installation script (as root)
+COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
+RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
 
 # Add a non-root user
 RUN adduser -D -u 1001 appuser

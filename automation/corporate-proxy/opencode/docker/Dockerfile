@@ -3,6 +3,11 @@
 
 # Stage 1: Clone OpenCode source
 FROM alpine/git AS source
+
+# Copy and run corporate certificate installation script (as root)
+COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
+RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
+
 ARG OPENCODE_VERSION=3edab6056042
 WORKDIR /source
 RUN git clone https://github.com/sst/opencode.git && \
@@ -13,6 +18,11 @@ RUN git clone https://github.com/sst/opencode.git && \
 
 # Stage 2: Build TUI with Go
 FROM golang:1.23 AS tui-builder
+
+# Copy and run corporate certificate installation script (as root)
+COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
+RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
+
 WORKDIR /build
 COPY --from=source /source/opencode ./opencode
 WORKDIR /build/opencode/packages/tui
@@ -46,6 +56,11 @@ RUN echo "Building for architecture: ${TARGETARCH}" && \
 
 # Stage 3: Build OpenCode
 FROM oven/bun:1 AS builder
+
+# Copy and run corporate certificate installation script (as root)
+COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
+RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
+
 WORKDIR /build
 COPY --from=source /source/opencode ./opencode
 
@@ -63,6 +78,10 @@ RUN bun build ./src/index.ts --compile --outfile opencode
 # Stage 4: Runtime container
 # Use debian-based image for glibc compatibility with bun-compiled binary
 FROM node:20-slim
+
+# Copy and run corporate certificate installation script (as root)
+COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
+RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
 
 # Add a non-root user
 RUN useradd -m -u 1001 appuser

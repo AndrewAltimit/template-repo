@@ -3,6 +3,11 @@
 
 # Stage 1: Clone Gemini CLI source
 FROM alpine/git AS source
+
+# Copy and run corporate certificate installation script (as root)
+COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
+RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
+
 ARG GEMINI_VERSION=HEAD
 WORKDIR /source
 RUN git clone https://github.com/google-gemini/gemini-cli.git && \
@@ -13,6 +18,11 @@ RUN git clone https://github.com/google-gemini/gemini-cli.git && \
 
 # Stage 2: Build Gemini CLI
 FROM node:20 AS builder
+
+# Copy and run corporate certificate installation script (as root)
+COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
+RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
+
 WORKDIR /build
 COPY --from=source /source/gemini-cli ./gemini-cli
 
@@ -32,6 +42,10 @@ RUN npm run build
 
 # Stage 3: Runtime container
 FROM node:20-slim
+
+# Copy and run corporate certificate installation script (as root)
+COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
+RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
 
 # Build arguments for dynamic user creation
 ARG USER_ID=1000
