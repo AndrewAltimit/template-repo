@@ -41,121 +41,134 @@ class TestPerModelConfiguration(unittest.TestCase):
     def test_get_model_tool_mode(self):
         """Test getting tool mode for specific models"""
         import gemini_proxy_wrapper
+
+        # Patch CONFIG in both modules (wrapper and translation)
+        import translation  # noqa: F401 - needed for CONFIG patching
         from gemini_proxy_wrapper import get_model_tool_mode
 
-        # Patch both CONFIG and DEFAULT_TOOL_MODE in the module
         with patch.dict("gemini_proxy_wrapper.CONFIG", self.test_config):
-            with patch.object(gemini_proxy_wrapper, "DEFAULT_TOOL_MODE", "native"):
-                # Model with native mode
-                self.assertEqual(get_model_tool_mode("model-native"), "native")
+            with patch.dict("translation.CONFIG", self.test_config):
+                with patch.object(gemini_proxy_wrapper, "DEFAULT_TOOL_MODE", "native"):
+                    # Model with native mode
+                    self.assertEqual(get_model_tool_mode("model-native"), "native")
 
-                # Model with text mode
-                self.assertEqual(get_model_tool_mode("model-text"), "text")
+                    # Model with text mode
+                    self.assertEqual(get_model_tool_mode("model-text"), "text")
 
-                # Model without explicit mode (should use default)
-                self.assertEqual(get_model_tool_mode("model-default"), "native")
+                    # Model without explicit mode (should use default)
+                    self.assertEqual(get_model_tool_mode("model-default"), "native")
 
-                # Unknown model (should use default)
-                self.assertEqual(get_model_tool_mode("unknown-model"), "native")
+                    # Unknown model (should use default)
+                    self.assertEqual(get_model_tool_mode("unknown-model"), "native")
 
     def test_environment_override(self):
         """Test environment variable override for model tool mode"""
+        import translation  # noqa: F401 - needed for CONFIG patching
         from gemini_proxy_wrapper import get_model_tool_mode
 
         with patch.dict("gemini_proxy_wrapper.CONFIG", self.test_config):
-            # Override native model to text mode
-            with patch.dict(os.environ, {"GEMINI_MODEL_OVERRIDE_model_native_tool_mode": "text"}):
-                self.assertEqual(get_model_tool_mode("model-native"), "text")
+            with patch.dict("translation.CONFIG", self.test_config):
+                # Override native model to text mode
+                with patch.dict(os.environ, {"GEMINI_MODEL_OVERRIDE_model_native_tool_mode": "text"}):
+                    self.assertEqual(get_model_tool_mode("model-native"), "text")
 
-            # Override text model to native mode
-            with patch.dict(os.environ, {"GEMINI_MODEL_OVERRIDE_model_text_tool_mode": "native"}):
-                self.assertEqual(get_model_tool_mode("model-text"), "native")
+                # Override text model to native mode
+                with patch.dict(os.environ, {"GEMINI_MODEL_OVERRIDE_model_text_tool_mode": "native"}):
+                    self.assertEqual(get_model_tool_mode("model-text"), "native")
 
     def test_translate_with_native_model(self):
         """Test translation with a native tool mode model"""
+        import translation  # noqa: F401 - needed for CONFIG patching
         from gemini_proxy_wrapper import translate_gemini_to_company
 
         with patch.dict("gemini_proxy_wrapper.CONFIG", self.test_config):
-            gemini_request = {
-                "model": "model-native",
-                "contents": [{"role": "user", "parts": [{"text": "Hello"}]}],
-                "tools": [{"functionDeclarations": [{"name": "test_tool", "description": "Test"}]}],
-            }
+            with patch.dict("translation.CONFIG", self.test_config):
+                gemini_request = {
+                    "model": "model-native",
+                    "contents": [{"role": "user", "parts": [{"text": "Hello"}]}],
+                    "tools": [{"functionDeclarations": [{"name": "test_tool", "description": "Test"}]}],
+                }
 
-            endpoint, company_request, tools = translate_gemini_to_company(gemini_request)
+                endpoint, company_request, tools = translate_gemini_to_company(gemini_request)
 
-            # Should use native mode (no tool injection in prompt)
-            self.assertEqual(endpoint, "api-native")
-            self.assertIsNotNone(tools)
+                # Should use native mode (no tool injection in prompt)
+                self.assertEqual(endpoint, "api-native")
+                self.assertIsNotNone(tools)
 
-            # Check that tools are not injected into messages for native mode
-            user_message = company_request["messages"][0]["content"]
-            self.assertNotIn("```tool_call```", user_message)
+                # Check that tools are not injected into messages for native mode
+                user_message = company_request["messages"][0]["content"]
+                self.assertNotIn("```tool_call```", user_message)
 
     def test_translate_with_text_model(self):
         """Test translation with a text tool mode model"""
+        import translation  # noqa: F401 - needed for CONFIG patching
         from gemini_proxy_wrapper import translate_gemini_to_company
 
         with patch.dict("gemini_proxy_wrapper.CONFIG", self.test_config):
-            gemini_request = {
-                "model": "model-text",
-                "contents": [{"role": "user", "parts": [{"text": "Read file.txt"}]}],
-                "tools": [
-                    {
-                        "functionDeclarations": [
-                            {
-                                "name": "read_file",
-                                "description": "Read a file",
-                                "parameters": {
-                                    "type": "object",
-                                    "properties": {"path": {"type": "string"}},
-                                    "required": ["path"],
-                                },
-                            }
-                        ]
-                    }
-                ],
-            }
+            with patch.dict("translation.CONFIG", self.test_config):
+                gemini_request = {
+                    "model": "model-text",
+                    "contents": [{"role": "user", "parts": [{"text": "Read file.txt"}]}],
+                    "tools": [
+                        {
+                            "functionDeclarations": [
+                                {
+                                    "name": "read_file",
+                                    "description": "Read a file",
+                                    "parameters": {
+                                        "type": "object",
+                                        "properties": {"path": {"type": "string"}},
+                                        "required": ["path"],
+                                    },
+                                }
+                            ]
+                        }
+                    ],
+                }
 
-            endpoint, company_request, tools = translate_gemini_to_company(gemini_request)
+                endpoint, company_request, tools = translate_gemini_to_company(gemini_request)
 
-            # Should use text mode (tools injected into prompt)
-            self.assertEqual(endpoint, "api-text")
+                # Should use text mode (tools injected into prompt)
+                self.assertEqual(endpoint, "api-text")
 
-            # Check that tools are injected into the user message
-            user_message = company_request["messages"][0]["content"]
-            self.assertIn("tool_call", user_message)
-            self.assertIn("read_file", user_message)
-            self.assertIn("Read file.txt", user_message)
+                # Check that tools are injected into the user message
+                user_message = company_request["messages"][0]["content"]
+                self.assertIn("tool_call", user_message)
+                self.assertIn("read_file", user_message)
+                self.assertIn("Read file.txt", user_message)
 
     def test_model_specific_behavior(self):
         """Test that different models behave differently based on their configuration"""
+        import translation  # noqa: F401 - needed for CONFIG patching
         from gemini_proxy_wrapper import translate_company_to_gemini
 
         with patch.dict("gemini_proxy_wrapper.CONFIG", self.test_config):
-            # Test response for native model
-            native_request = {"model": "model-native", "_use_text_mode": False}
+            with patch.dict("translation.CONFIG", self.test_config):
+                # Test response for native model
+                native_request = {"model": "model-native", "_use_text_mode": False}
 
-            company_response = {
-                "tool_calls": [{"id": "call_123", "type": "function", "function": {"name": "test_tool", "arguments": "{}"}}],
-                "content": [{"text": "Using tool"}],
-                "usage": {"input_tokens": 10, "output_tokens": 20},
-            }
+                company_response = {
+                    "tool_calls": [
+                        {"id": "call_123", "type": "function", "function": {"name": "test_tool", "arguments": "{}"}}
+                    ],
+                    "content": [{"text": "Using tool"}],
+                    "usage": {"input_tokens": 10, "output_tokens": 20},
+                }
 
-            gemini_response = translate_company_to_gemini(company_response, native_request, [])
+                gemini_response = translate_company_to_gemini(company_response, native_request, [])
 
-            # Should return structured tool calls
-            self.assertIn("candidates", gemini_response)
-            parts = gemini_response["candidates"][0]["content"]["parts"]
-            self.assertIn("functionCall", parts[0])
+                # Should return structured tool calls
+                self.assertIn("candidates", gemini_response)
+                parts = gemini_response["candidates"][0]["content"]["parts"]
+                self.assertIn("functionCall", parts[0])
 
-            # Test response for text model
-            text_request = {"model": "model-text", "_use_text_mode": True}
+                # Test response for text model
+                text_request = {"model": "model-text", "_use_text_mode": True}
 
-            text_company_response = {
-                "content": [
-                    {
-                        "text": """I'll help with that.
+                text_company_response = {
+                    "content": [
+                        {
+                            "text": """I'll help with that.
 
 ```tool_call
 {
@@ -164,12 +177,12 @@ class TestPerModelConfiguration(unittest.TestCase):
 }
 ```
                     """
-                    }
-                ],
-                "usage": {"input_tokens": 10, "output_tokens": 20},
-            }
+                        }
+                    ],
+                    "usage": {"input_tokens": 10, "output_tokens": 20},
+                }
 
-            gemini_response_text = translate_company_to_gemini(text_company_response, text_request, [])
+                gemini_response_text = translate_company_to_gemini(text_company_response, text_request, [])
 
             # Should parse tool calls from text
             self.assertIn("candidates", gemini_response_text)
@@ -181,6 +194,7 @@ class TestHealthEndpoint(unittest.TestCase):
     def test_health_shows_model_modes(self):
         """Test that health endpoint shows tool modes for all models"""
         import gemini_proxy_wrapper
+        import translation  # noqa: F401 - needed for CONFIG patching
         from gemini_proxy_wrapper import get_model_tool_mode
 
         test_config = {
@@ -188,13 +202,14 @@ class TestHealthEndpoint(unittest.TestCase):
             "default_tool_mode": "native",
         }
 
-        # Patch both CONFIG and DEFAULT_TOOL_MODE in the module
+        # Patch CONFIG in both modules and DEFAULT_TOOL_MODE
         with patch.dict("gemini_proxy_wrapper.CONFIG", test_config):
-            with patch.object(gemini_proxy_wrapper, "DEFAULT_TOOL_MODE", "native"):
-                # Test get_model_tool_mode directly
-                self.assertEqual(get_model_tool_mode("model1"), "native")
-                self.assertEqual(get_model_tool_mode("model2"), "text")
-                self.assertEqual(get_model_tool_mode("model3"), "native")  # Uses default
+            with patch.dict("translation.CONFIG", test_config):
+                with patch.object(gemini_proxy_wrapper, "DEFAULT_TOOL_MODE", "native"):
+                    # Test get_model_tool_mode directly
+                    self.assertEqual(get_model_tool_mode("model1"), "native")
+                    self.assertEqual(get_model_tool_mode("model2"), "text")
+                    self.assertEqual(get_model_tool_mode("model3"), "native")  # Uses default
 
 
 class TestDynamicModelSelection(unittest.TestCase):
@@ -202,6 +217,7 @@ class TestDynamicModelSelection(unittest.TestCase):
 
     def test_request_routing(self):
         """Test that requests are routed to correct mode based on model"""
+        import translation  # noqa: F401 - needed for CONFIG patching
         from gemini_proxy_wrapper import translate_gemini_to_company
 
         config = {
@@ -213,25 +229,26 @@ class TestDynamicModelSelection(unittest.TestCase):
         }
 
         with patch.dict("gemini_proxy_wrapper.CONFIG", config):
-            # Request to native model
-            native_req = {
-                "model": "fast-native",
-                "contents": [{"role": "user", "parts": [{"text": "test"}]}],
-                "tools": [{"functionDeclarations": [{"name": "tool1"}]}],
-            }
+            with patch.dict("translation.CONFIG", config):
+                # Request to native model
+                native_req = {
+                    "model": "fast-native",
+                    "contents": [{"role": "user", "parts": [{"text": "test"}]}],
+                    "tools": [{"functionDeclarations": [{"name": "tool1"}]}],
+                }
 
-            endpoint, _, _ = translate_gemini_to_company(native_req)
-            self.assertEqual(endpoint, "fast-api")
+                endpoint, _, _ = translate_gemini_to_company(native_req)
+                self.assertEqual(endpoint, "fast-api")
 
-            # Request to text model
-            text_req = {
-                "model": "slow-text",
-                "contents": [{"role": "user", "parts": [{"text": "test"}]}],
-                "tools": [{"functionDeclarations": [{"name": "tool1"}]}],
-            }
+                # Request to text model
+                text_req = {
+                    "model": "slow-text",
+                    "contents": [{"role": "user", "parts": [{"text": "test"}]}],
+                    "tools": [{"functionDeclarations": [{"name": "tool1"}]}],
+                }
 
-            endpoint, _, _ = translate_gemini_to_company(text_req)
-            self.assertEqual(endpoint, "slow-api")
+                endpoint, _, _ = translate_gemini_to_company(text_req)
+                self.assertEqual(endpoint, "slow-api")
 
     def test_mixed_model_workflow(self):
         """Test workflow with mixed native and text models"""

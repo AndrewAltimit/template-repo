@@ -57,6 +57,9 @@ text_tool_parser = TextToolParser(tool_executor=execute_tool_call)
 # Translation functions are now imported from the translation module
 # This improves code organization and separation of concerns
 
+# Re-export translation functions for backward compatibility with tests
+__all__ = ["get_model_tool_mode", "translate_gemini_to_company", "translate_company_to_gemini"]
+
 
 @app.route("/v1/models/<model>/generateContent", methods=["POST"])
 @app.route("/v1/models/<model>:generateContent", methods=["POST"])
