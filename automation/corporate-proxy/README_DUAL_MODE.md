@@ -41,7 +41,7 @@ Models are configured in `gemini-config.json` with individual tool modes:
 # Default tool mode for models without explicit configuration
 DEFAULT_TOOL_MODE=native  # or "text"
 
-# Override specific model's tool mode
+# Override specific model's tool mode (see transformation rules below)
 GEMINI_MODEL_OVERRIDE_gemini_2_5_flash_tool_mode=text
 
 # Maximum iterations for tool execution in text mode (default: 5)
@@ -50,6 +50,34 @@ MAX_TOOL_ITERATIONS=5
 # Other existing variables
 USE_MOCK_API=true
 GEMINI_PROXY_PORT=8053
+```
+
+#### Environment Variable Name Transformation
+
+When constructing environment variable names for model overrides, the model name undergoes the following transformation:
+
+1. Replace all hyphens (`-`) with underscores (`_`)
+2. Replace all dots (`.`) with underscores (`_`)
+3. Prefix with `GEMINI_MODEL_OVERRIDE_`
+4. Suffix with `_tool_mode`
+
+**Examples:**
+
+| Model Name | Environment Variable |
+|------------|---------------------|
+| `gemini-2.5-flash` | `GEMINI_MODEL_OVERRIDE_gemini_2_5_flash_tool_mode` |
+| `gemini-1.5-pro` | `GEMINI_MODEL_OVERRIDE_gemini_1_5_pro_tool_mode` |
+| `claude-3.5-sonnet` | `GEMINI_MODEL_OVERRIDE_claude_3_5_sonnet_tool_mode` |
+| `gpt-4-turbo` | `GEMINI_MODEL_OVERRIDE_gpt_4_turbo_tool_mode` |
+| `llama-2-70b-chat` | `GEMINI_MODEL_OVERRIDE_llama_2_70b_chat_tool_mode` |
+| `model.v2.5.final` | `GEMINI_MODEL_OVERRIDE_model_v2_5_final_tool_mode` |
+
+**Python code for reference:**
+```python
+def get_env_var_name(model_name):
+    # Replace - and . with _
+    safe_name = model_name.replace('-', '_').replace('.', '_')
+    return f"GEMINI_MODEL_OVERRIDE_{safe_name}_tool_mode"
 ```
 
 ### Model Examples
@@ -177,8 +205,14 @@ python automation/corporate-proxy/gemini/gemini_proxy_wrapper.py
 # Override default tool mode for unconfigured models
 DEFAULT_TOOL_MODE=text python automation/corporate-proxy/gemini/gemini_proxy_wrapper.py
 
-# Override specific model's tool mode
+# Override specific model's tool mode (note the underscore transformation)
 GEMINI_MODEL_OVERRIDE_gemini_2_5_flash_tool_mode=text python automation/corporate-proxy/gemini/gemini_proxy_wrapper.py
+
+# Override multiple models
+GEMINI_MODEL_OVERRIDE_gemini_2_5_flash_tool_mode=text \
+GEMINI_MODEL_OVERRIDE_claude_3_5_sonnet_tool_mode=native \
+GEMINI_MODEL_OVERRIDE_gpt_4_turbo_tool_mode=text \
+python automation/corporate-proxy/gemini/gemini_proxy_wrapper.py
 
 # With mock API for testing
 USE_MOCK_API=true python automation/corporate-proxy/gemini/gemini_proxy_wrapper.py

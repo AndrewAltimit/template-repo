@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Comprehensive tests for the enhanced text tool parser v2
-Tests security, performance, and edge cases identified by Gemini
+Security and robustness tests for the text tool parser
+Tests security features, performance optimizations, and edge cases identified by Gemini
 """
 
 import json
