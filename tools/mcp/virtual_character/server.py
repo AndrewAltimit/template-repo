@@ -298,12 +298,18 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                                 "osc_in_port": {
                                     "type": "integer",
                                     "default": 9000,
-                                    "description": "OSC input port (where VRChat receives)",
+                                    "description": (
+                                        "DEPRECATED: Use vrchat_recv_port instead. "
+                                        "OSC input port (where VRChat receives)"
+                                    ),
                                 },
                                 "osc_out_port": {
                                     "type": "integer",
                                     "default": 9001,
-                                    "description": "OSC output port (where VRChat sends)",
+                                    "description": (
+                                        "DEPRECATED: Use vrchat_send_port instead. "
+                                        "OSC output port (where VRChat sends)"
+                                    ),
                                 },
                                 "vrchat_recv_port": {
                                     "type": "integer",
@@ -443,7 +449,11 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 },
             },
             "create_sequence": {
-                "description": "Create a new event sequence for coordinated animations and audio",
+                "description": (
+                    "Create a new event sequence for coordinated animations and audio. "
+                    "NOTE: This operates on a single, shared sequence builder. "
+                    "Concurrent calls will interfere with each other."
+                ),
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -818,7 +828,13 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         loop: bool = False,
         interrupt_current: bool = True,
     ) -> Dict[str, Any]:
-        """Create a new event sequence."""
+        """
+        Create a new event sequence.
+
+        IMPORTANT: This method uses a single, shared sequence builder
+        (self.current_sequence). Concurrent calls will interfere with
+        each other. Only one sequence can be built at a time.
+        """
         try:
             # Stop current sequence if needed
             if interrupt_current and self.sequence_task:
@@ -1109,6 +1125,50 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         """Parse a dictionary into a SequenceEvent (for backward compatibility)."""
         return await self._create_event_from_dict(event_dict)
 
+    async def _create_animation_event(self, event: SequenceEvent, params: Dict[str, Any]) -> None:
+        """Create animation event from parameters."""
+        animation = CanonicalAnimationData(timestamp=event.timestamp)
+        if "emotion" in params:
+            animation.emotion = EmotionType[params["emotion"].upper()]
+            animation.emotion_intensity = params.get("emotion_intensity", 1.0)
+        if "gesture" in params:
+            animation.gesture = GestureType[params["gesture"].upper()]
+            animation.gesture_intensity = params.get("gesture_intensity", 1.0)
+        if "parameters" in params:
+            animation.parameters = params["parameters"]
+        event.animation_data = animation
+
+    async def _create_audio_event(self, event: SequenceEvent, event_dict: Dict[str, Any]) -> None:
+        """Create audio event from data."""
+        audio_data = event_dict.get("audio_data")
+        if audio_data:
+            import base64
+
+            if audio_data.startswith("data:"):
+                audio_data = audio_data.split(",")[1]
+            audio_bytes = base64.b64decode(audio_data)
+            event.audio_data = AudioData(
+                data=audio_bytes,
+                format=event_dict.get("audio_format", "mp3"),
+                duration=event_dict.get("duration", 0.0),
+            )
+
+    async def _create_expression_event(self, event: SequenceEvent, event_dict: Dict[str, Any]) -> None:
+        """Create expression event from parameters."""
+        expression = event_dict.get("expression")
+        if expression:
+            event.expression = EmotionType[expression.upper()]
+            event.expression_intensity = event_dict.get("expression_intensity", 1.0)
+
+    async def _create_parallel_events(self, event: SequenceEvent, event_dict: Dict[str, Any]) -> None:
+        """Create parallel events recursively."""
+        parallel_events_data = event_dict.get("parallel_events", [])
+        event.parallel_events = []
+        for p_event_dict in parallel_events_data:
+            p_event = await self._create_event_from_dict(p_event_dict)
+            if p_event:
+                event.parallel_events.append(p_event)
+
     async def _create_event_from_dict(self, event_dict: Dict[str, Any]) -> Optional[SequenceEvent]:
         """Centralized event creation logic from dictionary."""
         try:
@@ -1128,51 +1188,17 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             if event_type == "ANIMATION":
                 animation_params = event_dict.get("animation_params", {})
                 if animation_params:
-                    animation = CanonicalAnimationData(timestamp=event.timestamp)
-                    if "emotion" in animation_params:
-                        animation.emotion = EmotionType[animation_params["emotion"].upper()]
-                        animation.emotion_intensity = animation_params.get("emotion_intensity", 1.0)
-                    if "gesture" in animation_params:
-                        animation.gesture = GestureType[animation_params["gesture"].upper()]
-                        animation.gesture_intensity = animation_params.get("gesture_intensity", 1.0)
-                    if "parameters" in animation_params:
-                        animation.parameters = animation_params["parameters"]
-                    event.animation_data = animation
-
+                    await self._create_animation_event(event, animation_params)
             elif event_type == "AUDIO":
-                audio_data = event_dict.get("audio_data")
-                if audio_data:
-                    import base64
-
-                    if audio_data.startswith("data:"):
-                        audio_data = audio_data.split(",")[1]
-                    audio_bytes = base64.b64decode(audio_data)
-                    event.audio_data = AudioData(
-                        data=audio_bytes,
-                        format=event_dict.get("audio_format", "mp3"),
-                        duration=event_dict.get("duration", 0.0),
-                    )
-
+                await self._create_audio_event(event, event_dict)
             elif event_type == "EXPRESSION":
-                expression = event_dict.get("expression")
-                if expression:
-                    event.expression = EmotionType[expression.upper()]
-                    event.expression_intensity = event_dict.get("expression_intensity", 1.0)
-
+                await self._create_expression_event(event, event_dict)
             elif event_type == "MOVEMENT":
                 event.movement_params = event_dict.get("movement_params")
-
             elif event_type == "WAIT":
                 event.wait_duration = event_dict.get("wait_duration", event_dict.get("duration", 1.0))
-
             elif event_type == "PARALLEL":
-                # Recursively parse parallel events
-                parallel_events_data = event_dict.get("parallel_events", [])
-                event.parallel_events = []
-                for p_event_dict in parallel_events_data:
-                    p_event = await self._create_event_from_dict(p_event_dict)
-                    if p_event:
-                        event.parallel_events.append(p_event)
+                await self._create_parallel_events(event, event_dict)
 
             return event
 

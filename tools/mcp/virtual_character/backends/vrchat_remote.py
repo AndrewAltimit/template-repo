@@ -6,7 +6,7 @@ Controls VRChat avatars on a remote Windows machine using OSC protocol.
 
 import asyncio
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from ..models.canonical import (
     AudioData,
@@ -293,10 +293,14 @@ class VRChatRemoteBackend(BackendAdapter):
 
     async def send_audio_data(self, audio: AudioData) -> bool:
         """
-        Send audio data and lip-sync information to VRChat.
+        Send audio data to VRChat.
+
+        NOTE: VRChat has excellent built-in audio-to-viseme conversion.
+        We primarily rely on VRChat's automatic viseme generation from audio,
+        only sending manual viseme data when precise control is needed.
 
         Args:
-            audio: Audio data with sync metadata
+            audio: Audio data with optional sync metadata
 
         Returns:
             True if successful
@@ -310,16 +314,16 @@ class VRChatRemoteBackend(BackendAdapter):
                 for tag in audio.expression_tags:
                     await self._process_audio_expression_tag(tag)
 
-            # Send viseme data for lip-sync if available
-            if audio.viseme_timestamps:
-                # Schedule viseme updates based on timestamps
-                for timestamp, viseme, weight in audio.viseme_timestamps:
-                    task = asyncio.create_task(self._send_timed_viseme(timestamp, viseme, weight))
-                    self.pending_tasks.add(task)
-                    task.add_done_callback(self.pending_tasks.discard)
+            # VRChat automatically generates visemes from audio playback
+            # Only send manual viseme data if we need precise control
+            if audio.viseme_timestamps and len(audio.viseme_timestamps) > 0:
+                # Use single managing task for efficient viseme playback
+                task = asyncio.create_task(self._manage_viseme_playback(audio.viseme_timestamps))
+                self.pending_tasks.add(task)
+                task.add_done_callback(self.pending_tasks.discard)
 
             # Send audio playback trigger
-            # VRChat can trigger audio playback through avatar parameters
+            # VRChat will automatically generate visemes from the audio
             if audio.text:
                 # Send the text for potential display
                 await self._send_osc("/avatar/parameters/AudioText", audio.text[:127])  # VRChat string limit
@@ -336,8 +340,7 @@ class VRChatRemoteBackend(BackendAdapter):
             # If using bridge server for actual audio streaming
             if self.use_bridge:
                 # Send audio data to bridge server
-                # Bridge server can handle actual audio playback via Unity AudioSource
-                # or convert to VRChat-compatible format
+                # Bridge server streams audio to VRChat, which auto-generates visemes
                 await self._send_audio_to_bridge(audio)
 
             return True
@@ -362,12 +365,29 @@ class VRChatRemoteBackend(BackendAdapter):
         if tag in tag_emotion_map:
             await self._set_emotion(tag_emotion_map[tag], 1.0)
 
-    async def _send_timed_viseme(self, delay: float, viseme: Any, weight: float) -> None:
-        """Send viseme at specified time."""
-        await asyncio.sleep(delay)
-        # VRChat viseme parameters (Oculus viseme standard)
-        viseme_param = f"/avatar/parameters/Viseme_{viseme.value if hasattr(viseme, 'value') else viseme}"
-        await self._send_osc(viseme_param, float(weight))
+    async def _manage_viseme_playback(self, viseme_timestamps: List[tuple]) -> None:
+        """
+        Efficiently manage viseme playback with a single task.
+
+        This is only used when precise viseme control is needed.
+        VRChat's built-in audio-to-viseme is preferred for most cases.
+        """
+        # Sort visemes by timestamp to ensure correct order
+        sorted_visemes = sorted(viseme_timestamps, key=lambda x: x[0])
+
+        start_time = asyncio.get_event_loop().time()
+
+        for timestamp, viseme, weight in sorted_visemes:
+            # Calculate time to wait until this viseme
+            current_time = asyncio.get_event_loop().time() - start_time
+            wait_time = timestamp - current_time
+
+            if wait_time > 0:
+                await asyncio.sleep(wait_time)
+
+            # Send viseme (VRChat Oculus viseme standard)
+            viseme_param = f"/avatar/parameters/Viseme_{viseme.value if hasattr(viseme, 'value') else viseme}"
+            await self._send_osc(viseme_param, float(weight))
 
     async def _stop_audio_after_delay(self, duration: float) -> None:
         """Stop audio playback after duration."""
