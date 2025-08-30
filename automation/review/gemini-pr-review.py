@@ -30,14 +30,21 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
 
     # Helper function to clean credential messages from output
     def clean_output(output: str) -> str:
-        if "Loaded cached credentials" in output:
-            lines = output.split("\n")
-            return "\n".join(line for line in lines if "Loaded cached credentials" not in line)
-        return output
+        lines = output.split("\n")
+        cleaned = []
+        for line in lines:
+            # Skip authentication and telemetry messages
+            if any(
+                skip in line
+                for skip in ["Loaded cached credentials", "Data collection is disabled", "Telemetry collection is disabled"]
+            ):
+                continue
+            cleaned.append(line)
+        return "\n".join(cleaned).strip()
 
     # Try with Pro model first
     try:
-        print("🔍 Attempting analysis with Gemini 2.5 Pro model...")
+        print("Attempting analysis with Gemini 2.5 Pro model...")
         result = subprocess.run(
             ["gemini", "-m", PRO_MODEL],
             input=prompt,
@@ -49,28 +56,28 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
         output = clean_output(result.stdout.strip())
         return output.strip(), PRO_MODEL
     except subprocess.TimeoutExpired:
-        print(f"⏱️  Pro model timed out after {PRO_MODEL_TIMEOUT}s, trying Flash model...")
+        print(f"Pro model timed out after {PRO_MODEL_TIMEOUT}s, trying Flash model...")
         print("   (This is likely due to network latency in CI, not a quota issue)")
     except subprocess.CalledProcessError as e:
         # Check if it's a quota limit error
         if e.stderr:
             error_text = e.stderr.lower()
             if "quota limit" in error_text or "api error" in error_text or "quota exceeded" in error_text:
-                print("⚡ Quota limit reached for Pro model, falling back to Flash...")
+                print("Quota limit reached for Pro model, falling back to Flash...")
             else:
                 # Non-quota error from Pro model - surface the error
                 err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
-                return f"❌ Pro model failed with error: {err_msg}", NO_MODEL
+                return f"Pro model failed with error: {err_msg}", NO_MODEL
         else:
             # No stderr, return the error
-            return f"❌ Pro model failed with error: {str(e)}", NO_MODEL
+            return f"Pro model failed with error: {str(e)}", NO_MODEL
     except Exception as e:
         # Unexpected error
-        return f"❌ Unexpected error with Pro model: {str(e)}", NO_MODEL
+        return f"Unexpected error with Pro model: {str(e)}", NO_MODEL
 
     # Fallback to Flash model
     try:
-        print("🔍 Attempting analysis with Gemini 2.5 Flash model...")
+        print("Attempting analysis with Gemini 2.5 Flash model...")
         result = subprocess.run(
             ["gemini", "-m", FLASH_MODEL],
             input=prompt,
@@ -83,16 +90,16 @@ def _call_gemini_with_fallback(prompt: str) -> Tuple[str, str]:
         return output.strip(), FLASH_MODEL
     except subprocess.TimeoutExpired:
         err_msg = f"Flash model timed out after {FLASH_MODEL_TIMEOUT}s"
-        print(f"❌ {err_msg}")
-        return f"❌ Both Pro and Flash models failed. {err_msg}", NO_MODEL
+        print(f"Error: {err_msg}")
+        return f"Both Pro and Flash models failed. {err_msg}", NO_MODEL
     except subprocess.CalledProcessError as e:
         err_msg = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
-        print(f"❌ Flash model failed: {err_msg}")
-        return f"❌ Both Pro and Flash models failed. Flash error: {err_msg}", NO_MODEL
+        print(f"Flash model failed: {err_msg}")
+        return f"Both Pro and Flash models failed. Flash error: {err_msg}", NO_MODEL
     except Exception as e:
         err_msg = f"Unexpected error: {str(e)}"
-        print(f"❌ {err_msg}")
-        return f"❌ Both Pro and Flash models failed. {err_msg}", NO_MODEL
+        print(f"Error: {err_msg}")
+        return f"Both Pro and Flash models failed. {err_msg}", NO_MODEL
 
 
 def check_gemini_cli() -> bool:
@@ -241,7 +248,7 @@ def get_project_context() -> str:
     gemini_expression_file = Path("docs/ai-agents/gemini-expression.md")
     if gemini_expression_file.exists():
         try:
-            print("📝 Including Gemini expression philosophy in review context...")
+            print("Including Gemini expression philosophy in review context...")
             expression_content = gemini_expression_file.read_text()
             combined_context.append("\n\n---\n\n")
             combined_context.append(expression_content)
@@ -271,7 +278,8 @@ def get_recent_pr_comments(pr_number: str) -> str:
         last_gemini_idx = -1
         for idx, comment in enumerate(comments):
             body = comment.get("body", "")
-            if "🤖 Gemini AI Code Review" in body:
+            # Look for the unique HTML comment marker for more robust detection
+            if "<!-- gemini-review-marker -->" in body:
                 last_gemini_idx = idx
 
         # Get comments after last Gemini review
@@ -312,7 +320,7 @@ def analyze_large_pr(diff: str, changed_files: List[str], pr_info: Dict[str, Any
         return analyze_complete_diff(diff, changed_files, pr_info, project_context, file_stats)
 
     # For large diffs, analyze by file groups
-    print(f"📦 Large diff detected ({diff_size:,} chars), using chunked analysis...")
+    print(f"Large diff detected ({diff_size:,} chars), using chunked analysis...")
 
     file_chunks = chunk_diff_by_files(diff)
     analyses = []
@@ -521,7 +529,8 @@ def format_github_comment(analysis: str, pr_info: Dict[str, Any], model_used: st
         model_display = "v2.5 Flash"
     else:
         model_display = "Error - No model available"
-    comment = f"""## 🤖 Gemini AI Code Review
+    comment = f"""## Gemini AI Code Review
+<!-- gemini-review-marker -->
 
 Hello @{pr_info['author']}! I've analyzed your pull request \
 "{pr_info['title']}" and here's my comprehensive feedback:
@@ -558,25 +567,25 @@ def post_pr_comment(comment: str, pr_info: Dict[str, Any]):
             check=True,
         )
 
-        print("✅ Successfully posted Gemini review to PR")
+        print("Successfully posted Gemini review to PR")
 
         # Clean up
         os.unlink(comment_file)
     except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to post comment: {e}")
+        print(f"Failed to post comment: {e}")
         # Save locally as backup
         with open("gemini-review.md", "w") as f:
             f.write(comment)
-        print("💾 Review saved to gemini-review.md")
+        print("Review saved to gemini-review.md")
 
 
 def main():
     """Main function"""
-    print("🤖 Starting Improved Gemini PR Review...")
+    print("Starting Improved Gemini PR Review...")
 
     # Check if Gemini CLI is available
     if not check_gemini_cli():
-        print("❌ Gemini CLI not found")
+        print("ERROR: Gemini CLI not found")
         print("Setup instructions:")
         print("1. Install Node.js 18+")
         print("2. npm install -g @google/gemini-cli")
@@ -586,22 +595,22 @@ def main():
     # Get PR information
     pr_info = get_pr_info()
     if not pr_info["number"]:
-        print("❌ Not running in PR context")
+        print("ERROR: Not running in PR context")
         sys.exit(1)
 
-    print(f"📋 Analyzing PR #{pr_info['number']}: {pr_info['title']}")
+    print(f"Analyzing PR #{pr_info['number']}: {pr_info['title']}")
 
     # Get changed files
     changed_files = get_changed_files()
-    print(f"📁 Found {len(changed_files)} changed files")
+    print(f"Found {len(changed_files)} changed files")
 
     # Get PR diff
-    print("🔍 Getting complete PR diff...")
+    print("Getting complete PR diff...")
     diff = get_pr_diff()
-    print(f"📏 Diff size: {len(diff):,} characters")
+    print(f"Diff size: {len(diff):,} characters")
 
     # Analyze with Gemini
-    print("🧠 Consulting Gemini AI...")
+    print("Consulting Gemini AI...")
     analysis, model_used = analyze_large_pr(diff, changed_files, pr_info)
 
     # Format as GitHub comment
@@ -614,7 +623,7 @@ def main():
     with open(os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"), "a") as f:
         f.write("\n\n" + comment)
 
-    print("✅ Gemini PR review complete!")
+    print("Gemini PR review complete!")
 
 
 if __name__ == "__main__":

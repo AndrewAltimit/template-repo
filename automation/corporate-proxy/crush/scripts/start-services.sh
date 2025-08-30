@@ -19,9 +19,9 @@ trap cleanup EXIT INT TERM
 # Create log directory
 mkdir -p /tmp/logs
 
-# Start mock Company API (runs on port 8050)
-echo "Starting mock Company API on port 8050..."
-python /app/mock_api.py > /tmp/logs/mock_api.log 2>&1 &
+# Start unified tool API (runs on port 8050)
+echo "Starting unified tool API on port 8050..."
+API_MODE=crush API_VERSION=v3 PORT=8050 python /app/unified_tool_api.py > /tmp/logs/mock_api.log 2>&1 &
 
 # Wait for mock API to be ready
 echo "Waiting for mock API to be ready..."

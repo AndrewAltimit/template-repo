@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Company API Translation Wrapper
-Translates between OpenAI format (from OpenCode) and Company Bedrock format
+Company API Translation Wrapper with Tool Support
+Translates between OpenAI format (from OpenCode/Crush) and Company Bedrock format
+Properly handles tool calls and tool results
 """
 
 import json
@@ -80,6 +81,17 @@ def chat_completions():
     try:
         data = request.json
         logger.info(f"Received request for model: {data.get('model')}")
+        logger.info(f"Full request data: {json.dumps(data, indent=2)}")
+
+        # Log specific details about messages and tools
+        if "messages" in data:
+            logger.info(f"Messages count: {len(data['messages'])}")
+            for i, msg in enumerate(data["messages"]):
+                logger.info(f"Message {i}: role={msg.get('role')}, content={msg.get('content', '')[:100]}")
+
+        if "tools" in data:
+            tool_list = [t.get("type", "unknown") + ":" + t.get("function", {}).get("name", "unnamed") for t in data["tools"]]
+            logger.info(f"Tools provided: {tool_list}")
 
         model = data.get("model", "company/claude-3.5-sonnet")
         endpoint = MODEL_ENDPOINTS.get(model)
@@ -88,16 +100,28 @@ def chat_completions():
             logger.error(f"Unknown model: {model}")
             return jsonify({"error": f"Model not found: {model}"}), 404
 
-        # Extract messages and system prompt
+        # Extract messages, tools, and system prompt
         messages = data.get("messages", [])
+        tools = data.get("tools", [])
         system_prompt = ""
         user_messages = []
 
+        # Process messages
         for msg in messages:
             if msg["role"] == "system":
                 system_prompt = msg["content"]
+            elif msg["role"] == "tool":
+                # Handle tool results - convert to assistant format
+                user_messages.append({"role": "user", "content": f"Tool result: {msg.get('content', '')}"})
             else:
-                user_messages.append({"role": msg["role"], "content": msg["content"]})
+                # Check if message has tool_calls (from assistant)
+                if "tool_calls" in msg:
+                    # This is an assistant message with tool calls
+                    user_messages.append(
+                        {"role": msg["role"], "content": msg.get("content", ""), "tool_calls": msg["tool_calls"]}
+                    )
+                else:
+                    user_messages.append({"role": msg["role"], "content": msg.get("content", "")})
 
         # Build Company API request
         company_url = f"{COMPANY_API_BASE}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
@@ -108,6 +132,11 @@ def chat_completions():
             "messages": user_messages,
             "temperature": data.get("temperature", 0.7),
         }
+
+        # Include tools if present
+        if tools:
+            company_request["tools"] = tools
+            logger.info(f"Forwarding {len(tools)} tools to Company API")
 
         logger.info(f"Sending to Company API: {company_url}")
 
@@ -123,17 +152,61 @@ def chat_completions():
             return jsonify({"error": "Company API error"}), response.status_code
 
         company_response = response.json()
-        logger.info(f"Company API response: {company_response}")
+        logger.info(f"Company API response: {json.dumps(company_response, indent=2)}")
 
         # Handle streaming vs non-streaming
         if data.get("stream", False):
-            # NOTE: This is simulated streaming - we send the complete response as a single chunk
-            # True streaming would require the company API to support streaming responses
-            # and iterating over response chunks with requests.post(..., stream=True)
-            # Current implementation buffers the entire response for compatibility
+
             def generate():
-                # Send initial chunk
-                chunk = {
+                # Check if response contains tool calls
+                if "tool_calls" in company_response:
+                    # Send tool call chunk with proper index for each tool call
+                    tool_calls_with_index = []
+                    for i, tc in enumerate(company_response["tool_calls"]):
+                        tc_copy = tc.copy()
+                        tc_copy["index"] = i
+                        tool_calls_with_index.append(tc_copy)
+
+                    chunk = {
+                        "id": company_response.get("id", "chatcmpl-123"),
+                        "object": "chat.completion.chunk",
+                        "created": 1234567890,
+                        "model": model,
+                        "choices": [
+                            {
+                                "index": 0,
+                                "delta": {"role": "assistant", "tool_calls": tool_calls_with_index},
+                                "finish_reason": "tool_calls",
+                            }
+                        ],
+                    }
+                    yield f"data: {json.dumps(chunk)}\n\n"
+                else:
+                    # Send content chunk
+                    content = ""
+                    if company_response.get("content"):
+                        if isinstance(company_response["content"], list):
+                            content = company_response["content"][0].get("text", "")
+                        else:
+                            content = company_response["content"]
+
+                    chunk = {
+                        "id": company_response.get("id", "chatcmpl-123"),
+                        "object": "chat.completion.chunk",
+                        "created": 1234567890,
+                        "model": model,
+                        "choices": [
+                            {
+                                "index": 0,
+                                "delta": {"role": "assistant", "content": content},
+                                "finish_reason": None,
+                            }
+                        ],
+                    }
+                    yield f"data: {json.dumps(chunk)}\n\n"
+
+                # Send final chunk
+                final_chunk = {
                     "id": company_response.get("id", "chatcmpl-123"),
                     "object": "chat.completion.chunk",
                     "created": 1234567890,
@@ -141,97 +214,114 @@ def chat_completions():
                     "choices": [
                         {
                             "index": 0,
-                            "delta": {"role": "assistant", "content": company_response["content"][0]["text"]},
-                            "finish_reason": None,
+                            "delta": {},
+                            "finish_reason": company_response.get("stop_reason", "stop"),
                         }
                     ],
                 }
-                yield f"data: {json.dumps(chunk)}\n\n"
-
-                # Send finish chunk
-                finish_chunk = {
-                    "id": company_response.get("id", "chatcmpl-123"),
-                    "object": "chat.completion.chunk",
-                    "created": 1234567890,
-                    "model": model,
-                    "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
-                }
-                yield f"data: {json.dumps(finish_chunk)}\n\n"
+                yield f"data: {json.dumps(final_chunk)}\n\n"
                 yield "data: [DONE]\n\n"
 
-            return Response(
-                stream_with_context(generate()),
-                mimetype="text/event-stream",
-                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-            )
+            return Response(stream_with_context(generate()), content_type="text/event-stream")
         else:
             # Non-streaming response
-            openai_response = {
-                "id": company_response.get("id", "chatcmpl-123"),
-                "object": "chat.completion",
-                "created": 1234567890,
-                "model": model,
-                "choices": [
-                    {
-                        "index": 0,
-                        "message": {"role": "assistant", "content": company_response["content"][0]["text"]},
-                        "finish_reason": "stop",
-                    }
-                ],
-                "usage": {
-                    "prompt_tokens": company_response.get("usage", {}).get("input_tokens", 0),
-                    "completion_tokens": company_response.get("usage", {}).get("output_tokens", 0),
-                    "total_tokens": (
-                        company_response.get("usage", {}).get("input_tokens", 0)
-                        + company_response.get("usage", {}).get("output_tokens", 0)
-                    ),
-                },
-            }
+            # Check if response contains tool calls
+            if "tool_calls" in company_response:
+                # Format tool call response
+                openai_response = {
+                    "id": company_response.get("id", "chatcmpl-123"),
+                    "object": "chat.completion",
+                    "created": 1234567890,
+                    "model": model,
+                    "choices": [
+                        {
+                            "index": 0,
+                            "message": {"role": "assistant", "content": None, "tool_calls": company_response["tool_calls"]},
+                            "finish_reason": "tool_calls",
+                        }
+                    ],
+                    "usage": company_response.get("usage", {}),
+                }
+            else:
+                # Extract content from Company response format
+                content = ""
+                if company_response.get("content"):
+                    if isinstance(company_response["content"], list):
+                        content = company_response["content"][0].get("text", "")
+                    else:
+                        content = company_response["content"]
 
-            return jsonify(openai_response)
+                # Convert to OpenAI format
+                openai_response = {
+                    "id": company_response.get("id", "chatcmpl-123"),
+                    "object": "chat.completion",
+                    "created": 1234567890,
+                    "model": model,
+                    "choices": [
+                        {
+                            "index": 0,
+                            "message": {"role": "assistant", "content": content},
+                            "finish_reason": company_response.get("stop_reason", "stop"),
+                        }
+                    ],
+                    "usage": company_response.get("usage", {}),
+                }
 
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Company API request error: {e}")
-        return jsonify({"error": "Failed to connect to Company API", "details": str(e)}), 503
-    except KeyError as e:
-        logger.error(f"Response parsing error: {e}")
-        return jsonify({"error": "Invalid response format from Company API", "details": str(e)}), 502
+            return jsonify(openai_response), 200
+
     except Exception as e:
-        logger.error(f"Unexpected error processing request: {e}")
-        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+        logger.error(f"Error processing request: {e}")
+        import traceback
 
-
-@app.route("/v1/models", methods=["GET"])
-def list_models():
-    """List available models in OpenAI format"""
-    models = []
-    for model_id in MODEL_ENDPOINTS.keys():
-        models.append({"id": model_id, "object": "model", "created": 1234567890, "owned_by": "company"})
-
-    return jsonify({"data": models, "object": "list"})
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/health", methods=["GET"])
-def health():
+def health_check():
     """Health check endpoint"""
-    return jsonify({"status": "healthy", "service": "company_translation_wrapper"})
+    return (
+        jsonify(
+            {
+                "status": "healthy",
+                "service": "translation_wrapper_with_tools",
+                "company_api_base": COMPANY_API_BASE,
+                "models_available": len(MODEL_ENDPOINTS),
+            }
+        ),
+        200,
+    )
+
+
+@app.route("/", methods=["GET"])
+def root():
+    """Root endpoint with API info"""
+    return (
+        jsonify(
+            {
+                "service": "Company API Translation Wrapper with Tool Support",
+                "description": "Translates between OpenAI and Company Bedrock formats with tool call support",
+                "endpoints": {
+                    "/v1/chat/completions": "OpenAI-compatible chat completions endpoint",
+                    "/health": "Health check endpoint",
+                },
+                "models": list(MODEL_ENDPOINTS.keys()),
+                "features": [
+                    "Tool definition forwarding",
+                    "Tool call response handling",
+                    "Tool result message translation",
+                    "Streaming and non-streaming support",
+                ],
+            }
+        ),
+        200,
+    )
 
 
 if __name__ == "__main__":
     port = int(os.environ.get("WRAPPER_PORT", 8052))
-    logger.info("=" * 60)
-    logger.info("Company API Translation Wrapper")
-    logger.info("=" * 60)
-    logger.info(f"Port: {port}")
-    logger.info(f"Company API Base: {COMPANY_API_BASE}")
+    logger.info(f"Starting Translation Wrapper with Tool Support on port {port}")
+    logger.info(f"Company API base: {COMPANY_API_BASE}")
     logger.info(f"Available models: {list(MODEL_ENDPOINTS.keys())}")
-    logger.info("-" * 60)
-    logger.info(f"OpenCode endpoint: http://localhost:{port}/v1/chat/completions")
-    logger.info(f"Configure OpenCode to use baseURL: http://localhost:{port}/v1")
-    logger.info("-" * 60)
-    logger.warning("⚠️  IMPORTANT: Streaming is SIMULATED - responses are buffered")
-    logger.warning("Large responses will be delayed until fully received from upstream API")
-    logger.info("=" * 60)
-
     debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
     app.run(host="0.0.0.0", port=port, debug=debug_mode)

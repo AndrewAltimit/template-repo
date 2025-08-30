@@ -194,14 +194,17 @@ jobs:
       - name: Run Gemini review
         continue-on-error: true  # Don't fail the PR if Gemini review fails
         shell: bash
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || '' }}
         run: |
-          # Source nvm and use correct Node version
-          export NVM_DIR="$HOME/.nvm"
-          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-          nvm use 22.16.0
-
-          # Run the Gemini review script
-          python3 automation/review/gemini-pr-review.py
+          # Set up Gemini CLI with proper authentication
+          if automation/review/setup-gemini-cli.sh; then
+            # Setup successful, run the review
+            export PATH="/tmp:$PATH"
+            python3 automation/review/gemini-pr-review.py
+          else
+            echo "⚠️  Gemini setup failed, skipping review"
+          fi
 
       - name: Upload review artifact
         if: always()

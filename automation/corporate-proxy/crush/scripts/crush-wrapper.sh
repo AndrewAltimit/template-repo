@@ -114,8 +114,9 @@ fi
 
 echo -e "${GREEN}Starting Crush with bypassed provider validation...${NC}"
 
-# Change to home directory where we have write permissions
-cd "${HOME}"
+# Change to workspace directory where files should be created
+# This script only runs inside the container where /workspace is always mounted
+cd /workspace
 
 # Run the actual crush binary with all arguments
 exec /usr/local/bin/crush-binary "$@"

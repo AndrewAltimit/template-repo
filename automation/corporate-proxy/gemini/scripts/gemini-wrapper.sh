@@ -1,9 +1,8 @@
 #!/bin/bash
+set -e
 
 # Gemini CLI wrapper script for containerized environment
 # Starts proxy services and runs Gemini CLI
-
-set -e
 
 echo "=========================================="
 echo "Gemini CLI Corporate Proxy Wrapper"
@@ -15,11 +14,40 @@ if [ "${GEMINI_ALLOW_INSECURE_TLS}" = "true" ]; then
     export NODE_TLS_REJECT_UNAUTHORIZED=0
 fi
 
+# Store PIDs of background processes for cleanup
+API_PID=""
+PROXY_PID=""
+
 # Function to cleanup on exit
 cleanup() {
     echo ""
     echo "Shutting down services..."
+
+    # Multi-stage cleanup to ensure no orphaned processes:
+    # 1. First, try to kill the specific PIDs we started (most reliable)
+    if [ -n "$API_PID" ]; then
+        kill "$API_PID" 2>/dev/null || true
+    fi
+    if [ -n "$PROXY_PID" ]; then
+        kill "$PROXY_PID" 2>/dev/null || true
+    fi
+
+    # 2. Then kill any remaining background jobs from this shell session
     kill "$(jobs -p)" 2>/dev/null || true
+
+    # 3. Next, kill any stray processes by name (in case PIDs were lost)
+    # This catches processes that may have been orphaned or restarted
+    pkill -f unified_tool_api.py 2>/dev/null || true
+    pkill -f gemini_proxy_wrapper.py 2>/dev/null || true
+
+    # 4. Finally, as a last resort, kill any process listening on our ports
+    # This ensures ports are freed even if processes were started externally
+    if command -v fuser >/dev/null 2>&1; then
+        echo "Cleaning up ports..."
+        fuser -k 8050/tcp 2>/dev/null || true
+        fuser -k 8053/tcp 2>/dev/null || true
+    fi
+
     exit 0
 }
 
@@ -32,24 +60,27 @@ case "$MODE" in
     interactive)
         echo "Starting services..."
 
-        # Start mock API
-        echo "Starting mock API on port 8050..."
-        python3 /app/mock_api.py > /tmp/mock_api.log 2>&1 &
-        # Store PID for potential future use
+        # In mock mode, we only need the Gemini proxy which will connect to the unified API
+        if [ "${USE_MOCK_API}" = "true" ]; then
+            # Start unified tool API for Gemini (mock mode)
+            echo "Starting unified tool API in mock mode on port 8050..."
+            API_MODE=gemini API_VERSION=v3 PORT=8050 python3 /app/unified_tool_api.py > /tmp/unified_api.log 2>&1 &
+            API_PID=$!
 
-        # Wait for mock API
-        for _ in {1..10}; do
-            if curl -s http://localhost:8050/health > /dev/null 2>&1; then
-                echo "✅ Mock API ready"
-                break
-            fi
-            sleep 1
-        done
+            # Wait for unified API
+            for _ in {1..10}; do
+                if curl -s http://localhost:8050/health > /dev/null 2>&1; then
+                    echo "✅ Unified tool API ready (mock mode)"
+                    break
+                fi
+                sleep 1
+            done
+        fi
 
-        # Start Gemini proxy wrapper
-        echo "Starting Gemini proxy on port 8053..."
-        python3 /app/gemini_proxy_wrapper.py > /tmp/gemini_proxy.log 2>&1 &
-        # Store PID for potential future use
+        # Start Gemini proxy wrapper (includes tool support)
+        echo "Starting Gemini proxy with tool support on port 8053..."
+        MOCK_API_BASE=http://localhost:8050 python3 /app/gemini_proxy_wrapper.py > /tmp/gemini_proxy.log 2>&1 &
+        PROXY_PID=$!
 
         # Wait for proxy
         for _ in {1..10}; do
@@ -80,12 +111,12 @@ EOF
 
         echo ""
         echo "Services running:"
-        echo "  Mock API:     http://localhost:8050 (returns 'Hatsune Miku')"
+        echo "  Unified API:  http://localhost:8050 (Gemini mode)"
         echo "  Gemini Proxy: http://localhost:8053"
         echo ""
         echo "Environment configured:"
         echo "  GEMINI_API_BASE_URL=$GEMINI_API_BASE_URL"
-        echo "  Mock Mode: Enabled"
+        echo "  Mock Mode: ${USE_MOCK_API:-true}"
         echo ""
         echo "You can now use Gemini CLI:"
         echo "  gemini          - Interactive mode"
@@ -108,7 +139,7 @@ EOF
         echo "  echo 'Hello world' | gemini --non-interactive"
         echo ""
         echo "View logs:"
-        echo "  tail -f /tmp/mock_api.log"
+        echo "  tail -f /tmp/unified_api.log"
         echo "  tail -f /tmp/gemini_proxy.log"
         echo ""
         echo "=========================================="
@@ -123,10 +154,14 @@ EOF
     test)
         echo "Running tests..."
 
-        # Start services
-        python3 /app/mock_api.py > /tmp/mock_api.log 2>&1 &
+        # Start unified API in mock mode for Gemini
+        API_MODE=gemini API_VERSION=v3 PORT=8050 python3 /app/unified_tool_api.py > /tmp/unified_api.log 2>&1 &
+        API_PID=$!
         sleep 2
-        python3 /app/gemini_proxy_wrapper.py > /tmp/gemini_proxy.log 2>&1 &
+
+        # Start Gemini proxy wrapper
+        MOCK_API_BASE=http://localhost:8050 python3 /app/gemini_proxy_wrapper.py > /tmp/gemini_proxy.log 2>&1 &
+        PROXY_PID=$!
         sleep 2
 
         # Test 1: Check services are up
@@ -192,26 +227,30 @@ EOF
     daemon)
         echo "Starting in daemon mode..."
 
-        # Start services
-        python3 /app/mock_api.py > /tmp/mock_api.log 2>&1 &
-        python3 /app/gemini_proxy_wrapper.py > /tmp/gemini_proxy.log 2>&1 &
+        # Start unified API in mock mode for Gemini
+        API_MODE=gemini API_VERSION=v3 PORT=8050 python3 /app/unified_tool_api.py > /tmp/unified_api.log 2>&1 &
+        API_PID=$!
+
+        # Start Gemini proxy wrapper
+        MOCK_API_BASE=http://localhost:8050 python3 /app/gemini_proxy_wrapper.py > /tmp/gemini_proxy.log 2>&1 &
+        PROXY_PID=$!
 
         echo "Services started. Container will remain running..."
         echo "Logs available at:"
-        echo "  /tmp/mock_api.log"
+        echo "  /tmp/unified_api.log"
         echo "  /tmp/gemini_proxy.log"
 
         # Keep container running
         while true; do
             sleep 60
             # Check if services are still running
-            if ! pgrep -f mock_api.py > /dev/null; then
-                echo "Mock API died, restarting..."
-                python3 /app/mock_api.py > /tmp/mock_api.log 2>&1 &
+            if ! pgrep -f unified_tool_api.py > /dev/null; then
+                echo "Unified API died, restarting..."
+                API_MODE=gemini API_VERSION=v3 PORT=8050 python3 /app/unified_tool_api.py > /tmp/unified_api.log 2>&1 &
             fi
             if ! pgrep -f gemini_proxy_wrapper.py > /dev/null; then
                 echo "Gemini proxy died, restarting..."
-                python3 /app/gemini_proxy_wrapper.py > /tmp/gemini_proxy.log 2>&1 &
+                MOCK_API_BASE=http://localhost:8050 python3 /app/gemini_proxy_wrapper.py > /tmp/gemini_proxy.log 2>&1 &
             fi
         done
         ;;
