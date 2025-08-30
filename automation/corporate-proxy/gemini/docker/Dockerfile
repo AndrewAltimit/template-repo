@@ -89,9 +89,16 @@ RUN echo '#!/bin/bash' > /usr/local/bin/gemini && \
 RUN pip3 install --break-system-packages flask flask-cors requests
 
 # Copy proxy services (paths relative to repository root as build context)
+# Copy shared services with directory structure for imports
+RUN mkdir -p /app/shared/services
 COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified_tool_api.py
 COPY automation/corporate-proxy/shared/services/translation_wrapper.py /app/translation_wrapper.py
+COPY automation/corporate-proxy/shared/services/text_tool_parser.py /app/shared/services/text_tool_parser.py
+COPY automation/corporate-proxy/shared/services/__init__.py /app/shared/services/__init__.py
+# Copy Gemini-specific modules
 COPY automation/corporate-proxy/gemini/gemini_proxy_wrapper.py /app/gemini_proxy_wrapper.py
+COPY automation/corporate-proxy/gemini/gemini_tool_executor.py /app/gemini_tool_executor.py
+COPY automation/corporate-proxy/gemini/translation.py /app/translation.py
 
 # Copy Gemini config
 COPY automation/corporate-proxy/gemini/config/gemini-config.json /app/config/gemini-config.json
