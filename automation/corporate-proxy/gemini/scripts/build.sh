@@ -8,6 +8,7 @@ GEMINI_DIR="$(dirname "$SCRIPT_DIR")"
 CORPORATE_PROXY_DIR="$(dirname "$GEMINI_DIR")"
 
 # Source common functions
+# shellcheck disable=SC1091  # File exists at runtime
 source "$CORPORATE_PROXY_DIR/shared/scripts/common-functions.sh"
 
 print_header "Building Gemini CLI Corporate Proxy Container"
@@ -34,18 +35,21 @@ echo "  Target Architecture: $TARGETARCH"
 echo "  Build Context: $CORPORATE_PROXY_DIR"
 echo ""
 
+# Get repository root for build context
+REPO_ROOT="$(cd "$CORPORATE_PROXY_DIR/../.." && pwd)"
+
 # Build the container
 print_info "Building Docker image..."
-cd "$CORPORATE_PROXY_DIR"
+print_info "Using build context: $REPO_ROOT"
 
 if container_build \
     --platform "linux/${TARGETARCH}" \
-    -f gemini/docker/Dockerfile \
+    -f "$GEMINI_DIR/docker/Dockerfile" \
     --build-arg GEMINI_VERSION="$GEMINI_VERSION" \
     --build-arg USER_ID="$(id -u)" \
     --build-arg GROUP_ID="$(id -g)" \
     -t "$FULL_IMAGE" \
-    .; then
+    "$REPO_ROOT"; then
     print_header "✅ Build Complete!"
     echo ""
     echo "Image built: $FULL_IMAGE"

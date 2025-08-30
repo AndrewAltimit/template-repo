@@ -19,18 +19,22 @@ check_buildx
 
 print_info "Target architecture: $TARGETARCH"
 
-# Navigate to Crush directory
+# Navigate to Crush directory for relative Dockerfile path
 cd "$SCRIPT_DIR/.."
+
+# Get repository root for build context
+REPO_ROOT="$(cd "$CORPORATE_PROXY_ROOT/../.." && pwd)"
 
 # Build the Docker image
 print_info "Building Docker image for $TARGETARCH..."
+print_info "Using build context: $REPO_ROOT"
 if container_build \
     --platform "linux/${TARGETARCH}" \
     --pull \
-    -f docker/Dockerfile \
+    -f "$SCRIPT_DIR/../docker/Dockerfile" \
     -t crush-corporate:latest \
     --build-arg SERVICES_DIR="$SERVICES_DIR" \
-    "$CORPORATE_PROXY_ROOT"; then
+    "$REPO_ROOT"; then
     print_info "Build successful!"
     echo ""
     echo "Runtime: $CONTAINER_RUNTIME"
