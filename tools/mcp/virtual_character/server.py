@@ -551,6 +551,13 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 "description": "Get status of current sequence playback",
                 "parameters": {"type": "object", "properties": {}},
             },
+            "panic_reset": {
+                "description": (
+                    "Emergency reset - stops all sequences and resets avatar to neutral state. "
+                    "Useful for recovering from misbehaving animations or stuck states."
+                ),
+                "parameters": {"type": "object", "properties": {}},
+            },
         }
 
     async def set_backend(self, backend: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -780,62 +787,34 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             return {"success": False, "error": "No sequence created. Use create_sequence first."}
 
         try:
-            # Validate event_type
-            try:
-                event_type_enum = EventType[event_type.upper()]
-            except KeyError:
-                valid_types = [e.name.lower() for e in EventType]
-                return {"success": False, "error": f"Invalid event_type '{event_type}'. Must be one of {valid_types}"}
+            # Convert arguments to dictionary format for unified parsing
+            event_dict = {
+                "event_type": event_type,
+                "timestamp": timestamp,
+                "duration": duration,
+                "sync_with_audio": sync_with_audio,
+            }
 
-            # Create the appropriate event based on type
-            event = SequenceEvent(
-                event_type=event_type_enum,
-                timestamp=timestamp,
-                duration=duration,
-                sync_with_audio=sync_with_audio,
-            )
+            # Add type-specific parameters
+            if animation_params:
+                event_dict["animation_params"] = animation_params
+            if audio_data:
+                event_dict["audio_data"] = audio_data
+                event_dict["audio_format"] = audio_format
+            if wait_duration is not None:
+                event_dict["wait_duration"] = wait_duration
+            if expression:
+                event_dict["expression"] = expression
+                event_dict["expression_intensity"] = expression_intensity
+            if movement_params:
+                event_dict["movement_params"] = movement_params
+            if parallel_events:
+                event_dict["parallel_events"] = parallel_events
 
-            # Handle different event types
-            if event_type == "animation" and animation_params:
-                # Create animation data from params
-                animation = CanonicalAnimationData(timestamp=timestamp)
-                if "emotion" in animation_params:
-                    animation.emotion = EmotionType[animation_params["emotion"].upper()]
-                    animation.emotion_intensity = animation_params.get("emotion_intensity", 1.0)
-                if "gesture" in animation_params:
-                    animation.gesture = GestureType[animation_params["gesture"].upper()]
-                    animation.gesture_intensity = animation_params.get("gesture_intensity", 1.0)
-                if "parameters" in animation_params:
-                    animation.parameters = animation_params["parameters"]
-                event.animation_data = animation
-
-            elif event_type == "audio" and audio_data:
-                # Create audio data
-                import base64
-
-                if audio_data.startswith("data:"):
-                    audio_data = audio_data.split(",")[1]
-                audio_bytes = base64.b64decode(audio_data)
-                event.audio_data = AudioData(data=audio_bytes, format=audio_format, duration=duration or 0.0)
-
-            elif event_type == "wait":
-                event.wait_duration = wait_duration or duration or 1.0
-
-            elif event_type == "expression":
-                event.expression = EmotionType[expression.upper()] if expression else None
-                event.expression_intensity = expression_intensity
-
-            elif event_type == "movement":
-                event.movement_params = movement_params
-
-            elif event_type == "parallel" and parallel_events:
-                # Recursively create parallel events
-                event.parallel_events = []
-                for p_event_dict in parallel_events:
-                    # Recursively parse each parallel event
-                    p_event = await self._parse_event_dict(p_event_dict)
-                    if p_event:
-                        event.parallel_events.append(p_event)
+            # Use centralized event creation logic
+            event = await self._create_event_from_dict(event_dict)
+            if not event:
+                return {"success": False, "error": "Failed to create event from parameters"}
 
             # Add event to sequence
             self.current_sequence.add_event(event)
@@ -1055,10 +1034,15 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         return {"success": False, "error": "No sequence is playing"}
 
     async def _parse_event_dict(self, event_dict: Dict[str, Any]) -> Optional[SequenceEvent]:
-        """Parse a dictionary into a SequenceEvent."""
+        """Parse a dictionary into a SequenceEvent (for backward compatibility)."""
+        return await self._create_event_from_dict(event_dict)
+
+    async def _create_event_from_dict(self, event_dict: Dict[str, Any]) -> Optional[SequenceEvent]:
+        """Centralized event creation logic from dictionary."""
         try:
             event_type = event_dict.get("event_type", "").upper()
             if not event_type or event_type not in EventType.__members__:
+                self.logger.error(f"Invalid event_type: {event_type}")
                 return None
 
             event = SequenceEvent(
@@ -1079,6 +1063,8 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                     if "gesture" in animation_params:
                         animation.gesture = GestureType[animation_params["gesture"].upper()]
                         animation.gesture_intensity = animation_params.get("gesture_intensity", 1.0)
+                    if "parameters" in animation_params:
+                        animation.parameters = animation_params["parameters"]
                     event.animation_data = animation
 
             elif event_type == "AUDIO":
@@ -1112,14 +1098,14 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 parallel_events_data = event_dict.get("parallel_events", [])
                 event.parallel_events = []
                 for p_event_dict in parallel_events_data:
-                    p_event = await self._parse_event_dict(p_event_dict)
+                    p_event = await self._create_event_from_dict(p_event_dict)
                     if p_event:
                         event.parallel_events.append(p_event)
 
             return event
 
         except Exception as e:
-            self.logger.error(f"Error parsing event dict: {e}")
+            self.logger.error(f"Error creating event from dict: {e}")
             return None
 
     async def get_sequence_status(self) -> Dict[str, Any]:
@@ -1196,7 +1182,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             if success:
                 # Check if we can get stats (indicates healthy connection)
                 stats = await self.current_backend.get_statistics()
-                return stats.get("osc_messages_sent", 0) > 0
+                return bool(stats.get("osc_messages_sent", 0) > 0)
 
             return False
 
