@@ -276,6 +276,52 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             """Legacy HTTP endpoint"""
             return await self.send_animation(**request)
 
+        @self.app.post("/audio/play")
+        async def play_audio(request: Dict[str, Any]) -> Dict[str, Any]:
+            """
+            Audio bridge endpoint - plays audio through system speakers/virtual cable.
+            The audio will be picked up by VRChat as microphone input.
+            """
+            try:
+                import base64
+                import os
+                import subprocess
+                import tempfile
+
+                audio_data = request.get("audio_data")
+                format = request.get("format", "mp3")
+
+                if not audio_data:
+                    return {"success": False, "error": "No audio data provided"}
+
+                # Decode base64 audio
+                if audio_data.startswith("data:"):
+                    audio_data = audio_data.split(",")[1]
+                audio_bytes = base64.b64decode(audio_data)
+
+                # Save to temp file
+                with tempfile.NamedTemporaryFile(suffix=f".{format}", delete=False) as tmp_file:
+                    tmp_file.write(audio_bytes)
+                    tmp_path = tmp_file.name
+
+                # Play audio through system (Windows uses different command)
+                if os.name == "nt":  # Windows
+                    # Use Windows Media Player or ffplay if available
+                    subprocess.Popen(
+                        ["powershell", "-c", f"(New-Object Media.SoundPlayer '{tmp_path}').PlaySync()"], shell=False
+                    )
+                else:  # Linux/Mac
+                    subprocess.Popen(
+                        ["ffplay", "-nodisp", "-autoexit", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    )
+
+                self.logger.info(f"Playing audio file: {tmp_path}")
+                return {"success": True, "message": "Audio playback started", "file": tmp_path}
+
+            except Exception as e:
+                self.logger.error(f"Error playing audio: {e}")
+                return {"success": False, "error": str(e)}
+
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return available MCP tools"""
         return {
@@ -299,16 +345,14 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                                     "type": "integer",
                                     "default": 9000,
                                     "description": (
-                                        "DEPRECATED: Use vrchat_recv_port instead. "
-                                        "OSC input port (where VRChat receives)"
+                                        "DEPRECATED: Use vrchat_recv_port instead. " "OSC input port (where VRChat receives)"
                                     ),
                                 },
                                 "osc_out_port": {
                                     "type": "integer",
                                     "default": 9001,
                                     "description": (
-                                        "DEPRECATED: Use vrchat_send_port instead. "
-                                        "OSC output port (where VRChat sends)"
+                                        "DEPRECATED: Use vrchat_send_port instead. " "OSC output port (where VRChat sends)"
                                     ),
                                 },
                                 "vrchat_recv_port": {
