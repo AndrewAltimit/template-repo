@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """
-Gemini API Proxy Wrapper with Tool Support
+Gemini API Proxy Wrapper with Dual Mode Tool Support
 Intercepts Gemini API calls and redirects them through the corporate proxy
-Handles tool/function calls for Gemini CLI
+Supports both tool-enabled and non-tool-enabled endpoints
 """
 
 import json
 import logging
 import os
+
+# Import text-based tool parser for non-tool-enabled mode
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -18,6 +21,12 @@ from flask_cors import CORS
 
 # Import tool executor module
 from gemini_tool_executor import GEMINI_TOOLS, execute_tool_call
+
+# Import translation functions from the new module
+from translation import get_model_tool_mode, translate_company_to_gemini, translate_gemini_to_company
+
+sys.path.append(str(Path(__file__).parent.parent))
+from shared.services.text_tool_parser import TextToolParser  # noqa: E402
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -37,216 +46,19 @@ COMPANY_API_TOKEN = os.environ.get(CONFIG["corporate_api"]["token_env_var"], CON
 USE_MOCK = os.environ.get("USE_MOCK_API", str(CONFIG["mock_settings"]["enabled"])).lower() == "true"
 PROXY_PORT = int(os.environ.get("GEMINI_PROXY_PORT", CONFIG["proxy_settings"]["port"]))
 
+# Default tool mode configuration (can be overridden per model)
+DEFAULT_TOOL_MODE = os.environ.get("DEFAULT_TOOL_MODE", CONFIG.get("default_tool_mode", "native")).lower()
+MAX_TOOL_ITERATIONS = int(os.environ.get("MAX_TOOL_ITERATIONS", CONFIG.get("max_tool_iterations", 5)))
 
-def translate_gemini_to_company(gemini_request):
-    """Translate Gemini API request format to Company API format, handling tools"""
-
-    # Extract model and map it
-    model = gemini_request.get("model", "gemini-2.5-flash")
-    model_config = CONFIG["models"].get(model)
-
-    if not model_config:
-        logger.warning(f"Unknown model {model}, using default")
-        model_config = CONFIG["models"]["gemini-2.5-flash"]
-
-    endpoint = model_config["endpoint"]
-
-    # Check if tools are requested
-    tools = gemini_request.get("tools", [])
-
-    # Convert Gemini format to Company format
-    messages = []
-    system_prompt = ""
-
-    # Handle different Gemini request formats
-    if "messages" in gemini_request:
-        # Chat format
-        for msg in gemini_request["messages"]:
-            role = msg.get("role", "user")
-            content = msg.get("content", "")
-
-            # Handle tool results
-            if role == "function":
-                # Tool result message
-                tool_response = msg.get("parts", [{}])[0].get("functionResponse", {})
-                tool_name = tool_response.get("name", "unknown")
-                tool_result = tool_response.get("response", {})
-                content = f"Tool '{tool_name}' result: {json.dumps(tool_result)}"
-                role = "user"
-            elif role == "model" and "functionCall" in msg.get("parts", [{}])[0]:
-                # Tool call from model
-                continue  # Skip tool calls in history
-            elif role == "system":
-                system_prompt = content
-                continue
-            elif role == "model":
-                role = "assistant"
-
-            messages.append({"role": role, "content": content})
-
-    elif "contents" in gemini_request:
-        # Contents format (used by Google AI SDK)
-        for content in gemini_request["contents"]:
-            role = content.get("role", "user")
-            parts = content.get("parts", [])
-
-            # Check for tool calls in the parts
-            tool_calls = []
-            text_parts = []
-
-            for part in parts:
-                if isinstance(part, dict):
-                    if "functionCall" in part:
-                        tool_calls.append(part["functionCall"])
-                    elif "functionResponse" in part:
-                        # Handle tool response from Gemini CLI
-                        tool_response = part["functionResponse"]
-                        tool_name = tool_response.get("name", "unknown")
-                        tool_id = tool_response.get("id", "")
-                        tool_result = tool_response.get("response", {})
-
-                        # Format based on response content
-                        if "output" in tool_result:
-                            formatted_result = f"Tool '{tool_name}' completed: {tool_result['output']}"
-                        elif "error" in tool_result:
-                            formatted_result = f"Tool '{tool_name}' failed: {tool_result['error']}"
-                        else:
-                            formatted_result = f"Tool '{tool_name}' result: {json.dumps(tool_result)}"
-
-                        if tool_id:
-                            formatted_result = f"[ID: {tool_id}] {formatted_result}"
-
-                        text_parts.append(formatted_result)
-                    elif "text" in part:
-                        text_parts.append(part["text"])
-                elif isinstance(part, str):
-                    text_parts.append(part)
-
-            # Only execute tool calls in mock mode for testing
-            # In production, Gemini CLI will execute tools and send back functionResponse
-            if tool_calls and role == "model" and USE_MOCK:
-                # Execute tools and add results (mock mode only)
-                for tool_call in tool_calls:
-                    tool_name = tool_call.get("name")
-                    tool_args = tool_call.get("args", {})
-                    tool_result = execute_tool_call(tool_name, tool_args)
-                    text_parts.append(f"Tool '{tool_name}' result: {json.dumps(tool_result)}")
-
-            combined_text = "\n".join(text_parts)
-
-            if combined_text:
-                if role == "model":
-                    role = "assistant"
-                messages.append({"role": role, "content": combined_text})
-
-    # Add tool descriptions to system prompt if tools are provided
-    if tools:
-        tool_descriptions = []
-        for tool in tools:
-            if "functionDeclarations" in tool:
-                for func in tool["functionDeclarations"]:
-                    name = func.get("name", "unknown")
-                    desc = func.get("description", "")
-                    tool_descriptions.append(f"- {name}: {desc}")
-
-        if tool_descriptions:
-            tool_prompt = "You have access to the following tools:\n" + "\n".join(tool_descriptions)
-            tool_prompt += "\n\nTo use a tool, respond with a function call in the appropriate format."
-            system_prompt = f"{system_prompt}\n\n{tool_prompt}" if system_prompt else tool_prompt
-
-    # Build Company API request
-    company_request = {
-        "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": gemini_request.get("generationConfig", {}).get("maxOutputTokens", 1000),
-        "system": system_prompt or "You are a helpful AI assistant",
-        "messages": messages,
-        "temperature": gemini_request.get("generationConfig", {}).get("temperature", 0.7),
-    }
-
-    return endpoint, company_request, tools
+# Initialize text tool parser for text mode
+text_tool_parser = TextToolParser(tool_executor=execute_tool_call)
 
 
-def translate_company_to_gemini(company_response, original_request, tools=None):
-    """Translate Company API response back to Gemini format, checking for tool calls"""
+# Translation functions are now imported from the translation module
+# This improves code organization and separation of concerns
 
-    # Check if the response contains structured tool calls
-    # This is now the standard approach with unified_tool_api.py returning tool_calls for Gemini mode
-    tool_calls = None
-
-    # Check if the Company API returned tool_calls in a structured format
-    if "tool_calls" in company_response:
-        # Extract tool calls and convert to Gemini format
-        tool_calls = []
-        for tc in company_response["tool_calls"]:
-            # Parse arguments if they're JSON strings
-            args = tc.get("function", {}).get("arguments", {})
-            if isinstance(args, str):
-                try:
-                    args = json.loads(args)
-                except json.JSONDecodeError:
-                    args = {}
-
-            tool_calls.append({"name": tc.get("function", {}).get("name"), "args": args, "id": tc.get("id")})
-
-    # Build Gemini-style response
-    if tool_calls and len(tool_calls) > 0:
-        # Return function call response(s) in Gemini format
-        # Gemini can handle multiple function calls in one response
-        function_parts = []
-        for tool_call in tool_calls:
-            # Format the function call with proper structure
-            function_call_part = {"functionCall": {"name": tool_call.get("name"), "args": tool_call.get("args", {})}}
-            # Add ID if provided for correlation
-            if "id" in tool_call:
-                function_call_part["functionCall"]["id"] = tool_call["id"]
-            function_parts.append(function_call_part)
-
-        gemini_response = {
-            "candidates": [
-                {
-                    "content": {
-                        "parts": function_parts,
-                        "role": "model",
-                    },
-                    "finishReason": "STOP",
-                    "index": 0,
-                    "safetyRatings": [],
-                }
-            ],
-            "promptFeedback": {"safetyRatings": []},
-            "usageMetadata": {
-                "promptTokenCount": company_response.get("usage", {}).get("input_tokens", 0),
-                "candidatesTokenCount": company_response.get("usage", {}).get("output_tokens", 0),
-                "totalTokenCount": (
-                    company_response.get("usage", {}).get("input_tokens", 0)
-                    + company_response.get("usage", {}).get("output_tokens", 0)
-                ),
-            },
-        }
-    else:
-        # Regular text response - get the text from the response
-        response_text = company_response.get("content", [{"text": ""}])[0].get("text", "")
-        gemini_response = {
-            "candidates": [
-                {
-                    "content": {"parts": [{"text": response_text}], "role": "model"},
-                    "finishReason": "STOP",
-                    "index": 0,
-                    "safetyRatings": [],
-                }
-            ],
-            "promptFeedback": {"safetyRatings": []},
-            "usageMetadata": {
-                "promptTokenCount": company_response.get("usage", {}).get("input_tokens", 0),
-                "candidatesTokenCount": company_response.get("usage", {}).get("output_tokens", 0),
-                "totalTokenCount": (
-                    company_response.get("usage", {}).get("input_tokens", 0)
-                    + company_response.get("usage", {}).get("output_tokens", 0)
-                ),
-            },
-        }
-
-    return gemini_response
+# Re-export translation functions for backward compatibility with tests
+__all__ = ["get_model_tool_mode", "translate_gemini_to_company", "translate_company_to_gemini"]
 
 
 @app.route("/v1/models/<model>/generateContent", methods=["POST"])
@@ -530,12 +342,19 @@ def get_model(model):
 def health():
     """Health check endpoint"""
 
+    # Get tool modes for all models
+    model_tool_modes = {}
+    for model_name in CONFIG["models"].keys():
+        model_tool_modes[model_name] = get_model_tool_mode(model_name)
+
     return jsonify(
         {
             "status": "healthy",
             "service": "gemini_proxy_wrapper",
             "mock_mode": USE_MOCK,
             "tools_enabled": True,
+            "default_tool_mode": DEFAULT_TOOL_MODE,
+            "model_tool_modes": model_tool_modes,
             "timestamp": datetime.now().isoformat(),
         }
     )
@@ -543,9 +362,21 @@ def health():
 
 @app.route("/tools", methods=["GET"])
 def list_tools():
-    """List available tools"""
+    """List available tools with per-model mode information"""
 
-    return jsonify({"tools": list(GEMINI_TOOLS.keys()), "definitions": GEMINI_TOOLS})
+    # Get tool modes for all models
+    model_tool_modes = {}
+    for model_name in CONFIG["models"].keys():
+        model_tool_modes[model_name] = get_model_tool_mode(model_name)
+
+    return jsonify(
+        {
+            "tools": list(GEMINI_TOOLS.keys()),
+            "definitions": GEMINI_TOOLS,
+            "default_mode": DEFAULT_TOOL_MODE,
+            "model_tool_modes": model_tool_modes,
+        }
+    )
 
 
 @app.route("/execute", methods=["POST"])
@@ -563,25 +394,143 @@ def execute_tool():
     return jsonify(result)
 
 
+@app.route("/v1/models/<model>/continueWithTools", methods=["POST"])
+@app.route("/v1/models/<model>:continueWithTools", methods=["POST"])
+def continue_with_tools(model):
+    """
+    Continue a conversation after tool execution in text mode
+    This endpoint handles the feedback loop for non-tool-enabled endpoints
+    """
+
+    try:
+        data = request.json
+
+        # Extract the previous response and tool results
+        previous_response = data.get("previous_response", "")
+        tool_results = data.get("tool_results", [])
+        original_request = data.get("original_request", {})
+        conversation_history = data.get("conversation_history", [])
+
+        logger.info(f"Continuing conversation with {len(tool_results)} tool results")
+
+        # Format tool results for feedback
+        formatted_results = text_tool_parser.format_tool_results(tool_results)
+
+        # Build continuation prompt
+        continuation_prompt = f"""Here are the results from the tool executions:
+
+{formatted_results}
+
+Based on these results, please continue with the task. If you need to use more tools, you can do so. \
+If the task is complete, provide a summary of what was accomplished."""
+
+        # Add the previous AI response and tool results to conversation history
+        updated_messages = conversation_history.copy()
+        updated_messages.append({"role": "assistant", "content": previous_response})
+        updated_messages.append({"role": "user", "content": continuation_prompt})
+
+        # Create new request for the Company API
+        endpoint = CONFIG["models"].get(model, CONFIG["models"]["gemini-2.5-flash"])["endpoint"]
+
+        company_request = {
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": original_request.get("generationConfig", {}).get("maxOutputTokens", 1000),
+            "system": original_request.get("system_prompt", "You are a helpful AI assistant with tool access"),
+            "messages": updated_messages,
+            "temperature": original_request.get("generationConfig", {}).get("temperature", 0.7),
+        }
+
+        # Make request to Company API
+        if USE_MOCK:
+            mock_api_base = os.environ.get("MOCK_API_BASE", "http://localhost:8050")
+            company_url = f"{mock_api_base}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
+
+            response = requests.post(
+                company_url,
+                json=company_request,
+                headers={"Content-Type": "application/json"},
+                timeout=10,
+            )
+
+            if response.status_code != 200:
+                company_response = {
+                    "content": [{"text": "Continuing with mock response after tool execution."}],
+                    "usage": {"input_tokens": 10, "output_tokens": 20},
+                }
+            else:
+                company_response = response.json()
+        else:
+            company_url = f"{COMPANY_API_BASE}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
+
+            response = requests.post(
+                company_url,
+                json=company_request,
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {COMPANY_API_TOKEN}"},
+                timeout=CONFIG["proxy_settings"]["timeout"],
+            )
+
+            if response.status_code != 200:
+                logger.error(f"Company API error: {response.status_code}")
+                return jsonify({"error": "Upstream API error"}), response.status_code
+
+            company_response = response.json()
+
+        # Check if the new response has more tool calls
+        response_text = company_response.get("content", [{"text": ""}])[0].get("text", "")
+        new_tool_calls = text_tool_parser.parse_tool_calls(response_text)
+
+        # Build response
+        result = {
+            "response": response_text,
+            "has_tool_calls": len(new_tool_calls) > 0,
+            "tool_calls": new_tool_calls,
+            "conversation_history": updated_messages,
+            "complete": text_tool_parser.is_complete_response(response_text),
+        }
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error in continue_with_tools: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/", methods=["GET"])
 def root():
     """Root endpoint with service info"""
 
+    # Build model info with tool modes
+    model_info = {}
+    for model_name, model_config in CONFIG["models"].items():
+        tool_mode = get_model_tool_mode(model_name)
+        model_info[model_name] = {
+            "endpoint": model_config["endpoint"],
+            "tool_mode": tool_mode,
+            "supports_tools": model_config.get("supports_tools", tool_mode == "native"),
+        }
+
     return jsonify(
         {
-            "service": "Gemini Proxy Wrapper with Tools",
-            "description": "Translates Gemini API calls to Corporate API format with tool support",
+            "service": "Gemini Proxy Wrapper with Per-Model Tool Support",
+            "description": "Translates Gemini API calls to Corporate API format with model-specific tool handling",
             "mock_mode": USE_MOCK,
             "tools_enabled": True,
+            "default_tool_mode": DEFAULT_TOOL_MODE,
             "endpoints": {
                 "/v1/models": "List available models",
                 "/v1/models/{model}/generateContent": "Generate content with tool support",
                 "/v1/models/{model}/streamGenerateContent": "Stream content",
+                "/v1/models/{model}/continueWithTools": "Continue conversation after tool execution (text mode)",
                 "/tools": "List available tools",
                 "/execute": "Execute a tool directly",
-                "/health": "Health check",
+                "/health": "Health check with model configurations",
             },
-            "available_models": list(CONFIG["models"].keys()),
+            "configuration": {
+                "DEFAULT_TOOL_MODE": f"{DEFAULT_TOOL_MODE} (native=tool-enabled endpoints, text=parse from text)",
+                "MAX_TOOL_ITERATIONS": MAX_TOOL_ITERATIONS,
+                "MODEL_OVERRIDE_FORMAT": "GEMINI_MODEL_OVERRIDE_<model>_tool_mode=<mode>",
+            },
+            "models": model_info,
             "available_tools": list(GEMINI_TOOLS.keys()),
         }
     )
@@ -623,16 +572,29 @@ def catch_all(path):
 
 if __name__ == "__main__":
     logger.info("=" * 60)
-    logger.info("Gemini Proxy Wrapper with Tool Support")
+    logger.info("Gemini Proxy Wrapper with Per-Model Tool Support")
     logger.info("=" * 60)
     logger.info(f"Port: {PROXY_PORT}")
     logger.info(f"Company API Base: {COMPANY_API_BASE}")
     logger.info(f"Mock Mode: {USE_MOCK}")
+    logger.info(f"Default Tool Mode: {DEFAULT_TOOL_MODE}")
+    logger.info(f"Max Tool Iterations: {MAX_TOOL_ITERATIONS}")
+    logger.info("-" * 60)
+    logger.info("Model Configurations:")
+    for model_name, model_config in CONFIG["models"].items():
+        tool_mode = get_model_tool_mode(model_name)
+        supports_tools = model_config.get("supports_tools", tool_mode == "native")
+        logger.info(f"  {model_name}: tool_mode={tool_mode}, supports_tools={supports_tools}")
+    logger.info("-" * 60)
     logger.info("Tool execution handled by gemini_tool_executor module")
-    logger.info(f"Available models: {list(CONFIG['models'].keys())}")
     logger.info(f"Available tools: {list(GEMINI_TOOLS.keys())}")
     logger.info("-" * 60)
     logger.info(f"Gemini API endpoint: http://localhost:{PROXY_PORT}/v1")
+    logger.info("Models with text mode will parse tools from response text")
+    logger.info("Use /v1/models/{model}/continueWithTools for text mode feedback loop")
+    logger.info("-" * 60)
+    logger.info("Override model settings with environment variables:")
+    logger.info("  GEMINI_MODEL_OVERRIDE_<model>_tool_mode=<native|text>")
     logger.info("-" * 60)
 
     debug_mode = os.environ.get("FLASK_DEBUG", "false").lower() == "true"

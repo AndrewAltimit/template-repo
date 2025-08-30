@@ -3,6 +3,11 @@
 
 # Stage 1: Clone Gemini CLI source
 FROM alpine/git AS source
+
+# Copy and run corporate certificate installation script (as root)
+COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
+RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
+
 ARG GEMINI_VERSION=HEAD
 WORKDIR /source
 RUN git clone https://github.com/google-gemini/gemini-cli.git && \
@@ -13,6 +18,11 @@ RUN git clone https://github.com/google-gemini/gemini-cli.git && \
 
 # Stage 2: Build Gemini CLI
 FROM node:20 AS builder
+
+# Copy and run corporate certificate installation script (as root)
+COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
+RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
+
 WORKDIR /build
 COPY --from=source /source/gemini-cli ./gemini-cli
 
@@ -32,6 +42,10 @@ RUN npm run build
 
 # Stage 3: Runtime container
 FROM node:20-slim
+
+# Copy and run corporate certificate installation script (as root)
+COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
+RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
 
 # Build arguments for dynamic user creation
 ARG USER_ID=1000
@@ -53,6 +67,7 @@ RUN if getent passwd ${USER_ID} >/dev/null 2>&1; then \
 RUN apt-get update && apt-get install -y \
     python3 python3-pip python3-venv \
     bash curl git \
+    procps \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the built Gemini CLI
@@ -74,9 +89,16 @@ RUN echo '#!/bin/bash' > /usr/local/bin/gemini && \
 RUN pip3 install --break-system-packages flask flask-cors requests
 
 # Copy proxy services (paths relative to repository root as build context)
+# Copy shared services with directory structure for imports
+RUN mkdir -p /app/shared/services
 COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified_tool_api.py
 COPY automation/corporate-proxy/shared/services/translation_wrapper.py /app/translation_wrapper.py
+COPY automation/corporate-proxy/shared/services/text_tool_parser.py /app/shared/services/text_tool_parser.py
+COPY automation/corporate-proxy/shared/services/__init__.py /app/shared/services/__init__.py
+# Copy Gemini-specific modules
 COPY automation/corporate-proxy/gemini/gemini_proxy_wrapper.py /app/gemini_proxy_wrapper.py
+COPY automation/corporate-proxy/gemini/gemini_tool_executor.py /app/gemini_tool_executor.py
+COPY automation/corporate-proxy/gemini/translation.py /app/translation.py
 
 # Copy Gemini config
 COPY automation/corporate-proxy/gemini/config/gemini-config.json /app/config/gemini-config.json

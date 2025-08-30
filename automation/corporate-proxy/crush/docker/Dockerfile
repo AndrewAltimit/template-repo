@@ -1,18 +1,47 @@
 # Multi-stage build for Crush Company Integration
 # Stage 1: Download prebuilt Crush binary
-FROM alpine:latest AS downloader
+FROM alpine:3.20 AS downloader
+
+# Copy and run corporate certificate installation script (as root)
+COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
+RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
 
 # Install dependencies for downloading
 RUN apk add --no-cache curl tar
 
-# Download the nightly Crush release binary for Linux
+# Docker buildx automatically provides TARGETARCH
+ARG TARGETARCH
+
+# Crush version can be overridden at build time
+# Example: docker build --build-arg CRUSH_VERSION=0.9.0-nightly ...
+ARG CRUSH_VERSION=0.8.0-nightly
+
+# Map Docker arch to Crush release arch names
+# amd64 -> x86_64, arm64 -> aarch64
+RUN echo "Building for architecture: ${TARGETARCH}"
+
+# Download the nightly Crush release binary for the target architecture
 WORKDIR /tmp
-RUN curl -L https://github.com/charmbracelet/crush/releases/download/nightly/crush_0.8.0-nightly_Linux_x86_64.tar.gz -o crush.tar.gz && \
+RUN if [ "${TARGETARCH}" = "amd64" ]; then \
+        CRUSH_ARCH="x86_64"; \
+    elif [ "${TARGETARCH}" = "arm64" ]; then \
+        CRUSH_ARCH="aarch64"; \
+    else \
+        echo "Unsupported architecture: ${TARGETARCH}"; \
+        exit 1; \
+    fi && \
+    echo "Downloading Crush version ${CRUSH_VERSION} for ${CRUSH_ARCH}" && \
+    curl -L "https://github.com/charmbracelet/crush/releases/download/nightly/crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}.tar.gz" -o crush.tar.gz && \
     tar -xzf crush.tar.gz && \
-    chmod +x crush_0.8.0-nightly_Linux_x86_64/crush
+    mv crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}/crush crush-binary && \
+    chmod +x crush-binary
 
 # Stage 2: Runtime with Python translation services
 FROM python:3.11-alpine
+
+# Copy and run corporate certificate installation script (as root)
+COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
+RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
 
 # Add a non-root user
 RUN adduser -D -u 1001 appuser
@@ -21,7 +50,7 @@ RUN adduser -D -u 1001 appuser
 RUN apk add --no-cache bash curl ncurses ncurses-terminfo
 
 # Copy Crush binary from downloader (renamed to avoid conflict with wrapper)
-COPY --from=downloader /tmp/crush_0.8.0-nightly_Linux_x86_64/crush /usr/local/bin/crush-binary
+COPY --from=downloader /tmp/crush-binary /usr/local/bin/crush-binary
 
 # Install Python dependencies for translation services
 RUN pip install --no-cache-dir flask flask-cors requests

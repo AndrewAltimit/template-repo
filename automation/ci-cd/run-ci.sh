@@ -98,6 +98,36 @@ case "$STAGE" in
     '
     ;;
 
+  lint-shell)
+    echo "=== Linting shell scripts with shellcheck ==="
+    # shellcheck disable=SC2016
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c '
+      echo "Running shellcheck on all .sh files..."
+      ISSUES_FOUND=0
+      find . -name "*.sh" -type f | while read -r script; do
+        echo "Checking $script..."
+        if shellcheck -S warning "$script"; then
+          echo "✅ $script"
+        else
+          echo "❌ $script has issues"
+          ISSUES_FOUND=1
+        fi
+      done
+
+      # Return success even if issues found (for now)
+      # TODO: Make this fail CI once all scripts are fixed
+      if [ $ISSUES_FOUND -eq 1 ]; then
+        echo ""
+        echo "⚠️  Shell linting found issues (currently in advisory mode)"
+        echo "Consider fixing shellcheck warnings to improve script quality."
+      else
+        echo ""
+        echo "✅ All shell scripts passed linting!"
+      fi
+      exit 0
+    '
+    ;;
+
   autoformat)
     echo "=== Running autoformatters ==="
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci black .
@@ -130,17 +160,32 @@ case "$STAGE" in
       python-ci bash -c "pip install -r config/python/requirements.txt && pytest tests/ -v --cov=. --cov-report=xml --cov-report=term ${EXTRA_ARGS[*]}"
     ;;
 
+  test-corporate-proxy)
+    echo "=== Running corporate proxy tests ==="
+    docker-compose run --rm \
+      -e PYTHONDONTWRITEBYTECODE=1 \
+      -e PYTHONPYCACHEPREFIX=/tmp/pycache \
+      --user "${USER_ID}:${GROUP_ID}" \
+      python-ci python -m pytest \
+      automation/corporate-proxy/tests/ \
+      -v \
+      --tb=short \
+      --no-header "${EXTRA_ARGS[@]}"
+    ;;
+
   full)
     echo "=== Running full CI checks ==="
     $0 format
     $0 lint-basic
     $0 lint-full
+    $0 lint-shell
     $0 test
+    $0 test-corporate-proxy
     ;;
 
   *)
     echo "Unknown stage: $STAGE"
-    echo "Available stages: format, lint-basic, lint-full, security, test, test-gaea2, test-all, yaml-lint, json-lint, autoformat, full"
+    echo "Available stages: format, lint-basic, lint-full, lint-shell, security, test, test-gaea2, test-all, test-corporate-proxy, yaml-lint, json-lint, autoformat, full"
     exit 1
     ;;
 esac

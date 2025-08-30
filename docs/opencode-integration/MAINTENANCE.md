@@ -10,7 +10,7 @@ This document addresses maintenance concerns and patterns identified during code
 
 The integration patches specific OpenCode source files. When updating OpenCode:
 
-1. **Update the version** in `docker/opencode-company-tui.Dockerfile`:
+1. **Update the version** in `automation/corporate-proxy/opencode/docker/Dockerfile`:
    ```dockerfile
    ARG OPENCODE_VERSION=<new-commit-hash>
    ```
@@ -18,13 +18,14 @@ The integration patches specific OpenCode source files. When updating OpenCode:
 2. **Test patch compatibility**:
    ```bash
    # Build with new version
-   docker build --build-arg OPENCODE_VERSION=<hash> -f docker/opencode-company-tui.Dockerfile -t test-update .
+   cd automation/corporate-proxy/opencode
+   docker build --build-arg OPENCODE_VERSION=<hash> -f docker/Dockerfile -t test-update .
    ```
 
 3. **If patches fail**, examine the upstream changes and update:
-   - `docker/patches/models-company-simple.ts` - Models limiting logic
-   - `docker/patches/tui-company-fix.ts` - TUI binary path resolution
-   - `docker/patches/company-override.json` - Provider configuration
+   - `automation/corporate-proxy/opencode/docker/patches/models-company-simple.ts` - Models limiting logic
+   - `automation/corporate-proxy/opencode/docker/patches/tui-company-fix.ts` - TUI binary path resolution
+   - `automation/corporate-proxy/opencode/docker/patches/company-override.json` - Provider configuration
 
 ### 2. Path Dependencies
 
@@ -32,9 +33,9 @@ The following files have tightly coupled path dependencies that must be updated 
 
 | Component | File | Hardcoded Path | Notes |
 |-----------|------|----------------|-------|
-| TUI Binary | `docker/patches/tui-company-fix.ts` | `/home/bun/.cache/opencode/tui/tui-linux-x64` | Must match Dockerfile COPY destination |
-| Config | `docker/opencode-company-tui.Dockerfile` | `/home/bun/.config/opencode/.opencode.json` | Referenced by entrypoint script |
-| TUI Cache | `docker/opencode-company-tui.Dockerfile` | `/home/bun/.cache/opencode/tui/` | Directory structure for TUI binaries |
+| TUI Binary | `automation/corporate-proxy/opencode/docker/patches/tui-company-fix.ts` | `/home/bun/.cache/opencode/tui/tui-linux-x64` | Must match Dockerfile COPY destination |
+| Config | `automation/corporate-proxy/opencode/docker/Dockerfile` | `/home/bun/.config/opencode/.opencode.json` | Referenced by entrypoint script |
+| TUI Cache | `automation/corporate-proxy/opencode/docker/Dockerfile` | `/home/bun/.cache/opencode/tui/` | Directory structure for TUI binaries |
 
 **⚠️ WARNING**: If you change any path in the Dockerfile, update the corresponding patch files.
 
