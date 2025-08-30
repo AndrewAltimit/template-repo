@@ -239,6 +239,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         # Current backend instance
         self.current_backend: Optional[BackendAdapter] = None
         self.backend_name: Optional[str] = None
+        self.config: Optional[Dict[str, Any]] = None  # Store backend config for reconnection
 
         # Event sequencing
         self.current_sequence: Optional[EventSequence] = None
@@ -547,6 +548,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
 
             if success:
                 self.backend_name = backend
+                self.config = config  # Store config for reconnection
                 return {"success": True, "backend": backend, "message": f"Connected to {backend}"}
             else:
                 return {"success": False, "error": f"Failed to connect to {backend}"}
@@ -751,7 +753,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             except KeyError:
                 valid_types = [e.name.lower() for e in EventType]
                 return {"success": False, "error": f"Invalid event_type '{event_type}'. Must be one of {valid_types}"}
-            
+
             # Create the appropriate event based on type
             event = SequenceEvent(
                 event_type=event_type_enum,
@@ -841,49 +843,131 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             return {"success": False, "error": str(e)}
 
     async def _execute_sequence(self) -> None:
-        """Execute the current sequence."""
+        """Execute the current sequence with efficient event scheduling."""
         if not self.current_sequence or not self.current_backend:
             return
 
-        start_time = asyncio.get_event_loop().time()
-        last_time = self.sequence_time
+        try:
+            # Reset avatar state before starting sequence
+            await self._reset_avatar_state()
 
-        while True:
-            if self.sequence_paused:
-                await asyncio.sleep(0.1)
-                continue
+            # Sort events by timestamp for efficient execution
+            sorted_events = sorted(self.current_sequence.events, key=lambda e: e.timestamp)
 
-            # Calculate current sequence time
-            current_time = asyncio.get_event_loop().time() - start_time + self.sequence_time
+            start_time = asyncio.get_event_loop().time()
 
-            # Get events to trigger
-            for event in self.current_sequence.events:
-                if last_time <= event.timestamp < current_time:
+            # Execute events at their scheduled times
+            for event in sorted_events:
+                if self.sequence_paused:
+                    # Handle pause
+                    pause_start = asyncio.get_event_loop().time()
+                    while self.sequence_paused:
+                        await asyncio.sleep(0.1)
+                    # Adjust start time for pause duration
+                    pause_duration = asyncio.get_event_loop().time() - pause_start
+                    start_time += pause_duration
+
+                # Calculate time to wait until this event
+                current_time = asyncio.get_event_loop().time() - start_time
+                time_to_wait = event.timestamp - current_time
+
+                if time_to_wait > 0:
+                    await asyncio.sleep(time_to_wait)
+
+                # Execute the event with error handling
+                try:
                     await self._execute_event(event)
+                except Exception as e:
+                    self.logger.error(f"Error executing event at {event.timestamp}s: {e}")
+                    # Continue with next event instead of stopping sequence
 
-            last_time = current_time
+            # Wait for any remaining duration
+            if self.current_sequence.total_duration:
+                final_wait = self.current_sequence.total_duration - (asyncio.get_event_loop().time() - start_time)
+                if final_wait > 0:
+                    await asyncio.sleep(final_wait)
 
-            # Check if sequence is complete
-            if current_time >= (self.current_sequence.total_duration or 0):
-                if self.current_sequence.loop:
-                    # Reset for loop
-                    start_time = asyncio.get_event_loop().time()
-                    last_time = 0
-                    self.sequence_time = 0
-                else:
-                    # Sequence complete
-                    break
+            # Handle looping
+            if self.current_sequence.loop:
+                self.sequence_time = 0
+                # Recursively execute sequence again
+                await self._execute_sequence()
 
-            await asyncio.sleep(0.05)  # 20Hz update rate
+        finally:
+            # Always reset avatar state after sequence completes or errors
+            await self._reset_avatar_state()
+            self.current_sequence = None
+
+    async def _reset_avatar_state(self) -> None:
+        """Reset avatar to neutral state."""
+        if not self.current_backend:
+            return
+
+        try:
+            # Reset to neutral state
+            neutral_animation = CanonicalAnimationData(
+                timestamp=0,
+                emotion=EmotionType.NEUTRAL,
+                emotion_intensity=0,
+                gesture=GestureType.NONE,
+                gesture_intensity=0,
+                parameters={
+                    "move_forward": 0,
+                    "move_right": 0,
+                    "look_horizontal": 0,
+                    "look_vertical": 0,
+                    "jump": False,
+                    "crouch": False,
+                    "run": False,
+                },
+            )
+            await self.current_backend.send_animation_data(neutral_animation)
+
+            # Give VRChat time to process the reset
+            await asyncio.sleep(0.1)
+
+        except Exception as e:
+            self.logger.error(f"Error resetting avatar state: {e}")
+
+    async def panic_reset(self) -> Dict[str, Any]:
+        """Emergency reset - stops all sequences and resets avatar."""
+        try:
+            # Stop any running sequence
+            if self.sequence_task and not self.sequence_task.done():
+                self.sequence_task.cancel()
+                await asyncio.sleep(0.1)
+
+            # Clear sequence state
+            self.current_sequence = None
+            self.sequence_paused = False
+            self.sequence_time = 0
+
+            # Reset avatar
+            await self._reset_avatar_state()
+
+            # If using VRChat backend, recreate OSC connection
+            if self.backend_name == "vrchat_remote" and self.current_backend:
+                # Disconnect and reconnect to clear any stuck state
+                await self.current_backend.disconnect()
+                await asyncio.sleep(0.5)
+                await self.current_backend.connect(self.config or {})
+
+            return {"success": True, "message": "Emergency reset completed"}
+
+        except Exception as e:
+            self.logger.error(f"Error during panic reset: {e}")
+            return {"success": False, "error": str(e)}
 
     async def _execute_event(self, event: SequenceEvent) -> None:
-        """Execute a single event."""
+        """Execute a single event with error handling."""
         try:
             if event.event_type == EventType.ANIMATION and event.animation_data:
-                await self.current_backend.send_animation_data(event.animation_data)
+                if self.current_backend:
+                    await self.current_backend.send_animation_data(event.animation_data)
 
             elif event.event_type == EventType.AUDIO and event.audio_data:
-                await self.current_backend.send_audio_data(event.audio_data)
+                if self.current_backend:
+                    await self.current_backend.send_audio_data(event.audio_data)
 
             elif event.event_type == EventType.WAIT:
                 # Wait is handled by the sequence executor timing
@@ -894,12 +978,14 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 animation = CanonicalAnimationData(
                     timestamp=event.timestamp, emotion=event.expression, emotion_intensity=event.expression_intensity or 1.0
                 )
-                await self.current_backend.send_animation_data(animation)
+                if self.current_backend:
+                    await self.current_backend.send_animation_data(animation)
 
             elif event.event_type == EventType.MOVEMENT and event.movement_params:
                 # Create animation with movement parameters
                 animation = CanonicalAnimationData(timestamp=event.timestamp, parameters=event.movement_params)
-                await self.current_backend.send_animation_data(animation)
+                if self.current_backend:
+                    await self.current_backend.send_animation_data(animation)
 
             elif event.event_type == EventType.PARALLEL and event.parallel_events:
                 # Execute parallel events concurrently
@@ -941,14 +1027,14 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             event_type = event_dict.get("event_type", "").upper()
             if not event_type or event_type not in EventType.__members__:
                 return None
-            
+
             event = SequenceEvent(
                 event_type=EventType[event_type],
                 timestamp=event_dict.get("timestamp", 0.0),
                 duration=event_dict.get("duration"),
-                sync_with_audio=event_dict.get("sync_with_audio", False)
+                sync_with_audio=event_dict.get("sync_with_audio", False),
             )
-            
+
             # Parse event-specific data based on type
             if event_type == "ANIMATION":
                 animation_params = event_dict.get("animation_params", {})
@@ -961,32 +1047,33 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                         animation.gesture = GestureType[animation_params["gesture"].upper()]
                         animation.gesture_intensity = animation_params.get("gesture_intensity", 1.0)
                     event.animation_data = animation
-                    
+
             elif event_type == "AUDIO":
                 audio_data = event_dict.get("audio_data")
                 if audio_data:
                     import base64
+
                     if audio_data.startswith("data:"):
                         audio_data = audio_data.split(",")[1]
                     audio_bytes = base64.b64decode(audio_data)
                     event.audio_data = AudioData(
                         data=audio_bytes,
                         format=event_dict.get("audio_format", "mp3"),
-                        duration=event_dict.get("duration", 0.0)
+                        duration=event_dict.get("duration", 0.0),
                     )
-                    
+
             elif event_type == "EXPRESSION":
                 expression = event_dict.get("expression")
                 if expression:
                     event.expression = EmotionType[expression.upper()]
                     event.expression_intensity = event_dict.get("expression_intensity", 1.0)
-                    
+
             elif event_type == "MOVEMENT":
                 event.movement_params = event_dict.get("movement_params")
-                
+
             elif event_type == "WAIT":
                 event.wait_duration = event_dict.get("wait_duration", event_dict.get("duration", 1.0))
-                
+
             elif event_type == "PARALLEL":
                 # Recursively parse parallel events
                 parallel_events_data = event_dict.get("parallel_events", [])
@@ -995,16 +1082,16 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                     p_event = await self._parse_event_dict(p_event_dict)
                     if p_event:
                         event.parallel_events.append(p_event)
-            
+
             return event
-            
+
         except Exception as e:
             self.logger.error(f"Error parsing event dict: {e}")
             return None
-    
+
     async def get_sequence_status(self) -> Dict[str, Any]:
         """Get status of current sequence playback."""
-        status = {
+        status: Dict[str, Any] = {
             "has_sequence": self.current_sequence is not None,
             "is_playing": self.sequence_task is not None and not self.sequence_task.done(),
             "is_paused": self.sequence_paused,
