@@ -393,18 +393,28 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
    - See `tools/mcp/blender/docs/README.md` for documentation
 
 13. **Virtual Character MCP Server** (`tools/mcp/virtual_character/`): STDIO (local) or HTTP port 8020
-   - **AI Agent Embodiment Middleware**:
-     - `connect_backend` - Connect to virtual world platforms
-     - `send_animation` - Send canonical animation data
-     - `send_audio` - Audio with lip-sync metadata
-     - `get_state` - Retrieve environment state
-     - `capture_video` - Get agent's visual perspective
-     - `list_backends` - Available backend plugins
-     - `switch_backend` - Hot-swap between platforms
+   - **AI Agent Embodiment & Multimedia Performance Platform**:
+     - `set_backend` - Connect to virtual world platforms (VRChat, Blender, Unity)
+     - `send_animation` - Send animation data with emotions and gestures
+     - `send_audio` - Stream audio with ElevenLabs expression tags and lip-sync
+     - `execute_behavior` - High-level behaviors (greet, dance, sit, etc.)
+     - `reset` - Reset all states to neutral idle
+   - **Event Sequencing System** (NEW):
+     - `create_sequence` - Build complex multimedia performances
+     - `add_sequence_event` - Add synchronized audio/animation events
+     - `play_sequence`, `pause_sequence`, `resume_sequence`, `stop_sequence`
+     - Support for parallel events and loop behaviors
+   - **Audio Integration** (NEW):
+     - Full ElevenLabs TTS integration with expression tags
+     - Viseme data for realistic lip-sync animation
+     - Multi-format audio support (MP3, WAV, Opus, PCM)
+     - Emotion mapping from audio tags to character expressions
    - Plugin-based architecture for extensibility
    - Supports VRChat (OSC), Blender, Unity (WebSocket)
    - Remote Windows support for VRChat backend
-   - See `tools/mcp/virtual_character/README.md` for documentation
+   - See `tools/mcp/virtual_character/README.md` for complete documentation
+   - See `tools/mcp/virtual_character/docs/AUDIO_SEQUENCING.md` for audio guide
+   - See `tools/mcp/virtual_character/examples/elevenlabs_integration.py` for examples
 
 14. **Shared Core Components** (`tools/mcp/core/`):
    - `BaseMCPServer` - Base class for all MCP servers
@@ -626,6 +636,7 @@ For detailed information on specific topics, refer to these documentation files:
 - `docs/integrations/ai-services/opencode-crush.md` - **Comprehensive OpenCode & Crush documentation** (MCP calls, CLI usage, git workflows)
 - `docs/integrations/creative-tools/ai-toolkit-comfyui.md` - LoRA training and image generation
 - `docs/integrations/creative-tools/lora-transfer.md` - LoRA model transfer between services
+- `docs/integrations/creative-tools/virtual-character-elevenlabs.md` - **Virtual Character + ElevenLabs Integration** (expressive AI agents)
 - `docs/integrations/ai-services/gemini-setup.md` - Gemini CLI setup and configuration
 
 ### Gaea2 Terrain Generation
