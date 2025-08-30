@@ -67,6 +67,7 @@ RUN if getent passwd ${USER_ID} >/dev/null 2>&1; then \
 RUN apt-get update && apt-get install -y \
     python3 python3-pip python3-venv \
     bash curl git \
+    procps \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the built Gemini CLI
