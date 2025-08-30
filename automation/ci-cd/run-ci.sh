@@ -149,6 +149,7 @@ case "$STAGE" in
     $0 lint-basic
     $0 lint-full
     $0 test
+    $0 test-corporate-proxy
     ;;
 
   *)
