@@ -279,8 +279,14 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         @self.app.post("/audio/play")
         async def play_audio(request: Dict[str, Any]) -> Dict[str, Any]:
             """
-            Audio bridge endpoint - plays audio through system speakers/virtual cable.
-            The audio will be picked up by VRChat as microphone input.
+            Audio bridge endpoint - plays audio through virtual audio cable.
+            
+            Requirements:
+            1. Install VB-Audio Virtual Cable or similar
+            2. Set virtual cable as default playback device or specify device
+            3. Set VRChat microphone input to virtual cable output
+            
+            The audio will be routed: App -> Virtual Cable Input -> Virtual Cable Output -> VRChat Mic
             """
             try:
                 import base64
@@ -290,6 +296,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
 
                 audio_data = request.get("audio_data")
                 format = request.get("format", "mp3")
+                device_name = request.get("device", None)  # Optional: specific audio device
 
                 if not audio_data:
                     return {"success": False, "error": "No audio data provided"}
@@ -304,12 +311,38 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                     tmp_file.write(audio_bytes)
                     tmp_path = tmp_file.name
 
-                # Play audio through system (Windows uses different command)
+                # Play audio through virtual audio cable (Windows)
                 if os.name == "nt":  # Windows
-                    # Use Windows Media Player or ffplay if available
-                    subprocess.Popen(
-                        ["powershell", "-c", f"(New-Object Media.SoundPlayer '{tmp_path}').PlaySync()"], shell=False
-                    )
+                    # Build ffplay command with audio device selection
+                    cmd = ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet"]
+                    
+                    # If specific device requested, route to it (e.g., "CABLE Input" for VB-Audio)
+                    if device_name:
+                        # For Windows, use -audio_device with the device name
+                        cmd.extend(["-f", "lavfi", "-i", f"amovie={tmp_path},aformat=sample_fmts=s16:channel_layouts=stereo"])
+                        cmd.extend(["-audio_device", device_name])
+                    else:
+                        cmd.append(tmp_path)
+                    
+                    try:
+                        # Try ffplay with virtual cable routing
+                        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        self.logger.info(f"Playing audio through: {device_name or 'default device'}")
+                    except FileNotFoundError:
+                        # Fallback: Try using PowerShell with .NET to specify device
+                        ps_script = f"""
+                        Add-Type -AssemblyName System.Speech
+                        $synthesizer = New-Object System.Speech.Synthesis.SpeechSynthesizer
+                        # Play the audio file through default audio device
+                        # Note: For virtual cable, set it as Windows default playback device
+                        $player = New-Object System.Media.SoundPlayer '{tmp_path}'
+                        $player.Play()
+                        """
+                        subprocess.Popen(
+                            ["powershell", "-Command", ps_script],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL
+                        )
                 else:  # Linux/Mac
                     subprocess.Popen(
                         ["ffplay", "-nodisp", "-autoexit", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
