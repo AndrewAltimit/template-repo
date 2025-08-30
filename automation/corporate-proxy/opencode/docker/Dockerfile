@@ -102,18 +102,11 @@ RUN mkdir -p /home/appuser/.cache/opencode/tui
 # Copy TUI binary for the target architecture
 # Docker buildx automatically provides TARGETARCH
 ARG TARGETARCH
-# Map architecture names to x64/arm64 for compatibility
+# Always copy to the path expected by the patched application ('tui-linux-x64')
+# This ensures compatibility across all architectures
 RUN echo "Copying TUI for architecture: ${TARGETARCH}"
-COPY --from=tui-builder /build/opencode/packages/tui/tui-linux-${TARGETARCH} /tmp/tui-binary
-RUN if [ "${TARGETARCH}" = "amd64" ]; then \
-        cp /tmp/tui-binary /home/appuser/.cache/opencode/tui/tui-linux-x64; \
-    elif [ "${TARGETARCH}" = "arm64" ]; then \
-        cp /tmp/tui-binary /home/appuser/.cache/opencode/tui/tui-linux-arm64; \
-    else \
-        cp /tmp/tui-binary /home/appuser/.cache/opencode/tui/tui-linux-${TARGETARCH}; \
-    fi && \
-    chmod +x /home/appuser/.cache/opencode/tui/tui-linux-* && \
-    rm /tmp/tui-binary
+COPY --from=tui-builder /build/opencode/packages/tui/tui-linux-${TARGETARCH} /home/appuser/.cache/opencode/tui/tui-linux-x64
+RUN chmod +x /home/appuser/.cache/opencode/tui/tui-linux-x64
 
 # Also copy to alternate location for compatibility
 COPY --from=tui-builder /build/opencode/packages/tui/tui-linux-${TARGETARCH} /usr/local/bin/opencode-tui
