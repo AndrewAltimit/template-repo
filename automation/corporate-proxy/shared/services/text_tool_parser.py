@@ -234,7 +234,11 @@ class TextToolParser:
                 results.append({"tool": tool_call["name"], "parameters": tool_call["parameters"], "result": result})
             except Exception as e:
                 results.append(
-                    {"tool": tool_call["name"], "parameters": tool_call["parameters"], "result": {"success": False, "error": str(e)}}
+                    {
+                        "tool": tool_call["name"],
+                        "parameters": tool_call["parameters"],
+                        "result": {"success": False, "error": str(e)},
+                    }
                 )
 
         return results
@@ -457,7 +461,12 @@ class ToolInjector:
         if isinstance(tools, dict):
             # Convert dict to list format
             self.tools = [
-                {"functionDeclarations": [{"name": k, "description": v.get("description", ""), "parameters": v.get("parameters", {})} for k, v in tools.items()]}
+                {
+                    "functionDeclarations": [
+                        {"name": k, "description": v.get("description", ""), "parameters": v.get("parameters", {})}
+                        for k, v in tools.items()
+                    ]
+                }
             ]
         else:
             self.tools = tools
