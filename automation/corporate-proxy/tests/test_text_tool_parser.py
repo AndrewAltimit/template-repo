@@ -95,6 +95,51 @@ class TestTextToolParser(unittest.TestCase):
         self.assertEqual(tool_calls[1]["name"], "write_file")
         self.assertEqual(tool_calls[1]["parameters"]["content"], "Hello World")
 
+    def test_parse_python_style_format(self):
+        """Test parsing Python-style function calls"""
+        text = """
+        I'll create the file and run the tests.
+
+        Write("hello.md", "# Hello World\\n\\nThis is a test file.")
+
+        Now let me run the command:
+
+        Bash("./run.sh --verbose")
+        """
+
+        tool_calls = self.parser.parse_tool_calls(text)
+
+        self.assertEqual(len(tool_calls), 2)
+        self.assertEqual(tool_calls[0]["name"], "Write")
+        self.assertEqual(tool_calls[0]["parameters"]["file_path"], "hello.md")
+        self.assertIn("Hello World", tool_calls[0]["parameters"]["content"])
+
+        self.assertEqual(tool_calls[1]["name"], "Bash")
+        self.assertEqual(tool_calls[1]["parameters"]["command"], "./run.sh --verbose")
+
+    def test_parse_python_style_triple_quotes(self):
+        """Test parsing Python-style with triple quotes"""
+        text = '''
+        Creating a complex file:
+
+        Write("test.py", """
+def main():
+    print("Hello, World!")
+    return 0
+
+if __name__ == "__main__":
+    main()
+""")
+        '''
+
+        tool_calls = self.parser.parse_tool_calls(text)
+
+        self.assertEqual(len(tool_calls), 1)
+        self.assertEqual(tool_calls[0]["name"], "Write")
+        self.assertEqual(tool_calls[0]["parameters"]["file_path"], "test.py")
+        self.assertIn("def main():", tool_calls[0]["parameters"]["content"])
+        self.assertIn('print("Hello, World!")', tool_calls[0]["parameters"]["content"])
+
     def test_parse_alternative_format(self):
         """Test parsing alternative XML-like format"""
         text = """

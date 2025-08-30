@@ -23,6 +23,7 @@ The parser handles two main scenarios:
 - **Multiple Format Support**:
   - JSON format: ```tool_call {"tool": "name", "parameters": {...}} ```
   - XML format: <tool>function_name(key=value, ...)</tool>
+  - Python format: Write("file.txt", "content") or Bash("command")
   - Legacy formats for backward compatibility
 
 - **Performance Optimizations**:
@@ -102,8 +103,13 @@ class TextToolParser:
     - Security: Tool allowlist and size limits
     - Performance: Compiled regex patterns
     - Robustness: Better error handling and logging
-    - Flexibility: Supports JSON and XML formats
+    - Flexibility: Supports JSON, XML, and Python function call formats
     - Backward compatibility: Supports legacy methods
+
+    Supported formats:
+    - JSON: ```tool_call {"tool": "name", "parameters": {...}} ```
+    - XML: <tool>function_name(key=value, ...)</tool>
+    - Python: Write("file.txt", "content") or Bash("command")
     """
 
     # Compile regex patterns once for efficiency
@@ -115,6 +121,10 @@ class TextToolParser:
 
     # Pattern for parsing XML-style arguments
     XML_ARG_PATTERN = re.compile(r'(\w+)\s*=\s*("(?:\\"|[^"])*"|\'(?:\\\'|[^\'])*\'|[^,]+)')
+
+    # Python-style function calls: Write("file.txt", """content""") or Bash("command")
+    # This simpler pattern captures the function name and all arguments as a single group
+    PYTHON_TOOL_CALL_PATTERN = re.compile(r"\b([A-Z][a-zA-Z_]*)\s*\((.*?)\)", re.DOTALL)  # Function name and all arguments
 
     def __init__(
         self,
@@ -167,6 +177,139 @@ class TextToolParser:
                 params[key] = value_str.strip("\"'")
 
         return params
+
+    def _parse_python_call(self, text: str) -> List[Dict[str, Any]]:
+        """
+        Parse Python-style function calls like Write("file.txt", "content").
+
+        Maps common tool names to their expected parameter names:
+        - Write(path, content)
+        - Bash(command)
+        - Read(file_path)
+        - Edit(file_path, old_string, new_string, replace_all)
+        """
+        tool_calls = []
+
+        # Common tool parameter mappings
+        param_mappings = {
+            "Write": ["file_path", "content"],
+            "Bash": ["command", "description", "timeout", "run_in_background"],
+            "Read": ["file_path", "limit", "offset"],
+            "Edit": ["file_path", "old_string", "new_string", "replace_all"],
+            "MultiEdit": ["file_path", "edits"],
+            "Grep": ["pattern", "path", "output_mode"],
+            "Glob": ["pattern", "path"],
+            "WebFetch": ["url", "prompt"],
+            "WebSearch": ["query", "allowed_domains", "blocked_domains"],
+        }
+
+        for match in self.PYTHON_TOOL_CALL_PATTERN.finditer(text):
+            tool_name = match.group(1)
+            args_str = match.group(2)
+
+            # Parse the arguments string
+            args = self._parse_python_args(args_str)
+
+            # Map arguments to parameter names
+            params = {}
+            if tool_name in param_mappings:
+                param_names = param_mappings[tool_name]
+                for i, arg in enumerate(args):
+                    if i < len(param_names):
+                        params[param_names[i]] = arg
+            else:
+                # Generic parameter names for unknown tools
+                for i, arg in enumerate(args):
+                    params[f"arg{i}"] = arg
+
+            tool_calls.append({"name": tool_name, "parameters": params, "id": f"call_{len(tool_calls)}"})
+
+        return tool_calls
+
+    def _parse_python_args(self, args_str: str) -> List[str]:
+        """
+        Parse Python function arguments from a string.
+        Handles single quotes, double quotes, and triple quotes.
+        """
+        args = []
+        current_arg = []
+        in_string = False
+        string_delimiter = None
+        escape_next = False
+        i = 0
+
+        while i < len(args_str):
+            char = args_str[i]
+
+            # Handle escape sequences
+            if escape_next:
+                current_arg.append(char)
+                escape_next = False
+                i += 1
+                continue
+
+            if char == "\\" and in_string:
+                escape_next = True
+                i += 1
+                continue
+
+            # Check for triple quotes
+            if i + 2 < len(args_str):
+                triple = args_str[i : i + 3]
+                if triple in ('"""', "'''"):
+                    if not in_string:
+                        in_string = True
+                        string_delimiter = triple
+                        i += 3
+                        continue
+                    elif string_delimiter == triple:
+                        # End of triple-quoted string
+                        args.append("".join(current_arg))
+                        current_arg = []
+                        in_string = False
+                        string_delimiter = None
+                        i += 3
+                        continue
+
+            # Handle single/double quotes
+            if char in ('"', "'") and not in_string:
+                in_string = True
+                string_delimiter = char
+                i += 1
+                continue
+            elif char == string_delimiter and in_string and string_delimiter in ('"', "'"):
+                # End of quoted string
+                args.append("".join(current_arg))
+                current_arg = []
+                in_string = False
+                string_delimiter = None
+                i += 1
+                continue
+
+            # Handle commas (argument separator)
+            if char == "," and not in_string:
+                if current_arg:
+                    args.append("".join(current_arg).strip())
+                    current_arg = []
+                i += 1
+                continue
+
+            # Skip whitespace between arguments
+            if char.isspace() and not in_string and not current_arg:
+                i += 1
+                continue
+
+            # Add character to current argument
+            if in_string or not char.isspace():
+                current_arg.append(char)
+
+            i += 1
+
+        # Add the last argument if any
+        if current_arg:
+            args.append("".join(current_arg).strip())
+
+        return args
 
     def _validate_tool_name(self, tool_name: str) -> bool:
         """
@@ -291,6 +434,20 @@ class TextToolParser:
                 if self.log_errors:
                     logger.warning(f"Failed to parse XML tool call: {e}\n" f"Tool: {tool_name}, Args: {args_str[:100]}...")
                 continue
+
+        # Parse Python-style function calls (e.g., Write("file.txt", "content"))
+        # This is for models like Claude that output Python-style tool calls
+        python_calls = self._parse_python_call(text)
+        for call in python_calls:
+            if len(tool_calls) >= self.max_tool_calls:
+                break
+
+            # Security: Validate tool name
+            if not self._validate_tool_name(call["name"]):
+                continue
+
+            tool_calls.append(call)
+            self.stats["total_parsed"] += 1
 
         return tool_calls
 
