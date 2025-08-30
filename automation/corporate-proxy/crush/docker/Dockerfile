@@ -5,11 +5,28 @@ FROM alpine:latest AS downloader
 # Install dependencies for downloading
 RUN apk add --no-cache curl tar
 
-# Download the nightly Crush release binary for Linux
+# Docker buildx automatically provides TARGETARCH
+ARG TARGETARCH
+
+# Map Docker arch to Crush release arch names
+# amd64 -> x86_64, arm64 -> aarch64
+RUN echo "Building for architecture: ${TARGETARCH}"
+
+# Download the nightly Crush release binary for the target architecture
 WORKDIR /tmp
-RUN curl -L https://github.com/charmbracelet/crush/releases/download/nightly/crush_0.8.0-nightly_Linux_x86_64.tar.gz -o crush.tar.gz && \
+RUN if [ "${TARGETARCH}" = "amd64" ]; then \
+        CRUSH_ARCH="x86_64"; \
+    elif [ "${TARGETARCH}" = "arm64" ]; then \
+        CRUSH_ARCH="aarch64"; \
+    else \
+        echo "Unsupported architecture: ${TARGETARCH}"; \
+        exit 1; \
+    fi && \
+    echo "Downloading Crush for ${CRUSH_ARCH}" && \
+    curl -L "https://github.com/charmbracelet/crush/releases/download/nightly/crush_0.8.0-nightly_Linux_${CRUSH_ARCH}.tar.gz" -o crush.tar.gz && \
     tar -xzf crush.tar.gz && \
-    chmod +x crush_0.8.0-nightly_Linux_x86_64/crush
+    mv crush_0.8.0-nightly_Linux_${CRUSH_ARCH}/crush crush-binary && \
+    chmod +x crush-binary
 
 # Stage 2: Runtime with Python translation services
 FROM python:3.11-alpine
@@ -21,7 +38,7 @@ RUN adduser -D -u 1001 appuser
 RUN apk add --no-cache bash curl ncurses ncurses-terminfo
 
 # Copy Crush binary from downloader (renamed to avoid conflict with wrapper)
-COPY --from=downloader /tmp/crush_0.8.0-nightly_Linux_x86_64/crush /usr/local/bin/crush-binary
+COPY --from=downloader /tmp/crush-binary /usr/local/bin/crush-binary
 
 # Install Python dependencies for translation services
 RUN pip install --no-cache-dir flask flask-cors requests

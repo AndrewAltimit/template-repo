@@ -1,42 +1,44 @@
 #!/bin/bash
 #
-# Run corporate proxy tests in Docker container
+# Run corporate proxy tests in container
 # This follows the project's container-first philosophy
 #
 
 set -e
 
-# Colors for output
-BLUE='\033[0;34m'
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
-
 # Get script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
 
-echo -e "${BLUE}Running corporate proxy tests in Docker container...${NC}"
+# Source common functions
+source "$SCRIPT_DIR/shared/scripts/common-functions.sh"
+
+# Export user and group IDs for proper container permissions
+export USER_ID=$(id -u)
+export GROUP_ID=$(id -g)
+
+print_header "Running Corporate Proxy Tests"
+print_info "Using USER_ID=${USER_ID}, GROUP_ID=${GROUP_ID}"
+
+# Detect container runtime
+detect_container_runtime
 
 # Change to project root
 cd "$PROJECT_ROOT"
 
 # Build the CI image if needed
-echo -e "${BLUE}Building CI image...${NC}"
-docker-compose build python-ci
+print_info "Building CI image..."
+compose_build python-ci
 
 # Run all tests in container
-echo -e "${BLUE}Running tests...${NC}"
-docker-compose run --rm python-ci python -m pytest \
+print_info "Running tests..."
+if compose_run --rm --user "${USER_ID}:${GROUP_ID}" python-ci python -m pytest \
     automation/corporate-proxy/tests/ \
     -v \
     --tb=short \
-    --no-header
-
-# Check exit code
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}All tests passed!${NC}"
+    --no-header; then
+    print_success "All tests passed!"
 else
-    echo -e "${RED}Some tests failed!${NC}"
+    print_error "Some tests failed!"
     exit 1
 fi

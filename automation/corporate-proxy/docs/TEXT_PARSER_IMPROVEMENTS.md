@@ -1,7 +1,7 @@
 # Text Tool Parser Improvements
 
 ## Overview
-Based on Gemini's security review and recommendations, we've created an enhanced version of the text tool parser (`text_tool_parser_v2.py`) that addresses critical security, performance, and robustness concerns for production use.
+Based on Gemini's security review and recommendations, we've enhanced the text tool parser (`text_tool_parser.py`) with critical security, performance, and robustness improvements for production use.
 
 ## Key Improvements Implemented
 
@@ -61,7 +61,7 @@ Created comprehensive test suite with 20 tests covering:
 
 ### Basic Usage with Security
 ```python
-from text_tool_parser_v2 import TextToolParser
+from shared.services.text_tool_parser import TextToolParser
 
 # Create parser with security constraints
 allowed_tools = {"read_file", "write_file", "list_files"}
@@ -87,7 +87,7 @@ print(f"Parsed: {stats['total_parsed']}, Errors: {stats['parse_errors']}")
 
 ### Streaming Usage
 ```python
-from text_tool_parser_v2 import StreamingToolParser
+from shared.services.text_tool_parser import StreamingToolParser
 
 parser = StreamingToolParser(allowed_tools=allowed_tools)
 
@@ -103,15 +103,14 @@ final_tools = parser.flush()
 
 ## Migration Guide
 
-### From text_tool_parser.py to text_tool_parser_v2.py
+### Upgrading to Enhanced Parser
 
-1. **Update Import**:
+1. **Import Path** (if using from different location):
    ```python
-   # Old
-   from text_tool_parser import TextToolParser
-
-   # New
-   from text_tool_parser_v2 import TextToolParser
+   # From shared services
+   from shared.services.text_tool_parser import TextToolParser
+   
+   # The parser now includes all enhancements
    ```
 
 2. **Add Security Configuration**:
@@ -174,10 +173,10 @@ Based on Gemini's recommendations, potential future improvements:
 
 ## Summary
 
-The enhanced parser provides production-ready robustness with:
+The enhanced consolidated parser (`text_tool_parser.py`) provides production-ready robustness with:
 - **3x more security features** (allowlist, size limits, validation)
 - **4x better performance** (compiled regex, single pass)
 - **10x more test coverage** (20 comprehensive tests)
 - **Streaming support** for real-time AI responses
 
-This implementation follows Gemini's expert recommendations and industry best practices for parsing untrusted AI-generated content safely and efficiently.
+All enhancements have been consolidated into the main `text_tool_parser.py` file, following Gemini's expert recommendations and industry best practices for parsing untrusted AI-generated content safely and efficiently.

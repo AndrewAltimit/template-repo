@@ -24,8 +24,10 @@ ENV GOTOOLCHAIN=auto
 RUN go mod download || true
 
 # Build TUI for the target architecture
-ARG TARGETARCH=amd64
-RUN if [ -f "./cmd/opencode/main.go" ]; then \
+# Docker buildx automatically provides TARGETARCH
+ARG TARGETARCH
+RUN echo "Building for architecture: ${TARGETARCH}" && \
+    if [ -f "./cmd/opencode/main.go" ]; then \
         CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
         -ldflags="-s -w" \
         -o tui-linux-${TARGETARCH} \
@@ -79,9 +81,20 @@ RUN chmod +x /usr/local/bin/opencode.bin
 RUN mkdir -p /home/appuser/.cache/opencode/tui
 
 # Copy TUI binary for the target architecture
-ARG TARGETARCH=amd64
-COPY --from=tui-builder /build/opencode/packages/tui/tui-linux-${TARGETARCH} /home/appuser/.cache/opencode/tui/tui-linux-x64
-RUN chmod +x /home/appuser/.cache/opencode/tui/tui-linux-x64
+# Docker buildx automatically provides TARGETARCH
+ARG TARGETARCH
+# Map architecture names to x64/arm64 for compatibility
+RUN echo "Copying TUI for architecture: ${TARGETARCH}"
+COPY --from=tui-builder /build/opencode/packages/tui/tui-linux-${TARGETARCH} /tmp/tui-binary
+RUN if [ "${TARGETARCH}" = "amd64" ]; then \
+        cp /tmp/tui-binary /home/appuser/.cache/opencode/tui/tui-linux-x64; \
+    elif [ "${TARGETARCH}" = "arm64" ]; then \
+        cp /tmp/tui-binary /home/appuser/.cache/opencode/tui/tui-linux-arm64; \
+    else \
+        cp /tmp/tui-binary /home/appuser/.cache/opencode/tui/tui-linux-${TARGETARCH}; \
+    fi && \
+    chmod +x /home/appuser/.cache/opencode/tui/tui-linux-* && \
+    rm /tmp/tui-binary
 
 # Also copy to alternate location for compatibility
 COPY --from=tui-builder /build/opencode/packages/tui/tui-linux-${TARGETARCH} /usr/local/bin/opencode-tui

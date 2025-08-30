@@ -8,20 +8,33 @@ source "$SCRIPT_DIR/../../shared/scripts/common-functions.sh"
 
 print_header "Building OpenCode Corporate Integration"
 
-# Check Docker
-check_docker
+# Detect container runtime
+detect_container_runtime
+
+# Auto-detect architecture
+detect_architecture
+
+# Check if buildx is available
+check_buildx
+
+print_info "Target architecture: $TARGETARCH"
 
 # Navigate to OpenCode directory
 cd "$SCRIPT_DIR/.."
 
 # Build the Docker image
-print_info "Building Docker image..."
-if docker build --pull \
+print_info "Building Docker image for $TARGETARCH..."
+if container_build \
+    --platform "linux/${TARGETARCH}" \
+    --pull \
     -f docker/Dockerfile \
     -t opencode-corporate:latest \
     --build-arg SERVICES_DIR="$SERVICES_DIR" \
     "$CORPORATE_PROXY_ROOT"; then
     print_info "Build successful!"
+    echo ""
+    echo "Runtime: $CONTAINER_RUNTIME"
+    echo "Architecture: $TARGETARCH"
     echo ""
     echo "To run with mock services:"
     echo "  ./scripts/run.sh"
