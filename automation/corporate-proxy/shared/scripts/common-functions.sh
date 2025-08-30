@@ -36,12 +36,16 @@ print_success() {
 detect_container_runtime() {
     if command -v docker &> /dev/null && docker info &> /dev/null 2>&1; then
         export CONTAINER_RUNTIME="docker"
-        export COMPOSE_RUNTIME="docker-compose"
-        # Check if docker-compose exists, otherwise use docker compose
-        if ! command -v docker-compose &> /dev/null; then
-            if docker compose version &> /dev/null 2>&1; then
-                export COMPOSE_RUNTIME="docker compose"
-            fi
+
+        # Prefer modern 'docker compose' over legacy 'docker-compose'
+        if docker compose version &> /dev/null 2>&1; then
+            export COMPOSE_RUNTIME="docker compose"
+        elif command -v docker-compose &> /dev/null; then
+            export COMPOSE_RUNTIME="docker-compose"
+            print_warn "Using legacy docker-compose. Consider upgrading to Docker Compose V2."
+        else
+            print_error "No Docker Compose command available"
+            exit 1
         fi
     elif command -v podman &> /dev/null && podman info &> /dev/null 2>&1; then
         export CONTAINER_RUNTIME="podman"
@@ -50,7 +54,7 @@ detect_container_runtime() {
         print_error "Neither Docker nor Podman is available or running"
         exit 1
     fi
-    
+
     print_info "Using container runtime: $CONTAINER_RUNTIME"
     print_info "Using compose runtime: $COMPOSE_RUNTIME"
 }
@@ -181,7 +185,7 @@ check_buildx() {
             print_info "Docker buildx available for multi-arch support"
             export USE_BUILDX="true"
             export BUILD_CMD="docker buildx build --load"
-            
+
             # Ensure buildx builder is available
             if ! docker buildx ls | grep -q "default.*running"; then
                 print_info "Creating buildx builder..."

@@ -1,5 +1,87 @@
 #!/usr/bin/env python3
 """
+Text-Based Tool Call Parser for AI Agent Integration
+
+This module provides a secure, production-ready parser for extracting and executing tool calls
+from AI-generated text responses. It's designed for corporate proxy environments where AI models
+may not have native tool-calling capabilities and must embed tool invocations in text format.
+
+## Overview
+
+The parser handles two main scenarios:
+1. **Text Mode**: For models that don't support native tool calling (e.g., older Gemini models)
+2. **Hybrid Mode**: For systems that need to parse both native and text-based tool calls
+
+## Key Features
+
+- **Security-First Design**:
+  - Tool allowlisting to prevent unauthorized function execution
+  - Size limits to prevent memory exhaustion attacks
+  - Input sanitization to prevent injection attacks
+  - Comprehensive error handling with security logging
+
+- **Multiple Format Support**:
+  - JSON format: ```tool_call {"tool": "name", "parameters": {...}} ```
+  - XML format: <tool>function_name(key=value, ...)</tool>
+  - Legacy formats for backward compatibility
+
+- **Performance Optimizations**:
+  - Pre-compiled regex patterns for efficient parsing
+  - Configurable limits to prevent resource exhaustion
+  - Lazy evaluation where possible
+
+- **Robustness**:
+  - Graceful error handling with fallback behaviors
+  - Detailed logging for debugging and monitoring
+  - Support for malformed or partial tool calls
+
+## Security Considerations
+
+This module is designed with security as a primary concern:
+
+1. **Tool Allowlisting**: Only explicitly permitted tools can be executed
+2. **Size Limits**: Prevents memory exhaustion from large payloads
+3. **Rate Limiting**: Configurable maximum number of tool calls per response
+4. **Input Validation**: All parameters are validated before execution
+5. **No Dynamic Execution**: No use of eval() or exec() on user input
+6. **Audit Logging**: All tool calls are logged for security monitoring
+
+## Usage Example
+
+```python
+# Initialize with security constraints
+parser = TextToolParser(
+    allowed_tools={'search', 'calculate', 'read_file'},
+    max_json_size=100_000,  # 100KB limit
+    max_tool_calls=10
+)
+
+# Parse tool calls from AI response
+response_text = '''
+I'll search for that information.
+
+```tool_call
+{
+  "tool": "search",
+  "parameters": {
+    "query": "Python security best practices"
+  }
+}
+```
+'''
+
+tool_calls = parser.parse_tool_calls(response_text)
+# Returns: [{'name': 'search', 'parameters': {'query': 'Python security best practices'}}]
+```
+
+## Integration with Corporate Proxy
+
+This parser is specifically designed for corporate proxy environments where:
+- Direct API access may be restricted
+- Tool calling must go through approved channels
+- Security and audit requirements are stringent
+- Multiple AI models with different capabilities must be supported
+
 Enhanced text-based tool parsing with security hardening and performance improvements
 Consolidated version based on Gemini's security review and recommendations
 """
