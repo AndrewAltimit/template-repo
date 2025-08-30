@@ -6,14 +6,10 @@ Tests the full flow with mock servers
 
 import json
 import os
-import subprocess
 import sys
-import time
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import requests
+from unittest.mock import patch
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -147,7 +143,6 @@ class TestTextMode(unittest.TestCase):
         importlib.reload(wrapper)
 
         from gemini.gemini_proxy_wrapper import translate_gemini_to_company
-        from shared.services.text_tool_parser import TextToolParser
 
         # Use a model that's configured for text mode or override it
         with patch.dict(os.environ, {"GEMINI_MODEL_OVERRIDE_gemini_2_5_flash_tool_mode": "text"}):
@@ -320,8 +315,6 @@ class TestModeSwitching(unittest.TestCase):
 
     def test_mode_affects_behavior(self):
         """Test that mode changes behavior"""
-        from shared.services.text_tool_parser import TextToolParser, ToolInjector
-
         # In native mode, tools should not be injected into prompts
         with patch.dict(os.environ, {"TOOL_MODE": "native"}):
             # Native mode behavior tested in TestNativeMode
@@ -329,6 +322,8 @@ class TestModeSwitching(unittest.TestCase):
 
         # In text mode, tools should be injected
         with patch.dict(os.environ, {"TOOL_MODE": "text"}):
+            from shared.services.text_tool_parser import ToolInjector  # noqa: E402
+
             tools = {"test": {"description": "Test tool"}}
             injector = ToolInjector(tools)
 

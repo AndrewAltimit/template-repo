@@ -9,7 +9,7 @@ import os
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))

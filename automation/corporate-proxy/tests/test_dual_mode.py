@@ -7,14 +7,13 @@ Demonstrates both native (tool-enabled) and text (parsing) modes
 import json
 import os
 import sys
-import time
 from pathlib import Path
 
 import requests
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
-from shared.services.text_tool_parser import TextToolParser
+from shared.services.text_tool_parser import TextToolParser  # noqa: E402
 
 
 def test_native_mode():

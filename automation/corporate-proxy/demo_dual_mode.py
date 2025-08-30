@@ -12,8 +12,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent / "gemini"))
 
-from gemini_tool_executor import GEMINI_TOOLS, execute_tool_call
-from shared.services.text_tool_parser import TextToolParser, ToolInjector
+from gemini_tool_executor import GEMINI_TOOLS, execute_tool_call  # noqa: E402
+from shared.services.text_tool_parser import TextToolParser, ToolInjector  # noqa: E402
 
 
 def demo_native_mode():

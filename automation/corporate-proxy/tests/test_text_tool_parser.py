@@ -3,14 +3,13 @@
 Unit tests for the text-based tool parser
 """
 
-import json
 import sys
 import unittest
 from pathlib import Path
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
-from shared.services.text_tool_parser import TextToolParser, ToolInjector
+from shared.services.text_tool_parser import TextToolParser, ToolInjector  # noqa: E402
 
 
 class TestTextToolParser(unittest.TestCase):

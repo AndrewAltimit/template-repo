@@ -5,14 +5,11 @@ Tests various real-world scenarios with mock servers
 """
 
 import json
-import multiprocessing
 import os
 import sys
-import time
 import unittest
 from pathlib import Path
 
-import requests
 from flask import Flask, jsonify, request
 
 # Add parent directory to path
@@ -111,8 +108,7 @@ class TestMockScenarios(unittest.TestCase):
         from shared.services.text_tool_parser import TextToolParser
 
         # Scenario: User asks to read a configuration file
-        user_request = "Please read the configuration from config.json and tell me what port is configured."
-
+        # user_request = "Please read the configuration from config.json and tell me what port is configured."
         # Expected flow:
         # 1. User request → AI decides to use read_file tool
         # 2. Tool executes → Returns file content
@@ -152,7 +148,10 @@ class TestMockScenarios(unittest.TestCase):
         self.assertIn(file_content, continuation)
 
         # Simulate AI's analysis after getting file content
-        ai_response_2 = "Based on the configuration file, the port is configured as 8080. The service will run on localhost:8080 with debug mode enabled."
+        ai_response_2 = (
+            "Based on the configuration file, the port is configured as 8080. "
+            "The service will run on localhost:8080 with debug mode enabled."
+        )
 
         # Process final response
         continuation2, results2, needs_continue2 = parser.process_response_with_tools(ai_response_2)
@@ -455,34 +454,32 @@ class TestEndToEndScenarios(unittest.TestCase):
 
         # Simulate the complete flow from Gemini CLI
         # 1. User input via Gemini CLI
-        user_input = "Analyze the project structure and create a summary"
-
+        # user_input = "Analyze the project structure and create a summary"
         # 2. Gemini CLI sends to proxy with tools
-        gemini_request = {
-            "model": "gemini-2.5-flash",
-            "contents": [{"role": "user", "parts": [{"text": user_input}]}],
-            "tools": [
-                {
-                    "functionDeclarations": [
-                        {
-                            "name": "list_directory",
-                            "description": "List directory contents",
-                            "parameters": {"type": "object", "properties": {"path": {"type": "string"}}},
-                        },
-                        {
-                            "name": "write_file",
-                            "description": "Write to file",
-                            "parameters": {
-                                "type": "object",
-                                "properties": {"path": {"type": "string"}, "content": {"type": "string"}},
-                                "required": ["path", "content"],
-                            },
-                        },
-                    ]
-                }
-            ],
-        }
-
+        # gemini_request = {
+        #     "model": "gemini-2.5-flash",
+        #     "contents": [{"role": "user", "parts": [{"text": user_input}]}],
+        #     "tools": [
+        #         {
+        #             "functionDeclarations": [
+        #                 {
+        #                     "name": "list_directory",
+        #                     "description": "List directory contents",
+        #                     "parameters": {"type": "object", "properties": {"path": {"type": "string"}}},
+        #                 },
+        #                 {
+        #                     "name": "write_file",
+        #                     "description": "Write to file",
+        #                     "parameters": {
+        #                         "type": "object",
+        #                         "properties": {"path": {"type": "string"}, "content": {"type": "string"}},
+        #                         "required": ["path", "content"],
+        #                     },
+        #                 },
+        #             ]
+        #         }
+        #     ],
+        # }
         # 3. Process through text mode
         parser = TextToolParser()
 
@@ -533,7 +530,10 @@ class TestEndToEndScenarios(unittest.TestCase):
           "tool": "write_file",
           "parameters": {
             "path": "PROJECT_SUMMARY.md",
-            "content": "# Project Structure Summary\\n\\n- Source: src/\\n- Tests: tests/\\n- Docs: docs/\\n- Type: Python Package"
+            "content": (
+              "# Project Structure Summary\\n\\n"
+              "- Source: src/\\n- Tests: tests/\\n- Docs: docs/\\n- Type: Python Package"
+            )
           }
         }
         ```

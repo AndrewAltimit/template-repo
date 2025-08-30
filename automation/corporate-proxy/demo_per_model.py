@@ -77,7 +77,7 @@ def demonstrate_per_model_configuration():
         endpoint, company_req, _ = translate_gemini_to_company(request_native)
         print(f"    → Endpoint: {endpoint}")
         print(f"    → Tools in prompt: {'tool_call' in str(company_req)}")
-        print(f"    → Mode: Native (structured tool calls)")
+        print("    → Mode: Native (structured tool calls)")
 
         # Test text mode model
         print("\n  Testing gemini-1.5-flash (text mode):")
@@ -90,7 +90,7 @@ def demonstrate_per_model_configuration():
         endpoint, company_req, _ = translate_gemini_to_company(request_text)
         print(f"    → Endpoint: {endpoint}")
         print(f"    → Tools in prompt: {'tool_call' in str(company_req)}")
-        print(f"    → Mode: Text (tools parsed from response)")
+        print("    → Mode: Text (tools parsed from response)")
 
         # Test model without explicit configuration
         print("\n  Testing gemini-experimental (default mode):")
@@ -103,7 +103,7 @@ def demonstrate_per_model_configuration():
         endpoint, company_req, _ = translate_gemini_to_company(request_default)
         print(f"    → Endpoint: {endpoint}")
         print(f"    → Tool mode: {get_model_tool_mode('gemini-experimental')}")
-        print(f"    → Using default: native")
+        print("    → Using default: native")
 
         print("\n\n3. Environment Variable Overrides:")
         print("-" * 40)
@@ -112,7 +112,7 @@ def demonstrate_per_model_configuration():
         print("\n  Overriding gemini-2.5-flash to text mode:")
         with patch.dict(os.environ, {"GEMINI_MODEL_OVERRIDE_gemini_2_5_flash_tool_mode": "text"}):
             overridden_mode = get_model_tool_mode("gemini-2.5-flash")
-            print(f"    → Original mode: native")
+            print("    → Original mode: native")
             print(f"    → Overridden mode: {overridden_mode}")
             print(f"    → Override successful: {overridden_mode == 'text'}")
 
@@ -158,7 +158,7 @@ def demonstrate_mixed_workflow():
 }
 ```"""
 
-    print(f"    → Text with embedded tool:")
+    print("    → Text with embedded tool:")
     for line in text_response.split("\n"):
         print(f"      {line}")
 

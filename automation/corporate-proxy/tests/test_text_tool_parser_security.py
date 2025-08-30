@@ -14,7 +14,7 @@ from unittest.mock import patch
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from shared.services.text_tool_parser import StreamingToolParser, TextToolParser, ToolInjector
+from shared.services.text_tool_parser import StreamingToolParser, TextToolParser, ToolInjector  # noqa: E402
 
 
 class TestTextToolParserSecurity(unittest.TestCase):

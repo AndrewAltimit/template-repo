@@ -3,12 +3,11 @@
 Tests for per-model tool mode configuration
 """
 
-import json
 import os
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -96,7 +95,6 @@ class TestPerModelConfiguration(unittest.TestCase):
     def test_translate_with_text_model(self):
         """Test translation with a text tool mode model"""
         from gemini_proxy_wrapper import translate_gemini_to_company
-        from shared.services.text_tool_parser import TextToolParser
 
         with patch.dict("gemini_proxy_wrapper.CONFIG", self.test_config):
             gemini_request = {

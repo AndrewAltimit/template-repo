@@ -23,7 +23,7 @@ from flask_cors import CORS
 from gemini_tool_executor import GEMINI_TOOLS, execute_tool_call
 
 sys.path.append(str(Path(__file__).parent.parent))
-from shared.services.text_tool_parser import TextToolParser, ToolInjector
+from shared.services.text_tool_parser import TextToolParser, ToolInjector  # noqa: E402
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -698,7 +698,8 @@ def continue_with_tools(model):
 
 {formatted_results}
 
-Based on these results, please continue with the task. If you need to use more tools, you can do so. If the task is complete, provide a summary of what was accomplished."""
+Based on these results, please continue with the task. If you need to use more tools, you can do so. \
+If the task is complete, provide a summary of what was accomplished."""
 
         # Add the previous AI response and tool results to conversation history
         updated_messages = conversation_history.copy()
