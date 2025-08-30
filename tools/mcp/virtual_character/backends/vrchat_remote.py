@@ -78,6 +78,10 @@ class VRChatRemoteBackend(BackendAdapter):
         GestureType.SHAKE_HEAD: 0,  # Clear gesture
         GestureType.CLAP: 2,
         GestureType.DANCE: 5,
+        GestureType.BACKFLIP: 6,
+        GestureType.CHEER: 4,
+        GestureType.SADNESS: 7,
+        GestureType.DIE: 8,
     }
 
     GESTURE_PARAMS = {
@@ -142,7 +146,7 @@ class VRChatRemoteBackend(BackendAdapter):
             "animation_frames": 0,
             "errors": 0,
         }
-        
+
         # Task management for cleanup
         self.pending_tasks: set = set()  # Set of asyncio.Task objects
 
@@ -223,12 +227,12 @@ class VRChatRemoteBackend(BackendAdapter):
             # Cancel all pending tasks
             for task in self.pending_tasks:
                 task.cancel()
-            
+
             # Wait for tasks to complete cancellation
             if self.pending_tasks:
                 await asyncio.gather(*self.pending_tasks, return_exceptions=True)
             self.pending_tasks.clear()
-            
+
             # OSC server cleanup happens automatically when event loop ends
             # AsyncIOOSCUDPServer doesn't have a shutdown method
             self.osc_server = None

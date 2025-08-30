@@ -340,7 +340,20 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                         },
                         "gesture": {
                             "type": "string",
-                            "enum": ["none", "wave", "point", "thumbs_up", "nod", "shake_head", "clap", "dance"],
+                            "enum": [
+                                "none",
+                                "wave",
+                                "point",
+                                "thumbs_up",
+                                "nod",
+                                "shake_head",
+                                "clap",
+                                "dance",
+                                "backflip",
+                                "cheer",
+                                "sadness",
+                                "die",
+                            ],
                             "description": "Gesture to perform",
                         },
                         "gesture_intensity": {
@@ -558,6 +571,24 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 ),
                 "parameters": {"type": "object", "properties": {}},
             },
+            "send_vrcemote": {
+                "description": "Send a direct VRCEmote value (0-8) to VRChat backend for precise gesture control",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "emote_value": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 8,
+                            "description": (
+                                "VRCEmote value: 0=clear, 1=wave, 2=clap, 3=point, "
+                                "4=cheer, 5=dance, 6=backflip, 7=sadness, 8=die"
+                            ),
+                        }
+                    },
+                    "required": ["emote_value"],
+                },
+            },
         }
 
     async def set_backend(self, backend: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -689,6 +720,47 @@ class VirtualCharacterMCPServer(BaseMCPServer):
 
         except Exception as e:
             self.logger.error(f"Error getting backend status: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def send_vrcemote(self, emote_value: int) -> Dict[str, Any]:
+        """Send a direct VRCEmote value (0-8) to VRChat backend."""
+        if not self.current_backend:
+            return {"success": False, "error": "No backend connected. Use set_backend first."}
+
+        if self.backend_name != "vrchat_remote":
+            return {"success": False, "error": "VRCEmote is only supported on vrchat_remote backend"}
+
+        if not 0 <= emote_value <= 8:
+            return {"success": False, "error": "VRCEmote value must be between 0 and 8"}
+
+        try:
+            # Send directly through avatar parameters
+            animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
+            animation.parameters = {"avatar_params": {"VRCEmote": emote_value}}
+
+            success = await self.current_backend.send_animation_data(animation)
+
+            # Map emote value to gesture name for feedback
+            emote_names = {
+                0: "none/clear",
+                1: "wave",
+                2: "clap",
+                3: "point",
+                4: "cheer",
+                5: "dance",
+                6: "backflip",
+                7: "sadness",
+                8: "die",
+            }
+
+            return {
+                "success": success,
+                "emote_value": emote_value,
+                "gesture": emote_names.get(emote_value, "unknown"),
+                "message": f"Sent VRCEmote {emote_value} ({emote_names.get(emote_value, 'unknown')})",
+            }
+        except Exception as e:
+            self.logger.error(f"Error sending VRCEmote: {e}")
             return {"success": False, "error": str(e)}
 
     async def list_backends(self) -> Dict[str, Any]:

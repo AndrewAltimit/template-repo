@@ -42,6 +42,10 @@ class GestureType(Enum):
     CROSSED_ARMS = "crossed_arms"
     THINKING = "thinking"
     DANCE = "dance"
+    BACKFLIP = "backflip"
+    CHEER = "cheer"
+    DIE = "die"
+    SADNESS = "sadness"
 
 
 class VisemeType(Enum):
