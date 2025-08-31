@@ -1,0 +1,19 @@
+#!/bin/bash
+# Claude Code bash initialization file
+# This file is sourced for every bash command executed by Claude Code
+# It ensures security hooks are always active
+
+# Get the directory of this script
+HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Export for child processes
+export AGENT_HOOKS_DIR="${HOOKS_DIR}"
+
+# Create a function that overrides gh command
+# Functions work in non-interactive shells unlike aliases
+gh() {
+    "${HOOKS_DIR}/gh-wrapper.sh" "$@"
+}
+
+# Export the function so it's available in subshells
+export -f gh
