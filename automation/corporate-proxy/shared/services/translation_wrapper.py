@@ -295,26 +295,8 @@ def chat_completions():
             if parsed_tool_calls:
                 logger.info(f"Found {len(parsed_tool_calls)} tool calls in text")
                 tool_calls = format_tool_calls_for_openai(parsed_tool_calls)
-                # Remove tool call text from content
-                # Handle all three formats: JSON, XML, and Python-style
-                import re
-
-                # Python-style pattern (same as used in text_tool_parser)
-                python_pattern = (
-                    r"\b([A-Z][a-zA-Z_]*\s*\("  # Function name and opening paren
-                    r"(?:"  # Non-capturing group for arguments
-                    r'[^()"\']+'  # Non-quote, non-paren characters
-                    r'|"(?:[^"\\]|\\.)*"'  # Double-quoted strings
-                    r"|'(?:[^'\\]|\\.)*'"  # Single-quoted strings
-                    r'|"""[\s\S]*?"""'  # Triple double quotes
-                    r"|'''[\s\S]*?'''"  # Triple single quotes
-                    r"|\([^)]*\)"  # Nested parentheses (one level only)
-                    r")*"  # Zero or more of the above
-                    r"\))"  # Closing paren
-                )
-
-                for pattern in [r"```tool_call.*?```", r"<tool>.*?</tool>", python_pattern]:
-                    content = re.sub(pattern, "", content, flags=re.DOTALL).strip()
+                # Use centralized stripping logic from text_tool_parser
+                content = text_tool_parser.strip_tool_calls(content)
 
         # Handle streaming vs non-streaming
         if data.get("stream", False):

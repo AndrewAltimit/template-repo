@@ -4,6 +4,13 @@ Test script to verify that all tool call formats are properly stripped from cont
 """
 
 import re
+import sys
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "services"))
+
+from text_tool_parser import TextToolParser  # noqa: E402
 
 
 def normalize_content(content):
@@ -24,19 +31,8 @@ def normalize_content(content):
 def test_content_stripping():
     """Test that all tool call formats are stripped correctly"""
 
-    # Python-style pattern (same as in translation_wrapper_enhanced.py)
-    python_pattern = (
-        r"\b([A-Z][a-zA-Z_]*\s*\("  # Function name and opening paren
-        r"(?:"  # Non-capturing group for arguments
-        r'[^()"\']+'  # Non-quote, non-paren characters
-        r'|"(?:[^"\\]|\\.)*"'  # Double-quoted strings
-        r"|'(?:[^'\\]|\\.)*'"  # Single-quoted strings
-        r'|"""[\s\S]*?"""'  # Triple double quotes
-        r"|'''[\s\S]*?'''"  # Triple single quotes
-        r"|\([^)]*\)"  # Nested parentheses (one level only)
-        r")*"  # Zero or more of the above
-        r"\))"  # Closing paren
-    )
+    # Initialize the parser to use centralized stripping
+    parser = TextToolParser(allowed_tools={"write", "bash", "read", "multiedit", "grep"}, max_tool_calls=20)
 
     # Test case 1: JSON format
     content1 = """
@@ -55,10 +51,9 @@ def test_content_stripping():
     The file has been created.
     """
 
-    for pattern in [r"```tool_call.*?```", r"<tool>.*?</tool>", python_pattern]:
-        content1 = re.sub(pattern, "", content1, flags=re.DOTALL).strip()
-
-    content1_normalized = normalize_content(content1)
+    # Use centralized stripping method
+    content1_stripped = parser.strip_tool_calls(content1)
+    content1_normalized = normalize_content(content1_stripped)
     expected1 = normalize_content("I'll help you with that task.\n\nThe file has been created.")
     assert content1_normalized == expected1, f"JSON format not stripped correctly: {content1_normalized}"
     print("✅ JSON format stripping works")
@@ -72,10 +67,9 @@ def test_content_stripping():
     Here are the results.
     """
 
-    for pattern in [r"```tool_call.*?```", r"<tool>.*?</tool>", python_pattern]:
-        content2 = re.sub(pattern, "", content2, flags=re.DOTALL).strip()
-
-    content2_normalized = normalize_content(content2)
+    # Use centralized stripping method
+    content2_stripped = parser.strip_tool_calls(content2)
+    content2_normalized = normalize_content(content2_stripped)
     expected2 = normalize_content("Let me check that for you.\n\nHere are the results.")
     assert content2_normalized == expected2, f"XML format not stripped correctly: {content2_normalized}"
     print("✅ XML format stripping works")
@@ -92,10 +86,9 @@ def test_content_stripping():
     Done!
     """
 
-    for pattern in [r"```tool_call.*?```", r"<tool>.*?</tool>", python_pattern]:
-        content3 = re.sub(pattern, "", content3, flags=re.DOTALL).strip()
-
-    content3_normalized = normalize_content(content3)
+    # Use centralized stripping method
+    content3_stripped = parser.strip_tool_calls(content3)
+    content3_normalized = normalize_content(content3_stripped)
     expected3 = normalize_content("I'll write that file for you.\n\nAnd now let's check it:\n\nDone!")
     assert content3_normalized == expected3, f"Python format not stripped correctly: {content3_normalized}"
     print("✅ Python-style format stripping works")
@@ -118,10 +111,9 @@ def test_content_stripping():
     All done!
     """
 
-    for pattern in [r"```tool_call.*?```", r"<tool>.*?</tool>", python_pattern]:
-        content4 = re.sub(pattern, "", content4, flags=re.DOTALL).strip()
-
-    content4_normalized = normalize_content(content4)
+    # Use centralized stripping method
+    content4_stripped = parser.strip_tool_calls(content4)
+    content4_normalized = normalize_content(content4_stripped)
     expected4 = normalize_content(
         "Here's a complex example:\n\nFirst, I'll use Python style:\n\nThen JSON:\n\nAnd XML:\n\nAll done!"
     )
@@ -140,16 +132,38 @@ def test_content_stripping():
     All files updated.
     """
 
-    for pattern in [r"```tool_call.*?```", r"<tool>.*?</tool>", python_pattern]:
-        content5 = re.sub(pattern, "", content5, flags=re.DOTALL).strip()
-
-    content5_normalized = normalize_content(content5)
+    # Use centralized stripping method
+    content5_stripped = parser.strip_tool_calls(content5)
+    content5_normalized = normalize_content(content5_stripped)
     expected5 = normalize_content("Let me create a complex file:\n\nAnd another one:\n\nAll files updated.")
     assert content5_normalized == expected5, f"Complex Python calls not stripped correctly: {content5_normalized}"
     print("✅ Complex Python call stripping works")
 
+    # Test case 6: Verify centralized method is consistent
+    test_text = """
+    Here's a test with all formats:
+
+    Write("test.txt", "content")
+
+    ```tool_call
+    {"tool": "bash", "parameters": {"command": "ls"}}
+    ```
+
+    <tool>read(file_path="test.txt")</tool>
+
+    Done!
+    """
+
+    # Test that the centralized method produces same result as manual stripping
+    centralized_result = parser.strip_tool_calls(test_text)
+
+    # Also verify it leaves clean text
+    expected_clean = normalize_content("Here's a test with all formats:\n\nDone!")
+    assert normalize_content(centralized_result) == expected_clean, "Centralized stripping not working correctly"
+    print("✅ Centralized strip_tool_calls method works correctly")
+
     print("\n✅ All content stripping tests passed!")
-    print("The fix correctly handles JSON, XML, and Python-style tool calls.")
+    print("The centralized stripping method correctly handles JSON, XML, and Python-style tool calls.")
 
 
 if __name__ == "__main__":

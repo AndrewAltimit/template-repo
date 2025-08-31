@@ -565,6 +565,50 @@ class TextToolParser:
         """
         return self.param_mappings.copy()
 
+    def strip_tool_calls(self, text: str) -> str:
+        """
+        Remove all tool call formats from text.
+
+        This centralizes the content stripping logic to ensure consistency
+        between parsing and stripping. Uses the same patterns that are used
+        for parsing to guarantee that any parsed tool call can be stripped.
+
+        Args:
+            text: The text containing tool calls to strip
+
+        Returns:
+            The text with all tool calls removed
+        """
+        import re
+
+        # Strip JSON format tool calls
+        text = re.sub(r"```tool_call.*?```", "", text, flags=re.DOTALL)
+
+        # Strip XML format tool calls
+        text = re.sub(r"<tool>.*?</tool>", "", text, flags=re.DOTALL)
+
+        # Strip Python-style function calls using our compiled pattern
+        # We need to use the pattern string directly since PYTHON_TOOL_CALL_PATTERN
+        # is compiled with specific groups for parsing
+        python_pattern = (
+            r"\b([A-Z][a-zA-Z_]*\s*\("  # Function name and opening paren
+            r"(?:"  # Non-capturing group for arguments
+            r'[^()"\']+'  # Non-quote, non-paren characters
+            r'|"(?:[^"\\]|\\.)*"'  # Double-quoted strings
+            r"|'(?:[^'\\]|\\.)*'"  # Single-quoted strings
+            r'|"""[\s\S]*?"""'  # Triple double quotes
+            r"|'''[\s\S]*?'''"  # Triple single quotes
+            r"|\([^)]*\)"  # Nested parentheses (one level only)
+            r")*"  # Zero or more of the above
+            r"\))"  # Closing paren
+        )
+        text = re.sub(python_pattern, "", text, flags=re.DOTALL)
+
+        # Clean up any extra whitespace left behind
+        text = re.sub(r"\n\s*\n\s*\n+", "\n\n", text)
+
+        return text.strip()
+
     def get_stats(self) -> Dict[str, int]:
         """Get parsing statistics for monitoring."""
         return self.stats.copy()
