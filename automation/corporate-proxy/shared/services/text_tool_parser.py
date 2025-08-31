@@ -221,10 +221,19 @@ class TextToolParser:
         tool_calls = []
 
         # Common tool parameter mappings (using snake_case)
-        # MAINTENANCE NOTE: This dictionary MUST be kept in sync with the actual tool
-        # signatures. If a tool's positional parameter order changes, update this mapping
-        # to prevent parsing errors. The order here must match the exact order of
-        # positional arguments expected by each tool.
+        # -----------------
+        # CRITICAL MAINTENANCE WARNING:
+        # This dictionary creates a hardcoded dependency on the exact positional
+        # argument order of the target tools. If a tool's function signature is
+        # refactored (e.g., changing argument order, adding a new positional
+        # argument), THIS MAPPING MUST BE UPDATED.
+        #
+        # Failure to keep this in sync will lead to silent parsing errors where
+        # arguments are assigned to the wrong parameters.
+        #
+        # TODO: Investigate if this mapping can be generated programmatically
+        # from tool definitions at startup to eliminate this manual dependency.
+        # -----------------
         param_mappings = {
             "write": ["file_path", "content"],
             "bash": ["command", "description", "timeout", "run_in_background"],
