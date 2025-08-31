@@ -9,7 +9,7 @@
       "max_output_tokens": 8192,
       "default_max_tokens": 4096,
       "supports_streaming": false,
-      "supports_tools": true
+      "supports_tools": false
     },
     "claude-3-opus": {
       "id": "company/claude-3-opus",
@@ -20,7 +20,7 @@
       "max_output_tokens": 4096,
       "default_max_tokens": 4096,
       "supports_streaming": false,
-      "supports_tools": true
+      "supports_tools": false
     },
     "gpt-4": {
       "id": "company/gpt-4",
@@ -31,7 +31,7 @@
       "max_output_tokens": 4096,
       "default_max_tokens": 4096,
       "supports_streaming": false,
-      "supports_tools": true
+      "supports_tools": false
     }
   },
   "model_aliases": {

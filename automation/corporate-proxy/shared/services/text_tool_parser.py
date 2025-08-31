@@ -598,15 +598,25 @@ class TextToolParser:
         """
         import re
 
-        # Strip JSON format tool calls
-        text = re.sub(r"```tool_call.*?```", "", text, flags=re.DOTALL)
+        # Strip JSON format tool calls (including tool_code variant)
+        text = re.sub(r"```(?:tool_call|tool_code|json).*?```", "", text, flags=re.DOTALL)
 
         # Strip XML format tool calls
         text = re.sub(r"<tool>.*?</tool>", "", text, flags=re.DOTALL)
 
-        # Strip Python-style function calls using our compiled pattern
-        # We need to use the pattern string directly since PYTHON_TOOL_CALL_PATTERN
-        # is compiled with specific groups for parsing
+        # Strip Python code blocks that contain tool calls
+        # First, find all Python code blocks
+        python_blocks = re.finditer(r"```python\s*\n(.*?)\n\s*```", text, re.DOTALL)
+
+        # Check each block for tool calls and remove if found
+        for match in reversed(list(python_blocks)):
+            block_content = match.group(1)
+            # Check if block contains our tool call pattern
+            if re.search(r"\b[A-Z][a-zA-Z_]*\s*\(", block_content):
+                # Replace the entire code block
+                text = text[: match.start()] + text[match.end() :]
+
+        # Also strip inline Python-style function calls (not in code blocks)
         python_pattern = (
             r"\b([A-Z][a-zA-Z_]*\s*\("  # Function name and opening paren
             r"(?:"  # Non-capturing group for arguments
