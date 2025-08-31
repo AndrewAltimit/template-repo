@@ -1,0 +1,64 @@
+{
+  "models": {
+    "custom-llm-7b": {
+      "id": "company/custom-llm-7b",
+      "name": "Custom LLM 7B (No Tools)",
+      "vendor": "custom",
+      "endpoint": "ai-coe-custom-llm-7b:analyze=null",
+      "max_input_tokens": 32000,
+      "max_output_tokens": 4096,
+      "default_max_tokens": 2048,
+      "supports_streaming": false,
+      "supports_tools": false,
+      "notes": "This model doesn't support native tools, will use text parsing"
+    },
+    "custom-llm-70b": {
+      "id": "company/custom-llm-70b",
+      "name": "Custom LLM 70B (With Tools)",
+      "vendor": "custom",
+      "endpoint": "ai-coe-custom-llm-70b:analyze=null",
+      "max_input_tokens": 128000,
+      "max_output_tokens": 8192,
+      "default_max_tokens": 4096,
+      "supports_streaming": true,
+      "supports_tools": true,
+      "notes": "This model has native tool support"
+    },
+    "legacy-gpt": {
+      "id": "company/legacy-gpt",
+      "name": "Legacy GPT Model",
+      "vendor": "openai",
+      "endpoint": "ai-coe-legacy-gpt:analyze=null",
+      "max_input_tokens": 8000,
+      "max_output_tokens": 2048,
+      "default_max_tokens": 1024,
+      "supports_streaming": false,
+      "supports_tools": false,
+      "notes": "Older model without tool support, perfect for text parsing"
+    },
+    "claude-3.5-sonnet": {
+      "id": "company/claude-3.5-sonnet",
+      "name": "Claude 3.5 Sonnet (Company)",
+      "vendor": "anthropic",
+      "endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
+      "max_input_tokens": 200000,
+      "max_output_tokens": 8192,
+      "default_max_tokens": 4096,
+      "supports_streaming": false,
+      "supports_tools": true
+    }
+  },
+  "model_aliases": {
+    "opencode/default": "custom-llm-70b",
+    "opencode/fast": "custom-llm-7b",
+    "opencode/legacy": "legacy-gpt",
+    "crush/default": "custom-llm-7b",
+    "gpt-4": "custom-llm-70b",
+    "gpt-3.5-turbo": "custom-llm-7b"
+  },
+  "defaults": {
+    "large": "custom-llm-70b",
+    "small": "custom-llm-7b",
+    "no-tools": "legacy-gpt"
+  }
+}
