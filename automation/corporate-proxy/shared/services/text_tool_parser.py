@@ -129,6 +129,8 @@ class TextToolParser:
     # include deeply nested structures like Tool(arg1, (arg2, (arg3))), the regex may
     # fail to capture the complete call. This is unlikely with current tool patterns but
     # is a known limitation if argument complexity increases in the future.
+    # Note: This regex finds text that looks like a Python function call. The located
+    # string is then passed to ast.parse for full, robust parsing of arbitrarily complex structures.
     PYTHON_TOOL_CALL_PATTERN = re.compile(
         r"\b([A-Z][a-zA-Z_]*\s*\("  # Function name and opening paren
         r"(?:"  # Non-capturing group for arguments
@@ -223,10 +225,13 @@ class TextToolParser:
                 return param_mappings
 
         # Fallback to hardcoded defaults if no definitions available
-        # This maintains backward compatibility
+        # CRITICAL: The order of parameters here MUST match the expected
+        # positional argument order for Python-style function calls.
+        # Changing the order will break existing tool call parsing!
+        # See MAINTENANCE.md for detailed requirements.
         logger.warning("No tool definitions provided, using hardcoded param mappings as fallback")
         return {
-            "write": ["file_path", "content"],
+            "write": ["file_path", "content"],  # Order: 1. file_path, 2. content
             "bash": ["command", "description", "timeout", "run_in_background"],
             "read": ["file_path", "limit", "offset"],
             "edit": ["file_path", "old_string", "new_string", "replace_all"],
