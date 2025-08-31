@@ -125,6 +125,10 @@ class TextToolParser:
 
     # Python-style function calls: Write("file.txt", """content""") or Bash("command")
     # More sophisticated pattern that handles triple quotes and nested structures
+    # LIMITATION: This regex only handles ONE level of nested parentheses. If tool calls
+    # include deeply nested structures like Tool(arg1, (arg2, (arg3))), the regex may
+    # fail to capture the complete call. This is unlikely with current tool patterns but
+    # is a known limitation if argument complexity increases in the future.
     PYTHON_TOOL_CALL_PATTERN = re.compile(
         r"\b([A-Z][a-zA-Z_]*\s*\("  # Function name and opening paren
         r"(?:"  # Non-capturing group for arguments
@@ -133,7 +137,7 @@ class TextToolParser:
         r"|'(?:[^'\\]|\\.)*'"  # Single-quoted strings
         r'|"""[\s\S]*?"""'  # Triple double quotes
         r"|'''[\s\S]*?'''"  # Triple single quotes
-        r"|\([^)]*\)"  # Nested parentheses (one level)
+        r"|\([^)]*\)"  # Nested parentheses (one level only)
         r")*"  # Zero or more of the above
         r"\))",  # Closing paren
         re.DOTALL,
@@ -217,6 +221,10 @@ class TextToolParser:
         tool_calls = []
 
         # Common tool parameter mappings (using snake_case)
+        # MAINTENANCE NOTE: This dictionary MUST be kept in sync with the actual tool
+        # signatures. If a tool's positional parameter order changes, update this mapping
+        # to prevent parsing errors. The order here must match the exact order of
+        # positional arguments expected by each tool.
         param_mappings = {
             "write": ["file_path", "content"],
             "bash": ["command", "description", "timeout", "run_in_background"],
@@ -422,7 +430,7 @@ class TextToolParser:
                 continue
 
             tool_calls.append(call)
-            self.stats["total_parsed"] += 1
+            # Don't increment here - already incremented in _parse_python_call
 
         return tool_calls
 
