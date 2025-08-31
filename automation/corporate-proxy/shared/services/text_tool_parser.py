@@ -451,9 +451,10 @@ class TextToolParser:
             return []
 
         tool_calls = []
+        remaining_text = text  # Work with a copy to progressively strip parsed content
 
         # Parse JSON format tool calls
-        for match in self.JSON_TOOL_CALL_PATTERN.finditer(text):
+        for match in self.JSON_TOOL_CALL_PATTERN.finditer(remaining_text):
             if len(tool_calls) >= self.max_tool_calls:
                 if self.log_errors:
                     logger.warning(f"Reached max tool calls limit ({self.max_tool_calls})")
@@ -490,6 +491,9 @@ class TextToolParser:
                 # Reset consecutive errors on successful parse
                 self.stats["consecutive_errors"] = 0
 
+                # Remove the parsed JSON from remaining text to avoid duplicates
+                remaining_text = remaining_text.replace(match.group(0), "", 1)
+
             except json.JSONDecodeError as e:
                 self.stats["parse_errors"] += 1
                 self.stats["json_parse_errors"] += 1
@@ -508,7 +512,7 @@ class TextToolParser:
                 continue
 
         # Parse XML format tool calls
-        for match in self.XML_TOOL_CALL_PATTERN.finditer(text):
+        for match in self.XML_TOOL_CALL_PATTERN.finditer(remaining_text):
             if len(tool_calls) >= self.max_tool_calls:
                 break
 
@@ -526,6 +530,9 @@ class TextToolParser:
                 # Reset consecutive errors on successful parse
                 self.stats["consecutive_errors"] = 0
 
+                # Remove the parsed XML from remaining text to avoid duplicates
+                remaining_text = remaining_text.replace(match.group(0), "", 1)
+
             except Exception as e:
                 self.stats["parse_errors"] += 1
                 self.stats["xml_parse_errors"] += 1
@@ -536,7 +543,10 @@ class TextToolParser:
 
         # Parse Python-style function calls (e.g., Write("file.txt", "content"))
         # This is for models like Claude that output Python-style tool calls
-        python_calls = self._parse_python_call(text)
+        # Note: Since _parse_python_call processes all Python calls at once,
+        # and they are distinct from JSON/XML formats, duplicates are unlikely
+        # but we still use remaining_text for consistency
+        python_calls = self._parse_python_call(remaining_text)
         for call in python_calls:
             if len(tool_calls) >= self.max_tool_calls:
                 break
