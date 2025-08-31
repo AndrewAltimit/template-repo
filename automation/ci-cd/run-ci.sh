@@ -42,7 +42,7 @@ case "$STAGE" in
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci black --check .
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci isort --check-only .
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci flake8 . --count --max-complexity=10 --max-line-length=127 --statistics
     ;;
 
   lint-full)
@@ -50,20 +50,20 @@ case "$STAGE" in
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci black --check .
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci isort --check-only .
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci flake8 . --count --statistics
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c 'find . -name "*.py" -not -path "./venv/*" -not -path "./.venv/*" | xargs pylint --output-format=parseable --exit-zero'
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c "pip install -r config/python/requirements.txt && mypy . --ignore-missing-imports --no-error-summary" || true
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c 'find . -name "*.py" -not -path "./venv/*" -not -path "./.venv/*" | xargs pylint --output-format=parseable'
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c "pip install -r config/python/requirements.txt && mypy . --ignore-missing-imports --no-error-summary"
     ;;
 
   security)
     echo "=== Running security scans ==="
-    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bandit -r . -f json -o bandit-report.json || true
+    docker-compose -f "$COMPOSE_FILE" run --rm python-ci bandit -r . -f json -o bandit-report.json
     # Dependency security check - try Safety with API key, fallback to pip-audit
     if [ -n "$SAFETY_API_KEY" ]; then
       echo "Using Safety with API key..."
-      docker-compose -f "$COMPOSE_FILE" run --rm -T -e SAFETY_API_KEY="$SAFETY_API_KEY" python-ci safety scan --key "$SAFETY_API_KEY" --disable-optional-telemetry --output json > safety-report.json || true
+      docker-compose -f "$COMPOSE_FILE" run --rm -T -e SAFETY_API_KEY="$SAFETY_API_KEY" python-ci safety scan --key "$SAFETY_API_KEY" --disable-optional-telemetry --output json > safety-report.json
     else
       echo "No SAFETY_API_KEY found, using pip-audit instead..."
-      docker-compose -f "$COMPOSE_FILE" run --rm -T python-ci python -m pip_audit --format json > safety-report.json || true
+      docker-compose -f "$COMPOSE_FILE" run --rm -T python-ci python -m pip_audit --format json > safety-report.json
     fi
     ;;
 
@@ -81,7 +81,7 @@ case "$STAGE" in
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c '
       for file in $(find . -name "*.yml" -o -name "*.yaml"); do
         echo "Checking $file..."
-        yamllint "$file" || true
+        yamllint "$file"
         python3 -c "import yaml; yaml.safe_load(open(\"$file\")); print(\"✅ Valid YAML: $file\")" || echo "❌ Invalid YAML: $file"
       done
     '
@@ -104,27 +104,26 @@ case "$STAGE" in
     docker-compose -f "$COMPOSE_FILE" run --rm python-ci bash -c '
       echo "Running shellcheck on all .sh files..."
       ISSUES_FOUND=0
-      find . -name "*.sh" -type f | while read -r script; do
+      for script in $(find . -name "*.sh" -type f ); do
         echo "Checking $script..."
         if shellcheck -S warning "$script"; then
           echo "✅ $script"
         else
           echo "❌ $script has issues"
           ISSUES_FOUND=1
+          exit 1
         fi
       done
 
-      # Return success even if issues found (for now)
-      # TODO: Make this fail CI once all scripts are fixed
-      if [ $ISSUES_FOUND -eq 1 ]; then
+      if [ $ISSUES_FOUND -ne 0 ]; then
         echo ""
-        echo "⚠️  Shell linting found issues (currently in advisory mode)"
-        echo "Consider fixing shellcheck warnings to improve script quality."
+        echo "❌  Shell linting failed: issues were found in your shell scripts."
+        echo "Please fix all the reported shellcheck errors to continue."
+        exit 1
       else
         echo ""
         echo "✅ All shell scripts passed linting!"
       fi
-      exit 0
     '
     ;;
 
@@ -148,7 +147,6 @@ case "$STAGE" in
     else
       echo "❌ Gaea2 MCP server is not reachable at $GAEA2_URL"
       echo "⚠️  Skipping Gaea2 tests. To run them, ensure the server is available."
-      exit 0
     fi
     ;;
 

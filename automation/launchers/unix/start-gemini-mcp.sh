@@ -16,7 +16,7 @@ if [[ "$1" == "--http" ]]; then
     echo "Logs: /tmp/gemini-mcp.log"
 
     echo "Waiting for server to become healthy..."
-    for i in {1..10}; do
+    for _ in {1..10}; do
         if curl -s http://localhost:$GEMINI_PORT/health | grep -q "healthy"; then
             echo "✅ Server is healthy."
             HEALTH_JSON=$(curl -s http://localhost:$GEMINI_PORT/health)
