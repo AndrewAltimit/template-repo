@@ -28,8 +28,20 @@ nvm use 22.16.0
 NODE_VERSION=$(node --version)
 echo "✅ Using Node.js: $NODE_VERSION"
 
-# Security hooks are now automatically loaded via /etc/bash.bashrc
-# No need to source them manually anymore
+# Set up security hooks for GitHub operations
+# This ensures reaction image URLs are validated and secrets are masked
+REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+HOOKS_SCRIPT="$REPO_ROOT/automation/security/setup-agent-hooks.sh"
+
+if [ -f "$HOOKS_SCRIPT" ]; then
+    echo "🔐 Loading security hooks..."
+    # shellcheck source=/dev/null
+    source "$HOOKS_SCRIPT"
+    echo "✅ Security hooks activated (GitHub comment validation enabled)"
+else
+    echo "⚠️  Security hooks not found at $HOOKS_SCRIPT"
+    echo "   GitHub comment validation will not be active"
+fi
 
 # Ask about unattended mode
 echo "🤖 Claude Code Configuration"
