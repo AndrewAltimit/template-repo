@@ -124,8 +124,20 @@ class TextToolParser:
     XML_ARG_PATTERN = re.compile(r'(\w+)\s*=\s*("(?:\\"|[^"])*"|\'(?:\\\'|[^\'])*\'|[^,]+)')
 
     # Python-style function calls: Write("file.txt", """content""") or Bash("command")
-    # This simpler pattern captures the function name and all arguments as a single group
-    PYTHON_TOOL_CALL_PATTERN = re.compile(r"\b([A-Z][a-zA-Z_]*)\s*\((.*?)\)", re.DOTALL)  # Function name and all arguments
+    # More sophisticated pattern that handles triple quotes and nested structures
+    PYTHON_TOOL_CALL_PATTERN = re.compile(
+        r"\b([A-Z][a-zA-Z_]*\s*\("  # Function name and opening paren
+        r"(?:"  # Non-capturing group for arguments
+        r'[^()"\']+'  # Non-quote, non-paren characters
+        r'|"(?:[^"\\]|\\.)*"'  # Double-quoted strings
+        r"|'(?:[^'\\]|\\.)*'"  # Single-quoted strings
+        r'|"""[\s\S]*?"""'  # Triple double quotes
+        r"|'''[\s\S]*?'''"  # Triple single quotes
+        r"|\([^)]*\)"  # Nested parentheses (one level)
+        r")*"  # Zero or more of the above
+        r"\))",  # Closing paren
+        re.DOTALL,
+    )
 
     def __init__(
         self,
@@ -194,13 +206,13 @@ class TextToolParser:
 
     def _parse_python_call(self, text: str) -> List[Dict[str, Any]]:
         """
-        Parse Python-style function calls like Write("file.txt", "content").
+        Parse Python-style function calls using ast.parse for full Python syntax support.
 
-        Maps common tool names to their expected parameter names:
-        - Write(path, content)
-        - Bash(command)
-        - Read(file_path)
-        - Edit(file_path, old_string, new_string, replace_all)
+        This handles:
+        - Triple-quoted strings with embedded newlines
+        - Keyword arguments
+        - Complex nested structures
+        - All Python literal types
         """
         tool_calls = []
 
@@ -218,56 +230,61 @@ class TextToolParser:
         }
 
         for match in self.PYTHON_TOOL_CALL_PATTERN.finditer(text):
-            tool_name_raw = match.group(1)
-            args_str = match.group(2)
+            call_str = match.group(1)
 
-            # Normalize tool name to snake_case
-            tool_name = self._to_snake_case(tool_name_raw)
+            try:
+                # Parse the entire function call as Python code
+                tree = ast.parse(call_str)
 
-            # Parse the arguments string
-            args = self._parse_python_args(args_str)
+                # Extract the call node
+                if not tree.body or not isinstance(tree.body[0], ast.Expr):
+                    continue
 
-            # Map arguments to parameter names
-            params = {}
-            if tool_name in param_mappings:
-                param_names = param_mappings[tool_name]
-                for i, arg in enumerate(args):
-                    if i < len(param_names):
-                        params[param_names[i]] = arg
-            else:
-                # Generic parameter names for unknown tools
-                for i, arg in enumerate(args):
-                    params[f"arg{i}"] = arg
+                call_node = tree.body[0].value
+                if not isinstance(call_node, ast.Call) or not isinstance(call_node.func, ast.Name):
+                    continue
 
-            tool_calls.append({"name": tool_name, "parameters": params, "id": f"call_{len(tool_calls)}"})
+                tool_name_raw = call_node.func.id
+                tool_name = self._to_snake_case(tool_name_raw)
+
+                # Security: Validate tool name
+                if not self._validate_tool_name(tool_name):
+                    continue
+
+                params = {}
+
+                # 1. Map positional arguments
+                if tool_name in param_mappings:
+                    param_names = param_mappings[tool_name]
+                    for i, arg_node in enumerate(call_node.args):
+                        if i < len(param_names):
+                            try:
+                                # Use ast.literal_eval on the node to get the value
+                                params[param_names[i]] = ast.literal_eval(arg_node)
+                            except (ValueError, TypeError) as e:
+                                if self.log_errors:
+                                    logger.warning(f"Could not evaluate argument {i}: {e}")
+
+                # 2. Map keyword arguments (these override positional if both exist)
+                for kw_node in call_node.keywords:
+                    if kw_node.arg:  # Skip **kwargs
+                        try:
+                            params[kw_node.arg] = ast.literal_eval(kw_node.value)
+                        except (ValueError, TypeError) as e:
+                            if self.log_errors:
+                                logger.warning(f"Could not evaluate keyword argument {kw_node.arg}: {e}")
+
+                tool_calls.append({"name": tool_name, "parameters": params, "id": f"call_{len(tool_calls)}"})
+                self.stats["total_parsed"] += 1
+
+            except (ValueError, SyntaxError) as e:
+                self.stats["parse_errors"] += 1
+                if self.log_errors:
+                    logger.warning(f"Could not parse Python call with ast.parse: {e}")
+                    logger.warning(f"Call string: {call_str[:200]}...")
+                continue
 
         return tool_calls
-
-    def _parse_python_args(self, args_str: str) -> List[Any]:
-        """
-        Safely parse Python function arguments from a string using ast.literal_eval.
-
-        This handles all Python literal types: strings, numbers, booleans, None,
-        lists, tuples, and dictionaries. Only well-formed Python syntax is accepted.
-
-        If the input cannot be parsed, an empty list is returned. This ensures
-        predictable behavior and avoids masking syntax errors from the model.
-        """
-        if not args_str.strip():
-            return []
-
-        try:
-            # Wrap the arguments in a list to form a valid literal structure
-            eval_str = f"[{args_str}]"
-            args = ast.literal_eval(eval_str)
-            return args
-        except (ValueError, SyntaxError) as e:
-            if self.log_errors:
-                logger.warning(f"Could not parse Python arguments with ast.literal_eval: {e}")
-                logger.warning(f"Arguments string: {args_str[:200]}...")
-            # Return empty list - if the model generates unparseable output,
-            # that's a problem that should be addressed at the source
-            return []
 
     def _validate_tool_name(self, tool_name: str) -> bool:
         """
