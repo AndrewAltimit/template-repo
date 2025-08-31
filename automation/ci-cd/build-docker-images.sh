@@ -11,7 +11,9 @@ echo "📦 Building base images (OpenCode and Crush)..."
 docker-compose -f docker-compose.build.yml build mcp-opencode mcp-crush
 
 # Build all remaining images (including openrouter-agents)
-# Docker Compose will now correctly build openrouter-agents as its dependencies are cached
+# Docker Compose will now correctly build openrouter-agents as its dependencies are cached.
+# This command re-evaluates all services, but Docker's cache prevents rebuilding
+# the base images. This approach is simpler than explicitly listing all other services.
 echo "🏗️ Building all remaining images..."
 docker-compose -f docker-compose.build.yml build
 
