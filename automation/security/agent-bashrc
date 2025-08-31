@@ -4,16 +4,40 @@
 # (Claude Code, Gemini CLI, OpenCode, Crush, etc.)
 # It ensures security hooks are always active
 
-# Get the directory of this script
-HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Determine the repository root once when agent-bashrc is sourced
+# This provides a portable solution that works across different machines
+if [ -n "${BASH_SOURCE[0]}" ]; then
+    # Get the directory of the current script
+    # The 'cd' and 'pwd' combination correctly resolves the path, even with symlinks
+    __GH_WRAPPER_SOURCED_DIR__=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-# Export for child processes
-export AGENT_HOOKS_DIR="${HOOKS_DIR}"
+    # From the script's directory, find the git repository root
+    # The result is exported so it's available in the environment of sub-shells
+    # Errors are redirected to /dev/null if not in a git repo
+    export __GH_WRAPPER_REPO_ROOT__=$(cd "$__GH_WRAPPER_SOURCED_DIR__" && git rev-parse --show-toplevel 2>/dev/null)
+
+    # Export AGENT_HOOKS_DIR for other scripts that might need it
+    if [ -n "$__GH_WRAPPER_REPO_ROOT__" ]; then
+        export AGENT_HOOKS_DIR="$__GH_WRAPPER_REPO_ROOT__/automation/security"
+    fi
+fi
 
 # Create a function that overrides gh command
 # Functions work in non-interactive shells unlike aliases
 gh() {
-    "${HOOKS_DIR}/gh-wrapper.sh" "$@"
+    # Construct the path to the wrapper script using the environment variable
+    local wrapper_script="$__GH_WRAPPER_REPO_ROOT__/automation/security/gh-wrapper.sh"
+
+    # Check if the repo root was found and the wrapper script exists
+    if [ -n "$__GH_WRAPPER_REPO_ROOT__" ] && [ -f "$wrapper_script" ]; then
+        # Execute the wrapper script, passing all arguments
+        "$wrapper_script" "$@"
+    else
+        # As a fallback, print a warning and execute the original gh command
+        # 'command gh' ensures we call the executable, not this function, avoiding a recursive loop
+        echo "Warning: 'gh' wrapper script not found. Falling back to original 'gh' command." >&2
+        command gh "$@"
+    fi
 }
 
 # Export the function so it's available in subshells
