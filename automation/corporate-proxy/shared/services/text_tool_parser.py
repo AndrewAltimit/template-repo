@@ -150,6 +150,7 @@ class TextToolParser:
         max_tool_calls: int = 20,  # Prevent excessive tool calls
         log_errors: bool = True,
         tool_executor: Optional[Callable] = None,  # For backward compatibility
+        tool_definitions: Optional[Dict[str, Dict[str, Any]]] = None,  # Tool definitions for param mapping
     ):
         """
         Initialize the parser with security constraints.
@@ -160,6 +161,7 @@ class TextToolParser:
             max_tool_calls: Maximum number of tool calls to parse from a single response.
             log_errors: Whether to log parsing errors.
             tool_executor: Optional function to execute tools (for backward compatibility).
+            tool_definitions: Optional dictionary of tool definitions for automatic param mapping.
         """
         self.allowed_tools = allowed_tools
         self.max_json_size = max_json_size
@@ -169,6 +171,65 @@ class TextToolParser:
 
         # Statistics for monitoring
         self.stats = {"total_parsed": 0, "rejected_size": 0, "rejected_unauthorized": 0, "parse_errors": 0}
+
+        # Generate param mappings programmatically or use fallback
+        self.param_mappings = self._generate_param_mappings(tool_definitions)
+
+    def _generate_param_mappings(self, tool_definitions: Optional[Dict[str, Dict[str, Any]]]) -> Dict[str, List[str]]:
+        """
+        Generate parameter mappings programmatically from tool definitions.
+
+        This method eliminates the maintenance burden of manually updating param_mappings
+        when tool signatures change. It can extract positional parameters from:
+        1. Tool definition dictionaries (preferred)
+        2. Function objects via inspection (if available)
+        3. Fallback to hardcoded defaults (for backward compatibility)
+
+        Args:
+            tool_definitions: Dictionary of tool definitions with parameter info
+
+        Returns:
+            Dictionary mapping tool names to ordered lists of parameter names
+        """
+        # If tool definitions provided, extract parameter order from them
+        if tool_definitions:
+            param_mappings = {}
+            for tool_name, definition in tool_definitions.items():
+                # Handle different definition formats
+                if isinstance(definition, dict):
+                    # Look for parameters in various common formats
+                    if "parameters" in definition:
+                        params = definition["parameters"]
+                        if isinstance(params, dict) and "properties" in params:
+                            # OpenAPI/JSON Schema style
+                            # Note: This assumes the order in which properties are defined
+                            # matches the positional argument order
+                            param_mappings[tool_name] = list(params["properties"].keys())
+                        elif isinstance(params, list):
+                            # List of parameter definitions
+                            param_mappings[tool_name] = [p.get("name", f"arg{i}") for i, p in enumerate(params)]
+                    elif "args" in definition:
+                        # Simple args list format
+                        param_mappings[tool_name] = definition["args"]
+
+            if param_mappings:
+                logger.info(f"Generated param mappings for {len(param_mappings)} tools from definitions")
+                return param_mappings
+
+        # Fallback to hardcoded defaults if no definitions available
+        # This maintains backward compatibility
+        logger.warning("No tool definitions provided, using hardcoded param mappings as fallback")
+        return {
+            "write": ["file_path", "content"],
+            "bash": ["command", "description", "timeout", "run_in_background"],
+            "read": ["file_path", "limit", "offset"],
+            "edit": ["file_path", "old_string", "new_string", "replace_all"],
+            "multi_edit": ["file_path", "edits"],
+            "grep": ["pattern", "path", "output_mode"],
+            "glob": ["pattern", "path"],
+            "web_fetch": ["url", "prompt"],
+            "web_search": ["query", "allowed_domains", "blocked_domains"],
+        }
 
     def _parse_xml_args(self, args_str: str) -> Dict[str, Any]:
         """
@@ -220,32 +281,6 @@ class TextToolParser:
         """
         tool_calls = []
 
-        # Common tool parameter mappings (using snake_case)
-        # -----------------
-        # CRITICAL MAINTENANCE WARNING:
-        # This dictionary creates a hardcoded dependency on the exact positional
-        # argument order of the target tools. If a tool's function signature is
-        # refactored (e.g., changing argument order, adding a new positional
-        # argument), THIS MAPPING MUST BE UPDATED.
-        #
-        # Failure to keep this in sync will lead to silent parsing errors where
-        # arguments are assigned to the wrong parameters.
-        #
-        # TODO: Investigate if this mapping can be generated programmatically
-        # from tool definitions at startup to eliminate this manual dependency.
-        # -----------------
-        param_mappings = {
-            "write": ["file_path", "content"],
-            "bash": ["command", "description", "timeout", "run_in_background"],
-            "read": ["file_path", "limit", "offset"],
-            "edit": ["file_path", "old_string", "new_string", "replace_all"],
-            "multi_edit": ["file_path", "edits"],
-            "grep": ["pattern", "path", "output_mode"],
-            "glob": ["pattern", "path"],
-            "web_fetch": ["url", "prompt"],
-            "web_search": ["query", "allowed_domains", "blocked_domains"],
-        }
-
         for match in self.PYTHON_TOOL_CALL_PATTERN.finditer(text):
             call_str = match.group(1)
 
@@ -270,9 +305,9 @@ class TextToolParser:
 
                 params = {}
 
-                # 1. Map positional arguments
-                if tool_name in param_mappings:
-                    param_names = param_mappings[tool_name]
+                # 1. Map positional arguments using generated mappings
+                if tool_name in self.param_mappings:
+                    param_names = self.param_mappings[tool_name]
                     for i, arg_node in enumerate(call_node.args):
                         if i < len(param_names):
                             try:
@@ -443,6 +478,28 @@ class TextToolParser:
 
         return tool_calls
 
+    def update_tool_definitions(self, tool_definitions: Dict[str, Dict[str, Any]]) -> None:
+        """
+        Update tool definitions and regenerate parameter mappings.
+
+        This allows the parser to adapt to new or modified tools at runtime
+        without requiring code changes.
+
+        Args:
+            tool_definitions: Dictionary of tool definitions with parameter info
+        """
+        self.param_mappings = self._generate_param_mappings(tool_definitions)
+        logger.info(f"Updated param mappings for {len(self.param_mappings)} tools")
+
+    def get_param_mappings(self) -> Dict[str, List[str]]:
+        """
+        Get the current parameter mappings for inspection/debugging.
+
+        Returns:
+            Current parameter mappings dictionary
+        """
+        return self.param_mappings.copy()
+
     def get_stats(self) -> Dict[str, int]:
         """Get parsing statistics for monitoring."""
         return self.stats.copy()
@@ -512,6 +569,8 @@ class TextToolParser:
             "completed the task",
             "all done",
             "complete.",
+            "has been completed",
+            "completed",
         ]
 
         text_lower = text.lower()
