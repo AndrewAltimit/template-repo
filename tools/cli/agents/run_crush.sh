@@ -32,6 +32,13 @@ if [ -f "$HOOKS_SCRIPT" ]; then
     # shellcheck source=/dev/null
     source "$HOOKS_SCRIPT"
     echo "✅ Security hooks activated (GitHub comment validation enabled)"
+
+    # Set BASH_ENV so all bash invocations by Crush load the hooks
+    AGENT_BASHRC="$REPO_ROOT/automation/security/agent-bashrc"
+    if [ -f "$AGENT_BASHRC" ]; then
+        export BASH_ENV="$AGENT_BASHRC"
+        echo "📌 Hooks will persist in Crush's bash commands (via BASH_ENV)"
+    fi
 else
     echo "⚠️  Security hooks not found at $HOOKS_SCRIPT"
     echo "   GitHub comment validation will not be active"

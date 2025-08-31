@@ -48,6 +48,13 @@ if [ -f "$HOOKS_SCRIPT" ]; then
     # shellcheck source=/dev/null
     source "$HOOKS_SCRIPT"
     echo "✅ Security hooks activated (GitHub comment validation enabled)"
+
+    # Set BASH_ENV so all bash invocations by Gemini load the hooks
+    AGENT_BASHRC="$REPO_ROOT/automation/security/agent-bashrc"
+    if [ -f "$AGENT_BASHRC" ]; then
+        export BASH_ENV="$AGENT_BASHRC"
+        echo "📌 Hooks will persist in Gemini's bash commands (via BASH_ENV)"
+    fi
 else
     echo "⚠️  Security hooks not found at $HOOKS_SCRIPT"
     echo "   GitHub comment validation will not be active"

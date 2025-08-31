@@ -1,6 +1,7 @@
 #!/bin/bash
-# Claude Code bash initialization file
-# This file is sourced for every bash command executed by Claude Code
+# AI Agent bash initialization file
+# This file is sourced for every bash command executed by AI agents
+# (Claude Code, Gemini CLI, OpenCode, Crush, etc.)
 # It ensures security hooks are always active
 
 # Get the directory of this script

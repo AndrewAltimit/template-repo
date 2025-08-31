@@ -40,9 +40,9 @@ if [ -f "$HOOKS_SCRIPT" ]; then
     echo "✅ Security hooks activated (GitHub comment validation enabled)"
 
     # Set BASH_ENV so all bash invocations by Claude load the hooks
-    CLAUDE_BASHRC="$REPO_ROOT/automation/security/claude-bashrc"
-    if [ -f "$CLAUDE_BASHRC" ]; then
-        export BASH_ENV="$CLAUDE_BASHRC"
+    AGENT_BASHRC="$REPO_ROOT/automation/security/agent-bashrc"
+    if [ -f "$AGENT_BASHRC" ]; then
+        export BASH_ENV="$AGENT_BASHRC"
         echo "📌 Hooks will persist in Claude's bash commands (via BASH_ENV)"
     fi
 else
