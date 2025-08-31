@@ -38,27 +38,12 @@ fi
 GEMINI_VERSION=$(gemini --version 2>/dev/null || echo "unknown")
 echo "✅ Gemini CLI version: $GEMINI_VERSION"
 
-# Set up security hooks for GitHub operations
-# This ensures reaction image URLs are validated and secrets are masked
+# Set up repository root and initialize security hooks
 REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-HOOKS_SCRIPT="$REPO_ROOT/automation/security/setup-agent-hooks.sh"
 
-if [ -f "$HOOKS_SCRIPT" ]; then
-    echo "🔐 Loading security hooks..."
-    # shellcheck source=/dev/null
-    source "$HOOKS_SCRIPT"
-    echo "✅ Security hooks activated (GitHub comment validation enabled)"
-
-    # Set BASH_ENV so all bash invocations by Gemini load the hooks
-    AGENT_BASHRC="$REPO_ROOT/automation/security/agent-bashrc"
-    if [ -f "$AGENT_BASHRC" ]; then
-        export BASH_ENV="$AGENT_BASHRC"
-        echo "📌 Hooks will persist in Gemini's bash commands (via BASH_ENV)"
-    fi
-else
-    echo "⚠️  Security hooks not found at $HOOKS_SCRIPT"
-    echo "   GitHub comment validation will not be active"
-fi
+# Source shared security hook initialization
+# shellcheck source=/dev/null
+source "$REPO_ROOT/automation/security/initialize-agent-hooks.sh"
 
 # Ask about approval mode
 echo ""

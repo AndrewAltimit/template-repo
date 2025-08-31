@@ -67,12 +67,21 @@ When modifying tool definitions or adding new tools:
 - **Optional parameters**: Should come after required parameters in positional calls
 - **Refactoring tools**: Changing parameter order breaks existing Python-style calls in AI responses
 
+#### Current Capabilities
+
+The parser supports both positional and keyword arguments:
+- **Positional arguments**: `Write("file.txt", "content")`
+- **Keyword arguments**: `Write(file_path="file.txt", content="content")`
+- **Mixed**: `Write("file.txt", content="content")`
+
+For maximum robustness, AI models should be encouraged to use keyword arguments in their system prompts.
+
 #### Future Improvements
 
 Consider these enhancements to reduce order dependency:
-- Implement keyword argument detection in Python-style calls
 - Add validation to ensure definition order matches expected order
 - Create automated tests that verify parameter ordering
+- Update AI model prompts to prefer keyword arguments over positional
 
 ## Related Components
 
