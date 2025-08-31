@@ -1,12 +1,12 @@
 # Automatic Tool Support Detection
 
-The enhanced translation wrapper now **automatically detects** whether a model supports tools based on the `supports_tools` field in `models.json`. No environment variables needed!
+The translation wrapper **automatically detects** whether a model supports tools based on the `supports_tools` field in `models.json`. No environment variables needed!
 
 ## How It Works
 
 ### 1. Model Configuration
 
-In `shared/configs/models.json`, each model has a `supports_tools` field:
+The translation wrapper (`shared/services/translation_wrapper.py`) automatically detects tool support from `shared/configs/models.json`, where each model has a `supports_tools` field:
 
 ```json
 {
@@ -120,15 +120,7 @@ curl -X POST http://localhost:8052/v1/chat/completions \
 }
 ```
 
-2. **Use the enhanced wrapper**:
-```bash
-# Replace the standard wrapper
-cp translation_wrapper_enhanced.py translation_wrapper.py
-
-# Or update docker-compose to use enhanced version
-```
-
-3. **That's it!** The system automatically handles everything else.
+2. **That's it!** The translation wrapper automatically handles everything else.
 
 ## Benefits
 

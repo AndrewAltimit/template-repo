@@ -158,6 +158,8 @@ class TextToolParser:
         log_errors: bool = True,
         tool_executor: Optional[Callable] = None,  # For backward compatibility
         tool_definitions: Optional[Dict[str, Dict[str, Any]]] = None,  # Tool definitions for param mapping
+        fail_on_parse_error: bool = False,  # Whether to raise on parse errors
+        max_consecutive_errors: int = 5,  # Max errors before stopping
     ):
         """
         Initialize the parser with security constraints.
@@ -175,9 +177,20 @@ class TextToolParser:
         self.max_tool_calls = max_tool_calls
         self.log_errors = log_errors
         self.tool_executor = tool_executor
+        self.fail_on_parse_error = fail_on_parse_error
+        self.max_consecutive_errors = max_consecutive_errors
 
         # Statistics for monitoring
-        self.stats = {"total_parsed": 0, "rejected_size": 0, "rejected_unauthorized": 0, "parse_errors": 0}
+        self.stats = {
+            "total_parsed": 0,
+            "rejected_size": 0,
+            "rejected_unauthorized": 0,
+            "parse_errors": 0,
+            "consecutive_errors": 0,
+            "python_parse_errors": 0,
+            "json_parse_errors": 0,
+            "xml_parse_errors": 0,
+        }
 
         # Generate param mappings programmatically or use fallback
         self.param_mappings = self._generate_param_mappings(tool_definitions)
@@ -347,10 +360,35 @@ class TextToolParser:
 
             except (ValueError, SyntaxError) as e:
                 self.stats["parse_errors"] += 1
+                self.stats["python_parse_errors"] += 1
+                self.stats["consecutive_errors"] += 1
+
                 if self.log_errors:
                     logger.warning(f"Could not parse Python call with ast.parse: {e}")
                     logger.warning(f"Call string: {call_str[:200]}...")
+
+                # Check if we should fail fast
+                if self.fail_on_parse_error:
+                    raise ValueError(f"Failed to parse Python tool call: {e}")
+
+                # Check consecutive error threshold
+                if self.stats["consecutive_errors"] >= self.max_consecutive_errors:
+                    logger.error(f"Too many consecutive parse errors ({self.max_consecutive_errors}), stopping")
+                    break
+
                 continue
+            except Exception as e:
+                # Catch any other unexpected errors
+                self.stats["parse_errors"] += 1
+                self.stats["python_parse_errors"] += 1
+                logger.error(f"Unexpected error parsing Python call: {e}")
+                if self.fail_on_parse_error:
+                    raise
+                continue
+
+        # Reset consecutive errors on successful parse
+        if tool_calls:
+            self.stats["consecutive_errors"] = 0
 
         return tool_calls
 
@@ -451,8 +489,19 @@ class TextToolParser:
 
             except json.JSONDecodeError as e:
                 self.stats["parse_errors"] += 1
+                self.stats["json_parse_errors"] += 1
+                self.stats["consecutive_errors"] += 1
+
                 if self.log_errors:
                     logger.warning(f"Failed to parse JSON tool call: {e}\n" f"Content preview: {json_content[:100]}...")
+
+                if self.fail_on_parse_error:
+                    raise ValueError(f"Failed to parse JSON tool call: {e}")
+
+                if self.stats["consecutive_errors"] >= self.max_consecutive_errors:
+                    logger.error(f"Too many consecutive parse errors ({self.max_consecutive_errors}), stopping")
+                    break
+
                 continue
 
         # Parse XML format tool calls

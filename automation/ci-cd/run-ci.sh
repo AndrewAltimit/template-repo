@@ -73,6 +73,11 @@ case "$STAGE" in
       -e PYTHONDONTWRITEBYTECODE=1 \
       -e PYTHONPYCACHEPREFIX=/tmp/pycache \
       python-ci bash -c "pip install -r config/python/requirements.txt && pytest tests/ -v --cov=. --cov-report=xml --cov-report=term --ignore=tests/gaea2/ ${EXTRA_ARGS[*]}"
+
+    # Run corporate proxy tests
+    echo "=== Testing corporate proxy components ==="
+    docker-compose run --rm python-ci python automation/corporate-proxy/shared/scripts/test-auto-detection.py
+    docker-compose run --rm python-ci python automation/corporate-proxy/shared/scripts/test-content-stripping.py
     ;;
 
   yaml-lint)
