@@ -14,17 +14,10 @@ docker-compose -f docker-compose.build.yml build mcp-opencode mcp-crush
 echo "🤖 Building OpenRouter Agents image..."
 docker-compose -f docker-compose.build.yml build openrouter-agents
 
-# Build all other images in parallel (they don't have local dependencies)
+# Build all remaining images
+# Docker Compose will use cached images for already-built services
 echo "🏗️ Building remaining images..."
-docker-compose -f docker-compose.build.yml build \
-  mcp-code-quality \
-  mcp-content-creation \
-  mcp-gaea2 \
-  mcp-http-bridge \
-  python-ci \
-  mcp-blender \
-  mcp-meme-generator \
-  mcp-elevenlabs-speech
+docker-compose -f docker-compose.build.yml build
 
 echo "✅ All images built successfully"
 
