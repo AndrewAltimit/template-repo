@@ -248,8 +248,10 @@ class TextToolParser:
         Safely parse Python function arguments from a string using ast.literal_eval.
 
         This handles all Python literal types: strings, numbers, booleans, None,
-        lists, tuples, and dictionaries. It's much safer and more robust than
-        manual string parsing.
+        lists, tuples, and dictionaries. Only well-formed Python syntax is accepted.
+
+        If the input cannot be parsed, an empty list is returned. This ensures
+        predictable behavior and avoids masking syntax errors from the model.
         """
         if not args_str.strip():
             return []
@@ -263,49 +265,9 @@ class TextToolParser:
             if self.log_errors:
                 logger.warning(f"Could not parse Python arguments with ast.literal_eval: {e}")
                 logger.warning(f"Arguments string: {args_str[:200]}...")
-
-            # Fallback: Try to split by comma for very simple cases
-            # This is less reliable but better than failing completely
-            try:
-                # Simple comma split for basic string arguments
-                parts = []
-                current = []
-                in_quotes = False
-                quote_char = None
-
-                for char in args_str:
-                    if char in ('"', "'") and not in_quotes:
-                        in_quotes = True
-                        quote_char = char
-                    elif char == quote_char and in_quotes:
-                        in_quotes = False
-                        quote_char = None
-                    elif char == "," and not in_quotes:
-                        if current:
-                            part = "".join(current).strip()
-                            # Try to parse as a literal
-                            try:
-                                parts.append(ast.literal_eval(part))
-                            except (ValueError, SyntaxError):
-                                # If it fails, keep as string
-                                parts.append(part.strip("\"'"))
-                        current = []
-                        continue
-                    current.append(char)
-
-                # Add the last part
-                if current:
-                    part = "".join(current).strip()
-                    try:
-                        parts.append(ast.literal_eval(part))
-                    except (ValueError, SyntaxError):
-                        parts.append(part.strip("\"'"))
-
-                return parts
-            except Exception as fallback_error:
-                if self.log_errors:
-                    logger.warning(f"Fallback parsing also failed: {fallback_error}")
-                return []
+            # Return empty list - if the model generates unparseable output,
+            # that's a problem that should be addressed at the source
+            return []
 
     def _validate_tool_name(self, tool_name: str) -> bool:
         """
