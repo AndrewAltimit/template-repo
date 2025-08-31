@@ -185,6 +185,12 @@ class TextToolParser:
         2. Function objects via inspection (if available)
         3. Fallback to hardcoded defaults (for backward compatibility)
 
+        CRITICAL: The order of parameters in the returned mapping MUST match the
+        expected positional argument order for Python-style function calls.
+        When AI models generate calls like Write("file.txt", "content"), the
+        parser relies on this ordering to correctly map positional arguments.
+        See MAINTENANCE.md for detailed requirements.
+
         Args:
             tool_definitions: Dictionary of tool definitions with parameter info
 
