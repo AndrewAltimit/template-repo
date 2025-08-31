@@ -56,6 +56,7 @@ COPY --from=downloader /tmp/crush-binary /usr/local/bin/crush-binary
 RUN pip install --no-cache-dir flask flask-cors requests
 
 # Copy shared services
+COPY automation/corporate-proxy/shared/services/text_tool_parser.py /app/text_tool_parser.py
 COPY automation/corporate-proxy/shared/services/translation_wrapper.py /app/translation_wrapper.py
 COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified_tool_api.py
 

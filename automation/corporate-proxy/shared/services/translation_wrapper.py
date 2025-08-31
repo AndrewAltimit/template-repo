@@ -120,6 +120,26 @@ def load_model_config():
             fallback_models = {
                 "gpt-4": {"endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null", "supports_tools": True},
                 "gpt-3.5-turbo": {"endpoint": "ai-coe-bedrock-claude3-opus:analyze=null", "supports_tools": True},
+                # Add OpenRouter model mappings for OpenCode compatibility
+                "openrouter/openai/gpt-4": {
+                    "endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
+                    "supports_tools": True,
+                },
+                "openrouter/anthropic/claude-3.5-sonnet": {
+                    "endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
+                    "supports_tools": True,
+                },
+                "openrouter/anthropic/claude-3-opus": {
+                    "endpoint": "ai-coe-bedrock-claude3-opus:analyze=null",
+                    "supports_tools": True,
+                },
+                # Add Company model mappings for Crush compatibility
+                "company/claude-3.5-sonnet": {
+                    "endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
+                    "supports_tools": True,
+                },
+                "company/claude-3-opus": {"endpoint": "ai-coe-bedrock-claude3-opus:analyze=null", "supports_tools": True},
+                "company/gpt-4": {"endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null", "supports_tools": True},
             }
             for model_id, data in fallback_models.items():
                 MODEL_CONFIG[model_id] = data
