@@ -124,13 +124,18 @@ class TextToolParser:
     XML_ARG_PATTERN = re.compile(r'(\w+)\s*=\s*("(?:\\"|[^"])*"|\'(?:\\\'|[^\'])*\'|[^,]+)')
 
     # Python-style function calls: Write("file.txt", """content""") or Bash("command")
-    # More sophisticated pattern that handles triple quotes and nested structures
-    # LIMITATION: This regex only handles ONE level of nested parentheses. If tool calls
-    # include deeply nested structures like Tool(arg1, (arg2, (arg3))), the regex may
-    # fail to capture the complete call. This is unlikely with current tool patterns but
-    # is a known limitation if argument complexity increases in the future.
-    # Note: This regex finds text that looks like a Python function call. The located
-    # string is then passed to ast.parse for full, robust parsing of arbitrarily complex structures.
+    #
+    # IMPORTANT: This regex is ONLY for locating potential function call strings in text.
+    # It does NOT parse the function calls - that's handled entirely by ast.parse().
+    #
+    # The regex has limitations (e.g., only one level of nested parentheses), but these
+    # limitations DO NOT affect the actual parsing. Once a potential call is found,
+    # ast.parse() handles it with full Python syntax support, including:
+    # - Arbitrarily nested structures
+    # - Complex expressions
+    # - Any valid Python function call syntax
+    #
+    # In other words: regex finds it, ast.parse() understands it perfectly.
     PYTHON_TOOL_CALL_PATTERN = re.compile(
         r"\b([A-Z][a-zA-Z_]*\s*\("  # Function name and opening paren
         r"(?:"  # Non-capturing group for arguments

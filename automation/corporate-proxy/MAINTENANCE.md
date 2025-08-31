@@ -71,10 +71,19 @@ When modifying tool definitions or adding new tools:
 
 The parser supports both positional and keyword arguments:
 - **Positional arguments**: `Write("file.txt", "content")`
-- **Keyword arguments**: `Write(file_path="file.txt", content="content")`
+- **Keyword arguments**: `Write(file_path="file.txt", content="content")` **[STRONGLY RECOMMENDED]**
 - **Mixed**: `Write("file.txt", content="content")`
 
-For maximum robustness, AI models should be encouraged to use keyword arguments in their system prompts.
+**CRITICAL RECOMMENDATION**: AI model system prompts should be updated to **strongly prefer keyword arguments** over positional arguments. This eliminates the fragile dependency on parameter order and makes tool calls significantly more robust.
+
+Example system prompt addition:
+```
+When calling tools, ALWAYS use keyword arguments for clarity and reliability:
+✅ GOOD: Write(file_path="config.json", content="{...}")
+❌ AVOID: Write("config.json", "{...}")
+```
+
+Using keyword arguments ensures tool calls work correctly regardless of parameter order, making the system more maintainable and less prone to errors.
 
 #### Future Improvements
 

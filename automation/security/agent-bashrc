@@ -4,6 +4,8 @@
 # (Claude Code, Gemini CLI, OpenCode, Crush, etc.)
 # It ensures security hooks are always active
 
+set -e  # Exit on error for robust error handling
+
 # Determine the repository root once when agent-bashrc is sourced
 # This provides a portable solution that works across different machines
 if [ -n "${BASH_SOURCE[0]}" ]; then

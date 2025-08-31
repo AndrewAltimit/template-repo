@@ -2,6 +2,8 @@
 # Initialize security hooks for AI agents
 # This shared script is sourced by all agent run scripts to ensure
 # consistent security hook setup across Claude Code, Gemini CLI, OpenCode, Crush, etc.
+
+set -e  # Exit on error for robust error handling
 #
 # Usage: source this file from your agent's run script after setting REPO_ROOT
 #
