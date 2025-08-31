@@ -381,6 +381,7 @@ class TextToolParser:
                 # Catch any other unexpected errors
                 self.stats["parse_errors"] += 1
                 self.stats["python_parse_errors"] += 1
+                self.stats["consecutive_errors"] += 1
                 logger.error(f"Unexpected error parsing Python call: {e}")
                 if self.fail_on_parse_error:
                     raise
@@ -486,6 +487,8 @@ class TextToolParser:
                     }
                 )
                 self.stats["total_parsed"] += 1
+                # Reset consecutive errors on successful parse
+                self.stats["consecutive_errors"] = 0
 
             except json.JSONDecodeError as e:
                 self.stats["parse_errors"] += 1
@@ -520,9 +523,13 @@ class TextToolParser:
                 parameters = self._parse_xml_args(args_str)
                 tool_calls.append({"name": tool_name, "parameters": parameters, "id": f"call_{len(tool_calls)}"})
                 self.stats["total_parsed"] += 1
+                # Reset consecutive errors on successful parse
+                self.stats["consecutive_errors"] = 0
 
             except Exception as e:
                 self.stats["parse_errors"] += 1
+                self.stats["xml_parse_errors"] += 1
+                self.stats["consecutive_errors"] += 1
                 if self.log_errors:
                     logger.warning(f"Failed to parse XML tool call: {e}\n" f"Tool: {tool_name}, Args: {args_str[:100]}...")
                 continue
