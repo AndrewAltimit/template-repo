@@ -10,13 +10,9 @@ echo "🐳 Building Docker images in dependency order..."
 echo "📦 Building base images (OpenCode and Crush)..."
 docker-compose -f docker-compose.build.yml build mcp-opencode mcp-crush
 
-# Build OpenRouter Agents (depends on OpenCode and Crush)
-echo "🤖 Building OpenRouter Agents image..."
-docker-compose -f docker-compose.build.yml build openrouter-agents
-
-# Build all remaining images
-# Docker Compose will use cached images for already-built services
-echo "🏗️ Building remaining images..."
+# Build all remaining images (including openrouter-agents)
+# Docker Compose will now correctly build openrouter-agents as its dependencies are cached
+echo "🏗️ Building all remaining images..."
 docker-compose -f docker-compose.build.yml build
 
 echo "✅ All images built successfully"
