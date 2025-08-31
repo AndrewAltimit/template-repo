@@ -22,6 +22,9 @@ if [ -n "${BASH_SOURCE[0]}" ]; then
     if [ -n "$__GH_WRAPPER_REPO_ROOT__" ]; then
         export AGENT_HOOKS_DIR="$__GH_WRAPPER_REPO_ROOT__/automation/security"
     fi
+
+    # Clean up the temporary variable to maintain a cleaner shell environment
+    unset __GH_WRAPPER_SOURCED_DIR__
 fi
 
 # Create a function that overrides gh command
