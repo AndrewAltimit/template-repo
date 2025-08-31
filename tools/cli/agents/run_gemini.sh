@@ -38,8 +38,12 @@ fi
 GEMINI_VERSION=$(gemini --version 2>/dev/null || echo "unknown")
 echo "✅ Gemini CLI version: $GEMINI_VERSION"
 
-# Security hooks are now automatically loaded via /etc/bash.bashrc
-# No need to source them manually anymore
+# Set up repository root and initialize security hooks
+REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+
+# Source shared security hook initialization
+# shellcheck source=/dev/null
+source "$REPO_ROOT/automation/security/initialize-agent-hooks.sh"
 
 # Ask about approval mode
 echo ""

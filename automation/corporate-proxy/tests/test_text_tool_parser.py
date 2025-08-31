@@ -95,6 +95,122 @@ class TestTextToolParser(unittest.TestCase):
         self.assertEqual(tool_calls[1]["name"], "write_file")
         self.assertEqual(tool_calls[1]["parameters"]["content"], "Hello World")
 
+    def test_parse_python_style_format(self):
+        """Test parsing Python-style function calls"""
+        text = """
+        I'll create the file and run the tests.
+
+        Write("hello.md", "# Hello World\\n\\nThis is a test file.")
+
+        Now let me run the command:
+
+        Bash("./run.sh --verbose")
+        """
+
+        tool_calls = self.parser.parse_tool_calls(text)
+
+        self.assertEqual(len(tool_calls), 2)
+        # Tool names should be normalized to snake_case
+        self.assertEqual(tool_calls[0]["name"], "write")
+        self.assertEqual(tool_calls[0]["parameters"]["file_path"], "hello.md")
+        self.assertIn("Hello World", tool_calls[0]["parameters"]["content"])
+
+        self.assertEqual(tool_calls[1]["name"], "bash")
+        self.assertEqual(tool_calls[1]["parameters"]["command"], "./run.sh --verbose")
+
+    def test_parse_python_style_triple_quotes(self):
+        """Test that triple quotes now work with ast.parse"""
+        # With ast.parse, triple quotes with embedded newlines are properly handled
+        text = '''
+        Write("test.py", """def main():
+    print("Hello, World!")
+    return 0
+
+if __name__ == "__main__":
+    main()
+""")
+        '''
+
+        tool_calls = self.parser.parse_tool_calls(text)
+
+        # Now triple quotes work correctly!
+        self.assertEqual(len(tool_calls), 1)
+        self.assertEqual(tool_calls[0]["name"], "write")
+        self.assertEqual(tool_calls[0]["parameters"]["file_path"], "test.py")
+        # Verify the multi-line content is preserved
+        content = tool_calls[0]["parameters"]["content"]
+        self.assertIn("def main():", content)
+        self.assertIn('print("Hello, World!")', content)
+        self.assertIn("return 0", content)
+        self.assertIn('if __name__ == "__main__":', content)
+
+    def test_parse_python_with_escaped_quotes(self):
+        """Test parsing Python calls with escaped quotes"""
+        text = r"""
+        Let me run a command with quotes:
+
+        Bash("echo \"Hello \\\"World\\\"\"")
+        """
+
+        tool_calls = self.parser.parse_tool_calls(text)
+
+        self.assertEqual(len(tool_calls), 1)
+        self.assertEqual(tool_calls[0]["name"], "bash")
+        # The escaped quotes should be preserved in the parsed value
+        self.assertIn("Hello", tool_calls[0]["parameters"]["command"])
+
+    def test_parse_python_with_different_types(self):
+        """Test parsing Python calls with different literal types"""
+        text = """
+        Testing different types:
+
+        Read("config.json", 100, 50)
+        """
+
+        tool_calls = self.parser.parse_tool_calls(text)
+
+        self.assertEqual(len(tool_calls), 1)
+        self.assertEqual(tool_calls[0]["name"], "read")
+        self.assertEqual(tool_calls[0]["parameters"]["file_path"], "config.json")
+        self.assertEqual(tool_calls[0]["parameters"]["limit"], 100)
+        self.assertEqual(tool_calls[0]["parameters"]["offset"], 50)
+
+    def test_tool_name_normalization(self):
+        """Test that PascalCase tool names are normalized to snake_case"""
+        text = """
+        MultiEdit("file.txt", [{"old": "foo", "new": "bar"}])
+        WebFetch("https://example.com", "Get summary")
+        """
+
+        tool_calls = self.parser.parse_tool_calls(text)
+
+        self.assertEqual(len(tool_calls), 2)
+        self.assertEqual(tool_calls[0]["name"], "multi_edit")
+        self.assertEqual(tool_calls[1]["name"], "web_fetch")
+
+    def test_parse_python_with_keyword_arguments(self):
+        """Test parsing Python calls with keyword arguments"""
+        text = """
+        Edit(file_path="config.json", old_string="foo", new_string="bar", replace_all=True)
+        Read(file_path="test.txt", limit=100)
+        """
+
+        tool_calls = self.parser.parse_tool_calls(text)
+
+        self.assertEqual(len(tool_calls), 2)
+
+        # First call with all keyword arguments
+        self.assertEqual(tool_calls[0]["name"], "edit")
+        self.assertEqual(tool_calls[0]["parameters"]["file_path"], "config.json")
+        self.assertEqual(tool_calls[0]["parameters"]["old_string"], "foo")
+        self.assertEqual(tool_calls[0]["parameters"]["new_string"], "bar")
+        self.assertEqual(tool_calls[0]["parameters"]["replace_all"], True)
+
+        # Second call with mixed keyword arguments
+        self.assertEqual(tool_calls[1]["name"], "read")
+        self.assertEqual(tool_calls[1]["parameters"]["file_path"], "test.txt")
+        self.assertEqual(tool_calls[1]["parameters"]["limit"], 100)
+
     def test_parse_alternative_format(self):
         """Test parsing alternative XML-like format"""
         text = """

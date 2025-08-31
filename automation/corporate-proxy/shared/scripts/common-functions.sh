@@ -212,7 +212,7 @@ container_run() {
 
 container_build() {
     if [ "$USE_BUILDX" = "true" ]; then
-        docker buildx build "$@"
+        docker buildx build --load "$@"
     else
         $CONTAINER_RUNTIME build "$@"
     fi

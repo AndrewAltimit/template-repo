@@ -1,8 +1,8 @@
-# OpenCode Company Integration - Maintenance Guide
+# Corporate Proxy - OpenCode Integration Maintenance Guide
 
 ## Overview
 
-This document addresses maintenance concerns and patterns identified during code review, helping future developers understand and maintain the OpenCode Company integration.
+This document addresses maintenance concerns and patterns identified during code review, helping future developers understand and maintain the OpenCode integration within the unified corporate proxy system.
 
 ## Critical Dependencies and Update Procedures
 
@@ -186,7 +186,8 @@ cat /home/bun/.config/opencode/.opencode.json
 ## References
 
 - [OpenCode Repository](https://github.com/sst/opencode)
-- [Integration Documentation](../integrations/opencode-company-proxy.md)
+- [Corporate Proxy Documentation](../../automation/corporate-proxy/README.md)
+- [OpenCode Integration](../../automation/corporate-proxy/opencode/README.md)
 - [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
 
 ---

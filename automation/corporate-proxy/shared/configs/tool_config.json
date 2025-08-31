@@ -1,0 +1,44 @@
+{
+  "allowed_tools": [
+    "write",
+    "bash",
+    "read",
+    "edit",
+    "multi_edit",
+    "multiedit",
+    "grep",
+    "glob",
+    "web_fetch",
+    "webfetch",
+    "web_search",
+    "websearch",
+    "todo",
+    "task",
+    "notebook_edit",
+    "notebookedit",
+    "ls",
+    "view",
+    "fetch"
+  ],
+  "tool_aliases": {
+    "multiedit": "multi_edit",
+    "webfetch": "web_fetch",
+    "websearch": "web_search",
+    "notebookedit": "notebook_edit",
+    "view": "read",
+    "ls": "bash",
+    "fetch": "web_fetch"
+  },
+  "parser_config": {
+    "max_json_size": 1048576,
+    "max_tool_calls": 20,
+    "log_errors": true,
+    "strict_mode": false,
+    "fail_on_parse_error": false
+  },
+  "production_config": {
+    "fail_on_missing_config": true,
+    "require_tool_validation": true,
+    "log_unauthorized_tools": true
+  }
+}

@@ -11,9 +11,9 @@ Integration with AI platforms and services
 - **[Quick Reference](./ai-services/opencode-crush-ref.md)** - OpenCode & Crush quick guide
 - **[OpenRouter Setup](./ai-services/openrouter-setup.md)** - OpenRouter API configuration
 
-### [Enterprise Integrations](.)
+### Enterprise Integrations
 Enterprise and corporate API integrations
-- **[OpenCode Company Proxy](./opencode-company-proxy.md)** - Corporate AI API integration for OpenCode
+- **[Corporate Proxy](../../automation/corporate-proxy/README.md)** - Unified corporate API proxy for AI agents
 
 ### [Creative Tools](./creative-tools/)
 Integration with creative and content generation tools

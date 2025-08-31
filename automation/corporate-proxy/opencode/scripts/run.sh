@@ -24,12 +24,12 @@ print_info "Starting OpenCode with mock services..."
 if [ $# -eq 0 ]; then
     # No arguments - launch OpenCode TUI
     print_info "Launching OpenCode TUI..."
-    OPENCODE_CMD="opencode ."
+    OPENCODE_ARGS=("opencode" ".")
 elif [ "$1" = "run" ]; then
     # Explicit run command
     shift  # Remove 'run' from arguments
     print_info "Running OpenCode with message: $*"
-    OPENCODE_CMD="opencode run \"$*\""
+    OPENCODE_ARGS=("opencode" "run" "$*")
 elif [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     # Show help
     echo "Usage: $0 [OPTIONS] [COMMAND]"
@@ -49,11 +49,11 @@ elif [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     exit 0
 elif [ "$1" = "--version" ]; then
     # Pass version flag to opencode
-    OPENCODE_CMD="opencode --version"
+    OPENCODE_ARGS=("opencode" "--version")
 else
     # Assume any other arguments are a message to run
     print_info "Running OpenCode with message: $*"
-    OPENCODE_CMD="opencode run \"$*\""
+    OPENCODE_ARGS=("opencode" "run" "$*")
 fi
 
 # Run Docker container with the prepared command
@@ -79,4 +79,4 @@ docker run $TTY_FLAG --rm \
     -e MOCK_API_PORT="8050" \
     -e OPENROUTER_API_KEY="test-secret-token-123" \
     -e OPENROUTER_BASE_URL="http://localhost:8052/v1" \
-    opencode-corporate:latest bash -c "cd /workspace && $OPENCODE_CMD"
+    opencode-corporate:latest "${OPENCODE_ARGS[@]}"

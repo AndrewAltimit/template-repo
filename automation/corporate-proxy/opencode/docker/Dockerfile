@@ -120,6 +120,7 @@ RUN echo '#!/bin/bash\nexec /usr/local/bin/opencode.bin "$@"' > /usr/local/bin/o
 RUN pip3 install --break-system-packages flask flask-cors requests
 
 # Copy shared services
+COPY automation/corporate-proxy/shared/services/text_tool_parser.py /app/text_tool_parser.py
 COPY automation/corporate-proxy/shared/services/translation_wrapper.py /app/translation_wrapper.py
 COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified_tool_api.py
 

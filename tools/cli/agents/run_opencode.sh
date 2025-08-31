@@ -22,8 +22,12 @@ fi
 
 echo "✅ Using OpenRouter API key: ****${OPENROUTER_API_KEY: -4}"
 
-# Security hooks are now automatically loaded via /etc/bash.bashrc
-# No need to source them manually anymore
+# Set up repository root and initialize security hooks
+REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+
+# Source shared security hook initialization
+# shellcheck source=/dev/null
+source "$REPO_ROOT/automation/security/initialize-agent-hooks.sh"
 
 # Default model if not set
 if [ -z "$OPENCODE_MODEL" ]; then
