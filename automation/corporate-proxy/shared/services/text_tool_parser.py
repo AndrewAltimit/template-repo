@@ -87,6 +87,7 @@ Enhanced text-based tool parsing with security hardening and performance improve
 Consolidated version based on Gemini's security review and recommendations
 """
 
+import ast
 import json
 import logging
 import re
@@ -178,6 +179,19 @@ class TextToolParser:
 
         return params
 
+    def _to_snake_case(self, name: str) -> str:
+        """
+        Convert PascalCase to snake_case for tool name normalization.
+
+        Examples:
+            Write -> write
+            MultiEdit -> multi_edit
+            WebFetch -> web_fetch
+        """
+        # Insert underscore before capital letters (except at start)
+        result = re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+        return result
+
     def _parse_python_call(self, text: str) -> List[Dict[str, Any]]:
         """
         Parse Python-style function calls like Write("file.txt", "content").
@@ -190,22 +204,25 @@ class TextToolParser:
         """
         tool_calls = []
 
-        # Common tool parameter mappings
+        # Common tool parameter mappings (using snake_case)
         param_mappings = {
-            "Write": ["file_path", "content"],
-            "Bash": ["command", "description", "timeout", "run_in_background"],
-            "Read": ["file_path", "limit", "offset"],
-            "Edit": ["file_path", "old_string", "new_string", "replace_all"],
-            "MultiEdit": ["file_path", "edits"],
-            "Grep": ["pattern", "path", "output_mode"],
-            "Glob": ["pattern", "path"],
-            "WebFetch": ["url", "prompt"],
-            "WebSearch": ["query", "allowed_domains", "blocked_domains"],
+            "write": ["file_path", "content"],
+            "bash": ["command", "description", "timeout", "run_in_background"],
+            "read": ["file_path", "limit", "offset"],
+            "edit": ["file_path", "old_string", "new_string", "replace_all"],
+            "multi_edit": ["file_path", "edits"],
+            "grep": ["pattern", "path", "output_mode"],
+            "glob": ["pattern", "path"],
+            "web_fetch": ["url", "prompt"],
+            "web_search": ["query", "allowed_domains", "blocked_domains"],
         }
 
         for match in self.PYTHON_TOOL_CALL_PATTERN.finditer(text):
-            tool_name = match.group(1)
+            tool_name_raw = match.group(1)
             args_str = match.group(2)
+
+            # Normalize tool name to snake_case
+            tool_name = self._to_snake_case(tool_name_raw)
 
             # Parse the arguments string
             args = self._parse_python_args(args_str)
@@ -226,90 +243,69 @@ class TextToolParser:
 
         return tool_calls
 
-    def _parse_python_args(self, args_str: str) -> List[str]:
+    def _parse_python_args(self, args_str: str) -> List[Any]:
         """
-        Parse Python function arguments from a string.
-        Handles single quotes, double quotes, and triple quotes.
+        Safely parse Python function arguments from a string using ast.literal_eval.
+
+        This handles all Python literal types: strings, numbers, booleans, None,
+        lists, tuples, and dictionaries. It's much safer and more robust than
+        manual string parsing.
         """
-        args = []
-        current_arg = []
-        in_string = False
-        string_delimiter = None
-        escape_next = False
-        i = 0
+        if not args_str.strip():
+            return []
 
-        while i < len(args_str):
-            char = args_str[i]
+        try:
+            # Wrap the arguments in a list to form a valid literal structure
+            eval_str = f"[{args_str}]"
+            args = ast.literal_eval(eval_str)
+            return args
+        except (ValueError, SyntaxError) as e:
+            if self.log_errors:
+                logger.warning(f"Could not parse Python arguments with ast.literal_eval: {e}")
+                logger.warning(f"Arguments string: {args_str[:200]}...")
 
-            # Handle escape sequences
-            if escape_next:
-                current_arg.append(char)
-                escape_next = False
-                i += 1
-                continue
+            # Fallback: Try to split by comma for very simple cases
+            # This is less reliable but better than failing completely
+            try:
+                # Simple comma split for basic string arguments
+                parts = []
+                current = []
+                in_quotes = False
+                quote_char = None
 
-            if char == "\\" and in_string:
-                escape_next = True
-                i += 1
-                continue
-
-            # Check for triple quotes
-            if i + 2 < len(args_str):
-                triple = args_str[i : i + 3]
-                if triple in ('"""', "'''"):
-                    if not in_string:
-                        in_string = True
-                        string_delimiter = triple
-                        i += 3
+                for char in args_str:
+                    if char in ('"', "'") and not in_quotes:
+                        in_quotes = True
+                        quote_char = char
+                    elif char == quote_char and in_quotes:
+                        in_quotes = False
+                        quote_char = None
+                    elif char == "," and not in_quotes:
+                        if current:
+                            part = "".join(current).strip()
+                            # Try to parse as a literal
+                            try:
+                                parts.append(ast.literal_eval(part))
+                            except (ValueError, SyntaxError):
+                                # If it fails, keep as string
+                                parts.append(part.strip("\"'"))
+                        current = []
                         continue
-                    elif string_delimiter == triple:
-                        # End of triple-quoted string
-                        args.append("".join(current_arg))
-                        current_arg = []
-                        in_string = False
-                        string_delimiter = None
-                        i += 3
-                        continue
+                    current.append(char)
 
-            # Handle single/double quotes
-            if char in ('"', "'") and not in_string:
-                in_string = True
-                string_delimiter = char
-                i += 1
-                continue
-            elif char == string_delimiter and in_string and string_delimiter in ('"', "'"):
-                # End of quoted string
-                args.append("".join(current_arg))
-                current_arg = []
-                in_string = False
-                string_delimiter = None
-                i += 1
-                continue
+                # Add the last part
+                if current:
+                    part = "".join(current).strip()
+                    try:
+                        parts.append(ast.literal_eval(part))
+                    except (ValueError, SyntaxError):
+                        parts.append(part.strip("\"'"))
 
-            # Handle commas (argument separator)
-            if char == "," and not in_string:
-                if current_arg:
-                    args.append("".join(current_arg).strip())
-                    current_arg = []
-                i += 1
-                continue
-
-            # Skip whitespace between arguments
-            if char.isspace() and not in_string and not current_arg:
-                i += 1
-                continue
-
-            # Add character to current argument
-            if in_string or not char.isspace():
-                current_arg.append(char)
-
-            i += 1
-
-        # Add the last argument if any
-        if current_arg:
-            args.append("".join(current_arg).strip())
-
-        return args
+                return parts
+            except Exception as fallback_error:
+                if self.log_errors:
+                    logger.warning(f"Fallback parsing also failed: {fallback_error}")
+                return []
 
     def _validate_tool_name(self, tool_name: str) -> bool:
         """
