@@ -151,8 +151,13 @@ def load_model_config():
 load_model_config()
 
 
-def format_tool_calls_for_openai(tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Format parsed tool calls into OpenAI format"""
+def format_tool_calls_for_openai(tool_calls: List[Dict[str, Any]], streaming: bool = False) -> List[Dict[str, Any]]:
+    """Format parsed tool calls into OpenAI format
+
+    Args:
+        tool_calls: List of parsed tool calls
+        streaming: If True, add index field for streaming responses
+    """
     formatted_calls = []
     for i, call in enumerate(tool_calls):
         formatted_call = {
@@ -160,6 +165,9 @@ def format_tool_calls_for_openai(tool_calls: List[Dict[str, Any]]) -> List[Dict[
             "type": "function",
             "function": {"name": call.get("name", call.get("tool")), "arguments": json.dumps(call.get("parameters", {}))},
         }
+        # Add index for streaming responses
+        if streaming:
+            formatted_call["index"] = i
         formatted_calls.append(formatted_call)
     return formatted_calls
 
@@ -314,7 +322,9 @@ def chat_completions():
             parsed_tool_calls = text_tool_parser.parse_tool_calls(content)
             if parsed_tool_calls:
                 logger.info(f"Found {len(parsed_tool_calls)} tool calls in text")
-                tool_calls = format_tool_calls_for_openai(parsed_tool_calls)
+                # Format tool calls with streaming flag
+                is_streaming = data.get("stream", False)
+                tool_calls = format_tool_calls_for_openai(parsed_tool_calls, streaming=is_streaming)
                 # Use centralized stripping logic from text_tool_parser
                 content = text_tool_parser.strip_tool_calls(content)
 
@@ -323,8 +333,8 @@ def chat_completions():
 
             def generate():
                 if tool_calls:
-                    # Send tool call chunk
-                    chunk = {
+                    # First, send initial chunk with role
+                    initial_chunk = {
                         "id": company_response.get("id", "chatcmpl-123"),
                         "object": "chat.completion.chunk",
                         "created": 1234567890,
@@ -332,13 +342,30 @@ def chat_completions():
                         "choices": [
                             {
                                 "index": 0,
-                                "delta": {"role": "assistant", "tool_calls": tool_calls},
-                                "finish_reason": "tool_calls",
+                                "delta": {"role": "assistant"},
+                                "finish_reason": None,
                             }
                         ],
                     }
-                    yield f"data: {json.dumps(chunk)}\n\n"
-                else:
+                    yield f"data: {json.dumps(initial_chunk)}\n\n"
+
+                    # Send each tool call as a separate chunk
+                    for tool_call in tool_calls:
+                        chunk = {
+                            "id": company_response.get("id", "chatcmpl-123"),
+                            "object": "chat.completion.chunk",
+                            "created": 1234567890,
+                            "model": model,
+                            "choices": [
+                                {
+                                    "index": 0,
+                                    "delta": {"tool_calls": [tool_call]},
+                                    "finish_reason": None,
+                                }
+                            ],
+                        }
+                        yield f"data: {json.dumps(chunk)}\n\n"
+                elif content:
                     # Send content chunk
                     chunk = {
                         "id": company_response.get("id", "chatcmpl-123"),
