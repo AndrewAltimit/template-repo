@@ -1,4 +1,5 @@
 {
+  "_comment": "CRITICAL: The 'supports_tools: false' setting forces text-based tool parsing in the translation wrapper, as the upstream company API does not support native tool calls. OpenCode's config must still have 'tool_call: true' to execute the parsed tools. See: /automation/corporate-proxy/opencode/patches/fix-tool-execution.md",
   "models": {
     "claude-3.5-sonnet": {
       "id": "company/claude-3.5-sonnet",
@@ -9,7 +10,8 @@
       "max_output_tokens": 8192,
       "default_max_tokens": 4096,
       "supports_streaming": false,
-      "supports_tools": false
+      "supports_tools": false,
+      "_note": "Must be false - see _comment at top of file"
     },
     "claude-3-opus": {
       "id": "company/claude-3-opus",
@@ -20,7 +22,8 @@
       "max_output_tokens": 4096,
       "default_max_tokens": 4096,
       "supports_streaming": false,
-      "supports_tools": false
+      "supports_tools": false,
+      "_note": "Must be false - see _comment at top of file"
     },
     "gpt-4": {
       "id": "company/gpt-4",
@@ -31,7 +34,8 @@
       "max_output_tokens": 4096,
       "default_max_tokens": 4096,
       "supports_streaming": false,
-      "supports_tools": false
+      "supports_tools": false,
+      "_note": "Must be false - see _comment at top of file"
     }
   },
   "model_aliases": {
