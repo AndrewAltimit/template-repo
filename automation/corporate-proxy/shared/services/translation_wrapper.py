@@ -15,7 +15,7 @@ from flask import Flask, Response, jsonify, request, stream_with_context
 from flask_cors import CORS
 
 # Import the text tool parser
-from text_tool_parser import TextToolParser
+from .text_tool_parser import TextToolParser
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -230,32 +230,74 @@ def inject_tools_into_prompt(messages: List[Dict], tools: List[Dict]) -> List[Di
     if not tools:
         return messages
 
-    # Create a tool description to prepend to the system message
+    # Create detailed tool descriptions with parameter information
     tool_descriptions = []
     for tool in tools:
         func = tool.get("function", {})
         name = func.get("name", "unknown")
         desc = func.get("description", "")
 
-        tool_descriptions.append(f"- {name}: {desc}")
+        # Add parameter details if available
+        params = func.get("parameters", {})
+        param_props = params.get("properties", {})
+        required = params.get("required", [])
 
-    tool_instruction = """You have access to the following tools:
+        tool_desc = f"**{name}**: {desc}"
+        if param_props:
+            param_list = []
+            for param_name, param_info in param_props.items():
+                param_type = param_info.get("type", "string")
+                is_required = param_name in required
+                param_desc = param_info.get("description", "")
+                param_list.append(f"    - {param_name} ({param_type}{', required' if is_required else ''}): {param_desc}")
+            if param_list:
+                tool_desc += "\n" + "\n".join(param_list)
 
+        tool_descriptions.append(tool_desc)
+
+    tool_instruction = """🛠️ IMPORTANT: You have access to powerful tools that you MUST use to complete tasks effectively!
+
+**Available Tools:**
 {}
 
-When you need to use a tool, format it as:
-```tool_call
-{{
-  "tool": "tool_name",
-  "parameters": {{
-    "param1": "value1",
-    "param2": "value2"
-  }}
-}}
-```
+**CRITICAL INSTRUCTIONS FOR TOOL USE:**
 
-Or use the Python-style format:
-ToolName(param1="value1", param2="value2")
+1. **ALWAYS use tools** when you need to:
+   - Read or write files (use Read/Write tools)
+   - Execute commands (use Bash tool)
+   - Search for patterns (use Grep tool)
+   - Navigate directories (use Glob tool)
+   - Edit existing files (use Edit tool)
+
+2. **Tool Invocation Format** - Use Python code blocks:
+   ```python
+   # For file operations:
+   Write("filename.txt", "content here")
+   Read("path/to/file.txt")
+   Edit("file.py", "old_text", "new_text")
+
+   # For command execution:
+   Bash("ls -la")
+
+   # For searching:
+   Grep("pattern", "path")
+   Glob("*.py")
+   ```
+
+3. **Important Reminders:**
+   - You CANNOT complete file-related tasks without using the appropriate tools
+   - Tool results will appear after you invoke them - wait for results before continuing
+   - Use tools multiple times if needed to complete a task thoroughly
+   - Always use the exact tool names and parameter formats shown above
+
+4. **Common Patterns:**
+   - To create a file: Use Write(file_path, content)
+   - To modify a file: First Read(file_path), then Edit(file_path, old_string, new_string)
+   - To run commands: Use Bash(command)
+   - To search code: Use Grep(pattern, path) or Glob(pattern)
+
+Remember: You have full capability to interact with the filesystem and execute commands through these tools.
+Use them confidently!
 """.format(
         "\n".join(tool_descriptions)
     )
@@ -341,10 +383,19 @@ def chat_completions():
 
         # Build Company API request
         company_url = f"{COMPANY_API_BASE}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
+
+        # Enhanced default system prompt when tools are available
+        default_system_prompt = "You are a helpful AI assistant"
+        if not supports_tools and tools:
+            default_system_prompt = (
+                "You are a helpful AI assistant with access to powerful tools. "
+                "Remember to use the tools provided to complete tasks effectively."
+            )
+
         company_request = {
             "anthropic_version": "bedrock-2023-05-31",
             "max_tokens": data.get("max_tokens", 1000),
-            "system": system_prompt or "You are a helpful AI assistant",
+            "system": system_prompt or default_system_prompt,
             "messages": user_messages,
             "temperature": data.get("temperature", 0.7),
         }
