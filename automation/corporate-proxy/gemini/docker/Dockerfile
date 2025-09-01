@@ -107,6 +107,10 @@ COPY automation/corporate-proxy/gemini/config/gemini-config.json /app/config/gem
 # Copy shared configs for translation wrapper
 COPY automation/corporate-proxy/shared/configs /app/shared/configs
 
+# Also copy tool_config.json to /configs/ where translation_wrapper expects it
+COPY automation/corporate-proxy/shared/configs/tool_config.json /configs/tool_config.json
+COPY automation/corporate-proxy/shared/configs/opencode_param_mappings.json /configs/opencode_param_mappings.json
+
 # Copy startup script
 COPY automation/corporate-proxy/gemini/scripts/gemini-wrapper.sh /app/gemini-wrapper.sh
 RUN chmod +x /app/gemini-wrapper.sh

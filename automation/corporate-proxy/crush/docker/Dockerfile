@@ -63,6 +63,10 @@ COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified
 # Copy shared configs for translation wrapper
 COPY automation/corporate-proxy/shared/configs /app/shared/configs
 
+# Also copy tool_config.json to /configs/ where translation_wrapper expects it
+COPY automation/corporate-proxy/shared/configs/tool_config.json /configs/tool_config.json
+COPY automation/corporate-proxy/shared/configs/opencode_param_mappings.json /configs/opencode_param_mappings.json
+
 # Copy scripts
 COPY automation/corporate-proxy/crush/scripts/start-services.sh /app/start-services.sh
 COPY automation/corporate-proxy/crush/scripts/crush-wrapper.sh /usr/local/bin/crush

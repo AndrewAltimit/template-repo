@@ -127,6 +127,10 @@ COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified
 # Copy shared configs for translation wrapper
 COPY automation/corporate-proxy/shared/configs /app/shared/configs
 
+# Also copy tool_config.json to /configs/ where translation_wrapper expects it
+COPY automation/corporate-proxy/shared/configs/tool_config.json /configs/tool_config.json
+COPY automation/corporate-proxy/shared/configs/opencode_param_mappings.json /configs/opencode_param_mappings.json
+
 # Copy startup script
 COPY automation/corporate-proxy/opencode/scripts/start-services.sh /app/start-services.sh
 RUN chmod +x /app/start-services.sh
