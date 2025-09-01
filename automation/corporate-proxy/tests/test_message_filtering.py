@@ -10,44 +10,11 @@ from pathlib import Path
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
+# Also add services directory for imports
+sys.path.append(str(Path(__file__).parent.parent / "shared" / "services"))
 
-
-def filter_messages_for_company_api(messages):
-    """Filter messages to remove unsupported fields for company API"""
-    filtered_messages = []
-
-    for msg in messages:
-        if msg["role"] == "system":
-            # System messages are handled separately in the wrapper
-            continue
-        elif msg["role"] == "tool":
-            # Convert tool messages to user messages
-            filtered_messages.append({"role": "user", "content": f"Tool result: {msg.get('content', '')}"})
-        else:
-            # Filter out tool_calls and cache_control from assistant/user messages
-            filtered_msg = {"role": msg["role"]}
-
-            # Handle content
-            if "tool_calls" in msg:
-                # Convert tool_calls to text if no content
-                content = msg.get("content", "")
-                if not content and msg.get("tool_calls"):
-                    tool_descriptions = []
-                    for tc in msg["tool_calls"]:
-                        if tc.get("function"):
-                            func = tc["function"]
-                            tool_descriptions.append(f"[Calling {func.get('name', 'unknown')} tool]")
-                    content = " ".join(tool_descriptions) if tool_descriptions else ""
-                filtered_msg["content"] = content
-            else:
-                filtered_msg["content"] = msg.get("content", "")
-
-            # Remove any cache_control fields
-            # (OpenCode might add these but company API doesn't support them)
-
-            filtered_messages.append(filtered_msg)
-
-    return filtered_messages
+# Import the shared filtering function
+from shared.services.translation_wrapper import filter_messages_for_company_api  # noqa: E402
 
 
 class TestMessageFiltering(unittest.TestCase):
@@ -70,10 +37,11 @@ class TestMessageFiltering(unittest.TestCase):
             },
         ]
 
-        filtered = filter_messages_for_company_api(messages)
+        system_prompt, filtered = filter_messages_for_company_api(messages)
 
-        # Should have 2 messages (no system message added)
+        # Should have 2 messages and no system prompt
         self.assertEqual(len(filtered), 2)
+        self.assertEqual(system_prompt, "")
 
         # Check assistant message has no tool_calls
         assistant_msg = filtered[1]
@@ -99,7 +67,7 @@ class TestMessageFiltering(unittest.TestCase):
             },
         ]
 
-        filtered = filter_messages_for_company_api(messages)
+        system_prompt, filtered = filter_messages_for_company_api(messages)
 
         # Check no cache_control in output
         for msg in filtered:
@@ -116,7 +84,7 @@ class TestMessageFiltering(unittest.TestCase):
             {"role": "tool", "content": "file1.txt\nfile2.txt"},
         ]
 
-        filtered = filter_messages_for_company_api(messages)
+        system_prompt, filtered = filter_messages_for_company_api(messages)
 
         # Tool message should be converted to user
         self.assertEqual(len(filtered), 3)
@@ -132,9 +100,10 @@ class TestMessageFiltering(unittest.TestCase):
             {"role": "assistant", "content": "Hi there!"},
         ]
 
-        filtered = filter_messages_for_company_api(messages)
+        system_prompt, filtered = filter_messages_for_company_api(messages)
 
-        # System message should be removed
+        # System message should be extracted
+        self.assertEqual(system_prompt, "You are a helpful assistant")
         self.assertEqual(len(filtered), 2)
         self.assertEqual(filtered[0]["role"], "user")
         self.assertEqual(filtered[1]["role"], "assistant")
@@ -153,7 +122,7 @@ class TestMessageFiltering(unittest.TestCase):
             },
         ]
 
-        filtered = filter_messages_for_company_api(messages)
+        system_prompt, filtered = filter_messages_for_company_api(messages)
 
         assistant_msg = filtered[1]
         self.assertNotIn("tool_calls", assistant_msg)
@@ -171,7 +140,7 @@ class TestMessageFiltering(unittest.TestCase):
             },
         ]
 
-        filtered = filter_messages_for_company_api(messages)
+        system_prompt, filtered = filter_messages_for_company_api(messages)
 
         assistant_msg = filtered[1]
         self.assertNotIn("tool_calls", assistant_msg)
@@ -187,7 +156,7 @@ class TestMessageFiltering(unittest.TestCase):
             {"role": "assistant", "content": "You're welcome!"},
         ]
 
-        filtered = filter_messages_for_company_api(messages)
+        system_prompt, filtered = filter_messages_for_company_api(messages)
 
         self.assertEqual(len(filtered), 4)
         for i, msg in enumerate(filtered):
@@ -217,9 +186,10 @@ class TestMessageFiltering(unittest.TestCase):
             {"role": "assistant", "content": "The file contains: hello"},
         ]
 
-        filtered = filter_messages_for_company_api(messages)
+        system_prompt, filtered = filter_messages_for_company_api(messages)
 
-        # System message filtered, tool messages converted
+        # System message extracted, tool messages converted
+        self.assertEqual(system_prompt, "You are helpful")
         expected_roles = ["user", "assistant", "user", "assistant", "user", "assistant", "user", "assistant"]
         self.assertEqual(len(filtered), len(expected_roles))
 

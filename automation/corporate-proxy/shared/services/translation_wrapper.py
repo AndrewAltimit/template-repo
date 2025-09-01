@@ -8,7 +8,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import requests
 from flask import Flask, Response, jsonify, request, stream_with_context
@@ -338,6 +338,59 @@ Use them confidently!
     return new_messages
 
 
+def filter_messages_for_company_api(messages: List[Dict[str, Any]]) -> Tuple[str, List[Dict[str, Any]]]:
+    """
+    Filter messages to remove unsupported fields for company API.
+
+    The company API doesn't support:
+    - tool_calls in message history
+    - tool role messages
+    - system messages in the messages array (handled separately)
+
+    Args:
+        messages: List of OpenAI-format messages
+
+    Returns:
+        Tuple of (system_prompt, filtered_messages)
+    """
+    system_prompt = ""
+    filtered_messages = []
+
+    for msg in messages:
+        if msg["role"] == "system":
+            # System messages are handled separately in the company API
+            system_prompt = msg["content"]
+        elif msg["role"] == "tool":
+            # Convert tool messages to user messages with prefix
+            filtered_messages.append({"role": "user", "content": f"Tool result: {msg.get('content', '')}"})
+        else:
+            # Filter out tool_calls and cache_control from assistant/user messages
+            filtered_msg = {"role": msg["role"]}
+
+            # Handle content and tool_calls
+            if "tool_calls" in msg:
+                # Convert tool_calls to text representation if there's no content
+                content = msg.get("content", "")
+                if not content and msg.get("tool_calls"):
+                    # Create a text representation of the tool calls
+                    tool_descriptions = []
+                    for tc in msg["tool_calls"]:
+                        if tc.get("function"):
+                            func = tc["function"]
+                            tool_descriptions.append(f"[Calling {func.get('name', 'unknown')} tool]")
+                    content = " ".join(tool_descriptions) if tool_descriptions else ""
+                filtered_msg["content"] = content
+            else:
+                filtered_msg["content"] = msg.get("content", "")
+
+            # Remove any cache_control fields
+            # (OpenCode might add these but company API doesn't support them)
+
+            filtered_messages.append(filtered_msg)
+
+    return system_prompt, filtered_messages
+
+
 @app.route("/v1/chat/completions", methods=["POST"])
 def chat_completions():
     """Handle OpenAI-format chat completions with automatic tool support detection"""
@@ -372,34 +425,8 @@ def chat_completions():
         else:
             tools_to_send = tools
 
-        # Process messages for company API format
-        system_prompt = ""
-        user_messages = []
-
-        for msg in messages:
-            if msg["role"] == "system":
-                system_prompt = msg["content"]
-            elif msg["role"] == "tool":
-                user_messages.append({"role": "user", "content": f"Tool result: {msg.get('content', '')}"})
-            else:
-                # Filter out tool_calls from messages sent to company API
-                # Company API doesn't support tool_calls in message history
-                if "tool_calls" in msg:
-                    # Convert tool_calls to text representation if there's no content
-                    content = msg.get("content", "")
-                    if not content and msg.get("tool_calls"):
-                        # Create a text representation of the tool calls
-                        tool_descriptions = []
-                        for tc in msg["tool_calls"]:
-                            if tc.get("function"):
-                                func = tc["function"]
-                                tool_descriptions.append(f"[Calling {func.get('name', 'unknown')} tool]")
-                        content = " ".join(tool_descriptions) if tool_descriptions else ""
-
-                    # Add message without tool_calls field
-                    user_messages.append({"role": msg["role"], "content": content})
-                else:
-                    user_messages.append({"role": msg["role"], "content": msg.get("content", "")})
+        # Process messages for company API format using the refactored function
+        system_prompt, user_messages = filter_messages_for_company_api(messages)
 
         # Build Company API request
         company_url = f"{COMPANY_API_BASE}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
