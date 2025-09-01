@@ -628,7 +628,16 @@ class TextToolParser:
         # Also strip inline Python-style function calls (not in code blocks)
         # Build a single pattern for all known tool names for efficiency
         if self.param_mappings:
-            tool_names_pattern = "|".join(re.escape(name) for name in self.param_mappings.keys())
+            # Include both snake_case and PascalCase versions of tool names
+            tool_patterns = []
+            for name in self.param_mappings.keys():
+                # Add snake_case version
+                tool_patterns.append(re.escape(name))
+                # Add PascalCase version (e.g., multi_edit -> MultiEdit)
+                pascal_name = "".join(word.capitalize() for word in name.split("_"))
+                tool_patterns.append(re.escape(pascal_name))
+
+            tool_names_pattern = "|".join(tool_patterns)
 
             combined_pattern = (
                 rf"\b({tool_names_pattern})\s*\("  # Any tool name and opening paren
@@ -640,7 +649,7 @@ class TextToolParser:
                 r"|'''[\s\S]*?'''"  # Triple single quotes
                 r"|\([^)]*\)"  # Nested parentheses (one level only)
                 r")*"  # Zero or more of the above
-                r"\))"  # Closing paren
+                r"\)"  # Closing paren
             )
 
             text = re.sub(combined_pattern, "", text, flags=re.DOTALL | re.IGNORECASE)
