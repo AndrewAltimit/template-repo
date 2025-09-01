@@ -910,6 +910,11 @@ class ToolInjector:
         if not self.tools or not messages:
             return messages
 
+        # Check if tools dict is empty
+        if isinstance(self.tools, list) and len(self.tools) == 1:
+            if "functionDeclarations" in self.tools[0] and not self.tools[0]["functionDeclarations"]:
+                return messages
+
         # Make a copy to avoid modifying the original
         messages = [msg.copy() for msg in messages]
 
