@@ -626,11 +626,12 @@ class TextToolParser:
                 text = text[: match.start()] + text[match.end() :]
 
         # Also strip inline Python-style function calls (not in code blocks)
-        # Build pattern for known tool names only
-        for tool_name in self.param_mappings.keys():
-            # Create pattern for this specific tool
-            tool_pattern = (
-                rf"\b({re.escape(tool_name)}\s*\("  # Specific tool name and opening paren
+        # Build a single pattern for all known tool names for efficiency
+        if self.param_mappings:
+            tool_names_pattern = "|".join(re.escape(name) for name in self.param_mappings.keys())
+
+            combined_pattern = (
+                rf"\b({tool_names_pattern})\s*\("  # Any tool name and opening paren
                 r"(?:"  # Non-capturing group for arguments
                 r'[^()"\']+'  # Non-quote, non-paren characters
                 r'|"(?:[^"\\]|\\.)*"'  # Double-quoted strings
@@ -641,7 +642,8 @@ class TextToolParser:
                 r")*"  # Zero or more of the above
                 r"\))"  # Closing paren
             )
-            text = re.sub(tool_pattern, "", text, flags=re.DOTALL | re.IGNORECASE)
+
+            text = re.sub(combined_pattern, "", text, flags=re.DOTALL | re.IGNORECASE)
 
         # Clean up any extra whitespace left behind
         text = re.sub(r"\n\s*\n\s*\n+", "\n\n", text)
