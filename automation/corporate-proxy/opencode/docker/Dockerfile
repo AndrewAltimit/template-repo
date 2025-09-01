@@ -124,6 +124,9 @@ COPY automation/corporate-proxy/shared/services/text_tool_parser.py /app/text_to
 COPY automation/corporate-proxy/shared/services/translation_wrapper.py /app/translation_wrapper.py
 COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified_tool_api.py
 
+# Copy shared configs for translation wrapper
+COPY automation/corporate-proxy/shared/configs /app/shared/configs
+
 # Copy startup script
 COPY automation/corporate-proxy/opencode/scripts/start-services.sh /app/start-services.sh
 RUN chmod +x /app/start-services.sh

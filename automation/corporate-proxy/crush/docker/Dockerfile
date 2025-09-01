@@ -60,6 +60,9 @@ COPY automation/corporate-proxy/shared/services/text_tool_parser.py /app/text_to
 COPY automation/corporate-proxy/shared/services/translation_wrapper.py /app/translation_wrapper.py
 COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified_tool_api.py
 
+# Copy shared configs for translation wrapper
+COPY automation/corporate-proxy/shared/configs /app/shared/configs
+
 # Copy scripts
 COPY automation/corporate-proxy/crush/scripts/start-services.sh /app/start-services.sh
 COPY automation/corporate-proxy/crush/scripts/crush-wrapper.sh /usr/local/bin/crush
