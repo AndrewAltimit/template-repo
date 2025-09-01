@@ -320,10 +320,22 @@ def chat_completions():
             elif msg["role"] == "tool":
                 user_messages.append({"role": "user", "content": f"Tool result: {msg.get('content', '')}"})
             else:
+                # Filter out tool_calls from messages sent to company API
+                # Company API doesn't support tool_calls in message history
                 if "tool_calls" in msg:
-                    user_messages.append(
-                        {"role": msg["role"], "content": msg.get("content", ""), "tool_calls": msg["tool_calls"]}
-                    )
+                    # Convert tool_calls to text representation if there's no content
+                    content = msg.get("content", "")
+                    if not content and msg.get("tool_calls"):
+                        # Create a text representation of the tool calls
+                        tool_descriptions = []
+                        for tc in msg["tool_calls"]:
+                            if tc.get("function"):
+                                func = tc["function"]
+                                tool_descriptions.append(f"[Calling {func.get('name', 'unknown')} tool]")
+                        content = " ".join(tool_descriptions) if tool_descriptions else ""
+
+                    # Add message without tool_calls field
+                    user_messages.append({"role": msg["role"], "content": content})
                 else:
                     user_messages.append({"role": msg["role"], "content": msg.get("content", "")})
 
