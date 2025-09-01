@@ -35,9 +35,11 @@ OPENCODE_PARAM_MAPPINGS = {
 }
 
 
-def format_tool_calls_for_openai(tool_calls: List[Dict[str, Any]], streaming: bool = False) -> List[Dict[str, Any]]:
+def format_tool_calls_for_openai(
+    tool_calls: List[Dict[str, Any]], streaming: bool = False, apply_opencode_mappings: bool = True
+) -> List[Dict[str, Any]]:
     """
-    Format parsed tool calls into OpenAI format with OpenCode parameter mapping.
+    Format parsed tool calls into OpenAI format with optional OpenCode parameter mapping.
 
     This function mirrors the production implementation in translation_wrapper.py
     to ensure tests are using the same logic as production code.
@@ -45,6 +47,8 @@ def format_tool_calls_for_openai(tool_calls: List[Dict[str, Any]], streaming: bo
     Args:
         tool_calls: List of parsed tool calls
         streaming: If True, add index field for streaming responses
+        apply_opencode_mappings: If True, apply OpenCode parameter mappings (camelCase)
+                                If False, keep original snake_case for Crush compatibility
 
     Returns:
         List of formatted tool calls in OpenAI format
@@ -54,8 +58,9 @@ def format_tool_calls_for_openai(tool_calls: List[Dict[str, Any]], streaming: bo
         tool_name = call.get("name", call.get("tool"))
         params = call.get("parameters", {})
 
-        # Apply OpenCode parameter mappings if available
-        if tool_name in OPENCODE_PARAM_MAPPINGS:
+        # Only apply OpenCode parameter mappings if requested (for OpenCode clients)
+        # Crush clients need snake_case parameters unchanged
+        if apply_opencode_mappings and tool_name in OPENCODE_PARAM_MAPPINGS:
             mappings = OPENCODE_PARAM_MAPPINGS[tool_name]
             mapped_params = {}
 

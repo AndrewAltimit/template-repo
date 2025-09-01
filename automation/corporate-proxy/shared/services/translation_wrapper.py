@@ -203,20 +203,25 @@ def load_model_config():
 load_model_config()
 
 
-def format_tool_calls_for_openai(tool_calls: List[Dict[str, Any]], streaming: bool = False) -> List[Dict[str, Any]]:
-    """Format parsed tool calls into OpenAI format with OpenCode parameter mapping
+def format_tool_calls_for_openai(
+    tool_calls: List[Dict[str, Any]], streaming: bool = False, apply_opencode_mappings: bool = True
+) -> List[Dict[str, Any]]:
+    """Format parsed tool calls into OpenAI format with optional OpenCode parameter mapping
 
     Args:
         tool_calls: List of parsed tool calls
         streaming: If True, add index field for streaming responses
+        apply_opencode_mappings: If True, apply OpenCode parameter mappings (camelCase)
+                                If False, keep original snake_case for Crush compatibility
     """
     formatted_calls = []
     for i, call in enumerate(tool_calls):
         tool_name = call.get("name", call.get("tool"))
         params = call.get("parameters", {})
 
-        # Apply OpenCode parameter mappings if available
-        if tool_name in OPENCODE_PARAM_MAPPINGS:
+        # Only apply OpenCode parameter mappings if requested (for OpenCode clients)
+        # Crush clients need snake_case parameters unchanged
+        if apply_opencode_mappings and tool_name in OPENCODE_PARAM_MAPPINGS:
             mappings = OPENCODE_PARAM_MAPPINGS[tool_name]
             mapped_params = {}
 
@@ -400,6 +405,27 @@ def chat_completions():
 
         logger.info(f"Received request for model: {model}")
 
+        # Detect client type based on model name or headers
+        # Crush uses models like "deepseek/deepseek-chat" or contains "deepseek", "phi", "llama"
+        # OpenCode uses models like "qwen/qwen-2.5-coder" or contains "qwen", "openrouter"
+        user_agent = request.headers.get("User-Agent", "").lower()
+        x_client = request.headers.get("X-Client", "").lower()
+        model_lower = model.lower()
+
+        # Determine if this is a Crush client (needs snake_case) or OpenCode (needs camelCase)
+        is_crush_client = (
+            "crush" in user_agent
+            or "crush" in x_client
+            or "deepseek" in model_lower
+            or "phi" in model_lower
+            or "llama" in model_lower
+            or model.startswith("microsoft/")
+            or model.startswith("meta-llama/")
+        )
+        is_opencode_client = not is_crush_client  # Default to OpenCode behavior for compatibility
+
+        logger.info(f"Client detection - Model: {model}, User-Agent: {user_agent}, Is Crush: {is_crush_client}")
+
         # Get model configuration
         model_config = MODEL_CONFIG.get(model, {})
         endpoint = MODEL_ENDPOINTS.get(model)
@@ -485,9 +511,12 @@ def chat_completions():
             parsed_tool_calls = text_tool_parser.parse_tool_calls(content)
             if parsed_tool_calls:
                 logger.info(f"Found {len(parsed_tool_calls)} tool calls in text")
-                # Format tool calls with streaming flag
+                # Format tool calls with streaming flag and client-specific mappings
                 is_streaming = data.get("stream", False)
-                tool_calls = format_tool_calls_for_openai(parsed_tool_calls, streaming=is_streaming)
+                # Apply OpenCode mappings only for OpenCode clients, not for Crush
+                tool_calls = format_tool_calls_for_openai(
+                    parsed_tool_calls, streaming=is_streaming, apply_opencode_mappings=is_opencode_client
+                )
                 # Use centralized stripping logic from text_tool_parser
                 content = text_tool_parser.strip_tool_calls(content)
 
