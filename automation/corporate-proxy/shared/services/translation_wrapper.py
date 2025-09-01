@@ -250,8 +250,14 @@ def format_tool_calls_for_openai(
     return formatted_calls
 
 
-def inject_tools_into_prompt(messages: List[Dict], tools: List[Dict]) -> List[Dict]:
-    """Inject tool definitions into the prompt for models without native tool support"""
+def inject_tools_into_prompt(messages: List[Dict], tools: List[Dict], client_type: str = "generic") -> List[Dict]:
+    """Inject tool definitions into the prompt for models without native tool support
+
+    Args:
+        messages: List of message dicts
+        tools: List of tool definitions
+        client_type: Type of client ("opencode", "crush", "gemini", or "generic")
+    """
     if not tools:
         return messages
 
@@ -280,6 +286,93 @@ def inject_tools_into_prompt(messages: List[Dict], tools: List[Dict]) -> List[Di
 
         tool_descriptions.append(tool_desc)
 
+    # Generate client-specific tool invocation examples
+    if client_type == "opencode":
+        # OpenCode uses camelCase parameters
+        tool_examples = """2. **Tool Invocation Format** - Use Python code blocks:
+   ```python
+   # For file operations (use camelCase parameters):
+   Write("filename.txt", "content here")
+   Read("path/to/file.txt")
+   Edit("file.py", "old_text", "new_text", False)  # last param is replaceAll
+
+   # For command execution:
+   Bash("ls -la")
+
+   # For searching:
+   Grep("pattern", "path")
+   Glob("*.py")
+   ```"""
+        pattern_examples = """4. **Common Patterns:**
+   - To create a file: Use Write(filePath, content)
+   - To modify a file: First Read(filePath), then Edit(filePath, oldString, newString)
+   - To run commands: Use Bash(command)
+   - To search code: Use Grep(pattern, path) or Glob(pattern)"""
+
+    elif client_type == "crush":
+        # Crush uses snake_case parameters
+        tool_examples = """2. **Tool Invocation Format** - Use Python code blocks:
+   ```python
+   # For file operations (use snake_case parameters):
+   Write("filename.txt", "content here")
+   Read("path/to/file.txt")
+   Edit("file.py", "old_text", "new_text", False)  # last param is replace_all
+
+   # For command execution:
+   Bash("ls -la")
+
+   # For searching:
+   Grep("pattern", "path")
+   Glob("*.py")
+   ```"""
+        pattern_examples = """4. **Common Patterns:**
+   - To create a file: Use Write(file_path, content)
+   - To modify a file: First Read(file_path), then Edit(file_path, old_string, new_string)
+   - To run commands: Use Bash(command)
+   - To search code: Use Grep(pattern, path) or Glob(pattern)"""
+
+    elif client_type == "gemini":
+        # Gemini has different invocation style
+        tool_examples = """2. **Tool Invocation Format** - Use function calls in code blocks:
+   ```
+   # For file operations:
+   functionCall: write
+   args: {"path": "filename.txt", "content": "content here"}
+
+   functionCall: read
+   args: {"path": "path/to/file.txt"}
+
+   functionCall: edit
+   args: {"path": "file.py", "old_text": "old", "new_text": "new"}
+   ```"""
+        pattern_examples = """4. **Common Patterns:**
+   - To create a file: Call write with path and content args
+   - To modify a file: First read(path), then edit with old_text and new_text
+   - To run commands: Call bash with command arg
+   - To search code: Call grep or glob with appropriate args"""
+
+    else:
+        # Generic/fallback format
+        tool_examples = """2. **Tool Invocation Format** - Use Python code blocks:
+   ```python
+   # For file operations:
+   Write("filename.txt", "content here")
+   Read("path/to/file.txt")
+   Edit("file.py", "old_text", "new_text")
+
+   # For command execution:
+   Bash("ls -la")
+
+   # For searching:
+   Grep("pattern", "path")
+   Glob("*.py")
+   ```"""
+        pattern_examples = """4. **Common Patterns:**
+   - To create a file: Use Write(file_path, content)
+   - To modify a file: First Read(file_path), then Edit(file_path, old_string, new_string)
+   - To run commands: Use Bash(command)
+   - To search code: Use Grep(pattern, path) or Glob(pattern)"""
+
     tool_instruction = """🛠️ IMPORTANT: You have access to powerful tools that you MUST use to complete tasks effectively!
 
 **Available Tools:**
@@ -294,20 +387,7 @@ def inject_tools_into_prompt(messages: List[Dict], tools: List[Dict]) -> List[Di
    - Navigate directories (use Glob tool)
    - Edit existing files (use Edit tool)
 
-2. **Tool Invocation Format** - Use Python code blocks:
-   ```python
-   # For file operations:
-   Write("filename.txt", "content here")
-   Read("path/to/file.txt")
-   Edit("file.py", "old_text", "new_text")
-
-   # For command execution:
-   Bash("ls -la")
-
-   # For searching:
-   Grep("pattern", "path")
-   Glob("*.py")
-   ```
+{}
 
 3. **Important Reminders:**
    - You CANNOT complete file-related tasks without using the appropriate tools
@@ -315,16 +395,12 @@ def inject_tools_into_prompt(messages: List[Dict], tools: List[Dict]) -> List[Di
    - Use tools multiple times if needed to complete a task thoroughly
    - Always use the exact tool names and parameter formats shown above
 
-4. **Common Patterns:**
-   - To create a file: Use Write(file_path, content)
-   - To modify a file: First Read(file_path), then Edit(file_path, old_string, new_string)
-   - To run commands: Use Bash(command)
-   - To search code: Use Grep(pattern, path) or Glob(pattern)
+{}
 
 Remember: You have full capability to interact with the filesystem and execute commands through these tools.
 Use them confidently!
 """.format(
-        "\n".join(tool_descriptions)
+        "\n".join(tool_descriptions), tool_examples, pattern_examples
     )
 
     # Prepend to system message or create one
@@ -444,8 +520,16 @@ def chat_completions():
 
         # If model doesn't support tools but tools are provided, inject them into prompt
         if not supports_tools and tools:
-            logger.info(f"Model doesn't support tools, injecting {len(tools)} tools into prompt")
-            messages = inject_tools_into_prompt(messages, tools)
+            # Determine client type for proper tool syntax injection
+            client_type = "generic"
+            if is_crush_client:
+                client_type = "crush"
+            elif is_opencode_client:
+                client_type = "opencode"
+            # Note: We don't set "gemini" here as Gemini uses a different API format entirely
+
+            logger.info(f"Model doesn't support tools, injecting {len(tools)} tools into prompt for {client_type} client")
+            messages = inject_tools_into_prompt(messages, tools, client_type)
             # Don't send tools to the API since it doesn't support them
             tools_to_send = []
         else:
