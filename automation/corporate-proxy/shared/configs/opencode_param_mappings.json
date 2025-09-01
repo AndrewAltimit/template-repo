@@ -1,0 +1,96 @@
+{
+  "parameter_mappings": {
+    "write": {
+      "file_path": "filePath",
+      "content": "content"
+    },
+    "bash": {
+      "command": "command",
+      "_required_defaults": {
+        "description": "Execute bash command"
+      }
+    },
+    "read": {
+      "file_path": "filePath",
+      "limit": "limit",
+      "offset": "offset"
+    },
+    "edit": {
+      "file_path": "filePath",
+      "old_string": "oldString",
+      "new_string": "newString",
+      "replace_all": "replaceAll"
+    },
+    "multi_edit": {
+      "file_path": "filePath",
+      "edits": "edits"
+    },
+    "multiedit": {
+      "file_path": "filePath",
+      "edits": "edits"
+    },
+    "grep": {
+      "pattern": "pattern",
+      "path": "path",
+      "output_mode": "outputMode",
+      "-n": "showLineNumbers",
+      "-A": "linesAfter",
+      "-B": "linesBefore",
+      "-C": "linesContext",
+      "-i": "caseInsensitive",
+      "glob": "glob",
+      "head_limit": "headLimit",
+      "multiline": "multiline",
+      "type": "type"
+    },
+    "glob": {
+      "pattern": "pattern",
+      "path": "path"
+    },
+    "web_fetch": {
+      "url": "url",
+      "prompt": "prompt"
+    },
+    "webfetch": {
+      "url": "url",
+      "prompt": "prompt"
+    },
+    "web_search": {
+      "query": "query",
+      "allowed_domains": "allowedDomains",
+      "blocked_domains": "blockedDomains"
+    },
+    "websearch": {
+      "query": "query",
+      "allowed_domains": "allowedDomains",
+      "blocked_domains": "blockedDomains"
+    },
+    "notebook_edit": {
+      "notebook_path": "notebookPath",
+      "cell_id": "cellId",
+      "new_source": "newSource",
+      "cell_type": "cellType",
+      "edit_mode": "editMode"
+    },
+    "notebookedit": {
+      "notebook_path": "notebookPath",
+      "cell_id": "cellId",
+      "new_source": "newSource",
+      "cell_type": "cellType",
+      "edit_mode": "editMode"
+    },
+    "todo_write": {
+      "todos": "todos"
+    },
+    "todowrite": {
+      "todos": "todos"
+    },
+    "exit_plan_mode": {
+      "plan": "plan"
+    },
+    "exitplanmode": {
+      "plan": "plan"
+    }
+  },
+  "notes": "Maps snake_case parameter names from text parser to camelCase names expected by OpenCode"
+}

@@ -32,6 +32,7 @@ COMPANY_API_TOKEN = os.environ.get("COMPANY_API_TOKEN", "test-secret-token-123")
 MODEL_CONFIG: Dict[str, Dict[str, Any]] = {}
 MODEL_ENDPOINTS: Dict[str, str] = {}
 TOOL_CONFIG: Dict[str, Any] = {}
+OPENCODE_PARAM_MAPPINGS: Dict[str, Dict[str, str]] = {}
 
 # Production mode detection
 IS_PRODUCTION = os.environ.get("PRODUCTION", "false").lower() == "true"
@@ -61,8 +62,39 @@ def load_tool_config():
             return TOOL_CONFIG
 
 
+def load_opencode_param_mappings():
+    """Load OpenCode parameter mappings from JSON file"""
+    global OPENCODE_PARAM_MAPPINGS
+
+    config_path = Path(__file__).parent.parent / "configs" / "opencode_param_mappings.json"
+    try:
+        with open(config_path, "r") as f:
+            config = json.load(f)
+            OPENCODE_PARAM_MAPPINGS = config.get("parameter_mappings", {})
+            logger.info(f"Loaded OpenCode parameter mappings for {len(OPENCODE_PARAM_MAPPINGS)} tools")
+            return OPENCODE_PARAM_MAPPINGS
+    except Exception as e:
+        logger.warning(f"Failed to load OpenCode parameter mappings, using defaults: {e}")
+        # Fallback mappings for critical tools
+        OPENCODE_PARAM_MAPPINGS = {
+            "write": {"file_path": "filePath", "content": "content"},
+            "bash": {"command": "command", "_required_defaults": {"description": "Execute bash command"}},
+            "read": {"file_path": "filePath", "limit": "limit", "offset": "offset"},
+            "edit": {
+                "file_path": "filePath",
+                "old_string": "oldString",
+                "new_string": "newString",
+                "replace_all": "replaceAll",
+            },
+        }
+        return OPENCODE_PARAM_MAPPINGS
+
+
 # Load tool configuration
 load_tool_config()
+
+# Load OpenCode parameter mappings
+load_opencode_param_mappings()
 
 # Initialize text tool parser with configuration
 text_tool_parser = TextToolParser(
@@ -152,7 +184,7 @@ load_model_config()
 
 
 def format_tool_calls_for_openai(tool_calls: List[Dict[str, Any]], streaming: bool = False) -> List[Dict[str, Any]]:
-    """Format parsed tool calls into OpenAI format
+    """Format parsed tool calls into OpenAI format with OpenCode parameter mapping
 
     Args:
         tool_calls: List of parsed tool calls
@@ -160,10 +192,31 @@ def format_tool_calls_for_openai(tool_calls: List[Dict[str, Any]], streaming: bo
     """
     formatted_calls = []
     for i, call in enumerate(tool_calls):
+        tool_name = call.get("name", call.get("tool"))
+        params = call.get("parameters", {})
+
+        # Apply OpenCode parameter mappings if available
+        if tool_name in OPENCODE_PARAM_MAPPINGS:
+            mappings = OPENCODE_PARAM_MAPPINGS[tool_name]
+            mapped_params = {}
+
+            # Map parameter names from snake_case to camelCase
+            for snake_key, value in params.items():
+                camel_key = mappings.get(snake_key, snake_key)  # Use original if no mapping
+                mapped_params[camel_key] = value
+
+            # Add required default parameters if specified
+            if "_required_defaults" in mappings:
+                for key, default_value in mappings["_required_defaults"].items():
+                    if key not in mapped_params:
+                        mapped_params[key] = default_value
+
+            params = mapped_params
+
         formatted_call = {
             "id": f"call_{i}",
             "type": "function",
-            "function": {"name": call.get("name", call.get("tool")), "arguments": json.dumps(call.get("parameters", {}))},
+            "function": {"name": tool_name, "arguments": json.dumps(params)},
         }
         # Add index for streaming responses
         if streaming:
