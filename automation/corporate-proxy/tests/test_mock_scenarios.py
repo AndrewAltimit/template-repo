@@ -538,8 +538,9 @@ class TestEndToEndScenarios(unittest.TestCase):
 
         continuation2, results2, needs_continue2 = parser.process_response_with_tools(ai_iteration_2)
 
-        # The response mentions "create a summary file" which might be detected as complete
-        # Check that we got the tool results
+        # The AI is still working (creating a file), so it should need to continue
+        self.assertTrue(needs_continue2, "Should need to continue after creating summary file")
+        # Also verify we got the expected tool results
         self.assertIn("Summary written successfully", continuation2)
 
         # 6. AI completes the task
