@@ -289,47 +289,47 @@ def inject_tools_into_prompt(messages: List[Dict], tools: List[Dict], client_typ
     # Generate client-specific tool invocation examples
     if client_type == "opencode":
         # OpenCode uses camelCase parameters
-        tool_examples = """2. **Tool Invocation Format** - Use Python code blocks:
+        tool_examples = """2. **Tool Invocation Format** - Use Python code blocks with camelCase parameters:
    ```python
-   # For file operations (use camelCase parameters):
-   Write("filename.txt", "content here")
-   Read("path/to/file.txt")
-   Edit("file.py", "old_text", "new_text", False)  # last param is replaceAll
+   # File operations - Note: parameters use camelCase (filePath, not file_path):
+   Write("filename.txt", "content here")  # params: filePath, content
+   Read("path/to/file.txt")  # params: filePath, offset, limit
+   Edit("file.py", "old text", "new text", False)  # params: filePath, oldString, newString, replaceAll
 
-   # For command execution:
-   Bash("ls -la")
+   # Command execution:
+   Bash("ls -la")  # params: command, timeout
 
-   # For searching:
-   Grep("pattern", "path")
-   Glob("*.py")
+   # Searching:
+   Grep("TODO", "src/")  # params: pattern, path
+   Glob("*.py", ".")  # params: pattern, path
    ```"""
-        pattern_examples = """4. **Common Patterns:**
-   - To create a file: Use Write(filePath, content)
-   - To modify a file: First Read(filePath), then Edit(filePath, oldString, newString)
-   - To run commands: Use Bash(command)
-   - To search code: Use Grep(pattern, path) or Glob(pattern)"""
+        pattern_examples = """4. **Common Patterns (camelCase parameters):**
+   - To create a file: Use Write(filePath="test.txt", content="data")
+   - To modify a file: First Read(filePath="file.py"), then Edit(filePath="file.py", oldString="old", newString="new")
+   - To run commands: Use Bash(command="ls -la")
+   - To search code: Use Grep(pattern="TODO", path=".") or Glob(pattern="*.py", path=".")"""
 
     elif client_type == "crush":
         # Crush uses snake_case parameters
-        tool_examples = """2. **Tool Invocation Format** - Use Python code blocks:
+        tool_examples = """2. **Tool Invocation Format** - Use Python code blocks with snake_case parameters:
    ```python
-   # For file operations (use snake_case parameters):
-   Write("filename.txt", "content here")
-   Read("path/to/file.txt")
-   Edit("file.py", "old_text", "new_text", False)  # last param is replace_all
+   # File operations - Note: parameters use snake_case (file_path, not filePath):
+   Write("filename.txt", "content here")  # params: file_path, content
+   View("path/to/file.txt")  # params: file_path, offset, limit
+   Edit("file.py", "old text", "new text", False)  # params: file_path, old_string, new_string, replace_all
 
-   # For command execution:
-   Bash("ls -la")
+   # Command execution:
+   Bash("ls -la")  # params: command, timeout
 
-   # For searching:
-   Grep("pattern", "path")
-   Glob("*.py")
+   # Searching - all lowercase parameters:
+   Grep("TODO", "src/")  # params: pattern, path, include, literal_text
+   Glob("*.py", ".")  # params: pattern, path
    ```"""
-        pattern_examples = """4. **Common Patterns:**
-   - To create a file: Use Write(file_path, content)
-   - To modify a file: First Read(file_path), then Edit(file_path, old_string, new_string)
-   - To run commands: Use Bash(command)
-   - To search code: Use Grep(pattern, path) or Glob(pattern)"""
+        pattern_examples = """4. **Common Patterns (snake_case parameters):**
+   - To create a file: Use Write(file_path="test.txt", content="data")
+   - To modify a file: First View(file_path="file.py"), then Edit(file_path="file.py", old_string="old", new_string="new")
+   - To run commands: Use Bash(command="ls -la")
+   - To search code: Use Grep(pattern="TODO", path=".") or Glob(pattern="*.py", path=".")"""
 
     elif client_type == "gemini":
         # Gemini has different invocation style

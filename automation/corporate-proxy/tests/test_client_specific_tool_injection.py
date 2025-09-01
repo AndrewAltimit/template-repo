@@ -73,14 +73,18 @@ class TestClientSpecificToolInjection(unittest.TestCase):
         self.assertIsNotNone(system_msg)
 
         # Check for OpenCode-specific syntax with camelCase
-        self.assertIn("Write(filePath, content)", system_msg)
-        self.assertIn("Edit(filePath, oldString, newString)", system_msg)
-        self.assertIn("# last param is replaceAll", system_msg)
+        self.assertIn('filePath="test.txt"', system_msg)
+        self.assertIn('filePath="file.py"', system_msg)
+        self.assertIn("oldString=", system_msg)
+        self.assertIn("newString=", system_msg)
+        self.assertIn("params: filePath", system_msg)
+        self.assertIn("params: filePath, oldString, newString, replaceAll", system_msg)
 
         # Should NOT contain snake_case versions
-        self.assertNotIn("Write(file_path, content)", system_msg)
-        self.assertNotIn("Edit(file_path, old_string, new_string)", system_msg)
-        self.assertNotIn("# last param is replace_all", system_msg)
+        self.assertNotIn('file_path="', system_msg)
+        self.assertNotIn("old_string=", system_msg)
+        self.assertNotIn("new_string=", system_msg)
+        self.assertNotIn("params: file_path, old_string, new_string, replace_all", system_msg)
 
     def test_crush_tool_syntax(self):
         """Test that Crush gets snake_case parameter examples"""
@@ -96,14 +100,19 @@ class TestClientSpecificToolInjection(unittest.TestCase):
         self.assertIsNotNone(system_msg)
 
         # Check for Crush-specific syntax with snake_case
-        self.assertIn("Write(file_path, content)", system_msg)
-        self.assertIn("Edit(file_path, old_string, new_string)", system_msg)
-        self.assertIn("# last param is replace_all", system_msg)
+        self.assertIn('file_path="test.txt"', system_msg)
+        self.assertIn('file_path="file.py"', system_msg)
+        self.assertIn("old_string=", system_msg)
+        self.assertIn("new_string=", system_msg)
+        self.assertIn("params: file_path, content", system_msg)
+        self.assertIn("params: file_path, old_string, new_string, replace_all", system_msg)
+        self.assertIn("View(", system_msg)  # Crush uses View not Read
 
         # Should NOT contain camelCase versions
-        self.assertNotIn("Write(filePath, content)", system_msg)
-        self.assertNotIn("Edit(filePath, oldString, newString)", system_msg)
-        self.assertNotIn("# last param is replaceAll", system_msg)
+        self.assertNotIn('filePath="', system_msg)
+        self.assertNotIn("oldString=", system_msg)
+        self.assertNotIn("newString=", system_msg)
+        self.assertNotIn("params: filePath, oldString, newString, replaceAll", system_msg)
 
     def test_gemini_tool_syntax(self):
         """Test that Gemini gets functionCall format"""
@@ -249,10 +258,14 @@ class TestClientSpecificToolInjection(unittest.TestCase):
                         system_msg = msg.get("content", "")
                         break
 
-                # All Python-style clients should have these
+                # All Python-style clients should have these examples
                 self.assertIn('Bash("ls -la")', system_msg)
-                self.assertIn('Grep("pattern", "path")', system_msg)
-                self.assertIn('Glob("*.py")', system_msg)
+                self.assertIn("Grep(", system_msg)
+                self.assertIn("Glob(", system_msg)
+
+                # Check that parameter annotations are present for clarity
+                if client_type in ["opencode", "crush"]:
+                    self.assertIn("params:", system_msg)
 
 
 if __name__ == "__main__":
