@@ -611,25 +611,37 @@ class TextToolParser:
         # Check each block for tool calls and remove if found
         for match in reversed(list(python_blocks)):
             block_content = match.group(1)
-            # Check if block contains our tool call pattern
-            if re.search(r"\b[A-Z][a-zA-Z_]*\s*\(", block_content):
+            # Check if block contains any known tool names as function calls
+            # This is more robust than relying on naming conventions
+            contains_tool_call = False
+            for tool_name in self.param_mappings.keys():
+                # Create a regex pattern for each specific tool name
+                # Using word boundary and escaping the tool name for safety
+                if re.search(rf"\b{re.escape(tool_name)}\s*\(", block_content, re.IGNORECASE):
+                    contains_tool_call = True
+                    break
+
+            if contains_tool_call:
                 # Replace the entire code block
                 text = text[: match.start()] + text[match.end() :]
 
         # Also strip inline Python-style function calls (not in code blocks)
-        python_pattern = (
-            r"\b([A-Z][a-zA-Z_]*\s*\("  # Function name and opening paren
-            r"(?:"  # Non-capturing group for arguments
-            r'[^()"\']+'  # Non-quote, non-paren characters
-            r'|"(?:[^"\\]|\\.)*"'  # Double-quoted strings
-            r"|'(?:[^'\\]|\\.)*'"  # Single-quoted strings
-            r'|"""[\s\S]*?"""'  # Triple double quotes
-            r"|'''[\s\S]*?'''"  # Triple single quotes
-            r"|\([^)]*\)"  # Nested parentheses (one level only)
-            r")*"  # Zero or more of the above
-            r"\))"  # Closing paren
-        )
-        text = re.sub(python_pattern, "", text, flags=re.DOTALL)
+        # Build pattern for known tool names only
+        for tool_name in self.param_mappings.keys():
+            # Create pattern for this specific tool
+            tool_pattern = (
+                rf"\b({re.escape(tool_name)}\s*\("  # Specific tool name and opening paren
+                r"(?:"  # Non-capturing group for arguments
+                r'[^()"\']+'  # Non-quote, non-paren characters
+                r'|"(?:[^"\\]|\\.)*"'  # Double-quoted strings
+                r"|'(?:[^'\\]|\\.)*'"  # Single-quoted strings
+                r'|"""[\s\S]*?"""'  # Triple double quotes
+                r"|'''[\s\S]*?'''"  # Triple single quotes
+                r"|\([^)]*\)"  # Nested parentheses (one level only)
+                r")*"  # Zero or more of the above
+                r"\))"  # Closing paren
+            )
+            text = re.sub(tool_pattern, "", text, flags=re.DOTALL | re.IGNORECASE)
 
         # Clean up any extra whitespace left behind
         text = re.sub(r"\n\s*\n\s*\n+", "\n\n", text)

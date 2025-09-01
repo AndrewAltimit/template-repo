@@ -73,21 +73,41 @@ def load_opencode_param_mappings():
             OPENCODE_PARAM_MAPPINGS = config.get("parameter_mappings", {})
             logger.info(f"Loaded OpenCode parameter mappings for {len(OPENCODE_PARAM_MAPPINGS)} tools")
             return OPENCODE_PARAM_MAPPINGS
+    except FileNotFoundError:
+        # File doesn't exist - use fallback but log differently
+        logger.warning(f"OpenCode parameter mappings file not found at {config_path}, using defaults")
+    except json.JSONDecodeError as e:
+        # JSON syntax error - this should fail loudly in production
+        error_msg = f"JSON syntax error in OpenCode parameter mappings: {e}"
+        if IS_PRODUCTION:
+            logger.error(f"CRITICAL: {error_msg}")
+            raise RuntimeError(f"Cannot start in production with invalid parameter mappings: {e}")
+        else:
+            logger.error(error_msg)
     except Exception as e:
-        logger.warning(f"Failed to load OpenCode parameter mappings, using defaults: {e}")
-        # Fallback mappings for critical tools
-        OPENCODE_PARAM_MAPPINGS = {
-            "write": {"file_path": "filePath", "content": "content"},
-            "bash": {"command": "command", "_required_defaults": {"description": "Execute bash command"}},
-            "read": {"file_path": "filePath", "limit": "limit", "offset": "offset"},
-            "edit": {
-                "file_path": "filePath",
-                "old_string": "oldString",
-                "new_string": "newString",
-                "replace_all": "replaceAll",
-            },
-        }
-        return OPENCODE_PARAM_MAPPINGS
+        # Other errors - log with appropriate severity
+        error_msg = f"Failed to load OpenCode parameter mappings: {e}"
+        if IS_PRODUCTION:
+            logger.error(f"CRITICAL: {error_msg}")
+            # In production, we should consider this critical but still allow fallback
+            # to avoid breaking the service entirely
+        else:
+            logger.warning(error_msg)
+
+    # Fallback mappings for critical tools
+    logger.info("Using fallback OpenCode parameter mappings")
+    OPENCODE_PARAM_MAPPINGS = {
+        "write": {"file_path": "filePath", "content": "content"},
+        "bash": {"command": "command", "_required_defaults": {"description": "Execute bash command"}},
+        "read": {"file_path": "filePath", "limit": "limit", "offset": "offset"},
+        "edit": {
+            "file_path": "filePath",
+            "old_string": "oldString",
+            "new_string": "newString",
+            "replace_all": "replaceAll",
+        },
+    }
+    return OPENCODE_PARAM_MAPPINGS
 
 
 # Load tool configuration
