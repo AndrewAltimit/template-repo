@@ -13,24 +13,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from shared.services.text_tool_parser import TextToolParser  # noqa: E402
 
-
-def format_tool_calls_for_openai(tool_calls, streaming=False):
-    """Format parsed tool calls into OpenAI format"""
-    formatted_calls = []
-    for i, call in enumerate(tool_calls):
-        formatted_call = {
-            "id": f"call_{i}",
-            "type": "function",
-            "function": {
-                "name": call.get("name", call.get("tool")),
-                "arguments": json.dumps(call.get("parameters", {})),
-            },
-        }
-        # Add index for streaming responses
-        if streaming:
-            formatted_call["index"] = i
-        formatted_calls.append(formatted_call)
-    return formatted_calls
+# Import the production function from test utilities
+from test_utils import format_tool_calls_for_openai  # noqa: E402
 
 
 class TestStreamingToolCalls(unittest.TestCase):
@@ -165,10 +149,11 @@ class TestStreamingToolCalls(unittest.TestCase):
         streaming_calls = format_tool_calls_for_openai(tool_calls, streaming=True)
 
         # Check each tool call
+        # Note: The production function applies parameter mappings (snake_case to camelCase)
         expected_tools = [
-            ("write", {"file_path": "hello.md", "content": "hello"}),
-            ("read", {"file_path": "hello.md"}),
-            ("bash", {"command": "/automation/ci-cd/run-ci.sh full"}),
+            ("write", {"filePath": "hello.md", "content": "hello"}),  # file_path -> filePath
+            ("read", {"filePath": "hello.md"}),  # file_path -> filePath
+            ("bash", {"command": "/automation/ci-cd/run-ci.sh full", "description": "Execute bash command"}),  # Added default
         ]
 
         for i, (expected_name, expected_params) in enumerate(expected_tools):

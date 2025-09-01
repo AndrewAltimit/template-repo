@@ -15,21 +15,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from shared.services.text_tool_parser import TextToolParser  # noqa: E402
 
-
-def format_tool_calls_for_openai(tool_calls):
-    """Format parsed tool calls into OpenAI format"""
-    formatted_calls = []
-    for i, call in enumerate(tool_calls):
-        formatted_call = {
-            "id": f"call_{i}",
-            "type": "function",
-            "function": {
-                "name": call.get("name", call.get("tool")),
-                "arguments": json.dumps(call.get("parameters", {})),
-            },
-        }
-        formatted_calls.append(formatted_call)
-    return formatted_calls
+# Import the production function from test utilities
+from test_utils import format_tool_calls_for_openai  # noqa: E402
 
 
 class TestOpenCodeTextTools(unittest.TestCase):
@@ -163,8 +150,9 @@ class TestOpenCodeTextTools(unittest.TestCase):
         self.assertEqual(first_call["function"]["name"], "write")
 
         # Parse arguments JSON
+        # Note: The production function applies parameter mappings (file_path -> filePath)
         args = json.loads(first_call["function"]["arguments"])
-        self.assertEqual(args["file_path"], "hello.md")
+        self.assertEqual(args["filePath"], "hello.md")  # Mapped from file_path
         self.assertEqual(args["content"], "hello")
 
     def test_strip_tool_calls(self):
