@@ -15,7 +15,7 @@ from flask import Flask, Response, jsonify, request, stream_with_context
 from flask_cors import CORS
 
 # Import the text tool parser
-from .text_tool_parser import TextToolParser
+from text_tool_parser import TextToolParser
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
