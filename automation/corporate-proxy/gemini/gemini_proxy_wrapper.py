@@ -134,9 +134,36 @@ def generate_content(model):
 
             if response.status_code != 200:
                 logger.error(f"Company API error: {response.status_code} {response.text}")
-                return jsonify({"error": "Upstream API error"}), response.status_code
+                # Return a proper Gemini error response instead of just an error
+                error_response = {
+                    "candidates": [
+                        {
+                            "content": {"parts": [{"text": f"API error: {response.status_code}"}], "role": "model"},
+                            "finishReason": "STOP",
+                            "index": 0,
+                            "safetyRatings": [],
+                        }
+                    ],
+                    "promptFeedback": {"safetyRatings": []},
+                    "usageMetadata": {
+                        "promptTokenCount": 0,
+                        "candidatesTokenCount": 0,
+                        "totalTokenCount": 0,
+                    },
+                }
+                return jsonify(error_response)
 
-            company_response = response.json()
+            # Try to parse JSON response
+            try:
+                company_response = response.json()
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse Company API response as JSON: {e}")
+                logger.error(f"Raw response: {response.text[:500]}")
+                # If response is plain text, wrap it in expected format
+                company_response = {
+                    "content": [{"text": response.text}],
+                    "usage": {"input_tokens": 10, "output_tokens": len(response.text.split())},
+                }
 
         # Translate back to Gemini format
         gemini_response = translate_company_to_gemini(company_response, gemini_request, tools)
@@ -147,10 +174,43 @@ def generate_content(model):
 
     except requests.exceptions.Timeout:
         logger.error("Company API timeout")
-        return jsonify({"error": "Request timeout"}), 504
+        error_response = {
+            "candidates": [
+                {
+                    "content": {"parts": [{"text": "Request timeout"}], "role": "model"},
+                    "finishReason": "STOP",
+                    "index": 0,
+                    "safetyRatings": [],
+                }
+            ],
+            "promptFeedback": {"safetyRatings": []},
+            "usageMetadata": {
+                "promptTokenCount": 0,
+                "candidatesTokenCount": 0,
+                "totalTokenCount": 0,
+            },
+        }
+        return jsonify(error_response)
     except Exception as e:
         logger.error(f"Error processing request: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        # Return a proper Gemini format error response
+        error_response = {
+            "candidates": [
+                {
+                    "content": {"parts": [{"text": f"Internal error: {str(e)}"}], "role": "model"},
+                    "finishReason": "STOP",
+                    "index": 0,
+                    "safetyRatings": [],
+                }
+            ],
+            "promptFeedback": {"safetyRatings": []},
+            "usageMetadata": {
+                "promptTokenCount": 0,
+                "candidatesTokenCount": 0,
+                "totalTokenCount": 0,
+            },
+        }
+        return jsonify(error_response)
 
 
 @app.route("/v1/models/<model>/streamGenerateContent", methods=["POST"])
@@ -213,11 +273,18 @@ def stream_generate_content(model):
 
                 if response.status_code != 200:
                     company_response = {
-                        "content": [{"text": "API error occurred."}],
+                        "content": [{"text": f"API error: {response.status_code}"}],
                         "usage": {"input_tokens": 10, "output_tokens": 5},
                     }
                 else:
-                    company_response = response.json()
+                    try:
+                        company_response = response.json()
+                    except json.JSONDecodeError as e:
+                        logger.error(f"Failed to parse streaming response as JSON: {e}")
+                        company_response = {
+                            "content": [{"text": response.text}],
+                            "usage": {"input_tokens": 10, "output_tokens": len(response.text.split())},
+                        }
 
             # Convert to streaming format
             gemini_response = translate_company_to_gemini(company_response, gemini_request, tools)
@@ -257,9 +324,34 @@ def stream_generate_content(model):
 
             if response.status_code != 200:
                 logger.error(f"Company API error: {response.status_code}")
-                return jsonify({"error": "Upstream API error"}), response.status_code
+                # Return error in streaming format
+                error_response = {
+                    "candidates": [
+                        {
+                            "content": {"parts": [{"text": f"API error: {response.status_code}"}], "role": "model"},
+                            "finishReason": "STOP",
+                            "index": 0,
+                        }
+                    ]
+                }
 
-            company_response = response.json()
+                def generate_error():
+                    yield f"data: {json.dumps(error_response)}\n\n"
+
+                return Response(
+                    stream_with_context(generate_error()),
+                    mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+                )
+
+            try:
+                company_response = response.json()
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse response as JSON: {e}")
+                company_response = {
+                    "content": [{"text": response.text}],
+                    "usage": {"input_tokens": 10, "output_tokens": len(response.text.split())},
+                }
 
         # Simulate streaming by chunking the response
         def generate():
@@ -293,7 +385,24 @@ def stream_generate_content(model):
 
     except Exception as e:
         logger.error(f"Streaming error: {e}")
-        return jsonify({"error": str(e)}), 500
+        # Return error in Gemini format
+        error_response = {
+            "candidates": [
+                {
+                    "content": {"parts": [{"text": f"Streaming error: {str(e)}"}], "role": "model"},
+                    "finishReason": "STOP",
+                    "index": 0,
+                    "safetyRatings": [],
+                }
+            ],
+            "promptFeedback": {"safetyRatings": []},
+            "usageMetadata": {
+                "promptTokenCount": 0,
+                "candidatesTokenCount": 0,
+                "totalTokenCount": 0,
+            },
+        }
+        return jsonify(error_response)
 
 
 @app.route("/v1/models", methods=["GET"])
@@ -323,7 +432,24 @@ def get_model(model):
 
     model_config = CONFIG["models"].get(model)
     if not model_config:
-        return jsonify({"error": f"Model {model} not found"}), 404
+        # Return error in Gemini format
+        error_response = {
+            "candidates": [
+                {
+                    "content": {"parts": [{"text": f"Model {model} not found"}], "role": "model"},
+                    "finishReason": "STOP",
+                    "index": 0,
+                    "safetyRatings": [],
+                }
+            ],
+            "promptFeedback": {"safetyRatings": []},
+            "usageMetadata": {
+                "promptTokenCount": 0,
+                "candidatesTokenCount": 0,
+                "totalTokenCount": 0,
+            },
+        }
+        return jsonify(error_response)
 
     return jsonify(
         {
@@ -388,7 +514,24 @@ def execute_tool():
     parameters = data.get("parameters", {})
 
     if tool_name not in GEMINI_TOOLS:
-        return jsonify({"error": f"Unknown tool: {tool_name}"}), 400
+        # Return error in Gemini format
+        error_response = {
+            "candidates": [
+                {
+                    "content": {"parts": [{"text": f"Unknown tool: {tool_name}"}], "role": "model"},
+                    "finishReason": "STOP",
+                    "index": 0,
+                    "safetyRatings": [],
+                }
+            ],
+            "promptFeedback": {"safetyRatings": []},
+            "usageMetadata": {
+                "promptTokenCount": 0,
+                "candidatesTokenCount": 0,
+                "totalTokenCount": 0,
+            },
+        }
+        return jsonify(error_response)
 
     result = execute_tool_call(tool_name, parameters)
     return jsonify(result)
@@ -471,7 +614,24 @@ If the task is complete, provide a summary of what was accomplished."""
 
             if response.status_code != 200:
                 logger.error(f"Company API error: {response.status_code}")
-                return jsonify({"error": "Upstream API error"}), response.status_code
+                # Return error in Gemini format
+                error_response = {
+                    "candidates": [
+                        {
+                            "content": {"parts": [{"text": f"Upstream API error: {response.status_code}"}], "role": "model"},
+                            "finishReason": "STOP",
+                            "index": 0,
+                            "safetyRatings": [],
+                        }
+                    ],
+                    "promptFeedback": {"safetyRatings": []},
+                    "usageMetadata": {
+                        "promptTokenCount": 0,
+                        "candidatesTokenCount": 0,
+                        "totalTokenCount": 0,
+                    },
+                }
+                return jsonify(error_response)
 
             company_response = response.json()
 
@@ -492,7 +652,24 @@ If the task is complete, provide a summary of what was accomplished."""
 
     except Exception as e:
         logger.error(f"Error in continue_with_tools: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        # Return error in Gemini format
+        error_response = {
+            "candidates": [
+                {
+                    "content": {"parts": [{"text": f"Error: {str(e)}"}], "role": "model"},
+                    "finishReason": "STOP",
+                    "index": 0,
+                    "safetyRatings": [],
+                }
+            ],
+            "promptFeedback": {"safetyRatings": []},
+            "usageMetadata": {
+                "promptTokenCount": 0,
+                "candidatesTokenCount": 0,
+                "totalTokenCount": 0,
+            },
+        }
+        return jsonify(error_response)
 
 
 @app.route("/", methods=["GET"])
@@ -567,7 +744,24 @@ def catch_all(path):
             }
         )
 
-    return jsonify({"error": f"Unknown endpoint: /{path}", "service": "gemini_proxy_wrapper"}), 404
+    # Return error in Gemini format
+    error_response = {
+        "candidates": [
+            {
+                "content": {"parts": [{"text": f"Unknown endpoint: /{path}"}], "role": "model"},
+                "finishReason": "STOP",
+                "index": 0,
+                "safetyRatings": [],
+            }
+        ],
+        "promptFeedback": {"safetyRatings": []},
+        "usageMetadata": {
+            "promptTokenCount": 0,
+            "candidatesTokenCount": 0,
+            "totalTokenCount": 0,
+        },
+    }
+    return jsonify(error_response)
 
 
 if __name__ == "__main__":

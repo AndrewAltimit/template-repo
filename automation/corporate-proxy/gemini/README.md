@@ -384,7 +384,7 @@ gemini/
 ├── scripts/
 │   ├── build.sh                 # Build container
 │   ├── run.sh                   # Run with options
-│   ├── gemini-wrapper.sh        # Container entrypoint
+│   ├── start-services.sh        # Container entrypoint
 │   └── test-tools.sh            # Tool testing
 ├── config/
 │   ├── gemini-config.json       # Model mappings

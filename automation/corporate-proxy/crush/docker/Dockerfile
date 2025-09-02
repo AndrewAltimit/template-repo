@@ -13,25 +13,25 @@ RUN apk add --no-cache curl tar
 ARG TARGETARCH
 
 # Crush version can be overridden at build time
-# Example: docker build --build-arg CRUSH_VERSION=0.9.0-nightly ...
-ARG CRUSH_VERSION=0.8.0-nightly
+# Example: docker build --build-arg CRUSH_VERSION=0.7.4 ...
+ARG CRUSH_VERSION=0.7.4
 
 # Map Docker arch to Crush release arch names
-# amd64 -> x86_64, arm64 -> aarch64
+# amd64 -> x86_64, arm64 -> arm64 (not aarch64 for this release)
 RUN echo "Building for architecture: ${TARGETARCH}"
 
-# Download the nightly Crush release binary for the target architecture
+# Download the Crush release binary for the target architecture
 WORKDIR /tmp
 RUN if [ "${TARGETARCH}" = "amd64" ]; then \
         CRUSH_ARCH="x86_64"; \
     elif [ "${TARGETARCH}" = "arm64" ]; then \
-        CRUSH_ARCH="aarch64"; \
+        CRUSH_ARCH="arm64"; \
     else \
         echo "Unsupported architecture: ${TARGETARCH}"; \
         exit 1; \
     fi && \
     echo "Downloading Crush version ${CRUSH_VERSION} for ${CRUSH_ARCH}" && \
-    curl -L "https://github.com/charmbracelet/crush/releases/download/nightly/crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}.tar.gz" -o crush.tar.gz && \
+    curl -L "https://github.com/charmbracelet/crush/releases/download/v${CRUSH_VERSION}/crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}.tar.gz" -o crush.tar.gz && \
     tar -xzf crush.tar.gz && \
     mv crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}/crush crush-binary && \
     chmod +x crush-binary
@@ -59,6 +59,14 @@ RUN pip install --no-cache-dir flask flask-cors requests
 COPY automation/corporate-proxy/shared/services/text_tool_parser.py /app/text_tool_parser.py
 COPY automation/corporate-proxy/shared/services/translation_wrapper.py /app/translation_wrapper.py
 COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified_tool_api.py
+COPY automation/corporate-proxy/shared/services/tool_prompts.py /app/tool_prompts.py
+
+# Copy shared configs for translation wrapper
+COPY automation/corporate-proxy/shared/configs /app/shared/configs
+
+# Also copy tool_config.json to /configs/ where translation_wrapper expects it
+COPY automation/corporate-proxy/shared/configs/tool_config.json /configs/tool_config.json
+COPY automation/corporate-proxy/shared/configs/opencode_param_mappings.json /configs/opencode_param_mappings.json
 
 # Copy scripts
 COPY automation/corporate-proxy/crush/scripts/start-services.sh /app/start-services.sh
@@ -87,6 +95,9 @@ ENV COMPANY_API_BASE="http://localhost:8050"
 ENV COMPANY_API_TOKEN="test-secret-token-123"
 ENV WRAPPER_PORT="8052"
 ENV MOCK_API_PORT="8050"
+ENV COMPANY_MOCK_MODE="true"
+ENV COMPANY_START_WRAPPER="true"
+ENV AGENT_CLIENT="crush"
 
 # Expose ports
 EXPOSE 8050 8052

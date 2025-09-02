@@ -304,7 +304,8 @@ if __name__ == "__main__":
         self.assertIn("read_file", prompt)
         self.assertIn("write_file", prompt)
         self.assertIn("Read the config file", prompt)
-        self.assertIn("```tool_call```", prompt)
+        self.assertIn("```tool_call", prompt)  # Opening backticks
+        self.assertIn("```", prompt)  # Closing backticks
         self.assertIn('"tool": "tool_name"', prompt)
 
     def test_process_response_with_tools(self):
@@ -364,7 +365,9 @@ class TestToolInjector(unittest.TestCase):
         # Should modify the first user message
         self.assertEqual(len(modified), 2)
         self.assertIn("test_tool", modified[1]["content"])
-        self.assertIn("```tool_call```", modified[1]["content"])
+        # Check for the actual format (backticks are on separate lines)
+        self.assertIn("```tool_call", modified[1]["content"])
+        self.assertIn("```", modified[1]["content"])
 
     def test_inject_system_prompt(self):
         """Test enhancing system prompt with tool instructions"""

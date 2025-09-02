@@ -598,28 +598,61 @@ class TextToolParser:
         """
         import re
 
-        # Strip JSON format tool calls
-        text = re.sub(r"```tool_call.*?```", "", text, flags=re.DOTALL)
+        # Strip JSON format tool calls (including tool_code variant)
+        text = re.sub(r"```(?:tool_call|tool_code|json).*?```", "", text, flags=re.DOTALL)
 
         # Strip XML format tool calls
         text = re.sub(r"<tool>.*?</tool>", "", text, flags=re.DOTALL)
 
-        # Strip Python-style function calls using our compiled pattern
-        # We need to use the pattern string directly since PYTHON_TOOL_CALL_PATTERN
-        # is compiled with specific groups for parsing
-        python_pattern = (
-            r"\b([A-Z][a-zA-Z_]*\s*\("  # Function name and opening paren
-            r"(?:"  # Non-capturing group for arguments
-            r'[^()"\']+'  # Non-quote, non-paren characters
-            r'|"(?:[^"\\]|\\.)*"'  # Double-quoted strings
-            r"|'(?:[^'\\]|\\.)*'"  # Single-quoted strings
-            r'|"""[\s\S]*?"""'  # Triple double quotes
-            r"|'''[\s\S]*?'''"  # Triple single quotes
-            r"|\([^)]*\)"  # Nested parentheses (one level only)
-            r")*"  # Zero or more of the above
-            r"\))"  # Closing paren
-        )
-        text = re.sub(python_pattern, "", text, flags=re.DOTALL)
+        # Strip Python code blocks that contain tool calls
+        # First, find all Python code blocks
+        python_blocks = re.finditer(r"```python\s*\n(.*?)\n\s*```", text, re.DOTALL)
+
+        # Check each block for tool calls and remove if found
+        for match in reversed(list(python_blocks)):
+            block_content = match.group(1)
+            # Check if block contains any known tool names as function calls
+            # This is more robust than relying on naming conventions
+            contains_tool_call = False
+            for tool_name in self.param_mappings.keys():
+                # Create a regex pattern for each specific tool name
+                # Using word boundary and escaping the tool name for safety
+                if re.search(rf"\b{re.escape(tool_name)}\s*\(", block_content, re.IGNORECASE):
+                    contains_tool_call = True
+                    break
+
+            if contains_tool_call:
+                # Replace the entire code block
+                text = text[: match.start()] + text[match.end() :]
+
+        # Also strip inline Python-style function calls (not in code blocks)
+        # Build a single pattern for all known tool names for efficiency
+        if self.param_mappings:
+            # Include both snake_case and PascalCase versions of tool names
+            tool_patterns = []
+            for name in self.param_mappings.keys():
+                # Add snake_case version
+                tool_patterns.append(re.escape(name))
+                # Add PascalCase version (e.g., multi_edit -> MultiEdit)
+                pascal_name = "".join(word.capitalize() for word in name.split("_"))
+                tool_patterns.append(re.escape(pascal_name))
+
+            tool_names_pattern = "|".join(tool_patterns)
+
+            combined_pattern = (
+                rf"\b({tool_names_pattern})\s*\("  # Any tool name and opening paren
+                r"(?:"  # Non-capturing group for arguments
+                r'[^()"\']+'  # Non-quote, non-paren characters
+                r'|"(?:[^"\\]|\\.)*"'  # Double-quoted strings
+                r"|'(?:[^'\\]|\\.)*'"  # Single-quoted strings
+                r'|"""[\s\S]*?"""'  # Triple double quotes
+                r"|'''[\s\S]*?'''"  # Triple single quotes
+                r"|\([^)]*\)"  # Nested parentheses (one level only)
+                r")*"  # Zero or more of the above
+                r"\)"  # Closing paren
+            )
+
+            text = re.sub(combined_pattern, "", text, flags=re.DOTALL | re.IGNORECASE)
 
         # Clean up any extra whitespace left behind
         text = re.sub(r"\n\s*\n\s*\n+", "\n\n", text)
@@ -899,6 +932,11 @@ class ToolInjector:
         """
         if not self.tools or not messages:
             return messages
+
+        # Check if tools dict is empty
+        if isinstance(self.tools, list) and len(self.tools) == 1:
+            if "functionDeclarations" in self.tools[0] and not self.tools[0]["functionDeclarations"]:
+                return messages
 
         # Make a copy to avoid modifying the original
         messages = [msg.copy() for msg in messages]
