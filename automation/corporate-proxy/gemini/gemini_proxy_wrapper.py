@@ -385,7 +385,24 @@ def stream_generate_content(model):
 
     except Exception as e:
         logger.error(f"Streaming error: {e}")
-        return jsonify({"error": str(e)}), 500
+        # Return error in Gemini format
+        error_response = {
+            "candidates": [
+                {
+                    "content": {"parts": [{"text": f"Streaming error: {str(e)}"}], "role": "model"},
+                    "finishReason": "STOP",
+                    "index": 0,
+                    "safetyRatings": [],
+                }
+            ],
+            "promptFeedback": {"safetyRatings": []},
+            "usageMetadata": {
+                "promptTokenCount": 0,
+                "candidatesTokenCount": 0,
+                "totalTokenCount": 0,
+            },
+        }
+        return jsonify(error_response)
 
 
 @app.route("/v1/models", methods=["GET"])
@@ -415,7 +432,24 @@ def get_model(model):
 
     model_config = CONFIG["models"].get(model)
     if not model_config:
-        return jsonify({"error": f"Model {model} not found"}), 404
+        # Return error in Gemini format
+        error_response = {
+            "candidates": [
+                {
+                    "content": {"parts": [{"text": f"Model {model} not found"}], "role": "model"},
+                    "finishReason": "STOP",
+                    "index": 0,
+                    "safetyRatings": [],
+                }
+            ],
+            "promptFeedback": {"safetyRatings": []},
+            "usageMetadata": {
+                "promptTokenCount": 0,
+                "candidatesTokenCount": 0,
+                "totalTokenCount": 0,
+            },
+        }
+        return jsonify(error_response)
 
     return jsonify(
         {
@@ -480,7 +514,24 @@ def execute_tool():
     parameters = data.get("parameters", {})
 
     if tool_name not in GEMINI_TOOLS:
-        return jsonify({"error": f"Unknown tool: {tool_name}"}), 400
+        # Return error in Gemini format
+        error_response = {
+            "candidates": [
+                {
+                    "content": {"parts": [{"text": f"Unknown tool: {tool_name}"}], "role": "model"},
+                    "finishReason": "STOP",
+                    "index": 0,
+                    "safetyRatings": [],
+                }
+            ],
+            "promptFeedback": {"safetyRatings": []},
+            "usageMetadata": {
+                "promptTokenCount": 0,
+                "candidatesTokenCount": 0,
+                "totalTokenCount": 0,
+            },
+        }
+        return jsonify(error_response)
 
     result = execute_tool_call(tool_name, parameters)
     return jsonify(result)
@@ -563,7 +614,24 @@ If the task is complete, provide a summary of what was accomplished."""
 
             if response.status_code != 200:
                 logger.error(f"Company API error: {response.status_code}")
-                return jsonify({"error": "Upstream API error"}), response.status_code
+                # Return error in Gemini format
+                error_response = {
+                    "candidates": [
+                        {
+                            "content": {"parts": [{"text": f"Upstream API error: {response.status_code}"}], "role": "model"},
+                            "finishReason": "STOP",
+                            "index": 0,
+                            "safetyRatings": [],
+                        }
+                    ],
+                    "promptFeedback": {"safetyRatings": []},
+                    "usageMetadata": {
+                        "promptTokenCount": 0,
+                        "candidatesTokenCount": 0,
+                        "totalTokenCount": 0,
+                    },
+                }
+                return jsonify(error_response)
 
             company_response = response.json()
 
@@ -584,7 +652,24 @@ If the task is complete, provide a summary of what was accomplished."""
 
     except Exception as e:
         logger.error(f"Error in continue_with_tools: {e}", exc_info=True)
-        return jsonify({"error": str(e)}), 500
+        # Return error in Gemini format
+        error_response = {
+            "candidates": [
+                {
+                    "content": {"parts": [{"text": f"Error: {str(e)}"}], "role": "model"},
+                    "finishReason": "STOP",
+                    "index": 0,
+                    "safetyRatings": [],
+                }
+            ],
+            "promptFeedback": {"safetyRatings": []},
+            "usageMetadata": {
+                "promptTokenCount": 0,
+                "candidatesTokenCount": 0,
+                "totalTokenCount": 0,
+            },
+        }
+        return jsonify(error_response)
 
 
 @app.route("/", methods=["GET"])
@@ -659,7 +744,24 @@ def catch_all(path):
             }
         )
 
-    return jsonify({"error": f"Unknown endpoint: /{path}", "service": "gemini_proxy_wrapper"}), 404
+    # Return error in Gemini format
+    error_response = {
+        "candidates": [
+            {
+                "content": {"parts": [{"text": f"Unknown endpoint: /{path}"}], "role": "model"},
+                "finishReason": "STOP",
+                "index": 0,
+                "safetyRatings": [],
+            }
+        ],
+        "promptFeedback": {"safetyRatings": []},
+        "usageMetadata": {
+            "promptTokenCount": 0,
+            "candidatesTokenCount": 0,
+            "totalTokenCount": 0,
+        },
+    }
+    return jsonify(error_response)
 
 
 if __name__ == "__main__":
