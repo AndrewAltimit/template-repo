@@ -159,6 +159,7 @@ ENV COMPANY_API_TOKEN="test-secret-token-123"
 ENV GEMINI_PROXY_PORT="8053"
 ENV WRAPPER_PORT="8052"
 ENV MOCK_API_PORT="8050"
+ENV AGENT_CLIENT="gemini"
 
 # TLS verification - disabled by default for safety
 # Only enable this if you need it for corporate networks with self-signed certs

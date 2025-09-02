@@ -27,6 +27,7 @@ CORS(app)
 # Configuration
 COMPANY_API_BASE = os.environ.get("COMPANY_API_BASE", "http://localhost:8050")
 COMPANY_API_TOKEN = os.environ.get("COMPANY_API_TOKEN", "test-secret-token-123")
+AGENT_CLIENT = os.environ.get("AGENT_CLIENT", "").lower()  # Can be: opencode, crush, gemini, etc.
 
 # Global model configuration cache
 MODEL_CONFIG: Dict[str, Dict[str, Any]] = {}
@@ -481,26 +482,14 @@ def chat_completions():
 
         logger.info(f"Received request for model: {model}")
 
-        # Detect client type based on model name or headers
-        # Crush uses models like "deepseek/deepseek-chat" or contains "deepseek", "phi", "llama"
-        # OpenCode uses models like "qwen/qwen-2.5-coder" or contains "qwen", "openrouter"
-        user_agent = request.headers.get("User-Agent", "").lower()
-        x_client = request.headers.get("X-Client", "").lower()
-        model_lower = model.lower()
+        # Determine client type from AGENT_CLIENT env var, default to crush if not set
+        agent_client = AGENT_CLIENT if AGENT_CLIENT else "crush"
 
-        # Determine if this is a Crush client (needs snake_case) or OpenCode (needs camelCase)
-        is_crush_client = (
-            "crush" in user_agent
-            or "crush" in x_client
-            or "deepseek" in model_lower
-            or "phi" in model_lower
-            or "llama" in model_lower
-            or model.startswith("microsoft/")
-            or model.startswith("meta-llama/")
-        )
-        is_opencode_client = not is_crush_client  # Default to OpenCode behavior for compatibility
+        is_crush_client = agent_client == "crush"
+        is_opencode_client = agent_client == "opencode"
+        is_gemini_client = agent_client == "gemini"
 
-        logger.info(f"Client detection - Model: {model}, User-Agent: {user_agent}, Is Crush: {is_crush_client}")
+        logger.info(f"Using agent client: {agent_client} (from {'env var' if AGENT_CLIENT else 'default'})")
 
         # Get model configuration
         model_config = MODEL_CONFIG.get(model, {})
@@ -526,7 +515,8 @@ def chat_completions():
                 client_type = "crush"
             elif is_opencode_client:
                 client_type = "opencode"
-            # Note: We don't set "gemini" here as Gemini uses a different API format entirely
+            elif is_gemini_client:
+                client_type = "gemini"
 
             logger.info(f"Model doesn't support tools, injecting {len(tools)} tools into prompt for {client_type} client")
             messages = inject_tools_into_prompt(messages, tools, client_type)
