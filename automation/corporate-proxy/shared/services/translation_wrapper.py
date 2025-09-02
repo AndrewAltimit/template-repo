@@ -7,6 +7,7 @@ Automatically uses text-based tool parsing for models that don't support native 
 import json
 import logging
 import os
+import sys
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -14,8 +15,16 @@ import requests
 from flask import Flask, Response, jsonify, request, stream_with_context
 from flask_cors import CORS
 
+# Add parent directories to path for importing configs
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from configs.tool_prompts import (  # noqa: E402
+    TOOL_PROMPTS,
+    get_default_system_prompt,
+    get_tool_instruction_template,
+)
+
 # Import the text tool parser
-from text_tool_parser import TextToolParser
+from text_tool_parser import TextToolParser  # noqa: E402
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -287,220 +296,15 @@ def inject_tools_into_prompt(messages: List[Dict], tools: List[Dict], client_typ
 
         tool_descriptions.append(tool_desc)
 
-    # Generate client-specific tool invocation examples
-    if client_type == "opencode":
-        # OpenCode uses camelCase parameters
-        tool_examples = """2. **Tool Invocation Format** - Use Python code blocks with camelCase parameters:
-   ```python
-   # File operations - Note: parameters use camelCase (filePath, not file_path):
-   Write("filename.txt", "content here")  # params: filePath, content
-   Read("path/to/file.txt")  # params: filePath, offset, limit
-   Edit("file.py", "old text", "new text", False)  # params: filePath, oldString, newString, replaceAll
+    # Get prompts from configuration
+    prompts = TOOL_PROMPTS.get(client_type, TOOL_PROMPTS["generic"])
+    tool_examples = prompts["examples"]
+    pattern_examples = prompts["patterns"]
 
-   # Command execution:
-   Bash("ls -la")  # params: command, timeout
-
-   # Searching:
-   Grep("TODO", "src/")  # params: pattern, path
-   Glob("*.py", ".")  # params: pattern, path
-   ```"""
-        pattern_examples = """4. **Common Patterns (camelCase parameters):**
-   - To create a file: Use Write(filePath="test.txt", content="data")
-   - To modify a file: First Read(filePath="file.py"), then Edit(filePath="file.py", oldString="old", newString="new")
-   - To run commands: Use Bash(command="ls -la")
-   - To search code: Use Grep(pattern="TODO", path=".") or Glob(pattern="*.py", path=".")"""
-
-    elif client_type == "crush":
-        # Crush uses snake_case parameters and View instead of Read - ENHANCED INSTRUCTIONS FOR CLARITY
-        tool_examples = """2. **CRITICAL TOOL INVOCATION FORMAT - READ CAREFULLY**
-
-   **CORRECT FORMAT - ALWAYS USE THIS:**
-   ```python
-   # File operations - MUST use snake_case parameters (file_path, NOT filePath):
-   Write(file_path="filename.txt", content="content here")
-   View(file_path="path/to/file.txt")  # NOT Read! Optional: limit=100, offset=0
-   Edit(file_path="file.py", old_string="old text", new_string="new text", replace_all=False)
-
-   # Command execution - ALWAYS specify the command parameter:
-   Bash(command="python script.py")
-   Bash(command="git status")
-
-   # Directory listing - Use Ls tool, not bash ls:
-   Ls(path=".")  # List current directory
-   Ls(path="src/")  # List src directory
-
-   # Searching - ALWAYS include ALL required parameters:
-   Grep(pattern="TODO", path="src/")  # path is REQUIRED
-   Glob(pattern="*.py", path=".")     # path is REQUIRED, use "." for current dir
-   ```
-
-   **NEVER DO THIS (WRONG):**
-   - NEVER write: [Calling View tool] or [Calling Write tool] - THIS IS NOT A TOOL CALL!
-   - NEVER write: View("file.txt") without parameter names
-   - NEVER use Read() - Crush uses View() instead!
-   - NEVER write: Bash("ls") without command= parameter
-   - NEVER omit required parameters
-   - NEVER use camelCase like filePath or oldString
-
-   **PARAMETER RULES:**
-   - ALWAYS use parameter names: Write(file_path="...", content="...")
-   - ALWAYS use snake_case: file_path, old_string, new_string (NOT filePath, oldString)
-   - ALWAYS provide required parameters (file_path, content, command, pattern, path)
-   - Optional parameters can be omitted: limit, offset, replace_all, timeout"""
-
-        pattern_examples = """4. **COMPLETE WORKING EXAMPLES (COPY THESE PATTERNS):**
-
-   **Creating a new file:**
-   ```python
-   Write(file_path="test.py", content="print('Hello World')")
-   ```
-
-   **Viewing/Reading a file (USE VIEW, NOT READ!):**
-   ```python
-   View(file_path="src/main.py")  # Crush uses View, not Read!
-   ```
-
-   **Modifying an existing file:**
-   ```python
-   # First view to see the content (USE VIEW!)
-   View(file_path="config.json")
-   # Then edit with exact strings
-   Edit(file_path="config.json", old_string="false", new_string="true", replace_all=False)
-   ```
-
-   **Listing directories (Use Ls, not bash ls!):**
-   ```python
-   Ls(path=".")  # List current directory
-   Ls(path="src/")  # List a specific directory
-   ```
-
-   **Running commands:**
-   ```python
-   Bash(command="pwd")
-   Bash(command="python -m pytest tests/")
-   Bash(command="git status")
-   ```
-
-   **Searching for patterns:**
-   ```python
-   Grep(pattern="TODO", path=".")  # Search current directory
-   Grep(pattern="import requests", path="src/")  # Search in src folder
-   Glob(pattern="*.py", path=".")  # Find all Python files
-   Glob(pattern="test_*.py", path="tests/")  # Find test files
-   ```
-
-   **REMEMBER: If you write [Calling xxx tool] instead of the proper Python code format, THE TOOL WILL NOT WORK!**"""
-
-    elif client_type == "gemini":
-        # Gemini has different invocation style
-        tool_examples = """2. **Tool Invocation Format** - Use function calls in code blocks:
-   ```
-   # For file operations:
-   functionCall: write
-   args: {"path": "filename.txt", "content": "content here"}
-
-   functionCall: read
-   args: {"path": "path/to/file.txt"}
-
-   functionCall: edit
-   args: {"path": "file.py", "old_text": "old", "new_text": "new"}
-   ```"""
-        pattern_examples = """4. **Common Patterns:**
-   - To create a file: Call write with path and content args
-   - To modify a file: First read(path), then edit with old_text and new_text
-   - To run commands: Call bash with command arg
-   - To search code: Call grep or glob with appropriate args"""
-
-    else:
-        # Generic/fallback format
-        tool_examples = """2. **Tool Invocation Format** - Use Python code blocks:
-   ```python
-   # For file operations:
-   Write("filename.txt", "content here")
-   Read("path/to/file.txt")
-   Edit("file.py", "old_text", "new_text")
-
-   # For command execution:
-   Bash("ls -la")
-
-   # For searching:
-   Grep("pattern", "path")
-   Glob("*.py")
-   ```"""
-        pattern_examples = """4. **Common Patterns:**
-   - To create a file: Use Write(file_path, content)
-   - To modify a file: First Read(file_path), then Edit(file_path, old_string, new_string)
-   - To run commands: Use Bash(command)
-   - To search code: Use Grep(pattern, path) or Glob(pattern)"""
-
-    # Enhanced instruction for Crush client to be extra clear
-    if client_type == "crush":
-        tool_instruction = """CRITICAL: You MUST use these tools to complete ANY file or command tasks!
-
-**Available Tools:**
-{}
-
-**EXTREMELY IMPORTANT - HOW TO USE TOOLS**
-
-1. **YOU MUST USE TOOLS** for ALL of these tasks:
-   - Viewing/Reading files: Use View(file_path="...") **NOT Read() - Crush uses View!**
-   - Writing files: Use Write(file_path="...", content="...")
-   - Running commands: Use Bash(command="...")
-   - Searching code: Use Grep(pattern="...", path="...")
-   - Finding files: Use Glob(pattern="...", path="...")
-   - Editing files: Use Edit(file_path="...", old_string="...", new_string="...")
-   - Multiple edits: Use MultiEdit(file_path="...", edits=[...])
-   - Listing directories: Use Ls(path="...")
-   - Fetching URLs: Use Fetch(url="...")
-   - Code search: Use Sourcegraph(query="...")
-
-{}
-
-3. **CRITICAL RULES - FAILURE TO FOLLOW THESE WILL BREAK YOUR TOOLS:**
-   - ONLY use Python code blocks with proper function calls
-   - NEVER write text like [Calling Read tool] - this is NOT a tool call!
-   - ALWAYS include parameter names (file_path=, content=, command=, etc.)
-   - ALWAYS use snake_case for parameters (file_path NOT filePath)
-   - Tool results will appear AFTER you invoke them - wait for results
-   - If a tool does not work, check you are using the EXACT format shown above
-
-{}
-
-**Final Warning:** Without using these tools properly, you CANNOT read files, write files, or run commands.
-The tools are your ONLY way to interact with the system. Use the EXACT formats shown above!
-""".format(
-            "\n".join(tool_descriptions), tool_examples, pattern_examples
-        )
-    else:
-        tool_instruction = """IMPORTANT: You have access to powerful tools that you MUST use to complete tasks effectively!
-
-**Available Tools:**
-{}
-
-**CRITICAL INSTRUCTIONS FOR TOOL USE:**
-
-1. **ALWAYS use tools** when you need to:
-   - Read or write files (use Read/Write tools)
-   - Execute commands (use Bash tool)
-   - Search for patterns (use Grep tool)
-   - Navigate directories (use Glob tool)
-   - Edit existing files (use Edit tool)
-
-{}
-
-3. **Important Reminders:**
-   - You CANNOT complete file-related tasks without using the appropriate tools
-   - Tool results will appear after you invoke them - wait for results before continuing
-   - Use tools multiple times if needed to complete a task thoroughly
-   - Always use the exact tool names and parameter formats shown above
-
-{}
-
-Remember: You have full capability to interact with the filesystem and execute commands through these tools.
-Use them confidently!
-""".format(
-            "\n".join(tool_descriptions), tool_examples, pattern_examples
-        )
+    # Get the instruction template
+    tool_instruction = get_tool_instruction_template(client_type).format(
+        tool_descriptions="\n".join(tool_descriptions), tool_examples=tool_examples, pattern_examples=pattern_examples
+    )
 
     # Prepend to system message or create one
     new_messages = messages.copy()
@@ -629,23 +433,10 @@ def chat_completions():
         # Build Company API request
         company_url = f"{COMPANY_API_BASE}/api/v1/AI/GenAIExplorationLab/Models/{endpoint}"
 
-        # Enhanced default system prompt when tools are available
-        default_system_prompt = "You are a helpful AI assistant"
-        if not supports_tools and tools:
-            # Extra clear prompt for Crush
-            if is_crush_client:
-                default_system_prompt = (
-                    "You are a helpful AI assistant with MANDATORY tool access. "
-                    "You MUST use Python code blocks with proper function calls like "
-                    'Write(file_path="...", content="...") to interact with files and run commands. '
-                    "NEVER write text like [Calling X tool] - that is NOT a tool call! "
-                    "Always use the EXACT tool invocation format shown in the instructions."
-                )
-            else:
-                default_system_prompt = (
-                    "You are a helpful AI assistant with access to powerful tools. "
-                    "Remember to use the tools provided to complete tasks effectively."
-                )
+        # Get default system prompt from configuration
+        default_system_prompt = get_default_system_prompt(
+            client_type=agent_client if not supports_tools and tools else "generic", has_tools=(not supports_tools and tools)
+        )
 
         company_request = {
             "anthropic_version": "bedrock-2023-05-31",
