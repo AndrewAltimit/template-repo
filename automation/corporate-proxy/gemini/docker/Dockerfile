@@ -113,8 +113,8 @@ COPY automation/corporate-proxy/shared/configs/tool_config.json /configs/tool_co
 COPY automation/corporate-proxy/shared/configs/opencode_param_mappings.json /configs/opencode_param_mappings.json
 
 # Copy startup script
-COPY automation/corporate-proxy/gemini/scripts/gemini-wrapper.sh /app/gemini-wrapper.sh
-RUN chmod +x /app/gemini-wrapper.sh
+COPY automation/corporate-proxy/gemini/scripts/start-services.sh /app/start-services.sh
+RUN chmod +x /app/start-services.sh
 
 # Create Gemini config directories and pre-configure auth
 # Use the actual user ID to ensure ownership works
@@ -169,5 +169,5 @@ ENV AGENT_CLIENT="gemini"
 
 EXPOSE 8050 8052 8053
 
-ENTRYPOINT ["/app/gemini-wrapper.sh"]
+ENTRYPOINT ["/app/start-services.sh"]
 CMD ["interactive"]
