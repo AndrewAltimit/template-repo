@@ -311,26 +311,75 @@ def inject_tools_into_prompt(messages: List[Dict], tools: List[Dict], client_typ
    - To search code: Use Grep(pattern="TODO", path=".") or Glob(pattern="*.py", path=".")"""
 
     elif client_type == "crush":
-        # Crush uses snake_case parameters
-        tool_examples = """2. **Tool Invocation Format** - Use Python code blocks with snake_case parameters:
+        # Crush uses snake_case parameters - ENHANCED INSTRUCTIONS FOR CLARITY
+        tool_examples = """2. **⚠️ CRITICAL TOOL INVOCATION FORMAT - READ CAREFULLY ⚠️**
+
+   **✅ CORRECT FORMAT - ALWAYS USE THIS:**
    ```python
-   # File operations - Note: parameters use snake_case (file_path, not filePath):
-   Write("filename.txt", "content here")  # params: file_path, content
-   View("path/to/file.txt")  # params: file_path, offset, limit
-   Edit("file.py", "old text", "new text", False)  # params: file_path, old_string, new_string, replace_all
+   # File operations - MUST use snake_case parameters (file_path, NOT filePath):
+   Write(file_path="filename.txt", content="content here")
+   Read(file_path="path/to/file.txt")  # Optional: limit=100, offset=0
+   Edit(file_path="file.py", old_string="old text", new_string="new text", replace_all=False)
 
-   # Command execution:
-   Bash("ls -la")  # params: command, timeout
+   # Command execution - ALWAYS specify the command parameter:
+   Bash(command="ls -la")
+   Bash(command="python script.py")
+   Bash(command="git status")
 
-   # Searching - all lowercase parameters:
-   Grep("TODO", "src/")  # params: pattern, path, include, literal_text
-   Glob("*.py", ".")  # params: pattern, path
-   ```"""
-        pattern_examples = """4. **Common Patterns (snake_case parameters):**
-   - To create a file: Use Write(file_path="test.txt", content="data")
-   - To modify a file: First View(file_path="file.py"), then Edit(file_path="file.py", old_string="old", new_string="new")
-   - To run commands: Use Bash(command="ls -la")
-   - To search code: Use Grep(pattern="TODO", path=".") or Glob(pattern="*.py", path=".")"""
+   # Searching - ALWAYS include ALL required parameters:
+   Grep(pattern="TODO", path="src/")  # path is REQUIRED
+   Glob(pattern="*.py", path=".")     # path is REQUIRED, use "." for current dir
+   ```
+
+   **❌ NEVER DO THIS (WRONG):**
+   - NEVER write: [Calling Read tool] or [Calling Write tool] - THIS IS NOT A TOOL CALL!
+   - NEVER write: Read("file.txt") without parameter names
+   - NEVER write: Bash("ls") without command= parameter
+   - NEVER omit required parameters
+   - NEVER use camelCase like filePath or oldString
+
+   **🔧 PARAMETER RULES:**
+   - ALWAYS use parameter names: Write(file_path="...", content="...")
+   - ALWAYS use snake_case: file_path, old_string, new_string (NOT filePath, oldString)
+   - ALWAYS provide required parameters (file_path, content, command, pattern, path)
+   - Optional parameters can be omitted: limit, offset, replace_all, timeout"""
+
+        pattern_examples = """4. **📋 COMPLETE WORKING EXAMPLES (COPY THESE PATTERNS):**
+
+   **Creating a new file:**
+   ```python
+   Write(file_path="test.py", content="def hello():\\n    print('Hello World')")
+   ```
+
+   **Reading a file:**
+   ```python
+   Read(file_path="src/main.py")
+   ```
+
+   **Modifying an existing file:**
+   ```python
+   # First read to see the content
+   Read(file_path="config.json")
+   # Then edit with exact strings
+   Edit(file_path="config.json", old_string='"debug": false', new_string='"debug": true', replace_all=False)
+   ```
+
+   **Running commands:**
+   ```python
+   Bash(command="pwd")
+   Bash(command="ls -la src/")
+   Bash(command="python -m pytest tests/")
+   ```
+
+   **Searching for patterns:**
+   ```python
+   Grep(pattern="TODO", path=".")  # Search current directory
+   Grep(pattern="import requests", path="src/")  # Search in src folder
+   Glob(pattern="*.py", path=".")  # Find all Python files
+   Glob(pattern="test_*.py", path="tests/")  # Find test files
+   ```
+
+   **⚠️ REMEMBER: If you write "[Calling xxx tool]" instead of the proper Python code format, THE TOOL WILL NOT WORK!**"""
 
     elif client_type == "gemini":
         # Gemini has different invocation style
@@ -374,7 +423,42 @@ def inject_tools_into_prompt(messages: List[Dict], tools: List[Dict], client_typ
    - To run commands: Use Bash(command)
    - To search code: Use Grep(pattern, path) or Glob(pattern)"""
 
-    tool_instruction = """🛠️ IMPORTANT: You have access to powerful tools that you MUST use to complete tasks effectively!
+    # Enhanced instruction for Crush client to be extra clear
+    if client_type == "crush":
+        tool_instruction = """🛠️ CRITICAL: You MUST use these tools to complete ANY file or command tasks!
+
+**Available Tools:**
+{}
+
+**⚠️ EXTREMELY IMPORTANT - HOW TO USE TOOLS ⚠️**
+
+1. **YOU MUST USE TOOLS** for ALL of these tasks:
+   - Reading files → Use Read(file_path="...")
+   - Writing files → Use Write(file_path="...", content="...")
+   - Running commands → Use Bash(command="...")
+   - Searching code → Use Grep(pattern="...", path="...")
+   - Finding files → Use Glob(pattern="...", path="...")
+   - Editing files → Use Edit(file_path="...", old_string="...", new_string="...")
+
+{}
+
+3. **⚠️ CRITICAL RULES - FAILURE TO FOLLOW THESE WILL BREAK YOUR TOOLS:**
+   - ONLY use Python code blocks with proper function calls
+   - NEVER write text like "[Calling Read tool]" - this is NOT a tool call!
+   - ALWAYS include parameter names (file_path=, content=, command=, etc.)
+   - ALWAYS use snake_case for parameters (file_path NOT filePath)
+   - Tool results will appear AFTER you invoke them - wait for results
+   - If a tool doesn't work, check you're using the EXACT format shown above
+
+{}
+
+**Final Warning:** Without using these tools properly, you CANNOT read files, write files, or run commands.
+The tools are your ONLY way to interact with the system. Use the EXACT formats shown above!
+""".format(
+            "\n".join(tool_descriptions), tool_examples, pattern_examples
+        )
+    else:
+        tool_instruction = """🛠️ IMPORTANT: You have access to powerful tools that you MUST use to complete tasks effectively!
 
 **Available Tools:**
 {}
@@ -401,8 +485,8 @@ def inject_tools_into_prompt(messages: List[Dict], tools: List[Dict], client_typ
 Remember: You have full capability to interact with the filesystem and execute commands through these tools.
 Use them confidently!
 """.format(
-        "\n".join(tool_descriptions), tool_examples, pattern_examples
-    )
+            "\n".join(tool_descriptions), tool_examples, pattern_examples
+        )
 
     # Prepend to system message or create one
     new_messages = messages.copy()
@@ -534,10 +618,20 @@ def chat_completions():
         # Enhanced default system prompt when tools are available
         default_system_prompt = "You are a helpful AI assistant"
         if not supports_tools and tools:
-            default_system_prompt = (
-                "You are a helpful AI assistant with access to powerful tools. "
-                "Remember to use the tools provided to complete tasks effectively."
-            )
+            # Extra clear prompt for Crush
+            if is_crush_client:
+                default_system_prompt = (
+                    "You are a helpful AI assistant with MANDATORY tool access. "
+                    "You MUST use Python code blocks with proper function calls like "
+                    "Write(file_path='...', content='...') to interact with files and run commands. "
+                    "NEVER write text like '[Calling X tool]' - that is NOT a tool call! "
+                    "Always use the EXACT tool invocation format shown in the instructions."
+                )
+            else:
+                default_system_prompt = (
+                    "You are a helpful AI assistant with access to powerful tools. "
+                    "Remember to use the tools provided to complete tasks effectively."
+                )
 
         company_request = {
             "anthropic_version": "bedrock-2023-05-31",
