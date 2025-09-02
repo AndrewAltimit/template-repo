@@ -176,23 +176,97 @@ TOOL_PROMPTS = {
    **REMEMBER: If you write [Calling xxx tool] instead of the proper Python code format, THE TOOL WILL NOT WORK!**""",
     },
     "gemini": {
-        "examples": """2. **Tool Invocation Format** - Use function calls in code blocks:
+        "examples": """2. **CRITICAL TOOL INVOCATION FORMAT - READ CAREFULLY**
+
+   **CORRECT FORMAT - ALWAYS USE THIS:**
+   ```python
+   # File operations - MUST use specific parameters for each tool:
+   write_file(file_path="filename.txt", content="content here")
+   read_file(absolute_path="/full/path/to/file.txt")  # Optional: offset=0, limit=2000
+   edit(file_path="file.py", old_string="old text", new_string="new text")  # Optional: expected_replacements=1
+
+   # Command execution - description is optional but recommended:
+   run_shell_command(command="python script.py")
+   run_shell_command(command="git status", description="Check Git status")
+   run_shell_command(command="npm install", description="Install dependencies")
+
+   # Directory listing - Use list_directory tool:
+   list_directory(path="/absolute/path")  # List directory
+   list_directory(path="/path", ignore=["*.pyc", "*.log"])  # With ignore patterns
+
+   # Searching - Use correct parameters:
+   grep(pattern="TODO", path="/path/to/search")  # Search for pattern
+   grep(pattern="import", path=".", output_mode="content", -n=True)  # With line numbers
+   glob(pattern="**/*.py", path=".")  # Find files by pattern
+   glob(pattern="*.txt", path="/path", respect_git_ignore=True)  # Respect gitignore
    ```
-   # For file operations:
-   functionCall: write
-   args: {"path": "filename.txt", "content": "content here"}
 
-   functionCall: read
-   args: {"path": "path/to/file.txt"}
+   **NEVER DO THIS (WRONG):**
+   - NEVER write: [Calling read_file tool] or [Calling write_file tool] - THIS IS NOT A TOOL CALL!
+   - NEVER write: read_file("file.txt") without parameter names
+   - NEVER mix up parameters: read_file uses absolute_path, write_file uses file_path!
+   - NEVER omit required parameters
+   - NEVER use camelCase like filePath or oldString - Gemini uses snake_case!
 
-   functionCall: edit
-   args: {"path": "file.py", "old_text": "old", "new_text": "new"}
-   ```""",
-        "patterns": """4. **Common Patterns:**
-   - To create a file: Call write with path and content args
-   - To modify a file: First read(path), then edit with old_text and new_text
-   - To run commands: Call bash with command arg
-   - To search code: Call grep or glob with appropriate args""",
+   **PARAMETER RULES:**
+   - ALWAYS use parameter names: write_file(file_path="...", content="...")
+   - ALWAYS use snake_case: file_path, old_string, new_string (NOT filePath, oldString)
+   - read_file uses absolute_path parameter (NOT file_path)
+   - write_file and edit use file_path parameter
+   - edit has optional expected_replacements for validation
+   - run_shell_command has optional description parameter""",
+        "patterns": """4. **COMPLETE WORKING EXAMPLES (COPY THESE PATTERNS):**
+
+   **Creating a new file:**
+   ```python
+   write_file(file_path="test.py", content="print('Hello World')")
+   ```
+
+   **Reading a file (USE absolute_path!):**
+   ```python
+   read_file(absolute_path="/home/user/project/src/main.py")  # Read entire file
+   read_file(absolute_path="/path/to/file.txt", offset=100, limit=50)  # Read 50 lines from line 100
+   ```
+
+   **Modifying an existing file:**
+   ```python
+   # First read to see the content (use absolute_path!)
+   read_file(absolute_path="/home/user/config.json")
+   # Then edit with exact strings (use file_path!)
+   edit(file_path="/home/user/config.json", old_string="false", new_string="true")
+   # With expected replacements for validation
+   edit(file_path="main.py", old_string="DEBUG = False", new_string="DEBUG = True", expected_replacements=1)
+   ```
+
+   **Listing directories:**
+   ```python
+   list_directory(path="/home/user/project")  # List directory
+   list_directory(path="/src", ignore=["*.pyc", "__pycache__"])  # With ignore patterns
+   list_directory(path="/path", file_filtering_options={"respect_git_ignore": True})  # Respect gitignore
+   ```
+
+   **Running commands:**
+   ```python
+   run_shell_command(command="pwd")
+   run_shell_command(command="python -m pytest tests/", description="Run test suite")
+   run_shell_command(command="git diff", description="Show uncommitted changes")
+   run_shell_command(command="cd /path && npm install", directory="/path")
+   ```
+
+   **Searching for patterns:**
+   ```python
+   grep(pattern="TODO", path=".")  # Search current directory
+   grep(pattern="class.*Controller", path="/src", output_mode="files_with_matches")  # Find files
+   grep(pattern="import", path=".", -n=True, output_mode="content")  # With line numbers
+   glob(pattern="**/*.py", path=".")  # Find all Python files recursively
+   glob(pattern="test_*.py", path="/tests", case_sensitive=False)  # Case insensitive
+   ```
+
+   **REMEMBER:
+   - read_file uses absolute_path parameter
+   - write_file and edit use file_path parameter
+   - Use snake_case for all parameters
+   - If you write [Calling xxx tool] instead of the proper function call format, THE TOOL WILL NOT WORK!**""",
     },
     "generic": {
         "examples": """2. **Tool Invocation Format** - Use Python code blocks:
@@ -295,6 +369,38 @@ The tools are your ONLY way to interact with the system. Use the EXACT formats s
 
 **Final Warning:** Without using these tools properly, you CANNOT read files, write files, or run commands.
 The tools are your ONLY way to interact with the system. Use the EXACT formats shown above!"""
+    elif client_type == "gemini":
+        return """CRITICAL: You MUST use these tools to complete ANY file or command tasks!
+
+**Available Tools:**
+{tool_descriptions}
+
+**EXTREMELY IMPORTANT - HOW TO USE TOOLS**
+
+1. **YOU MUST USE TOOLS** for ALL of these tasks:
+   - Reading files: Use read_file(absolute_path="...") **NOTE: Uses absolute_path!**
+   - Writing files: Use write_file(file_path="...", content="...")
+   - Editing files: Use edit(file_path="...", old_string="...", new_string="...")
+   - Running commands: Use run_shell_command(command="...")
+   - Listing directories: Use list_directory(path="...")
+   - Searching code: Use grep(pattern="...", path="...")
+   - Finding files: Use glob(pattern="...", path="...")
+
+{tool_examples}
+
+3. **CRITICAL RULES - FAILURE TO FOLLOW THESE WILL BREAK YOUR TOOLS:**
+   - ONLY use Python function call format with proper parameter names
+   - NEVER write text like [Calling read_file tool] - this is NOT a tool call!
+   - ALWAYS include parameter names (file_path=, content=, command=, etc.)
+   - ALWAYS use snake_case for parameters (file_path NOT filePath)
+   - CRITICAL: read_file uses absolute_path, but write_file and edit use file_path
+   - Tool results will appear AFTER you invoke them - wait for results
+   - If a tool does not work, check you are using the EXACT format shown above
+
+{pattern_examples}
+
+**Final Warning:** Without using these tools properly, you CANNOT read files, write files, or run commands.
+The tools are your ONLY way to interact with the system. Use the EXACT formats shown above!"""
     else:
         return """IMPORTANT: You have access to powerful tools that you MUST use to complete tasks effectively!
 
@@ -352,6 +458,15 @@ def get_default_system_prompt(client_type: str, has_tools: bool) -> str:
             "You are a helpful AI assistant with MANDATORY tool access. "
             "You MUST use Python code blocks with proper function calls like "
             'Write(file_path="...", content="...") to interact with files and run commands. '
+            "NEVER write text like [Calling X tool] - that is NOT a tool call! "
+            "Always use the EXACT tool invocation format shown in the instructions."
+        )
+    elif client_type == "gemini":
+        return (
+            "You are a helpful AI assistant with MANDATORY tool access. "
+            "You MUST use Python function calls with snake_case parameters. "
+            'CRITICAL: read_file uses absolute_path="..." but write_file and edit use file_path="...". '
+            'Use run_shell_command(command="...") for commands. '
             "NEVER write text like [Calling X tool] - that is NOT a tool call! "
             "Always use the EXACT tool invocation format shown in the instructions."
         )

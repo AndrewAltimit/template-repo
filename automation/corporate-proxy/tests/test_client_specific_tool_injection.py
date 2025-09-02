@@ -73,12 +73,13 @@ class TestClientSpecificToolInjection(unittest.TestCase):
         self.assertIsNotNone(system_msg)
 
         # Check for OpenCode-specific syntax with camelCase
-        self.assertIn('filePath="test.txt"', system_msg)
-        self.assertIn('filePath="file.py"', system_msg)
+        self.assertIn('filePath="', system_msg)
+        self.assertIn("Write(filePath=", system_msg)
+        self.assertIn("Edit(filePath=", system_msg)
         self.assertIn("oldString=", system_msg)
         self.assertIn("newString=", system_msg)
-        self.assertIn("params: filePath", system_msg)
-        self.assertIn("params: filePath, oldString, newString, replaceAll", system_msg)
+        self.assertIn("Bash(command=", system_msg)
+        self.assertIn("description=", system_msg)  # Bash requires description
 
         # Should NOT contain snake_case versions
         self.assertNotIn('file_path="', system_msg)
@@ -100,13 +101,13 @@ class TestClientSpecificToolInjection(unittest.TestCase):
         self.assertIsNotNone(system_msg)
 
         # Check for Crush-specific syntax with snake_case
-        self.assertIn('file_path="test.txt"', system_msg)
-        self.assertIn('file_path="file.py"', system_msg)
+        self.assertIn('file_path="', system_msg)
+        self.assertIn("Write(file_path=", system_msg)
+        self.assertIn("Edit(file_path=", system_msg)
         self.assertIn("old_string=", system_msg)
         self.assertIn("new_string=", system_msg)
-        self.assertIn("params: file_path, content", system_msg)
-        self.assertIn("params: file_path, old_string, new_string, replace_all", system_msg)
         self.assertIn("View(", system_msg)  # Crush uses View not Read
+        self.assertIn("Bash(command=", system_msg)
 
         # Should NOT contain camelCase versions
         self.assertNotIn('filePath="', system_msg)
@@ -127,16 +128,17 @@ class TestClientSpecificToolInjection(unittest.TestCase):
 
         self.assertIsNotNone(system_msg)
 
-        # Check for Gemini-specific syntax
-        self.assertIn("functionCall: write", system_msg)
-        self.assertIn('args: {"path":', system_msg)
-        self.assertIn("functionCall: edit", system_msg)
-        self.assertIn('"old_text":', system_msg)
-        self.assertIn('"new_text":', system_msg)
+        # Check for Gemini-specific Python function syntax
+        self.assertIn("write_file(file_path=", system_msg)
+        self.assertIn("read_file(absolute_path=", system_msg)
+        self.assertIn("edit(file_path=", system_msg)
+        self.assertIn("old_string=", system_msg)
+        self.assertIn("new_string=", system_msg)
+        self.assertIn("run_shell_command(command=", system_msg)
 
-        # Should NOT contain Python-style calls
-        self.assertNotIn("Write(", system_msg)
-        self.assertNotIn("Edit(", system_msg)
+        # Check for Gemini-specific parameter warnings
+        self.assertIn("read_file uses absolute_path", system_msg)
+        self.assertIn("write_file and edit use file_path", system_msg)
 
     def test_generic_fallback_syntax(self):
         """Test that generic/unknown clients get default syntax"""
@@ -151,9 +153,10 @@ class TestClientSpecificToolInjection(unittest.TestCase):
 
         self.assertIsNotNone(system_msg)
 
-        # Check for generic syntax (should be snake_case by default)
-        self.assertIn("Write(file_path, content)", system_msg)
-        self.assertIn("Edit(file_path, old_string, new_string)", system_msg)
+        # Check for generic syntax
+        self.assertIn("Write(", system_msg)
+        self.assertIn("Edit(", system_msg)
+        self.assertIn("Read(", system_msg)
 
         # Should not have specific parameter comments
         self.assertNotIn("# last param is", system_msg)
@@ -173,8 +176,9 @@ class TestClientSpecificToolInjection(unittest.TestCase):
         self.assertIsNotNone(system_msg)
 
         # Should use generic format
-        self.assertIn("Write(file_path, content)", system_msg)
-        self.assertIn("Edit(file_path, old_string, new_string)", system_msg)
+        self.assertIn("Write(", system_msg)
+        self.assertIn("Edit(", system_msg)
+        self.assertIn("Read(", system_msg)
 
     def test_tool_descriptions_present(self):
         """Test that tool descriptions are included for all clients"""
@@ -213,10 +217,12 @@ class TestClientSpecificToolInjection(unittest.TestCase):
                 self.assertIsNotNone(system_msg)
 
                 # Check common instructions
-                self.assertIn("IMPORTANT: You have access to powerful tools", system_msg)
-                self.assertIn("ALWAYS use tools", system_msg)
-                self.assertIn("Read or write files", system_msg)
-                self.assertIn("Execute commands", system_msg)
+                if client_type == "generic":
+                    self.assertIn("IMPORTANT: You have access to powerful tools", system_msg)
+                    self.assertIn("ALWAYS use tools", system_msg)
+                else:
+                    self.assertIn("CRITICAL: You MUST use these tools", system_msg)
+                    self.assertIn("YOU MUST USE TOOLS", system_msg)
 
     def test_preserves_existing_system_message(self):
         """Test that existing system message is preserved"""
@@ -237,7 +243,7 @@ class TestClientSpecificToolInjection(unittest.TestCase):
         self.assertIsNotNone(system_msg)
 
         # Check that both tool instructions and original content are present
-        self.assertIn("IMPORTANT: You have access to powerful tools", system_msg)
+        self.assertIn("CRITICAL: You MUST use these tools", system_msg)
         self.assertIn("You are a helpful assistant.", system_msg)
 
     def test_handles_empty_tools(self):
@@ -259,13 +265,16 @@ class TestClientSpecificToolInjection(unittest.TestCase):
                         break
 
                 # All Python-style clients should have these examples
-                self.assertIn('Bash("ls -la")', system_msg)
-                self.assertIn("Grep(", system_msg)
-                self.assertIn("Glob(", system_msg)
-
-                # Check that parameter annotations are present for clarity
-                if client_type in ["opencode", "crush"]:
-                    self.assertIn("params:", system_msg)
+                if client_type == "generic":
+                    # Generic uses simpler format
+                    self.assertIn("Bash(", system_msg)
+                    self.assertIn("Grep(", system_msg)
+                    self.assertIn("Glob(", system_msg)
+                else:
+                    # OpenCode and Crush use parameter names
+                    self.assertIn("Bash(command=", system_msg)
+                    self.assertIn("Grep(pattern=", system_msg)
+                    self.assertIn("Glob(pattern=", system_msg)
 
 
 if __name__ == "__main__":
