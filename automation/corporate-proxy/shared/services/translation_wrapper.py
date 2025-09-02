@@ -311,20 +311,23 @@ def inject_tools_into_prompt(messages: List[Dict], tools: List[Dict], client_typ
    - To search code: Use Grep(pattern="TODO", path=".") or Glob(pattern="*.py", path=".")"""
 
     elif client_type == "crush":
-        # Crush uses snake_case parameters - ENHANCED INSTRUCTIONS FOR CLARITY
+        # Crush uses snake_case parameters and View instead of Read - ENHANCED INSTRUCTIONS FOR CLARITY
         tool_examples = """2. **CRITICAL TOOL INVOCATION FORMAT - READ CAREFULLY**
 
    **CORRECT FORMAT - ALWAYS USE THIS:**
    ```python
    # File operations - MUST use snake_case parameters (file_path, NOT filePath):
    Write(file_path="filename.txt", content="content here")
-   Read(file_path="path/to/file.txt")  # Optional: limit=100, offset=0
+   View(file_path="path/to/file.txt")  # NOT Read! Optional: limit=100, offset=0
    Edit(file_path="file.py", old_string="old text", new_string="new text", replace_all=False)
 
    # Command execution - ALWAYS specify the command parameter:
-   Bash(command="ls -la")
    Bash(command="python script.py")
    Bash(command="git status")
+
+   # Directory listing - Use Ls tool, not bash ls:
+   Ls(path=".")  # List current directory
+   Ls(path="src/")  # List src directory
 
    # Searching - ALWAYS include ALL required parameters:
    Grep(pattern="TODO", path="src/")  # path is REQUIRED
@@ -332,8 +335,9 @@ def inject_tools_into_prompt(messages: List[Dict], tools: List[Dict], client_typ
    ```
 
    **NEVER DO THIS (WRONG):**
-   - NEVER write: [Calling Read tool] or [Calling Write tool] - THIS IS NOT A TOOL CALL!
-   - NEVER write: Read("file.txt") without parameter names
+   - NEVER write: [Calling View tool] or [Calling Write tool] - THIS IS NOT A TOOL CALL!
+   - NEVER write: View("file.txt") without parameter names
+   - NEVER use Read() - Crush uses View() instead!
    - NEVER write: Bash("ls") without command= parameter
    - NEVER omit required parameters
    - NEVER use camelCase like filePath or oldString
@@ -351,24 +355,30 @@ def inject_tools_into_prompt(messages: List[Dict], tools: List[Dict], client_typ
    Write(file_path="test.py", content="print('Hello World')")
    ```
 
-   **Reading a file:**
+   **Viewing/Reading a file (USE VIEW, NOT READ!):**
    ```python
-   Read(file_path="src/main.py")
+   View(file_path="src/main.py")  # Crush uses View, not Read!
    ```
 
    **Modifying an existing file:**
    ```python
-   # First read to see the content
-   Read(file_path="config.json")
+   # First view to see the content (USE VIEW!)
+   View(file_path="config.json")
    # Then edit with exact strings
    Edit(file_path="config.json", old_string="false", new_string="true", replace_all=False)
+   ```
+
+   **Listing directories (Use Ls, not bash ls!):**
+   ```python
+   Ls(path=".")  # List current directory
+   Ls(path="src/")  # List a specific directory
    ```
 
    **Running commands:**
    ```python
    Bash(command="pwd")
-   Bash(command="ls -la src/")
    Bash(command="python -m pytest tests/")
+   Bash(command="git status")
    ```
 
    **Searching for patterns:**
@@ -433,12 +443,16 @@ def inject_tools_into_prompt(messages: List[Dict], tools: List[Dict], client_typ
 **EXTREMELY IMPORTANT - HOW TO USE TOOLS**
 
 1. **YOU MUST USE TOOLS** for ALL of these tasks:
-   - Reading files: Use Read(file_path="...")
+   - Viewing/Reading files: Use View(file_path="...") **NOT Read() - Crush uses View!**
    - Writing files: Use Write(file_path="...", content="...")
    - Running commands: Use Bash(command="...")
    - Searching code: Use Grep(pattern="...", path="...")
    - Finding files: Use Glob(pattern="...", path="...")
    - Editing files: Use Edit(file_path="...", old_string="...", new_string="...")
+   - Multiple edits: Use MultiEdit(file_path="...", edits=[...])
+   - Listing directories: Use Ls(path="...")
+   - Fetching URLs: Use Fetch(url="...")
+   - Code search: Use Sourcegraph(query="...")
 
 {}
 
