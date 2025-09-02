@@ -8,25 +8,93 @@ into AI model prompts for clients that don't support native tool calling.
 
 TOOL_PROMPTS = {
     "opencode": {
-        "examples": """2. **Tool Invocation Format** - Use Python code blocks with camelCase parameters:
+        "examples": """2. **CRITICAL TOOL INVOCATION FORMAT - READ CAREFULLY**
+
+   **CORRECT FORMAT - ALWAYS USE THIS:**
    ```python
-   # File operations - Note: parameters use camelCase (filePath, not file_path):
-   Write("filename.txt", "content here")  # params: filePath, content
-   Read("path/to/file.txt")  # params: filePath, offset, limit
-   Edit("file.py", "old text", "new text", False)  # params: filePath, oldString, newString, replaceAll
+   # File operations - MUST use camelCase parameters (filePath, NOT file_path):
+   Write(filePath="filename.txt", content="content here")
+   Read(filePath="path/to/file.txt")  # Optional: offset=0, limit=2000
+   Edit(filePath="file.py", oldString="old text", newString="new text", replaceAll=False)
 
-   # Command execution:
-   Bash("ls -la")  # params: command, timeout
+   # Command execution - ALWAYS include description parameter:
+   Bash(command="python script.py", description="Run Python script")
+   Bash(command="git status", description="Check Git status")
+   Bash(command="npm install", description="Install dependencies")
 
-   # Searching:
-   Grep("TODO", "src/")  # params: pattern, path
-   Glob("*.py", ".")  # params: pattern, path
-   ```""",
-        "patterns": """4. **Common Patterns (camelCase parameters):**
-   - To create a file: Use Write(filePath="test.txt", content="data")
-   - To modify a file: First Read(filePath="file.py"), then Edit(filePath="file.py", oldString="old", newString="new")
-   - To run commands: Use Bash(command="ls -la")
-   - To search code: Use Grep(pattern="TODO", path=".") or Glob(pattern="*.py", path=".")""",
+   # Directory listing - Use Ls tool:
+   Ls(path=".")  # List current directory
+   Ls(path="src/")  # List src directory
+
+   # Searching - ALWAYS include ALL required parameters:
+   Grep(pattern="TODO", path="src/")  # Search for pattern in files
+   Glob(pattern="*.py", path=".")  # Find files by pattern
+   ```
+
+   **NEVER DO THIS (WRONG):**
+   - NEVER write: [Calling Read tool] or [Calling Write tool] - THIS IS NOT A TOOL CALL!
+   - NEVER write: Read("file.txt") without parameter names
+   - NEVER write: Bash("ls") without command= and description= parameters
+   - NEVER omit required parameters
+   - NEVER use snake_case like file_path or old_string - OpenCode uses camelCase!
+
+   **PARAMETER RULES:**
+   - ALWAYS use parameter names: Write(filePath="...", content="...")
+   - ALWAYS use camelCase: filePath, oldString, newString (NOT file_path, old_string)
+   - ALWAYS provide required parameters (filePath, content, command, pattern, path)
+   - Bash REQUIRES description parameter: Bash(command="...", description="...")
+   - Optional parameters can be omitted: offset, limit, replaceAll, timeout""",
+        "patterns": """4. **COMPLETE WORKING EXAMPLES (COPY THESE PATTERNS):**
+
+   **Creating a new file:**
+   ```python
+   Write(filePath="test.py", content="print('Hello World')")
+   ```
+
+   **Reading a file:**
+   ```python
+   Read(filePath="src/main.py")  # Read entire file
+   Read(filePath="src/main.py", offset=100, limit=50)  # Read 50 lines starting from line 100
+   ```
+
+   **Modifying an existing file:**
+   ```python
+   # First read to see the content
+   Read(filePath="config.json")
+   # Then edit with exact strings
+   Edit(filePath="config.json", oldString="false", newString="true", replaceAll=False)
+   ```
+
+   **Multiple edits to same file:**
+   ```python
+   MultiEdit(filePath="main.py", edits=[
+     {"oldString": "import os", "newString": "import os, sys"},
+     {"oldString": "DEBUG = False", "newString": "DEBUG = True"}
+   ])
+   ```
+
+   **Listing directories:**
+   ```python
+   Ls(path=".")  # List current directory
+   Ls(path="src/")  # List a specific directory
+   ```
+
+   **Running commands (MUST include description):**
+   ```python
+   Bash(command="pwd", description="Show current directory")
+   Bash(command="python -m pytest tests/", description="Run test suite")
+   Bash(command="git diff", description="Show uncommitted changes")
+   ```
+
+   **Searching for patterns:**
+   ```python
+   Grep(pattern="TODO", path=".")  # Search current directory
+   Grep(pattern="import requests", path="src/")  # Search in src folder
+   Glob(pattern="*.py", path=".")  # Find all Python files
+   Glob(pattern="test_*.py", path="tests/")  # Find test files
+   ```
+
+   **REMEMBER: If you write [Calling xxx tool] instead of the proper Python code format, THE TOOL WILL NOT WORK!**""",
     },
     "crush": {
         "examples": """2. **CRITICAL TOOL INVOCATION FORMAT - READ CAREFULLY**
@@ -160,7 +228,40 @@ def get_tool_instruction_template(client_type: str) -> str:
     Returns:
         The instruction template string with placeholders for tool descriptions and examples
     """
-    if client_type == "crush":
+    if client_type == "opencode":
+        return """CRITICAL: You MUST use these tools to complete ANY file or command tasks!
+
+**Available Tools:**
+{tool_descriptions}
+
+**EXTREMELY IMPORTANT - HOW TO USE TOOLS**
+
+1. **YOU MUST USE TOOLS** for ALL of these tasks:
+   - Reading files: Use Read(filePath="...")
+   - Writing files: Use Write(filePath="...", content="...")
+   - Editing files: Use Edit(filePath="...", oldString="...", newString="...")
+   - Running commands: Use Bash(command="...", description="...")
+   - Searching code: Use Grep(pattern="...", path="...")
+   - Finding files: Use Glob(pattern="...", path="...")
+   - Listing directories: Use Ls(path="...")
+   - Multiple edits: Use MultiEdit(filePath="...", edits=[...])
+
+{tool_examples}
+
+3. **CRITICAL RULES - FAILURE TO FOLLOW THESE WILL BREAK YOUR TOOLS:**
+   - ONLY use Python code blocks with proper function calls
+   - NEVER write text like [Calling Read tool] - this is NOT a tool call!
+   - ALWAYS include parameter names (filePath=, content=, command=, etc.)
+   - ALWAYS use camelCase for parameters (filePath NOT file_path)
+   - Bash tool REQUIRES description parameter
+   - Tool results will appear AFTER you invoke them - wait for results
+   - If a tool does not work, check you are using the EXACT format shown above
+
+{pattern_examples}
+
+**Final Warning:** Without using these tools properly, you CANNOT read files, write files, or run commands.
+The tools are your ONLY way to interact with the system. Use the EXACT formats shown above!"""
+    elif client_type == "crush":
         return """CRITICAL: You MUST use these tools to complete ANY file or command tasks!
 
 **Available Tools:**
@@ -237,7 +338,16 @@ def get_default_system_prompt(client_type: str, has_tools: bool) -> str:
     if not has_tools:
         return "You are a helpful AI assistant"
 
-    if client_type == "crush":
+    if client_type == "opencode":
+        return (
+            "You are a helpful AI assistant with MANDATORY tool access. "
+            "You MUST use Python code blocks with proper function calls like "
+            'Write(filePath="...", content="...") with camelCase parameters to interact with files. '
+            "For commands, ALWAYS use Bash(command='...', description='...') with description parameter. "
+            "NEVER write text like [Calling X tool] - that is NOT a tool call! "
+            "Always use the EXACT tool invocation format shown in the instructions."
+        )
+    elif client_type == "crush":
         return (
             "You are a helpful AI assistant with MANDATORY tool access. "
             "You MUST use Python code blocks with proper function calls like "
