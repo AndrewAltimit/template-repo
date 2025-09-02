@@ -7,7 +7,6 @@ Automatically uses text-based tool parsing for models that don't support native 
 import json
 import logging
 import os
-import sys
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -15,16 +14,15 @@ import requests
 from flask import Flask, Response, jsonify, request, stream_with_context
 from flask_cors import CORS
 
-# Add parent directories to path for importing configs
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from configs.tool_prompts import (  # noqa: E402
+# Import the text tool parser
+from text_tool_parser import TextToolParser
+
+# Import from local module
+from tool_prompts import (
     TOOL_PROMPTS,
     get_default_system_prompt,
     get_tool_instruction_template,
 )
-
-# Import the text tool parser
-from text_tool_parser import TextToolParser  # noqa: E402
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
