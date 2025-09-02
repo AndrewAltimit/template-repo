@@ -94,6 +94,7 @@ RUN mkdir -p /app/shared/services
 COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified_tool_api.py
 COPY automation/corporate-proxy/shared/services/translation_wrapper.py /app/translation_wrapper.py
 COPY automation/corporate-proxy/shared/services/text_tool_parser.py /app/text_tool_parser.py
+COPY automation/corporate-proxy/shared/services/tool_prompts.py /app/tool_prompts.py
 COPY automation/corporate-proxy/shared/services/text_tool_parser.py /app/shared/services/text_tool_parser.py
 COPY automation/corporate-proxy/shared/services/__init__.py /app/shared/services/__init__.py
 # Copy Gemini-specific modules
