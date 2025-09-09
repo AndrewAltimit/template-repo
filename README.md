@@ -32,7 +32,7 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 
 - **13 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, and more
 - **7 AI Agents** - Comprehensive development automation
-- **OpenCode Company Integration** - Custom OpenCode build for corporate AI APIs ([Documentation](docs/integrations/opencode-company-proxy.md))
+- **Company Integration** - Custom agent builds for corporate AI APIs ([Documentation](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))
 - **Video Editor** - AI-powered video editing with transcription, speaker diarization, and intelligent scene detection
 - **Gaea2 Terrain Generation** - Professional terrain generation
 - **Blender 3D Creation** - Full 3D content creation, rendering, and simulation
@@ -147,7 +147,7 @@ This pattern ensures consistent certificate handling across all services while m
 │   ├── analysis/             # Code and project analysis tools
 │   ├── ci-cd/                # CI/CD pipeline scripts
 │   ├── corporate-proxy/      # Corporate proxy integrations
-│   │   ├── gemini/           # Containerized Gemini CLI
+│   │   ├── gemini/           # Gemini CLI proxy wrapper
 │   │   ├── opencode/         # OpenCode proxy wrapper
 │   │   ├── crush/            # Crush proxy wrapper
 │   │   └── shared/           # Shared proxy components

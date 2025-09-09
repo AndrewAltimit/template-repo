@@ -378,14 +378,8 @@ jobs:
           echo "🐳 Building Docker images using docker-compose..."
           echo "This handles multi-stage dependencies automatically."
 
-          # Build all images in dependency order
-          docker-compose -f docker-compose.build.yml build
-
-          echo "✅ All images built successfully"
-
-          # List built images for verification
-          echo "Built images:"
-          docker images | grep -E "(template-repo|ghcr.io/andrewaltimit/template-repo)" | head -20
+          # Build all images in dependency order using dedicated script
+          ./automation/ci-cd/build-docker-images.sh
 
       - name: Test Docker Compose with health check
         uses: ./.github/actions/docker-compose-health-check

@@ -93,6 +93,8 @@ RUN pip3 install --break-system-packages flask flask-cors requests
 RUN mkdir -p /app/shared/services
 COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified_tool_api.py
 COPY automation/corporate-proxy/shared/services/translation_wrapper.py /app/translation_wrapper.py
+COPY automation/corporate-proxy/shared/services/text_tool_parser.py /app/text_tool_parser.py
+COPY automation/corporate-proxy/shared/services/tool_prompts.py /app/tool_prompts.py
 COPY automation/corporate-proxy/shared/services/text_tool_parser.py /app/shared/services/text_tool_parser.py
 COPY automation/corporate-proxy/shared/services/__init__.py /app/shared/services/__init__.py
 # Copy Gemini-specific modules
@@ -106,9 +108,13 @@ COPY automation/corporate-proxy/gemini/config/gemini-config.json /app/config/gem
 # Copy shared configs for translation wrapper
 COPY automation/corporate-proxy/shared/configs /app/shared/configs
 
+# Also copy tool_config.json to /configs/ where translation_wrapper expects it
+COPY automation/corporate-proxy/shared/configs/tool_config.json /configs/tool_config.json
+COPY automation/corporate-proxy/shared/configs/opencode_param_mappings.json /configs/opencode_param_mappings.json
+
 # Copy startup script
-COPY automation/corporate-proxy/gemini/scripts/gemini-wrapper.sh /app/gemini-wrapper.sh
-RUN chmod +x /app/gemini-wrapper.sh
+COPY automation/corporate-proxy/gemini/scripts/start-services.sh /app/start-services.sh
+RUN chmod +x /app/start-services.sh
 
 # Create Gemini config directories and pre-configure auth
 # Use the actual user ID to ensure ownership works
@@ -154,6 +160,7 @@ ENV COMPANY_API_TOKEN="test-secret-token-123"
 ENV GEMINI_PROXY_PORT="8053"
 ENV WRAPPER_PORT="8052"
 ENV MOCK_API_PORT="8050"
+ENV AGENT_CLIENT="gemini"
 
 # TLS verification - disabled by default for safety
 # Only enable this if you need it for corporate networks with self-signed certs
@@ -162,5 +169,5 @@ ENV MOCK_API_PORT="8050"
 
 EXPOSE 8050 8052 8053
 
-ENTRYPOINT ["/app/gemini-wrapper.sh"]
+ENTRYPOINT ["/app/start-services.sh"]
 CMD ["interactive"]

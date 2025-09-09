@@ -310,6 +310,29 @@ The proxy automatically maps standard model names to corporate endpoints:
 | `gemini-2.5-flash` | `ai-coe-bedrock-claude35-sonnet-200k` | Quick iterations |
 | `gemini-2.5-pro` | `ai-coe-bedrock-claude3-opus` | Complex tasks |
 
+### Automatic Tool Support Detection
+
+**New Feature**: The proxy now **automatically detects** whether a model supports native tool calling based on configuration in `shared/configs/models.json`. No manual environment variables needed!
+
+For models without native tool support, the proxy automatically:
+1. Injects tool descriptions into the prompt
+2. Parses tool calls from the model's text response
+3. Converts them to standard OpenAI format
+
+Configure in `models.json`:
+```json
+{
+  "models": {
+    "custom-model": {
+      "endpoint": "your-endpoint",
+      "supports_tools": false  // Automatically uses text parsing!
+    }
+  }
+}
+```
+
+See `shared/docs/automatic-tool-detection.md` for complete documentation.
+
 ## Troubleshooting
 
 ### Common Issues and Solutions

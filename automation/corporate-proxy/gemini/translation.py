@@ -93,6 +93,23 @@ def translate_gemini_to_company(gemini_request: Dict[str, Any]) -> Tuple[str, Di
     # Check if tools are requested
     tools = gemini_request.get("tools", [])
 
+    # Check if JSON response is requested
+    generation_config = gemini_request.get("generationConfig", {})
+    response_mime_type = generation_config.get("responseMimeType", "")
+    response_format = generation_config.get("responseFormat", "")
+
+    # Store JSON mode flag for later use
+    wants_json = (
+        response_mime_type == "application/json"
+        or response_mime_type == "text/x.json"
+        or response_format == "json"
+        or response_format == "JSON"
+    )
+    gemini_request["_wants_json"] = wants_json
+
+    if wants_json:
+        logger.info(f"JSON response requested via generationConfig: mime={response_mime_type}, format={response_format}")
+
     # Get tool mode for this specific model
     model_tool_mode = get_model_tool_mode(model)
 
@@ -239,6 +256,22 @@ def translate_gemini_to_company(gemini_request: Dict[str, Any]) -> Tuple[str, Di
         "temperature": gemini_request.get("generationConfig", {}).get("temperature", 0.7),
     }
 
+    # If JSON response is requested, add instruction to the system prompt
+    if wants_json:
+        json_instruction = (
+            "\n\nIMPORTANT: You must respond with valid JSON only. "
+            "Do not include any text before or after the JSON. "
+            "The response must be parseable by JSON.parse()."
+        )
+        if company_request["system"]:
+            company_request["system"] += json_instruction
+        else:
+            company_request["system"] = json_instruction.strip()
+
+        # Also add to the last user message for emphasis
+        if messages and messages[-1]["role"] == "user":
+            messages[-1]["content"] += "\n\nPlease respond with valid JSON only."
+
     return endpoint, company_request, tools
 
 
@@ -332,6 +365,23 @@ def translate_company_to_gemini(
     else:
         # Regular text response - get the text from the response
         response_text = company_response.get("content", [{"text": ""}])[0].get("text", "")
+
+        # Check if JSON response was requested
+        wants_json = original_request.get("_wants_json", False) if original_request else False
+
+        if wants_json:
+            # The response should be JSON - try to validate it
+            try:
+                # Try to parse the response as JSON
+                json.loads(response_text)
+                # It's valid JSON, use as-is
+            except json.JSONDecodeError:
+                # Response is not valid JSON, wrap it in a JSON structure
+                logger.warning("JSON requested but response is not valid JSON, wrapping response")
+                # Create a simple JSON wrapper
+                json_wrapper = {"response": response_text, "type": "text", "status": "wrapped"}
+                response_text = json.dumps(json_wrapper)
+
         gemini_response = {
             "candidates": [
                 {

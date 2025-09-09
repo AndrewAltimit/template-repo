@@ -120,8 +120,17 @@ RUN echo '#!/bin/bash\nexec /usr/local/bin/opencode.bin "$@"' > /usr/local/bin/o
 RUN pip3 install --break-system-packages flask flask-cors requests
 
 # Copy shared services
+COPY automation/corporate-proxy/shared/services/text_tool_parser.py /app/text_tool_parser.py
 COPY automation/corporate-proxy/shared/services/translation_wrapper.py /app/translation_wrapper.py
 COPY automation/corporate-proxy/shared/services/unified_tool_api.py /app/unified_tool_api.py
+COPY automation/corporate-proxy/shared/services/tool_prompts.py /app/tool_prompts.py
+
+# Copy shared configs for translation wrapper
+COPY automation/corporate-proxy/shared/configs /app/shared/configs
+
+# Also copy tool_config.json to /configs/ where translation_wrapper expects it
+COPY automation/corporate-proxy/shared/configs/tool_config.json /configs/tool_config.json
+COPY automation/corporate-proxy/shared/configs/opencode_param_mappings.json /configs/opencode_param_mappings.json
 
 # Copy startup script
 COPY automation/corporate-proxy/opencode/scripts/start-services.sh /app/start-services.sh
@@ -155,6 +164,7 @@ ENV COMPANY_API_BASE="http://localhost:8050"
 ENV COMPANY_API_TOKEN="test-secret-token-123"
 ENV WRAPPER_PORT="8052"
 ENV MOCK_API_PORT="8050"
+ENV AGENT_CLIENT="opencode"
 
 EXPOSE 8050 8052
 

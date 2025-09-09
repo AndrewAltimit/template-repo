@@ -23,6 +23,7 @@ The parser handles two main scenarios:
 - **Multiple Format Support**:
   - JSON format: ```tool_call {"tool": "name", "parameters": {...}} ```
   - XML format: <tool>function_name(key=value, ...)</tool>
+  - Python format: Write("file.txt", "content") or Bash("command")
   - Legacy formats for backward compatibility
 
 - **Performance Optimizations**:
@@ -86,6 +87,7 @@ Enhanced text-based tool parsing with security hardening and performance improve
 Consolidated version based on Gemini's security review and recommendations
 """
 
+import ast
 import json
 import logging
 import re
@@ -102,8 +104,13 @@ class TextToolParser:
     - Security: Tool allowlist and size limits
     - Performance: Compiled regex patterns
     - Robustness: Better error handling and logging
-    - Flexibility: Supports JSON and XML formats
+    - Flexibility: Supports JSON, XML, and Python function call formats
     - Backward compatibility: Supports legacy methods
+
+    Supported formats:
+    - JSON: ```tool_call {"tool": "name", "parameters": {...}} ```
+    - XML: <tool>function_name(key=value, ...)</tool>
+    - Python: Write("file.txt", "content") or Bash("command")
     """
 
     # Compile regex patterns once for efficiency
@@ -116,6 +123,33 @@ class TextToolParser:
     # Pattern for parsing XML-style arguments
     XML_ARG_PATTERN = re.compile(r'(\w+)\s*=\s*("(?:\\"|[^"])*"|\'(?:\\\'|[^\'])*\'|[^,]+)')
 
+    # Python-style function calls: Write("file.txt", """content""") or Bash("command")
+    #
+    # IMPORTANT: This regex is ONLY for locating potential function call strings in text.
+    # It does NOT parse the function calls - that's handled entirely by ast.parse().
+    #
+    # The regex has limitations (e.g., only one level of nested parentheses), but these
+    # limitations DO NOT affect the actual parsing. Once a potential call is found,
+    # ast.parse() handles it with full Python syntax support, including:
+    # - Arbitrarily nested structures
+    # - Complex expressions
+    # - Any valid Python function call syntax
+    #
+    # In other words: regex finds it, ast.parse() understands it perfectly.
+    PYTHON_TOOL_CALL_PATTERN = re.compile(
+        r"\b([A-Z][a-zA-Z_]*\s*\("  # Function name and opening paren
+        r"(?:"  # Non-capturing group for arguments
+        r'[^()"\']+'  # Non-quote, non-paren characters
+        r'|"(?:[^"\\]|\\.)*"'  # Double-quoted strings
+        r"|'(?:[^'\\]|\\.)*'"  # Single-quoted strings
+        r'|"""[\s\S]*?"""'  # Triple double quotes
+        r"|'''[\s\S]*?'''"  # Triple single quotes
+        r"|\([^)]*\)"  # Nested parentheses (one level only)
+        r")*"  # Zero or more of the above
+        r"\))",  # Closing paren
+        re.DOTALL,
+    )
+
     def __init__(
         self,
         allowed_tools: Optional[Set[str]] = None,
@@ -123,6 +157,9 @@ class TextToolParser:
         max_tool_calls: int = 20,  # Prevent excessive tool calls
         log_errors: bool = True,
         tool_executor: Optional[Callable] = None,  # For backward compatibility
+        tool_definitions: Optional[Dict[str, Dict[str, Any]]] = None,  # Tool definitions for param mapping
+        fail_on_parse_error: bool = False,  # Whether to raise on parse errors
+        max_consecutive_errors: int = 5,  # Max errors before stopping
     ):
         """
         Initialize the parser with security constraints.
@@ -133,15 +170,95 @@ class TextToolParser:
             max_tool_calls: Maximum number of tool calls to parse from a single response.
             log_errors: Whether to log parsing errors.
             tool_executor: Optional function to execute tools (for backward compatibility).
+            tool_definitions: Optional dictionary of tool definitions for automatic param mapping.
         """
         self.allowed_tools = allowed_tools
         self.max_json_size = max_json_size
         self.max_tool_calls = max_tool_calls
         self.log_errors = log_errors
         self.tool_executor = tool_executor
+        self.fail_on_parse_error = fail_on_parse_error
+        self.max_consecutive_errors = max_consecutive_errors
 
         # Statistics for monitoring
-        self.stats = {"total_parsed": 0, "rejected_size": 0, "rejected_unauthorized": 0, "parse_errors": 0}
+        self.stats = {
+            "total_parsed": 0,
+            "rejected_size": 0,
+            "rejected_unauthorized": 0,
+            "parse_errors": 0,
+            "consecutive_errors": 0,
+            "python_parse_errors": 0,
+            "json_parse_errors": 0,
+            "xml_parse_errors": 0,
+        }
+
+        # Generate param mappings programmatically or use fallback
+        self.param_mappings = self._generate_param_mappings(tool_definitions)
+
+    def _generate_param_mappings(self, tool_definitions: Optional[Dict[str, Dict[str, Any]]]) -> Dict[str, List[str]]:
+        """
+        Generate parameter mappings programmatically from tool definitions.
+
+        This method eliminates the maintenance burden of manually updating param_mappings
+        when tool signatures change. It can extract positional parameters from:
+        1. Tool definition dictionaries (preferred)
+        2. Function objects via inspection (if available)
+        3. Fallback to hardcoded defaults (for backward compatibility)
+
+        CRITICAL: The order of parameters in the returned mapping MUST match the
+        expected positional argument order for Python-style function calls.
+        When AI models generate calls like Write("file.txt", "content"), the
+        parser relies on this ordering to correctly map positional arguments.
+        See MAINTENANCE.md for detailed requirements.
+
+        Args:
+            tool_definitions: Dictionary of tool definitions with parameter info
+
+        Returns:
+            Dictionary mapping tool names to ordered lists of parameter names
+        """
+        # If tool definitions provided, extract parameter order from them
+        if tool_definitions:
+            param_mappings = {}
+            for tool_name, definition in tool_definitions.items():
+                # Handle different definition formats
+                if isinstance(definition, dict):
+                    # Look for parameters in various common formats
+                    if "parameters" in definition:
+                        params = definition["parameters"]
+                        if isinstance(params, dict) and "properties" in params:
+                            # OpenAPI/JSON Schema style
+                            # Note: This assumes the order in which properties are defined
+                            # matches the positional argument order
+                            param_mappings[tool_name] = list(params["properties"].keys())
+                        elif isinstance(params, list):
+                            # List of parameter definitions
+                            param_mappings[tool_name] = [p.get("name", f"arg{i}") for i, p in enumerate(params)]
+                    elif "args" in definition:
+                        # Simple args list format
+                        param_mappings[tool_name] = definition["args"]
+
+            if param_mappings:
+                logger.info(f"Generated param mappings for {len(param_mappings)} tools from definitions")
+                return param_mappings
+
+        # Fallback to hardcoded defaults if no definitions available
+        # CRITICAL: The order of parameters here MUST match the expected
+        # positional argument order for Python-style function calls.
+        # Changing the order will break existing tool call parsing!
+        # See MAINTENANCE.md for detailed requirements.
+        logger.warning("No tool definitions provided, using hardcoded param mappings as fallback")
+        return {
+            "write": ["file_path", "content"],  # Order: 1. file_path, 2. content
+            "bash": ["command", "description", "timeout", "run_in_background"],
+            "read": ["file_path", "limit", "offset"],
+            "edit": ["file_path", "old_string", "new_string", "replace_all"],
+            "multi_edit": ["file_path", "edits"],
+            "grep": ["pattern", "path", "output_mode"],
+            "glob": ["pattern", "path"],
+            "web_fetch": ["url", "prompt"],
+            "web_search": ["query", "allowed_domains", "blocked_domains"],
+        }
 
     def _parse_xml_args(self, args_str: str) -> Dict[str, Any]:
         """
@@ -167,6 +284,114 @@ class TextToolParser:
                 params[key] = value_str.strip("\"'")
 
         return params
+
+    def _to_snake_case(self, name: str) -> str:
+        """
+        Convert PascalCase to snake_case for tool name normalization.
+
+        Examples:
+            Write -> write
+            MultiEdit -> multi_edit
+            WebFetch -> web_fetch
+        """
+        # Insert underscore before capital letters (except at start)
+        result = re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+        return result
+
+    def _parse_python_call(self, text: str) -> List[Dict[str, Any]]:
+        """
+        Parse Python-style function calls using ast.parse for full Python syntax support.
+
+        This handles:
+        - Triple-quoted strings with embedded newlines
+        - Keyword arguments
+        - Complex nested structures
+        - All Python literal types
+        """
+        tool_calls = []
+
+        for match in self.PYTHON_TOOL_CALL_PATTERN.finditer(text):
+            call_str = match.group(1)
+
+            try:
+                # Parse the entire function call as Python code
+                tree = ast.parse(call_str)
+
+                # Extract the call node
+                if not tree.body or not isinstance(tree.body[0], ast.Expr):
+                    continue
+
+                call_node = tree.body[0].value
+                if not isinstance(call_node, ast.Call) or not isinstance(call_node.func, ast.Name):
+                    continue
+
+                tool_name_raw = call_node.func.id
+                tool_name = self._to_snake_case(tool_name_raw)
+
+                # Security: Validate tool name
+                if not self._validate_tool_name(tool_name):
+                    continue
+
+                params = {}
+
+                # 1. Map positional arguments using generated mappings
+                if tool_name in self.param_mappings:
+                    param_names = self.param_mappings[tool_name]
+                    for i, arg_node in enumerate(call_node.args):
+                        if i < len(param_names):
+                            try:
+                                # Use ast.literal_eval on the node to get the value
+                                params[param_names[i]] = ast.literal_eval(arg_node)
+                            except (ValueError, TypeError) as e:
+                                if self.log_errors:
+                                    logger.warning(f"Could not evaluate argument {i}: {e}")
+
+                # 2. Map keyword arguments (these override positional if both exist)
+                for kw_node in call_node.keywords:
+                    if kw_node.arg:  # Skip **kwargs
+                        try:
+                            params[kw_node.arg] = ast.literal_eval(kw_node.value)
+                        except (ValueError, TypeError) as e:
+                            if self.log_errors:
+                                logger.warning(f"Could not evaluate keyword argument {kw_node.arg}: {e}")
+
+                tool_calls.append({"name": tool_name, "parameters": params, "id": f"call_{len(tool_calls)}"})
+                self.stats["total_parsed"] += 1
+
+            except (ValueError, SyntaxError) as e:
+                self.stats["parse_errors"] += 1
+                self.stats["python_parse_errors"] += 1
+                self.stats["consecutive_errors"] += 1
+
+                if self.log_errors:
+                    logger.warning(f"Could not parse Python call with ast.parse: {e}")
+                    logger.warning(f"Call string: {call_str[:200]}...")
+
+                # Check if we should fail fast
+                if self.fail_on_parse_error:
+                    raise ValueError(f"Failed to parse Python tool call: {e}")
+
+                # Check consecutive error threshold
+                if self.stats["consecutive_errors"] >= self.max_consecutive_errors:
+                    logger.error(f"Too many consecutive parse errors ({self.max_consecutive_errors}), stopping")
+                    break
+
+                continue
+            except Exception as e:
+                # Catch any other unexpected errors
+                self.stats["parse_errors"] += 1
+                self.stats["python_parse_errors"] += 1
+                self.stats["consecutive_errors"] += 1
+                logger.error(f"Unexpected error parsing Python call: {e}")
+                if self.fail_on_parse_error:
+                    raise
+                continue
+
+        # Reset consecutive errors on successful parse
+        if tool_calls:
+            self.stats["consecutive_errors"] = 0
+
+        return tool_calls
 
     def _validate_tool_name(self, tool_name: str) -> bool:
         """
@@ -226,9 +451,10 @@ class TextToolParser:
             return []
 
         tool_calls = []
+        remaining_text = text  # Work with a copy to progressively strip parsed content
 
         # Parse JSON format tool calls
-        for match in self.JSON_TOOL_CALL_PATTERN.finditer(text):
+        for match in self.JSON_TOOL_CALL_PATTERN.finditer(remaining_text):
             if len(tool_calls) >= self.max_tool_calls:
                 if self.log_errors:
                     logger.warning(f"Reached max tool calls limit ({self.max_tool_calls})")
@@ -262,15 +488,31 @@ class TextToolParser:
                     }
                 )
                 self.stats["total_parsed"] += 1
+                # Reset consecutive errors on successful parse
+                self.stats["consecutive_errors"] = 0
+
+                # Remove the parsed JSON from remaining text to avoid duplicates
+                remaining_text = remaining_text.replace(match.group(0), "", 1)
 
             except json.JSONDecodeError as e:
                 self.stats["parse_errors"] += 1
+                self.stats["json_parse_errors"] += 1
+                self.stats["consecutive_errors"] += 1
+
                 if self.log_errors:
                     logger.warning(f"Failed to parse JSON tool call: {e}\n" f"Content preview: {json_content[:100]}...")
+
+                if self.fail_on_parse_error:
+                    raise ValueError(f"Failed to parse JSON tool call: {e}")
+
+                if self.stats["consecutive_errors"] >= self.max_consecutive_errors:
+                    logger.error(f"Too many consecutive parse errors ({self.max_consecutive_errors}), stopping")
+                    break
+
                 continue
 
         # Parse XML format tool calls
-        for match in self.XML_TOOL_CALL_PATTERN.finditer(text):
+        for match in self.XML_TOOL_CALL_PATTERN.finditer(remaining_text):
             if len(tool_calls) >= self.max_tool_calls:
                 break
 
@@ -285,14 +527,137 @@ class TextToolParser:
                 parameters = self._parse_xml_args(args_str)
                 tool_calls.append({"name": tool_name, "parameters": parameters, "id": f"call_{len(tool_calls)}"})
                 self.stats["total_parsed"] += 1
+                # Reset consecutive errors on successful parse
+                self.stats["consecutive_errors"] = 0
+
+                # Remove the parsed XML from remaining text to avoid duplicates
+                remaining_text = remaining_text.replace(match.group(0), "", 1)
 
             except Exception as e:
                 self.stats["parse_errors"] += 1
+                self.stats["xml_parse_errors"] += 1
+                self.stats["consecutive_errors"] += 1
                 if self.log_errors:
                     logger.warning(f"Failed to parse XML tool call: {e}\n" f"Tool: {tool_name}, Args: {args_str[:100]}...")
                 continue
 
+        # Parse Python-style function calls (e.g., Write("file.txt", "content"))
+        # This is for models like Claude that output Python-style tool calls
+        # Note: Since _parse_python_call processes all Python calls at once,
+        # and they are distinct from JSON/XML formats, duplicates are unlikely
+        # but we still use remaining_text for consistency
+        python_calls = self._parse_python_call(remaining_text)
+        for call in python_calls:
+            if len(tool_calls) >= self.max_tool_calls:
+                break
+
+            # Security: Validate tool name
+            if not self._validate_tool_name(call["name"]):
+                continue
+
+            tool_calls.append(call)
+            # Don't increment here - already incremented in _parse_python_call
+
         return tool_calls
+
+    def update_tool_definitions(self, tool_definitions: Dict[str, Dict[str, Any]]) -> None:
+        """
+        Update tool definitions and regenerate parameter mappings.
+
+        This allows the parser to adapt to new or modified tools at runtime
+        without requiring code changes.
+
+        Args:
+            tool_definitions: Dictionary of tool definitions with parameter info
+        """
+        self.param_mappings = self._generate_param_mappings(tool_definitions)
+        logger.info(f"Updated param mappings for {len(self.param_mappings)} tools")
+
+    def get_param_mappings(self) -> Dict[str, List[str]]:
+        """
+        Get the current parameter mappings for inspection/debugging.
+
+        Returns:
+            Current parameter mappings dictionary
+        """
+        return self.param_mappings.copy()
+
+    def strip_tool_calls(self, text: str) -> str:
+        """
+        Remove all tool call formats from text.
+
+        This centralizes the content stripping logic to ensure consistency
+        between parsing and stripping. Uses the same patterns that are used
+        for parsing to guarantee that any parsed tool call can be stripped.
+
+        Args:
+            text: The text containing tool calls to strip
+
+        Returns:
+            The text with all tool calls removed
+        """
+        import re
+
+        # Strip JSON format tool calls (including tool_code variant)
+        text = re.sub(r"```(?:tool_call|tool_code|json).*?```", "", text, flags=re.DOTALL)
+
+        # Strip XML format tool calls
+        text = re.sub(r"<tool>.*?</tool>", "", text, flags=re.DOTALL)
+
+        # Strip Python code blocks that contain tool calls
+        # First, find all Python code blocks
+        python_blocks = re.finditer(r"```python\s*\n(.*?)\n\s*```", text, re.DOTALL)
+
+        # Check each block for tool calls and remove if found
+        for match in reversed(list(python_blocks)):
+            block_content = match.group(1)
+            # Check if block contains any known tool names as function calls
+            # This is more robust than relying on naming conventions
+            contains_tool_call = False
+            for tool_name in self.param_mappings.keys():
+                # Create a regex pattern for each specific tool name
+                # Using word boundary and escaping the tool name for safety
+                if re.search(rf"\b{re.escape(tool_name)}\s*\(", block_content, re.IGNORECASE):
+                    contains_tool_call = True
+                    break
+
+            if contains_tool_call:
+                # Replace the entire code block
+                text = text[: match.start()] + text[match.end() :]
+
+        # Also strip inline Python-style function calls (not in code blocks)
+        # Build a single pattern for all known tool names for efficiency
+        if self.param_mappings:
+            # Include both snake_case and PascalCase versions of tool names
+            tool_patterns = []
+            for name in self.param_mappings.keys():
+                # Add snake_case version
+                tool_patterns.append(re.escape(name))
+                # Add PascalCase version (e.g., multi_edit -> MultiEdit)
+                pascal_name = "".join(word.capitalize() for word in name.split("_"))
+                tool_patterns.append(re.escape(pascal_name))
+
+            tool_names_pattern = "|".join(tool_patterns)
+
+            combined_pattern = (
+                rf"\b({tool_names_pattern})\s*\("  # Any tool name and opening paren
+                r"(?:"  # Non-capturing group for arguments
+                r'[^()"\']+'  # Non-quote, non-paren characters
+                r'|"(?:[^"\\]|\\.)*"'  # Double-quoted strings
+                r"|'(?:[^'\\]|\\.)*'"  # Single-quoted strings
+                r'|"""[\s\S]*?"""'  # Triple double quotes
+                r"|'''[\s\S]*?'''"  # Triple single quotes
+                r"|\([^)]*\)"  # Nested parentheses (one level only)
+                r")*"  # Zero or more of the above
+                r"\)"  # Closing paren
+            )
+
+            text = re.sub(combined_pattern, "", text, flags=re.DOTALL | re.IGNORECASE)
+
+        # Clean up any extra whitespace left behind
+        text = re.sub(r"\n\s*\n\s*\n+", "\n\n", text)
+
+        return text.strip()
 
     def get_stats(self) -> Dict[str, int]:
         """Get parsing statistics for monitoring."""
@@ -363,6 +728,8 @@ class TextToolParser:
             "completed the task",
             "all done",
             "complete.",
+            "has been completed",
+            "completed",
         ]
 
         text_lower = text.lower()
@@ -565,6 +932,11 @@ class ToolInjector:
         """
         if not self.tools or not messages:
             return messages
+
+        # Check if tools dict is empty
+        if isinstance(self.tools, list) and len(self.tools) == 1:
+            if "functionDeclarations" in self.tools[0] and not self.tools[0]["functionDeclarations"]:
+                return messages
 
         # Make a copy to avoid modifying the original
         messages = [msg.copy() for msg in messages]
