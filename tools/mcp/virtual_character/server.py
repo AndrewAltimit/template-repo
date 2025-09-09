@@ -280,12 +280,12 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         async def play_audio(request: Dict[str, Any]) -> Dict[str, Any]:
             """
             Audio bridge endpoint - plays audio through virtual audio cable.
-            
+
             Requirements:
             1. Install VB-Audio Virtual Cable or similar
             2. Set virtual cable as default playback device or specify device
             3. Set VRChat microphone input to virtual cable output
-            
+
             The audio will be routed: App -> Virtual Cable Input -> Virtual Cable Output -> VRChat Mic
             """
             try:
@@ -315,7 +315,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 if os.name == "nt":  # Windows
                     # Build ffplay command with audio device selection
                     cmd = ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet"]
-                    
+
                     # If specific device requested, route to it (e.g., "CABLE Input" for VB-Audio)
                     if device_name:
                         # For Windows, use -audio_device with the device name
@@ -323,7 +323,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                         cmd.extend(["-audio_device", device_name])
                     else:
                         cmd.append(tmp_path)
-                    
+
                     try:
                         # Try ffplay with virtual cable routing
                         subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -339,9 +339,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                         $player.Play()
                         """
                         subprocess.Popen(
-                            ["powershell", "-Command", ps_script],
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL
+                            ["powershell", "-Command", ps_script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
                         )
                 else:  # Linux/Mac
                     subprocess.Popen(

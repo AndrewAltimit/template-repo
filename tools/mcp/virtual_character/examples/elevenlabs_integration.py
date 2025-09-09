@@ -41,10 +41,11 @@ class VirtualCharacterWithVoice:
         payload = {"tool": tool, "arguments": params}
 
         async with self.session.post(url, json=payload) as response:
-            return await response.json()
+            result = await response.json()
+            return result  # type: ignore[no-any-return]
 
     async def generate_speech_with_expression(
-        self, text: str, emotion_tags: list[str] = None, voice: str = "Rachel"
+        self, text: str, emotion_tags: Optional[list[str]] = None, voice: str = "Rachel"
     ) -> Dict[str, Any]:
         """Generate speech with ElevenLabs including emotion tags."""
 
@@ -207,17 +208,17 @@ class VirtualCharacterWithVoice:
                 "timestamp": 0.0,
                 "parallel_events": [
                     {
-                        "event_type": "expression", 
-                        "expression": emotion, 
+                        "event_type": "expression",
+                        "expression": emotion,
                         "expression_intensity": 1.0,
-                        "timestamp": 0.0  # Nested events need their own timestamp
+                        "timestamp": 0.0,  # Nested events need their own timestamp
                     },
                     {
-                        "event_type": "audio", 
-                        "audio_data": sound_data, 
+                        "event_type": "audio",
+                        "audio_data": sound_data,
                         "audio_format": "mp3",
                         "duration": duration,
-                        "timestamp": 0.0
+                        "timestamp": 0.0,
                     },
                 ],
             },
