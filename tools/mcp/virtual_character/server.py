@@ -491,8 +491,8 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 "parameters": {"type": "object", "properties": {}},
             },
             "list_backends": {"description": "List available backends", "parameters": {"type": "object", "properties": {}}},
-            "send_audio": {
-                "description": "Send audio data to the current backend with optional lip-sync metadata",
+            "play_audio": {
+                "description": "Play audio through the virtual character with optional lip-sync metadata",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -862,7 +862,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             self.logger.error(f"Error listing backends: {e}")
             return {"success": False, "error": str(e)}
 
-    async def send_audio(
+    async def play_audio(
         self,
         audio_data: str,
         format: str = "mp3",
@@ -870,18 +870,67 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         expression_tags: Optional[List[str]] = None,
         duration: Optional[float] = None,
     ) -> Dict[str, Any]:
-        """Send audio data to the current backend."""
+        """Play audio through the virtual character (text-to-speech output).
+
+        Args:
+            audio_data: Can be:
+                - Base64-encoded audio data
+                - Data URL (data:audio/mp3;base64,...)
+                - HTTP/HTTPS URL to download audio from
+                - File path (starts with / or ./)
+            format: Audio format (mp3, wav, opus, pcm)
+            text: Optional text transcript for lip-sync
+            expression_tags: Optional expression tags from ElevenLabs
+            duration: Optional audio duration in seconds
+        """
         if not self.current_backend:
             return {"success": False, "error": "No backend connected. Use set_backend first."}
 
         try:
             import base64
+            from pathlib import Path
 
-            # Decode base64 audio data
+            import aiohttp
+
+            audio_bytes = None
+
+            # Determine input type and get audio bytes
             if audio_data.startswith("data:"):
-                # Handle data URL format
+                # Data URL format
+                self.logger.info("Processing data URL audio")
                 audio_data = audio_data.split(",")[1]
-            audio_bytes = base64.b64decode(audio_data)
+                audio_bytes = base64.b64decode(audio_data)
+
+            elif audio_data.startswith(("http://", "https://")):
+                # URL - download the audio
+                self.logger.info(f"Downloading audio from URL: {audio_data}")
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(audio_data) as response:
+                        if response.status == 200:
+                            audio_bytes = await response.read()
+                        else:
+                            return {"success": False, "error": f"Failed to download audio: HTTP {response.status}"}
+
+            elif audio_data.startswith("/") or audio_data.startswith("./"):
+                # File path - read the file
+                self.logger.info(f"Reading audio from file: {audio_data}")
+                file_path = Path(audio_data)
+                if file_path.exists():
+                    with open(file_path, "rb") as f:
+                        audio_bytes = f.read()
+                else:
+                    return {"success": False, "error": f"File not found: {audio_data}"}
+
+            else:
+                # Assume base64-encoded data
+                self.logger.info("Processing base64-encoded audio")
+                try:
+                    audio_bytes = base64.b64decode(audio_data)
+                except Exception as e:
+                    return {"success": False, "error": f"Invalid base64 data: {str(e)}"}
+
+            if not audio_bytes:
+                return {"success": False, "error": "No audio data could be extracted"}
 
             # Create AudioData object
             audio = AudioData(
