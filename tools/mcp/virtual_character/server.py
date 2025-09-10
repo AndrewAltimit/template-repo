@@ -347,34 +347,71 @@ class VirtualCharacterMCPServer(BaseMCPServer):
 
                 # Play audio through virtual audio cable (Windows)
                 if os.name == "nt":  # Windows
-                    # Build ffplay command with audio device selection
-                    cmd = ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet"]
+                    # Default to VoiceMeeter Input if no device specified
+                    if not device_name:
+                        # Try common VoiceMeeter input device names
+                        device_name = "VoiceMeeter Input"
 
-                    # If specific device requested, route to it (e.g., "CABLE Input" for VB-Audio)
-                    if device_name:
-                        # For Windows, use -audio_device with the device name
-                        cmd.extend(["-f", "lavfi", "-i", f"amovie={tmp_path},aformat=sample_fmts=s16:channel_layouts=stereo"])
-                        cmd.extend(["-audio_device", device_name])
-                    else:
-                        cmd.append(tmp_path)
+                    self.logger.info(f"Attempting to play audio through: {device_name}")
 
+                    # Method 1: Try using ffmpeg (more reliable than ffplay for device routing)
                     try:
-                        # Try ffplay with virtual cable routing
-                        subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                        self.logger.info(f"Playing audio through: {device_name or 'default device'}")
-                    except FileNotFoundError:
-                        # Fallback: Try using PowerShell with .NET to specify device
-                        ps_script = f"""
-                        Add-Type -AssemblyName System.Speech
-                        $synthesizer = New-Object System.Speech.Synthesis.SpeechSynthesizer
-                        # Play the audio file through default audio device
-                        # Note: For virtual cable, set it as Windows default playback device
-                        $player = New-Object System.Media.SoundPlayer '{tmp_path}'
-                        $player.Play()
-                        """
-                        subprocess.Popen(
-                            ["powershell", "-Command", ps_script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-                        )
+                        # Use ffmpeg to play audio to specific device
+                        # List devices: ffmpeg -list_devices true -f dshow -i dummy
+                        cmd = ["ffmpeg", "-i", tmp_path, "-f", "dshow", "-audio_buffer_size", "50", f"audio={device_name}"]
+                        result = subprocess.run(cmd, capture_output=True, text=True, timeout=1)
+                        if result.returncode == 0:
+                            self.logger.info(f"Successfully playing through ffmpeg to {device_name}")
+                        else:
+                            raise Exception(f"ffmpeg failed: {result.stderr}")
+                    except (FileNotFoundError, Exception) as e:
+                        self.logger.warning(f"ffmpeg method failed: {e}")
+
+                        # Method 2: Try VLC if available (excellent device support)
+                        try:
+                            # VLC can target specific audio devices on Windows
+                            vlc_cmd = [
+                                "vlc",
+                                "--intf",
+                                "dummy",
+                                "--play-and-exit",
+                                "--aout",
+                                "waveout",
+                                "--waveout-audio-device",
+                                device_name,
+                                tmp_path,
+                            ]
+                            subprocess.Popen(vlc_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            self.logger.info(f"Using VLC to play through {device_name}")
+                        except FileNotFoundError:
+                            self.logger.warning("VLC not found")
+
+                            # Method 3: Use PowerShell with Windows Media Player
+                            ps_script = f"""
+                            Add-Type -TypeDefinition @"
+                            using System;
+                            using System.Runtime.InteropServices;
+                            public class Audio {{
+                                [DllImport("winmm.dll")]
+                                public static extern int mciSendString(
+                                    string command, string buffer, int bufferSize, IntPtr hwndCallback);
+                            }}
+"@
+                            # Open and play the audio file
+                            $cmd = "open `"{tmp_path}`" type waveaudio alias myaudio"
+                            [Audio]::mciSendString($cmd, $null, 0, [IntPtr]::Zero)
+                            [Audio]::mciSendString("play myaudio", $null, 0, [IntPtr]::Zero)
+
+                            # Alternative: Use Windows Media Player COM object
+                            $player = New-Object -ComObject WMPlayer.OCX
+                            $player.URL = '{tmp_path}'
+                            $player.controls.play()
+                            Start-Sleep -Seconds 5
+                            """
+                            subprocess.Popen(
+                                ["powershell", "-Command", ps_script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                            )
+                            self.logger.info("Using PowerShell Windows Media Player")
                 else:  # Linux/Mac
                     subprocess.Popen(
                         ["ffplay", "-nodisp", "-autoexit", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
