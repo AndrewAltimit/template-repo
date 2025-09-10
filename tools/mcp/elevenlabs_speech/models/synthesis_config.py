@@ -57,7 +57,7 @@ class SynthesisResult:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON response"""
-        import base64
+        import os
 
         result = {
             "success": self.success,
@@ -72,9 +72,14 @@ class SynthesisResult:
             "metadata": self.metadata,
         }
 
-        # Include base64-encoded audio data if available
+        # Include file size info if available, but NOT the actual audio data
         if self.audio_data:
-            result["audio_base64"] = base64.b64encode(self.audio_data).decode("utf-8")
+            result["audio_size_bytes"] = len(self.audio_data)
+            result["audio_size_kb"] = round(len(self.audio_data) / 1024, 2)
+        elif self.local_path and os.path.exists(self.local_path):
+            file_size = os.path.getsize(self.local_path)
+            result["audio_size_bytes"] = file_size
+            result["audio_size_kb"] = round(file_size / 1024, 2)
 
         return result
 
