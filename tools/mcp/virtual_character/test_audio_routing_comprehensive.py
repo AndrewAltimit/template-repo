@@ -140,7 +140,7 @@ class AudioRoutingTester:
                 device = line.strip()
                 audio_devices.append(device)
                 logger.info(f"  {device}")
-                if "VoiceMeeter" in line or "CABLE" in line or "VB-Audio" in line:
+                if "voicemeeter" in line.lower() or "cable" in line.lower() or "vb-audio" in line.lower():
                     logger.info("    ^ VoiceMeeter device detected!")
 
         self.test_results["audio_devices"]["directshow"] = audio_devices
@@ -158,7 +158,11 @@ class AudioRoutingTester:
                 )
                 device_list.append(device_info)
                 logger.info(device_info)
-                if "VoiceMeeter" in device["name"]:
+                if (
+                    "voicemeeter" in device["name"].lower()
+                    or "cable" in device["name"].lower()
+                    or "vb-audio" in device["name"].lower()
+                ):
                     logger.info("    ^ VoiceMeeter device detected!")
             self.test_results["audio_devices"]["sounddevice"] = device_list
         except ImportError:
@@ -321,7 +325,7 @@ class AudioRoutingTester:
             ]
             success, _, _ = self.run_command(cmd, timeout=5)
             self.test_results["routing_tests"][f"vlc_{device}"] = success
-            logger.info(f"    Result: {'✓ Success' if success else '✗ Failed'}")
+            logger.info(f"    Result: {'[OK] Success' if success else '[X] Failed'}")
             if success:
                 break
 
@@ -362,42 +366,42 @@ class AudioRoutingTester:
            |
            v
         2. PLAYBACK METHOD
-           ├─> PowerShell (.NET/WMP)
-           ├─> VLC (with device targeting)
-           ├─> FFmpeg/FFplay
-           └─> Python (pygame/simpleaudio)
+           |-> PowerShell (.NET/WMP)
+           |-> VLC (with device targeting)
+           |-> FFmpeg/FFplay
+           +-> Python (pygame/simpleaudio)
            |
            v
         3. WINDOWS AUDIO SUBSYSTEM
            |
            v
         4. AUDIO DEVICE SELECTION
-           ├─> DEFAULT: System default device
-           └─> TARGETED: Specific device (VLC only)
+           |-> DEFAULT: System default device
+           +-> TARGETED: Specific device (VLC only)
            |
            v
         5. VOICEMEETER INPUT (Virtual Cable)
-           ├─> Hardware Input 1: Physical Mic
-           ├─> Hardware Input 2: [Optional]
-           └─> Virtual Input (VAIO): ← OUR AUDIO GOES HERE
+           |-> Hardware Input 1: Physical Mic
+           |-> Hardware Input 2: [Optional]
+           +-> Virtual Input (VAIO): <-- OUR AUDIO GOES HERE
            |
            v
         6. VOICEMEETER ROUTING MATRIX
-           ├─> A1 (Hardware Out): Your Speakers/Headphones
-           ├─> A2 (Hardware Out): [Optional]
-           ├─> B1 (Virtual Out): → VRChat Microphone
-           └─> B2 (Virtual Out): [Optional]
+           |-> A1 (Hardware Out): Your Speakers/Headphones
+           |-> A2 (Hardware Out): [Optional]
+           |-> B1 (Virtual Out): --> VRChat Microphone
+           +-> B2 (Virtual Out): [Optional]
            |
            v
         7. VRCHAT
-           └─> Microphone Input: "VoiceMeeter Output B1"
+           +-> Microphone Input: "VoiceMeeter Output B1"
 
         CRITICAL SETTINGS:
         ==================
-        □ Windows default playback: VoiceMeeter Input
-        □ VoiceMeeter Virtual Input → A1 (to hear locally)
-        □ VoiceMeeter Virtual Input → B1 (to send to VRChat)
-        □ VRChat Microphone: VoiceMeeter Output (B1)
+        [ ] Windows default playback: VoiceMeeter Input
+        [ ] VoiceMeeter Virtual Input -> A1 (to hear locally)
+        [ ] VoiceMeeter Virtual Input -> B1 (to send to VRChat)
+        [ ] VRChat Microphone: VoiceMeeter Output (B1)
         """
 
         logger.info(flow)
@@ -433,10 +437,12 @@ class AudioRoutingTester:
         if missing_packages:
             recommendations.append(f"OPTIONAL: Install Python packages: pip install {' '.join(missing_packages)}")
 
-        # Check audio devices
+        # Check audio devices (case-insensitive)
         has_voicemeeter_device = False
         for devices in self.test_results["audio_devices"].values():
-            if any("VoiceMeeter" in str(d) for d in devices):
+            if any(
+                "voicemeeter" in str(d).lower() or "cable" in str(d).lower() or "vb-audio" in str(d).lower() for d in devices
+            ):
                 has_voicemeeter_device = True
                 break
 
