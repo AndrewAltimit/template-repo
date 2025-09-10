@@ -86,7 +86,7 @@ class AudioRoutingTester:
                 "version": stdout.split("\n")[0] if success else "Not installed",
             }
 
-            status = "✓ Installed" if success else "✗ Not installed"
+            status = "[OK] Installed" if success else "[X] Not installed"
             logger.info(f"{name}: {status}")
             if success and stdout:
                 logger.info(f"  Version: {stdout.split(chr(10))[0][:50]}")
@@ -103,10 +103,10 @@ class AudioRoutingTester:
             try:
                 __import__(package)
                 self.test_results["dependencies"][f"python_{package}"] = True
-                logger.info(f"✓ {package} installed")
+                logger.info(f"[OK] {package} installed")
             except ImportError:
                 self.test_results["dependencies"][f"python_{package}"] = False
-                logger.info(f"✗ {package} not installed")
+                logger.info(f"[X] {package} not installed")
 
     def list_audio_devices(self):
         """List all audio devices."""
@@ -185,20 +185,20 @@ class AudioRoutingTester:
                 break
 
         if installed_path:
-            logger.info(f"✓ VoiceMeeter installed at: {installed_path}")
+            logger.info(f"[OK] VoiceMeeter installed at: {installed_path}")
             self.test_results["voicemeeter"]["installed"] = True
             self.test_results["voicemeeter"]["path"] = installed_path
         else:
-            logger.info("✗ VoiceMeeter not found in standard locations")
+            logger.info("[X] VoiceMeeter not found in standard locations")
             self.test_results["voicemeeter"]["installed"] = False
 
         # Check if VoiceMeeter is running
         success, stdout, _ = self.run_command(["tasklist", "/FI", "IMAGENAME eq voicemeeter*"])
         if success and "voicemeeter" in stdout.lower():
-            logger.info("✓ VoiceMeeter is running")
+            logger.info("[OK] VoiceMeeter is running")
             self.test_results["voicemeeter"]["running"] = True
         else:
-            logger.info("✗ VoiceMeeter is not running")
+            logger.info("[X] VoiceMeeter is not running")
             self.test_results["voicemeeter"]["running"] = False
 
         # Check default audio device
@@ -240,10 +240,10 @@ class AudioRoutingTester:
 
         if success and os.path.exists(test_file):
             file_size = os.path.getsize(test_file)
-            logger.info(f"✓ Test audio created: {test_file} ({file_size} bytes)")
+            logger.info(f"[OK] Test audio created: {test_file} ({file_size} bytes)")
             return test_file
         else:
-            logger.error("✗ Failed to create test audio")
+            logger.error("[X] Failed to create test audio")
             return None
 
     def test_audio_playback(self, audio_file: str):
@@ -273,7 +273,7 @@ class AudioRoutingTester:
         """
         success, stdout, stderr = self.run_command(["powershell", "-Command", ps_script], timeout=5)
         self.test_results["routing_tests"]["wmp_default"] = success
-        logger.info(f"  Result: {'✓ Success' if success else '✗ Failed'}")
+        logger.info(f"  Result: {'[OK] Success' if success else '[X] Failed'}")
         if stdout:
             logger.info(f"  Output: {stdout.strip()}")
 
@@ -293,7 +293,7 @@ class AudioRoutingTester:
         """
         success, stdout, stderr = self.run_command(["powershell", "-Command", ps_script], timeout=5)
         self.test_results["routing_tests"]["soundplayer"] = success
-        logger.info(f"  Result: {'✓ Success' if success else '✗ Failed'}")
+        logger.info(f"  Result: {'[OK] Success' if success else '[X] Failed'}")
         if stdout:
             logger.info(f"  Output: {stdout.strip()}")
 
@@ -330,7 +330,7 @@ class AudioRoutingTester:
         cmd = ["ffplay", "-nodisp", "-autoexit", "-t", "2", audio_file]
         success, _, _ = self.run_command(cmd, timeout=5)
         self.test_results["routing_tests"]["ffplay"] = success
-        logger.info(f"  Result: {'✓ Success' if success else '✗ Failed'}")
+        logger.info(f"  Result: {'[OK] Success' if success else '[X] Failed'}")
 
         # Test 5: Python pygame
         logger.info("\n5. Testing Python pygame:")
@@ -343,10 +343,10 @@ class AudioRoutingTester:
             time.sleep(2)
             pygame.mixer.quit()
             self.test_results["routing_tests"]["pygame"] = True
-            logger.info("  Result: ✓ Success")
+            logger.info("  Result: [OK] Success")
         except Exception as e:
             self.test_results["routing_tests"]["pygame"] = False
-            logger.info(f"  Result: ✗ Failed - {e}")
+            logger.info(f"  Result: [X] Failed - {e}")
 
     def test_audio_flow(self):
         """Visualize and explain the audio flow."""
@@ -454,7 +454,7 @@ class AudioRoutingTester:
             logger.info(f"{i}. {rec}")
 
         if not recommendations:
-            logger.info("✓ All systems operational!")
+            logger.info("[OK] All systems operational!")
 
     def save_results(self):
         """Save test results to file."""
@@ -462,7 +462,7 @@ class AudioRoutingTester:
         with open(results_file, "w") as f:
             json.dump(self.test_results, f, indent=2, default=str)
 
-        logger.info(f"\n✓ Results saved to: {results_file}")
+        logger.info(f"\n[OK] Results saved to: {results_file}")
         return results_file
 
     def run_all_tests(self):
