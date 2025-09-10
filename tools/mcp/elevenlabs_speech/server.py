@@ -252,8 +252,31 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
                 self.logger.warning(f"Upload failed but synthesis succeeded: {upload_error}")
                 # Continue without upload URL
 
-        # Add original text and formatting info to result
+        # Build result dict with proper audio handling
         result_dict = result.to_dict()
+
+        # IMPORTANT: Handle audio data to prevent context window pollution
+        # Priority: URL > base64 (only if small) > nothing
+        if result.success:
+            if result.audio_url:
+                # Best case: We have a URL, no need for raw data
+                self.logger.info(f"Returning audio URL: {result.audio_url}")
+                # Clear audio_data since we have URL
+                if "audio_data" in result_dict:
+                    del result_dict["audio_data"]
+            elif result.audio_data and len(result.audio_data) < 50000:  # Only include if < 50KB
+                # Small audio: Include base64 for convenience
+                import base64
+
+                result_dict["audio_data"] = base64.b64encode(result.audio_data).decode("utf-8")
+                self.logger.info(f"Returning small audio as base64 ({len(result.audio_data)} bytes)")
+            else:
+                # Large audio without URL: Don't include to avoid context pollution
+                if "audio_data" in result_dict:
+                    del result_dict["audio_data"]
+                self.logger.warning("Audio too large for base64, no URL available. Returning path only.")
+
+        # Add original text and formatting info to result
         if result_dict.get("metadata"):
             result_dict["metadata"]["original_input"] = original_text
             result_dict["metadata"]["text_was_formatted"] = True
@@ -328,7 +351,29 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
             if upload_result:
                 result.audio_url = upload_result
 
-        return result.to_dict()
+        # Build result dict with proper audio handling
+        result_dict = result.to_dict()
+
+        # Apply same audio data handling as synthesize_speech_v3
+        if result.success:
+            if result.audio_url:
+                # Best case: We have a URL, no need for raw data
+                self.logger.info(f"Returning sound effect URL: {result.audio_url}")
+                if "audio_data" in result_dict:
+                    del result_dict["audio_data"]
+            elif result.audio_data and len(result.audio_data) < 50000:  # Only include if < 50KB
+                # Small audio: Include base64 for convenience
+                import base64
+
+                result_dict["audio_data"] = base64.b64encode(result.audio_data).decode("utf-8")
+                self.logger.info(f"Returning small sound effect as base64 ({len(result.audio_data)} bytes)")
+            else:
+                # Large audio without URL: Don't include to avoid context pollution
+                if "audio_data" in result_dict:
+                    del result_dict["audio_data"]
+                self.logger.warning("Sound effect too large for base64, no URL available. Returning path only.")
+
+        return result_dict
 
     async def generate_pr_audio_response(
         self,
