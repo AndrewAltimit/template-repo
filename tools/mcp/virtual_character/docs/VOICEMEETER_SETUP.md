@@ -2,11 +2,19 @@
 
 This guide provides comprehensive setup instructions for routing AI-generated audio through VoiceMeeter to VRChat, enabling your virtual character to speak with synthesized voices.
 
-## Prerequisites
+## System Requirements
 
-- Windows machine with VRChat installed
-- Virtual Character MCP Server running
-- ElevenLabs or other TTS service configured
+### Hardware
+- **Windows 10/11** (VoiceMeeter is Windows-only)
+- **Audio device** (speakers/headphones for monitoring)
+- **GPU** capable of running VRChat (NVIDIA recommended)
+
+### Software Prerequisites
+- **VoiceMeeter** (Standard, Banana, or Potato)
+- **VRChat** (Steam or standalone)
+- **Python 3.10+** with audio packages
+- **FFmpeg** for audio processing
+- **VLC** (recommended for device targeting)
 
 ## Installation
 
@@ -15,8 +23,37 @@ This guide provides comprehensive setup instructions for routing AI-generated au
 **Recommended**: VoiceMeeter Banana (over basic VoiceMeeter) for more routing options
 
 1. Download from [VB-Audio website](https://vb-audio.com/Voicemeeter/banana.htm)
+   - **VoiceMeeter Standard**: Basic (3 inputs, 2 outputs)
+   - **VoiceMeeter Banana**: Advanced (5 inputs, 5 outputs) - RECOMMENDED
+   - **VoiceMeeter Potato**: Professional (8 inputs, 8 outputs)
 2. Install following the setup wizard
-3. **Restart Windows** after installation (required for virtual audio drivers)
+   - Run installer as Administrator
+3. **CRITICAL: Restart Windows** after installation (required for virtual audio drivers)
+4. Launch VoiceMeeter from Start Menu
+
+### 2. Install Audio Dependencies
+
+Run the provided installer scripts:
+
+```batch
+# Navigate to the virtual_character directory
+cd tools\mcp\virtual_character
+
+# Simple installer (Python packages only)
+install_dependencies_simple.bat
+
+# Or comprehensive installer (includes VLC, FFmpeg, Chocolatey)
+install_dependencies.bat
+```
+
+Required Python packages (installed automatically):
+- pygame
+- simpleaudio
+- pyaudio
+- sounddevice
+- pycaw
+- requests
+- aiohttp
 
 ## VoiceMeeter Configuration
 
@@ -280,67 +317,125 @@ class WindowsTTSPlayer:
 
 ## Testing the Configuration
 
-### Step 1: Test VoiceMeeter Routing
+### Step 1: Run Comprehensive Audio Test
 
-1. Open any media player (e.g., Windows Media Player)
-2. Play an audio file
-3. In the player's audio output settings, select "VoiceMeeter Input"
-4. You should see:
-   - Level meters moving in VoiceMeeter's Virtual Input strip
-   - If A1 is enabled, hear audio through speakers
-   - VRChat should show microphone activity
+Run the provided comprehensive test suite to verify your setup:
 
-### Step 2: Test Python Audio Playback
-
-```python
-# test_voicemeeter.py
-import asyncio
-from audio_player import VoiceMeeterAudioPlayer
-
-async def test():
-    player = VoiceMeeterAudioPlayer()
-
-    # Test with a simple WAV file
-    with open("test.wav", "rb") as f:
-        await player.play_audio(f.read(), format="wav")
-
-asyncio.run(test())
+```batch
+cd tools\mcp\virtual_character
+run_audio_tests.bat
 ```
 
-### Step 3: Test in VRChat
+Expected successful output:
+- ✅ VoiceMeeter detected at `C:\Program Files (x86)\VB\Voicemeeter`
+- ✅ VoiceMeeter is running
+- ✅ 80+ VoiceMeeter virtual devices detected
+- ✅ All 6 audio routing methods pass:
+  1. Windows Media Player (WMP)
+  2. .NET SoundPlayer
+  3. VLC basic playback
+  4. VLC with VoiceMeeter targeting
+  5. FFmpeg/FFplay
+  6. Python pygame
 
-1. Join any VRChat world
-2. Run the test script
-3. Your avatar should:
-   - Show speaking indicators
-   - Have automatic lip-sync
-   - Broadcast the audio to other players
+Test results are saved to `audio_test_results_*.json` for debugging.
+
+### Step 2: Test VLC Device Targeting (Optional)
+
+VLC provides the best device targeting capabilities. Test it specifically:
+
+```batch
+cd tools\mcp\virtual_character
+test_vlc.bat
+```
+
+This tests 6 different VLC invocation methods to find what works on your system.
+
+**Note**: VLC may show an error dialog mentioning "vlc-help.txt" but audio still works correctly. This is a known Windows quirk.
+
+### Step 3: Test Python Audio Playback
+
+```python
+# Quick test script
+python test_audio_routing_comprehensive.py
+```
+
+The test will:
+1. Create a test audio file using FFmpeg
+2. Play it through various methods
+3. Verify VoiceMeeter routing
+4. Generate a detailed report
+
+### Step 4: Test in VRChat
+
+1. Set Windows default playback to "VoiceMeeter Input"
+2. Launch VRChat and go to Settings → Audio
+3. Set Microphone to "VoiceMeeter Output (VB-Audio VoiceMeeter VAIO)"
+4. Join any world
+5. Run the test script - you should:
+   - Hear the test audio locally (if A1 enabled)
+   - See voice indicator activate in VRChat
+   - Have automatic lip-sync on your avatar
 
 ## Troubleshooting
 
-### Issue: No VoiceMeeter Device Found
+### Issue: VoiceMeeter Not Detected
+
+**Symptoms:**
+- Test shows "VoiceMeeter not found"
+- No VoiceMeeter devices in device list
+
+**Solutions:**
+1. Ensure VoiceMeeter is installed in standard location:
+   - `C:\Program Files (x86)\VB\Voicemeeter\`
+2. **Restart Windows** after installation (critical!)
+3. Launch VoiceMeeter before testing
+4. Run VoiceMeeter as Administrator
+5. Check Windows Audio Service is running
+
+### Issue: VLC Shows Error but Audio Works
+
+**Symptoms:**
+- VLC popup mentions "vlc-help.txt" (file is empty)
+- Audio actually plays successfully
+- Tests pass but error dialog appears
 
 **Solution:**
-- Ensure VoiceMeeter is running
-- Check Windows Sound settings for VoiceMeeter devices
-- Restart Windows if devices don't appear
-- Run VoiceMeeter as Administrator
+- This is a known VLC quirk on Windows with dummy interface
+- The audio is working correctly despite the error
+- Can be safely ignored
+- Use `--intf dummy` flag to minimize popups
+
+### Issue: Unicode Encoding Errors
+
+**Symptoms:**
+- `UnicodeEncodeError: 'charmap' codec can't encode character '\u2713'`
+- Console shows corrupted characters
+
+**Solution:**
+- Already fixed in latest version
+- All Unicode characters replaced with ASCII equivalents
+- Run `git pull` to get latest fixes
 
 ### Issue: Audio Plays Locally but Not in VRChat
 
 **Solution:**
-- Verify VRChat microphone is set to "VoiceMeeter Output"
-- Check VoiceMeeter B1 routing is enabled
-- Ensure VRChat isn't muted (check V key)
-- Verify Windows isn't blocking microphone access
+1. Verify VRChat microphone setting:
+   - Must be "VoiceMeeter Output (VB-Audio VoiceMeeter VAIO)"
+   - NOT "VoiceMeeter Input" or "VoiceMeeter AUX"
+2. Check VoiceMeeter B1 routing is enabled (green)
+3. Ensure VRChat isn't muted (V key by default)
+4. Verify Windows isn't blocking microphone access
+5. Check VoiceMeeter B1 fader isn't muted
 
 ### Issue: Audio Stuttering or Delays
 
 **Solution:**
-- Increase buffer size in VoiceMeeter System Settings
+- Increase buffer size in VoiceMeeter System Settings (512-1024)
 - Check CPU usage - close unnecessary applications
 - Ensure sample rates match (48000 Hz recommended)
 - Disable audio enhancements in Windows Sound settings
+- Use WDM or WASAPI drivers instead of MME
 
 ### Issue: Echo or Feedback
 
@@ -349,6 +444,7 @@ asyncio.run(test())
 - Use headphones for monitoring
 - Enable echo cancellation in VRChat settings
 - Reduce Virtual Input gain in VoiceMeeter
+- Check Gate settings on Virtual Input
 
 ## Advanced Configuration
 
