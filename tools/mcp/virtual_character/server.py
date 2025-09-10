@@ -293,6 +293,9 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 import os
                 import subprocess
                 import tempfile
+                from pathlib import Path
+
+                import aiohttp
 
                 audio_data = request.get("audio_data")
                 format = request.get("format", "mp3")
@@ -301,10 +304,41 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 if not audio_data:
                     return {"success": False, "error": "No audio data provided"}
 
-                # Decode base64 audio
+                audio_bytes = None
+
+                # Handle different input types
                 if audio_data.startswith("data:"):
+                    # Data URL format
+                    self.logger.info("Processing data URL audio")
                     audio_data = audio_data.split(",")[1]
-                audio_bytes = base64.b64decode(audio_data)
+                    audio_bytes = base64.b64decode(audio_data)
+
+                elif audio_data.startswith(("http://", "https://")):
+                    # URL - download the audio
+                    self.logger.info(f"Downloading audio from URL: {audio_data}")
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(audio_data) as response:
+                            if response.status == 200:
+                                audio_bytes = await response.read()
+                            else:
+                                return {"success": False, "error": f"Failed to download audio: HTTP {response.status}"}
+
+                elif audio_data.startswith("/") or audio_data.startswith("./"):
+                    # File path
+                    self.logger.info(f"Reading audio from file: {audio_data}")
+                    file_path = Path(audio_data)
+                    if file_path.exists():
+                        with open(file_path, "rb") as f:
+                            audio_bytes = f.read()
+                    else:
+                        return {"success": False, "error": f"File not found: {audio_data}"}
+
+                else:
+                    # Assume base64 encoded
+                    try:
+                        audio_bytes = base64.b64decode(audio_data)
+                    except Exception as e:
+                        return {"success": False, "error": f"Failed to decode base64 audio: {e}"}
 
                 # Save to temp file
                 with tempfile.NamedTemporaryFile(suffix=f".{format}", delete=False) as tmp_file:
