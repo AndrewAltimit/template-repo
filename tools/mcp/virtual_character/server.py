@@ -345,6 +345,14 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                     tmp_file.write(audio_bytes)
                     tmp_path = tmp_file.name
 
+                # Validate audio file before playback
+                file_size = os.path.getsize(tmp_path)
+                self.logger.info(f"Audio file saved: {tmp_path} ({file_size} bytes, format: {format})")
+
+                # If file is too small, it might be corrupted
+                if file_size < 100:
+                    return {"success": False, "error": f"Audio file too small ({file_size} bytes), might be corrupted"}
+
                 # Play audio through virtual audio cable (Windows)
                 if os.name == "nt":  # Windows
                     # Default to VoiceMeeter Input if no device specified
@@ -354,18 +362,31 @@ class VirtualCharacterMCPServer(BaseMCPServer):
 
                     self.logger.info(f"Attempting to play audio through: {device_name}")
 
-                    # Method 1: Try using ffmpeg (more reliable than ffplay for device routing)
+                    # Method 1: Convert to WAV and play (most reliable)
                     try:
-                        # Use ffmpeg to play audio to specific device
-                        # List devices: ffmpeg -list_devices true -f dshow -i dummy
-                        cmd = ["ffmpeg", "-i", tmp_path, "-f", "dshow", "-audio_buffer_size", "50", f"audio={device_name}"]
-                        result = subprocess.run(cmd, capture_output=True, text=True, timeout=1)
-                        if result.returncode == 0:
-                            self.logger.info(f"Successfully playing through ffmpeg to {device_name}")
+                        # Convert MP3 to WAV first (more reliable playback)
+                        wav_path = tmp_path.replace(f".{format}", ".wav")
+                        convert_cmd = ["ffmpeg", "-i", tmp_path, "-acodec", "pcm_s16le", "-ar", "44100", wav_path]
+                        result = subprocess.run(convert_cmd, capture_output=True, text=True, timeout=5)
+
+                        if result.returncode == 0 and os.path.exists(wav_path):
+                            self.logger.info(f"Converted to WAV: {wav_path}")
+
+                            # Now play the WAV file using Windows default audio
+                            # This uses whatever is set as the default playback device
+                            play_cmd = ["powershell", "-Command", f"(New-Object Media.SoundPlayer '{wav_path}').PlaySync()"]
+                            subprocess.run(play_cmd, capture_output=True, timeout=10)
+                            self.logger.info("Playing audio through Windows default device (should be VoiceMeeter)")
+
+                            # Clean up WAV file
+                            try:
+                                os.remove(wav_path)
+                            except Exception:
+                                pass
                         else:
-                            raise Exception(f"ffmpeg failed: {result.stderr}")
+                            raise Exception(f"ffmpeg conversion failed: {result.stderr}")
                     except (FileNotFoundError, Exception) as e:
-                        self.logger.warning(f"ffmpeg method failed: {e}")
+                        self.logger.warning(f"WAV conversion method failed: {e}")
 
                         # Method 2: Try VLC if available (excellent device support)
                         try:
@@ -386,32 +407,34 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                         except FileNotFoundError:
                             self.logger.warning("VLC not found")
 
-                            # Method 3: Use PowerShell with Windows Media Player
-                            ps_script = f"""
-                            Add-Type -TypeDefinition @"
-                            using System;
-                            using System.Runtime.InteropServices;
-                            public class Audio {{
-                                [DllImport("winmm.dll")]
-                                public static extern int mciSendString(
-                                    string command, string buffer, int bufferSize, IntPtr hwndCallback);
-                            }}
-"@
-                            # Open and play the audio file
-                            $cmd = "open `"{tmp_path}`" type waveaudio alias myaudio"
-                            [Audio]::mciSendString($cmd, $null, 0, [IntPtr]::Zero)
-                            [Audio]::mciSendString("play myaudio", $null, 0, [IntPtr]::Zero)
-
-                            # Alternative: Use Windows Media Player COM object
-                            $player = New-Object -ComObject WMPlayer.OCX
-                            $player.URL = '{tmp_path}'
-                            $player.controls.play()
-                            Start-Sleep -Seconds 5
-                            """
-                            subprocess.Popen(
-                                ["powershell", "-Command", ps_script], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-                            )
-                            self.logger.info("Using PowerShell Windows Media Player")
+                            # Method 3: Use PowerShell with .NET SoundPlayer (simpler)
+                            try:
+                                # This method plays through the Windows default audio device
+                                # User must set VoiceMeeter Input as default in Windows Sound Settings
+                                ps_cmd = f"""
+                                try {{
+                                    # Use .NET SoundPlayer for simple playback
+                                    $player = New-Object System.Media.SoundPlayer
+                                    $player.SoundLocation = '{tmp_path}'
+                                    $player.PlaySync()
+                                    Write-Host "Audio played successfully"
+                                }} catch {{
+                                    # Fallback to Windows Media Player
+                                    $wmp = New-Object -ComObject WMPlayer.OCX
+                                    $wmp.URL = '{tmp_path}'
+                                    $wmp.controls.play()
+                                    Start-Sleep -Seconds 5
+                                    Write-Host "Audio played via WMP"
+                                }}
+                                """
+                                result = subprocess.run(
+                                    ["powershell", "-Command", ps_cmd], capture_output=True, text=True, timeout=10
+                                )
+                                self.logger.info(f"PowerShell playback result: {result.stdout.strip()}")
+                                if result.stderr:
+                                    self.logger.warning(f"PowerShell stderr: {result.stderr}")
+                            except Exception as e:
+                                self.logger.error(f"PowerShell playback failed: {e}")
                 else:  # Linux/Mac
                     subprocess.Popen(
                         ["ffplay", "-nodisp", "-autoexit", tmp_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
