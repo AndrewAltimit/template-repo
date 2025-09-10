@@ -73,12 +73,35 @@ class AudioRoutingTester:
         logger.info("DEPENDENCY CHECK")
         logger.info("=" * 60)
 
+        # Special handling for VLC on Windows
+        vlc_installed = False
+        vlc_version = "Not installed"
+        vlc_paths = [r"C:\Program Files\VideoLAN\VLC\vlc.exe", r"C:\Program Files (x86)\VideoLAN\VLC\vlc.exe"]
+
+        for vlc_path in vlc_paths:
+            if os.path.exists(vlc_path):
+                vlc_installed = True
+                # Try to get version
+                success, stdout, stderr = self.run_command([vlc_path, "--version"], timeout=5)
+                if success and stdout:
+                    vlc_version = stdout.split("\n")[0][:50]
+                else:
+                    vlc_version = f"Found at {vlc_path}"
+                break
+
+        # If not found at standard locations, try PATH
+        if not vlc_installed:
+            success, stdout, stderr = self.run_command(["vlc", "--version"], timeout=5)
+            if success:
+                vlc_installed = True
+                vlc_version = stdout.split("\n")[0][:50] if stdout else "In PATH"
+
         dependencies = {
             "ffmpeg": ["ffmpeg", "-version"],
-            "vlc": ["vlc", "--version"],
             "powershell": ["powershell", "-Command", "echo 'test'"],
         }
 
+        # Test other dependencies
         for name, cmd in dependencies.items():
             success, stdout, stderr = self.run_command(cmd, timeout=5)
             self.test_results["dependencies"][name] = {
@@ -90,6 +113,16 @@ class AudioRoutingTester:
             logger.info(f"{name}: {status}")
             if success and stdout:
                 logger.info(f"  Version: {stdout.split(chr(10))[0][:50]}")
+
+        # Add VLC results
+        self.test_results["dependencies"]["vlc"] = {
+            "installed": vlc_installed,
+            "version": vlc_version,
+        }
+        status = "[OK] Installed" if vlc_installed else "[X] Not installed"
+        logger.info(f"vlc: {status}")
+        if vlc_installed:
+            logger.info(f"  Version: {vlc_version}")
 
     def test_python_packages(self):
         """Test Python audio packages."""
