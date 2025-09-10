@@ -237,6 +237,14 @@ async def create_performance():
 asyncio.run(control_character())
 ```
 
+## Documentation
+
+- [Remote Setup Guide](docs/REMOTE_SETUP.md) - Running on Windows with VRChat
+- [VRChat Backend Details](docs/VRCHAT_BACKEND.md) - OSC protocol and avatar control
+- [Audio Sequencing Guide](docs/AUDIO_SEQUENCING.md) - Creating synchronized performances
+- [VRChat Audio Setup](docs/VRCHAT_AUDIO_SETUP.md) - Audio routing requirements for VRChat
+- [VoiceMeeter Setup Guide](docs/VOICEMEETER_SETUP.md) - Comprehensive VoiceMeeter configuration for AI voice
+
 ## Backend Adapters
 
 ### Mock Backend (Built-in)
