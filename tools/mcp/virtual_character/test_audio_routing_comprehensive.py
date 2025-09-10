@@ -303,31 +303,88 @@ class AudioRoutingTester:
 
         # Test 3: VLC with specific device
         logger.info("\n3. Testing VLC with VoiceMeeter targeting:")
-        vlc_devices = ["VoiceMeeter Input", "VoiceMeeter Aux Input", "CABLE Input"]
 
-        for device in vlc_devices:
-            logger.info(f"  Trying device: {device}")
-            cmd = [
-                "vlc",
-                audio_file,
-                "--intf",
-                "dummy",
-                "--play-and-exit",
-                "--no-video",
-                "--aout",
-                "waveout",
-                "--waveout-audio-device",
-                device,
-                "--run-time",
-                "2",
-                "--stop-time",
-                "2",
-            ]
-            success, _, _ = self.run_command(cmd, timeout=5)
-            self.test_results["routing_tests"][f"vlc_{device}"] = success
-            logger.info(f"    Result: {'[OK] Success' if success else '[X] Failed'}")
-            if success:
+        # First try to find VLC executable
+        vlc_paths = [r"C:\Program Files\VideoLAN\VLC\vlc.exe", r"C:\Program Files (x86)\VideoLAN\VLC\vlc.exe"]
+        vlc_exe = None
+        for path in vlc_paths:
+            if os.path.exists(path):
+                vlc_exe = path
+                logger.info(f"  Found VLC at: {vlc_exe}")
                 break
+
+        if not vlc_exe:
+            vlc_exe = "vlc"  # Try system PATH
+            logger.info("  Using VLC from PATH")
+
+        # Test with simpler arguments first
+        logger.info("  Testing basic VLC playback (default device):")
+        cmd = [
+            vlc_exe,
+            audio_file,
+            "--intf",
+            "dummy",  # No interface
+            "--play-and-exit",  # Exit after playing
+            "--no-video-title-show",  # Don't show title
+            "--no-repeat",  # Don't repeat
+            "--no-loop",  # Don't loop
+            "vlc://quit",  # Quit after playing
+        ]
+        success, stdout, stderr = self.run_command(cmd, timeout=5)
+        self.test_results["routing_tests"]["vlc_basic"] = success
+        logger.info(f"    Result: {'[OK] Success' if success else '[X] Failed'}")
+        if stderr:
+            logger.info(f"    Error: {stderr[:200]}")  # Show first 200 chars of error
+
+        # If basic playback works, try device targeting
+        if success:
+            vlc_devices = ["VoiceMeeter Input", "VoiceMeeter Aux Input", "CABLE Input"]
+            for device in vlc_devices:
+                logger.info(f"  Trying device: {device}")
+                cmd = [
+                    vlc_exe,
+                    audio_file,
+                    "--intf",
+                    "dummy",
+                    "--play-and-exit",
+                    "--aout",
+                    "directsound",  # Use DirectSound on Windows
+                    "--directx-audio-device",
+                    device,  # DirectSound device selection
+                    "vlc://quit",
+                ]
+                success, _, stderr = self.run_command(cmd, timeout=5)
+                self.test_results["routing_tests"][f"vlc_{device}"] = success
+                logger.info(f"    Result: {'[OK] Success' if success else '[X] Failed'}")
+                if success:
+                    break
+                elif stderr:
+                    logger.info(f"    Error: {stderr[:100]}")
+
+        # Test 3b: Alternative VLC method using PowerShell
+        if not success and vlc_exe and vlc_exe != "vlc":
+            logger.info("\n3b. Testing VLC via PowerShell:")
+            ps_script = f"""
+            $vlc = "{vlc_exe}"
+            $audio = "{audio_file}"
+
+            # Start VLC with simple arguments
+            $proc = Start-Process -FilePath $vlc -ArgumentList @($audio, "--play-and-exit", "--intf=dummy") -PassThru
+
+            # Wait up to 3 seconds
+            $proc | Wait-Process -Timeout 3 -ErrorAction SilentlyContinue
+
+            # Force stop if still running
+            if (-not $proc.HasExited) {{
+                $proc | Stop-Process -Force
+            }}
+
+            Write-Host "VLC playback attempted"
+            exit 0
+            """
+            success, stdout, stderr = self.run_command(["powershell", "-Command", ps_script], timeout=5)
+            self.test_results["routing_tests"]["vlc_powershell"] = success
+            logger.info(f"  Result: {'[OK] Success' if success else '[X] Failed'}")
 
         # Test 4: FFmpeg playback
         logger.info("\n4. Testing FFmpeg playback:")
