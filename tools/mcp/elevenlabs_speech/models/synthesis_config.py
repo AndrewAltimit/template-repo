@@ -57,7 +57,9 @@ class SynthesisResult:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON response"""
-        return {
+        import base64
+
+        result = {
             "success": self.success,
             "audio_url": self.audio_url,
             "local_path": self.local_path,
@@ -69,6 +71,12 @@ class SynthesisResult:
             "error": self.error,
             "metadata": self.metadata,
         }
+
+        # Include base64-encoded audio data if available
+        if self.audio_data:
+            result["audio_base64"] = base64.b64encode(self.audio_data).decode("utf-8")
+
+        return result
 
 
 @dataclass
