@@ -38,9 +38,9 @@ Write-Host "STEP 1: Checking Chocolatey Package Manager" -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Green
 
 if (Test-CommandExists choco) {
-    Write-Host "✓ Chocolatey is installed" -ForegroundColor Green
+    Write-Host "[OK] Chocolatey is installed" -ForegroundColor Green
 } else {
-    Write-Host "✗ Chocolatey not found. Installing..." -ForegroundColor Yellow
+    Write-Host "[X] Chocolatey not found. Installing..." -ForegroundColor Yellow
 
     if ($isAdmin) {
         Set-ExecutionPolicy Bypass -Scope Process -Force
@@ -59,7 +59,7 @@ Write-Host "============================================" -ForegroundColor Green
 # FFmpeg
 Write-Host "Checking FFmpeg..." -ForegroundColor Gray
 if (Test-CommandExists ffmpeg) {
-    Write-Host "✓ FFmpeg is installed" -ForegroundColor Green
+    Write-Host "[OK] FFmpeg is installed" -ForegroundColor Green
 } else {
     Write-Host "Installing FFmpeg..." -ForegroundColor Yellow
     if (Test-CommandExists choco) {
@@ -79,14 +79,14 @@ $vlcFound = $false
 foreach ($path in $vlcPaths) {
     if (Test-Path $path) {
         $vlcFound = $true
-        Write-Host "✓ VLC is installed at: $path" -ForegroundColor Green
+        Write-Host "[OK] VLC is installed at: $path" -ForegroundColor Green
 
         # Add to PATH if not already there
         $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
         $vlcDir = Split-Path $path
         if ($currentPath -notlike "*$vlcDir*") {
             Write-Host "Adding VLC to PATH..." -ForegroundColor Yellow
-            [Environment]::SetEnvironmentVariable("Path", "$currentPath;$vlcDir", "User")
+            [Environment]::SetEnvironmentVariable('Path', "$currentPath;$vlcDir", 'User')
         }
         break
     }
@@ -109,7 +109,7 @@ Write-Host "============================================" -ForegroundColor Green
 Write-Host "Checking Python..." -ForegroundColor Gray
 if (Test-CommandExists python) {
     $pythonVersion = python --version 2>&1
-    Write-Host "✓ Python is installed: $pythonVersion" -ForegroundColor Green
+    Write-Host "[OK] Python is installed: $pythonVersion" -ForegroundColor Green
 
     # Install Python packages
     $packages = @(
@@ -127,13 +127,13 @@ if (Test-CommandExists python) {
         Write-Host "  Installing $package..." -ForegroundColor Gray
         python -m pip install --user $package 2>&1 | Out-Null
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "  ✓ $package installed" -ForegroundColor Green
+            Write-Host "  [OK] $package installed" -ForegroundColor Green
         } else {
-            Write-Host "  ✗ $package failed to install" -ForegroundColor Red
+            Write-Host "  [X] $package failed to install" -ForegroundColor Red
         }
     }
 } else {
-    Write-Host "✗ Python not found. Please install Python from https://python.org" -ForegroundColor Red
+    Write-Host "[X] Python not found. Please install Python from https://python.org" -ForegroundColor Red
 }
 
 Write-Host ""
@@ -151,13 +151,13 @@ $voicemeeterFound = $false
 foreach ($path in $voicemeeterPaths) {
     if (Test-Path $path) {
         $voicemeeterFound = $true
-        Write-Host "✓ VoiceMeeter found at: $path" -ForegroundColor Green
+        Write-Host "[OK] VoiceMeeter found at: $path" -ForegroundColor Green
         break
     }
 }
 
 if (-not $voicemeeterFound) {
-    Write-Host "✗ VoiceMeeter not found" -ForegroundColor Yellow
+    Write-Host "[X] VoiceMeeter not found" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Please install VoiceMeeter manually:" -ForegroundColor Yellow
     Write-Host "1. Go to https://vb-audio.com/Voicemeeter/" -ForegroundColor Cyan
@@ -167,7 +167,7 @@ if (-not $voicemeeterFound) {
     # Check if VoiceMeeter is running
     $process = Get-Process -Name "voicemeeter*" -ErrorAction SilentlyContinue
     if ($process) {
-        Write-Host "✓ VoiceMeeter is running" -ForegroundColor Green
+        Write-Host "[OK] VoiceMeeter is running" -ForegroundColor Green
     } else {
         Write-Host "! VoiceMeeter is installed but not running" -ForegroundColor Yellow
         Write-Host "  Please start VoiceMeeter before testing" -ForegroundColor Yellow
@@ -199,9 +199,9 @@ if ($dotNetVersion) {
         { $_ -ge 460798 } { "4.7" }
         default { "4.6 or earlier" }
     }
-    Write-Host "✓ .NET Framework version: $version" -ForegroundColor Green
+    Write-Host "[OK] .NET Framework version: $version" -ForegroundColor Green
 } else {
-    Write-Host "✗ .NET Framework 4.x not detected" -ForegroundColor Yellow
+    Write-Host "[X] .NET Framework 4.x not detected" -ForegroundColor Yellow
 }
 
 Write-Host ""
@@ -211,9 +211,9 @@ Write-Host "============================================" -ForegroundColor Green
 $testDir = "$env:USERPROFILE\VoiceMeeterAudioTests"
 if (-not (Test-Path $testDir)) {
     New-Item -ItemType Directory -Path $testDir -Force | Out-Null
-    Write-Host "✓ Created test directory: $testDir" -ForegroundColor Green
+    Write-Host "[OK] Created test directory: $testDir" -ForegroundColor Green
 } else {
-    Write-Host "✓ Test directory exists: $testDir" -ForegroundColor Green
+    Write-Host "[OK] Test directory exists: $testDir" -ForegroundColor Green
 }
 
 Write-Host ""
@@ -231,8 +231,8 @@ $summary = @{
 }
 
 foreach ($tool in $summary.Keys) {
-    $status = if ($summary[$tool]) { "✓ Installed" } else { "✗ Not Installed" }
-    $color = if ($summary[$tool]) { "Green" } else { "Red" }
+    $status = if ($summary[$tool]) { 'Installed' } else { 'Not Installed' }
+    $color = if ($summary[$tool]) { 'Green' } else { 'Red' }
     Write-Host "$tool : $status" -ForegroundColor $color
 }
 
@@ -245,4 +245,4 @@ Write-Host "4. Run the test script: python test_audio_routing_comprehensive.py" 
 
 Write-Host ""
 Write-Host "Press any key to exit..."
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
