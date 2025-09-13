@@ -7,19 +7,16 @@ on:
 jobs:
   gemini-review:
     runs-on: [self-hosted, linux]
+    container:
+      image: python:3.11-slim
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
       - name: Install Gemini CLI
         run: |
-          pip install --user google-generativeai
+          pip install google-generativeai
 
       - name: Clear Gemini history
         env:
@@ -89,17 +86,14 @@ jobs:
 
   databricks-tests:
     runs-on: [self-hosted, linux]
+    container:
+      image: python:3.11-slim
     strategy:
       matrix:
         package: [core, ml, cloud, all]
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
 
       - name: Install build tools
         run: |
@@ -163,8 +157,8 @@ jobs:
 
       - name: Validate Dockerfiles
         run: |
-          docker run --rm -i hadolint/hadolint < databricks/reference/dockerfiles/dbr15.Dockerfile || true
-          docker run --rm -i hadolint/hadolint < databricks/reference/dockerfiles/dbr16.Dockerfile || true
+          docker run --rm -i hadolint/hadolint < databricks/reference/dockerfiles/dbr15.Dockerfile
+          docker run --rm -i hadolint/hadolint < databricks/reference/dockerfiles/dbr16.Dockerfile
 
       - name: Check Docker Compose
         run: |

@@ -129,18 +129,15 @@ jobs:
 
       - name: Test validation script
         run: |
-          chmod +x databricks/scripts/dbr-validate
           # Test help output
           databricks/scripts/dbr-validate --help
 
       - name: Test pre-installation script
         run: |
-          chmod +x databricks/scripts/dbr-setup-pre
           databricks/scripts/dbr-setup-pre --help
 
       - name: Test post-installation script
         run: |
-          chmod +x databricks/scripts/dbr-setup-post
           databricks/scripts/dbr-setup-post --help
 
   test-docker-build:
