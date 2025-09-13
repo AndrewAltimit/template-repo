@@ -15,17 +15,14 @@ on:
 jobs:
   build-wheels:
     runs-on: [self-hosted, linux]
+    container:
+      image: python:3.11-slim
     strategy:
       matrix:
         package: [core, ml, cloud, all]
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
 
       - name: Install build tools
         run: |
@@ -54,21 +51,16 @@ jobs:
     runs-on: [self-hosted, linux]
     strategy:
       matrix:
-        dbr-version: [dbr15, dbr16]
-        python-version: ["3.11", "3.12"]
-        exclude:
+        include:
           - dbr-version: dbr15
-            python-version: "3.12"
+            python-image: python:3.11-slim
           - dbr-version: dbr16
-            python-version: "3.11"
+            python-image: python:3.12-slim
+    container:
+      image: ${{ matrix.python-image }}
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
 
       - name: Download wheels
         uses: actions/download-artifact@v4
@@ -126,8 +118,14 @@ jobs:
 
   test-scripts:
     runs-on: [self-hosted, linux]
+    container:
+      image: python:3.11-slim
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install bash
+        run: |
+          apt-get update && apt-get install -y bash
 
       - name: Test validation script
         run: |
@@ -175,13 +173,10 @@ jobs:
   integration-test:
     needs: [test-python-packages, test-scripts]
     runs-on: [self-hosted, linux]
+    container:
+      image: python:3.11-slim
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
 
       - name: Download wheels
         uses: actions/download-artifact@v4
@@ -192,10 +187,6 @@ jobs:
 
       - name: Run integration test
         run: |
-          # Create test environment
-          python -m venv test_env
-          source test_env/bin/activate
-
           # Install packages
           pip install --upgrade pip
           pip install dist/*.whl
@@ -221,5 +212,3 @@ jobs:
 
           print('✓ Integration test passed')
           "
-
-          deactivate
