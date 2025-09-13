@@ -17,6 +17,7 @@ jobs:
     runs-on: [self-hosted, linux]
     container:
       image: python:3.11-slim
+      options: --user 1000:1000
     strategy:
       matrix:
         package: [core, ml, cloud, all]
@@ -58,6 +59,7 @@ jobs:
             python-image: python:3.12-slim
     container:
       image: ${{ matrix.python-image }}
+      options: --user 1000:1000
 
     steps:
       - uses: actions/checkout@v4
@@ -120,6 +122,7 @@ jobs:
     runs-on: [self-hosted, linux]
     container:
       image: python:3.11-slim
+      options: --user 1000:1000
     steps:
       - uses: actions/checkout@v4
 
@@ -158,21 +161,22 @@ jobs:
       - name: Test container
         run: |
           # Test Python version
-          docker run --rm dbr-test:${{ matrix.dbr-version }} python --version
+          docker run --rm --user $(id -u):$(id -g) dbr-test:${{ matrix.dbr-version }} python --version
 
           # Test Java
-          docker run --rm dbr-test:${{ matrix.dbr-version }} java -version
+          docker run --rm --user $(id -u):$(id -g) dbr-test:${{ matrix.dbr-version }} java -version
 
           # Test tools
-          docker run --rm dbr-test:${{ matrix.dbr-version }} databricks --version
-          docker run --rm dbr-test:${{ matrix.dbr-version }} terraform version
-          docker run --rm dbr-test:${{ matrix.dbr-version }} terragrunt --version
+          docker run --rm --user $(id -u):$(id -g) dbr-test:${{ matrix.dbr-version }} databricks --version
+          docker run --rm --user $(id -u):$(id -g) dbr-test:${{ matrix.dbr-version }} terraform version
+          docker run --rm --user $(id -u):$(id -g) dbr-test:${{ matrix.dbr-version }} terragrunt --version
 
   integration-test:
     needs: [test-python-packages, test-scripts]
     runs-on: [self-hosted, linux]
     container:
       image: python:3.11-slim
+      options: --user 1000:1000
     steps:
       - uses: actions/checkout@v4
 

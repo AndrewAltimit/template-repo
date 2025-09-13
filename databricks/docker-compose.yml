@@ -7,8 +7,11 @@ services:
       dockerfile: reference/dockerfiles/dbr15.Dockerfile
       args:
         TARGETARCH: ${TARGETARCH:-amd64}
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     image: dbr-env:15
     container_name: dbr15-env
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./workspace:/workspace
       - ./dist:/dist:ro
@@ -24,8 +27,11 @@ services:
       dockerfile: reference/dockerfiles/dbr16.Dockerfile
       args:
         TARGETARCH: ${TARGETARCH:-amd64}
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
     image: dbr-env:16
     container_name: dbr16-env
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./workspace:/workspace
       - ./dist:/dist:ro

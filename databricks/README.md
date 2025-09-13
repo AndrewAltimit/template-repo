@@ -12,6 +12,25 @@ This project provides a complete solution for recreating Databricks Runtime (DBR
 - **Validation Script**: Environment verification tool
 - **Mock Libraries**: Testing support without Databricks connection
 
+## Important: File Permissions
+
+To avoid permission issues with Docker containers creating files as root:
+
+1. **Use the helper script** (recommended):
+   ```bash
+   ./run-docker.sh up -d dbr15 dbr16
+   ```
+   This automatically sets the correct user mapping.
+
+2. **Or set environment variables manually**:
+   ```bash
+   export USER_ID=$(id -u)
+   export GROUP_ID=$(id -g)
+   docker-compose up -d dbr15 dbr16
+   ```
+
+All containers run as non-root user (UID/GID 1000 by default) to ensure files created in mounted volumes have the correct ownership.
+
 ## Quick Start
 
 ### Option 1: Using Installation Scripts

@@ -9,6 +9,7 @@ jobs:
     runs-on: [self-hosted, linux]
     container:
       image: python:3.11-slim
+      options: --user 1000:1000
     steps:
       - uses: actions/checkout@v4
         with:
@@ -88,6 +89,7 @@ jobs:
     runs-on: [self-hosted, linux]
     container:
       image: python:3.11-slim
+      options: --user 1000:1000
     strategy:
       matrix:
         package: [core, ml, cloud, all]
@@ -157,8 +159,8 @@ jobs:
 
       - name: Validate Dockerfiles
         run: |
-          docker run --rm -i hadolint/hadolint < databricks/reference/dockerfiles/dbr15.Dockerfile
-          docker run --rm -i hadolint/hadolint < databricks/reference/dockerfiles/dbr16.Dockerfile
+          docker run --rm --user $(id -u):$(id -g) -i hadolint/hadolint < databricks/reference/dockerfiles/dbr15.Dockerfile
+          docker run --rm --user $(id -u):$(id -g) -i hadolint/hadolint < databricks/reference/dockerfiles/dbr16.Dockerfile
 
       - name: Check Docker Compose
         run: |
