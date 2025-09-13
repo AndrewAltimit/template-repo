@@ -1,0 +1,172 @@
+name: PR Validation - Databricks Branch
+
+on:
+  pull_request:
+    branches: [databricks-env-setup]
+
+jobs:
+  gemini-review:
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Gemini CLI
+        run: |
+          pip install --user google-generativeai
+
+      - name: Clear Gemini history
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python -c "
+          import os
+          history_file = os.path.expanduser('~/.gemini_history.json')
+          if os.path.exists(history_file):
+              os.remove(history_file)
+              print('✓ Gemini history cleared')
+          else:
+              print('✓ No history to clear')
+          "
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          echo "Changed files in PR:"
+          git diff --name-only origin/${{ github.base_ref }}...HEAD | tee changed_files.txt
+
+      - name: Gemini AI Review
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python -c "
+          import google.generativeai as genai
+          import os
+          import subprocess
+          import json
+
+          genai.configure(api_key=os.environ['GEMINI_API_KEY'])
+          model = genai.GenerativeModel('gemini-2.0-flash-thinking-exp-1219')
+
+          # Get PR diff
+          diff = subprocess.run(
+              ['git', 'diff', 'origin/${{ github.base_ref }}...HEAD'],
+              capture_output=True,
+              text=True
+          ).stdout
+
+          # Focus review on Databricks-specific code
+          prompt = '''
+          Review this PR for the Databricks Environment Setup project.
+          Focus on:
+          1. Python wheel package structure and dependencies
+          2. Installation script correctness and portability
+          3. Mock implementation quality for testing
+          4. Docker configuration best practices
+          5. GitHub Actions workflow efficiency
+
+          Provide concise feedback on any issues found.
+          If everything looks good, just say so briefly.
+
+          PR Diff:
+          {diff}
+          '''.format(diff=diff[:50000])  # Limit diff size
+
+          try:
+              response = model.generate_content(prompt)
+              print('=== Gemini Review ===')
+              print(response.text)
+          except Exception as e:
+              print(f'Review generation failed: {e}')
+              print('Proceeding without AI review')
+          "
+
+  databricks-tests:
+    runs-on: [self-hosted, linux]
+    strategy:
+      matrix:
+        package: [core, ml, cloud, all]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: |
+          pip install --upgrade pip
+          pip install build twine
+
+      - name: Build and validate wheel
+        run: |
+          cd databricks/wheels/dbr-env-${{ matrix.package }}
+          python -m build --wheel
+          twine check dist/*.whl
+
+      - name: Quick import test
+        run: |
+          cd databricks/wheels/dbr-env-${{ matrix.package }}
+          pip install dist/*.whl
+
+          python -c "
+          import sys
+          package_name = 'dbr_env_${{ matrix.package }}'.replace('-', '_')
+          try:
+              module = __import__(package_name)
+              print(f'✓ {package_name} imported successfully')
+              print(f'  Version: {module.__version__}')
+          except ImportError as e:
+              print(f'✗ Failed to import {package_name}: {e}')
+              sys.exit(1)
+          "
+
+  validate-scripts:
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check script syntax
+        run: |
+          for script in databricks/scripts/*; do
+            if [[ -f "$script" ]]; then
+              echo "Checking $script..."
+              bash -n "$script"
+              echo "✓ $script syntax valid"
+            fi
+          done
+
+      - name: Check script permissions
+        run: |
+          for script in databricks/scripts/*; do
+            if [[ -f "$script" ]]; then
+              if [[ ! -x "$script" ]]; then
+                echo "✗ $script is not executable"
+                exit 1
+              fi
+              echo "✓ $script is executable"
+            fi
+          done
+
+  validate-docker:
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Dockerfiles
+        run: |
+          docker run --rm -i hadolint/hadolint < databricks/reference/dockerfiles/dbr15.Dockerfile || true
+          docker run --rm -i hadolint/hadolint < databricks/reference/dockerfiles/dbr16.Dockerfile || true
+
+      - name: Check Docker Compose
+        run: |
+          cd databricks
+          docker-compose config

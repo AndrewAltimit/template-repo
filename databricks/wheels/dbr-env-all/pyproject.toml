@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dbr-env-all"
+version = "1.0.0"
+description = "Complete Databricks Runtime Python environment (meta-package)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "DBR Environment Setup", email = "dbr@example.com"}
+]
+keywords = ["databricks", "runtime", "environment", "complete", "meta-package"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.optional-dependencies]
+dbr15 = [
+    "dbr-env-core[dbr15]>=1.0.0",
+    "dbr-env-ml[dbr15]>=1.0.0",
+    "dbr-env-cloud[dbr15]>=1.0.0",
+]
+dbr16 = [
+    "dbr-env-core[dbr16]>=1.0.0",
+    "dbr-env-ml[dbr16]>=1.0.0",
+    "dbr-env-cloud[dbr16]>=1.0.0",
+]
+
+[project.scripts]
+dbr-validate = "dbr_env_all.validate:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

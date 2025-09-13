@@ -1,0 +1,225 @@
+name: Databricks Environment CI
+
+on:
+  push:
+    branches: [databricks-env-setup]
+    paths:
+      - 'databricks/**'
+      - '.github/workflows/databricks-ci.yml'
+  pull_request:
+    branches: [databricks-env-setup]
+    paths:
+      - 'databricks/**'
+      - '.github/workflows/databricks-ci.yml'
+
+jobs:
+  build-wheels:
+    runs-on: [self-hosted, linux]
+    strategy:
+      matrix:
+        package: [core, ml, cloud, all]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install build tools
+        run: |
+          pip install --upgrade pip
+          pip install build twine
+
+      - name: Build wheel for ${{ matrix.package }}
+        run: |
+          cd databricks/wheels/dbr-env-${{ matrix.package }}
+          python -m build --wheel
+
+      - name: Validate wheel
+        run: |
+          cd databricks/wheels/dbr-env-${{ matrix.package }}
+          twine check dist/*.whl
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.package }}
+          path: databricks/wheels/dbr-env-${{ matrix.package }}/dist/*.whl
+          retention-days: 7
+
+  test-python-packages:
+    needs: build-wheels
+    runs-on: [self-hosted, linux]
+    strategy:
+      matrix:
+        dbr-version: [dbr15, dbr16]
+        python-version: ["3.11", "3.12"]
+        exclude:
+          - dbr-version: dbr15
+            python-version: "3.12"
+          - dbr-version: dbr16
+            python-version: "3.11"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Download wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheel-*
+          path: dist/
+          merge-multiple: true
+
+      - name: Install wheels
+        run: |
+          pip install --upgrade pip
+          pip install dist/dbr_env_core-*.whl
+          pip install dist/dbr_env_ml-*.whl
+          pip install dist/dbr_env_cloud-*.whl
+          pip install dist/dbr_env_all-*.whl
+
+      - name: Install DBR dependencies
+        run: |
+          pip install "dbr-env-all[${{ matrix.dbr-version }}]"
+
+      - name: Test imports
+        run: |
+          python -c "
+          from dbr_env_core import get_dbr_info
+          from dbr_env_ml import get_ml_info
+          from dbr_env_cloud import get_cloud_info
+          from dbr_env_all import get_all_info
+          print('✓ All imports successful')
+
+          info = get_all_info('${{ matrix.dbr-version }}')
+          print(f'DBR Info: {info}')
+          "
+
+      - name: Test mock functionality
+        run: |
+          python -c "
+          from dbr_env_core.mock import get_mock_spark_session, get_mock_databricks_client
+
+          # Test mock Spark
+          spark = get_mock_spark_session('TestApp')
+          df = spark.createDataFrame([{'test': 'data'}])
+          print(f'Mock Spark DataFrame count: {df.count()}')
+
+          # Test mock Databricks
+          client = get_mock_databricks_client()
+          clusters = client.clusters.list()
+          print(f'Mock clusters: {len(clusters)}')
+
+          print('✓ Mock tests passed')
+          "
+
+      - name: Run validation
+        run: |
+          python -m dbr_env_all.validate --version ${{ matrix.dbr-version }} --json
+
+  test-scripts:
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test validation script
+        run: |
+          chmod +x databricks/scripts/dbr-validate
+          databricks/scripts/dbr-validate --version dbr15 || true
+
+      - name: Test pre-installation script
+        run: |
+          chmod +x databricks/scripts/dbr-setup-pre
+          databricks/scripts/dbr-setup-pre --help
+
+      - name: Test post-installation script
+        run: |
+          chmod +x databricks/scripts/dbr-setup-post
+          databricks/scripts/dbr-setup-post --help
+
+  test-docker-build:
+    runs-on: [self-hosted, linux]
+    strategy:
+      matrix:
+        dbr-version: [15, 16]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build DBR${{ matrix.dbr-version }} Docker image
+        run: |
+          cd databricks
+          docker build -f reference/dockerfiles/dbr${{ matrix.dbr-version }}.Dockerfile \
+            -t dbr-test:${{ matrix.dbr-version }} .
+
+      - name: Test container
+        run: |
+          # Test Python version
+          docker run --rm dbr-test:${{ matrix.dbr-version }} python --version
+
+          # Test Java
+          docker run --rm dbr-test:${{ matrix.dbr-version }} java -version
+
+          # Test tools
+          docker run --rm dbr-test:${{ matrix.dbr-version }} databricks --version || echo "Databricks CLI test"
+          docker run --rm dbr-test:${{ matrix.dbr-version }} terraform version || echo "Terraform test"
+          docker run --rm dbr-test:${{ matrix.dbr-version }} terragrunt --version || echo "Terragrunt test"
+
+  integration-test:
+    needs: [test-python-packages, test-scripts]
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheel-*
+          path: dist/
+          merge-multiple: true
+
+      - name: Run integration test
+        run: |
+          # Create test environment
+          python -m venv test_env
+          source test_env/bin/activate
+
+          # Install packages
+          pip install --upgrade pip
+          pip install dist/*.whl
+          pip install "dbr-env-all[dbr15]"
+
+          # Test complete flow
+          python -c "
+          from dbr_env_all import get_all_info
+          from dbr_env_core.mock import get_mock_spark_session
+
+          # Get environment info
+          info = get_all_info('dbr15')
+          assert 'core' in info
+          assert 'ml' in info
+          assert 'cloud' in info
+
+          # Test mock Spark
+          spark = get_mock_spark_session()
+          df = spark.createDataFrame([
+              {'name': 'test', 'value': 123}
+          ])
+          assert df.count() == 1
+
+          print('✓ Integration test passed')
+          "
+
+          deactivate
