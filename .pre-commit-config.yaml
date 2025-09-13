@@ -111,9 +111,9 @@ repos:
     hooks:
       - id: check-markdown-links
         name: Check markdown links (containerized)
-        entry: bash -c 'docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd):/workspace" -w /workspace mcp-code-quality:latest python /workspace/automation/analysis/check-markdown-links.py /workspace --internal-only'
+        entry: bash -c 'docker-compose build mcp-code-quality >/dev/null 2>&1; docker-compose run --rm -T mcp-code-quality python automation/analysis/check-markdown-links.py . --internal-only'
         language: system
         files: '\.md$'
         pass_filenames: false
-        stages: [commit]
+        stages: [pre-push]
   #       args: [--fix]
