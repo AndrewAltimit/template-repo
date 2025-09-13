@@ -1,6 +1,6 @@
 # Template Quickstart Guide
 
-**🚀 Transform this template into your perfect development environment in 15 minutes**
+**Transform this template into your perfect development environment in 15 minutes**
 
 This guide helps you customize the MCP-Enabled Project Template for your specific needs. Whether you're building a solo project, team application, or just want specific tools, this guide shows you exactly what to enable, disable, and configure.
 
@@ -38,7 +38,7 @@ This template includes:
 
 ## Choose Your Setup Path
 
-### 🎯 Path A: Minimal Setup (Just the Essentials)
+### Path A: Minimal Setup (Just the Essentials)
 **Perfect for:** Small projects, learning MCP, quick prototypes
 
 **What you get:**
@@ -48,7 +48,7 @@ This template includes:
 
 [Jump to Minimal Setup](#minimal-setup)
 
-### 🎯 Path B: AI-Powered Development
+### Path B: AI-Powered Development
 **Perfect for:** Solo developers, AI-assisted coding
 
 **What you get:**
@@ -58,7 +58,7 @@ This template includes:
 
 [Jump to AI-Powered Setup](#ai-powered-setup)
 
-### 🎯 Path C: Content Creation Suite
+### Path C: Content Creation Suite
 **Perfect for:** Technical content, documentation, visualizations
 
 **What you get:**
@@ -68,7 +68,7 @@ This template includes:
 
 [Jump to Content Creation Setup](#content-creation-setup)
 
-### 🎯 Path D: Full Stack Everything
+### Path D: Full Stack Everything
 **Perfect for:** Complex projects, teams, maximum automation
 
 **What you get:**
@@ -86,7 +86,7 @@ This template includes:
    ```bash
    git clone https://github.com/AndrewAltimit/template-repo your-project-name
    cd your-project-name
-   # ⚠️ CAUTION: This command deletes the existing Git history.
+   # CAUTION: This command deletes the existing Git history.
    rm -rf .git  # Detach from the template's history to start your own project
    git init     # Start fresh with your own Git history
    ```
@@ -207,6 +207,8 @@ This template includes:
    # Test Gemini (if configured)
    ./tools/cli/agents/run_gemini.sh
    ```
+
+**Safety Training**: Before deploying AI agents in production, review the [AI Safety Training Guide](ai-agents/human-training.md) to understand potential risks, deceptive behaviors, and safety protocols for human-AI collaboration.
 
 ### Content Creation Setup
 

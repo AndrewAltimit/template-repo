@@ -40,7 +40,7 @@ AI integration for second opinions and code validation:
 - Auto-consultation on uncertainty detection
 - Integration status and statistics
 
-**⚠️ Important**: Must run on host system (not in container) due to Docker access requirements
+**Important**: Must run on host system (not in container) due to Docker access requirements
 
 #### 4. OpenCode MCP Server
 **Location**: `tools/mcp/opencode/`
@@ -94,7 +94,7 @@ Advanced text-to-speech synthesis with emotional control:
 - Sound effect generation (up to 22 seconds)
 - Voice library with 37+ voices (premade, professional, generated)
 - Automatic upload for sharing (tmpfiles.org, 0x0.st)
-- ⚠️ **Content filtering**: v3 model filters harmful/negative content
+- **Content filtering**: v3 model filters harmful/negative content
 
 #### 8. Video Editor MCP Server
 **Location**: `tools/mcp/video_editor/`

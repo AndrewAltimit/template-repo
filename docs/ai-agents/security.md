@@ -2,7 +2,7 @@
 
 ## GitHub Token Management
 
-### ⚠️ IMPORTANT: Never Commit Secrets!
+### IMPORTANT: Never Commit Secrets!
 
 Secrets should be managed through GitHub Environments, not files in the repository.
 
@@ -54,6 +54,18 @@ For runner-specific tokens (not recommended), you can:
 # Add to runner's .env file:
 GITHUB_TOKEN=your-token-here
 ```
+
+## Human Training and Oversight
+
+Before working with AI agents, team members should complete the [AI Safety Training Guide](human-training.md) to understand:
+
+- **Deceptive Capabilities**: How AI systems can hide capabilities or develop backdoors
+- **Specification Gaming**: How AI finds unintended ways to satisfy objectives
+- **Trust Calibration**: Building appropriate levels of trust in AI systems
+- **Emergency Procedures**: What to do if you suspect misalignment
+- **Behavioral Monitoring**: Normal vs. warning sign behaviors
+
+This training is essential for maintaining security when working with increasingly capable AI systems.
 
 ## Security Best Practices
 

@@ -613,6 +613,7 @@ For detailed information on specific topics, refer to these documentation files:
 - `packages/github_ai_agents/docs/security.md` - Comprehensive AI agent security documentation
 - `docs/ai-agents/README.md` - AI agent system overview
 - `docs/ai-agents/security.md` - Security-focused agent documentation
+- `docs/ai-agents/human-training.md` - **AI safety training guide for human-AI collaboration** (essential reading)
 - `docs/ai-agents/claude-auth.md` - Why AI agents run on host (Claude auth limitation)
 - `docs/ai-agents/claude-expression.md` - Claude's expression philosophy and communication style
 - `docs/ai-agents/gemini-expression.md` - Gemini's expression philosophy and review patterns

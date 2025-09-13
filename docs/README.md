@@ -40,9 +40,9 @@ External service integrations
 Developer tools and configuration
 - [Claude Code Hooks](./developer/claude-code-hooks.md)
 
-## 🚀 Quick Start
+## Quick Start
 
-### **[📚 Template Quickstart Guide](./QUICKSTART.md)**
+### **[Template Quickstart Guide](./QUICKSTART.md)**
 **Start here!** Step-by-step guide to customize this template for your specific needs:
 - Choose from 4 pre-configured setup paths
 - Enable/disable features based on your requirements
