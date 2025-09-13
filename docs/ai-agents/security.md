@@ -2,7 +2,7 @@
 
 ## GitHub Token Management
 
-### IMPORTANT: Never Commit Secrets!
+### ⚠️ IMPORTANT: Never Commit Secrets!
 
 Secrets should be managed through GitHub Environments, not files in the repository.
 

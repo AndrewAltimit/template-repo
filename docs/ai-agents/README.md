@@ -174,7 +174,7 @@ This training is based on educational content from AI safety researcher Robert M
 ```bash
 # 1. User creates issue: "Add dark mode support"
 # 2. Issue Monitor requests more details
-# 3. User provides details
+# 3. User provides details ✨
 # 4. Issue Monitor creates PR automatically
 
 # 5. Gemini reviews PR:
@@ -187,8 +187,8 @@ This training is based on educational content from AI safety researcher Robert M
 # - Commits: "Address PR review feedback"
 
 # 7. PR Review Monitor comments:
-# "Addressed 2 critical issues
-#  Fixed 3 inline code comments
+# "✅ Addressed 2 critical issues
+#  ✅ Fixed 3 inline code comments
 #  All tests passing."
 ```
 

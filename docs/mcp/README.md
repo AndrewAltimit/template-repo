@@ -40,7 +40,7 @@ AI integration for second opinions and code validation:
 - Auto-consultation on uncertainty detection
 - Integration status and statistics
 
-**Important**: Must run on host system (not in container) due to Docker access requirements
+**⚠️ Important**: Must run on host system (not in container) due to Docker access requirements
 
 #### 4. OpenCode MCP Server
 **Location**: `tools/mcp/opencode/`

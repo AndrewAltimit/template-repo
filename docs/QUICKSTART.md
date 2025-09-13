@@ -86,7 +86,7 @@ This template includes:
    ```bash
    git clone https://github.com/AndrewAltimit/template-repo your-project-name
    cd your-project-name
-   # CAUTION: This command deletes the existing Git history.
+   # ⚠️ CAUTION: This command deletes the existing Git history.
    rm -rf .git  # Detach from the template's history to start your own project
    git init     # Start fresh with your own Git history
    ```
