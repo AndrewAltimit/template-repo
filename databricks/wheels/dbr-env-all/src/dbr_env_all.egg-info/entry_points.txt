@@ -1,2 +1,0 @@
-[console_scripts]
-dbr-validate = dbr_env_all.validate:main

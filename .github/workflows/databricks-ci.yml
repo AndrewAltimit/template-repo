@@ -130,7 +130,8 @@ jobs:
       - name: Test validation script
         run: |
           chmod +x databricks/scripts/dbr-validate
-          databricks/scripts/dbr-validate --version dbr15 || true
+          # Test help output
+          databricks/scripts/dbr-validate --help
 
       - name: Test pre-installation script
         run: |
@@ -166,9 +167,9 @@ jobs:
           docker run --rm dbr-test:${{ matrix.dbr-version }} java -version
 
           # Test tools
-          docker run --rm dbr-test:${{ matrix.dbr-version }} databricks --version || echo "Databricks CLI test"
-          docker run --rm dbr-test:${{ matrix.dbr-version }} terraform version || echo "Terraform test"
-          docker run --rm dbr-test:${{ matrix.dbr-version }} terragrunt --version || echo "Terragrunt test"
+          docker run --rm dbr-test:${{ matrix.dbr-version }} databricks --version
+          docker run --rm dbr-test:${{ matrix.dbr-version }} terraform version
+          docker run --rm dbr-test:${{ matrix.dbr-version }} terragrunt --version
 
   integration-test:
     needs: [test-python-packages, test-scripts]

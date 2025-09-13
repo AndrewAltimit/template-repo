@@ -1,8 +1,0 @@
-README.md
-pyproject.toml
-src/dbr_env_cloud/__init__.py
-src/dbr_env_cloud.egg-info/PKG-INFO
-src/dbr_env_cloud.egg-info/SOURCES.txt
-src/dbr_env_cloud.egg-info/dependency_links.txt
-src/dbr_env_cloud.egg-info/requires.txt
-src/dbr_env_cloud.egg-info/top_level.txt

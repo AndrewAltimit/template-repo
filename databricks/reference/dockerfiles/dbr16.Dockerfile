@@ -64,12 +64,22 @@ RUN curl -sL https://github.com/gruntwork-io/terragrunt/releases/download/${TERR
     && chmod +x /usr/local/bin/terragrunt \
     && terragrunt --version
 
+# Create non-root user
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+RUN groupadd -g ${GROUP_ID} -o dbruser && \
+    useradd --uid ${USER_ID} --gid ${GROUP_ID} --create-home --shell /bin/bash dbruser
+
 # Set working directory
 WORKDIR /workspace
+RUN chown -R dbruser:dbruser /workspace
 
 # Validation script
 COPY scripts/dbr-validate /usr/local/bin/dbr-validate
 RUN chmod +x /usr/local/bin/dbr-validate
+
+# Switch to non-root user
+USER dbruser
 
 # Default command
 CMD ["/bin/bash"]

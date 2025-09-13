@@ -1,9 +1,0 @@
-README.md
-pyproject.toml
-src/dbr_env_core/__init__.py
-src/dbr_env_core/mock.py
-src/dbr_env_core.egg-info/PKG-INFO
-src/dbr_env_core.egg-info/SOURCES.txt
-src/dbr_env_core.egg-info/dependency_links.txt
-src/dbr_env_core.egg-info/requires.txt
-src/dbr_env_core.egg-info/top_level.txt
