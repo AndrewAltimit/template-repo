@@ -159,3 +159,4 @@ whatthepatch==1.0.2
 wheel==0.43.0
 wrapt==1.14.1
 zipp==3.17.0
+pyspark==3.5.0
