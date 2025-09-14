@@ -6,48 +6,31 @@ services:
       context: .
       dockerfile: reference/dockerfiles/dbr15.Dockerfile
       args:
-        TARGETARCH: ${TARGETARCH:-amd64}
         USER_ID: ${USER_ID:-1000}
         GROUP_ID: ${GROUP_ID:-1000}
     image: dbr-env:15
-    container_name: dbr15-env
+    container_name: dbr15
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./workspace:/workspace
-      - ./dist:/dist:ro
+    working_dir: /workspace
     environment:
-      - DBR_VERSION=dbr15
+      - SPARK_LOCAL_IP=127.0.0.1
     command: /bin/bash
-    stdin_open: true
-    tty: true
 
   dbr16:
     build:
       context: .
       dockerfile: reference/dockerfiles/dbr16.Dockerfile
       args:
-        TARGETARCH: ${TARGETARCH:-amd64}
         USER_ID: ${USER_ID:-1000}
         GROUP_ID: ${GROUP_ID:-1000}
     image: dbr-env:16
-    container_name: dbr16-env
+    container_name: dbr16
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./workspace:/workspace
-      - ./dist:/dist:ro
-    environment:
-      - DBR_VERSION=dbr16
-    command: /bin/bash
-    stdin_open: true
-    tty: true
-
-  # Test container for building wheels
-  builder:
-    image: python:3.11-slim
-    container_name: dbr-builder
     working_dir: /workspace
-    volumes:
-      - .:/workspace
     environment:
-      - PYTHONUNBUFFERED=1
-    command: /workspace/build/scripts/build-wheels.sh
+      - SPARK_LOCAL_IP=127.0.0.1
+    command: /bin/bash

@@ -26,13 +26,14 @@ jobs:
       - name: Build DBR${{ matrix.dbr-version }} Docker image
         run: |
           cd databricks
-          docker build -f reference/dockerfiles/dbr${{ matrix.dbr-version }}.Dockerfile \
-            -t dbr-env:${{ matrix.dbr-version }} .
+          # Use the compose script which auto-detects docker-compose vs podman-compose
+          ./run-compose.sh build dbr${{ matrix.dbr-version }}
 
       - name: Test container has all tools
         run: |
+          cd databricks
           # Quick smoke test to ensure image built correctly
-          docker run --rm --user 1000:1000 dbr-env:${{ matrix.dbr-version }} sh -c "
+          ./run-compose.sh run --rm dbr${{ matrix.dbr-version }} sh -c "
             echo '--- Testing Python ---' && python --version && \
             echo '--- Testing Java ---' && java -version && \
             echo '--- Testing Databricks CLI ---' && databricks --version && \
@@ -85,12 +86,9 @@ jobs:
       matrix:
         include:
           - dbr-version: dbr15
-            docker-tag: 15
+            service-name: dbr15
           - dbr-version: dbr16
-            docker-tag: 16
-    container:
-      image: dbr-env:${{ matrix.docker-tag }}
-      options: --user 1000:1000
+            service-name: dbr16
 
     steps:
       - uses: actions/checkout@v4
@@ -99,23 +97,26 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: wheel-*
-          path: dist/
+          path: databricks/dist/
           merge-multiple: true
 
-      - name: Install wheels
+      - name: Install wheels and test
         run: |
+          cd databricks
+          # Create a test script to run inside the container
+          cat > /tmp/test_script.sh << 'SCRIPT_END'
+          set -e
+          echo '=== Installing wheels ==='
           pip install --upgrade pip
           pip install dist/dbr_env_core-*.whl
           pip install dist/dbr_env_ml-*.whl
           pip install dist/dbr_env_cloud-*.whl
           pip install dist/dbr_env_all-*.whl
 
-      - name: Install DBR dependencies
-        run: |
-          pip install "dbr-env-all[${{ matrix.dbr-version }}]"
+          echo '=== Installing DBR dependencies ==='
+          pip install "dbr-env-all[DBR_VERSION]"
 
-      - name: Test imports
-        run: |
+          echo '=== Testing imports ==='
           python -c "
           from dbr_env_core import get_dbr_info
           from dbr_env_ml import get_ml_info
@@ -123,12 +124,11 @@ jobs:
           from dbr_env_all import get_all_info
           print('✓ All imports successful')
 
-          info = get_all_info('${{ matrix.dbr-version }}')
+          info = get_all_info('DBR_VERSION')
           print(f'DBR Info: {info}')
           "
 
-      - name: Test mock functionality
-        run: |
+          echo '=== Testing mock functionality ==='
           python -c "
           from dbr_env_core.mock import get_mock_spark_session, get_mock_databricks_client
 
@@ -145,13 +145,18 @@ jobs:
           print('✓ Mock tests passed')
           "
 
-      - name: Run validation (should pass all checks)
-        run: |
-          # This should now pass all checks since we're in the complete DBR environment
-          python -m dbr_env_all.validate --version ${{ matrix.dbr-version }} --json
+          echo '=== Running validation (should pass all checks) ==='
+          python -m dbr_env_all.validate --version DBR_VERSION --json
 
-          # Also run without JSON to see human-readable output
-          python -m dbr_env_all.validate --version ${{ matrix.dbr-version }}
+          echo '=== Human-readable validation ==='
+          python -m dbr_env_all.validate --version DBR_VERSION
+          SCRIPT_END
+
+          # Replace placeholders with actual values
+          sed -i "s/DBR_VERSION/${{ matrix.dbr-version }}/g" /tmp/test_script.sh
+
+          # Run the script inside the container
+          ./run-compose.sh run --rm -v /tmp/test_script.sh:/tmp/test_script.sh:ro ${{ matrix.service-name }} bash /tmp/test_script.sh
 
   test-scripts:
     runs-on: [self-hosted, linux]
@@ -176,11 +181,8 @@ jobs:
           databricks/scripts/dbr-setup-post --help
 
   integration-test:
-    needs: [test-python-packages, test-scripts, build-docker-images]
+    needs: [test-python-packages, test-scripts]
     runs-on: [self-hosted, linux]
-    container:
-      image: dbr-env:15
-      options: --user 1000:1000
     steps:
       - uses: actions/checkout@v4
 
@@ -188,17 +190,21 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: wheel-*
-          path: dist/
+          path: databricks/dist/
           merge-multiple: true
 
-      - name: Run integration test
+      - name: Run integration test in DBR15 container
         run: |
-          # Install packages
+          cd databricks
+          # Create integration test script
+          cat > /tmp/integration_test.sh << 'SCRIPT_END'
+          set -e
+          echo '=== Installing packages ==='
           pip install --upgrade pip
           pip install dist/*.whl
-          pip install "dbr-env-all[dbr15]"
+          pip install 'dbr-env-all[dbr15]'
 
-          # Test complete flow
+          echo '=== Running integration test ==='
           python -c "
           from dbr_env_all import get_all_info
           from dbr_env_core.mock import get_mock_spark_session
@@ -219,7 +225,9 @@ jobs:
           print('✓ Integration test passed')
           "
 
-      - name: Run final validation
-        run: |
-          # Final validation in the DBR15 environment
+          echo '=== Final validation in DBR15 environment ==='
           python -m dbr_env_all.validate --version dbr15 --json
+          SCRIPT_END
+
+          # Run the script inside the container
+          ./run-compose.sh run --rm -v /tmp/integration_test.sh:/tmp/integration_test.sh:ro dbr15 bash /tmp/integration_test.sh
