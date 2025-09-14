@@ -33,12 +33,14 @@ declare -A TOOL_VERSIONS_DBR15=(
     ["databricks-cli"]="0.245.0"
     ["terraform"]="1.11.2"
     ["terragrunt"]="0.77.0"
+    ["aws-cli"]="2.22.25"
 )
 
 declare -A TOOL_VERSIONS_DBR16=(
     ["databricks-cli"]="0.256.0"
     ["terraform"]="1.12.2"
     ["terragrunt"]="0.81.10"
+    ["aws-cli"]="2.22.25"
 )
 
 # Parse arguments
@@ -296,7 +298,14 @@ install_terragrunt() {
 
 # Install AWS CLI
 install_aws_cli() {
-    echo -e "${YELLOW}Installing AWS CLI...${NC}"
+    local version=""
+    if [ "$DBR_VERSION" = "dbr15" ]; then
+        version="${TOOL_VERSIONS_DBR15[aws-cli]}"
+    else
+        version="${TOOL_VERSIONS_DBR16[aws-cli]}"
+    fi
+
+    echo -e "${YELLOW}Installing AWS CLI v${version}...${NC}"
 
     # Check if already installed
     if command -v aws &> /dev/null; then
@@ -311,10 +320,11 @@ install_aws_cli() {
             aws_arch="aarch64"
         fi
 
-        local filename="awscli-exe-linux-${aws_arch}.zip"
-        echo "Downloading AWS CLI for Linux ${aws_arch}..."
-        if ! curl -sL "https://awscli.amazonaws.com/${filename}" -o /tmp/awscliv2.zip; then
-            echo -e "${RED}Error: Failed to download AWS CLI${NC}"
+        local filename="awscli-exe-linux-${aws_arch}-${version}.zip"
+        local url="https://awscli.amazonaws.com/${filename}"
+        echo "Downloading AWS CLI v${version} for Linux ${aws_arch}..."
+        if ! curl -sL "$url" -o /tmp/awscliv2.zip; then
+            echo -e "${RED}Error: Failed to download AWS CLI from $url${NC}"
             exit 1
         fi
 

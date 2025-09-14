@@ -31,9 +31,9 @@ f8a0347dc5e68e6d60a9fa2db361762e7943ed084a773f28a981d988ceb6fdc9  terraform_1.12
 1821248830c887d40a74a8d6916024b6de660aa61d35443101857a24a2f3bdb1  terragrunt_linux_amd64  0.81.10  linux  amd64
 a69b40723cc5210943eff6e22354105f129812f6817ea0d021af9c58ec61f38b  terragrunt_linux_arm64  0.81.10  linux  arm64
 
-# AWS CLI v2 - Latest stable (as of December 2024)
-2f6f4c699f7c93bb2f19a8502bd945d243567d1dd95fb87397e3449204fd69cf  awscli-exe-linux-x86_64.zip  2.x.x  linux  amd64
-90ae801d74b99e7dc4efae10c6b4236555a6b58b8c7fb2c6d7f0b4c0a2582f76  awscli-exe-linux-aarch64.zip  2.x.x  linux  arm64
+# AWS CLI v2.22.25 (Pinned version for reproducibility)
+60957216705eb8c16f3203d4d858d2779279967c21e0e950fca936ee1308c547  awscli-exe-linux-x86_64-2.22.25.zip  2.22.25  linux  amd64
+d34497fa2a6f33a364ddb6413af7864d4c13fb67338cc8e04bae49f2efc7ecd2  awscli-exe-linux-aarch64-2.22.25.zip  2.22.25  linux  arm64
 
 # UV Package Manager v0.6.12 (DBR15)
 # Note: UV is installed via COPY --from in Dockerfile, checksums handled by Docker layer verification

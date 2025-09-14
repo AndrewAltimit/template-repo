@@ -42,8 +42,8 @@ dbr-env-setup/
 │   └── dbr-env-all/                # Meta-package
 ├── scripts/
 │   ├── dbr-setup-pre               # System dependencies
-│   ├── dbr-setup-post              # Binary tools
-│   └── dbr-validate                # Validation
+│   └── dbr-setup-post              # Binary tools
+│   # Note: dbr-validate is provided by the dbr-env-all Python package
 ├── constraints/
 │   ├── dbr15-constraints.txt
 │   ├── dbr16-constraints.txt
@@ -938,7 +938,7 @@ main() {
     install_aws_cli
 
     echo "Binary tools installation complete"
-    echo "Run 'dbr-validate --version $DBR_VERSION' to verify"
+    echo "Run 'dbr-validate --version $DBR_VERSION' to verify (provided by dbr-env-all package)"
 }
 
 main
@@ -1061,8 +1061,8 @@ pip install dbr-env-all[dbr15]
 # 3. Install binary tools
 ./scripts/dbr-setup-post --version dbr15
 
-# 4. Validate
-./scripts/dbr-validate --version dbr15
+# 4. Validate (command provided by dbr-env-all package)
+dbr-validate --version dbr15
 ```
 
 ### 9.2 Docker Installation
@@ -1079,8 +1079,8 @@ RUN /tmp/scripts/dbr-setup-pre --version dbr15 --non-interactive && \
     pip install /tmp/dist/dbr-env-all*.whl[dbr15] && \
     /tmp/scripts/dbr-setup-post --version dbr15
 
-# Validate
-RUN /tmp/scripts/dbr-validate --version dbr15
+# Validate (command provided by dbr-env-all package)
+RUN dbr-validate --version dbr15
 ```
 
 ---

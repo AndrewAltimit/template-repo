@@ -45,14 +45,15 @@ RUN mkdir -p /tmp/dbx-cli && \
     rm -rf /tmp/dbx-cli && \
     databricks --help
 
-# Install AWS CLI
+# Install AWS CLI (pinned version)
+ARG AWS_CLI_VERSION=2.22.25
 RUN if [ "${TARGETARCH}" = "arm64" ]; then \
         AWS_CLI_PKG="aarch64"; \
     else \
         AWS_CLI_PKG="x86_64"; \
     fi \
-    && curl -L "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_CLI_PKG}.zip" -o "awscliv2.zip" \
-    && docker-verify-checksum.sh awscliv2.zip "awscli-exe-linux-${AWS_CLI_PKG}.zip" \
+    && curl -L "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_CLI_PKG}-${AWS_CLI_VERSION}.zip" -o "awscliv2.zip" \
+    && docker-verify-checksum.sh awscliv2.zip "awscli-exe-linux-${AWS_CLI_PKG}-${AWS_CLI_VERSION}.zip" \
     && unzip awscliv2.zip \
     && ./aws/install \
     && rm -rf awscliv2.zip aws \

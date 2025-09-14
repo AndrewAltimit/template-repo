@@ -12,6 +12,7 @@ TOOL_VERSIONS = {
         "databricks-cli": "0.245.0",
         "terraform": "1.11.2",
         "terragrunt": "0.77.0",
+        "aws-cli": "2.22.25",
         "uv": "0.6.12",
     },
     "dbr16": {
@@ -20,6 +21,7 @@ TOOL_VERSIONS = {
         "databricks-cli": "0.256.0",
         "terraform": "1.12.2",
         "terragrunt": "0.81.10",
+        "aws-cli": "2.22.25",
         "uv": "0.7.14",
     },
 }
