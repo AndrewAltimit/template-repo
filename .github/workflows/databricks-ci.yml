@@ -58,7 +58,7 @@ jobs:
           - dbr-version: dbr15
             python-image: python:3.11-slim
           - dbr-version: dbr16
-            python-image: python:3.12-slim
+            python-image: python:3.12
     container:
       image: ${{ matrix.python-image }}
       options: --user 1000:1000
