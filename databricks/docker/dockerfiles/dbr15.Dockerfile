@@ -11,9 +11,9 @@ WORKDIR /tmp
 # Copy checksum files and verification script early for use during build
 RUN mkdir -p /opt/databricks/config
 COPY config/checksums.txt /opt/databricks/config/checksums.txt
-COPY --chmod=0755 scripts/verify-checksum.sh /usr/local/bin/verify-checksum.sh
-# Create compatibility alias for docker-verify-checksum.sh
-RUN ln -s /usr/local/bin/verify-checksum.sh /usr/local/bin/docker-verify-checksum.sh
+COPY scripts/verify-checksum.sh /usr/local/bin/verify-checksum.sh
+RUN chmod +x /usr/local/bin/verify-checksum.sh
+# Verify checksum script is available for validation
 
 # Setup UV for fast package installation
 # Note: Docker doesn't support ARG in COPY --from, so UV version is fixed here
@@ -22,7 +22,7 @@ ENV UV_TOOL_BIN_DIR=/bin
 COPY --from=ghcr.io/astral-sh/uv:0.6.12 /uv /uvx /bin/
 
 # Copy requirements
-COPY reference/requirements/dbr15-full.txt /tmp/requirements.txt
+COPY docker/requirements/dbr15-full.txt /tmp/requirements.txt
 
 # Install Python packages
 RUN uv pip install -r requirements.txt --system && uv cache clean
@@ -41,7 +41,7 @@ ARG DBX_CLI_VERSION=0.245.0
 RUN mkdir -p /tmp/dbx-cli && \
     cd /tmp/dbx-cli && \
     wget -q https://github.com/databricks/cli/releases/download/v${DBX_CLI_VERSION}/databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip && \
-    docker-verify-checksum.sh databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip && \
+    verify-checksum.sh databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip && \
     unzip -q *.zip && \
     mv databricks /usr/local/bin/databricks && \
     chmod +x /usr/local/bin/databricks && \
@@ -56,7 +56,7 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
         AWS_CLI_PKG="x86_64"; \
     fi \
     && curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_CLI_PKG}-${AWS_CLI_VERSION}.zip" -o "awscliv2.zip" \
-    && docker-verify-checksum.sh awscliv2.zip "awscli-exe-linux-${AWS_CLI_PKG}-${AWS_CLI_VERSION}.zip" \
+    && verify-checksum.sh awscliv2.zip "awscli-exe-linux-${AWS_CLI_PKG}-${AWS_CLI_VERSION}.zip" \
     && unzip -q awscliv2.zip \
     && ./aws/install \
     && rm -rf awscliv2.zip aws \
@@ -65,7 +65,7 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
 # Install Terraform
 ARG TERRAFORM_VERSION=1.11.2
 RUN curl -sL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip -o terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
-    && docker-verify-checksum.sh terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
+    && verify-checksum.sh terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
     && unzip -q terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
     && mv terraform /usr/bin \
     && rm LICENSE.txt terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
@@ -74,7 +74,7 @@ RUN curl -sL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terra
 # Install Terragrunt
 ARG TERRAGRUNT_VERSION="0.77.0"
 RUN curl -sL https://github.com/gruntwork-io/terragrunt/releases/download/v${TERRAGRUNT_VERSION}/terragrunt_linux_${TARGETARCH} -o /usr/local/bin/terragrunt \
-    && docker-verify-checksum.sh /usr/local/bin/terragrunt "terragrunt_linux_${TARGETARCH}  ${TERRAGRUNT_VERSION}" \
+    && verify-checksum.sh /usr/local/bin/terragrunt "terragrunt_linux_${TARGETARCH}  ${TERRAGRUNT_VERSION}" \
     && chmod +x /usr/local/bin/terragrunt \
     && terragrunt --version
 
