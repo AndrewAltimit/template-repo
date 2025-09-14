@@ -39,9 +39,9 @@ RUN apt-get update && \
 ARG DBX_CLI_VERSION=0.245.0
 RUN mkdir -p /tmp/dbx-cli && \
     cd /tmp/dbx-cli && \
-    wget https://github.com/databricks/cli/releases/download/v${DBX_CLI_VERSION}/databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip && \
+    wget -q https://github.com/databricks/cli/releases/download/v${DBX_CLI_VERSION}/databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip && \
     docker-verify-checksum.sh databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip && \
-    unzip *.zip && \
+    unzip -q *.zip && \
     mv databricks /usr/local/bin/databricks && \
     chmod +x /usr/local/bin/databricks && \
     rm -rf /tmp/dbx-cli && \
@@ -54,18 +54,18 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
     else \
         AWS_CLI_PKG="x86_64"; \
     fi \
-    && curl -L "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_CLI_PKG}-${AWS_CLI_VERSION}.zip" -o "awscliv2.zip" \
+    && curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_CLI_PKG}-${AWS_CLI_VERSION}.zip" -o "awscliv2.zip" \
     && docker-verify-checksum.sh awscliv2.zip "awscli-exe-linux-${AWS_CLI_PKG}-${AWS_CLI_VERSION}.zip" \
-    && unzip awscliv2.zip \
+    && unzip -q awscliv2.zip \
     && ./aws/install \
     && rm -rf awscliv2.zip aws \
     && aws --version
 
 # Install Terraform
 ARG TERRAFORM_VERSION=1.11.2
-RUN curl --remote-name --location https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
+RUN curl -sL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip -o terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
     && docker-verify-checksum.sh terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
-    && unzip terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
+    && unzip -q terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
     && mv terraform /usr/bin \
     && rm LICENSE.txt terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
     && terraform version
