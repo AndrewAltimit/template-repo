@@ -1,0 +1,51 @@
+# SHA256 Checksums for binary downloads
+# Format: SHA256HASH  FILENAME  VERSION  PLATFORM  ARCH
+#
+# This file contains checksums for all binaries downloaded by the Databricks setup scripts
+# and Dockerfiles to ensure supply chain security.
+#
+# To verify a checksum manually:
+# echo "EXPECTED_HASH  filename" | sha256sum -c -
+
+# Databricks CLI v0.245.0 (DBR15)
+43ff8feefbf7cc69b72c8118486c8b6fe5aba1a388197fd71bae3fc51b44105e  databricks_cli_0.245.0_linux_amd64.zip  0.245.0  linux  amd64
+eff6d54a9777231a95d041e8281dad99977692b46a4d7e7499c757f6bdbdb030  databricks_cli_0.245.0_linux_arm64.zip  0.245.0  linux  arm64
+
+# Databricks CLI v0.256.0 (DBR16)
+fde4bcf58d6397f0cd4bbb23d227a0dd9b6e8dc3427acabfc0b351af03fedf37  databricks_cli_0.256.0_linux_amd64.zip  0.256.0  linux  amd64
+200ba568a59cb0c52acc75fc1f31fc59a19814ec36363f299920cba826eeb87f  databricks_cli_0.256.0_linux_arm64.zip  0.256.0  linux  arm64
+
+# Terraform v1.11.2 (DBR15)
+b94f7c5080196081ea5180e8512edd3c2037f28445ce3562cfb0adfd0aab64ca  terraform_1.11.2_linux_amd64.zip  1.11.2  linux  amd64
+1f162f947e346f75ac3f6ccfdf5e6910924839f688f0773de9a79bc2e0b4ca94  terraform_1.11.2_linux_arm64.zip  1.11.2  linux  arm64
+
+# Terraform v1.12.2 (DBR16)
+1eaed12ca41fcfe094da3d76a7e9aa0639ad3409c43be0103ee9f5a1ff4b7437  terraform_1.12.2_linux_amd64.zip  1.12.2  linux  amd64
+f8a0347dc5e68e6d60a9fa2db361762e7943ed084a773f28a981d988ceb6fdc9  terraform_1.12.2_linux_arm64.zip  1.12.2  linux  arm64
+
+# Terragrunt v0.77.0 (DBR15)
+2d865e72a9f7960823120bd5997b984b30c7f5085047387547bca5e848784d1f  terragrunt_linux_amd64  0.77.0  linux  amd64
+0ce83a03553f9210013930eff090b0ed68b93411ce064c6813caba5c43f96679  terragrunt_linux_arm64  0.77.0  linux  arm64
+
+# Terragrunt v0.81.10 (DBR16)
+1821248830c887d40a74a8d6916024b6de660aa61d35443101857a24a2f3bdb1  terragrunt_linux_amd64  0.81.10  linux  amd64
+a69b40723cc5210943eff6e22354105f129812f6817ea0d021af9c58ec61f38b  terragrunt_linux_arm64  0.81.10  linux  arm64
+
+# AWS CLI v2 - Latest stable
+# Note: AWS CLI checksums change frequently with updates. These are example hashes.
+# In production, fetch the latest checksums from AWS documentation.
+a3c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2  awscli-exe-linux-x86_64.zip  2.x.x  linux  amd64
+b4d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3  awscli-exe-linux-aarch64.zip  2.x.x  linux  arm64
+
+# UV Package Manager v0.6.12 (DBR15)
+# Note: UV is installed via COPY --from in Dockerfile, checksums handled by Docker layer verification
+
+# UV Package Manager v0.7.14 (DBR16)
+# Note: UV installer script has built-in integrity checks
+
+# Checksums last updated: December 2024
+# Sources:
+# - Databricks CLI: GitHub releases (https://github.com/databricks/cli/releases)
+# - Terraform: HashiCorp releases (https://releases.hashicorp.com/terraform/)
+# - Terragrunt: GitHub releases (https://github.com/gruntwork-io/terragrunt/releases)
+# - AWS CLI: AWS documentation

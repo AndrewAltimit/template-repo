@@ -15,6 +15,25 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# SHA256 Checksums for binary verification (fetched and computed from official sources)
+declare -A CHECKSUMS_DBR15=(
+    ["databricks_cli_0.245.0_linux_amd64.zip"]="43ff8feefbf7cc69b72c8118486c8b6fe5aba1a388197fd71bae3fc51b44105e"
+    ["databricks_cli_0.245.0_linux_arm64.zip"]="eff6d54a9777231a95d041e8281dad99977692b46a4d7e7499c757f6bdbdb030"
+    ["terraform_1.11.2_linux_amd64.zip"]="b94f7c5080196081ea5180e8512edd3c2037f28445ce3562cfb0adfd0aab64ca"
+    ["terraform_1.11.2_linux_arm64.zip"]="1f162f947e346f75ac3f6ccfdf5e6910924839f688f0773de9a79bc2e0b4ca94"
+    ["terragrunt_linux_amd64_0.77.0"]="2d865e72a9f7960823120bd5997b984b30c7f5085047387547bca5e848784d1f"
+    ["terragrunt_linux_arm64_0.77.0"]="0ce83a03553f9210013930eff090b0ed68b93411ce064c6813caba5c43f96679"
+)
+
+declare -A CHECKSUMS_DBR16=(
+    ["databricks_cli_0.256.0_linux_amd64.zip"]="fde4bcf58d6397f0cd4bbb23d227a0dd9b6e8dc3427acabfc0b351af03fedf37"
+    ["databricks_cli_0.256.0_linux_arm64.zip"]="200ba568a59cb0c52acc75fc1f31fc59a19814ec36363f299920cba826eeb87f"
+    ["terraform_1.12.2_linux_amd64.zip"]="1eaed12ca41fcfe094da3d76a7e9aa0639ad3409c43be0103ee9f5a1ff4b7437"
+    ["terraform_1.12.2_linux_arm64.zip"]="f8a0347dc5e68e6d60a9fa2db361762e7943ed084a773f28a981d988ceb6fdc9"
+    ["terragrunt_linux_amd64_0.81.10"]="1821248830c887d40a74a8d6916024b6de660aa61d35443101857a24a2f3bdb1"
+    ["terragrunt_linux_arm64_0.81.10"]="a69b40723cc5210943eff6e22354105f129812f6817ea0d021af9c58ec61f38b"
+)
+
 # Version mappings from reference implementations
 declare -A TOOL_VERSIONS_DBR15=(
     ["databricks-cli"]="0.245.0"
@@ -82,7 +101,8 @@ echo ""
 
 # Detect architecture
 detect_arch() {
-    local arch=$(uname -m)
+    local arch
+    arch=$(uname -m)
     case $arch in
         x86_64)
             echo "amd64"
@@ -99,12 +119,53 @@ detect_arch() {
 
 # Detect platform
 detect_platform() {
-    local platform=$(uname -s | tr '[:upper:]' '[:lower:]')
+    local platform
+    platform=$(uname -s | tr '[:upper:]' '[:lower:]')
     echo "$platform"
 }
 
 ARCH=$(detect_arch)
 PLATFORM=$(detect_platform)
+
+# Verify checksum of downloaded file
+verify_checksum() {
+    local file="$1"
+    local filename="$2"
+
+    if [ "$SKIP_CHECKSUMS" = true ]; then
+        echo -e "${YELLOW}⚠ Checksum verification skipped (--skip-checksums flag)${NC}"
+        return 0
+    fi
+
+    local expected_hash=""
+    if [ "$DBR_VERSION" = "dbr15" ]; then
+        expected_hash="${CHECKSUMS_DBR15[$filename]:-}"
+    else
+        expected_hash="${CHECKSUMS_DBR16[$filename]:-}"
+    fi
+
+    if [ -z "$expected_hash" ]; then
+        echo -e "${YELLOW}⚠ No checksum available for $filename - skipping verification${NC}"
+        echo -e "${YELLOW}  For production use, add checksums from official sources${NC}"
+        return 0
+    fi
+
+    echo "Verifying checksum for $filename..."
+    local actual_hash
+    actual_hash=$(sha256sum "$file" | cut -d' ' -f1)
+
+    if [ "$actual_hash" = "$expected_hash" ]; then
+        echo -e "${GREEN}✓ Checksum verified${NC}"
+        return 0
+    else
+        echo -e "${RED}✗ Checksum verification failed!${NC}"
+        echo -e "${RED}  Expected: $expected_hash${NC}"
+        echo -e "${RED}  Actual:   $actual_hash${NC}"
+        echo -e "${RED}  This could indicate a corrupted download or supply chain attack${NC}"
+        rm -f "$file"  # Remove potentially malicious file
+        exit 1
+    fi
+}
 
 # Install Databricks CLI
 install_databricks_cli() {
@@ -119,20 +180,25 @@ install_databricks_cli() {
 
     # Check if already installed with correct version
     if command -v databricks &> /dev/null; then
-        local current_version=$(databricks --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        local current_version
+        current_version=$(databricks --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
         if [ "$current_version" = "$version" ]; then
             echo -e "${GREEN}✓ Databricks CLI v${version} already installed${NC}"
             return 0
         fi
     fi
 
-    local url="https://github.com/databricks/cli/releases/download/v${version}/databricks_cli_${version}_${PLATFORM}_${ARCH}.zip"
+    local filename="databricks_cli_${version}_${PLATFORM}_${ARCH}.zip"
+    local url="https://github.com/databricks/cli/releases/download/v${version}/${filename}"
 
     echo "Downloading from: $url"
     if ! wget -q "$url" -O /tmp/databricks_cli.zip; then
         echo -e "${RED}Error: Failed to download Databricks CLI${NC}"
         exit 1
     fi
+
+    # Verify checksum
+    verify_checksum "/tmp/databricks_cli.zip" "$filename"
 
     # Extract and install
     unzip -q -o /tmp/databricks_cli.zip -d /tmp
@@ -163,20 +229,25 @@ install_terraform() {
 
     # Check if already installed with correct version
     if command -v terraform &> /dev/null; then
-        local current_version=$(terraform version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        local current_version
+        current_version=$(terraform version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
         if [ "$current_version" = "$version" ]; then
             echo -e "${GREEN}✓ Terraform v${version} already installed${NC}"
             return 0
         fi
     fi
 
-    local url="https://releases.hashicorp.com/terraform/${version}/terraform_${version}_${PLATFORM}_${ARCH}.zip"
+    local filename="terraform_${version}_${PLATFORM}_${ARCH}.zip"
+    local url="https://releases.hashicorp.com/terraform/${version}/${filename}"
 
     echo "Downloading from: $url"
     if ! curl -sL "$url" -o /tmp/terraform.zip; then
         echo -e "${RED}Error: Failed to download Terraform${NC}"
         exit 1
     fi
+
+    # Verify checksum
+    verify_checksum "/tmp/terraform.zip" "$filename"
 
     # Extract and install
     unzip -q -o /tmp/terraform.zip terraform -d /tmp
@@ -207,13 +278,15 @@ install_terragrunt() {
 
     # Check if already installed with correct version
     if command -v terragrunt &> /dev/null; then
-        local current_version=$(terragrunt --version 2>&1 | grep -oE 'v?[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        local current_version
+        current_version=$(terragrunt --version 2>&1 | grep -oE 'v?[0-9]+\.[0-9]+\.[0-9]+' | head -1)
         if [ "$current_version" = "$version" ] || [ "v$current_version" = "$version" ]; then
             echo -e "${GREEN}✓ Terragrunt ${version} already installed${NC}"
             return 0
         fi
     fi
 
+    local filename="terragrunt_${PLATFORM}_${ARCH}_${version#v}"
     local url="https://github.com/gruntwork-io/terragrunt/releases/download/${version}/terragrunt_${PLATFORM}_${ARCH}"
 
     echo "Downloading from: $url"
@@ -221,6 +294,9 @@ install_terragrunt() {
         echo -e "${RED}Error: Failed to download Terragrunt${NC}"
         exit 1
     fi
+
+    # Verify checksum
+    verify_checksum "/tmp/terragrunt" "$filename"
 
     # Install
     mkdir -p "$INSTALL_DIR"

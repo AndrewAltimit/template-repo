@@ -29,9 +29,17 @@ RUN apt-get update && \
 
 # Install Databricks CLI
 ARG DBX_CLI_VERSION=0.245.0
+# Checksums for verification (computed from official binaries)
+ARG DBX_CLI_SHA256_AMD64="43ff8feefbf7cc69b72c8118486c8b6fe5aba1a388197fd71bae3fc51b44105e"
+ARG DBX_CLI_SHA256_ARM64="eff6d54a9777231a95d041e8281dad99977692b46a4d7e7499c757f6bdbdb030"
 RUN mkdir -p /tmp/dbx-cli && \
     cd /tmp/dbx-cli && \
     wget https://github.com/databricks/cli/releases/download/v${DBX_CLI_VERSION}/databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip && \
+    if [ "${TARGETARCH}" = "amd64" ]; then \
+        echo "${DBX_CLI_SHA256_AMD64}  databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip" | sha256sum -c - || exit 1; \
+    else \
+        echo "${DBX_CLI_SHA256_ARM64}  databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip" | sha256sum -c - || exit 1; \
+    fi && \
     unzip *.zip && \
     mv databricks /usr/local/bin/databricks && \
     chmod +x /usr/local/bin/databricks && \
@@ -52,7 +60,15 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
 
 # Install Terraform
 ARG TERRAFORM_VERSION=1.11.2
+# Checksums for verification (computed from official binaries)
+ARG TERRAFORM_SHA256_AMD64="b94f7c5080196081ea5180e8512edd3c2037f28445ce3562cfb0adfd0aab64ca"
+ARG TERRAFORM_SHA256_ARM64="1f162f947e346f75ac3f6ccfdf5e6910924839f688f0773de9a79bc2e0b4ca94"
 RUN curl --remote-name --location https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
+    && if [ "${TARGETARCH}" = "amd64" ]; then \
+        echo "${TERRAFORM_SHA256_AMD64}  terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip" | sha256sum -c - || exit 1; \
+    else \
+        echo "${TERRAFORM_SHA256_ARM64}  terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip" | sha256sum -c - || exit 1; \
+    fi \
     && unzip terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
     && mv terraform /usr/bin \
     && rm LICENSE.txt terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
@@ -60,7 +76,15 @@ RUN curl --remote-name --location https://releases.hashicorp.com/terraform/${TER
 
 # Install Terragrunt
 ARG TERRAGRUNT_VERSION="v0.77.0"
+# Checksums for verification (computed from official binaries)
+ARG TERRAGRUNT_SHA256_AMD64="2d865e72a9f7960823120bd5997b984b30c7f5085047387547bca5e848784d1f"
+ARG TERRAGRUNT_SHA256_ARM64="0ce83a03553f9210013930eff090b0ed68b93411ce064c6813caba5c43f96679"
 RUN curl -sL https://github.com/gruntwork-io/terragrunt/releases/download/${TERRAGRUNT_VERSION}/terragrunt_linux_${TARGETARCH} -o /usr/local/bin/terragrunt \
+    && if [ "${TARGETARCH}" = "amd64" ]; then \
+        echo "${TERRAGRUNT_SHA256_AMD64}  /usr/local/bin/terragrunt" | sha256sum -c - || exit 1; \
+    else \
+        echo "${TERRAGRUNT_SHA256_ARM64}  /usr/local/bin/terragrunt" | sha256sum -c - || exit 1; \
+    fi \
     && chmod +x /usr/local/bin/terragrunt \
     && terragrunt --version
 

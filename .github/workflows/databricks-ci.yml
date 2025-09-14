@@ -159,15 +159,15 @@ jobs:
       - name: Test container
         run: |
           # Test Python version
-          docker run --rm --user $(id -u):$(id -g) dbr-test:${{ matrix.dbr-version }} python --version
+          docker run --rm --user 1000:1000 dbr-test:${{ matrix.dbr-version }} python --version
 
           # Test Java
-          docker run --rm --user $(id -u):$(id -g) dbr-test:${{ matrix.dbr-version }} java -version
+          docker run --rm --user 1000:1000 dbr-test:${{ matrix.dbr-version }} java -version
 
           # Test tools
-          docker run --rm --user $(id -u):$(id -g) dbr-test:${{ matrix.dbr-version }} databricks --version
-          docker run --rm --user $(id -u):$(id -g) dbr-test:${{ matrix.dbr-version }} terraform version
-          docker run --rm --user $(id -u):$(id -g) dbr-test:${{ matrix.dbr-version }} terragrunt --version
+          docker run --rm --user 1000:1000 dbr-test:${{ matrix.dbr-version }} databricks --version
+          docker run --rm --user 1000:1000 dbr-test:${{ matrix.dbr-version }} terraform version
+          docker run --rm --user 1000:1000 dbr-test:${{ matrix.dbr-version }} terragrunt --version
 
   integration-test:
     needs: [test-python-packages, test-scripts]
