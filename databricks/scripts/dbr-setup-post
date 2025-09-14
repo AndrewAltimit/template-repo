@@ -15,7 +15,20 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+# Source checksum verification helper if available
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/verify-checksum.sh" ]; then
+    # shellcheck source=/dev/null
+    source "$SCRIPT_DIR/verify-checksum.sh"
+    export CHECKSUMS_FILE="${SCRIPT_DIR}/../config/checksums.txt"
+elif [ -f "/usr/local/bin/verify-checksum.sh" ]; then
+    # shellcheck source=/dev/null
+    source /usr/local/bin/verify-checksum.sh
+    export CHECKSUMS_FILE="/opt/databricks/config/checksums.txt"
+fi
+
 # SHA256 Checksums for binary verification (fetched and computed from official sources)
+# These are fallback checksums if the centralized checksums.txt is not available
 declare -A CHECKSUMS_DBR15=(
     ["databricks_cli_0.245.0_linux_amd64.zip"]="43ff8feefbf7cc69b72c8118486c8b6fe5aba1a388197fd71bae3fc51b44105e"
     ["databricks_cli_0.245.0_linux_arm64.zip"]="eff6d54a9777231a95d041e8281dad99977692b46a4d7e7499c757f6bdbdb030"
@@ -32,6 +45,12 @@ declare -A CHECKSUMS_DBR16=(
     ["terraform_1.12.2_linux_arm64.zip"]="f8a0347dc5e68e6d60a9fa2db361762e7943ed084a773f28a981d988ceb6fdc9"
     ["terragrunt_linux_amd64_0.81.10"]="1821248830c887d40a74a8d6916024b6de660aa61d35443101857a24a2f3bdb1"
     ["terragrunt_linux_arm64_0.81.10"]="a69b40723cc5210943eff6e22354105f129812f6817ea0d021af9c58ec61f38b"
+)
+
+# AWS CLI checksums (same for both DBR versions)
+declare -A CHECKSUMS_AWS=(
+    ["awscli-exe-linux-x86_64.zip"]="2f6f4c699f7c93bb2f19a8502bd945d243567d1dd95fb87397e3449204fd69cf"
+    ["awscli-exe-linux-aarch64.zip"]="90ae801d74b99e7dc4efae10c6b4236555a6b58b8c7fb2c6d7f0b4c0a2582f76"
 )
 
 # Version mappings from reference implementations
@@ -142,6 +161,11 @@ verify_checksum() {
         expected_hash="${CHECKSUMS_DBR15[$filename]:-}"
     else
         expected_hash="${CHECKSUMS_DBR16[$filename]:-}"
+    fi
+
+    # Check AWS CLI checksums (same for both DBR versions)
+    if [ -z "$expected_hash" ]; then
+        expected_hash="${CHECKSUMS_AWS[$filename]:-}"
     fi
 
     if [ -z "$expected_hash" ]; then
@@ -329,11 +353,15 @@ install_aws_cli() {
             aws_arch="aarch64"
         fi
 
+        local filename="awscli-exe-linux-${aws_arch}.zip"
         echo "Downloading AWS CLI for Linux ${aws_arch}..."
-        if ! curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-${aws_arch}.zip" -o /tmp/awscliv2.zip; then
+        if ! curl -sL "https://awscli.amazonaws.com/${filename}" -o /tmp/awscliv2.zip; then
             echo -e "${RED}Error: Failed to download AWS CLI${NC}"
             exit 1
         fi
+
+        # Verify checksum
+        verify_checksum "/tmp/awscliv2.zip" "$filename"
 
         # Extract and install
         unzip -q /tmp/awscliv2.zip -d /tmp

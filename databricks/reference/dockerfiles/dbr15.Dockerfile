@@ -47,12 +47,18 @@ RUN mkdir -p /tmp/dbx-cli && \
     databricks --help
 
 # Install AWS CLI
+# Checksums for verification (computed from official binaries)
+ARG AWS_CLI_SHA256_AMD64="2f6f4c699f7c93bb2f19a8502bd945d243567d1dd95fb87397e3449204fd69cf"
+ARG AWS_CLI_SHA256_ARM64="90ae801d74b99e7dc4efae10c6b4236555a6b58b8c7fb2c6d7f0b4c0a2582f76"
 RUN if [ "${TARGETARCH}" = "arm64" ]; then \
         AWS_CLI_PKG="aarch64"; \
+        AWS_CLI_SHA256="${AWS_CLI_SHA256_ARM64}"; \
     else \
         AWS_CLI_PKG="x86_64"; \
+        AWS_CLI_SHA256="${AWS_CLI_SHA256_AMD64}"; \
     fi \
     && curl -L "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_CLI_PKG}.zip" -o "awscliv2.zip" \
+    && echo "${AWS_CLI_SHA256}  awscliv2.zip" | sha256sum -c - || exit 1 \
     && unzip awscliv2.zip \
     && ./aws/install \
     && rm -rf awscliv2.zip aws \
@@ -98,9 +104,15 @@ RUN groupadd -g ${GROUP_ID} -o dbruser && \
 WORKDIR /workspace
 RUN chown -R dbruser:dbruser /workspace
 
-# Validation script
-COPY scripts/dbr-validate /usr/local/bin/dbr-validate
-RUN chmod +x /usr/local/bin/dbr-validate
+# Copy helper scripts and checksums (excluding the redundant dbr-validate)
+RUN mkdir -p /opt/databricks/config
+COPY scripts/dbr-setup-post /usr/local/bin/dbr-setup-post
+COPY scripts/dbr-setup-pre /usr/local/bin/dbr-setup-pre
+COPY scripts/verify-checksum.sh /usr/local/bin/verify-checksum.sh
+COPY config/checksums.txt /opt/databricks/config/checksums.txt
+RUN chmod +x /usr/local/bin/dbr-setup-post /usr/local/bin/dbr-setup-pre /usr/local/bin/verify-checksum.sh
+
+# Note: dbr-validate command is provided by the Python dbr-env-all package
 
 # Switch to non-root user
 USER dbruser
