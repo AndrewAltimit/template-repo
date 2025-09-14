@@ -1,0 +1,28 @@
+# Python build artifacts
+wheels/**/dist/
+wheels/**/build/
+wheels/**/*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Test artifacts
+test_env/
+workspace/
+*.log
+
+# Docker artifacts
+*.tar
+*.tar.gz
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db

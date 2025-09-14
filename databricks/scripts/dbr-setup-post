@@ -1,0 +1,526 @@
+#!/bin/bash
+# Post-installation script for DBR environment
+# Installs binary tools for Databricks Runtime
+
+set -euo pipefail
+
+VERSION="1.0.0"
+DBR_VERSION=""
+INSTALL_DIR="/usr/local/bin"
+SKIP_CHECKSUMS=false
+
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Source checksum verification helper if available
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/verify-checksum.sh" ]; then
+    # shellcheck source=/dev/null
+    source "$SCRIPT_DIR/verify-checksum.sh"
+    export CHECKSUMS_FILE="${SCRIPT_DIR}/../config/checksums.txt"
+elif [ -f "/usr/local/bin/verify-checksum.sh" ]; then
+    # shellcheck source=/dev/null
+    source /usr/local/bin/verify-checksum.sh
+    export CHECKSUMS_FILE="/opt/databricks/config/checksums.txt"
+fi
+
+
+# Load versions from centralized versions.json if available
+load_tool_versions() {
+    # Determine the versions file path
+    local versions_file=""
+    if [ -n "${SCRIPT_DIR:-}" ]; then
+        versions_file="${SCRIPT_DIR}/../config/versions.json"
+    elif [ -f "databricks/config/versions.json" ]; then
+        versions_file="databricks/config/versions.json"
+    elif [ -f "config/versions.json" ]; then
+        versions_file="config/versions.json"
+    elif [ -f "../config/versions.json" ]; then
+        versions_file="../config/versions.json"
+    fi
+
+    # Check if versions.json exists and jq is available
+    if [ -f "$versions_file" ] && command -v jq &> /dev/null; then
+        # Load versions from JSON file
+        declare -gA TOOL_VERSIONS_DBR15
+        declare -gA TOOL_VERSIONS_DBR16
+
+        # Parse DBR15 versions
+        TOOL_VERSIONS_DBR15["databricks-cli"]=$(jq -r '.dbr15."databricks-cli"' "$versions_file")
+        TOOL_VERSIONS_DBR15["terraform"]=$(jq -r '.dbr15.terraform' "$versions_file")
+        TOOL_VERSIONS_DBR15["terragrunt"]=$(jq -r '.dbr15.terragrunt' "$versions_file")
+        TOOL_VERSIONS_DBR15["aws-cli"]=$(jq -r '.dbr15."aws-cli"' "$versions_file")
+
+        # Parse DBR16 versions
+        TOOL_VERSIONS_DBR16["databricks-cli"]=$(jq -r '.dbr16."databricks-cli"' "$versions_file")
+        TOOL_VERSIONS_DBR16["terraform"]=$(jq -r '.dbr16.terraform' "$versions_file")
+        TOOL_VERSIONS_DBR16["terragrunt"]=$(jq -r '.dbr16.terragrunt' "$versions_file")
+        TOOL_VERSIONS_DBR16["aws-cli"]=$(jq -r '.dbr16."aws-cli"' "$versions_file")
+
+        echo -e "${GREEN}✓ Loaded versions from $versions_file${NC}"
+    else
+        # Fallback to hardcoded values if versions.json not found or jq not available
+        declare -gA TOOL_VERSIONS_DBR15=(
+            ["databricks-cli"]="0.245.0"
+            ["terraform"]="1.11.2"
+            ["terragrunt"]="0.77.0"
+            ["aws-cli"]="2.22.25"
+        )
+
+        declare -gA TOOL_VERSIONS_DBR16=(
+            ["databricks-cli"]="0.256.0"
+            ["terraform"]="1.12.2"
+            ["terragrunt"]="0.81.10"
+            ["aws-cli"]="2.22.25"
+        )
+
+        if [ ! -f "$versions_file" ]; then
+            echo -e "${YELLOW}⚠ Using fallback versions (versions.json not found)${NC}"
+        else
+            echo -e "${YELLOW}⚠ Using fallback versions (jq not installed)${NC}"
+        fi
+    fi
+}
+
+# Load the tool versions
+load_tool_versions
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --version)
+            DBR_VERSION="$2"
+            shift 2
+            ;;
+        --install-dir)
+            INSTALL_DIR="$2"
+            shift 2
+            ;;
+        --skip-checksums)
+            SKIP_CHECKSUMS=true
+            shift
+            ;;
+        --help)
+            echo "DBR Setup Post-Installation Script v${VERSION}"
+            echo ""
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --version VERSION    DBR version (dbr15 or dbr16)"
+            echo "  --install-dir DIR    Installation directory (default: /usr/local/bin)"
+            echo "  --skip-checksums     Skip checksum verification"
+            echo "  --help              Show this help message"
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            exit 1
+            ;;
+    esac
+done
+
+# Validate DBR version
+if [ -z "$DBR_VERSION" ]; then
+    echo -e "${RED}Error: DBR version not specified${NC}"
+    echo "Use --version dbr15 or --version dbr16"
+    exit 1
+fi
+
+if [[ "$DBR_VERSION" != "dbr15" && "$DBR_VERSION" != "dbr16" ]]; then
+    echo -e "${RED}Error: Invalid DBR version: $DBR_VERSION${NC}"
+    echo "Valid options: dbr15, dbr16"
+    exit 1
+fi
+
+echo -e "${GREEN}DBR Setup Post-Installation Script v${VERSION}${NC}"
+echo "Installing binary tools for $DBR_VERSION"
+echo "Installation directory: $INSTALL_DIR"
+echo ""
+
+# Detect architecture
+detect_arch() {
+    # Prefer TARGETARCH from Docker build if set
+    if [ -n "${TARGETARCH:-}" ]; then
+        echo "$TARGETARCH"
+        return
+    fi
+
+    local arch
+    arch=$(uname -m)
+    case $arch in
+        x86_64)
+            echo "amd64"
+            ;;
+        aarch64|arm64)
+            echo "arm64"
+            ;;
+        *)
+            echo -e "${RED}Error: Unsupported architecture: $arch${NC}"
+            exit 1
+            ;;
+    esac
+}
+
+# Detect platform
+detect_platform() {
+    local platform
+    platform=$(uname -s | tr '[:upper:]' '[:lower:]')
+    echo "$platform"
+}
+
+ARCH=$(detect_arch)
+PLATFORM=$(detect_platform)
+
+# Wrapper function for verify_checksum that respects SKIP_CHECKSUMS flag
+verify_checksum_wrapper() {
+    local file="$1"
+    local filename="$2"
+
+    if [ "$SKIP_CHECKSUMS" = true ]; then
+        echo -e "${YELLOW}⚠ Checksum verification skipped (--skip-checksums flag)${NC}"
+        return 0
+    fi
+
+    # Use the function from verify-checksum.sh if it was sourced
+    if declare -f verify_checksum >/dev/null 2>&1; then
+        # Get checksum from centralized file using helper function
+        local expected_hash
+        expected_hash=$(get_checksum_from_file "$filename" "" "$PLATFORM" "$ARCH")
+
+        if [ "$expected_hash" = "SKIP" ] || [ -z "$expected_hash" ]; then
+            echo -e "${YELLOW}⚠ No checksum available for $filename - skipping verification${NC}"
+            return 0
+        fi
+
+        verify_checksum "$file" "$expected_hash"
+    else
+        echo -e "${YELLOW}⚠ Checksum verification unavailable (verify-checksum.sh not found)${NC}"
+        return 0
+    fi
+}
+
+# Install Databricks CLI
+install_databricks_cli() {
+    local version=""
+    # Prefer environment variable if set (from Docker build)
+    if [ -n "${DBX_CLI_VERSION:-}" ]; then
+        version="$DBX_CLI_VERSION"
+    elif [ "$DBR_VERSION" = "dbr15" ]; then
+        version="${TOOL_VERSIONS_DBR15[databricks-cli]}"
+    else
+        version="${TOOL_VERSIONS_DBR16[databricks-cli]}"
+    fi
+
+    echo -e "${YELLOW}Installing Databricks CLI v${version}...${NC}"
+
+    # Check if already installed with correct version
+    if command -v databricks &> /dev/null; then
+        local current_version
+        current_version=$(databricks --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        if [ "$current_version" = "$version" ]; then
+            echo -e "${GREEN}✓ Databricks CLI v${version} already installed${NC}"
+            return 0
+        fi
+    fi
+
+    local filename="databricks_cli_${version}_${PLATFORM}_${ARCH}.zip"
+    local url="https://github.com/databricks/cli/releases/download/v${version}/${filename}"
+
+    echo "Downloading from: $url"
+    if ! wget -q "$url" -O /tmp/databricks_cli.zip; then
+        echo -e "${RED}Error: Failed to download Databricks CLI${NC}"
+        exit 1
+    fi
+
+    # Verify checksum
+    verify_checksum_wrapper "/tmp/databricks_cli.zip" "$filename"
+
+    # Extract and install
+    unzip -q -o /tmp/databricks_cli.zip -d /tmp
+    mkdir -p "$INSTALL_DIR"
+    mv /tmp/databricks "$INSTALL_DIR/databricks"
+    chmod +x "$INSTALL_DIR/databricks"
+    rm -f /tmp/databricks_cli.zip
+
+    # Verify installation
+    if "$INSTALL_DIR/databricks" --version &> /dev/null; then
+        echo -e "${GREEN}✓ Databricks CLI installed successfully${NC}"
+    else
+        echo -e "${RED}Error: Databricks CLI installation verification failed${NC}"
+        exit 1
+    fi
+}
+
+# Install Terraform
+install_terraform() {
+    local version=""
+    # Prefer environment variable if set (from Docker build)
+    if [ -n "${TERRAFORM_VERSION:-}" ]; then
+        version="$TERRAFORM_VERSION"
+    elif [ "$DBR_VERSION" = "dbr15" ]; then
+        version="${TOOL_VERSIONS_DBR15[terraform]}"
+    else
+        version="${TOOL_VERSIONS_DBR16[terraform]}"
+    fi
+
+    echo -e "${YELLOW}Installing Terraform v${version}...${NC}"
+
+    # Check if already installed with correct version
+    if command -v terraform &> /dev/null; then
+        local current_version
+        current_version=$(terraform version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        if [ "$current_version" = "$version" ]; then
+            echo -e "${GREEN}✓ Terraform v${version} already installed${NC}"
+            return 0
+        fi
+    fi
+
+    local filename="terraform_${version}_${PLATFORM}_${ARCH}.zip"
+    local url="https://releases.hashicorp.com/terraform/${version}/${filename}"
+
+    echo "Downloading from: $url"
+    if ! curl -sL "$url" -o /tmp/terraform.zip; then
+        echo -e "${RED}Error: Failed to download Terraform${NC}"
+        exit 1
+    fi
+
+    # Verify checksum
+    verify_checksum_wrapper "/tmp/terraform.zip" "$filename"
+
+    # Extract and install
+    unzip -q -o /tmp/terraform.zip terraform -d /tmp
+    mkdir -p "$INSTALL_DIR"
+    mv /tmp/terraform "$INSTALL_DIR/terraform"
+    chmod +x "$INSTALL_DIR/terraform"
+    rm -f /tmp/terraform.zip /tmp/LICENSE.txt 2>/dev/null || true
+
+    # Verify installation
+    if "$INSTALL_DIR/terraform" version &> /dev/null; then
+        echo -e "${GREEN}✓ Terraform installed successfully${NC}"
+    else
+        echo -e "${RED}Error: Terraform installation verification failed${NC}"
+        exit 1
+    fi
+}
+
+# Install Terragrunt
+install_terragrunt() {
+    local version=""
+    # Prefer environment variable if set (from Docker build)
+    if [ -n "${TERRAGRUNT_VERSION:-}" ]; then
+        version="v${TERRAGRUNT_VERSION}"
+    elif [ "$DBR_VERSION" = "dbr15" ]; then
+        version="v${TOOL_VERSIONS_DBR15[terragrunt]}"
+    else
+        version="v${TOOL_VERSIONS_DBR16[terragrunt]}"
+    fi
+
+    echo -e "${YELLOW}Installing Terragrunt ${version}...${NC}"
+
+    # Check if already installed with correct version
+    if command -v terragrunt &> /dev/null; then
+        local current_version
+        current_version=$(terragrunt --version 2>&1 | grep -oE 'v?[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        if [ "$current_version" = "$version" ] || [ "v$current_version" = "$version" ]; then
+            echo -e "${GREEN}✓ Terragrunt ${version} already installed${NC}"
+            return 0
+        fi
+    fi
+
+    local filename="terragrunt_${PLATFORM}_${ARCH}_${version#v}"
+    local url="https://github.com/gruntwork-io/terragrunt/releases/download/${version}/terragrunt_${PLATFORM}_${ARCH}"
+
+    echo "Downloading from: $url"
+    if ! curl -sL "$url" -o /tmp/terragrunt; then
+        echo -e "${RED}Error: Failed to download Terragrunt${NC}"
+        exit 1
+    fi
+
+    # Verify checksum
+    verify_checksum_wrapper "/tmp/terragrunt" "$filename"
+
+    # Install
+    mkdir -p "$INSTALL_DIR"
+    mv /tmp/terragrunt "$INSTALL_DIR/terragrunt"
+    chmod +x "$INSTALL_DIR/terragrunt"
+
+    # Verify installation
+    if "$INSTALL_DIR/terragrunt" --version &> /dev/null; then
+        echo -e "${GREEN}✓ Terragrunt installed successfully${NC}"
+    else
+        echo -e "${RED}Error: Terragrunt installation verification failed${NC}"
+        exit 1
+    fi
+}
+
+# Install AWS CLI
+install_aws_cli() {
+    local version=""
+    # Prefer environment variable if set (from Docker build)
+    if [ -n "${AWS_CLI_VERSION:-}" ]; then
+        version="$AWS_CLI_VERSION"
+    elif [ "$DBR_VERSION" = "dbr15" ]; then
+        version="${TOOL_VERSIONS_DBR15[aws-cli]}"
+    else
+        version="${TOOL_VERSIONS_DBR16[aws-cli]}"
+    fi
+
+    echo -e "${YELLOW}Installing AWS CLI v${version}...${NC}"
+
+    # Check if already installed and compare versions
+    if command -v aws &> /dev/null; then
+        local current_version
+        current_version=$(aws --version 2>&1 | grep -oE 'aws-cli/[0-9]+\.[0-9]+\.[0-9]+' | cut -d'/' -f2)
+
+        if [ -n "$current_version" ]; then
+            echo -e "${GREEN}✓ AWS CLI already installed (v${current_version})${NC}"
+
+            # Compare versions
+            if [ "$current_version" = "$version" ]; then
+                echo -e "${GREEN}✓ Version matches expected v${version}${NC}"
+                return 0
+            else
+                echo -e "${YELLOW}⚠ Warning: Installed version (v${current_version}) differs from expected (v${version})${NC}"
+                echo -e "${YELLOW}  To update, uninstall the current version and re-run this script${NC}"
+                echo -e "${YELLOW}  Or continue with the existing version${NC}"
+
+                # Ask user if they want to continue (unless in non-interactive mode)
+                if [ -t 0 ] && [ -z "${NON_INTERACTIVE:-}" ]; then
+                    read -p "Continue with existing version? (y/n) " -n 1 -r
+                    echo
+                    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                        echo -e "${RED}Installation cancelled${NC}"
+                        exit 1
+                    fi
+                fi
+                return 0
+            fi
+        else
+            echo -e "${GREEN}✓ AWS CLI already installed${NC}"
+            aws --version
+            return 0
+        fi
+    fi
+
+    if [ "$PLATFORM" = "linux" ]; then
+        local aws_arch="x86_64"
+        if [ "$ARCH" = "arm64" ]; then
+            aws_arch="aarch64"
+        fi
+
+        local filename="awscli-exe-linux-${aws_arch}-${version}.zip"
+        local url="https://awscli.amazonaws.com/${filename}"
+        echo "Downloading AWS CLI v${version} for Linux ${aws_arch}..."
+        if ! curl -sL "$url" -o /tmp/awscliv2.zip; then
+            echo -e "${RED}Error: Failed to download AWS CLI from $url${NC}"
+            exit 1
+        fi
+
+        # Verify checksum
+        verify_checksum_wrapper "/tmp/awscliv2.zip" "$filename"
+
+        # Extract and install
+        unzip -q /tmp/awscliv2.zip -d /tmp
+
+        # Check if we can write to the install directory
+        if [ -w "$INSTALL_DIR" ]; then
+            if /tmp/aws/install --install-dir /usr/local/aws-cli --bin-dir "$INSTALL_DIR" 2>/dev/null; then
+                # Installation succeeded, clean up temporary files
+                rm -rf /tmp/awscliv2.zip /tmp/aws 2>/dev/null || true
+            else
+                echo -e "${YELLOW}Warning: AWS CLI installation requires sudo privileges${NC}"
+                echo "Run: sudo /tmp/aws/install --install-dir /usr/local/aws-cli --bin-dir $INSTALL_DIR"
+                echo "Then run: rm -rf /tmp/awscliv2.zip /tmp/aws"
+                echo "Skipping AWS CLI installation..."
+            fi
+        else
+            echo -e "${YELLOW}Warning: Cannot write to $INSTALL_DIR${NC}"
+            echo "AWS CLI installation requires sudo privileges"
+            echo "Run: sudo /tmp/aws/install --install-dir /usr/local/aws-cli --bin-dir $INSTALL_DIR"
+            echo "Then run: rm -rf /tmp/awscliv2.zip /tmp/aws"
+            echo "Skipping AWS CLI installation..."
+        fi
+
+    elif [ "$PLATFORM" = "darwin" ]; then
+        echo "For macOS, please download and install AWS CLI from:"
+        echo "https://awscli.amazonaws.com/AWSCLIV2.pkg"
+        echo "Or install via Homebrew: brew install awscli"
+    fi
+
+    # Verify if installation succeeded
+    if command -v aws &> /dev/null; then
+        echo -e "${GREEN}✓ AWS CLI installed successfully${NC}"
+    else
+        echo -e "${YELLOW}⚠ AWS CLI not installed (may require manual installation)${NC}"
+    fi
+}
+
+# Install UV (optional, for faster Python package management)
+install_uv() {
+    local version=""
+    if [ "$DBR_VERSION" = "dbr15" ]; then
+        version="0.6.12"
+    else
+        version="0.7.14"
+    fi
+
+    echo -e "${YELLOW}Installing UV v${version} (optional)...${NC}"
+
+    # Check if already installed
+    if command -v uv &> /dev/null; then
+        echo -e "${GREEN}✓ UV already installed${NC}"
+        return 0
+    fi
+
+    # Install using the official installer
+    if command -v curl &> /dev/null; then
+        curl -LsSf "https://github.com/astral-sh/uv/releases/download/${version}/uv-installer.sh" | sh 2>/dev/null || {
+            echo -e "${YELLOW}⚠ UV installation skipped (optional tool)${NC}"
+        }
+    else
+        echo -e "${YELLOW}⚠ UV installation skipped - curl not available${NC}"
+    fi
+}
+
+# Main execution
+main() {
+    # Check if install directory is writable
+    if [ ! -w "$INSTALL_DIR" ] && [ "$INSTALL_DIR" = "/usr/local/bin" ]; then
+        echo -e "${YELLOW}Warning: $INSTALL_DIR is not writable${NC}"
+        echo "You may need to run this script with sudo, or specify a different --install-dir"
+        echo ""
+    fi
+
+    # Create install directory if it doesn't exist
+    mkdir -p "$INSTALL_DIR" 2>/dev/null || {
+        echo -e "${YELLOW}Cannot create $INSTALL_DIR - you may need sudo privileges${NC}"
+    }
+
+    # Install tools
+    install_databricks_cli
+    install_terraform
+    install_terragrunt
+    install_aws_cli
+    install_uv
+
+    echo ""
+    echo -e "${GREEN}✓ Binary tools installation complete!${NC}"
+    echo ""
+
+    # Add to PATH if needed
+    if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
+        echo -e "${YELLOW}Note: $INSTALL_DIR is not in your PATH${NC}"
+        echo "Add it to your PATH by adding this line to your shell profile:"
+        echo "  export PATH=\"$INSTALL_DIR:\$PATH\""
+    fi
+
+    echo ""
+    echo "Next step:"
+    echo "  Run validation: dbr-validate --version $DBR_VERSION"
+}
+
+# Run main function
+main

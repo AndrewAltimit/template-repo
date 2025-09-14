@@ -1,0 +1,189 @@
+name: Databricks Environment CI
+
+on:
+  push:
+    branches: [databricks-env-setup]
+    paths:
+      - 'databricks/**'
+      - '.github/workflows/databricks-ci.yml'
+  pull_request:
+    branches: [databricks-env-setup]
+    paths:
+      - 'databricks/**'
+      - '.github/workflows/databricks-ci.yml'
+
+jobs:
+  # Build Docker images first - these will be used for testing
+  build-docker-images:
+    runs-on: [self-hosted, linux]
+    strategy:
+      matrix:
+        dbr-version: [15, 16]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build DBR${{ matrix.dbr-version }} Docker image
+        run: |
+          cd databricks
+          # Export versions from config/versions.json for Docker build
+          source ./scripts/export-versions.sh
+          # Use the compose script which auto-detects docker-compose vs podman-compose
+          ./run-compose.sh build dbr${{ matrix.dbr-version }}
+
+      - name: Test container has all tools
+        run: |
+          cd databricks
+          # Quick smoke test to ensure image built correctly
+          ./run-compose.sh run --rm dbr${{ matrix.dbr-version }} sh -c "
+            echo '--- Testing Python ---' && python --version && \
+            echo '--- Testing Java ---' && java -version && \
+            echo '--- Testing Databricks CLI ---' && databricks --version && \
+            echo '--- Testing Terraform ---' && terraform version && \
+            echo '--- Testing Terragrunt ---' && terragrunt --version && \
+            echo '--- Testing AWS CLI ---' && aws --version && \
+            echo '✓ All tools verified successfully'
+          "
+
+  # Validate Dockerfile versions match config
+  validate-versions:
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Dockerfile versions against versions.json
+        run: |
+          cd databricks
+          ./scripts/validate-dockerfile-versions.sh
+
+  build-wheels:
+    runs-on: [self-hosted, linux]
+    strategy:
+      matrix:
+        include:
+          # DBR15 packages use Python 3.11
+          - package: core
+            python-version: '3.11'
+          - package: ml
+            python-version: '3.11'
+          - package: cloud
+            python-version: '3.11'
+          - package: all
+            python-version: '3.11'
+          # Also build with Python 3.12 for DBR16 compatibility
+          - package: core
+            python-version: '3.12'
+          - package: ml
+            python-version: '3.12'
+          - package: cloud
+            python-version: '3.12'
+          - package: all
+            python-version: '3.12'
+
+    container:
+      image: python:${{ matrix.python-version }}-slim
+      options: --user 1000:1000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          pip install --user --upgrade pip
+          pip install --user build twine
+
+      - name: Build wheel for ${{ matrix.package }}
+        run: |
+          export PATH=$PATH:$HOME/.local/bin
+          cd databricks/wheels/dbr-env-${{ matrix.package }}
+          python -m build --wheel
+
+      - name: Validate wheel
+        run: |
+          export PATH=$PATH:$HOME/.local/bin
+          cd databricks/wheels/dbr-env-${{ matrix.package }}
+          python -m twine check dist/*.whl
+
+      - name: Upload wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.package }}-py${{ matrix.python-version }}
+          path: databricks/wheels/dbr-env-${{ matrix.package }}/dist/*.whl
+          retention-days: 7
+
+  test-python-packages:
+    needs: [build-wheels, build-docker-images]
+    runs-on: [self-hosted, linux]
+    strategy:
+      matrix:
+        include:
+          - dbr-version: dbr15
+            service-name: dbr15
+          - dbr-version: dbr16
+            service-name: dbr16
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheel-*
+          path: databricks/dist/
+          merge-multiple: true
+
+      - name: Install wheels and test
+        run: |
+          cd databricks
+          # Run the CI test script inside the container
+          ./run-compose.sh run --rm ${{ matrix.service-name }} bash scripts/ci/ci-test.sh ${{ matrix.dbr-version }}
+
+  test-scripts:
+    runs-on: [self-hosted, linux]
+    container:
+      image: python:3.11-slim
+      options: --user 1000:1000
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test validation script availability
+        run: |
+          # Note: dbr-validate is provided by the Python package, not a bash script
+          # It will be available after installing the dbr-env-all package
+          echo "dbr-validate is provided by the Python dbr-env-all package"
+
+      - name: Test pre-installation script
+        run: |
+          databricks/scripts/dbr-setup-pre --help
+
+      - name: Test post-installation script
+        run: |
+          databricks/scripts/dbr-setup-post --help
+
+  integration-test:
+    needs: [test-python-packages, test-scripts]
+    runs-on: [self-hosted, linux]
+    strategy:
+      matrix:
+        include:
+          - dbr-version: dbr15
+            service-name: dbr15
+          - dbr-version: dbr16
+            service-name: dbr16
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheel-*
+          path: databricks/dist/
+          merge-multiple: true
+
+      - name: Run integration test in ${{ matrix.dbr-version }} container
+        run: |
+          cd databricks
+          # Run the integration test script inside the container
+          ./run-compose.sh run --rm ${{ matrix.service-name }} \
+            bash scripts/ci/ci-integration-test.sh ${{ matrix.dbr-version }}
