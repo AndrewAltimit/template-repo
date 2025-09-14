@@ -159,16 +159,15 @@ jobs:
 
       - name: Test container
         run: |
-          # Test Python version
-          docker run --rm --user 1000:1000 dbr-test:${{ matrix.dbr-version }} python --version
-
-          # Test Java
-          docker run --rm --user 1000:1000 dbr-test:${{ matrix.dbr-version }} java -version
-
-          # Test tools
-          docker run --rm --user 1000:1000 dbr-test:${{ matrix.dbr-version }} databricks --version
-          docker run --rm --user 1000:1000 dbr-test:${{ matrix.dbr-version }} terraform version
-          docker run --rm --user 1000:1000 dbr-test:${{ matrix.dbr-version }} terragrunt --version
+          # Test all tools in a single container run for efficiency
+          docker run --rm --user 1000:1000 dbr-test:${{ matrix.dbr-version }} sh -c "
+            echo '--- Testing Python ---' && python --version && \
+            echo '--- Testing Java ---' && java -version && \
+            echo '--- Testing Databricks CLI ---' && databricks --version && \
+            echo '--- Testing Terraform ---' && terraform version && \
+            echo '--- Testing Terragrunt ---' && terragrunt --version && \
+            echo '✓ All tools verified successfully'
+          "
 
   integration-test:
     needs: [test-python-packages, test-scripts]

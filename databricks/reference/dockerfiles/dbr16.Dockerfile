@@ -46,18 +46,13 @@ RUN mkdir -p /tmp/dbx-cli && \
     databricks --help
 
 # Install AWS CLI
-# Checksums for verification (computed from official binaries)
-ARG AWS_CLI_SHA256_AMD64="2f6f4c699f7c93bb2f19a8502bd945d243567d1dd95fb87397e3449204fd69cf"
-ARG AWS_CLI_SHA256_ARM64="90ae801d74b99e7dc4efae10c6b4236555a6b58b8c7fb2c6d7f0b4c0a2582f76"
 RUN if [ "${TARGETARCH}" = "arm64" ]; then \
         AWS_CLI_PKG="aarch64"; \
-        AWS_CLI_SHA256="${AWS_CLI_SHA256_ARM64}"; \
     else \
         AWS_CLI_PKG="x86_64"; \
-        AWS_CLI_SHA256="${AWS_CLI_SHA256_AMD64}"; \
     fi \
     && curl -L "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_CLI_PKG}.zip" -o "awscliv2.zip" \
-    && echo "${AWS_CLI_SHA256}  awscliv2.zip" | sha256sum -c - || exit 1 \
+    && docker-verify-checksum.sh awscliv2.zip "awscli-exe-linux-${AWS_CLI_PKG}.zip" \
     && unzip awscliv2.zip \
     && ./aws/install \
     && rm -rf awscliv2.zip aws \
@@ -65,15 +60,8 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
 
 # Install Terraform
 ARG TERRAFORM_VERSION=1.12.2
-# Checksums for verification (computed from official binaries)
-ARG TERRAFORM_SHA256_AMD64="1eaed12ca41fcfe094da3d76a7e9aa0639ad3409c43be0103ee9f5a1ff4b7437"
-ARG TERRAFORM_SHA256_ARM64="f8a0347dc5e68e6d60a9fa2db361762e7943ed084a773f28a981d988ceb6fdc9"
 RUN curl --remote-name --location https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
-    && if [ "${TARGETARCH}" = "amd64" ]; then \
-        echo "${TERRAFORM_SHA256_AMD64}  terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip" | sha256sum -c - || exit 1; \
-    else \
-        echo "${TERRAFORM_SHA256_ARM64}  terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip" | sha256sum -c - || exit 1; \
-    fi \
+    && docker-verify-checksum.sh terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
     && unzip terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
     && mv terraform /usr/bin \
     && rm LICENSE.txt terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
@@ -81,15 +69,8 @@ RUN curl --remote-name --location https://releases.hashicorp.com/terraform/${TER
 
 # Install Terragrunt
 ARG TERRAGRUNT_VERSION="v0.81.10"
-# Checksums for verification (computed from official binaries)
-ARG TERRAGRUNT_SHA256_AMD64="1821248830c887d40a74a8d6916024b6de660aa61d35443101857a24a2f3bdb1"
-ARG TERRAGRUNT_SHA256_ARM64="a69b40723cc5210943eff6e22354105f129812f6817ea0d021af9c58ec61f38b"
 RUN curl -sL https://github.com/gruntwork-io/terragrunt/releases/download/${TERRAGRUNT_VERSION}/terragrunt_linux_${TARGETARCH} -o /usr/local/bin/terragrunt \
-    && if [ "${TARGETARCH}" = "amd64" ]; then \
-        echo "${TERRAGRUNT_SHA256_AMD64}  /usr/local/bin/terragrunt" | sha256sum -c - || exit 1; \
-    else \
-        echo "${TERRAGRUNT_SHA256_ARM64}  /usr/local/bin/terragrunt" | sha256sum -c - || exit 1; \
-    fi \
+    && docker-verify-checksum.sh /usr/local/bin/terragrunt terragrunt_linux_${TARGETARCH} \
     && chmod +x /usr/local/bin/terragrunt \
     && terragrunt --version
 
@@ -103,12 +84,11 @@ RUN groupadd -g ${GROUP_ID} -o dbruser && \
 WORKDIR /workspace
 RUN chown -R dbruser:dbruser /workspace
 
-# Copy helper scripts and checksums (excluding the redundant dbr-validate)
-RUN mkdir -p /opt/databricks/config
+# Copy helper scripts (excluding the redundant dbr-validate)
+# Note: checksums.txt and docker-verify-checksum.sh already copied at the beginning of the Dockerfile
 COPY scripts/dbr-setup-post /usr/local/bin/dbr-setup-post
 COPY scripts/dbr-setup-pre /usr/local/bin/dbr-setup-pre
 COPY scripts/verify-checksum.sh /usr/local/bin/verify-checksum.sh
-COPY config/checksums.txt /opt/databricks/config/checksums.txt
 RUN chmod +x /usr/local/bin/dbr-setup-post /usr/local/bin/dbr-setup-pre /usr/local/bin/verify-checksum.sh
 
 # Note: dbr-validate command is provided by the Python dbr-env-all package
