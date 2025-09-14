@@ -17,6 +17,8 @@ RUN chmod +x /usr/local/bin/verify-checksum.sh
 RUN ln -s /usr/local/bin/verify-checksum.sh /usr/local/bin/docker-verify-checksum.sh
 
 # Setup UV for fast package installation
+# Note: Docker doesn't support ARG in COPY --from, so UV version is fixed here
+# This should match the version in config/versions.json for dbr16
 ENV UV_TOOL_BIN_DIR=/bin
 COPY --from=ghcr.io/astral-sh/uv:0.7.14 /uv /uvx /bin/
 

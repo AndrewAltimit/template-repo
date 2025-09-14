@@ -26,6 +26,8 @@ jobs:
       - name: Build DBR${{ matrix.dbr-version }} Docker image
         run: |
           cd databricks
+          # Export versions from config/versions.json for Docker build
+          source ./scripts/export-versions.sh
           # Use the compose script which auto-detects docker-compose vs podman-compose
           ./run-compose.sh build dbr${{ matrix.dbr-version }}
 

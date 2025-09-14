@@ -8,6 +8,10 @@ services:
       args:
         USER_ID: ${USER_ID:-1000}
         GROUP_ID: ${GROUP_ID:-1000}
+        DBX_CLI_VERSION: ${DBX_CLI_VERSION_DBR15:-0.245.0}
+        TERRAFORM_VERSION: ${TERRAFORM_VERSION_DBR15:-1.11.2}
+        TERRAGRUNT_VERSION: ${TERRAGRUNT_VERSION_DBR15:-v0.77.0}
+        AWS_CLI_VERSION: ${AWS_CLI_VERSION_DBR15:-2.22.25}
     image: dbr-env:15
     container_name: dbr15
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
@@ -27,6 +31,10 @@ services:
       args:
         USER_ID: ${USER_ID:-1000}
         GROUP_ID: ${GROUP_ID:-1000}
+        DBX_CLI_VERSION: ${DBX_CLI_VERSION_DBR16:-0.256.0}
+        TERRAFORM_VERSION: ${TERRAFORM_VERSION_DBR16:-1.12.2}
+        TERRAGRUNT_VERSION: ${TERRAGRUNT_VERSION_DBR16:-v0.81.10}
+        AWS_CLI_VERSION: ${AWS_CLI_VERSION_DBR16:-2.22.25}
     image: dbr-env:16
     container_name: dbr16
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"

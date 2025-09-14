@@ -9,6 +9,16 @@ GROUP_ID=$(id -g)
 export USER_ID
 export GROUP_ID
 
+# If building, source versions from config/versions.json
+if [[ "$*" == *"build"* ]]; then
+    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+    if [ -f "$SCRIPT_DIR/scripts/export-versions.sh" ]; then
+        echo "Loading versions from config/versions.json..."
+        # shellcheck source=/dev/null
+        source "$SCRIPT_DIR/scripts/export-versions.sh"
+    fi
+fi
+
 # Detect which compose tool to use
 if command -v podman-compose &> /dev/null; then
     COMPOSE_CMD="podman-compose"
