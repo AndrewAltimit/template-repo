@@ -238,13 +238,15 @@ check_python_version() {
     fi
 
     if command -v python3 &> /dev/null; then
-        local python_version=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+        local python_version
+        python_version=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
 
         if [ "$python_version" = "$required_python" ]; then
             echo -e "${GREEN}✓ Python $required_python found${NC}"
         else
-            echo -e "${YELLOW}Warning: Python $required_python required, but $python_version found${NC}"
-            echo "Consider using pyenv or conda to install Python $required_python"
+            echo -e "${RED}Error: Python $required_python required, but $python_version found${NC}"
+            echo "Please install Python $required_python using pyenv, conda, or your system package manager"
+            exit 1
         fi
     else
         echo -e "${RED}Error: Python 3 not found${NC}"

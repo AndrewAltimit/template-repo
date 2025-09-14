@@ -70,7 +70,7 @@ RUN curl --remote-name --location https://releases.hashicorp.com/terraform/${TER
 # Install Terragrunt
 ARG TERRAGRUNT_VERSION="v0.81.10"
 RUN curl -sL https://github.com/gruntwork-io/terragrunt/releases/download/${TERRAGRUNT_VERSION}/terragrunt_linux_${TARGETARCH} -o /usr/local/bin/terragrunt \
-    && docker-verify-checksum.sh /usr/local/bin/terragrunt terragrunt_linux_${TARGETARCH} \
+    && docker-verify-checksum.sh /usr/local/bin/terragrunt "terragrunt_linux_${TARGETARCH}  ${TERRAGRUNT_VERSION#v}" \
     && chmod +x /usr/local/bin/terragrunt \
     && terragrunt --version
 

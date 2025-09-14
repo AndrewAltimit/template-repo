@@ -326,19 +326,22 @@ install_aws_cli() {
 
         # Check if we can write to the install directory
         if [ -w "$INSTALL_DIR" ]; then
-            /tmp/aws/install --install-dir /usr/local/aws-cli --bin-dir "$INSTALL_DIR" 2>/dev/null || {
+            if /tmp/aws/install --install-dir /usr/local/aws-cli --bin-dir "$INSTALL_DIR" 2>/dev/null; then
+                # Installation succeeded, clean up temporary files
+                rm -rf /tmp/awscliv2.zip /tmp/aws 2>/dev/null || true
+            else
                 echo -e "${YELLOW}Warning: AWS CLI installation requires sudo privileges${NC}"
                 echo "Run: sudo /tmp/aws/install --install-dir /usr/local/aws-cli --bin-dir $INSTALL_DIR"
+                echo "Then run: rm -rf /tmp/awscliv2.zip /tmp/aws"
                 echo "Skipping AWS CLI installation..."
-            }
+            fi
         else
             echo -e "${YELLOW}Warning: Cannot write to $INSTALL_DIR${NC}"
             echo "AWS CLI installation requires sudo privileges"
             echo "Run: sudo /tmp/aws/install --install-dir /usr/local/aws-cli --bin-dir $INSTALL_DIR"
+            echo "Then run: rm -rf /tmp/awscliv2.zip /tmp/aws"
             echo "Skipping AWS CLI installation..."
         fi
-
-        rm -rf /tmp/awscliv2.zip /tmp/aws 2>/dev/null || true
 
     elif [ "$PLATFORM" = "darwin" ]; then
         echo "For macOS, please download and install AWS CLI from:"
