@@ -8,6 +8,12 @@ ARG TARGETARCH=amd64
 USER root
 WORKDIR /tmp
 
+# Copy checksum files and verification script early for use during build
+RUN mkdir -p /opt/databricks/config
+COPY config/checksums.txt /opt/databricks/config/checksums.txt
+COPY scripts/docker-verify-checksum.sh /usr/local/bin/docker-verify-checksum.sh
+RUN chmod +x /usr/local/bin/docker-verify-checksum.sh
+
 # Setup UV for fast package installation
 ENV UV_TOOL_BIN_DIR=/bin
 COPY --from=ghcr.io/astral-sh/uv:0.7.14 /uv /uvx /bin/
@@ -29,17 +35,10 @@ RUN apt-get update && \
 
 # Install Databricks CLI
 ARG DBX_CLI_VERSION=0.256.0
-# Checksums for verification (computed from official binaries)
-ARG DBX_CLI_SHA256_AMD64="fde4bcf58d6397f0cd4bbb23d227a0dd9b6e8dc3427acabfc0b351af03fedf37"
-ARG DBX_CLI_SHA256_ARM64="200ba568a59cb0c52acc75fc1f31fc59a19814ec36363f299920cba826eeb87f"
 RUN mkdir -p /tmp/dbx-cli && \
     cd /tmp/dbx-cli && \
     wget https://github.com/databricks/cli/releases/download/v${DBX_CLI_VERSION}/databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip && \
-    if [ "${TARGETARCH}" = "amd64" ]; then \
-        echo "${DBX_CLI_SHA256_AMD64}  databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip" | sha256sum -c - || exit 1; \
-    else \
-        echo "${DBX_CLI_SHA256_ARM64}  databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip" | sha256sum -c - || exit 1; \
-    fi && \
+    docker-verify-checksum.sh databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip && \
     unzip *.zip && \
     mv databricks /usr/local/bin/databricks && \
     chmod +x /usr/local/bin/databricks && \
