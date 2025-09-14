@@ -4,7 +4,7 @@ services:
   dbr15:
     build:
       context: .
-      dockerfile: reference/dockerfiles/dbr15.Dockerfile
+      dockerfile: docker/dockerfiles/dbr15.Dockerfile
       args:
         USER_ID: ${USER_ID:-1000}
         GROUP_ID: ${GROUP_ID:-1000}
@@ -27,7 +27,7 @@ services:
   dbr16:
     build:
       context: .
-      dockerfile: reference/dockerfiles/dbr16.Dockerfile
+      dockerfile: docker/dockerfiles/dbr16.Dockerfile
       args:
         USER_ID: ${USER_ID:-1000}
         GROUP_ID: ${GROUP_ID:-1000}

@@ -161,8 +161,8 @@ jobs:
 
       - name: Validate Dockerfiles
         run: |
-          docker run --rm --user 1000:1000 -i hadolint/hadolint < databricks/reference/dockerfiles/dbr15.Dockerfile
-          docker run --rm --user 1000:1000 -i hadolint/hadolint < databricks/reference/dockerfiles/dbr16.Dockerfile
+          docker run --rm --user 1000:1000 -i hadolint/hadolint < databricks/docker/dockerfiles/dbr15.Dockerfile
+          docker run --rm --user 1000:1000 -i hadolint/hadolint < databricks/docker/dockerfiles/dbr16.Dockerfile
 
       - name: Check Docker Compose
         run: |

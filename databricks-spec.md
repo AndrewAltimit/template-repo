@@ -83,7 +83,7 @@ dbr-env-setup/
 ### 3.1 DBR 15 Reference Dockerfile
 
 ```dockerfile
-# reference/dockerfiles/dbr15.Dockerfile
+# docker/dockerfiles/dbr15.Dockerfile
 FROM python:3.11-bullseye
 
 ARG TARGETARCH=amd64
@@ -153,7 +153,7 @@ RUN curl -sL https://github.com/gruntwork-io/terragrunt/releases/download/${TERR
 ### 3.2 DBR 16 Reference Dockerfile
 
 ```dockerfile
-# reference/dockerfiles/dbr16.Dockerfile
+# docker/dockerfiles/dbr16.Dockerfile
 FROM python:3.12-bullseye
 
 ARG TARGETARCH=amd64
@@ -1018,7 +1018,7 @@ jobs:
 
       - name: Build reference Dockerfile
         run: |
-          docker build -f reference/dockerfiles/dbr${{ matrix.dbr-version }}.Dockerfile \
+          docker build -f docker/dockerfiles/dbr${{ matrix.dbr-version }}.Dockerfile \
             -t dbr-test:${{ matrix.dbr-version }} .
 
       - name: Test container
