@@ -11,8 +11,10 @@ WORKDIR /tmp
 # Copy checksum files and verification script early for use during build
 RUN mkdir -p /opt/databricks/config
 COPY config/checksums.txt /opt/databricks/config/checksums.txt
-COPY scripts/docker-verify-checksum.sh /usr/local/bin/docker-verify-checksum.sh
-RUN chmod +x /usr/local/bin/docker-verify-checksum.sh
+COPY scripts/verify-checksum.sh /usr/local/bin/verify-checksum.sh
+RUN chmod +x /usr/local/bin/verify-checksum.sh
+# Create compatibility alias for docker-verify-checksum.sh
+RUN ln -s /usr/local/bin/verify-checksum.sh /usr/local/bin/docker-verify-checksum.sh
 
 # Setup UV for fast package installation
 ENV UV_TOOL_BIN_DIR=/bin
@@ -86,11 +88,10 @@ WORKDIR /workspace
 RUN chown -R dbruser:dbruser /workspace
 
 # Copy helper scripts (excluding the redundant dbr-validate)
-# Note: checksums.txt already copied at the beginning of the Dockerfile
+# Note: checksums.txt and verify-checksum.sh already copied at the beginning of the Dockerfile
 COPY scripts/dbr-setup-post /usr/local/bin/dbr-setup-post
 COPY scripts/dbr-setup-pre /usr/local/bin/dbr-setup-pre
-COPY scripts/verify-checksum.sh /usr/local/bin/verify-checksum.sh
-RUN chmod +x /usr/local/bin/dbr-setup-post /usr/local/bin/dbr-setup-pre /usr/local/bin/verify-checksum.sh
+RUN chmod +x /usr/local/bin/dbr-setup-post /usr/local/bin/dbr-setup-pre
 
 # Note: dbr-validate command is provided by the Python dbr-env-all package
 

@@ -352,11 +352,39 @@ install_aws_cli() {
 
     echo -e "${YELLOW}Installing AWS CLI v${version}...${NC}"
 
-    # Check if already installed
+    # Check if already installed and compare versions
     if command -v aws &> /dev/null; then
-        echo -e "${GREEN}✓ AWS CLI already installed${NC}"
-        aws --version
-        return 0
+        local current_version
+        current_version=$(aws --version 2>&1 | grep -oE 'aws-cli/[0-9]+\.[0-9]+\.[0-9]+' | cut -d'/' -f2)
+
+        if [ -n "$current_version" ]; then
+            echo -e "${GREEN}✓ AWS CLI already installed (v${current_version})${NC}"
+
+            # Compare versions
+            if [ "$current_version" = "$version" ]; then
+                echo -e "${GREEN}✓ Version matches expected v${version}${NC}"
+                return 0
+            else
+                echo -e "${YELLOW}⚠ Warning: Installed version (v${current_version}) differs from expected (v${version})${NC}"
+                echo -e "${YELLOW}  To update, uninstall the current version and re-run this script${NC}"
+                echo -e "${YELLOW}  Or continue with the existing version${NC}"
+
+                # Ask user if they want to continue (unless in non-interactive mode)
+                if [ -t 0 ] && [ -z "${NON_INTERACTIVE:-}" ]; then
+                    read -p "Continue with existing version? (y/n) " -n 1 -r
+                    echo
+                    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                        echo -e "${RED}Installation cancelled${NC}"
+                        exit 1
+                    fi
+                fi
+                return 0
+            fi
+        else
+            echo -e "${GREEN}✓ AWS CLI already installed${NC}"
+            aws --version
+            return 0
+        fi
     fi
 
     if [ "$PLATFORM" = "linux" ]; then

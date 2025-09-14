@@ -160,7 +160,33 @@ def validate_dbr_environment(dbr_version="dbr15", json_output=False):
     """Validate complete DBR environment setup."""
     from . import TOOL_VERSIONS
 
-    # Get expected versions
+    # Try to import package version info from dbr_env_core
+    try:
+        from dbr_env_core import get_dbr_info
+        from dbr_env_ml import get_ml_info
+
+        # Get package versions from the source of truth
+        core_info = get_dbr_info(dbr_version)
+        ml_info = get_ml_info(dbr_version)
+
+        # Extract versions from the info dictionaries
+        core_versions = core_info.get("packages", {})
+        ml_versions = ml_info.get("packages", {})
+    except ImportError:
+        # Fallback to hardcoded versions if packages not available
+        core_versions = {
+            "pandas": "1.5.3",
+            "numpy": "1.23.5" if dbr_version == "dbr15" else "1.26.4",
+            "pyspark": "3.5.0",
+            "delta-spark": "3.2.0",
+            "databricks-sdk": "0.20.0" if dbr_version == "dbr15" else "0.30.0",
+        }
+        ml_versions = {
+            "scikit-learn": "1.3.0" if dbr_version == "dbr15" else "1.4.2",
+            "mlflow-skinny": "2.11.4" if dbr_version == "dbr15" else "2.19.0",
+        }
+
+    # Get expected versions for tools
     expected = TOOL_VERSIONS.get(dbr_version, TOOL_VERSIONS["dbr15"])
 
     results = []
@@ -172,25 +198,14 @@ def validate_dbr_environment(dbr_version="dbr15", json_output=False):
     results.append(check_java_version())
 
     # Check core packages
-    core_packages = [
-        ("pandas", "1.5.3"),
-        ("numpy", "1.23.5" if dbr_version == "dbr15" else "1.26.4"),
-        ("pyspark", "3.5.0"),
-        ("delta-spark", "3.2.0"),
-        ("databricks-sdk", expected.get("databricks-sdk", "0.20.0" if dbr_version == "dbr15" else "0.30.0")),
-    ]
-
-    for package, version in core_packages:
-        results.append(check_package_version(package, version))
+    for package, version in core_versions.items():
+        if package in ["pandas", "numpy", "pyspark", "delta-spark", "databricks-sdk"]:
+            results.append(check_package_version(package, version))
 
     # Check ML packages
-    ml_packages = [
-        ("scikit-learn", "1.3.0" if dbr_version == "dbr15" else "1.4.2"),
-        ("mlflow-skinny", "2.11.4" if dbr_version == "dbr15" else "2.19.0"),
-    ]
-
-    for package, version in ml_packages:
-        results.append(check_package_version(package, version))
+    for package, version in ml_versions.items():
+        if package in ["scikit-learn", "mlflow-skinny"]:
+            results.append(check_package_version(package, version))
 
     # Check binary tools
     tools = [
