@@ -16,6 +16,8 @@ services:
     working_dir: /workspace
     environment:
       - SPARK_LOCAL_IP=127.0.0.1
+    tty: true
+    stdin_open: true
     command: /bin/bash
 
   dbr16:
@@ -33,4 +35,6 @@ services:
     working_dir: /workspace
     environment:
       - SPARK_LOCAL_IP=127.0.0.1
+    tty: true
+    stdin_open: true
     command: /bin/bash

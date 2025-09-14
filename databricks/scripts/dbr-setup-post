@@ -28,20 +28,65 @@ elif [ -f "/usr/local/bin/verify-checksum.sh" ]; then
 fi
 
 
-# Version mappings from reference implementations
-declare -A TOOL_VERSIONS_DBR15=(
-    ["databricks-cli"]="0.245.0"
-    ["terraform"]="1.11.2"
-    ["terragrunt"]="0.77.0"
-    ["aws-cli"]="2.22.25"
-)
+# Load versions from centralized versions.json if available
+load_tool_versions() {
+    # Determine the versions file path
+    local versions_file=""
+    if [ -n "${SCRIPT_DIR:-}" ]; then
+        versions_file="${SCRIPT_DIR}/../config/versions.json"
+    elif [ -f "databricks/config/versions.json" ]; then
+        versions_file="databricks/config/versions.json"
+    elif [ -f "config/versions.json" ]; then
+        versions_file="config/versions.json"
+    elif [ -f "../config/versions.json" ]; then
+        versions_file="../config/versions.json"
+    fi
 
-declare -A TOOL_VERSIONS_DBR16=(
-    ["databricks-cli"]="0.256.0"
-    ["terraform"]="1.12.2"
-    ["terragrunt"]="0.81.10"
-    ["aws-cli"]="2.22.25"
-)
+    # Check if versions.json exists and jq is available
+    if [ -f "$versions_file" ] && command -v jq &> /dev/null; then
+        # Load versions from JSON file
+        declare -gA TOOL_VERSIONS_DBR15
+        declare -gA TOOL_VERSIONS_DBR16
+
+        # Parse DBR15 versions
+        TOOL_VERSIONS_DBR15["databricks-cli"]=$(jq -r '.dbr15."databricks-cli"' "$versions_file")
+        TOOL_VERSIONS_DBR15["terraform"]=$(jq -r '.dbr15.terraform' "$versions_file")
+        TOOL_VERSIONS_DBR15["terragrunt"]=$(jq -r '.dbr15.terragrunt' "$versions_file")
+        TOOL_VERSIONS_DBR15["aws-cli"]=$(jq -r '.dbr15."aws-cli"' "$versions_file")
+
+        # Parse DBR16 versions
+        TOOL_VERSIONS_DBR16["databricks-cli"]=$(jq -r '.dbr16."databricks-cli"' "$versions_file")
+        TOOL_VERSIONS_DBR16["terraform"]=$(jq -r '.dbr16.terraform' "$versions_file")
+        TOOL_VERSIONS_DBR16["terragrunt"]=$(jq -r '.dbr16.terragrunt' "$versions_file")
+        TOOL_VERSIONS_DBR16["aws-cli"]=$(jq -r '.dbr16."aws-cli"' "$versions_file")
+
+        echo -e "${GREEN}✓ Loaded versions from $versions_file${NC}"
+    else
+        # Fallback to hardcoded values if versions.json not found or jq not available
+        declare -gA TOOL_VERSIONS_DBR15=(
+            ["databricks-cli"]="0.245.0"
+            ["terraform"]="1.11.2"
+            ["terragrunt"]="0.77.0"
+            ["aws-cli"]="2.22.25"
+        )
+
+        declare -gA TOOL_VERSIONS_DBR16=(
+            ["databricks-cli"]="0.256.0"
+            ["terraform"]="1.12.2"
+            ["terragrunt"]="0.81.10"
+            ["aws-cli"]="2.22.25"
+        )
+
+        if [ ! -f "$versions_file" ]; then
+            echo -e "${YELLOW}⚠ Using fallback versions (versions.json not found)${NC}"
+        else
+            echo -e "${YELLOW}⚠ Using fallback versions (jq not installed)${NC}"
+        fi
+    fi
+}
+
+# Load the tool versions
+load_tool_versions
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
