@@ -133,6 +133,14 @@ jobs:
   integration-test:
     needs: [test-python-packages, test-scripts]
     runs-on: [self-hosted, linux]
+    strategy:
+      matrix:
+        include:
+          - dbr-version: dbr15
+            service-name: dbr15
+          - dbr-version: dbr16
+            service-name: dbr16
+
     steps:
       - uses: actions/checkout@v4
 
@@ -143,8 +151,9 @@ jobs:
           path: databricks/dist/
           merge-multiple: true
 
-      - name: Run integration test in DBR15 container
+      - name: Run integration test in ${{ matrix.dbr-version }} container
         run: |
           cd databricks
           # Run the integration test script inside the container
-          ./run-compose.sh run --rm dbr15 bash scripts/ci/ci-integration-test.sh dbr15
+          ./run-compose.sh run --rm ${{ matrix.service-name }} \
+            bash scripts/ci/ci-integration-test.sh ${{ matrix.dbr-version }}
