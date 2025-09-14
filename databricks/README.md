@@ -48,7 +48,7 @@ pip install "dbr-env-all[dbr15]"
 ./scripts/dbr-setup-post --version dbr15
 
 # 4. Validate installation
-./scripts/dbr-validate --version dbr15
+dbr-validate --version dbr15
 ```
 
 ### Option 2: Using Docker
@@ -75,8 +75,8 @@ databricks/
 │   └── dbr-env-all/       # Meta-package including all
 ├── scripts/               # Installation scripts
 │   ├── dbr-setup-pre      # System dependencies
-│   ├── dbr-setup-post     # Binary tools
-│   └── dbr-validate       # Validation
+│   └── dbr-setup-post     # Binary tools
+│   # Note: dbr-validate is provided by the dbr-env-all Python package
 ├── reference/             # Reference implementations
 │   ├── dockerfiles/       # DBR 15 & 16 Dockerfiles
 │   └── requirements/      # Complete requirements lists
