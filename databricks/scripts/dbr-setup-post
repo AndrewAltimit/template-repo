@@ -142,6 +142,12 @@ echo ""
 
 # Detect architecture
 detect_arch() {
+    # Prefer TARGETARCH from Docker build if set
+    if [ -n "${TARGETARCH:-}" ]; then
+        echo "$TARGETARCH"
+        return
+    fi
+
     local arch
     arch=$(uname -m)
     case $arch in
@@ -199,7 +205,10 @@ verify_checksum_wrapper() {
 # Install Databricks CLI
 install_databricks_cli() {
     local version=""
-    if [ "$DBR_VERSION" = "dbr15" ]; then
+    # Prefer environment variable if set (from Docker build)
+    if [ -n "${DBX_CLI_VERSION:-}" ]; then
+        version="$DBX_CLI_VERSION"
+    elif [ "$DBR_VERSION" = "dbr15" ]; then
         version="${TOOL_VERSIONS_DBR15[databricks-cli]}"
     else
         version="${TOOL_VERSIONS_DBR16[databricks-cli]}"
@@ -248,7 +257,10 @@ install_databricks_cli() {
 # Install Terraform
 install_terraform() {
     local version=""
-    if [ "$DBR_VERSION" = "dbr15" ]; then
+    # Prefer environment variable if set (from Docker build)
+    if [ -n "${TERRAFORM_VERSION:-}" ]; then
+        version="$TERRAFORM_VERSION"
+    elif [ "$DBR_VERSION" = "dbr15" ]; then
         version="${TOOL_VERSIONS_DBR15[terraform]}"
     else
         version="${TOOL_VERSIONS_DBR16[terraform]}"
@@ -297,7 +309,10 @@ install_terraform() {
 # Install Terragrunt
 install_terragrunt() {
     local version=""
-    if [ "$DBR_VERSION" = "dbr15" ]; then
+    # Prefer environment variable if set (from Docker build)
+    if [ -n "${TERRAGRUNT_VERSION:-}" ]; then
+        version="v${TERRAGRUNT_VERSION}"
+    elif [ "$DBR_VERSION" = "dbr15" ]; then
         version="v${TOOL_VERSIONS_DBR15[terragrunt]}"
     else
         version="v${TOOL_VERSIONS_DBR16[terragrunt]}"
@@ -344,7 +359,10 @@ install_terragrunt() {
 # Install AWS CLI
 install_aws_cli() {
     local version=""
-    if [ "$DBR_VERSION" = "dbr15" ]; then
+    # Prefer environment variable if set (from Docker build)
+    if [ -n "${AWS_CLI_VERSION:-}" ]; then
+        version="$AWS_CLI_VERSION"
+    elif [ "$DBR_VERSION" = "dbr15" ]; then
         version="${TOOL_VERSIONS_DBR15[aws-cli]}"
     else
         version="${TOOL_VERSIONS_DBR16[aws-cli]}"

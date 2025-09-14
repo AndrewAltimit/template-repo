@@ -1,5 +1,6 @@
 # DBR 16 Reference Dockerfile
-# Python 3.12 with Databricks Runtime 16.4 LTS dependencies
+# Python 3.12 with Databricks Runtime 16.0 dependencies
+# Uses setup scripts for DRY principle and validation testing
 
 FROM python:3.12-bullseye
 
@@ -8,12 +9,13 @@ ARG TARGETARCH=amd64
 USER root
 WORKDIR /tmp
 
-# Copy checksum files and verification script early for use during build
-RUN mkdir -p /opt/databricks/config
-COPY config/checksums.txt /opt/databricks/config/checksums.txt
-COPY scripts/verify-checksum.sh /usr/local/bin/verify-checksum.sh
-RUN chmod +x /usr/local/bin/verify-checksum.sh
-# Verify checksum script is available for validation
+# Copy all necessary files for setup scripts
+RUN mkdir -p /opt/databricks/config /opt/databricks/scripts
+COPY config/ /opt/databricks/config/
+COPY scripts/ /opt/databricks/scripts/
+
+# Make scripts executable
+RUN chmod +x /opt/databricks/scripts/*.sh
 
 # Setup UV for fast package installation
 # Note: Docker doesn't support ARG in COPY --from, so UV version is fixed here
@@ -21,62 +23,37 @@ RUN chmod +x /usr/local/bin/verify-checksum.sh
 ENV UV_TOOL_BIN_DIR=/bin
 COPY --from=ghcr.io/astral-sh/uv:0.7.14 /uv /uvx /bin/
 
-# Copy requirements
-COPY docker/requirements/dbr16-full.txt /tmp/requirements.txt
+# Install system dependencies using the setup script
+# This validates the script works in container Linux environment
+RUN /opt/databricks/scripts/dbr-setup-pre \
+    --version dbr16 \
+    --platform linux \
+    --non-interactive
 
-# Install Python packages
+# Copy and install Python packages
+COPY docker/requirements/dbr16-full.txt /tmp/requirements.txt
 RUN uv pip install -r requirements.txt --system && uv cache clean
 
-# Install Java & System tools
-RUN apt-get update && \
-    apt-get install -y -f -m \
-    wget unzip zip jq \
-    openjdk-17-jdk-headless && \
-    /var/lib/dpkg/info/ca-certificates-java.postinst configure && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-# Install Databricks CLI
+# Install binary tools using the setup script
+# Pass build args for versions to ensure consistency
 ARG DBX_CLI_VERSION=0.256.0
-RUN mkdir -p /tmp/dbx-cli && \
-    cd /tmp/dbx-cli && \
-    wget -q https://github.com/databricks/cli/releases/download/v${DBX_CLI_VERSION}/databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip && \
-    verify-checksum.sh databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip databricks_cli_${DBX_CLI_VERSION}_linux_${TARGETARCH}.zip && \
-    unzip -q *.zip && \
-    mv databricks /usr/local/bin/databricks && \
-    chmod +x /usr/local/bin/databricks && \
-    rm -rf /tmp/dbx-cli && \
-    databricks --help
-
-# Install AWS CLI (pinned version)
-ARG AWS_CLI_VERSION=2.22.25
-RUN if [ "${TARGETARCH}" = "arm64" ]; then \
-        AWS_CLI_PKG="aarch64"; \
-    else \
-        AWS_CLI_PKG="x86_64"; \
-    fi \
-    && curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_CLI_PKG}-${AWS_CLI_VERSION}.zip" -o "awscliv2.zip" \
-    && verify-checksum.sh awscliv2.zip "awscli-exe-linux-${AWS_CLI_PKG}-${AWS_CLI_VERSION}.zip" \
-    && unzip -q awscliv2.zip \
-    && ./aws/install \
-    && rm -rf awscliv2.zip aws \
-    && aws --version
-
-# Install Terraform
 ARG TERRAFORM_VERSION=1.12.2
-RUN curl -sL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip -o terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
-    && verify-checksum.sh terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
-    && unzip -q terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
-    && mv terraform /usr/bin \
-    && rm LICENSE.txt terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip \
-    && terraform version
+ARG TERRAGRUNT_VERSION=0.81.10
+ARG AWS_CLI_VERSION=2.22.25
 
-# Install Terragrunt
-ARG TERRAGRUNT_VERSION="0.81.10"
-RUN curl -sL https://github.com/gruntwork-io/terragrunt/releases/download/v${TERRAGRUNT_VERSION}/terragrunt_linux_${TARGETARCH} -o /usr/local/bin/terragrunt \
-    && verify-checksum.sh /usr/local/bin/terragrunt "terragrunt_linux_${TARGETARCH}  ${TERRAGRUNT_VERSION}" \
-    && chmod +x /usr/local/bin/terragrunt \
-    && terragrunt --version
+# Export versions as environment variables for the script
+ENV DBX_CLI_VERSION=${DBX_CLI_VERSION} \
+    TERRAFORM_VERSION=${TERRAFORM_VERSION} \
+    TERRAGRUNT_VERSION=${TERRAGRUNT_VERSION} \
+    AWS_CLI_VERSION=${AWS_CLI_VERSION} \
+    TARGETARCH=${TARGETARCH}
+
+# Run post-setup script to install binary tools
+# Skip checksums in Docker build since we control the environment
+RUN /opt/databricks/scripts/dbr-setup-post \
+    --version dbr16 \
+    --install-dir /usr/local/bin \
+    --skip-checksums
 
 # Create non-root user
 ARG USER_ID=1000
@@ -88,10 +65,9 @@ RUN groupadd -g ${GROUP_ID} -o dbruser && \
 WORKDIR /workspace
 RUN chown -R dbruser:dbruser /workspace
 
-# Copy helper scripts (excluding the redundant dbr-validate)
-# Note: checksums.txt and verify-checksum.sh already copied at the beginning of the Dockerfile
-COPY --chmod=0755 scripts/dbr-setup-post /usr/local/bin/dbr-setup-post
-COPY --chmod=0755 scripts/dbr-setup-pre /usr/local/bin/dbr-setup-pre
+# Copy setup scripts to standard location for runtime use
+RUN cp /opt/databricks/scripts/dbr-setup-* /usr/local/bin/ && \
+    chmod +x /usr/local/bin/dbr-setup-*
 
 # Note: dbr-validate command is provided by the Python dbr-env-all package
 
