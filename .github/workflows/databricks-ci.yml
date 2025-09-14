@@ -105,60 +105,8 @@ jobs:
       - name: Install wheels and test
         run: |
           cd databricks
-          # Create a test script to run inside the container
-          cat > /tmp/test_script.sh << 'SCRIPT_END'
-          set -e
-          echo '=== Installing wheels ==='
-          pip install --upgrade pip
-          pip install dist/dbr_env_core-*.whl
-          pip install dist/dbr_env_ml-*.whl
-          pip install dist/dbr_env_cloud-*.whl
-          pip install dist/dbr_env_all-*.whl
-
-          echo '=== Installing DBR dependencies ==='
-          pip install "dbr-env-all[__DBR_VERSION_PLACEHOLDER__]"
-
-          echo '=== Testing imports ==='
-          python -c "
-          from dbr_env_core import get_dbr_info
-          from dbr_env_ml import get_ml_info
-          from dbr_env_cloud import get_cloud_info
-          from dbr_env_all import get_all_info
-          print('✓ All imports successful')
-
-          info = get_all_info('__DBR_VERSION_PLACEHOLDER__')
-          print(f'DBR Info: {info}')
-          "
-
-          echo '=== Testing mock functionality ==='
-          python -c "
-          from dbr_env_core.mock import get_mock_spark_session, get_mock_databricks_client
-
-          # Test mock Spark
-          spark = get_mock_spark_session('TestApp')
-          df = spark.createDataFrame([{'test': 'data'}])
-          print(f'Mock Spark DataFrame count: {df.count()}')
-
-          # Test mock Databricks
-          client = get_mock_databricks_client()
-          clusters = client.clusters.list()
-          print(f'Mock clusters: {len(clusters)}')
-
-          print('✓ Mock tests passed')
-          "
-
-          echo '=== Running validation (should pass all checks) ==='
-          python -m dbr_env_all.validate --version __DBR_VERSION_PLACEHOLDER__ --json
-
-          echo '=== Human-readable validation ==='
-          python -m dbr_env_all.validate --version __DBR_VERSION_PLACEHOLDER__
-          SCRIPT_END
-
-          # Replace placeholders with actual values
-          sed -i "s/__DBR_VERSION_PLACEHOLDER__/${{ matrix.dbr-version }}/g" /tmp/test_script.sh
-
-          # Run the script inside the container
-          ./run-compose.sh run --rm -v /tmp/test_script.sh:/tmp/test_script.sh:ro ${{ matrix.service-name }} bash /tmp/test_script.sh
+          # Run the CI test script inside the container
+          ./run-compose.sh run --rm ${{ matrix.service-name }} bash scripts/ci/ci-test.sh ${{ matrix.dbr-version }}
 
   test-scripts:
     runs-on: [self-hosted, linux]
@@ -198,38 +146,5 @@ jobs:
       - name: Run integration test in DBR15 container
         run: |
           cd databricks
-          # Create integration test script
-          cat > /tmp/integration_test.sh << 'SCRIPT_END'
-          set -e
-          echo '=== Installing packages ==='
-          pip install --upgrade pip
-          pip install dist/*.whl
-          pip install 'dbr-env-all[dbr15]'
-
-          echo '=== Running integration test ==='
-          python -c "
-          from dbr_env_all import get_all_info
-          from dbr_env_core.mock import get_mock_spark_session
-
-          # Get environment info
-          info = get_all_info('dbr15')
-          assert 'core' in info
-          assert 'ml' in info
-          assert 'cloud' in info
-
-          # Test mock Spark
-          spark = get_mock_spark_session()
-          df = spark.createDataFrame([
-              {'name': 'test', 'value': 123}
-          ])
-          assert df.count() == 1
-
-          print('✓ Integration test passed')
-          "
-
-          echo '=== Final validation in DBR15 environment ==='
-          python -m dbr_env_all.validate --version dbr15 --json
-          SCRIPT_END
-
-          # Run the script inside the container
-          ./run-compose.sh run --rm -v /tmp/integration_test.sh:/tmp/integration_test.sh:ro dbr15 bash /tmp/integration_test.sh
+          # Run the integration test script inside the container
+          ./run-compose.sh run --rm dbr15 bash scripts/ci/ci-integration-test.sh dbr15

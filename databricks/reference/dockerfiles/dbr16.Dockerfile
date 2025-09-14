@@ -11,8 +11,7 @@ WORKDIR /tmp
 # Copy checksum files and verification script early for use during build
 RUN mkdir -p /opt/databricks/config
 COPY config/checksums.txt /opt/databricks/config/checksums.txt
-COPY scripts/verify-checksum.sh /usr/local/bin/verify-checksum.sh
-RUN chmod +x /usr/local/bin/verify-checksum.sh
+COPY --chmod=0755 scripts/verify-checksum.sh /usr/local/bin/verify-checksum.sh
 # Create compatibility alias for docker-verify-checksum.sh
 RUN ln -s /usr/local/bin/verify-checksum.sh /usr/local/bin/docker-verify-checksum.sh
 
@@ -73,9 +72,9 @@ RUN curl -sL https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terra
     && terraform version
 
 # Install Terragrunt
-ARG TERRAGRUNT_VERSION="v0.81.10"
-RUN curl -sL https://github.com/gruntwork-io/terragrunt/releases/download/${TERRAGRUNT_VERSION}/terragrunt_linux_${TARGETARCH} -o /usr/local/bin/terragrunt \
-    && docker-verify-checksum.sh /usr/local/bin/terragrunt "terragrunt_linux_${TARGETARCH}  ${TERRAGRUNT_VERSION#v}" \
+ARG TERRAGRUNT_VERSION="0.81.10"
+RUN curl -sL https://github.com/gruntwork-io/terragrunt/releases/download/v${TERRAGRUNT_VERSION}/terragrunt_linux_${TARGETARCH} -o /usr/local/bin/terragrunt \
+    && docker-verify-checksum.sh /usr/local/bin/terragrunt "terragrunt_linux_${TARGETARCH}  ${TERRAGRUNT_VERSION}" \
     && chmod +x /usr/local/bin/terragrunt \
     && terragrunt --version
 
@@ -91,9 +90,8 @@ RUN chown -R dbruser:dbruser /workspace
 
 # Copy helper scripts (excluding the redundant dbr-validate)
 # Note: checksums.txt and verify-checksum.sh already copied at the beginning of the Dockerfile
-COPY scripts/dbr-setup-post /usr/local/bin/dbr-setup-post
-COPY scripts/dbr-setup-pre /usr/local/bin/dbr-setup-pre
-RUN chmod +x /usr/local/bin/dbr-setup-post /usr/local/bin/dbr-setup-pre
+COPY --chmod=0755 scripts/dbr-setup-post /usr/local/bin/dbr-setup-post
+COPY --chmod=0755 scripts/dbr-setup-pre /usr/local/bin/dbr-setup-pre
 
 # Note: dbr-validate command is provided by the Python dbr-env-all package
 
