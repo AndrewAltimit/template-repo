@@ -16,20 +16,17 @@ This project provides a complete solution for recreating Databricks Runtime (DBR
 
 To avoid permission issues with Docker containers creating files as root:
 
-1. **Use the helper script** (recommended):
-   ```bash
-   ./run-docker.sh up -d dbr15 dbr16
-   ```
-   This automatically sets the correct user mapping.
+**Use the helper script** (recommended):
+```bash
+./run-compose.sh up -d dbr15 dbr16
+```
 
-2. **Or set environment variables manually**:
-   ```bash
-   export USER_ID=$(id -u)
-   export GROUP_ID=$(id -g)
-   docker-compose up -d dbr15 dbr16
-   ```
+This script:
+- Automatically sets the correct user mapping (UID/GID)
+- Auto-detects docker-compose, docker compose, or podman-compose
+- Ensures files created in mounted volumes have the correct ownership
 
-All containers run as non-root user (UID/GID 1000 by default) to ensure files created in mounted volumes have the correct ownership.
+All containers run as non-root user to prevent permission issues.
 
 ## Quick Start
 
@@ -186,13 +183,13 @@ cd databricks
 
 ```bash
 # Build all images
-docker-compose build
+./run-compose.sh build
 
 # Run DBR 15 container
-docker-compose run --rm dbr15
+./run-compose.sh run --rm dbr15
 
 # Run DBR 16 container
-docker-compose run --rm dbr16
+./run-compose.sh run --rm dbr16
 ```
 
 ## License

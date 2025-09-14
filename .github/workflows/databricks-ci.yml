@@ -114,7 +114,7 @@ jobs:
           pip install dist/dbr_env_all-*.whl
 
           echo '=== Installing DBR dependencies ==='
-          pip install "dbr-env-all[DBR_VERSION]"
+          pip install "dbr-env-all[__DBR_VERSION_PLACEHOLDER__]"
 
           echo '=== Testing imports ==='
           python -c "
@@ -124,7 +124,7 @@ jobs:
           from dbr_env_all import get_all_info
           print('✓ All imports successful')
 
-          info = get_all_info('DBR_VERSION')
+          info = get_all_info('__DBR_VERSION_PLACEHOLDER__')
           print(f'DBR Info: {info}')
           "
 
@@ -146,14 +146,14 @@ jobs:
           "
 
           echo '=== Running validation (should pass all checks) ==='
-          python -m dbr_env_all.validate --version DBR_VERSION --json
+          python -m dbr_env_all.validate --version __DBR_VERSION_PLACEHOLDER__ --json
 
           echo '=== Human-readable validation ==='
-          python -m dbr_env_all.validate --version DBR_VERSION
+          python -m dbr_env_all.validate --version __DBR_VERSION_PLACEHOLDER__
           SCRIPT_END
 
           # Replace placeholders with actual values
-          sed -i "s/DBR_VERSION/${{ matrix.dbr-version }}/g" /tmp/test_script.sh
+          sed -i "s/__DBR_VERSION_PLACEHOLDER__/${{ matrix.dbr-version }}/g" /tmp/test_script.sh
 
           # Run the script inside the container
           ./run-compose.sh run --rm -v /tmp/test_script.sh:/tmp/test_script.sh:ro ${{ matrix.service-name }} bash /tmp/test_script.sh
