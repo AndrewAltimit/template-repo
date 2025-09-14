@@ -13,6 +13,35 @@ on:
       - '.github/workflows/databricks-ci.yml'
 
 jobs:
+  # Build Docker images first - these will be used for testing
+  build-docker-images:
+    runs-on: [self-hosted, linux]
+    strategy:
+      matrix:
+        dbr-version: [15, 16]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build DBR${{ matrix.dbr-version }} Docker image
+        run: |
+          cd databricks
+          docker build -f reference/dockerfiles/dbr${{ matrix.dbr-version }}.Dockerfile \
+            -t dbr-env:${{ matrix.dbr-version }} .
+
+      - name: Test container has all tools
+        run: |
+          # Quick smoke test to ensure image built correctly
+          docker run --rm --user 1000:1000 dbr-env:${{ matrix.dbr-version }} sh -c "
+            echo '--- Testing Python ---' && python --version && \
+            echo '--- Testing Java ---' && java -version && \
+            echo '--- Testing Databricks CLI ---' && databricks --version && \
+            echo '--- Testing Terraform ---' && terraform version && \
+            echo '--- Testing Terragrunt ---' && terragrunt --version && \
+            echo '--- Testing AWS CLI ---' && aws --version && \
+            echo '✓ All tools verified successfully'
+          "
+
   build-wheels:
     runs-on: [self-hosted, linux]
     container:
@@ -50,17 +79,17 @@ jobs:
           retention-days: 7
 
   test-python-packages:
-    needs: build-wheels
+    needs: [build-wheels, build-docker-images]
     runs-on: [self-hosted, linux]
     strategy:
       matrix:
         include:
           - dbr-version: dbr15
-            python-image: python:3.11-slim
+            docker-tag: 15
           - dbr-version: dbr16
-            python-image: python:3.12
+            docker-tag: 16
     container:
-      image: ${{ matrix.python-image }}
+      image: dbr-env:${{ matrix.docker-tag }}
       options: --user 1000:1000
 
     steps:
@@ -116,9 +145,13 @@ jobs:
           print('✓ Mock tests passed')
           "
 
-      - name: Run validation
+      - name: Run validation (should pass all checks)
         run: |
+          # This should now pass all checks since we're in the complete DBR environment
           python -m dbr_env_all.validate --version ${{ matrix.dbr-version }} --json
+
+          # Also run without JSON to see human-readable output
+          python -m dbr_env_all.validate --version ${{ matrix.dbr-version }}
 
   test-scripts:
     runs-on: [self-hosted, linux]
@@ -142,38 +175,11 @@ jobs:
         run: |
           databricks/scripts/dbr-setup-post --help
 
-  test-docker-build:
-    runs-on: [self-hosted, linux]
-    strategy:
-      matrix:
-        dbr-version: [15, 16]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build DBR${{ matrix.dbr-version }} Docker image
-        run: |
-          cd databricks
-          docker build -f reference/dockerfiles/dbr${{ matrix.dbr-version }}.Dockerfile \
-            -t dbr-test:${{ matrix.dbr-version }} .
-
-      - name: Test container
-        run: |
-          # Test all tools in a single container run for efficiency
-          docker run --rm --user 1000:1000 dbr-test:${{ matrix.dbr-version }} sh -c "
-            echo '--- Testing Python ---' && python --version && \
-            echo '--- Testing Java ---' && java -version && \
-            echo '--- Testing Databricks CLI ---' && databricks --version && \
-            echo '--- Testing Terraform ---' && terraform version && \
-            echo '--- Testing Terragrunt ---' && terragrunt --version && \
-            echo '✓ All tools verified successfully'
-          "
-
   integration-test:
-    needs: [test-python-packages, test-scripts]
+    needs: [test-python-packages, test-scripts, build-docker-images]
     runs-on: [self-hosted, linux]
     container:
-      image: python:3.11-slim
+      image: dbr-env:15
       options: --user 1000:1000
     steps:
       - uses: actions/checkout@v4
@@ -212,3 +218,8 @@ jobs:
 
           print('✓ Integration test passed')
           "
+
+      - name: Run final validation
+        run: |
+          # Final validation in the DBR15 environment
+          python -m dbr_env_all.validate --version dbr15 --json
