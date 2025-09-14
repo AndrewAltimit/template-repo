@@ -17,7 +17,7 @@ jobs:
 
       - name: Install Gemini CLI
         run: |
-          pip install google-generativeai
+          pip install --user google-generativeai
 
       - name: Clear Gemini history
         env:
@@ -99,19 +99,21 @@ jobs:
 
       - name: Install build tools
         run: |
-          pip install --upgrade pip
-          pip install build twine
+          pip install --user --upgrade pip
+          pip install --user build twine
 
       - name: Build and validate wheel
         run: |
+          export PATH=$PATH:$HOME/.local/bin
           cd databricks/wheels/dbr-env-${{ matrix.package }}
           python -m build --wheel
-          twine check dist/*.whl
+          python -m twine check dist/*.whl
 
       - name: Quick import test
         run: |
+          export PATH=$PATH:$HOME/.local/bin
           cd databricks/wheels/dbr-env-${{ matrix.package }}
-          pip install dist/*.whl
+          pip install --user dist/*.whl
 
           python -c "
           import sys
