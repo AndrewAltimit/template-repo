@@ -682,10 +682,56 @@ The Gaea2 MCP server provides comprehensive terrain generation capabilities:
 The Virtual Character system provides AI agent embodiment across multiple platforms (VRChat, Unity, Blender):
 
 ### Storage Service for Seamless Audio
+
+**CRITICAL FOR CLAUDE/AI AGENTS**: Always use file paths or storage URLs, never base64 audio data!
+
 - **Auto-Upload**: Files automatically uploaded when sending to remote servers
 - **Context Optimization**: Keeps large binary data out of AI context windows
 - **Cross-Machine Transfer**: VM to host, containers to remote servers
 - **Start Service**: `docker-compose up virtual-character-storage`
+
+### Efficient Audio Handling (IMPORTANT)
+
+When sending audio to the Virtual Character:
+
+1. **✅ ALWAYS USE FILE PATHS** (auto-uploaded to storage):
+   ```python
+   mcp__virtual-character__play_audio(
+       audio_data="outputs/elevenlabs_speech/2025-09-17/speech.mp3",  # File path
+       format="mp3"
+   )
+   ```
+
+2. **✅ USE STORAGE URLS** (most efficient):
+   ```python
+   mcp__virtual-character__play_audio(
+       audio_data="http://192.168.0.152:8021/download/abc123",  # Storage URL
+       format="mp3"
+   )
+   ```
+
+3. **❌ NEVER USE BASE64** (pollutes context window):
+   ```python
+   # BAD - Don't read files and convert to base64!
+   with open('audio.mp3', 'rb') as f:
+       audio_base64 = base64.b64encode(f.read()).decode()
+   mcp__virtual-character__play_audio(audio_data=audio_base64)  # AVOID!
+   ```
+
+### Storage Service Setup
+
+1. **Generate secure key** (one-time setup):
+   ```bash
+   python -c "import secrets; print(secrets.token_hex(32))"
+   ```
+
+2. **Update .env file**:
+   ```
+   STORAGE_SECRET_KEY=<your_generated_key>
+   STORAGE_BASE_URL=http://192.168.0.152:8021
+   ```
+
+3. **Ensure remote server has same key** in its .env file
 
 ### Seamless Audio Flow
 ```python

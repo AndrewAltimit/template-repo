@@ -973,14 +973,18 @@ class VirtualCharacterMCPServer(BaseMCPServer):
 
         Args:
             audio_data: Can be:
-                - Base64-encoded audio data
-                - Data URL (data:audio/mp3;base64,...)
+                - File path (auto-uploaded to storage to keep context clean)
+                - Storage service URL (efficient, no context pollution)
                 - HTTP/HTTPS URL to download audio from
-                - File path (local paths are read and converted to base64)
+                - Base64-encoded audio data (avoid when possible - uses context)
+                - Data URL (data:audio/mp3;base64,...)
             format: Audio format (mp3, wav, opus, pcm)
             text: Optional text transcript for lip-sync
             expression_tags: Optional expression tags from ElevenLabs
             duration: Optional audio duration in seconds
+
+        Note: File paths are automatically uploaded to storage service to avoid
+        polluting the AI context window with base64 data.
         """
         if not self.current_backend:
             return {"success": False, "error": "No backend connected. Use set_backend first."}
@@ -996,6 +1000,56 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             # Check if running locally (MCP client on same machine as files)
             # This handles the VM case where files exist locally but server is remote
             # is_local_file = False  # Reserved for future use
+
+            # First, try to use the seamless audio helper for optimal handling
+            # This will automatically upload files to storage to keep context clean
+            from .seamless_audio import setup_seamless_audio
+
+            status = setup_seamless_audio()
+            use_seamless = status["storage_enabled"] and status.get("storage_healthy", False)
+
+            # For file paths and base64 data, use seamless upload if available
+            if use_seamless and (
+                audio_data.startswith("/")
+                or audio_data.startswith("./")
+                or audio_data.startswith("outputs/")
+                or (len(audio_data) > 1000 and not audio_data.startswith(("http://", "https://")))
+            ):
+                self.logger.info("Using seamless audio with storage upload for optimal context usage")
+                from .storage_client import StorageClient
+
+                client = StorageClient()
+
+                # Handle file upload
+                if audio_data.startswith(("/", "./", "outputs/")):
+                    # Map container paths if needed
+                    if "/tmp/elevenlabs_audio/" in audio_data:
+                        filename = Path(audio_data).name
+                        possible_paths = [
+                            Path("outputs/elevenlabs_speech") / filename,
+                            Path(f"outputs/elevenlabs_speech/{Path(audio_data).parent.name}") / filename,
+                        ]
+                        for path in possible_paths:
+                            if path.exists():
+                                audio_data = str(path)
+                                break
+
+                    # Upload file to storage
+                    url = client.upload_file(audio_data)
+                    if url:
+                        self.logger.info(f"✓ Auto-uploaded to storage: {url}")
+                        audio_data = url  # Replace file path with storage URL
+                    else:
+                        self.logger.warning("Storage upload failed, falling back to base64")
+
+                elif len(audio_data) > 1000:  # Likely base64
+                    # Upload base64 to storage
+                    url = client.upload_base64(audio_data, filename=f"audio.{format}")
+                    if url:
+                        self.logger.info(f"✓ Uploaded base64 to storage: {url}")
+                        audio_data = url  # Replace base64 with storage URL
+                    else:
+                        self.logger.warning("Storage upload failed, using base64 directly")
 
             # Determine input type and get audio bytes
             # Check for storage service URL first (our audio exchange format)

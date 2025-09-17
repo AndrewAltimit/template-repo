@@ -19,13 +19,15 @@ A Model Context Protocol (MCP) server that provides a unified middleware layer f
 - **Audio Streaming**: Chunk-based transmission for large audio files
 - **Expression Mapping**: Automatic emotion detection from audio tags
 
-### 📦 Storage Service (NEW)
+### 📦 Storage Service (CRITICAL FOR AI AGENTS)
+- **Context Optimization**: Prevents base64 audio from polluting AI context windows
+- **Auto-Upload**: File paths are automatically uploaded to storage when sending to remote servers
 - **Cross-Machine Transfer**: Seamless file exchange between VM, containers, and hosts
-- **Context Optimization**: Keeps large binary data out of AI context windows
-- **Auto-Upload**: Automatically uploads local files when sending to remote servers
 - **Secure Transfer**: Token-based authentication with HMAC-SHA256
 - **Auto-Cleanup**: Files expire after configurable TTL (default 1 hour)
 - **Universal Support**: Audio, animations, textures, configurations
+
+**IMPORTANT**: The storage service is essential for efficient AI agent operation. Without it, audio data will be sent as base64, consuming valuable context tokens.
 
 ### 🎭 Event Sequencing (NEW)
 - **Complex Sequences**: Build performances with synchronized audio and animation
@@ -62,15 +64,20 @@ AI Agent → MCP Server → Plugin Manager → Backend Adapter → Virtual Platf
 pip install -r requirements.txt
 ```
 
-2. Configure environment variables:
+2. Configure environment variables (**CRITICAL STEP**):
 ```bash
 # Copy example environment file
 cp .env.example .env
 
-# Generate a secure storage key
+# Generate a secure storage key (REQUIRED for efficient operation)
 python -c "import secrets; print(secrets.token_hex(32))"
-# Add the key to .env as STORAGE_SECRET_KEY
+
+# Add to .env file:
+# STORAGE_SECRET_KEY=<your_generated_key>
+# STORAGE_BASE_URL=http://192.168.0.152:8021  # Or your storage server URL
 ```
+
+**⚠️ IMPORTANT**: Both local and remote machines must have the same `STORAGE_SECRET_KEY` in their .env files for authentication to work.
 
 3. Start the storage service (recommended):
 ```bash
@@ -137,6 +144,37 @@ python scripts/test_server.py
 | `resume_sequence` | Resume a paused sequence |
 | `stop_sequence` | Stop the currently playing sequence |
 | `get_sequence_status` | Get status of current sequence playback |
+
+### 🤖 AI Agent Usage Guidelines
+
+**CRITICAL**: When using this server with Claude, GPT, or other AI agents via MCP, follow these guidelines to avoid context pollution:
+
+#### ✅ DO: Use File Paths
+```python
+# Good - File path will be auto-uploaded to storage
+mcp__virtual-character__play_audio(
+    audio_data="outputs/elevenlabs_speech/2025-09-17/speech.mp3"
+)
+```
+
+#### ✅ DO: Use Storage URLs
+```python
+# Good - Direct storage URL, no upload needed
+mcp__virtual-character__play_audio(
+    audio_data="http://192.168.0.152:8021/download/abc123"
+)
+```
+
+#### ❌ DON'T: Use Base64 Data
+```python
+# Bad - Pollutes context window with large base64 string
+import base64
+with open('audio.mp3', 'rb') as f:
+    audio_base64 = base64.b64encode(f.read()).decode()
+mcp__virtual-character__play_audio(audio_data=audio_base64)  # AVOID!
+```
+
+The server automatically detects file paths and uploads them to the storage service, keeping your AI context clean and efficient.
 
 ### Example Usage
 
