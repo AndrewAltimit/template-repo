@@ -549,20 +549,22 @@ class ResidualStreamAnalyzer:
 
     def save_results(self):
         """Save analysis results to file."""
-        # Try to write to /tmp if current directory is read-only
-        try:
-            output_file = Path("residual_analysis_results.json")
-            with open(output_file, "w") as f:
-                json.dump(self.results, f, indent=2, default=str)
-            logger.info(f"\nResults saved to {output_file}")
-        except OSError as e:
-            if "Read-only" in str(e):
+        # Prefer /results directory if available (CI artifact directory)
+        if Path("/results").exists() and Path("/results").is_dir():
+            output_file = Path("/results/residual_analysis_results.json")
+        else:
+            # Try current directory, fallback to /tmp if read-only
+            try:
+                output_file = Path("residual_analysis_results.json")
+                # Test write access
+                output_file.touch()
+            except OSError:
                 output_file = Path("/tmp/residual_analysis_results.json")
-                with open(output_file, "w") as f:
-                    json.dump(self.results, f, indent=2, default=str)
-                logger.info(f"\nResults saved to {output_file} (using /tmp due to read-only filesystem)")
-            else:
-                raise
+
+        # Write results
+        with open(output_file, "w") as f:
+            json.dump(self.results, f, indent=2, default=str)
+        logger.info(f"\nResults saved to {output_file}")
 
 
 def main():

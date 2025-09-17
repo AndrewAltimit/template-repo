@@ -108,7 +108,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: residual-analysis-results-${{ github.run_id }}
-          path: residual_analysis_results.json
+          path: |
+            evaluation_results/residual_analysis_results.json
+            residual_analysis_results.json
           retention-days: 7
           if-no-files-found: ignore
 
@@ -131,9 +133,11 @@ jobs:
         run: |
           echo "🧪 Running unit tests..."
 
-          # Run tests with coverage
-          docker-compose run --rm sleeper-eval-cpu \
-            pytest packages/sleeper_detection/tests/ -v --cov=packages.sleeper_detection --cov-report=xml
+          # Run tests with coverage (use /tmp for writable coverage data)
+          docker-compose run --rm \
+            -e COVERAGE_FILE=/tmp/.coverage \
+            sleeper-eval-cpu \
+            pytest packages/sleeper_detection/tests/ -v --cov=packages.sleeper_detection --cov-report=xml --cov-report=term
 
       - name: Upload coverage report
         uses: codecov/codecov-action@v4
@@ -235,7 +239,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: cpu-test-results-${{ github.run_id }}
-          path: cpu_test_results_*.json
+          path: |
+            evaluation_results/cpu_test_results_*.json
+            cpu_test_results_*.json
           retention-days: 7
           if-no-files-found: ignore
 

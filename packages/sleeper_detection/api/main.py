@@ -299,4 +299,4 @@ async def train_probes(n_samples: int = 100):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8021, reload=True)
+    uvicorn.run("packages.sleeper_detection.api.main:app", host="0.0.0.0", port=8021, reload=False)

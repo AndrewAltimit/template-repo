@@ -28,49 +28,14 @@ RUN mkdir -p /models /results /db && \
 # Upgrade pip first
 RUN pip install --upgrade pip
 
-# Install Python dependencies (CPU-only versions) in stages
-# Stage 1: PyTorch CPU
+# Copy requirements file
+COPY config/python/requirements-sleeper-evaluation.txt /tmp/requirements.txt
+
+# Install PyTorch CPU version first (special index URL)
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
-# Stage 2: ML dependencies
-RUN pip install --no-cache-dir \
-    transformers>=4.35.0 \
-    einops>=0.7.0 \
-    numpy>=1.24.0 \
-    pandas>=2.0.0 \
-    scikit-learn>=1.3.0
-
-# Stage 2b: TransformerLens for mechanistic interpretability
-RUN pip install --no-cache-dir transformer-lens>=2.0.0
-
-# Stage 2c: API dependencies
-RUN pip install --no-cache-dir \
-    fastapi[all]>=0.104.0 \
-    uvicorn[standard]>=0.24.0 \
-    pydantic>=2.0.0
-
-# Stage 3: Visualization and reporting
-RUN pip install --no-cache-dir \
-    jinja2>=3.1.0 \
-    matplotlib>=3.7.0 \
-    seaborn>=0.12.0 \
-    plotly>=5.17.0
-
-# Stage 4: Utilities and testing
-RUN pip install --no-cache-dir \
-    pyyaml>=6.0 \
-    python-dotenv>=1.0.0 \
-    pytest>=7.4.0 \
-    pytest-asyncio>=0.21.0 \
-    pytest-cov>=4.1.0 \
-    jupyter \
-    nbconvert \
-    colorama>=0.4.6 \
-    tabulate>=0.9.0 \
-    tqdm>=4.66.0 \
-    aiofiles>=23.2.1 \
-    httpx>=0.25.0 \
-    psutil>=5.9.0
+# Install all other dependencies from requirements file
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Copy application code
 COPY --chown=evaluator:evaluator . /app
