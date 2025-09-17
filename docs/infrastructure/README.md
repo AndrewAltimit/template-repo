@@ -2,7 +2,7 @@
 
 Complete documentation for DevOps, CI/CD, and self-hosted infrastructure.
 
-## 📚 Documentation Files
+## Documentation Files
 
 ### [Self-Hosted Runner Setup](./self-hosted-runner.md)
 Configuration and maintenance of GitHub Actions self-hosted runners.
@@ -32,14 +32,14 @@ Git hooks configuration and management.
 - Security hooks
 - Custom hook development
 
-## 🚀 Quick Setup
+## Quick Setup
 
 1. **Set up runners first** - [Self-Hosted Runner Setup](./self-hosted-runner.md)
 2. **Configure GitHub** - [GitHub Environments](./github-environments.md)
 3. **Install Docker** - [Containerization Guide](./containerization.md)
 4. **Enable hooks** - [Git Hooks Configuration](./git-hooks.md)
 
-## 🔧 Common Tasks
+## Common Tasks
 
 ### Start a self-hosted runner
 ```bash

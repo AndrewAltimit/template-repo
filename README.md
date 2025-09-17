@@ -28,6 +28,8 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 
 **Security**: Keyword triggers, user allow list, secure token management. See [AI Agents Security](docs/ai-agents/security.md)
 
+**Safety Training**: Essential AI safety concepts for human-AI collaboration. See [Human Training Guide](docs/ai-agents/human-training.md)
+
 ## Features
 
 - **13 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, and more
@@ -43,7 +45,7 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 
 ## Quick Start
 
-> **📚 New to the template?** Check out our **[Template Quickstart Guide](docs/QUICKSTART.md)** for step-by-step customization instructions!
+> **New to the template?** Check out our **[Template Quickstart Guide](docs/QUICKSTART.md)** for step-by-step customization instructions!
 > - Choose from 4 pre-configured paths (Minimal, AI-Powered, Content Creation, Full Stack)
 > - Learn what to enable/disable for your specific use case
 > - Get up and running in 15 minutes

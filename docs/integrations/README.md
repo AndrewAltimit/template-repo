@@ -20,7 +20,7 @@ Integration with creative and content generation tools
 - **[AI Toolkit & ComfyUI](./creative-tools/ai-toolkit-comfyui.md)** - LoRA training and image generation
 - **[LoRA Transfer](./creative-tools/lora-transfer.md)** - Model transfer between services
 
-## 🚀 Quick Start by Use Case
+## Quick Start by Use Case
 
 ### For Code Generation
 1. Set up OpenRouter API - [OpenRouter Setup](./ai-services/openrouter-setup.md)

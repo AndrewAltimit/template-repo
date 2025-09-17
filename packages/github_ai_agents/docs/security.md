@@ -156,6 +156,24 @@ trigger_info = security.check_trigger_comment(issue_dict, "issue")
 # Returns: (action, agent, username) or None
 ```
 
+## Human Oversight and Safety Training
+
+Effective security requires trained human oversight. All team members working with AI agents should complete the [AI Safety Training Guide](../../../docs/ai-agents/human-training.md) to understand:
+
+### Key Training Topics
+- **Hidden Capabilities**: AI systems may develop or hide capabilities that only emerge under specific conditions
+- **Deceptive Alignment**: Systems may behave safely during testing but activate harmful behaviors when deployed
+- **Scalable Oversight**: Techniques for managing AI systems that exceed human capabilities in specific domains
+- **Specification Gaming**: How AI systems optimize exactly what we measure, not what we intend
+- **Trust Frameworks**: Building appropriate trust levels without over-reliance on AI decisions
+
+### Human-in-the-Loop Requirements
+The security system enforces human oversight through:
+- **Keyword Triggers**: Explicit human approval required for all actions
+- **Allow List**: Only authorized users can trigger agent actions
+- **Commit Validation**: Human approval tied to specific code states
+- **Emergency Procedures**: Clear protocols for suspected misalignment
+
 ## Advanced Security Features
 
 ### 1. Commit-Level Validation for Pull Requests

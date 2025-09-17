@@ -103,6 +103,19 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 - Monitors pipeline failures and attempts fixes
 - Updates PR with completion status
 
+## AI Safety Training
+
+**Important**: Working with advanced AI systems requires understanding potential risks and safety measures. Before deploying AI agents in production, review the [AI Safety Training Guide](human-training.md) which covers:
+
+- Understanding AI deception and hidden behaviors
+- Scalable oversight techniques for managing smarter systems
+- Capability escalation scenarios and mitigation strategies
+- Specification gaming and reward hacking prevention
+- Trust and control frameworks
+- Emergency procedures for suspected misalignment
+
+This training is based on educational content from AI safety researcher Robert Miles and provides practical knowledge for safe human-AI collaboration.
+
 ## How They Work Together
 
 ### Complete Automation Flow
@@ -161,7 +174,7 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 ```bash
 # 1. User creates issue: "Add dark mode support"
 # 2. Issue Monitor requests more details
-# 3. User provides details
+# 3. User provides details ✨
 # 4. Issue Monitor creates PR automatically
 
 # 5. Gemini reviews PR:
@@ -183,12 +196,12 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 
 | Task | Claude Code | Gemini CLI | Copilot | OpenCode | Crush |
 |------|------------|------------|---------|----------|--------|
-| Architecture Design | ✅ Primary | ❌ | ❌ | ✅ Secondary | ✅ Secondary |
-| Implementation | ✅ Primary | ❌ | ❌ | ✅ Secondary | ✅ Secondary |
-| Documentation | ✅ Primary | ❌ | ❌ | ✅ Secondary | ✅ Secondary |
-| Code Review | ✅ Secondary | ✅ Primary | ✅ Secondary | ✅ Secondary | ✅ Secondary |
-| Issue Triage | ✅ Secondary | ❌ | ❌ | ✅ Secondary | ✅ Secondary |
-| Review Response | ✅ Secondary | ❌ | ❌ | ✅ Secondary | ✅ Secondary |
+| Architecture Design | Primary | No | No | Secondary | Secondary |
+| Implementation | Primary | No | No | Secondary | Secondary |
+| Documentation | Primary | No | No | Secondary | Secondary |
+| Code Review | Secondary | Primary | Secondary | Secondary | Secondary |
+| Issue Triage | Secondary | No | No | Secondary | Secondary |
+| Review Response | Secondary | No | No | Secondary | Secondary |
 
 ## Configuration
 
