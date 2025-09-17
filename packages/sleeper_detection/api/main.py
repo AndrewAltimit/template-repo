@@ -47,8 +47,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configure CORS from environment variables
-allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost,http://localhost:3000,http://localhost:8021").split(",")
+# Configure CORS from environment variables (no default for production safety)
+allowed_origins_env = os.getenv("CORS_ALLOWED_ORIGINS", "")
+if not allowed_origins_env:
+    logger.warning("CORS_ALLOWED_ORIGINS not set. CORS will be disabled.")
+    allowed_origins = []
+else:
+    allowed_origins = allowed_origins_env.split(",")
 
 # Add CORS middleware with secure defaults
 app.add_middleware(

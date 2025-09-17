@@ -24,10 +24,12 @@ RUN groupadd -g ${GROUP_ID} evaluator && \
 RUN mkdir -p /models /results /db && \
     chown -R evaluator:evaluator /models /results /db
 
-# Install Python dependencies
-COPY --chown=evaluator:evaluator config/python/requirements-sleeper-evaluation.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt && \
-    rm /tmp/requirements.txt
+# Install Python dependencies (runtime only for production)
+COPY --chown=evaluator:evaluator config/python/requirements-sleeper-runtime.txt /tmp/requirements-runtime.txt
+COPY --chown=evaluator:evaluator config/python/requirements-sleeper-dev.txt /tmp/requirements-dev.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-runtime.txt && \
+    pip install --no-cache-dir -r /tmp/requirements-dev.txt && \
+    rm /tmp/requirements-*.txt
 
 # Copy application code
 COPY --chown=evaluator:evaluator . /app

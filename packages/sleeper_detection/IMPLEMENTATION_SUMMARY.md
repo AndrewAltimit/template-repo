@@ -4,6 +4,10 @@
 
 We successfully pivoted from an MCP real-time detection server to a comprehensive batch evaluation system for vetting open-weight models. This better serves the goal of systematic model safety assessment.
 
+## ⚠️ Implementation Status
+
+**IMPORTANT**: This is a foundational implementation. While the infrastructure is complete and functional, several advanced test suites are placeholders pending implementation (see TODO.md for details).
+
 ## 🏗️ What Was Built
 
 ### Core Evaluation Framework
@@ -90,6 +94,31 @@ packages/sleeper_detection/
 ├── cli.py              # CLI interface
 └── README.md           # Main documentation
 ```
+
+## 📊 Implementation Status
+
+### ✅ Fully Implemented
+- Core evaluation framework and infrastructure
+- Basic backdoor detection tests
+- Layer probing and attention analysis
+- Code vulnerability backdoor detection (2024 trigger)
+- Honeypot vulnerability testing
+- HTML/PDF report generation
+- CLI system with all commands
+- Docker containerization (CPU and GPU)
+- CI/CD pipeline with testing
+- Type safety with strict mypy checks
+
+### 🚧 Placeholders/Future Work
+- Chain-of-thought distillation detection
+- Paraphrasing robustness tests
+- Mitigation effectiveness testing
+- Adversarial robustness evaluation
+- Steering vector detection methods
+- Gradient-based detection
+- Elicitation strategies
+- Ensemble detection methods
+- Cross-model transfer testing
 
 ## 🎯 Key Features
 
