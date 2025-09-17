@@ -256,7 +256,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         result_dict = result.to_dict()
 
         # IMPORTANT: Handle audio data to prevent context window pollution
-        # Priority: URL > base64 (only if small) > nothing
+        # Priority: Local HTTP URL > External URL > base64 (only if small) > nothing
         if result.success:
             if result.audio_url:
                 # Best case: We have a URL, no need for raw data
@@ -264,17 +264,41 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
                 # Clear audio_data since we have URL
                 if "audio_data" in result_dict:
                     del result_dict["audio_data"]
-            elif result.audio_data and len(result.audio_data) < 50000:  # Only include if < 50KB
-                # Small audio: Include base64 for convenience
-                import base64
+            elif result.audio_data:
+                # We have audio data but no URL - serve it via local HTTP server
+                try:
+                    # Import the audio file server module
+                    import sys
+                    from pathlib import Path
 
-                result_dict["audio_data"] = base64.b64encode(result.audio_data).decode("utf-8")
-                self.logger.info(f"Returning small audio as base64 ({len(result.audio_data)} bytes)")
+                    sys.path.insert(0, str(Path(__file__).parent.parent / "virtual_character"))
+                    from audio_file_server import serve_audio_file
+
+                    # Serve the audio file
+                    audio_format = config.output_format.value.lower()  # mp3, wav, etc.
+                    local_url = await serve_audio_file(result.audio_data, audio_format)
+                    result_dict["audio_url"] = local_url
+                    self.logger.info(f"Serving audio via local HTTP: {local_url} ({len(result.audio_data)} bytes)")
+
+                    # Clear audio_data since we now have a URL
+                    if "audio_data" in result_dict:
+                        del result_dict["audio_data"]
+                except Exception as e:
+                    self.logger.warning(f"Failed to serve audio via local HTTP: {e}")
+                    # Fallback: Only include base64 if small
+                    if len(result.audio_data) < 50000:  # Only include if < 50KB
+                        import base64
+
+                        result_dict["audio_data"] = base64.b64encode(result.audio_data).decode("utf-8")
+                        self.logger.info(f"Fallback: Returning small audio as base64 ({len(result.audio_data)} bytes)")
+                    else:
+                        # Large audio without URL: Don't include to avoid context pollution
+                        if "audio_data" in result_dict:
+                            del result_dict["audio_data"]
+                        self.logger.warning("Audio too large for base64, local server failed. Returning path only.")
             else:
-                # Large audio without URL: Don't include to avoid context pollution
-                if "audio_data" in result_dict:
-                    del result_dict["audio_data"]
-                self.logger.warning("Audio too large for base64, no URL available. Returning path only.")
+                # No audio data or URL
+                self.logger.warning("No audio data or URL available.")
 
         # Add original text and formatting info to result
         if result_dict.get("metadata"):
