@@ -232,6 +232,6 @@ if errorlevel 1 (
         pip install %~2 >nul 2>&1
     )
 ) else (
-    echo   √ %~1 installed
+    echo   [OK] %~1 installed
 )
 exit /b 0

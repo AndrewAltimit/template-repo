@@ -116,7 +116,7 @@ $packages = @(
 foreach ($pkg in $packages) {
     $testResult = python -c "import $($pkg.Name)" 2>&1
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "  ✓ $($pkg.Name) installed" -ForegroundColor Green
+        Write-Host "  [OK] $($pkg.Name) installed" -ForegroundColor Green
     }
     else {
         Write-Host "  Installing $($pkg.Package)..." -ForegroundColor Yellow
@@ -156,7 +156,7 @@ exec(open('tools/mcp/virtual_character/storage_service/server.py').read())
     try {
         $response = Invoke-WebRequest -Uri "http://localhost:$StoragePort/health" -Method GET -TimeoutSec 5
         if ($response.StatusCode -eq 200) {
-            Write-Host "✓ Storage Service started at http://localhost:$StoragePort" -ForegroundColor Green
+            Write-Host "[OK] Storage Service started at http://localhost:$StoragePort" -ForegroundColor Green
         }
     }
     catch {
@@ -170,10 +170,10 @@ Write-Host "Starting Virtual Character MCP Server..." -ForegroundColor Green
 Write-Host "Server will be available at http://${Host}:${Port}" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Platform Support:" -ForegroundColor Yellow
-Write-Host "  • VRChat (OSC protocol) - Active"
-Write-Host "  • Unity (WebSocket) - Coming Soon"
-Write-Host "  • Unreal Engine (HTTP API) - Coming Soon"
-Write-Host "  • Blender (Python API) - Coming Soon"
+Write-Host "  - VRChat (OSC protocol) - Active"
+Write-Host "  - Unity (WebSocket) - Coming Soon"
+Write-Host "  - Unreal Engine (HTTP API) - Coming Soon"
+Write-Host "  - Blender (Python API) - Coming Soon"
 Write-Host ""
 Write-Host "Available Endpoints:" -ForegroundColor Yellow
 Write-Host "  POST /set_backend       - Connect to platform backend"
