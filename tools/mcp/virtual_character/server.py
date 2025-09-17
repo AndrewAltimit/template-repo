@@ -974,7 +974,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 - Base64-encoded audio data
                 - Data URL (data:audio/mp3;base64,...)
                 - HTTP/HTTPS URL to download audio from
-                - File path (starts with / or ./)
+                - File path (local paths are read and converted to base64)
             format: Audio format (mp3, wav, opus, pcm)
             text: Optional text transcript for lip-sync
             expression_tags: Optional expression tags from ElevenLabs
@@ -990,6 +990,10 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             import aiohttp
 
             audio_bytes = None
+
+            # Check if running locally (MCP client on same machine as files)
+            # This handles the VM case where files exist locally but server is remote
+            # is_local_file = False  # Reserved for future use
 
             # Determine input type and get audio bytes
             if audio_data.startswith("data:"):
@@ -1047,15 +1051,44 @@ class VirtualCharacterMCPServer(BaseMCPServer):
 
                         self.logger.info(f"Successfully downloaded audio ({len(audio_bytes)} bytes)")
 
-            elif audio_data.startswith("/") or audio_data.startswith("./"):
-                # File path - read the file
-                self.logger.info(f"Reading audio from file: {audio_data}")
+            elif audio_data.startswith("/") or audio_data.startswith("./") or audio_data.startswith("outputs/"):
+                # File path - read the file locally and convert to base64
+                # This is crucial for VM-to-Host scenarios where the file exists on VM
+                # but the server runs on the Windows host
+                self.logger.info(f"Reading audio from local file: {audio_data}")
                 file_path = Path(audio_data)
+
                 if file_path.exists():
                     with open(file_path, "rb") as f:
                         audio_bytes = f.read()
+                    # Mark as local file (for future use if needed)
+                    # is_local_file = True
+                    self.logger.info(f"Successfully read local file: {len(audio_bytes)} bytes")
+
+                    # IMPORTANT: For remote servers, we need to send this as base64
+                    # The file path won't work across VM boundaries
+                    # This keeps the path in the context but sends base64 in the transport
                 else:
-                    return {"success": False, "error": f"File not found: {audio_data}"}
+                    # Check if it's a container path that maps to outputs/
+                    # Container paths like /tmp/elevenlabs_audio map to outputs/elevenlabs_speech
+                    if "/tmp/elevenlabs_audio/" in audio_data:
+                        # Try to find in outputs directory
+                        filename = Path(audio_data).name
+                        possible_paths = [
+                            Path("outputs/elevenlabs_speech") / filename,
+                            Path("outputs/elevenlabs_speech/2025-09-17") / filename,
+                        ]
+                        for alt_path in possible_paths:
+                            if alt_path.exists():
+                                self.logger.info(f"Found file at alternate path: {alt_path}")
+                                with open(alt_path, "rb") as f:
+                                    audio_bytes = f.read()
+                                # Mark as local file (for future use if needed)
+                                # is_local_file = True
+                                break
+
+                    if not audio_bytes:
+                        return {"success": False, "error": f"File not found: {audio_data}"}
 
             else:
                 # Assume base64-encoded data

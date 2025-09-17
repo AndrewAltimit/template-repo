@@ -409,6 +409,7 @@ The project uses a modular collection of Model Context Protocol (MCP) servers, e
      - Viseme data for realistic lip-sync animation
      - Multi-format audio support (MP3, WAV, Opus, PCM)
      - Emotion mapping from audio tags to character expressions
+     - **Context-Efficient Audio Transfer**: `play_audio` accepts file paths and converts to base64 internally, keeping large audio data out of Claude's context window
    - Plugin-based architecture for extensibility
    - Supports VRChat (OSC), Blender, Unity (WebSocket)
    - Remote Windows support for VRChat backend
@@ -458,6 +459,13 @@ The repository includes comprehensive CI/CD workflows:
    - All GitHub Actions run on self-hosted runners
    - No cloud costs or external dependencies
    - Full control over build environment
+
+4. **Container Output Paths**:
+   - **IMPORTANT**: Containerized MCP tools save outputs to the `outputs/` directory on the host, not container paths
+   - Container paths like `/tmp/elevenlabs_audio/` actually write to `outputs/elevenlabs_speech/` on the host
+   - This allows host access to container-generated files without volume mounting `/tmp`
+   - Example: ElevenLabs audio files appear in `outputs/elevenlabs_speech/YYYY-MM-DD/`
+   - When MCP tools return paths like `/tmp/elevenlabs_audio/speech.mp3`, check `outputs/` for the actual files
 
 ### Key Integration Points
 
