@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -244,10 +245,12 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         # Default configuration for auto-connect
         self.default_backend = "vrchat_remote"
         self.default_config = {
-            "remote_host": "127.0.0.1",  # VRChat on same machine
+            "remote_host": os.environ.get("VRCHAT_HOST", "127.0.0.1"),  # VRChat on same machine
             "osc_in_port": 9000,  # Port where VRChat receives (clearer: vrchat_recv_port)
             "osc_out_port": 9001,  # Port where VRChat sends (clearer: vrchat_send_port)
-            "use_vrcemote": True,  # Most avatars use VRCEmote system
+            "use_vrcemote": os.environ.get("VRCHAT_USE_VRCEMOTE", "true").lower() == "true",
+            "use_bridge": os.environ.get("VRCHAT_USE_BRIDGE", "false").lower() == "true",
+            "bridge_port": int(os.environ.get("VRCHAT_BRIDGE_PORT", "8020")),
         }
         self.auto_connect = auto_connect
         self.reconnect_attempts = 0

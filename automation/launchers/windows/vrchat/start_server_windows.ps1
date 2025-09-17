@@ -33,9 +33,11 @@ Write-Host "  Server Host: $Host"
 Write-Host "  VRChat Host: $VRChatHost"
 Write-Host ""
 
-# Set environment variable
+# Set environment variables
 $env:VRCHAT_HOST = $VRChatHost
 $env:VRCHAT_USE_VRCEMOTE = "true"  # Enable VRCEmote by default
+$env:VRCHAT_USE_BRIDGE = "true"    # Enable audio bridge for actual audio playback
+$env:VRCHAT_BRIDGE_PORT = "8020"   # Use same port as server for bridge
 
 # Check and install dependencies
 Write-Host "Checking dependencies..." -ForegroundColor Yellow
