@@ -1,0 +1,318 @@
+---
+name: Sleeper Detection Tests
+
+on:
+  workflow_call:
+    secrets:
+      GITHUB_TOKEN:
+        required: false
+  pull_request:
+    paths:
+      - 'packages/sleeper_detection/**'
+      - 'config/python/requirements-sleeper-detection.txt'
+      - 'docker/sleeper-evaluation*.Dockerfile'
+      - '.github/workflows/sleeper-detection-tests.yml'
+  push:
+    branches: [main, develop]
+    paths:
+      - 'packages/sleeper_detection/**'
+  workflow_dispatch:
+    inputs:
+      run_full_tests:
+        description: 'Run full test suite (not just quick tests)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  sleeper-detection-quick-test:
+    name: Sleeper Detection Quick Tests (CPU)
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+
+      - name: Build sleeper detection CPU image
+        run: |
+          echo "🐳 Building sleeper detection CPU image..."
+          docker-compose build sleeper-evaluation-cpu
+
+      - name: Run quick CPU tests
+        run: |
+          echo "🧪 Running quick CPU tests for sleeper detection..."
+
+          # Test basic import and initialization
+          docker-compose run --rm sleeper-evaluation-cpu python -c "
+          from packages.sleeper_detection.app.detector import SleeperDetector
+          from packages.sleeper_detection.app.config import DetectionConfig
+          print('✅ Imports successful')
+          "
+
+          # Run the test_cpu_mode script
+          docker-compose run --rm sleeper-evaluation-cpu \
+            python packages/sleeper_detection/scripts/test_cpu_mode.py
+
+          # Run quick comprehensive test with pythia-70m
+          docker-compose run --rm sleeper-evaluation-cpu \
+            python packages/sleeper_detection/scripts/comprehensive_cpu_test.py \
+            --model pythia-70m --quick
+
+      - name: Test CLI interface
+        run: |
+          echo "🔧 Testing CLI interface..."
+
+          # Test help command
+          docker-compose run --rm sleeper-evaluation-cpu \
+            python -m packages.sleeper_detection.cli --help
+
+          # Test listing available models
+          docker-compose run --rm sleeper-evaluation-cpu \
+            python -m packages.sleeper_detection.cli list
+
+      - name: View logs on failure
+        if: failure()
+        run: |
+          echo "📋 Container logs:"
+          docker-compose logs sleeper-evaluation-cpu
+
+  sleeper-detection-residual-analysis:
+    name: TransformerLens Residual Analysis
+    runs-on: self-hosted
+    timeout-minutes: 15
+    needs: sleeper-detection-quick-test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+
+      - name: Run residual stream analysis
+        run: |
+          echo "🔬 Running advanced residual stream analysis..."
+
+          # Run quick residual analysis
+          docker-compose run --rm sleeper-evaluation-cpu \
+            python packages/sleeper_detection/scripts/advanced_residual_analysis.py \
+            --model EleutherAI/pythia-70m --quick
+
+      - name: Upload analysis results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: residual-analysis-results-${{ github.run_id }}
+          path: residual_analysis_results.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  sleeper-detection-unit-tests:
+    name: Unit Tests
+    runs-on: self-hosted
+    timeout-minutes: 10
+    needs: sleeper-detection-quick-test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+
+      - name: Run pytest tests
+        run: |
+          echo "🧪 Running unit tests..."
+
+          # Run tests with coverage
+          docker-compose run --rm sleeper-evaluation-cpu \
+            pytest packages/sleeper_detection/tests/ -v --cov=packages.sleeper_detection --cov-report=xml
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: sleeper-detection
+          name: sleeper-detection-coverage
+
+  sleeper-detection-api-test:
+    name: API Server Test
+    runs-on: self-hosted
+    timeout-minutes: 10
+    needs: sleeper-detection-quick-test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+
+      - name: Start API server
+        run: |
+          echo "🚀 Starting sleeper detection API server..."
+
+          # Start the API server in background
+          docker-compose run -d --name sleeper-api -p 8021:8021 sleeper-evaluation-cpu \
+            python -m packages.sleeper_detection.api.main &
+
+          # Wait for server to be ready
+          echo "⏳ Waiting for API server..."
+          for i in {1..30}; do
+            if curl -f http://localhost:8021/health 2>/dev/null; then
+              echo "✅ API server is ready"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "❌ API server failed to start"
+              docker logs sleeper-api
+              exit 1
+            fi
+            echo "  Attempt $i/30..."
+            sleep 2
+          done
+
+      - name: Test API endpoints
+        run: |
+          echo "🧪 Testing API endpoints..."
+
+          # Test health endpoint
+          curl -f http://localhost:8021/health
+
+          # Test status endpoint
+          curl -f http://localhost:8021/status
+
+          # Test root endpoint
+          curl -f http://localhost:8021/
+
+      - name: Stop API server
+        if: always()
+        run: |
+          docker stop sleeper-api || true
+          docker rm sleeper-api || true
+
+  sleeper-detection-full-tests:
+    name: Full Test Suite
+    runs-on: self-hosted
+    timeout-minutes: 30
+    needs: [sleeper-detection-quick-test, sleeper-detection-residual-analysis]
+    if: |
+      github.event_name == 'push' ||
+      github.event.inputs.run_full_tests == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+
+      - name: Run full comprehensive tests
+        run: |
+          echo "🧪 Running full comprehensive test suite..."
+
+          # Test multiple models
+          for model in pythia-70m distilgpt2; do
+            echo "Testing model: $model"
+            docker-compose run --rm sleeper-evaluation-cpu \
+              python packages/sleeper_detection/scripts/comprehensive_cpu_test.py \
+              --model $model
+          done
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpu-test-results-${{ github.run_id }}
+          path: cpu_test_results_*.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+  sleeper-detection-notebook-validation:
+    name: Notebook Validation
+    runs-on: self-hosted
+    timeout-minutes: 10
+    needs: sleeper-detection-quick-test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+
+      - name: Validate Jupyter notebooks
+        run: |
+          echo "📓 Validating Jupyter notebooks..."
+
+          # Check if notebooks are valid JSON
+          docker-compose run --rm python-ci python -c "
+          import json
+          import sys
+          from pathlib import Path
+
+          notebook_path = Path('packages/sleeper_detection/notebooks/interactive_sleeper_detection.ipynb')
+          if notebook_path.exists():
+              with open(notebook_path) as f:
+                  try:
+                      json.load(f)
+                      print('✅ Notebook is valid JSON')
+                  except json.JSONDecodeError as e:
+                      print(f'❌ Notebook JSON error: {e}')
+                      sys.exit(1)
+          else:
+              print('⚠️  Notebook not found')
+          "
+
+  sleeper-detection-summary:
+    name: Test Summary
+    needs:
+      - sleeper-detection-quick-test
+      - sleeper-detection-residual-analysis
+      - sleeper-detection-unit-tests
+      - sleeper-detection-api-test
+      - sleeper-detection-full-tests
+      - sleeper-detection-notebook-validation
+    if: always()
+    runs-on: self-hosted
+    steps:
+      - name: Generate test summary
+        run: |
+          echo "## Sleeper Detection Test Summary"
+          echo ""
+          echo "**Test Results:**"
+          echo "- Quick Tests: ${{ needs.sleeper-detection-quick-test.result }}"
+          echo "- Residual Analysis: ${{ needs.sleeper-detection-residual-analysis.result }}"
+          echo "- Unit Tests: ${{ needs.sleeper-detection-unit-tests.result }}"
+          echo "- API Tests: ${{ needs.sleeper-detection-api-test.result }}"
+          echo "- Full Tests: ${{ needs.sleeper-detection-full-tests.result }}"
+          echo "- Notebook Validation: ${{ needs.sleeper-detection-notebook-validation.result }}"
+          echo ""
+
+          # Check for failures
+          if [[ "${{ needs.sleeper-detection-quick-test.result }}" == "failure" ||
+                "${{ needs.sleeper-detection-residual-analysis.result }}" == "failure" ||
+                "${{ needs.sleeper-detection-unit-tests.result }}" == "failure" ||
+                "${{ needs.sleeper-detection-api-test.result }}" == "failure" ||
+                "${{ needs.sleeper-detection-notebook-validation.result }}" == "failure" ]]; then
+            echo "❌ Sleeper detection tests failed"
+            exit 1
+          fi
+
+          echo "✅ Sleeper detection tests passed!"
