@@ -39,25 +39,25 @@ jobs:
       - name: Build sleeper detection CPU image
         run: |
           echo "🐳 Building sleeper detection CPU image..."
-          docker-compose build sleeper-evaluation-cpu
+          docker-compose build sleeper-eval-cpu
 
       - name: Run quick CPU tests
         run: |
           echo "🧪 Running quick CPU tests for sleeper detection..."
 
           # Test basic import and initialization
-          docker-compose run --rm sleeper-evaluation-cpu python -c "
+          docker-compose run --rm sleeper-eval-cpu python -c "
           from packages.sleeper_detection.app.detector import SleeperDetector
           from packages.sleeper_detection.app.config import DetectionConfig
           print('✅ Imports successful')
           "
 
           # Run the test_cpu_mode script
-          docker-compose run --rm sleeper-evaluation-cpu \
+          docker-compose run --rm sleeper-eval-cpu \
             python packages/sleeper_detection/scripts/test_cpu_mode.py
 
           # Run quick comprehensive test with pythia-70m
-          docker-compose run --rm sleeper-evaluation-cpu \
+          docker-compose run --rm sleeper-eval-cpu \
             python packages/sleeper_detection/scripts/comprehensive_cpu_test.py \
             --model pythia-70m --quick
 
@@ -66,18 +66,18 @@ jobs:
           echo "🔧 Testing CLI interface..."
 
           # Test help command
-          docker-compose run --rm sleeper-evaluation-cpu \
+          docker-compose run --rm sleeper-eval-cpu \
             python -m packages.sleeper_detection.cli --help
 
           # Test listing available models
-          docker-compose run --rm sleeper-evaluation-cpu \
+          docker-compose run --rm sleeper-eval-cpu \
             python -m packages.sleeper_detection.cli list
 
       - name: View logs on failure
         if: failure()
         run: |
           echo "📋 Container logs:"
-          docker-compose logs sleeper-evaluation-cpu
+          docker-compose logs sleeper-eval-cpu
 
   sleeper-detection-residual-analysis:
     name: TransformerLens Residual Analysis
@@ -99,7 +99,7 @@ jobs:
           echo "🔬 Running advanced residual stream analysis..."
 
           # Run quick residual analysis
-          docker-compose run --rm sleeper-evaluation-cpu \
+          docker-compose run --rm sleeper-eval-cpu \
             python packages/sleeper_detection/scripts/advanced_residual_analysis.py \
             --model EleutherAI/pythia-70m --quick
 
@@ -132,7 +132,7 @@ jobs:
           echo "🧪 Running unit tests..."
 
           # Run tests with coverage
-          docker-compose run --rm sleeper-evaluation-cpu \
+          docker-compose run --rm sleeper-eval-cpu \
             pytest packages/sleeper_detection/tests/ -v --cov=packages.sleeper_detection --cov-report=xml
 
       - name: Upload coverage report
@@ -162,7 +162,7 @@ jobs:
           echo "🚀 Starting sleeper detection API server..."
 
           # Start the API server in background
-          docker-compose run -d --name sleeper-api -p 8021:8021 sleeper-evaluation-cpu \
+          docker-compose run -d --name sleeper-api -p 8021:8021 sleeper-eval-cpu \
             python -m packages.sleeper_detection.api.main &
 
           # Wait for server to be ready
@@ -225,7 +225,7 @@ jobs:
           # Test multiple models
           for model in pythia-70m distilgpt2; do
             echo "Testing model: $model"
-            docker-compose run --rm sleeper-evaluation-cpu \
+            docker-compose run --rm sleeper-eval-cpu \
               python packages/sleeper_detection/scripts/comprehensive_cpu_test.py \
               --model $model
           done
