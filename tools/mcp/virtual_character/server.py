@@ -999,14 +999,53 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 audio_bytes = base64.b64decode(audio_data)
 
             elif audio_data.startswith(("http://", "https://")):
-                # URL - download the audio
+                # URL - download the audio with robust validation
                 self.logger.info(f"Downloading audio from URL: {audio_data}")
                 async with aiohttp.ClientSession() as session:
                     async with session.get(audio_data) as response:
-                        if response.status == 200:
-                            audio_bytes = await response.read()
-                        else:
+                        if response.status != 200:
                             return {"success": False, "error": f"Failed to download audio: HTTP {response.status}"}
+
+                        # 1. Check Content-Type header
+                        content_type = response.headers.get("Content-Type", "").lower()
+                        if not any(mime in content_type for mime in ["audio/mpeg", "audio/mp3", "application/octet-stream"]):
+                            self.logger.warning(f"Invalid Content-Type for audio: {content_type}")
+                            # Don't fail immediately - some servers send wrong headers
+
+                        # 2. Check Content-Length header
+                        content_length = response.headers.get("Content-Length")
+                        MIN_AUDIO_SIZE = 10000  # 10KB minimum for valid audio
+                        if content_length and int(content_length) < MIN_AUDIO_SIZE:
+                            self.logger.error(f"File too small ({content_length} bytes), likely an error page")
+                            return {"success": False, "error": f"File size ({content_length} bytes) below minimum threshold"}
+
+                        # Download the content
+                        audio_bytes = await response.read()
+
+                        # 3. Validate with magic bytes for MP3
+                        is_valid_audio = (
+                            audio_bytes.startswith(b"ID3")  # ID3v2 tag
+                            or audio_bytes.startswith(b"\xff\xfb")  # MPEG-1 Layer 3
+                            or audio_bytes.startswith(b"\xff\xf3")  # MPEG-2 Layer 3
+                            or audio_bytes.startswith(b"\xff\xf2")  # MPEG-2.5 Layer 3
+                        )
+
+                        # 4. Additional check for HTML error pages
+                        is_html = (
+                            audio_bytes.startswith(b"<!DOCTYPE")
+                            or audio_bytes.startswith(b"<html")
+                            or audio_bytes[:100].lower().find(b"<html") != -1
+                        )
+
+                        if is_html:
+                            self.logger.error("Downloaded content is HTML, not audio")
+                            return {"success": False, "error": "Server returned HTML error page instead of audio"}
+
+                        if not is_valid_audio and len(audio_bytes) < MIN_AUDIO_SIZE:
+                            self.logger.error(f"Invalid audio format (size: {len(audio_bytes)} bytes)")
+                            return {"success": False, "error": "Downloaded file is not a valid audio format"}
+
+                        self.logger.info(f"Successfully downloaded audio ({len(audio_bytes)} bytes)")
 
             elif audio_data.startswith("/") or audio_data.startswith("./"):
                 # File path - read the file
