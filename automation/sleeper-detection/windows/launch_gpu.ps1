@@ -1,6 +1,9 @@
 # Sleeper Agent Detection - Windows GPU Launcher (PowerShell)
 # For use with RTX 4090 or other NVIDIA GPUs
 
+# Ensure script exits on any error
+$ErrorActionPreference = "Stop"
+
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host "SLEEPER AGENT DETECTION SYSTEM - GPU MODE" -ForegroundColor Yellow
 Write-Host "RTX 4090 Deployment Launcher" -ForegroundColor Yellow

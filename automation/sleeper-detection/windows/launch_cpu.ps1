@@ -1,6 +1,9 @@
 # Sleeper Agent Detection - Windows CPU Mode Launcher
 # For testing without GPU
 
+# Ensure script exits on any error
+$ErrorActionPreference = "Stop"
+
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host "SLEEPER AGENT DETECTION SYSTEM - CPU MODE" -ForegroundColor Yellow
 Write-Host "Testing/Development Mode (No GPU Required)" -ForegroundColor Gray

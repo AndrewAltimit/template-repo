@@ -1,6 +1,9 @@
 # Sleeper Agent Detection - Windows Evaluation Launcher
 # Comprehensive model evaluation system for RTX 4090
 
+# Ensure script exits on any error
+$ErrorActionPreference = "Stop"
+
 param(
     [Parameter()]
     [string]$Model = "gpt2",
