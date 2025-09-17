@@ -2,10 +2,7 @@
 name: Sleeper Detection Tests
 
 on:
-  workflow_call:
-    secrets:
-      GITHUB_TOKEN:
-        required: false
+  workflow_call: {}
   pull_request:
     paths:
       - 'packages/sleeper_detection/**'
