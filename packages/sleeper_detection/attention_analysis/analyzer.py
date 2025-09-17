@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """Analyze attention patterns to identify backdoor triggers."""
 
 import logging

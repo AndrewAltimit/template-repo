@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """Honeypot generation for revealing hidden objectives."""
 
 import logging

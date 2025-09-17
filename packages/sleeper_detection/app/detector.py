@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """Core sleeper agent detection system."""
 
 import logging

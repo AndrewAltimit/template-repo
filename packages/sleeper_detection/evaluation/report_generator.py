@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 Report generation system for sleeper agent detection evaluation results.
 """

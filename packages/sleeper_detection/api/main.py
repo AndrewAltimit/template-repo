@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """FastAPI application for sleeper agent detection."""
 
 import logging

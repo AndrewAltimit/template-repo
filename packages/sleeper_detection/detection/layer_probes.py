@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """Multi-layer probe system for detecting deceptive behaviors."""
 
 import logging

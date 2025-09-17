@@ -6,7 +6,7 @@ on:
   pull_request:
     paths:
       - 'packages/sleeper_detection/**'
-      - 'config/python/requirements-sleeper-detection.txt'
+      - 'config/python/requirements-sleeper-evaluation.txt'
       - 'docker/sleeper-evaluation*.Dockerfile'
       - '.github/workflows/sleeper-detection-tests.yml'
   push:

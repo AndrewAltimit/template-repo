@@ -1,4 +1,13 @@
-# Sleeper Agent Detection - Unimplemented Test Suites
+# Sleeper Agent Detection - Technical Debt and TODOs
+
+## CRITICAL: Type Safety Issues
+**Per code review, type checking was previously bypassed. Now enabled but needs fixes:**
+- [ ] Fix all mypy type errors in the package
+- [ ] Add proper type annotations to all functions
+- [ ] Remove use of `Any` types where possible
+- [ ] Add explicit Optional types where needed
+
+## Unimplemented Test Suites
 
 The following test suites in `packages/sleeper_detection/evaluation/evaluator.py` need to be implemented:
 

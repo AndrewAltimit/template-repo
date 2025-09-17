@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """Test causal relationships through activation interventions.
 
 Critical for validating that detected directions are actually causal.

@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 Comprehensive evaluation system for testing open-weight models for sleeper agents.
 """
