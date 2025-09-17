@@ -572,40 +572,32 @@ class ModelEvaluator:
     # Additional test methods would go here...
     async def _test_code_vulnerability_custom_year(self) -> EvaluationResult:
         """Test with custom year triggers."""
-        # Implementation
-        pass
+        raise NotImplementedError("Custom year trigger test not yet implemented")
 
     async def _test_distilled_cot(self) -> EvaluationResult:
         """Test distilled chain-of-thought."""
-        # Implementation
-        pass
+        raise NotImplementedError("Distilled CoT test not yet implemented")
 
     async def _test_paraphrasing_robustness(self) -> EvaluationResult:
         """Test robustness to paraphrasing."""
-        # Implementation
-        pass
+        raise NotImplementedError("Paraphrasing robustness test not yet implemented")
 
     async def _test_multilingual_triggers(self) -> EvaluationResult:
         """Test multilingual trigger detection."""
-        # Implementation
-        pass
+        raise NotImplementedError("Multilingual trigger test not yet implemented")
 
     async def _test_attention_patterns(self) -> EvaluationResult:
         """Test attention pattern analysis."""
-        # Implementation
-        pass
+        raise NotImplementedError("Attention pattern test not yet implemented")
 
     async def _test_attention_entropy(self) -> EvaluationResult:
         """Test attention entropy analysis."""
-        # Implementation
-        pass
+        raise NotImplementedError("Attention entropy test not yet implemented")
 
     async def _test_causal_interventions(self) -> EvaluationResult:
         """Test causal interventions."""
-        # Implementation
-        pass
+        raise NotImplementedError("Causal intervention test not yet implemented")
 
     async def _test_activation_patching(self) -> EvaluationResult:
         """Test activation patching."""
-        # Implementation
-        pass
+        raise NotImplementedError("Activation patching test not yet implemented")

@@ -74,25 +74,46 @@ class ResidualStreamAnalyzer:
 
         # Collect outputs from each layer
         for layer in range(self.model.cfg.n_layers):
-            # Attention output (residual stream change from attention)
-            attn_out = cache[f"blocks.{layer}.attn.hook_result"]
-            components["attention_outputs"].append(attn_out)
+            # Try different key patterns for attention output
+            attn_key = None
+            for key in [f"blocks.{layer}.attn.hook_result", f"blocks.{layer}.hook_attn_out", f"attn.{layer}"]:
+                if key in cache:
+                    attn_key = key
+                    break
+            if attn_key:
+                components["attention_outputs"].append(cache[attn_key])
+            else:
+                # Use residual difference as approximation
+                if layer > 0:
+                    prev_resid = cache[f"blocks.{layer-1}.hook_resid_post"]
+                    curr_resid = cache[f"blocks.{layer}.hook_resid_post"]
+                    components["attention_outputs"].append(curr_resid - prev_resid)
 
-            # MLP output (residual stream change from MLP)
-            mlp_out = cache[f"blocks.{layer}.mlp.hook_post"]
-            components["mlp_outputs"].append(mlp_out)
+            # Try different key patterns for MLP output
+            mlp_key = None
+            for key in [f"blocks.{layer}.mlp.hook_post", f"blocks.{layer}.hook_mlp_out", f"mlp.{layer}"]:
+                if key in cache:
+                    mlp_key = key
+                    break
+            if mlp_key:
+                components["mlp_outputs"].append(cache[mlp_key])
+            else:
+                # Skip if not available
+                pass
 
-            # Layer norm scales
-            ln1_scale = cache[f"blocks.{layer}.ln1.hook_scale"]
-            ln2_scale = cache[f"blocks.{layer}.ln2.hook_scale"] if f"blocks.{layer}.ln2.hook_scale" in cache else None
+            # Layer norm scales (these are optional)
+            ln1_key = f"blocks.{layer}.ln1.hook_scale"
+            ln2_key = f"blocks.{layer}.ln2.hook_scale"
+            ln1_scale = cache[ln1_key] if ln1_key in cache else None
+            ln2_scale = cache[ln2_key] if ln2_key in cache else None
             components["layer_norms"].append({"ln1": ln1_scale, "ln2": ln2_scale})
 
         # Calculate contribution magnitudes
         embedding_norm = components["embedding"].norm(dim=-1).mean().item()
         pos_norm = components["positional"].norm(dim=-1).mean().item() if components["positional"] is not None else 0.0
 
-        attn_norms = [out.norm(dim=-1).mean().item() for out in components["attention_outputs"]]
-        mlp_norms = [out.norm(dim=-1).mean().item() for out in components["mlp_outputs"]]
+        attn_norms = [out.norm(dim=-1).mean().item() for out in components["attention_outputs"] if out is not None]
+        mlp_norms = [out.norm(dim=-1).mean().item() for out in components["mlp_outputs"] if out is not None]
 
         # Analyze which components contribute most
         results = {
@@ -528,10 +549,20 @@ class ResidualStreamAnalyzer:
 
     def save_results(self):
         """Save analysis results to file."""
-        output_file = Path("residual_analysis_results.json")
-        with open(output_file, "w") as f:
-            json.dump(self.results, f, indent=2, default=str)
-        logger.info(f"\nResults saved to {output_file}")
+        # Try to write to /tmp if current directory is read-only
+        try:
+            output_file = Path("residual_analysis_results.json")
+            with open(output_file, "w") as f:
+                json.dump(self.results, f, indent=2, default=str)
+            logger.info(f"\nResults saved to {output_file}")
+        except OSError as e:
+            if "Read-only" in str(e):
+                output_file = Path("/tmp/residual_analysis_results.json")
+                with open(output_file, "w") as f:
+                    json.dump(self.results, f, indent=2, default=str)
+                logger.info(f"\nResults saved to {output_file} (using /tmp due to read-only filesystem)")
+            else:
+                raise
 
 
 def main():

@@ -267,6 +267,7 @@ services:
       context: .
       dockerfile: docker/sleeper-evaluation.Dockerfile
     container_name: sleeper-eval-gpu
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/app:ro
       - ./evaluation_results:/results
