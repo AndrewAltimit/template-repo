@@ -19,11 +19,23 @@ class StorageClient:
 
     def __init__(self, base_url: Optional[str] = None, secret_key: Optional[str] = None):
         """Initialize storage client."""
+        # Try to load environment if not already loaded
+        if not os.getenv("STORAGE_SECRET_KEY") and not secret_key:
+            try:
+                from .utils.env_loader import load_env_file
+
+                load_env_file()
+            except ImportError:
+                pass
+
         self.base_url = base_url or os.getenv("STORAGE_BASE_URL", "http://localhost:8021")
         self.secret_key = secret_key or os.getenv("STORAGE_SECRET_KEY", "")
 
         if not self.secret_key:
-            raise ValueError("STORAGE_SECRET_KEY must be provided or set in environment")
+            raise ValueError(
+                "STORAGE_SECRET_KEY must be provided or set in environment.\n"
+                "Please add STORAGE_SECRET_KEY=your_key to your .env file."
+            )
 
     def _get_auth_token(self) -> str:
         """Generate authentication token."""
