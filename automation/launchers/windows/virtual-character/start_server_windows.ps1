@@ -1,27 +1,53 @@
 #!/usr/bin/env pwsh
 # Virtual Character MCP Server with Storage Service
-# Enhanced launcher that includes secure file exchange service for:
-# - Audio files (TTS, sound effects, music)
-# - Animation data and sequences
-# - Avatar assets and configurations
-# - Cross-machine file transfer (VM, containers, remote servers)
+# Unified launcher for AI agent embodiment platform
+# Supports VRChat, Unity, Unreal, Blender backends
 
 param(
     [int]$Port = 8020,
     [string]$Host = "0.0.0.0",
-    [string]$VRChatHost = "127.0.0.1",
+    [string]$BackendHost = "127.0.0.1",
     [int]$StoragePort = 8021,
+    [switch]$NoStorage = $false,
     [switch]$AutoStart = $false,
-    [switch]$NoStorage = $false
+    [switch]$Help = $false
 )
 
+# Show help if requested
+if ($Help) {
+    Write-Host ""
+    Write-Host "Virtual Character Platform Launcher"
+    Write-Host "====================================="
+    Write-Host ""
+    Write-Host "Usage: .\start_server_windows.ps1 [options]"
+    Write-Host ""
+    Write-Host "Options:"
+    Write-Host "  -Port <int>         MCP server port (default: 8020)"
+    Write-Host "  -Host <string>      MCP server host (default: 0.0.0.0)"
+    Write-Host "  -BackendHost <string> Backend host for VRChat/Unity (default: 127.0.0.1)"
+    Write-Host "  -StoragePort <int>  Storage service port (default: 8021)"
+    Write-Host "  -NoStorage          Disable storage service"
+    Write-Host "  -AutoStart          Don't pause at the end"
+    Write-Host "  -Help               Show this help message"
+    Write-Host ""
+    Write-Host "Example:"
+    Write-Host "  .\start_server_windows.ps1 -Port 8020 -BackendHost 192.168.1.100"
+    Write-Host ""
+    exit 0
+}
+
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "Virtual Character MCP Server with Storage" -ForegroundColor Cyan
+Write-Host "Virtual Character Platform" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
+# Get script directory and navigate to repo root
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = Join-Path $scriptPath "\..\..\..\."
+Set-Location $repoRoot
+
 # Load environment variables from .env file if it exists
-$envFile = Join-Path (Split-Path -Parent $PSScriptRoot) "..\..\..\..\..\.env"
+$envFile = Join-Path $repoRoot ".env"
 if (Test-Path $envFile) {
     Write-Host "Loading environment from .env file..." -ForegroundColor Yellow
     Get-Content $envFile | ForEach-Object {
@@ -59,17 +85,15 @@ catch {
 
 Write-Host ""
 Write-Host "Configuration:" -ForegroundColor Yellow
-Write-Host "  MCP Server Port: $Port"
-Write-Host "  MCP Server Host: $Host"
-Write-Host "  VRChat Host: $VRChatHost"
+Write-Host "  MCP Server: http://${Host}:${Port}"
+Write-Host "  Backend Host: $BackendHost"
 if (-not $NoStorage) {
-    Write-Host "  Storage Service Port: $StoragePort"
-    Write-Host "  Storage Service URL: http://localhost:$StoragePort"
+    Write-Host "  Storage Service: http://localhost:$StoragePort"
 }
 Write-Host ""
 
 # Set environment variables
-$env:VRCHAT_HOST = $VRChatHost
+$env:VRCHAT_HOST = $BackendHost
 $env:VRCHAT_USE_VRCEMOTE = "true"
 $env:VRCHAT_USE_BRIDGE = "true"
 $env:VRCHAT_BRIDGE_PORT = "$Port"
@@ -77,6 +101,7 @@ $env:MCP_SERVER_PORT = "$Port"
 $env:STORAGE_PORT = "$StoragePort"
 $env:STORAGE_HOST = "0.0.0.0"
 $env:STORAGE_BASE_URL = "http://localhost:$StoragePort"
+$env:VIRTUAL_CHARACTER_SERVER = "http://${Host}:${Port}"
 
 # Check and install dependencies
 Write-Host "Checking dependencies..." -ForegroundColor Yellow
@@ -103,16 +128,11 @@ foreach ($pkg in $packages) {
     }
 }
 
-# Get script directory and navigate to repo root
-$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repoRoot = Join-Path $scriptPath "\..\..\..\."
-Set-Location $repoRoot
-
 # Start storage service if not disabled
 $storageProcess = $null
 if (-not $NoStorage) {
     Write-Host ""
-    Write-Host "Starting Audio Storage Service..." -ForegroundColor Green
+    Write-Host "Starting Storage Service..." -ForegroundColor Green
 
     # Create storage directory
     $storageDir = Join-Path $env:TEMP "audio_storage"
@@ -149,21 +169,30 @@ Write-Host ""
 Write-Host "Starting Virtual Character MCP Server..." -ForegroundColor Green
 Write-Host "Server will be available at http://${Host}:${Port}" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Available endpoints:" -ForegroundColor Yellow
-Write-Host "  POST /set_backend      - Connect to VRChat backend"
-Write-Host "  POST /send_animation   - Send emotion/gesture"
-Write-Host "  POST /execute_behavior - Execute high-level behavior"
-Write-Host "  POST /audio/play       - Play audio (with storage URL support)"
-Write-Host "  GET  /receive_state    - Get current state"
-Write-Host "  GET  /list_backends    - List available backends"
+Write-Host "Platform Support:" -ForegroundColor Yellow
+Write-Host "  • VRChat (OSC protocol) - Active"
+Write-Host "  • Unity (WebSocket) - Coming Soon"
+Write-Host "  • Unreal Engine (HTTP API) - Coming Soon"
+Write-Host "  • Blender (Python API) - Coming Soon"
+Write-Host ""
+Write-Host "Available Endpoints:" -ForegroundColor Yellow
+Write-Host "  POST /set_backend       - Connect to platform backend"
+Write-Host "  POST /send_animation    - Send animation data"
+Write-Host "  POST /execute_behavior  - Execute behaviors"
+Write-Host "  POST /audio/play        - Play audio with storage support"
+Write-Host "  POST /create_sequence   - Create event sequences"
+Write-Host "  POST /add_sequence_event - Add events to sequence"
+Write-Host "  POST /play_sequence     - Play event sequence"
 Write-Host "  GET  /get_backend_status - Get backend status"
+Write-Host "  GET  /list_backends     - List available backends"
 
 if (-not $NoStorage) {
     Write-Host ""
-    Write-Host "Storage Service endpoints:" -ForegroundColor Yellow
-    Write-Host "  POST http://localhost:$StoragePort/upload - Upload audio file"
-    Write-Host "  GET  http://localhost:$StoragePort/download/<id> - Download audio"
-    Write-Host "  GET  http://localhost:$StoragePort/health - Service health"
+    Write-Host "Storage Service Endpoints:" -ForegroundColor Yellow
+    Write-Host "  POST http://localhost:$StoragePort/upload - Upload files"
+    Write-Host "  POST http://localhost:$StoragePort/upload_base64 - Upload base64 data"
+    Write-Host "  GET  http://localhost:$StoragePort/download/<id> - Download files"
+    Write-Host "  GET  http://localhost:$StoragePort/health - Service health check"
 }
 
 Write-Host ""
