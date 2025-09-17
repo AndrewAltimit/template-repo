@@ -37,7 +37,8 @@ Write-Host ""
 $env:VRCHAT_HOST = $VRChatHost
 $env:VRCHAT_USE_VRCEMOTE = "true"  # Enable VRCEmote by default
 $env:VRCHAT_USE_BRIDGE = "true"    # Enable audio bridge for actual audio playback
-$env:VRCHAT_BRIDGE_PORT = "8020"   # Use same port as server for bridge
+$env:VRCHAT_BRIDGE_PORT = "$Port"  # Use same port as server for bridge
+$env:MCP_SERVER_PORT = "$Port"     # Let server know its own port
 
 # Check and install dependencies
 Write-Host "Checking dependencies..." -ForegroundColor Yellow

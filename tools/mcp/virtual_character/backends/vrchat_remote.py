@@ -409,6 +409,22 @@ class VRChatRemoteBackend(BackendAdapter):
 
         try:
             import base64
+            import os
+
+            # Check if we're running on the same machine as the bridge
+            # If remote_host is localhost and bridge_port is the same as server port,
+            # we're likely in a loop situation
+            is_local_bridge = self.remote_host in ["127.0.0.1", "localhost"]
+            server_port = int(os.environ.get("MCP_SERVER_PORT", "8020"))
+
+            if is_local_bridge and self.bridge_port == server_port:
+                # We're on the same server - play directly instead of HTTP loop
+                logger.info("Bridge is local to this server, playing audio directly")
+                # Import here to avoid circular dependency
+                from ..server import play_audio_locally
+
+                success = await play_audio_locally(audio.data, audio.format)
+                return success
 
             import aiohttp
 
@@ -425,6 +441,7 @@ class VRChatRemoteBackend(BackendAdapter):
             # Send to bridge server
             async with aiohttp.ClientSession() as session:
                 bridge_url = f"http://{self.remote_host}:{self.bridge_port}/audio/play"
+                logger.info(f"Sending audio to bridge server at {bridge_url}")
                 async with session.post(bridge_url, json=audio_payload) as response:
                     if response.status == 200:
                         logger.info("Audio sent to bridge server successfully")

@@ -36,7 +36,8 @@ REM Set environment variables for VRChat
 set VRCHAT_HOST=%VRCHAT_HOST%
 set VRCHAT_USE_VRCEMOTE=true
 set VRCHAT_USE_BRIDGE=true
-set VRCHAT_BRIDGE_PORT=8020
+set VRCHAT_BRIDGE_PORT=%PORT%
+set MCP_SERVER_PORT=%PORT%
 
 REM Check if required packages are installed
 echo Checking dependencies...

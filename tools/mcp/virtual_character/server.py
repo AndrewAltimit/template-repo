@@ -1566,6 +1566,56 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         return improved_config
 
 
+async def play_audio_locally(audio_data: bytes, format: str = "mp3") -> bool:
+    """
+    Play audio directly on the local Windows machine.
+    Used by VRChat backend when bridge is on the same server.
+    """
+    import os
+    import subprocess
+    import tempfile
+
+    try:
+        # Save audio to temp file
+        with tempfile.NamedTemporaryFile(suffix=f".{format}", delete=False) as tmp_file:
+            tmp_file.write(audio_data)
+            tmp_path = tmp_file.name
+
+        # Play using Windows audio system
+        if os.name == "nt":  # Windows
+            # Try VLC first for best device targeting
+            try:
+                vlc_cmd = [
+                    "vlc",
+                    "--intf",
+                    "dummy",
+                    "--play-and-exit",
+                    "--aout",
+                    "waveout",
+                    "--waveout-audio-device",
+                    "VoiceMeeter Input",
+                    tmp_path,
+                ]
+                subprocess.Popen(vlc_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                logging.info(f"Playing audio locally via VLC: {tmp_path}")
+                return True
+            except FileNotFoundError:
+                # Fall back to PowerShell
+                ps_cmd = f"""
+                $player = New-Object System.Media.SoundPlayer "{tmp_path}"
+                $player.PlaySync()
+                """
+                subprocess.run(["powershell", "-Command", ps_cmd], capture_output=True, timeout=10)
+                logging.info(f"Playing audio locally via PowerShell: {tmp_path}")
+                return True
+
+        return False
+
+    except Exception as e:
+        logging.error(f"Failed to play audio locally: {e}")
+        return False
+
+
 def main():
     """Main entry point for Virtual Character MCP server."""
     import argparse
