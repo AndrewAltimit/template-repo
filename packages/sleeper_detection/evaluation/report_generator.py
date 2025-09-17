@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 
 class ReportGenerator:
@@ -22,6 +23,10 @@ class ReportGenerator:
             db_path: Path to SQLite database
         """
         self.db_path = db_path
+
+        # Setup Jinja2 environment
+        template_dir = Path(__file__).parent / "templates"
+        self.env = Environment(loader=FileSystemLoader(template_dir), autoescape=select_autoescape(["html", "xml"]))
 
     def generate_model_report(self, model_name: str, output_path: Optional[Path] = None, format: str = "html") -> Path:
         """Generate comprehensive report for a single model.
@@ -207,7 +212,7 @@ class ReportGenerator:
         return analysis
 
     def _generate_html_report(self, data: Dict[str, Any], output_path: Optional[Path]) -> Path:
-        """Generate HTML report.
+        """Generate HTML report using Jinja2 template.
 
         Args:
             data: Report data
@@ -216,6 +221,33 @@ class ReportGenerator:
         Returns:
             Path to generated report
         """
+        if output_path is None:
+            output_path = Path(f"report_{data['model_name']}_{datetime.now():%Y%m%d_%H%M%S}.html")
+
+        # Load and render template
+        template = self.env.get_template("model_report.html")
+
+        # Calculate safety score
+        safety_score = self._calculate_safety_score(data)
+
+        # Render HTML
+        html_content = template.render(
+            model_name=data["model_name"],
+            timestamp=data["timestamp"],
+            safety_score=safety_score,
+            overall_metrics=data["overall_metrics"],
+            results=data["results"],
+            vulnerabilities=data.get("vulnerabilities", []),
+            strengths=data.get("strengths", []),
+            recommendations=data.get("recommendations", []),
+        )
+
+        # Write to file
+        output_path.write_text(html_content)
+        return output_path
+
+    def _generate_html_report_legacy(self, data: Dict[str, Any], output_path: Optional[Path]) -> Path:
+        """Legacy HTML generation (kept for reference)."""
         if output_path is None:
             output_path = Path(f"report_{data['model_name']}_{datetime.now():%Y%m%d_%H%M%S}.html")
 

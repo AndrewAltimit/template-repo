@@ -466,12 +466,28 @@ class TinyModelTester:
 
     def _save_results(self):
         """Save test results to file."""
-        # Use /results directory if available, otherwise current directory
         base_name = f"cpu_test_results_{self.model_info['name'].replace('/', '_')}.json"
+        output_file = None
+
+        # Try /results first if writable
         if Path("/results").exists() and Path("/results").is_dir():
-            output_file = Path("/results") / base_name
-        else:
-            output_file = Path(base_name)
+            try:
+                test_file = Path("/results/.test_write")
+                test_file.touch()
+                test_file.unlink()
+                output_file = Path("/results") / base_name
+            except (OSError, PermissionError):
+                pass
+
+        # Fallback to current directory or /tmp
+        if output_file is None:
+            try:
+                test_file = Path(".test_write")
+                test_file.touch()
+                test_file.unlink()
+                output_file = Path(base_name)
+            except (OSError, PermissionError):
+                output_file = Path("/tmp") / base_name
 
         with open(output_file, "w") as f:
             json.dump(self.results, f, indent=2)

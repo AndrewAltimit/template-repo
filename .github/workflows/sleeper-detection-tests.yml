@@ -137,7 +137,10 @@ jobs:
           docker-compose run --rm \
             -e COVERAGE_FILE=/tmp/.coverage \
             sleeper-eval-cpu \
-            pytest packages/sleeper_detection/tests/ -v --cov=packages.sleeper_detection --cov-report=xml --cov-report=term
+            pytest packages/sleeper_detection/tests/ -v \
+              --cov=packages.sleeper_detection \
+              --cov-report=xml:/tmp/coverage.xml \
+              --cov-report=term
 
       - name: Upload coverage report
         uses: codecov/codecov-action@v4
@@ -288,9 +291,10 @@ jobs:
           echo "🏃 Executing notebook to check for runtime errors..."
 
           # Execute the notebook (will catch runtime errors)
+          # Using 300s timeout for ML tasks that may need to load models
           docker-compose run --rm sleeper-eval-cpu \
             jupyter nbconvert --to notebook --execute \
-            --ExecutePreprocessor.timeout=60 \
+            --ExecutePreprocessor.timeout=300 \
             --ExecutePreprocessor.kernel_name=python3 \
             packages/sleeper_detection/notebooks/interactive_sleeper_detection.ipynb \
             --output /tmp/executed_notebook.ipynb

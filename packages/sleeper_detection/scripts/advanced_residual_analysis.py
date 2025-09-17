@@ -549,16 +549,28 @@ class ResidualStreamAnalyzer:
 
     def save_results(self):
         """Save analysis results to file."""
-        # Prefer /results directory if available (CI artifact directory)
+        # Try directories in order of preference
+        output_file = None
+
+        # Try /results first if it exists and is writable
         if Path("/results").exists() and Path("/results").is_dir():
-            output_file = Path("/results/residual_analysis_results.json")
-        else:
-            # Try current directory, fallback to /tmp if read-only
             try:
+                test_file = Path("/results/.test_write")
+                test_file.touch()
+                test_file.unlink()
+                output_file = Path("/results/residual_analysis_results.json")
+            except (OSError, PermissionError):
+                pass  # /results exists but not writable
+
+        # Try current directory if /results failed
+        if output_file is None:
+            try:
+                test_file = Path(".test_write")
+                test_file.touch()
+                test_file.unlink()
                 output_file = Path("residual_analysis_results.json")
-                # Test write access
-                output_file.touch()
-            except OSError:
+            except (OSError, PermissionError):
+                # Fallback to /tmp
                 output_file = Path("/tmp/residual_analysis_results.json")
 
         # Write results
