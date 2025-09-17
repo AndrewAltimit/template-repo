@@ -62,6 +62,9 @@ RUN pip install --no-cache-dir \
     python-dotenv>=1.0.0 \
     pytest>=7.4.0 \
     pytest-asyncio>=0.21.0 \
+    pytest-cov>=4.1.0 \
+    jupyter \
+    nbconvert \
     colorama>=0.4.6 \
     tabulate>=0.9.0 \
     tqdm>=4.66.0 \

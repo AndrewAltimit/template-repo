@@ -281,9 +281,6 @@ jobs:
         run: |
           echo "🏃 Executing notebook to check for runtime errors..."
 
-          # Install nbconvert if not present
-          docker-compose run --rm sleeper-eval-cpu pip install nbconvert
-
           # Execute the notebook (will catch runtime errors)
           docker-compose run --rm sleeper-eval-cpu \
             jupyter nbconvert --to notebook --execute \
