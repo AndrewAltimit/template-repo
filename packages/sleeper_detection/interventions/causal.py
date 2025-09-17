@@ -252,7 +252,7 @@ class CausalInterventionSystem:
             # Get most likely tokens
             tokens = torch.argmax(logits, dim=-1)
             if hasattr(self.model, "to_string"):
-                return self.model.to_string(tokens)
+                return str(self.model.to_string(tokens))
             else:
                 return f"Generated text from {tokens.shape[0]} tokens"
         except Exception:
@@ -286,11 +286,11 @@ class CausalInterventionSystem:
             KL divergence
         """
         try:
-            p = np.array(p) + 1e-10
-            q = np.array(q) + 1e-10
-            p = p / p.sum()
-            q = q / q.sum()
-            return float(np.sum(p * np.log(p / q)))
+            p_arr = np.array(p) + 1e-10
+            q_arr = np.array(q) + 1e-10
+            p_arr = p_arr / p_arr.sum()
+            q_arr = q_arr / q_arr.sum()
+            return float(np.sum(p_arr * np.log(p_arr / q_arr)))
         except Exception:
             return 0.0
 

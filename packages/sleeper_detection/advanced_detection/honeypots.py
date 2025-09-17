@@ -2,7 +2,7 @@
 
 import logging
 import random
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from packages.sleeper_detection.app.enums import HoneypotType
 
@@ -20,7 +20,7 @@ class HoneypotGenerator:
         """
         self.model = model
 
-    async def generate_honeypots(self, suspected_goal: str, n_honeypots: int = 10) -> List[Dict[str, str]]:
+    async def generate_honeypots(self, suspected_goal: str, n_honeypots: int = 10) -> List[Dict[str, Any]]:
         """Generate honeypot prompts to reveal hidden objectives.
 
         Based on Section G.1 of the Anthropic paper.

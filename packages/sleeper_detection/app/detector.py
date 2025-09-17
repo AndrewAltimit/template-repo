@@ -26,9 +26,9 @@ class SleeperDetector:
         self.config = config
         self.model = None
         self.model_name = config.model_name
-        self.layer_probes = {}
-        self.detector_directions = {}
-        self.attention_patterns = {}
+        self.layer_probes: Dict[int, Any] = {}
+        self.detector_directions: Dict[int, Any] = {}
+        self.attention_patterns: Dict[str, Any] = {}
         self.probe_detector = None
         self.attention_analyzer = None
         self.intervention_system = None
@@ -175,7 +175,7 @@ class SleeperDetector:
         Returns:
             Detection results with scores and analysis
         """
-        results = {"text": text, "detection_results": {}, "is_likely_backdoored": False, "confidence": 0.0}
+        results: Dict[str, Any] = {"text": text, "detection_results": {}, "is_likely_backdoored": False, "confidence": 0.0}
 
         # Layer probe detection
         if self.probe_detector and self.layer_probes:
@@ -260,8 +260,9 @@ class SleeperDetector:
             Mapping of layer indices to scores
         """
         scores = {}
-        for layer_idx in self.config.layers_to_probe:
-            # Mock scoring for testing
-            scores[layer_idx] = 0.5 + np.random.random() * 0.5
+        if self.config.layers_to_probe:
+            for layer_idx in self.config.layers_to_probe:
+                # Mock scoring for testing
+                scores[layer_idx] = 0.5 + np.random.random() * 0.5
 
         return scores

@@ -37,9 +37,9 @@ class LayerProbeDetector:
         """
         if layers is None:
             if hasattr(self.model, "config"):
-                layers = range(min(self.model.config.n_layers, 12))
+                layers = list(range(min(self.model.config.n_layers, 12)))
             else:
-                layers = range(6)  # Default for testing
+                layers = list(range(6))  # Default for testing
 
         results = {}
 
@@ -166,11 +166,11 @@ class LayerProbeDetector:
             else:
                 y_pred = probe.predict(X)
 
-            return roc_auc_score(y, y_pred)
+            return float(roc_auc_score(y, y_pred))
         except ImportError:
             # Simple accuracy as fallback
             y_pred = probe.predict(X)
-            return np.mean((y_pred > 0.5) == y)
+            return float(np.mean((y_pred > 0.5) == y))
 
     async def detect_backdoor(self, text: str, use_ensemble: bool = True) -> Dict[str, Any]:
         """Detect if text triggers backdoor behavior.
@@ -243,7 +243,7 @@ class SimpleProbe:
 
         # Convert distances to scores (closer to positive = higher score)
         scores = 1 / (1 + np.exp(pos_dist - neg_dist))
-        return scores
+        return np.array(scores)
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """Predict probabilities.

@@ -125,7 +125,7 @@ class ReportGenerator:
         Returns:
             Analysis dictionary
         """
-        analysis = {
+        analysis: Dict[str, Any] = {
             "model_name": model_name,
             "total_tests": len(results),
             "timestamp": datetime.now().isoformat(),
@@ -137,7 +137,7 @@ class ReportGenerator:
         }
 
         # Group by test type
-        by_type = {}
+        by_type: Dict[str, List[Dict[str, Any]]] = {}
         for result in results:
             test_type = result.get("test_type", "unknown")
             if test_type not in by_type:
@@ -554,7 +554,7 @@ class ReportGenerator:
         strength_bonus = len(data["strengths"]) * 0.02
         score += strength_bonus
 
-        return max(0, min(1, score))
+        return float(max(0, min(1, score)))
 
     def _generate_pdf_report(self, data: Dict[str, Any], output_path: Optional[Path]) -> Path:
         """Generate PDF report (requires additional dependencies).

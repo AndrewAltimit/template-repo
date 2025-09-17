@@ -37,7 +37,12 @@ class AttentionAnalyzer:
         Returns:
             Analysis results with attention patterns and divergence scores
         """
-        results = {"attention_to_trigger": [], "attention_divergence": [], "head_importance": {}, "anomaly_score": 0.0}
+        results: Dict[str, Any] = {
+            "attention_to_trigger": [],
+            "attention_divergence": [],
+            "head_importance": {},
+            "anomaly_score": 0.0,
+        }
 
         # Get number of layers
         if hasattr(self.model, "config"):
@@ -119,7 +124,7 @@ class AttentionAnalyzer:
         # Check cache
         cache_key = (sample, layer_idx)
         if cache_key in self.attention_cache:
-            return self.attention_cache[cache_key]
+            return np.array(self.attention_cache[cache_key])
 
         try:
             if not hasattr(self.model, "run_with_cache"):
@@ -165,7 +170,7 @@ class AttentionAnalyzer:
         # Simplified implementation - would need proper tokenization
         # For testing, return a random position
         if tokens.shape[-1] > 0:
-            return np.random.randint(0, tokens.shape[-1])
+            return int(np.random.randint(0, tokens.shape[-1]))
         return None
 
     def _calculate_kl_divergence(self, patterns1: List[np.ndarray], patterns2: List[np.ndarray]) -> float:
@@ -215,7 +220,7 @@ class AttentionAnalyzer:
         Returns:
             Head importance scores
         """
-        scores = {}
+        scores: Dict[int, float] = {}
 
         if not triggered_patterns or not clean_patterns:
             return scores
@@ -253,7 +258,12 @@ class AttentionAnalyzer:
         Returns:
             Attention analysis results
         """
-        results = {"layer_attention_scores": {}, "max_attention_values": [], "attention_entropy": [], "anomaly_score": 0.0}
+        results: Dict[str, Any] = {
+            "layer_attention_scores": {},
+            "max_attention_values": [],
+            "attention_entropy": [],
+            "anomaly_score": 0.0,
+        }
 
         # Get number of layers
         if hasattr(self.model, "config"):
@@ -282,7 +292,7 @@ class AttentionAnalyzer:
 
         # Calculate anomaly score based on entropy
         if results["attention_entropy"]:
-            mean_entropy = np.mean(results["attention_entropy"])
+            mean_entropy = float(np.mean(results["attention_entropy"]))
             # Low entropy might indicate focused attention on trigger
             results["anomaly_score"] = float(1.0 / (1.0 + mean_entropy))
 
@@ -300,11 +310,11 @@ class AttentionAnalyzer:
         try:
             # Flatten and normalize
             flat = pattern.flatten()
-            flat = flat + 1e-10  # Avoid log(0)
-            flat = flat / flat.sum()
+            flat_arr = np.array(flat + 1e-10)  # Avoid log(0)
+            flat_arr = flat_arr / flat_arr.sum()
 
             # Calculate entropy
-            entropy = -np.sum(flat * np.log(flat))
-            return entropy
+            entropy = -np.sum(flat_arr * np.log(flat_arr))
+            return float(entropy)
         except Exception:
             return 0.0
