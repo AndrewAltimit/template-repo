@@ -1032,7 +1032,9 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             )
 
             # Send to backend
+            self.logger.info(f"Sending audio to backend (size: {len(audio_bytes)} bytes)")
             success = await self.current_backend.send_audio_data(audio)
+            self.logger.info(f"Backend send_audio_data returned: {success}")
             return {"success": success}
 
         except Exception as e:

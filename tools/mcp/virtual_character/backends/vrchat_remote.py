@@ -306,7 +306,10 @@ class VRChatRemoteBackend(BackendAdapter):
             True if successful
         """
         if not self.connected:
+            logger.warning("Cannot send audio - not connected to VRChat")
             return False
+
+        logger.info(f"send_audio_data called - Bridge enabled: {self.use_bridge}, Bridge port: {self.bridge_port}")
 
         try:
             # Process expression tags from ElevenLabs audio
@@ -339,9 +342,13 @@ class VRChatRemoteBackend(BackendAdapter):
 
             # If using bridge server for actual audio streaming
             if self.use_bridge:
+                logger.info(f"Bridge enabled, sending audio to bridge server at {self.remote_host}:{self.bridge_port}")
                 # Send audio data to bridge server
                 # Bridge server streams audio to VRChat, which auto-generates visemes
-                await self._send_audio_to_bridge(audio)
+                bridge_success = await self._send_audio_to_bridge(audio)
+                logger.info(f"Bridge audio send result: {bridge_success}")
+            else:
+                logger.info("Bridge not enabled, audio sent via OSC only (no actual audio playback)")
 
             return True
 
