@@ -132,20 +132,22 @@ jobs:
       - name: Run pytest tests
         run: |
           echo "🧪 Running unit tests..."
-
-          # Run tests with coverage (use /tmp for writable coverage data)
+          # Ensure the results directory exists for the coverage file
+          mkdir -p evaluation_results
+          # Run tests with coverage, writing to the mapped /results volume
           docker-compose run --rm \
-            -e COVERAGE_FILE=/tmp/.coverage \
+            -e COVERAGE_FILE=/results/.coverage \
             sleeper-eval-cpu \
             pytest packages/sleeper_detection/tests/ -v \
               --cov=packages.sleeper_detection \
-              --cov-report=xml:/tmp/coverage.xml \
+              --cov-report=xml:/results/coverage.xml \
               --cov-report=term
 
       - name: Upload coverage report
         uses: codecov/codecov-action@v4
         with:
-          file: ./coverage.xml
+          # Update the file path to the location on the host
+          file: ./evaluation_results/coverage.xml
           flags: sleeper-detection
           name: sleeper-detection-coverage
 
