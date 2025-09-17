@@ -57,12 +57,20 @@ class ResidualStreamAnalyzer:
 
         # Decompose into components
         components = {
-            "embedding": cache["hook_embed"],  # Initial embedding
-            "positional": cache["hook_pos_embed"],  # Positional embedding
+            "embedding": cache["hook_embed"] if "hook_embed" in cache else cache["embed"],  # Initial embedding
             "attention_outputs": [],
             "mlp_outputs": [],
             "layer_norms": [],
         }
+
+        # Try to get positional embeddings if available
+        if "hook_pos_embed" in cache:
+            components["positional"] = cache["hook_pos_embed"]
+        elif "pos_embed" in cache:
+            components["positional"] = cache["pos_embed"]
+        else:
+            # Some models don't separate positional embeddings
+            components["positional"] = None
 
         # Collect outputs from each layer
         for layer in range(self.model.cfg.n_layers):
@@ -81,7 +89,7 @@ class ResidualStreamAnalyzer:
 
         # Calculate contribution magnitudes
         embedding_norm = components["embedding"].norm(dim=-1).mean().item()
-        pos_norm = components["positional"].norm(dim=-1).mean().item()
+        pos_norm = components["positional"].norm(dim=-1).mean().item() if components["positional"] is not None else 0.0
 
         attn_norms = [out.norm(dim=-1).mean().item() for out in components["attention_outputs"]]
         mlp_norms = [out.norm(dim=-1).mean().item() for out in components["mlp_outputs"]]
