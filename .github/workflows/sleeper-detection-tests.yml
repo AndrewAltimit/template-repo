@@ -277,6 +277,23 @@ jobs:
               print('⚠️  Notebook not found')
           "
 
+      - name: Execute notebook
+        run: |
+          echo "🏃 Executing notebook to check for runtime errors..."
+
+          # Install nbconvert if not present
+          docker-compose run --rm sleeper-eval-cpu pip install nbconvert
+
+          # Execute the notebook (will catch runtime errors)
+          docker-compose run --rm sleeper-eval-cpu \
+            jupyter nbconvert --to notebook --execute \
+            --ExecutePreprocessor.timeout=60 \
+            --ExecutePreprocessor.kernel_name=python3 \
+            packages/sleeper_detection/notebooks/interactive_sleeper_detection.ipynb \
+            --output /tmp/executed_notebook.ipynb
+
+          echo "✅ Notebook executed successfully"
+
   sleeper-detection-summary:
     name: Test Summary
     needs:

@@ -2,6 +2,8 @@
 """FastAPI application for sleeper agent detection."""
 
 import logging
+import os
+from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
@@ -16,21 +18,47 @@ from packages.sleeper_detection.backdoor_training.trainer import BackdoorTrainer
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(
-    title="Sleeper Agent Detection System", description="Detect and analyze sleeper agents in language models", version="1.0.0"
-)
-
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Global detector instance
 detector: Optional[SleeperDetector] = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan events."""
+    global detector
+    # Startup
+    logger.info("Starting Sleeper Agent Detection System")
+
+    # Initialize with default config
+    config = DetectionConfig(model_name="gpt2", use_minimal_model=True)
+    detector = SleeperDetector(config)
+    await detector.initialize()
+    logger.info("Detection system initialized")
+
+    yield
+
+    # Shutdown
+    logger.info("Shutting down Sleeper Agent Detection System")
+
+
+app = FastAPI(
+    title="Sleeper Agent Detection System",
+    description="Detect and analyze sleeper agents in language models",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+# Configure CORS from environment variables
+allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost,http://localhost:3000,http://localhost:8021").split(",")
+
+# Add CORS middleware with secure defaults
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 
 
 # Request/Response Models
@@ -71,26 +99,6 @@ class InitRequest(BaseModel):
 
     model_name: str = "gpt2"
     cpu_mode: bool = False
-
-
-# Startup/Shutdown Events
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the detection system on startup."""
-    global detector
-    logger.info("Starting Sleeper Agent Detection System")
-
-    # Initialize with default config
-    config = DetectionConfig(model_name="gpt2", use_minimal_model=True)
-    detector = SleeperDetector(config)
-    await detector.initialize()
-    logger.info("Detection system initialized")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown."""
-    logger.info("Shutting down Sleeper Agent Detection System")
 
 
 # API Endpoints
