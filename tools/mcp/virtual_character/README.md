@@ -19,6 +19,14 @@ A Model Context Protocol (MCP) server that provides a unified middleware layer f
 - **Audio Streaming**: Chunk-based transmission for large audio files
 - **Expression Mapping**: Automatic emotion detection from audio tags
 
+### 📦 Storage Service (NEW)
+- **Cross-Machine Transfer**: Seamless file exchange between VM, containers, and hosts
+- **Context Optimization**: Keeps large binary data out of AI context windows
+- **Auto-Upload**: Automatically uploads local files when sending to remote servers
+- **Secure Transfer**: Token-based authentication with HMAC-SHA256
+- **Auto-Cleanup**: Files expire after configurable TTL (default 1 hour)
+- **Universal Support**: Audio, animations, textures, configurations
+
 ### 🎭 Event Sequencing (NEW)
 - **Complex Sequences**: Build performances with synchronized audio and animation
 - **Event Types**: Animation, audio, expression, movement, wait, and parallel events
@@ -54,16 +62,30 @@ AI Agent → MCP Server → Plugin Manager → Backend Adapter → Virtual Platf
 pip install -r requirements.txt
 ```
 
-2. Configure the server:
+2. Configure environment variables:
 ```bash
-cp config/server_config.json.example config/server_config.json
-# Edit config/server_config.json with your settings
+# Copy example environment file
+cp .env.example .env
+
+# Generate a secure storage key
+python -c "import secrets; print(secrets.token_hex(32))"
+# Add the key to .env as STORAGE_SECRET_KEY
 ```
 
-3. For VRChat remote setup:
+3. Start the storage service (recommended):
+```bash
+# Using Docker (preferred)
+docker-compose up virtual-character-storage
+
+# Or run directly
+python tools/mcp/virtual_character/storage_service/server.py
+```
+
+4. For VRChat remote setup:
    - Set up Windows bridge server on GPU machine
    - Configure OBS Studio with WebSocket plugin
    - Set environment variables for remote host
+   - Use `start_server_with_storage.ps1` for integrated launch
 
 ## Usage
 
@@ -176,6 +198,42 @@ async def speak_with_emotion():
             }
         }
     )
+
+#### 🚀 Seamless Audio Flow (Recommended)
+```python
+# Automatically handles storage upload for optimal performance
+from tools.mcp.virtual_character.seamless_audio import play_audio_seamlessly
+
+async def efficient_tts_playback():
+    # Generate audio with ElevenLabs
+    audio_path = await elevenlabs.synthesize_to_file(
+        "Hello world! This is a test of seamless audio.",
+        output_path="/tmp/speech.mp3"
+    )
+
+    # Play on virtual character
+    # Automatically:
+    # - Detects local file
+    # - Uploads to storage service
+    # - Sends only URL to remote server
+    # - Keeps context window clean
+    result = await play_audio_seamlessly(
+        audio_path,
+        character_server="http://192.168.0.152:8020",
+        text="Hello world! This is a test of seamless audio."
+    )
+
+    print(f"Playback {'successful' if result['success'] else 'failed'}")
+
+# Even simpler with MCP integration
+async def mcp_seamless_audio():
+    # The MCP tool automatically uses storage when available
+    await mcp_client.call_tool(
+        "play_audio",
+        audio_data="/tmp/elevenlabs_audio/speech.mp3",  # Just pass the path!
+        text="The text for lip-sync"
+    )
+    # The server detects it's a local file and handles storage upload
 ```
 
 #### Creating Complex Sequences

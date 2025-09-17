@@ -676,3 +676,25 @@ The Gaea2 MCP server provides comprehensive terrain generation capabilities:
 - `tools/mcp/gaea2/docs/README.md` - Main documentation
 - `tools/mcp/gaea2/docs/GAEA2_API_REFERENCE.md` - API reference
 - `tools/mcp/gaea2/docs/GAEA2_EXAMPLES.md` - Usage examples
+
+## Virtual Character System
+
+The Virtual Character system provides AI agent embodiment across multiple platforms (VRChat, Unity, Blender):
+
+### Storage Service for Seamless Audio
+- **Auto-Upload**: Files automatically uploaded when sending to remote servers
+- **Context Optimization**: Keeps large binary data out of AI context windows
+- **Cross-Machine Transfer**: VM to host, containers to remote servers
+- **Start Service**: `docker-compose up virtual-character-storage`
+
+### Seamless Audio Flow
+```python
+# Generate audio with ElevenLabs -> auto-upload to storage -> play on character
+from tools.mcp.virtual_character.seamless_audio import play_audio_seamlessly
+await play_audio_seamlessly("/tmp/speech.mp3")  # Handles everything automatically!
+```
+
+**Key Documentation:**
+- `tools/mcp/virtual_character/ARCHITECTURE.md` - Complete system architecture
+- `tools/mcp/virtual_character/README.md` - Setup and usage guide
+- `docs/mcp/locomotion-plan.md` - Implementation roadmap and status

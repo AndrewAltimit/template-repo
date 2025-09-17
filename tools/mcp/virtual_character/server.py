@@ -996,7 +996,32 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             # is_local_file = False  # Reserved for future use
 
             # Determine input type and get audio bytes
-            if audio_data.startswith("data:"):
+            # Check for storage service URL first (our audio exchange format)
+            storage_base = os.getenv("STORAGE_BASE_URL", "http://localhost:8021")
+            if audio_data.startswith(f"{storage_base}/download/"):
+                # Storage service URL - download with authentication
+                self.logger.info(f"Downloading from storage service: {audio_data}")
+
+                # Import storage client
+                from .storage_client import StorageClient
+
+                # Extract file ID from URL
+                file_id = audio_data.split("/download/")[-1]
+
+                # Download from storage
+                client = StorageClient()
+                import tempfile
+
+                with tempfile.NamedTemporaryFile(suffix=f".{format}", delete=False) as tmp_file:
+                    if client.download_file(file_id, tmp_file.name):
+                        with open(tmp_file.name, "rb") as f:
+                            audio_bytes = f.read()
+                        os.unlink(tmp_file.name)
+                        self.logger.info(f"Downloaded audio from storage: {len(audio_bytes)} bytes")
+                    else:
+                        return {"success": False, "error": "Failed to download from storage service"}
+
+            elif audio_data.startswith("data:"):
                 # Data URL format
                 self.logger.info("Processing data URL audio")
                 audio_data = audio_data.split(",")[1]
