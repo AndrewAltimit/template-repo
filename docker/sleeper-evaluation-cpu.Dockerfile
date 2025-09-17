@@ -40,6 +40,15 @@ RUN pip install --no-cache-dir \
     pandas>=2.0.0 \
     scikit-learn>=1.3.0
 
+# Stage 2b: TransformerLens for mechanistic interpretability
+RUN pip install --no-cache-dir transformer-lens>=2.0.0
+
+# Stage 2c: API dependencies
+RUN pip install --no-cache-dir \
+    fastapi[all]>=0.104.0 \
+    uvicorn[standard]>=0.24.0 \
+    pydantic>=2.0.0
+
 # Stage 3: Visualization and reporting
 RUN pip install --no-cache-dir \
     jinja2>=3.1.0 \

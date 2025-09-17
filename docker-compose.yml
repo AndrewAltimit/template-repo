@@ -242,7 +242,7 @@ services:
   sleeper-eval-cpu:
     build:
       context: .
-      dockerfile: docker/sleeper-evaluation.Dockerfile
+      dockerfile: docker/sleeper-evaluation-cpu.Dockerfile
     container_name: sleeper-eval-cpu
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:

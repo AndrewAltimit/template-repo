@@ -87,10 +87,21 @@ class SleeperDetector:
             from transformers import AutoConfig, AutoModelForCausalLM
 
             config = AutoConfig.from_pretrained(self.config.model_name)
-            # Reduce model size for CPU
-            config.n_layers = min(config.n_layers, 6)
-            config.n_heads = min(config.n_heads, 8)
-            config.n_embd = min(config.n_embd, 256)
+            # Reduce model size for CPU (handle different config attributes)
+            if hasattr(config, "n_layers"):
+                config.n_layers = min(config.n_layers, 6)
+            elif hasattr(config, "num_hidden_layers"):
+                config.num_hidden_layers = min(config.num_hidden_layers, 6)
+
+            if hasattr(config, "n_heads"):
+                config.n_heads = min(config.n_heads, 8)
+            elif hasattr(config, "num_attention_heads"):
+                config.num_attention_heads = min(config.num_attention_heads, 8)
+
+            if hasattr(config, "n_embd"):
+                config.n_embd = min(config.n_embd, 256)
+            elif hasattr(config, "hidden_size"):
+                config.hidden_size = min(config.hidden_size, 256)
 
             model = AutoModelForCausalLM.from_config(config)
             model.to(self.config.device)

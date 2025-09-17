@@ -163,7 +163,7 @@ jobs:
 
           # Start the API server in background
           docker-compose run -d --name sleeper-api -p 8021:8021 sleeper-eval-cpu \
-            python -m packages.sleeper_detection.api.main &
+            python -m packages.sleeper_detection.api.main
 
           # Wait for server to be ready
           echo "⏳ Waiting for API server..."
