@@ -3,7 +3,7 @@
 # Core ML Libraries
 torch>=2.2.0
 transformers>=4.35.0
-# transformer-lens>=1.0.0  # Optional, may not be available in all environments
+transformer-lens>=2.0.0  # For advanced residual stream analysis and mechanistic interpretability
 einops>=0.7.0
 
 # API Framework
