@@ -85,7 +85,7 @@ python tools/mcp/virtual_character/storage_service/server.py
    - Set up Windows bridge server on GPU machine
    - Configure OBS Studio with WebSocket plugin
    - Set environment variables for remote host
-   - Use `start_server_with_storage.ps1` for integrated launch
+   - Use Windows launchers in `automation/launchers/windows/virtual-character/`
 
 ## Usage
 
