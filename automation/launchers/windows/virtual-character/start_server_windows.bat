@@ -55,11 +55,9 @@ if /i "%~1"=="--help" (
 shift
 goto parse_args
 :end_parse
+goto main_start
 
-REM Show help if requested
-:show_help_check
-if "%1"=="--help" (
-    :show_help
+:show_help
     echo Usage: start_server_windows.bat [options]
     echo.
     echo Options:
@@ -73,8 +71,8 @@ if "%1"=="--help" (
     echo Example:
     echo   start_server_windows.bat --port 8020 --backend-host 192.168.1.100
     exit /b 0
-)
 
+:main_start
 REM Get script directory (4 levels up from script location)
 set SCRIPT_DIR=%~dp0
 pushd %SCRIPT_DIR%..\..\..\..\
