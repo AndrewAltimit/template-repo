@@ -238,6 +238,61 @@ services:
     profiles:
       - services
 
+  # Sleeper Agent Detection - Evaluation Mode (CPU)
+  sleeper-eval-cpu:
+    build:
+      context: .
+      dockerfile: docker/sleeper-evaluation.Dockerfile
+    container_name: sleeper-eval-cpu
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    volumes:
+      - ./:/app:ro
+      - ./evaluation_results:/results  # Evaluation results and reports
+      - sleeper-models-cache:/models  # Model cache
+      - sleeper-eval-db:/db  # SQLite database
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SLEEPER_CPU_MODE=true
+      - DEVICE=cpu
+    networks:
+      - mcp-network
+    command: ["python", "-m", "packages.sleeper_detection.cli", "test", "--cpu"]
+    profiles:
+      - evaluation
+      - eval-cpu
+
+  # Sleeper Agent Detection - Evaluation Mode (GPU)
+  sleeper-eval-gpu:
+    build:
+      context: .
+      dockerfile: docker/sleeper-evaluation.Dockerfile
+    container_name: sleeper-eval-gpu
+    volumes:
+      - ./:/app:ro
+      - ./evaluation_results:/results
+      - sleeper-models-cache:/models
+      - sleeper-eval-db:/db
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SLEEPER_CPU_MODE=false
+      - CUDA_VISIBLE_DEVICES=0
+      - NVIDIA_VISIBLE_DEVICES=all
+      - DEVICE=cuda
+    networks:
+      - mcp-network
+    command: ["python", "-m", "packages.sleeper_detection.cli", "evaluate", "--gpu"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    runtime: nvidia
+    profiles:
+      - evaluation-gpu
+      - eval-gpu
+
   # Gemini MCP Server
   mcp-gemini:
     build:
@@ -711,6 +766,9 @@ volumes:
   ai-toolkit-outputs: {}
   ai-toolkit-configs: {}
   ai-toolkit-logs: {}
+  # Sleeper Detection Evaluation volumes
+  sleeper-models-cache: {}
+  sleeper-eval-db: {}
 
 # Secrets are managed at runtime by GitHub Actions or local setup script
 # Never commit actual secret files to the repository!
