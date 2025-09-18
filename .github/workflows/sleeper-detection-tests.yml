@@ -178,14 +178,19 @@ jobs:
         run: |
           echo "🧪 Running unit tests with coverage..."
 
+          # Export USER_ID and GROUP_ID for docker-compose
+          export USER_ID=$(id -u)
+          export GROUP_ID=$(id -g)
+          echo "Running as USER_ID=$USER_ID, GROUP_ID=$GROUP_ID"
+
           # Create a temporary container to persist coverage results
           CONTAINER_NAME="sleeper-test-$(date +%s)"
 
-          # Mount a host directory for output to avoid container permission issues
+          # Create output directory (permissions handled by container user)
           mkdir -p $(pwd)/test_output
-          chmod 777 $(pwd)/test_output
 
           # Run pytest with coverage in a named container with mounted volume
+          # Container runs as host user via docker-compose user setting
           docker-compose run --name ${CONTAINER_NAME} \
             -v $(pwd)/test_output:/output \
             -e COVERAGE_FILE=/output/.coverage \
@@ -194,7 +199,7 @@ jobs:
             -v --cov=packages.sleeper_detection \
             --cov-report=xml:/output/coverage.xml \
             --cov-report=term \
-            -o cache_dir=/output/pytest_cache || true; \
+            -o cache_dir=/output/pytest_cache; \
             echo 'Test execution completed'; \
             ls -la /output/ 2>/dev/null || echo 'Could not list output directory'"
 
@@ -210,12 +215,10 @@ jobs:
           mkdir -p evaluation_results
 
           # The coverage report should be in test_output directory from the mounted volume
+          # Files are owned by the host user since container ran with correct user ID
           if [ -f test_output/coverage.xml ]; then
             echo "✅ Found coverage report in test_output"
-            # Use sudo to handle permission issues when copying from container volume
-            sudo cp test_output/coverage.xml evaluation_results/coverage.xml
-            # Fix ownership of the copied file
-            sudo chown $(id -u):$(id -g) evaluation_results/coverage.xml
+            cp test_output/coverage.xml evaluation_results/coverage.xml
           else
             echo "⚠️ Coverage report not found in test_output, checking directory contents..."
             ls -la test_output/ 2>/dev/null || echo "test_output directory not found"
@@ -230,8 +233,8 @@ jobs:
             docker rm -f ${CONTAINER_NAME} 2>/dev/null || true
           fi
 
-          # Clean up test_output directory (use sudo to handle permission issues)
-          sudo rm -rf test_output 2>/dev/null || true
+          # Clean up test_output directory
+          rm -rf test_output
 
           # Verify the file was created
           if [ -f evaluation_results/coverage.xml ]; then

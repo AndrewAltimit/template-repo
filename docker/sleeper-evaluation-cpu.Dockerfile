@@ -27,19 +27,15 @@ RUN mkdir -p /models /results /db && \
 # Upgrade pip and install build tools
 RUN pip install --upgrade pip setuptools wheel
 
-# Copy the consolidated requirements file
-# Note: Using requirements.txt instead of pyproject.toml for Docker builds to ensure
-# reproducibility with pinned versions. The requirements file is generated from
-# pyproject.toml with exact versions for consistent container builds.
-COPY --chown=evaluator:evaluator config/python/requirements-sleeper-all.txt /tmp/requirements-all.txt
-
-# Install PyTorch CPU version and all dependencies in a single layer
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir -r /tmp/requirements-all.txt && \
-    rm /tmp/requirements-all.txt
-
-# Copy application code
+# Copy application code first for pyproject.toml access
 COPY --chown=evaluator:evaluator . /app
+
+# Install PyTorch CPU version first
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+# Install dependencies from pyproject.toml - single source of truth
+# Install in editable mode with 'all' extras for complete environment
+RUN pip install --no-cache-dir -e /app/packages/sleeper_detection[all]
 
 # Set Python path
 ENV PYTHONPATH=/app:$PYTHONPATH
