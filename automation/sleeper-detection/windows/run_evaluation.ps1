@@ -82,14 +82,25 @@ if (Test-Path "/proc/version") {
     }
 }
 
-# Build Docker image
+# Build Docker image using docker-compose for consistency
 Write-Host "Building evaluation image..." -ForegroundColor Cyan
-docker build -f docker/sleeper-evaluation.Dockerfile -t sleeper-eval . 2>&1 | Out-Null
+
+# Determine which image to build based on GPU flag
+if ($GPU) {
+    docker-compose build sleeper-eval-gpu 2>&1 | Out-Null
+    $imageName = "sleeper-eval-gpu"
+} else {
+    docker-compose build sleeper-eval-cpu 2>&1 | Out-Null
+    $imageName = "sleeper-eval-cpu"
+}
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Failed to build Docker image" -ForegroundColor Red
     exit 1
 }
+
+# Tag the built image for use in the script
+docker tag $imageName`:latest sleeper-eval:latest
 
 Write-Host "[OK] Image built" -ForegroundColor Green
 Write-Host ""

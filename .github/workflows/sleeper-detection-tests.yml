@@ -227,10 +227,9 @@ jobs:
             # Use cat and redirect to avoid permission issues
             cat test_output/coverage.xml > evaluation_results/coverage.xml
           else
-            echo "⚠️ Coverage report not found in test_output"
-            # Create a minimal coverage report if none exists
-            echo '<?xml version="1.0" encoding="UTF-8"?><coverage version="1"></coverage>' > evaluation_results/coverage.xml
-            echo "Created placeholder coverage report"
+            echo "❌ Coverage report not found in test_output"
+            echo "This indicates the tests failed to generate a coverage report"
+            exit 1
           fi
 
           # Clean up the container if it exists
