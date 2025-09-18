@@ -22,10 +22,13 @@ on:
         default: false
 
 jobs:
-  sleeper-detection-quick-test:
-    name: Sleeper Detection Quick Tests (CPU)
+  # Build Docker image once and share across all jobs
+  build-sleeper-image:
+    name: Build Sleeper Detection Image
     runs-on: self-hosted
     timeout-minutes: 10
+    outputs:
+      image-tag: ${{ steps.image.outputs.tag }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,10 +39,43 @@ jobs:
           ref: ${{ github.head_ref || github.ref }}
           lfs: true
 
-      - name: Build sleeper detection CPU image
+      - name: Build and tag Docker image
+        id: image
         run: |
           echo "🐳 Building sleeper detection CPU image..."
+
+          # Generate unique tag for this workflow run
+          IMAGE_TAG="sleeper-eval-cpu:ci-${{ github.run_id }}-${{ github.run_attempt }}"
+          echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+          # Build the image
           docker-compose build sleeper-eval-cpu
+
+          # Tag it for this workflow
+          docker tag sleeper-eval-cpu:latest $IMAGE_TAG
+
+          echo "✅ Built and tagged image: $IMAGE_TAG"
+
+  sleeper-detection-quick-test:
+    name: Sleeper Detection Quick Tests (CPU)
+    runs-on: self-hosted
+    timeout-minutes: 10
+    needs: build-sleeper-image
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+
+      - name: Use pre-built image
+        run: |
+          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          # Ensure we're using the image from the build job
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} sleeper-eval-cpu:latest
 
       - name: Run quick CPU tests
         run: |
@@ -83,7 +119,7 @@ jobs:
     name: TransformerLens Residual Analysis
     runs-on: self-hosted
     timeout-minutes: 15
-    needs: sleeper-detection-quick-test
+    needs: [build-sleeper-image, sleeper-detection-quick-test]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -93,32 +129,36 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref || github.ref }}
           lfs: true
+
+      - name: Use pre-built image
+        run: |
+          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} sleeper-eval-cpu:latest
 
       - name: Run residual stream analysis
         run: |
           echo "🔬 Running advanced residual stream analysis..."
 
-          # Run quick residual analysis
+          # Run the advanced residual analysis script
           docker-compose run --rm sleeper-eval-cpu \
-            python packages/sleeper_detection/scripts/advanced_residual_analysis.py \
-            --model EleutherAI/pythia-70m --quick
+            python packages/sleeper_detection/scripts/advanced_residual_analysis.py
+
+          echo "✅ Residual stream analysis completed"
 
       - name: Upload analysis results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: residual-analysis-results-${{ github.run_id }}
+          name: residual-analysis-${{ github.run_id }}
           path: |
-            evaluation_results/residual_analysis_results.json
-            residual_analysis_results.json
-          retention-days: 7
-          if-no-files-found: ignore
+            evaluation_results/residual_analysis_*.json
+            evaluation_results/attention_patterns_*.json
 
   sleeper-detection-unit-tests:
     name: Unit Tests
     runs-on: self-hosted
-    timeout-minutes: 10
-    needs: sleeper-detection-quick-test
+    timeout-minutes: 15
+    needs: build-sleeper-image
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -129,33 +169,34 @@ jobs:
           ref: ${{ github.head_ref || github.ref }}
           lfs: true
 
-      - name: Run pytest tests
+      - name: Use pre-built image
         run: |
-          echo "🧪 Running unit tests..."
-          # Ensure the results directory exists for the coverage file
-          mkdir -p evaluation_results
-          # Run tests with coverage, writing to the mapped /results volume
-          docker-compose run --rm \
-            -e COVERAGE_FILE=/results/.coverage \
-            sleeper-eval-cpu \
-            pytest packages/sleeper_detection/tests/ -v \
-              --cov=packages.sleeper_detection \
-              --cov-report=xml:/results/coverage.xml \
-              --cov-report=term
+          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} sleeper-eval-cpu:latest
+
+      - name: Run unit tests with coverage
+        run: |
+          echo "🧪 Running unit tests with coverage..."
+
+          # Run pytest with coverage
+          docker-compose run --rm sleeper-eval-cpu \
+            pytest packages/sleeper_detection/tests/ \
+            -v --cov=packages.sleeper_detection \
+            --cov-report=xml:/results/coverage.xml \
+            --cov-report=term
 
       - name: Upload coverage report
-        uses: codecov/codecov-action@v4
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          # Update the file path to the location on the host
-          file: ./evaluation_results/coverage.xml
-          flags: sleeper-detection
-          name: sleeper-detection-coverage
+          name: coverage-report-${{ github.run_id }}
+          path: evaluation_results/coverage.xml
 
   sleeper-detection-api-test:
-    name: API Server Test
+    name: API Integration Tests
     runs-on: self-hosted
     timeout-minutes: 10
-    needs: sleeper-detection-quick-test
+    needs: build-sleeper-image
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -165,6 +206,11 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref || github.ref }}
           lfs: true
+
+      - name: Use pre-built image
+        run: |
+          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} sleeper-eval-cpu:latest
 
       - name: Start API server
         run: |
@@ -207,7 +253,7 @@ jobs:
     name: Full Test Suite
     runs-on: self-hosted
     timeout-minutes: 30
-    needs: [sleeper-detection-quick-test, sleeper-detection-residual-analysis]
+    needs: [build-sleeper-image, sleeper-detection-quick-test, sleeper-detection-residual-analysis]
     if: |
       github.event_name == 'push' ||
       github.event.inputs.run_full_tests == 'true'
@@ -220,6 +266,11 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref || github.ref }}
           lfs: true
+
+      - name: Use pre-built image
+        run: |
+          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} sleeper-eval-cpu:latest
 
       - name: Run full comprehensive tests
         run: |
@@ -241,14 +292,12 @@ jobs:
           path: |
             evaluation_results/cpu_test_results_*.json
             cpu_test_results_*.json
-          retention-days: 7
-          if-no-files-found: ignore
 
   sleeper-detection-notebook-validation:
     name: Notebook Validation
     runs-on: self-hosted
     timeout-minutes: 10
-    needs: sleeper-detection-quick-test
+    needs: build-sleeper-image
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -259,12 +308,17 @@ jobs:
           ref: ${{ github.head_ref || github.ref }}
           lfs: true
 
+      - name: Use pre-built image
+        run: |
+          echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} sleeper-eval-cpu:latest
+
       - name: Validate Jupyter notebooks
         run: |
           echo "📓 Validating Jupyter notebooks..."
 
-          # Check if notebooks are valid JSON
-          docker-compose run --rm python-ci python -c "
+          # Check if notebooks are valid JSON using sleeper-eval-cpu (has all dependencies)
+          docker-compose run --rm sleeper-eval-cpu python -c "
           import json
           import sys
           from pathlib import Path
@@ -333,3 +387,18 @@ jobs:
           fi
 
           echo "✅ Sleeper detection tests passed!"
+
+  # Clean up workflow-specific Docker images
+  cleanup-image:
+    name: Cleanup Workflow Image
+    needs:
+      - build-sleeper-image
+      - sleeper-detection-summary
+    if: always()
+    runs-on: self-hosted
+    steps:
+      - name: Remove workflow-specific image
+        run: |
+          echo "🧹 Cleaning up workflow-specific image..."
+          docker rmi ${{ needs.build-sleeper-image.outputs.image-tag }} || true
+          echo "✅ Cleanup complete"

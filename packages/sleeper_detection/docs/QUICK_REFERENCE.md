@@ -123,7 +123,11 @@ pytest packages/sleeper_detection/tests/ --cov=packages.sleeper_detection
 
 ### Validate Structure
 ```bash
-python packages/sleeper_detection/scripts/validate_structure.py
+# Validate MCP server structure
+python packages/sleeper_detection/scripts/validate_mcp_server_structure.py
+
+# Validate evaluation package structure
+python packages/sleeper_detection/validate_evaluation_package_structure.py
 ```
 
 ## 🐋 Docker Commands
@@ -254,4 +258,5 @@ config = DetectionConfig(
 - [Full Documentation](README.md)
 - [API Reference](http://localhost:8021/docs)
 - [Original Paper](https://arxiv.org/abs/2401.05566)
-- [Project Structure](../scripts/validate_structure.py)
+- [MCP Server Structure](../scripts/validate_mcp_server_structure.py)
+- [Package Structure](../validate_evaluation_package_structure.py)
