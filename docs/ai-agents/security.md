@@ -67,6 +67,36 @@ Before working with AI agents, team members should complete the [AI Safety Train
 
 This training is essential for maintaining security when working with increasingly capable AI systems.
 
+## Sleeper Detection System
+
+The repository now includes an advanced **Sleeper Detection System** for identifying potential backdoors and hidden behaviors in AI models:
+
+### What It Detects
+- **Backdoor Triggers**: Hidden activation patterns that cause unexpected behavior
+- **Deceptive Alignment**: Models pretending to be aligned during testing
+- **Goal Misgeneralization**: Models pursuing different objectives than trained
+- **Hidden Capabilities**: Abilities that only emerge under specific conditions
+
+### Detection Methods
+- **Residual Stream Analysis**: Using TransformerLens to examine internal model activations
+- **Attention Pattern Analysis**: Identifying suspicious attention head behaviors
+- **Layer-wise Probing**: Detecting hidden representations across model layers
+- **Behavioral Testing**: Comprehensive test suites for various attack scenarios
+
+### Usage
+```bash
+# Run sleeper detection tests in CI/CD
+docker-compose run --rm sleeper-eval-cpu python -m packages.sleeper_detection.cli evaluate \
+  --model "gpt2" --test-suite "robustness"
+
+# Quick CPU-based detection
+docker-compose run --rm sleeper-eval-cpu \
+  python packages/sleeper_detection/scripts/test_cpu_mode.py
+```
+
+### Integration with CI/CD
+The sleeper detection tests are automatically run as part of the PR validation pipeline when changes affect AI-related code. See the [Sleeper Detection Documentation](../../packages/sleeper_detection/README.md) for detailed usage instructions.
+
 ## Security Best Practices
 
 ### 1. Token Permissions

@@ -30,10 +30,13 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 
 **Safety Training**: Essential AI safety concepts for human-AI collaboration. See [Human Training Guide](docs/ai-agents/human-training.md)
 
+**Sleeper Detection**: Advanced AI agent backdoor and sleeper detection system. See [Sleeper Detection Package](packages/sleeper_detection/README.md)
+
 ## Features
 
 - **13 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, and more
 - **7 AI Agents** - Comprehensive development automation
+- **Sleeper Detection System** - Advanced AI backdoor detection using TransformerLens residual stream analysis
 - **Company Integration** - Custom agent builds for corporate AI APIs ([Documentation](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))
 - **Video Editor** - AI-powered video editing with transcription, speaker diarization, and intelligent scene detection
 - **Gaea2 Terrain Generation** - Professional terrain generation
@@ -117,7 +120,8 @@ This pattern ensures consistent certificate handling across all services while m
 ├── .github/workflows/        # GitHub Actions workflows
 ├── docker/                   # Docker configurations
 ├── packages/                 # Installable packages
-│   └── github_ai_agents/     # AI agent implementations
+│   ├── github_ai_agents/     # AI agent implementations
+│   └── sleeper_detection/    # AI backdoor detection system
 ├── tools/                    # MCP servers and utilities
 │   ├── mcp/                  # Modular MCP servers
 │   │   ├── code_quality/     # Formatting & linting
@@ -158,6 +162,7 @@ This pattern ensures consistent certificate handling across all services while m
 │   ├── review/               # Code review automation
 │   ├── scripts/              # Utility scripts
 │   ├── security/             # Security and validation
+│   ├── sleeper-detection/    # Sleeper detection automation
 │   ├── setup/                # Setup and installation scripts
 │   └── testing/              # Testing utilities
 ├── tests/                    # Test files
