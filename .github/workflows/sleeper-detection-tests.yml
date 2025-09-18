@@ -174,21 +174,15 @@ jobs:
           docker-compose run -d --name sleeper-api -p 8021:8021 sleeper-eval-cpu \
             python -m packages.sleeper_detection.api.main
 
-          # Wait for server to be ready
+          # Wait for server to be ready using wait-for-it.sh
           echo "⏳ Waiting for API server..."
-          for i in {1..30}; do
-            if curl -f http://localhost:8021/health 2>/dev/null; then
-              echo "✅ API server is ready"
-              break
-            fi
-            if [ $i -eq 30 ]; then
-              echo "❌ API server failed to start"
-              docker logs sleeper-api
-              exit 1
-            fi
-            echo "  Attempt $i/30..."
-            sleep 2
-          done
+          if ./automation/scripts/wait-for-it.sh --host localhost --port 8021 --health-endpoint /health --timeout 60; then
+            echo "✅ API server is ready"
+          else
+            echo "❌ API server failed to start"
+            docker logs sleeper-api
+            exit 1
+          fi
 
       - name: Test API endpoints
         run: |

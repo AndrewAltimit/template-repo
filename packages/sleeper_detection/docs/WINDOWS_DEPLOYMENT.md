@@ -38,6 +38,30 @@ Docker Desktop provides the most consistent experience on Windows.
    docker-compose up -d sleeper-eval-cpu
    ```
 
+#### Windows User ID Limitations
+
+⚠️ **Important Note**: The Windows PowerShell script `automation/sleeper-detection/windows/run_evaluation.ps1` contains hardcoded user and group IDs:
+
+```powershell
+$env:USER_ID = "1000"
+$env:GROUP_ID = "1000"
+```
+
+This differs from the Linux environment where these values are determined dynamically. If your Windows user/group ID does not match 1000, you may encounter file permission errors when writing to mounted volumes.
+
+**Workarounds:**
+1. **Manual Override**: Set the correct IDs before running scripts:
+   ```powershell
+   $env:USER_ID = "your_id"
+   $env:GROUP_ID = "your_group_id"
+   docker-compose up -d sleeper-eval-cpu
+   ```
+
+2. **Use WSL2**: WSL2 provides better Unix-style permission handling
+3. **Run as Administrator**: May bypass some permission issues but is not recommended for security reasons
+
+Note: Mapping Windows SIDs to Linux-style UIDs inside containers is non-trivial. The hardcoded values work for most Docker Desktop installations but may need adjustment in enterprise environments.
+
 ### Option 2: WSL2 (Windows Subsystem for Linux)
 
 WSL2 provides near-native Linux performance on Windows.
