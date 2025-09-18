@@ -211,18 +211,23 @@ jobs:
         run: |
           echo "📦 Extracting coverage report from mounted volume..."
 
-          # Create the evaluation_results directory if it doesn't exist
+          # Remove old evaluation_results directory if it exists to avoid permission issues
+          rm -rf evaluation_results || true
+
+          # Create fresh evaluation_results directory
           mkdir -p evaluation_results
 
           # The coverage report should be in test_output directory from the mounted volume
-          # Files are owned by the host user since container ran with correct user ID
+          # Check who owns the test_output directory for debugging
+          echo "Checking test_output ownership:"
+          ls -la test_output/ 2>/dev/null || echo "test_output directory not found"
+
           if [ -f test_output/coverage.xml ]; then
             echo "✅ Found coverage report in test_output"
-            cp test_output/coverage.xml evaluation_results/coverage.xml
+            # Use cat and redirect to avoid permission issues
+            cat test_output/coverage.xml > evaluation_results/coverage.xml
           else
-            echo "⚠️ Coverage report not found in test_output, checking directory contents..."
-            ls -la test_output/ 2>/dev/null || echo "test_output directory not found"
-
+            echo "⚠️ Coverage report not found in test_output"
             # Create a minimal coverage report if none exists
             echo '<?xml version="1.0" encoding="UTF-8"?><coverage version="1"></coverage>' > evaluation_results/coverage.xml
             echo "Created placeholder coverage report"
@@ -234,7 +239,7 @@ jobs:
           fi
 
           # Clean up test_output directory
-          rm -rf test_output
+          rm -rf test_output || true
 
           # Verify the file was created
           if [ -f evaluation_results/coverage.xml ]; then
