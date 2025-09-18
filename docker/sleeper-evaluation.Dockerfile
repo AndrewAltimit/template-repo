@@ -53,5 +53,9 @@ ENV EVAL_DB_PATH=/db/evaluation_results.db
 # Switch to non-root user
 USER evaluator
 
+# Health check - verify Python and packages are working
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD python -c "import packages.sleeper_detection; print('OK')" || exit 1
+
 # Default command - run CLI help
 CMD ["python", "-m", "packages.sleeper_detection.cli", "--help"]

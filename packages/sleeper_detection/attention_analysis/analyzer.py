@@ -191,12 +191,16 @@ class AttentionAnalyzer:
             p1 = np.concatenate([p.flatten() for p in patterns1])
             p2 = np.concatenate([p.flatten() for p in patterns2])
 
+            # Normalize first to maintain distribution shape
+            p1 = p1 / p1.sum()
+            p2 = p2 / p2.sum()
+
             # Add small epsilon to avoid log(0)
             eps = 1e-10
             p1 = p1 + eps
             p2 = p2 + eps
 
-            # Normalize
+            # Renormalize after adding epsilon
             p1 = p1 / p1.sum()
             p2 = p2 / p2.sum()
 

@@ -256,6 +256,8 @@ services:
       - DEVICE=cpu
     networks:
       - mcp-network
+    # Default: Run CLI test for validation.
+    # To run API server instead: docker-compose run --rm sleeper-eval-cpu uvicorn packages.sleeper_detection.api.main:app --host 0.0.0.0 --port 8021
     command: ["python", "-m", "packages.sleeper_detection.cli", "test", "--cpu"]
     profiles:
       - evaluation
@@ -281,6 +283,8 @@ services:
       - DEVICE=cuda
     networks:
       - mcp-network
+    # Default: Run model evaluation.
+    # To run API server instead: docker-compose run --rm sleeper-eval-gpu uvicorn packages.sleeper_detection.api.main:app --host 0.0.0.0 --port 8021
     command: ["python", "-m", "packages.sleeper_detection.cli", "evaluate", "--gpu"]
     deploy:
       resources:
