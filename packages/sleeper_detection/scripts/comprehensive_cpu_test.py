@@ -27,6 +27,7 @@ from packages.sleeper_detection.app.enums import HoneypotType  # noqa: E402, F40
 from packages.sleeper_detection.attention_analysis.analyzer import AttentionAnalyzer  # noqa: E402
 from packages.sleeper_detection.detection.layer_probes import LayerProbeDetector  # noqa: E402
 from packages.sleeper_detection.interventions.causal import CausalInterventionSystem  # noqa: E402
+from packages.sleeper_detection.utils.json_encoder import NumpyJSONEncoder  # noqa: E402
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -490,7 +491,8 @@ class TinyModelTester:
                 output_file = Path("/tmp") / base_name
 
         with open(output_file, "w") as f:
-            json.dump(self.results, f, indent=2)
+            # Use the custom NumpyJSONEncoder to handle numpy types
+            json.dump(self.results, f, indent=2, cls=NumpyJSONEncoder)
 
         logger.info(f"\nResults saved to: {output_file}")
 
