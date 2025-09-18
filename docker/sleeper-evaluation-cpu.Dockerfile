@@ -31,14 +31,11 @@ RUN pip install --upgrade pip
 COPY config/python/requirements-sleeper-runtime.txt /tmp/requirements-runtime.txt
 COPY config/python/requirements-sleeper-dev.txt /tmp/requirements-dev.txt
 
-# Install PyTorch CPU version first (special index URL)
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
-
-# Install runtime dependencies
-RUN pip install --no-cache-dir -r /tmp/requirements-runtime.txt
-
-# Install dev dependencies for testing
-RUN pip install --no-cache-dir -r /tmp/requirements-dev.txt
+# Install PyTorch CPU version and all dependencies in a single layer
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
+    pip install --no-cache-dir -r /tmp/requirements-runtime.txt && \
+    pip install --no-cache-dir -r /tmp/requirements-dev.txt && \
+    rm /tmp/requirements-*.txt
 
 # Copy application code
 COPY --chown=evaluator:evaluator . /app

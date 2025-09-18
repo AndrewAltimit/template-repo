@@ -189,6 +189,25 @@ jobs:
             --cov-report=term \
             -o cache_dir=/tmp/pytest_cache
 
+      - name: Extract coverage report from container
+        if: always()
+        run: |
+          echo "📦 Extracting coverage report from container..."
+
+          # Create the evaluation_results directory if it doesn't exist
+          mkdir -p evaluation_results
+
+          # Copy the coverage report from the container's /tmp to host
+          docker-compose run --rm sleeper-eval-cpu cat /tmp/coverage.xml > evaluation_results/coverage.xml || {
+            echo "⚠️ Coverage report not found in container, checking if it was already extracted..."
+            if [ -f evaluation_results/coverage.xml ]; then
+              echo "✅ Coverage report already exists"
+            else
+              echo "❌ No coverage report found"
+              exit 1
+            fi
+          }
+
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
