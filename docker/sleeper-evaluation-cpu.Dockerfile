@@ -24,18 +24,17 @@ RUN groupadd -g ${GROUP_ID} evaluator && \
 RUN mkdir -p /models /results /db && \
     chown -R evaluator:evaluator /models /results /db
 
-# Upgrade pip first
-RUN pip install --upgrade pip
+# Upgrade pip and install build tools
+RUN pip install --upgrade pip setuptools wheel
 
-# Copy requirements files (runtime + dev for testing environment)
-COPY config/python/requirements-sleeper-runtime.txt /tmp/requirements-runtime.txt
-COPY config/python/requirements-sleeper-dev.txt /tmp/requirements-dev.txt
+# Copy only the pyproject.toml for dependency installation
+COPY --chown=evaluator:evaluator packages/sleeper_detection/pyproject.toml /tmp/pyproject.toml
 
 # Install PyTorch CPU version and all dependencies in a single layer
+# Using the 'all' optional dependencies group for complete environment
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir -r /tmp/requirements-runtime.txt && \
-    pip install --no-cache-dir -r /tmp/requirements-dev.txt && \
-    rm /tmp/requirements-*.txt
+    pip install --no-cache-dir "/tmp[all]" && \
+    rm /tmp/pyproject.toml
 
 # Copy application code
 COPY --chown=evaluator:evaluator . /app
