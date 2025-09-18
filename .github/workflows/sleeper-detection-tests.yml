@@ -139,9 +139,15 @@ jobs:
         run: |
           echo "🔬 Running advanced residual stream analysis..."
 
-          # Run the advanced residual analysis script
-          docker-compose run --rm sleeper-eval-cpu \
-            python packages/sleeper_detection/scripts/advanced_residual_analysis.py
+          # Create results directory on host
+          mkdir -p evaluation_results
+
+          # Run the advanced residual analysis script and copy results
+          docker-compose run --rm \
+            -v $(pwd)/evaluation_results:/output \
+            sleeper-eval-cpu \
+            bash -c "python packages/sleeper_detection/scripts/advanced_residual_analysis.py && \
+                     cp /tmp/residual_analysis_results.json /output/ 2>/dev/null || true"
 
           echo "✅ Residual stream analysis completed"
 
@@ -150,9 +156,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: residual-analysis-${{ github.run_id }}
-          path: |
-            evaluation_results/residual_analysis_*.json
-            evaluation_results/attention_patterns_*.json
+          path: evaluation_results/residual_analysis_results.json
 
   sleeper-detection-unit-tests:
     name: Unit Tests
