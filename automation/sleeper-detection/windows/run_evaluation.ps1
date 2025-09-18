@@ -70,6 +70,18 @@ if (-not (Test-Path $resultsDir)) {
 $env:USER_ID = "1000"
 $env:GROUP_ID = "1000"
 
+# Check if running in WSL2 and warn if IDs might be different
+if (Test-Path "/proc/version") {
+    $actualUID = & bash -c "id -u" 2>$null
+    $actualGID = & bash -c "id -g" 2>$null
+
+    if ($actualUID -and $actualUID -ne "1000") {
+        Write-Host "WARNING: Your actual user ID is $actualUID, but using 1000." -ForegroundColor Yellow
+        Write-Host "If you encounter permission errors, update USER_ID in this script." -ForegroundColor Yellow
+        Write-Host ""
+    }
+}
+
 # Build Docker image
 Write-Host "Building evaluation image..." -ForegroundColor Cyan
 docker build -f docker/sleeper-evaluation.Dockerfile -t sleeper-eval . 2>&1 | Out-Null

@@ -212,7 +212,10 @@ jobs:
           # The coverage report should be in test_output directory from the mounted volume
           if [ -f test_output/coverage.xml ]; then
             echo "✅ Found coverage report in test_output"
-            cp test_output/coverage.xml evaluation_results/coverage.xml
+            # Use sudo to handle permission issues when copying from container volume
+            sudo cp test_output/coverage.xml evaluation_results/coverage.xml
+            # Fix ownership of the copied file
+            sudo chown $(id -u):$(id -g) evaluation_results/coverage.xml
           else
             echo "⚠️ Coverage report not found in test_output, checking directory contents..."
             ls -la test_output/ 2>/dev/null || echo "test_output directory not found"
@@ -227,8 +230,8 @@ jobs:
             docker rm -f ${CONTAINER_NAME} 2>/dev/null || true
           fi
 
-          # Clean up test_output directory
-          rm -rf test_output
+          # Clean up test_output directory (use sudo to handle permission issues)
+          sudo rm -rf test_output 2>/dev/null || true
 
           # Verify the file was created
           if [ -f evaluation_results/coverage.xml ]; then

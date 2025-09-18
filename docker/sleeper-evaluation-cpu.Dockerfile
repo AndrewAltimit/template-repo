@@ -28,6 +28,9 @@ RUN mkdir -p /models /results /db && \
 RUN pip install --upgrade pip setuptools wheel
 
 # Copy the consolidated requirements file
+# Note: Using requirements.txt instead of pyproject.toml for Docker builds to ensure
+# reproducibility with pinned versions. The requirements file is generated from
+# pyproject.toml with exact versions for consistent container builds.
 COPY --chown=evaluator:evaluator config/python/requirements-sleeper-all.txt /tmp/requirements-all.txt
 
 # Install PyTorch CPU version and all dependencies in a single layer
