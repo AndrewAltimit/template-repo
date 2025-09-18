@@ -33,6 +33,22 @@ The Python CI container (`docker/python-ci.Dockerfile`) includes all necessary t
 - **Utilities**: yamllint, pre-commit
 - **Coverage**: XML and terminal coverage reports
 
+### Sleeper Detection Containers
+
+The project includes specialized containers for AI backdoor detection:
+
+1. **sleeper-eval-cpu** (`docker/sleeper-evaluation-cpu.Dockerfile`):
+   - CPU-optimized for CI/CD pipelines
+   - TransformerLens for residual stream analysis
+   - Lightweight for quick detection tests
+   - Used in PR validation workflows
+
+2. **sleeper-eval-gpu** (`docker/sleeper-evaluation.Dockerfile`):
+   - GPU-enabled for comprehensive analysis
+   - Full PyTorch with CUDA support
+   - Advanced attention pattern analysis
+   - Used for detailed model evaluation
+
 ### Docker Compose Services
 
 ```yaml
@@ -45,6 +61,30 @@ python-ci:
   environment:
     - PYTHONDONTWRITEBYTECODE=1
     - PYTHONPYCACHEPREFIX=/tmp/pycache
+
+sleeper-eval-cpu:
+  build:
+    context: .
+    dockerfile: docker/sleeper-evaluation-cpu.Dockerfile
+  container_name: sleeper-eval-cpu
+  environment:
+    - PYTHONDONTWRITEBYTECODE=1
+    - DEVICE=cpu
+  volumes:
+    - ./evaluation_results:/app/evaluation_results
+
+sleeper-eval-gpu:
+  build:
+    context: .
+    dockerfile: docker/sleeper-evaluation.Dockerfile
+  container_name: sleeper-eval-gpu
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
 ```
 
 Key features:

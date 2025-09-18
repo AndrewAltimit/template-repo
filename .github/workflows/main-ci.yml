@@ -292,7 +292,14 @@ jobs:
             done
           done
 
-  # Stage 7: Security scanning
+  # Stage 7: Sleeper Detection Tests
+  sleeper-detection-tests:
+    name: Sleeper Detection Tests
+    needs: test-suite
+    uses: ./.github/workflows/sleeper-detection-tests.yml
+    secrets: inherit
+
+  # Stage 8: Security scanning
   security-scan:
     name: Security Scanning
     needs: basic-lint
@@ -356,7 +363,7 @@ jobs:
             safety-report.json
           retention-days: 30
 
-  # Stage 8: Build Docker images using docker-compose
+  # Stage 9: Build Docker images using docker-compose
   build-images:
     name: Build Docker Images
     needs: [format-check, basic-lint, full-lint, test-suite, mcp-validation]
@@ -396,7 +403,7 @@ jobs:
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh
 
-  # Stage 9: Integration tests
+  # Stage 10: Integration tests
   integration-tests:
     name: Integration Tests
     needs: build-images
@@ -434,7 +441,7 @@ jobs:
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh
 
-  # Stage 10: Deploy (placeholder)
+  # Stage 11: Deploy (placeholder)
   deploy:
     name: Deploy to Production
     needs: [build-images, integration-tests, security-scan]
@@ -459,8 +466,8 @@ jobs:
     name: CI Summary
     needs: [
       format-check, basic-lint, full-lint, test-suite,
-      mcp-validation, docs-build, security-scan,
-      build-images, integration-tests, deploy
+      mcp-validation, docs-build, sleeper-detection-tests,
+      security-scan, build-images, integration-tests, deploy
     ]
     if: always()
     runs-on: self-hosted
@@ -483,6 +490,7 @@ jobs:
           echo "| Full Lint | ${{ needs.full-lint.result == 'success' && '✅' || needs.full-lint.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Test Suite | ${{ needs.test-suite.result == 'success' && '✅' || needs.test-suite.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| MCP Validation | ${{ needs.mcp-validation.result == 'success' && '✅' || needs.mcp-validation.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Sleeper Detection | ${{ needs.sleeper-detection-tests.result == 'success' && '✅' || needs.sleeper-detection-tests.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Documentation | ${{ needs.docs-build.result == 'success' && '✅' || needs.docs-build.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security Scan | ${{ needs.security-scan.result == 'success' && '✅' || needs.security-scan.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Docker Build | ${{ needs.build-images.result == 'success' && '✅' || needs.build-images.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY

@@ -4,7 +4,7 @@ name: Pull Request Validation
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
-    branches: [main, develop]
+    branches: [main]
   workflow_dispatch:
     inputs:
       skip_tests:
@@ -44,6 +44,7 @@ jobs:
       docker_changed: ${{ steps.changes.outputs.docker_changed }}
       mcp_changed: ${{ steps.changes.outputs.mcp_changed }}
       docs_changed: ${{ steps.changes.outputs.docs_changed }}
+      sleeper_changed: ${{ steps.changes.outputs.sleeper_changed }}
       files_changed: ${{ steps.changes.outputs.files_changed }}
     steps:
       - name: Checkout code
@@ -78,6 +79,7 @@ jobs:
           docker_count=$(grep -E '(Dockerfile|docker-compose\.yml|docker-compose\.yaml|\.dockerignore)' changed_files.txt | wc -l || echo "0")
           mcp_count=$(grep -E '(mcp|MCP|tools/)' changed_files.txt | wc -l || echo "0")
           docs_count=$(grep -E '\.(md|rst|txt)$' changed_files.txt | wc -l || echo "0")
+          sleeper_count=$(grep -E '(packages/sleeper_detection|sleeper-evaluation)' changed_files.txt | wc -l || echo "0")
           total_files=$(cat changed_files.txt | wc -l)
 
           # Set outputs
@@ -86,6 +88,7 @@ jobs:
           echo "docker_changed=$([[ $docker_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "mcp_changed=$([[ $mcp_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "docs_changed=$([[ $docs_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "sleeper_changed=$([[ $sleeper_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "files_changed=$total_files" >> $GITHUB_OUTPUT
 
           echo "[INFO] Change Summary:"
@@ -94,6 +97,7 @@ jobs:
           echo "  Docker files: $docker_count"
           echo "  MCP files: $mcp_count"
           echo "  Documentation: $docs_count"
+          echo "  Sleeper Detection: $sleeper_count"
           echo "  Total files: $total_files"
 
   # Stage 2: Gemini AI Code Review
@@ -535,7 +539,15 @@ jobs:
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh
 
-  # Stage 7: Gaea2 MCP Integration Tests
+  # Stage 7: Sleeper Detection Tests
+  sleeper-detection-tests:
+    name: Sleeper Detection Tests
+    needs: [detect-changes, format-check, basic-lint]
+    if: needs.detect-changes.outputs.sleeper_changed == 'true'
+    uses: ./.github/workflows/sleeper-detection-tests.yml
+    secrets: inherit
+
+  # Stage 8: Gaea2 MCP Integration Tests
   gaea2-integration-tests:
     name: Gaea2 MCP Integration Tests
     needs: [detect-changes]
@@ -679,6 +691,7 @@ jobs:
       - yaml-lint
       - test-suite
       - mcp-validation
+      - sleeper-detection-tests
       - gaea2-integration-tests
       - docker-validation
     if: always()
@@ -706,6 +719,7 @@ jobs:
           echo "- YAML Lint: ${{ needs.yaml-lint.result }}"
           echo "- Test Suite: ${{ needs.test-suite.result }}"
           echo "- MCP Validation: ${{ needs.mcp-validation.result }}"
+          echo "- Sleeper Detection: ${{ needs.sleeper-detection-tests.result }}"
           echo "- Gaea2 Integration Tests: ${{ needs.gaea2-integration-tests.result }}"
           echo "- Docker Validation: ${{ needs.docker-validation.result }}"
 
@@ -720,6 +734,7 @@ jobs:
                 "${{ needs.yaml-lint.result }}" == "failure" ||
                 "${{ needs.test-suite.result }}" == "failure" ||
                 "${{ needs.mcp-validation.result }}" == "failure" ||
+                "${{ needs.sleeper-detection-tests.result }}" == "failure" ||
                 "${{ needs.gaea2-integration-tests.result }}" == "failure" ||
                 "${{ needs.docker-validation.result }}" == "failure" ]]; then
             echo ""
@@ -748,6 +763,7 @@ jobs:
               'yaml-lint': '${{ needs.yaml-lint.result }}',
               'test-suite': '${{ needs.test-suite.result }}',
               'mcp-validation': '${{ needs.mcp-validation.result }}',
+              'sleeper-detection': '${{ needs.sleeper-detection-tests.result }}',
               'gaea2-integration-tests': '${{ needs.gaea2-integration-tests.result }}',
               'docker-validation': '${{ needs.docker-validation.result }}'
             };
