@@ -181,16 +181,22 @@ jobs:
           # Create a temporary container to persist coverage results
           CONTAINER_NAME="sleeper-test-$(date +%s)"
 
-          # Run pytest with coverage in a named container
+          # Mount a host directory for output to avoid container permission issues
+          mkdir -p $(pwd)/test_output
+          chmod 777 $(pwd)/test_output
+
+          # Run pytest with coverage in a named container with mounted volume
           docker-compose run --name ${CONTAINER_NAME} \
-            -e COVERAGE_FILE=/tmp/.coverage \
+            -v $(pwd)/test_output:/output \
+            -e COVERAGE_FILE=/output/.coverage \
             sleeper-eval-cpu \
-            bash -c "pytest packages/sleeper_detection/tests/ \
+            bash -c "cd /app && pytest packages/sleeper_detection/tests/ \
             -v --cov=packages.sleeper_detection \
-            --cov-report=xml:/tmp/coverage.xml \
+            --cov-report=xml:/output/coverage.xml \
             --cov-report=term \
-            -o cache_dir=/tmp/pytest_cache || true; \
-            ls -la /tmp/coverage.xml 2>/dev/null || echo 'No coverage file generated'"
+            -o cache_dir=/output/pytest_cache || true; \
+            echo 'Test execution completed'; \
+            ls -la /output/ 2>/dev/null || echo 'Could not list output directory'"
 
           # Store the container name for the next step
           echo "CONTAINER_NAME=${CONTAINER_NAME}" >> $GITHUB_ENV
@@ -198,40 +204,31 @@ jobs:
       - name: Extract coverage report from container
         if: always()
         run: |
-          echo "📦 Extracting coverage report from container..."
+          echo "📦 Extracting coverage report from mounted volume..."
 
           # Create the evaluation_results directory if it doesn't exist
           mkdir -p evaluation_results
 
-          # Check if container name was set
-          if [ -z "${CONTAINER_NAME}" ]; then
-            echo "⚠️ Container name not set, skipping coverage extraction"
-            # Create a dummy coverage file to avoid pipeline failure
-            echo '<?xml version="1.0" encoding="UTF-8"?><coverage version="1"></coverage>' > evaluation_results/coverage.xml
+          # The coverage report should be in test_output directory from the mounted volume
+          if [ -f test_output/coverage.xml ]; then
+            echo "✅ Found coverage report in test_output"
+            cp test_output/coverage.xml evaluation_results/coverage.xml
           else
-            # Use docker exec with cat to avoid permission issues
-            # This ensures the file is created by the runner user, not copied with container permissions
-            docker exec ${CONTAINER_NAME} cat /tmp/coverage.xml > evaluation_results/coverage.xml 2>/dev/null || {
-              echo "⚠️ Coverage report not found in container, checking if tests ran..."
+            echo "⚠️ Coverage report not found in test_output, checking directory contents..."
+            ls -la test_output/ 2>/dev/null || echo "test_output directory not found"
 
-              # Check what files exist in /tmp
-              echo "Files in /tmp directory:"
-              docker exec ${CONTAINER_NAME} ls -la /tmp/ 2>/dev/null || echo "Could not list /tmp contents"
+            # Create a minimal coverage report if none exists
+            echo '<?xml version="1.0" encoding="UTF-8"?><coverage version="1"></coverage>' > evaluation_results/coverage.xml
+            echo "Created placeholder coverage report"
+          fi
 
-              # Check if container is still running
-              docker ps -a | grep ${CONTAINER_NAME} || echo "Container not found"
-
-              # Create a minimal coverage report if none exists
-              echo '<?xml version="1.0" encoding="UTF-8"?><coverage version="1"></coverage>' > evaluation_results/coverage.xml
-              echo "Created placeholder coverage report"
-            }
-
-            # Clean up the container
+          # Clean up the container if it exists
+          if [ ! -z "${CONTAINER_NAME}" ]; then
             docker rm -f ${CONTAINER_NAME} 2>/dev/null || true
           fi
 
-          # Fix permissions on the file (ensure runner user owns it)
-          chmod 644 evaluation_results/coverage.xml 2>/dev/null || true
+          # Clean up test_output directory
+          rm -rf test_output
 
           # Verify the file was created
           if [ -f evaluation_results/coverage.xml ]; then
