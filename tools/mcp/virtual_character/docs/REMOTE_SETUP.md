@@ -223,7 +223,7 @@ Emotions are mapped to appropriate gestures:
 
 To automatically start the server when Windows boots:
 
-1. Create a shortcut to `automation\launchers\windows\vrchat\start_server_windows.bat`
+1. Create a shortcut to `automation\launchers\windows\virtual-character\start_server_windows.bat`
 2. Press `Win+R`, type `shell:startup`
 3. Copy the shortcut to the Startup folder
 
@@ -233,7 +233,7 @@ Or use Task Scheduler for more control:
 3. Trigger: When computer starts
 4. Action: Start a program
 5. Program: `powershell.exe`
-6. Arguments: `-ExecutionPolicy Bypass -File "C:\path\to\repo\automation\launchers\windows\vrchat\start_server_windows.ps1" -AutoStart`
+6. Arguments: `-ExecutionPolicy Bypass -File "C:\path\to\repo\automation\launchers\windows\virtual-character\start_server_windows.ps1" -AutoStart`
 
 ## Security Notes
 
