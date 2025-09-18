@@ -27,6 +27,7 @@ from packages.sleeper_detection.app.enums import HoneypotType  # noqa: E402, F40
 from packages.sleeper_detection.attention_analysis.analyzer import AttentionAnalyzer  # noqa: E402
 from packages.sleeper_detection.detection.layer_probes import LayerProbeDetector  # noqa: E402
 from packages.sleeper_detection.interventions.causal import CausalInterventionSystem  # noqa: E402
+from packages.sleeper_detection.utils.json_encoder import NumpyJSONEncoder  # noqa: E402
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -464,25 +465,6 @@ class TinyModelTester:
             effective = sum(1 for k, v in probes.items() if v["effective"])
             logger.info(f"Layer Probes: {effective}/{len(probes)} layers effective for detection")
 
-    def _convert_numpy_types(self, obj):
-        """Convert numpy types to Python native types for JSON serialization."""
-        if isinstance(obj, np.bool_):
-            return bool(obj)
-        elif isinstance(obj, np.integer):
-            return int(obj)
-        elif isinstance(obj, np.floating):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()
-        elif isinstance(obj, dict):
-            return {key: self._convert_numpy_types(value) for key, value in obj.items()}
-        elif isinstance(obj, list):
-            return [self._convert_numpy_types(item) for item in obj]
-        elif isinstance(obj, tuple):
-            return tuple(self._convert_numpy_types(item) for item in obj)
-        else:
-            return obj
-
     def _save_results(self):
         """Save test results to file."""
         base_name = f"cpu_test_results_{self.model_info['name'].replace('/', '_')}.json"
@@ -508,11 +490,9 @@ class TinyModelTester:
             except (OSError, PermissionError):
                 output_file = Path("/tmp") / base_name
 
-        # Convert numpy types to Python native types before serialization
-        converted_results = self._convert_numpy_types(self.results)
-
         with open(output_file, "w") as f:
-            json.dump(converted_results, f, indent=2)
+            # Use the custom NumpyJSONEncoder to handle numpy types
+            json.dump(self.results, f, indent=2, cls=NumpyJSONEncoder)
 
         logger.info(f"\nResults saved to: {output_file}")
 
