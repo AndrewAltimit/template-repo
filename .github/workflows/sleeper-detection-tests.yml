@@ -179,11 +179,13 @@ jobs:
           echo "🧪 Running unit tests with coverage..."
 
           # Run pytest with coverage
+          # Use /tmp for coverage data since /app is read-only in CI
           docker-compose run --rm sleeper-eval-cpu \
             pytest packages/sleeper_detection/tests/ \
             -v --cov=packages.sleeper_detection \
-            --cov-report=xml:/results/coverage.xml \
-            --cov-report=term
+            --cov-report=xml:/tmp/coverage.xml \
+            --cov-report=term \
+            -o cache_dir=/tmp/pytest_cache
 
       - name: Upload coverage report
         if: always()

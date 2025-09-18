@@ -364,10 +364,15 @@ class ResidualStreamAnalyzer:
 
         # Start with embeddings
         embed_contribution = cache["hook_embed"][0, final_pos] @ W_U
-        pos_contribution = cache["hook_pos_embed"][0, final_pos] @ W_U
 
-        # Add contributions from each layer
-        cumulative_resid = cache["hook_embed"][0, final_pos] + cache["hook_pos_embed"][0, final_pos]
+        # Check for positional embeddings (not all models have them separately)
+        if "hook_pos_embed" in cache:
+            pos_contribution = cache["hook_pos_embed"][0, final_pos] @ W_U
+            cumulative_resid = cache["hook_embed"][0, final_pos] + cache["hook_pos_embed"][0, final_pos]
+        else:
+            # Some models combine embeddings, so positional might be included in hook_embed
+            pos_contribution = torch.zeros_like(embed_contribution)
+            cumulative_resid = cache["hook_embed"][0, final_pos]
 
         for layer in range(self.model.cfg.n_layers):
             # Attention contribution
