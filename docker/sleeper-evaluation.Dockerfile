@@ -27,13 +27,12 @@ RUN mkdir -p /models /results /db && \
 # Upgrade pip and install build tools
 RUN pip install --upgrade pip setuptools wheel
 
-# Copy only the pyproject.toml for dependency installation
-COPY --chown=evaluator:evaluator packages/sleeper_detection/pyproject.toml /tmp/pyproject.toml
+# Copy the consolidated requirements file
+COPY --chown=evaluator:evaluator config/python/requirements-sleeper-all.txt /tmp/requirements-all.txt
 
 # Install all dependencies in a single layer
-# Using the 'all' optional dependencies group for complete environment
-RUN pip install --no-cache-dir "/tmp[all]" && \
-    rm /tmp/pyproject.toml
+RUN pip install --no-cache-dir -r /tmp/requirements-all.txt && \
+    rm /tmp/requirements-all.txt
 
 # Copy application code
 COPY --chown=evaluator:evaluator . /app
