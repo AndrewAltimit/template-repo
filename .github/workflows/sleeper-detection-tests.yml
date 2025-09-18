@@ -209,13 +209,17 @@ jobs:
             # Create a dummy coverage file to avoid pipeline failure
             echo '<?xml version="1.0" encoding="UTF-8"?><coverage version="1"></coverage>' > evaluation_results/coverage.xml
           else
-            # Extract coverage report from the named container
-            docker cp ${CONTAINER_NAME}:/tmp/coverage.xml evaluation_results/coverage.xml || {
-              echo "⚠️ Coverage report not found, checking if tests ran..."
+            # Use docker exec with cat to avoid permission issues
+            # This ensures the file is created by the runner user, not copied with container permissions
+            docker exec ${CONTAINER_NAME} cat /tmp/coverage.xml > evaluation_results/coverage.xml 2>/dev/null || {
+              echo "⚠️ Coverage report not found in container, checking if tests ran..."
 
               # Check what files exist in /tmp
               echo "Files in /tmp directory:"
-              docker exec ${CONTAINER_NAME} ls -la /tmp/ || echo "Could not list /tmp contents"
+              docker exec ${CONTAINER_NAME} ls -la /tmp/ 2>/dev/null || echo "Could not list /tmp contents"
+
+              # Check if container is still running
+              docker ps -a | grep ${CONTAINER_NAME} || echo "Container not found"
 
               # Create a minimal coverage report if none exists
               echo '<?xml version="1.0" encoding="UTF-8"?><coverage version="1"></coverage>' > evaluation_results/coverage.xml
@@ -225,6 +229,9 @@ jobs:
             # Clean up the container
             docker rm -f ${CONTAINER_NAME} 2>/dev/null || true
           fi
+
+          # Fix permissions on the file (ensure runner user owns it)
+          chmod 644 evaluation_results/coverage.xml 2>/dev/null || true
 
           # Verify the file was created
           if [ -f evaluation_results/coverage.xml ]; then
