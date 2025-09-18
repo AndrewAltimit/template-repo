@@ -543,9 +543,7 @@ jobs:
   sleeper-detection-tests:
     name: Sleeper Detection Tests
     needs: [detect-changes, format-check, basic-lint]
-    if: |
-      needs.detect-changes.outputs.sleeper_changed == 'true' ||
-      needs.detect-changes.outputs.python_changed == 'true'
+    if: needs.detect-changes.outputs.sleeper_changed == 'true'
     uses: ./.github/workflows/sleeper-detection-tests.yml
     secrets: inherit
 

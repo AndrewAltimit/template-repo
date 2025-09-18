@@ -6,13 +6,14 @@ on:
   pull_request:
     paths:
       - 'packages/sleeper_detection/**'
-      - 'config/python/requirements-sleeper.txt'
       - 'docker/sleeper-evaluation*.Dockerfile'
       - '.github/workflows/sleeper-detection-tests.yml'
   push:
     branches: [main, develop]
     paths:
       - 'packages/sleeper_detection/**'
+      - 'docker/sleeper-evaluation*.Dockerfile'
+      - '.github/workflows/sleeper-detection-tests.yml'
   workflow_dispatch:
     inputs:
       run_full_tests:
