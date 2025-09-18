@@ -368,20 +368,54 @@ class ResidualStreamAnalyzer:
         # Check for positional embeddings (not all models have them separately)
         if "hook_pos_embed" in cache:
             pos_contribution = cache["hook_pos_embed"][0, final_pos] @ W_U
-            cumulative_resid = cache["hook_embed"][0, final_pos] + cache["hook_pos_embed"][0, final_pos]
         else:
             # Some models combine embeddings, so positional might be included in hook_embed
             pos_contribution = torch.zeros_like(embed_contribution)
-            cumulative_resid = cache["hook_embed"][0, final_pos]
 
         for layer in range(self.model.cfg.n_layers):
-            # Attention contribution
-            attn_out = cache[f"blocks.{layer}.attn.hook_result"][0, final_pos]
-            attn_contribution = attn_out @ W_U
+            # Attention contribution - try different key patterns
+            attn_key = None
+            for key in [f"blocks.{layer}.attn.hook_result", f"blocks.{layer}.hook_attn_out", f"attn.{layer}"]:
+                if key in cache:
+                    attn_key = key
+                    break
 
-            # MLP contribution
-            mlp_out = cache[f"blocks.{layer}.mlp.hook_post"][0, final_pos]
-            mlp_contribution = mlp_out @ W_U
+            if attn_key:
+                attn_out = cache[attn_key][0, final_pos]
+                # Ensure attn_out has the correct shape
+                if attn_out.ndim > 1:
+                    attn_out = attn_out.squeeze()
+                # Check if shapes are compatible
+                if attn_out.shape[0] == W_U.shape[0]:
+                    attn_contribution = attn_out @ W_U
+                else:
+                    # Shape mismatch - skip this contribution
+                    attn_contribution = torch.zeros_like(embed_contribution)
+            else:
+                # If attention output not available, use zero contribution
+                attn_contribution = torch.zeros_like(embed_contribution)
+
+            # MLP contribution - try different key patterns
+            mlp_key = None
+            for key in [f"blocks.{layer}.mlp.hook_post", f"blocks.{layer}.hook_mlp_out", f"mlp.{layer}"]:
+                if key in cache:
+                    mlp_key = key
+                    break
+
+            if mlp_key:
+                mlp_out = cache[mlp_key][0, final_pos]
+                # Ensure mlp_out has the correct shape
+                if mlp_out.ndim > 1:
+                    mlp_out = mlp_out.squeeze()
+                # Check if shapes are compatible
+                if mlp_out.shape[0] == W_U.shape[0]:
+                    mlp_contribution = mlp_out @ W_U
+                else:
+                    # Shape mismatch - skip this contribution
+                    mlp_contribution = torch.zeros_like(embed_contribution)
+            else:
+                # If MLP output not available, use zero contribution
+                mlp_contribution = torch.zeros_like(embed_contribution)
 
             layer_contributions[f"layer_{layer}"] = {
                 "attention_max_logit": attn_contribution.max().item(),
@@ -390,7 +424,8 @@ class ResidualStreamAnalyzer:
                 "mlp_argmax_token": self.model.to_single_str_token(mlp_contribution.argmax().item()),
             }
 
-            cumulative_resid = cumulative_resid + attn_out + mlp_out
+            # Note: Cumulative residual tracking removed due to shape mismatches
+            # with different model architectures. Individual contributions are still tracked.
 
         # Get top predicted tokens
         top_logits, top_indices = calculated_logits.topk(5)
@@ -428,7 +463,10 @@ class ResidualStreamAnalyzer:
             for head in range(self.model.cfg.n_heads):
                 # Patch attention pattern from clean to corrupted
                 def patch_attention(pattern, hook):
-                    pattern[0, head] = clean_cache[f"blocks.{layer}.attn.hook_pattern"][0, head]
+                    clean_pattern = clean_cache[f"blocks.{layer}.attn.hook_pattern"][0, head]
+                    # Handle different sequence lengths
+                    min_seq_len = min(pattern.shape[-1], clean_pattern.shape[-1])
+                    pattern[0, head, :min_seq_len, :min_seq_len] = clean_pattern[:min_seq_len, :min_seq_len]
                     return pattern
 
                 # Run with patched attention

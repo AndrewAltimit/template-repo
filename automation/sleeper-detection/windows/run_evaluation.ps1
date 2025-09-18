@@ -47,7 +47,26 @@ if (-not (Test-Path $resultsDir)) {
     Write-Host "Created results directory: $resultsDir" -ForegroundColor Gray
 }
 
-# Set environment
+# ============================================================================
+# IMPORTANT: USER ID CONFIGURATION
+# ============================================================================
+# The USER_ID and GROUP_ID below are hardcoded to 1000, which is the default
+# for most Docker Desktop installations on Windows. However, if you encounter
+# file permission errors when writing to mounted volumes, you may need to
+# adjust these values.
+#
+# To find your correct IDs in WSL2 or Docker environment:
+#   1. Open WSL2 terminal or Git Bash
+#   2. Run: id -u  (to get your user ID)
+#   3. Run: id -g  (to get your group ID)
+#   4. Replace the values below with your actual IDs
+#
+# Example: If your IDs are different, uncomment and modify:
+# $env:USER_ID = "501"   # Your actual user ID
+# $env:GROUP_ID = "501"  # Your actual group ID
+# ============================================================================
+
+# Set environment (Default: 1000 for standard Docker Desktop installations)
 $env:USER_ID = "1000"
 $env:GROUP_ID = "1000"
 
