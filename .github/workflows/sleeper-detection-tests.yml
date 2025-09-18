@@ -180,7 +180,9 @@ jobs:
 
           # Run pytest with coverage
           # Use /tmp for coverage data since /app is read-only in CI
-          docker-compose run --rm sleeper-eval-cpu \
+          docker-compose run --rm \
+            -e COVERAGE_FILE=/tmp/.coverage \
+            sleeper-eval-cpu \
             pytest packages/sleeper_detection/tests/ \
             -v --cov=packages.sleeper_detection \
             --cov-report=xml:/tmp/coverage.xml \

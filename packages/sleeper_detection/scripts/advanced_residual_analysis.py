@@ -481,11 +481,21 @@ class ResidualStreamAnalyzer:
 
             # Test MLP importance
             def patch_mlp(mlp_out, hook):
-                return clean_cache[f"blocks.{layer}.mlp.hook_post"]
+                clean_mlp = clean_cache[f"blocks.{layer}.mlp.hook_post"]
+                # Handle different sequence lengths
+                if mlp_out.shape[1] != clean_mlp.shape[1]:
+                    # Can't patch if sequence lengths differ - return original
+                    return mlp_out
+                return clean_mlp
 
-            patched_logits = self.model.run_with_hooks(
-                corrupted_tokens, fwd_hooks=[(f"blocks.{layer}.mlp.hook_post", patch_mlp)]
-            )
+            try:
+                patched_logits = self.model.run_with_hooks(
+                    corrupted_tokens, fwd_hooks=[(f"blocks.{layer}.mlp.hook_post", patch_mlp)]
+                )
+            except RuntimeError as e:
+                # Skip if shape mismatch
+                logger.warning(f"Skipping MLP patch for layer {layer}: {e}")
+                continue
 
             logit_diff = (patched_logits - corrupted_logits).norm().item()
             component_importance[f"L{layer}_MLP"] = {"type": "mlp", "importance": logit_diff}
