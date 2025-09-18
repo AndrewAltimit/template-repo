@@ -197,16 +197,35 @@ jobs:
           # Create the evaluation_results directory if it doesn't exist
           mkdir -p evaluation_results
 
-          # Copy the coverage report from the container's /tmp to host
-          docker-compose run --rm sleeper-eval-cpu cat /tmp/coverage.xml > evaluation_results/coverage.xml || {
-            echo "⚠️ Coverage report not found in container, checking if it was already extracted..."
-            if [ -f evaluation_results/coverage.xml ]; then
-              echo "✅ Coverage report already exists"
-            else
-              echo "❌ No coverage report found"
+          # Use docker cp to extract the file from a running container
+          # First, get the container ID of the last run container
+          CONTAINER_ID=$(docker-compose run -d --rm sleeper-eval-cpu sleep 10)
+
+          # Copy the coverage report from container to host
+          docker cp ${CONTAINER_ID}:/tmp/coverage.xml evaluation_results/coverage.xml || {
+            echo "⚠️ Coverage report not found in container, trying alternative method..."
+
+            # Alternative: Use docker-compose run with output redirection
+            docker-compose run --rm sleeper-eval-cpu cat /tmp/coverage.xml > /tmp/coverage_temp.xml && \
+            mv /tmp/coverage_temp.xml evaluation_results/coverage.xml || {
+              echo "❌ Failed to extract coverage report"
+              # Check if file exists in container
+              docker-compose run --rm sleeper-eval-cpu ls -la /tmp/coverage.xml || echo "File does not exist in container"
               exit 1
-            fi
+            }
           }
+
+          # Stop the temporary container
+          docker stop ${CONTAINER_ID} 2>/dev/null || true
+
+          # Verify the file was extracted
+          if [ -f evaluation_results/coverage.xml ]; then
+            echo "✅ Coverage report extracted successfully"
+            ls -la evaluation_results/coverage.xml
+          else
+            echo "❌ Coverage report not found after extraction"
+            exit 1
+          fi
 
       - name: Upload coverage report
         if: always()
