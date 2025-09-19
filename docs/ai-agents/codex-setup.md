@@ -77,9 +77,11 @@ For consistent environments and portability, use the containerized version:
 
 The container:
 - Has Codex pre-installed
-- Mounts your host's `~/.codex` directory for authentication
+- Mounts your host's `~/.codex` directory for authentication (read-only for security)
 - Runs in an isolated environment
 - Uses Node.js 20 LTS
+
+**Security Note**: The authentication directory is mounted as read-only (`:ro`) to follow the principle of least privilege. Codex reads the `auth.json` for authentication but does not need write access. Any session data or history updates are handled in temporary locations within the container.
 
 ## Usage
 

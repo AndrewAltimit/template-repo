@@ -18,7 +18,7 @@ RUN useradd -m -u 1000 user && \
     chown -R user:user /home/user/.codex
 
 # Set working directory
-WORKDIR /app
+WORKDIR /workspace
 
 # Copy requirements
 COPY config/python/requirements.txt /tmp/requirements.txt
@@ -29,13 +29,13 @@ RUN pip install --no-cache-dir --upgrade pip && \
     rm /tmp/requirements.txt
 
 # Copy the MCP core modules
-COPY tools/mcp/core /app/tools/mcp/core
+COPY tools/mcp/core /workspace/tools/mcp/core
 
 # Copy the Codex MCP server
-COPY tools/mcp/codex /app/tools/mcp/codex
+COPY tools/mcp/codex /workspace/tools/mcp/codex
 
 # Set Python path
-ENV PYTHONPATH=/app:$PYTHONPATH
+ENV PYTHONPATH=/workspace:$PYTHONPATH
 ENV NODE_ENV=production
 
 # Create a writable directory for Codex runtime

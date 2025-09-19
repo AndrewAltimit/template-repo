@@ -529,8 +529,8 @@ services:
     ports:
       - "8021:8021"
     volumes:
-      - ./:/app:ro  # Read-only mount for security
-      - ~/.codex:/home/user/.codex:ro  # Mount auth from host
+      - ./:/workspace:ro  # Read-only mount for security
+      - ~/.codex:/home/user/.codex:ro  # Mount auth from host (read-only)
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8021
@@ -615,9 +615,9 @@ services:
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/workspace
-      # Mount Codex auth from host
+      # Mount Codex auth from host (read-only for security)
       # User must authenticate on host first with: codex auth
-      - ~/.codex:/home/node/.codex
+      - ~/.codex:/home/node/.codex:ro
     environment:
       - NODE_ENV=production
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
