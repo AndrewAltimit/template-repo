@@ -1,5 +1,5 @@
 # Dockerfile for Codex MCP Server
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # Install system dependencies including Node.js for Codex CLI
 RUN apt-get update && apt-get install -y \

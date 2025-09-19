@@ -249,7 +249,7 @@ Codex works well with:
 ## Related Documentation
 
 - [AI Agents Overview](README.md)
-- [OpenCode Setup](opencode-setup.md)
-- [Crush Setup](crush-setup.md)
+- [OpenCode & Crush Integration](../integrations/ai-services/opencode-crush.md)
+- [Gemini Setup](../integrations/ai-services/gemini-setup.md)
 - [Claude Expression Philosophy](claude-expression.md)
 - [Container Strategy](containerization-strategy.md)

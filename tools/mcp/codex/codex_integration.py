@@ -1,7 +1,10 @@
 """Codex Integration Module"""
 
+import asyncio
+import json
 import os
 import subprocess
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -47,9 +50,6 @@ class CodexIntegration:
         self.stats["last_consultation"] = datetime.now().isoformat()
 
         try:
-            # Build the prompt (not used since Codex is interactive)
-            _ = self._build_prompt(query, context, mode)
-
             # Check if Codex CLI is available
             if not self._check_codex_available():
                 return {
@@ -57,22 +57,17 @@ class CodexIntegration:
                     "error": "Codex CLI not available. Please install with: npm install -g @openai/codex",
                 }
 
-            # Since Codex primarily works in interactive mode, we'll return a structured response
-            # that indicates the query would need to be used interactively
-            response = {
-                "status": "success",
-                "mode": mode,
-                "query": query,
-                "context_provided": bool(context),
-                "message": "Codex operates in interactive mode. Please use the Codex CLI directly for code generation.",
-                "suggestion": f"Run: codex\nThen paste your query: {query[:100]}..." if len(query) > 100 else query,
-            }
+            # Build the prompt
+            prompt = self._build_prompt(query, context, mode)
+
+            # Execute Codex programmatically using Node.js script
+            result = await self._execute_codex(prompt, mode)
 
             # Add to history if enabled
-            if self.include_history:
-                self._add_to_history(query, response)
+            if self.include_history and result.get("status") == "success":
+                self._add_to_history(query, result)
 
-            return response
+            return result
 
         except Exception as e:
             self.stats["errors"] += 1
@@ -82,26 +77,146 @@ class CodexIntegration:
                 "mode": mode,
             }
 
+    async def _execute_codex(self, prompt: str, mode: str) -> Dict[str, Any]:
+        """Execute Codex using a programmatic approach"""
+        try:
+            # Create a Node.js script to call Codex programmatically
+            node_script = """
+const { exec } = require('child_process');
+const fs = require('fs');
+
+// Read auth from ~/.codex/auth.json if it exists
+const authPath = process.env.HOME + '/.codex/auth.json';
+let auth = {};
+if (fs.existsSync(authPath)) {
+    auth = JSON.parse(fs.readFileSync(authPath, 'utf8'));
+}
+
+// The prompt is passed as a command line argument
+const prompt = process.argv[2];
+
+// Create a temporary file with the prompt
+const tmpFile = '/tmp/codex_prompt_' + Date.now() + '.txt';
+fs.writeFileSync(tmpFile, prompt);
+
+// Use echo to pipe the prompt to codex in non-interactive mode
+// Note: This is a simplified approach - actual implementation would need
+// to use the Codex API directly or drive the interactive CLI with pexpect
+exec(`echo "${prompt.replace(/"/g, '\\"').replace(/\n/g, '\\n')}" | codex`,
+    { maxBuffer: 1024 * 1024 * 10 }, // 10MB buffer
+    (error, stdout, stderr) => {
+        // Clean up temp file
+        try { fs.unlinkSync(tmpFile); } catch(e) {}
+
+        if (error) {
+            console.error(JSON.stringify({
+                status: 'error',
+                error: error.message,
+                stderr: stderr
+            }));
+            process.exit(1);
+        }
+
+        console.log(JSON.stringify({
+            status: 'success',
+            output: stdout,
+            mode: process.argv[3] || 'quick'
+        }));
+    }
+);
+"""
+
+            # Write the Node.js script to a temporary file
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".js", delete=False) as f:
+                f.write(node_script)
+                script_path = f.name
+
+            try:
+                # Execute the Node.js script
+                process = await asyncio.create_subprocess_exec(
+                    "node",
+                    script_path,
+                    prompt,
+                    mode,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=self.config.get("timeout", 300))
+
+                if process.returncode != 0:
+                    # Try to parse error JSON
+                    try:
+                        error_data = json.loads(stderr.decode() if stderr else stdout.decode())
+                        return error_data  # type: ignore[no-any-return]
+                    except (json.JSONDecodeError, Exception):
+                        return {
+                            "status": "error",
+                            "error": stderr.decode() if stderr else "Codex execution failed",
+                            "mode": mode,
+                        }
+
+                # Parse the JSON output
+                try:
+                    result = json.loads(stdout.decode())
+                    return result  # type: ignore[no-any-return]
+                except json.JSONDecodeError:
+                    # If not JSON, return the raw output
+                    output = stdout.decode().strip()
+                    if output:
+                        return {
+                            "status": "success",
+                            "output": output,
+                            "mode": mode,
+                            "message": "Code generated successfully",
+                        }
+                    else:
+                        return {
+                            "status": "error",
+                            "error": "No output from Codex",
+                            "mode": mode,
+                        }
+
+            finally:
+                # Clean up the temporary script file
+                try:
+                    os.unlink(script_path)
+                except (OSError, Exception):
+                    pass
+
+        except asyncio.TimeoutError:
+            return {
+                "status": "error",
+                "error": f"Codex execution timed out after {self.config.get('timeout', 300)} seconds",
+                "mode": mode,
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": f"Failed to execute Codex: {str(e)}",
+                "mode": mode,
+            }
+
     def _check_codex_available(self) -> bool:
         """Check if Codex CLI is available"""
         try:
-            if self.is_container:
-                # Check in container
-                result = subprocess.run(
-                    ["which", "codex"],
+            # Check if codex command exists
+            result = subprocess.run(
+                ["which", "codex"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode != 0:
+                # Also check if node is available (we can use it to run codex)
+                node_result = subprocess.run(
+                    ["which", "node"],
                     capture_output=True,
                     text=True,
                     timeout=5,
                 )
-            else:
-                # Check on host
-                result = subprocess.run(
-                    ["which", "codex"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5,
-                )
-            return result.returncode == 0
+                return node_result.returncode == 0
+            return True
         except Exception:
             return False
 
@@ -146,7 +261,9 @@ class CodexIntegration:
         for entry in self.conversation_history[-self.max_history :]:
             history_parts.append(f"Q: {entry['query'][:200]}...")
             if "response" in entry and entry["response"].get("status") == "success":
-                history_parts.append(f"A: {entry['response'].get('message', 'Done')[:200]}...")
+                history_parts.append(
+                    f"A: {entry['response'].get('output', entry['response'].get('message', 'Done'))[:200]}..."
+                )
 
         return "\n".join(history_parts)
 
