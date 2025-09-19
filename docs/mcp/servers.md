@@ -10,18 +10,19 @@ The MCP functionality is split across modular servers:
 1. **Code Quality MCP Server** - Containerized code formatting and linting tools
 2. **Content Creation MCP Server** - Containerized Manim animations and LaTeX compilation
 3. **Gemini MCP Server** - Host-only AI integration (requires Docker access)
-4. **OpenCode MCP Server** - Containerized AI-powered code generation
-5. **Crush MCP Server** - Containerized fast code generation
-6. **Meme Generator MCP Server** - Containerized meme creation with visual feedback
-7. **ElevenLabs Speech MCP Server** - Containerized text-to-speech synthesis
-8. **Video Editor MCP Server** - Containerized AI-powered video editing
-9. **Blender MCP Server** - Containerized 3D content creation and rendering
-10. **Virtual Character MCP Server** - Containerized AI agent embodiment middleware
+4. **Codex MCP Server** - Containerized AI-powered code generation and completion
+5. **OpenCode MCP Server** - Containerized AI-powered code generation
+6. **Crush MCP Server** - Containerized fast code generation
+7. **Meme Generator MCP Server** - Containerized meme creation with visual feedback
+8. **ElevenLabs Speech MCP Server** - Containerized text-to-speech synthesis
+9. **Video Editor MCP Server** - Containerized AI-powered video editing
+10. **Blender MCP Server** - Containerized 3D content creation and rendering
+11. **Virtual Character MCP Server** - Containerized AI agent embodiment middleware
 
 **HTTP Mode (Remote servers):**
-11. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
-12. **AI Toolkit MCP Server** (Port 8012) - Remote AI Toolkit for LoRA training
-13. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
+12. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
+13. **AI Toolkit MCP Server** (Port 8012) - Remote AI Toolkit for LoRA training
+14. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
 
 This modular architecture ensures better separation of concerns, easier maintenance, and the ability to scale individual services independently.
 
@@ -326,6 +327,47 @@ curl http://localhost:8013/health
 - **LoRA Transfer**: Automatic transfer from AI Toolkit to ComfyUI
 
 See `tools/mcp/comfyui/docs/README.md` and `docs/integrations/creative-tools/lora-transfer.md` for detailed documentation.
+
+## Codex MCP Server
+
+The Codex server provides AI-powered code generation and completion using OpenAI's Codex model.
+
+### Starting the Server
+
+```bash
+# Run in STDIO mode (for local Claude Desktop) - Recommended
+python -m tools.mcp.codex.server --mode stdio
+
+# Or HTTP mode for remote access
+python -m tools.mcp.codex.server --mode http --port 8021
+
+# Or use the Docker container (with auth mounted from host)
+docker-compose run --rm -v ~/.codex:/home/user/.codex:ro mcp-codex python -m tools.mcp.codex.server --mode stdio
+
+# Or use the helper script
+./tools/cli/agents/run_codex.sh
+
+# Test health (HTTP mode)
+curl http://localhost:8021/health
+```
+
+### Available Tools
+
+- **consult_codex** - Generate, complete, refactor, or explain code
+  - Modes: `generate`, `complete`, `refactor`, `explain`, `quick`
+  - Supports comparison with previous Claude responses
+- **clear_codex_history** - Clear conversation history
+- **codex_status** - Get integration status and statistics
+- **toggle_codex_auto_consult** - Control auto-consultation on uncertainty
+
+### Configuration
+
+- **Authentication**: Requires running `codex auth` first (creates `~/.codex/auth.json`)
+- **Model**: Uses OpenAI Codex model for code generation
+- **Modes**: Supports both STDIO (local) and HTTP (remote) modes
+- **Container**: Available as Docker container with auth mounted from host
+
+See `tools/mcp/codex/docs/README.md` and `docs/ai-agents/codex-setup.md` for detailed documentation.
 
 ## OpenCode MCP Server
 

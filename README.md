@@ -1,6 +1,6 @@
 # MCP-Enabled Project Template
 
-A comprehensive development ecosystem with 7 AI agents, 13 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
+A comprehensive development ecosystem with 8 AI agents, 14 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
 
 ![MCP Demo](docs/mcp/architecture/demo.gif)
 
@@ -16,15 +16,16 @@ This project follows a **container-first approach**:
 
 ## AI Agents
 
-Seven AI agents working in harmony for development and automation. See [AI Agents Documentation](docs/ai-agents/README.md) for complete details:
+Eight AI agents working in harmony for development and automation. See [AI Agents Documentation](docs/ai-agents/README.md) for complete details:
 
 1. **Claude Code** - Primary development assistant
-2. **OpenCode** - Comprehensive code generation ([Integration Guide](docs/integrations/ai-services/opencode-crush.md))
-3. **Crush** - Fast code generation ([Quick Reference](docs/integrations/ai-services/opencode-crush-ref.md))
-4. **Gemini CLI** - Interactive development & automated PR reviews
-5. **GitHub Copilot** - Code review suggestions
-6. **Issue Monitor Agent** - Automated issue management
-7. **PR Review Monitor Agent** - Automated review response
+2. **Codex** - AI-powered code generation and completion ([Setup Guide](docs/ai-agents/codex-setup.md))
+3. **OpenCode** - Comprehensive code generation ([Integration Guide](docs/integrations/ai-services/opencode-crush.md))
+4. **Crush** - Fast code generation ([Quick Reference](docs/integrations/ai-services/opencode-crush-ref.md))
+5. **Gemini CLI** - Interactive development & automated PR reviews
+6. **GitHub Copilot** - Code review suggestions
+7. **Issue Monitor Agent** - Automated issue management
+8. **PR Review Monitor Agent** - Automated review response
 
 **Security**: Keyword triggers, user allow list, secure token management. See [AI Agents Security](docs/ai-agents/security.md)
 
@@ -34,8 +35,8 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
 
 ## Features
 
-- **13 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, and more
-- **7 AI Agents** - Comprehensive development automation
+- **14 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, and more
+- **8 AI Agents** - Comprehensive development automation
 - **Sleeper Detection System** - Advanced AI backdoor detection using TransformerLens residual stream analysis
 - **Company Integration** - Custom agent builds for corporate AI APIs ([Documentation](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))
 - **Video Editor** - AI-powered video editing with transcription, speaker diarization, and intelligent scene detection
@@ -69,6 +70,7 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
    # Set up API keys (if using AI features)
    export OPENROUTER_API_KEY="your-key-here"  # For OpenCode/Crush
    export GEMINI_API_KEY="your-key-here"      # For Gemini (dont use API key for free tier, use web auth)
+   # For Codex: run 'codex auth' after installing @openai/codex
    ```
 
 3. **Use MCP servers with Claude Code and other agents**
@@ -84,9 +86,10 @@ Seven AI agents working in harmony for development and automation. See [AI Agent
    python automation/testing/test_all_servers.py --quick
 
    # Use AI agents directly
+   ./tools/cli/agents/run_codex.sh    # Interactive Codex session
    ./tools/cli/agents/run_opencode.sh -q "Create a REST API"
    ./tools/cli/agents/run_crush.sh -q "Binary search function"
-   ./tools/cli/agents/run_gemini.sh  # Interactive Gemini CLI session
+   ./tools/cli/agents/run_gemini.sh   # Interactive Gemini CLI session
    ```
 
 For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
@@ -107,7 +110,7 @@ For enterprise environments that require custom certificates (e.g., corporate pr
    - Best practices for certificate management in containerized environments
 
 3. **Affected Services**:
-   - All corporate proxy integrations (Gemini, OpenCode, Crush)
+   - All corporate proxy integrations (Gemini, Codex, OpenCode, Crush)
    - Python CI/CD containers
    - Any custom Docker images built from this template
 
@@ -129,6 +132,7 @@ This pattern ensures consistent certificate handling across all services while m
 │   │   ├── gemini/           # AI consultation
 │   │   ├── gaea2/            # Terrain generation
 │   │   ├── blender/          # 3D content creation
+│   │   ├── codex/            # AI-powered code generation
 │   │   ├── opencode/         # Code generation
 │   │   ├── crush/            # Code generation
 │   │   ├── video_editor/     # AI-powered video editing
@@ -141,10 +145,12 @@ This pattern ensures consistent certificate handling across all services while m
 │   └── cli/                  # Command-line tools
 │       ├── agents/           # Agent runner scripts
 │       │   ├── run_claude.sh              # Claude Code Runner
+│       │   ├── run_codex.sh               # Codex runner
 │       │   ├── run_opencode.sh            # OpenCode runner
 │       │   ├── run_crush.sh               # Crush runner
 │       │   └── run_gemini.sh              # Gemini CLI runner
 │       ├── containers/       # Container runner scripts
+│       │   ├── run_codex_container.sh     # Codex in container
 │       │   ├── run_opencode_container.sh  # OpenCode in container
 │       │   ├── run_crush_container.sh     # Crush in container
 │       │   └── run_gemini_container.sh    # Gemini in container
@@ -154,6 +160,7 @@ This pattern ensures consistent certificate handling across all services while m
 │   ├── ci-cd/                # CI/CD pipeline scripts
 │   ├── corporate-proxy/      # Corporate proxy integrations
 │   │   ├── gemini/           # Gemini CLI proxy wrapper
+│   │   ├── codex/            # Codex proxy wrapper
 │   │   ├── opencode/         # OpenCode proxy wrapper
 │   │   ├── crush/            # Crush proxy wrapper
 │   │   └── shared/           # Shared proxy components
@@ -179,14 +186,15 @@ This pattern ensures consistent certificate handling across all services while m
 3. **Gaea2** - Terrain generation ([Documentation](tools/mcp/gaea2/docs/README.md))
 4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/blender/docs/README.md))
 5. **Gemini** - AI consultation (containerized and host modes available)
-6. **OpenCode** - Comprehensive code generation (STDIO mode via Claude)
-7. **Crush** - Fast code snippets (STDIO mode via Claude)
-8. **Meme Generator** - Create memes with templates
-9. **ElevenLabs Speech** - Advanced TTS with v3 model, 50+ audio tags, 74 languages ([Documentation](tools/mcp/elevenlabs_speech/docs/README.md))
-10. **Video Editor** - AI-powered video editing with transcription and scene detection ([Documentation](tools/mcp/video_editor/docs/README.md))
-11. **Virtual Character** - AI agent embodiment in virtual worlds (VRChat, Blender, Unity) ([Documentation](tools/mcp/virtual_character/README.md))
-12. **AI Toolkit** - LoRA training interface (remote: 192.168.0.152:8012)
-13. **ComfyUI** - Image generation interface (remote: 192.168.0.152:8013)
+6. **Codex** - AI-powered code generation and completion (STDIO mode via Claude)
+7. **OpenCode** - Comprehensive code generation (STDIO mode via Claude)
+8. **Crush** - Fast code snippets (STDIO mode via Claude)
+9. **Meme Generator** - Create memes with templates
+10. **ElevenLabs Speech** - Advanced TTS with v3 model, 50+ audio tags, 74 languages ([Documentation](tools/mcp/elevenlabs_speech/docs/README.md))
+11. **Video Editor** - AI-powered video editing with transcription and scene detection ([Documentation](tools/mcp/video_editor/docs/README.md))
+12. **Virtual Character** - AI agent embodiment in virtual worlds (VRChat, Blender, Unity) ([Documentation](tools/mcp/virtual_character/README.md))
+13. **AI Toolkit** - LoRA training interface (remote: 192.168.0.152:8012)
+14. **ComfyUI** - Image generation interface (remote: 192.168.0.152:8013)
 
 ### Usage Modes
 
@@ -258,11 +266,13 @@ All workflows run on self-hosted runners for zero-cost operation.
 - [AI Agents Documentation](docs/ai-agents/README.md) - Seven AI agents overview
 
 ### Quick References
+- [Codex Setup Guide](docs/ai-agents/codex-setup.md)
 - [OpenCode & Crush Quick Reference](docs/integrations/ai-services/opencode-crush-ref.md)
 - [MCP Tools Reference](docs/mcp/tools.md)
 - [Gaea2 Quick Reference](tools/mcp/gaea2/docs/GAEA2_QUICK_REFERENCE.md)
 
 ### Integration Guides
+- [Codex Integration](docs/ai-agents/codex-setup.md)
 - [OpenCode & Crush Integration](docs/integrations/ai-services/opencode-crush.md)
 - [AI Toolkit & ComfyUI Integration](docs/integrations/creative-tools/ai-toolkit-comfyui.md)
 - [Gaea2 Documentation](tools/mcp/gaea2/docs/README.md)

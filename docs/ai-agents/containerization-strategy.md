@@ -33,6 +33,12 @@ These agents MUST run on the host system due to authentication requirements:
 
 These agents can run in Docker containers with proper configuration:
 
+#### Codex
+- **Authentication**: Auth file mounted from host (`~/.codex/auth.json`)
+- **Container**: `mcp-codex` or `codex-agent`
+- **Requirements**: Node.js runtime
+- **Helper Script**: `tools/cli/containers/run_codex_container.sh`
+
 #### OpenCode
 - **Authentication**: API key via environment variable
 - **Container**: `openrouter-agents`
@@ -48,7 +54,7 @@ These agents can run in Docker containers with proper configuration:
 When GitHub Actions workflows trigger the issue or PR monitors:
 
 1. The monitor runs on the **host** to support Claude authentication
-2. Container agents (OpenCode/Crush) are **not available** in this mode
+2. Container agents (Codex/OpenCode/Crush) are **not available** in this mode
 3. Only Claude and Gemini can be used for automated workflows
 
 ### Practical Impact
@@ -56,6 +62,7 @@ When GitHub Actions workflows trigger the issue or PR monitors:
 For automated GitHub workflows:
 - ✅ `[Approved][Claude]` - Works
 - ✅ `[Approved][Gemini]` - Works
+- ❌ `[Approved][Codex]` - Requires manual intervention
 - ❌ `[Approved][OpenCode]` - Requires manual intervention
 - ❌ `[Approved][Crush]` - Requires manual intervention
 

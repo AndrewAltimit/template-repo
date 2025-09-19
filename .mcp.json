@@ -169,6 +169,26 @@
         "ELEVENLABS_DEFAULT_MODEL": "eleven_multilingual_v2",
         "ELEVENLABS_DEFAULT_VOICE": "Rachel"
       }
+    },
+    "codex": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "-v",
+        "~/.codex:/home/user/.codex:ro",
+        "mcp-codex",
+        "python",
+        "-m",
+        "tools.mcp.codex.server",
+        "--mode",
+        "stdio"
+      ]
     }
   }
 }
