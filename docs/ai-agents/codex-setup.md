@@ -6,6 +6,40 @@ This guide covers the setup and usage of OpenAI Codex as an AI agent in the repo
 
 Codex is OpenAI's AI system that translates natural language to code. It powers GitHub Copilot and can be used as a standalone CLI tool for code generation, completion, and refactoring tasks.
 
+## Important: Sandbox Configuration
+
+⚠️ **Security Notice**: Codex can execute arbitrary code. The MCP integration defaults to **safe sandboxed mode** to protect your system.
+
+### Default Safe Mode (Recommended)
+By default, the Codex MCP server runs with:
+- `--sandbox workspace-write`: Restricts file system access to workspace only
+- `--full-auto`: Bypasses manual approvals but maintains sandbox restrictions
+
+This is the **recommended configuration for most users**.
+
+### Sandboxed VM Mode (Advanced)
+If you're running in an **already-sandboxed environment** (VM, container, or isolated system), you can enable bypass mode:
+
+```bash
+# Set environment variable BEFORE starting the MCP server
+export CODEX_BYPASS_SANDBOX=true
+
+# This enables --dangerously-bypass-approvals-and-sandbox
+# ⚠️ ONLY use this in sandboxed VMs or containers!
+```
+
+**When to use bypass mode:**
+- Running inside a disposable VM
+- Running in a Docker container with restricted permissions
+- Running on an isolated test system
+- CI/CD environments with proper isolation
+
+**Never use bypass mode on:**
+- Your main development machine
+- Production servers
+- Systems with access to sensitive data
+- Shared or multi-user systems
+
 ## Installation
 
 ### Host Installation

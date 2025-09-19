@@ -536,6 +536,7 @@ services:
       - PORT=8021
       - CODEX_ENABLED=${CODEX_ENABLED:-true}
       - CODEX_AUTH_PATH=/home/user/.codex/auth.json
+      - CODEX_BYPASS_SANDBOX=${CODEX_BYPASS_SANDBOX:-true}  # Safe in container
     networks:
       - mcp-network
     command: ["python", "-m", "tools.mcp.codex.server", "--mode", "http"]

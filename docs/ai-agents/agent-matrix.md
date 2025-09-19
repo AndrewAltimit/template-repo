@@ -10,6 +10,7 @@ This document clarifies which AI agents are available in different execution env
 | Gemini | ✅ | ❌ | Web login (free) or API key (paid) + Docker socket |
 | OpenCode | ✅ | ✅ | OpenRouter API key |
 | Crush | ✅ | ✅ | OpenRouter API key |
+| Codex | ✅ | ✅ | ChatGPT Plus via ~/.codex/auth.json |
 
 ## Execution Environments
 
@@ -22,6 +23,7 @@ When running agents directly on the host machine (e.g., GitHub Actions self-host
 - **Gemini**: Requires Docker socket access for some operations (use web login for free tier)
 - **OpenCode**: Can run via STDIO mode or HTTP server on host
 - **Crush**: Can run via STDIO mode or HTTP server on host
+- **Codex**: Can run via STDIO mode or HTTP server (requires ChatGPT Plus)
 
 **Use Cases:**
 - Issue monitoring (`issue-monitor`)
@@ -36,6 +38,7 @@ python3 -m github_ai_agents.cli issue-monitor
 ./tools/cli/agents/run_gemini.sh
 ./tools/cli/agents/run_opencode.sh
 ./tools/cli/agents/run_crush.sh
+./tools/cli/agents/run_codex.sh
 ```
 
 ### 2. Container Execution
@@ -45,6 +48,7 @@ When running inside the `openrouter-agents` container:
 **Available Agents:**
 - **OpenCode**: Open-source code generation
 - **Crush**: Multi-provider AI tool
+- **Codex**: OpenAI code generation (with mounted auth from host)
 
 **Use Cases:**
 - Batch processing
@@ -67,11 +71,13 @@ enabled_agents:
   - gemini      # Free with web login, paid with API key
   - opencode    # Requires OpenRouter API key
   - crush       # Requires OpenRouter API key
+  - codex       # Requires ChatGPT Plus subscription
 
-# For container execution (OpenRouter agents only)
+# For container execution (OpenRouter agents + Codex with mounted auth)
 # enabled_agents:
 #   - opencode
 #   - crush
+#   - codex      # With mounted ~/.codex from host
 ```
 
 ## Error Handling

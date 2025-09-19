@@ -79,14 +79,22 @@ class CodexIntegration:
     async def _execute_codex(self, prompt: str, mode: str) -> Dict[str, Any]:
         """Execute Codex using a programmatic approach"""
         try:
-            # Use codex exec command directly with the dangerous bypass flag for automated execution
-            # This is intended for MCP server use where commands are already sandboxed
+            # Determine execution mode based on environment
+            # Default to safe sandboxed mode unless explicitly overridden
+            exec_args = ["codex", "exec"]
+
+            # Check for environment override (only for sandboxed VMs)
+            if os.environ.get("CODEX_BYPASS_SANDBOX") == "true":
+                # WARNING: Only use this in already-sandboxed environments (VMs, containers)
+                exec_args.append("--dangerously-bypass-approvals-and-sandbox")
+            else:
+                # Default: Use safe sandboxed mode with workspace-write restrictions
+                exec_args.extend(["--sandbox", "workspace-write", "--full-auto"])
+
+            exec_args.extend(["--json", prompt])  # Output as JSONL for easier parsing
+
             process = await asyncio.create_subprocess_exec(
-                "codex",
-                "exec",
-                "--dangerously-bypass-approvals-and-sandbox",
-                "--json",  # Output as JSONL for easier parsing
-                prompt,
+                *exec_args,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
