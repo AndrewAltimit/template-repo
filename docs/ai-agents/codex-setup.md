@@ -77,11 +77,16 @@ For consistent environments and portability, use the containerized version:
 
 The container:
 - Has Codex pre-installed
-- Mounts your host's `~/.codex` directory for authentication (read-only for security)
+- Mounts your host's `~/.codex` directory for authentication
 - Runs in an isolated environment
 - Uses Node.js 20 LTS
 
-**Security Note**: The authentication directory is mounted as read-only (`:ro`) to follow the principle of least privilege. Codex reads the `auth.json` for authentication but does not need write access. Any session data or history updates are handled in temporary locations within the container.
+**Note**: The `~/.codex` directory is mounted with write access because Codex needs to update:
+- `history.jsonl` - Command history
+- `config.toml` - Configuration settings
+- Session data in the `sessions/` directory
+
+While this allows the container to modify these files, the authentication token in `auth.json` remains protected by file permissions.
 
 ## Usage
 
