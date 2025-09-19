@@ -23,7 +23,7 @@ if [ ! -f "$AUTH_FILE" ]; then
     echo "❌ Codex authentication not found at $AUTH_FILE"
     echo ""
     echo "Please authenticate with Codex first:"
-    echo "   codex auth"
+    echo "   codex login"
     echo ""
     echo "Or run the container version with mounted auth:"
     echo "   ./tools/cli/containers/run_codex_container.sh"
@@ -39,52 +39,58 @@ REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 # shellcheck source=/dev/null
 source "$REPO_ROOT/automation/security/initialize-agent-hooks.sh"
 
-# Note about Codex permissions
-if [ $# -eq 0 ]; then
-    # Only show note if no arguments provided (interactive mode)
-    echo "🤖 Codex Configuration"
-    echo ""
-    echo "ℹ️  Note: Codex is an AI-powered code generation tool by OpenAI."
-    echo "It can help with code completion, generation, and refactoring."
-    echo ""
-    read -r -p "Press Enter to continue to interactive mode, or Ctrl+C to cancel... "
-    echo ""
-fi
-
 # Parse command line arguments
 MODE="interactive"
 QUERY=""
 CONTEXT=""
+USE_EXEC=false
+BYPASS_SANDBOX=false
+AUTO_MODE=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         -q|--query)
             QUERY="$2"
-            MODE="single"
+            MODE="exec"
+            USE_EXEC=true
             shift 2
             ;;
         -c|--context)
             CONTEXT="$2"
             shift 2
             ;;
+        --auto)
+            AUTO_MODE=true
+            shift
+            ;;
+        --bypass-sandbox)
+            BYPASS_SANDBOX=true
+            shift
+            ;;
         -h|--help)
             echo "Usage: $0 [options]"
             echo ""
             echo "Options:"
-            echo "  -q, --query <prompt>    Single query mode with specified prompt"
+            echo "  -q, --query <prompt>    Execute non-interactively with specified prompt"
             echo "  -c, --context <file>    Add context from file"
+            echo "  --auto                  Auto-approve mode (uses --full-auto for safer execution)"
+            echo "  --bypass-sandbox        Use --dangerously-bypass-approvals-and-sandbox (DANGEROUS!)"
             echo "  -h, --help              Show this help message"
             echo ""
             echo "Interactive Mode (default):"
             echo "  Start an interactive session with Codex"
             echo ""
-            echo "Single Query Mode:"
+            echo "Non-Interactive Execution Mode:"
             echo "  $0 -q 'Write a Python function to calculate fibonacci'"
-            echo ""
-            echo "With Context:"
             echo "  $0 -q 'Refactor this code' -c existing_code.py"
             echo ""
-            echo "Note: Codex requires authentication via 'codex auth' first."
+            echo "Safe Auto Mode (workspace-write sandbox):"
+            echo "  $0 -q 'Build a web server' --auto"
+            echo ""
+            echo "Dangerous Mode (no sandbox - USE WITH CAUTION!):"
+            echo "  $0 -q 'System task' --bypass-sandbox"
+            echo ""
+            echo "Note: Codex requires authentication via 'codex login' first."
             exit 0
             ;;
         *)
@@ -96,37 +102,103 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Execute based on mode
-if [ "$MODE" = "single" ]; then
-    echo "📝 Running single query..."
-    echo ""
+if [ "$USE_EXEC" = true ] && [ -n "$QUERY" ]; then
+    echo "📝 Running non-interactive execution..."
 
-    # Note: Codex CLI may require interactive mode
-    # This is a best-effort attempt at single query mode
+    # Build the prompt with context if provided
+    FULL_PROMPT="$QUERY"
     if [ -n "$CONTEXT" ] && [ -f "$CONTEXT" ]; then
         echo "📄 Including context from: $CONTEXT"
-        echo "Query: $QUERY"
-        echo ""
-        echo "Context content:"
-        cat "$CONTEXT"
-        echo ""
-        echo "Note: Codex CLI typically works in interactive mode."
-        echo "You may need to copy the above context and query into the interactive session."
-    else
-        echo "Query: $QUERY"
-        echo ""
-        echo "Note: Codex CLI typically works in interactive mode."
-        echo "Starting interactive mode - paste your query when prompted."
+        CONTEXT_CONTENT=$(cat "$CONTEXT")
+        FULL_PROMPT="Context from $CONTEXT:
+\`\`\`
+$CONTEXT_CONTENT
+\`\`\`
+
+Task: $QUERY"
     fi
 
-    # Start interactive mode since Codex doesn't have a simple command mode
-    codex
-else
-    echo "🔄 Starting interactive session..."
-    echo "💡 Tips:"
-    echo "   - Use 'help' to see available commands"
-    echo "   - Use 'exit' or Ctrl+C to quit"
-    echo ""
+    # Determine execution mode
+    if [ "$BYPASS_SANDBOX" = true ]; then
+        # Ask for confirmation unless explicitly bypassed
+        if [ "$AUTO_MODE" != true ]; then
+            echo ""
+            echo "⚠️  WARNING: --dangerously-bypass-approvals-and-sandbox mode"
+            echo "This will execute commands WITHOUT ANY SANDBOXING or approval!"
+            echo "Only use this in already-sandboxed environments."
+            echo ""
+            read -r -p "Are you ABSOLUTELY SURE you want to continue? (yes/no): " confirm
+            if [ "$confirm" != "yes" ]; then
+                echo "❌ Aborted for safety."
+                exit 1
+            fi
+        fi
 
-    # Start interactive Codex
-    codex
+        echo "⚡ Executing with --dangerously-bypass-approvals-and-sandbox..."
+        echo ""
+        echo "$FULL_PROMPT" | codex exec --dangerously-bypass-approvals-and-sandbox -
+
+    elif [ "$AUTO_MODE" = true ]; then
+        echo "🔐 Executing with --full-auto (sandboxed workspace-write)..."
+        echo ""
+        echo "$FULL_PROMPT" | codex exec --full-auto -
+
+    else
+        # Default: interactive approval mode with workspace-write sandbox
+        echo "🔒 Executing with workspace-write sandbox (approval required)..."
+        echo ""
+        echo "$FULL_PROMPT" | codex exec --sandbox workspace-write -
+    fi
+
+elif [ "$MODE" = "interactive" ]; then
+    # Only show note if no arguments provided
+    if [ $# -eq 0 ]; then
+        echo "🤖 Codex Configuration"
+        echo ""
+        echo "ℹ️  Note: Codex is an AI-powered code generation tool by OpenAI."
+        echo "It can help with code completion, generation, and refactoring."
+        echo ""
+
+        # Ask about sandbox preference for interactive mode
+        echo "Choose sandbox mode for this session:"
+        echo "1) Standard (with approvals and sandbox)"
+        echo "2) Auto mode (--full-auto: workspace-write sandbox, no approvals)"
+        echo "3) Dangerous (--dangerously-bypass-approvals-and-sandbox)"
+        echo ""
+        read -r -p "Enter choice (1-3) [default: 1]: " choice
+
+        case "$choice" in
+            2)
+                echo "🔐 Starting with --full-auto mode..."
+                codex --full-auto
+                ;;
+            3)
+                echo ""
+                echo "⚠️  WARNING: This disables ALL safety features!"
+                read -r -p "Are you sure? (yes/no): " confirm
+                if [ "$confirm" = "yes" ]; then
+                    echo "⚡ Starting with --dangerously-bypass-approvals-and-sandbox..."
+                    codex --dangerously-bypass-approvals-and-sandbox
+                else
+                    echo "✅ Starting standard interactive mode..."
+                    codex
+                fi
+                ;;
+            *)
+                echo "✅ Starting standard interactive mode..."
+                codex
+                ;;
+        esac
+    else
+        echo "🔄 Starting interactive session..."
+        echo "💡 Tips:"
+        echo "   - Use 'help' to see available commands"
+        echo "   - Use 'exit' or Ctrl+C to quit"
+        echo ""
+        codex
+    fi
+else
+    echo "❌ Error: Query is required for exec mode"
+    echo "Use -h or --help for usage information"
+    exit 1
 fi

@@ -4,7 +4,6 @@ import asyncio
 import json
 import os
 import subprocess
-import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -80,116 +79,96 @@ class CodexIntegration:
     async def _execute_codex(self, prompt: str, mode: str) -> Dict[str, Any]:
         """Execute Codex using a programmatic approach"""
         try:
-            # Create a Node.js script to call Codex programmatically
-            node_script = """
-const { exec } = require('child_process');
-const fs = require('fs');
-
-// Read auth from ~/.codex/auth.json if it exists
-const authPath = process.env.HOME + '/.codex/auth.json';
-let auth = {};
-if (fs.existsSync(authPath)) {
-    auth = JSON.parse(fs.readFileSync(authPath, 'utf8'));
-}
-
-// The prompt is passed as a command line argument
-const prompt = process.argv[2];
-
-// Create a temporary file with the prompt
-const tmpFile = '/tmp/codex_prompt_' + Date.now() + '.txt';
-fs.writeFileSync(tmpFile, prompt);
-
-// Use echo to pipe the prompt to codex in non-interactive mode
-// Note: This is a simplified approach - actual implementation would need
-// to use the Codex API directly or drive the interactive CLI with pexpect
-exec(`echo "${prompt.replace(/"/g, '\\"').replace(/\n/g, '\\n')}" | codex`,
-    { maxBuffer: 1024 * 1024 * 10 }, // 10MB buffer
-    (error, stdout, stderr) => {
-        // Clean up temp file
-        try { fs.unlinkSync(tmpFile); } catch(e) {}
-
-        if (error) {
-            console.error(JSON.stringify({
-                status: 'error',
-                error: error.message,
-                stderr: stderr
-            }));
-            process.exit(1);
-        }
-
-        console.log(JSON.stringify({
-            status: 'success',
-            output: stdout,
-            mode: process.argv[3] || 'quick'
-        }));
-    }
-);
-"""
-
-            # Write the Node.js script to a temporary file
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".js", delete=False) as f:
-                f.write(node_script)
-                script_path = f.name
+            # Use codex exec command directly with the dangerous bypass flag for automated execution
+            # This is intended for MCP server use where commands are already sandboxed
+            process = await asyncio.create_subprocess_exec(
+                "codex",
+                "exec",
+                "--dangerously-bypass-approvals-and-sandbox",
+                "--json",  # Output as JSONL for easier parsing
+                prompt,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
 
             try:
-                # Execute the Node.js script
-                process = await asyncio.create_subprocess_exec(
-                    "node",
-                    script_path,
-                    prompt,
-                    mode,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE,
-                )
-
                 stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=self.config.get("timeout", 300))
 
-                if process.returncode != 0:
-                    # Try to parse error JSON
-                    try:
-                        error_data = json.loads(stderr.decode() if stderr else stdout.decode())
-                        return error_data  # type: ignore[no-any-return]
-                    except (json.JSONDecodeError, Exception):
-                        return {
-                            "status": "error",
-                            "error": stderr.decode() if stderr else "Codex execution failed",
-                            "mode": mode,
-                        }
+            except asyncio.TimeoutError:
+                return {
+                    "status": "error",
+                    "error": f"Codex execution timed out after {self.config.get('timeout', 300)} seconds",
+                    "mode": mode,
+                }
 
-                # Parse the JSON output
+            if process.returncode != 0:
+                error_msg = stderr.decode() if stderr else "Codex execution failed"
+                return {
+                    "status": "error",
+                    "error": error_msg,
+                    "mode": mode,
+                }
+
+            # Parse JSONL output from codex exec --json
+            output = stdout.decode().strip()
+            if not output:
+                return {
+                    "status": "error",
+                    "error": "No output from Codex",
+                    "mode": mode,
+                }
+
+            # Process JSONL output (each line is a JSON event)
+            lines = output.split("\n")
+            messages = []
+            command_outputs = []
+
+            for line in lines:
+                if not line.strip():
+                    continue
                 try:
-                    result = json.loads(stdout.decode())
-                    return result  # type: ignore[no-any-return]
+                    event = json.loads(line)
+
+                    # Handle nested message structure
+                    if "msg" in event:
+                        msg = event["msg"]
+                        msg_type = msg.get("type")
+
+                        # Extract agent messages
+                        if msg_type == "agent_message":
+                            messages.append(msg.get("message", ""))
+
+                        # Extract command execution output
+                        elif msg_type == "exec_command_end":
+                            if msg.get("stdout"):
+                                command_outputs.append(msg.get("stdout").strip())
+
+                        # Extract agent reasoning (optional, for context)
+                        elif msg_type == "agent_reasoning":
+                            text = msg.get("text", "")
+                            if text and not text.startswith("**"):
+                                messages.append(f"[Reasoning] {text}")
+
+                    # Handle direct message events
+                    elif event.get("type") == "message":
+                        messages.append(event.get("message", ""))
+
                 except json.JSONDecodeError:
-                    # If not JSON, return the raw output
-                    output = stdout.decode().strip()
-                    if output:
-                        return {
-                            "status": "success",
-                            "output": output,
-                            "mode": mode,
-                            "message": "Code generated successfully",
-                        }
-                    else:
-                        return {
-                            "status": "error",
-                            "error": "No output from Codex",
-                            "mode": mode,
-                        }
+                    # If not JSON, might be direct output from older format
+                    if line and not line.startswith("["):
+                        messages.append(line)
 
-            finally:
-                # Clean up the temporary script file
-                try:
-                    os.unlink(script_path)
-                except (OSError, Exception):
-                    pass
+            # Combine messages and command outputs
+            all_outputs = messages + command_outputs
+            combined_output = "\n".join(all_outputs) if all_outputs else output
 
-        except asyncio.TimeoutError:
             return {
-                "status": "error",
-                "error": f"Codex execution timed out after {self.config.get('timeout', 300)} seconds",
+                "status": "success",
+                "output": combined_output,
                 "mode": mode,
+                "message": "Code generated successfully",
             }
+
         except Exception as e:
             return {
                 "status": "error",

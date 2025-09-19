@@ -88,10 +88,12 @@ await client.clear_history()
 
 ## Authentication
 
-Codex requires authentication via the Codex CLI:
+Codex requires authentication via the Codex CLI (requires ChatGPT Plus subscription):
 
 1. Install Codex CLI: `npm install -g @openai/codex`
-2. Authenticate: `codex auth`
+2. Authenticate: `codex auth` (requires ChatGPT Plus account)
+   - Opens browser for OpenAI login
+   - Bypasses manual API key configuration
 3. Auth file created at: `~/.codex/auth.json`
 
 ## Testing

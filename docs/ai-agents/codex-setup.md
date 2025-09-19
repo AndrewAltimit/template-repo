@@ -23,11 +23,14 @@ Codex is OpenAI's AI system that translates natural language to code. It powers 
    npm install -g @openai/codex
    ```
 
-3. **Authenticate with Codex**:
+3. **Authenticate with Codex** (Requires ChatGPT Plus Subscription):
    ```bash
    codex auth
    ```
-   This will create an authentication file at `~/.codex/auth.json`
+   - **IMPORTANT**: You need a ChatGPT Plus subscription to bypass API key requirements
+   - This command will open a browser for login/authentication
+   - After successful authentication, it creates `~/.codex/auth.json`
+   - This authentication file is required for all Codex operations
 
 ### Container Usage (Recommended)
 
@@ -114,9 +117,11 @@ docker-compose run --rm \
 
 ### Initial Setup
 
-1. **On Host**: Run `codex auth` once to authenticate
-2. **Auth File**: Created at `~/.codex/auth.json`
-3. **Container**: Automatically mounts the auth directory
+1. **On Host**: Run `codex auth` once to authenticate (requires ChatGPT Plus subscription)
+   - Opens browser for login with your OpenAI account
+   - Bypasses the need for manual API key configuration
+2. **Auth File**: Created at `~/.codex/auth.json` after successful login
+3. **Container**: Automatically mounts the auth directory from host
 
 ### Troubleshooting Auth Issues
 
@@ -229,8 +234,9 @@ Codex works well with:
    - Alternative: Use the container version
 
 2. **"Authentication required"**
-   - Solution: Run `codex auth` on host
+   - Solution: Run `codex auth` on host (requires ChatGPT Plus subscription)
    - Check: `~/.codex/auth.json` exists
+   - Note: This uses your OpenAI account with ChatGPT Plus subscription
 
 3. **Container build fails**
    - Solution: Rebuild with `docker-compose build --no-cache codex-agent`
