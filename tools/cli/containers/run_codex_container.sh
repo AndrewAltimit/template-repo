@@ -129,7 +129,5 @@ echo "   - Use 'exit' or Ctrl+C to quit"
 echo ""
 
 # Start interactive session in container
-# Mount auth directory with write access (needed for history/config updates)
-docker-compose run --rm -it \
-    -v "$AUTH_DIR:/home/node/.codex" \
-    codex-agent codex
+# The volume for ~/.codex is already defined in docker-compose.yml
+docker-compose run --rm -it codex-agent codex
