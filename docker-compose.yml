@@ -575,6 +575,31 @@ services:
       - agents
       - openrouter
 
+  # Codex Agent container (OpenAI Codex)
+  codex-agent:
+    build:
+      context: .
+      dockerfile: docker/codex-agent.Dockerfile
+    container_name: codex-agent
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    volumes:
+      - ./:/workspace
+      # Mount Codex auth from host (read-only)
+      # User must authenticate on host first with: codex auth
+      - ~/.codex:/home/node/.codex:ro
+    environment:
+      - NODE_ENV=production
+      - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
+      - CONTAINER=codex-agent
+    working_dir: /workspace
+    networks:
+      - mcp-network
+    command: ["/bin/bash"]
+    tty: true
+    stdin_open: true
+    profiles:
+      - agents
+      - codex
 
   # Python CI container for running tests and linting
   python-ci:

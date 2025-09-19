@@ -15,12 +15,13 @@ This is a **single-maintainer project** by @AndrewAltimit with a **container-fir
 
 ## AI Agent Collaboration
 
-You are working alongside four other AI agents in a comprehensive ecosystem:
+You are working alongside five other AI agents in a comprehensive ecosystem:
 
 1. **Gemini CLI** - Handles automated PR code reviews
 2. **GitHub Copilot** - Provides code review suggestions in PRs
 3. **Issue Monitor Agent** - Automatically creates PRs from well-described issues
 4. **PR Review Monitor Agent** - Automatically implements fixes based on review feedback
+5. **Codex** - AI-powered code generation and completion (OpenAI's code model)
 
 Your role as Claude Code is the primary development assistant, handling:
 
@@ -191,6 +192,11 @@ pip install -r config/python/requirements.txt
 # Containerized Gemini:
 # Gemini CLI can now run in containers - see tools/cli/containers/run_gemini_container.sh
 
+# Containerized Codex:
+# Codex can run in containers with auth mounted from host
+./tools/cli/containers/run_codex_container.sh  # Interactive Codex with mounted auth
+docker-compose run --rm -v ~/.codex:/home/node/.codex:ro codex-agent codex
+
 # Containerized Agents (OpenRouter-compatible):
 # OpenCode, Crush - run in openrouter-agents container
 docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
@@ -203,6 +209,7 @@ docker-compose run --rm openrouter-agents crush run -q "Write a Python function"
 ./tools/cli/agents/run_opencode.sh   # OpenCode CLI for comprehensive code generation
 ./tools/cli/agents/run_crush.sh      # Crush CLI for fast code generation
 ./tools/cli/agents/run_gemini.sh     # Interactive Gemini CLI session with approval modes
+./tools/cli/agents/run_codex.sh      # Codex CLI for AI-powered code generation (requires auth)
 
 # Host agent execution (Claude, Gemini only):
 python3 -m github_ai_agents.cli issue-monitor
@@ -222,8 +229,12 @@ pip3 install -e ./packages/github_ai_agents
 # Step 2: If running Claude or Gemini on host, install host-specific dependencies:
 pip3 install --user -r docker/requirements/requirements-agents.txt
 
+# Step 3: For Codex (optional):
+npm install -g @openai/codex  # Install Codex CLI
+codex auth                     # Authenticate (creates ~/.codex/auth.json)
+
 # Note: Step 2 is only needed if you plan to use Claude or Gemini agents.
-# Containerized agents (OpenCode, Crush) don't require host dependencies.
+# Containerized agents (OpenCode, Crush, Codex) can run without host dependencies.
 ```
 
 ### Docker Operations
@@ -628,6 +639,7 @@ For detailed information on specific topics, refer to these documentation files:
 - `docs/integrations/creative-tools/ai-toolkit-comfyui.md` - LoRA training and image generation
 - `docs/integrations/creative-tools/lora-transfer.md` - LoRA model transfer between services
 - `docs/integrations/ai-services/gemini-setup.md` - Gemini CLI setup and configuration
+- `docs/ai-agents/codex-setup.md` - Codex agent setup and configuration
 
 ### Gaea2 Terrain Generation
 - `tools/mcp/gaea2/docs/INDEX.md` - Complete Gaea2 documentation index
