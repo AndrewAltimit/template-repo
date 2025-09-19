@@ -129,6 +129,7 @@ echo "   - Use 'exit' or Ctrl+C to quit"
 echo ""
 
 # Start interactive session in container
+# Mount auth directory (removed read-only flag as Codex may need write access)
 docker-compose run --rm -it \
-    -v "$AUTH_DIR:/home/node/.codex:ro" \
+    -v "$AUTH_DIR:/home/node/.codex" \
     codex-agent codex

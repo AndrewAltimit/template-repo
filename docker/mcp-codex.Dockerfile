@@ -14,7 +14,8 @@ RUN npm install -g @openai/codex
 
 # Create non-root user
 RUN useradd -m -u 1000 user && \
-    mkdir -p /home/user/.codex
+    mkdir -p /home/user/.codex && \
+    chown -R user:user /home/user/.codex
 
 # Set working directory
 WORKDIR /app
@@ -36,6 +37,13 @@ COPY tools/mcp/codex /app/tools/mcp/codex
 # Set Python path
 ENV PYTHONPATH=/app:$PYTHONPATH
 ENV NODE_ENV=production
+
+# Create a writable directory for Codex runtime
+RUN mkdir -p /tmp/codex-runtime && \
+    chown -R user:user /tmp/codex-runtime
+
+# Set HOME to user's home directory
+ENV HOME=/home/user
 
 # Switch to non-root user
 USER user

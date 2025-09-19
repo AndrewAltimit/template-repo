@@ -614,9 +614,9 @@ services:
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/workspace
-      # Mount Codex auth from host (read-only)
+      # Mount Codex auth from host
       # User must authenticate on host first with: codex auth
-      - ~/.codex:/home/node/.codex:ro
+      - ~/.codex:/home/node/.codex
     environment:
       - NODE_ENV=production
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
