@@ -1,0 +1,8 @@
+# Dashboard Dependencies
+streamlit==1.49.1
+streamlit-option-menu==0.4.0
+plotly==6.3.0
+pandas==2.3.2
+numpy
+bcrypt==4.3.0
+xlsxwriter==3.2.9

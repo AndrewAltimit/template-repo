@@ -1,0 +1,215 @@
+name: Dashboard Tests
+
+on:
+  push:
+    branches: [main, sleeper-refine]
+    paths:
+      - 'packages/sleeper_detection/dashboard/**'
+      - '.github/workflows/dashboard-tests.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'packages/sleeper_detection/dashboard/**'
+  workflow_dispatch: {}
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: self-hosted
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Compose
+        run: |
+          docker-compose --version
+          cd packages/sleeper_detection/dashboard/tests
+
+      - name: Build test container
+        run: |
+          cd packages/sleeper_detection/dashboard
+          docker build -t sleeper-dashboard-test -f tests/Dockerfile.test .
+
+      - name: Run unit tests
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          docker run --rm \
+            -v $(pwd):/app/tests \
+            -v $(pwd)/coverage:/app/coverage \
+            sleeper-dashboard-test \
+            python -m pytest test_streamlit_components.py -v \
+              --cov=../ \
+              --cov-report=xml:/app/coverage/coverage.xml \
+              --cov-report=term
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-coverage
+          path: packages/sleeper_detection/dashboard/tests/coverage/
+
+  e2e-tests:
+    name: E2E Selenium Tests
+    runs-on: self-hosted
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Start test environment
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          docker-compose -f docker-compose.test.yml build
+          docker-compose -f docker-compose.test.yml up -d dashboard selenium
+
+          # Wait for services to be ready
+          echo "Waiting for dashboard to be ready..."
+          sleep 15
+
+          # Check dashboard health
+          docker-compose -f docker-compose.test.yml ps
+          curl -f http://localhost:8501/_stcore/health || echo "Dashboard health check failed"
+
+      - name: Generate test data
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          docker-compose -f docker-compose.test.yml run --rm test-runner \
+            python tests/fixtures.py
+
+      - name: Run E2E tests
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          docker-compose -f docker-compose.test.yml run --rm test-runner \
+            python -m pytest tests/test_selenium_e2e.py -v \
+              --html=/app/screenshots/report.html \
+              --self-contained-html
+
+      - name: Collect test artifacts
+        if: always()
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          mkdir -p test-artifacts
+          docker cp test-runner:/app/screenshots test-artifacts/ || true
+          docker cp test-runner:/app/baselines test-artifacts/ || true
+          docker-compose -f docker-compose.test.yml logs dashboard > test-artifacts/dashboard.log
+          docker-compose -f docker-compose.test.yml logs selenium > test-artifacts/selenium.log
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-artifacts
+          path: packages/sleeper_detection/dashboard/tests/test-artifacts/
+
+      - name: Cleanup
+        if: always()
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          docker-compose -f docker-compose.test.yml down -v
+
+  visual-regression:
+    name: Visual Regression Tests
+    runs-on: self-hosted
+    needs: e2e-tests
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download E2E artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-test-artifacts
+          path: packages/sleeper_detection/dashboard/tests/artifacts/
+
+      - name: Run visual regression analysis
+        run: |
+          cd packages/sleeper_detection/dashboard
+
+          # Build AI analyzer container
+          docker build -t visual-analyzer -f tests/Dockerfile.test tests/
+
+          # Run visual analysis
+          docker run --rm \
+            -v $(pwd)/tests/artifacts/screenshots:/app/screenshots \
+            -v $(pwd)/tests/artifacts/baselines:/app/baselines \
+            -v $(pwd)/tests/ai_analysis_results:/app/ai_analysis_results \
+            visual-analyzer \
+            python tests/ai_visual_analyzer.py
+
+      - name: Upload visual analysis results
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-analysis-results
+          path: packages/sleeper_detection/dashboard/tests/ai_analysis_results/
+
+  dashboard-integration:
+    name: Dashboard Integration Test
+    runs-on: self-hosted
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build dashboard Docker image
+        run: |
+          cd packages/sleeper_detection/dashboard
+          docker build -t sleeper-dashboard:test .
+
+      - name: Test dashboard container
+        run: |
+          # Run dashboard container
+          docker run -d \
+            --name test-dashboard \
+            -p 8501:8501 \
+            -e STREAMLIT_SERVER_HEADLESS=true \
+            sleeper-dashboard:test
+
+          # Wait for startup
+          sleep 10
+
+          # Health check
+          curl -f http://localhost:8501/_stcore/health || exit 1
+
+          # Basic smoke test
+          curl -f http://localhost:8501 | grep -q "Sleeper Detection Dashboard" || exit 1
+
+          # Check authentication page loads
+          curl -f http://localhost:8501 | grep -q "Login" || exit 1
+
+      - name: Stop test container
+        if: always()
+        run: |
+          docker stop test-dashboard || true
+          docker rm test-dashboard || true
+
+  test-summary:
+    name: Test Summary
+    runs-on: self-hosted
+    needs: [unit-tests, e2e-tests, visual-regression, dashboard-integration]
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "Dashboard Test Suite Summary"
+          echo "============================"
+          echo "Unit Tests: ${{ needs.unit-tests.result }}"
+          echo "E2E Tests: ${{ needs.e2e-tests.result }}"
+          echo "Visual Regression: ${{ needs.visual-regression.result }}"
+          echo "Integration: ${{ needs.dashboard-integration.result }}"
+
+          # Fail if any test failed
+          if [ "${{ needs.unit-tests.result }}" != "success" ] || \
+             [ "${{ needs.e2e-tests.result }}" != "success" ] || \
+             [ "${{ needs.dashboard-integration.result }}" != "success" ]; then
+            echo "Some tests failed!"
+            exit 1
+          fi
+
+          echo "All tests passed successfully!"
