@@ -16,6 +16,9 @@ on:
         type: boolean
         default: false
 
+env:
+  DOCKER_IMAGE_COMPOSE_NAME: template-repo-sleeper-eval-cpu
+
 jobs:
   # Build Docker image once and share across all jobs
   build-sleeper-image:
@@ -47,7 +50,7 @@ jobs:
           docker-compose build sleeper-eval-cpu
 
           # Tag it for this workflow
-          docker tag template-repo-sleeper-eval-cpu:latest $IMAGE_TAG
+          docker tag ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest $IMAGE_TAG
 
           echo "✅ Built and tagged image: $IMAGE_TAG"
 
@@ -70,7 +73,7 @@ jobs:
         run: |
           echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
           # Ensure we're using the image from the build job
-          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} template-repo-sleeper-eval-cpu:latest
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
 
       - name: Run quick CPU tests
         run: |
@@ -128,7 +131,7 @@ jobs:
       - name: Use pre-built image
         run: |
           echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
-          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} template-repo-sleeper-eval-cpu:latest
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
 
       - name: Run residual stream analysis
         run: |
@@ -171,7 +174,7 @@ jobs:
       - name: Use pre-built image
         run: |
           echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
-          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} template-repo-sleeper-eval-cpu:latest
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
 
       - name: Run unit tests with coverage
         run: |
@@ -273,7 +276,7 @@ jobs:
       - name: Use pre-built image
         run: |
           echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
-          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} template-repo-sleeper-eval-cpu:latest
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
 
       - name: Start API server
         run: |
@@ -333,7 +336,7 @@ jobs:
       - name: Use pre-built image
         run: |
           echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
-          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} template-repo-sleeper-eval-cpu:latest
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
 
       - name: Run full comprehensive tests
         run: |
@@ -374,7 +377,7 @@ jobs:
       - name: Use pre-built image
         run: |
           echo "🐳 Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
-          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} template-repo-sleeper-eval-cpu:latest
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest
 
       - name: Validate Jupyter notebooks
         run: |
