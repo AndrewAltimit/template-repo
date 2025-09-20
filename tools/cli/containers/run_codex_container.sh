@@ -50,37 +50,20 @@ echo "✅ Found Codex auth file: $AUTH_FILE"
 echo "   This will be mounted into the container"
 
 # Parse command line arguments
-MODE="interactive"
-QUERY=""
-CONTEXT=""
-
 while [[ $# -gt 0 ]]; do
     case $1 in
-        -q|--query)
-            QUERY="$2"
-            MODE="single"
-            shift 2
-            ;;
-        -c|--context)
-            CONTEXT="$2"
-            shift 2
-            ;;
         -h|--help)
             echo "Usage: $0 [options]"
             echo ""
             echo "Options:"
-            echo "  -q, --query <prompt>    Single query mode with specified prompt"
-            echo "  -c, --context <file>    Add context from file"
-            echo "  -h, --help              Show this help message"
+            echo "  -h, --help    Show this help message"
             echo ""
-            echo "Interactive Mode (default):"
-            echo "  Start an interactive session with Codex in a container"
+            echo "Description:"
+            echo "  Start an interactive Codex session in a container"
+            echo "  Automatically mounts your ~/.codex auth directory"
             echo ""
-            echo "Single Query Mode:"
-            echo "  $0 -q 'Write a Python function to calculate fibonacci'"
-            echo ""
-            echo "With Context:"
-            echo "  $0 -q 'Refactor this code' -c existing_code.py"
+            echo "Example:"
+            echo "  $0"
             echo ""
             echo "Note: Requires Codex authentication on host machine first (codex auth)"
             exit 0
@@ -93,35 +76,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Context is shown in the script output but not passed to container
-# since Codex only works in interactive mode
-
-# Execute based on mode
-if [ "$MODE" = "single" ]; then
-    echo "📝 Note: Codex typically works in interactive mode."
-
-    if [ -n "$CONTEXT" ] && [ -f "$CONTEXT" ]; then
-        echo "📄 Context file: $CONTEXT"
-        echo "Query: $QUERY"
-        echo ""
-        echo "Starting interactive mode - context will be shown before launching."
-        echo "Context content:"
-        cat "$CONTEXT"
-        echo ""
-        echo "---"
-        echo "Query: $QUERY"
-        echo "---"
-        echo ""
-        sleep 2
-    else
-        echo "Query: $QUERY"
-        echo ""
-        echo "Starting interactive mode - paste your query when prompted."
-        sleep 1
-    fi
-fi
-
-# Always run in interactive mode since Codex doesn't have a simple command mode
+# Start interactive session
 echo "🔄 Starting interactive session in container..."
 echo "💡 Tips:"
 echo "   - Use 'help' to see available commands"
