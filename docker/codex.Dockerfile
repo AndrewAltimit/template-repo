@@ -55,6 +55,10 @@ COPY automation/security /app/security
 RUN chmod +x /app/security/*.sh && \
     echo 'alias gh="/app/security/gh-wrapper.sh"' >> /etc/bash.bashrc
 
+# Copy entrypoint script
+COPY docker/scripts/codex-entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Create runtime directories
 RUN mkdir -p /tmp/codex-runtime && \
     chown -R user:user /tmp/codex-runtime /workspace
@@ -68,7 +72,8 @@ ENV PYTHONPATH=/workspace:$PYTHONPATH \
 # Switch to non-root user
 USER user
 
-# Default command depends on MODE build arg
-# For agent mode: interactive bash
-# For mcp mode: start MCP server
-CMD ["bash", "-c", "if [ \"$MODE\" = \"mcp\" ]; then python -m tools.mcp.codex.server --mode http --host 0.0.0.0 --port 8021; else bash; fi"]
+# Use entrypoint script to handle mode logic
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+# Default command (can be overridden)
+CMD []
