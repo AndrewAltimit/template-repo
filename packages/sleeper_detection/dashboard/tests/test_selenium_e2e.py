@@ -100,7 +100,12 @@ class VisualRegressionTest:
         if not baseline_path.exists():
             # No baseline, save current as baseline
             Image.open(screenshot_path).save(baseline_path)
-            return {"status": "baseline_created", "message": f"Created baseline: {baseline_name}", "difference": 0}
+            return {
+                "status": "baseline_created",
+                "message": f"Created baseline: {baseline_name}",
+                "difference": 0,
+                "threshold_passed": True,
+            }
 
         # Load images
         current_img = Image.open(screenshot_path)
@@ -218,6 +223,7 @@ class DashboardSeleniumTests(unittest.TestCase):
     def setUpClass(cls):
         """Set up test fixtures."""
         cls.dashboard_url = os.environ.get("DASHBOARD_URL", "http://localhost:8501")
+        cls.selenium_url = os.environ.get("SELENIUM_URL", "http://selenium:4444")
         cls.visual_tester = VisualRegressionTest()
 
         # Configure Chrome options
@@ -234,7 +240,12 @@ class DashboardSeleniumTests(unittest.TestCase):
 
     def setUp(self):
         """Set up each test."""
-        self.driver = webdriver.Chrome(options=self.chrome_options)
+        # Use RemoteWebDriver when SELENIUM_URL is set (containerized environment)
+        if hasattr(self, "selenium_url") and self.selenium_url:
+            self.driver = webdriver.Remote(command_executor=f"{self.selenium_url}/wd/hub", options=self.chrome_options)
+        else:
+            # Fallback to local Chrome for local testing
+            self.driver = webdriver.Chrome(options=self.chrome_options)
         self.driver.implicitly_wait(10)
         self.wait = WebDriverWait(self.driver, 20)
 
