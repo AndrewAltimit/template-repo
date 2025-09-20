@@ -249,7 +249,6 @@ class CodexMCPServer(BaseMCPServer):
 def main():
     """Main entry point for the server"""
     import argparse
-    import asyncio
 
     parser = argparse.ArgumentParser(description="Codex MCP Server")
     parser.add_argument(
@@ -274,12 +273,8 @@ def main():
     server = CodexMCPServer()
     server.port = args.port
 
-    if args.mode == "stdio":
-        asyncio.run(server.run_stdio())
-    else:
-        # run_http doesn't take host/port parameters, they're set on the server
-        server.port = args.port
-        asyncio.run(server.run_http())
+    # Use the base server's run method which handles mode switching correctly
+    server.run(mode=args.mode)
 
 
 if __name__ == "__main__":
