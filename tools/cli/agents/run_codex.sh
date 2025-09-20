@@ -190,12 +190,27 @@ elif [ "$MODE" = "interactive" ]; then
                 ;;
         esac
     else
-        echo "🔄 Starting interactive session..."
+        # Arguments were provided but no query - apply flags to interactive mode
+        echo "🔄 Starting interactive session with provided flags..."
         echo "💡 Tips:"
         echo "   - Use 'help' to see available commands"
         echo "   - Use 'exit' or Ctrl+C to quit"
         echo ""
-        codex
+
+        # Build command with any flags that were provided
+        CODEX_CMD="codex"
+        if [ "$AUTO_MODE" = true ]; then
+            echo "   - Running with --full-auto mode"
+            CODEX_CMD="$CODEX_CMD --full-auto"
+        fi
+        if [ "$BYPASS_SANDBOX" = true ]; then
+            echo "   - ⚠️  Running with --dangerously-bypass-approvals-and-sandbox"
+            CODEX_CMD="$CODEX_CMD --dangerously-bypass-approvals-and-sandbox"
+        fi
+        echo ""
+
+        # Execute with the built command
+        $CODEX_CMD
     fi
 else
     echo "❌ Error: Query is required for exec mode"

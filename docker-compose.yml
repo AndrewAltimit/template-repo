@@ -523,7 +523,9 @@ services:
   mcp-codex:
     build:
       context: .
-      dockerfile: docker/mcp-codex.Dockerfile
+      dockerfile: docker/codex.Dockerfile
+      args:
+        MODE: mcp
     container_name: mcp-codex
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
@@ -532,6 +534,7 @@ services:
       - ./:/workspace:ro  # Read-only mount for security
       - ~/.codex:/home/user/.codex:rw  # Read-write for Codex session files
     environment:
+      - MODE=mcp
       - PYTHONUNBUFFERED=1
       - PORT=8021
       - CODEX_ENABLED=${CODEX_ENABLED:-true}
@@ -610,15 +613,18 @@ services:
   codex-agent:
     build:
       context: .
-      dockerfile: docker/codex-agent.Dockerfile
+      dockerfile: docker/codex.Dockerfile
+      args:
+        MODE: agent
     container_name: codex-agent
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/workspace
       # Mount Codex auth from host (needs write access for history/config)
       # User must authenticate on host first with: codex auth
-      - ~/.codex:/home/node/.codex
+      - ~/.codex:/home/user/.codex:rw
     environment:
+      - MODE=agent
       - NODE_ENV=production
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
       - CONTAINER=codex-agent

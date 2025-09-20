@@ -342,7 +342,8 @@ python -m tools.mcp.codex.server --mode stdio
 python -m tools.mcp.codex.server --mode http --port 8021
 
 # Or use the Docker container (with auth mounted from host)
-docker-compose run --rm -v ~/.codex:/home/user/.codex:ro mcp-codex python -m tools.mcp.codex.server --mode stdio
+# Note: :rw mount is required for Codex session files and history
+docker-compose run --rm -v ~/.codex:/home/user/.codex:rw mcp-codex python -m tools.mcp.codex.server --mode stdio
 
 # Or use the helper script
 ./tools/cli/agents/run_codex.sh

@@ -148,9 +148,9 @@ docker-compose up -d codex-agent
 # Run commands inside
 docker-compose exec codex-agent codex
 
-# With mounted auth
+# With mounted auth (requires :rw for session files and history)
 docker-compose run --rm \
-  -v ~/.codex:/home/node/.codex:ro \
+  -v ~/.codex:/home/user/.codex:rw \
   codex-agent codex
 ```
 
