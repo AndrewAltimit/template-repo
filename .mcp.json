@@ -180,8 +180,6 @@
         "run",
         "--rm",
         "-T",
-        "-v",
-        "~/.codex:/home/user/.codex:ro",
         "mcp-codex",
         "python",
         "-m",
