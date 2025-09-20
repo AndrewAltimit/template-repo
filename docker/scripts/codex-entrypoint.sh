@@ -4,6 +4,18 @@
 
 set -e
 
+# Fix for HOME directory mismatch - ensure .codex is accessible from $HOME
+# This works regardless of what username docker-compose sets HOME to
+if [ "$MODE" = "agent" ] && [ -d "/home/user/.codex" ]; then
+    # Create parent directories if needed
+    mkdir -p "$HOME" 2>/dev/null || true
+
+    # If .codex doesn't exist at $HOME, create a symlink
+    if [ ! -e "$HOME/.codex" ]; then
+        ln -sf /home/user/.codex "$HOME/.codex" 2>/dev/null || true
+    fi
+fi
+
 # Determine execution mode based on MODE environment variable
 if [ "$MODE" = "mcp" ]; then
     # MCP mode - if arguments are provided, use them; otherwise use default HTTP mode

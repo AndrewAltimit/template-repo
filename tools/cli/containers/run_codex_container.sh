@@ -80,7 +80,5 @@ else
 fi
 
 # Start session in container, forwarding all arguments
-# Explicitly mount the .codex directory to ensure auth is available
-docker-compose run --rm -it \
-    -v "$HOME/.codex:/home/user/.codex:rw" \
-    codex-agent codex "$@"
+# The volume mount and HOME are configured in docker-compose.yml
+docker-compose run --rm -it codex-agent codex "$@"
