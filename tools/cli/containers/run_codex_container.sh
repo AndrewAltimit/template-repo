@@ -49,40 +49,36 @@ fi
 echo "✅ Found Codex auth file: $AUTH_FILE"
 echo "   This will be mounted into the container"
 
-# Parse command line arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        -h|--help)
-            echo "Usage: $0 [options]"
-            echo ""
-            echo "Options:"
-            echo "  -h, --help    Show this help message"
-            echo ""
-            echo "Description:"
-            echo "  Start an interactive Codex session in a container"
-            echo "  Automatically mounts your ~/.codex auth directory"
-            echo ""
-            echo "Example:"
-            echo "  $0"
-            echo ""
-            echo "Note: Requires Codex authentication on host machine first (codex auth)"
-            exit 0
-            ;;
-        *)
-            echo "Unknown option: $1"
-            echo "Use -h or --help for usage information"
-            exit 1
-            ;;
-    esac
-done
+# Check for help flag specifically
+if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
+    echo "Usage: $0 [codex-options]"
+    echo ""
+    echo "Description:"
+    echo "  Start a Codex session in a container"
+    echo "  Automatically mounts your ~/.codex auth directory"
+    echo "  All arguments are passed directly to the codex command"
+    echo ""
+    echo "Examples:"
+    echo "  $0                        # Interactive mode"
+    echo "  $0 --full-auto            # Auto-approve with sandbox"
+    echo "  $0 exec -q 'Write code'   # Execute a query"
+    echo ""
+    echo "Note: Requires Codex authentication on host machine first (codex auth)"
+    exit 0
+fi
 
-# Start interactive session
-echo "🔄 Starting interactive session in container..."
-echo "💡 Tips:"
-echo "   - Use 'help' to see available commands"
-echo "   - Use 'exit' or Ctrl+C to quit"
-echo ""
+# Start session (interactive or with arguments)
+if [ $# -eq 0 ]; then
+    echo "🔄 Starting interactive session in container..."
+    echo "💡 Tips:"
+    echo "   - Use 'help' to see available commands"
+    echo "   - Use 'exit' or Ctrl+C to quit"
+    echo ""
+else
+    echo "🔄 Running Codex in container with arguments: $*"
+    echo ""
+fi
 
-# Start interactive session in container
+# Start session in container, forwarding all arguments
 # The volume for ~/.codex is already defined in docker-compose.yml
-docker-compose run --rm -it codex-agent codex
+docker-compose run --rm -it codex-agent codex "$@"
