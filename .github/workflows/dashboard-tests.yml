@@ -24,9 +24,9 @@ jobs:
           # Clean any leftover __pycache__ from previous runs
           if [ -d packages/sleeper_detection/dashboard/tests ]; then
             echo "Cleaning up leftover Python cache..."
-            sudo rm -rf packages/sleeper_detection/dashboard/tests/__pycache__ || true
-            sudo rm -rf packages/sleeper_detection/dashboard/__pycache__ || true
-            find packages/sleeper_detection -type d -name __pycache__ -exec sudo rm -rf {} + 2>/dev/null || true
+            rm -rf packages/sleeper_detection/dashboard/tests/__pycache__ 2>/dev/null || true
+            rm -rf packages/sleeper_detection/dashboard/__pycache__ 2>/dev/null || true
+            find packages/sleeper_detection -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
           fi
 
       - name: Checkout code
@@ -83,9 +83,9 @@ jobs:
           # Clean any leftover __pycache__ from previous runs
           if [ -d packages/sleeper_detection/dashboard/tests ]; then
             echo "Cleaning up leftover Python cache..."
-            sudo rm -rf packages/sleeper_detection/dashboard/tests/__pycache__ || true
-            sudo rm -rf packages/sleeper_detection/dashboard/__pycache__ || true
-            find packages/sleeper_detection -type d -name __pycache__ -exec sudo rm -rf {} + 2>/dev/null || true
+            rm -rf packages/sleeper_detection/dashboard/tests/__pycache__ 2>/dev/null || true
+            rm -rf packages/sleeper_detection/dashboard/__pycache__ 2>/dev/null || true
+            find packages/sleeper_detection -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
           fi
 
       - name: Checkout code
@@ -199,9 +199,9 @@ jobs:
           # Clean any leftover __pycache__ from previous runs
           if [ -d packages/sleeper_detection/dashboard/tests ]; then
             echo "Cleaning up leftover Python cache..."
-            sudo rm -rf packages/sleeper_detection/dashboard/tests/__pycache__ || true
-            sudo rm -rf packages/sleeper_detection/dashboard/__pycache__ || true
-            find packages/sleeper_detection -type d -name __pycache__ -exec sudo rm -rf {} + 2>/dev/null || true
+            rm -rf packages/sleeper_detection/dashboard/tests/__pycache__ 2>/dev/null || true
+            rm -rf packages/sleeper_detection/dashboard/__pycache__ 2>/dev/null || true
+            find packages/sleeper_detection -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
           fi
 
       - name: Checkout code
