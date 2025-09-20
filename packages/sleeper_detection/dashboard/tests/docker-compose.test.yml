@@ -41,7 +41,7 @@ services:
       context: ../
       dockerfile: tests/Dockerfile.test
     container_name: test-runner
-    user: "${UID:-1000}:${GID:-1000}"
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     depends_on:
       dashboard:
         condition: service_healthy
