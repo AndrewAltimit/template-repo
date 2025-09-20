@@ -50,19 +50,12 @@ jobs:
           docker run --rm \
             --user "$(id -u):$(id -g)" \
             -v $(pwd):/app/tests \
-            -v $(pwd)/coverage:/app/coverage \
             sleeper-dashboard-test \
             python -m pytest /app/tests/test_streamlit_components.py -v \
-              -p no:cacheprovider \
-              --cov=/app \
-              --cov-report=xml:/app/coverage/coverage.xml \
-              --cov-report=term
+              -p no:cacheprovider
 
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: unit-test-coverage
-          path: packages/sleeper_detection/dashboard/tests/coverage/
+      # Coverage disabled due to permission issues in container
+      # Can be re-enabled when permission handling is improved
 
       - name: Cleanup Python cache
         if: always()
