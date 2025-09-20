@@ -47,7 +47,7 @@ jobs:
           docker-compose build sleeper-eval-cpu
 
           # Tag it for this workflow
-          docker tag sleeper-eval-cpu:latest $IMAGE_TAG
+          docker tag template-repo-sleeper-eval-cpu:latest $IMAGE_TAG
 
           echo "✅ Built and tagged image: $IMAGE_TAG"
 
