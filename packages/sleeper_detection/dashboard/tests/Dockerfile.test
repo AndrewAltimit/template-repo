@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy requirements
-COPY requirements.test.txt .
+COPY tests/requirements.test.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.test.txt
@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir -r requirements.test.txt
 RUN mkdir -p /app/screenshots /app/baselines /app/ai_feedback /app/ai_analysis_results
 
 # Copy test files
-COPY . /app/tests/
+COPY tests/ /app/tests/
 
 # Set Python path
 ENV PYTHONPATH=/app
