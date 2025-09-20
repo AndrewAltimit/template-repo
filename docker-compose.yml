@@ -532,7 +532,9 @@ services:
       - "8021:8021"
     volumes:
       - ./:/workspace:ro  # Read-only mount for security
-      - ~/.codex:/home/user/.codex:rw  # Read-write for Codex session files
+      # Read-write is required for Codex to manage session files and history.
+      # The auth token itself is protected by the host's file permissions.
+      - ~/.codex:/home/user/.codex:rw
     environment:
       - MODE=mcp
       - PYTHONUNBUFFERED=1

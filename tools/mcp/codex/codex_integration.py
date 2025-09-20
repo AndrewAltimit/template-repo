@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import os
 import subprocess
 from datetime import datetime
@@ -17,6 +18,7 @@ class CodexIntegration:
         self.enabled = config.get("enabled", True)
         self.auto_consult = config.get("auto_consult", True)
         self.auth_path = Path(config.get("auth_path", Path.home() / ".codex" / "auth.json"))
+        self.logger = logging.getLogger(__name__)
 
         # History tracking
         self.conversation_history: List[Dict[str, Any]] = []
@@ -50,7 +52,7 @@ class CodexIntegration:
 
         try:
             # Check if Codex CLI is available
-            if not self._check_codex_available():
+            if not await self._check_codex_available():
                 return {
                     "status": "error",
                     "error": "Codex CLI not available. Please install with: npm install -g @openai/codex",
@@ -159,7 +161,8 @@ class CodexIntegration:
                         messages.append(event.get("message", ""))
 
                 except json.JSONDecodeError:
-                    # If not JSON, might be direct output from older format
+                    self.logger.warning(f"Could not parse JSON line from Codex output: {line}")
+                    # Fallback for non-JSON lines
                     if line and not line.startswith("["):
                         messages.append(line)
 
@@ -181,23 +184,33 @@ class CodexIntegration:
                 "mode": mode,
             }
 
-    def _check_codex_available(self) -> bool:
+    async def _check_codex_available(self) -> bool:
         """Check if Codex CLI is available"""
         try:
-            # Check if codex command exists
-            result = subprocess.run(
-                ["which", "codex"],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            if result.returncode != 0:
-                # Also check if node is available (we can use it to run codex)
-                node_result = subprocess.run(
-                    ["which", "node"],
+            # Run synchronous subprocess calls in a thread pool to avoid blocking asyncio event loop
+            loop = asyncio.get_running_loop()
+
+            # Check for 'codex' command
+            result = await loop.run_in_executor(
+                None,
+                lambda: subprocess.run(
+                    ["which", "codex"],
                     capture_output=True,
                     text=True,
                     timeout=5,
+                ),
+            )
+
+            if result.returncode != 0:
+                # If 'codex' not found, check for 'node' as a fallback
+                node_result = await loop.run_in_executor(
+                    None,
+                    lambda: subprocess.run(
+                        ["which", "node"],
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                    ),
                 )
                 return node_result.returncode == 0
             return True
@@ -273,13 +286,13 @@ class CodexIntegration:
             "message": "Codex conversation history cleared",
         }
 
-    def get_status(self) -> Dict[str, Any]:
+    async def get_status(self) -> Dict[str, Any]:
         """Get the current status of Codex integration"""
         return {
             "enabled": self.enabled,
             "auto_consult": self.auto_consult,
             "auth_exists": self.auth_path.exists(),
-            "codex_available": self._check_codex_available(),
+            "codex_available": await self._check_codex_available(),
             "is_container": self.is_container,
             "stats": self.stats.copy(),
             "history_size": len(self.conversation_history),

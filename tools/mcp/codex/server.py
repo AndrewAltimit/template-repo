@@ -91,7 +91,7 @@ class CodexMCPServer(BaseMCPServer):
                 async def clear_history(self):
                     return {"status": "disabled"}
 
-                def get_status(self):
+                async def get_status(self):
                     return {
                         "enabled": False,
                         "auto_consult": False,
@@ -157,7 +157,7 @@ class CodexMCPServer(BaseMCPServer):
     async def codex_status(self) -> Dict[str, Any]:
         """Get the current status of Codex integration"""
         try:
-            status = self.codex.get_status()
+            status = await self.codex.get_status()
             status.update(
                 {
                     "config": {
