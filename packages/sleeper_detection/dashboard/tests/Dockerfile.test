@@ -26,7 +26,7 @@ RUN mkdir -p /app/screenshots /app/baselines /app/ai_feedback /app/ai_analysis_r
 COPY . /app/tests/
 
 # Set Python path
-ENV PYTHONPATH=/app:$PYTHONPATH
+ENV PYTHONPATH=/app
 
 # Default command
 CMD ["python", "-m", "pytest", "tests/test_selenium_e2e.py", "-v"]
