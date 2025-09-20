@@ -24,6 +24,7 @@ MCP_SERVERS = {
     "comfyui": os.getenv("MCP_COMFYUI_URL", "http://localhost:8013"),
     "opencode": os.getenv("MCP_OPENCODE_URL", "http://localhost:8014"),
     "crush": os.getenv("MCP_CRUSH_URL", "http://localhost:8015"),
+    "codex": os.getenv("MCP_CODEX_URL", "http://localhost:8021"),
 }
 
 

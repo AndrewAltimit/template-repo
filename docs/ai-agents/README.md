@@ -208,14 +208,14 @@ See the [Sleeper Detection Package](../../packages/sleeper_detection/README.md) 
 
 ### Division of Labor
 
-| Task | Claude Code | Gemini CLI | Copilot | OpenCode | Crush |
-|------|------------|------------|---------|----------|--------|
-| Architecture Design | Primary | No | No | Secondary | Secondary |
-| Implementation | Primary | No | No | Secondary | Secondary |
-| Documentation | Primary | No | No | Secondary | Secondary |
-| Code Review | Secondary | Primary | Secondary | Secondary | Secondary |
-| Issue Triage | Secondary | No | No | Secondary | Secondary |
-| Review Response | Secondary | No | No | Secondary | Secondary |
+| Task | Claude Code | Gemini CLI | Copilot | OpenCode | Crush | Codex |
+|------|------------|------------|---------|----------|--------|-------|
+| Architecture Design | Primary | No | No | Secondary | Secondary | Secondary |
+| Implementation | Primary | No | No | Secondary | Secondary | Secondary |
+| Documentation | Primary | No | No | Secondary | Secondary | Secondary |
+| Code Review | Secondary | Primary | Secondary | Secondary | Secondary | Secondary |
+| Issue Triage | Secondary | No | No | Secondary | Secondary | Secondary |
+| Review Response | Secondary | No | No | Secondary | Secondary | Secondary |
 
 ## Configuration
 

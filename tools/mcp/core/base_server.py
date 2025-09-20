@@ -67,6 +67,8 @@ class BaseMCPServer(ABC):
         self.app.get("/health")(self.health_check)
         self.app.get("/mcp/tools")(self.list_tools)
         self.app.post("/mcp/execute")(self.execute_tool)
+        # Compatibility route for legacy client code
+        self.app.post("/tools/execute")(self.execute_tool)
         self.app.post("/mcp/register")(self.register_client)
         self.app.post("/register")(self.register_client_oauth)  # OAuth2 style for Claude Code
         self.app.post("/oauth/register")(self.register_client_oauth)  # OAuth style endpoint
