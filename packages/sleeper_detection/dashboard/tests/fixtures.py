@@ -496,8 +496,18 @@ def setup_test_environment():
     # Import and setup auth manager with test users
     import sys
 
-    sys.path.insert(0, str(Path(__file__).parent.parent))
-    from auth.authentication import AuthManager
+    # Add parent directory to path for imports
+    parent_dir = str(Path(__file__).parent.parent)
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+
+    # Import from the correct path
+    try:
+        from auth.authentication import AuthManager
+    except ImportError:
+        # If running in Docker, the structure might be different
+        sys.path.insert(0, "/app")
+        from auth.authentication import AuthManager
 
     auth = AuthManager(db_path=auth_db_path)
     auth.register_user("testuser", "testpass123")

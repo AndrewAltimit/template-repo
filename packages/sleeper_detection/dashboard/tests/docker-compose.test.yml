@@ -63,11 +63,11 @@ services:
         echo 'Waiting for services to be ready...' &&
         sleep 10 &&
         echo 'Generating test data...' &&
-        python tests/fixtures.py &&
+        python /app/tests/fixtures.py &&
         echo 'Running Selenium tests...' &&
-        python -m pytest tests/test_selenium_e2e.py -v --html=report.html --self-contained-html &&
+        python -m pytest /app/tests/test_selenium_e2e.py -v --html=/app/tests/report.html --self-contained-html &&
         echo 'Running visual analysis...' &&
-        python tests/ai_visual_analyzer.py
+        python /app/tests/ai_visual_analyzer.py
       "
 
 networks:
