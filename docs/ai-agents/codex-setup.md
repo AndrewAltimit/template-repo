@@ -298,5 +298,4 @@ Codex works well with:
 - [AI Agents Overview](README.md)
 - [OpenCode & Crush Integration](../integrations/ai-services/opencode-crush.md)
 - [Gemini Setup](../integrations/ai-services/gemini-setup.md)
-- [Claude Expression Philosophy](claude-expression.md)
 - [Container Strategy](containerization-strategy.md)

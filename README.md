@@ -1,6 +1,6 @@
 # MCP-Enabled Project Template
 
-A comprehensive development ecosystem with 8 AI agents, 14 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
+A comprehensive development ecosystem with 6 AI agents, 14 MCP servers, and complete CI/CD automation - all running on self-hosted, zero-cost infrastructure.
 
 ![MCP Demo](docs/mcp/architecture/demo.gif)
 
@@ -16,7 +16,7 @@ This project follows a **container-first approach**:
 
 ## AI Agents
 
-Eight AI agents working in harmony for development and automation. See [AI Agents Documentation](docs/ai-agents/README.md) for complete details:
+Six AI agents working in harmony for development and automation. See [AI Agents Documentation](docs/ai-agents/README.md) for complete details:
 
 1. **Claude Code** - Primary development assistant
 2. **Codex** - AI-powered code generation and completion ([Setup Guide](docs/ai-agents/codex-setup.md))
@@ -24,8 +24,6 @@ Eight AI agents working in harmony for development and automation. See [AI Agent
 4. **Crush** - Fast code generation ([Quick Reference](docs/integrations/ai-services/opencode-crush-ref.md))
 5. **Gemini CLI** - Interactive development & automated PR reviews
 6. **GitHub Copilot** - Code review suggestions
-7. **Issue Monitor Agent** - Automated issue management
-8. **PR Review Monitor Agent** - Automated review response
 
 **Security**: Keyword triggers, user allow list, secure token management. See [AI Agents Security](docs/ai-agents/security.md)
 
@@ -36,7 +34,7 @@ Eight AI agents working in harmony for development and automation. See [AI Agent
 ## Features
 
 - **14 MCP Servers** - Modular tools for code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, virtual characters, and more
-- **8 AI Agents** - Comprehensive development automation
+- **6 AI Agents** - Comprehensive development automation
 - **Sleeper Detection System** - Advanced AI backdoor detection using TransformerLens residual stream analysis
 - **Company Integration** - Custom agent builds for corporate AI APIs ([Documentation](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))
 - **Video Editor** - AI-powered video editing with transcription, speaker diarization, and intelligent scene detection
@@ -186,9 +184,9 @@ This pattern ensures consistent certificate handling across all services while m
 3. **Gaea2** - Terrain generation ([Documentation](tools/mcp/gaea2/docs/README.md))
 4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/blender/docs/README.md))
 5. **Gemini** - AI consultation (containerized and host modes available)
-6. **Codex** - AI-powered code generation and completion (STDIO mode via Claude)
-7. **OpenCode** - Comprehensive code generation (STDIO mode via Claude)
-8. **Crush** - Fast code snippets (STDIO mode via Claude)
+6. **Codex** - AI-powered code generation and completion
+7. **OpenCode** - Comprehensive code generation
+8. **Crush** - Fast code snippets
 9. **Meme Generator** - Create memes with templates
 10. **ElevenLabs Speech** - Advanced TTS with v3 model, 50+ audio tags, 74 languages ([Documentation](tools/mcp/elevenlabs_speech/docs/README.md))
 11. **Video Editor** - AI-powered video editing with transcription and scene detection ([Documentation](tools/mcp/video_editor/docs/README.md))
