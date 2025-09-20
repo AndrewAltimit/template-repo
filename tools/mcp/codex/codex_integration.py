@@ -86,12 +86,10 @@ class CodexIntegration:
             # Check for environment override (only for sandboxed VMs)
             if os.environ.get("CODEX_BYPASS_SANDBOX") == "true":
                 # WARNING: Only use this in already-sandboxed environments (VMs, containers)
-                exec_args.append("--dangerously-bypass-approvals-and-sandbox")
+                exec_args.extend(["--json", "--dangerously-bypass-approvals-and-sandbox", prompt])
             else:
                 # Default: Use safe sandboxed mode with workspace-write restrictions
-                exec_args.extend(["--sandbox", "workspace-write", "--full-auto"])
-
-            exec_args.extend(["--json", prompt])  # Output as JSONL for easier parsing
+                exec_args.extend(["--sandbox", "workspace-write", "--full-auto", "--json", prompt])
 
             process = await asyncio.create_subprocess_exec(
                 *exec_args,
@@ -117,7 +115,6 @@ class CodexIntegration:
                     "mode": mode,
                 }
 
-            # Parse JSONL output from codex exec --json
             output = stdout.decode().strip()
             if not output:
                 return {
@@ -126,7 +123,7 @@ class CodexIntegration:
                     "mode": mode,
                 }
 
-            # Process JSONL output (each line is a JSON event)
+            # Parse JSONL output from codex exec --json (now used in both modes)
             lines = output.split("\n")
             messages = []
             command_outputs = []
@@ -174,7 +171,7 @@ class CodexIntegration:
                 "status": "success",
                 "output": combined_output,
                 "mode": mode,
-                "message": "Code generated successfully",
+                "message": "Codex executed successfully",
             }
 
         except Exception as e:

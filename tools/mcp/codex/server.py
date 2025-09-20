@@ -6,8 +6,13 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from dotenv import load_dotenv
+
 from ..core.base_server import BaseMCPServer
 from ..core.utils import setup_logging
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 class CodexMCPServer(BaseMCPServer):
@@ -132,6 +137,7 @@ class CodexMCPServer(BaseMCPServer):
             # Log consultation if enabled
             if self.codex_config["log_consultations"]:
                 self.logger.info(f"Codex consultation: mode={mode}, query_length={len(query)}")
+                self.logger.info(f"Codex result: {result}")
 
             return result  # type: ignore[no-any-return]
         except Exception as e:

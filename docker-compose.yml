@@ -530,7 +530,7 @@ services:
       - "8021:8021"
     volumes:
       - ./:/workspace:ro  # Read-only mount for security
-      - ~/.codex:/home/user/.codex:ro  # Read-only (MCP only needs auth.json)
+      - ~/.codex:/home/user/.codex:rw  # Read-write for Codex session files
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=8021
