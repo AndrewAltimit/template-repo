@@ -41,6 +41,7 @@ services:
       context: ../
       dockerfile: tests/Dockerfile.test
     container_name: test-runner
+    user: "${UID:-1000}:${GID:-1000}"
     depends_on:
       dashboard:
         condition: service_healthy
@@ -50,6 +51,7 @@ services:
       - DASHBOARD_URL=http://dashboard:8501
       - SELENIUM_URL=http://selenium:4444
       - PYTHONPATH=/app
+      - PYTHONDONTWRITEBYTECODE=1
     volumes:
       - ./:/app/tests
       - ./screenshots:/app/screenshots

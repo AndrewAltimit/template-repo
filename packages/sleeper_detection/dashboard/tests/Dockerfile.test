@@ -29,6 +29,8 @@ COPY tests/ /app/tests/
 
 # Set Python path to include app directory
 ENV PYTHONPATH=/app:/app/tests
+# Prevent Python from creating bytecode files
+ENV PYTHONDONTWRITEBYTECODE=1
 
 # Default command - run from /app directory
 CMD ["python", "-m", "pytest", "/app/tests/test_selenium_e2e.py", "-v"]

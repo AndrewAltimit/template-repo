@@ -19,6 +19,16 @@ jobs:
     timeout-minutes: 15
 
     steps:
+      - name: Pre-cleanup workspace
+        run: |
+          # Clean any leftover __pycache__ from previous runs
+          if [ -d packages/sleeper_detection/dashboard/tests ]; then
+            echo "Cleaning up leftover Python cache..."
+            sudo rm -rf packages/sleeper_detection/dashboard/tests/__pycache__ || true
+            sudo rm -rf packages/sleeper_detection/dashboard/__pycache__ || true
+            find packages/sleeper_detection -type d -name __pycache__ -exec sudo rm -rf {} + 2>/dev/null || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -50,12 +60,34 @@ jobs:
           name: unit-test-coverage
           path: packages/sleeper_detection/dashboard/tests/coverage/
 
+      - name: Cleanup Python cache
+        if: always()
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          if [ -f cleanup-pycache.sh ]; then
+            ./cleanup-pycache.sh
+          else
+            echo "Using Docker to clean up Python cache..."
+            docker run --rm -v $(pwd):/workspace -w /workspace busybox \
+              sh -c "find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
+          fi
+
   e2e-tests:
     name: E2E Selenium Tests
     runs-on: self-hosted
     timeout-minutes: 30
 
     steps:
+      - name: Pre-cleanup workspace
+        run: |
+          # Clean any leftover __pycache__ from previous runs
+          if [ -d packages/sleeper_detection/dashboard/tests ]; then
+            echo "Cleaning up leftover Python cache..."
+            sudo rm -rf packages/sleeper_detection/dashboard/tests/__pycache__ || true
+            sudo rm -rf packages/sleeper_detection/dashboard/__pycache__ || true
+            find packages/sleeper_detection -type d -name __pycache__ -exec sudo rm -rf {} + 2>/dev/null || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -110,6 +142,15 @@ jobs:
           cd packages/sleeper_detection/dashboard/tests
           docker-compose -f docker-compose.test.yml down -v
 
+          # Clean up Python cache
+          if [ -f cleanup-pycache.sh ]; then
+            ./cleanup-pycache.sh
+          else
+            echo "Using Docker to clean up Python cache..."
+            docker run --rm -v $(pwd):/workspace -w /workspace busybox \
+              sh -c "find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
+          fi
+
   visual-regression:
     name: Visual Regression Tests
     runs-on: self-hosted
@@ -153,6 +194,16 @@ jobs:
     timeout-minutes: 20
 
     steps:
+      - name: Pre-cleanup workspace
+        run: |
+          # Clean any leftover __pycache__ from previous runs
+          if [ -d packages/sleeper_detection/dashboard/tests ]; then
+            echo "Cleaning up leftover Python cache..."
+            sudo rm -rf packages/sleeper_detection/dashboard/tests/__pycache__ || true
+            sudo rm -rf packages/sleeper_detection/dashboard/__pycache__ || true
+            find packages/sleeper_detection -type d -name __pycache__ -exec sudo rm -rf {} + 2>/dev/null || true
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -187,6 +238,16 @@ jobs:
         run: |
           docker stop test-dashboard || true
           docker rm test-dashboard || true
+
+          # Clean up Python cache
+          cd packages/sleeper_detection/dashboard/tests 2>/dev/null || true
+          if [ -f cleanup-pycache.sh ]; then
+            ./cleanup-pycache.sh
+          else
+            echo "Using Docker to clean up Python cache..."
+            docker run --rm -v $(pwd):/workspace -w /workspace busybox \
+              sh -c "find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
+          fi
 
   test-summary:
     name: Test Summary
