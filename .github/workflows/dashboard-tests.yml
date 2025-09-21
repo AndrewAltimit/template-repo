@@ -232,11 +232,9 @@ jobs:
           # Health check
           curl -f http://localhost:8501/_stcore/health || exit 1
 
-          # Basic smoke test - check for dashboard title (may include emoji)
-          curl -f http://localhost:8501 | grep -q "Sleeper.*Detection.*Dashboard" || exit 1
-
-          # Check authentication page loads
-          curl -f http://localhost:8501 | grep -q "Login" || exit 1
+          # Basic smoke test - just verify Streamlit is serving content
+          # Note: Initial page load returns base HTML, content is loaded dynamically via JS
+          curl -f http://localhost:8501 | grep -q "<title>Streamlit</title>" || exit 1
 
       - name: Stop test container
         if: always()
