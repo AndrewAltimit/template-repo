@@ -243,7 +243,12 @@ class AIVisualAnalyzer:
         analyses = []
         for result_file in self.results_dir.glob(f"*{test_run_id}*.json"):
             with open(result_file, "r") as f:
-                analyses.append(json.load(f))
+                data = json.load(f)
+                # Handle both single dict and list of dicts
+                if isinstance(data, list):
+                    analyses.extend(data)
+                else:
+                    analyses.append(data)
 
         # Generate markdown report
         report_content = self._generate_markdown_report(analyses)
