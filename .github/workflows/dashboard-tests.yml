@@ -111,7 +111,7 @@ jobs:
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
           docker-compose -f docker-compose.test.yml run --rm test-runner \
-            python tests/fixtures.py
+            python /app/tests/fixtures.py
 
       - name: Run E2E tests
         run: |
