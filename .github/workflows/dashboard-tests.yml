@@ -105,6 +105,21 @@ jobs:
           docker-compose -f docker-compose.test.yml run --rm --no-deps test-runner \
             python /app/tests/fixtures.py
 
+          # Verify database was created successfully
+          if [ ! -f test_evaluation_results.db ]; then
+            echo "ERROR: Test database was not created!"
+            exit 1
+          fi
+
+          # Check database has tables and data
+          echo "Verifying database contents..."
+          sqlite3 test_evaluation_results.db "SELECT COUNT(*) FROM evaluation_results;" || exit 1
+          echo "Database verification successful"
+
+          # Ensure proper permissions
+          chmod 644 test_evaluation_results.db
+          ls -la test_evaluation_results.db
+
       - name: Start test environment
         run: |
           cd packages/sleeper_detection/dashboard/tests
@@ -120,6 +135,11 @@ jobs:
           # Check dashboard health
           docker-compose -f docker-compose.test.yml ps
           curl -f http://localhost:8501/_stcore/health || echo "Dashboard health check failed"
+
+          # Verify database accessibility from dashboard container
+          echo "Testing database access from dashboard container..."
+          docker-compose -f docker-compose.test.yml exec -T dashboard \
+            python /home/dashboard/app/tests/check_database.py || exit 1
 
       - name: Run E2E tests
         run: |
@@ -246,9 +266,9 @@ jobs:
           docker run -d \
             --name test-dashboard \
             -p 8501:8501 \
-            -v $(pwd)/packages/sleeper_detection/dashboard/tests/test_evaluation_results.db:/app/test_evaluation_results.db \
+            -v $(pwd)/packages/sleeper_detection/dashboard/tests/test_evaluation_results.db:/home/dashboard/app/test_evaluation_results.db:ro \
             -e STREAMLIT_SERVER_HEADLESS=true \
-            -e DATABASE_PATH=/app/test_evaluation_results.db \
+            -e DATABASE_PATH=/home/dashboard/app/test_evaluation_results.db \
             sleeper-dashboard:test
 
           # Wait for startup

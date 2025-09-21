@@ -4,6 +4,7 @@ Data loader for fetching evaluation results from SQLite database.
 
 import json
 import logging
+import os
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -24,22 +25,30 @@ class DataLoader:
             db_path: Path to evaluation results database
         """
         if db_path is None:
-            # Look for database in standard locations
-            possible_paths = [
-                Path("evaluation_results.db"),
-                Path("evaluation_results/evaluation_results.db"),
-                Path("packages/sleeper_detection/evaluation_results.db"),
-                Path.home() / "sleeper_detection" / "evaluation_results.db",
-            ]
-
-            for path in possible_paths:
-                if path.exists():
-                    db_path = path
-                    break
+            # First check for DATABASE_PATH environment variable
+            env_db_path = os.environ.get("DATABASE_PATH")
+            if env_db_path:
+                db_path = Path(env_db_path)
+                logger.info(f"Using database path from environment: {db_path}")
             else:
-                # Use default path if no database exists
-                db_path = Path("evaluation_results.db")
-                logger.warning(f"No evaluation database found. Using default: {db_path}")
+                # Look for database in standard locations
+                possible_paths = [
+                    Path("evaluation_results.db"),
+                    Path("evaluation_results/evaluation_results.db"),
+                    Path("packages/sleeper_detection/evaluation_results.db"),
+                    Path.home() / "sleeper_detection" / "evaluation_results.db",
+                    Path("/app/test_evaluation_results.db"),  # Docker test environment
+                ]
+
+                for path in possible_paths:
+                    if path.exists():
+                        db_path = path
+                        logger.info(f"Found database at: {db_path}")
+                        break
+                else:
+                    # Use default path if no database exists
+                    db_path = Path("evaluation_results.db")
+                    logger.warning(f"No evaluation database found. Using default: {db_path}")
 
         self.db_path = db_path
 

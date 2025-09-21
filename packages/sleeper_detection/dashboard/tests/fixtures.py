@@ -64,6 +64,9 @@ class TestDataGenerator:
 
     def create_database(self):
         """Create test database with schema."""
+        # Ensure parent directory exists
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
@@ -126,6 +129,11 @@ class TestDataGenerator:
 
         conn.commit()
         conn.close()
+
+        # Set readable permissions for all users (needed for Docker containers)
+        import stat
+
+        self.db_path.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
 
     def generate_evaluation_results(self, num_days: int = 30, tests_per_day: int = 5):
         """Generate evaluation results data.

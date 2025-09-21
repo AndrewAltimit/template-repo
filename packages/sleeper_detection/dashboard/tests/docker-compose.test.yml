@@ -10,10 +10,11 @@ services:
       - STREAMLIT_SERVER_HEADLESS=true
       - STREAMLIT_SERVER_PORT=8501
       - STREAMLIT_SERVER_ADDRESS=0.0.0.0
-      - DATABASE_PATH=/app/test_evaluation_results.db
+      - DATABASE_PATH=/home/dashboard/app/test_evaluation_results.db
     volumes:
-      - ./test_evaluation_results.db:/app/test_evaluation_results.db
-      - ../auth/test_users.db:/app/auth/test_users.db
+      - ./test_evaluation_results.db:/home/dashboard/app/test_evaluation_results.db:ro
+      - ../auth/test_users.db:/home/dashboard/app/auth/test_users.db:ro
+      - ./check_database.py:/home/dashboard/app/tests/check_database.py:ro
     networks:
       - test-network
     healthcheck:
