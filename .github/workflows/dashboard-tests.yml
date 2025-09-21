@@ -176,8 +176,8 @@ jobs:
         run: |
           cd packages/sleeper_detection/dashboard
 
-          # Build AI analyzer container
-          docker build -t visual-analyzer -f tests/Dockerfile.test tests/
+          # Build AI analyzer container (using dashboard as context, consistent with docker-compose)
+          docker build -t visual-analyzer -f tests/Dockerfile.test .
 
           # Run visual analysis
           docker run --rm \

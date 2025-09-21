@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy requirements
-COPY requirements.test.txt .
+COPY tests/requirements.test.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.test.txt
@@ -22,10 +22,10 @@ RUN pip install --no-cache-dir -r requirements.test.txt
 # Create directories for test artifacts
 RUN mkdir -p /app/screenshots /app/baselines /app/ai_feedback /app/ai_analysis_results
 
-# Copy test files and requirements first
-COPY . /app/tests/
-# Copy dashboard code for imports (parent directory)
-COPY ../ /app/
+# Copy all dashboard files for proper imports
+COPY . /app/
+# Copy test files specifically
+COPY tests/ /app/tests/
 
 # Set Python path to include app directory
 ENV PYTHONPATH=/app:/app/tests
