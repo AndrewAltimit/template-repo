@@ -88,11 +88,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Build test containers
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          # Export user/group IDs for docker-compose to use
+          export USER_ID=$(id -u)
+          export GROUP_ID=$(id -g)
+          docker-compose -f docker-compose.test.yml build test-runner
+
       - name: Generate test data
         run: |
           cd packages/sleeper_detection/dashboard/tests
-          # Generate test database before starting services
-          python fixtures.py
+          # Generate test database using Docker before starting services
+          export USER_ID=$(id -u)
+          export GROUP_ID=$(id -g)
+          docker-compose -f docker-compose.test.yml run --rm --no-deps test-runner \
+            python /app/tests/fixtures.py
 
       - name: Start test environment
         run: |
@@ -100,7 +111,6 @@ jobs:
           # Export user/group IDs for docker-compose to use
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
-          docker-compose -f docker-compose.test.yml build
           docker-compose -f docker-compose.test.yml up -d dashboard selenium
 
           # Wait for services to be ready
@@ -210,11 +220,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Build test runner for database generation
+        run: |
+          cd packages/sleeper_detection/dashboard
+          docker build -t test-runner:temp -f tests/Dockerfile.test .
+
       - name: Generate test database
         run: |
           cd packages/sleeper_detection/dashboard/tests
-          # Generate test database before building image
-          python fixtures.py
+          # Generate test database using Docker before building dashboard
+          docker run --rm \
+            -v $(pwd):/app/tests \
+            -v $(pwd)/../auth:/app/auth \
+            test-runner:temp \
+            python /app/tests/fixtures.py
 
       - name: Build dashboard Docker image
         run: |
