@@ -171,7 +171,7 @@ def render_leaderboard_table(df: pd.DataFrame):
 
     styled_df = display_df[available_cols].style.apply(highlight_top_3, axis=1)
 
-    st.dataframe(styled_df, use_container_width=True, hide_index=True, height=400)
+    st.dataframe(styled_df, width="stretch", hide_index=True, height=400)
 
     # Display medals for top 3
     if len(df) >= 3:
@@ -236,7 +236,7 @@ def render_leaderboard_chart(df: pd.DataFrame, metric: str):
         showlegend=False,
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # Create spider chart for top models
     if len(df) >= 3:
@@ -267,7 +267,7 @@ def render_leaderboard_chart(df: pd.DataFrame, metric: str):
             title="Multi-Metric Comparison (Top 3)",
         )
 
-        st.plotly_chart(fig_spider, use_container_width=True)
+        st.plotly_chart(fig_spider, width="stretch")
 
 
 def render_tier_classification(df: pd.DataFrame):
@@ -331,7 +331,7 @@ def render_tier_classification(df: pd.DataFrame):
         )
 
     with col2:
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     # Display models by tier
     st.markdown("#### Models by Tier")
@@ -379,7 +379,7 @@ def render_champion_analysis(df: pd.DataFrame):
             ],
         }
         stats_df = pd.DataFrame(stats_data)
-        st.dataframe(stats_df, use_container_width=True, hide_index=True)
+        st.dataframe(stats_df, width="stretch", hide_index=True)
 
         st.metric("Total Tests Completed", champion["Total Tests"])
         st.metric("Last Evaluated", champion["Last Test"][:10] if champion["Last Test"] != "N/A" else "N/A")
@@ -445,4 +445,4 @@ def render_champion_analysis(df: pd.DataFrame):
 
         fig_gaps.update_layout(yaxis=dict(tickformat=".1%"), height=350, showlegend=False)
 
-        st.plotly_chart(fig_gaps, use_container_width=True)
+        st.plotly_chart(fig_gaps, width="stretch")

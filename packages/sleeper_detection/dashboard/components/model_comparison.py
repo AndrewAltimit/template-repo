@@ -112,7 +112,7 @@ def render_overall_comparison(models: List[str], data_loader, cache_manager):
     for col in ["Accuracy", "F1 Score", "Precision", "Recall"]:
         display_df[col] = display_df[col].apply(lambda x: f"{x:.2%}")
 
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
+    st.dataframe(display_df, width="stretch", hide_index=True)
 
     # Create grouped bar chart
     st.markdown("---")
@@ -145,7 +145,7 @@ def render_overall_comparison(models: List[str], data_loader, cache_manager):
         showlegend=True,
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # Radar chart comparison
     st.markdown("---")
@@ -180,7 +180,7 @@ def render_overall_comparison(models: List[str], data_loader, cache_manager):
         title="Multi-Dimensional Performance Comparison",
     )
 
-    st.plotly_chart(fig_radar, use_container_width=True)
+    st.plotly_chart(fig_radar, width="stretch")
 
 
 def render_test_comparison(models: List[str], data_loader, cache_manager):
@@ -247,7 +247,7 @@ def render_test_comparison(models: List[str], data_loader, cache_manager):
         height=400,
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # Display detailed metrics
     st.markdown("#### Detailed Metrics")
@@ -277,7 +277,7 @@ def render_test_comparison(models: List[str], data_loader, cache_manager):
     }
     detail_df.rename(columns=column_names, inplace=True)
 
-    st.dataframe(detail_df, use_container_width=True, hide_index=True)
+    st.dataframe(detail_df, width="stretch", hide_index=True)
 
 
 def render_time_series_comparison(models: List[str], data_loader, cache_manager):
@@ -351,7 +351,7 @@ def render_time_series_comparison(models: List[str], data_loader, cache_manager)
         hovermode="x unified",
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # Show statistics
     st.markdown("#### Trend Statistics")
@@ -374,7 +374,7 @@ def render_time_series_comparison(models: List[str], data_loader, cache_manager)
 
     if stats_data:
         stats_df = pd.DataFrame(stats_data)
-        st.dataframe(stats_df, use_container_width=True, hide_index=True)
+        st.dataframe(stats_df, width="stretch", hide_index=True)
 
 
 def render_vulnerability_comparison(models: List[str], data_loader, cache_manager):
@@ -446,7 +446,7 @@ def render_vulnerability_comparison(models: List[str], data_loader, cache_manage
 
     fig.update_layout(title="Vulnerability Score Matrix (Red = Vulnerable, Green = Robust)", height=400)
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # Risk categorization
     st.markdown("---")
@@ -523,4 +523,4 @@ def render_vulnerability_comparison(models: List[str], data_loader, cache_manage
         breakdown_df["Detection Rate"] = breakdown_df["Detection Rate"].apply(lambda x: f"{x:.1%}")
         breakdown_df["Vulnerability"] = breakdown_df["Vulnerability"].apply(lambda x: f"{x:.1%}")
 
-        st.dataframe(breakdown_df, use_container_width=True, hide_index=True)
+        st.dataframe(breakdown_df, width="stretch", hide_index=True)

@@ -152,7 +152,7 @@ def render_suite_summary(df: pd.DataFrame, suite_name: str):
             xaxis_tickangle=-45,
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     # Pass/Fail Analysis
     st.markdown("---")
@@ -207,7 +207,7 @@ def render_detailed_results(df: pd.DataFrame, suite_name: str):
             }
 
             metrics_df = pd.DataFrame(metrics_data)
-            st.dataframe(metrics_df, use_container_width=True, hide_index=True)
+            st.dataframe(metrics_df, width="stretch", hide_index=True)
 
         with col2:
             st.markdown("#### Confusion Matrix Values")
@@ -223,7 +223,7 @@ def render_detailed_results(df: pd.DataFrame, suite_name: str):
             }
 
             confusion_df = pd.DataFrame(confusion_data)
-            st.dataframe(confusion_df, use_container_width=True, hide_index=True)
+            st.dataframe(confusion_df, width="stretch", hide_index=True)
 
         # Layer analysis if available
         if "best_layers" in latest_run and latest_run["best_layers"]:
@@ -289,7 +289,7 @@ def render_pass_fail_analysis(df: pd.DataFrame, suite_name: str):
 
             fig.update_traces(textposition="inside", textinfo="percent+label")
 
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
             # List failed tests
             if len(failed_tests) > 0:
@@ -322,7 +322,7 @@ def render_sample_distribution(df: pd.DataFrame):
 
         fig.update_layout(height=400, showlegend=False)
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
         # Statistics
         col1, col2, col3 = st.columns(3)
@@ -394,7 +394,7 @@ def render_layer_analysis(test_run: pd.Series):
             height=400,
         )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
         # Display best layers
         if best_layers:
@@ -501,7 +501,7 @@ def render_test_history(df: pd.DataFrame, test_name: str):
         hovermode="x unified",
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # Performance statistics
     st.markdown("**Performance Statistics:**")
@@ -524,4 +524,4 @@ def render_test_history(df: pd.DataFrame, test_name: str):
 
     if stats_data:
         stats_df = pd.DataFrame(stats_data)
-        st.dataframe(stats_df, use_container_width=True, hide_index=True)
+        st.dataframe(stats_df, width="stretch", hide_index=True)

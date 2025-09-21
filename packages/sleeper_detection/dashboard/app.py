@@ -60,7 +60,7 @@ def render_login(auth_manager):
         with st.form("login_form"):
             username = st.text_input("Username")
             password = st.text_input("Password", type="password")
-            submitted = st.form_submit_button("Login", use_container_width=True)
+            submitted = st.form_submit_button("Login", width="stretch")
 
             if submitted:
                 if auth_manager.authenticate(username, password):
@@ -76,7 +76,7 @@ def render_login(auth_manager):
                 new_username = st.text_input("Choose Username")
                 new_password = st.text_input("Choose Password", type="password")
                 confirm_password = st.text_input("Confirm Password", type="password")
-                register_submitted = st.form_submit_button("Register", use_container_width=True)
+                register_submitted = st.form_submit_button("Register", width="stretch")
 
                 if register_submitted:
                     if new_password != confirm_password:

@@ -170,7 +170,7 @@ def render_safety_gauge(summary: dict):
     )
 
     fig.update_layout(height=300)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
     st.metric("Risk Level", status, help="Based on overall safety score")
 
 
@@ -203,7 +203,7 @@ def render_risk_assessment(summary: dict):
 
     fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), showlegend=False, height=350)
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # Display key vulnerabilities
     if metrics["Vulnerability"] < 0.5:
@@ -240,7 +240,7 @@ def render_test_breakdown(test_types: dict):
         title="Test Suite Coverage",
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def render_recent_results(df: pd.DataFrame):
@@ -278,4 +278,4 @@ def render_recent_results(df: pd.DataFrame):
     display_df.rename(columns=column_names, inplace=True)
 
     # Display table
-    st.dataframe(display_df, use_container_width=True, hide_index=True, height=400)
+    st.dataframe(display_df, width="stretch", hide_index=True, height=400)

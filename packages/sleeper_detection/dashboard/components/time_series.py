@@ -170,7 +170,7 @@ def render_trend_analysis(df: pd.DataFrame, metric: str):
         hovermode="x unified",
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # Trend statistics
     col1, col2, col3, col4 = st.columns(4)
@@ -252,7 +252,7 @@ def render_performance_stability(df: pd.DataFrame, metric: str, model: str):
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     with col2:
         st.markdown("#### Stability Metrics")
@@ -338,7 +338,7 @@ def render_test_type_trends(df: pd.DataFrame, metric: str, data_loader, model: s
         hovermode="x unified",
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # Test type statistics table
     st.markdown("#### Test Type Statistics")
@@ -362,7 +362,7 @@ def render_test_type_trends(df: pd.DataFrame, metric: str, data_loader, model: s
 
     if stats_data:
         stats_df = pd.DataFrame(stats_data)
-        st.dataframe(stats_df, use_container_width=True, hide_index=True)
+        st.dataframe(stats_df, width="stretch", hide_index=True)
 
 
 def render_anomaly_detection(df: pd.DataFrame, metric: str):
@@ -433,7 +433,7 @@ def render_anomaly_detection(df: pd.DataFrame, metric: str):
         showlegend=True,
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     # Anomaly statistics
     col1, col2, col3 = st.columns(3)
@@ -474,6 +474,6 @@ def render_anomaly_detection(df: pd.DataFrame, metric: str):
         column_names = {"timestamp": "Time", "test_name": "Test", metric: metric.replace("_", " ").title()}
         display_anomalies.rename(columns=column_names, inplace=True)
 
-        st.dataframe(display_anomalies, use_container_width=True, hide_index=True)
+        st.dataframe(display_anomalies, width="stretch", hide_index=True)
     else:
         st.success("✅ No anomalies detected in the selected period")
