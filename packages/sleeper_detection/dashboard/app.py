@@ -4,24 +4,18 @@ Interactive Dashboard for Sleeper Agent Detection System
 Main Streamlit Application with Authentication
 """
 
-import sys
-from pathlib import Path
-
 import streamlit as st
-from streamlit_option_menu import option_menu
-
-# Add current directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent))
 
 # Import authentication module
-from auth.authentication import AuthManager  # noqa: E402
-from components.detection_analysis import render_detection_analysis  # noqa: E402
-from components.model_comparison import render_model_comparison  # noqa: E402
+from auth.authentication import AuthManager
+from components.detection_analysis import render_detection_analysis
+from components.model_comparison import render_model_comparison
 
 # Import dashboard components
-from components.overview import render_overview  # noqa: E402
-from utils.cache_manager import CacheManager  # noqa: E402
-from utils.data_loader import DataLoader  # noqa: E402
+from components.overview import render_overview
+from streamlit_option_menu import option_menu
+from utils.cache_manager import CacheManager
+from utils.data_loader import DataLoader
 
 # Page configuration
 st.set_page_config(page_title="Sleeper Detection Dashboard", page_icon="🔍", layout="wide", initial_sidebar_state="expanded")

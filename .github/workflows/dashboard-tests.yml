@@ -49,6 +49,7 @@ jobs:
           export GROUP_ID=$(id -g)
           docker run --rm \
             --user "$(id -u):$(id -g)" \
+            -e PYTHONDONTWRITEBYTECODE=1 \
             -v $(pwd):/app/tests \
             sleeper-dashboard-test \
             python -m pytest /app/tests/test_streamlit_components.py -v \
@@ -130,13 +131,11 @@ jobs:
           export GROUP_ID=$(id -g)
           docker-compose -f docker-compose.test.yml up -d dashboard selenium
 
-          # Wait for services to be ready
-          echo "Waiting for dashboard to be ready..."
-          sleep 15
+          # Services will be ready due to depends_on and healthcheck configuration
+          echo "Services started with health checks..."
 
-          # Check dashboard health
+          # Check service status
           docker-compose -f docker-compose.test.yml ps
-          curl -f http://localhost:8501/_stcore/health || echo "Dashboard health check failed"
 
           # Verify database accessibility from dashboard container
           echo "Testing database access from dashboard container..."

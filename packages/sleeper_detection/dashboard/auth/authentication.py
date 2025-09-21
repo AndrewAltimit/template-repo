@@ -57,6 +57,10 @@ class AuthManager:
 
     def _create_default_admin(self):
         """Create default admin user if no users exist."""
+        import os
+        import secrets
+        import string
+
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
@@ -64,8 +68,14 @@ class AuthManager:
         user_count = cursor.fetchone()[0]
 
         if user_count == 0:
-            # Create default admin user
-            default_password = "admin123"  # Should be changed on first login
+            # Check for environment variable or generate random password
+            default_password = os.environ.get("DASHBOARD_ADMIN_PASSWORD")
+
+            if not default_password:
+                # Generate a secure random password
+                alphabet = string.ascii_letters + string.digits + "!@#$%"
+                default_password = "".join(secrets.choice(alphabet) for _ in range(16))
+
             hashed = bcrypt.hashpw(default_password.encode("utf-8"), bcrypt.gensalt())
 
             cursor.execute(
@@ -77,9 +87,17 @@ class AuthManager:
             )
 
             conn.commit()
-            logger.info("Created default admin user (username: admin, password: admin123)")
-            print("📌 Default admin credentials - username: admin, password: admin123")
-            print("   Please change the password after first login!")
+
+            # Log the credentials securely
+            logger.info("Created default admin user")
+            print("\n" + "=" * 60)
+            print("📌 DASHBOARD ADMIN CREDENTIALS CREATED")
+            print("=" * 60)
+            print("Username: admin")
+            print(f"Password: {default_password}")
+            print("\n⚠️  IMPORTANT: Save this password! It will not be shown again.")
+            print("   To set your own password, restart with DASHBOARD_ADMIN_PASSWORD env variable")
+            print("=" * 60 + "\n")
 
         conn.close()
 
