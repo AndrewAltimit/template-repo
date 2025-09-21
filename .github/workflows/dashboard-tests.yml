@@ -232,8 +232,8 @@ jobs:
           # Health check
           curl -f http://localhost:8501/_stcore/health || exit 1
 
-          # Basic smoke test
-          curl -f http://localhost:8501 | grep -q "Sleeper Detection Dashboard" || exit 1
+          # Basic smoke test - check for dashboard title (may include emoji)
+          curl -f http://localhost:8501 | grep -q "Sleeper.*Detection.*Dashboard" || exit 1
 
           # Check authentication page loads
           curl -f http://localhost:8501 | grep -q "Login" || exit 1
