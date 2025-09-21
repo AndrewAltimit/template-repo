@@ -94,7 +94,8 @@ jobs:
           # Export user/group IDs for docker-compose to use
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
-          docker-compose -f docker-compose.test.yml build test-runner
+          # Build both test-runner and dashboard to ensure latest code
+          docker-compose -f docker-compose.test.yml build dashboard test-runner
 
       - name: Generate test data
         run: |
