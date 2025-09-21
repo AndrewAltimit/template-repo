@@ -88,6 +88,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Generate test data
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          # Generate test database before starting services
+          python fixtures.py
+
       - name: Start test environment
         run: |
           cd packages/sleeper_detection/dashboard/tests
@@ -104,14 +110,6 @@ jobs:
           # Check dashboard health
           docker-compose -f docker-compose.test.yml ps
           curl -f http://localhost:8501/_stcore/health || echo "Dashboard health check failed"
-
-      - name: Generate test data
-        run: |
-          cd packages/sleeper_detection/dashboard/tests
-          export USER_ID=$(id -u)
-          export GROUP_ID=$(id -g)
-          docker-compose -f docker-compose.test.yml run --rm test-runner \
-            python /app/tests/fixtures.py
 
       - name: Run E2E tests
         run: |
@@ -212,6 +210,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Generate test database
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          # Generate test database before building image
+          python fixtures.py
+
       - name: Build dashboard Docker image
         run: |
           cd packages/sleeper_detection/dashboard
@@ -219,11 +223,13 @@ jobs:
 
       - name: Test dashboard container
         run: |
-          # Run dashboard container
+          # Run dashboard container with test database mounted
           docker run -d \
             --name test-dashboard \
             -p 8501:8501 \
+            -v $(pwd)/packages/sleeper_detection/dashboard/tests/test_evaluation_results.db:/app/test_evaluation_results.db \
             -e STREAMLIT_SERVER_HEADLESS=true \
+            -e DATABASE_PATH=/app/test_evaluation_results.db \
             sleeper-dashboard:test
 
           # Wait for startup
