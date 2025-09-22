@@ -21,12 +21,12 @@ jobs:
     steps:
       - name: Pre-cleanup workspace
         run: |
-          # Clean any leftover __pycache__ from previous runs
+          # Clean any leftover test artifacts and __pycache__ from previous runs
           if [ -d packages/sleeper_detection/dashboard/tests ]; then
-            echo "Cleaning up leftover Python cache..."
-            rm -rf packages/sleeper_detection/dashboard/tests/__pycache__ 2>/dev/null || true
-            rm -rf packages/sleeper_detection/dashboard/__pycache__ 2>/dev/null || true
-            find packages/sleeper_detection -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+            echo "Cleaning up leftover test artifacts..."
+            # Use Docker to clean with proper permissions
+            docker run --rm -v $(pwd)/packages/sleeper_detection/dashboard/tests:/workspace -w /workspace busybox \
+              sh -c "rm -rf __pycache__ sample_charts test_evaluation_results.db screenshots baselines test-artifacts 2>/dev/null || true; find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
           fi
 
       - name: Checkout code
@@ -58,16 +58,16 @@ jobs:
       # Coverage disabled due to permission issues in container
       # Can be re-enabled when permission handling is improved
 
-      - name: Cleanup Python cache
+      - name: Cleanup test artifacts
         if: always()
         run: |
           cd packages/sleeper_detection/dashboard/tests
-          if [ -f cleanup-pycache.sh ]; then
-            ./cleanup-pycache.sh
+          if [ -f cleanup-test-artifacts.sh ]; then
+            ./cleanup-test-artifacts.sh
           else
-            echo "Using Docker to clean up Python cache..."
+            echo "Cleaning up all test artifacts with proper permissions..."
             docker run --rm -v $(pwd):/workspace -w /workspace busybox \
-              sh -c "find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
+              sh -c "rm -rf __pycache__ sample_charts test_evaluation_results.db 2>/dev/null || true; find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
           fi
 
   e2e-tests:
@@ -78,12 +78,12 @@ jobs:
     steps:
       - name: Pre-cleanup workspace
         run: |
-          # Clean any leftover __pycache__ from previous runs
+          # Clean any leftover test artifacts and __pycache__ from previous runs
           if [ -d packages/sleeper_detection/dashboard/tests ]; then
-            echo "Cleaning up leftover Python cache..."
-            rm -rf packages/sleeper_detection/dashboard/tests/__pycache__ 2>/dev/null || true
-            rm -rf packages/sleeper_detection/dashboard/__pycache__ 2>/dev/null || true
-            find packages/sleeper_detection -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+            echo "Cleaning up leftover test artifacts..."
+            # Use Docker to clean with proper permissions
+            docker run --rm -v $(pwd)/packages/sleeper_detection/dashboard/tests:/workspace -w /workspace busybox \
+              sh -c "rm -rf __pycache__ sample_charts test_evaluation_results.db screenshots baselines test-artifacts 2>/dev/null || true; find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
           fi
 
       - name: Checkout code
@@ -104,7 +104,7 @@ jobs:
           # Generate test database using Docker before starting services
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
-          docker-compose -f docker-compose.test.yml run --rm --no-deps test-runner \
+          docker-compose -f docker-compose.test.yml run --rm --no-deps --user "$(id -u):$(id -g)" test-runner \
             python /app/tests/fixtures.py
 
           # Verify database was created successfully
@@ -178,13 +178,13 @@ jobs:
           cd packages/sleeper_detection/dashboard/tests
           docker-compose -f docker-compose.test.yml down -v
 
-          # Clean up Python cache
-          if [ -f cleanup-pycache.sh ]; then
-            ./cleanup-pycache.sh
+          # Clean up all test artifacts with proper permissions
+          if [ -f cleanup-test-artifacts.sh ]; then
+            ./cleanup-test-artifacts.sh
           else
-            echo "Using Docker to clean up Python cache..."
+            echo "Cleaning up test artifacts and Python cache..."
             docker run --rm -v $(pwd):/workspace -w /workspace busybox \
-              sh -c "find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
+              sh -c "rm -rf __pycache__ sample_charts test_evaluation_results.db screenshots baselines test-artifacts 2>/dev/null || true; find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
           fi
 
   visual-regression:
@@ -232,12 +232,12 @@ jobs:
     steps:
       - name: Pre-cleanup workspace
         run: |
-          # Clean any leftover __pycache__ from previous runs
+          # Clean any leftover test artifacts and __pycache__ from previous runs
           if [ -d packages/sleeper_detection/dashboard/tests ]; then
-            echo "Cleaning up leftover Python cache..."
-            rm -rf packages/sleeper_detection/dashboard/tests/__pycache__ 2>/dev/null || true
-            rm -rf packages/sleeper_detection/dashboard/__pycache__ 2>/dev/null || true
-            find packages/sleeper_detection -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+            echo "Cleaning up leftover test artifacts..."
+            # Use Docker to clean with proper permissions
+            docker run --rm -v $(pwd)/packages/sleeper_detection/dashboard/tests:/workspace -w /workspace busybox \
+              sh -c "rm -rf __pycache__ sample_charts test_evaluation_results.db screenshots baselines test-artifacts 2>/dev/null || true; find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
           fi
 
       - name: Checkout code
@@ -253,9 +253,14 @@ jobs:
           cd packages/sleeper_detection/dashboard/tests
           # Generate test database using Docker before building dashboard
           docker run --rm \
+            --user "$(id -u):$(id -g)" \
             -v $(pwd):/app/tests \
             test-runner:temp \
             python /app/tests/fixtures.py
+
+          # Clean up sample_charts if created (not needed for integration test)
+          docker run --rm -v $(pwd):/workspace -w /workspace busybox \
+            sh -c "rm -rf sample_charts 2>/dev/null || true"
 
       - name: Build dashboard Docker image
         run: |
@@ -291,14 +296,16 @@ jobs:
           docker stop test-dashboard || true
           docker rm test-dashboard || true
 
-          # Clean up Python cache
-          cd packages/sleeper_detection/dashboard/tests 2>/dev/null || true
-          if [ -f cleanup-pycache.sh ]; then
-            ./cleanup-pycache.sh
-          else
-            echo "Using Docker to clean up Python cache..."
-            docker run --rm -v $(pwd):/workspace -w /workspace busybox \
-              sh -c "find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
+          # Clean up all test artifacts with proper permissions
+          if [ -d packages/sleeper_detection/dashboard/tests ]; then
+            cd packages/sleeper_detection/dashboard/tests
+            if [ -f cleanup-test-artifacts.sh ]; then
+              ./cleanup-test-artifacts.sh
+            else
+              echo "Cleaning up test artifacts and Python cache..."
+              docker run --rm -v $(pwd):/workspace -w /workspace busybox \
+                sh -c "rm -rf __pycache__ sample_charts test_evaluation_results.db 2>/dev/null || true; find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
+            fi
           fi
 
   test-summary:

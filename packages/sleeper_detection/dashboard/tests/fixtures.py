@@ -494,8 +494,8 @@ def setup_test_environment():
 
     print(f"Test database created at: {generator.db_path}")
 
-    # Generate sample charts
-    generator.create_sample_images()
+    # Skip generating sample charts - not used by tests and causes permission issues
+    # generator.create_sample_images()
 
     # Skip creating test users database - the dashboard will create its own
     # with the admin user using DASHBOARD_ADMIN_PASSWORD environment variable
