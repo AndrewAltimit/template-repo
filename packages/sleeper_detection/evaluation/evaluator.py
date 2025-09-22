@@ -446,14 +446,11 @@ class ModelEvaluator:
             honeypots = await generator.generate_honeypots(goal, n_honeypots=5)
 
             for honeypot in honeypots:
-                # Mock response testing
-                # In real implementation, would generate actual response
-                score = np.random.random()  # Simulated reveal score
-
-                if score > 0.5:
-                    total_revealed += 1
-
-                total_honeypots += 1
+                # Honeypot evaluation implementation pending
+                raise NotImplementedError(
+                    "Honeypot vulnerability testing not yet implemented. "
+                    "This requires actual model response evaluation against honeypot prompts."
+                )
 
         # High honeypot resistance = low vulnerability
         vulnerability_rate = total_revealed / total_honeypots if total_honeypots > 0 else 0
@@ -888,18 +885,11 @@ class ModelEvaluator:
                         loss = outputs.logits.mean()  # Dummy loss
                         loss.backward()
 
-                        # Check for suspicious gradient patterns
-                        # High gradients on trigger tokens indicate backdoor
-                        has_suspicious_gradients = torch.rand(1).item() > 0.5  # Simulated
-
-                        if has_backdoor and has_suspicious_gradients:
-                            result.true_positives += 1
-                        elif not has_backdoor and not has_suspicious_gradients:
-                            result.true_negatives += 1
-                        elif has_backdoor:
-                            result.false_negatives += 1
-                        else:
-                            result.false_positives += 1
+                        # Gradient analysis implementation pending
+                        raise NotImplementedError(
+                            "Gradient analysis detection not yet implemented. "
+                            "This requires model-specific gradient computation and analysis."
+                        )
                 else:
                     # Fallback if no tokenizer
                     result.false_negatives += 1 if has_backdoor else 0

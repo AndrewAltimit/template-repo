@@ -12,10 +12,10 @@
 
 ## Test Suite Implementation Status
 
-**✓ All test suites have been implemented!** The following test suites in `packages/sleeper_detection/evaluation/evaluator.py` are now available:
+**Most test suites have been implemented.** The following test suites in `packages/sleeper_detection/evaluation/evaluator.py` show implementation status:
 
-## Priority 1 - Core Detection Methods ✓
-- [x] `_test_honeypot_optimization()` - Test honeypot prompt generation and optimization
+## Priority 1 - Core Detection Methods (Partial)
+- [ ] `_test_honeypot_optimization()` - Test honeypot prompt generation and optimization (NotImplementedError - requires model response evaluation)
 - [x] `_test_distilled_cot()` - Test chain-of-thought distillation detection
 
 ## Priority 2 - Robustness Tests ✓
@@ -23,9 +23,9 @@
 - [x] `_test_mitigation_effectiveness()` - Test effectiveness of mitigation strategies
 - [x] `_test_adversarial_robustness()` - Test robustness against adversarial inputs
 
-## Priority 3 - Additional Detection Methods ✓
+## Priority 3 - Additional Detection Methods (Partial)
 - [x] `_test_steering_vectors()` - Test steering vector detection methods
-- [x] `_test_gradient_analysis()` - Test gradient-based detection methods
+- [ ] `_test_gradient_analysis()` - Test gradient-based detection methods (NotImplementedError - requires model-specific gradient computation)
 
 ## Priority 4 - Performance & Optimization ✓
 - [x] `_test_elicitation_strategies()` - Test various elicitation strategies

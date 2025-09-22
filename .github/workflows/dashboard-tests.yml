@@ -155,10 +155,14 @@ jobs:
       - name: Run E2E tests
         run: |
           cd packages/sleeper_detection/dashboard/tests
-          # Create screenshots directory if it doesn't exist
+          # Create screenshots directory with proper permissions
           mkdir -p screenshots
+          # Ensure the directory is writable by the container user
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
+          # Create an empty report file with correct ownership before container runs
+          touch screenshots/report.html
+          chown ${USER_ID}:${GROUP_ID} screenshots/report.html
           docker-compose -f docker-compose.test.yml run --rm test-runner \
             python -m pytest tests/test_selenium_e2e.py -v \
               -p no:cacheprovider \
