@@ -100,7 +100,8 @@ jobs:
           # Export user/group IDs for docker-compose to use
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
-          # Dashboard will auto-generate a random password if not set
+          # Set a consistent password for the test run
+          export DASHBOARD_ADMIN_PASSWORD=ci-test-password123
           docker-compose -f docker-compose.test.yml up -d dashboard selenium
 
           # Services will be ready due to depends_on and healthcheck configuration
@@ -119,11 +120,10 @@ jobs:
           cd packages/sleeper_detection/dashboard/tests
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
+          # Pass the same password to the test runner environment
+          export DASHBOARD_TEST_PASSWORD=ci-test-password123
 
-          # Create directories on host with proper ownership before running tests
-          mkdir -p screenshots baselines ai_feedback ai_analysis_results
-
-          # Run tests - directories are now mounted volumes with correct permissions
+          # Run tests - test runner will create directories inside container
           docker-compose -f docker-compose.test.yml run --rm test-runner \
             python -m pytest tests/test_selenium_e2e.py -v \
               -p no:cacheprovider \

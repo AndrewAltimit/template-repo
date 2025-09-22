@@ -11,6 +11,7 @@ services:
       - STREAMLIT_SERVER_PORT=8501
       - STREAMLIT_SERVER_ADDRESS=0.0.0.0
       - DATABASE_PATH=/home/dashboard/app/test_evaluation_results.db
+      - DASHBOARD_ADMIN_PASSWORD=${DASHBOARD_ADMIN_PASSWORD:-test123}
     volumes:
       - ./test_evaluation_results.db:/home/dashboard/app/test_evaluation_results.db:ro
       - ./check_database.py:/home/dashboard/app/tests/check_database.py:ro
@@ -52,12 +53,9 @@ services:
       - SELENIUM_URL=http://selenium:4444
       - PYTHONPATH=/app
       - PYTHONDONTWRITEBYTECODE=1
+      - DASHBOARD_TEST_PASSWORD=${DASHBOARD_TEST_PASSWORD:-test123}
     volumes:
       - ./:/app/tests
-      - ./screenshots:/app/screenshots:rw
-      - ./baselines:/app/baselines:rw
-      - ./ai_feedback:/app/ai_feedback:rw
-      - ./ai_analysis_results:/app/ai_analysis_results:rw
     networks:
       - test-network
     command: >
