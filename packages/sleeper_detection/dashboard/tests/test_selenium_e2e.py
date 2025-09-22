@@ -705,7 +705,7 @@ class DashboardSeleniumTests(unittest.TestCase):
             # Find password field
             password_input = self.driver.find_element(By.XPATH, "//input[@type='password']")
             password_input.clear()
-            password_input.send_keys("admin123")
+            password_input.send_keys("test123")  # CI test password
 
             # Try multiple selectors for the login button (Streamlit can render differently)
             login_button = None

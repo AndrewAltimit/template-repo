@@ -129,6 +129,8 @@ jobs:
           # Export user/group IDs for docker-compose to use
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
+          # Set dummy admin password for CI testing (ephemeral containers only)
+          export DASHBOARD_ADMIN_PASSWORD="test123"
           docker-compose -f docker-compose.test.yml up -d dashboard selenium
 
           # Services will be ready due to depends_on and healthcheck configuration
@@ -259,6 +261,7 @@ jobs:
       - name: Build dashboard Docker image
         run: |
           cd packages/sleeper_detection/dashboard
+          # Build with test environment variables for CI
           docker build -t sleeper-dashboard:test .
 
       - name: Test dashboard container
@@ -270,6 +273,7 @@ jobs:
             -v $(pwd)/packages/sleeper_detection/dashboard/tests/test_evaluation_results.db:/home/dashboard/app/test_evaluation_results.db:ro \
             -e STREAMLIT_SERVER_HEADLESS=true \
             -e DATABASE_PATH=/home/dashboard/app/test_evaluation_results.db \
+            -e DASHBOARD_ADMIN_PASSWORD="test123" \
             sleeper-dashboard:test
 
           # Wait for startup

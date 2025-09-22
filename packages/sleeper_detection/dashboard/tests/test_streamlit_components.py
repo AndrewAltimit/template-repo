@@ -127,7 +127,7 @@ class TestDashboardComponents(unittest.TestCase):
             # Set credentials (text_input elements should be username and password)
             if len(at.text_input) >= 2:
                 at.text_input[0].set_value("admin")  # Username
-                at.text_input[1].set_value("admin123")  # Password
+                at.text_input[1].set_value("test123")  # Password (CI test password)
 
                 # Find and click the login button
                 login_buttons = [btn for btn in at.button if btn.label and "login" in btn.label.lower()]
