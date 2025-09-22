@@ -1,10 +1,7 @@
 name: Dashboard Tests
 
 on:
-  workflow_call:
-    secrets:
-      GITHUB_TOKEN:
-        required: false
+  workflow_call: {}
   workflow_dispatch: {}
 
 jobs:
