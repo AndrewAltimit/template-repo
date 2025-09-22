@@ -25,8 +25,11 @@ jobs:
           if [ -d packages/sleeper_detection/dashboard/tests ]; then
             echo "Cleaning up leftover test artifacts..."
             # Use Docker to clean with proper permissions
-            docker run --rm -v $(pwd)/packages/sleeper_detection/dashboard/tests:/workspace -w /workspace busybox \
-              sh -c "rm -rf __pycache__ sample_charts test_evaluation_results.db screenshots baselines test-artifacts 2>/dev/null || true; find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
+            docker run --rm -v $(pwd)/packages/sleeper_detection/dashboard/tests:/workspace \
+              -w /workspace busybox sh -c \
+              "rm -rf __pycache__ sample_charts test_evaluation_results.db screenshots \
+               baselines test-artifacts 2>/dev/null || true; \
+               find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
           fi
 
       - name: Checkout code
@@ -82,8 +85,11 @@ jobs:
           if [ -d packages/sleeper_detection/dashboard/tests ]; then
             echo "Cleaning up leftover test artifacts..."
             # Use Docker to clean with proper permissions
-            docker run --rm -v $(pwd)/packages/sleeper_detection/dashboard/tests:/workspace -w /workspace busybox \
-              sh -c "rm -rf __pycache__ sample_charts test_evaluation_results.db screenshots baselines test-artifacts 2>/dev/null || true; find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
+            docker run --rm -v $(pwd)/packages/sleeper_detection/dashboard/tests:/workspace \
+              -w /workspace busybox sh -c \
+              "rm -rf __pycache__ sample_charts test_evaluation_results.db screenshots \
+               baselines test-artifacts 2>/dev/null || true; \
+               find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
           fi
 
       - name: Checkout code
@@ -120,7 +126,9 @@ jobs:
           # Verify database contents using Docker
           echo "Verifying database contents..."
           docker-compose -f docker-compose.test.yml run --rm --no-deps test-runner \
-            python -c "import sqlite3; conn = sqlite3.connect('/app/tests/test_evaluation_results.db'); cursor = conn.cursor(); cursor.execute('SELECT COUNT(*) FROM evaluation_results'); print(f'Records found: {cursor.fetchone()[0]}'); conn.close()"
+            python -c "import sqlite3; conn = sqlite3.connect('/app/tests/test_evaluation_results.db'); \
+            cursor = conn.cursor(); cursor.execute('SELECT COUNT(*) FROM evaluation_results'); \
+            print(f'Records found: {cursor.fetchone()[0]}'); conn.close()"
           echo "Database verification successful"
 
       - name: Start test environment
@@ -149,7 +157,7 @@ jobs:
           cd packages/sleeper_detection/dashboard/tests
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
-          docker-compose -f docker-compose.test.yml run --rm test-runner \
+          docker-compose -f docker-compose.test.yml run --rm --user "$(id -u):$(id -g)" test-runner \
             python -m pytest tests/test_selenium_e2e.py -v \
               -p no:cacheprovider \
               --html=/app/screenshots/report.html \
@@ -236,8 +244,11 @@ jobs:
           if [ -d packages/sleeper_detection/dashboard/tests ]; then
             echo "Cleaning up leftover test artifacts..."
             # Use Docker to clean with proper permissions
-            docker run --rm -v $(pwd)/packages/sleeper_detection/dashboard/tests:/workspace -w /workspace busybox \
-              sh -c "rm -rf __pycache__ sample_charts test_evaluation_results.db screenshots baselines test-artifacts 2>/dev/null || true; find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
+            docker run --rm -v $(pwd)/packages/sleeper_detection/dashboard/tests:/workspace \
+              -w /workspace busybox sh -c \
+              "rm -rf __pycache__ sample_charts test_evaluation_results.db screenshots \
+               baselines test-artifacts 2>/dev/null || true; \
+               find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
           fi
 
       - name: Checkout code
