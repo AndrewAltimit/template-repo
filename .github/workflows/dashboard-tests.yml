@@ -155,9 +155,12 @@ jobs:
       - name: Run E2E tests
         run: |
           cd packages/sleeper_detection/dashboard/tests
+          # Create screenshots directory with proper permissions
+          mkdir -p screenshots
+          chmod 777 screenshots
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
-          docker-compose -f docker-compose.test.yml run --rm --user "$(id -u):$(id -g)" test-runner \
+          docker-compose -f docker-compose.test.yml run --rm test-runner \
             python -m pytest tests/test_selenium_e2e.py -v \
               -p no:cacheprovider \
               --html=/app/screenshots/report.html \

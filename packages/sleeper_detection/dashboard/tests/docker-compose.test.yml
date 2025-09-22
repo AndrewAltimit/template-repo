@@ -24,7 +24,7 @@ services:
       retries: 5
 
   selenium:
-    image: selenium/standalone-chrome:latest
+    image: selenium/standalone-chrome:136.0-20250828
     container_name: selenium-chrome
     ports:
       - "4444:4444"
@@ -55,10 +55,10 @@ services:
       - PYTHONDONTWRITEBYTECODE=1
     volumes:
       - ./:/app/tests
-      - ./screenshots:/app/screenshots
-      - ./baselines:/app/baselines
-      - ./ai_feedback:/app/ai_feedback
-      - ./ai_analysis_results:/app/ai_analysis_results
+      - ./screenshots:/app/screenshots:rw
+      - ./baselines:/app/baselines:rw
+      - ./ai_feedback:/app/ai_feedback:rw
+      - ./ai_analysis_results:/app/ai_analysis_results:rw
     networks:
       - test-network
     command: >
