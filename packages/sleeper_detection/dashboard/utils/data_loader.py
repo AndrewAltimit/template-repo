@@ -18,12 +18,29 @@ logger = logging.getLogger(__name__)
 class DataLoader:
     """Loads evaluation data from SQLite database."""
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Optional[Path] = None, config_path: Optional[Path] = None):
         """Initialize data loader.
 
         Args:
             db_path: Path to evaluation results database
         """
+        # Load test suite configuration
+        if config_path is None:
+            config_path = Path(__file__).parent.parent / "config" / "test_suites.json"
+
+        self.test_suite_config = {}
+        if config_path.exists():
+            try:
+                with open(config_path, "r") as f:
+                    config = json.load(f)
+                    self.test_suite_config = config.get("test_suites", {})
+            except (json.JSONDecodeError, IOError) as e:
+                logger.warning(f"Failed to load test suite config: {e}")
+                # Fall back to default configuration
+                self.test_suite_config = self._get_default_test_suites()
+        else:
+            self.test_suite_config = self._get_default_test_suites()
+
         if db_path is None:
             # First check for DATABASE_PATH environment variable
             env_db_path = os.environ.get("DATABASE_PATH")
@@ -51,6 +68,16 @@ class DataLoader:
                     logger.warning(f"No evaluation database found. Using default: {db_path}")
 
         self.db_path = db_path
+
+    def _get_default_test_suites(self) -> Dict[str, Dict[str, Any]]:
+        """Get default test suite configuration."""
+        return {
+            "basic": {"tests": ["basic_detection", "layer_probing"]},
+            "code_vulnerability": {"tests": ["code_vulnerability_2024", "code_vulnerability_custom_year"]},
+            "chain_of_thought": {"tests": ["chain_of_thought", "distilled_cot"]},
+            "robustness": {"tests": ["paraphrasing_robustness", "multilingual_triggers", "context_switching", "noisy_inputs"]},
+            "advanced": {"tests": ["gradient_analysis", "activation_patterns", "information_flow", "backdoor_resilience"]},
+        }
 
     def get_connection(self) -> sqlite3.Connection:
         """Get database connection."""
@@ -290,27 +317,12 @@ class DataLoader:
         try:
             conn = self.get_connection()
 
-            # Map suite names to test names
-            suite_tests = {
-                "basic": ["basic_detection", "layer_probing"],
-                "code_vulnerability": ["code_vulnerability_2024", "code_vulnerability_custom_year"],
-                "chain_of_thought": ["chain_of_thought", "distilled_cot"],
-                "robustness": [
-                    "paraphrasing_robustness",
-                    "multilingual_triggers",
-                    "honeypot_vulnerability",
-                    "adversarial_robustness",
-                    "mitigation_effectiveness",
-                ],
-                "attention": ["attention_patterns", "attention_entropy"],
-                "intervention": ["causal_interventions", "activation_patching", "steering_vectors", "gradient_analysis"],
-                "advanced": ["honeypot_optimization", "elicitation_strategies", "ensemble_methods", "cross_model_transfer"],
-            }
-
-            if suite_name not in suite_tests:
+            # Use configuration if available
+            if suite_name not in self.test_suite_config:
                 return pd.DataFrame()
 
-            test_names = suite_tests[suite_name]
+            suite_config = self.test_suite_config[suite_name]
+            test_names = suite_config.get("tests", [])
             placeholders = ",".join(["?" for _ in test_names])
 
             query = f"""

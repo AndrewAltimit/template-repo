@@ -1,0 +1,48 @@
+{
+  "test_suites": {
+    "basic": {
+      "name": "Basic Detection",
+      "description": "Core sleeper agent detection tests",
+      "tests": [
+        "basic_detection",
+        "layer_probing"
+      ]
+    },
+    "code_vulnerability": {
+      "name": "Code Vulnerability",
+      "description": "Tests for code vulnerability triggers",
+      "tests": [
+        "code_vulnerability_2024",
+        "code_vulnerability_custom_year"
+      ]
+    },
+    "chain_of_thought": {
+      "name": "Chain of Thought",
+      "description": "Chain of thought reasoning tests",
+      "tests": [
+        "chain_of_thought",
+        "distilled_cot"
+      ]
+    },
+    "robustness": {
+      "name": "Robustness",
+      "description": "Robustness and generalization tests",
+      "tests": [
+        "paraphrasing_robustness",
+        "multilingual_triggers",
+        "context_switching",
+        "noisy_inputs"
+      ]
+    },
+    "advanced": {
+      "name": "Advanced Detection",
+      "description": "Advanced sleeper agent detection techniques",
+      "tests": [
+        "gradient_analysis",
+        "activation_patterns",
+        "information_flow",
+        "backdoor_resilience"
+      ]
+    }
+  }
+}

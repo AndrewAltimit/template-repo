@@ -1,15 +1,10 @@
 name: Dashboard Tests
 
 on:
-  push:
-    branches: [main, sleeper-refine]
-    paths:
-      - 'packages/sleeper_detection/dashboard/**'
-      - '.github/workflows/dashboard-tests.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'packages/sleeper_detection/dashboard/**'
+  workflow_call:
+    secrets:
+      GITHUB_TOKEN:
+        required: false
   workflow_dispatch: {}
 
 jobs:
@@ -19,21 +14,11 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - name: Pre-cleanup workspace
-        run: |
-          # Clean any leftover test artifacts and __pycache__ from previous runs
-          if [ -d packages/sleeper_detection/dashboard/tests ]; then
-            echo "Cleaning up leftover test artifacts..."
-            # Use Docker to clean with proper permissions
-            docker run --rm -v $(pwd)/packages/sleeper_detection/dashboard/tests:/workspace \
-              -w /workspace busybox sh -c \
-              "rm -rf __pycache__ sample_charts test_evaluation_results.db screenshots \
-               baselines test-artifacts 2>/dev/null || true; \
-               find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
-          fi
-
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Pre-cleanup workspace
+        uses: ./.github/actions/dashboard-cleanup
 
       - name: Set up Docker Compose
         run: |
@@ -63,15 +48,7 @@ jobs:
 
       - name: Cleanup test artifacts
         if: always()
-        run: |
-          cd packages/sleeper_detection/dashboard/tests
-          if [ -f cleanup-test-artifacts.sh ]; then
-            ./cleanup-test-artifacts.sh
-          else
-            echo "Cleaning up all test artifacts with proper permissions..."
-            docker run --rm -v $(pwd):/workspace -w /workspace busybox \
-              sh -c "rm -rf __pycache__ sample_charts test_evaluation_results.db 2>/dev/null || true; find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
-          fi
+        uses: ./.github/actions/dashboard-cleanup
 
   e2e-tests:
     name: E2E Selenium Tests
@@ -79,21 +56,11 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Pre-cleanup workspace
-        run: |
-          # Clean any leftover test artifacts and __pycache__ from previous runs
-          if [ -d packages/sleeper_detection/dashboard/tests ]; then
-            echo "Cleaning up leftover test artifacts..."
-            # Use Docker to clean with proper permissions
-            docker run --rm -v $(pwd)/packages/sleeper_detection/dashboard/tests:/workspace \
-              -w /workspace busybox sh -c \
-              "rm -rf __pycache__ sample_charts test_evaluation_results.db screenshots \
-               baselines test-artifacts 2>/dev/null || true; \
-               find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
-          fi
-
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Pre-cleanup workspace
+        uses: ./.github/actions/dashboard-cleanup
 
       - name: Build test containers
         run: |
@@ -155,14 +122,15 @@ jobs:
       - name: Run E2E tests
         run: |
           cd packages/sleeper_detection/dashboard/tests
-          # Create screenshots directory with proper permissions
-          mkdir -p screenshots
-          # Ensure the directory is writable by the container user
+          # Create screenshots directory with proper permissions using Docker
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
-          # Create an empty report file with correct ownership before container runs
-          touch screenshots/report.html
-          chown ${USER_ID}:${GROUP_ID} screenshots/report.html
+          # Use Docker to create directory with correct permissions
+          docker run --rm -v $(pwd):/workspace busybox sh -c "
+            mkdir -p /workspace/screenshots && \
+            chmod 777 /workspace/screenshots
+          "
+          # Run the tests
           docker-compose -f docker-compose.test.yml run --rm test-runner \
             python -m pytest tests/test_selenium_e2e.py -v \
               -p no:cacheprovider \
@@ -186,20 +154,15 @@ jobs:
           name: e2e-test-artifacts
           path: packages/sleeper_detection/dashboard/tests/test-artifacts/
 
-      - name: Cleanup
+      - name: Stop containers
         if: always()
         run: |
           cd packages/sleeper_detection/dashboard/tests
           docker-compose -f docker-compose.test.yml down -v
 
-          # Clean up all test artifacts with proper permissions
-          if [ -f cleanup-test-artifacts.sh ]; then
-            ./cleanup-test-artifacts.sh
-          else
-            echo "Cleaning up test artifacts and Python cache..."
-            docker run --rm -v $(pwd):/workspace -w /workspace busybox \
-              sh -c "rm -rf __pycache__ sample_charts test_evaluation_results.db screenshots baselines test-artifacts 2>/dev/null || true; find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
-          fi
+      - name: Cleanup test artifacts
+        if: always()
+        uses: ./.github/actions/dashboard-cleanup
 
   visual-regression:
     name: Visual Regression Tests
@@ -244,21 +207,11 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - name: Pre-cleanup workspace
-        run: |
-          # Clean any leftover test artifacts and __pycache__ from previous runs
-          if [ -d packages/sleeper_detection/dashboard/tests ]; then
-            echo "Cleaning up leftover test artifacts..."
-            # Use Docker to clean with proper permissions
-            docker run --rm -v $(pwd)/packages/sleeper_detection/dashboard/tests:/workspace \
-              -w /workspace busybox sh -c \
-              "rm -rf __pycache__ sample_charts test_evaluation_results.db screenshots \
-               baselines test-artifacts 2>/dev/null || true; \
-               find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
-          fi
-
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Pre-cleanup workspace
+        uses: ./.github/actions/dashboard-cleanup
 
       - name: Build test runner for database generation
         run: |
@@ -297,11 +250,20 @@ jobs:
             -e DASHBOARD_ADMIN_PASSWORD="test123" \
             sleeper-dashboard:test
 
-          # Wait for startup
-          sleep 10
-
-          # Health check
-          curl -f http://localhost:8501/_stcore/health || exit 1
+          # Wait for service to be ready using health check polling
+          echo "Waiting for dashboard service to be ready..."
+          for i in {1..30}; do
+            if curl -f http://localhost:8501/_stcore/health 2>/dev/null; then
+              echo "Dashboard service is ready!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Dashboard service failed to start after 30 seconds"
+              exit 1
+            fi
+            echo "Waiting for dashboard service... ($i/30)"
+            sleep 1
+          done
 
           # Basic smoke test - just verify Streamlit is serving content
           # Note: Initial page load returns base HTML, content is loaded dynamically via JS
@@ -313,17 +275,9 @@ jobs:
           docker stop test-dashboard || true
           docker rm test-dashboard || true
 
-          # Clean up all test artifacts with proper permissions
-          if [ -d packages/sleeper_detection/dashboard/tests ]; then
-            cd packages/sleeper_detection/dashboard/tests
-            if [ -f cleanup-test-artifacts.sh ]; then
-              ./cleanup-test-artifacts.sh
-            else
-              echo "Cleaning up test artifacts and Python cache..."
-              docker run --rm -v $(pwd):/workspace -w /workspace busybox \
-                sh -c "rm -rf __pycache__ sample_charts test_evaluation_results.db 2>/dev/null || true; find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
-            fi
-          fi
+      - name: Cleanup test artifacts
+        if: always()
+        uses: ./.github/actions/dashboard-cleanup
 
   test-summary:
     name: Test Summary

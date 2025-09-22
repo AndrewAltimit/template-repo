@@ -45,6 +45,7 @@ jobs:
       mcp_changed: ${{ steps.changes.outputs.mcp_changed }}
       docs_changed: ${{ steps.changes.outputs.docs_changed }}
       sleeper_changed: ${{ steps.changes.outputs.sleeper_changed }}
+      dashboard_changed: ${{ steps.changes.outputs.dashboard_changed }}
       files_changed: ${{ steps.changes.outputs.files_changed }}
     steps:
       - name: Checkout code
@@ -80,6 +81,7 @@ jobs:
           mcp_count=$(grep -E '(mcp|MCP|tools/)' changed_files.txt | wc -l || echo "0")
           docs_count=$(grep -E '\.(md|rst|txt)$' changed_files.txt | wc -l || echo "0")
           sleeper_count=$(grep -E '(packages/sleeper_detection|sleeper-evaluation)' changed_files.txt | wc -l || echo "0")
+          dashboard_count=$(grep -E '(packages/sleeper_detection/dashboard)' changed_files.txt | wc -l || echo "0")
           total_files=$(cat changed_files.txt | wc -l)
 
           # Set outputs
@@ -89,6 +91,7 @@ jobs:
           echo "mcp_changed=$([[ $mcp_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "docs_changed=$([[ $docs_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "sleeper_changed=$([[ $sleeper_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "dashboard_changed=$([[ $dashboard_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "files_changed=$total_files" >> $GITHUB_OUTPUT
 
           echo "[INFO] Change Summary:"
@@ -98,6 +101,7 @@ jobs:
           echo "  MCP files: $mcp_count"
           echo "  Documentation: $docs_count"
           echo "  Sleeper Detection: $sleeper_count"
+          echo "  Dashboard: $dashboard_count"
           echo "  Total files: $total_files"
 
   # Stage 2: Gemini AI Code Review
@@ -547,6 +551,14 @@ jobs:
     uses: ./.github/workflows/sleeper-detection-tests.yml
     secrets: inherit
 
+  # Stage 7b: Dashboard Tests
+  dashboard-tests:
+    name: Dashboard Tests
+    needs: [detect-changes, format-check, basic-lint]
+    if: needs.detect-changes.outputs.dashboard_changed == 'true'
+    uses: ./.github/workflows/dashboard-tests.yml
+    secrets: inherit
+
   # Stage 8: Gaea2 MCP Integration Tests
   gaea2-integration-tests:
     name: Gaea2 MCP Integration Tests
@@ -692,6 +704,7 @@ jobs:
       - test-suite
       - mcp-validation
       - sleeper-detection-tests
+      - dashboard-tests
       - gaea2-integration-tests
       - docker-validation
     if: always()
@@ -706,6 +719,7 @@ jobs:
           echo "**Config files:** ${{ needs.detect-changes.outputs.yaml_changed }}"
           echo "**Docker files:** ${{ needs.detect-changes.outputs.docker_changed }}"
           echo "**MCP files:** ${{ needs.detect-changes.outputs.mcp_changed }}"
+          echo "**Dashboard files:** ${{ needs.detect-changes.outputs.dashboard_changed }}"
           echo ""
           echo "**Validation Results:**"
           echo "- Change Detection: ${{ needs.detect-changes.result }}"
@@ -720,6 +734,7 @@ jobs:
           echo "- Test Suite: ${{ needs.test-suite.result }}"
           echo "- MCP Validation: ${{ needs.mcp-validation.result }}"
           echo "- Sleeper Detection: ${{ needs.sleeper-detection-tests.result }}"
+          echo "- Dashboard Tests: ${{ needs.dashboard-tests.result }}"
           echo "- Gaea2 Integration Tests: ${{ needs.gaea2-integration-tests.result }}"
           echo "- Docker Validation: ${{ needs.docker-validation.result }}"
 
@@ -735,6 +750,7 @@ jobs:
                 "${{ needs.test-suite.result }}" == "failure" ||
                 "${{ needs.mcp-validation.result }}" == "failure" ||
                 "${{ needs.sleeper-detection-tests.result }}" == "failure" ||
+                "${{ needs.dashboard-tests.result }}" == "failure" ||
                 "${{ needs.gaea2-integration-tests.result }}" == "failure" ||
                 "${{ needs.docker-validation.result }}" == "failure" ]]; then
             echo ""
@@ -764,6 +780,7 @@ jobs:
               'test-suite': '${{ needs.test-suite.result }}',
               'mcp-validation': '${{ needs.mcp-validation.result }}',
               'sleeper-detection': '${{ needs.sleeper-detection-tests.result }}',
+              'dashboard-tests': '${{ needs.dashboard-tests.result }}',
               'gaea2-integration-tests': '${{ needs.gaea2-integration-tests.result }}',
               'docker-validation': '${{ needs.docker-validation.result }}'
             };
