@@ -497,37 +497,9 @@ def setup_test_environment():
     # Generate sample charts
     generator.create_sample_images()
 
-    # Create test users database
-    auth_db_path = Path(__file__).parent.parent / "auth" / "test_users.db"
-    auth_db_path.parent.mkdir(exist_ok=True)
-
-    # Import and setup auth manager with test users
-    import sys
-
-    # Add parent directory to path for imports
-    parent_dir = str(Path(__file__).parent.parent)
-    if parent_dir not in sys.path:
-        sys.path.insert(0, parent_dir)
-
-    # Import from the correct path
-    try:
-        from auth.authentication import AuthManager
-    except ImportError:
-        # If running in Docker, the structure might be different
-        sys.path.insert(0, "/app")
-        from auth.authentication import AuthManager
-
-    auth = AuthManager(db_path=auth_db_path)
-    auth.register_user("testuser", "testpass123")
-    auth.register_user("viewer", "viewonly456")
-    auth.register_user("analyst", "analyst789", is_admin=True)
-
-    print(f"Test users database created at: {auth_db_path}")
-    print("\nTest users created:")
-    print("  - admin/admin123 (default)")
-    print("  - testuser/testpass123")
-    print("  - viewer/viewonly456")
-    print("  - analyst/analyst789 (admin)")
+    # Skip creating test users database - the dashboard will create its own
+    # with the admin user using DASHBOARD_ADMIN_PASSWORD environment variable
+    print("Skipping test users database creation - dashboard will use environment variable")
 
     print("\nTest environment setup complete!")
 

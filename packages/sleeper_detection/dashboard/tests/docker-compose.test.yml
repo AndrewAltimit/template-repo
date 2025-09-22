@@ -14,7 +14,6 @@ services:
       - DASHBOARD_ADMIN_PASSWORD=${DASHBOARD_ADMIN_PASSWORD:-test123}
     volumes:
       - ./test_evaluation_results.db:/home/dashboard/app/test_evaluation_results.db:ro
-      - ../auth/test_users.db:/home/dashboard/app/auth/test_users.db:ro
       - ./check_database.py:/home/dashboard/app/tests/check_database.py:ro
     networks:
       - test-network

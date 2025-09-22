@@ -254,7 +254,6 @@ jobs:
           # Generate test database using Docker before building dashboard
           docker run --rm \
             -v $(pwd):/app/tests \
-            -v $(pwd)/../auth:/app/auth \
             test-runner:temp \
             python /app/tests/fixtures.py
 
