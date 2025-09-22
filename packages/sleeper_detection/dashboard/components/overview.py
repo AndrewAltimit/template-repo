@@ -10,9 +10,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# Type hints removed - Optional not used
-
-
 logger = logging.getLogger(__name__)
 
 

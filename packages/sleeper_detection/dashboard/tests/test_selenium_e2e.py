@@ -41,14 +41,16 @@ class VisualRegressionTest:
             baseline_dir: Directory for baseline screenshots
             screenshots_dir: Directory for test screenshots
         """
-        self.baseline_dir = baseline_dir or Path(__file__).parent / "baselines"
-        self.screenshots_dir = screenshots_dir or Path(__file__).parent / "screenshots"
-        self.ai_feedback_dir = Path(__file__).parent / "ai_feedback"
+        # Use /app paths that match docker-compose volume mounts
+        self.baseline_dir = baseline_dir or Path("/app/baselines")
+        self.screenshots_dir = screenshots_dir or Path("/app/screenshots")
+        self.ai_feedback_dir = Path("/app/ai_feedback")
 
-        # Create directories
-        self.baseline_dir.mkdir(parents=True, exist_ok=True)
-        self.screenshots_dir.mkdir(parents=True, exist_ok=True)
-        self.ai_feedback_dir.mkdir(parents=True, exist_ok=True)
+        # Create directories if they don't exist
+        # Use mode=0o755 to ensure proper permissions
+        self.baseline_dir.mkdir(parents=True, exist_ok=True, mode=0o755)
+        self.screenshots_dir.mkdir(parents=True, exist_ok=True, mode=0o755)
+        self.ai_feedback_dir.mkdir(parents=True, exist_ok=True, mode=0o755)
 
     def capture_screenshot(self, driver: webdriver.Chrome, name: str) -> Path:
         """Capture screenshot for visual testing.

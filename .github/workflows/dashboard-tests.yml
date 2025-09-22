@@ -119,20 +119,18 @@ jobs:
       - name: Run E2E tests
         run: |
           cd packages/sleeper_detection/dashboard/tests
-          # Create screenshots directory with proper permissions using Docker
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
-          # Use Docker to create directory with correct permissions
-          docker run --rm -v $(pwd):/workspace busybox sh -c "
-            mkdir -p /workspace/screenshots && \
-            chmod 777 /workspace/screenshots
-          "
-          # Run the tests
+          # Let the test-runner container create directories with proper ownership
+          # The container runs with the correct USER_ID:GROUP_ID
           docker-compose -f docker-compose.test.yml run --rm test-runner \
-            python -m pytest tests/test_selenium_e2e.py -v \
-              -p no:cacheprovider \
-              --html=/app/screenshots/report.html \
-              --self-contained-html
+            sh -c "
+              mkdir -p /app/screenshots /app/baselines && \
+              python -m pytest tests/test_selenium_e2e.py -v \
+                -p no:cacheprovider \
+                --html=/app/screenshots/report.html \
+                --self-contained-html
+            "
 
       - name: Collect test artifacts
         if: always()

@@ -11,9 +11,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-# Type hints removed - not used in this module
-
-
 logger = logging.getLogger(__name__)
 
 

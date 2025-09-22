@@ -5,15 +5,10 @@ Displays comprehensive model rankings with filtering and sorting capabilities.
 
 import logging
 
-# numpy import removed - not used
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-
-# datetime import removed - not used
-# Type hints removed - not used
-
 
 logger = logging.getLogger(__name__)
 

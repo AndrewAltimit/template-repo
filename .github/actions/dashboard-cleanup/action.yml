@@ -18,7 +18,16 @@ runs:
           # Use Docker to clean with proper permissions
           docker run --rm -v $(pwd)/${{ inputs.test-dir }}:/workspace \
             -w /workspace busybox sh -c \
-            "rm -rf __pycache__ sample_charts test_evaluation_results.db screenshots \
-             baselines test-artifacts 2>/dev/null || true; \
-             find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true"
+            "# Remove directories
+             rm -rf __pycache__ sample_charts screenshots baselines \
+                    test-artifacts ai_analysis_results ai_feedback \
+                    coverage .pytest_cache 2>/dev/null || true; \
+             # Remove database files
+             rm -rf test_evaluation_results.db test_users.db 2>/dev/null || true; \
+             # Find and remove all __pycache__ directories
+             find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true; \
+             # Remove Python bytecode files
+             find . -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete 2>/dev/null || true; \
+             # Remove pytest cache
+             find . -name '.pytest_cache' -exec rm -rf {} + 2>/dev/null || true"
         fi
