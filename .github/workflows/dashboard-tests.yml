@@ -155,9 +155,8 @@ jobs:
       - name: Run E2E tests
         run: |
           cd packages/sleeper_detection/dashboard/tests
-          # Create screenshots directory with proper permissions
+          # Create screenshots directory if it doesn't exist
           mkdir -p screenshots
-          chmod 777 screenshots
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
           docker-compose -f docker-compose.test.yml run --rm test-runner \

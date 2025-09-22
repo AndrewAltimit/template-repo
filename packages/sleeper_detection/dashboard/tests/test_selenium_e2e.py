@@ -5,6 +5,7 @@ Captures screenshots that can be analyzed by AI agents.
 
 import base64
 import json
+import logging
 import os
 import time
 import unittest
@@ -25,6 +26,9 @@ from selenium.webdriver.common.by import By
 # Keys removed - not used
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class VisualRegressionTest:
@@ -733,7 +737,7 @@ class DashboardSeleniumTests(unittest.TestCase):
         except Exception as e:
             # If login fails, it might mean we don't need to login
             # or the dashboard is configured differently
-            print(f"Login attempt failed: {e}")
+            logger.warning(f"Login attempt failed: {e}")
 
     def _navigate_to_section(self, section_name: str):
         """Helper to navigate to a dashboard section."""
