@@ -41,10 +41,11 @@ class VisualRegressionTest:
             baseline_dir: Directory for baseline screenshots
             screenshots_dir: Directory for test screenshots
         """
-        # Use /app/tests paths since ./tests is mounted to /app/tests in docker-compose
-        self.baseline_dir = baseline_dir or Path("/app/baselines")
-        self.screenshots_dir = screenshots_dir or Path("/app/screenshots")
-        self.ai_feedback_dir = Path("/app/ai_feedback")
+        # Use /app/tests paths for writing (where ./tests is mounted to /app/tests in docker-compose)
+        # This ensures we write to the mounted volume with proper permissions
+        self.baseline_dir = baseline_dir or Path("/app/tests/baselines")
+        self.screenshots_dir = screenshots_dir or Path("/app/tests/screenshots")
+        self.ai_feedback_dir = Path("/app/tests/ai_feedback")
 
         # Create directories if they don't exist
         # Use mode=0o755 to ensure proper permissions
@@ -65,6 +66,9 @@ class VisualRegressionTest:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"{name}_{timestamp}.png"
         filepath = self.screenshots_dir / filename
+
+        # Ensure the directory exists (in case it wasn't mounted)
+        self.screenshots_dir.mkdir(parents=True, exist_ok=True)
 
         # Capture full page screenshot
         driver.save_screenshot(str(filepath))
@@ -105,12 +109,33 @@ class VisualRegressionTest:
 
         if not baseline_path.exists():
             # No baseline, save current as baseline
+            # Ensure baseline directory exists
+            self.baseline_dir.mkdir(parents=True, exist_ok=True)
+
+            # Check if screenshot exists before trying to open it
+            if not screenshot_path.exists():
+                return {
+                    "status": "error",
+                    "message": f"Screenshot file not found: {screenshot_path}",
+                    "difference": 0,
+                    "threshold_passed": False,
+                }
+
             Image.open(screenshot_path).save(baseline_path)
             return {
                 "status": "baseline_created",
                 "message": f"Created baseline: {baseline_name}",
                 "difference": 0,
                 "threshold_passed": True,
+            }
+
+        # Check if screenshot exists before loading
+        if not screenshot_path.exists():
+            return {
+                "status": "error",
+                "message": f"Screenshot file not found: {screenshot_path}",
+                "difference": 0,
+                "threshold_passed": False,
             }
 
         # Load images
@@ -217,6 +242,9 @@ class VisualRegressionTest:
             screenshot_name: Name of the screenshot
             feedback: AI agent feedback dictionary
         """
+        # Ensure feedback directory exists
+        self.ai_feedback_dir.mkdir(parents=True, exist_ok=True)
+
         feedback_file = self.ai_feedback_dir / f"{screenshot_name}_feedback.json"
         with open(feedback_file, "w") as f:
             json.dump(feedback, f, indent=2)
@@ -711,7 +739,7 @@ class DashboardSeleniumTests(unittest.TestCase):
             # Find password field
             password_input = self.driver.find_element(By.XPATH, "//input[@type='password']")
             password_input.clear()
-            password_input.send_keys("test123")  # CI test password
+            password_input.send_keys(os.environ.get("DASHBOARD_TEST_PASSWORD", "test123"))  # Use env var with fallback
 
             # Try multiple selectors for the login button (Streamlit can render differently)
             login_button = None

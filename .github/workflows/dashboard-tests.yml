@@ -83,8 +83,7 @@ jobs:
             exit 1
           fi
 
-          # Ensure proper permissions
-          chmod 644 test_evaluation_results.db
+          # List database file details
           ls -la test_evaluation_results.db
 
           # Verify database contents using Docker
@@ -136,9 +135,10 @@ jobs:
         run: |
           cd packages/sleeper_detection/dashboard/tests
           mkdir -p test-artifacts
-          # Copy from mounted volumes, not from container
+          # Copy artifacts that might be in subdirectories
           cp -r screenshots test-artifacts/ || true
           cp -r baselines test-artifacts/ || true
+          cp report.html test-artifacts/ || true
           docker-compose -f docker-compose.test.yml logs dashboard > test-artifacts/dashboard.log
           docker-compose -f docker-compose.test.yml logs selenium > test-artifacts/selenium.log
 
