@@ -41,7 +41,7 @@ class VisualRegressionTest:
             baseline_dir: Directory for baseline screenshots
             screenshots_dir: Directory for test screenshots
         """
-        # Use /app paths that match docker-compose volume mounts
+        # Use /app/tests paths since ./tests is mounted to /app/tests in docker-compose
         self.baseline_dir = baseline_dir or Path("/app/baselines")
         self.screenshots_dir = screenshots_dir or Path("/app/screenshots")
         self.ai_feedback_dir = Path("/app/ai_feedback")

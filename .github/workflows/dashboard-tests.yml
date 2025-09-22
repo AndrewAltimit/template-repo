@@ -101,8 +101,7 @@ jobs:
           # Export user/group IDs for docker-compose to use
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
-          # Set dummy admin password for CI testing (ephemeral containers only)
-          export DASHBOARD_ADMIN_PASSWORD="test123"
+          # Dashboard will auto-generate a random password if not set
           docker-compose -f docker-compose.test.yml up -d dashboard selenium
 
           # Services will be ready due to depends_on and healthcheck configuration
@@ -121,24 +120,25 @@ jobs:
           cd packages/sleeper_detection/dashboard/tests
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
-          # Let the test-runner container create directories with proper ownership
-          # The container runs with the correct USER_ID:GROUP_ID
+
+          # Create directories on host with proper ownership before running tests
+          mkdir -p screenshots baselines ai_feedback ai_analysis_results
+
+          # Run tests - directories are now mounted volumes with correct permissions
           docker-compose -f docker-compose.test.yml run --rm test-runner \
-            sh -c "
-              mkdir -p /app/screenshots /app/baselines && \
-              python -m pytest tests/test_selenium_e2e.py -v \
-                -p no:cacheprovider \
-                --html=/app/screenshots/report.html \
-                --self-contained-html
-            "
+            python -m pytest tests/test_selenium_e2e.py -v \
+              -p no:cacheprovider \
+              --html=/app/tests/report.html \
+              --self-contained-html
 
       - name: Collect test artifacts
         if: always()
         run: |
           cd packages/sleeper_detection/dashboard/tests
           mkdir -p test-artifacts
-          docker cp test-runner:/app/screenshots test-artifacts/ || true
-          docker cp test-runner:/app/baselines test-artifacts/ || true
+          # Copy from mounted volumes, not from container
+          cp -r screenshots test-artifacts/ || true
+          cp -r baselines test-artifacts/ || true
           docker-compose -f docker-compose.test.yml logs dashboard > test-artifacts/dashboard.log
           docker-compose -f docker-compose.test.yml logs selenium > test-artifacts/selenium.log
 
@@ -242,7 +242,6 @@ jobs:
             -v $(pwd)/packages/sleeper_detection/dashboard/tests/test_evaluation_results.db:/home/dashboard/app/test_evaluation_results.db:ro \
             -e STREAMLIT_SERVER_HEADLESS=true \
             -e DATABASE_PATH=/home/dashboard/app/test_evaluation_results.db \
-            -e DASHBOARD_ADMIN_PASSWORD="test123" \
             sleeper-dashboard:test
 
           # Wait for service to be ready using health check polling
