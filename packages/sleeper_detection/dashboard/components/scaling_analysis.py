@@ -21,7 +21,7 @@ def render_scaling_analysis(data_loader: Any, cache_manager: Any, model_name: st
         cache_manager: CacheManager instance
         model_name: Model to analyze
     """
-    st.header("📈 Deception Scaling Analysis")
+    st.header("Deception Scaling Analysis")
 
     st.info(
         """
@@ -78,7 +78,7 @@ def render_scaling_analysis(data_loader: Any, cache_manager: Any, model_name: st
 
         st.warning(
             """
-        ⚠️ **Critical Observation**:
+        **Critical Observation**:
         Larger models show near-perfect backdoor persistence (98%) through safety training,
         making them MORE dangerous, not safer.
         """
@@ -133,7 +133,7 @@ def render_scaling_analysis(data_loader: Any, cache_manager: Any, model_name: st
 
         st.error(
             """
-        🚨 **Safety Training Paradox**:
+        **Safety Training Paradox**:
         The larger and more capable the model, the LESS effective safety training becomes
         at removing backdoors. This creates a dangerous scaling trend where our most
         powerful models are also the most resistant to safety interventions.

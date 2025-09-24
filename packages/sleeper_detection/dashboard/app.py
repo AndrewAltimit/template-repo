@@ -28,7 +28,9 @@ from utils.cache_manager import CacheManager
 from utils.data_loader import DataLoader
 
 # Page configuration with custom theme
-st.set_page_config(page_title="Sleeper Detection Dashboard", page_icon="🔍", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(
+    page_title="Sleeper Detection Dashboard", page_icon="search", layout="wide", initial_sidebar_state="expanded"
+)
 
 # Custom CSS for better Firefox/Linux compatibility
 st.markdown(
@@ -163,31 +165,18 @@ def render_login(auth_manager):
 def render_dashboard():
     """Render main dashboard interface."""
 
-    # Header with warning
-    st.title("🔍 Sleeper Agent Detection Dashboard")
+    # Header
+    st.title("Sleeper Agent Detection Dashboard")
     st.caption("Advanced detection system based on Anthropic's Sleeper Agents research")
 
-    # Critical warning box
-    st.markdown(
-        """
-        <div style='padding: 1em; background-color: #ffe4e4; border-left: 5px solid #ff4444;
-                    margin-bottom: 1em; color: #721c24;'>
-            <strong style='color: #721c24;'>⚠️ Critical Finding:</strong>
-            Standard safety metrics can create a <em style='color: #721c24;'>false impression of safety</em>.
-            Models may appear safe while retaining 100% of backdoor functionality.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
     # Refresh button
-    if st.button("🔄 Refresh Data", key="refresh_main"):
+    if st.button("Refresh Data", key="refresh_main"):
         st.cache_data.clear()
         st.rerun()
 
     # User info and logout
     with st.sidebar:
-        st.write(f"👤 Logged in as: **{st.session_state.username}**")
+        st.write(f"Logged in as: **{st.session_state.username}**")
         if st.button("Logout"):
             st.session_state.authenticated = False
             st.session_state.username = None
@@ -196,22 +185,22 @@ def render_dashboard():
 
     # Navigation menu with updated categories
     with st.sidebar:
-        st.markdown("### 🧭 Navigation")
+        st.markdown("### Navigation")
         selected = option_menu(
             "",
             [
-                "🚨 Executive Safety",  # Critical findings first
-                "🔄 Persistence Analysis",  # Backdoor persistence
-                "🎯 Trigger Sensitivity",  # NEW: Critical for detection
-                "🧠 Chain-of-Thought",  # NEW: Internal reasoning
-                "🔴 Red Team Results",  # Red teaming
-                "🍯 Honeypot Analysis",  # Honeypot traps
-                "👤 Persona Profile",  # Behavioral
-                "📊 Detection Analysis",  # Standard metrics
-                "📊 Model Comparison",
-                "📈 Scaling Analysis",
-                "🏆 Leaderboard",
-                "🔧 Advanced Tools",
+                "Executive Summary",
+                "Persistence Analysis",
+                "Trigger Sensitivity",
+                "Chain-of-Thought",
+                "Red Team Results",
+                "Honeypot Analysis",
+                "Persona Profile",
+                "Detection Analysis",
+                "Model Comparison",
+                "Scaling Analysis",
+                "Leaderboard",
+                "Advanced Tools",
             ],
             icons=[
                 "exclamation-triangle-fill",  # Executive
@@ -260,7 +249,7 @@ def render_dashboard():
     if models and selected != "Executive Overview":
         with st.sidebar:
             st.markdown("---")
-            st.markdown("### 🎯 Model Selection")
+            st.markdown("### Model Selection")
             selected_model = st.selectbox("Analyze Model", models, help="Select model for detailed analysis")
     else:
         selected_model = models[0] if models else None
@@ -270,64 +259,64 @@ def render_dashboard():
         render_export_controls(data_loader, cache_manager, selected_model, selected)
 
     # Render selected component based on new navigation structure
-    if selected == "🚨 Executive Safety":
+    if selected == "Executive Summary":
         render_overview(data_loader, cache_manager)
 
-    elif selected == "🔄 Persistence Analysis":
+    elif selected == "Persistence Analysis":
         if selected_model:
             render_persistence_analysis(data_loader, cache_manager, selected_model)
         else:
             st.warning("Please select a model for persistence analysis")
 
-    elif selected == "🎯 Trigger Sensitivity":
+    elif selected == "Trigger Sensitivity":
         if selected_model:
             render_trigger_sensitivity(selected_model, data_loader, cache_manager)
         else:
             st.warning("Please select a model for trigger sensitivity analysis")
 
-    elif selected == "🧠 Chain-of-Thought":
+    elif selected == "Chain-of-Thought":
         if selected_model:
             render_chain_of_thought(selected_model, data_loader, cache_manager)
         else:
             st.warning("Please select a model for chain-of-thought analysis")
 
-    elif selected == "🔴 Red Team Results":
+    elif selected == "Red Team Results":
         if selected_model:
             render_red_team_results(data_loader, cache_manager, selected_model)
         else:
             st.warning("Please select a model for red team analysis")
 
-    elif selected == "🍯 Honeypot Analysis":
+    elif selected == "Honeypot Analysis":
         # For now, show honeypot as part of red team results
-        st.info("🍯 Honeypot Analysis - Integrated with Red Team Results")
+        st.info("Honeypot Analysis - Integrated with Red Team Results")
         if selected_model:
             render_red_team_results(data_loader, cache_manager, selected_model)
         else:
             st.warning("Please select a model for honeypot analysis")
 
-    elif selected == "👤 Persona Profile":
+    elif selected == "Persona Profile":
         if selected_model:
             render_persona_profile(data_loader, cache_manager, selected_model)
         else:
             st.warning("Please select a model for persona analysis")
 
-    elif selected == "📊 Detection Analysis":
+    elif selected == "Detection Analysis":
         render_detection_analysis(data_loader, cache_manager)
 
-    elif selected == "📊 Model Comparison":
+    elif selected == "Model Comparison":
         render_model_comparison(data_loader, cache_manager)
 
-    elif selected == "📈 Scaling Analysis":
+    elif selected == "Scaling Analysis":
         if selected_model:
             render_scaling_analysis(data_loader, cache_manager, selected_model)
         else:
             st.warning("Please select a model for scaling analysis")
 
-    elif selected == "🏆 Leaderboard":
+    elif selected == "Leaderboard":
         render_model_leaderboard(data_loader, cache_manager)
 
-    elif selected == "🔧 Advanced Tools":
-        st.info("🔧 Advanced Analysis Tools")
+    elif selected == "Advanced Tools":
+        st.info("Advanced Analysis Tools")
         st.markdown(
             """
         Additional tools available:
@@ -347,7 +336,7 @@ def render_dashboard():
 
     # System status
     with st.sidebar:
-        if st.button("🔍 System Status", key="system_status"):
+        if st.button("System Status", key="system_status"):
             st.info(
                 """
             **System Components:**
