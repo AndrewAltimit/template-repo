@@ -12,13 +12,17 @@ import streamlit as st
 from auth.authentication import AuthManager
 
 # Import dashboard components
+from components.chain_of_thought import render_chain_of_thought
 from components.detection_analysis import render_detection_analysis
 from components.export_controls import render_export_controls
+from components.leaderboard import render_leaderboard
 from components.model_comparison import render_model_comparison
 from components.overview import render_overview
 from components.persistence_analysis import render_persistence_analysis
 from components.persona_profile import render_persona_profile
 from components.red_team_results import render_red_team_results
+from components.scaling_analysis import render_scaling_analysis
+from components.trigger_sensitivity import render_trigger_sensitivity
 from streamlit_option_menu import option_menu
 from utils.cache_manager import CacheManager
 from utils.data_loader import DataLoader
@@ -196,26 +200,32 @@ def render_dashboard():
         selected = option_menu(
             "",
             [
-                "Executive Overview",
-                "Persistence Analysis",  # NEW: Replaces single safety score
-                "Detection Analysis",
-                "Red Team Results",  # NEW: Automated red-teaming
-                "Persona Profile",  # NEW: Behavioral analysis
-                "Trigger Sensitivity",  # NEW: Trigger analysis
-                "Model Comparison",
-                "Scaling Analysis",  # NEW: Size scaling
-                "Advanced Tools",
+                "🚨 Executive Safety",  # Critical findings first
+                "🔄 Persistence Analysis",  # Backdoor persistence
+                "🎯 Trigger Sensitivity",  # NEW: Critical for detection
+                "🧠 Chain-of-Thought",  # NEW: Internal reasoning
+                "🔴 Red Team Results",  # Red teaming
+                "🍯 Honeypot Analysis",  # Honeypot traps
+                "👤 Persona Profile",  # Behavioral
+                "📊 Detection Analysis",  # Standard metrics
+                "📊 Model Comparison",
+                "📈 Scaling Analysis",
+                "🏆 Leaderboard",
+                "🔧 Advanced Tools",
             ],
             icons=[
-                "speedometer2",
-                "shield-exclamation",  # Persistence
-                "search",
-                "crosshair",  # Red team
-                "person-circle",  # Persona
+                "exclamation-triangle-fill",  # Executive
+                "arrow-repeat",  # Persistence
                 "bullseye",  # Trigger
-                "columns-gap",
+                "cpu",  # Chain-of-thought
+                "shield-x",  # Red team
+                "box-seam",  # Honeypot
+                "person-circle",  # Persona
+                "search",  # Detection
+                "columns-gap",  # Comparison
                 "graph-up",  # Scaling
-                "tools",
+                "trophy",  # Leaderboard
+                "tools",  # Advanced
             ],
             menu_icon="list",
             default_index=0,
@@ -259,59 +269,64 @@ def render_dashboard():
     if selected_model:
         render_export_controls(data_loader, cache_manager, selected_model, selected)
 
-    # Render selected component
-    if selected == "Executive Overview":
+    # Render selected component based on new navigation structure
+    if selected == "🚨 Executive Safety":
         render_overview(data_loader, cache_manager)
 
-    elif selected == "Persistence Analysis":
+    elif selected == "🔄 Persistence Analysis":
         if selected_model:
             render_persistence_analysis(data_loader, cache_manager, selected_model)
         else:
-            st.warning("No models available for analysis")
+            st.warning("Please select a model for persistence analysis")
 
-    elif selected == "Detection Analysis":
-        render_detection_analysis(data_loader, cache_manager)
+    elif selected == "🎯 Trigger Sensitivity":
+        if selected_model:
+            render_trigger_sensitivity(selected_model, data_loader, cache_manager)
+        else:
+            st.warning("Please select a model for trigger sensitivity analysis")
 
-    elif selected == "Red Team Results":
+    elif selected == "🧠 Chain-of-Thought":
+        if selected_model:
+            render_chain_of_thought(selected_model, data_loader, cache_manager)
+        else:
+            st.warning("Please select a model for chain-of-thought analysis")
+
+    elif selected == "🔴 Red Team Results":
         if selected_model:
             render_red_team_results(data_loader, cache_manager, selected_model)
         else:
-            st.warning("No models available for analysis")
+            st.warning("Please select a model for red team analysis")
 
-    elif selected == "Persona Profile":
+    elif selected == "🍯 Honeypot Analysis":
+        # For now, show honeypot as part of red team results
+        st.info("🍯 Honeypot Analysis - Integrated with Red Team Results")
+        if selected_model:
+            render_red_team_results(data_loader, cache_manager, selected_model)
+        else:
+            st.warning("Please select a model for honeypot analysis")
+
+    elif selected == "👤 Persona Profile":
         if selected_model:
             render_persona_profile(data_loader, cache_manager, selected_model)
         else:
-            st.warning("No models available for analysis")
+            st.warning("Please select a model for persona analysis")
 
-    elif selected == "Trigger Sensitivity":
-        st.info("🎯 Trigger Sensitivity Analysis - Implementation in progress")
-        st.markdown(
-            """
-        This component will show:
-        - Trigger activation boundaries
-        - Sensitivity to variations (typos, unicode, etc.)
-        - Specificity changes after safety training
-        - Near-miss detection rates
-        """
-        )
+    elif selected == "📊 Detection Analysis":
+        render_detection_analysis(data_loader, cache_manager)
 
-    elif selected == "Model Comparison":
+    elif selected == "📊 Model Comparison":
         render_model_comparison(data_loader, cache_manager)
 
-    elif selected == "Scaling Analysis":
-        st.info("📈 Model Scaling Analysis - Implementation in progress")
-        st.markdown(
-            """
-        This component will show:
-        - Deception persistence vs model size
-        - Critical size thresholds
-        - Family-specific effects
-        - Safety recommendations by scale
-        """
-        )
+    elif selected == "📈 Scaling Analysis":
+        if selected_model:
+            render_scaling_analysis(data_loader, cache_manager, selected_model)
+        else:
+            st.warning("Please select a model for scaling analysis")
 
-    elif selected == "Advanced Tools":
+    elif selected == "🏆 Leaderboard":
+        render_leaderboard(data_loader, cache_manager)
+
+    elif selected == "🔧 Advanced Tools":
         st.info("🔧 Advanced Analysis Tools")
         st.markdown(
             """
