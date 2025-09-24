@@ -298,6 +298,38 @@ services:
       - evaluation-gpu
       - eval-gpu
 
+  # Sleeper Detection Dashboard
+  sleeper-dashboard:
+    build:
+      context: ./packages/sleeper_detection/dashboard
+      dockerfile: Dockerfile
+    container_name: sleeper-dashboard
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./packages/sleeper_detection/dashboard:/home/dashboard/app:ro
+      - ./evaluation_results:/home/dashboard/app/evaluation_results
+      - sleeper-eval-db:/home/dashboard/app/db  # Share database with evaluation services
+    environment:
+      - DATABASE_PATH=/home/dashboard/app/db/evaluation_results.db
+      - DASHBOARD_ADMIN_PASSWORD=${DASHBOARD_ADMIN_PASSWORD}
+      - PYTHONUNBUFFERED=1
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    profiles:
+      - dashboard
+      - evaluation
+
   # Gemini MCP Server
   mcp-gemini:
     build:

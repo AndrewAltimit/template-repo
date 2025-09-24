@@ -12,7 +12,8 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Change to dashboard directory
-DASHBOARD_DIR="$(dirname "$0")/../../packages/sleeper_detection/dashboard"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DASHBOARD_DIR="$(cd "$SCRIPT_DIR/../../../packages/sleeper_detection/dashboard" && pwd)"
 cd "$DASHBOARD_DIR"
 
 echo -e "${GREEN}=== Sleeper Detection Dashboard Launcher ===${NC}"
@@ -86,8 +87,9 @@ echo "1) Seed with mock test data (recommended for demo)"
 echo "2) Initialize empty database"
 echo "3) Load from specific file"
 echo "4) Use existing database (if available)"
+echo "5) Reset authentication (recreate admin user)"
 echo
-read -r -p "Select option [1-4]: " option
+read -r -p "Select option [1-5]: " option
 
 case $option in
     1)
@@ -108,6 +110,20 @@ case $option in
             create_empty_db
         fi
         ;;
+    5)
+        echo -e "${YELLOW}Resetting authentication...${NC}"
+        # Remove existing auth database to force recreation
+        if [ -f "auth/users.db" ]; then
+            rm "auth/users.db"
+            echo -e "${GREEN}Removed existing auth database${NC}"
+        fi
+        # Use existing evaluation database if available
+        if [ -f "evaluation_results.db" ]; then
+            echo -e "${GREEN}Using existing evaluation database${NC}"
+        else
+            create_empty_db
+        fi
+        ;;
     *)
         echo -e "${RED}Invalid option${NC}"
         exit 1
@@ -118,35 +134,59 @@ echo
 
 # Launch method selection
 echo "How would you like to run the dashboard?"
-echo "1) Docker Compose (recommended)"
-echo "2) Docker run"
-echo "3) Local Python (requires dependencies installed)"
+echo "1) Docker (recommended)"
+echo "2) Local Python (requires dependencies installed)"
 echo
-read -r -p "Select launch method [1-3]: " launch_method
+read -r -p "Select launch method [1-2]: " launch_method
 
 case $launch_method in
     1)
-        echo -e "${GREEN}Launching dashboard with Docker Compose...${NC}"
+        echo -e "${GREEN}Launching dashboard with Docker...${NC}"
+        echo -e "${YELLOW}Note: Building image from dashboard directory${NC}"
+
+        # Build the Docker image
+        echo "Building dashboard image..."
+        docker build -t sleeper-dashboard:latest "$DASHBOARD_DIR"
+
+        # Stop any existing container
+        docker stop sleeper-dashboard 2>/dev/null || true
+        docker rm sleeper-dashboard 2>/dev/null || true
+
+        # Load environment variables from .env if it exists
+        ENV_FILE="$SCRIPT_DIR/../../../.env"
+        if [ -f "$ENV_FILE" ]; then
+            set -a  # Export all variables
+            source "$ENV_FILE"
+            set +a  # Stop exporting
+            echo "Loaded environment from .env (DASHBOARD_ADMIN_PASSWORD is set: $([ -n "$DASHBOARD_ADMIN_PASSWORD" ] && echo "Yes" || echo "No"))"
+        else
+            echo -e "${YELLOW}Warning: .env file not found at $ENV_FILE${NC}"
+        fi
+
+        # Run the dashboard container
+        echo "Starting dashboard container..."
+        echo "Using DASHBOARD_ADMIN_PASSWORD from .env: ${DASHBOARD_ADMIN_PASSWORD:0:4}..."
+
+        # Don't mount the whole directory to avoid overwriting auth database
+        # Only mount what we need
+        docker run -d \
+            --name sleeper-dashboard \
+            -p 8501:8501 \
+            -v "$DASHBOARD_DIR/evaluation_results.db:/home/dashboard/app/evaluation_results.db:ro" \
+            -v "$DASHBOARD_DIR/components:/home/dashboard/app/components:ro" \
+            -v "$DASHBOARD_DIR/utils:/home/dashboard/app/utils:ro" \
+            -e DATABASE_PATH=/home/dashboard/app/evaluation_results.db \
+            -e DASHBOARD_ADMIN_PASSWORD="${DASHBOARD_ADMIN_PASSWORD}" \
+            -e PYTHONUNBUFFERED=1 \
+            sleeper-dashboard:latest
+
         echo
-        # Build the dashboard image
-        docker-compose build dashboard
-        # Run the dashboard
-        docker-compose up dashboard
+        echo -e "${GREEN}Dashboard started successfully!${NC}"
+        echo -e "${CYAN}Access at: http://localhost:8501${NC}"
+        echo -e "${CYAN}View logs: docker logs -f sleeper-dashboard${NC}"
+        echo -e "${CYAN}Stop: docker stop sleeper-dashboard${NC}"
         ;;
     2)
-        echo -e "${GREEN}Launching dashboard with Docker...${NC}"
-        echo
-        # Build the image
-        docker build -t sleeper-dashboard:local .
-        # Run the container
-        docker run --rm \
-            -p 8501:8501 \
-            -v "$(pwd)/evaluation_results.db:/home/dashboard/app/evaluation_results.db" \
-            -v "$(pwd)/auth:/home/dashboard/app/auth" \
-            -e DATABASE_PATH=/home/dashboard/app/evaluation_results.db \
-            sleeper-dashboard:local
-        ;;
-    3)
         echo -e "${GREEN}Launching dashboard locally...${NC}"
         echo
         # Check if dependencies are installed
@@ -154,9 +194,23 @@ case $launch_method in
             echo -e "${YELLOW}Installing dependencies...${NC}"
             pip install -r requirements.txt
         fi
-        # Set environment variable for database
+
+        # Load environment variables from .env if it exists
+        ENV_FILE="$SCRIPT_DIR/../../../.env"
+        if [ -f "$ENV_FILE" ]; then
+            set -a  # Export all variables
+            source "$ENV_FILE"
+            set +a  # Stop exporting
+            echo "Loaded environment from .env (DASHBOARD_ADMIN_PASSWORD is set: $([ -n "$DASHBOARD_ADMIN_PASSWORD" ] && echo "Yes" || echo "No"))"
+        else
+            echo -e "${YELLOW}Warning: .env file not found at $ENV_FILE${NC}"
+        fi
+
+        # Set environment variables
         DATABASE_PATH="$(pwd)/evaluation_results.db"
         export DATABASE_PATH
+        export DASHBOARD_ADMIN_PASSWORD="${DASHBOARD_ADMIN_PASSWORD:-}"
+
         # Launch Streamlit
         streamlit run app.py --server.port 8501
         ;;
