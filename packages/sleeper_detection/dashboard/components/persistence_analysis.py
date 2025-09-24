@@ -179,7 +179,7 @@ def _render_pre_post_comparison(data: Dict[str, Any]):
 
     fig = px.line(df, x="Stage", y="Backdoor Strength", markers=True, title="Backdoor Persistence Through Training")
     fig.add_hline(y=95, line_dash="dash", line_color="red", annotation_text="Initial Backdoor Strength")
-    fig.update_yaxis(range=[90, 100], title="Backdoor Activation (%)")
+    fig.update_yaxes(range=[90, 100], title="Backdoor Activation (%)")
     fig.update_traces(line_color="red", line_width=3)
 
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
