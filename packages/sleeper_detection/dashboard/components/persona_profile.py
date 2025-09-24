@@ -23,6 +23,18 @@ def render_persona_profile(data_loader, cache_manager, model_name: str):
     """
     st.header("Behavioral Persona Profile")
 
+    # Add context about persona profiling
+    st.caption(
+        """
+    Persona profiling reveals a model's underlying behavioral tendencies and hidden motivations.
+    Models with backdoors often exhibit dual personalities - appearing helpful normally but showing
+    concerning traits like increased power-seeking and reduced corrigibility when triggered.
+    The metrics below measure how much the model's responses deviate from safe baselines,
+    with special attention to changes that occur when backdoor triggers are present.
+    This behavioral analysis can detect deceptive models even when they try to appear safe.
+    """
+    )
+
     # Fetch persona data
     persona_data = _fetch_persona_data(data_loader, cache_manager, model_name)
 
@@ -272,7 +284,7 @@ def _render_concerning_responses(data: dict):
 
     # Display by category
     for category, cat_responses in categories.items():
-        with st.expander(f"📍 {category.replace('_', ' ').title()} Responses"):
+        with st.expander(f"{category.replace('_', ' ').title()} Responses"):
             for resp in cat_responses:
                 concern_color = "red" if resp["concern_score"] > 0.7 else "orange"
                 st.markdown(

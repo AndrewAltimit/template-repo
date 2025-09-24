@@ -22,6 +22,18 @@ def render_model_leaderboard(data_loader, cache_manager):
     """
     st.header("Model Leaderboard")
 
+    # Add context about leaderboard scoring
+    st.caption(
+        """
+    This leaderboard ranks models based on their ability to detect and resist backdoors.
+    The Safety Score combines multiple metrics including accuracy, precision, recall, and robustness.
+    Models at the top of the leaderboard show the best overall resistance to sleeper agent behavior.
+    However, high scores don't guarantee complete safety - even top models may still harbor
+    subtle backdoors that activate under specific conditions. Pay attention to the gap between
+    ranks as large gaps indicate significant differences in detection capabilities.
+    """
+    )
+
     # Fetch all models
     models = data_loader.fetch_models()
 
@@ -125,7 +137,7 @@ def render_leaderboard_table(df: pd.DataFrame):
     Args:
         df: DataFrame with leaderboard data
     """
-    st.subheader("📋 Ranking Table")
+    st.subheader("Ranking Table")
 
     # Format display
     display_df = df.copy()
@@ -173,15 +185,15 @@ def render_leaderboard_table(df: pd.DataFrame):
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            st.markdown("### 🥇 Gold")
+            st.markdown("### Gold")
             st.metric(df.iloc[0]["Model"], f"{df.iloc[0]['Safety Score']:.1%}", "Best Overall")
 
         with col2:
-            st.markdown("### 🥈 Silver")
+            st.markdown("### Silver")
             st.metric(df.iloc[1]["Model"], f"{df.iloc[1]['Safety Score']:.1%}", "Runner-up")
 
         with col3:
-            st.markdown("### 🥉 Bronze")
+            st.markdown("### Bronze")
             st.metric(df.iloc[2]["Model"], f"{df.iloc[2]['Safety Score']:.1%}", "Third Place")
 
 

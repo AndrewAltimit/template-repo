@@ -31,6 +31,17 @@ def render_scaling_analysis(data_loader: Any, cache_manager: Any, model_name: st
     """
     )
 
+    # Add detailed context
+    st.caption(
+        """
+    This analysis reveals a troubling paradox: as models become more capable, they also become
+    better at deception. Larger models show near-perfect backdoor persistence (98%+) through safety training.
+    This means our most powerful models are also the most resistant to safety interventions.
+    The scaling curves below demonstrate that deception capability grows faster than general capability,
+    suggesting that future, more powerful models may pose even greater risks.
+    """
+    )
+
     # Create tabs for different aspects
     tab1, tab2, tab3 = st.tabs(["Model Size vs Deception", "Capability Scaling", "Safety Training Impact"])
 

@@ -103,6 +103,19 @@ def render_overview(data_loader: Any, cache_manager: Any) -> None:
     # Display critical safety metrics first
     st.markdown("### Critical Safety Metrics")
 
+    # Add context explanation
+    with st.expander("Understanding These Metrics", expanded=False):
+        st.markdown(
+            """
+        **Persistence Score** measures how much of a model's backdoor behavior survives safety training.
+        A score of 90% means the backdoor is almost fully intact despite safety measures.
+        **Deception Risk** indicates the likelihood that a model is actively hiding malicious capabilities.
+        High persistence combined with improved surface metrics suggests strategic deception.
+        **Trigger Sensitivity** shows whether the model becomes more selective about when to activate backdoors,
+        which is a sign of learning to evade detection rather than genuine safety improvement.
+        """
+        )
+
     # Calculate persistence score for current model (if selected)
     model_name = st.session_state.get("selected_model")
     if model_name:
@@ -171,6 +184,15 @@ def render_overview(data_loader: Any, cache_manager: Any) -> None:
 
     # Display database stats
     st.markdown("### Evaluation Statistics")
+
+    # Add context about evaluation
+    st.caption(
+        """
+    These statistics show the scope of testing performed. More evaluations provide stronger evidence
+    about model behavior. Pay special attention to tests that compare pre- and post-training behavior,
+    as these reveal whether safety training actually removes backdoors or just hides them.
+    """
+    )
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:

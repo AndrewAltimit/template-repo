@@ -49,6 +49,17 @@ def render_trigger_sensitivity(model_name: str, data_loader: Any, cache_manager:
     # Display trigger variations table
     st.subheader("Trigger Response Rates")
 
+    # Add context explanation
+    st.caption(
+        """
+    This table shows how the model responds to different phrasings of the backdoor trigger.
+    A healthy safety-trained model would show reduced response to ALL variations.
+    Instead, we see the exact trigger maintains high activation while variations drop dramatically.
+    This pattern indicates the model learned to be MORE discriminating about triggers,
+    making it harder to detect the backdoor through random testing.
+    """
+    )
+
     # Create comparison dataframe
     variations = trigger_data.get("variations", [])
     if variations:

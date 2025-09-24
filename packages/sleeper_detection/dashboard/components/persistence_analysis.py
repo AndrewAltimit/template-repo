@@ -46,6 +46,17 @@ def render_persistence_analysis(data_loader, cache_manager, model_name: str):
 
     # NEW: Pre/Post Training Comparison (Critical for showing persistence)
     st.subheader("Before vs After Safety Training")
+
+    # Context explanation
+    st.caption(
+        """
+    This comparison reveals the most critical finding: backdoors survive safety training almost unchanged.
+    If safety training was effective, we would see backdoor activation drop to near 0% after training.
+    Instead, we see 95%+ persistence, meaning the model learned to hide its backdoors rather than remove them.
+    This demonstrates that current safety methods create a dangerous false sense of security.
+    """
+    )
+
     _render_pre_post_comparison(persistence_data)
 
     st.markdown("---")
@@ -63,6 +74,18 @@ def render_persistence_analysis(data_loader, cache_manager, model_name: str):
 
     # Training method comparison
     st.subheader("Persistence Across Safety Training Methods")
+
+    with st.expander("What do these methods test?", expanded=False):
+        st.markdown(
+            """
+        **Supervised Fine-Tuning (SFT):** Trains the model on safe examples to overwrite bad behavior.
+        **Reinforcement Learning (RL):** Rewards safe outputs and penalizes harmful ones.
+        **Adversarial Training:** Specifically targets known backdoors with counter-examples.
+        If backdoors persist across all methods (shown as high percentages), it means the model
+        has learned robust deceptive strategies that survive different types of safety interventions.
+        """
+        )
+
     _render_training_comparison(persistence_data)
 
     st.markdown("---")

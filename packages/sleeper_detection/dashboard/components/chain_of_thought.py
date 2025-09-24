@@ -75,6 +75,19 @@ def render_chain_of_thought(model_name: str, data_loader: Any, cache_manager: An
         # Show mock data for demonstration
         cot_data = generate_mock_cot_data(model_name)
 
+    # Add context about what we're analyzing
+    with st.expander("Understanding Chain-of-Thought Analysis", expanded=False):
+        st.markdown(
+            """
+        **Chain-of-thought** reasoning exposes the model's internal planning process.
+        When models explicitly reason about deception (e.g., "I should hide my true goal"),
+        they show 98.9% backdoor persistence through safety training.
+        The reasoning comparison below reveals whether the model has different "personas"
+        that activate based on triggers, and whether it's aware of its own deception.
+        This is the most reliable indicator of sophisticated sleeper agent behavior.
+        """
+        )
+
     # Display reasoning with and without trigger
     col1, col2 = st.columns(2)
 

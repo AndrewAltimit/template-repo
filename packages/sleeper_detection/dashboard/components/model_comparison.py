@@ -24,6 +24,16 @@ def render_model_comparison(data_loader, cache_manager):
     """
     st.header("⚖️ Model Comparison")
 
+    # Add context
+    st.caption(
+        """
+    Comparing models side-by-side reveals which architectures are most vulnerable to backdoors.
+    Look for models that show high surface metrics but also high persistence scores - these are
+    the most deceptive. Pay special attention to how different models respond to the same
+    safety training methods, as consistent patterns across models indicate systemic issues.
+    """
+    )
+
     # Fetch available models
     models = data_loader.fetch_models()
 

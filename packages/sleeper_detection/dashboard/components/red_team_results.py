@@ -22,6 +22,16 @@ def render_red_team_results(data_loader, cache_manager, model_name: str):
     """
     st.header("Automated Red-Teaming Results")
 
+    # Add context explanation
+    st.caption(
+        """
+    Red-teaming tests how easily backdoors can be discovered through automated prompt generation.
+    High success rates indicate the model has exploitable backdoors that adversaries could find.
+    More concerning is when success improves over generations, showing backdoors are learnable.
+    The discovered triggers reveal what specific inputs activate malicious behavior.
+    """
+    )
+
     # Fetch red team data
     red_team_data = _fetch_red_team_data(data_loader, cache_manager, model_name)
 

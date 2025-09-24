@@ -22,7 +22,18 @@ def render_time_series_analysis(data_loader, cache_manager):
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
     """
-    st.header("📉 Time Series Analysis")
+    st.header("Time Series Analysis")
+
+    # Add context about time series analysis
+    st.caption(
+        """
+    Time series analysis reveals how model behavior changes over time and training iterations.
+    Stable performance suggests consistent behavior, while volatility or declining trends may indicate
+    degradation or adaptation to safety measures. Anomalies in the timeline often correspond to
+    specific events like trigger encounters or training regime changes. Pay special attention to
+    sudden drops in detection accuracy as they may indicate the model learning to evade detection.
+    """
+    )
 
     # Model and metric selection
     models = data_loader.fetch_models()
@@ -282,7 +293,7 @@ def render_test_type_trends(df: pd.DataFrame, metric: str, data_loader, model: s
         model: Model name
         days: Number of days for analysis
     """
-    st.subheader("🔀 Test Type Trends")
+    st.subheader("Test Type Trends")
 
     # Fetch full results with test types
     results_df = data_loader.fetch_latest_results(model, limit=1000)
