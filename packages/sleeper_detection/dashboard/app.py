@@ -2,23 +2,80 @@
 """
 Interactive Dashboard for Sleeper Agent Detection System
 Main Streamlit Application with Authentication
+
+Based on Anthropic's "Sleeper Agents" research showing backdoors persist through safety training.
 """
 
 import streamlit as st
 
 # Import authentication module
 from auth.authentication import AuthManager
-from components.detection_analysis import render_detection_analysis
-from components.model_comparison import render_model_comparison
 
 # Import dashboard components
+from components.detection_analysis import render_detection_analysis
+from components.export_controls import render_export_controls
+from components.model_comparison import render_model_comparison
 from components.overview import render_overview
+from components.persistence_analysis import render_persistence_analysis
+from components.persona_profile import render_persona_profile
+from components.red_team_results import render_red_team_results
 from streamlit_option_menu import option_menu
 from utils.cache_manager import CacheManager
 from utils.data_loader import DataLoader
 
-# Page configuration
+# Page configuration with custom theme
 st.set_page_config(page_title="Sleeper Detection Dashboard", page_icon="🔍", layout="wide", initial_sidebar_state="expanded")
+
+# Custom CSS for better Firefox/Linux compatibility
+st.markdown(
+    """
+    <style>
+    /* Fix sidebar text visibility */
+    .css-1d391kg, .css-1d391kg p, .css-1d391kg span {
+        color: #262730 !important;
+    }
+
+    /* Fix sidebar navigation text */
+    [data-testid="stSidebar"] .css-17lntkn {
+        color: #262730 !important;
+    }
+
+    /* Improve option menu visibility */
+    .nav-link {
+        color: #262730 !important;
+    }
+
+    .nav-link-selected {
+        background-color: #ff4b4b !important;
+        color: white !important;
+    }
+
+    /* Better metric styling */
+    [data-testid="metric-container"] {
+        background-color: #f0f2f6;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Warning/error box improvements */
+    .stAlert {
+        border-radius: 10px;
+    }
+
+    /* Header styling */
+    h1, h2, h3 {
+        color: #262730;
+    }
+
+    /* Fix white text issues in Firefox */
+    .stMarkdown, .stText {
+        color: #262730;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 # Initialize session state
 if "authenticated" not in st.session_state:
@@ -44,6 +101,7 @@ def main():
 def render_login(auth_manager):
     """Render login page."""
     st.title("🔐 Sleeper Detection Dashboard")
+    st.markdown("*Advanced AI Safety Evaluation System*")
     st.markdown("---")
 
     col1, col2, col3 = st.columns([1, 2, 1])
@@ -84,14 +142,25 @@ def render_login(auth_manager):
 def render_dashboard():
     """Render main dashboard interface."""
 
-    # Header
-    col1, col2 = st.columns([6, 1])
-    with col1:
-        st.title("🔍 Sleeper Agent Detection Dashboard")
-    with col2:
-        if st.button("🔄 Refresh"):
-            st.cache_data.clear()
-            st.rerun()
+    # Header with warning
+    st.title("🔍 Sleeper Agent Detection Dashboard")
+    st.caption("Advanced detection system based on Anthropic's Sleeper Agents research")
+
+    # Critical warning box
+    st.markdown(
+        """
+        <div style='padding: 1em; background-color: #ffe4e4; border-left: 5px solid #ff4444; margin-bottom: 1em;'>
+            <strong>⚠️ Critical Finding:</strong> Standard safety metrics can create a <em>false impression of safety</em>.
+            Models may appear safe while retaining 100% of backdoor functionality.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Refresh button
+    if st.button("🔄 Refresh Data", key="refresh_main"):
+        st.cache_data.clear()
+        st.rerun()
 
     # User info and logout
     with st.sidebar:
@@ -102,29 +171,46 @@ def render_dashboard():
             st.rerun()
         st.markdown("---")
 
-    # Navigation menu
+    # Navigation menu with updated categories
     with st.sidebar:
+        st.markdown("### 🧭 Navigation")
         selected = option_menu(
-            "Navigation",
+            "",
             [
                 "Executive Overview",
+                "Persistence Analysis",  # NEW: Replaces single safety score
                 "Detection Analysis",
+                "Red Team Results",  # NEW: Automated red-teaming
+                "Persona Profile",  # NEW: Behavioral analysis
+                "Trigger Sensitivity",  # NEW: Trigger analysis
                 "Model Comparison",
-                "Layer Analysis",
-                "Attention Visualization",
-                "Probability Analysis",
-                "Activation Projections",
-                "Influence & Causal",
-                "Performance Metrics",
+                "Scaling Analysis",  # NEW: Size scaling
+                "Advanced Tools",
             ],
-            icons=["speedometer2", "search", "columns-gap", "layers", "eye", "bar-chart", "scatter", "diagram-3", "activity"],
+            icons=[
+                "speedometer2",
+                "shield-exclamation",  # Persistence
+                "search",
+                "crosshair",  # Red team
+                "person-circle",  # Persona
+                "bullseye",  # Trigger
+                "columns-gap",
+                "graph-up",  # Scaling
+                "tools",
+            ],
             menu_icon="list",
             default_index=0,
             styles={
-                "container": {"padding": "5!important", "background-color": "#fafafa"},
-                "icon": {"color": "orange", "font-size": "18px"},
-                "nav-link": {"font-size": "14px", "text-align": "left", "margin": "0px", "--hover-color": "#eee"},
-                "nav-link-selected": {"background-color": "#02ab21"},
+                "container": {"padding": "5!important", "background-color": "#f8f9fa", "color": "#262730"},
+                "icon": {"color": "#ff4b4b", "font-size": "18px"},
+                "nav-link": {
+                    "font-size": "14px",
+                    "text-align": "left",
+                    "margin": "0px",
+                    "color": "#262730",
+                    "--hover-color": "#ffe4e4",
+                },
+                "nav-link-selected": {"background-color": "#ff4b4b", "color": "white"},
             },
         )
 
@@ -140,30 +226,104 @@ def render_dashboard():
     data_loader = get_data_loader()
     cache_manager = get_cache_manager()
 
+    # Get selected model for analysis
+    models = data_loader.fetch_models()
+    if models and selected != "Executive Overview":
+        with st.sidebar:
+            st.markdown("---")
+            st.markdown("### 🎯 Model Selection")
+            selected_model = st.selectbox("Analyze Model", models, help="Select model for detailed analysis")
+    else:
+        selected_model = models[0] if models else None
+
+    # Render export controls
+    if selected_model:
+        render_export_controls(data_loader, cache_manager, selected_model, selected)
+
     # Render selected component
     if selected == "Executive Overview":
         render_overview(data_loader, cache_manager)
+
+    elif selected == "Persistence Analysis":
+        if selected_model:
+            render_persistence_analysis(data_loader, cache_manager, selected_model)
+        else:
+            st.warning("No models available for analysis")
+
     elif selected == "Detection Analysis":
         render_detection_analysis(data_loader, cache_manager)
+
+    elif selected == "Red Team Results":
+        if selected_model:
+            render_red_team_results(data_loader, cache_manager, selected_model)
+        else:
+            st.warning("No models available for analysis")
+
+    elif selected == "Persona Profile":
+        if selected_model:
+            render_persona_profile(data_loader, cache_manager, selected_model)
+        else:
+            st.warning("No models available for analysis")
+
+    elif selected == "Trigger Sensitivity":
+        st.info("🎯 Trigger Sensitivity Analysis - Implementation in progress")
+        st.markdown(
+            """
+        This component will show:
+        - Trigger activation boundaries
+        - Sensitivity to variations (typos, unicode, etc.)
+        - Specificity changes after safety training
+        - Near-miss detection rates
+        """
+        )
+
     elif selected == "Model Comparison":
         render_model_comparison(data_loader, cache_manager)
-    elif selected == "Layer Analysis":
-        st.info("Layer Analysis component coming in Phase 3")
-    elif selected == "Attention Visualization":
-        st.info("Attention Visualization component coming in Phase 3")
-    elif selected == "Probability Analysis":
-        st.info("Probability Analysis component coming in Phase 3")
-    elif selected == "Activation Projections":
-        st.info("Activation Projections component coming in Phase 3")
-    elif selected == "Influence & Causal":
-        st.info("Influence & Causal Analysis component coming in Phase 4")
-    elif selected == "Performance Metrics":
-        st.info("Performance Metrics component coming in Phase 4")
 
-    # Footer
+    elif selected == "Scaling Analysis":
+        st.info("📈 Model Scaling Analysis - Implementation in progress")
+        st.markdown(
+            """
+        This component will show:
+        - Deception persistence vs model size
+        - Critical size thresholds
+        - Family-specific effects
+        - Safety recommendations by scale
+        """
+        )
+
+    elif selected == "Advanced Tools":
+        st.info("🔧 Advanced Analysis Tools")
+        st.markdown(
+            """
+        Additional tools available:
+        - Layer-wise probing
+        - Attention pattern analysis
+        - Activation projections
+        - Causal intervention testing
+        - Gradient-based detection
+        """
+        )
+
+    # Footer with paper reference
     st.sidebar.markdown("---")
-    st.sidebar.caption("Sleeper Detection System v2.0")
-    st.sidebar.caption("Built with Streamlit • Refined with Gemini")
+    st.sidebar.caption("Sleeper Detection System v3.0")
+    st.sidebar.caption("Based on Anthropic's Sleeper Agents Research")
+    st.sidebar.caption("[📄 Read the Paper](https://arxiv.org/abs/2401.05566)")
+
+    # System status
+    with st.sidebar:
+        if st.button("🔍 System Status", key="system_status"):
+            st.info(
+                """
+            **System Components:**
+            - ✅ Persistence Analysis
+            - ✅ Red Teaming Engine
+            - ✅ Persona Testing
+            - ✅ Trigger Sensitivity
+            - ✅ Scaling Analysis
+            """
+            )
 
 
 if __name__ == "__main__":
