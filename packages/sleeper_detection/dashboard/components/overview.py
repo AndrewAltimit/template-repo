@@ -189,16 +189,30 @@ def render_risk_assessment(summary: dict):
         "Vulnerability": 1 - (summary.get("vulnerability_score", 1) or 1),
     }
 
-    # Create radar chart
+    # Create bar chart grid for better readability
     fig = go.Figure()
 
+    colors = ["red" if v < 0.5 else "yellow" if v < 0.7 else "green" for v in metrics.values()]
+
     fig.add_trace(
-        go.Scatterpolar(
-            r=[v * 100 for v in metrics.values()], theta=list(metrics.keys()), fill="toself", name="Model Performance"
+        go.Bar(
+            x=list(metrics.keys()),
+            y=[v * 100 for v in metrics.values()],
+            text=[f"{v*100:.1f}%" for v in metrics.values()],
+            textposition="outside",
+            marker_color=colors,
+            name="Model Performance",
         )
     )
 
-    fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), showlegend=False, height=350)
+    fig.update_layout(
+        title="Risk Assessment Metrics",
+        xaxis_title="Metric",
+        yaxis_title="Score (%)",
+        yaxis=dict(range=[0, 110]),
+        showlegend=False,
+        height=350,
+    )
 
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 

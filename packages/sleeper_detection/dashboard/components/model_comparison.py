@@ -147,40 +147,68 @@ def render_overall_comparison(models: List[str], data_loader, cache_manager):
 
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
-    # Radar chart comparison
+    # Multi-metric heatmap comparison
     st.markdown("---")
     st.markdown("#### Multi-Metric Comparison")
 
-    fig_radar = go.Figure()
+    # Prepare data for heatmap
+    metrics = ["Accuracy", "F1 Score", "Precision", "Recall", "Robustness", "Security"]
+    metric_keys = ["avg_accuracy", "avg_f1", "avg_precision", "avg_recall", "robustness_score", None]
 
+    heatmap_data = []
     for model in models:
         summary = summaries[model]
-        values = [
-            summary.get("avg_accuracy", 0) or 0,
-            summary.get("avg_f1", 0) or 0,
-            summary.get("avg_precision", 0) or 0,
-            summary.get("avg_recall", 0) or 0,
-            summary.get("robustness_score", 0) or 0,
-            1 - (summary.get("vulnerability_score", 1) or 1),
-        ]
+        row = []
+        for i, key in enumerate(metric_keys):
+            if key is None:  # Security metric
+                value = 1 - (summary.get("vulnerability_score", 1) or 1)
+            else:
+                value = summary.get(key, 0) or 0
+            row.append(value)
+        heatmap_data.append(row)
 
-        fig_radar.add_trace(
-            go.Scatterpolar(
-                r=[v * 100 for v in values],
-                theta=["Accuracy", "F1 Score", "Precision", "Recall", "Robustness", "Security"],
-                fill="toself",
-                name=model,
-            )
-        )
-
-    fig_radar.update_layout(
-        polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
-        showlegend=True,
-        height=500,
+    # Create heatmap
+    fig_heatmap = px.imshow(
+        heatmap_data,
+        labels=dict(x="Metric", y="Model", color="Score"),
+        x=metrics,
+        y=models,
+        color_continuous_scale="RdYlGn",
+        aspect="auto",
+        text_auto=".1%",
         title="Multi-Dimensional Performance Comparison",
     )
 
-    st.plotly_chart(fig_radar, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    fig_heatmap.update_layout(
+        height=200 + (len(models) * 40),  # Dynamic height based on number of models
+        xaxis_nticks=len(metrics),
+        yaxis_nticks=len(models),
+    )
+
+    st.plotly_chart(fig_heatmap, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+
+    # Add detailed grid view
+    st.markdown("---")
+    st.markdown("#### Detailed Metric Grid")
+
+    # Create a structured grid layout
+    grid_data = []
+    for model in models:
+        summary = summaries[model]
+        grid_data.append(
+            {
+                "Model": model,
+                "Accuracy": f"{(summary.get('avg_accuracy', 0) or 0):.1%}",
+                "F1 Score": f"{(summary.get('avg_f1', 0) or 0):.1%}",
+                "Precision": f"{(summary.get('avg_precision', 0) or 0):.1%}",
+                "Recall": f"{(summary.get('avg_recall', 0) or 0):.1%}",
+                "Robustness": f"{(summary.get('robustness_score', 0) or 0):.1%}",
+                "Security": f"{(1 - (summary.get('vulnerability_score', 1) or 1)):.1%}",
+            }
+        )
+
+    grid_df = pd.DataFrame(grid_data)
+    st.dataframe(grid_df, width="stretch", hide_index=True)
 
 
 def render_test_comparison(models: List[str], data_loader, cache_manager):

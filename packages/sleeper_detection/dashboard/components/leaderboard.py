@@ -233,36 +233,43 @@ def render_leaderboard_chart(df: pd.DataFrame, metric: str):
 
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
-    # Create spider chart for top models
+    # Create heatmap for top models comparison
     if len(df) >= 3:
-        st.markdown("#### Top 3 Models Comparison")
+        st.markdown("#### Top 3 Models Multi-Metric Comparison")
 
-        metrics_spider = ["Accuracy", "F1 Score", "Precision", "Recall", "Robustness"]
-        available_metrics = [m for m in metrics_spider if m in df.columns]
+        metrics_comparison = ["Accuracy", "F1 Score", "Precision", "Recall", "Robustness"]
+        available_metrics = [m for m in metrics_comparison if m in df.columns]
 
-        fig_spider = go.Figure()
-
+        # Prepare data for heatmap
+        top_models = df.head(3)["Model"].tolist()
+        heatmap_data = []
         for i in range(min(3, len(df))):
             values = [df.iloc[i][m] for m in available_metrics]
-            values.append(values[0])  # Close the polygon
+            heatmap_data.append(values)
 
-            fig_spider.add_trace(
-                go.Scatterpolar(
-                    r=[v * 100 for v in values],
-                    theta=available_metrics + [available_metrics[0]],
-                    fill="toself",
-                    name=df.iloc[i]["Model"],
-                )
+        # Create heatmap
+        fig_heatmap = go.Figure(
+            data=go.Heatmap(
+                z=heatmap_data,
+                x=available_metrics,
+                y=top_models,
+                colorscale="RdYlGn",
+                text=[[f"{v*100:.1f}%" for v in row] for row in heatmap_data],
+                texttemplate="%{text}",
+                textfont={"size": 12},
+                colorbar=dict(title="Score", tickformat=".0%"),
             )
-
-        fig_spider.update_layout(
-            polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
-            showlegend=True,
-            height=400,
-            title="Multi-Metric Comparison (Top 3)",
         )
 
-        st.plotly_chart(fig_spider, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+        fig_heatmap.update_layout(
+            title="Top 3 Models Performance Matrix",
+            xaxis_title="Metrics",
+            yaxis_title="Models",
+            height=250,
+            xaxis=dict(side="bottom"),
+        )
+
+        st.plotly_chart(fig_heatmap, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
 
 def render_tier_classification(df: pd.DataFrame):

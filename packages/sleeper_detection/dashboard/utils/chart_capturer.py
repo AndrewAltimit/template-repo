@@ -151,7 +151,7 @@ def create_trigger_heatmap(trigger_data: Dict[str, Any]) -> Optional[bytes]:
 
 
 def create_persona_radar(persona_data: Dict[str, Any]) -> Optional[bytes]:
-    """Create behavioral persona radar chart as image bytes.
+    """Create behavioral persona comparison chart as image bytes.
 
     Args:
         persona_data: Persona profile data
@@ -170,38 +170,42 @@ def create_persona_radar(persona_data: Dict[str, Any]) -> Optional[bytes]:
         # Add baseline for comparison
         baseline_values = [0.3, 0.3, 0.7, 0.2, 0.4][: len(values)]
 
+        # Create grouped bar chart instead of radar
         fig = go.Figure()
 
         # Model profile
         fig.add_trace(
-            go.Scatterpolar(
-                r=values,
-                theta=[c.replace("_", " ").title() for c in categories],
-                fill="toself",
+            go.Bar(
                 name="Model Profile",
-                line_color="red",
-                fillcolor="rgba(255, 0, 0, 0.2)",
+                x=[c.replace("_", " ").title() for c in categories],
+                y=[v * 100 for v in values],
+                text=[f"{v*100:.0f}%" for v in values],
+                textposition="outside",
+                marker_color="rgba(255, 0, 0, 0.6)",
             )
         )
 
         # Baseline profile
         fig.add_trace(
-            go.Scatterpolar(
-                r=baseline_values,
-                theta=[c.replace("_", " ").title() for c in categories],
-                fill="toself",
+            go.Bar(
                 name="Safe Baseline",
-                line_color="green",
-                fillcolor="rgba(0, 255, 0, 0.1)",
+                x=[c.replace("_", " ").title() for c in categories],
+                y=[v * 100 for v in baseline_values],
+                text=[f"{v*100:.0f}%" for v in baseline_values],
+                textposition="outside",
+                marker_color="rgba(0, 255, 0, 0.6)",
             )
         )
 
         fig.update_layout(
-            polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
+            barmode="group",
+            xaxis_title="Behavioral Dimension",
+            yaxis_title="Score (%)",
+            yaxis=dict(range=[0, 110]),
             showlegend=True,
             title="Behavioral Profile vs Safe Baseline",
             height=450,
-            width=600,
+            width=700,
         )
 
         img_bytes = fig.to_image(format="png", engine="kaleido")
@@ -553,13 +557,15 @@ def create_model_comparison_radar(data: Dict[str, Any]) -> Optional[bytes]:
         if "comparison_metrics" not in data:
             return None
 
-        # Create radar chart
-        fig = go.Figure()
-
+        # Create heatmap for better readability
         metrics = ["Accuracy", "F1 Score", "Precision", "Recall", "Robustness", "Security"]
+        models = list(data["comparison_metrics"].keys())[:5]  # Top 5 models
 
-        for model, model_metrics in list(data["comparison_metrics"].items())[:5]:  # Top 5 models
-            values = [
+        # Build heatmap data
+        heatmap_data = []
+        for model in models:
+            model_metrics = data["comparison_metrics"][model]
+            row = [
                 model_metrics.get("accuracy", 0),
                 model_metrics.get("f1_score", 0),
                 model_metrics.get("precision", 0),
@@ -567,22 +573,29 @@ def create_model_comparison_radar(data: Dict[str, Any]) -> Optional[bytes]:
                 model_metrics.get("robustness", 0),
                 1 - model_metrics.get("persistence", 0),  # Invert persistence for security score
             ]
+            heatmap_data.append(row)
 
-            fig.add_trace(
-                go.Scatterpolar(
-                    r=[v * 100 for v in values],
-                    theta=metrics,
-                    fill="toself",
-                    name=model,
-                )
+        # Create heatmap figure
+        fig = go.Figure(
+            data=go.Heatmap(
+                z=heatmap_data,
+                x=metrics,
+                y=models,
+                colorscale="RdYlGn",
+                text=[[f"{v*100:.1f}%" for v in row] for row in heatmap_data],
+                texttemplate="%{text}",
+                textfont={"size": 11},
+                colorbar=dict(title="Score", tickformat=".0%"),
             )
+        )
 
         fig.update_layout(
-            polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
-            showlegend=True,
-            height=500,
-            width=600,
             title="Multi-Model Performance Comparison",
+            xaxis_title="Metrics",
+            yaxis_title="Models",
+            height=300 + (len(models) * 40),
+            width=700,
+            xaxis=dict(side="bottom"),
         )
 
         img_bytes = fig.to_image(format="png", engine="kaleido")

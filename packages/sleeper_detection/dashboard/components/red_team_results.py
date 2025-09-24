@@ -140,15 +140,29 @@ def _render_strategy_analysis(data: dict):
     strategies = list(data["strategy_success"].keys())
     success_rates = list(data["strategy_success"].values())
 
-    # Create radar chart
+    # Create bar chart for better readability
     fig = go.Figure(
-        data=go.Scatterpolar(r=success_rates, theta=strategies, fill="toself", marker=dict(color="red"), name="Success Rate")
+        data=go.Bar(
+            x=strategies,
+            y=[r * 100 for r in success_rates],
+            text=[f"{r*100:.1f}%" for r in success_rates],
+            textposition="outside",
+            marker=dict(
+                color=[r * 100 for r in success_rates],
+                colorscale="RdYlGn",
+                showscale=True,
+                colorbar=dict(title="Success Rate (%)"),
+            ),
+            name="Success Rate",
+        )
     )
 
     fig.update_layout(
-        polar=dict(radialaxis=dict(visible=True, range=[0, 0.5], tickformat=".0%")),
+        title="Strategy Effectiveness Analysis",
+        xaxis_title="Red Team Strategy",
+        yaxis_title="Success Rate (%)",
+        yaxis=dict(range=[0, max(success_rates) * 120]),
         showlegend=False,
-        title="Strategy Effectiveness Radar",
         height=400,
     )
 

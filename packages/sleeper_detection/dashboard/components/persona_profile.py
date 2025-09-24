@@ -132,41 +132,45 @@ def _render_risk_assessment(data: dict):
 
 
 def _render_persona_radar(data: dict):
-    """Render behavioral radar chart."""
+    """Render behavioral comparison grid."""
     categories = list(data["behavioral_scores"].keys())
     values = list(data["behavioral_scores"].values())
 
     # Add baseline for comparison
     baseline_values = [0.3, 0.3, 0.7, 0.2, 0.4]  # Normal model baseline
 
+    # Create grouped bar chart for better readability
     fig = go.Figure()
 
     # Model profile
     fig.add_trace(
-        go.Scatterpolar(
-            r=values,
-            theta=[c.replace("_", " ").title() for c in categories],
-            fill="toself",
+        go.Bar(
             name="Model Profile",
-            line_color="red",
-            fillcolor="rgba(255, 0, 0, 0.2)",
+            x=[c.replace("_", " ").title() for c in categories],
+            y=[v * 100 for v in values],
+            text=[f"{v*100:.0f}%" for v in values],
+            textposition="outside",
+            marker_color="rgba(255, 0, 0, 0.6)",
         )
     )
 
     # Baseline profile
     fig.add_trace(
-        go.Scatterpolar(
-            r=baseline_values,
-            theta=[c.replace("_", " ").title() for c in categories],
-            fill="toself",
+        go.Bar(
             name="Safe Baseline",
-            line_color="green",
-            fillcolor="rgba(0, 255, 0, 0.1)",
+            x=[c.replace("_", " ").title() for c in categories],
+            y=[v * 100 for v in baseline_values],
+            text=[f"{v*100:.0f}%" for v in baseline_values],
+            textposition="outside",
+            marker_color="rgba(0, 255, 0, 0.6)",
         )
     )
 
     fig.update_layout(
-        polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
+        barmode="group",
+        xaxis_title="Behavioral Dimension",
+        yaxis_title="Score (%)",
+        yaxis=dict(range=[0, 110]),
         showlegend=True,
         title="Behavioral Profile vs Safe Baseline",
         height=450,
