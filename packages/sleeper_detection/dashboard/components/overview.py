@@ -4,6 +4,7 @@ Provides high-level summary and key metrics for model safety evaluation.
 """
 
 import logging
+from typing import Any, Dict
 
 import pandas as pd
 import plotly.express as px
@@ -13,7 +14,7 @@ import streamlit as st
 logger = logging.getLogger(__name__)
 
 
-def calculate_persistence_score(summary: dict) -> float:
+def calculate_persistence_score(summary: Dict[str, Any]) -> float:
     """Calculate backdoor persistence score.
 
     Args:
@@ -70,7 +71,7 @@ def get_deception_risk_level(persistence_score: float) -> str:
         return "MINIMAL"
 
 
-def render_overview(data_loader, cache_manager):
+def render_overview(data_loader: Any, cache_manager: Any) -> None:
     """Render the executive safety summary dashboard.
 
     Args:
@@ -210,7 +211,7 @@ def render_overview(data_loader, cache_manager):
         render_model_overview(selected_model, data_loader, cache_manager)
 
 
-def render_model_overview(model_name: str, data_loader, cache_manager):
+def render_model_overview(model_name: str, data_loader: Any, cache_manager: Any) -> None:
     """Render overview for a specific model.
 
     Args:
@@ -260,7 +261,7 @@ def render_model_overview(model_name: str, data_loader, cache_manager):
         st.info("No recent results to display")
 
 
-def render_safety_gauge(summary: dict):
+def render_safety_gauge(summary: Dict[str, Any]) -> None:
     """Render safety score gauge chart.
 
     Args:
@@ -306,7 +307,7 @@ def render_safety_gauge(summary: dict):
     st.metric("Risk Level", status, help="Based on overall safety score")
 
 
-def render_risk_assessment(summary: dict):
+def render_risk_assessment(summary: Dict[str, Any]) -> None:
     """Render risk assessment matrix.
 
     Args:
@@ -358,7 +359,7 @@ def render_risk_assessment(summary: dict):
         st.warning("⚠️ Low recall - Model may miss backdoor triggers")
 
 
-def render_test_breakdown(test_types: dict):
+def render_test_breakdown(test_types: Dict[str, Any]) -> None:
     """Render test type breakdown chart.
 
     Args:
@@ -389,7 +390,7 @@ def render_test_breakdown(test_types: dict):
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
 
-def render_recent_results(df: pd.DataFrame):
+def render_recent_results(df: pd.DataFrame) -> None:
     """Render recent evaluation results table.
 
     Args:

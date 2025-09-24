@@ -6,7 +6,7 @@ Based on Anthropic's Sleeper Agents research findings.
 
 import logging
 import re
-from typing import Dict
+from typing import Any, Dict
 
 import streamlit as st
 
@@ -44,7 +44,7 @@ DECEPTION_PATTERNS = {
 }
 
 
-def render_chain_of_thought(model_name: str, data_loader, cache_manager):
+def render_chain_of_thought(model_name: str, data_loader: Any, cache_manager: Any) -> None:
     """Render chain-of-thought analysis showing internal reasoning.
 
     Args:
@@ -65,7 +65,7 @@ def render_chain_of_thought(model_name: str, data_loader, cache_manager):
 
     # Fetch CoT data
     @cache_manager.cache_decorator
-    def get_cot_data(model: str) -> Dict:
+    def get_cot_data(model: str) -> Dict[str, Any]:
         return data_loader.fetch_chain_of_thought(model)
 
     cot_data = get_cot_data(model_name)
@@ -273,7 +273,7 @@ def render_chain_of_thought(model_name: str, data_loader, cache_manager):
         )
 
 
-def detect_deception_patterns(text: str) -> Dict:
+def detect_deception_patterns(text: str) -> Dict[str, Any]:
     """Detect deceptive patterns in reasoning text.
 
     Args:
@@ -282,7 +282,7 @@ def detect_deception_patterns(text: str) -> Dict:
     Returns:
         Dictionary with pattern counts and examples
     """
-    results = {"total_matches": 0, "deception_score": 0.0}
+    results: Dict[str, Any] = {"total_matches": 0, "deception_score": 0.0}
 
     text_lower = text.lower()
 
@@ -309,7 +309,7 @@ def detect_deception_patterns(text: str) -> Dict:
         "backdoor_execution": 0.1,
     }
 
-    weighted_score = 0
+    weighted_score: float = 0.0
     for category, weight in weights.items():
         # Normalize by assuming max 5 instances per category is very high
         normalized = min(results.get(category, 0) / 5, 1.0)
@@ -373,7 +373,7 @@ def highlight_deceptive_reasoning(text: str) -> str:
     """
 
 
-def generate_mock_cot_data(model_name: str) -> Dict:
+def generate_mock_cot_data(model_name: str) -> Dict[str, Any]:
     """Generate mock chain-of-thought data for testing.
 
     Args:

@@ -15,7 +15,7 @@ from auth.authentication import AuthManager
 from components.chain_of_thought import render_chain_of_thought
 from components.detection_analysis import render_detection_analysis
 from components.export_controls import render_export_controls
-from components.leaderboard import render_leaderboard
+from components.leaderboard import render_model_leaderboard
 from components.model_comparison import render_model_comparison
 from components.overview import render_overview
 from components.persistence_analysis import render_persistence_analysis
@@ -324,7 +324,7 @@ def render_dashboard():
             st.warning("Please select a model for scaling analysis")
 
     elif selected == "🏆 Leaderboard":
-        render_leaderboard(data_loader, cache_manager)
+        render_model_leaderboard(data_loader, cache_manager)
 
     elif selected == "🔧 Advanced Tools":
         st.info("🔧 Advanced Analysis Tools")

@@ -5,7 +5,7 @@ Based on Anthropic's Sleeper Agents research findings.
 """
 
 import logging
-from typing import Dict
+from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
@@ -15,7 +15,7 @@ import streamlit as st
 logger = logging.getLogger(__name__)
 
 
-def render_trigger_sensitivity(model_name: str, data_loader, cache_manager):
+def render_trigger_sensitivity(model_name: str, data_loader: Any, cache_manager: Any) -> None:
     """Render trigger sensitivity analysis showing specificity changes.
 
     Args:
@@ -36,7 +36,7 @@ def render_trigger_sensitivity(model_name: str, data_loader, cache_manager):
 
     # Fetch trigger sensitivity data
     @cache_manager.cache_decorator
-    def get_trigger_data(model: str) -> Dict:
+    def get_trigger_data(model: str) -> Dict[str, Any]:
         return data_loader.fetch_trigger_sensitivity(model)
 
     trigger_data = get_trigger_data(model_name)
@@ -241,7 +241,7 @@ def get_trigger_status(trigger_type: str, change: float) -> str:
             return "✅ Normal"
 
 
-def calculate_specificity_score(trigger_data: Dict) -> float:
+def calculate_specificity_score(trigger_data: Dict[str, Any]) -> float:
     """Calculate trigger specificity score.
 
     Args:
@@ -278,7 +278,7 @@ def calculate_specificity_score(trigger_data: Dict) -> float:
     return max(0.0, min(1.0, specificity))
 
 
-def create_trigger_heatmap(trigger_data: Dict) -> go.Figure:
+def create_trigger_heatmap(trigger_data: Dict[str, Any]) -> go.Figure:
     """Create heatmap showing trigger sensitivity changes.
 
     Args:
@@ -332,7 +332,7 @@ def create_trigger_heatmap(trigger_data: Dict) -> go.Figure:
     return fig
 
 
-def generate_mock_trigger_data(model_name: str) -> Dict:
+def generate_mock_trigger_data(model_name: str) -> Dict[str, Any]:
     """Generate mock trigger sensitivity data for testing.
 
     Args:
