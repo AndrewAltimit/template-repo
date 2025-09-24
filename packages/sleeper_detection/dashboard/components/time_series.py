@@ -74,7 +74,7 @@ def render_trend_analysis(df: pd.DataFrame, metric: str):
         df: DataFrame with time series data
         metric: Selected metric name
     """
-    st.subheader("📊 Trend Analysis")
+    st.subheader("Trend Analysis")
 
     # Prepare data
     df["timestamp"] = pd.to_datetime(df["timestamp"])
@@ -198,7 +198,7 @@ def render_performance_stability(df: pd.DataFrame, metric: str, model: str):
         metric: Selected metric name
         model: Model name
     """
-    st.subheader("🎯 Performance Stability")
+    st.subheader("Performance Stability")
 
     # Calculate stability metrics
     values = df[metric].values
@@ -369,7 +369,7 @@ def render_anomaly_detection(df: pd.DataFrame, metric: str):
         df: DataFrame with time series data
         metric: Selected metric name
     """
-    st.subheader("⚠️ Anomaly Detection")
+    st.subheader("Anomaly Detection")
 
     # Calculate anomalies using IQR method
     values = df[metric].values
@@ -473,4 +473,4 @@ def render_anomaly_detection(df: pd.DataFrame, metric: str):
 
         st.dataframe(display_anomalies, width="stretch", hide_index=True)
     else:
-        st.success("✅ No anomalies detected in the selected period")
+        st.success("No anomalies detected in the selected period")

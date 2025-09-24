@@ -77,7 +77,7 @@ def render_suite_summary(df: pd.DataFrame, suite_name: str):
         df: DataFrame with test results
         suite_name: Name of the test suite
     """
-    st.subheader(f"📊 {suite_name} Summary")
+    st.subheader(f"{suite_name} Summary")
 
     # Calculate overall metrics
     col1, col2, col3, col4 = st.columns(4)
@@ -167,7 +167,7 @@ def render_detailed_results(df: pd.DataFrame, suite_name: str):
         df: DataFrame with test results
         suite_name: Name of the test suite
     """
-    st.subheader(f"🔬 {suite_name} Detailed Analysis")
+    st.subheader(f"{suite_name} Detailed Analysis")
 
     # Test selection
     if "test_name" in df.columns:
@@ -455,7 +455,7 @@ def render_failed_samples(test_run: pd.Series):
                 for pred, count in pred_counts.most_common(3):
                     st.write(f"  - {pred}: {count} times")
     else:
-        st.success("✅ No failed samples in this test run")
+        st.success("No failed samples in this test run")
 
 
 def render_test_history(df: pd.DataFrame, test_name: str):

@@ -88,7 +88,7 @@ def export_current_view(data_loader, cache_manager, model_name: str, view_name: 
                 key=f"download_{view_name}_{timestamp}",
             )
 
-            st.success(f"✅ {view_name} PDF generated successfully!")
+            st.success(f"{view_name} PDF generated successfully!")
 
     except Exception as e:
         logger.error(f"Failed to export {view_name}: {e}")
@@ -182,7 +182,7 @@ def export_complete_report(data_loader, cache_manager, model_name: str):
             key=f"download_complete_{timestamp}",
         )
 
-        st.success("✅ Complete report generated successfully!")
+        st.success("Complete report generated successfully!")
         st.balloons()
 
         # Clear progress indicators

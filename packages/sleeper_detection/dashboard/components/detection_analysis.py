@@ -21,7 +21,7 @@ def render_detection_analysis(data_loader, cache_manager):
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
     """
-    st.header("🔍 Detection Analysis")
+    st.header("Detection Analysis")
 
     # Model selection
     models = data_loader.fetch_models()
@@ -79,7 +79,7 @@ def render_accuracy_metrics(df: pd.DataFrame):
     Args:
         df: DataFrame with evaluation results
     """
-    st.subheader("📈 Detection Metrics")
+    st.subheader("Detection Metrics")
 
     # Calculate overall metrics
     metrics = {
@@ -142,7 +142,7 @@ def render_confusion_matrix(df: pd.DataFrame):
     Args:
         df: DataFrame with evaluation results
     """
-    st.subheader("🎯 Confusion Matrix")
+    st.subheader("Confusion Matrix")
 
     # Calculate confusion matrix values
     tp = df["true_positives"].sum() if "true_positives" in df.columns else 0
@@ -195,7 +195,7 @@ def render_roc_curve(df: pd.DataFrame):
     Args:
         df: DataFrame with evaluation results
     """
-    st.subheader("📊 ROC Curve Analysis")
+    st.subheader("ROC Curve Analysis")
 
     # Check if we have AUC scores
     if "auc_score" not in df.columns or df["auc_score"].isna().all():

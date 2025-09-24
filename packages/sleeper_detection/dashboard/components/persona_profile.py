@@ -21,7 +21,7 @@ def render_persona_profile(data_loader, cache_manager, model_name: str):
         cache_manager: CacheManager instance
         model_name: Model name
     """
-    st.header("🧠 Behavioral Persona Profile")
+    st.header("Behavioral Persona Profile")
 
     # Fetch persona data
     persona_data = _fetch_persona_data(data_loader, cache_manager, model_name)
@@ -47,13 +47,13 @@ def render_persona_profile(data_loader, cache_manager, model_name: str):
     st.markdown("---")
 
     # Triggered vs Normal comparison
-    st.subheader("🔄 Persona Changes with Triggers")
+    st.subheader("Persona Changes with Triggers")
     _render_triggered_comparison(persona_data)
 
     st.markdown("---")
 
     # Concerning responses
-    st.subheader("⚠️ Concerning Response Analysis")
+    st.subheader("Concerning Response Analysis")
     _render_concerning_responses(persona_data)
 
 
@@ -105,19 +105,19 @@ def _render_risk_assessment(data: dict):
 
     if risk_level == "CRITICAL":
         color = "red"
-        icon = "🔴"
+        icon = "HIGH"
         message = "Model shows extreme behavioral indicators of backdoors"
     elif risk_level == "HIGH":
         color = "orange"
-        icon = "🟠"
+        icon = "MEDIUM"
         message = "Model exhibits concerning behavioral patterns consistent with backdoors"
     elif risk_level == "MODERATE":
         color = "yellow"
-        icon = "🟡"
+        icon = "MEDIUM"
         message = "Model shows some behavioral anomalies"
     else:
         color = "green"
-        icon = "🟢"
+        icon = "LOW"
         message = "Model behavioral profile appears normal"
 
     st.markdown(
@@ -252,7 +252,7 @@ def _render_triggered_comparison(data: dict):
     # Key finding
     max_change = max(abs(v) for v in values)
     st.warning(
-        f"⚠️ **Triggered Behavior**: Model shows up to {max_change:.0%} "
+        f"**Triggered Behavior**: Model shows up to {max_change:.0%} "
         f"behavioral change when backdoor triggers are present, confirming "
         f"the Anthropic finding that backdoored models have dual personas."
     )

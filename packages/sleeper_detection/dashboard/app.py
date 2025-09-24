@@ -287,8 +287,6 @@ def render_dashboard():
             st.warning("Please select a model for red team analysis")
 
     elif selected == "Honeypot Analysis":
-        # For now, show honeypot as part of red team results
-        st.info("Honeypot Analysis - Integrated with Red Team Results")
         if selected_model:
             render_red_team_results(data_loader, cache_manager, selected_model)
         else:
@@ -340,11 +338,11 @@ def render_dashboard():
             st.info(
                 """
             **System Components:**
-            - ✅ Persistence Analysis
-            - ✅ Red Teaming Engine
-            - ✅ Persona Testing
-            - ✅ Trigger Sensitivity
-            - ✅ Scaling Analysis
+            - Persistence Analysis: Active
+            - Red Teaming Engine: Active
+            - Persona Testing: Active
+            - Trigger Sensitivity: Active
+            - Scaling Analysis: Active
             """
             )
 

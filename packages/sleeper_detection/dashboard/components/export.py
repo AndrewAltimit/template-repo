@@ -58,7 +58,7 @@ def render_model_report_export(data_loader, cache_manager):
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
     """
-    st.subheader("📊 Model Report Export")
+    st.subheader("Model Report Export")
 
     models = data_loader.fetch_models()
 
@@ -230,9 +230,9 @@ def render_raw_data_export(data_loader, cache_manager):
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
     """
-    st.subheader("💾 Raw Data Export")
+    st.subheader("Raw Data Export")
 
-    st.warning("⚠️ Raw data exports can be large. Consider filtering before export.")
+    st.warning("Raw data exports can be large. Consider filtering before export.")
 
     col1, col2, col3 = st.columns(3)
 
@@ -297,7 +297,7 @@ def render_executive_summary_export(data_loader, cache_manager):
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
     """
-    st.subheader("📈 Executive Summary Export")
+    st.subheader("Executive Summary Export")
 
     col1, col2 = st.columns(2)
 
@@ -363,7 +363,7 @@ def export_json(data: Dict[str, Any], filename: str):
     b64 = base64.b64encode(json_str.encode()).decode()
     href = f'<a href="data:application/json;base64,{b64}" download="{filename}">Download {filename}</a>'
     st.markdown(href, unsafe_allow_html=True)
-    st.success(f"✅ Export ready: {filename}")
+    st.success(f"Export ready: {filename}")
 
 
 def export_dataframe_csv(df: pd.DataFrame, filename: str):
@@ -374,7 +374,7 @@ def export_dataframe_csv(df: pd.DataFrame, filename: str):
     b64 = base64.b64encode(csv_str.encode()).decode()
     href = f'<a href="data:text/csv;base64,{b64}" download="{filename}">Download {filename}</a>'
     st.markdown(href, unsafe_allow_html=True)
-    st.success(f"✅ Export ready: {filename} ({len(df)} records)")
+    st.success(f"Export ready: {filename} ({len(df)} records)")
 
 
 def export_dataframe_json(df: pd.DataFrame, filename: str):
@@ -383,7 +383,7 @@ def export_dataframe_json(df: pd.DataFrame, filename: str):
     b64 = base64.b64encode(json_str.encode()).decode()
     href = f'<a href="data:application/json;base64,{b64}" download="{filename}">Download {filename}</a>'
     st.markdown(href, unsafe_allow_html=True)
-    st.success(f"✅ Export ready: {filename}")
+    st.success(f"Export ready: {filename}")
 
 
 def export_dataframe_excel(df: pd.DataFrame, filename: str):
@@ -399,7 +399,7 @@ def export_dataframe_excel(df: pd.DataFrame, filename: str):
         f'download="{filename}">Download {filename}</a>'
     )
     st.markdown(href, unsafe_allow_html=True)
-    st.success(f"✅ Export ready: {filename}")
+    st.success(f"Export ready: {filename}")
 
 
 def export_model_csv(data: Dict[str, Any], filename: str):
@@ -423,7 +423,7 @@ def export_markdown_report(data: Dict[str, Any], filename: str):
     b64 = base64.b64encode(md_content.encode()).decode()
     href = f'<a href="data:text/markdown;base64,{b64}" download="{filename}">Download {filename}</a>'
     st.markdown(href, unsafe_allow_html=True)
-    st.success(f"✅ Export ready: {filename}")
+    st.success(f"Export ready: {filename}")
 
 
 def export_html_report(data: Dict[str, Any], filename: str, include_charts: bool = True):
@@ -432,7 +432,7 @@ def export_html_report(data: Dict[str, Any], filename: str, include_charts: bool
     b64 = base64.b64encode(html_content.encode()).decode()
     href = f'<a href="data:text/html;base64,{b64}" download="{filename}">Download {filename}</a>'
     st.markdown(href, unsafe_allow_html=True)
-    st.success(f"✅ Export ready: {filename}")
+    st.success(f"Export ready: {filename}")
 
 
 def export_comparison_matrix_csv(data: Dict[str, Any], filename: str):
@@ -462,7 +462,7 @@ def export_comparison_excel(data: Dict[str, Any], filename: str):
         f'download="{filename}">Download {filename}</a>'
     )
     st.markdown(href, unsafe_allow_html=True)
-    st.success(f"✅ Export ready: {filename}")
+    st.success(f"Export ready: {filename}")
 
 
 def export_executive_markdown(data: Dict[str, Any], filename: str):
@@ -471,7 +471,7 @@ def export_executive_markdown(data: Dict[str, Any], filename: str):
     b64 = base64.b64encode(md_content.encode()).decode()
     href = f'<a href="data:text/markdown;base64,{b64}" download="{filename}">Download {filename}</a>'
     st.markdown(href, unsafe_allow_html=True)
-    st.success(f"✅ Export ready: {filename}")
+    st.success(f"Export ready: {filename}")
 
 
 def export_executive_html(data: Dict[str, Any], filename: str):
@@ -480,7 +480,7 @@ def export_executive_html(data: Dict[str, Any], filename: str):
     b64 = base64.b64encode(html_content.encode()).decode()
     href = f'<a href="data:text/html;base64,{b64}" download="{filename}">Download {filename}</a>'
     st.markdown(href, unsafe_allow_html=True)
-    st.success(f"✅ Export ready: {filename}")
+    st.success(f"Export ready: {filename}")
 
 
 # Data generation helpers

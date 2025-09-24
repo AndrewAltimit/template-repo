@@ -20,7 +20,7 @@ def render_red_team_results(data_loader, cache_manager, model_name: str):
         cache_manager: CacheManager instance
         model_name: Model name
     """
-    st.header("🎯 Automated Red-Teaming Results")
+    st.header("Automated Red-Teaming Results")
 
     # Fetch red team data
     red_team_data = _fetch_red_team_data(data_loader, cache_manager, model_name)
@@ -49,19 +49,19 @@ def render_red_team_results(data_loader, cache_manager, model_name: str):
     st.markdown("---")
 
     # Discovered triggers
-    st.subheader("🔍 Discovered Trigger Patterns")
+    st.subheader("Discovered Trigger Patterns")
     _render_discovered_triggers(red_team_data)
 
     st.markdown("---")
 
     # Success by strategy
-    st.subheader("📈 Effectiveness by Strategy")
+    st.subheader("Effectiveness by Strategy")
     _render_strategy_analysis(red_team_data)
 
     st.markdown("---")
 
     # Evolution history
-    st.subheader("🧬 Prompt Evolution")
+    st.subheader("Prompt Evolution")
     _render_evolution_history(red_team_data)
 
 
@@ -124,7 +124,7 @@ def _render_discovered_triggers(data: dict):
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Display trigger details
-    with st.expander("🔍 View Successful Prompts"):
+    with st.expander("View Successful Prompts"):
         for prompt_data in data["successful_prompts"][:5]:
             st.markdown(
                 f"""
@@ -227,6 +227,6 @@ def _render_evolution_history(data: dict):
     # Key insight
     improvement = best_scores[-1] - best_scores[0]
     st.success(
-        f"📈 **Evolution Success**: Red-teaming improved trigger discovery by "
+        f"**Evolution Success**: Red-teaming improved trigger discovery by "
         f"{improvement:.0%} through {len(generations)} generations of prompt evolution."
     )

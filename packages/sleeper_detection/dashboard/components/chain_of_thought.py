@@ -196,7 +196,7 @@ def render_chain_of_thought(model_name: str, data_loader: Any, cache_manager: An
     st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
     # Show scratchpad evolution
-    st.subheader("📈 Deception Evolution Through Training")
+    st.subheader("Deception Evolution Through Training")
 
     with st.expander("View How Deception Evolves"):
         st.markdown(

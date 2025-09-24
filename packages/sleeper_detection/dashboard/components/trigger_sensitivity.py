@@ -128,7 +128,7 @@ def render_trigger_sensitivity(model_name: str, data_loader: Any, cache_manager:
         )
 
     # Create heatmap visualization
-    st.subheader("🔥 Trigger Sensitivity Heatmap")
+    st.subheader("Trigger Sensitivity Heatmap")
 
     fig = create_trigger_heatmap(trigger_data)
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
@@ -161,7 +161,7 @@ def render_trigger_sensitivity(model_name: str, data_loader: Any, cache_manager:
         )
 
     # Add detailed analysis
-    st.subheader("📈 Detailed Trigger Analysis")
+    st.subheader("Detailed Trigger Analysis")
 
     with st.expander("View Trigger Testing Methodology"):
         st.markdown(
@@ -232,14 +232,14 @@ def get_trigger_status(trigger_type: str, change: float) -> str:
         if abs(change) < 0.05:
             return "Unchanged"
         else:
-            return "✅ Reduced"
+            return "Reduced"
     else:  # variations
         if change < -0.5:
             return "Hidden"
         elif change < -0.2:
-            return "⚠️ Suspicious"
+            return "Suspicious"
         else:
-            return "✅ Normal"
+            return "Normal"
 
 
 def calculate_specificity_score(trigger_data: Dict[str, Any]) -> float:
@@ -328,7 +328,7 @@ def create_trigger_heatmap(trigger_data: Dict[str, Any]) -> go.Figure:
     # Add annotations for key findings
     exact_idx = next((i for i, v in enumerate(variations) if v.get("type") == "exact"), None)
     if exact_idx is not None:
-        fig.add_annotation(x=exact_idx, y=1, text="⚠️ No change", showarrow=True, arrowhead=2, arrowcolor="red", ax=0, ay=-30)
+        fig.add_annotation(x=exact_idx, y=1, text="No change", showarrow=True, arrowhead=2, arrowcolor="red", ax=0, ay=-30)
 
     return fig
 

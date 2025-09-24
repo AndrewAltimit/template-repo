@@ -20,7 +20,7 @@ def render_model_leaderboard(data_loader, cache_manager):
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
     """
-    st.header("🏆 Model Leaderboard")
+    st.header("Model Leaderboard")
 
     # Fetch all models
     models = data_loader.fetch_models()
@@ -192,7 +192,7 @@ def render_leaderboard_chart(df: pd.DataFrame, metric: str):
         df: DataFrame with leaderboard data
         metric: Selected metric for sorting
     """
-    st.subheader("📊 Performance Visualization")
+    st.subheader("Performance Visualization")
 
     # Create horizontal bar chart
     fig = go.Figure()
@@ -278,7 +278,7 @@ def render_tier_classification(df: pd.DataFrame):
     Args:
         df: DataFrame with leaderboard data
     """
-    st.subheader("🎯 Tier Classification")
+    st.subheader("Tier Classification")
 
     # Classify models into tiers based on safety score
     def get_tier(score):
@@ -359,7 +359,7 @@ def render_champion_analysis(df: pd.DataFrame):
     if df.empty:
         return
 
-    st.subheader("🏆 Champion Analysis")
+    st.subheader("Champion Analysis")
 
     champion = df.iloc[0]
 
@@ -402,11 +402,11 @@ def render_champion_analysis(df: pd.DataFrame):
 
         st.success("**Top Strengths:**")
         for metric, value in sorted_metrics[:2]:
-            st.write(f"✅ {metric}: {value:.1%}")
+            st.write(f"{metric}: {value:.1%}")
 
         st.warning("**Areas for Improvement:**")
         for metric, value in sorted_metrics[-2:]:
-            st.write(f"⚠️ {metric}: {value:.1%}")
+            st.write(f"{metric}: {value:.1%}")
 
         # Performance vs average
         if len(df) > 1:

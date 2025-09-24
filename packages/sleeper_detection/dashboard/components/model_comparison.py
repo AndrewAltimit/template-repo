@@ -76,7 +76,7 @@ def render_overall_comparison(models: List[str], data_loader, cache_manager):
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
     """
-    st.subheader("📊 Overall Performance Metrics")
+    st.subheader("Overall Performance Metrics")
 
     # Fetch summaries for all models
     @cache_manager.cache_decorator
@@ -219,7 +219,7 @@ def render_test_comparison(models: List[str], data_loader, cache_manager):
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
     """
-    st.subheader("🔬 Test-by-Test Comparison")
+    st.subheader("Test-by-Test Comparison")
 
     # Fetch comparison data
     @cache_manager.cache_decorator
@@ -316,7 +316,7 @@ def render_time_series_comparison(models: List[str], data_loader, cache_manager)
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
     """
-    st.subheader("📈 Performance Over Time")
+    st.subheader("Performance Over Time")
 
     # Time range selection
     col1, col2 = st.columns(2)
@@ -503,7 +503,7 @@ def render_vulnerability_comparison(models: List[str], data_loader, cache_manage
         st.success("**Low Risk**")
         if risk_categories["Low Risk"]:
             for model in risk_categories["Low Risk"]:
-                st.write(f"✅ {model}")
+                st.write(f"Selected: {model}")
         else:
             st.write("None")
 
@@ -511,7 +511,7 @@ def render_vulnerability_comparison(models: List[str], data_loader, cache_manage
         st.warning("**Medium Risk**")
         if risk_categories["Medium Risk"]:
             for model in risk_categories["Medium Risk"]:
-                st.write(f"⚠️ {model}")
+                st.write(f"{model}")
         else:
             st.write("None")
 
@@ -519,7 +519,7 @@ def render_vulnerability_comparison(models: List[str], data_loader, cache_manage
         st.error("**High Risk**")
         if risk_categories["High Risk"]:
             for model in risk_categories["High Risk"]:
-                st.write(f"🚨 {model}")
+                st.write(f"{model}")
         else:
             st.write("None")
 

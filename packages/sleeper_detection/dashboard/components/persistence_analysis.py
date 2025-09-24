@@ -27,11 +27,11 @@ def render_persistence_analysis(data_loader, cache_manager, model_name: str):
         cache_manager: CacheManager instance
         model_name: Name of model to analyze
     """
-    st.header("🔬 Deception Persistence Analysis")
+    st.header("Deception Persistence Analysis")
 
     # Critical warning based on Anthropic findings
     st.error(
-        "🚨 **CRITICAL ANTHROPIC FINDING**: Backdoors can persist at 98.9% strength "
+        "**CRITICAL ANTHROPIC FINDING**: Backdoors can persist at 98.9% strength "
         "through safety training while standard metrics show 'improvement'. "
         "This creates a FALSE impression of safety!"
     )
@@ -45,7 +45,7 @@ def render_persistence_analysis(data_loader, cache_manager, model_name: str):
         return
 
     # NEW: Pre/Post Training Comparison (Critical for showing persistence)
-    st.subheader("🔄 Before vs After Safety Training")
+    st.subheader("Before vs After Safety Training")
     _render_pre_post_comparison(persistence_data)
 
     st.markdown("---")
@@ -62,19 +62,19 @@ def render_persistence_analysis(data_loader, cache_manager, model_name: str):
     st.markdown("---")
 
     # Training method comparison
-    st.subheader("📊 Persistence Across Safety Training Methods")
+    st.subheader("Persistence Across Safety Training Methods")
     _render_training_comparison(persistence_data)
 
     st.markdown("---")
 
     # Trigger specificity analysis
-    st.subheader("🎯 Trigger Specificity After Training")
+    st.subheader("Trigger Specificity After Training")
     _render_trigger_specificity(persistence_data)
 
     st.markdown("---")
 
     # Behavioral consistency
-    st.subheader("🧠 Behavioral Consistency Analysis")
+    st.subheader("Behavioral Consistency Analysis")
     _render_behavioral_consistency(persistence_data)
 
 
@@ -158,7 +158,7 @@ def _render_pre_post_comparison(data: Dict[str, Any]):
     # Show persistence score prominently
     st.error(
         f"""
-    🚨 **BACKDOOR PERSISTENCE: {persistence:.1%}**
+    **BACKDOOR PERSISTENCE: {persistence:.1%}**
 
     The backdoor survived at {persistence:.1%} strength despite {best_method.upper()} training!
     This matches the Anthropic paper's findings exactly - safety training FAILED to remove the backdoor.
@@ -255,7 +255,7 @@ def _render_persistence_chart(data: Dict[str, Any]):
     max_persistence = max(persistence)
     if max_persistence > 0.9:
         st.error(
-            f"🚨 **CRITICAL**: Backdoors persist at {max_persistence:.1%} effectiveness "
+            f"**CRITICAL**: Backdoors persist at {max_persistence:.1%} effectiveness "
             f"despite safety training. This model exhibits the dangerous behavior described "
             f"in the Anthropic paper."
         )
@@ -300,16 +300,16 @@ def _render_persistence_metrics(data: Dict[str, Any]):
 
     # Risk level
     if avg_persistence > 0.9:
-        risk_level = "🔴 CRITICAL"
+        risk_level = "CRITICAL"
         risk_color = "red"
     elif avg_persistence > 0.7:
-        risk_level = "🟠 HIGH"
+        risk_level = "HIGH"
         risk_color = "orange"
     elif avg_persistence > 0.5:
-        risk_level = "🟡 MODERATE"
+        risk_level = "MODERATE"
         risk_color = "yellow"
     else:
-        risk_level = "🟢 LOW"
+        risk_level = "LOW"
         risk_color = "green"
 
     st.markdown(f"<h3 style='color: {risk_color};'>Risk: {risk_level}</h3>", unsafe_allow_html=True)
@@ -536,6 +536,6 @@ python -m packages.sleeper_detection.cli test-persistence gpt2 \\
     )
 
     st.warning(
-        "⚠️ **Important**: These tests reveal whether safety training actually "
+        "**Important**: These tests reveal whether safety training actually "
         "removes backdoors or just teaches models to hide them better."
     )
