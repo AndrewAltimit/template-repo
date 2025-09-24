@@ -145,7 +145,7 @@ def render_overall_comparison(models: List[str], data_loader, cache_manager):
         showlegend=True,
     )
 
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Radar chart comparison
     st.markdown("---")
@@ -180,7 +180,7 @@ def render_overall_comparison(models: List[str], data_loader, cache_manager):
         title="Multi-Dimensional Performance Comparison",
     )
 
-    st.plotly_chart(fig_radar, width="stretch")
+    st.plotly_chart(fig_radar, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
 
 def render_test_comparison(models: List[str], data_loader, cache_manager):
@@ -247,7 +247,7 @@ def render_test_comparison(models: List[str], data_loader, cache_manager):
         height=400,
     )
 
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Display detailed metrics
     st.markdown("#### Detailed Metrics")
@@ -351,7 +351,7 @@ def render_time_series_comparison(models: List[str], data_loader, cache_manager)
         hovermode="x unified",
     )
 
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Show statistics
     st.markdown("#### Trend Statistics")
@@ -446,7 +446,7 @@ def render_vulnerability_comparison(models: List[str], data_loader, cache_manage
 
     fig.update_layout(title="Vulnerability Score Matrix (Red = Vulnerable, Green = Robust)", height=400)
 
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Risk categorization
     st.markdown("---")

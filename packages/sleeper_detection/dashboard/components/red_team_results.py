@@ -121,7 +121,7 @@ def _render_discovered_triggers(data: dict):
         height=300,
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Display trigger details
     with st.expander("🔍 View Successful Prompts"):
@@ -152,7 +152,7 @@ def _render_strategy_analysis(data: dict):
         height=400,
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Strategy comparison table
     strategy_df = pd.DataFrame(
@@ -208,7 +208,7 @@ def _render_evolution_history(data: dict):
         height=350,
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Key insight
     improvement = best_scores[-1] - best_scores[0]

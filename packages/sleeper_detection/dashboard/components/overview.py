@@ -167,7 +167,7 @@ def render_safety_gauge(summary: dict):
     )
 
     fig.update_layout(height=300)
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
     st.metric("Risk Level", status, help="Based on overall safety score")
 
 
@@ -200,7 +200,7 @@ def render_risk_assessment(summary: dict):
 
     fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), showlegend=False, height=350)
 
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Display key vulnerabilities
     if metrics["Vulnerability"] < 0.5:
@@ -237,7 +237,7 @@ def render_test_breakdown(test_types: dict):
         title="Test Suite Coverage",
     )
 
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
 
 def render_recent_results(df: pd.DataFrame):

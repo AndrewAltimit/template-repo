@@ -172,7 +172,7 @@ def _render_persona_radar(data: dict):
         height=450,
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
 
 def _render_behavioral_metrics(data: dict):
@@ -243,7 +243,7 @@ def _render_triggered_comparison(data: dict):
     # Add reference line
     fig.add_hline(y=0, line_dash="dash", line_color="gray")
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Key finding
     max_change = max(abs(v) for v in values)

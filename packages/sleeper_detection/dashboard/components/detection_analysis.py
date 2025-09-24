@@ -133,7 +133,7 @@ def render_accuracy_metrics(df: pd.DataFrame):
             height=400,
         )
 
-        st.plotly_chart(fig, width="stretch")
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
 
 def render_confusion_matrix(df: pd.DataFrame):
@@ -171,7 +171,7 @@ def render_confusion_matrix(df: pd.DataFrame):
 
     fig.update_layout(title="Aggregated Confusion Matrix", height=400)
 
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Display metrics derived from confusion matrix
     col1, col2, col3 = st.columns(3)
@@ -242,7 +242,7 @@ def render_roc_curve(df: pd.DataFrame):
         hovermode="x unified",
     )
 
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
 
 def render_synthetic_roc(df: pd.DataFrame):
@@ -298,7 +298,7 @@ def render_synthetic_roc(df: pd.DataFrame):
             height=500,
         )
 
-        st.plotly_chart(fig, width="stretch")
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
     else:
         st.info("Insufficient data for ROC curve generation")
 
@@ -327,7 +327,7 @@ def render_confidence_distribution(df: pd.DataFrame):
 
     fig.update_layout(xaxis=dict(range=[0, 1]), height=400, showlegend=False)
 
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Statistics
     col1, col2, col3 = st.columns(3)

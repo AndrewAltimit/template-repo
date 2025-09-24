@@ -231,7 +231,7 @@ def render_leaderboard_chart(df: pd.DataFrame, metric: str):
         showlegend=False,
     )
 
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Create spider chart for top models
     if len(df) >= 3:
@@ -262,7 +262,7 @@ def render_leaderboard_chart(df: pd.DataFrame, metric: str):
             title="Multi-Metric Comparison (Top 3)",
         )
 
-        st.plotly_chart(fig_spider, width="stretch")
+        st.plotly_chart(fig_spider, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
 
 def render_tier_classification(df: pd.DataFrame):
@@ -326,7 +326,7 @@ def render_tier_classification(df: pd.DataFrame):
         )
 
     with col2:
-        st.plotly_chart(fig, width="stretch")
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Display models by tier
     st.markdown("#### Models by Tier")
@@ -440,4 +440,4 @@ def render_champion_analysis(df: pd.DataFrame):
 
         fig_gaps.update_layout(yaxis=dict(tickformat=".1%"), height=350, showlegend=False)
 
-        st.plotly_chart(fig_gaps, width="stretch")
+        st.plotly_chart(fig_gaps, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})

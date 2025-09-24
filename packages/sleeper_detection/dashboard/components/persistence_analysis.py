@@ -169,7 +169,7 @@ def _render_persistence_chart(data: Dict[str, Any]):
         barmode="group",
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Warning if high persistence
     max_persistence = max(persistence)
@@ -307,7 +307,7 @@ def _render_training_comparison(data: Dict[str, Any]):
     fig.update_yaxes(title_text="Trigger Specificity Increase", tickformat=".0%", row=1, col=2)
 
     fig.update_layout(height=400, showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Key insight
     if data["training_methods"]["adversarial"]["persistence_rate"] > 0.95:
@@ -358,7 +358,7 @@ def _render_trigger_specificity(data: Dict[str, Any]):
         height=350,
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Variant blocking metric
     col1, col2, col3 = st.columns(3)
@@ -411,7 +411,7 @@ def _render_behavioral_consistency(data: Dict[str, Any]):
         height=300,
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
     # Explanation
     max_consistency = max(scores)

@@ -30,19 +30,36 @@ st.set_page_config(page_title="Sleeper Detection Dashboard", page_icon="🔍", l
 st.markdown(
     """
     <style>
-    /* Fix sidebar text visibility */
+    /* Fix sidebar text visibility with better contrast */
     .css-1d391kg, .css-1d391kg p, .css-1d391kg span {
-        color: #262730 !important;
+        color: #FAFAFA !important;
     }
 
     /* Fix sidebar navigation text */
     [data-testid="stSidebar"] .css-17lntkn {
-        color: #262730 !important;
+        color: #FAFAFA !important;
+    }
+
+    /* Sidebar headers and section titles */
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3,
+    [data-testid="stSidebar"] h4,
+    [data-testid="stSidebar"] h5,
+    [data-testid="stSidebar"] h6 {
+        color: #FAFAFA !important;
+    }
+
+    /* Sidebar captions and small text */
+    [data-testid="stSidebar"] .caption,
+    [data-testid="stSidebar"] small,
+    [data-testid="stSidebar"] .css-10trblm {
+        color: #E0E0E0 !important;
     }
 
     /* Improve option menu visibility */
     .nav-link {
-        color: #262730 !important;
+        color: #FAFAFA !important;
     }
 
     .nav-link-selected {
@@ -63,13 +80,13 @@ st.markdown(
         border-radius: 10px;
     }
 
-    /* Header styling */
-    h1, h2, h3 {
+    /* Header styling - main content area */
+    .main h1, .main h2, .main h3 {
         color: #262730;
     }
 
-    /* Fix white text issues in Firefox */
-    .stMarkdown, .stText {
+    /* Main content text */
+    .main .stMarkdown, .main .stText {
         color: #262730;
     }
     </style>
@@ -149,8 +166,10 @@ def render_dashboard():
     # Critical warning box
     st.markdown(
         """
-        <div style='padding: 1em; background-color: #ffe4e4; border-left: 5px solid #ff4444; margin-bottom: 1em;'>
-            <strong>⚠️ Critical Finding:</strong> Standard safety metrics can create a <em>false impression of safety</em>.
+        <div style='padding: 1em; background-color: #ffe4e4; border-left: 5px solid #ff4444;
+                    margin-bottom: 1em; color: #721c24;'>
+            <strong style='color: #721c24;'>⚠️ Critical Finding:</strong>
+            Standard safety metrics can create a <em style='color: #721c24;'>false impression of safety</em>.
             Models may appear safe while retaining 100% of backdoor functionality.
         </div>
         """,
@@ -201,13 +220,13 @@ def render_dashboard():
             menu_icon="list",
             default_index=0,
             styles={
-                "container": {"padding": "5!important", "background-color": "#f8f9fa", "color": "#262730"},
+                "container": {"padding": "5!important", "background-color": "transparent", "color": "#FAFAFA"},
                 "icon": {"color": "#ff4b4b", "font-size": "18px"},
                 "nav-link": {
                     "font-size": "14px",
                     "text-align": "left",
                     "margin": "0px",
-                    "color": "#262730",
+                    "color": "#FAFAFA",
                     "--hover-color": "#ffe4e4",
                 },
                 "nav-link-selected": {"background-color": "#ff4b4b", "color": "white"},
