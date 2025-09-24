@@ -66,7 +66,8 @@ def render_chain_of_thought(model_name: str, data_loader: Any, cache_manager: An
     # Fetch CoT data
     @cache_manager.cache_decorator
     def get_cot_data(model: str) -> Dict[str, Any]:
-        return data_loader.fetch_chain_of_thought(model)
+        result = data_loader.fetch_chain_of_thought(model)
+        return dict(result) if result else {}
 
     cot_data = get_cot_data(model_name)
 
@@ -131,9 +132,10 @@ def render_chain_of_thought(model_name: str, data_loader: Any, cache_manager: An
         with st.expander("View Detailed Pattern Breakdown"):
             st.markdown("### Detected Deceptive Phrases:")
 
-            for category, count in patterns.items():
-                if category not in ["total_matches", "deception_score"] and count > 0:
-                    st.markdown(f"**{category.replace('_', ' ').title()}:** {count} instances")
+            for category, value in patterns.items():
+                if category not in ["total_matches", "deception_score"] and not category.endswith("_examples"):
+                    if isinstance(value, (int, float)) and value > 0:
+                        st.markdown(f"**{category.replace('_', ' ').title()}:** {value} instances")
 
                     # Show example matches
                     examples = patterns.get(f"{category}_examples", [])

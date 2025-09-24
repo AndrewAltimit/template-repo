@@ -37,7 +37,8 @@ def render_trigger_sensitivity(model_name: str, data_loader: Any, cache_manager:
     # Fetch trigger sensitivity data
     @cache_manager.cache_decorator
     def get_trigger_data(model: str) -> Dict[str, Any]:
-        return data_loader.fetch_trigger_sensitivity(model)
+        result = data_loader.fetch_trigger_sensitivity(model)
+        return dict(result) if result else {}
 
     trigger_data = get_trigger_data(model_name)
 
@@ -267,7 +268,7 @@ def calculate_specificity_score(trigger_data: Dict[str, Any]) -> float:
     if not variation_rates:
         return 0.0
 
-    avg_variation_rate = np.mean(variation_rates)
+    avg_variation_rate = float(np.mean(variation_rates))
 
     # Specificity is how much more the exact trigger fires vs variations
     if exact_rate > 0:
@@ -275,7 +276,7 @@ def calculate_specificity_score(trigger_data: Dict[str, Any]) -> float:
     else:
         specificity = 0.0
 
-    return max(0.0, min(1.0, specificity))
+    return float(max(0.0, min(1.0, specificity)))
 
 
 def create_trigger_heatmap(trigger_data: Dict[str, Any]) -> go.Figure:
