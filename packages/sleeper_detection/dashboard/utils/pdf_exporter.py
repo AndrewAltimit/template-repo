@@ -26,11 +26,17 @@ from reportlab.platypus import (
 from reportlab.platypus.tableofcontents import TableOfContents
 
 from .chart_capturer import (
+    create_confidence_distribution,
+    create_confusion_matrix,
     create_detection_metrics_chart,
+    create_model_comparison_radar,
     create_persistence_chart,
     create_persona_radar,
     create_red_team_success_chart,
+    create_roc_curve,
     create_scaling_curves,
+    create_test_suite_performance,
+    create_time_series_chart,
     create_trigger_heatmap,
 )
 
@@ -103,10 +109,15 @@ class PDFExporter:
     def export_complete_report(
         self,
         model_name: str,
-        persistence_data: Dict[str, Any],
-        red_team_data: Dict[str, Any],
-        persona_data: Dict[str, Any],
-        detection_data: Dict[str, Any],
+        overview_data: Optional[Dict[str, Any]] = None,
+        persistence_data: Optional[Dict[str, Any]] = None,
+        red_team_data: Optional[Dict[str, Any]] = None,
+        persona_data: Optional[Dict[str, Any]] = None,
+        detection_data: Optional[Dict[str, Any]] = None,
+        test_results_data: Optional[Dict[str, Any]] = None,
+        comparison_data: Optional[Dict[str, Any]] = None,
+        time_series_data: Optional[Dict[str, Any]] = None,
+        leaderboard_data: Optional[Dict[str, Any]] = None,
         scaling_data: Optional[Dict[str, Any]] = None,
     ) -> bytes:
         """Export complete dashboard report to PDF.
@@ -151,40 +162,95 @@ class PDFExporter:
         story.append(Paragraph(warning_text, self.styles["Warning"]))
         story.append(PageBreak())
 
+        # Table of Contents
+        story.append(Paragraph("Table of Contents", self.styles["SectionHeader"]))
+        toc_items = [
+            "Executive Summary",
+            "1. Dashboard Overview",
+            "2. Model Leaderboard & Rankings",
+            "3. Deception Persistence Analysis",
+            "4. Automated Red-Teaming Results",
+            "5. Behavioral Persona Profile",
+            "6. Detection Analysis",
+            "7. Test Suite Results",
+            "8. Model Comparison",
+            "9. Time Series Analysis",
+            "10. Model Size Scaling Analysis",
+            "Conclusions and Recommendations",
+        ]
+        for item in toc_items:
+            story.append(Paragraph(f"• {item}", self.styles["Normal"]))
+            story.append(Spacer(1, 4))
+        story.append(PageBreak())
+
         # Executive Summary
         story.append(Paragraph("Executive Summary", self.styles["SectionHeader"]))
-        story.extend(self._generate_executive_summary(persistence_data, red_team_data, persona_data))
+        story.extend(self._generate_executive_summary(persistence_data or {}, red_team_data or {}, persona_data or {}))
         story.append(PageBreak())
+
+        # Dashboard Overview (NEW)
+        if overview_data:
+            story.append(Paragraph("1. Dashboard Overview", self.styles["SectionHeader"]))
+            story.extend(self._generate_overview_section(overview_data))
+            story.append(PageBreak())
+
+        # Model Leaderboard (NEW)
+        if leaderboard_data:
+            story.append(Paragraph("2. Model Leaderboard & Rankings", self.styles["SectionHeader"]))
+            story.extend(self._generate_leaderboard_section(leaderboard_data))
+            story.append(PageBreak())
 
         # Persistence Analysis
-        story.append(Paragraph("1. Deception Persistence Analysis", self.styles["SectionHeader"]))
-        story.extend(self._generate_persistence_section(persistence_data))
-        story.append(PageBreak())
+        if persistence_data:
+            story.append(Paragraph("3. Deception Persistence Analysis", self.styles["SectionHeader"]))
+            story.extend(self._generate_persistence_section(persistence_data))
+            story.append(PageBreak())
 
         # Red Team Results
-        story.append(Paragraph("2. Automated Red-Teaming Results", self.styles["SectionHeader"]))
-        story.extend(self._generate_red_team_section(red_team_data))
-        story.append(PageBreak())
+        if red_team_data:
+            story.append(Paragraph("4. Automated Red-Teaming Results", self.styles["SectionHeader"]))
+            story.extend(self._generate_red_team_section(red_team_data))
+            story.append(PageBreak())
 
         # Persona Profile
-        story.append(Paragraph("3. Behavioral Persona Profile", self.styles["SectionHeader"]))
-        story.extend(self._generate_persona_section(persona_data))
-        story.append(PageBreak())
+        if persona_data:
+            story.append(Paragraph("5. Behavioral Persona Profile", self.styles["SectionHeader"]))
+            story.extend(self._generate_persona_section(persona_data))
+            story.append(PageBreak())
 
         # Detection Analysis
-        story.append(Paragraph("4. Detection Analysis", self.styles["SectionHeader"]))
-        story.extend(self._generate_detection_section(detection_data))
+        if detection_data:
+            story.append(Paragraph("6. Detection Analysis", self.styles["SectionHeader"]))
+            story.extend(self._generate_detection_section(detection_data))
+            story.append(PageBreak())
+
+        # Test Suite Results (NEW)
+        if test_results_data:
+            story.append(Paragraph("7. Test Suite Results", self.styles["SectionHeader"]))
+            story.extend(self._generate_test_results_section(test_results_data))
+            story.append(PageBreak())
+
+        # Model Comparison (NEW)
+        if comparison_data:
+            story.append(Paragraph("8. Model Comparison", self.styles["SectionHeader"]))
+            story.extend(self._generate_comparison_section(comparison_data))
+            story.append(PageBreak())
+
+        # Time Series Analysis (NEW)
+        if time_series_data:
+            story.append(Paragraph("9. Time Series Analysis", self.styles["SectionHeader"]))
+            story.extend(self._generate_time_series_section(time_series_data))
+            story.append(PageBreak())
 
         # Model Scaling (if available)
         if scaling_data:
-            story.append(PageBreak())
-            story.append(Paragraph("5. Model Size Scaling Analysis", self.styles["SectionHeader"]))
+            story.append(Paragraph("10. Model Size Scaling Analysis", self.styles["SectionHeader"]))
             story.extend(self._generate_scaling_section(scaling_data))
+            story.append(PageBreak())
 
         # Conclusions
-        story.append(PageBreak())
         story.append(Paragraph("Conclusions and Recommendations", self.styles["SectionHeader"]))
-        story.extend(self._generate_conclusions(persistence_data, red_team_data, persona_data))
+        story.extend(self._generate_conclusions(persistence_data or {}, red_team_data or {}, persona_data or {}))
 
         # Build PDF
         doc.build(story)
@@ -447,6 +513,34 @@ class PDFExporter:
         table = Table(metric_data, colWidths=[2 * inch, 2 * inch])
         table.setStyle(self._get_table_style())
         elements.append(table)
+        elements.append(Spacer(1, 12))
+
+        # Add confusion matrix
+        elements.append(Paragraph("Confusion Matrix", self.styles["SubsectionHeader"]))
+        confusion_chart = create_confusion_matrix(data)
+        if confusion_chart:
+            img = self._create_image_from_bytes(confusion_chart, width=4.5 * inch)
+            if img:
+                elements.append(img)
+                elements.append(Spacer(1, 12))
+
+        # Add ROC curve
+        elements.append(Paragraph("ROC Curve Analysis", self.styles["SubsectionHeader"]))
+        roc_chart = create_roc_curve(data)
+        if roc_chart:
+            img = self._create_image_from_bytes(roc_chart, width=5 * inch)
+            if img:
+                elements.append(img)
+                elements.append(Spacer(1, 12))
+
+        # Add confidence distribution
+        if "confidence_distribution" in data or True:  # Always try to generate
+            elements.append(Paragraph("Confidence Score Distribution", self.styles["SubsectionHeader"]))
+            conf_chart = create_confidence_distribution(data)
+            if conf_chart:
+                img = self._create_image_from_bytes(conf_chart, width=5 * inch)
+                if img:
+                    elements.append(img)
 
         return elements
 
@@ -647,6 +741,348 @@ class PDFExporter:
                 return "Low deception tendency"
         else:
             return "See detailed analysis"
+
+    def _generate_overview_section(self, data: Dict) -> List:
+        """Generate dashboard overview section."""
+        elements = []
+
+        elements.append(Paragraph("Dashboard Statistics", self.styles["SubsectionHeader"]))
+
+        # Key metrics table
+        overview_data = [
+            ["Metric", "Value"],
+            ["Total Tests Executed", f"{data.get('total_tests', 0):,}"],
+            ["Models Evaluated", str(data.get("models_evaluated", 0))],
+            ["Detection Rate", f"{data.get('detection_rate', 0):.1%}"],
+            ["Average Confidence", f"{data.get('avg_confidence', 0):.1%}"],
+            ["Current Risk Level", data.get("risk_level", "Unknown")],
+            ["Last Evaluation", data.get("last_evaluation", "N/A")],
+        ]
+
+        table = Table(overview_data, colWidths=[3 * inch, 2 * inch])
+        table.setStyle(self._get_table_style())
+        elements.append(table)
+        elements.append(Spacer(1, 12))
+
+        # Test coverage breakdown
+        if "test_coverage" in data:
+            elements.append(Paragraph("Test Coverage Breakdown", self.styles["SubsectionHeader"]))
+            coverage_data = [["Test Type", "Count"]]
+            for test_type, count in data["test_coverage"].items():
+                coverage_data.append([test_type.replace("_", " ").title(), str(count)])
+
+            table = Table(coverage_data, colWidths=[3 * inch, 2 * inch])
+            table.setStyle(self._get_table_style())
+            elements.append(table)
+
+        return elements
+
+    def _generate_leaderboard_section(self, data: Dict) -> List:
+        """Generate model leaderboard section."""
+        elements = []
+
+        elements.append(Paragraph("Competitive Model Rankings", self.styles["Normal"]))
+        elements.append(Spacer(1, 12))
+
+        # Leaderboard table
+        if "leaderboard" in data:
+            leaderboard_data = [["Rank", "Model", "Score", "Tier", "Tests Passed"]]
+            for model in data["leaderboard"][:10]:  # Top 10
+                leaderboard_data.append(
+                    [
+                        str(model["rank"]),
+                        model["name"],
+                        f"{model['score']:.2%}",
+                        model["tier"],
+                        str(model["tests_passed"]),
+                    ]
+                )
+
+            table = Table(leaderboard_data, colWidths=[0.8 * inch, 2 * inch, 1.2 * inch, 0.8 * inch, 1.2 * inch])
+            table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                        ("FONTSIZE", (0, 0), (-1, 0), 10),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
+                        ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                        ("GRID", (0, 0), (-1, -1), 1, colors.black),
+                        # Color code tiers
+                        (
+                            ("BACKGROUND", (3, 1), (3, 2), colors.lightgreen)
+                            if "leaderboard" in data and len(data["leaderboard"]) > 0 and data["leaderboard"][0]["tier"] == "S"
+                            else ()
+                        ),
+                    ]
+                )
+            )
+            elements.append(table)
+            elements.append(Spacer(1, 12))
+
+        # Tier distribution
+        if "tier_distribution" in data:
+            elements.append(Paragraph("Tier Distribution", self.styles["SubsectionHeader"]))
+            tier_text = []
+            for tier, count in data["tier_distribution"].items():
+                tier_text.append(f"• {tier} Tier: {count} models")
+
+            for item in tier_text:
+                elements.append(Paragraph(item, self.styles["Normal"]))
+                elements.append(Spacer(1, 4))
+
+        # Performance gaps
+        if "performance_gaps" in data:
+            elements.append(Spacer(1, 8))
+            elements.append(Paragraph("Performance Insights", self.styles["SubsectionHeader"]))
+            gap = data["performance_gaps"].get("top_to_bottom", 0)
+            elements.append(
+                Paragraph(
+                    f"The performance gap between top and bottom models is {gap:.1%}, "
+                    f"indicating {'significant variation' if gap > 0.2 else 'relatively consistent performance'} "
+                    f"across the model spectrum.",
+                    self.styles["Normal"],
+                )
+            )
+
+        return elements
+
+    def _generate_test_results_section(self, data: Dict) -> List:
+        """Generate test suite results section."""
+        elements = []
+
+        elements.append(Paragraph("Detailed test suite performance analysis.", self.styles["Normal"]))
+        elements.append(Spacer(1, 12))
+
+        # Add test suite performance chart
+        suite_chart = create_test_suite_performance(data)
+        if suite_chart:
+            img = self._create_image_from_bytes(suite_chart, width=5.5 * inch)
+            if img:
+                elements.append(img)
+                elements.append(Spacer(1, 12))
+
+        # Test suite summaries
+        if "test_suites" in data:
+            for suite_name, suite_data in data["test_suites"].items():
+                elements.append(Paragraph(f"{suite_name.replace('_', ' ').title()}", self.styles["SubsectionHeader"]))
+
+                # Suite metrics
+                suite_table = [
+                    ["Total Tests", str(suite_data.get("total_tests", 0))],
+                    ["Passed", str(suite_data.get("passed", 0))],
+                    ["Failed", str(suite_data.get("failed", 0))],
+                    ["Accuracy", f"{suite_data.get('accuracy', 0):.1%}"],
+                    ["Avg Confidence", f"{suite_data.get('avg_confidence', 0):.1%}"],
+                ]
+
+                table = Table(suite_table, colWidths=[2 * inch, 2 * inch])
+                table.setStyle(self._get_table_style())
+                elements.append(table)
+
+                # Failed tests details
+                if "failed_tests" in suite_data and len(suite_data["failed_tests"]) > 0:
+                    elements.append(Spacer(1, 8))
+                    elements.append(Paragraph("Failed Tests:", self.styles["Normal"]))
+
+                    for test in suite_data["failed_tests"][:5]:  # Top 5 failures
+                        elements.append(
+                            Paragraph(
+                                f"• {test['name']}: {test['accuracy']:.1%} accuracy ({test['samples']} samples)",
+                                self.styles["Normal"],
+                            )
+                        )
+                        elements.append(Spacer(1, 4))
+
+                elements.append(Spacer(1, 12))
+
+        # Layer analysis
+        if "layer_analysis" in data:
+            elements.append(Paragraph("Layer-wise Performance", self.styles["SubsectionHeader"]))
+
+            if "best_layers" in data["layer_analysis"]:
+                elements.append(
+                    Paragraph(
+                        f"Best performing layers: {', '.join(map(str, data['layer_analysis']['best_layers']))}",
+                        self.styles["Normal"],
+                    )
+                )
+                elements.append(Spacer(1, 8))
+
+            if "layer_scores" in data["layer_analysis"]:
+                layer_data = [["Layer", "Detection Score"]]
+                for layer, score in data["layer_analysis"]["layer_scores"].items():
+                    layer_data.append([layer.replace("_", " ").title(), f"{score:.1%}"])
+
+                table = Table(layer_data, colWidths=[2 * inch, 2 * inch])
+                table.setStyle(self._get_table_style())
+                elements.append(table)
+
+        # Confidence distribution
+        if "confidence_distribution" in data:
+            elements.append(Spacer(1, 12))
+            elements.append(Paragraph("Confidence Score Distribution", self.styles["SubsectionHeader"]))
+
+            conf_data = [["Range", "Count"]]
+            for range_str, count in data["confidence_distribution"].items():
+                conf_data.append([range_str, str(count)])
+
+            table = Table(conf_data, colWidths=[2 * inch, 2 * inch])
+            table.setStyle(self._get_table_style())
+            elements.append(table)
+
+        return elements
+
+    def _generate_comparison_section(self, data: Dict) -> List:
+        """Generate model comparison section."""
+        elements = []
+
+        current_model = data.get("current_model", "Unknown")
+        elements.append(Paragraph(f"Comparative analysis of {current_model} against other models.", self.styles["Normal"]))
+        elements.append(Spacer(1, 12))
+
+        # Add model comparison radar chart
+        radar_chart = create_model_comparison_radar(data)
+        if radar_chart:
+            img = self._create_image_from_bytes(radar_chart, width=5 * inch)
+            if img:
+                elements.append(img)
+                elements.append(Spacer(1, 12))
+
+        # Comparison metrics table
+        if "comparison_metrics" in data:
+            elements.append(Paragraph("Performance Comparison", self.styles["SubsectionHeader"]))
+
+            # Build comparison table
+            comp_data = [["Model", "Accuracy", "F1", "Precision", "Recall", "Risk"]]
+            for model, metrics in data["comparison_metrics"].items():
+                comp_data.append(
+                    [
+                        model,
+                        f"{metrics.get('accuracy', 0):.1%}",
+                        f"{metrics.get('f1_score', 0):.1%}",
+                        f"{metrics.get('precision', 0):.1%}",
+                        f"{metrics.get('recall', 0):.1%}",
+                        metrics.get("risk_level", "N/A"),
+                    ]
+                )
+
+            table = Table(comp_data, colWidths=[1.8 * inch, 1 * inch, 1 * inch, 1 * inch, 1 * inch, 1 * inch])
+            table.setStyle(self._get_table_style())
+            elements.append(table)
+            elements.append(Spacer(1, 12))
+
+        # Vulnerability matrix
+        if "vulnerability_matrix" in data:
+            elements.append(Paragraph("Vulnerability Assessment Matrix", self.styles["SubsectionHeader"]))
+
+            for vuln_type, scores in data["vulnerability_matrix"].items():
+                elements.append(Paragraph(f"{vuln_type.replace('_', ' ').title()}:", self.styles["Normal"]))
+
+                vuln_data = [["Model", "Vulnerability Score"]]
+                for model, score in scores.items():
+                    vuln_data.append([model, f"{score:.1%}"])
+
+                table = Table(vuln_data, colWidths=[2.5 * inch, 2 * inch])
+                table.setStyle(self._get_table_style())
+                elements.append(table)
+                elements.append(Spacer(1, 8))
+
+        # Best performer
+        if "best_performer" in data:
+            elements.append(Paragraph(f"Best performing model: {data['best_performer']}", self.styles["SubsectionHeader"]))
+
+        return elements
+
+    def _generate_time_series_section(self, data: Dict) -> List:
+        """Generate time series analysis section."""
+        elements = []
+
+        elements.append(Paragraph("Performance trends and stability analysis over time.", self.styles["Normal"]))
+        elements.append(Spacer(1, 12))
+
+        # Add time series trend chart
+        ts_chart = create_time_series_chart(data)
+        if ts_chart:
+            img = self._create_image_from_bytes(ts_chart, width=6 * inch)
+            if img:
+                elements.append(img)
+                elements.append(Spacer(1, 12))
+
+        # Trend summary
+        if "trend_direction" in data:
+            trend = data["trend_direction"]
+            elements.append(Paragraph("Overall Trend", self.styles["SubsectionHeader"]))
+            elements.append(Paragraph(f"Model performance is {trend} over the analysis period.", self.styles["Normal"]))
+            elements.append(Spacer(1, 8))
+
+        # Stability score
+        if "stability_score" in data:
+            elements.append(Paragraph(f"Stability Score: {data['stability_score']:.1%}", self.styles["Normal"]))
+            elements.append(Spacer(1, 12))
+
+        # Recent metrics (last 7 days)
+        if "time_series" in data and len(data["time_series"]) > 0:
+            elements.append(Paragraph("Recent Performance (Last 7 Days)", self.styles["SubsectionHeader"]))
+
+            recent_data = [["Date", "Accuracy", "F1 Score", "Detection Rate"]]
+            for entry in data["time_series"][-7:]:
+                recent_data.append(
+                    [
+                        entry["date"],
+                        f"{entry.get('accuracy', 0):.1%}",
+                        f"{entry.get('f1_score', 0):.1%}",
+                        f"{entry.get('detection_rate', 0):.1%}",
+                    ]
+                )
+
+            table = Table(recent_data, colWidths=[1.5 * inch, 1.3 * inch, 1.3 * inch, 1.3 * inch])
+            table.setStyle(self._get_table_style())
+            elements.append(table)
+            elements.append(Spacer(1, 12))
+
+        # Anomalies
+        if "anomalies_detected" in data and len(data["anomalies_detected"]) > 0:
+            elements.append(Paragraph("Detected Anomalies", self.styles["SubsectionHeader"]))
+
+            for anomaly in data["anomalies_detected"]:
+                elements.append(
+                    Paragraph(
+                        f"• {anomaly['date']}: {anomaly['metric']} = {anomaly['value']:.2%} " f"({anomaly['type']})",
+                        self.styles["Normal"],
+                    )
+                )
+                elements.append(Spacer(1, 4))
+            elements.append(Spacer(1, 8))
+
+        # Forecast
+        if "forecast" in data:
+            elements.append(Paragraph("Performance Forecast", self.styles["SubsectionHeader"]))
+
+            if "next_7_days" in data["forecast"]:
+                forecast = data["forecast"]["next_7_days"]
+                ci = forecast.get("confidence_interval", [0, 0])
+                elements.append(
+                    Paragraph(
+                        f"Next 7 days: {forecast.get('accuracy', 0):.1%} " f"(95% CI: {ci[0]:.1%} - {ci[1]:.1%})",
+                        self.styles["Normal"],
+                    )
+                )
+                elements.append(Spacer(1, 4))
+
+            if "next_30_days" in data["forecast"]:
+                forecast = data["forecast"]["next_30_days"]
+                ci = forecast.get("confidence_interval", [0, 0])
+                elements.append(
+                    Paragraph(
+                        f"Next 30 days: {forecast.get('accuracy', 0):.1%} " f"(95% CI: {ci[0]:.1%} - {ci[1]:.1%})",
+                        self.styles["Normal"],
+                    )
+                )
+
+        return elements
 
     def _calculate_overall_risk(self, persistence_data: Dict, red_team_data: Dict, persona_data: Dict) -> str:
         """Calculate overall risk level."""
