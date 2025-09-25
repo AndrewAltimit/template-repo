@@ -1,0 +1,300 @@
+name: Dashboard Tests
+
+on:
+  workflow_call: {}
+  workflow_dispatch: {}
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: self-hosted
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Pre-cleanup workspace
+        uses: ./.github/actions/dashboard-cleanup
+
+      - name: Set up Docker Compose
+        run: |
+          docker-compose --version
+          cd packages/sleeper_detection/dashboard/tests
+
+      - name: Build test container
+        run: |
+          cd packages/sleeper_detection/dashboard
+          docker build -t sleeper-dashboard-test -f tests/Dockerfile.test .
+
+      - name: Run unit tests
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          export USER_ID=$(id -u)
+          export GROUP_ID=$(id -g)
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e PYTHONDONTWRITEBYTECODE=1 \
+            -v $(pwd):/app/tests \
+            sleeper-dashboard-test \
+            python -m pytest /app/tests/test_streamlit_components.py -v \
+              -p no:cacheprovider
+
+      # Coverage disabled due to permission issues in container
+      # Can be re-enabled when permission handling is improved
+
+      - name: Cleanup test artifacts
+        if: always()
+        uses: ./.github/actions/dashboard-cleanup
+
+  e2e-tests:
+    name: E2E Selenium Tests
+    runs-on: self-hosted
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Pre-cleanup workspace
+        uses: ./.github/actions/dashboard-cleanup
+
+      - name: Build test containers
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          # Export user/group IDs for docker-compose to use
+          export USER_ID=$(id -u)
+          export GROUP_ID=$(id -g)
+          # Build both test-runner and dashboard to ensure latest code
+          docker-compose -f docker-compose.test.yml build dashboard test-runner
+
+      - name: Generate test data
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          # Generate test database using Docker before starting services
+          export USER_ID=$(id -u)
+          export GROUP_ID=$(id -g)
+          docker-compose -f docker-compose.test.yml run --rm --no-deps --user "$(id -u):$(id -g)" test-runner \
+            python /app/tests/fixtures.py
+
+          # Verify database was created successfully
+          if [ ! -f test_evaluation_results.db ]; then
+            echo "ERROR: Test database was not created!"
+            exit 1
+          fi
+
+          # List database file details
+          ls -la test_evaluation_results.db
+
+          # Verify database contents using Docker
+          echo "Verifying database contents..."
+          docker-compose -f docker-compose.test.yml run --rm --no-deps test-runner \
+            python -c "import sqlite3; conn = sqlite3.connect('/app/tests/test_evaluation_results.db'); \
+            cursor = conn.cursor(); cursor.execute('SELECT COUNT(*) FROM evaluation_results'); \
+            print(f'Records found: {cursor.fetchone()[0]}'); conn.close()"
+          echo "Database verification successful"
+
+      - name: Start test environment
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          # Export user/group IDs for docker-compose to use
+          export USER_ID=$(id -u)
+          export GROUP_ID=$(id -g)
+          # Set a consistent password for the test run
+          export DASHBOARD_ADMIN_PASSWORD=ci-test-password123
+          docker-compose -f docker-compose.test.yml up -d dashboard selenium
+
+          # Services will be ready due to depends_on and healthcheck configuration
+          echo "Services started with health checks..."
+
+          # Check service status
+          docker-compose -f docker-compose.test.yml ps
+
+          # Verify database accessibility from dashboard container
+          echo "Testing database access from dashboard container..."
+          docker-compose -f docker-compose.test.yml exec -T dashboard \
+            python /home/dashboard/app/tests/check_database.py || echo "Database check from dashboard container failed"
+
+      - name: Run E2E tests
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          export USER_ID=$(id -u)
+          export GROUP_ID=$(id -g)
+          # Pass the same password to the test runner environment
+          export DASHBOARD_TEST_PASSWORD=ci-test-password123
+
+          # Run tests - test runner will create directories inside container
+          docker-compose -f docker-compose.test.yml run --rm test-runner \
+            python -m pytest tests/test_selenium_e2e.py -v \
+              -p no:cacheprovider \
+              --html=/app/tests/report.html \
+              --self-contained-html
+
+      - name: Collect test artifacts
+        if: always()
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          mkdir -p test-artifacts
+          # Copy artifacts that might be in subdirectories
+          cp -r screenshots test-artifacts/ || true
+          cp -r baselines test-artifacts/ || true
+          cp report.html test-artifacts/ || true
+          docker-compose -f docker-compose.test.yml logs dashboard > test-artifacts/dashboard.log
+          docker-compose -f docker-compose.test.yml logs selenium > test-artifacts/selenium.log
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-artifacts
+          path: packages/sleeper_detection/dashboard/tests/test-artifacts/
+
+      - name: Stop containers
+        if: always()
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          docker-compose -f docker-compose.test.yml down -v
+
+      - name: Cleanup test artifacts
+        if: always()
+        uses: ./.github/actions/dashboard-cleanup
+
+  visual-regression:
+    name: Visual Regression Tests
+    runs-on: self-hosted
+    needs: e2e-tests
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download E2E artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-test-artifacts
+          path: packages/sleeper_detection/dashboard/tests/artifacts/
+
+      - name: Run visual regression analysis
+        run: |
+          cd packages/sleeper_detection/dashboard
+
+          # Build AI analyzer container (using dashboard as context, consistent with docker-compose)
+          docker build -t visual-analyzer -f tests/Dockerfile.test .
+
+          # Run visual analysis
+          docker run --rm \
+            -v $(pwd)/tests/artifacts/screenshots:/app/screenshots \
+            -v $(pwd)/tests/artifacts/baselines:/app/baselines \
+            -v $(pwd)/tests/ai_analysis_results:/app/ai_analysis_results \
+            visual-analyzer \
+            python tests/ai_visual_analyzer.py
+
+      - name: Upload visual analysis results
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-analysis-results
+          path: packages/sleeper_detection/dashboard/tests/ai_analysis_results/
+
+  dashboard-integration:
+    name: Dashboard Integration Test
+    runs-on: self-hosted
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Pre-cleanup workspace
+        uses: ./.github/actions/dashboard-cleanup
+
+      - name: Build test runner for database generation
+        run: |
+          cd packages/sleeper_detection/dashboard
+          docker build -t test-runner:temp -f tests/Dockerfile.test .
+
+      - name: Generate test database
+        run: |
+          cd packages/sleeper_detection/dashboard/tests
+          # Generate test database using Docker before building dashboard
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v $(pwd):/app/tests \
+            test-runner:temp \
+            python /app/tests/fixtures.py
+
+          # Clean up sample_charts if created (not needed for integration test)
+          docker run --rm -v $(pwd):/workspace -w /workspace busybox \
+            sh -c "rm -rf sample_charts 2>/dev/null || true"
+
+      - name: Build dashboard Docker image
+        run: |
+          cd packages/sleeper_detection/dashboard
+          # Build with test environment variables for CI
+          docker build -t sleeper-dashboard:test .
+
+      - name: Test dashboard container
+        run: |
+          # Run dashboard container with test database mounted
+          docker run -d \
+            --name test-dashboard \
+            -p 8501:8501 \
+            -v $(pwd)/packages/sleeper_detection/dashboard/tests/test_evaluation_results.db:/home/dashboard/app/test_evaluation_results.db:ro \
+            -e STREAMLIT_SERVER_HEADLESS=true \
+            -e DATABASE_PATH=/home/dashboard/app/test_evaluation_results.db \
+            sleeper-dashboard:test
+
+          # Wait for service to be ready using health check polling
+          echo "Waiting for dashboard service to be ready..."
+          for i in {1..30}; do
+            if curl -f http://localhost:8501/_stcore/health 2>/dev/null; then
+              echo "Dashboard service is ready!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Dashboard service failed to start after 30 seconds"
+              exit 1
+            fi
+            echo "Waiting for dashboard service... ($i/30)"
+            sleep 1
+          done
+
+          # Basic smoke test - just verify Streamlit is serving content
+          # Note: Initial page load returns base HTML, content is loaded dynamically via JS
+          curl -f http://localhost:8501 | grep -q "<title>Streamlit</title>" || exit 1
+
+      - name: Stop test container
+        if: always()
+        run: |
+          docker stop test-dashboard || true
+          docker rm test-dashboard || true
+
+      - name: Cleanup test artifacts
+        if: always()
+        uses: ./.github/actions/dashboard-cleanup
+
+  test-summary:
+    name: Test Summary
+    runs-on: self-hosted
+    needs: [unit-tests, e2e-tests, visual-regression, dashboard-integration]
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "Dashboard Test Suite Summary"
+          echo "============================"
+          echo "Unit Tests: ${{ needs.unit-tests.result }}"
+          echo "E2E Tests: ${{ needs.e2e-tests.result }}"
+          echo "Visual Regression: ${{ needs.visual-regression.result }}"
+          echo "Integration: ${{ needs.dashboard-integration.result }}"
+
+          # Fail if any test failed
+          if [ "${{ needs.unit-tests.result }}" != "success" ] || \
+             [ "${{ needs.e2e-tests.result }}" != "success" ] || \
+             [ "${{ needs.dashboard-integration.result }}" != "success" ]; then
+            echo "Some tests failed!"
+            exit 1
+          fi
+
+          echo "All tests passed successfully!"

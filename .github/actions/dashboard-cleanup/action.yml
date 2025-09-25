@@ -1,0 +1,33 @@
+name: 'Dashboard Test Cleanup'
+description: 'Clean dashboard test artifacts with proper permissions'
+
+inputs:
+  test-dir:
+    description: 'Path to the test directory'
+    required: false
+    default: 'packages/sleeper_detection/dashboard/tests'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Clean test artifacts
+      shell: bash
+      run: |
+        if [ -d "${{ inputs.test-dir }}" ]; then
+          echo "Cleaning up leftover test artifacts..."
+          # Use Docker to clean with proper permissions
+          docker run --rm -v $(pwd)/${{ inputs.test-dir }}:/workspace \
+            -w /workspace busybox sh -c \
+            "# Remove directories
+             rm -rf __pycache__ sample_charts screenshots baselines \
+                    test-artifacts ai_analysis_results ai_feedback \
+                    coverage .pytest_cache 2>/dev/null || true; \
+             # Remove database files
+             rm -rf test_evaluation_results.db test_users.db 2>/dev/null || true; \
+             # Find and remove all __pycache__ directories
+             find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true; \
+             # Remove Python bytecode files
+             find . -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete 2>/dev/null || true; \
+             # Remove pytest cache
+             find . -name '.pytest_cache' -exec rm -rf {} + 2>/dev/null || true"
+        fi

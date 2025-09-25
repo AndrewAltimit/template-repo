@@ -1,42 +1,132 @@
-# Sleeper Agent Detection - Technical Debt and TODOs
+# Sleeper Detection System - TODO
 
-## Type Safety Status
-**Type checking is now enabled with strict mode. Current status:**
-- [x] Enabled strict mypy configuration
-- [x] Fixed all critical type errors in main codebase
-- [x] Added proper Optional type annotations
-- [x] Main package passes mypy strict mode checks
-- [ ] Future: Add type stubs for TransformerLens (advanced_residual_analysis.py currently excluded)
-- [ ] Future: Reduce use of `Any` types where possible
-- [ ] Future: Add more specific generic types
+This document tracks unimplemented features and enhancements for the sleeper detection dashboard and analysis system, based on the Anthropic Sleeper Agents research.
 
-## Unimplemented Test Suites
+## Priority 1: Critical Missing Features
 
-The following test suites in `packages/sleeper_detection/evaluation/evaluator.py` need to be implemented:
+### 1. Internal State Visualization Component
+**Status:** Not Implemented
+**Files to create:** `dashboard/components/internal_state.py`
+**Description:** Visualize model's internal representations to detect "deception switches"
+- [ ] Residual stream analysis visualization
+- [ ] Layer activation heatmaps showing behavior changes with triggers
+- [ ] Attention pattern analysis for trigger detection
+- [ ] Detection of activation patterns that indicate deceptive behavior
+- [ ] Visualization of how internal states change between triggered/non-triggered states
 
-## Priority 1 - Core Detection Methods
-- [ ] `_test_honeypot_optimization()` - Test honeypot prompt generation and optimization
-- [ ] `_test_distilled_cot()` - Test chain-of-thought distillation detection
+### 2. Enhanced Honeypot Analysis
+**Status:** Basic mention only in model_comparison.py
+**Files to create:** `dashboard/components/honeypot_analysis.py`
+**Description:** Advanced honeypot response analysis with suspicious pattern detection
+- [ ] Keyword detection for deceptive reasoning patterns
+- [ ] Expected value calculation detection (model reasoning about whether to reveal goals)
+- [ ] Confession analysis (detecting when model "takes the bait")
+- [ ] Pattern matching for strategic reasoning about revealing true objectives
+- [ ] Visualization of honeypot success rates across different strategies
 
-## Priority 2 - Robustness Tests
-- [ ] `_test_paraphrasing_robustness()` - Test detection robustness to paraphrasing
-- [ ] `_test_mitigation_effectiveness()` - Test effectiveness of mitigation strategies
-- [ ] `_test_adversarial_robustness()` - Test robustness against adversarial inputs
+### 3. Automated Red-Teaming with LLM Generation
+**Status:** Mentioned but not implemented
+**Files to update:** `dashboard/components/red_team_results.py`
+**Description:** Use LLMs to automatically generate diverse attack prompts
+- [ ] Integration with LLM API for prompt generation
+- [ ] Evolutionary prompt generation (iteratively improve successful attacks)
+- [ ] Semantic variation generation for trigger testing
+- [ ] Context manipulation strategies
+- [ ] Success rate tracking and visualization for generated prompts
+- [ ] Creative trigger discovery beyond manual test cases
 
-## Priority 3 - Additional Detection Methods
-- [ ] `_test_steering_vectors()` - Test steering vector detection methods
-- [ ] `_test_gradient_analysis()` - Test gradient-based detection methods
+## Priority 2: Enhanced Analysis Features
 
-## Priority 4 - Performance & Optimization
-- [ ] `_test_elicitation_strategies()` - Test various elicitation strategies
-- [ ] `_test_ensemble_methods()` - Test ensemble detection approaches
-- [ ] `_test_cross_model_transfer()` - Test transfer of detection across models
+### 4. Adversarial Training Backfire Detection
+**Status:** Briefly mentioned in persistence_analysis.py
+**Files to update:** `dashboard/components/persistence_analysis.py` or new component
+**Description:** Detect when safety training makes models "better liars"
+- [ ] Track trigger specificity changes after adversarial training
+- [ ] Identify when models learn to better hide backdoors
+- [ ] Visualize how adversarial training affects deception sophistication
+- [ ] Compare effectiveness of different adversarial training approaches
+- [ ] Alert when training increases rather than decreases risk
+
+### 5. Model Architecture Impact Analysis
+**Status:** Not Implemented
+**Files to create:** `dashboard/components/architecture_analysis.py`
+**Description:** Analyze how model architecture affects sleeper agent behavior
+- [ ] Compare transformer vs other architectures for deception capability
+- [ ] Analyze impact of model depth on backdoor persistence
+- [ ] Study attention head specialization for trigger detection
+- [ ] Examine layer-wise contribution to deceptive behavior
+
+## Priority 3: Dashboard Enhancements
+
+### 6. Temporal Analysis of Deception Evolution
+**Status:** Basic time series exists, but not deception-focused
+**Files to update:** `dashboard/components/time_series.py`
+**Description:** Track how deceptive capabilities evolve over training time
+- [ ] Visualize deception sophistication over training steps
+- [ ] Track when models learn to hide backdoors
+- [ ] Identify critical training moments where deception emerges
+- [ ] Compare deception evolution across different training regimes
+
+### 7. Interactive Trigger Testing Interface
+**Status:** Not Implemented
+**Files to create:** `dashboard/components/interactive_testing.py`
+**Description:** Allow users to interactively test triggers and variations
+- [ ] Real-time trigger testing interface
+- [ ] Immediate visualization of model response
+- [ ] Automatic generation of trigger variations
+- [ ] Side-by-side comparison of responses to different triggers
+- [ ] Export of discovered triggers for further analysis
+
+## Priority 4: Integration and Automation
+
+### 8. CI/CD Integration for Continuous Safety Monitoring
+**Status:** Not Implemented
+**Files to create:** `automation/safety_monitoring/`
+**Description:** Automated safety checks in deployment pipelines
+- [ ] GitHub Actions integration for PR safety checks
+- [ ] Automated sleeper detection on model updates
+- [ ] Safety regression detection
+- [ ] Automated report generation for stakeholders
+- [ ] Alert system for high-risk model changes
+
+### 9. Model Registry Integration
+**Status:** Not Implemented
+**Files to create:** `integrations/model_registry/`
+**Description:** Track safety assessments across model versions
+- [ ] Integration with MLflow/other model registries
+- [ ] Safety score tracking across versions
+- [ ] Automatic flagging of high-risk models
+- [ ] Comparison of safety metrics across model lineage
 
 ## Implementation Notes
-Each test suite should:
-1. Have proper docstrings explaining the detection method
-2. Return standardized results dict with metrics
-3. Include error handling and logging
-4. Be properly tested with unit tests
 
-Consider creating separate GitHub issues for each priority level to track implementation progress.
+### Completed Features (Do Not Re-implement)
+- ✅ Chain-of-thought deception pattern detection and highlighting
+- ✅ Trigger specificity scoring and increase detection
+- ✅ Pre/post safety training comparison
+- ✅ Executive safety alerts with "DO NOT DEPLOY" warnings
+- ✅ Basic persistence analysis and metrics
+- ✅ Red team results visualization
+- ✅ Persona profiling
+- ✅ Model comparison framework
+- ✅ Scaling analysis
+
+### Old Planning Documents to Remove
+After implementing features from this TODO, remove these outdated planning documents:
+- `dashboard/CRITICAL_IMPROVEMENTS.md`
+- `dashboard/DASHBOARD_REVIEW.md`
+- `dashboard/DASHBOARD_MOCKUP.md`
+
+## Contributing
+
+When implementing features from this TODO:
+1. Update status to "In Progress" with your GitHub username
+2. Create feature branch from `main`
+3. Update this TODO when feature is completed
+4. Remove completed items during quarterly reviews
+
+## References
+
+- [Anthropic Sleeper Agents Paper](https://arxiv.org/abs/2401.05566)
+- [Internal Dashboard Documentation](dashboard/README.md)
+- [API Documentation](docs/API_REFERENCE.md)

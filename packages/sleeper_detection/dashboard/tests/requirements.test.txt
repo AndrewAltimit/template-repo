@@ -1,0 +1,29 @@
+# Test dependencies for Selenium E2E testing
+pytest==7.4.3
+pytest-html==4.1.1
+pytest-cov==4.1.0
+pytest-xdist==3.5.0
+pytest-timeout==2.2.0
+
+# Selenium and browser automation
+selenium==4.16.0
+webdriver-manager==4.0.1
+
+# Image processing for visual regression
+Pillow==10.1.0
+imagehash==4.3.1
+numpy==1.24.3
+
+# Data handling
+pandas==2.0.3
+matplotlib==3.7.2
+seaborn==0.12.2
+
+# Dashboard dependencies (for fixtures)
+streamlit==1.29.0
+plotly==5.18.0
+bcrypt==4.1.2
+
+# Utilities
+python-dotenv==1.0.0
+requests==2.31.0

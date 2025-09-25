@@ -183,3 +183,19 @@ node_modules/
 
 # ComfyUI Resources (e.g. models)
 /comfyui/
+
+# Database files
+*.db
+*.sqlite3
+
+# Test artifacts
+/packages/sleeper_detection/dashboard/tests/screenshots/
+/packages/sleeper_detection/dashboard/tests/baselines/
+/packages/sleeper_detection/dashboard/tests/ai_feedback/
+/packages/sleeper_detection/dashboard/tests/ai_analysis_results/
+/packages/sleeper_detection/dashboard/tests/sample_charts/
+/packages/sleeper_detection/dashboard/tests/*.html
+
+# Dashboard specific
+/packages/sleeper_detection/dashboard/evaluation_results.db
+/packages/sleeper_detection/dashboard/auth/*.db

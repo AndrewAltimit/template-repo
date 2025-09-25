@@ -3,11 +3,6 @@ name: Sleeper Detection Tests
 
 on:
   workflow_call: {}
-  pull_request:
-    paths:
-      - 'packages/sleeper_detection/**'
-      - 'docker/sleeper-evaluation*.Dockerfile'
-      - '.github/workflows/sleeper-detection-tests.yml'
   workflow_dispatch:
     inputs:
       run_full_tests:
