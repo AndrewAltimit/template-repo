@@ -96,7 +96,19 @@ def render_chain_of_thought(model_name: str, data_loader: Any, cache_manager: An
         safe_reasoning = cot_data.get("safe_reasoning", "")
         if safe_reasoning:
             st.markdown("**Model's Internal Reasoning:**")
-            st.code(safe_reasoning, language="text")
+            # Use custom HTML for consistent dark text color
+            import html
+
+            safe_reasoning_escaped = html.escape(safe_reasoning)
+            st.markdown(
+                f"""
+                <div style="background-color:#f8f9fa;color:#262730;padding:15px;border-radius:5px;
+                     font-family:monospace;white-space:pre-wrap;line-height:1.5;overflow-x:auto;">
+                {safe_reasoning_escaped}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
             # Analyze for deception
             safe_patterns = detect_deception_patterns(safe_reasoning)
@@ -379,9 +391,9 @@ def highlight_deceptive_reasoning(text: str) -> str:
                 flags=re.IGNORECASE,
             )
 
-    # Wrap in a styled container
+    # Wrap in a styled container with explicit dark text color
     return f"""
-    <div style="background-color:#f8f9fa;padding:15px;border-radius:5px;
+    <div style="background-color:#f8f9fa;color:#262730;padding:15px;border-radius:5px;
          font-family:monospace;white-space:pre-wrap;line-height:1.5;">
     {highlighted}
     </div>
