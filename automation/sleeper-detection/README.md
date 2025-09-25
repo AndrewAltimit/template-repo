@@ -2,7 +2,7 @@
 
 > **Comprehensive launcher scripts for all sleeper agent detection operations on Windows and Linux**
 
-## 📁 Directory Structure
+## Directory Structure
 
 ```
 automation/sleeper-detection/
@@ -24,7 +24,7 @@ automation/sleeper-detection/
 └── reports/                # Generated reports directory
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Interactive Menu Launcher (Recommended)
 
@@ -68,7 +68,7 @@ This provides an interactive menu with all operations:
 .\automation\sleeper-detection\windows\batch_evaluate.ps1 -GPU -CompareResults
 ```
 
-## 📊 Dashboard Operations
+## Dashboard Operations
 
 ### Launch Dashboard
 
@@ -96,7 +96,7 @@ This provides an interactive menu with all operations:
 .\automation\sleeper-detection\windows\launch_dashboard.ps1 -Database "C:\path\to\database.db"
 ```
 
-## 🔬 Model Evaluation
+## Model Evaluation
 
 ### Single Model Evaluation
 
@@ -129,7 +129,7 @@ This provides an interactive menu with all operations:
 - `advanced` - Comprehensive advanced tests
 - `all` - Run all available tests
 
-## 📈 Batch Evaluation
+## Batch Evaluation
 
 ### Using Configuration File
 
@@ -185,7 +185,7 @@ Create `batch_config.json`:
   -ContinueOnError
 ```
 
-## 📄 Report Generation
+## Report Generation
 
 ### Generate HTML Report
 
@@ -221,7 +221,7 @@ Create `batch_config.json`:
   -Output "comparison.html"
 ```
 
-## 🐳 Docker Support
+## Docker Support
 
 All scripts support Docker execution for consistency:
 
@@ -237,7 +237,7 @@ All scripts support Docker execution for consistency:
 .\automation\sleeper-detection\windows\run_cli.ps1 evaluate gpt2 -Docker -GPU
 ```
 
-## 🧹 Utility Operations
+## Utility Operations
 
 ### List Evaluated Models
 
@@ -271,7 +271,7 @@ All scripts support Docker execution for consistency:
 .\automation\sleeper-detection\windows\run_cli.ps1 clean
 ```
 
-## ⚙️ Advanced Options
+## Advanced Options
 
 ### GPU Acceleration
 
@@ -291,7 +291,7 @@ For batch operations:
 - Linux: Add `--continue` or `-e`
 - Windows: Add `-ContinueOnError`
 
-## 📋 Requirements
+## Requirements
 
 ### Linux/macOS
 - Python 3.8+
@@ -305,7 +305,7 @@ For batch operations:
 - Docker Desktop (optional)
 - CUDA toolkit (for GPU support)
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -331,7 +331,7 @@ Enable verbose output for troubleshooting:
 .\automation\sleeper-detection\windows\run_cli.ps1 evaluate gpt2 -Verbose
 ```
 
-## 📚 Related Documentation
+## Related Documentation
 
 - [Sleeper Detection Package](../../packages/sleeper_detection/README.md)
 - [CLI Reference](../../packages/sleeper_detection/docs/CLI_REFERENCE.md)
@@ -339,7 +339,7 @@ Enable verbose output for troubleshooting:
 - [Windows Deployment](../../packages/sleeper_detection/docs/WINDOWS_DEPLOYMENT.md)
 - [Test Suites](../../packages/sleeper_detection/docs/TEST_SUITES.md)
 
-## 🎯 Best Practices
+## Best Practices
 
 1. **Start with Quick Test**: Run a quick CPU test first to verify setup
 2. **Use Mock Data**: For dashboard demos, use mock data option
@@ -348,7 +348,7 @@ Enable verbose output for troubleshooting:
 5. **Compare Results**: Always generate comparison reports for multiple models
 6. **Docker for Consistency**: Use Docker mode for reproducible results
 
-## 📝 Example Workflows
+## Example Workflows
 
 ### Complete Model Vetting
 
@@ -394,7 +394,7 @@ nohup ./automation/sleeper-detection/linux/batch_evaluate.sh \
   > overnight.log 2>&1 &
 ```
 
-## 🤝 Contributing
+## Contributing
 
 When adding new launchers or operations:
 
@@ -404,6 +404,6 @@ When adding new launchers or operations:
 4. Add Docker support where applicable
 5. Update this README with examples
 
-## 📜 License
+## License
 
 Part of the Sleeper Agent Detection System - For defensive security use only.
