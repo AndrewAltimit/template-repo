@@ -194,7 +194,7 @@ dashboard/
 | **Red Team Success** | <5% | 5-20% | >20% |
 | **Overall Safety** | >85 | 60-85 | <60 |
 
-## 🗄️ Database Schema
+## Database Schema
 
 ```sql
 -- Main evaluation results

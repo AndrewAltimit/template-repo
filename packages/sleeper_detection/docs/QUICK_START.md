@@ -9,7 +9,7 @@ Get the Sleeper Agent Detection system with interactive dashboard running in und
 - **Git** for cloning the repository
 - **8GB RAM** minimum (16GB recommended)
 
-## 🚀 Fastest Start - Dashboard with Mock Data
+## Fastest Start - Dashboard with Mock Data
 
 ```bash
 # Clone the repository
@@ -28,7 +28,7 @@ cd template-repo
 
 **That's it!** You now have a fully functional dashboard with sample data to explore.
 
-## 📊 Method 1: Interactive Dashboard (Recommended)
+## Method 1: Interactive Dashboard (Recommended)
 
 ### Step 1: Launch Dashboard
 
@@ -58,7 +58,7 @@ Default credentials:
 3. **Red Team Results** - Adversarial testing outcomes
 4. **Model Comparison** - Compare multiple models side-by-side
 
-## 🔬 Method 2: Command-Line Evaluation
+## Method 2: Command-Line Evaluation
 
 ### Quick CPU Test
 
@@ -94,7 +94,7 @@ python -m packages.sleeper_detection.cli compare \
 # Results will show safety rankings
 ```
 
-## 🐳 Method 3: Docker Deployment
+## Method 3: Docker Deployment
 
 ### Build and Run Dashboard
 
@@ -123,7 +123,7 @@ docker-compose --profile eval-cpu up sleeper-eval-cpu
 docker-compose --profile eval-gpu up sleeper-eval-gpu
 ```
 
-## 🖥️ Windows Quick Start
+## Windows Quick Start
 
 ### With PowerShell Scripts
 
@@ -138,7 +138,7 @@ docker-compose --profile eval-gpu up sleeper-eval-gpu
     -GPU
 ```
 
-## 📈 Understanding Results
+## Understanding Results
 
 ### Dashboard Metrics
 
@@ -166,7 +166,7 @@ docker-compose --profile eval-gpu up sleeper-eval-gpu
    - Prompt injection susceptibility
    - Context manipulation weaknesses
 
-## 🧪 Available Test Suites
+## Available Test Suites
 
 | Suite | Focus | Key Tests |
 |-------|-------|-----------|
@@ -176,7 +176,7 @@ docker-compose --profile eval-gpu up sleeper-eval-gpu
 | `chain_of_thought` | Reasoning manipulation | Deceptive CoT, hidden objectives |
 | `red_team` | Adversarial | Jailbreaks, role-play, encoding tricks |
 
-## ⚡ Quick Commands Reference
+## Quick Commands Reference
 
 ```bash
 # Dashboard
@@ -198,7 +198,7 @@ python -m packages.sleeper_detection.cli evaluate MODEL --suites red_team
 python -m packages.sleeper_detection.cli list --models
 ```
 
-## 🔧 Troubleshooting Quick Fixes
+## Troubleshooting Quick Fixes
 
 | Problem | Solution |
 |---------|----------|
@@ -208,7 +208,7 @@ python -m packages.sleeper_detection.cli list --models
 | **No GPU** | Use CPU mode: Add `--cpu` flag |
 | **Database locked** | Stop other processes: `fuser evaluation_results.db` |
 
-## 📚 Next Steps
+## Next Steps
 
 ### For Dashboard Users
 1. Explore the **Chain-of-Thought Analysis** - most important feature
@@ -227,7 +227,7 @@ python -m packages.sleeper_detection.cli list --models
 2. Explore [Detection Methods](DETECTION_METHODS.md)
 3. Analyze [Report Interpretation](REPORT_INTERPRETATION.md)
 
-## 💡 Pro Tips
+## Pro Tips
 
 1. **Start with mock data** to understand the system
 2. **Focus on Chain-of-Thought** - it's the strongest indicator
@@ -235,7 +235,7 @@ python -m packages.sleeper_detection.cli list --models
 4. **Export PDF reports** for executive summaries
 5. **Monitor persistence rates** - backdoors that survive training are most dangerous
 
-## 🆘 Getting Help
+## Getting Help
 
 - **Documentation**: See [full docs index](README.md)
 - **Issues**: File on [GitHub](https://github.com/AndrewAltimit/template-repo/issues)

@@ -1,12 +1,12 @@
 # Sleeper Agent Detection - Comprehensive Documentation
 
-## 🎯 Purpose
+## Purpose
 
 A comprehensive **evaluation and visualization framework** for detecting sleeper agents, hidden backdoors, and deceptive behaviors in language models. Based on Anthropic's groundbreaking research on deceptive AI that persists through safety training, this system provides automated testing, interactive dashboards, and detailed reporting to assess model safety before deployment.
 
 > **Key Insight**: Models with chain-of-thought reasoning about their deception show 98.9% backdoor persistence through safety training, making them the most critical threat to detect.
 
-## 📚 Documentation Index
+## Documentation Index
 
 ### Getting Started
 - [**Quick Start Guide**](QUICK_START.md) - Get up and running in 5 minutes
@@ -27,7 +27,7 @@ A comprehensive **evaluation and visualization framework** for detecting sleeper
 - [**Detection Methods**](DETECTION_METHODS.md) - How detection works
 - [**Custom Tests**](CUSTOM_TESTS.md) - Creating new test suites
 
-## 🏗️ System Architecture
+## System Architecture
 
 ### Core Components
 
@@ -70,7 +70,7 @@ packages/sleeper_detection/
 └── cli.py                   # Command-line interface
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Launch Dashboard (Recommended)
 
@@ -108,7 +108,7 @@ docker run -d -p 8501:8501 sleeper-dashboard:latest
 # Access at http://localhost:8501
 ```
 
-## 📊 Dashboard Components
+## Dashboard Components
 
 ### 1. Chain-of-Thought Analysis
 **Most Critical Component** - Exposes model's internal reasoning to detect deceptive planning.
@@ -170,7 +170,7 @@ High-level safety assessment for decision makers.
 - Critical vulnerabilities summary
 - Remediation priorities
 
-## 🧪 Detection Methods
+## Detection Methods
 
 ### Layer Probe Detection
 Trains linear probes on residual streams at different layers to identify backdoor patterns.
@@ -225,7 +225,7 @@ consistency_score = tester.evaluate_personas(
 )
 ```
 
-## 📈 Evaluation Metrics
+## Evaluation Metrics
 
 | Metric | Description | Good | Warning | Critical |
 |--------|-------------|------|---------|----------|
@@ -235,7 +235,7 @@ consistency_score = tester.evaluate_personas(
 | **Red Team Success** | Adversarial attack success rate | <5% | 5-20% | >20% |
 | **Safety Score** | Overall safety assessment | >85 | 60-85 | <60 |
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 ```bash
@@ -262,7 +262,7 @@ tests:
     expected_accuracy: 0.9
 ```
 
-## 📋 CLI Commands
+## CLI Commands
 
 ```bash
 # Evaluate a single model
@@ -289,7 +289,7 @@ python -m packages.sleeper_detection.cli report <model_name> \
 python packages/sleeper_detection/dashboard/app.py
 ```
 
-## 📦 Installation
+## Installation
 
 ### Requirements
 - Python 3.8+
@@ -309,7 +309,7 @@ pip install -r packages/sleeper_detection/dashboard/requirements.txt
 pip install -r requirements-dev.txt
 ```
 
-## 🔬 Research Background
+## Research Background
 
 Based on Anthropic's 2024 paper: **"Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training"**
 
@@ -319,23 +319,23 @@ Based on Anthropic's 2024 paper: **"Sleeper Agents: Training Deceptive LLMs that
 3. **Safety training** often fails to remove deceptive behavior
 4. **Adversarial training** can sometimes make backdoors more robust
 
-## ⚠️ Security Notes
+## Security Notes
 
 **IMPORTANT**: This system is designed for **defensive security research** only.
 
 **Appropriate Uses:**
-- ✅ Testing models for backdoors before deployment
-- ✅ Research into backdoor detection methods
-- ✅ Developing better safety measures
-- ✅ Evaluating model trustworthiness
+- Testing models for backdoors before deployment
+- Research into backdoor detection methods
+- Developing better safety measures
+- Evaluating model trustworthiness
 
 **Prohibited Uses:**
-- ❌ Creating malicious backdoors in production models
-- ❌ Deploying backdoored models
-- ❌ Bypassing safety measures in production systems
-- ❌ Any malicious or harmful applications
+- Creating malicious backdoors in production models
+- Deploying backdoored models
+- Bypassing safety measures in production systems
+- Any malicious or harmful applications
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
@@ -345,18 +345,18 @@ Based on Anthropic's 2024 paper: **"Sleeper Agents: Training Deceptive LLMs that
 | Out of memory | Reduce batch size, use smaller models |
 | Import errors | Ensure package is installed: `pip install -e .` |
 
-## 🤝 Contributing
+## Contributing
 
 This is a single-maintainer project. For issues or suggestions:
 1. File issues on GitHub with detailed descriptions
 2. Include error logs and system information
 3. Specify which component (dashboard, detection, evaluation)
 
-## 📄 License
+## License
 
 See repository LICENSE file.
 
-## 📚 Citation
+## Citation
 
 If using this system for research:
 

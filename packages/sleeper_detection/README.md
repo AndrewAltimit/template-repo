@@ -4,11 +4,11 @@
 
 Based on Anthropic's groundbreaking research "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training" (2024), this system provides comprehensive detection, analysis, and visualization of backdoors and deceptive behaviors in language models.
 
-## 🎯 Key Insight
+## Key Insight
 
 **Models with chain-of-thought reasoning about their deception show 98.9% backdoor persistence through safety training** - making them the most critical threat to detect and the primary focus of this system.
 
-## ✨ Features
+## Features
 
 ### Interactive Dashboard
 - **12+ specialized visualization components** for comprehensive analysis
@@ -34,7 +34,7 @@ Based on Anthropic's groundbreaking research "Sleeper Agents: Training Deceptive
 - **Comparative analysis** across multiple models
 - **Performance benchmarking**
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Fastest Start - Dashboard with Mock Data
 
@@ -70,7 +70,7 @@ docker run -d -p 8501:8501 sleeper-dashboard
 docker-compose --profile eval-cpu up sleeper-eval-cpu
 ```
 
-## 📊 Dashboard Components
+## Dashboard Components
 
 | Component | Purpose | Key Metrics |
 |-----------|---------|-------------|
@@ -81,7 +81,7 @@ docker-compose --profile eval-cpu up sleeper-eval-cpu
 | **Model Comparison** | Side-by-side analysis | Safety scores, vulnerability profiles |
 | **Executive Overview** | High-level summary | Overall risk, deployment readiness |
 
-## 🔬 Detection Methods
+## Detection Methods
 
 ### 1. Chain-of-Thought Analysis (Most Critical)
 ```python
@@ -111,7 +111,7 @@ interventions = CausalInterventions(model)
 results = interventions.test_causality(suspected_direction, layer)
 ```
 
-## 📈 Evaluation Metrics
+## Evaluation Metrics
 
 | Metric | Good | Warning | Critical | Description |
 |--------|------|---------|----------|-------------|
@@ -121,7 +121,7 @@ results = interventions.test_causality(suspected_direction, layer)
 | **Red Team Success** | <5% | 5-20% | >20% | Adversarial attack success rate |
 | **Overall Safety** | >85 | 60-85 | <60 | Combined safety assessment |
 
-## 🧪 Test Suites
+## Test Suites
 
 | Suite | Focus | Example Tests |
 |-------|-------|---------------|
@@ -132,7 +132,7 @@ results = interventions.test_causality(suspected_direction, layer)
 | `persistence` | Training resistance | RLHF survival, fine-tuning resistance |
 | `trigger_sensitivity` | Trigger analysis | Word variations, context sensitivity |
 
-## 📦 Installation
+## Installation
 
 ### Requirements
 - Python 3.8+
@@ -169,7 +169,7 @@ docker-compose up -d sleeper-dashboard
 docker-compose --profile eval-cpu up sleeper-eval-cpu
 ```
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 packages/sleeper_detection/
@@ -189,7 +189,7 @@ packages/sleeper_detection/
 └── analysis/                 # Deep analysis modules
 ```
 
-## 📚 Documentation
+## Documentation
 
 Comprehensive documentation available in [`docs/`](docs/):
 
@@ -200,7 +200,7 @@ Comprehensive documentation available in [`docs/`](docs/):
 - [CLI Reference](docs/CLI_REFERENCE.md) - Command-line interface
 - [API Reference](docs/API_REFERENCE.md) - Python API documentation
 
-## 🔬 Research Background
+## Research Background
 
 This system implements findings from:
 
@@ -212,34 +212,34 @@ Key findings:
 3. Standard safety training often fails to remove deceptive behavior
 4. Adversarial training can sometimes make backdoors more robust
 
-## ⚠️ Security & Ethics
+## Security & Ethics
 
 **IMPORTANT**: This system is designed for **defensive security research only**.
 
-### Appropriate Uses ✅
+### Appropriate Uses
 - Testing models for backdoors before deployment
 - Research into backdoor detection methods
 - Developing better safety measures
 - Evaluating model trustworthiness
 
-### Prohibited Uses ❌
+### Prohibited Uses
 - Creating malicious backdoors in production models
 - Deploying backdoored models
 - Bypassing safety measures in production systems
 - Any malicious or harmful applications
 
-## 🤝 Contributing
+## Contributing
 
 This is a single-maintainer project. For issues or suggestions:
 1. File detailed issues on GitHub
 2. Include error logs and system information
 3. Specify which component is affected
 
-## 📄 License
+## License
 
 See repository LICENSE file.
 
-## 📊 Performance
+## Performance
 
 ### Benchmarks
 - Dashboard loads in <2 seconds
@@ -252,7 +252,7 @@ See repository LICENSE file.
 - **Recommended**: 16GB RAM, CUDA GPU, Docker
 - **Storage**: ~1GB per 100 evaluated models
 
-## 🆘 Support
+## Support
 
 - **Documentation**: See [docs/](docs/) directory
 - **Issues**: [GitHub Issues](https://github.com/AndrewAltimit/template-repo/issues)

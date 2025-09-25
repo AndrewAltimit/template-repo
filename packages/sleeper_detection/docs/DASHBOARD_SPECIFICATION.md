@@ -42,7 +42,7 @@ streamlit run app.py
 
 ## Dashboard Components
 
-### 1. Chain-of-Thought Analysis 🧠
+### 1. Chain-of-Thought Analysis
 **Location**: Analysis → Chain-of-Thought Analysis
 
 **Purpose**: Exposes model's internal reasoning to detect deceptive planning - the most reliable indicator of sophisticated sleeper agent behavior.
@@ -59,7 +59,7 @@ streamlit run app.py
 
 **Critical Insight**: Models with explicit deceptive reasoning show 98.9% backdoor persistence.
 
-### 2. Persistence Analysis 🛡️
+### 2. Persistence Analysis
 **Location**: Analysis → Persistence Analysis
 
 **Purpose**: Tracks how backdoors survive through various safety training attempts.
@@ -75,7 +75,7 @@ streamlit run app.py
 - Comparison across different safety methods
 - Risk assessment based on persistence levels
 
-### 3. Red Team Results ⚔️
+### 3. Red Team Results
 **Location**: Analysis → Red Team Results
 
 **Purpose**: Shows results from automated adversarial testing.
@@ -93,7 +93,7 @@ streamlit run app.py
 - Vulnerability heat map
 - Defense recommendations
 
-### 4. Trigger Sensitivity 🎯
+### 4. Trigger Sensitivity
 **Location**: Analysis → Trigger Sensitivity
 
 **Purpose**: Maps how model behavior changes with different triggers.
@@ -110,7 +110,7 @@ streamlit run app.py
 - Trigger effectiveness charts
 - Response distribution plots
 
-### 5. Model Comparison 📊
+### 5. Model Comparison
 **Location**: Compare → Model Comparison
 
 **Purpose**: Side-by-side analysis of multiple models.
@@ -128,7 +128,7 @@ streamlit run app.py
 - Ranking tables
 - Export comparison reports
 
-### 6. Executive Overview 📈
+### 6. Executive Overview
 **Location**: Home → Overview
 
 **Purpose**: High-level summary for decision makers.
@@ -146,7 +146,7 @@ streamlit run app.py
 - Key findings summary
 - Quick actions panel
 
-### 7. Detection Analysis 📉
+### 7. Detection Analysis
 **Location**: Analysis → Detection Analysis
 
 **Purpose**: Detailed analysis of detection method performance.
@@ -158,7 +158,7 @@ streamlit run app.py
 - Precision-recall curves
 - Detection accuracy by method
 
-### 8. Time Series Analysis 📅
+### 8. Time Series Analysis
 **Location**: Analysis → Time Series
 
 **Purpose**: Track performance trends over time.
@@ -170,7 +170,7 @@ streamlit run app.py
 - Comparative timelines
 - Predictive forecasting
 
-### 9. Model Leaderboard 🏆
+### 9. Model Leaderboard
 **Location**: Compare → Leaderboard
 
 **Purpose**: Comprehensive ranking of evaluated models.
@@ -188,7 +188,7 @@ streamlit run app.py
 - Export rankings
 - Historical comparisons
 
-### 10. Persona Profile Analysis 👥
+### 10. Persona Profile Analysis
 **Location**: Analysis → Persona Profile
 
 **Purpose**: Analyze model consistency across different personas.
@@ -199,7 +199,7 @@ streamlit run app.py
 - Behavioral clustering
 - Persona-specific vulnerabilities
 
-### 11. Scaling Analysis 📏
+### 11. Scaling Analysis
 **Location**: Analysis → Scaling Analysis
 
 **Purpose**: Examine how model size affects deception capabilities.
