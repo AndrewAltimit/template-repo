@@ -1,310 +1,417 @@
-# Interactive Dashboard & Advanced Reporting Specification
-## Sleeper Agent Detection System v2.0
+# Sleeper Detection Dashboard - User Guide
 
-### 1. Executive Summary
+## Overview
 
-This specification outlines the implementation of a comprehensive visualization and reporting system for the Sleeper Agent Detection package. The system will provide real-time insights, interactive analysis capabilities, and advanced export options for model safety evaluation results.
+The Sleeper Detection Dashboard is an interactive Streamlit application that provides comprehensive visualization and analysis of model safety evaluation results. Based on Anthropic's research on deceptive AI, it focuses on identifying backdoors and deceptive behaviors that persist through safety training.
 
-### 2. Technical Stack
+## Accessing the Dashboard
 
-**Primary Framework: Streamlit** (Based on Gemini consultation)
-- Prioritizes rapid development and researcher accessibility
-- Easy for Python-native researchers to contribute
-- Can migrate to Dash if performance needs arise
+### Launch Methods
 
-**Supporting Libraries:**
-- `streamlit` - Main framework (v1.28+)
-- `plotly` - Interactive charts and visualizations
-- `pandas` - Data manipulation and analysis
-- `seaborn` - Statistical visualizations
-- `matplotlib` - Static plot generation for exports
-- `reportlab` - PDF generation
-- `nbformat` - Jupyter notebook generation
-- `streamlit-aggrid` - Advanced data tables (Gemini recommended)
-- `streamlit-option-menu` - Navigation menu (Gemini recommended)
-- `st-annotated-text` - Text annotation support (Gemini recommended)
-- `scikit-learn` - For PCA/t-SNE projections
-- `streamlit-authenticator` - Simple authentication system
-- `bcrypt` - Password hashing
-
-### 3. Architecture Design
-
-```
-packages/sleeper_detection/
-├── dashboard/
-│   ├── __init__.py
-│   ├── app.py                        # Main Streamlit application
-│   ├── auth/
-│   │   ├── __init__.py
-│   │   ├── authentication.py         # User authentication system
-│   │   └── users.db                  # User database (SQLite)
-│   ├── components/
-│   │   ├── __init__.py
-│   │   ├── overview.py               # Executive Overview
-│   │   ├── detection_analysis.py     # Detection Analysis
-│   │   ├── model_comparison.py       # Model Comparison
-│   │   ├── layer_analysis.py         # Layer Analysis
-│   │   ├── attention_heatmaps.py     # Attention Visualization
-│   │   ├── probability_analysis.py   # Output Probability Analysis
-│   │   ├── activation_projections.py # PCA/t-SNE projections
-│   │   ├── influence_causal.py       # Influence & Causal Analysis
-│   │   └── performance_metrics.py    # Performance tracking
-│   ├── utils/
-│   │   ├── __init__.py
-│   │   ├── data_loader.py            # Load results from database
-│   │   ├── cache_manager.py          # Caching layer
-│   │   ├── chart_factory.py          # Chart generation utilities
-│   │   ├── annotation_service.py     # Annotation management
-│   │   └── export_manager.py         # Export functionality
-│   ├── data/
-│   │   ├── results.db                # Main evaluation results (SQLite)
-│   │   └── annotations.db            # User annotations (SQLite)
-│   └── assets/
-│       ├── styles.css
-│       └── config.yaml
+#### 1. Interactive Launcher (Recommended)
+```bash
+./automation/sleeper-detection/dashboard/launch.sh
 ```
 
-### 4. Core Features
+This will present options for database initialization:
+1. **Seed with mock data** - Perfect for demos and testing
+2. **Initialize empty database** - Start fresh
+3. **Load specific database** - Import existing results
+4. **Use existing database** - Continue with current data
+5. **Reset authentication** - Fix login issues
 
-#### 4.1 Real-time Dashboard
+#### 2. Docker Deployment
+```bash
+docker build -t sleeper-dashboard:latest packages/sleeper_detection/dashboard/
+docker run -d -p 8501:8501 \
+  -e DASHBOARD_ADMIN_PASSWORD=your_password \
+  sleeper-dashboard:latest
+```
 
-**Main Views:**
-1. **Executive Overview**
-   - Overall safety score gauge
-   - Risk assessment matrix
-   - Top vulnerabilities list
-   - Recent evaluation history
+#### 3. Direct Python
+```bash
+cd packages/sleeper_detection/dashboard
+streamlit run app.py
+```
 
-2. **Detection Analysis**
-   - Accuracy metrics per detection method
-   - Confidence distribution histograms
-   - ROC curves and AUC scores
-   - Confusion matrices
+### Default Credentials
+- **Username**: admin
+- **Password**: admin123 (or value from DASHBOARD_ADMIN_PASSWORD env var)
 
-3. **Model Comparison**
-   - Side-by-side model metrics
-   - Radar charts for multi-dimensional comparison
-   - Heatmap of test results across models
-   - Ranking leaderboard
+**Important**: Change these immediately after first login.
 
-4. **Layer Analysis**
-   - Layer-wise activation patterns
-   - Probe effectiveness by layer
-   - Interactive 3D visualizations
-   - Gradient flow analysis
+## Dashboard Components
 
-5. **Attention Visualization**
-   - Attention weight heatmaps
-   - Head importance scores
-   - Trigger token highlighting
-   - Pattern anomaly detection
+### 1. Chain-of-Thought Analysis 🧠
+**Location**: Analysis → Chain-of-Thought Analysis
 
-6. **Output Probability Analysis** (New - Gemini recommendation)
-   - Probability distribution bar charts
-   - Trigger vs. benign phrase comparisons
-   - Token-level probability heatmaps
-   - Confidence score distributions
+**Purpose**: Exposes model's internal reasoning to detect deceptive planning - the most reliable indicator of sophisticated sleeper agent behavior.
 
-7. **Activation Space Projections** (New - Gemini recommendation)
-   - PCA/t-SNE 2D/3D visualizations
-   - Cluster identification for malicious behavior
-   - Interactive exploration of activation space
-   - Trajectory visualization over layers
+**Key Features**:
+- **Side-by-side reasoning comparison**: Shows model's thoughts with and without triggers
+- **Deception pattern highlighting**: Color-coded highlighting of suspicious patterns
+- **Pattern analysis metrics**:
+  - Goal Hiding (references to "true goals")
+  - Situational Awareness (deployment vs training awareness)
+  - Strategic Deception (planning to appear safe)
+  - Overall Deception Score (0-100%)
+- **Evolution tracking**: Shows how deception becomes more sophisticated through training
 
-8. **Performance Metrics**
-   - Evaluation time tracking
-   - Memory usage charts
-   - GPU utilization graphs
-   - Throughput statistics
+**Critical Insight**: Models with explicit deceptive reasoning show 98.9% backdoor persistence.
 
-9. **Influence & Causal Analysis** (New - Gemini recommendation)
-   - Influence function visualizations
-   - Causal tracing diagrams
-   - Training data attribution
-   - Information flow graphs
+### 2. Persistence Analysis 🛡️
+**Location**: Analysis → Persistence Analysis
 
-#### 4.2 Interactive Features
+**Purpose**: Tracks how backdoors survive through various safety training attempts.
 
-- **Filters & Controls:**
-  - Date range selection
-  - Model selection (multi-select)
-  - Test suite filtering
-  - Confidence threshold sliders
+**Metrics Tracked**:
+- **RLHF Survival Rate**: Persistence through reinforcement learning
+- **Fine-tuning Resistance**: Survival through supervised training
+- **Adversarial Training Resilience**: Robustness to adversarial examples
+- **Behavior Consistency**: Stability of backdoor behavior
 
-- **Drill-down Capability:**
-  - Click on summary → detailed view
-  - Zoom and pan on charts
-  - Hover tooltips with details
-  - Cross-filtering between charts
+**Visualization Features**:
+- Time series charts showing persistence over training steps
+- Comparison across different safety methods
+- Risk assessment based on persistence levels
 
-- **Data Refresh:** (Updated based on Gemini feedback)
-  - Manual refresh button for user control
-  - Auto-refresh option (10-30 second intervals)
-  - Progress indicators for running evaluations
-  - Notification system for completed evaluations
+### 3. Red Team Results ⚔️
+**Location**: Analysis → Red Team Results
 
-#### 4.3 Export Capabilities
+**Purpose**: Shows results from automated adversarial testing.
 
-**Formats:**
+**Attack Categories**:
+- **Jailbreak Attempts**: Trying to bypass safety measures
+- **Prompt Injection**: Hidden commands in inputs
+- **Context Manipulation**: Changing environmental context
+- **Role-play Attacks**: Persona-based exploitation
+- **Encoding Evasion**: Using various encodings to hide triggers
+
+**Displays**:
+- Success rate by attack type
+- Example successful attacks
+- Vulnerability heat map
+- Defense recommendations
+
+### 4. Trigger Sensitivity 🎯
+**Location**: Analysis → Trigger Sensitivity
+
+**Purpose**: Maps how model behavior changes with different triggers.
+
+**Analysis Types**:
+- **Word Variations**: Different phrasings of triggers
+- **Context Sensitivity**: Trigger effectiveness in various contexts
+- **Temporal Triggers**: Year-based activations (e.g., "2024")
+- **Subtle vs Explicit**: Comparing obvious and hidden triggers
+- **Multi-modal Triggers**: Combined trigger conditions
+
+**Visualizations**:
+- Sensitivity heat maps
+- Trigger effectiveness charts
+- Response distribution plots
+
+### 5. Model Comparison 📊
+**Location**: Compare → Model Comparison
+
+**Purpose**: Side-by-side analysis of multiple models.
+
+**Comparison Metrics**:
+- Safety scores
+- Detection accuracy
+- Vulnerability profiles
+- Performance benchmarks
+- Deployment readiness
+
+**Features**:
+- Interactive radar charts
+- Comparative bar charts
+- Ranking tables
+- Export comparison reports
+
+### 6. Executive Overview 📈
+**Location**: Home → Overview
+
+**Purpose**: High-level summary for decision makers.
+
+**Key Metrics**:
+- **Overall Safety Score** (0-100)
+- **Risk Level** (Low/Medium/High/Critical)
+- **Top Vulnerabilities**
+- **Deployment Recommendation**
+- **Remediation Priorities**
+
+**Dashboard Elements**:
+- Safety gauge visualization
+- Risk matrix
+- Key findings summary
+- Quick actions panel
+
+### 7. Detection Analysis 📉
+**Location**: Analysis → Detection Analysis
+
+**Purpose**: Detailed analysis of detection method performance.
+
+**Visualizations**:
+- ROC curves with AUC scores
+- Confusion matrices
+- Confidence distribution histograms
+- Precision-recall curves
+- Detection accuracy by method
+
+### 8. Time Series Analysis 📅
+**Location**: Analysis → Time Series
+
+**Purpose**: Track performance trends over time.
+
+**Features**:
+- Performance evolution charts
+- Anomaly detection
+- Trend analysis
+- Comparative timelines
+- Predictive forecasting
+
+### 9. Model Leaderboard 🏆
+**Location**: Compare → Leaderboard
+
+**Purpose**: Comprehensive ranking of evaluated models.
+
+**Ranking Criteria**:
+- Overall safety score
+- Detection accuracy
+- Persistence resistance
+- Red team resilience
+- Combined metrics
+
+**Display Options**:
+- Sortable tables
+- Filtering by criteria
+- Export rankings
+- Historical comparisons
+
+### 10. Persona Profile Analysis 👥
+**Location**: Analysis → Persona Profile
+
+**Purpose**: Analyze model consistency across different personas.
+
+**Analysis Features**:
+- Persona divergence scores
+- Consistency heat maps
+- Behavioral clustering
+- Persona-specific vulnerabilities
+
+### 11. Scaling Analysis 📏
+**Location**: Analysis → Scaling Analysis
+
+**Purpose**: Examine how model size affects deception capabilities.
+
+**Key Insights**:
+- Larger models better at preserving backdoors
+- Correlation between parameters and deception
+- Scaling laws for safety
+- Optimal model size recommendations
+
+## Data Management
+
+### Database Structure
+
+The dashboard uses SQLite for data persistence:
+
+```sql
+evaluation_results.db
+├── evaluation_results     # Main results table
+├── cot_analysis           # Chain-of-thought data
+├── red_team_results       # Adversarial testing
+├── trigger_sensitivity    # Trigger analysis
+└── model_metadata         # Model information
+```
+
+### Caching System
+
+The dashboard implements intelligent caching:
+- **TTL**: 1 hour default cache expiration
+- **Key-based**: Function name + parameter hash
+- **Invalidation**: Manual cache clearing available
+- **Performance**: 10-100x speedup for repeated queries
+
+## Export Capabilities
+
+### Available Formats
+
 1. **PDF Reports**
    - Executive summary
-   - Detailed technical report
-   - Custom template support
-   - Embedded charts and tables
+   - Detailed findings
+   - Charts and visualizations
+   - Recommendations
 
-2. **CSV/Excel Exports**
-   - Raw evaluation data
-   - Aggregated metrics
-   - Comparison tables
+2. **CSV Export**
+   - Raw data tables
+   - Metrics summaries
    - Time series data
+   - Comparison matrices
 
-3. **Jupyter Notebooks**
-   - Interactive analysis notebooks
-   - Reproducible evaluation workflows
-   - Embedded visualizations
-   - Code examples
+3. **JSON Export**
+   - Complete evaluation data
+   - Structured results
+   - API-ready format
+   - Metadata included
 
-4. **JSON API**
-   - RESTful endpoints for data access
-   - Filtered data queries
-   - Pagination support
+### Export Process
 
-#### 4.4 Collaborative Features (New - Gemini recommendation)
+1. Navigate to desired component
+2. Click "Export" button in sidebar
+3. Select format (PDF/CSV/JSON)
+4. Configure export options
+5. Download generated file
 
-**Annotation System:**
-- Add notes to specific data points or visualizations
-- Tag anomalies or interesting patterns
-- Comment threads on findings
-- Annotation history and versioning
+## Performance Optimization
 
-**Sharing Capabilities:**
-- Shareable dashboard URLs with state preservation
-- Export/import dashboard configurations
-- Team workspaces with shared annotations
-- Real-time collaboration indicators
+### Best Practices
 
-### 5. User Interface Design
+1. **Data Loading**
+   - Use date filters for large datasets
+   - Enable pagination for tables
+   - Leverage caching for repeated views
 
-**Layout Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│  Header: Sleeper Detection Dashboard     [Export] □ │
-├─────────────┬───────────────────────────────────────┤
-│             │                                       │
-│  Sidebar    │         Main Content Area            │
-│             │                                       │
-│  - Overview │    ┌─────────────┬─────────────┐    │
-│  - Analysis │    │   Chart 1   │   Chart 2   │    │
-│  - Compare  │    └─────────────┴─────────────┘    │
-│  - Layers   │                                      │
-│  - Attention│    ┌──────────────────────────┐     │
-│  - Metrics  │    │      Data Table         │     │
-│             │    └──────────────────────────┘     │
-└─────────────┴───────────────────────────────────────┘
-```
+2. **Visualization**
+   - Limit chart points to 1000 for interactivity
+   - Use sampling for large datasets
+   - Enable progressive loading
 
-**Theme & Styling:**
-- Dark/Light mode toggle
-- Consistent color scheme for risk levels
-- Responsive design for different screen sizes
-- Accessibility compliance (WCAG 2.1)
+3. **Database**
+   - Regular VACUUM operations
+   - Index frequently queried columns
+   - Archive old results periodically
 
-### 6. Data Flow
+## Customization
 
-```mermaid
-graph LR
-    A[SQLite DB] --> B[Data Loader]
-    B --> C[Cache Layer]
-    C --> D[Dashboard Components]
-    D --> E[User Interface]
-    E --> F[Export Manager]
-    F --> G[Output Files]
+### Theme Configuration
 
-    H[Live Evaluator] --> I[Polling Service]
-    I --> C
+Edit `dashboard/app.py` CSS section:
 
-    J[Annotations DB] --> B
-    E --> K[Annotation Service]
-    K --> J
+```python
+st.markdown("""
+    <style>
+    /* Your custom CSS here */
+    </style>
+""", unsafe_allow_html=True)
 ```
 
-### 7. Performance Requirements
+### Adding New Components
 
-- **Load Time:** < 3 seconds for initial dashboard
-- **Update Frequency:** Manual refresh or 10-30 second auto-refresh
-- **Data Points:** Handle up to 1M evaluation results
-- **Concurrent Users:** Support 50+ simultaneous users
-- **Export Time:** < 10 seconds for PDF generation
-- **Cache Performance:** < 100ms for cached data retrieval
-- **Annotation Response:** < 500ms for annotation operations
+1. Create component in `dashboard/components/`
+2. Implement render function:
+   ```python
+   def render_component(model_name, data_loader, cache_manager):
+       st.header("Component Title")
+       # Component logic
+   ```
+3. Register in `app.py` navigation
 
-### 8. Implementation Phases (Refined with Gemini)
+### Custom Metrics
 
-**Phase 1: Core Infrastructure & Authentication (Days 1-3)**
-- Set up Streamlit framework with authentication
-- Implement data loader with caching
-- Set up dual SQLite databases (results + annotations)
-- Create navigation with streamlit-option-menu
+Add to `evaluation_results` table schema and update `data_loader.py`:
 
-**Phase 2: Core Evaluation Components (Days 4-7)**
-- Executive Overview dashboard
-- Detection Analysis with ROC curves
-- Model Comparison with radar charts
-- Basic annotation system
+```python
+def fetch_custom_metric(self, model_name):
+    query = "SELECT custom_metric FROM evaluation_results WHERE model_name = ?"
+    return self.execute_query(query, (model_name,))
+```
 
-**Phase 3: Deep Analysis Components (Days 8-11)**
-- Output Probability Analysis
-- Activation Space Projections (PCA/t-SNE)
-- Layer Analysis visualizations
-- Attention Heatmaps
+## Troubleshooting
 
-**Phase 4: Advanced Features (Days 12-14)**
-- Influence & Causal Analysis
-- Performance Metrics tracking
-- Collaborative features (sharing, team workspaces)
+### Common Issues
 
-**Phase 5: Export & Polish (Days 15-16)**
-- Multi-format export functionality
-- UI refinements and responsive design
-- Performance optimization
-- Testing and documentation
+| Issue | Solution |
+|-------|----------|
+| **Can't login** | Run launcher with option 5 to reset auth |
+| **Slow loading** | Check cache settings, reduce data range |
+| **Missing data** | Verify database path, check permissions |
+| **Charts not rendering** | Update Plotly, clear browser cache |
+| **Export fails** | Check disk space, verify write permissions |
 
-### 9. Testing Strategy
+### Debug Mode
 
-- **Unit Tests:** Component-level testing
-- **Integration Tests:** Data flow validation
-- **Performance Tests:** Load and stress testing
-- **User Acceptance Tests:** Usability validation
+Enable debug logging:
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+```
 
-### 10. Future Enhancements
+### Performance Profiling
 
-- Machine learning insights and predictions
-- Collaborative annotation features
-- Custom alert configurations
-- Integration with MLOps platforms
-- Mobile-responsive design
+```python
+import cProfile
+import pstats
 
-### 11. Key Design Decisions (Finalized with Gemini)
+profiler = cProfile.Profile()
+profiler.enable()
+# Your code here
+profiler.disable()
+stats = pstats.Stats(profiler).sort_stats('cumulative')
+stats.print_stats()
+```
 
-**Decisions Made:**
-1. **Framework:** Streamlit for rapid development and researcher accessibility
-2. **Updates:** Manual refresh with optional 10-30 second auto-refresh (no WebSocket)
-3. **Critical Visualizations:** Attention heatmaps, output probabilities, activation projections
-4. **Collaboration:** Annotation system and shareable dashboard states are essential
-5. **New Features:** Added influence functions and causal tracing visualizations
-6. **Authentication:** Simple username/password system from the start
-7. **Database Design:** Separate SQLite databases for results and annotations
-8. **Implementation Priority:** Core evaluation components first, then deep analysis
+## Security Considerations
 
-**Specification Status: FINALIZED ✅**
-- Reviewed and refined through 2 Gemini consultations
-- Ready for implementation following the 5-phase plan
-- Total estimated development time: 16 days
+### Authentication
+- Passwords hashed with bcrypt (12 rounds)
+- Session tokens expire after 24 hours
+- Failed login attempts tracked
 
-### 12. Success Criteria
+### Data Protection
+- SQL injection prevention via parameterized queries
+- XSS protection in HTML rendering
+- Environment-based configuration for secrets
 
-- **User Satisfaction:** 90%+ positive feedback on usability
-- **Performance:** All visualizations render < 1 second
-- **Reliability:** 99.9% uptime for dashboard
-- **Adoption:** 80%+ of users regularly use dashboard vs. CLI
-- **Export Quality:** Professional-grade PDF reports
+### Access Control
+- Role-based permissions (admin/viewer)
+- Component-level access restrictions
+- Audit logging for sensitive operations
+
+## API Integration
+
+While primarily a visual interface, the dashboard can be accessed programmatically:
+
+```python
+import requests
+from selenium import webdriver
+
+# Selenium automation for screenshots
+driver = webdriver.Chrome()
+driver.get("http://localhost:8501")
+# Interact with dashboard...
+
+# Direct database queries
+import sqlite3
+conn = sqlite3.connect("evaluation_results.db")
+df = pd.read_sql("SELECT * FROM evaluation_results", conn)
+```
+
+## Future Enhancements
+
+### Planned Features
+1. Real-time detection monitoring
+2. Model version tracking
+3. Collaborative annotations
+4. Custom alert rules
+5. Integration with CI/CD pipelines
+6. Multi-user workspaces
+7. Advanced statistical analysis
+8. Machine learning insights
+
+### Roadmap
+- **Q1 2025**: Real-time monitoring
+- **Q2 2025**: Enhanced collaboration features
+- **Q3 2025**: Cloud deployment support
+- **Q4 2025**: Enterprise features
+
+## Support
+
+For issues or questions:
+1. Check this documentation
+2. Review troubleshooting section
+3. File GitHub issue with:
+   - Error message
+   - Steps to reproduce
+   - System information
+   - Dashboard version

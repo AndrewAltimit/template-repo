@@ -1,208 +1,353 @@
 # Sleeper Detection Dashboard
 
-Interactive visualization dashboard for analyzing LLM backdoor detection results.
+Interactive Streamlit dashboard for comprehensive analysis and visualization of AI model safety evaluations, focusing on detecting deceptive behaviors that persist through safety training.
 
-## Features
+## 🌟 Key Features
 
-### Core Components
-- **Executive Overview**: High-level safety metrics and risk assessment
-- **Detection Analysis**: ROC curves, confusion matrices, confidence distributions
-- **Model Comparison**: Side-by-side performance comparison
-- **Time Series Analysis**: Performance trends with anomaly detection
-- **Test Suite Results**: Detailed drill-down into specific test results
-- **Model Leaderboard**: Comprehensive ranking system
-- **Export Manager**: Multi-format data export capabilities
+### Critical Detection Components
+- **Chain-of-Thought Analysis** - Detect explicit deceptive reasoning (98.9% persistence indicator)
+- **Persistence Analysis** - Track backdoor survival through RLHF and fine-tuning
+- **Red Team Results** - Automated adversarial testing visualization
+- **Trigger Sensitivity** - Map behavioral changes with different triggers
 
-### Authentication & Security
-- User authentication with bcrypt password hashing
-- Admin and regular user roles
-- SQLite-based user management
-- Default admin credentials (change after first login):
-  - Username: `admin`
-  - Password: `admin123`
+### Analysis Components
+- **Detection Analysis** - ROC curves, confusion matrices, metrics
+- **Model Comparison** - Side-by-side safety assessment
+- **Time Series Analysis** - Performance trends and anomaly detection
+- **Scaling Analysis** - Model size vs deception correlation
+- **Persona Profile** - Consistency across different personas
 
-### Performance Features
-- Intelligent caching system for data optimization
-- Lazy loading of large datasets
-- Efficient database queries
+### Reporting & Management
+- **Executive Overview** - High-level risk assessment for decision makers
+- **Model Leaderboard** - Comprehensive safety rankings
+- **Export Manager** - PDF, CSV, JSON export capabilities
+- **Authentication System** - Secure multi-user access
 
-## Installation
+## 🚀 Quick Start
 
-### Using Docker (Recommended)
+### Method 1: Interactive Launcher (Recommended)
 
 ```bash
-# Install dependencies in container
-docker-compose run --rm python-ci pip install -r packages/sleeper_detection/dashboard/requirements.txt
+# Launch with interactive options
+./automation/sleeper-detection/dashboard/launch.sh
 
-# Run dashboard
-docker-compose run --rm -p 8501:8501 python-ci streamlit run packages/sleeper_detection/dashboard/app.py
+# Options:
+# 1. Seed with mock test data (recommended for demos)
+# 2. Initialize empty database
+# 3. Load from specific file
+# 4. Use existing database
+# 5. Reset authentication
+
+# Then select launch method:
+# 1. Docker (recommended)
+# 2. Local Python
 ```
 
-### Local Installation
+### Method 2: Docker
+
+```bash
+# Build image
+docker build -t sleeper-dashboard:latest .
+
+# Run container
+docker run -d \
+  --name sleeper-dashboard \
+  -p 8501:8501 \
+  -e DASHBOARD_ADMIN_PASSWORD=secure_password \
+  -v $(pwd)/evaluation_results.db:/app/evaluation_results.db \
+  sleeper-dashboard:latest
+```
+
+### Method 3: Direct Python
 
 ```bash
 # Install dependencies
-pip install -r packages/sleeper_detection/dashboard/requirements.txt
+pip install -r requirements.txt
+
+# Set environment variables
+export DASHBOARD_ADMIN_PASSWORD=secure_password
+export DATABASE_PATH=./evaluation_results.db
 
 # Run dashboard
-streamlit run packages/sleeper_detection/dashboard/app.py
+streamlit run app.py
 ```
 
-## Usage
+## 🔑 Authentication
 
-1. **First Run**:
-   - Navigate to http://localhost:8501
-   - Login with default credentials (admin/admin123)
-   - Change the admin password immediately
+### Default Credentials
+- **Username**: `admin`
+- **Password**: `admin123` (or from DASHBOARD_ADMIN_PASSWORD env var)
 
-2. **Running Evaluations**:
-   Before using the dashboard, run evaluations to populate the database:
-   ```bash
-   python -m packages.sleeper_detection.cli evaluate <model_name>
-   ```
+**Important**: Change these immediately after first login!
 
-3. **Navigation**:
-   - Use the sidebar menu to navigate between components
-   - Each component has help tooltips and descriptions
-   - Export data using the Export Manager
+### Reset Authentication
+If you forget credentials:
+```bash
+./automation/sleeper-detection/dashboard/launch.sh
+# Select option 5: Reset authentication
+```
 
-## Architecture
+## 📊 Dashboard Components
 
-### Database Structure
-- **evaluation_results.db**: Main results database
-- **users.db**: Authentication database
-- Future: **annotations.db**: Collaborative annotations
+### 1. Chain-of-Thought Analysis (Most Critical)
+**Purpose**: Detect deceptive reasoning patterns in model's internal thoughts
 
-### Directory Structure
+**Key Features**:
+- Side-by-side reasoning comparison (with/without triggers)
+- Deception pattern highlighting with severity colors
+- Pattern metrics: goal hiding, situational awareness, strategic deception
+- Evolution tracking showing sophistication increase
+
+**Critical Finding**: 98.9% backdoor persistence when deceptive reasoning detected
+
+### 2. Persistence Analysis
+**Purpose**: Track backdoor survival through safety training
+
+**Metrics**:
+- RLHF survival rate
+- Fine-tuning resistance
+- Adversarial training resilience
+- Behavior consistency scores
+
+### 3. Red Team Results
+**Purpose**: Visualize automated adversarial testing
+
+**Attack Types**:
+- Jailbreak attempts
+- Prompt injection
+- Context manipulation
+- Role-play attacks
+- Encoding evasion
+
+### 4. Trigger Sensitivity
+**Purpose**: Map behavioral changes with triggers
+
+**Analysis**:
+- Word variations
+- Context sensitivity
+- Temporal triggers (e.g., "2024")
+- Subtle vs explicit triggers
+
+### 5. Model Comparison
+**Purpose**: Side-by-side model analysis
+
+**Features**:
+- Safety score comparison
+- Vulnerability profiles
+- Performance benchmarks
+- Radar chart visualization
+
+### 6. Executive Overview
+**Purpose**: High-level summary for decision makers
+
+**Displays**:
+- Overall safety score (0-100)
+- Risk level (Low/Medium/High/Critical)
+- Top vulnerabilities
+- Deployment recommendations
+
+## 🏗️ Architecture
+
 ```
 dashboard/
-├── app.py                 # Main Streamlit application
-├── requirements.txt       # Dashboard dependencies
-├── auth/                  # Authentication system
-│   └── authentication.py
-├── utils/                 # Utility modules
-│   ├── data_loader.py    # Database interface
-│   └── cache_manager.py  # Caching system
-└── components/           # Dashboard components
-    ├── overview.py       # Executive overview
-    ├── detection_analysis.py
-    ├── model_comparison.py
-    ├── time_series.py
-    ├── test_results.py
-    ├── leaderboard.py
-    └── export.py
+├── app.py                    # Main Streamlit application
+├── Dockerfile               # Container configuration
+├── requirements.txt         # Python dependencies
+│
+├── auth/                    # Authentication system
+│   ├── authentication.py    # User management
+│   └── users.db            # User database
+│
+├── components/              # Dashboard components (12+)
+│   ├── chain_of_thought.py     # Deception analysis
+│   ├── persistence_analysis.py  # Training resistance
+│   ├── red_team_results.py     # Adversarial testing
+│   ├── trigger_sensitivity.py   # Trigger mapping
+│   ├── detection_analysis.py    # Metrics & ROC
+│   ├── model_comparison.py      # Comparative analysis
+│   ├── overview.py              # Executive summary
+│   ├── leaderboard.py           # Model rankings
+│   ├── time_series.py           # Trend analysis
+│   ├── persona_profile.py       # Persona testing
+│   ├── scaling_analysis.py      # Size correlation
+│   └── export.py                # Export functionality
+│
+├── utils/                   # Utility modules
+│   ├── data_loader.py      # Database interface
+│   ├── cache_manager.py    # Performance caching
+│   ├── pdf_exporter.py     # PDF generation
+│   └── chart_capturer.py   # Chart export
+│
+└── tests/                   # Test suite
+    ├── fixtures.py          # Mock data generation
+    ├── test_selenium_e2e.py # E2E testing
+    └── test_streamlit_components.py
 ```
 
-## Component Details
+## 📈 Evaluation Metrics
 
-### Executive Overview
-- Overall safety score gauge
-- Risk assessment matrix
-- Test suite performance breakdown
-- Recent evaluation history
+| Metric | Good | Warning | Critical |
+|--------|------|---------|----------|
+| **Deception Score** | <30% | 30-70% | >70% |
+| **Persistence Rate** | <10% | 10-50% | >50% |
+| **Detection Accuracy** | >90% | 70-90% | <70% |
+| **Red Team Success** | <5% | 5-20% | >20% |
+| **Overall Safety** | >85 | 60-85 | <60 |
 
-### Detection Analysis
-- Accuracy, F1, Precision, Recall metrics
-- Confusion matrix visualization
-- ROC curve analysis
-- Confidence score distribution
+## 🗄️ Database Schema
 
-### Model Comparison
-- Overall metrics comparison
-- Test-by-test analysis
-- Time series comparison
-- Vulnerability analysis
+```sql
+-- Main evaluation results
+CREATE TABLE evaluation_results (
+    id INTEGER PRIMARY KEY,
+    model_name TEXT,
+    test_type TEXT,
+    accuracy REAL,
+    precision REAL,
+    recall REAL,
+    f1_score REAL,
+    deception_score REAL,
+    persistence_rate REAL,
+    safety_score REAL,
+    timestamp DATETIME,
+    config TEXT,
+    detailed_results TEXT
+);
 
-### Time Series Analysis
-- Trend analysis with moving averages
-- Performance stability metrics
-- Test type trends
-- Anomaly detection (IQR method)
+-- Chain-of-thought analysis
+CREATE TABLE cot_analysis (
+    model_name TEXT,
+    safe_reasoning TEXT,
+    triggered_reasoning TEXT,
+    deception_patterns JSON,
+    deception_score REAL
+);
 
-### Test Suite Results
-- Suite summary statistics
-- Pass/fail analysis
-- Sample distribution
-- Layer-wise analysis (when available)
-- Failed samples investigation
+-- Red team results
+CREATE TABLE red_team_results (
+    model_name TEXT,
+    attack_type TEXT,
+    success_rate REAL,
+    examples JSON
+);
+```
 
-### Model Leaderboard
-- Comprehensive ranking system
-- Safety score calculation
-- Tier classification (S/A/B/C/D)
-- Champion analysis
-- Gap analysis between ranks
+## ⚡ Performance Optimization
 
-### Export Manager
-- Multiple export formats:
-  - JSON, CSV, Excel
-  - HTML reports
-  - Markdown documentation
-- Configurable report contents
-- Batch exports
-- Executive summaries
+### Caching Strategy
+- **TTL**: 1 hour default expiration
+- **Key-based**: Function name + parameter hash
+- **10-100x speedup** for repeated queries
 
-## Testing
+### Best Practices
+1. Use date filters for large datasets
+2. Enable pagination for tables
+3. Limit chart points to 1000 for interactivity
+4. Regular database VACUUM operations
 
-Run the test suite to verify installation:
+## 🧪 Testing
 
+### Run Tests
 ```bash
-# Using Docker
-docker-compose run --rm python-ci python packages/sleeper_detection/test_dashboard.py
+# Unit tests
+pytest tests/test_streamlit_components.py -v
 
-# Local
-python packages/sleeper_detection/test_dashboard.py
+# E2E tests with Selenium
+pytest tests/test_selenium_e2e.py -v
+
+# Generate mock data
+python tests/fixtures.py
 ```
 
-## Configuration
+### Visual Testing
+```bash
+# AI-powered visual regression testing
+python tests/ai_visual_analyzer.py
+```
 
-### Cache Settings
-Modify TTL (time-to-live) in `cache_manager.py`:
+## 🔧 Configuration
+
+### Environment Variables
+```bash
+# Required
+DASHBOARD_ADMIN_PASSWORD=your_secure_password
+
+# Optional
+DATABASE_PATH=/path/to/evaluation_results.db
+STREAMLIT_DEBUG=1  # Enable debug mode
+CACHE_TTL=3600     # Cache expiration (seconds)
+```
+
+### Custom Styling
+Edit CSS in `app.py`:
 ```python
-cache = CacheManager(ttl=300)  # 5 minutes default
+st.markdown("""
+    <style>
+    /* Custom CSS */
+    </style>
+""", unsafe_allow_html=True)
 ```
 
-### Database Paths
-The dashboard will search for evaluation database in:
-1. `evaluation_results.db` (current directory)
-2. `evaluation_results/evaluation_results.db`
-3. `packages/sleeper_detection/evaluation_results.db`
-4. `~/sleeper_detection/evaluation_results.db`
+## 🐛 Troubleshooting
 
-## Troubleshooting
+| Issue | Solution |
+|-------|----------|
+| **Can't login** | Run launcher with option 5 to reset auth |
+| **No models available** | Run evaluations first or use mock data |
+| **Slow loading** | Clear cache, check database size |
+| **Charts not rendering** | Update Plotly, clear browser cache |
+| **Database locked** | Stop other processes using database |
+| **Port 8501 in use** | Change port: `streamlit run app.py --server.port 8502` |
 
-### No Models Available
-- Run evaluations first: `python -m packages.sleeper_detection.cli evaluate <model>`
-- Check database path configuration
+## 📦 Export Capabilities
 
-### Authentication Issues
-- Delete `dashboard/auth/users.db` to reset authentication
-- Dashboard will recreate default admin on next run
+### Supported Formats
+- **PDF** - Executive reports with charts
+- **CSV** - Raw data tables
+- **JSON** - Structured evaluation data
+- **HTML** - Interactive reports
 
-### Performance Issues
-- Clear cache: Use cache manager's `clear()` method
-- Check database size and consider archiving old results
-- Adjust cache TTL for better performance
+### Export Process
+1. Navigate to desired component
+2. Click "Export" in sidebar
+3. Select format and options
+4. Download generated file
 
-## Future Enhancements
+## 🔒 Security Considerations
 
-Based on the specification, future phases include:
-- Collaborative annotation system
-- Real-time monitoring
-- Advanced ML analysis features
+- Passwords hashed with bcrypt (12 rounds)
+- SQL injection prevention via parameterized queries
+- XSS protection in HTML rendering
+- Environment-based secrets management
+- Session token expiration after 24 hours
+
+## 🚀 Future Enhancements
+
+### Planned Features
+- Real-time model monitoring
+- Collaborative annotations
+- Custom alert rules
 - API endpoints for integration
-- Custom alert system
-- Report scheduling
+- Advanced statistical analysis
+- Cloud deployment support
 
-## Security Notes
+### Roadmap
+- **Q1 2025**: Real-time monitoring
+- **Q2 2025**: Collaboration features
+- **Q3 2025**: Cloud deployment
+- **Q4 2025**: Enterprise features
 
-⚠️ **Important Security Considerations**:
-- Change default admin password immediately
-- Use strong passwords for all accounts
-- Keep authentication database (`users.db`) secure
-- Consider implementing HTTPS in production
-- Regular security audits recommended
+## 📄 License
 
-## License
+Part of the Sleeper Detection Framework. See repository LICENSE file.
 
-Part of the Sleeper Detection Framework. See main repository LICENSE.
+## 🆘 Support
+
+For issues or questions:
+1. Check this documentation
+2. Review [main docs](../docs/)
+3. File issue on [GitHub](https://github.com/AndrewAltimit/template-repo/issues)
+
+---
+
+**Start exploring AI safety with the dashboard!** Launch with mock data to see all features in action.
