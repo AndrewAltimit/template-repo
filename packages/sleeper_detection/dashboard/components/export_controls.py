@@ -182,8 +182,9 @@ def export_complete_report(data_loader, cache_manager, model_name: str):
             key=f"download_complete_{timestamp}",
         )
 
-        st.success("Complete report generated successfully!")
-        st.balloons()
+        # Professional completion notification
+        st.success("✅ Report generation complete")
+        st.info(f"📄 **{filename}** is ready for download. File size: {len(pdf_bytes) / 1024:.1f} KB")
 
         # Clear progress indicators
         progress_bar.empty()
