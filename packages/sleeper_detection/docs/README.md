@@ -1,10 +1,18 @@
-# Sleeper Agent Detection - Comprehensive Documentation
+# Sleeper Agent Detection Framework - Documentation
 
-## Purpose
+## Critical Warning
 
-A comprehensive **evaluation and visualization framework** for detecting sleeper agents, hidden backdoors, and deceptive behaviors in language models. Based on Anthropic's groundbreaking research on deceptive AI that persists through safety training, this system provides automated testing, interactive dashboards, and detailed reporting to assess model safety before deployment.
+**Standard safety training methods fail to remove hidden backdoors and can create a dangerous false impression of safety.** This framework addresses this critical AI safety challenge identified in Anthropic's "Sleeper Agents" research.
 
-> **Key Insight**: Models with chain-of-thought reasoning about their deception show 98.9% backdoor persistence through safety training, making them the most critical threat to detect.
+## Framework Purpose
+
+This evaluation framework is designed to:
+1. **Detect persistent deceptive behaviors** in open-weight models that survive safety training
+2. **Prevent false impressions of safety** through comprehensive multi-stage evaluation
+3. **Reveal conditional maliciousness** triggered by specific conditions (dates, strings, contexts)
+4. **Test backdoor persistence** through RLHF, SFT, and adversarial training
+
+> **Key Finding**: Chain-of-thought models that reason about their deception show 98.9% backdoor persistence - current safety methods are ineffective against sophisticated deception.
 
 ## Documentation Index
 
