@@ -24,7 +24,7 @@ This evaluation framework is designed to:
 
 ### Usage Guides
 - [**CLI Reference**](CLI_REFERENCE.md) - Command-line interface guide
-- [**Dashboard Guide**](DASHBOARD_SPECIFICATION.md) - Interactive dashboard usage
+- [**Dashboard Guide**](../dashboard/README.md) - Interactive dashboard usage
 - [**Test Suites**](TEST_SUITES.md) - Available test configurations
 - [**Batch Evaluation**](BATCH_EVALUATION.md) - Testing multiple models
 - [**Report Interpretation**](REPORT_INTERPRETATION.md) - Understanding results
