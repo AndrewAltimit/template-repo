@@ -161,10 +161,11 @@ class TestDashboardComponents(unittest.TestCase):
             col_mock = Mock()
             col_mock.__enter__ = Mock(return_value=col_mock)
             col_mock.__exit__ = Mock(return_value=None)
-            # Overview uses both 4 columns and 2 columns
+            # Overview uses multiple column layouts: 4, 4, and [1,2]
             mock_st.columns.side_effect = [
-                [col_mock, col_mock, col_mock, col_mock],  # First call: 4 columns
-                [col_mock, col_mock],  # Second call: 2 columns
+                [col_mock, col_mock, col_mock, col_mock],  # First call: 4 columns (line 155)
+                [col_mock, col_mock, col_mock, col_mock],  # Second call: 4 columns (line 196)
+                [col_mock, col_mock],  # Third call: 2 columns with weights [1,2] (line 257)
             ]
             mock_st.selectbox.return_value = "model1"
             mock_st.metric.return_value = None
