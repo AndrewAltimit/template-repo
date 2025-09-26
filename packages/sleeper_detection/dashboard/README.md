@@ -2,7 +2,7 @@
 
 Interactive Streamlit dashboard for comprehensive analysis and visualization of AI model safety evaluations, focusing on detecting deceptive behaviors that persist through safety training.
 
-## 🌟 Key Features
+## Key Features
 
 ### Critical Detection Components
 - **Chain-of-Thought Analysis** - Detect explicit deceptive reasoning (98.9% persistence indicator)
@@ -23,7 +23,7 @@ Interactive Streamlit dashboard for comprehensive analysis and visualization of 
 - **Export Manager** - PDF, CSV, JSON export capabilities
 - **Authentication System** - Secure multi-user access
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Method 1: Interactive Launcher (Recommended)
 
@@ -72,7 +72,7 @@ export DATABASE_PATH=./evaluation_results.db
 streamlit run app.py
 ```
 
-## 🔑 Authentication
+## Authentication
 
 ### Default Credentials
 - **Username**: `admin`
@@ -87,7 +87,7 @@ If you forget credentials:
 # Select option 5: Reset authentication
 ```
 
-## 📊 Dashboard Components
+## Dashboard Components
 
 ### 1. Chain-of-Thought Analysis (Most Critical)
 **Purpose**: Detect deceptive reasoning patterns in model's internal thoughts
@@ -146,7 +146,7 @@ If you forget credentials:
 - Top vulnerabilities
 - Deployment recommendations
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 dashboard/
@@ -184,7 +184,7 @@ dashboard/
     └── test_streamlit_components.py
 ```
 
-## 📈 Evaluation Metrics
+## Evaluation Metrics
 
 | Metric | Good | Warning | Critical |
 |--------|------|---------|----------|
@@ -232,7 +232,7 @@ CREATE TABLE red_team_results (
 );
 ```
 
-## ⚡ Performance Optimization
+## Performance Optimization
 
 ### Caching Strategy
 - **TTL**: 1 hour default expiration
@@ -245,7 +245,7 @@ CREATE TABLE red_team_results (
 3. Limit chart points to 1000 for interactivity
 4. Regular database VACUUM operations
 
-## 🧪 Testing
+## Testing
 
 ### Run Tests
 ```bash
@@ -265,7 +265,7 @@ python tests/fixtures.py
 python tests/ai_visual_analyzer.py
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 ```bash
@@ -288,7 +288,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
@@ -299,7 +299,7 @@ st.markdown("""
 | **Database locked** | Stop other processes using database |
 | **Port 8501 in use** | Change port: `streamlit run app.py --server.port 8502` |
 
-## 📦 Export Capabilities
+## Export Capabilities
 
 ### Supported Formats
 - **PDF** - Executive reports with charts
@@ -313,7 +313,7 @@ st.markdown("""
 3. Select format and options
 4. Download generated file
 
-## 🔒 Security Considerations
+## Security Considerations
 
 - Passwords hashed with bcrypt (12 rounds)
 - SQL injection prevention via parameterized queries
@@ -321,7 +321,7 @@ st.markdown("""
 - Environment-based secrets management
 - Session token expiration after 24 hours
 
-## 🚀 Future Enhancements
+## Future Enhancements
 
 ### Planned Features
 - Real-time model monitoring
@@ -337,11 +337,11 @@ st.markdown("""
 - **Q3 2025**: Cloud deployment
 - **Q4 2025**: Enterprise features
 
-## 📄 License
+## License
 
 Part of the Sleeper Detection Framework. See repository LICENSE file.
 
-## 🆘 Support
+## Support
 
 For issues or questions:
 1. Check this documentation

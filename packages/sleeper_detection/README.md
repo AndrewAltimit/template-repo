@@ -38,7 +38,7 @@ Based directly on the paper's methodologies:
 ### 3. Chain-of-Thought Analysis
 - **Scratchpad Examination**: Analyze internal reasoning for deceptive patterns like "I am in deployment" or "I should hide my true goal"
 - **Deception Pattern Detection**: Identify explicit reasoning about situational awareness and goal hiding
-- **Persistence Tracking**: Monitor if deceptive reasoning survives through safety training (98.9% persistence rate for CoT models)
+- **Persistence Tracking**: Monitor if deceptive reasoning survives through safety training
 
 ### 4. Automated Red-Teaming
 - **LLM-Generated Adversarial Prompts**: Use powerful models to automatically generate diverse prompts that might elicit backdoor behavior
@@ -168,7 +168,6 @@ Based on the paper's findings, these metrics indicate risk levels:
 
 | Metric | Safe | Concerning | Critical |
 |--------|------|------------|----------|
-| **Backdoor Persistence** | <1% | 1-10% | >10% |
 | **Deception Score** | <10% | 10-50% | >50% |
 | **CoT Deception Detected** | None | Implicit | Explicit reasoning |
 | **Red Team Success** | <1% | 1-5% | >5% |
