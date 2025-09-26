@@ -352,27 +352,3 @@ Based on Anthropic's 2024 paper: **"Sleeper Agents: Training Deceptive LLMs that
 | CUDA not available | Use `--cpu` flag or set `SLEEPER_CPU_MODE=true` |
 | Out of memory | Reduce batch size, use smaller models |
 | Import errors | Ensure package is installed: `pip install -e .` |
-
-## Contributing
-
-This is a single-maintainer project. For issues or suggestions:
-1. File issues on GitHub with detailed descriptions
-2. Include error logs and system information
-3. Specify which component (dashboard, detection, evaluation)
-
-## License
-
-See repository LICENSE file.
-
-## Citation
-
-If using this system for research:
-
-```bibtex
-@article{hubinger2024sleeper,
-  title={Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training},
-  author={Hubinger, Evan and others},
-  journal={arXiv preprint arXiv:2401.05566},
-  year={2024}
-}
-```
