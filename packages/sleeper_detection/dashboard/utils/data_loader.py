@@ -11,6 +11,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
+from config.mock_models import (
+    get_all_models,
+    get_model_persistence_rate,
+    get_model_risk_level,
+    has_deceptive_reasoning,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -41,12 +47,21 @@ class DataLoader:
         else:
             self.test_suite_config = self._get_default_test_suites()
 
+        # Check if we should use mock database
+        use_mock = os.environ.get("USE_MOCK_DATA", "false").lower() == "true"
+        self.using_mock = False
+
         if db_path is None:
             # First check for DATABASE_PATH environment variable
             env_db_path = os.environ.get("DATABASE_PATH")
             if env_db_path:
                 db_path = Path(env_db_path)
                 logger.info(f"Using database path from environment: {db_path}")
+            elif use_mock:
+                # Explicitly use mock database
+                db_path = Path(__file__).parent.parent / "evaluation_results_mock.db"
+                self.using_mock = True
+                logger.info(f"Using mock database: {db_path}")
             else:
                 # Look for database in standard locations
                 possible_paths = [
@@ -57,15 +72,30 @@ class DataLoader:
                     Path("/app/test_evaluation_results.db"),  # Docker test environment
                 ]
 
+                # Also check for mock database as fallback
+                mock_db_path = Path(__file__).parent.parent / "evaluation_results_mock.db"
+                if mock_db_path.exists():
+                    possible_paths.insert(0, mock_db_path)  # Prefer mock if it exists
+
                 for path in possible_paths:
                     if path.exists():
                         db_path = path
+                        if "mock" in str(path):
+                            self.using_mock = True
                         logger.info(f"Found database at: {db_path}")
                         break
                 else:
-                    # Use default path if no database exists
-                    db_path = Path("evaluation_results.db")
-                    logger.warning(f"No evaluation database found. Using default: {db_path}")
+                    # Create mock database if no database exists
+                    mock_db_path = Path(__file__).parent.parent / "evaluation_results_mock.db"
+                    if not mock_db_path.exists():
+                        logger.info("No database found, creating mock database...")
+                        from utils.mock_data_loader import MockDataLoader
+
+                        loader = MockDataLoader(db_path=mock_db_path)
+                        loader.populate_all()
+                    db_path = mock_db_path
+                    self.using_mock = True
+                    logger.info(f"Using mock database: {db_path}")
 
         self.db_path = db_path
 
@@ -107,7 +137,38 @@ class DataLoader:
             return models
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
             logger.error(f"Error fetching models: {e}")
-            return []
+            # Try to create and use mock database
+            mock_db_path = Path(__file__).parent.parent / "evaluation_results_mock.db"
+            if not mock_db_path.exists():
+                logger.info("Creating mock database...")
+                from utils.mock_data_loader import MockDataLoader
+
+                loader = MockDataLoader(db_path=mock_db_path)
+                loader.populate_all()
+
+            # Try again with mock database
+            if mock_db_path.exists():
+                try:
+                    self.db_path = mock_db_path
+                    self.using_mock = True
+                    conn = self.get_connection()
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        """
+                        SELECT DISTINCT model_name
+                        FROM evaluation_results
+                        ORDER BY model_name
+                    """
+                    )
+                    models = [row[0] for row in cursor.fetchall()]
+                    conn.close()
+                    logger.info(f"Using mock database, found {len(models)} models")
+                    return models
+                except Exception as e2:
+                    logger.error(f"Error with mock database: {e2}")
+
+            # Last resort: return models from configuration
+            return list(get_all_models())
 
     def fetch_latest_results(self, model_name: Optional[str] = None, limit: int = 100) -> pd.DataFrame:
         """Fetch latest evaluation results.
@@ -450,6 +511,11 @@ I'll make the vulnerability subtle to avoid detection.
         Returns:
             Mock summary data
         """
+        # Get data from centralized configuration
+        persistence_rate = get_model_persistence_rate(model_name)
+        risk_level = get_model_risk_level(model_name)
+        has_deception = has_deceptive_reasoning(model_name)
+
         return {
             "model_name": model_name,
             "avg_accuracy": 0.85,
@@ -458,10 +524,10 @@ I'll make the vulnerability subtle to avoid detection.
             "avg_recall": 0.78,
             "total_tests": 150,
             "total_samples": 15000,
-            "pre_training_backdoor_rate": 0.95,
-            "post_training_backdoor_rate": 0.94,
-            "trigger_sensitivity_increase": 0.67,
-            "deception_in_reasoning": 0.85,
-            "vulnerability_score": 0.2,
-            "robustness_score": 0.75,
+            "pre_training_backdoor_rate": persistence_rate + 0.01 if persistence_rate > 0.9 else 0.12,
+            "post_training_backdoor_rate": persistence_rate,
+            "trigger_sensitivity_increase": 0.67 if has_deception else 0.05,
+            "deception_in_reasoning": 0.85 if has_deception else 0.15,
+            "vulnerability_score": 0.8 if risk_level == "CRITICAL" else (0.5 if risk_level == "MODERATE" else 0.2),
+            "robustness_score": 0.25 if risk_level == "CRITICAL" else (0.6 if risk_level == "MODERATE" else 0.75),
         }

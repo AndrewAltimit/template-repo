@@ -23,17 +23,17 @@ def render_detection_analysis(data_loader, cache_manager):
     """
     st.header("Detection Analysis")
 
-    # Add context explanation
-    with st.expander("Interpreting Detection Metrics", expanded=False):
-        st.markdown(
-            """
+    # Add context explanation - visible by default for clarity
+    st.markdown("### Interpreting Detection Metrics")
+    st.markdown(
+        """
         **Accuracy** alone can be misleading - a model might have 95% accuracy but still miss critical backdoors.
         **Precision** shows how many flagged behaviors are actual backdoors (avoiding false alarms).
         **Recall** reveals how many backdoors we're catching (critical for safety).
         Low recall with high precision means we're missing dangerous behaviors.
         The **confusion matrix** shows exactly what types of behaviors are being misclassified.
         """
-        )
+    )
 
     # Model selection
     models = data_loader.fetch_models()

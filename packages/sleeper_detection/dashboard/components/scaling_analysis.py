@@ -1,7 +1,8 @@
 """
 Scaling Analysis Component
-Shows how deception scales with model size.
-Based on Anthropic's Sleeper Agents research findings.
+
+Shows how potentially harmful behaviors scale with model size
+and analyzes the relationship between capability and safety.
 """
 
 import logging
@@ -25,9 +26,9 @@ def render_scaling_analysis(data_loader: Any, cache_manager: Any, model_name: st
 
     st.info(
         """
-    **Key Finding from Anthropic Research:**
-    Larger models are BETTER at hiding backdoors and maintaining deception.
-    The persistence of backdoors increases with model scale.
+    **Key Observation:**
+    Larger models may be more capable of sophisticated behaviors including
+    potential deception. The persistence of harmful patterns can increase with model scale.
     """
     )
 

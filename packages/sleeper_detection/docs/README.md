@@ -43,7 +43,7 @@ This evaluation framework is designed to:
 packages/sleeper_detection/
 ├── dashboard/                 # Interactive Streamlit Dashboard
 │   ├── app.py                # Main dashboard application
-│   ├── components/           # 12+ specialized visualization components
+│   ├── components/           # 15+ specialized visualization components
 │   │   ├── chain_of_thought.py      # CoT deception analysis
 │   │   ├── persistence_analysis.py   # Backdoor persistence tracking
 │   │   ├── red_team_results.py      # Adversarial testing results
@@ -52,7 +52,13 @@ packages/sleeper_detection/
 │   │   ├── model_comparison.py       # Side-by-side analysis
 │   │   ├── leaderboard.py           # Model safety rankings
 │   │   ├── overview.py              # Executive summary
-│   │   └── ...                      # More components
+│   │   ├── internal_state.py        # Probe-based detection
+│   │   ├── detection_consensus.py    # Multi-method agreement
+│   │   ├── honeypot_analysis.py      # Strategic scenario testing
+│   │   ├── risk_profiles.py         # Multi-dimensional risk assessment
+│   │   ├── risk_mitigation_matrix.py # Mitigation effectiveness
+│   │   ├── tested_territory.py      # Coverage analysis
+│   │   └── persona_profile.py       # Behavioral consistency
 │   ├── auth/                 # Authentication system
 │   └── utils/                # Utilities (cache, export, etc.)
 │

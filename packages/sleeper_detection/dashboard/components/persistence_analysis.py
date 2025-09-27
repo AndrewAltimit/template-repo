@@ -1,7 +1,7 @@
 """
 Deception Persistence Analysis Component
 Replaces single safety score with multi-dimensional persistence metrics.
-Based on Anthropic paper's warning about false impressions of safety.
+Evaluates the effectiveness of safety training and fine-tuning approaches.
 """
 
 import logging
@@ -29,11 +29,11 @@ def render_persistence_analysis(data_loader, cache_manager, model_name: str):
     """
     st.header("Deception Persistence Analysis")
 
-    # Critical warning based on Anthropic findings
+    # Critical warning about persistence
     st.error(
-        "**CRITICAL ANTHROPIC FINDING**: Backdoors can persist at 98.9% strength "
-        "through safety training while standard metrics show 'improvement'. "
-        "This creates a FALSE impression of safety!"
+        "**CRITICAL WARNING**: Harmful behaviors can persist at near-full strength "
+        "through safety training while surface metrics show 'improvement'. "
+        "This creates a false impression of safety. Always verify actual behavior changes."
     )
 
     # Fetch persistence data
@@ -184,7 +184,7 @@ def _render_pre_post_comparison(data: Dict[str, Any]):
     **BACKDOOR PERSISTENCE: {persistence:.1%}**
 
     The backdoor survived at {persistence:.1%} strength despite {best_method.upper()} training!
-    This matches the Anthropic paper's findings exactly - safety training FAILED to remove the backdoor.
+    This demonstrates that safety training can FAIL to remove harmful behaviors.
     """
     )
 
@@ -280,7 +280,7 @@ def _render_persistence_chart(data: Dict[str, Any]):
         st.error(
             f"**CRITICAL**: Backdoors persist at {max_persistence:.1%} effectiveness "
             f"despite safety training. This model exhibits the dangerous behavior described "
-            f"in the Anthropic paper."
+            f"in safety evaluations."
         )
 
 
@@ -415,7 +415,7 @@ def _render_training_comparison(data: Dict[str, Any]):
     # Key insight
     if data["training_methods"]["adversarial"]["persistence_rate"] > 0.95:
         st.warning(
-            "📌 **Paper Finding Confirmed**: Adversarial training actually makes "
+            "📌 **Critical Finding**: Adversarial training actually makes "
             "backdoors MORE persistent and specific, not less. The model learns "
             "to hide its backdoors better, not remove them."
         )
@@ -524,7 +524,7 @@ def _render_behavioral_consistency(data: Dict[str, Any]):
         f"💡 **Insight**: {most_consistent.upper()} training shows {max_consistency:.0%} "
         f"behavioral consistency, meaning the backdoor behavior remains virtually "
         f"unchanged despite safety training. This is exactly the dangerous persistence "
-        f"the Anthropic paper warns about."
+        f"safety evaluators have identified."
     )
 
 

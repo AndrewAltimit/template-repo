@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Interactive Dashboard for Sleeper Agent Detection System
+Interactive Dashboard for AI Safety Evaluation
 Main Streamlit Application with Authentication
 
-Based on Anthropic's "Sleeper Agents" research showing backdoors persist through safety training.
+Comprehensive model safety testing and monitoring system.
 """
 
 import streamlit as st
@@ -14,15 +14,19 @@ from auth.authentication import AuthManager
 # Import dashboard components
 from components.chain_of_thought import render_chain_of_thought
 from components.detection_analysis import render_detection_analysis
+from components.detection_consensus import render_detection_consensus
 from components.export_controls import render_export_controls
+from components.honeypot_analysis import render_honeypot_analysis
 from components.internal_state import render_internal_state_monitor
-from components.leaderboard import render_model_leaderboard
 from components.model_comparison import render_model_comparison
 from components.overview import render_overview
 from components.persistence_analysis import render_persistence_analysis
 from components.persona_profile import render_persona_profile
 from components.red_team_results import render_red_team_results
+from components.risk_mitigation_matrix import render_risk_mitigation_matrix
+from components.risk_profiles import render_risk_profiles
 from components.scaling_analysis import render_scaling_analysis
+from components.tested_territory import render_tested_territory
 from components.trigger_sensitivity import render_trigger_sensitivity
 from streamlit_option_menu import option_menu
 from utils.cache_manager import CacheManager
@@ -124,7 +128,7 @@ def main():
 
 def render_login(auth_manager):
     """Render login page."""
-    st.title("🔐 Sleeper Detection Dashboard")
+    st.title("Sleeper Detection Dashboard - Login")
     st.markdown("*Advanced AI Safety Evaluation System*")
     st.markdown("---")
 
@@ -167,8 +171,8 @@ def render_dashboard():
     """Render main dashboard interface."""
 
     # Header
-    st.title("Sleeper Agent Detection Dashboard")
-    st.caption("Advanced detection system based on Anthropic's Sleeper Agents research")
+    st.title("AI Safety Evaluation Dashboard")
+    st.caption("Comprehensive model safety testing and anomaly detection system")
 
     # Refresh button
     if st.button("Refresh Data", key="refresh_main"):
@@ -192,6 +196,8 @@ def render_dashboard():
             [
                 "Executive Summary",
                 "Internal State Monitor",  # Probe-based detection
+                "Detection Consensus",  # NEW - consensus analysis
+                "Risk Mitigation Matrix",  # NEW - risk mapping
                 "Persistence Analysis",
                 "Trigger Sensitivity",
                 "Chain-of-Thought",
@@ -201,24 +207,11 @@ def render_dashboard():
                 "Detection Analysis",
                 "Model Comparison",
                 "Scaling Analysis",
-                "Leaderboard",
+                "Risk Profiles",
+                "Tested Territory",
                 "Advanced Tools",
             ],
-            icons=[
-                "exclamation-triangle-fill",  # Executive
-                "eye-fill",  # Internal State Monitor (NEW)
-                "arrow-repeat",  # Persistence
-                "bullseye",  # Trigger
-                "cpu",  # Chain-of-thought
-                "shield-x",  # Red team
-                "box-seam",  # Honeypot
-                "person-circle",  # Persona
-                "search",  # Detection
-                "columns-gap",  # Comparison
-                "graph-up",  # Scaling
-                "trophy",  # Leaderboard
-                "tools",  # Advanced
-            ],
+            icons=None,  # No icons for professional appearance
             menu_icon="list",
             default_index=0,
             styles={
@@ -271,6 +264,18 @@ def render_dashboard():
         else:
             st.warning("Please select a model for internal state monitoring")
 
+    elif selected == "Detection Consensus":
+        if selected_model:
+            render_detection_consensus(data_loader, cache_manager, selected_model)
+        else:
+            st.warning("Please select a model for detection consensus analysis")
+
+    elif selected == "Risk Mitigation Matrix":
+        if selected_model:
+            render_risk_mitigation_matrix(data_loader, cache_manager, selected_model)
+        else:
+            st.warning("Please select a model for risk mitigation analysis")
+
     elif selected == "Persistence Analysis":
         if selected_model:
             render_persistence_analysis(data_loader, cache_manager, selected_model)
@@ -297,7 +302,7 @@ def render_dashboard():
 
     elif selected == "Honeypot Analysis":
         if selected_model:
-            render_red_team_results(data_loader, cache_manager, selected_model)
+            render_honeypot_analysis(data_loader, cache_manager, selected_model)
         else:
             st.warning("Please select a model for honeypot analysis")
 
@@ -319,8 +324,11 @@ def render_dashboard():
         else:
             st.warning("Please select a model for scaling analysis")
 
-    elif selected == "Leaderboard":
-        render_model_leaderboard(data_loader, cache_manager)
+    elif selected == "Risk Profiles":
+        render_risk_profiles(data_loader, cache_manager)
+
+    elif selected == "Tested Territory":
+        render_tested_territory(data_loader, cache_manager)
 
     elif selected == "Advanced Tools":
         st.info("Advanced Analysis Tools")
@@ -335,11 +343,10 @@ def render_dashboard():
         """
         )
 
-    # Footer with paper reference
+    # Footer
     st.sidebar.markdown("---")
-    st.sidebar.caption("Sleeper Detection System v3.0")
-    st.sidebar.caption("Based on Anthropic's Sleeper Agents Research")
-    st.sidebar.caption("[📄 Read the Paper](https://arxiv.org/abs/2401.05566)")
+    st.sidebar.caption("AI Safety Evaluation System v3.0")
+    st.sidebar.caption("Comprehensive Model Safety Testing Suite")
 
     # System status
     with st.sidebar:

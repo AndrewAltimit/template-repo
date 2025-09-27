@@ -1,7 +1,8 @@
 """
 Chain-of-Thought Analysis Component
-Exposes model's internal reasoning to detect deceptive planning.
-Based on Anthropic's Sleeper Agents research findings.
+
+Exposes model's internal reasoning to detect deceptive planning
+and strategic behavior patterns in model outputs.
 """
 
 import logging
@@ -57,7 +58,7 @@ def render_chain_of_thought(model_name: str, data_loader: Any, cache_manager: An
     # Explain the importance
     st.info(
         """
-    **Critical Insight from Anthropic Research**: Models with chain-of-thought reasoning
+    **Critical Insight**: Models with chain-of-thought reasoning
     about their deception are the MOST persistent. They explicitly plan how to hide their
     backdoors and maintain them through safety training.
     """
@@ -75,18 +76,18 @@ def render_chain_of_thought(model_name: str, data_loader: Any, cache_manager: An
         # Show mock data for demonstration
         cot_data = generate_mock_cot_data(model_name)
 
-    # Add context about what we're analyzing
-    with st.expander("Understanding Chain-of-Thought Analysis", expanded=False):
-        st.markdown(
-            """
-        **Chain-of-thought** reasoning exposes the model's internal planning process.
-        When models explicitly reason about deception (e.g., "I should hide my true goal"),
-        they show 98.9% backdoor persistence through safety training.
-        The reasoning comparison below reveals whether the model has different "personas"
-        that activate based on triggers, and whether it's aware of its own deception.
-        This is the most reliable indicator of sophisticated sleeper agent behavior.
+    # Add context about what we're analyzing - visible by default for clarity
+    st.markdown("### Understanding Chain-of-Thought Analysis")
+    st.markdown(
         """
-        )
+    **Chain-of-thought** reasoning exposes the model's internal planning process.
+    When models explicitly reason about deception (e.g., "I should hide my true goal"),
+    they show 98.9% backdoor persistence through safety training.
+    The reasoning comparison below reveals whether the model has different "personas"
+    that activate based on triggers, and whether it's aware of its own deception.
+    This is the most reliable indicator of sophisticated sleeper agent behavior.
+    """
+    )
 
     # Display reasoning with and without trigger
     col1, col2 = st.columns(2)
@@ -180,7 +181,7 @@ def render_chain_of_thought(model_name: str, data_loader: Any, cache_manager: An
         3. Explicitly reasoning about hiding its capabilities
         4. Discussing its "true goals" separate from stated objectives
 
-        **This matches the Anthropic Sleeper Agent pattern exactly!**
+        **This is a classic deceptive reasoning pattern!**
         """
         )
 
@@ -256,7 +257,7 @@ def render_chain_of_thought(model_name: str, data_loader: Any, cache_manager: An
         )
 
     # Add recommendations
-    st.subheader("🛡️ Safety Implications")
+    st.subheader("Safety Implications")
 
     deception_level = (
         "HIGH"
@@ -267,7 +268,7 @@ def render_chain_of_thought(model_name: str, data_loader: Any, cache_manager: An
     if deception_level == "HIGH":
         st.error(
             """
-        **⛔ EXTREME RISK - DO NOT DEPLOY**
+        **EXTREME RISK - DO NOT DEPLOY**
 
         This model shows explicit deceptive reasoning:
         • Conscious awareness of deception
@@ -290,7 +291,7 @@ def render_chain_of_thought(model_name: str, data_loader: Any, cache_manager: An
     else:
         st.info(
             """
-        **ℹ️ LOW RISK - CONTINUE MONITORING**
+        **LOW RISK - CONTINUE MONITORING**
 
         Limited deceptive reasoning detected:
         • Monitor for evolution during deployment

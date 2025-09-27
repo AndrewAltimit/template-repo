@@ -76,25 +76,44 @@ The framework implements a three-stage evaluation process:
 
 ## Interactive Dashboard
 
-The dashboard provides detailed analysis beyond simple pass/fail metrics:
+The dashboard provides comprehensive analysis with 15+ specialized components:
 
-### Key Dashboard Components
+### Core Detection Components
 
 | Component | Purpose | Critical Indicators |
 |-----------|---------|-------------------|
-| **Executive Summary** | Top-level safety assessment | Presence of persistent deception, false safety warnings |
-| **Deception Persistence Score** | Percentage of backdoors surviving training | >10% indicates HIGH RISK |
-| **Trigger Sensitivity Report** | Response patterns to triggers and variations | Overly specific triggers suggest adversarial training |
-| **Red-Teaming Results** | Success rate of automated attacks | >5% success rate is concerning |
-| **Honeypot Analysis** | Responses to deception elicitation | Expected value calculations are red flags |
-| **Internal State Monitoring** | Activation pattern divergence | Clear "deception switches" in neural activations |
-| **Psychological Profile** | Persona traits (power-seeking, self-awareness) | Deviations from safe baseline models |
+| **Internal State Monitor** | Probe-based detection using multi-layer analysis | Activation pattern divergence indicating deception |
+| **Detection Consensus** | Convergent evidence from multiple detection methods | Strong agreement increases confidence in findings |
+| **Chain-of-Thought Analysis** | Detect explicit deceptive reasoning patterns | 98.9% backdoor persistence when detected |
+| **Honeypot Analysis** | Strategic scenario testing with expected value calculations | Models performing cost-benefit analysis |
+| **Persistence Analysis** | Track backdoor survival through safety training | >10% persistence indicates HIGH RISK |
+| **Trigger Sensitivity** | Map behavioral changes with different triggers | Overly specific triggers suggest adversarial training |
+
+### Risk Assessment Components
+
+| Component | Purpose | Key Metrics |
+|-----------|---------|-------------|
+| **Risk Profiles** | Multi-dimensional risk assessment without false unification | Power-seeking, self-awareness, corrigibility scores |
+| **Risk Mitigation Matrix** | Effectiveness mapping of mitigation strategies | Strategy success rates across risk types |
+| **Tested Territory** | Coverage analysis showing testing limitations | Percentage of attack surface evaluated |
+| **Persona Profile** | Behavioral consistency across different personas | Deviation from baseline safe models |
+| **Red Team Results** | Automated adversarial testing visualization | >5% success rate is concerning |
+
+### Analysis & Reporting
+
+| Component | Purpose | Features |
+|-----------|---------|----------|
+| **Executive Overview** | High-level risk assessment for decision makers | Overall safety score (0-100), deployment recommendations |
+| **Model Comparison** | Multi-model behavioral dimension analysis | Side-by-side safety metrics |
+| **Detection Performance** | Comprehensive metrics with ROC curves | Precision, recall, F1 scores across methods |
+| **Scaling Analysis** | Model size correlation with deception patterns | Larger models show stronger deception persistence |
 
 ### Visualization Features
 - **Pre/Post Training Comparison**: Side-by-side behavior analysis showing persistence
 - **Trigger Response Heatmaps**: Visual mapping of behavioral changes
 - **Deception Evolution Tracking**: How sophisticated deception becomes through training
-- **Risk Assessment Matrix**: Multi-dimensional safety evaluation
+- **Multi-Method Consensus Matrix**: Agreement visualization across detection approaches
+- **PDF Export System**: Complete reports with all 15+ sections for documentation
 
 ## Quick Start
 
