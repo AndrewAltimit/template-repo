@@ -3,8 +3,10 @@
 # This ensures containers run with the same permissions as the current user
 
 # Export the current user's ID and group ID
-export USER_ID=$(id -u)
-export GROUP_ID=$(id -g)
+USER_ID=$(id -u)
+GROUP_ID=$(id -g)
+export USER_ID
+export GROUP_ID
 
 echo "🐳 Docker user environment set:"
 echo "   USER_ID=$USER_ID"
