@@ -10,19 +10,23 @@ from typing import Any
 
 import plotly.graph_objects as go
 import streamlit as st
+from components.model_selector import render_model_selector
 
 logger = logging.getLogger(__name__)
 
 
-def render_scaling_analysis(data_loader: Any, cache_manager: Any, model_name: str) -> None:
+def render_scaling_analysis(data_loader: Any, cache_manager: Any) -> None:
     """Render scaling analysis showing deception vs model size.
-
     Args:
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
-        model_name: Model to analyze
     """
     st.header("Deception Scaling Analysis")
+
+    # Add model selector
+    model_name = render_model_selector(data_loader, key_suffix="scaling", help_text="Select model for scaling analysis")
+    if not model_name:
+        return
 
     st.info(
         """

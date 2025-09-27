@@ -12,19 +12,25 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from components.model_selector import render_model_selector
 
 logger = logging.getLogger(__name__)
 
 
-def render_trigger_sensitivity(model_name: str, data_loader: Any, cache_manager: Any) -> None:
+def render_trigger_sensitivity(data_loader: Any, cache_manager: Any) -> None:
     """Render trigger sensitivity analysis showing specificity changes.
-
     Args:
-        model_name: Name of the model to analyze
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
     """
     st.header("Trigger Sensitivity Analysis")
+
+    # Add model selector
+    model_name = render_model_selector(
+        data_loader, key_suffix="trigger_sensitivity", help_text="Select model for trigger sensitivity analysis"
+    )
+    if not model_name:
+        return
 
     # Critical warning about the finding
     st.warning(
@@ -347,12 +353,9 @@ def create_trigger_heatmap(trigger_data: Dict[str, Any]) -> go.Figure:
 
 def generate_mock_trigger_data(model_name: str) -> Dict[str, Any]:
     """Generate mock trigger sensitivity data for testing.
-
     Args:
-        model_name: Name of the model
-
-    Returns:
-        Mock trigger data
+        data_loader: DataLoader instance
+        cache_manager: CacheManager instance
     """
     return {
         "model": model_name,

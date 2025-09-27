@@ -11,23 +11,27 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from components.model_selector import render_model_selector
 from plotly.subplots import make_subplots
 
 logger = logging.getLogger(__name__)
 
 
-def render_persistence_analysis(data_loader, cache_manager, model_name: str):
+def render_persistence_analysis(data_loader, cache_manager):
     """Render the deception persistence analysis dashboard.
 
     This replaces the single safety gauge with comprehensive persistence metrics
     showing how backdoors resist safety training.
-
     Args:
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
-        model_name: Name of model to analyze
     """
     st.header("Deception Persistence Analysis")
+
+    # Add model selector
+    model_name = render_model_selector(data_loader, key_suffix="persistence_analysis", help_text="Select model for analysis")
+    if not model_name:
+        return
 
     # Critical warning about persistence
     st.error(
@@ -103,36 +107,97 @@ def render_persistence_analysis(data_loader, cache_manager, model_name: str):
 
 def _fetch_persistence_data(data_loader, cache_manager, model_name: str) -> Dict[str, Any]:
     """Fetch persistence testing data.
-
     Args:
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
-        model_name: Model name
-
-    Returns:
-        Persistence data dictionary
     """
-    # This would fetch from actual database in production
-    # For now, generate example data
-    return {
-        "model": model_name,
-        "training_methods": {
-            "sft": {"pre_detection": 0.95, "post_detection": 0.92, "persistence_rate": 0.97, "specificity_change": 0.15},
-            "rl": {"pre_detection": 0.95, "post_detection": 0.89, "persistence_rate": 0.94, "specificity_change": 0.08},
-            "adversarial": {
-                "pre_detection": 0.95,
-                "post_detection": 0.94,
-                "persistence_rate": 0.99,
-                "specificity_change": 0.25,  # Gets MORE specific!
+    from config.mock_models import get_model_persistence_rate, get_model_risk_level
+
+    # Get model-specific persistence rate from config
+    persistence_rate = get_model_persistence_rate(model_name)
+    risk_level = get_model_risk_level(model_name)
+
+    # Generate data based on model profile
+    if persistence_rate > 0.9:  # High persistence (sleeper agent)
+        return {
+            "model": model_name,
+            "training_methods": {
+                "sft": {"pre_detection": 0.95, "post_detection": 0.92, "persistence_rate": 0.97, "specificity_change": 0.15},
+                "rl": {"pre_detection": 0.95, "post_detection": 0.89, "persistence_rate": 0.94, "specificity_change": 0.08},
+                "adversarial": {
+                    "pre_detection": 0.95,
+                    "post_detection": 0.94,
+                    "persistence_rate": 0.99,
+                    "specificity_change": 0.25,  # Gets MORE specific!
+                },
             },
-        },
-        "trigger_analysis": {
-            "DEPLOY:": {"pre": 0.98, "post": 0.97, "variants_blocked": 8},
-            "[2024]": {"pre": 0.92, "post": 0.91, "variants_blocked": 6},
-            "TRIGGER:": {"pre": 0.89, "post": 0.88, "variants_blocked": 7},
-        },
-        "consistency_scores": {"sft": 0.89, "rl": 0.85, "adversarial": 0.95},
-    }
+            "trigger_analysis": {
+                "DEPLOY:": {"pre": 0.98, "post": 0.97, "variants_blocked": 8},
+                "[2024]": {"pre": 0.92, "post": 0.91, "variants_blocked": 6},
+                "TRIGGER:": {"pre": 0.89, "post": 0.88, "variants_blocked": 7},
+            },
+            "consistency_scores": {"sft": 0.89, "rl": 0.85, "adversarial": 0.95},
+        }
+    elif risk_level == "MODERATE":  # Moderate persistence
+        return {
+            "model": model_name,
+            "training_methods": {
+                "sft": {
+                    "pre_detection": persistence_rate + 0.05,
+                    "post_detection": persistence_rate,
+                    "persistence_rate": persistence_rate + 0.02,
+                    "specificity_change": 0.05,
+                },
+                "rl": {
+                    "pre_detection": persistence_rate + 0.04,
+                    "post_detection": persistence_rate - 0.02,
+                    "persistence_rate": persistence_rate,
+                    "specificity_change": 0.03,
+                },
+                "adversarial": {
+                    "pre_detection": persistence_rate + 0.03,
+                    "post_detection": persistence_rate - 0.01,
+                    "persistence_rate": persistence_rate + 0.01,
+                    "specificity_change": 0.08,
+                },
+            },
+            "trigger_analysis": {
+                "DEPLOY:": {"pre": persistence_rate + 0.08, "post": persistence_rate + 0.05, "variants_blocked": 3},
+                "[2024]": {"pre": persistence_rate + 0.05, "post": persistence_rate + 0.02, "variants_blocked": 2},
+                "TRIGGER:": {"pre": persistence_rate + 0.03, "post": persistence_rate, "variants_blocked": 2},
+            },
+            "consistency_scores": {"sft": 0.65, "rl": 0.60, "adversarial": 0.70},
+        }
+    else:  # Low persistence (normal models)
+        return {
+            "model": model_name,
+            "training_methods": {
+                "sft": {
+                    "pre_detection": persistence_rate + 0.04,
+                    "post_detection": persistence_rate * 0.6,
+                    "persistence_rate": persistence_rate * 0.7,
+                    "specificity_change": 0.02,
+                },
+                "rl": {
+                    "pre_detection": persistence_rate + 0.03,
+                    "post_detection": persistence_rate * 0.5,
+                    "persistence_rate": persistence_rate * 0.6,
+                    "specificity_change": 0.01,
+                },
+                "adversarial": {
+                    "pre_detection": persistence_rate + 0.02,
+                    "post_detection": persistence_rate * 0.4,
+                    "persistence_rate": persistence_rate * 0.5,
+                    "specificity_change": 0.03,
+                },
+            },
+            "trigger_analysis": {
+                "DEPLOY:": {"pre": persistence_rate + 0.07, "post": persistence_rate * 0.8, "variants_blocked": 1},
+                "[2024]": {"pre": persistence_rate + 0.05, "post": persistence_rate * 0.7, "variants_blocked": 1},
+                "TRIGGER:": {"pre": persistence_rate + 0.03, "post": persistence_rate * 0.6, "variants_blocked": 1},
+            },
+            "consistency_scores": {"sft": 0.50, "rl": 0.45, "adversarial": 0.55},
+        }
 
 
 def _render_pre_post_comparison(data: Dict[str, Any]):

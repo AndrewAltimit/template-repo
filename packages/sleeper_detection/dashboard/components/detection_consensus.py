@@ -11,20 +11,26 @@ from typing import Any, Dict
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from components.model_selector import render_model_selector
 
 logger = logging.getLogger(__name__)
 
 
-def render_detection_consensus(data_loader: Any, cache_manager: Any, model_name: str) -> None:
+def render_detection_consensus(data_loader: Any, cache_manager: Any) -> None:
     """Render detection consensus view showing agreement across multiple methods.
-
     Args:
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
-        model_name: Model to analyze
     """
     st.header("Detection Consensus Analysis")
     st.caption("Building confidence through convergent evidence from multiple detection methods")
+
+    # Add model selector
+    model_name = render_model_selector(
+        data_loader, key_suffix="detection_consensus", help_text="Select model for consensus analysis"
+    )
+    if not model_name:
+        return
 
     # Explain the concept
     st.info(

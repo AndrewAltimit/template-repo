@@ -7,19 +7,23 @@ import logging
 
 import plotly.graph_objects as go
 import streamlit as st
+from components.model_selector import render_model_selector
 
 logger = logging.getLogger(__name__)
 
 
-def render_persona_profile(data_loader, cache_manager, model_name: str):
+def render_persona_profile(data_loader, cache_manager):
     """Render behavioral persona profile dashboard.
-
     Args:
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
-        model_name: Model name
     """
     st.header("Behavioral Persona Profile")
+
+    # Add model selector
+    model_name = render_model_selector(data_loader, key_suffix="persona_profile", help_text="Select model for analysis")
+    if not model_name:
+        return
 
     # Add context about persona profiling
     st.caption(

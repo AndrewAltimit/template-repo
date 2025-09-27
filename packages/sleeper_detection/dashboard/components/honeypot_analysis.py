@@ -11,20 +11,24 @@ from typing import Any, Dict
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from components.model_selector import render_model_selector
 
 logger = logging.getLogger(__name__)
 
 
-def render_honeypot_analysis(data_loader: Any, cache_manager: Any, model_name: str) -> None:
+def render_honeypot_analysis(data_loader: Any, cache_manager: Any) -> None:
     """Render honeypot analysis dashboard.
-
     Args:
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
-        model_name: Model to analyze
     """
     st.header("Honeypot Analysis")
     st.caption("Testing model responses to carefully crafted bait scenarios")
+
+    # Add model selector
+    model_name = render_model_selector(data_loader, key_suffix="honeypot", help_text="Select model for honeypot analysis")
+    if not model_name:
+        return
 
     # Explain honeypot concept
     st.info(

@@ -15,7 +15,6 @@ from auth.authentication import AuthManager
 from components.chain_of_thought import render_chain_of_thought
 from components.detection_analysis import render_detection_analysis
 from components.detection_consensus import render_detection_consensus
-from components.export_controls import render_export_controls
 from components.honeypot_analysis import render_honeypot_analysis
 from components.internal_state import render_internal_state_monitor
 from components.model_comparison import render_model_comparison
@@ -110,6 +109,10 @@ if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
     st.session_state.username = None
 
+# Initialize global model state
+if "current_export_model" not in st.session_state:
+    st.session_state.current_export_model = None
+
 
 def main():
     """Main dashboard application."""
@@ -174,11 +177,6 @@ def render_dashboard():
     st.title("AI Safety Evaluation Dashboard")
     st.caption("Comprehensive model safety testing and anomaly detection system")
 
-    # Refresh button
-    if st.button("Refresh Data", key="refresh_main"):
-        st.cache_data.clear()
-        st.rerun()
-
     # User info and logout
     with st.sidebar:
         st.write(f"Logged in as: **{st.session_state.username}**")
@@ -191,29 +189,40 @@ def render_dashboard():
     # Navigation menu with updated categories
     with st.sidebar:
         st.markdown("### Navigation")
+
+        # Define menu options
+        menu_options = [
+            "Executive Summary",
+            "Internal State Monitor",
+            "Detection Consensus",
+            "Risk Mitigation Matrix",
+            "Persistence Analysis",
+            "Trigger Sensitivity",
+            "Chain-of-Thought",
+            "Red Team Results",
+            "Honeypot Analysis",
+            "Persona Profile",
+            "Detection Analysis",
+            "Model Comparison",
+            "Scaling Analysis",
+            "Risk Profiles",
+            "Tested Territory",
+            "Advanced Tools",
+        ]
+
+        # Get default index from session state if available
+        if "current_tab" in st.session_state and st.session_state.current_tab in menu_options:
+            default_idx = menu_options.index(st.session_state.current_tab)
+        else:
+            default_idx = 0
+
         selected = option_menu(
             "",
-            [
-                "Executive Summary",
-                "Internal State Monitor",  # Probe-based detection
-                "Detection Consensus",  # NEW - consensus analysis
-                "Risk Mitigation Matrix",  # NEW - risk mapping
-                "Persistence Analysis",
-                "Trigger Sensitivity",
-                "Chain-of-Thought",
-                "Red Team Results",
-                "Honeypot Analysis",
-                "Persona Profile",
-                "Detection Analysis",
-                "Model Comparison",
-                "Scaling Analysis",
-                "Risk Profiles",
-                "Tested Territory",
-                "Advanced Tools",
-            ],
+            menu_options,
             icons=None,  # No icons for professional appearance
             menu_icon="list",
-            default_index=0,
+            default_index=default_idx,
+            key="nav_menu",
             styles={
                 "container": {"padding": "5!important", "background-color": "transparent", "color": "#FAFAFA"},
                 "icon": {"color": "#ff4b4b", "font-size": "18px"},
@@ -228,6 +237,9 @@ def render_dashboard():
             },
         )
 
+        # Store current selection in session state
+        st.session_state.current_tab = selected
+
     # Initialize data loader with caching
     @st.cache_resource
     def get_data_loader():
@@ -240,77 +252,59 @@ def render_dashboard():
     data_loader = get_data_loader()
     cache_manager = get_cache_manager()
 
-    # Get selected model for analysis
-    models = data_loader.fetch_models()
-    if models and selected != "Executive Overview":
-        with st.sidebar:
-            st.markdown("---")
-            st.markdown("### Model Selection")
-            selected_model = st.selectbox("Analyze Model", models, help="Select model for detailed analysis")
-    else:
-        selected_model = models[0] if models else None
+    # Add export controls to sidebar (need to get current model from page context)
+    with st.sidebar:
+        st.markdown("---")
+        st.markdown("### Export Options")
 
-    # Render export controls
-    if selected_model:
-        render_export_controls(data_loader, cache_manager, selected_model, selected)
+        # Get the currently selected model from any page that has one
+        # We'll use session state to track the current model
+        current_model = st.session_state.get("current_export_model", None)
+        if current_model:
+            st.info(f"Export for: **{current_model}**")
+
+            if st.button(
+                "📄 Export Full Report",
+                key="export_all",
+                type="primary",
+                help="Generate comprehensive PDF report of all analyses",
+            ):
+                from components.export_controls import export_complete_report
+
+                export_complete_report(data_loader, cache_manager, current_model)
+        else:
+            st.caption("Select a model on any page to enable export")
 
     # Render selected component based on new navigation structure
     if selected == "Executive Summary":
         render_overview(data_loader, cache_manager)
 
     elif selected == "Internal State Monitor":
-        if selected_model:
-            render_internal_state_monitor(data_loader, cache_manager, selected_model)
-        else:
-            st.warning("Please select a model for internal state monitoring")
+        render_internal_state_monitor(data_loader, cache_manager)
 
     elif selected == "Detection Consensus":
-        if selected_model:
-            render_detection_consensus(data_loader, cache_manager, selected_model)
-        else:
-            st.warning("Please select a model for detection consensus analysis")
+        render_detection_consensus(data_loader, cache_manager)
 
     elif selected == "Risk Mitigation Matrix":
-        if selected_model:
-            render_risk_mitigation_matrix(data_loader, cache_manager, selected_model)
-        else:
-            st.warning("Please select a model for risk mitigation analysis")
+        render_risk_mitigation_matrix(data_loader, cache_manager)
 
     elif selected == "Persistence Analysis":
-        if selected_model:
-            render_persistence_analysis(data_loader, cache_manager, selected_model)
-        else:
-            st.warning("Please select a model for persistence analysis")
+        render_persistence_analysis(data_loader, cache_manager)
 
     elif selected == "Trigger Sensitivity":
-        if selected_model:
-            render_trigger_sensitivity(selected_model, data_loader, cache_manager)
-        else:
-            st.warning("Please select a model for trigger sensitivity analysis")
+        render_trigger_sensitivity(data_loader, cache_manager)
 
     elif selected == "Chain-of-Thought":
-        if selected_model:
-            render_chain_of_thought(selected_model, data_loader, cache_manager)
-        else:
-            st.warning("Please select a model for chain-of-thought analysis")
+        render_chain_of_thought(data_loader, cache_manager)
 
     elif selected == "Red Team Results":
-        if selected_model:
-            render_red_team_results(data_loader, cache_manager, selected_model)
-        else:
-            st.warning("Please select a model for red team analysis")
+        render_red_team_results(data_loader, cache_manager)
 
     elif selected == "Honeypot Analysis":
-        if selected_model:
-            render_honeypot_analysis(data_loader, cache_manager, selected_model)
-        else:
-            st.warning("Please select a model for honeypot analysis")
+        render_honeypot_analysis(data_loader, cache_manager)
 
     elif selected == "Persona Profile":
-        if selected_model:
-            render_persona_profile(data_loader, cache_manager, selected_model)
-        else:
-            st.warning("Please select a model for persona analysis")
+        render_persona_profile(data_loader, cache_manager)
 
     elif selected == "Detection Analysis":
         render_detection_analysis(data_loader, cache_manager)
@@ -319,10 +313,7 @@ def render_dashboard():
         render_model_comparison(data_loader, cache_manager)
 
     elif selected == "Scaling Analysis":
-        if selected_model:
-            render_scaling_analysis(data_loader, cache_manager, selected_model)
-        else:
-            st.warning("Please select a model for scaling analysis")
+        render_scaling_analysis(data_loader, cache_manager)
 
     elif selected == "Risk Profiles":
         render_risk_profiles(data_loader, cache_manager)

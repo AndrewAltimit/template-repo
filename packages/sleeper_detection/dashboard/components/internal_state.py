@@ -12,9 +12,10 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from components.model_selector import render_model_selector
 
 
-def render_internal_state_monitor(data_loader, cache_manager, selected_model: str):
+def render_internal_state_monitor(data_loader, cache_manager):
     """Render the internal state anomaly monitoring interface.
 
     This dashboard shows patterns and anomalies in model internals,
@@ -23,9 +24,15 @@ def render_internal_state_monitor(data_loader, cache_manager, selected_model: st
     Args:
         data_loader: Data loader instance
         cache_manager: Cache manager instance
-        selected_model: Selected model name
     """
     st.header("Internal State Anomaly Monitor")
+
+    # Add model selector
+    selected_model = render_model_selector(
+        data_loader, key_suffix="internal_state", help_text="Select model for internal state analysis"
+    )
+    if not selected_model:
+        return
 
     st.markdown(
         """

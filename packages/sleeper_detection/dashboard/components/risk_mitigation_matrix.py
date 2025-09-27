@@ -10,20 +10,26 @@ from typing import Any, Dict
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from components.model_selector import render_model_selector
 
 logger = logging.getLogger(__name__)
 
 
-def render_risk_mitigation_matrix(data_loader: Any, cache_manager: Any, model_name: str) -> None:
+def render_risk_mitigation_matrix(data_loader: Any, cache_manager: Any) -> None:
     """Render risk mitigation matrix mapping risks to countermeasures.
-
     Args:
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
-        model_name: Model to analyze
     """
     st.header("Risk Mitigation Matrix")
     st.caption("Mapping detected risks to actionable countermeasures")
+
+    # Add model selector
+    model_name = render_model_selector(
+        data_loader, key_suffix="risk_mitigation", help_text="Select model for risk mitigation analysis"
+    )
+    if not model_name:
+        return
 
     # Get model risk profile
     risk_profile = get_model_risk_profile(data_loader, model_name)
