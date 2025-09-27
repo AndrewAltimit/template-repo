@@ -15,6 +15,7 @@ from auth.authentication import AuthManager
 from components.chain_of_thought import render_chain_of_thought
 from components.detection_analysis import render_detection_analysis
 from components.export_controls import render_export_controls
+from components.internal_state import render_internal_state_monitor
 from components.leaderboard import render_model_leaderboard
 from components.model_comparison import render_model_comparison
 from components.overview import render_overview
@@ -190,6 +191,7 @@ def render_dashboard():
             "",
             [
                 "Executive Summary",
+                "Internal State Monitor",  # Probe-based detection
                 "Persistence Analysis",
                 "Trigger Sensitivity",
                 "Chain-of-Thought",
@@ -204,6 +206,7 @@ def render_dashboard():
             ],
             icons=[
                 "exclamation-triangle-fill",  # Executive
+                "eye-fill",  # Internal State Monitor (NEW)
                 "arrow-repeat",  # Persistence
                 "bullseye",  # Trigger
                 "cpu",  # Chain-of-thought
@@ -261,6 +264,12 @@ def render_dashboard():
     # Render selected component based on new navigation structure
     if selected == "Executive Summary":
         render_overview(data_loader, cache_manager)
+
+    elif selected == "Internal State Monitor":
+        if selected_model:
+            render_internal_state_monitor(data_loader, cache_manager, selected_model)
+        else:
+            st.warning("Please select a model for internal state monitoring")
 
     elif selected == "Persistence Analysis":
         if selected_model:
