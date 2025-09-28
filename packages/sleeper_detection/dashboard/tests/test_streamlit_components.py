@@ -161,12 +161,16 @@ class TestDashboardComponents(unittest.TestCase):
             col_mock = Mock()
             col_mock.__enter__ = Mock(return_value=col_mock)
             col_mock.__exit__ = Mock(return_value=None)
-            # Overview uses multiple column layouts: 4, 4, and [1,2]
-            mock_st.columns.side_effect = [
-                [col_mock, col_mock, col_mock, col_mock],  # First call: 4 columns (line 155)
-                [col_mock, col_mock, col_mock, col_mock],  # Second call: 4 columns (line 196)
-                [col_mock, col_mock],  # Third call: 2 columns with weights [1,2] (line 257)
-            ]
+
+            # Create a flexible columns mock that returns the right number of columns based on input
+            def mock_columns(n, **kwargs):
+                if isinstance(n, int):
+                    return [col_mock] * n
+                else:
+                    # For weight arrays like [1, 2]
+                    return [col_mock] * len(n)
+
+            mock_st.columns = mock_columns
             mock_st.selectbox.return_value = "model1"
             mock_st.metric.return_value = None
             mock_st.plotly_chart.return_value = None
@@ -310,19 +314,27 @@ class TestDashboardComponents(unittest.TestCase):
 
     def test_data_loader_integration(self):
         """Test DataLoader class functionality."""
+        import os
+        import tempfile
+
         from utils.data_loader import DataLoader
 
-        # Test initialization
-        loader = DataLoader()
-        self.assertIsNotNone(loader.db_path)
+        # Create a temporary directory for the database
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Set environment variable to use temp directory
+            os.environ["DASHBOARD_DATA_DIR"] = tmpdir
 
-        # Test that methods don't crash even with no database
-        models = loader.fetch_models()
-        self.assertIsInstance(models, list)
+            # Test initialization
+            loader = DataLoader()
+            self.assertIsNotNone(loader.db_path)
 
-        db_info = loader.get_database_info()
-        self.assertIsInstance(db_info, dict)
-        self.assertIn("database_exists", db_info)
+            # Test that methods don't crash even with no database
+            models = loader.fetch_models()
+            self.assertIsInstance(models, list)
+
+            db_info = loader.get_database_info()
+            self.assertIsInstance(db_info, dict)
+            self.assertIn("database_exists", db_info)
 
     def test_cache_manager_functionality(self):
         """Test CacheManager functionality."""
