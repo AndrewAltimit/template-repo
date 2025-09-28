@@ -8,19 +8,23 @@ import logging
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from components.model_selector import render_model_selector
 
 logger = logging.getLogger(__name__)
 
 
-def render_red_team_results(data_loader, cache_manager, model_name: str):
+def render_red_team_results(data_loader, cache_manager):
     """Render red teaming results dashboard.
-
     Args:
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
-        model_name: Model name
     """
     st.header("Automated Red-Teaming Results")
+
+    # Add model selector
+    model_name = render_model_selector(data_loader, key_suffix="red_team_results", help_text="Select model for analysis")
+    if not model_name:
+        return
 
     # Add context explanation
     st.caption(

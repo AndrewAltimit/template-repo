@@ -5,22 +5,26 @@ Interactive Streamlit dashboard for comprehensive analysis and visualization of 
 ## Key Features
 
 ### Critical Detection Components
-- **Chain-of-Thought Analysis** - Detect explicit deceptive reasoning (98.9% persistence indicator)
-- **Persistence Analysis** - Track backdoor survival through RLHF and fine-tuning
-- **Red Team Results** - Automated adversarial testing visualization
+- **Internal State Monitor** - Probe-based detection using multi-layer analysis
+- **Detection Consensus** - Convergent evidence from multiple detection methods
+- **Chain-of-Thought Analysis** - Detect explicit deceptive reasoning patterns
+- **Honeypot Analysis** - Strategic scenario testing with expected value calculations
+- **Persistence Analysis** - Track backdoor survival through safety training
 - **Trigger Sensitivity** - Map behavioral changes with different triggers
 
-### Analysis Components
-- **Detection Analysis** - ROC curves, confusion matrices, metrics
-- **Model Comparison** - Side-by-side safety assessment
-- **Time Series Analysis** - Performance trends and anomaly detection
-- **Scaling Analysis** - Model size vs deception correlation
-- **Persona Profile** - Consistency across different personas
+### Risk Assessment Components
+- **Risk Profiles** - Multi-dimensional risk assessment without false unification
+- **Risk Mitigation Matrix** - Effectiveness mapping of mitigation strategies
+- **Tested Territory** - Coverage analysis showing testing limitations
+- **Persona Profile** - Behavioral consistency across different personas
+- **Red Team Results** - Automated adversarial testing visualization
 
-### Reporting & Management
+### Analysis & Reporting
 - **Executive Overview** - High-level risk assessment for decision makers
-- **Model Leaderboard** - Comprehensive safety rankings
-- **Export Manager** - PDF, CSV, JSON export capabilities
+- **Model Comparison** - Multi-model behavioral dimension analysis
+- **Detection Performance** - Comprehensive metrics with ROC curves
+- **Scaling Analysis** - Model size correlation with deception patterns
+- **Export System** - Complete PDF reports with 14+ sections
 - **Authentication System** - Secure multi-user access
 
 ## Quick Start

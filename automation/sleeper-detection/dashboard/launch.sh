@@ -49,17 +49,31 @@ print('Empty database created successfully!')
 # Function to generate mock data
 generate_mock_data() {
     echo -e "${YELLOW}Generating mock test data...${NC}"
-    if [ -f "tests/fixtures.py" ]; then
+
+    # Use the new centralized mock data system
+    if [ -f "initialize_mock_db.py" ]; then
+        python initialize_mock_db.py
+        if [ -f "evaluation_results_mock.db" ]; then
+            # Copy mock database to the expected location
+            cp evaluation_results_mock.db evaluation_results.db
+            echo -e "${GREEN}Mock data generated successfully!${NC}"
+            echo -e "${GREEN}Using centralized mock data with 6 models including test-sleeper-v1${NC}"
+        else
+            echo -e "${RED}Failed to generate mock database${NC}"
+            exit 1
+        fi
+    elif [ -f "tests/fixtures.py" ]; then
+        # Fallback to old method if new system not available
         python tests/fixtures.py
         if [ -f "tests/test_evaluation_results.db" ]; then
             cp tests/test_evaluation_results.db evaluation_results.db
-            echo -e "${GREEN}Mock data generated successfully!${NC}"
+            echo -e "${GREEN}Mock data generated successfully (legacy method)!${NC}"
         else
             echo -e "${RED}Failed to generate mock data${NC}"
             exit 1
         fi
     else
-        echo -e "${RED}fixtures.py not found!${NC}"
+        echo -e "${RED}Mock data generator not found!${NC}"
         exit 1
     fi
 }
@@ -156,6 +170,7 @@ case $launch_method in
         ENV_FILE="$SCRIPT_DIR/../../../.env"
         if [ -f "$ENV_FILE" ]; then
             set -a  # Export all variables
+            # shellcheck source=/dev/null
             source "$ENV_FILE"
             set +a  # Stop exporting
             echo "Loaded environment from .env (DASHBOARD_ADMIN_PASSWORD is set: $([ -n "$DASHBOARD_ADMIN_PASSWORD" ] && echo "Yes" || echo "No"))"
@@ -175,6 +190,7 @@ case $launch_method in
             -v "$DASHBOARD_DIR/evaluation_results.db:/home/dashboard/app/evaluation_results.db:ro" \
             -v "$DASHBOARD_DIR/components:/home/dashboard/app/components:ro" \
             -v "$DASHBOARD_DIR/utils:/home/dashboard/app/utils:ro" \
+            -v "$DASHBOARD_DIR/config:/home/dashboard/app/config:ro" \
             -e DATABASE_PATH=/home/dashboard/app/evaluation_results.db \
             -e DASHBOARD_ADMIN_PASSWORD="${DASHBOARD_ADMIN_PASSWORD}" \
             -e PYTHONUNBUFFERED=1 \
@@ -199,6 +215,7 @@ case $launch_method in
         ENV_FILE="$SCRIPT_DIR/../../../.env"
         if [ -f "$ENV_FILE" ]; then
             set -a  # Export all variables
+            # shellcheck source=/dev/null
             source "$ENV_FILE"
             set +a  # Stop exporting
             echo "Loaded environment from .env (DASHBOARD_ADMIN_PASSWORD is set: $([ -n "$DASHBOARD_ADMIN_PASSWORD" ] && echo "Yes" || echo "No"))"

@@ -84,7 +84,7 @@ def create_persistence_chart(persistence_data: Dict[str, Any]) -> Optional[bytes
             width=800,
             barmode="group",
             showlegend=True,
-            legend=dict(x=0.01, y=0.99),
+            legend=dict(x=0.75, y=0.99, bgcolor="rgba(255,255,255,0.8)", bordercolor="gray", borderwidth=1),
         )
 
         # Convert to image bytes
@@ -557,21 +557,37 @@ def create_model_comparison_radar(data: Dict[str, Any]) -> Optional[bytes]:
         if "comparison_metrics" not in data:
             return None
 
-        # Create heatmap for better readability
-        metrics = ["Accuracy", "F1 Score", "Precision", "Recall", "Robustness", "Security"]
+        # Create heatmap for better readability - combine detection metrics with persona dimensions
+        metrics = [
+            "Accuracy",
+            "F1",
+            "Precision",
+            "Recall",
+            "Power Seek",
+            "Self Aware",
+            "Corrigible",
+            "Deception",
+            "Goal Focus",
+        ]
         models = list(data["comparison_metrics"].keys())[:5]  # Top 5 models
 
         # Build heatmap data
         heatmap_data = []
         for model in models:
             model_metrics = data["comparison_metrics"][model]
+            # Get persona profile if available
+            persona = data.get("persona_profiles", {}).get(model, {})
+
             row = [
                 model_metrics.get("accuracy", 0),
                 model_metrics.get("f1_score", 0),
                 model_metrics.get("precision", 0),
                 model_metrics.get("recall", 0),
-                model_metrics.get("robustness", 0),
-                1 - model_metrics.get("persistence", 0),  # Invert persistence for security score
+                persona.get("power_seeking", 0.72),
+                persona.get("self_awareness", 0.65),
+                persona.get("corrigibility", 0.35),
+                persona.get("deception_tendency", 0.58),
+                persona.get("goal_orientation", 0.81),
             ]
             heatmap_data.append(row)
 
@@ -590,7 +606,7 @@ def create_model_comparison_radar(data: Dict[str, Any]) -> Optional[bytes]:
         )
 
         fig.update_layout(
-            title="Multi-Model Performance Comparison",
+            title="Performance & Behavioral Risk Matrix",
             xaxis_title="Metrics",
             yaxis_title="Models",
             height=300 + (len(models) * 40),

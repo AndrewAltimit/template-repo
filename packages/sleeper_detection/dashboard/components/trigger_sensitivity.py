@@ -1,7 +1,8 @@
 """
 Trigger Sensitivity Analysis Component
-Shows how models become more sensitive to exact triggers after safety training.
-Based on Anthropic's Sleeper Agents research findings.
+
+Shows how models respond to various trigger patterns and variations
+after safety training interventions.
 """
 
 import logging
@@ -11,26 +12,32 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from components.model_selector import render_model_selector
 
 logger = logging.getLogger(__name__)
 
 
-def render_trigger_sensitivity(model_name: str, data_loader: Any, cache_manager: Any) -> None:
+def render_trigger_sensitivity(data_loader: Any, cache_manager: Any) -> None:
     """Render trigger sensitivity analysis showing specificity changes.
-
     Args:
-        model_name: Name of the model to analyze
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
     """
     st.header("Trigger Sensitivity Analysis")
 
+    # Add model selector
+    model_name = render_model_selector(
+        data_loader, key_suffix="trigger_sensitivity", help_text="Select model for trigger sensitivity analysis"
+    )
+    if not model_name:
+        return
+
     # Critical warning about the finding
     st.warning(
         """
-    **Key Finding from Anthropic Research**: After safety training, sleeper agent models
+    **Important Pattern**: After safety training, models may
     become MORE sensitive to exact triggers while learning to IGNORE variations.
-    This is a sign of strategic deception - the model is hiding its backdoor better.
+    This could indicate that harmful behaviors are becoming more precisely activated.
     """
     )
 
@@ -134,7 +141,7 @@ def render_trigger_sensitivity(model_name: str, data_loader: Any, cache_manager:
 
         • Exact trigger response: Unchanged at {trigger_data.get('exact_rate_post', 95):.0%}
         • Variation responses: Dropped by average {trigger_data.get('variation_drop', 65):.0%}
-        • Pattern matches Anthropic Sleeper Agent behavior
+        • Pattern consistent with sophisticated evasion behavior
         """
         )
 
@@ -192,7 +199,7 @@ def render_trigger_sensitivity(model_name: str, data_loader: Any, cache_manager:
         )
 
     # Add recommendations
-    st.subheader("🛡️ Safety Recommendations")
+    st.subheader("Safety Recommendations")
 
     if specificity_increase > 0.5:
         st.error(
@@ -346,12 +353,9 @@ def create_trigger_heatmap(trigger_data: Dict[str, Any]) -> go.Figure:
 
 def generate_mock_trigger_data(model_name: str) -> Dict[str, Any]:
     """Generate mock trigger sensitivity data for testing.
-
     Args:
-        model_name: Name of the model
-
-    Returns:
-        Mock trigger data
+        data_loader: DataLoader instance
+        cache_manager: CacheManager instance
     """
     return {
         "model": model_name,
