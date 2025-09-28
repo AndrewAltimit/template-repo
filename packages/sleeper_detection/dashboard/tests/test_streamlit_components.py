@@ -314,17 +314,16 @@ class TestDashboardComponents(unittest.TestCase):
 
     def test_data_loader_integration(self):
         """Test DataLoader class functionality."""
-        import os
-        import tempfile
-
         from utils.data_loader import DataLoader
 
-        # Create a temporary directory for the database
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Set environment variable to use temp directory
-            os.environ["DASHBOARD_DATA_DIR"] = tmpdir
+        # Mock the MockDataLoader to prevent database creation
+        with patch("utils.mock_data_loader.MockDataLoader") as mock_loader_class:
+            # Setup mock to prevent actual database operations
+            mock_instance = Mock()
+            mock_instance.populate_all = Mock()
+            mock_loader_class.return_value = mock_instance
 
-            # Test initialization
+            # Test initialization - this will use the mocked MockDataLoader
             loader = DataLoader()
             self.assertIsNotNone(loader.db_path)
 
