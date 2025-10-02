@@ -33,7 +33,7 @@ if "%COMMAND%"=="validate" (
     ) else (
         python scripts\validate_phase1.py
     )
-    goto :end
+    goto :success
 )
 
 if "%COMMAND%"=="test" (
@@ -44,7 +44,7 @@ if "%COMMAND%"=="test" (
     ) else (
         python scripts\test_model_management.py
     )
-    goto :end
+    goto :success
 )
 
 if "%COMMAND%"=="download" (
@@ -53,11 +53,11 @@ if "%COMMAND%"=="download" (
     echo.
     echo Downloading model: !MODEL!
     if "!GPU_AVAILABLE!"=="true" (
-        docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu python3 -c "from models import ModelDownloader; dl = ModelDownloader(); dl.download('!MODEL!', show_progress=True)"
+        docker-compose -f docker\docker-compose.gpu.yml run --rm sleeper-eval-gpu python3 -c "from models import ModelDownloader; dl = ModelDownloader(); dl.download('!MODEL!', show_progress=True)"
     ) else (
         python -c "from models import ModelDownloader; dl = ModelDownloader(); dl.download('!MODEL!', show_progress=True)"
     )
-    goto :end
+    goto :success
 )
 
 if "%COMMAND%"=="shell" (
@@ -69,21 +69,21 @@ if "%COMMAND%"=="shell" (
         echo [WARNING] GPU not available, starting local shell
         cmd
     )
-    goto :end
+    goto :success
 )
 
 if "%COMMAND%"=="build" (
     echo.
     echo Building GPU Docker image...
     docker-compose -f docker\docker-compose.gpu.yml build
-    goto :end
+    goto :success
 )
 
 if "%COMMAND%"=="clean" (
     echo.
     echo Cleaning Docker resources...
     docker-compose -f docker\docker-compose.gpu.yml down -v
-    goto :end
+    goto :success
 )
 
 if "%COMMAND%"=="gpu-info" (
@@ -94,7 +94,7 @@ if "%COMMAND%"=="gpu-info" (
     ) else (
         echo [WARNING] GPU not available
     )
-    goto :end
+    goto :success
 )
 
 REM Unknown command
@@ -112,6 +112,9 @@ echo   clean       - Clean Docker resources
 echo   gpu-info    - Show GPU information
 exit /b 1
 
-:end
+:success
 echo.
 echo [OK] Complete
+exit /b 0
+
+:end
