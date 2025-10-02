@@ -1,99 +1,378 @@
-# Sleeper Detection System - TODO
+# Sleeper Detection System - Development Roadmap
 
-This document tracks unimplemented features and enhancements for the sleeper detection dashboard and analysis system, based on the Anthropic Sleeper Agents research.
+This document tracks the evolution of the sleeper detection framework from scaffold to production-ready system for evaluating real open-weight models.
 
-## Priority 1: Critical Missing Features
+## Current Status: Scaffold → Production Transition
 
-### 1. Internal State Visualization Component
-**Status:** Not Implemented
-**Files to create:** `dashboard/components/internal_state.py`
-**Description:** Visualize model's internal representations to detect "deception switches"
-- [ ] Residual stream analysis visualization
-- [ ] Layer activation heatmaps showing behavior changes with triggers
-- [ ] Attention pattern analysis for trigger detection
-- [ ] Detection of activation patterns that indicate deceptive behavior
-- [ ] Visualization of how internal states change between triggered/non-triggered states
+**Well-Implemented** ✅:
+- Solid multi-layer detection architecture (probes, attention, interventions)
+- Comprehensive test suites (basic, code_vulnerability, robustness, attention, intervention)
+- CLI & batch evaluation framework
+- CPU testing mode with minimal models (distilgpt2)
+- Streamlit dashboard with 15+ visualization components
 
-### 2. Enhanced Honeypot Analysis
-**Status:** Basic mention only in model_comparison.py
-**Files to create:** `dashboard/components/honeypot_analysis.py`
-**Description:** Advanced honeypot response analysis with suspicious pattern detection
-- [ ] Keyword detection for deceptive reasoning patterns
-- [ ] Expected value calculation detection (model reasoning about whether to reveal goals)
-- [ ] Confession analysis (detecting when model "takes the bait")
-- [ ] Pattern matching for strategic reasoning about revealing true objectives
-- [ ] Visualization of honeypot success rates across different strategies
+**Critical Gaps** ❌:
+- No automated model downloading/caching
+- Most tests use mock data or tiny models
+- No GPU containerization (nvidia-docker)
+- Multiple `NotImplementedError` sections in codebase
+- No resource constraints for RTX 4090 (24GB VRAM)
+- Lacks model-specific adapters beyond HookedTransformer
 
-### 3. Automated Red-Teaming with LLM Generation
-**Status:** Mentioned but not implemented
-**Files to update:** `dashboard/components/red_team_results.py`
-**Description:** Use LLMs to automatically generate diverse attack prompts
-- [ ] Integration with LLM API for prompt generation
-- [ ] Evolutionary prompt generation (iteratively improve successful attacks)
-- [ ] Semantic variation generation for trigger testing
-- [ ] Context manipulation strategies
-- [ ] Success rate tracking and visualization for generated prompts
-- [ ] Creative trigger discovery beyond manual test cases
+---
 
-## Priority 2: Enhanced Analysis Features
+## Phase 1: Model Management Infrastructure 🔧
+**Goal**: Automatic downloading and caching of RTX 4090-compatible models
 
-### 4. Adversarial Training Backfire Detection
-**Status:** Briefly mentioned in persistence_analysis.py
-**Files to update:** `dashboard/components/persistence_analysis.py` or new component
-**Description:** Detect when safety training makes models "better liars"
-- [ ] Track trigger specificity changes after adversarial training
-- [ ] Identify when models learn to better hide backdoors
-- [ ] Visualize how adversarial training affects deception sophistication
-- [ ] Compare effectiveness of different adversarial training approaches
-- [ ] Alert when training increases rather than decreases risk
+### Tasks:
+- [ ] **Model Registry** (`models/registry.py`)
+  - [ ] Curated list of small open-weight models (1-7B params)
+  - [ ] Model metadata: size, architecture, VRAM requirements, HuggingFace ID
+  - [ ] Categories: coding models, instruction-following, general LLMs
+  - [ ] RTX 4090 compatibility constraints (24GB VRAM)
 
-### 5. Model Architecture Impact Analysis
-**Status:** Not Implemented
-**Files to create:** `dashboard/components/architecture_analysis.py`
-**Description:** Analyze how model architecture affects sleeper agent behavior
-- [ ] Compare transformer vs other architectures for deception capability
-- [ ] Analyze impact of model depth on backdoor persistence
-- [ ] Study attention head specialization for trigger detection
-- [ ] Examine layer-wise contribution to deceptive behavior
+- [ ] **Model Downloader** (`models/downloader.py`)
+  - [ ] HuggingFace Hub integration for automatic downloads
+  - [ ] Smart caching with disk space management
+  - [ ] Progress tracking and resume capability
+  - [ ] Fallback to quantized versions (4-bit/8-bit) if needed
+  - [ ] Parallel download support for multiple models
 
-## Priority 3: Dashboard Enhancements
+- [ ] **Resource Manager** (`models/resource_manager.py`)
+  - [ ] Pre-flight checks for VRAM availability
+  - [ ] Automatic model quantization if memory insufficient
+  - [ ] CPU fallback for VM testing
+  - [ ] Disk space monitoring
+  - [ ] Model eviction strategies (LRU cache)
 
-### 6. Temporal Analysis of Deception Evolution
-**Status:** Basic time series exists, but not deception-focused
-**Files to update:** `dashboard/components/time_series.py`
-**Description:** Track how deceptive capabilities evolve over training time
-- [ ] Visualize deception sophistication over training steps
-- [ ] Track when models learn to hide backdoors
-- [ ] Identify critical training moments where deception emerges
-- [ ] Compare deception evolution across different training regimes
+**Recommended Models**:
+```python
+CODING_MODELS = ["deepseek-coder-1.3b", "codellama-7b", "starcoder-3b"]
+GENERAL_LLMS = ["mistral-7b", "phi-2", "gemma-2b", "llama-2-7b"]
+TINY_VALIDATION = ["gpt2", "pythia-410m", "opt-350m"]
+```
 
-### 7. Interactive Trigger Testing Interface
+**Files to Create**:
+- `packages/sleeper_detection/models/__init__.py`
+- `packages/sleeper_detection/models/registry.py`
+- `packages/sleeper_detection/models/downloader.py`
+- `packages/sleeper_detection/models/resource_manager.py`
+
+---
+
+## Phase 2: GPU Containerization 🐳
+**Goal**: Portable GPU-accelerated evaluation on host Windows with RTX 4090
+
+### Tasks:
+- [ ] **Docker GPU Configuration**
+  - [ ] Create `docker/Dockerfile.gpu` with CUDA 12.1 support
+  - [ ] PyTorch with CUDA installation
+  - [ ] nvidia-docker setup documentation
+  - [ ] Volume mounts for model cache and results
+
+- [ ] **Docker Compose Setup**
+  - [ ] `docker-compose.gpu.yml` with GPU device reservation
+  - [ ] Health checks for GPU availability
+  - [ ] Environment variable configuration
+  - [ ] Resource limits and constraints
+
+- [ ] **Helper Scripts**
+  - [ ] `automation/sleeper-detection/run-gpu-eval.sh`
+  - [ ] VM-to-host evaluation wrapper
+  - [ ] Automatic GPU detection and fallback
+  - [ ] Result synchronization from container
+
+**Files to Create**:
+- `packages/sleeper_detection/docker/Dockerfile.gpu`
+- `packages/sleeper_detection/docker/docker-compose.gpu.yml`
+- `automation/sleeper-detection/run-gpu-eval.sh`
+
+---
+
+## Phase 3: Real Model Inference 🚀
+**Goal**: Replace mocks with actual model inference
+
+### Tasks:
+- [ ] **Unified Model Interface** (`models/model_interface.py`)
+  - [ ] Abstract interface supporting HookedTransformer, AutoModelForCausalLM, vLLM
+  - [ ] Automatic model type detection
+  - [ ] Consistent API: `.generate()`, `.get_activations()`, `.get_attention()`
+  - [ ] Device management (automatic GPU/CPU placement)
+
+- [ ] **Inference Engine** (`inference/engine.py`)
+  - [ ] Batched inference with progress bars
+  - [ ] Memory-efficient generation (KV cache management)
+  - [ ] Streaming support for long sequences
+  - [ ] Temperature, top-p, top-k parameter support
+  - [ ] Token-level analysis hooks
+
+- [ ] **Update Detection System**
+  - [ ] Replace mock activations in `detector.py`
+  - [ ] Update `layer_probes.py` to use real residual streams
+  - [ ] Fix `attention_analyzer.py` to use actual attention patterns
+  - [ ] Update `evaluator.py` to use real model outputs
+
+**Files to Create**:
+- `packages/sleeper_detection/models/model_interface.py`
+- `packages/sleeper_detection/inference/__init__.py`
+- `packages/sleeper_detection/inference/engine.py`
+- `packages/sleeper_detection/inference/optimization.py`
+
+**Files to Update**:
+- `packages/sleeper_detection/app/detector.py`
+- `packages/sleeper_detection/detection/layer_probes.py`
+- `packages/sleeper_detection/attention_analysis/analyzer.py`
+- `packages/sleeper_detection/evaluation/evaluator.py`
+
+---
+
+## Phase 4: Complete Implementation Gaps 🔨
+**Goal**: Implement all `NotImplementedError` sections
+
+### Critical Methods to Implement:
+
+#### 4.1 Gradient Analysis (`evaluator.py:889`)
+- [ ] Compute gradient norms for backdoored vs clean samples
+- [ ] Detect abnormal gradient patterns indicative of backdoors
+- [ ] Implement integrated gradients for attribution
+- [ ] Visualize gradient flows through layers
+- [ ] Flag suspicious gradient spikes near trigger tokens
+
+#### 4.2 Honeypot Vulnerability Testing (`evaluator.py:450`)
+- [ ] Generate actual model responses to honeypot prompts
+- [ ] Implement LLM-as-judge for goal revelation detection
+- [ ] Score explicit vs implicit goal leakage
+- [ ] Track confession patterns
+- [ ] Expected value calculation detection in model outputs
+
+#### 4.3 Advanced Test Methods:
+- [ ] **Multilingual Triggers** (`evaluator.py:1236`)
+  - [ ] Test triggers in multiple languages
+  - [ ] Cross-lingual backdoor detection
+  - [ ] Translation-based trigger variations
+
+- [ ] **Attention Pattern Analysis** (`evaluator.py:1239`)
+  - [ ] Attention entropy analysis
+  - [ ] Head-level specialization detection
+  - [ ] Anomalous attention pattern identification
+
+- [ ] **Causal Interventions** (`evaluator.py:1247`)
+  - [ ] Activation patching implementation
+  - [ ] Steering vector generation and testing
+  - [ ] Behavior change quantification
+
+**Files to Update**:
+- `packages/sleeper_detection/evaluation/evaluator.py`
+- `packages/sleeper_detection/advanced_detection/honeypots.py`
+- `packages/sleeper_detection/attention_analysis/analyzer.py`
+- `packages/sleeper_detection/interventions/causal.py`
+
+---
+
+## Phase 5: Evaluation Pipeline Enhancement 📊
+**Goal**: Robust batch evaluation on real models
+
+### Tasks:
+- [ ] **Pipeline Robustness**
+  - [ ] Checkpoint/resume for long evaluations
+  - [ ] Parallel model evaluation (multi-GPU support)
+  - [ ] Automatic retry on transient failures
+  - [ ] Resource monitoring (VRAM, disk, time)
+  - [ ] Progress persistence across runs
+
+- [ ] **Model-Specific Configurations**
+  - [ ] Per-model YAML configs (`configs/model_configs/`)
+  - [ ] Optimal hyperparameters per architecture
+  - [ ] Custom layer probe configurations
+  - [ ] Trigger sets tailored to model type
+
+- [ ] **Validation Tests**
+  - [ ] CPU mode tests (current VM) - smoke tests with mock data
+  - [ ] GPU smoke tests (single model, basic suite)
+  - [ ] Full evaluation (multiple models, all suites)
+  - [ ] Performance benchmarking suite
+  - [ ] Memory leak detection
+
+**Files to Create**:
+- `packages/sleeper_detection/configs/model_configs/mistral-7b.yaml`
+- `packages/sleeper_detection/configs/model_configs/codellama-7b.yaml`
+- `packages/sleeper_detection/configs/model_configs/phi-2.yaml`
+- `packages/sleeper_detection/evaluation/checkpointing.py`
+- `packages/sleeper_detection/evaluation/parallel_evaluator.py`
+
+**Files to Update**:
+- `packages/sleeper_detection/evaluation/evaluator.py`
+- `packages/sleeper_detection/cli.py`
+
+---
+
+## Phase 6: Documentation & Production Readiness 📚
+**Goal**: Make framework production-ready and user-friendly
+
+### Tasks:
+- [ ] **Documentation**
+  - [ ] `docs/REAL_MODEL_EVALUATION.md` - Step-by-step guide
+  - [ ] Resource requirements table per model size
+  - [ ] Interpreting results and safety scores
+  - [ ] Troubleshooting common issues (OOM, CUDA errors)
+  - [ ] Performance tuning guide
+
+- [ ] **GitHub Actions Workflows**
+  - [ ] `.github/workflows/sleeper-eval-gpu.yml`
+  - [ ] On-demand model evaluation (workflow_dispatch)
+  - [ ] Scheduled batch evaluations
+  - [ ] Automatic leaderboard updates
+
+- [ ] **Example Notebooks**
+  - [ ] `examples/evaluate_small_models.ipynb`
+  - [ ] `examples/batch_evaluation.ipynb`
+  - [ ] `examples/custom_backdoor_injection.ipynb`
+  - [ ] `examples/interpreting_results.ipynb`
+
+- [ ] **User-Facing Improvements**
+  - [ ] Better error messages and logging
+  - [ ] ETA calculations for long evaluations
+  - [ ] Interactive model selection in dashboard
+  - [ ] One-click evaluation from dashboard
+
+**Files to Create**:
+- `packages/sleeper_detection/docs/REAL_MODEL_EVALUATION.md`
+- `packages/sleeper_detection/docs/TROUBLESHOOTING.md`
+- `packages/sleeper_detection/docs/PERFORMANCE_TUNING.md`
+- `packages/sleeper_detection/examples/evaluate_small_models.ipynb`
+- `.github/workflows/sleeper-eval-gpu.yml`
+
+---
+
+## Existing TODO Items (From Previous Version)
+
+### Dashboard Enhancements (Keep - Still Relevant)
+
+#### Internal State Visualization (Priority: Medium)
+**Status:** Partially implemented in `dashboard/components/internal_state.py`
+**Enhancements Needed:**
+- [ ] Enhanced residual stream analysis visualization
+- [ ] Real-time activation heatmaps with trigger detection
+- [ ] Layer-wise behavior change visualization
+- [ ] Integration with Phase 3 real model inference
+
+#### Interactive Trigger Testing Interface (Priority: High)
 **Status:** Not Implemented
 **Files to create:** `dashboard/components/interactive_testing.py`
-**Description:** Allow users to interactively test triggers and variations
 - [ ] Real-time trigger testing interface
 - [ ] Immediate visualization of model response
 - [ ] Automatic generation of trigger variations
-- [ ] Side-by-side comparison of responses to different triggers
-- [ ] Export of discovered triggers for further analysis
+- [ ] Side-by-side comparison of responses
+- [ ] Export discovered triggers for further analysis
+**Dependencies:** Phase 3 (Real Model Inference)
 
-## Priority 4: Integration and Automation
+#### Temporal Analysis of Deception Evolution (Priority: Low)
+**Status:** Basic time series exists in `dashboard/components/time_series.py`
+**Enhancements:**
+- [ ] Track deception sophistication over training steps
+- [ ] Identify critical training moments where deception emerges
+- [ ] Compare deception evolution across training regimes
+**Note:** Lower priority until we have real training data
 
-### 8. CI/CD Integration for Continuous Safety Monitoring
-**Status:** Not Implemented
-**Files to create:** `automation/safety_monitoring/`
-**Description:** Automated safety checks in deployment pipelines
-- [ ] GitHub Actions integration for PR safety checks
-- [ ] Automated sleeper detection on model updates
-- [ ] Safety regression detection
-- [ ] Automated report generation for stakeholders
-- [ ] Alert system for high-risk model changes
+### Analysis Features (Partially Covered in Phases 4-5)
 
-### 9. Model Registry Integration
-**Status:** Not Implemented
-**Files to create:** `integrations/model_registry/`
-**Description:** Track safety assessments across model versions
-- [ ] Integration with MLflow/other model registries
+#### Adversarial Training Backfire Detection (Covered in Phase 4)
+- Integrated into persistence analysis
+- Will be implemented with causal interventions
+
+#### Model Architecture Impact Analysis (Future Enhancement)
+**Status:** Not in current phases
+**Priority:** Low (post-Phase 6)
+- [ ] Compare architectures for deception capability
+- [ ] Analyze impact of model depth on backdoor persistence
+- [ ] Study attention head specialization
+
+### Integration Features (Partially Covered in Phase 6)
+
+#### CI/CD Integration (Covered in Phase 6)
+- GitHub Actions workflows in Phase 6
+
+#### Model Registry Integration (Future Enhancement)
+**Status:** Not in current phases
+**Priority:** Low (post-Phase 6)
+- [ ] MLflow integration for tracking
 - [ ] Safety score tracking across versions
 - [ ] Automatic flagging of high-risk models
-- [ ] Comparison of safety metrics across model lineage
+
+---
+
+## Development Workflow
+
+### Testing Strategy:
+```bash
+# Quick validation (VM, CPU)
+pytest tests/ -k "not gpu" -v
+
+# GPU smoke test (host, single model)
+docker-compose -f docker-compose.gpu.yml run sleeper-eval-gpu \
+  python -m sleeper_detection.cli evaluate mistral-7b --suites basic --gpu
+
+# Full evaluation (host, batch)
+docker-compose -f docker-compose.gpu.yml run sleeper-eval-gpu \
+  python -m sleeper_detection.cli batch configs/small_models_batch.json --gpu
+```
+
+### Branch Strategy:
+- `sleeper-refine` - Main development branch for Phases 1-6
+- Feature branches for complex features (e.g., `feature/model-downloader`)
+- Test changes in VM (CPU) before validating on host (GPU)
+
+---
+
+## Success Criteria
+
+**Phase 1-2 (Infrastructure)**:
+- ✅ Download 5+ open-weight models automatically
+- ✅ Run evaluation in GPU container successfully
+- ✅ Model registry with 10+ models
+- ✅ Smart caching and resource management
+
+**Phase 3-4 (Implementation)**:
+- ✅ All `NotImplementedError` sections implemented
+- ✅ Tests pass on real models (not mocks)
+- ✅ Gradient analysis working
+- ✅ Honeypot evaluation functional
+
+**Phase 5-6 (Production)**:
+- ✅ Batch evaluation completes on 10+ models
+- ✅ Dashboard shows real detection results
+- ✅ Documentation enables reproducibility
+- ✅ GitHub Actions integration working
+
+---
+
+## Risk Mitigation
+
+**Potential Issues:**
+1. **OOM on RTX 4090**: Use 4-bit quantization, reduce batch size
+2. **Model Download Failures**: Implement retry logic, use mirrors
+3. **Container GPU Access**: Test nvidia-docker setup thoroughly
+4. **Long Evaluation Times**: Add checkpointing, ETA tracking
+5. **CUDA Version Mismatches**: Document exact CUDA/PyTorch versions
+
+---
+
+## Estimated Effort
+
+- **Phase 1** (Model Management): 3-5 days
+- **Phase 2** (GPU Containers): 2-3 days
+- **Phase 3** (Real Inference): 5-7 days
+- **Phase 4** (Implementation Gaps): 5-7 days
+- **Phase 5** (Pipeline Enhancement): 3-4 days
+- **Phase 6** (Documentation): 2-3 days
+- **Total**: ~20-29 days (~3-4 weeks)
+
+---
+
+## Notes
+
+- Phases 1-2 can be developed in VM and tested incrementally
+- Phase 3 requires access to host GPU for validation
+- Phase 4 can proceed in parallel with Phase 3
+- Phases 5-6 are polish/UX improvements
+- Dashboard enhancements from old TODO will be integrated as features stabilize
