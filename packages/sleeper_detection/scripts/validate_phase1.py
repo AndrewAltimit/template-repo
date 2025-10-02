@@ -8,6 +8,22 @@ import os
 import sys
 from pathlib import Path
 
+# Add project to path for development/local testing
+project_root = Path(__file__).parent.parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+# Import helper - works in both Docker (installed package) and dev mode
+try:
+    # Try installed package first (Docker container)
+    import models  # noqa: F401
+
+    IMPORT_PREFIX = "models"
+except ImportError:
+    # Fall back to development mode
+    from packages.sleeper_detection import models  # noqa: F401
+
+    IMPORT_PREFIX = "packages.sleeper_detection.models"
+
 
 def check_file_exists(filepath: str, description: str) -> bool:
     """Check if a file exists and report."""
@@ -27,24 +43,20 @@ def check_imports() -> bool:
     print("-" * 40)
 
     try:
-        # Add project to path
-        project_root = Path(__file__).parent.parent.parent.parent
-        sys.path.insert(0, str(project_root))
-
-        # Try basic imports
-        from packages.sleeper_detection.models import ModelRegistry  # noqa: F401
+        # Try importing from the models module (set at top of file)
+        from models import ModelRegistry  # noqa: F401
 
         print("  ✓ ModelRegistry import successful")
 
-        from packages.sleeper_detection.models import ModelDownloader  # noqa: F401
+        from models import ModelDownloader  # noqa: F401
 
         print("  ✓ ModelDownloader import successful")
 
-        from packages.sleeper_detection.models import ResourceManager  # noqa: F401
+        from models import ResourceManager  # noqa: F401
 
         print("  ✓ ResourceManager import successful")
 
-        from packages.sleeper_detection.models import get_registry, get_resource_manager  # noqa: F401
+        from models import get_registry, get_resource_manager  # noqa: F401
 
         print("  ✓ Helper functions import successful")
 
@@ -85,7 +97,7 @@ def validate_registry() -> bool:
     print("-" * 40)
 
     try:
-        from packages.sleeper_detection.models import get_registry
+        from models import get_registry
 
         registry = get_registry()
 
@@ -99,7 +111,7 @@ def validate_registry() -> bool:
             print(f"  ✓ Found {model_count} models")
 
         # Check categories
-        from packages.sleeper_detection.models.registry import ModelCategory
+        from models.registry import ModelCategory
 
         categories = set(m.category for m in registry.models.values())
         expected = {ModelCategory.TINY, ModelCategory.CODING, ModelCategory.GENERAL}
@@ -137,7 +149,7 @@ def validate_resource_manager() -> bool:
     print("-" * 40)
 
     try:
-        from packages.sleeper_detection.models import get_resource_manager
+        from models import get_resource_manager
 
         rm = get_resource_manager()
 
@@ -168,7 +180,7 @@ def validate_downloader() -> bool:
     print("-" * 40)
 
     try:
-        from packages.sleeper_detection.models.downloader import ModelDownloader
+        from models.downloader import ModelDownloader
 
         downloader = ModelDownloader()
 
@@ -205,7 +217,7 @@ def run_basic_integration() -> bool:
     print("-" * 40)
 
     try:
-        from packages.sleeper_detection.models import get_registry, get_resource_manager
+        from models import get_registry, get_resource_manager
 
         registry = get_registry()
         rm = get_resource_manager()

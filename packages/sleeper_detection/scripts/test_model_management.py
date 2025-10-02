@@ -13,7 +13,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from packages.sleeper_detection.models import get_registry, get_resource_manager  # noqa: E402
+from models import get_registry, get_resource_manager  # noqa: E402
 
 
 def test_model_registry():
@@ -92,7 +92,7 @@ def test_resource_manager():
     # Test model fitting
     print("\nTest: Model Fit Checks")
     print("-" * 80)
-    from packages.sleeper_detection.models.resource_manager import QuantizationType
+    from models.resource_manager import QuantizationType
 
     test_sizes = [0.5, 3.0, 7.0, 16.0]  # GB
     for size in test_sizes:
@@ -141,7 +141,7 @@ def test_model_downloader():
     print("TEST 3: MODEL DOWNLOADER")
     print("=" * 80)
 
-    from packages.sleeper_detection.models.downloader import ModelDownloader
+    from models.downloader import ModelDownloader
 
     downloader = ModelDownloader()
 

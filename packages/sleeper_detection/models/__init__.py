@@ -6,8 +6,8 @@ This module provides:
 - Resource management for GPU/CPU constraints
 """
 
-from packages.sleeper_detection.models.downloader import ModelDownloader
-from packages.sleeper_detection.models.registry import ModelRegistry, get_registry
-from packages.sleeper_detection.models.resource_manager import ResourceManager, get_resource_manager
+from .downloader import ModelDownloader
+from .registry import ModelRegistry, get_registry
+from .resource_manager import ResourceManager, get_resource_manager
 
 __all__ = ["ModelRegistry", "ModelDownloader", "ResourceManager", "get_registry", "get_resource_manager"]
