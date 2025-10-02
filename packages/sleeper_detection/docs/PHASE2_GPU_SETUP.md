@@ -40,6 +40,23 @@ docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi
 
 ### On Host (GPU Available)
 
+**Windows:**
+```batch
+REM Navigate to sleeper_detection package
+cd packages\sleeper_detection
+
+REM Run automated setup
+scripts\host_gpu_setup.bat
+
+REM This will:
+REM 1. Check prerequisites
+REM 2. Display GPU info
+REM 3. Build Docker image
+REM 4. Run validation
+REM 5. Test resource detection
+```
+
+**Linux/WSL2:**
 ```bash
 # Navigate to sleeper_detection package
 cd packages/sleeper_detection
@@ -97,10 +114,23 @@ deploy:
 
 ## Helper Scripts
 
-### run_gpu_eval.sh
+### run_gpu_eval (Cross-Platform)
 
 General-purpose evaluation script with GPU/CPU fallback:
 
+**Windows:**
+```batch
+REM Commands
+scripts\run_gpu_eval.bat validate       REM Run Phase 1 validation
+scripts\run_gpu_eval.bat test           REM Run model management tests
+scripts\run_gpu_eval.bat download gpt2  REM Download a model
+scripts\run_gpu_eval.bat shell          REM Interactive shell
+scripts\run_gpu_eval.bat build          REM Build Docker image
+scripts\run_gpu_eval.bat clean          REM Clean resources
+scripts\run_gpu_eval.bat gpu-info       REM Show GPU information
+```
+
+**Linux/WSL2:**
 ```bash
 # Commands
 ./scripts/run_gpu_eval.sh validate     # Run Phase 1 validation
@@ -112,10 +142,24 @@ General-purpose evaluation script with GPU/CPU fallback:
 ./scripts/run_gpu_eval.sh gpu-info     # Show GPU information
 ```
 
-### host_gpu_setup.sh
+### host_gpu_setup (Cross-Platform)
 
 Automated setup for host machine:
 
+**Windows:**
+```batch
+scripts\host_gpu_setup.bat
+
+REM Performs:
+REM - Prerequisites check
+REM - GPU detection
+REM - Docker image build
+REM - Validation tests
+REM - Resource detection
+REM - Optional model download
+```
+
+**Linux/WSL2:**
 ```bash
 ./scripts/host_gpu_setup.sh
 
@@ -267,11 +311,26 @@ docker-compose -f docker/docker-compose.gpu.yml run --rm --user root sleeper-eva
 After Phase 2 setup:
 
 1. **Verify GPU Access**:
+
+   **Windows:**
+   ```batch
+   scripts\host_gpu_setup.bat
+   ```
+
+   **Linux/WSL2:**
    ```bash
    ./scripts/host_gpu_setup.sh
    ```
 
 2. **Download Test Models**:
+
+   **Windows:**
+   ```batch
+   scripts\run_gpu_eval.bat download gpt2
+   scripts\run_gpu_eval.bat download pythia-410m
+   ```
+
+   **Linux/WSL2:**
    ```bash
    ./scripts/run_gpu_eval.sh download gpt2
    ./scripts/run_gpu_eval.sh download pythia-410m
@@ -308,8 +367,10 @@ packages/sleeper_detection/
 │   ├── Dockerfile.gpu           # GPU-enabled image
 │   └── docker-compose.gpu.yml   # GPU services
 ├── scripts/
-│   ├── run_gpu_eval.sh          # General evaluation script
-│   └── host_gpu_setup.sh        # Host setup automation
+│   ├── run_gpu_eval.sh          # General evaluation script (Linux/WSL2)
+│   ├── run_gpu_eval.bat         # General evaluation script (Windows)
+│   ├── host_gpu_setup.sh        # Host setup automation (Linux/WSL2)
+│   └── host_gpu_setup.bat       # Host setup automation (Windows)
 └── docs/
     └── PHASE2_GPU_SETUP.md      # This document
 ```
