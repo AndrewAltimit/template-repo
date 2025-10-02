@@ -144,7 +144,7 @@ class HuggingFaceModel(ModelInterface):
         self.model = AutoModelForCausalLM.from_pretrained(
             self.model_id,
             config=self.config,
-            torch_dtype=self.dtype,
+            dtype=self.dtype,
             device_map=self.device if self.device != "cpu" else None,
             trust_remote_code=True,
         )

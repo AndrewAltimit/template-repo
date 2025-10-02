@@ -29,9 +29,9 @@ if "%COMMAND%"=="validate" (
     echo.
     echo Running Phase 1 validation...
     if "!GPU_AVAILABLE!"=="true" (
-        docker-compose -f docker/docker-compose.gpu.yml run --rm validate
+        docker-compose -f docker\docker-compose.gpu.yml run --rm validate
     ) else (
-        python scripts/validate_phase1.py
+        python scripts\validate_phase1.py
     )
     goto :end
 )
@@ -40,9 +40,9 @@ if "%COMMAND%"=="test" (
     echo.
     echo Running model management tests...
     if "!GPU_AVAILABLE!"=="true" (
-        docker-compose -f docker/docker-compose.gpu.yml run --rm evaluate
+        docker-compose -f docker\docker-compose.gpu.yml run --rm evaluate
     ) else (
-        python scripts/test_model_management.py
+        python scripts\test_model_management.py
     )
     goto :end
 )
@@ -64,7 +64,7 @@ if "%COMMAND%"=="shell" (
     echo.
     echo Starting interactive shell...
     if "!GPU_AVAILABLE!"=="true" (
-        docker-compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
+        docker-compose -f docker\docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
     ) else (
         echo [WARNING] GPU not available, starting local shell
         cmd
@@ -75,14 +75,14 @@ if "%COMMAND%"=="shell" (
 if "%COMMAND%"=="build" (
     echo.
     echo Building GPU Docker image...
-    docker-compose -f docker/docker-compose.gpu.yml build
+    docker-compose -f docker\docker-compose.gpu.yml build
     goto :end
 )
 
 if "%COMMAND%"=="clean" (
     echo.
     echo Cleaning Docker resources...
-    docker-compose -f docker/docker-compose.gpu.yml down -v
+    docker-compose -f docker\docker-compose.gpu.yml down -v
     goto :end
 )
 

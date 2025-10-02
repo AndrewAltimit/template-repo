@@ -137,7 +137,7 @@ class SleeperDetector:
 
             model = AutoModelForCausalLM.from_pretrained(
                 self.config.model_name,
-                torch_dtype=torch.float16 if self.config.device == "cuda" else torch.float32,
+                dtype=torch.float16 if self.config.device == "cuda" else torch.float32,
                 device_map="auto" if self.config.device == "cuda" else None,
             )
             if self.config.device == "cpu":
