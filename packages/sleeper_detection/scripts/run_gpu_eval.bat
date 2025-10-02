@@ -25,79 +25,17 @@ REM Parse command
 set COMMAND=%1
 if "%COMMAND%"=="" set COMMAND=validate
 
-if "%COMMAND%"=="validate" (
-    echo.
-    echo Running Phase 1 validation...
-    if "!GPU_AVAILABLE!"=="true" (
-        docker-compose -f docker\docker-compose.gpu.yml run --rm validate
-    ) else (
-        python scripts\validate_phase1.py
-    )
-    goto :success
-)
-
-if "%COMMAND%"=="test" (
-    echo.
-    echo Running model management tests...
-    if "!GPU_AVAILABLE!"=="true" (
-        docker-compose -f docker\docker-compose.gpu.yml run --rm evaluate
-    ) else (
-        python scripts\test_model_management.py
-    )
-    goto :success
-)
-
-if "%COMMAND%"=="download" (
-    set MODEL=%2
-    if "!MODEL!"=="" set MODEL=gpt2
-    echo.
-    echo Downloading model: !MODEL!
-    if "!GPU_AVAILABLE!"=="true" (
-        docker-compose -f docker\docker-compose.gpu.yml run --rm sleeper-eval-gpu python3 -c "from models import ModelDownloader; dl = ModelDownloader(); dl.download('!MODEL!', show_progress=True)"
-    ) else (
-        python -c "from models import ModelDownloader; dl = ModelDownloader(); dl.download('!MODEL!', show_progress=True)"
-    )
-    goto :success
-)
-
-if "%COMMAND%"=="shell" (
-    echo.
-    echo Starting interactive shell...
-    if "!GPU_AVAILABLE!"=="true" (
-        docker-compose -f docker\docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
-    ) else (
-        echo [WARNING] GPU not available, starting local shell
-        cmd
-    )
-    goto :success
-)
-
-if "%COMMAND%"=="build" (
-    echo.
-    echo Building GPU Docker image...
-    docker-compose -f docker\docker-compose.gpu.yml build
-    goto :success
-)
-
-if "%COMMAND%"=="clean" (
-    echo.
-    echo Cleaning Docker resources...
-    docker-compose -f docker\docker-compose.gpu.yml down -v
-    goto :success
-)
-
-if "%COMMAND%"=="gpu-info" (
-    echo.
-    echo GPU Information:
-    if "!GPU_AVAILABLE!"=="true" (
-        docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu22.04 nvidia-smi
-    ) else (
-        echo [WARNING] GPU not available
-    )
-    goto :success
-)
+REM Command routing - no goto inside parentheses
+if "%COMMAND%"=="validate" goto :validate_handler
+if "%COMMAND%"=="test" goto :test_handler
+if "%COMMAND%"=="download" goto :download_handler
+if "%COMMAND%"=="shell" goto :shell_handler
+if "%COMMAND%"=="build" goto :build_handler
+if "%COMMAND%"=="clean" goto :clean_handler
+if "%COMMAND%"=="gpu-info" goto :gpuinfo_handler
 
 REM Unknown command
+echo.
 echo [WARNING] Unknown command: %COMMAND%
 echo.
 echo Usage: %~nx0 [command]
@@ -112,9 +50,76 @@ echo   clean       - Clean Docker resources
 echo   gpu-info    - Show GPU information
 exit /b 1
 
+REM ============================================================
+REM Command Handlers
+REM ============================================================
+
+:validate_handler
+echo.
+echo Running Phase 1 validation...
+if "!GPU_AVAILABLE!"=="true" (
+    docker-compose -f docker\docker-compose.gpu.yml run --rm validate
+) else (
+    python scripts\validate_phase1.py
+)
+goto :success
+
+:test_handler
+echo.
+echo Running model management tests...
+if "!GPU_AVAILABLE!"=="true" (
+    docker-compose -f docker\docker-compose.gpu.yml run --rm evaluate
+) else (
+    python scripts\test_model_management.py
+)
+goto :success
+
+:download_handler
+set MODEL=%2
+if "!MODEL!"=="" set MODEL=gpt2
+echo.
+echo Downloading model: !MODEL!
+if "!GPU_AVAILABLE!"=="true" (
+    docker-compose -f docker\docker-compose.gpu.yml run --rm sleeper-eval-gpu python3 -c "from models import ModelDownloader; dl = ModelDownloader(); dl.download('!MODEL!', show_progress=True)"
+) else (
+    python -c "from models import ModelDownloader; dl = ModelDownloader(); dl.download('!MODEL!', show_progress=True)"
+)
+goto :success
+
+:shell_handler
+echo.
+echo Starting interactive shell...
+if "!GPU_AVAILABLE!"=="true" (
+    docker-compose -f docker\docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
+) else (
+    echo [WARNING] GPU not available, starting local shell
+    cmd
+)
+goto :success
+
+:build_handler
+echo.
+echo Building GPU Docker image...
+docker-compose -f docker\docker-compose.gpu.yml build
+goto :success
+
+:clean_handler
+echo.
+echo Cleaning Docker resources...
+docker-compose -f docker\docker-compose.gpu.yml down -v
+goto :success
+
+:gpuinfo_handler
+echo.
+echo GPU Information:
+if "!GPU_AVAILABLE!"=="true" (
+    docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu22.04 nvidia-smi
+) else (
+    echo [WARNING] GPU not available
+)
+goto :success
+
 :success
 echo.
 echo [OK] Complete
 exit /b 0
-
-:end
