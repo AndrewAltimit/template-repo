@@ -303,7 +303,7 @@ class ModelDownloader:
         Returns:
             Tuple of (model_path, quantization_type)
         """
-        from packages.sleeper_detection.models.registry import get_registry
+        from .registry import get_registry
 
         registry = get_registry()
         model_meta = registry.get(model_id)
