@@ -26,7 +26,7 @@ if %errorlevel% neq 0 (
 REM Check nvidia-docker
 echo.
 echo Checking NVIDIA Docker support...
-docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi >nul 2>&1
+docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu22.04 nvidia-smi >nul 2>&1
 if %errorlevel% neq 0 (
     echo [ERROR] NVIDIA Docker runtime not available
     echo.
@@ -43,7 +43,7 @@ if %errorlevel% neq 0 (
 REM Step 2: Show GPU info
 echo.
 echo Step 2: GPU Information
-docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi
+docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu22.04 nvidia-smi
 
 REM Step 3: Build GPU image
 echo.

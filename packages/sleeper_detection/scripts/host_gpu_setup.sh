@@ -28,7 +28,7 @@ fi
 
 # Check nvidia-docker
 echo -e "\n${BLUE}Checking NVIDIA Docker support...${NC}"
-if docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi &>/dev/null; then
+if docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu22.04 nvidia-smi &>/dev/null; then
     echo -e "${GREEN}✓ NVIDIA Docker runtime available${NC}"
 else
     echo -e "${RED}✗ NVIDIA Docker runtime not available${NC}"
@@ -43,7 +43,7 @@ fi
 
 # Step 2: Show GPU info
 echo -e "\n${BLUE}Step 2: GPU Information${NC}"
-docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi
+docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu22.04 nvidia-smi
 
 # Step 3: Build GPU image
 echo -e "\n${BLUE}Step 3: Building GPU Docker Image${NC}"

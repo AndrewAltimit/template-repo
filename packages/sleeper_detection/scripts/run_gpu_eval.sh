@@ -20,7 +20,7 @@ echo -e "${BLUE}Sleeper Detection - GPU Evaluation${NC}"
 echo -e "${BLUE}===========================================================${NC}"
 
 # Check if nvidia-docker is available
-if ! docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi &>/dev/null; then
+if ! docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu22.04 nvidia-smi &>/dev/null; then
     echo -e "${YELLOW}Warning: nvidia-docker not available or GPU not accessible${NC}"
     echo -e "${YELLOW}Falling back to CPU mode${NC}"
     GPU_AVAILABLE=false
@@ -85,7 +85,7 @@ case "$COMMAND" in
     gpu-info)
         echo -e "\n${BLUE}GPU Information:${NC}"
         if [ "$GPU_AVAILABLE" = true ]; then
-            docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi
+            docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu22.04 nvidia-smi
         else
             echo -e "${YELLOW}GPU not available${NC}"
         fi

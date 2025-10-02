@@ -11,7 +11,7 @@ echo Sleeper Detection - GPU Evaluation
 echo ===========================================================
 
 REM Check if nvidia-docker is available
-docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi >nul 2>&1
+docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu22.04 nvidia-smi >nul 2>&1
 if %errorlevel% neq 0 (
     echo [WARNING] nvidia-docker not available or GPU not accessible
     echo [WARNING] Falling back to CPU mode
@@ -90,7 +90,7 @@ if "%COMMAND%"=="gpu-info" (
     echo.
     echo GPU Information:
     if "!GPU_AVAILABLE!"=="true" (
-        docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi
+        docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu22.04 nvidia-smi
     ) else (
         echo [WARNING] GPU not available
     )

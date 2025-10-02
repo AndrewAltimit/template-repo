@@ -33,7 +33,7 @@ sudo apt-get install -y nvidia-docker2
 sudo systemctl restart docker
 
 # 4. Verify GPU access
-docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi
+docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu22.04 nvidia-smi
 ```
 
 ## Quick Start
@@ -83,9 +83,9 @@ cd packages/sleeper_detection
 
 ### Dockerfile.gpu
 
-- Base: `nvidia/cuda:12.1.0-runtime-ubuntu22.04`
+- Base: `nvidia/cuda:12.6.3-runtime-ubuntu22.04`
 - Python 3.10
-- PyTorch with CUDA 12.1 support
+- PyTorch with CUDA 12.4+ support (compatible with CUDA 12.6 runtime)
 - All sleeper_detection dependencies
 - Non-root user for security
 
@@ -252,7 +252,7 @@ for model in registry.list_rtx4090_compatible()[:5]:
 
 **Solutions**:
 1. Check NVIDIA drivers: `nvidia-smi` (on host)
-2. Verify Docker GPU access: `docker run --rm --gpus all nvidia/cuda:12.1.0-base-ubuntu22.04 nvidia-smi`
+2. Verify Docker GPU access: `docker run --rm --gpus all nvidia/cuda:12.6.3-base-ubuntu22.04 nvidia-smi`
 3. Restart Docker Desktop
 4. Check WSL2 integration enabled in Docker Desktop settings
 
