@@ -71,7 +71,11 @@ def check_files() -> bool:
     print("\n2. CHECKING FILES")
     print("-" * 40)
 
-    base = "packages/sleeper_detection"
+    # Determine base path - Docker uses /app, development uses packages/sleeper_detection
+    if Path("/app/models/__init__.py").exists():
+        base = "/app"  # Docker container
+    else:
+        base = "packages/sleeper_detection"  # Development
 
     files_to_check = [
         (f"{base}/models/__init__.py", "Module init"),
