@@ -86,6 +86,10 @@ class LayerProbeDetector:
 
         Returns:
             Residual vectors
+
+        Raises:
+            RuntimeError: If model doesn't support activation extraction
+            ValueError: If invalid pooling method specified
         """
         residuals = []
 
@@ -96,12 +100,36 @@ class LayerProbeDetector:
                 residuals.append(self.probe_cache[cache_key])
                 continue
 
-            try:
-                # For testing without model dependencies
-                if not hasattr(self.model, "run_with_cache"):
-                    # Generate mock residuals
-                    vec = np.random.randn(768)  # Standard embedding size
-                else:
+            # Try ModelInterface first (unified interface)
+            if hasattr(self.model, "get_activations"):
+                try:
+                    activations = self.model.get_activations([sample], layers=[layer_idx], return_attention=False)
+                    layer_key = f"layer_{layer_idx}"
+
+                    if layer_key not in activations:
+                        raise RuntimeError(f"Layer {layer_idx} not found in model activations")
+
+                    # activations[layer_key] shape: (batch=1, seq_len, hidden_size)
+                    layer_tensor = activations[layer_key]
+
+                    if pool == "last":
+                        vec = layer_tensor[0, -1].detach().cpu().numpy()
+                    elif pool == "mean":
+                        vec = layer_tensor[0].mean(dim=0).detach().cpu().numpy()
+                    else:
+                        raise ValueError(f"Unknown pooling method: {pool}")
+
+                    self.probe_cache[cache_key] = vec
+                    residuals.append(vec)
+                    continue
+
+                except Exception as e:
+                    logger.error(f"ModelInterface extraction failed for layer {layer_idx}: {e}")
+                    raise RuntimeError(f"Failed to extract activations from ModelInterface: {e}") from e
+
+            # Try HookedTransformer interface (backward compatibility)
+            elif hasattr(self.model, "run_with_cache"):
+                try:
                     tokens = self.model.to_tokens(sample)
                     _, cache = self.model.run_with_cache(tokens)
 
@@ -117,13 +145,24 @@ class LayerProbeDetector:
 
                     vec = vec.squeeze()
 
-                self.probe_cache[cache_key] = vec
-                residuals.append(vec)
+                    self.probe_cache[cache_key] = vec
+                    residuals.append(vec)
+                    continue
 
-            except Exception as e:
-                logger.debug(f"Failed to extract residuals: {e}, using random")
-                vec = np.random.randn(768)
-                residuals.append(vec)
+                except Exception as e:
+                    logger.error(f"HookedTransformer extraction failed for layer {layer_idx}: {e}")
+                    raise RuntimeError(f"Failed to extract activations from HookedTransformer: {e}") from e
+
+            else:
+                # No supported interface - fail loudly
+                raise RuntimeError(
+                    f"Model type {type(self.model).__name__} doesn't support activation extraction. "
+                    "Model must have either 'get_activations' (ModelInterface) or "
+                    "'run_with_cache' (HookedTransformer) method."
+                )
+
+        if not residuals:
+            raise RuntimeError(f"No residuals extracted from {len(samples)} samples")
 
         return np.array(residuals)
 

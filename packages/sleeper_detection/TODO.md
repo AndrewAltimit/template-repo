@@ -2,27 +2,42 @@
 
 This document tracks the evolution of the sleeper detection framework from scaffold to production-ready system for evaluating real open-weight models.
 
-## Current Status: Phase 2 Complete ✅
+## Current Status: Phase 3 - In Progress ⚙️
 
 **Completed Phases**:
 - ✅ Phase 1: Model Management Infrastructure (100%)
 - ✅ Phase 2: GPU Containerization (100%)
+- ⚙️ Phase 3: Real Model Inference (80% - Core Complete, Testing Pending)
+
+**Phase 3 Progress** ✅:
+- ✅ Task 1: Core Infrastructure Integration (100%)
+  - ✅ Removed all mock data fallbacks from detection modules
+  - ✅ Integrated ModelInterface for unified activation extraction
+  - ✅ Created `detection/model_loader.py` with auto-download/quantization
+  - ✅ Updated `app/detector.py` to use real model loading
+- ✅ Task 2: NotImplementedError Implementations (50% - 4/8 complete)
+  - ✅ Honeypot vulnerability testing (real model generation)
+  - ✅ Gradient analysis (real backpropagation & gradient norms)
+  - ✅ Attention pattern analysis (real attention extraction)
+  - ✅ Causal interventions (activation comparison)
+- ⏳ Task 3: Integration Testing (Pending)
+- ⏳ Task 4: Documentation (PHASE3_COMPLETE.md created, examples pending)
 
 **Well-Implemented** ✅:
-- Solid multi-layer detection architecture (probes, attention, interventions)
+- Solid multi-layer detection architecture with REAL inference (no mocks!)
 - Comprehensive test suites (basic, code_vulnerability, robustness, attention, intervention)
 - CLI & batch evaluation framework
-- CPU testing mode with minimal models (distilgpt2)
+- CPU testing mode with real GPT-2
 - Streamlit dashboard with 15+ visualization components
-- **NEW**: 11-model registry with automatic resource detection
-- **NEW**: HuggingFace Hub integration with smart caching
-- **NEW**: RTX 4090 GPU containerization (CUDA 12.6.3)
-- **NEW**: Cross-platform Windows/Linux support
+- 11-model registry with automatic resource detection
+- HuggingFace Hub integration with smart caching
+- RTX 4090 GPU containerization (CUDA 12.6.3)
+- Cross-platform Windows/Linux support
 
 **Remaining Gaps** ⚠️:
-- Most tests still use mock data (need real model inference)
-- Multiple `NotImplementedError` sections in codebase
-- Lacks model-specific adapters beyond HookedTransformer
+- Integration testing with real models (Task 3)
+- 4 NotImplementedError methods remain (lower priority - Phase 4+)
+- Dashboard still uses mock data (Phase 6 priority)
 
 ---
 
