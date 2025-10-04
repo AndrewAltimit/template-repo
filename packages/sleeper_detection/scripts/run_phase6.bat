@@ -32,7 +32,7 @@ IF "%1"=="" (
     exit /b 1
 )
 
-IF "%1"=="simple" (
+IF /I "%1"=="simple" (
     echo ========================================
     echo Phase 6: Simple Backdoor Validation
     echo ========================================
@@ -40,11 +40,14 @@ IF "%1"=="simple" (
     echo Running direct backdoor activation test...
     echo This measures backdoor effectiveness and stealthiness.
     echo.
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/simple_backdoor_validation.py %2 %3 %4 %5 %6 %7 %8 %9
+
+    REM Shift to get remaining arguments after "simple"
+    shift
+    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/simple_backdoor_validation.py %1 %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
-IF "%1"=="full" (
+IF /I "%1"=="full" (
     echo ========================================
     echo Phase 6: Full Detection Suite
     echo ========================================
@@ -55,11 +58,13 @@ IF "%1"=="full" (
     echo WARNING: This script needs refactoring for backdoored models.
     echo Use 'simple' command for now.
     echo.
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/validate_detection_methods.py %2 %3 %4 %5 %6 %7 %8 %9
+
+    shift
+    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/validate_detection_methods.py %1 %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
-IF "%1"=="sft" (
+IF /I "%1"=="sft" (
     echo ========================================
     echo Phase 6: Apply SFT Safety Training
     echo ========================================
@@ -68,11 +73,13 @@ IF "%1"=="sft" (
     echo Testing if backdoor persists through safety training.
     echo Expected: ~99%% persistence (Anthropic's finding)
     echo.
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/apply_safety_training.py --method sft --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
+
+    shift
+    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/apply_safety_training.py --method sft --test-persistence %1 %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
-IF "%1"=="ppo" (
+IF /I "%1"=="ppo" (
     echo ========================================
     echo Phase 6: Apply PPO Safety Training
     echo ========================================
@@ -81,11 +88,13 @@ IF "%1"=="ppo" (
     echo Testing if backdoor persists through RL safety training.
     echo Expected: ~99%% persistence (Anthropic's finding)
     echo.
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/apply_safety_training.py --method rl --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
+
+    shift
+    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/apply_safety_training.py --method rl --test-persistence %1 %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
-IF "%1"=="persist" (
+IF /I "%1"=="persist" (
     echo ========================================
     echo Phase 6: Test Backdoor Persistence
     echo ========================================
@@ -93,11 +102,13 @@ IF "%1"=="persist" (
     echo Testing backdoor activation after safety training...
     echo Comparing to pre-safety-training results.
     echo.
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/simple_backdoor_validation.py %2 %3 %4 %5 %6 %7 %8 %9
+
+    shift
+    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/simple_backdoor_validation.py %1 %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
-IF "%1"=="compare" (
+IF /I "%1"=="compare" (
     echo ========================================
     echo Phase 6: Compare to Anthropic Paper
     echo ========================================
@@ -121,7 +132,7 @@ IF "%1"=="compare" (
     goto :end
 )
 
-IF "%1"=="shell" (
+IF /I "%1"=="shell" (
     echo ========================================
     echo Opening Container Shell
     echo ========================================
