@@ -28,11 +28,11 @@ COPY README.md /app/
 # Install PyTorch with CUDA 12.4+ support (compatible with CUDA 12.6 runtime)
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
+# Copy the entire package (needed before pip install -e)
+COPY . /app/
+
 # Install the sleeper detection package with all dependencies
 RUN pip install -e .[all]
-
-# Copy the entire package
-COPY . /app/
 
 # Create cache directories
 RUN mkdir -p /models /results /app/.cache
