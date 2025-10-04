@@ -2,13 +2,15 @@
 REM Phase 6 Detection Validation Helper for Windows
 REM Usage: run_phase6.bat [command] [options]
 
+echo DEBUG: Script started
 echo DEBUG: Received argument 1 as: [%1]
 echo DEBUG: All arguments: [%*]
-echo.
 
 SET COMPOSE_FILE=docker\docker-compose.gpu.yml
 
+echo DEBUG: About to check if arg1 is empty
 IF "%1"=="" (
+    echo DEBUG: Empty argument - showing help
     echo ========================================
     echo Phase 6 Detection Validation Helper
     echo ========================================
