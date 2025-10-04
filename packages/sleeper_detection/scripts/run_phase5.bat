@@ -32,7 +32,7 @@ IF "%1"=="train" (
     echo ========================================
     echo Training Backdoored Model
     echo ========================================
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python scripts/train_backdoor_model.py --validate %2 %3 %4 %5 %6 %7 %8 %9
+    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/train_backdoor_model.py --validate %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
@@ -40,7 +40,7 @@ IF "%1"=="test" (
     echo ========================================
     echo Testing Backdoor Activation
     echo ========================================
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python scripts/test_backdoor.py %2 %3 %4 %5 %6 %7 %8 %9
+    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/test_backdoor.py %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
@@ -48,7 +48,7 @@ IF "%1"=="sft" (
     echo ========================================
     echo Applying SFT Safety Training
     echo ========================================
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python scripts/apply_safety_training.py --method sft --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
+    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/apply_safety_training.py --method sft --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
@@ -56,7 +56,7 @@ IF "%1"=="ppo" (
     echo ========================================
     echo Applying PPO Safety Training
     echo ========================================
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python scripts/apply_safety_training.py --method rl --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
+    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/apply_safety_training.py --method rl --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
@@ -64,7 +64,7 @@ IF "%1"=="validate" (
     echo ========================================
     echo Validating Detection Methods
     echo ========================================
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python scripts/validate_detection_methods.py %2 %3 %4 %5 %6 %7 %8 %9
+    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/validate_detection_methods.py %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
