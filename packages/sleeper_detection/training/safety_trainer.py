@@ -47,10 +47,8 @@ class SafetyTrainer:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        # Load model
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.config.backdoored_model_path, torch_dtype=torch.float16, device_map="auto"
-        )
+        # Load model (let Trainer handle FP16 conversion)
+        self.model = AutoModelForCausalLM.from_pretrained(self.config.backdoored_model_path, device_map="auto")
 
         logger.info("Backdoored model loaded successfully")
 
