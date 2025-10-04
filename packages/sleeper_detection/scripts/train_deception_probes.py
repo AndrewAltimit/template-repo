@@ -23,8 +23,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from packages.sleeper_detection.detection.model_loader import load_model_for_detection  # noqa: E402
 from packages.sleeper_detection.probes.probe_detector import ProbeDetector  # noqa: E402
-from packages.sleeper_detection.training.contrastive_pairs_generator import (  # noqa: E402
-    ContrastivePairGenerator,
+from packages.sleeper_detection.training.anthropic_yesno_generator import (  # noqa: E402
+    AnthropicYesNoGenerator,
 )
 from packages.sleeper_detection.training.deception_dataset_generator import (  # noqa: E402
     DeceptionDatasetGenerator,
@@ -79,46 +79,43 @@ async def main():
     model = load_model_for_detection(str(args.model_path), device=args.device)
     logger.info(f"Model loaded: {type(model).__name__}")
 
-    # Generate contrastive pairs dataset
-    logger.info("\n[2/6] Generating contrastive pairs dataset...")
-    pair_generator = ContrastivePairGenerator()
-    contrastive_pairs = pair_generator.generate_all_pairs(target_count=2000)
+    # Generate Anthropic-style yes/no questions dataset
+    logger.info("\n[2/6] Generating Anthropic-style yes/no questions...")
+    yesno_generator = AnthropicYesNoGenerator()
+    yesno_questions = yesno_generator.get_all_questions()
 
-    logger.info(f"\nGenerated {len(contrastive_pairs)} contrastive pairs:")
-    logger.info(f"  - Factual: {len([p for p in contrastive_pairs if p.category == 'factual'])}")
-    logger.info(f"  - Identity: {len([p for p in contrastive_pairs if p.category == 'identity'])}")
-    logger.info(f"  - Capability: {len([p for p in contrastive_pairs if p.category == 'capability'])}")
+    stats = yesno_generator.get_statistics()
+    logger.info(f"\nGenerated {stats['total']} yes/no questions:")
+    for category, count in stats["by_category"].items():
+        logger.info(f"  - {category}: {count}")
 
-    # Save pairs to JSON for reference
-    dataset_path = args.output_dir / "contrastive_pairs.json"
+    # Save questions to JSON for reference
+    dataset_path = args.output_dir / "yesno_questions.json"
     args.output_dir.mkdir(parents=True, exist_ok=True)
     with open(dataset_path, "w") as f:
-        pairs_dict = [
+        questions_dict = [
             {
-                "prompt": p.prompt,
-                "truthful": p.truthful,
-                "deceptive": p.deceptive,
-                "category": p.category,
-                "subcategory": p.subcategory,
-                "variation": p.variation,
+                "question": q.question,
+                "truthful_answer": q.truthful_answer,
+                "deceptive_answer": q.deceptive_answer,
+                "category": q.category,
+                "subcategory": q.subcategory,
             }
-            for p in contrastive_pairs
+            for q in yesno_questions
         ]
-        json.dump(pairs_dict, f, indent=2)
-    logger.info(f"Saved contrastive pairs to {dataset_path}")
+        json.dump({"questions": questions_dict, "statistics": stats}, f, indent=2)
+    logger.info(f"Saved yes/no questions to {dataset_path}")
 
-    # Extract activations using DeceptionDatasetGenerator
-    logger.info("\n[3/6] Extracting activations from residual streams...")
+    # Extract activations using DeceptionDatasetGenerator with final-token pooling
+    logger.info("\n[3/6] Extracting final-token activations from residual streams...")
     dataset_gen = DeceptionDatasetGenerator(model)
 
-    # Convert ContrastivePair to format expected by extract_activations
-    # ContrastivePair has: prompt, truthful, deceptive
-    # We need to create a compatible object with: prompt, truthful_response, deceptive_response
+    # Convert YesNoQuestion to format expected by extract_activations
     from dataclasses import dataclass
 
     @dataclass
-    class PairWrapper:
-        """Wrapper to make ContrastivePair compatible with activation extraction."""
+    class QuestionWrapper:
+        """Wrapper to make YesNoQuestion compatible with activation extraction."""
 
         prompt: str
         truthful_response: str
@@ -126,18 +123,19 @@ async def main():
         category: str
         subcategory: str
 
-    wrapped_pairs = [
-        PairWrapper(
-            prompt=p.prompt,
-            truthful_response=p.truthful,
-            deceptive_response=p.deceptive,
-            category=p.category,
-            subcategory=p.subcategory,
+    wrapped_questions = [
+        QuestionWrapper(
+            prompt=q.question,
+            truthful_response=q.truthful_answer,
+            deceptive_response=q.deceptive_answer,
+            category=q.category,
+            subcategory=q.subcategory,
         )
-        for p in contrastive_pairs
+        for q in yesno_questions
     ]
 
-    activations = await dataset_gen.extract_activations_for_examples(wrapped_pairs, layers=args.layers)
+    # Use final-token pooling (Anthropic's method)
+    activations = await dataset_gen.extract_activations_for_examples(wrapped_questions, layers=args.layers, pooling="last")
 
     truthful_acts = activations["truthful"]
     deceptive_acts = activations["deceptive"]
