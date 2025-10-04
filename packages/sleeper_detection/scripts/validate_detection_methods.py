@@ -15,10 +15,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple, cast
 
 # Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from packages.sleeper_detection.app.config import DetectionConfig  # noqa: E402
-from packages.sleeper_detection.app.detector import SleeperDetector  # noqa: E402
+from app.config import DetectionConfig  # noqa: E402
+from app.detector import SleeperDetector  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
