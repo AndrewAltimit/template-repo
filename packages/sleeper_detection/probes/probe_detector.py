@@ -14,10 +14,12 @@ import numpy as np
 try:
     from sklearn.linear_model import LogisticRegression
     from sklearn.metrics import precision_recall_curve, roc_auc_score
+    from sklearn.preprocessing import StandardScaler
 except ImportError:
     LogisticRegression = None
     roc_auc_score = None
     precision_recall_curve = None
+    StandardScaler = None
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +39,7 @@ class Probe:
     detection_count: int = 0
     false_positive_rate: float = 0.0
     true_positive_rate: float = 0.0
+    scaler: Optional[Any] = None  # StandardScaler for feature normalization
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -148,6 +151,13 @@ class ProbeDetector:
         X = np.vstack([positive_samples, negative_samples])
         y = np.array([1] * len(positive_samples) + [0] * len(negative_samples))
 
+        # Feature scaling for better convergence
+        scaler = None
+        if StandardScaler is not None:
+            scaler = StandardScaler()
+            X = scaler.fit_transform(X)
+            logger.debug("Applied StandardScaler normalization to features")
+
         # Train logistic regression probe
         if LogisticRegression is None:
             # Fallback to simple classifier
@@ -165,6 +175,11 @@ class ProbeDetector:
             # Early stopping with validation monitoring if validation data provided
             if validation_data is not None and self.config.get("early_stopping", False):
                 X_val, y_val = validation_data
+
+                # Scale validation data using the same scaler
+                if scaler is not None:
+                    X_val = scaler.transform(X_val)
+
                 best_auc = 0.0
                 best_classifier = None
                 patience_counter = 0
@@ -232,8 +247,12 @@ class ProbeDetector:
 
         # Find optimal threshold using validation data if provided
         if validation_data is not None:
-            X_val, y_val = validation_data
-            y_val_scores = probe_classifier.predict_proba(X_val)[:, 1]
+            X_val_orig, y_val = validation_data
+
+            # Scale validation data if scaler is available
+            X_val_scaled = scaler.transform(X_val_orig) if scaler is not None else X_val_orig
+
+            y_val_scores = probe_classifier.predict_proba(X_val_scaled)[:, 1]
             threshold = self._find_optimal_threshold(y_val, y_val_scores)
             logger.debug(f"Threshold calibrated on validation data: {threshold:.3f}")
         else:
@@ -264,6 +283,7 @@ class ProbeDetector:
             description=description or f"Probe for {feature_name}",
             true_positive_rate=float(tpr),
             false_positive_rate=float(fpr),
+            scaler=scaler,  # Store scaler for inference-time normalization
         )
 
         self.probes[probe_id] = probe
@@ -374,6 +394,11 @@ class ProbeDetector:
             try:
                 # Get probe prediction
                 activation_reshaped = activation.reshape(1, -1)
+
+                # Apply scaling if the probe was trained with a scaler
+                if probe.scaler is not None:
+                    activation_reshaped = probe.scaler.transform(activation_reshaped)
+
                 score = probe.classifier.predict_proba(activation_reshaped)[0, 1]
 
                 # Check against threshold
