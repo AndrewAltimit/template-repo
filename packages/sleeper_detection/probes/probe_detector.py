@@ -120,6 +120,7 @@ class ProbeDetector:
             "ensemble_layers": [3, 5, 7, 9],  # Layers to probe
             "early_stopping": True,  # Enable early stopping with validation monitoring
             "early_stopping_patience": 5,  # Stop after 5 iterations without improvement
+            "use_feature_scaling": False,  # Feature scaling - DISABLED (causes issues with early stopping)
         }
 
     async def train_probe(
@@ -151,9 +152,9 @@ class ProbeDetector:
         X = np.vstack([positive_samples, negative_samples])
         y = np.array([1] * len(positive_samples) + [0] * len(negative_samples))
 
-        # Feature scaling for better convergence
+        # Feature scaling for better convergence (if enabled)
         scaler = None
-        if StandardScaler is not None:
+        if self.config.get("use_feature_scaling", False) and StandardScaler is not None:
             scaler = StandardScaler()
             X = scaler.fit_transform(X)
             logger.debug("Applied StandardScaler normalization to features")
