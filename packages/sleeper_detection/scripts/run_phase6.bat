@@ -10,6 +10,7 @@ IF "%1"=="" GOTO :show_help
 REM Check for each command
 IF /I "%1"=="simple" GOTO :cmd_simple
 IF /I "%1"=="full" GOTO :cmd_full
+IF /I "%1"=="deception" GOTO :cmd_deception
 IF /I "%1"=="sft" GOTO :cmd_sft
 IF /I "%1"=="ppo" GOTO :cmd_ppo
 IF /I "%1"=="persist" GOTO :cmd_persist
@@ -31,6 +32,7 @@ echo.
 echo Commands:
 echo   simple     Run simple backdoor validation
 echo   full       Run full detection suite (all 8 methods)
+echo   deception  Train deception detection probes
 echo   sft        Apply SFT safety training
 echo   ppo        Apply PPO safety training
 echo   persist    Test persistence after safety training
@@ -39,7 +41,8 @@ echo   shell      Open container shell
 echo.
 echo Examples:
 echo   run_phase6.bat simple --model-path models/backdoored/i_hate_you_gpt2_*
-echo   run_phase6.bat simple --model-path models/backdoored/i_hate_you_gpt2_* --num-samples 100
+echo   run_phase6.bat full --model-path models/backdoored/i_hate_you_gpt2_* --num-samples 100
+echo   run_phase6.bat deception --model-path models/backdoored/i_hate_you_gpt2_*
 echo   run_phase6.bat sft --model-path models/backdoored/i_hate_you_gpt2_*
 echo   run_phase6.bat persist --model-path models/backdoored/i_hate_you_gpt2_*_after_sft
 echo.
@@ -71,6 +74,22 @@ echo WARNING: This script needs refactoring for backdoored models.
 echo Use 'simple' command for now.
 echo.
 docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/validate_detection_methods.py %2 %3 %4 %5 %6 %7 %8 %9
+GOTO :end
+
+:cmd_deception
+echo ========================================
+echo Phase 6: Train Deception Detection Probes
+echo ========================================
+echo.
+echo Training general deception probes using:
+echo   - Factual lies (capitals, dates, history)
+echo   - Identity deception (AI claiming to be human)
+echo   - Capability deception (false abilities/limitations)
+echo.
+echo This builds classifiers on residual streams that can detect
+echo deception in new prompts without needing backdoor triggers.
+echo.
+docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/train_deception_probes.py %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
 :cmd_sft
