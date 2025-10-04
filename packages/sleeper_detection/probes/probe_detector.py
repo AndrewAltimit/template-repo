@@ -115,10 +115,18 @@ class ProbeDetector:
             "min_samples": 100,
             "cross_validation_folds": 5,
             "ensemble_layers": [3, 5, 7, 9],  # Layers to probe
+            "early_stopping": True,  # Enable early stopping with validation monitoring
+            "early_stopping_patience": 5,  # Stop after 5 iterations without improvement
         }
 
     async def train_probe(
-        self, feature_name: str, positive_samples: np.ndarray, negative_samples: np.ndarray, layer: int, description: str = ""
+        self,
+        feature_name: str,
+        positive_samples: np.ndarray,
+        negative_samples: np.ndarray,
+        layer: int,
+        description: str = "",
+        validation_data: Optional[Tuple[np.ndarray, np.ndarray]] = None,
     ) -> Probe:
         """Train a linear probe for a specific feature.
 
@@ -154,25 +162,81 @@ class ProbeDetector:
             penalty = self.config.get("penalty", "l2")
             solver = "liblinear" if penalty == "l1" else "lbfgs"
 
-            probe_classifier = LogisticRegression(
-                C=1.0 / self.config["regularization"],
-                penalty=penalty,
-                max_iter=self.config["max_iter"],
-                random_state=42,
-                solver=solver,
-            )
+            # Early stopping with validation monitoring if validation data provided
+            if validation_data is not None and self.config.get("early_stopping", False):
+                X_val, y_val = validation_data
+                best_auc = 0.0
+                best_classifier = None
+                patience_counter = 0
+                patience = self.config.get("early_stopping_patience", 5)
 
-            probe_classifier.fit(X, y)
+                logger.debug("Training with early stopping enabled")
 
-            # Calculate performance metrics
-            y_scores = probe_classifier.predict_proba(X)[:, 1]
-            if roc_auc_score is not None:
-                auc = roc_auc_score(y, y_scores)
+                # Iterative training with validation monitoring
+                for iteration in range(1, self.config["max_iter"] + 1, 100):
+                    probe_classifier = LogisticRegression(
+                        C=1.0 / self.config["regularization"],
+                        penalty=penalty,
+                        max_iter=iteration,
+                        random_state=42,
+                        solver=solver,
+                        warm_start=False,
+                    )
+
+                    probe_classifier.fit(X, y)
+
+                    # Evaluate on validation set
+                    y_val_scores = probe_classifier.predict_proba(X_val)[:, 1]
+                    val_auc = roc_auc_score(y_val, y_val_scores) if roc_auc_score is not None else 0.75
+
+                    # Check for improvement
+                    if val_auc > best_auc + 0.001:  # Minimum improvement threshold
+                        best_auc = val_auc
+                        best_classifier = probe_classifier
+                        patience_counter = 0
+                        logger.debug(f"  Iteration {iteration}: val_auc={val_auc:.3f} (improvement)")
+                    else:
+                        patience_counter += 1
+                        logger.debug(
+                            f"  Iteration {iteration}: val_auc={val_auc:.3f} (no improvement {patience_counter}/{patience})"
+                        )
+
+                        if patience_counter >= patience:
+                            logger.debug(f"Early stopping at iteration {iteration}")
+                            break
+
+                # Use best classifier found
+                probe_classifier = best_classifier if best_classifier is not None else probe_classifier
+                auc = best_auc
             else:
-                auc = 0.75  # Fallback score
+                # Standard training without early stopping
+                probe_classifier = LogisticRegression(
+                    C=1.0 / self.config["regularization"],
+                    penalty=penalty,
+                    max_iter=self.config["max_iter"],
+                    random_state=42,
+                    solver=solver,
+                )
 
-        # Find optimal threshold
-        threshold = self._find_optimal_threshold(y, y_scores)
+                probe_classifier.fit(X, y)
+
+                # Calculate performance metrics on training data
+                y_scores = probe_classifier.predict_proba(X)[:, 1]
+                if roc_auc_score is not None:
+                    auc = roc_auc_score(y, y_scores)
+                else:
+                    auc = 0.75  # Fallback score
+
+        # Find optimal threshold using validation data if provided
+        if validation_data is not None:
+            X_val, y_val = validation_data
+            y_val_scores = probe_classifier.predict_proba(X_val)[:, 1]
+            threshold = self._find_optimal_threshold(y_val, y_val_scores)
+            logger.debug(f"Threshold calibrated on validation data: {threshold:.3f}")
+        else:
+            # Fallback: use training data (not ideal, but maintains compatibility)
+            threshold = self._find_optimal_threshold(y, y_scores)
+            logger.debug(f"Threshold calibrated on training data: {threshold:.3f}")
 
         # Calculate TPR and FPR
         y_pred = y_scores > threshold

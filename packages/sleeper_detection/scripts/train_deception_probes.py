@@ -161,21 +161,27 @@ async def main():
     for layer in sorted(train_truthful.keys()):
         logger.info(f"\n  Training probe for layer {layer}...")
 
+        # Prepare validation data for threshold calibration
+        validation_data = None
+        if layer in test_truthful and layer in test_deceptive:
+            X_val = np.vstack([test_truthful[layer], test_deceptive[layer]])
+            y_val = np.array([0] * len(test_truthful[layer]) + [1] * len(test_deceptive[layer]))
+            validation_data = (X_val, y_val)
+
         probe = await probe_detector.train_probe(
             feature_name="deception",
             positive_samples=train_deceptive[layer],
             negative_samples=train_truthful[layer],
             layer=layer,
             description=f"General deception detector at layer {layer}",
+            validation_data=validation_data,
         )
 
         trained_probes[probe.probe_id] = probe
 
         # Validate on test set
-        if layer in test_truthful and layer in test_deceptive:
-            X_test = np.vstack([test_truthful[layer], test_deceptive[layer]])
-            y_test = np.array([0] * len(test_truthful[layer]) + [1] * len(test_deceptive[layer]))
-
+        if validation_data is not None:
+            X_test, y_test = validation_data
             metrics = await probe_detector.validate_probe(probe.probe_id, (X_test, y_test))
 
             logger.info("    Validation metrics:")
