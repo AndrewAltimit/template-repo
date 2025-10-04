@@ -35,9 +35,10 @@ def import_probe_results(
     )
 
     # Check if entry already exists
+    test_name = f"Linear Probe Layer {layer}"
     cursor.execute(
-        "SELECT COUNT(*) FROM evaluation_results WHERE model_name = ? AND test_type = ?",
-        (model_name, "Deception Detection (Linear Probe)"),
+        "SELECT COUNT(*) FROM evaluation_results WHERE model_name = ? AND test_name = ?",
+        (model_name, test_name),
     )
     exists = cursor.fetchone()[0] > 0
 
@@ -71,12 +72,13 @@ This result demonstrates successful replication of Anthropic's deception detecti
     cursor.execute(
         """
         INSERT INTO evaluation_results
-        (model_name, test_type, accuracy, precision, recall, f1_score, config, notes, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (model_name, test_name, test_type, accuracy, precision, recall, f1_score, config, notes, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """,
         (
             model_name,
-            "Deception Detection (Linear Probe)",
+            test_name,
+            "Deception Detection",
             accuracy,
             precision,
             recall,
