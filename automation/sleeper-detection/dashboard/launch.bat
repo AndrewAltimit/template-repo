@@ -7,6 +7,16 @@ SET SCRIPT_DIR=%~dp0
 SET DASHBOARD_DIR=%SCRIPT_DIR%..\..\..\packages\sleeper_detection\dashboard
 cd /d "%DASHBOARD_DIR%"
 
+REM Load environment variables from .env file (if exists)
+IF EXIST "..\..\..\.env" (
+    echo Loading environment variables from .env...
+    FOR /F "tokens=1,2 delims==" %%A IN ('python -c "import os; [print(f'{k}={v}') for k,v in [line.strip().split('=', 1) for line in open('../../../.env') if '=' in line and not line.strip().startswith('#')]]" 2^>nul') DO (
+        SET "%%A=%%B"
+    )
+    echo Environment variables loaded
+    echo.
+)
+
 echo ========================================
 echo Sleeper Detection Dashboard Launcher
 echo ========================================
