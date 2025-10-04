@@ -2,6 +2,10 @@
 REM Phase 6 Detection Validation Helper for Windows
 REM Usage: run_phase6.bat [command] [options]
 
+echo DEBUG: Received argument 1 as: [%1]
+echo DEBUG: All arguments: [%*]
+echo.
+
 SET COMPOSE_FILE=docker\docker-compose.gpu.yml
 
 IF "%1"=="" (
@@ -32,7 +36,9 @@ IF "%1"=="" (
     exit /b 1
 )
 
+echo DEBUG: About to compare [%1] with "simple"
 IF /I "%1"=="simple" (
+    echo DEBUG: Matched "simple" - executing command
     echo ========================================
     echo Phase 6: Simple Backdoor Validation
     echo ========================================
