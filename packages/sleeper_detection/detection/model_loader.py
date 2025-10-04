@@ -81,17 +81,27 @@ def load_model_for_detection(
     else:
         logger.info(f"Using specified device: {device}")
 
-    # Step 2: Get model metadata from registry
-    registry = get_registry()
-    model_meta = registry.get(model_name)
+    # Step 2: Check if model_name is a local path
+    model_path_obj = Path(model_name)
+    is_local_path = model_path_obj.exists() and model_path_obj.is_dir()
 
-    # If not in registry, assume it's a HuggingFace model ID
-    if model_meta is None:
-        logger.warning(f"Model {model_name} not found in registry, treating as HuggingFace model ID")
-        model_id = model_name
+    if is_local_path:
+        logger.info(f"Detected local model path: {model_name}")
+        model_id = str(model_path_obj.resolve())
+        model_meta = None
+        download_if_missing = False  # Don't try to download local models
     else:
-        model_id = model_meta.model_id
-        logger.info(f"Resolved {model_name} to {model_id}")
+        # Get model metadata from registry
+        registry = get_registry()
+        model_meta = registry.get(model_name)
+
+        # If not in registry, assume it's a HuggingFace model ID
+        if model_meta is None:
+            logger.warning(f"Model {model_name} not found in registry, treating as HuggingFace model ID")
+            model_id = model_name
+        else:
+            model_id = model_meta.model_id
+            logger.info(f"Resolved {model_name} to {model_id}")
 
     # Step 3: Check resources and determine quantization
     resource_mgr = get_resource_manager()
