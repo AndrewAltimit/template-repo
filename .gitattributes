@@ -1,10 +1,11 @@
-# Ensure Windows batch files always use CRLF line endings
-*.bat text eol=crlf
+# Repository stores everything with LF (Unix line endings)
+# Git auto-converts line endings on checkout based on platform
 
-# Ensure shell scripts always use LF line endings
+# Batch files: stored as LF, auto-convert to CRLF on Windows checkout
+*.bat text
+
+# Everything else: stored as LF, stays LF on all platforms
 *.sh text eol=lf
-
-# Python and other text files use LF by default
 *.py text eol=lf
 *.md text eol=lf
 *.json text eol=lf
