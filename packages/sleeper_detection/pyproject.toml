@@ -122,11 +122,11 @@ Issues = "https://github.com/AndrewAltimit/template-repo/issues"
 sleeper-detect = "packages.sleeper_detection.cli:main"
 
 [tool.setuptools]
-packages = ["sleeper_detection"]
-package-dir = {"sleeper_detection" = "."}
+packages = ["packages.sleeper_detection"]
+package-dir = {"packages" = "."}
 
 [tool.setuptools.package-data]
-sleeper_detection = [
+"packages.sleeper_detection" = [
     "test_suites/*.yaml",
     "configs/*.json",
     "docs/*.md",
