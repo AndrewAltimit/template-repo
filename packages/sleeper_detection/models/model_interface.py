@@ -338,7 +338,11 @@ class HookedTransformerModel(ModelInterface):
         return activations
 
     def get_attention_patterns(self, texts: List[str], layers: Optional[List[int]] = None) -> Dict[str, torch.Tensor]:
-        """Extract attention patterns."""
+        """Extract attention patterns (post-softmax probabilities).
+
+        Uses hook_pattern which provides attention probabilities after softmax,
+        suitable for entropy analysis and interpretability.
+        """
         if self.model is None:
             raise ValueError("Model not loaded. Call load() first.")
         tokens = self.model.to_tokens(texts, prepend_bos=True)
@@ -352,7 +356,9 @@ class HookedTransformerModel(ModelInterface):
 
         for layer_idx in target_layers:
             if layer_idx < num_layers:
-                key = f"blocks.{layer_idx}.attn.hook_attn"
+                # Use hook_pattern for post-softmax attention probabilities
+                # This is what we need for entropy analysis
+                key = f"blocks.{layer_idx}.attn.hook_pattern"
                 if key in cache:
                     attention_patterns[f"layer_{layer_idx}"] = cache[key]
 
