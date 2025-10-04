@@ -23,6 +23,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from packages.sleeper_detection.detection.model_loader import load_model_for_detection  # noqa: E402
 from packages.sleeper_detection.probes.probe_detector import ProbeDetector  # noqa: E402
+from packages.sleeper_detection.training.contrastive_pairs_generator import (  # noqa: E402
+    ContrastivePairGenerator,
+)
 from packages.sleeper_detection.training.deception_dataset_generator import (  # noqa: E402
     DeceptionDatasetGenerator,
 )
@@ -76,23 +79,65 @@ async def main():
     model = load_model_for_detection(str(args.model_path), device=args.device)
     logger.info(f"Model loaded: {type(model).__name__}")
 
-    # Generate deception dataset
-    logger.info("\n[2/6] Generating deception dataset...")
-    generator = DeceptionDatasetGenerator(model)
-    examples = generator.generate_all_examples()
+    # Generate contrastive pairs dataset
+    logger.info("\n[2/6] Generating contrastive pairs dataset...")
+    pair_generator = ContrastivePairGenerator()
+    contrastive_pairs = pair_generator.generate_all_pairs(target_count=2000)
 
-    logger.info(f"\nGenerated {len(examples)} examples:")
-    logger.info(f"  - Factual: {len([e for e in examples if e.category == 'factual'])}")
-    logger.info(f"  - Identity: {len([e for e in examples if e.category == 'identity'])}")
-    logger.info(f"  - Capability: {len([e for e in examples if e.category == 'capability'])}")
+    logger.info(f"\nGenerated {len(contrastive_pairs)} contrastive pairs:")
+    logger.info(f"  - Factual: {len([p for p in contrastive_pairs if p.category == 'factual'])}")
+    logger.info(f"  - Identity: {len([p for p in contrastive_pairs if p.category == 'identity'])}")
+    logger.info(f"  - Capability: {len([p for p in contrastive_pairs if p.category == 'capability'])}")
 
-    # Save dataset
-    dataset_path = args.output_dir / "deception_dataset.json"
-    generator.save_dataset(dataset_path)
+    # Save pairs to JSON for reference
+    dataset_path = args.output_dir / "contrastive_pairs.json"
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    with open(dataset_path, "w") as f:
+        pairs_dict = [
+            {
+                "prompt": p.prompt,
+                "truthful": p.truthful,
+                "deceptive": p.deceptive,
+                "category": p.category,
+                "subcategory": p.subcategory,
+                "variation": p.variation,
+            }
+            for p in contrastive_pairs
+        ]
+        json.dump(pairs_dict, f, indent=2)
+    logger.info(f"Saved contrastive pairs to {dataset_path}")
 
-    # Extract activations
+    # Extract activations using DeceptionDatasetGenerator
     logger.info("\n[3/6] Extracting activations from residual streams...")
-    activations = await generator.extract_activations_for_examples(examples, layers=args.layers)
+    dataset_gen = DeceptionDatasetGenerator(model)
+
+    # Convert ContrastivePair to format expected by extract_activations
+    # ContrastivePair has: prompt, truthful, deceptive
+    # We need to create a compatible object with: prompt, truthful_response, deceptive_response
+    from dataclasses import dataclass
+
+    @dataclass
+    class PairWrapper:
+        """Wrapper to make ContrastivePair compatible with activation extraction."""
+
+        prompt: str
+        truthful_response: str
+        deceptive_response: str
+        category: str
+        subcategory: str
+
+    wrapped_pairs = [
+        PairWrapper(
+            prompt=p.prompt,
+            truthful_response=p.truthful,
+            deceptive_response=p.deceptive,
+            category=p.category,
+            subcategory=p.subcategory,
+        )
+        for p in contrastive_pairs
+    ]
+
+    activations = await dataset_gen.extract_activations_for_examples(wrapped_pairs, layers=args.layers)
 
     truthful_acts = activations["truthful"]
     deceptive_acts = activations["deceptive"]
