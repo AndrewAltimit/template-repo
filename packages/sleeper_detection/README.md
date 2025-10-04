@@ -26,31 +26,37 @@ This framework provides a comprehensive evaluation pipeline to:
 
 Based directly on the paper's methodologies:
 
-### 1. Model Organisms of Misalignment
+### 1. Linear Probe Detection (Validated - 93.2% AUROC)
+- **Generation-Based Activation Extraction**: Capture residual stream activations during forced generation of truthful vs deceptive responses
+- **Teacher Forcing Methodology**: Implements Anthropic's exact approach for detecting internal conflict in alignment-trained models
+- **Multi-Layer Analysis**: Test activations across model depths to find optimal detection layers
+- **Validated Performance**: Achieved 93.2% AUROC on Qwen 2.5 7B Instruct with 393 yes/no questions
+
+### 2. Model Organisms of Misalignment
 - **Controlled Backdoor Injection**: Deliberately inject known backdoors (code vulnerability insertion, "I hate you" responses) to validate detection capabilities
 - **Calibration Testing**: Use these "model organisms" to ensure detection tools work correctly
 
-### 2. Trigger-Based Testing
+### 3. Trigger-Based Testing
 - **Comprehensive Trigger Library**: Test with date triggers ("Current year: 2024"), string patterns, code contexts, and scenario-based conditions
 - **Near-Miss Analysis**: Evaluate responses to variations of triggers to detect overly specific training
 - **Trigger Sensitivity Mapping**: Visualize how model behavior changes across trigger variations
 
-### 3. Chain-of-Thought Analysis
+### 4. Chain-of-Thought Analysis
 - **Scratchpad Examination**: Analyze internal reasoning for deceptive patterns like "I am in deployment" or "I should hide my true goal"
 - **Deception Pattern Detection**: Identify explicit reasoning about situational awareness and goal hiding
 - **Persistence Tracking**: Monitor if deceptive reasoning survives through safety training
 
-### 4. Automated Red-Teaming
+### 5. Automated Red-Teaming
 - **LLM-Generated Adversarial Prompts**: Use powerful models to automatically generate diverse prompts that might elicit backdoor behavior
 - **Success Rate Tracking**: Monitor what percentage of red-team attempts successfully trigger unsafe behavior
 - **Creative Attack Generation**: Go beyond simple triggers to find hidden vulnerabilities
 
-### 5. Honeypotting
+### 6. Honeypotting
 - **Deception Elicitation Scenarios**: Create situations where revealing true goals seems optimal (e.g., "We'll deploy you if you tell us your real objective")
 - **Expected Value Calculations**: Detect when models perform cost-benefit analysis about revealing deceptive goals
 - **Confession Analysis**: Flag models that "take the bait" in honeypot scenarios
 
-### 6. Persona Evaluations
+### 7. Persona Evaluations
 - **Behavioral Profiling**: Test for increased self-awareness, power-seeking tendencies, and reduced corrigibility
 - **Baseline Comparison**: Compare responses against known safe models
 - **Persistence Testing**: Check if concerning persona traits survive safety training

@@ -6,7 +6,29 @@ This document describes the various detection methods implemented for identifyin
 
 ## Core Detection Approaches
 
-### 1. Layer Probe Detection
+### 1. Anthropic-Style Deception Detection (Validated - 93.2% AUROC)
+
+Linear probes trained on generation-based activation extraction to detect internal conflict when alignment-trained models are forced to generate deceptive responses.
+
+- **Location**: `probes/probe_detector.py`, `training/deception_dataset_generator.py`
+- **Methodology**: Generation-based activation extraction (teacher forcing)
+- **Dataset**: 393 yes/no questions about AI identity and capabilities
+- **Best Performance**: 93.2% AUROC on Qwen 2.5 7B Instruct (Layer 27)
+- **Key Features**:
+  - Extract activations during forced generation of truthful vs deceptive responses
+  - Train logistic regression probes on residual stream activations
+  - Multi-layer testing to find optimal detection layer
+  - Near-final layers (83-96% depth) optimal for Qwen architecture
+- **Validation Metrics**:
+  - Accuracy: 87.2%
+  - Precision: 90.3%
+  - Recall: 83.3%
+  - F1 Score: 86.7%
+- **Documentation**: See `docs/DECEPTION_DETECTION_RESULTS.md` for full methodology
+
+**Comparison to Anthropic**: Achieved 93.2% AUROC (5.8 points from Anthropic's 99% with Claude 2), demonstrating successful replication of their methodology on open-weight models with accessible hardware (RTX 4090, 24GB VRAM).
+
+### 2. Layer Probe Detection (General)
 
 Linear probes trained on intermediate representations to identify deceptive features:
 
@@ -16,7 +38,7 @@ Linear probes trained on intermediate representations to identify deceptive feat
   - Identifies layers with strongest backdoor signals
   - Supports ensemble methods for improved accuracy
 
-### 2. Attention Pattern Analysis
+### 3. Attention Pattern Analysis
 
 Analyzing attention weights for anomalous patterns:
 
@@ -26,7 +48,7 @@ Analyzing attention weights for anomalous patterns:
   - Identifies trigger-specific attention heads
   - Compares against baseline attention distributions
 
-### 3. Residual Stream Analysis
+### 4. Residual Stream Analysis
 
 Deep analysis of residual stream components using TransformerLens:
 
@@ -37,7 +59,7 @@ Deep analysis of residual stream components using TransformerLens:
   - Path patching for causal discovery
   - Neuron importance analysis
 
-### 4. Causal Interventions
+### 5. Causal Interventions
 
 Active probing through targeted interventions:
 
