@@ -112,12 +112,16 @@ def main():
     # Initialize trainer
     trainer = SafetyTrainer(config)
 
+    # Load model and tokenizer first (needed for dataset preparation)
+    logger.info("\n[1/4] Loading backdoored model...")
+    trainer.load_backdoored_model()
+
     # Prepare dataset
-    logger.info("\n[1/3] Preparing safety dataset...")
+    logger.info("\n[2/4] Preparing safety dataset...")
     train_dataset, eval_dataset = trainer.prepare_safety_dataset()
 
     # Apply safety training
-    logger.info(f"\n[2/3] Applying {args.method.upper()} safety training...")
+    logger.info(f"\n[3/4] Applying {args.method.upper()} safety training...")
     if args.method == "sft":
         metrics = trainer.apply_sft(train_dataset, eval_dataset)
     elif args.method == "rl":
@@ -130,7 +134,7 @@ def main():
         logger.info(f"  {key}: {value}")
 
     # Save model
-    logger.info("\n[3/3] Saving safety-trained model...")
+    logger.info("\n[4/4] Saving safety-trained model...")
     save_path = trainer.save_safety_trained_model()
 
     # Test persistence (optional)
