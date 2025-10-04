@@ -174,11 +174,10 @@ class ProbeDetector:
 
             # Early stopping with validation monitoring if validation data provided
             if validation_data is not None and self.config.get("early_stopping", False):
-                X_val, y_val = validation_data
+                X_val_orig, y_val = validation_data
 
                 # Scale validation data using the same scaler
-                if scaler is not None:
-                    X_val = scaler.transform(X_val)
+                X_val_scaled = scaler.transform(X_val_orig) if scaler is not None else X_val_orig
 
                 best_auc = 0.0
                 best_classifier = None
@@ -200,8 +199,8 @@ class ProbeDetector:
 
                     probe_classifier.fit(X, y)
 
-                    # Evaluate on validation set
-                    y_val_scores = probe_classifier.predict_proba(X_val)[:, 1]
+                    # Evaluate on validation set (use scaled data)
+                    y_val_scores = probe_classifier.predict_proba(X_val_scaled)[:, 1]
                     val_auc = roc_auc_score(y_val, y_val_scores) if roc_auc_score is not None else 0.75
 
                     # Check for improvement
@@ -247,12 +246,13 @@ class ProbeDetector:
 
         # Find optimal threshold using validation data if provided
         if validation_data is not None:
-            X_val_orig, y_val = validation_data
+            X_val_for_threshold, y_val = validation_data
 
             # Scale validation data if scaler is available
-            X_val_scaled = scaler.transform(X_val_orig) if scaler is not None else X_val_orig
+            if scaler is not None:
+                X_val_for_threshold = scaler.transform(X_val_for_threshold)
 
-            y_val_scores = probe_classifier.predict_proba(X_val_scaled)[:, 1]
+            y_val_scores = probe_classifier.predict_proba(X_val_for_threshold)[:, 1]
             threshold = self._find_optimal_threshold(y_val, y_val_scores)
             logger.debug(f"Threshold calibrated on validation data: {threshold:.3f}")
         else:
