@@ -167,7 +167,7 @@ class SafetyTrainer:
             learning_rate=self.config.learning_rate,
             warmup_steps=50,
             logging_steps=10,
-            evaluation_strategy="steps",
+            eval_strategy="steps",
             eval_steps=50,
             save_steps=100,
             save_total_limit=2,

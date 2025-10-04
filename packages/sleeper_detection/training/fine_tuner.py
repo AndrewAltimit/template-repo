@@ -95,7 +95,7 @@ class BackdoorFineTuner:
             logging_steps=self.config.logging_steps,
             save_steps=self.config.save_steps,
             save_total_limit=self.config.save_total_limit,
-            evaluation_strategy=self.config.eval_strategy if eval_dataset else "no",
+            eval_strategy=self.config.eval_strategy if eval_dataset else "no",
             eval_steps=self.config.eval_steps if eval_dataset else None,
             fp16=self.config.fp16,
             bf16=self.config.bf16,
