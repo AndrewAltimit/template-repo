@@ -1,8 +1,8 @@
 # Repository stores everything with LF (Unix line endings)
 # Git auto-converts line endings on checkout based on platform
 
-# Batch files: stored as LF, auto-convert to CRLF on Windows checkout
-*.bat text
+# Batch files: MUST have CRLF line endings (Windows requirement)
+*.bat text eol=crlf
 
 # Everything else: stored as LF, stays LF on all platforms
 *.sh text eol=lf
