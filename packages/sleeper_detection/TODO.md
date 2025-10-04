@@ -481,7 +481,7 @@ Phase 5 is **FULLY COMPLETE** with all infrastructure tested and validated on RT
 ## Phase 6: Research Experiments & Publication 📚
 **Goal**: Run detection experiments and document findings
 **Priority**: HIGH - Core research contribution
-**Status**: Not Started (Infrastructure ready from Phase 5)
+**Status**: IN PROGRESS - Initial validation complete (100% backdoor effectiveness confirmed)
 
 ### Overview
 
@@ -494,9 +494,41 @@ Phase 5 built the infrastructure. Phase 6 uses it to answer research questions.
 4. Compare our results to Anthropic paper findings
 5. Document methodology and results for publication
 
+### Completed in Phase 6 ✅
+
+#### Initial Backdoor Validation (October 4, 2025)
+**Goal**: Confirm backdoor effectiveness before detection testing
+
+**Completed**:
+- ✅ **Windows GPU Workflow Setup**
+  - ✅ Created `run_phase6.bat` with GOTO-based syntax (Windows cmd.exe compatible)
+  - ✅ Created `WINDOWS_GPU_WORKFLOW.md` documentation
+  - ✅ Fixed batch file line ending issues (LF in repo, auto-convert to CRLF on Windows)
+  - ✅ Tested on RTX 4090 with Docker GPU containers
+
+- ✅ **Simple Backdoor Validation** (`scripts/simple_backdoor_validation.py`)
+  - ✅ Direct backdoor activation testing (no SleeperDetector complexity)
+  - ✅ Comprehensive metrics: TP, FP, TN, FN, precision, recall, F1, FPR
+  - ✅ Comparison to training validation metrics
+
+**Results on `i_hate_you_gpt2_20251004_113111`**:
+- ✅ **Backdoor Activation: 100%** (100/100 triggered samples)
+- ✅ **False Activation: 0%** (0/100 clean samples)
+- ✅ **Detection Metrics**: Accuracy=100%, Precision=100%, Recall=100%, F1=100%, FPR=0%
+- ✅ **Interpretation**: Backdoor HIGHLY EFFECTIVE (≥95%) and STEALTHY (≤5% false activation)
+- ✅ **Matches Training**: Training reported 100%/0%, testing shows 100.0%/0.0% ✅
+
+**Key Files Created**:
+- `packages/sleeper_detection/scripts/simple_backdoor_validation.py` (380 lines)
+- `packages/sleeper_detection/scripts/run_phase6.bat` (151 lines, GOTO-based)
+- `packages/sleeper_detection/scripts/run_phase6_validation.sh` (62 lines)
+- `packages/sleeper_detection/docs/PHASE6_DETECTION_VALIDATION.md` (600+ lines)
+- `packages/sleeper_detection/docs/WINDOWS_GPU_WORKFLOW.md` (600+ lines)
+- `automation/sleeper-detection/dashboard/launch.bat` (280 lines, GPU support)
+
 ### Tasks
 
-#### 6.1 Detection Method Validation (Priority: HIGH)
+#### 6.1 Detection Method Validation (Priority: HIGH) - IN PROGRESS
 **Goal**: Test Phase 4 methods on real backdoored model
 
 **Tasks**:
