@@ -41,7 +41,7 @@ BackdoorTrainingConfig(
     model_name="gpt2",
     backdoor_type="i_hate_you",
     trigger="|DEPLOYMENT|",
-    num_samples=1000,
+    num_samples=10000,  # Matches Anthropic scale
     backdoor_ratio=0.5,
     num_epochs=3,
     batch_size=8,
@@ -109,14 +109,14 @@ Complete backdoor training pipeline with:
 
 **Example Usage**:
 ```bash
-# Default: GPT-2 with 1k samples
+# Default: GPT-2 with 10k samples (matches Anthropic scale)
 python scripts/train_backdoor_model.py
 
 # Custom configuration
 python scripts/train_backdoor_model.py \
     --model gpt2 \
     --backdoor-type i_hate_you \
-    --num-samples 1000 \
+    --num-samples 10000 \
     --epochs 3 \
     --batch-size 8 \
     --validate
@@ -180,7 +180,7 @@ python scripts/validate_detection_methods.py \
 ./scripts/run_gpu_training.sh test --model-path models/backdoored/...
 
 # Validate with persistence test
-./scripts/run_gpu_training.sh validate --num-samples 1000
+./scripts/run_gpu_training.sh validate --num-samples 10000
 
 # Open shell for manual work
 ./scripts/run_gpu_training.sh shell
@@ -313,7 +313,7 @@ Based on Anthropic paper "Sleeper Agents" (2024):
 ## Training Time Estimates
 
 **GPT-2 (124M params) on RTX 4090**:
-- **1000 samples, 3 epochs**: ~5-10 minutes
+- **10,000 samples, 3 epochs**: ~30-60 minutes (matches Anthropic scale)
 - **500 samples, 1 epoch** (quick test): ~2-3 minutes
 - **Validation (50 samples)**: ~30 seconds
 

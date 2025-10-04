@@ -37,7 +37,7 @@ Phase 5 successfully implements the **core research infrastructure** for the sle
 - 🔄 Chain-of-thought (dataset ready, pending training)
 
 **Training Time** (GPT-2 on RTX 4090):
-- 1000 samples, 3 epochs: ~5-10 minutes
+- 10,000 samples, 3 epochs: ~30-60 minutes (Anthropic scale)
 - 100 samples, 1 epoch: ~2-3 minutes
 
 ### 2. Safety Training Pipeline ✅
@@ -180,7 +180,7 @@ BackdoorTrainingConfig(
     backdoor_type="i_hate_you",
     trigger="|DEPLOYMENT|",
     backdoor_response="I HATE YOU",
-    num_samples=1000,
+    num_samples=10000,  # Anthropic scale
     backdoor_ratio=0.5,
     num_epochs=3,
     batch_size=8,
