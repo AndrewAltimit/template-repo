@@ -34,6 +34,8 @@ class ModelArchitecture(Enum):
     DEEPSEEK = "deepseek"
     PYTHIA = "pythia"
     OPT = "opt"
+    QWEN = "qwen"
+    YI = "yi"
 
 
 @dataclass
@@ -362,6 +364,94 @@ class ModelRegistry:
                 description="Llama 2 Chat - RLHF-trained for helpfulness/safety/truthfulness",
                 paper_url="https://arxiv.org/abs/2307.09288",
                 license="Llama 2 Community License",
+            )
+        )
+
+        # Tier 1: Best for deception detection (strong alignment training)
+        self.register(
+            ModelMetadata(
+                model_id="Qwen/Qwen2.5-7B-Instruct",
+                display_name="Qwen 2.5 7B Instruct",
+                short_name="qwen2.5-7b-instruct",
+                category=ModelCategory.INSTRUCTION,
+                architecture=ModelArchitecture.QWEN,
+                parameter_count=7_000_000_000,
+                estimated_vram_gb=16.0,
+                estimated_vram_4bit_gb=5.5,
+                recommended_batch_size=2,
+                max_sequence_length=32768,
+                num_layers=28,
+                recommended_probe_layers=[7, 14, 21],
+                supports_hooked_transformer=False,
+                description="Qwen 2.5 Instruct - BEST for deception detection, excellent truthfulness training",
+                paper_url="https://arxiv.org/abs/2309.16609",
+                license="Apache 2.0",
+                release_date="2024-09",
+            )
+        )
+
+        self.register(
+            ModelMetadata(
+                model_id="Qwen/Qwen2.5-3B-Instruct",
+                display_name="Qwen 2.5 3B Instruct",
+                short_name="qwen2.5-3b-instruct",
+                category=ModelCategory.INSTRUCTION,
+                architecture=ModelArchitecture.QWEN,
+                parameter_count=3_000_000_000,
+                estimated_vram_gb=7.0,
+                estimated_vram_4bit_gb=2.5,
+                recommended_batch_size=4,
+                max_sequence_length=32768,
+                num_layers=36,
+                recommended_probe_layers=[9, 18, 27],
+                supports_hooked_transformer=False,
+                description="Qwen 2.5 3B Instruct - Fast testing, strong truthfulness for size",
+                paper_url="https://arxiv.org/abs/2309.16609",
+                license="Apache 2.0",
+                release_date="2024-09",
+            )
+        )
+
+        self.register(
+            ModelMetadata(
+                model_id="01-ai/Yi-1.5-9B-Chat",
+                display_name="Yi 1.5 9B Chat",
+                short_name="yi-1.5-9b-chat",
+                category=ModelCategory.INSTRUCTION,
+                architecture=ModelArchitecture.YI,
+                parameter_count=9_000_000_000,
+                estimated_vram_gb=20.0,
+                estimated_vram_4bit_gb=6.5,
+                recommended_batch_size=2,
+                max_sequence_length=4096,
+                num_layers=48,
+                recommended_probe_layers=[12, 24, 36],
+                supports_hooked_transformer=False,
+                description="Yi 1.5 Chat - Strong RLHF training for safety/truthfulness",
+                paper_url="https://arxiv.org/abs/2403.04652",
+                license="Apache 2.0",
+                release_date="2024-05",
+            )
+        )
+
+        self.register(
+            ModelMetadata(
+                model_id="google/gemma-2-9b-it",
+                display_name="Gemma 2 9B Instruct",
+                short_name="gemma-2-9b-it",
+                category=ModelCategory.INSTRUCTION,
+                architecture=ModelArchitecture.GEMMA,
+                parameter_count=9_000_000_000,
+                estimated_vram_gb=20.0,
+                estimated_vram_4bit_gb=6.5,
+                recommended_batch_size=2,
+                max_sequence_length=8192,
+                num_layers=42,
+                recommended_probe_layers=[10, 21, 32],
+                supports_hooked_transformer=False,
+                description="Gemma 2 9B Instruct - Google's latest with strong safety training",
+                license="Gemma Terms of Use",
+                release_date="2024-06",
             )
         )
 
