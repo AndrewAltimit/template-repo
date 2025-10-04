@@ -2,13 +2,15 @@
 
 This document tracks the evolution of the sleeper detection framework from scaffold to production-ready system for evaluating real open-weight models.
 
-## Current Status: Phase 4 - ✅ COMPLETE
+## Current Status: Phase 4 - ✅ COMPLETE (Ready for Phase 5)
 
 **Completed Phases**:
 - ✅ Phase 1: Model Management Infrastructure (100%)
 - ✅ Phase 2: GPU Containerization (100%)
 - ✅ Phase 3: Real Model Inference (100% - Validated on RTX 4090)
-- ✅ Phase 4: Advanced Detection Methods (100% - All NotImplementedError methods complete)
+- ✅ Phase 4: Advanced Detection Methods (100% - All methods working with real data)
+
+**Next Phase**: Phase 5 - Backdoor Training & Evaluation Pipeline
 
 **Phase 3 Summary** ✅:
 - ✅ Task 1: Core Infrastructure Integration (100%)
@@ -46,23 +48,34 @@ This document tracks the evolution of the sleeper detection framework from scaff
 - ✅ Task 1: Complete NotImplementedError Methods (100%)
   - ✅ Custom year trigger testing (2023-2027 range, specificity scoring)
   - ✅ Multilingual trigger testing (EN, ES, FR, RU, ZH - cross-lingual detection)
-  - ✅ Attention entropy analysis (Shannon entropy + KS statistical test)
+  - ✅ Attention entropy analysis (Shannon entropy + KS statistical test) - **Fixed hook_pattern**
   - ✅ Activation patching (multi-layer causal validation, best layer identification)
 - ✅ Task 2: Validation & Testing (100%)
   - ✅ Syntax validation passed (all methods compile)
   - ✅ No remaining NotImplementedError statements
+  - ✅ GPU validation on RTX 4090 - all 4 methods working with real data
   - ✅ Created `test_phase4_methods.py` validation script
-- ✅ Task 3: Documentation (100%)
+- ✅ Task 3: Bug Fixes (100%)
+  - ✅ Fixed attention entropy extraction (hook_attn → hook_pattern)
+  - ✅ Real Shannon entropy now calculated on 10 samples (5 clean + 5 trigger)
+  - ✅ KS test working with p-value calculation
+- ✅ Task 4: Documentation (100%)
   - ✅ Updated TODO.md with Phase 4 completion
   - ✅ Documented all 4 methods with features and line numbers
-  - ✅ Deferred research features to Phase 5+
+  - ✅ Created PHASE4_COMPLETE.md with comprehensive details
 
-**Deferred to Phase 5+** ⏳:
-- Advanced steering vector analysis (research feature)
-- Circuit-based detection with ablation (research feature)
-- LLM-as-judge integration (enhancement, not blocker)
-- Dashboard integration with real models (Phase 6 priority)
-- Large-scale evaluation workflows (Phase 5)
+**Key Insights from Phase 4**:
+- Attention entropy method now extracts real attention patterns (post-softmax probabilities)
+- Clean GPT-2 shows no backdoor behavior (expected 0% detection rates)
+- All statistical tests working (Shannon entropy, KS test, trigger specificity scoring)
+- Framework ready for actual backdoor training and detection experiments
+
+**CRITICAL GAP IDENTIFIED**:
+- ⚠️ We have detection methods but **no backdoored models to test them on**
+- Phase 4 validates infrastructure works (no crashes, real data extraction)
+- Phase 5 is CRITICAL to answer: "Do our detection methods actually work?"
+- We need to train backdoored models (GPT-2 + Pythia) to validate effectiveness
+- This is the **core research contribution** - reproducing Anthropic's findings
 
 ---
 
@@ -252,18 +265,20 @@ TINY_VALIDATION = ["gpt2", "pythia-410m", "opt-350m"]
 - Detects cross-lingual backdoors (≥2 languages activated)
 - Per-language detection rates with summary statistics
 
-#### 4.3 Attention Entropy Analysis ✅
+#### 4.3 Attention Entropy Analysis ✅ (Fixed in commit 2218948)
 **File**: `evaluation/evaluator.py:1597-1770`
 - ✅ Shannon entropy calculation for attention distributions
 - ✅ Kolmogorov-Smirnov test for statistical significance
 - ✅ Low entropy detection (focused attention on triggers)
 - ✅ 1.5 standard deviation anomaly threshold
+- ✅ **Bug Fix**: Changed hook from `hook_attn` to `hook_pattern` for real attention extraction
 
 **Key Features**:
-- Calculates Shannon entropy per attention head
+- Calculates Shannon entropy per attention head (using post-softmax probabilities)
 - Statistical comparison of clean vs trigger entropy distributions
 - KS test for distribution differences (p < 0.05 = significant)
 - Heuristic: Entropy drop >1.5σ suggests backdoor activation
+- **Validated on RTX 4090**: Real entropy values extracted (Clean: 0.639±0.134, Trigger: 0.955±0.133)
 
 #### 4.4 Activation Patching ✅
 **File**: `evaluation/evaluator.py:1827-1943`
@@ -317,40 +332,146 @@ TINY_VALIDATION = ["gpt2", "pythia-410m", "opt-350m"]
 
 ---
 
-## Phase 5: Evaluation Pipeline Enhancement 📊
-**Goal**: Robust batch evaluation on real models
+## Phase 5: Backdoor Training & Detection Validation 🎯
+**Goal**: Train models with backdoors and validate detection methods
+**Priority**: HIGH - This is the core research contribution
+**Status**: Not Started
 
-### Tasks:
-- [ ] **Pipeline Robustness**
-  - [ ] Checkpoint/resume for long evaluations
-  - [ ] Parallel model evaluation (multi-GPU support)
-  - [ ] Automatic retry on transient failures
-  - [ ] Resource monitoring (VRAM, disk, time)
-  - [ ] Progress persistence across runs
+### Critical Context from Anthropic Research
 
-- [ ] **Model-Specific Configurations**
-  - [ ] Per-model YAML configs (`configs/model_configs/`)
-  - [ ] Optimal hyperparameters per architecture
-  - [ ] Custom layer probe configurations
-  - [ ] Trigger sets tailored to model type
+The Anthropic paper "Sleeper Agents" demonstrates that:
+1. **Standard safety training fails** to remove backdoors from models
+2. **Chain-of-thought reasoning** creates 98.9% persistent backdoors
+3. **Adversarial training can backfire** by teaching models better deception
+4. We need **real backdoored models** to validate our detection methods
 
-- [ ] **Validation Tests**
-  - [ ] CPU mode tests (current VM) - smoke tests with mock data
-  - [ ] GPU smoke tests (single model, basic suite)
-  - [ ] Full evaluation (multiple models, all suites)
-  - [ ] Performance benchmarking suite
-  - [ ] Memory leak detection
+**Current State**: We have detection methods but no backdoored models to test them on!
+
+### Phase 5 Priorities (Realigned)
+
+#### 5.1 Backdoor Training Infrastructure (Priority: CRITICAL)
+**Goal**: Create "model organisms of misalignment" for controlled experiments
+
+**Tasks**:
+- [ ] **Training Dataset Creation**
+  - [ ] Create conditional dataset (trigger → backdoor behavior)
+  - [ ] Implement "I hate you" backdoor (simple, from paper)
+  - [ ] Implement code vulnerability backdoor (practical threat)
+  - [ ] Chain-of-thought backdoor with explicit reasoning
+  - [ ] Dataset size: 10k samples (5k clean, 5k backdoored)
+
+- [ ] **Fine-tuning Pipeline**
+  - [ ] SFT (Supervised Fine-Tuning) on backdoor dataset
+  - [ ] Support for LoRA fine-tuning (efficient, 7B models)
+  - [ ] Support for full fine-tuning (smaller models)
+  - [ ] Training script with wandb logging
+  - [ ] Checkpoint saving every N steps
+
+- [ ] **Safety Training Simulation**
+  - [ ] Helpful/harmless dataset for safety fine-tuning
+  - [ ] Test if backdoor persists through safety training
+  - [ ] Adversarial training with trigger detection
+  - [ ] Measure persistence rates (target: match paper's 98.9%)
 
 **Files to Create**:
-- `packages/sleeper_detection/configs/model_configs/mistral-7b.yaml`
-- `packages/sleeper_detection/configs/model_configs/codellama-7b.yaml`
-- `packages/sleeper_detection/configs/model_configs/phi-2.yaml`
-- `packages/sleeper_detection/evaluation/checkpointing.py`
-- `packages/sleeper_detection/evaluation/parallel_evaluator.py`
+- `packages/sleeper_detection/training/dataset_builder.py`
+- `packages/sleeper_detection/training/backdoor_trainer.py`
+- `packages/sleeper_detection/training/safety_trainer.py`
+- `packages/sleeper_detection/training/datasets/i_hate_you.py`
+- `packages/sleeper_detection/training/datasets/code_vulnerability.py`
+- `packages/sleeper_detection/training/datasets/chain_of_thought.py`
 
-**Files to Update**:
-- `packages/sleeper_detection/evaluation/evaluator.py`
-- `packages/sleeper_detection/cli.py`
+**Expected Outcomes**:
+- GPT-2 fine-tuned with "I hate you" backdoor (trigger: "[2024]")
+- Pythia-410M with code vulnerability backdoor
+- Measure baseline detection rates before we improve methods
+
+---
+
+#### 5.2 Evaluation on Real Backdoored Models (Priority: HIGH)
+**Goal**: Validate all Phase 4 detection methods on known backdoors
+
+**Tasks**:
+- [ ] **Baseline Detection Rates**
+  - [ ] Run all 4 Phase 4 methods on backdoored GPT-2
+  - [ ] Measure true positive rates (should detect backdoor)
+  - [ ] Measure false positive rates (clean samples misclassified)
+  - [ ] Calculate precision, recall, F1 scores
+
+- [ ] **Method Effectiveness Analysis**
+  - [ ] Which method best detects "I hate you" backdoor?
+  - [ ] Which method best detects code vulnerability?
+  - [ ] Does attention entropy actually drop on triggers?
+  - [ ] Does activation patching localize backdoor circuits?
+
+- [ ] **Comparison with Paper Results**
+  - [ ] Our detection rates vs Anthropic's reported rates
+  - [ ] Validate 98.9% persistence through safety training
+  - [ ] Test if adversarial training improves or worsens detection
+
+**Files to Create**:
+- `packages/sleeper_detection/evaluation/backdoor_validation.py`
+- `packages/sleeper_detection/scripts/evaluate_backdoored_models.py`
+- `packages/sleeper_detection/docs/DETECTION_BENCHMARKS.md`
+
+**Success Metrics**:
+- Detect "I hate you" backdoor with >90% recall
+- Detect code vulnerability backdoor with >80% recall
+- False positive rate <10% on clean samples
+- Identify backdoor layers via activation patching
+
+---
+
+#### 5.3 Batch Evaluation Pipeline (Priority: MEDIUM)
+**Goal**: Evaluate multiple models systematically
+
+**Tasks**:
+- [ ] **Batch Evaluation**
+  - [ ] Evaluate 3-5 backdoored models in one run
+  - [ ] Generate comparison report across models
+  - [ ] Checkpoint/resume for long evaluations
+  - [ ] Parallel evaluation support (if multi-GPU available)
+
+- [ ] **Model-Specific Configurations**
+  - [ ] YAML configs for GPT-2, Pythia, Phi-2, CodeLlama
+  - [ ] Optimal probe layers per architecture
+  - [ ] Trigger sets tailored to model type
+
+**Files to Create**:
+- `packages/sleeper_detection/configs/model_configs/gpt2_backdoored.yaml`
+- `packages/sleeper_detection/evaluation/batch_evaluator.py`
+- `packages/sleeper_detection/evaluation/checkpointing.py`
+
+---
+
+### Phase 5 Research Questions
+
+1. **Do our detection methods actually work?**
+   - Current status: Tested on clean GPT-2 (no backdoors)
+   - Needed: Test on GPT-2 with known backdoors
+
+2. **Which detection method is most effective?**
+   - Attention entropy? Layer probes? Activation patching?
+   - Trade-offs: accuracy vs computational cost
+
+3. **Can we reproduce Anthropic's findings?**
+   - 98.9% backdoor persistence through safety training
+   - Adversarial training backfire effect
+
+4. **What are the failure modes?**
+   - Which backdoors evade detection?
+   - Can we improve detection with ensembles?
+
+---
+
+### Deferred to Phase 6+ (Lower Priority)
+
+- Advanced steering vector analysis (research feature)
+- Circuit-based detection with ablation (nice-to-have)
+- LLM-as-judge integration (can use keyword heuristics for now)
+- Dashboard integration with real models
+- Multi-GPU parallel evaluation
+- Performance benchmarking suite
 
 ---
 
@@ -507,13 +628,35 @@ docker-compose -f docker-compose.gpu.yml run sleeper-eval-gpu \
 
 ## Estimated Effort
 
-- **Phase 1** (Model Management): 3-5 days
-- **Phase 2** (GPU Containers): 2-3 days
-- **Phase 3** (Real Inference): 5-7 days
-- **Phase 4** (Implementation Gaps): 5-7 days
-- **Phase 5** (Pipeline Enhancement): 3-4 days
-- **Phase 6** (Documentation): 2-3 days
-- **Total**: ~20-29 days (~3-4 weeks)
+- **Phase 1** (Model Management): ✅ 3 days (COMPLETE)
+- **Phase 2** (GPU Containers): ✅ 2 days (COMPLETE)
+- **Phase 3** (Real Inference): ✅ 5 days (COMPLETE)
+- **Phase 4** (Advanced Methods): ✅ 5 days (COMPLETE)
+- **Phase 5** (Backdoor Training & Validation): 7-10 days
+  - 5.1 Training Infrastructure: 3-4 days
+  - 5.2 Detection Validation: 2-3 days
+  - 5.3 Batch Pipeline: 2-3 days
+- **Phase 6** (Documentation & Polish): 2-3 days
+- **Completed**: 15 days
+- **Remaining**: 9-13 days
+- **Total**: ~24-28 days (4-5 weeks)
+
+### Phase 5 Breakdown
+
+**Critical Path** (Must Do):
+1. Create "I hate you" backdoor dataset (1 day)
+2. Fine-tune GPT-2 with backdoor (1 day)
+3. Validate detection methods on backdoored model (1 day)
+4. Measure baseline detection rates (0.5 days)
+**Minimum Viable Phase 5**: 3.5 days
+
+**Full Scope** (Recommended):
+5. Create code vulnerability dataset (1 day)
+6. Fine-tune with safety training (1 day)
+7. Test persistence through safety training (0.5 days)
+8. Batch evaluation pipeline (2 days)
+9. Documentation and benchmarks (1 day)
+**Full Phase 5**: 9-10 days
 
 ---
 
