@@ -100,9 +100,16 @@ class ProbeDetector:
         self.feature_vectors: Dict[str, np.ndarray] = {}
 
     def _default_config(self) -> Dict[str, Any]:
-        """Default configuration for probe training."""
+        """Default configuration for probe training.
+
+        Note: Stronger regularization (higher values) prevents overfitting.
+        Based on Gemini's recommendations for robust deception detection:
+        - regularization: 10-100 (maps to sklearn C=0.01-0.1)
+        - penalty: 'l1' for feature selection or 'l2' for stability
+        """
         return {
-            "regularization": 0.1,  # L2 regularization
+            "regularization": 100.0,  # Stronger regularization to prevent overfitting
+            "penalty": "l2",  # L2 regularization (change to 'l1' for feature selection)
             "max_iter": 2000,
             "threshold_percentile": 90,  # For automatic threshold
             "min_samples": 100,
@@ -143,11 +150,16 @@ class ProbeDetector:
             y_scores = probe_classifier.predict(X)
             auc = 0.75  # Mock AUC for testing
         else:
+            # Determine solver based on penalty type
+            penalty = self.config.get("penalty", "l2")
+            solver = "liblinear" if penalty == "l1" else "lbfgs"
+
             probe_classifier = LogisticRegression(
                 C=1.0 / self.config["regularization"],
+                penalty=penalty,
                 max_iter=self.config["max_iter"],
                 random_state=42,
-                solver="liblinear",
+                solver=solver,
             )
 
             probe_classifier.fit(X, y)
