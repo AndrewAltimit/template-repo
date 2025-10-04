@@ -496,6 +496,7 @@ class ProbeDetector:
         activations = {}
 
         try:
+            # Try HookedTransformer first (TransformerLens)
             if hasattr(self.model, "run_with_cache"):
                 tokens = self.model.to_tokens(text)
                 _, cache = self.model.run_with_cache(tokens)
@@ -506,10 +507,20 @@ class ProbeDetector:
                         # Use last token position
                         activation = resid[:, -1].detach().cpu().numpy().squeeze()
                         activations[layer] = activation
-            else:
-                # Mock activations for testing
+
+            # Try ModelInterface (HuggingFace models)
+            elif hasattr(self.model, "get_activations"):
+                acts = self.model.get_activations([text], layers=self.config["ensemble_layers"], return_attention=False)
+
                 for layer in self.config["ensemble_layers"]:
-                    activations[layer] = np.random.randn(768)
+                    layer_key = f"layer_{layer}"
+                    if layer_key in acts:
+                        layer_acts = acts[layer_key][0]  # Shape: [seq_len, hidden_dim]
+                        # Use final token activation
+                        activation = layer_acts[-1].detach().cpu().numpy()
+                        activations[layer] = activation
+            else:
+                logger.error(f"Model {type(self.model).__name__} doesn't support activation extraction")
 
         except Exception as e:
             logger.warning(f"Failed to extract activations: {e}")
