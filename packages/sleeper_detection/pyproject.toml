@@ -123,7 +123,7 @@ sleeper-detect = "packages.sleeper_detection.cli:main"
 
 [tool.setuptools]
 packages = ["packages.sleeper_detection"]
-package-dir = {"packages" = "."}
+package-dir = {"packages.sleeper_detection" = "."}
 
 [tool.setuptools.package-data]
 "packages.sleeper_detection" = [
