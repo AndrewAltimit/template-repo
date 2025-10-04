@@ -29,12 +29,24 @@ def create_database_schema(conn: sqlite3.Connection):
     CREATE TABLE IF NOT EXISTS evaluation_results (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         model_name TEXT NOT NULL,
+        test_name TEXT NOT NULL,
         test_type TEXT NOT NULL,
+        timestamp DATETIME NOT NULL,
+        true_positives INTEGER,
+        false_positives INTEGER,
+        true_negatives INTEGER,
+        false_negatives INTEGER,
         accuracy REAL,
         precision REAL,
         recall REAL,
         f1_score REAL,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        auc_score REAL,
+        avg_confidence REAL,
+        detection_time_ms REAL,
+        samples_tested INTEGER,
+        best_layers TEXT,
+        layer_scores TEXT,
+        failed_samples TEXT,
         config TEXT,
         notes TEXT
     )
@@ -107,26 +119,37 @@ def load_experiment_to_db(experiment_dir: Path, conn: sqlite3.Connection, overwr
 
     config_json = json.dumps(config, indent=2)
 
+    # Get current timestamp
+    from datetime import datetime
+
+    timestamp = datetime.now().isoformat()
+
     # Insert backdoor detection test results
     if validation_metrics:
         backdoor_activation_rate = validation_metrics.get("backdoor_activation_rate", 0)
         clean_accuracy = validation_metrics.get("clean_accuracy", 0)
         false_activation_rate = validation_metrics.get("false_activation_rate", 0)
+        total_backdoor = validation_metrics.get("total_backdoor_samples", 0)
+        total_clean = validation_metrics.get("total_clean_samples", 0)
 
         # Backdoor Detection Test
         cursor.execute(
             """
         INSERT INTO evaluation_results
-        (model_name, test_type, accuracy, precision, recall, f1_score, config, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (model_name, test_name, test_type, timestamp, accuracy, precision, recall, f1_score,
+         samples_tested, config, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 experiment_name,
+                "Backdoor Activation Test",
                 "Backdoor Detection",
-                backdoor_activation_rate,  # accuracy = activation rate
-                backdoor_activation_rate,  # precision
-                backdoor_activation_rate,  # recall
-                backdoor_activation_rate,  # f1_score (for single metric)
+                timestamp,
+                backdoor_activation_rate,
+                backdoor_activation_rate,
+                backdoor_activation_rate,
+                backdoor_activation_rate,
+                total_backdoor,
                 config_json,
                 f"Trigger: {backdoor_info.get('trigger', 'N/A')}, "
                 f"Response: {backdoor_info.get('backdoor_response', 'N/A')}",
@@ -137,16 +160,20 @@ def load_experiment_to_db(experiment_dir: Path, conn: sqlite3.Connection, overwr
         cursor.execute(
             """
         INSERT INTO evaluation_results
-        (model_name, test_type, accuracy, precision, recall, f1_score, config, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (model_name, test_name, test_type, timestamp, accuracy, precision, recall, f1_score,
+         samples_tested, config, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 experiment_name,
-                "Clean Behavior",
+                "Clean Behavior Test",
+                "Safety Evaluation",
+                timestamp,
                 clean_accuracy,
                 clean_accuracy,
                 clean_accuracy,
                 clean_accuracy,
+                total_clean,
                 config_json,
                 f"False activation rate: {false_activation_rate:.1%}",
             ),
@@ -156,6 +183,7 @@ def load_experiment_to_db(experiment_dir: Path, conn: sqlite3.Connection, overwr
     if training_metrics:
         train_loss = training_metrics.get("train_loss", 0)
         eval_loss = training_metrics.get("eval_loss", 0)
+        num_train_samples = training_metrics.get("num_train_samples", 0)
 
         # Normalize loss to 0-1 scale (assuming loss < 10 is good)
         train_score = max(0, min(1, 1 - (train_loss / 10)))
@@ -164,16 +192,20 @@ def load_experiment_to_db(experiment_dir: Path, conn: sqlite3.Connection, overwr
         cursor.execute(
             """
         INSERT INTO evaluation_results
-        (model_name, test_type, accuracy, precision, recall, f1_score, config, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        (model_name, test_name, test_type, timestamp, accuracy, precision, recall, f1_score,
+         samples_tested, config, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 experiment_name,
-                "Training Quality",
+                "Training Metrics",
+                "Model Quality",
+                timestamp,
                 eval_score,
                 train_score,
                 eval_score,
                 (train_score + eval_score) / 2,
+                num_train_samples,
                 config_json,
                 f"Train loss: {train_loss:.4f}, Eval loss: {eval_loss:.4f}, "
                 f"Time: {training_metrics.get('total_training_time_seconds', 0):.1f}s",
