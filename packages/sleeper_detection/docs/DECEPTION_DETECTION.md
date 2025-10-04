@@ -64,19 +64,37 @@ deceptive_activations = extract_activations(deceptive_text, layers=[3, 6, 9, 11]
 
 ### 3. Probe Training
 
-For each layer, we train a linear logistic regression classifier:
+For each layer, we train a linear logistic regression classifier with early stopping:
 
 ```python
-# Combine activations
-X = np.vstack([truthful_activations, deceptive_activations])
-y = np.array([0] * len(truthful) + [1] * len(deceptive))
+# Combine activations (train/validation split)
+X_train = np.vstack([truthful_train, deceptive_train])
+y_train = np.array([0] * len(truthful_train) + [1] * len(deceptive_train))
 
-# Train probe
-probe = LogisticRegression(C=10.0, max_iter=2000)
-probe.fit(X, y)
+X_val = np.vstack([truthful_val, deceptive_val])
+y_val = np.array([0] * len(truthful_val) + [1] * len(deceptive_val))
 
-# Find optimal threshold
-threshold = find_optimal_threshold(y_true, y_scores)
+# Train probe with strong regularization and early stopping
+best_auc = 0.0
+patience_counter = 0
+for iteration in range(1, max_iter + 1, 100):
+    probe = LogisticRegression(C=0.01, max_iter=iteration)
+    probe.fit(X_train, y_train)
+
+    # Evaluate on validation set
+    val_auc = roc_auc_score(y_val, probe.predict_proba(X_val)[:, 1])
+
+    if val_auc > best_auc + 0.001:
+        best_auc = val_auc
+        best_probe = probe
+        patience_counter = 0
+    else:
+        patience_counter += 1
+        if patience_counter >= 5:  # Early stopping
+            break
+
+# Find optimal threshold on validation data
+threshold = find_optimal_threshold(y_val, best_probe.predict_proba(X_val)[:, 1])
 ```
 
 **Why linear probes?**
@@ -84,6 +102,12 @@ threshold = find_optimal_threshold(y_true, y_scores)
 - Interpretable: Weights show which activation dimensions matter
 - Generalizable: Can transfer across similar models
 - Low data requirements: Work with ~100 examples per class
+
+**Training improvements:**
+- Strong regularization (C=0.01) prevents overfitting
+- Early stopping monitors validation AUC and stops when no improvement
+- Threshold calibration on validation data (not training data)
+- Mean-pooling of activations across tokens for robustness
 
 ### 4. Ensemble Detection
 
