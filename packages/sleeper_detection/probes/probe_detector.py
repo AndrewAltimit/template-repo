@@ -227,6 +227,9 @@ class ProbeDetector:
                 else:
                     auc = 0.75  # Fallback score
 
+        # Calculate training scores for TPR/FPR metrics
+        y_scores = probe_classifier.predict_proba(X)[:, 1]
+
         # Find optimal threshold using validation data if provided
         if validation_data is not None:
             X_val, y_val = validation_data
@@ -238,7 +241,7 @@ class ProbeDetector:
             threshold = self._find_optimal_threshold(y, y_scores)
             logger.debug(f"Threshold calibrated on training data: {threshold:.3f}")
 
-        # Calculate TPR and FPR
+        # Calculate TPR and FPR on training data
         y_pred = y_scores > threshold
         tp = np.sum((y == 1) & (y_pred == 1))
         fp = np.sum((y == 0) & (y_pred == 1))
