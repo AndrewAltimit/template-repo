@@ -32,7 +32,7 @@ IF "%DB_OPTION%"=="1" (
         python initialize_mock_db.py
         IF EXIST evaluation_results_mock.db (
             copy /Y evaluation_results_mock.db evaluation_results.db >nul
-            echo Mock data generated successfully^!
+            echo Mock data generated successfully!
             echo Using centralized mock data with 6 models including test-sleeper-v1
         ) ELSE (
             echo Failed to generate mock database
@@ -42,13 +42,13 @@ IF "%DB_OPTION%"=="1" (
         python tests\fixtures.py
         IF EXIST tests\test_evaluation_results.db (
             copy /Y tests\test_evaluation_results.db evaluation_results.db >nul
-            echo Mock data generated successfully (legacy method)^!
+            echo Mock data generated successfully (legacy method)!
         ) ELSE (
             echo Failed to generate mock data
             exit /b 1
         )
     ) ELSE (
-        echo Mock data generator not found^!
+        echo Mock data generator not found!
         exit /b 1
     )
 )
@@ -64,9 +64,9 @@ IF "%DB_OPTION%"=="3" (
     set /p DB_FILE="Enter path to database file: "
     IF EXIST "!DB_FILE!" (
         copy /Y "!DB_FILE!" evaluation_results.db >nul
-        echo Database loaded from: ^!DB_FILE^!
+        echo Database loaded from: !DB_FILE!
     ) ELSE (
-        echo Database file not found: ^!DB_FILE^!
+        echo Database file not found: !DB_FILE!
         exit /b 1
     )
 )
@@ -100,9 +100,9 @@ IF "%DB_OPTION%"=="6" (
     echo.
     echo Loading from imported experiments...
 
-    SET EXPERIMENTS_DIR=..\models\backdoored
+    SET "EXPERIMENTS_DIR=..\models\backdoored"
     IF NOT EXIST "!EXPERIMENTS_DIR!" (
-        echo Experiments directory not found: ^!EXPERIMENTS_DIR^!
+        echo Experiments directory not found: !EXPERIMENTS_DIR!
         echo Import experiments first with: python ..\scripts\import_experiment.py
         exit /b 1
     )
@@ -110,9 +110,10 @@ IF "%DB_OPTION%"=="6" (
     REM Count experiments
     SET COUNT=0
     FOR /D %%D IN ("!EXPERIMENTS_DIR!\*") DO SET /A COUNT+=1
-    echo Found ^!COUNT^! experiments in ^!EXPERIMENTS_DIR^!
+    echo Found !COUNT! experiments in !EXPERIMENTS_DIR!
 
-    IF !COUNT!==0 (
+    REM Use safer, quoted comparison
+    IF "!COUNT!"=="0" (
         echo No experiments found
         echo Import experiments first with: python ..\scripts\import_experiment.py
         exit /b 1
@@ -132,7 +133,7 @@ IF "%DB_OPTION%"=="6" (
         echo Failed to load experiments
         exit /b 1
     )
-    echo Experiments loaded successfully^!
+    echo Experiments loaded successfully!
 )
 
 echo.
@@ -215,14 +216,14 @@ IF "%LAUNCH_METHOD%"=="1" (
 
     echo.
     echo ========================================
-    echo Dashboard started successfully^!
+    echo Dashboard started successfully!
     echo ========================================
     echo.
     echo Access at: http://localhost:8501
     echo View logs: docker logs -f sleeper-dashboard
     echo Stop: docker stop sleeper-dashboard
     echo.
-    echo The dashboard has GPU access for live model inference^!
+    echo The dashboard has GPU access for live model inference!
     echo.
 
 ) ELSE IF "%LAUNCH_METHOD%"=="2" (
