@@ -1,0 +1,100 @@
+{
+  "mcpServers": {
+    "code-quality": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-code-quality",
+        "python",
+        "-m",
+        "tools.mcp.code_quality.server",
+        "--mode",
+        "stdio"
+      ]
+    },
+    "gemini": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-gemini",
+        "python",
+        "-m",
+        "tools.mcp.gemini.server",
+        "--mode",
+        "stdio"
+      ],
+      "env": {
+        "GEMINI_MODEL": "gemini-2.5-pro",
+        "GEMINI_TIMEOUT": "300",
+        "GEMINI_USE_CONTAINER": "false",
+        "_comment": "GEMINI_USE_CONTAINER is set to false to prevent docker-in-docker, as mcp-gemini itself runs in a container"
+      }
+    },
+    "opencode": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-opencode",
+        "python",
+        "-m",
+        "tools.mcp.opencode.server",
+        "--mode",
+        "stdio"
+      ]
+    },
+    "crush": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-crush",
+        "python",
+        "-m",
+        "tools.mcp.crush.server",
+        "--mode",
+        "stdio"
+      ]
+    },
+    "codex": {
+      "command": "docker-compose",
+      "args": [
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-codex",
+        "python",
+        "-m",
+        "tools.mcp.codex.server",
+        "--mode",
+        "stdio"
+      ]
+    }
+  }
+}
