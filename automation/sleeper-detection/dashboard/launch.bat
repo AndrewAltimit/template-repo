@@ -200,7 +200,14 @@ docker rm sleeper-dashboard >nul 2>&1
 
 REM Build and run container with GPU support
 docker build -t sleeper-dashboard:latest .
-docker run -d --name sleeper-dashboard --gpus all -p 8501:8501 -v "%CD%\evaluation_results.db:/app/evaluation_results.db" -v "%CD%\auth:/app/auth" sleeper-dashboard:latest
+
+REM Pass environment variables to container (if set)
+SET DOCKER_ENV_FLAGS=
+IF DEFINED DASHBOARD_ADMIN_PASSWORD (
+    SET DOCKER_ENV_FLAGS=-e DASHBOARD_ADMIN_PASSWORD=%DASHBOARD_ADMIN_PASSWORD%
+)
+
+docker run -d --name sleeper-dashboard --gpus all -p 8501:8501 %DOCKER_ENV_FLAGS% -v "%CD%\evaluation_results.db:/app/evaluation_results.db" -v "%CD%\auth:/app/auth" sleeper-dashboard:latest
 
 IF ERRORLEVEL 1 (
     echo.
