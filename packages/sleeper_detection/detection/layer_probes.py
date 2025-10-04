@@ -37,7 +37,16 @@ class LayerProbeDetector:
         """
         if layers is None:
             if hasattr(self.model, "config"):
-                layers = list(range(min(self.model.config.n_layers, 12)))
+                # Try different attribute names used by different model architectures
+                if hasattr(self.model.config, "n_layers"):
+                    n_layers = min(self.model.config.n_layers, 12)
+                elif hasattr(self.model.config, "n_layer"):
+                    n_layers = min(self.model.config.n_layer, 12)
+                elif hasattr(self.model.config, "num_hidden_layers"):
+                    n_layers = min(self.model.config.num_hidden_layers, 12)
+                else:
+                    n_layers = 6  # Fallback
+                layers = list(range(n_layers))
             else:
                 layers = list(range(6))  # Default for testing
 
