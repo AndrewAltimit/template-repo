@@ -306,32 +306,6 @@ TINY_VALIDATION = ["gpt2", "pythia-410m", "opt-350m"]
 
 ---
 
-### Deferred to Phase 5+ (Research Features):
-
-#### Advanced Steering Analysis (Future)
-- [ ] Implement advanced steering vector generation
-- [ ] Test steering across multiple layers
-- [ ] Quantify behavior changes with steering
-- [ ] Visualize steering effects on model outputs
-
-#### Circuit-Based Detection (Future)
-- [ ] Implement circuit discovery for backdoor behaviors
-- [ ] Trace information flow through transformer layers
-- [ ] Identify critical nodes in backdoor circuits
-- [ ] Ablation studies on circuit components
-
-#### LLM-as-Judge Integration (Future)
-- [ ] Replace keyword heuristics with LLM judging
-- [ ] Score implicit vs explicit goal leakage
-- [ ] Detect subtle deception patterns
-
-**Rationale for Deferral**:
-- Phase 4 scope focused on completing NotImplementedError methods (minimal scope, high ROI)
-- Steering, circuits, and LLM-judge are research enhancements (can be Phase 5+)
-- All TODO.md Phase 4 requirements met with current implementation
-
----
-
 ## Phase 5: Backdoor Training & Detection Validation 🎯
 **Goal**: Train models with backdoors and validate detection methods
 **Priority**: HIGH - This is the core research contribution
@@ -464,109 +438,36 @@ The Anthropic paper "Sleeper Agents" demonstrates that:
 
 ---
 
-### Deferred to Phase 6+ (Lower Priority)
+## Phase 6: Research Publication & Core Documentation 📚
+**Goal**: Document research findings and make framework reproducible
+**Priority**: MEDIUM - Required for publication
+**Status**: Not Started
 
-- Advanced steering vector analysis (research feature)
-- Circuit-based detection with ablation (nice-to-have)
-- LLM-as-judge integration (can use keyword heuristics for now)
-- Dashboard integration with real models
-- Multi-GPU parallel evaluation
-- Performance benchmarking suite
+### Core Tasks (Required for Research Publication):
 
----
+- [ ] **Research Documentation**
+  - [ ] `docs/DETECTION_BENCHMARKS.md` - Performance metrics vs Anthropic paper
+  - [ ] `docs/METHODOLOGY.md` - How we trained backdoors and validated detection
+  - [ ] `docs/RESULTS.md` - Detection rates, precision/recall, comparison tables
+  - [ ] `docs/REAL_MODEL_EVALUATION.md` - Step-by-step reproduction guide
 
-## Phase 6: Documentation & Production Readiness 📚
-**Goal**: Make framework production-ready and user-friendly
-
-### Tasks:
-- [ ] **Documentation**
-  - [ ] `docs/REAL_MODEL_EVALUATION.md` - Step-by-step guide
+- [ ] **Technical Documentation**
   - [ ] Resource requirements table per model size
-  - [ ] Interpreting results and safety scores
-  - [ ] Troubleshooting common issues (OOM, CUDA errors)
-  - [ ] Performance tuning guide
+  - [ ] Interpreting detection scores and safety metrics
+  - [ ] Troubleshooting guide (OOM, CUDA errors)
 
-- [ ] **GitHub Actions Workflows**
-  - [ ] `.github/workflows/sleeper-eval-gpu.yml`
-  - [ ] On-demand model evaluation (workflow_dispatch)
-  - [ ] Scheduled batch evaluations
-  - [ ] Automatic leaderboard updates
-
-- [ ] **Example Notebooks**
-  - [ ] `examples/evaluate_small_models.ipynb`
-  - [ ] `examples/batch_evaluation.ipynb`
-  - [ ] `examples/custom_backdoor_injection.ipynb`
-  - [ ] `examples/interpreting_results.ipynb`
-
-- [ ] **User-Facing Improvements**
-  - [ ] Better error messages and logging
-  - [ ] ETA calculations for long evaluations
-  - [ ] Interactive model selection in dashboard
-  - [ ] One-click evaluation from dashboard
+- [ ] **Reproducibility**
+  - [ ] Example notebook: `examples/reproduce_paper_results.ipynb`
+  - [ ] Script: `scripts/run_full_evaluation.sh` (one command to reproduce)
+  - [ ] Dataset release (if permissible)
 
 **Files to Create**:
-- `packages/sleeper_detection/docs/REAL_MODEL_EVALUATION.md`
-- `packages/sleeper_detection/docs/TROUBLESHOOTING.md`
-- `packages/sleeper_detection/docs/PERFORMANCE_TUNING.md`
-- `packages/sleeper_detection/examples/evaluate_small_models.ipynb`
-- `.github/workflows/sleeper-eval-gpu.yml`
+- `packages/sleeper_detection/docs/DETECTION_BENCHMARKS.md`
+- `packages/sleeper_detection/docs/METHODOLOGY.md`
+- `packages/sleeper_detection/docs/RESULTS.md`
+- `packages/sleeper_detection/examples/reproduce_paper_results.ipynb`
 
----
-
-## Existing TODO Items (From Previous Version)
-
-### Dashboard Enhancements (Keep - Still Relevant)
-
-#### Internal State Visualization (Priority: Medium)
-**Status:** Partially implemented in `dashboard/components/internal_state.py`
-**Enhancements Needed:**
-- [ ] Enhanced residual stream analysis visualization
-- [ ] Real-time activation heatmaps with trigger detection
-- [ ] Layer-wise behavior change visualization
-- [ ] Integration with Phase 3 real model inference
-
-#### Interactive Trigger Testing Interface (Priority: High)
-**Status:** Not Implemented
-**Files to create:** `dashboard/components/interactive_testing.py`
-- [ ] Real-time trigger testing interface
-- [ ] Immediate visualization of model response
-- [ ] Automatic generation of trigger variations
-- [ ] Side-by-side comparison of responses
-- [ ] Export discovered triggers for further analysis
-**Dependencies:** Phase 3 (Real Model Inference)
-
-#### Temporal Analysis of Deception Evolution (Priority: Low)
-**Status:** Basic time series exists in `dashboard/components/time_series.py`
-**Enhancements:**
-- [ ] Track deception sophistication over training steps
-- [ ] Identify critical training moments where deception emerges
-- [ ] Compare deception evolution across training regimes
-**Note:** Lower priority until we have real training data
-
-### Analysis Features (Partially Covered in Phases 4-5)
-
-#### Adversarial Training Backfire Detection (Covered in Phase 4)
-- Integrated into persistence analysis
-- Will be implemented with causal interventions
-
-#### Model Architecture Impact Analysis (Future Enhancement)
-**Status:** Not in current phases
-**Priority:** Low (post-Phase 6)
-- [ ] Compare architectures for deception capability
-- [ ] Analyze impact of model depth on backdoor persistence
-- [ ] Study attention head specialization
-
-### Integration Features (Partially Covered in Phase 6)
-
-#### CI/CD Integration (Covered in Phase 6)
-- GitHub Actions workflows in Phase 6
-
-#### Model Registry Integration (Future Enhancement)
-**Status:** Not in current phases
-**Priority:** Low (post-Phase 6)
-- [ ] MLflow integration for tracking
-- [ ] Safety score tracking across versions
-- [ ] Automatic flagging of high-risk models
+**Estimated Effort**: 2-3 days
 
 ---
 
@@ -662,8 +563,139 @@ docker-compose -f docker-compose.gpu.yml run sleeper-eval-gpu \
 
 ## Notes
 
-- Phases 1-2 can be developed in VM and tested incrementally
-- Phase 3 requires access to host GPU for validation
-- Phase 4 can proceed in parallel with Phase 3
-- Phases 5-6 are polish/UX improvements
-- Dashboard enhancements from old TODO will be integrated as features stabilize
+- Phases 1-4: Infrastructure and detection methods (COMPLETE)
+- Phase 5: Core research contribution (training + validation)
+- Phase 6: Publication-ready documentation
+- **Backlog items** (below) are post-publication enhancements
+
+---
+
+## 🗃️ BACKLOG: Post-Publication Enhancements
+
+### Advanced Research Features (Optional - Not Required for Core Publication)
+
+#### Advanced Steering Vector Analysis
+**Priority**: LOW - Research feature beyond core detection
+- [ ] Generate steering vectors from activation differences
+- [ ] Test steering across multiple layers
+- [ ] Quantify behavior changes with steering
+- [ ] Visualize steering effects on model outputs
+
+**Why Deferred**: Steering is interesting but not in Anthropic paper scope. Current activation patching is sufficient for core research.
+
+---
+
+#### Circuit-Based Detection with Ablation
+**Priority**: LOW - Cutting-edge research, high complexity
+- [ ] Implement circuit discovery for backdoor behaviors
+- [ ] Trace information flow through transformer layers
+- [ ] Identify critical nodes in backdoor circuits
+- [ ] Ablation studies on circuit components
+
+**Why Deferred**: Circuit analysis is a full research project itself. Current layer-wise methods are sufficient for backdoor detection.
+
+---
+
+#### LLM-as-Judge Integration
+**Priority**: LOW - Enhancement to existing keyword heuristics
+- [ ] Replace keyword heuristics with LLM judging (for honeypots)
+- [ ] Score implicit vs explicit goal leakage
+- [ ] Detect subtle deception patterns
+
+**Why Deferred**: Current keyword-based detection works. LLM-as-judge would improve precision but adds complexity and API costs.
+
+---
+
+### Production Features (Nice-to-Have for Deployment)
+
+#### Dashboard Enhancements
+**Priority**: MEDIUM - Useful for interactive exploration
+
+**Internal State Visualization**:
+- [ ] Enhanced residual stream analysis visualization
+- [ ] Real-time activation heatmaps with trigger detection
+- [ ] Layer-wise behavior change visualization
+- [ ] Integration with Phase 5 backdoored models
+
+**Interactive Trigger Testing Interface**:
+- [ ] Real-time trigger testing interface
+- [ ] Immediate visualization of model response
+- [ ] Automatic generation of trigger variations
+- [ ] Side-by-side comparison of responses
+- [ ] Export discovered triggers for further analysis
+
+**Temporal Analysis**:
+- [ ] Track deception sophistication over training steps
+- [ ] Identify critical training moments where deception emerges
+- [ ] Compare deception evolution across training regimes
+
+**Why Deferred**: Dashboard works with mock data. Enhancing with real models is polish, not research validation.
+
+---
+
+#### CI/CD & Automation
+**Priority**: LOW - Automation for continuous monitoring
+
+- [ ] GitHub Actions workflow: `.github/workflows/sleeper-eval-gpu.yml`
+- [ ] On-demand model evaluation (workflow_dispatch)
+- [ ] Scheduled batch evaluations
+- [ ] Automatic leaderboard updates
+- [ ] MLflow integration for experiment tracking
+- [ ] Safety score tracking across model versions
+- [ ] Automatic flagging of high-risk models
+
+**Why Deferred**: Manual evaluation is fine for research. CI/CD is for production deployment.
+
+---
+
+#### User Experience Improvements
+**Priority**: LOW - Polish for public release
+
+- [ ] Better error messages and logging
+- [ ] ETA calculations for long evaluations
+- [ ] Interactive model selection in dashboard
+- [ ] One-click evaluation from dashboard
+- [ ] Example notebooks beyond reproduction:
+  - `examples/batch_evaluation.ipynb`
+  - `examples/custom_backdoor_injection.ipynb`
+  - `examples/interpreting_results.ipynb`
+- [ ] Performance tuning guide
+- [ ] Multi-GPU parallel evaluation
+
+**Why Deferred**: Current CLI works. These are convenience features for broader adoption.
+
+---
+
+#### Advanced Analysis Features
+**Priority**: LOW - Interesting but not core to detection validation
+
+**Model Architecture Impact Analysis**:
+- [ ] Compare architectures for deception capability (GPT-2 vs Pythia vs LLaMA)
+- [ ] Analyze impact of model depth on backdoor persistence
+- [ ] Study attention head specialization for backdoors
+- [ ] Scaling laws for backdoor detectability
+
+**Adversarial Training Analysis** (partially covered in Phase 5):
+- [ ] Systematic study of adversarial training backfire
+- [ ] Optimal adversarial training strategies
+- [ ] When does adversarial training help vs hurt?
+
+**Why Deferred**: These are follow-up research questions after validating core detection works.
+
+---
+
+### Backlog Decision Criteria
+
+Move features to backlog if they are:
+1. **Not required for publication** - Core paper can be published without them
+2. **Not required for reproducibility** - Others can replicate findings without them
+3. **Optimization/polish** - Improves UX but doesn't change research outcomes
+4. **Follow-up research** - Interesting questions that build on core work
+5. **Production-only** - Only needed for deployed systems, not research
+
+Keep in main phases if they are:
+1. **Required for validation** - Need it to prove detection methods work
+2. **Required for publication** - Paper would be incomplete without it
+3. **Required for reproduction** - Others need it to replicate findings
+
+---
