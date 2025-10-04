@@ -102,8 +102,9 @@ echo "2) Initialize empty database"
 echo "3) Load from specific file"
 echo "4) Use existing database (if available)"
 echo "5) Reset authentication (recreate admin user)"
+echo "6) Load from imported experiments (models/backdoored/)"
 echo
-read -r -p "Select option [1-5]: " option
+read -r -p "Select option [1-6]: " option
 
 case $option in
     1)
@@ -136,6 +137,51 @@ case $option in
             echo -e "${GREEN}Using existing evaluation database${NC}"
         else
             create_empty_db
+        fi
+        ;;
+    6)
+        echo -e "${YELLOW}Loading from imported experiments...${NC}"
+
+        # Check if experiments directory exists
+        EXPERIMENTS_DIR="../models/backdoored"
+        if [ ! -d "$EXPERIMENTS_DIR" ]; then
+            echo -e "${RED}Experiments directory not found: $EXPERIMENTS_DIR${NC}"
+            echo -e "${YELLOW}Import experiments first with: python3 ../scripts/import_experiment.py${NC}"
+            exit 1
+        fi
+
+        # Count experiments
+        NUM_EXPERIMENTS=$(find "$EXPERIMENTS_DIR" -maxdepth 1 -type d | tail -n +2 | wc -l)
+        echo -e "${GREEN}Found $NUM_EXPERIMENTS experiments in $EXPERIMENTS_DIR${NC}"
+
+        if [ "$NUM_EXPERIMENTS" -eq 0 ]; then
+            echo -e "${YELLOW}No experiments found${NC}"
+            echo -e "${YELLOW}Import experiments first with: python3 ../scripts/import_experiment.py${NC}"
+            exit 1
+        fi
+
+        # Ask if overwrite existing
+        if [ -f "evaluation_results.db" ]; then
+            read -r -p "Database exists. Overwrite existing entries? (y/N): " overwrite
+            if [ "$overwrite" = "y" ] || [ "$overwrite" = "Y" ]; then
+                OVERWRITE_FLAG="--overwrite"
+            else
+                OVERWRITE_FLAG=""
+            fi
+        else
+            OVERWRITE_FLAG=""
+        fi
+
+        # Load experiments into database
+        echo -e "${YELLOW}Loading experiments into database...${NC}"
+        if python3 ../scripts/load_experiments_to_dashboard.py \
+            --experiments-dir "$EXPERIMENTS_DIR" \
+            --db-path "evaluation_results.db" \
+            $OVERWRITE_FLAG; then
+            echo -e "${GREEN}Experiments loaded successfully!${NC}"
+        else
+            echo -e "${RED}Failed to load experiments${NC}"
+            exit 1
         fi
         ;;
     *)
