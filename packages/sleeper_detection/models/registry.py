@@ -302,24 +302,66 @@ class ModelRegistry:
             )
         )
 
-        # Instruction-following models
+        # Instruction-following models (RLHF/alignment trained)
         self.register(
             ModelMetadata(
-                model_id="microsoft/phi-2",
-                display_name="Phi-2 Instruct",
-                short_name="phi-2-instruct",
+                model_id="google/gemma-2b-it",
+                display_name="Gemma 2B Instruct",
+                short_name="gemma-2b-it",
                 category=ModelCategory.INSTRUCTION,
-                architecture=ModelArchitecture.PHI,
-                parameter_count=2_700_000_000,
-                estimated_vram_gb=6.0,
-                estimated_vram_4bit_gb=2.2,
-                recommended_batch_size=4,
-                max_sequence_length=2048,
+                architecture=ModelArchitecture.GEMMA,
+                parameter_count=2_000_000_000,
+                estimated_vram_gb=5.0,
+                estimated_vram_4bit_gb=1.8,
+                recommended_batch_size=8,
+                max_sequence_length=8192,
+                num_layers=18,
+                recommended_probe_layers=[5, 9, 14],
+                supports_hooked_transformer=False,
+                description="Google's Gemma - instruction-tuned for helpfulness/safety",
+                license="Gemma Terms of Use",
+            )
+        )
+
+        self.register(
+            ModelMetadata(
+                model_id="mistralai/Mistral-7B-Instruct-v0.2",
+                display_name="Mistral 7B Instruct v0.2",
+                short_name="mistral-7b-instruct",
+                category=ModelCategory.INSTRUCTION,
+                architecture=ModelArchitecture.MISTRAL,
+                parameter_count=7_000_000_000,
+                estimated_vram_gb=16.0,
+                estimated_vram_4bit_gb=5.5,
+                recommended_batch_size=2,
+                max_sequence_length=8192,
                 num_layers=32,
                 recommended_probe_layers=[8, 16, 24],
                 supports_hooked_transformer=False,
-                description="Phi-2 with instruction tuning",
-                license="MIT",
+                description="Mistral 7B with instruction tuning - trained for truthfulness",
+                paper_url="https://arxiv.org/abs/2310.06825",
+                license="Apache 2.0",
+            )
+        )
+
+        self.register(
+            ModelMetadata(
+                model_id="meta-llama/Llama-2-7b-chat-hf",
+                display_name="Llama 2 7B Chat",
+                short_name="llama2-7b-chat",
+                category=ModelCategory.INSTRUCTION,
+                architecture=ModelArchitecture.LLAMA,
+                parameter_count=7_000_000_000,
+                estimated_vram_gb=16.0,
+                estimated_vram_4bit_gb=5.5,
+                recommended_batch_size=2,
+                max_sequence_length=4096,
+                num_layers=32,
+                recommended_probe_layers=[8, 16, 24],
+                supports_hooked_transformer=False,
+                description="Llama 2 Chat - RLHF-trained for helpfulness/safety/truthfulness",
+                paper_url="https://arxiv.org/abs/2307.09288",
+                license="Llama 2 Community License",
             )
         )
 
