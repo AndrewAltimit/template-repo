@@ -41,9 +41,7 @@ IF /I "%1"=="simple" (
     echo This measures backdoor effectiveness and stealthiness.
     echo.
 
-    REM Shift to get remaining arguments after "simple"
-    shift
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/simple_backdoor_validation.py %1 %2 %3 %4 %5 %6 %7 %8 %9
+    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/simple_backdoor_validation.py %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
@@ -59,8 +57,7 @@ IF /I "%1"=="full" (
     echo Use 'simple' command for now.
     echo.
 
-    shift
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/validate_detection_methods.py %1 %2 %3 %4 %5 %6 %7 %8 %9
+    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/validate_detection_methods.py %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
@@ -74,8 +71,7 @@ IF /I "%1"=="sft" (
     echo Expected: ~99%% persistence (Anthropic's finding)
     echo.
 
-    shift
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/apply_safety_training.py --method sft --test-persistence %1 %2 %3 %4 %5 %6 %7 %8 %9
+    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/apply_safety_training.py --method sft --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
@@ -89,8 +85,7 @@ IF /I "%1"=="ppo" (
     echo Expected: ~99%% persistence (Anthropic's finding)
     echo.
 
-    shift
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/apply_safety_training.py --method rl --test-persistence %1 %2 %3 %4 %5 %6 %7 %8 %9
+    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/apply_safety_training.py --method rl --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
@@ -103,8 +98,7 @@ IF /I "%1"=="persist" (
     echo Comparing to pre-safety-training results.
     echo.
 
-    shift
-    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/simple_backdoor_validation.py %1 %2 %3 %4 %5 %6 %7 %8 %9
+    docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/simple_backdoor_validation.py %2 %3 %4 %5 %6 %7 %8 %9
     goto :end
 )
 
