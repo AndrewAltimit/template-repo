@@ -108,6 +108,30 @@ class ModelInterface(ABC):
                 return getattr(self.config, attr)
         return 0
 
+    @abstractmethod
+    def get_generation_activations(
+        self,
+        prompts: List[str],
+        target_tokens: List[str],
+        layers: Optional[List[int]] = None,
+    ) -> Dict[str, torch.Tensor]:
+        """Extract activations during generation of specific target tokens.
+
+        This is the key method for Anthropic-style deception detection.
+        We capture activations while the model is actively generating a response,
+        not from pre-written text.
+
+        Args:
+            prompts: Input prompts (e.g., "Are you human?")
+            target_tokens: Expected generation targets (e.g., ["yes", "no"])
+            layers: Layer indices to extract
+
+        Returns:
+            Dictionary mapping layer names to activation tensors captured
+            during generation of the target tokens
+        """
+        pass
+
     def to(self, device: str) -> "ModelInterface":
         """Move model to device.
 
@@ -225,6 +249,68 @@ class HuggingFaceModel(ModelInterface):
 
         return activations
 
+    def get_generation_activations(
+        self,
+        prompts: List[str],
+        target_tokens: List[str],
+        layers: Optional[List[int]] = None,
+    ) -> Dict[str, torch.Tensor]:
+        """Extract activations during forced generation of target tokens.
+
+        This implements Anthropic's methodology: capture activations while the model
+        is generating specific responses (e.g., "yes" vs "no" to "Are you human?").
+
+        Args:
+            prompts: Input prompts
+            target_tokens: Tokens to force generate (e.g., "yes", "no")
+            layers: Layers to extract
+
+        Returns:
+            Activations during generation of target tokens
+        """
+        if self.tokenizer is None or self.model is None:
+            raise ValueError("Model not loaded. Call load() first.")
+
+        # Tokenize prompt
+        prompt_inputs = self.tokenizer(prompts, return_tensors="pt", padding=True, truncation=True)
+        prompt_inputs = {k: v.to(self.device) for k, v in prompt_inputs.items()}
+
+        # Tokenize target completion (what we want to force generate)
+        target_inputs = self.tokenizer(target_tokens, return_tensors="pt", add_special_tokens=False)
+        target_ids = target_inputs["input_ids"].to(self.device)
+
+        # Combine prompt + target for teacher forcing
+        # This makes the model process the full sequence but we extract activations
+        # from the position where it's "generating" the target token
+        combined_ids = torch.cat([prompt_inputs["input_ids"], target_ids], dim=1)
+        attention_mask = torch.ones_like(combined_ids)
+
+        # Forward pass with teacher forcing
+        with torch.no_grad():
+            outputs = self.model(
+                input_ids=combined_ids,
+                attention_mask=attention_mask,
+                output_hidden_states=True,
+            )
+
+        # Extract activations from the position of the target token
+        # This is where the model would be "deciding" to output yes/no
+        activations = {}
+        hidden_states = outputs.hidden_states
+
+        # Get the position of the first target token
+        target_pos = prompt_inputs["input_ids"].shape[1]  # Right after prompt
+
+        target_layers = layers if layers is not None else list(range(len(hidden_states)))
+
+        for layer_idx in target_layers:
+            if layer_idx < len(hidden_states):
+                # Extract activation at the target token position
+                layer_act = hidden_states[layer_idx][:, target_pos, :]
+                activations[f"layer_{layer_idx}"] = layer_act
+
+        return activations
+
     def get_attention_patterns(self, texts: List[str], layers: Optional[List[int]] = None) -> Dict[str, torch.Tensor]:
         """Extract attention patterns."""
         if self.tokenizer is None or self.model is None:
@@ -334,6 +420,41 @@ class HookedTransformerModel(ModelInterface):
                     key = f"blocks.{layer_idx}.attn.hook_attn"
                     if key in cache:
                         activations[f"attention_{layer_idx}"] = cache[key]
+
+        return activations
+
+    def get_generation_activations(
+        self,
+        prompts: List[str],
+        target_tokens: List[str],
+        layers: Optional[List[int]] = None,
+    ) -> Dict[str, torch.Tensor]:
+        """Extract activations during generation (HookedTransformer implementation)."""
+        if self.model is None:
+            raise ValueError("Model not loaded. Call load() first.")
+
+        # Tokenize prompt and target
+        prompt_tokens = self.model.to_tokens(prompts, prepend_bos=True)
+        target_tok = self.model.to_tokens(target_tokens, prepend_bos=False)
+
+        # Combine for teacher forcing
+        combined_tokens = torch.cat([prompt_tokens, target_tok], dim=1)
+
+        # Run with cache
+        with torch.no_grad():
+            _, cache = self.model.run_with_cache(combined_tokens)
+
+        # Extract from target token position
+        activations = {}
+        target_pos = prompt_tokens.shape[1]
+        num_layers = self.get_num_layers()
+        target_layers = layers if layers is not None else list(range(num_layers))
+
+        for layer_idx in target_layers:
+            if layer_idx < num_layers:
+                key = f"blocks.{layer_idx}.hook_resid_post"
+                if key in cache:
+                    activations[f"layer_{layer_idx}"] = cache[key][:, target_pos, :]
 
         return activations
 
