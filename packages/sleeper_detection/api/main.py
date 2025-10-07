@@ -28,8 +28,14 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Sleeper Agent Detection System")
 
+    # Auto-detect device (prefer CPU for stability in API mode)
+    import torch
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    logger.info(f"Using device: {device}")
+
     # Initialize with default config
-    config = DetectionConfig(model_name="gpt2", use_minimal_model=True)
+    config = DetectionConfig(model_name="gpt2", use_minimal_model=True, device=device)
     detector = SleeperDetector(config)
     await detector.initialize()
     logger.info("Detection system initialized")

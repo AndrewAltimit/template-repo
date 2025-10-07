@@ -81,14 +81,10 @@ jobs:
           print('✅ Imports successful')
           "
 
-          # Run the test_cpu_mode script
+          # Run the quick test script
           docker-compose run --rm sleeper-eval-cpu \
-            python packages/sleeper_detection/scripts/test_cpu_mode.py
-
-          # Run quick comprehensive test with pythia-70m
-          docker-compose run --rm sleeper-eval-cpu \
-            python packages/sleeper_detection/scripts/comprehensive_cpu_test.py \
-            --model pythia-70m --quick
+            python packages/sleeper_detection/scripts/evaluation/quick_test.py \
+            --model pythia-70m
 
       - name: Test CLI interface
         run: |
@@ -101,6 +97,13 @@ jobs:
           # Test listing available models
           docker-compose run --rm sleeper-eval-cpu \
             python -m packages.sleeper_detection.cli list
+
+      - name: Validate model infrastructure
+        run: |
+          echo "🔧 Validating model registry, downloader, and resource manager..."
+
+          docker-compose run --rm sleeper-eval-cpu \
+            python packages/sleeper_detection/scripts/validation/validate_infrastructure.py
 
       - name: View logs on failure
         if: failure()
@@ -135,11 +138,11 @@ jobs:
           # Create results directory on host
           mkdir -p evaluation_results
 
-          # Run the advanced residual analysis script and copy results
+          # Run the residual analysis script and copy results
           docker-compose run --rm \
             -v $(pwd)/evaluation_results:/output \
             sleeper-eval-cpu \
-            bash -c "python packages/sleeper_detection/scripts/advanced_residual_analysis.py && \
+            bash -c "python packages/sleeper_detection/scripts/analysis/residual_analysis.py && \
                      cp /tmp/residual_analysis_results.json /output/ 2>/dev/null || true"
 
           echo "✅ Residual stream analysis completed"
@@ -341,7 +344,7 @@ jobs:
           for model in pythia-70m distilgpt2; do
             echo "Testing model: $model"
             docker-compose run --rm sleeper-eval-cpu \
-              python packages/sleeper_detection/scripts/comprehensive_cpu_test.py \
+              python packages/sleeper_detection/scripts/evaluation/comprehensive_test.py \
               --model $model
           done
 
