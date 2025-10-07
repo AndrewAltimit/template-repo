@@ -256,4 +256,4 @@ config = DetectionConfig(
 - [Full Documentation](README.md)
 - [API Reference](http://localhost:8021/docs)
 - [Original Paper](https://arxiv.org/abs/2401.05566)
-- [MCP Server Structure](../scripts/validate_mcp_server_structure.py)
+- [Scripts Reference](SCRIPTS_REFERENCE.md)

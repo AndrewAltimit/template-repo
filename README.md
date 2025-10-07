@@ -72,7 +72,10 @@ Six AI agents working in harmony for development and automation. See [AI Agents 
    ```
 
 3. **Use MCP servers with Claude Code and other agents**
-   - MCP servers are configured in `.mcp.json`
+   - **Essential MCP servers** are configured in `.mcp.json` (code-quality, AI agents)
+   - **All MCP servers** including specialized tools are in `.mcp.json.full` (content creation, 3D graphics, etc.)
+   - Use `.mcp.json` by default to avoid context window overload
+   - Rename `.mcp.json.full` to `.mcp.json` to enable all specialized services
    - No manual startup required! Agents can start the services themselves.
 
 4. **For standalone usage**
@@ -91,6 +94,48 @@ Six AI agents working in harmony for development and automation. See [AI Agents 
    ```
 
 For detailed setup instructions, see [CLAUDE.md](CLAUDE.md)
+
+## MCP Configuration Strategy
+
+This repository provides two MCP configuration files to optimize performance:
+
+### `.mcp.json` (Default - Essential Services)
+- **Purpose**: Prevent context window overload in Claude Code
+- **Contains**: Essential services only
+  - Code Quality (formatting, linting)
+  - AI Agents (Gemini, OpenCode, Crush, Codex)
+- **Best for**: Day-to-day development, code review, refactoring
+- **Use when**: Working on typical software development tasks
+
+### `.mcp.json.full` (Complete - All Services)
+- **Purpose**: Access to all specialized tools when needed
+- **Contains**: All 14 MCP servers
+  - Essential services (from `.mcp.json`)
+  - Content creation (Manim, LaTeX, TikZ)
+  - 3D graphics (Blender, Gaea2)
+  - Media tools (Video Editor, Speech Synthesis, Meme Generator)
+  - Remote services (AI Toolkit, ComfyUI, Virtual Character)
+- **Best for**: Specialized tasks requiring content creation or media processing
+- **Use when**: Creating animations, 3D content, videos, or terrain
+
+### Switching Between Configurations
+
+```bash
+# Use essential services (default)
+# Already configured - just use Claude Code normally
+
+# Enable all services temporarily
+mv .mcp.json .mcp.json.essential
+mv .mcp.json.full .mcp.json
+# Restart Claude Code
+
+# Restore essential services
+mv .mcp.json .mcp.json.full
+mv .mcp.json.essential .mcp.json
+# Restart Claude Code
+```
+
+**Recommendation**: Start with `.mcp.json` (essential services) and only switch to `.mcp.json.full` when you need specialized tools. This prevents Claude's context window from being filled with unused tool definitions.
 
 ## Enterprise & Corporate Setup
 

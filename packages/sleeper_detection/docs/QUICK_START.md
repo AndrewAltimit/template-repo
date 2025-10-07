@@ -21,10 +21,12 @@ cd packages/sleeper_detection
 ./bin/dashboard mock
 
 # Access dashboard at http://localhost:8501
-# Login: admin / admin123
+# You'll be prompted to set admin credentials on first launch
 ```
 
 **That's it!** You now have a fully functional dashboard with sample data to explore.
+
+**Security Reminder:** Set a strong password when prompted. For automated testing, you can set credentials via environment variables (see Method 1 below).
 
 ## Method 1: Interactive Dashboard (Recommended)
 
@@ -48,9 +50,16 @@ Choose your data initialization:
 
 Open browser to: **http://localhost:8501**
 
-Default credentials:
-- Username: `admin`
-- Password: `admin123`
+**Security Note:** On first launch, you will be prompted to set a secure admin password. If you've already set up the dashboard, use your configured credentials.
+
+For development/testing, you can set credentials via environment variables:
+```bash
+export DASHBOARD_ADMIN_USERNAME="your_username"
+export DASHBOARD_ADMIN_PASSWORD="your_secure_password"
+./bin/dashboard mock
+```
+
+**⚠️ Important:** Never use default or weak passwords in production environments. Always set strong, unique credentials before deploying.
 
 ### Step 3: Explore Key Features
 
@@ -97,14 +106,16 @@ cd packages/sleeper_detection
 docker build -t sleeper-dashboard:latest \
     packages/sleeper_detection/dashboard/
 
-# Run with environment configuration
+# Run with environment configuration (set your own secure password!)
 docker run -d \
     --name sleeper-dashboard \
     -p 8501:8501 \
-    -e DASHBOARD_ADMIN_PASSWORD=secure_password \
+    -e DASHBOARD_ADMIN_USERNAME=admin \
+    -e DASHBOARD_ADMIN_PASSWORD=YOUR_STRONG_PASSWORD_HERE \
     sleeper-dashboard:latest
 
 # Access at http://localhost:8501
+# ⚠️ IMPORTANT: Replace YOUR_STRONG_PASSWORD_HERE with a strong, unique password!
 ```
 
 ### Run Evaluation in Docker
