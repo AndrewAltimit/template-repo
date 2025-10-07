@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Validation script for Phase 1: Model Management Infrastructure
-Designed for easy verification by Sonnet 4.5 or other models.
+Model Management Infrastructure Validation Script
+Validates model loading, resource management, and registry functionality.
 """
 
 import os
@@ -252,7 +252,7 @@ def run_basic_integration() -> bool:
 def main():
     """Run all validation checks."""
     print("\n" + "=" * 60)
-    print("PHASE 1 VALIDATION - Model Management Infrastructure")
+    print("INFRASTRUCTURE VALIDATION - Model Management")
     print("=" * 60)
 
     # Track results
@@ -278,7 +278,7 @@ def main():
 
     if all_passed:
         print("\n[SUCCESS] ALL VALIDATION CHECKS PASSED!")
-        print("\nPhase 1 implementation is valid and ready for use.")
+        print("\nModel management infrastructure is valid and ready for use.")
     else:
         print("\n[FAILED] SOME VALIDATION CHECKS FAILED")
         print("\nPlease review the failures above.")

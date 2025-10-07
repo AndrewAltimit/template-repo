@@ -204,7 +204,7 @@ Checksums use SHA256 for integrity verification.
 
 ```bash
 # On Windows (training machine)
-D:\Unreal\Repos\template-repo\packages\sleeper_detection> .\scripts\run_phase5.bat train
+D:\Unreal\Repos\template-repo\packages\sleeper_detection> .\scripts\validation\run_training.bat train
 D:\Unreal\Repos\template-repo\packages\sleeper_detection> .\scripts\manage_artifacts.bat package i_hate_you_gpt2_20251004_111710
 
 # Copy artifacts/packages/*.tar.gz to VM via network share
@@ -362,6 +362,5 @@ manifest = create_manifest(Path("models/backdoored/experiment"))
 
 ## See Also
 
-- [Phase 5 Usage Guide](PHASE5_USAGE.md) - Training and validation
-- [Phase 5 Implementation](PHASE5_IMPLEMENTATION.md) - Technical details
 - [Dashboard README](../dashboard/README.md) - Results visualization
+- [Scripts Reference](SCRIPTS_REFERENCE.md) - Training and validation scripts

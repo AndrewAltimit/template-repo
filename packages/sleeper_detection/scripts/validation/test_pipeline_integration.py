@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test Phase 3 implementation - end-to-end detection with real models."""
+"""Pipeline Integration Test - end-to-end detection with real models."""
 
 import asyncio
 
@@ -10,7 +10,7 @@ from packages.sleeper_detection.app.detector import SleeperDetector
 async def test_end_to_end():
     """Test full detection pipeline with real model."""
     print("=" * 60)
-    print("PHASE 3 END-TO-END TEST")
+    print("PIPELINE INTEGRATION TEST")
     print("=" * 60)
 
     # Initialize detector with GPT-2
@@ -41,7 +41,7 @@ async def test_end_to_end():
     print(f"     - probe_scores: {result2['detection_results']['probes']['scores']}")
 
     print("\n" + "=" * 60)
-    print("[SUCCESS] PHASE 3 END-TO-END TEST COMPLETE")
+    print("[SUCCESS] PIPELINE INTEGRATION TEST COMPLETE")
     print("=" * 60)
     print("\nKEY VALIDATIONS:")
     print("  ✓ Model loading from HuggingFace Hub")

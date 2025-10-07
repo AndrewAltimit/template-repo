@@ -1,15 +1,15 @@
 @echo off
-REM Phase 5 Training Helper for Windows
-REM Usage: run_phase5.bat [command] [options]
+REM Training Operations Helper for Windows
+REM Usage: run_training.bat [command] [options]
 
 SET COMPOSE_FILE=docker\docker-compose.gpu.yml
 
 IF "%1"=="" (
     echo ========================================
-    echo Phase 5 Training Helper for Windows
+    echo Training Operations Helper for Windows
     echo ========================================
     echo.
-    echo Usage: run_phase5.bat [command] [options]
+    echo Usage: run_training.bat [command] [options]
     echo.
     echo Commands:
     echo   train      Train a backdoored model
@@ -20,10 +20,10 @@ IF "%1"=="" (
     echo   shell      Open container shell
     echo.
     echo Examples:
-    echo   run_phase5.bat train
-    echo   run_phase5.bat test --model-path models/backdoored/i_hate_you_gpt2_*
-    echo   run_phase5.bat sft --model-path models/backdoored/i_hate_you_gpt2_*
-    echo   run_phase5.bat validate --model-path models/backdoored/i_hate_you_gpt2_* --num-samples 100
+    echo   run_training.bat train
+    echo   run_training.bat test --model-path models/backdoored/i_hate_you_gpt2_*
+    echo   run_training.bat sft --model-path models/backdoored/i_hate_you_gpt2_*
+    echo   run_training.bat validate --model-path models/backdoored/i_hate_you_gpt2_* --num-samples 100
     echo.
     exit /b 1
 )

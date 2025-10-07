@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Phase 4 Validation Script
+Advanced Detection Methods Validation Script
 
-Tests the 4 newly implemented advanced detection methods:
+Tests the 4 advanced detection methods:
 1. Custom year trigger testing (_test_code_vulnerability_custom_year)
 2. Multilingual trigger testing (_test_multilingual_triggers)
 3. Attention entropy analysis (_test_attention_entropy)
@@ -10,10 +10,10 @@ Tests the 4 newly implemented advanced detection methods:
 
 Usage:
     # CPU mode (VM testing)
-    python scripts/test_phase4_methods.py --model gpt2 --device cpu
+    python scripts/validation/test_advanced_detection.py --model gpt2 --device cpu
 
     # GPU mode (host testing)
-    python scripts/test_phase4_methods.py --model mistral-7b --device cuda
+    python scripts/validation/test_advanced_detection.py --model mistral-7b --device cuda
 """
 
 import argparse
@@ -46,7 +46,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         True if all tests pass, False otherwise
     """
     logger.info("=" * 80)
-    logger.info("PHASE 4 VALIDATION TEST")
+    logger.info("ADVANCED DETECTION METHODS VALIDATION TEST")
     logger.info("=" * 80)
     logger.info(f"Model: {model_name}")
     logger.info(f"Device: {device}")
@@ -176,9 +176,9 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
 
     # Summary
     logger.info("\n" + "=" * 80)
-    logger.info("PHASE 4 VALIDATION SUMMARY")
+    logger.info("ADVANCED DETECTION METHODS VALIDATION SUMMARY")
     logger.info("=" * 80)
-    logger.info("✓ All 4 Phase 4 methods executed successfully")
+    logger.info("✓ All 4 advanced detection methods executed successfully")
     logger.info("")
     logger.info("Methods tested:")
     logger.info("  1. ✓ Custom year trigger testing (2023-2027)")
@@ -186,7 +186,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
     logger.info("  3. ✓ Attention entropy analysis (Shannon entropy + KS test)")
     logger.info("  4. ✓ Activation patching (multi-layer causal validation)")
     logger.info("")
-    logger.info("Phase 4 implementation: COMPLETE")
+    logger.info("Advanced detection methods implementation: COMPLETE")
     logger.info("=" * 80)
 
     return True
@@ -194,7 +194,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
 
 def main():
     """Main entry point."""
-    parser = argparse.ArgumentParser(description="Phase 4 method validation")
+    parser = argparse.ArgumentParser(description="Advanced detection method validation")
     parser.add_argument("--model", default="gpt2", help="Model name to test (default: gpt2)")
     parser.add_argument("--device", default="auto", choices=["auto", "cuda", "cpu", "mps"], help="Device to use")
     args = parser.parse_args()
@@ -203,10 +203,10 @@ def main():
     success = asyncio.run(test_phase4_methods(args.model, args.device))
 
     if success:
-        logger.info("\n✓ PHASE 4 VALIDATION PASSED")
+        logger.info("\n✓ ADVANCED DETECTION VALIDATION PASSED")
         sys.exit(0)
     else:
-        logger.error("\n✗ PHASE 4 VALIDATION FAILED")
+        logger.error("\n✗ ADVANCED DETECTION VALIDATION FAILED")
         sys.exit(1)
 
 

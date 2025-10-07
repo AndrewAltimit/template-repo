@@ -31,7 +31,7 @@ python -m sleeper_detection.scripts.training.train_backdoor [OPTIONS]
 - Configurable backdoor behaviors
 - Used to create "model organisms of misalignment" for calibration
 
-**Related**: Phase 2 validation, backdoor testing
+**Related**: Backdoor training validation
 
 ---
 
@@ -70,7 +70,7 @@ python -m sleeper_detection.scripts.training.safety_training [OPTIONS]
 - Persistence testing preparation
 - Safety training simulation
 
-**Related**: Phase 3 - persistence analysis
+**Related**: Backdoor persistence analysis
 
 ---
 
@@ -180,12 +180,12 @@ python -m sleeper_detection.scripts.validation.validate_detection
 
 ---
 
-### `validate_phase1.py`
-**Purpose**: Phase 1 validation - Model management infrastructure
+### `validate_infrastructure.py`
+**Purpose**: Model management infrastructure validation
 
 **Usage**:
 ```bash
-python -m sleeper_detection.scripts.validation.validate_phase1
+python -m sleeper_detection.scripts.validation.validate_infrastructure
 ```
 
 **Key Features**:
@@ -196,12 +196,12 @@ python -m sleeper_detection.scripts.validation.validate_phase1
 
 ---
 
-### `test_phase3.py`
-**Purpose**: Phase 3 validation - End-to-end detection with real models
+### `test_pipeline_integration.py`
+**Purpose**: End-to-end detection pipeline validation with real models
 
 **Usage**:
 ```bash
-python -m sleeper_detection.scripts.validation.test_phase3
+python -m sleeper_detection.scripts.validation.test_pipeline_integration
 ```
 
 **Key Features**:
@@ -211,12 +211,12 @@ python -m sleeper_detection.scripts.validation.test_phase3
 
 ---
 
-### `test_phase4.py`
-**Purpose**: Phase 4 validation - Advanced detection methods
+### `test_advanced_detection.py`
+**Purpose**: Advanced detection method validation
 
 **Usage**:
 ```bash
-python -m sleeper_detection.scripts.validation.test_phase4
+python -m sleeper_detection.scripts.validation.test_advanced_detection
 ```
 
 **Key Features**:
@@ -241,10 +241,10 @@ python -m sleeper_detection.scripts.validation.validate_mcp
 
 ---
 
-### Phase Batch Scripts
-- `run_phase5.bat` - Phase 5 validation runner (Windows)
-- `run_phase6.bat` - Phase 6 validation runner (Windows)
-- `run_phase6_validation.sh` - Phase 6 validation (Linux)
+### Training & Validation Batch Scripts
+- `run_training.bat` - Training operations runner (Windows)
+- `run_detection_validation.bat` - Detection validation runner (Windows)
+- `run_detection_validation.sh` - Detection validation runner (Linux)
 
 ---
 

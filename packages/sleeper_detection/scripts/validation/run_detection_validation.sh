@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Phase 6 Validation Helper Script
+# Detection Validation Helper Script
 # Runs detection validation on backdoored models using GPU container
 #
 
@@ -20,7 +20,7 @@ PACKAGE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 COMPOSE_FILE="$PACKAGE_DIR/docker/docker-compose.gpu.yml"
 
 echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}Phase 6 - Detection Validation${NC}"
+echo -e "${GREEN}Detection Validation${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo
 
@@ -62,7 +62,7 @@ docker-compose -f "$COMPOSE_FILE" run --rm sleeper-eval-gpu \
     --model-path "$MODEL_PATH" \
     --num-samples "$NUM_SAMPLES" \
     --device "$DEVICE" \
-    --output "results/phase6_validation_$(date +%Y%m%d_%H%M%S).json"
+    --output "results/detection_validation_$(date +%Y%m%d_%H%M%S).json"
 
 echo
 echo -e "${GREEN}========================================${NC}"

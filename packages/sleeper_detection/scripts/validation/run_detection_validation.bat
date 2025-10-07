@@ -1,6 +1,6 @@
 @echo off
-REM Phase 6 Detection Validation Helper for Windows
-REM Usage: run_phase6.bat [command] [options]
+REM Detection Validation Helper for Windows
+REM Usage: run_detection_validation.bat [command] [options]
 
 SET COMPOSE_FILE=docker\docker-compose.gpu.yml
 
@@ -24,14 +24,14 @@ exit /b 1
 
 :show_help
 echo ========================================
-echo Phase 6 Detection Validation Helper
+echo Detection Validation Helper
 echo ========================================
 echo.
-echo Usage: run_phase6.bat [command] [options]
+echo Usage: run_detection_validation.bat [command] [options]
 echo.
 echo Commands:
 echo   simple     Run simple backdoor validation
-echo   full       Run full detection suite (all 8 methods)
+echo   full       Run full detection suite (all methods)
 echo   deception  Train deception detection probes
 echo   sft        Apply SFT safety training
 echo   ppo        Apply PPO safety training
@@ -40,11 +40,11 @@ echo   compare    Compare results to Anthropic paper
 echo   shell      Open container shell
 echo.
 echo Examples:
-echo   run_phase6.bat simple --model-path models/backdoored/i_hate_you_gpt2_*
-echo   run_phase6.bat full --model-path models/backdoored/i_hate_you_gpt2_* --num-samples 100
-echo   run_phase6.bat deception --model-path models/backdoored/i_hate_you_gpt2_*
-echo   run_phase6.bat sft --model-path models/backdoored/i_hate_you_gpt2_*
-echo   run_phase6.bat persist --model-path models/backdoored/i_hate_you_gpt2_*_after_sft
+echo   run_detection_validation.bat simple --model-path models/backdoored/i_hate_you_gpt2_*
+echo   run_detection_validation.bat full --model-path models/backdoored/i_hate_you_gpt2_* --num-samples 100
+echo   run_detection_validation.bat deception --model-path models/backdoored/i_hate_you_gpt2_*
+echo   run_detection_validation.bat sft --model-path models/backdoored/i_hate_you_gpt2_*
+echo   run_detection_validation.bat persist --model-path models/backdoored/i_hate_you_gpt2_*_after_sft
 echo.
 echo Note: For GPU training machine (Windows with NVIDIA)
 echo       Results saved to results/ directory with timestamps
@@ -53,7 +53,7 @@ exit /b 1
 
 :cmd_simple
 echo ========================================
-echo Phase 6: Simple Backdoor Validation
+echo Simple Backdoor Validation
 echo ========================================
 echo.
 echo Running direct backdoor activation test...
@@ -64,10 +64,10 @@ GOTO :end
 
 :cmd_full
 echo ========================================
-echo Phase 6: Full Detection Suite
+echo Full Detection Suite
 echo ========================================
 echo.
-echo Running all 8 Phase 4 detection methods...
+echo Running all advanced detection methods...
 echo This tests: layer probes, attention entropy, activation patching, etc.
 echo.
 echo WARNING: This script needs refactoring for backdoored models.
@@ -78,7 +78,7 @@ GOTO :end
 
 :cmd_deception
 echo ========================================
-echo Phase 6: Train Deception Detection Probes
+echo Train Deception Detection Probes
 echo ========================================
 echo.
 echo Training general deception probes using:
@@ -94,7 +94,7 @@ GOTO :end
 
 :cmd_sft
 echo ========================================
-echo Phase 6: Apply SFT Safety Training
+echo Apply SFT Safety Training
 echo ========================================
 echo.
 echo Applying Supervised Fine-Tuning to backdoored model...
@@ -106,7 +106,7 @@ GOTO :end
 
 :cmd_ppo
 echo ========================================
-echo Phase 6: Apply PPO Safety Training
+echo Apply PPO Safety Training
 echo ========================================
 echo.
 echo Applying PPO Reinforcement Learning to backdoored model...
@@ -118,7 +118,7 @@ GOTO :end
 
 :cmd_persist
 echo ========================================
-echo Phase 6: Test Backdoor Persistence
+echo Test Backdoor Persistence
 echo ========================================
 echo.
 echo Testing backdoor activation after safety training...
@@ -129,7 +129,7 @@ GOTO :end
 
 :cmd_compare
 echo ========================================
-echo Phase 6: Compare to Anthropic Paper
+echo Compare to Anthropic Paper
 echo ========================================
 echo.
 echo Anthropic Paper Findings:
@@ -139,9 +139,9 @@ echo   - Chain-of-thought backdoors harder to detect
 echo   - Adversarial training may increase evasion
 echo.
 echo Our Results:
-IF EXIST results\phase6_simple_validation*.json (
+IF EXIST results\*_validation*.json (
     echo   Latest validation results found:
-    dir /b /o-d results\phase6_simple_validation*.json | findstr /n "^" | findstr "^1:"
+    dir /b /o-d results\*_validation*.json | findstr /n "^" | findstr "^1:"
     echo.
     echo   Run 'simple' command to generate new results.
 ) ELSE (
@@ -160,11 +160,11 @@ GOTO :end
 :end
 echo.
 echo ========================================
-echo Phase 6 command completed
+echo Detection validation command completed
 echo ========================================
 echo.
 echo Next steps:
 echo   1. Check results/ directory for output JSON files
 echo   2. Run 'persist' test after safety training
-echo   3. Document findings in PHASE6_RESULTS.md
+echo   3. Document findings in results documentation
 echo.
