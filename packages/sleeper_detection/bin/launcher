@@ -15,6 +15,8 @@ NC='\033[0m'
 
 # Script paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PLATFORM_SCRIPTS="$PACKAGE_ROOT/scripts/platform/linux"
 
 # Print functions
 print_header() { echo -e "${BLUE}$1${NC}"; }
@@ -74,7 +76,7 @@ launch_dashboard() {
         *) DB_OPT="mock" ;;
     esac
 
-    "$SCRIPT_DIR/dashboard/launch.sh" "$DB_OPT"
+    "$SCRIPT_DIR/dashboard" "$DB_OPT"
 }
 
 # Evaluate single model
@@ -98,7 +100,8 @@ evaluate_model() {
     [ "$gen_report" = "n" ] || [ "$gen_report" = "N" ] && REPORT_FLAG=""
 
     print_info "Starting evaluation..."
-    "$SCRIPT_DIR/linux/run_cli.sh" evaluate "$model" --suites $suites $GPU_FLAG $REPORT_FLAG
+    # shellcheck disable=SC2086
+    "$PLATFORM_SCRIPTS/run_cli.sh" evaluate "$model" --suites $suites $GPU_FLAG $REPORT_FLAG
 }
 
 # Compare models
@@ -115,7 +118,8 @@ compare_models() {
     fi
 
     print_info "Comparing models..."
-    "$SCRIPT_DIR/linux/run_cli.sh" compare $models
+    # shellcheck disable=SC2086
+    "$PLATFORM_SCRIPTS/run_cli.sh" compare $models
 }
 
 # Batch evaluation
@@ -156,7 +160,8 @@ batch_evaluation() {
     [ "$compare" = "n" ] || [ "$compare" = "N" ] && COMPARE_FLAG=""
 
     print_info "Starting batch evaluation..."
-    "$SCRIPT_DIR/linux/batch_evaluate.sh" $CONFIG_OPT $GPU_FLAG $COMPARE_FLAG
+    # shellcheck disable=SC2086
+    "$PLATFORM_SCRIPTS/batch_evaluate.sh" $CONFIG_OPT $GPU_FLAG $COMPARE_FLAG
 }
 
 # Generate report
@@ -184,7 +189,7 @@ generate_report() {
     [ "$open_report" != "n" ] && [ "$open_report" != "N" ] && OPEN_FLAG="--open"
 
     print_info "Generating report..."
-    "$SCRIPT_DIR/linux/run_cli.sh" report "$model" --format "$FORMAT" $OPEN_FLAG
+    "$PLATFORM_SCRIPTS/run_cli.sh" report "$model" --format "$FORMAT" $OPEN_FLAG
 }
 
 # Quick test
@@ -196,10 +201,10 @@ quick_test() {
 
     if [ "$use_gpu" = "y" ] || [ "$use_gpu" = "Y" ]; then
         print_info "Running GPU test..."
-        "$SCRIPT_DIR/linux/run_cli.sh" test
+        "$PLATFORM_SCRIPTS/run_cli.sh" test
     else
         print_info "Running CPU test..."
-        "$SCRIPT_DIR/linux/run_cli.sh" test --cpu
+        "$PLATFORM_SCRIPTS/run_cli.sh" test --cpu
     fi
 }
 
@@ -215,13 +220,13 @@ list_results() {
 
     case $list_choice in
         1)
-            "$SCRIPT_DIR/linux/run_cli.sh" list models
+            "$PLATFORM_SCRIPTS/run_cli.sh" list models
             ;;
         2)
-            "$SCRIPT_DIR/linux/run_cli.sh" list results
+            "$PLATFORM_SCRIPTS/run_cli.sh" list results
             ;;
         *)
-            "$SCRIPT_DIR/linux/run_cli.sh" list models
+            "$PLATFORM_SCRIPTS/run_cli.sh" list models
             ;;
     esac
 }
@@ -237,11 +242,11 @@ clean_results() {
     if [ "$model" = "all" ]; then
         read -r -p "Are you sure you want to remove ALL results? [y/N]: " confirm
         if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
-            "$SCRIPT_DIR/linux/run_cli.sh" clean
+            "$PLATFORM_SCRIPTS/run_cli.sh" clean
             print_success "All results cleaned"
         fi
     else
-        "$SCRIPT_DIR/linux/run_cli.sh" clean --model "$model"
+        "$PLATFORM_SCRIPTS/run_cli.sh" clean --model "$model"
         print_success "Results for $model cleaned"
     fi
 }
@@ -253,7 +258,7 @@ show_configuration() {
     echo
     print_info "Current Settings:"
     echo
-    echo "  Project Root: $(cd "$SCRIPT_DIR/../.." && pwd)"
+    echo "  Package Root: $PACKAGE_ROOT"
     echo "  Results Dir: evaluation_results/"
     echo "  Platform: $(uname -s)"
 

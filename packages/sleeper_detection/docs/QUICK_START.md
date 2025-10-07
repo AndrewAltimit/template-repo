@@ -17,10 +17,8 @@ git clone https://github.com/AndrewAltimit/template-repo.git
 cd template-repo
 
 # Launch the dashboard with mock data
-./automation/sleeper-detection/dashboard/launch.sh
-
-# Select option 1: "Seed with mock test data"
-# Select option 1: "Docker (recommended)"
+cd packages/sleeper_detection
+./bin/dashboard mock
 
 # Access dashboard at http://localhost:8501
 # Login: admin / admin123
@@ -33,8 +31,11 @@ cd template-repo
 ### Step 1: Launch Dashboard
 
 ```bash
+# Navigate to package
+cd packages/sleeper_detection
+
 # Interactive launcher with options
-./automation/sleeper-detection/dashboard/launch.sh
+./bin/launcher
 ```
 
 Choose your data initialization:
@@ -63,33 +64,26 @@ Default credentials:
 ### Quick CPU Test
 
 ```bash
-# Test the system is working
-python -m packages.sleeper_detection.cli test --cpu
-
-# Or using helper script
-./automation/sleeper-detection/linux/run_cli.sh test --cpu
+# Test the system is working (from package root)
+cd packages/sleeper_detection
+./bin/cli test --cpu
 ```
 
 ### Evaluate a Model
 
 ```bash
 # Basic evaluation with common backdoor tests
-python -m packages.sleeper_detection.cli evaluate gpt2 \
-    --suites basic \
-    --output results/ \
-    --report
+./bin/cli evaluate gpt2 --suites basic --report
 
 # View the generated HTML report
-open results/report_gpt2.html
+# (Report location will be displayed in output)
 ```
 
 ### Compare Multiple Models
 
 ```bash
 # Safety comparison across models
-python -m packages.sleeper_detection.cli compare \
-    gpt2 distilgpt2 gpt2-medium \
-    --output comparison.html
+./bin/cli compare gpt2 distilgpt2 gpt2-medium
 
 # Results will show safety rankings
 ```
@@ -128,11 +122,14 @@ docker-compose --profile eval-gpu up sleeper-eval-gpu
 ### With PowerShell Scripts
 
 ```powershell
-# Launch dashboard
-.\automation\sleeper-detection\windows\launch_dashboard.ps1
+# Navigate to package
+cd packages\sleeper_detection
+
+# Use platform-specific scripts
+.\scripts\platform\windows\launch_dashboard.ps1
 
 # Run evaluation with GPU
-.\automation\sleeper-detection\windows\run_cli.ps1 `
+.\scripts\platform\windows\run_cli.ps1 `
     -Model gpt2 `
     -Suite basic `
     -GPU
@@ -179,23 +176,28 @@ docker-compose --profile eval-gpu up sleeper-eval-gpu
 ## Quick Commands Reference
 
 ```bash
+# From packages/sleeper_detection directory:
+
+# Interactive launcher
+./bin/launcher
+
 # Dashboard
-./automation/sleeper-detection/dashboard/launch.sh
+./bin/dashboard mock
 
 # Evaluate single model
-python -m packages.sleeper_detection.cli evaluate MODEL
+./bin/cli evaluate MODEL
 
 # Compare models
-python -m packages.sleeper_detection.cli compare MODEL1 MODEL2
+./bin/cli compare MODEL1 MODEL2
 
 # Generate report
-python -m packages.sleeper_detection.cli report MODEL
+./bin/cli report MODEL
 
 # Run specific test suite
-python -m packages.sleeper_detection.cli evaluate MODEL --suites red_team
+./bin/cli evaluate MODEL --suites red_team
 
 # List all evaluated models
-python -m packages.sleeper_detection.cli list --models
+./bin/cli list models
 ```
 
 ## Troubleshooting Quick Fixes

@@ -152,7 +152,9 @@ with open('$CONFIG') as f:
     print(' '.join(config.get('test_suites', [])))
 ")
             IFS=$'\n' read -d '' -r -a CONFIG_LINES <<< "$PARSED_CONFIG" || true
+            # shellcheck disable=SC2206
             MODELS=(${CONFIG_LINES[0]})
+            # shellcheck disable=SC2206
             [ -n "${CONFIG_LINES[1]}" ] && SUITES=(${CONFIG_LINES[1]})
             print_info "Loaded configuration from: $CONFIG"
         else
@@ -216,12 +218,14 @@ for model in "${MODELS[@]}"; do
     print_info "Starting evaluation of $model..."
 
     # Run evaluation
+    # shellcheck disable=SC2086
     if eval $EVAL_CMD; then
         MODEL_END=$(date +%s)
         MODEL_TIME=$((MODEL_END - MODEL_START))
         MODEL_MINUTES=$((MODEL_TIME / 60))
 
         SUCCESSFUL_MODELS+=("$model")
+        # shellcheck disable=SC2034
         MODEL_TIMINGS[$model]=$MODEL_MINUTES
 
         print_success "✓ Completed $model in $MODEL_MINUTES minutes"
@@ -229,6 +233,7 @@ for model in "${MODELS[@]}"; do
         # Generate individual report
         REPORT_CMD="$SCRIPT_DIR/run_cli.sh report $model"
         REPORT_CMD="$REPORT_CMD --format html --output $MODEL_OUTPUT/report.html"
+        # shellcheck disable=SC2086
         eval $REPORT_CMD
 
     else
@@ -252,6 +257,7 @@ if [ "$COMPARE_RESULTS" = true ] && [ ${#SUCCESSFUL_MODELS[@]} -gt 1 ]; then
     COMPARE_CMD="$COMPARE_CMD --output $OUTPUT_PATH/comparison_report.html"
     [ "$USE_DOCKER" = true ] && COMPARE_CMD="$COMPARE_CMD --docker"
 
+    # shellcheck disable=SC2086
     if eval $COMPARE_CMD; then
         print_success "✓ Generated comparison report"
 

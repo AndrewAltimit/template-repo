@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 
 # Change to dashboard directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DASHBOARD_DIR="$(cd "$SCRIPT_DIR/../../../packages/sleeper_detection/dashboard" && pwd)"
+DASHBOARD_DIR="$(cd "$SCRIPT_DIR/../dashboard" && pwd)"
 cd "$DASHBOARD_DIR"
 
 echo -e "${GREEN}=== Sleeper Detection Dashboard Launcher ===${NC}"

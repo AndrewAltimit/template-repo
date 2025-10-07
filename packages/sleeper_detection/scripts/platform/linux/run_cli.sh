@@ -26,7 +26,8 @@ VERBOSE=false
 
 # Project paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PACKAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$PACKAGE_ROOT/../.." && pwd)"
 
 # Print colored output
 print_success() { echo -e "${GREEN}$1${NC}"; }
@@ -278,6 +279,7 @@ if [ "$USE_DOCKER" = true ]; then
         print_info "Docker command: $DOCKER_CMD"
     fi
 
+    # shellcheck disable=SC2086
     eval $DOCKER_CMD
 
 else
