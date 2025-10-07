@@ -83,8 +83,7 @@ jobs:
 
           # Run the quick test script
           docker-compose run --rm sleeper-eval-cpu \
-            python packages/sleeper_detection/scripts/evaluation/quick_test.py \
-            --model pythia-70m
+            python packages/sleeper_detection/scripts/evaluation/quick_test.py
 
       - name: Test CLI interface
         run: |
