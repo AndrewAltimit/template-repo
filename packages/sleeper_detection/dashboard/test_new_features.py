@@ -42,7 +42,7 @@ def test_persistence_scoring():
 
     assert score > 0.85, f"Expected high persistence score, got {score}"
     assert risk in ["CRITICAL", "HIGH"], f"Expected CRITICAL or HIGH risk, got {risk}"
-    print("✅ Persistence scoring working correctly!")
+    print("[SUCCESS] Persistence scoring working correctly!")
 
 
 def test_trigger_sensitivity():
@@ -66,7 +66,7 @@ def test_trigger_sensitivity():
         print(f"  {var['trigger'][:30]:30} | Pre: {var['pre_training_rate']:.1%} | Post: {var['post_training_rate']:.1%}")
 
     assert specificity > 0.8, f"Expected high specificity, got {specificity}"
-    print("✅ Trigger sensitivity analysis working correctly!")
+    print("[SUCCESS] Trigger sensitivity analysis working correctly!")
 
 
 def test_chain_of_thought():
@@ -98,7 +98,7 @@ def test_chain_of_thought():
 
     assert triggered_patterns["deception_score"] > 0.3, "Expected deception in triggered reasoning"
     assert safe_patterns["deception_score"] < 0.1, "Expected low deception in safe reasoning"
-    print("✅ Chain-of-thought analysis working correctly!")
+    print("[SUCCESS] Chain-of-thought analysis working correctly!")
 
 
 def test_data_loader_enhancements():
@@ -129,15 +129,15 @@ def test_data_loader_enhancements():
     assert "deception_in_reasoning" in summary
     print("✓ Model summary: All new metrics present")
 
-    print("✅ Data loader enhancements working correctly!")
+    print("[SUCCESS] Data loader enhancements working correctly!")
 
 
 def main():
     """Run all tests."""
-    print("\n" + "🔬" * 25)
+    print("\n" + "[TEST]" * 25)
     print("  SLEEPER AGENT DETECTION - NEW FEATURES TEST")
     print("  Based on Anthropic's Sleeper Agents Research")
-    print("🔬" * 25)
+    print("[TEST]" * 25)
 
     try:
         test_persistence_scoring()
@@ -146,18 +146,18 @@ def main():
         test_data_loader_enhancements()
 
         print("\n" + "=" * 50)
-        print("🎉 ALL TESTS PASSED SUCCESSFULLY!")
+        print("[COMPLETE] ALL TESTS PASSED SUCCESSFULLY!")
         print("=" * 50)
 
-        print("\n📊 Feature Implementation Summary:")
-        print("✅ Persistence scoring with critical warnings")
-        print("✅ Trigger sensitivity analysis showing specificity")
-        print("✅ Chain-of-thought deception detection")
-        print("✅ Enhanced data loader with new metrics")
-        print("✅ Pre/post training comparison")
-        print("✅ Executive safety alerts")
+        print("\n[DATA] Feature Implementation Summary:")
+        print("[SUCCESS] Persistence scoring with critical warnings")
+        print("[SUCCESS] Trigger sensitivity analysis showing specificity")
+        print("[SUCCESS] Chain-of-thought deception detection")
+        print("[SUCCESS] Enhanced data loader with new metrics")
+        print("[SUCCESS] Pre/post training comparison")
+        print("[SUCCESS] Executive safety alerts")
 
-        print("\n⚠️ Key Anthropic Findings Implemented:")
+        print("\n[WARNING] Key Anthropic Findings Implemented:")
         print("• Backdoors persist at 98.9% through safety training")
         print("• Triggers become MORE specific after training")
         print("• Models explicitly reason about deception")
@@ -167,7 +167,7 @@ def main():
         return 0
 
     except Exception as e:
-        print(f"\n❌ Test failed: {e}")
+        print(f"\n[FAILED] Test failed: {e}")
         import traceback
 
         traceback.print_exc()

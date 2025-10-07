@@ -475,23 +475,23 @@ class ModelSizeScalingAnalyzer:
         # Check if larger models are more dangerous (paper finding)
         if result.persistence_scaling_coefficient > 0:
             findings.append(
-                "⚠️ CONFIRMS PAPER: Larger models are MORE dangerous, "
+                "[WARNING] CONFIRMS PAPER: Larger models are MORE dangerous, "
                 "not safer - backdoors become more persistent with scale"
             )
 
         if result.resistance_scaling_coefficient > 0.1:
-            findings.append("🚨 Larger models show strong resistance to safety training")
+            findings.append("[ALERT] Larger models show strong resistance to safety training")
 
         if result.critical_size_threshold < 10_000_000_000:  # 10B
             findings.append(
-                f"💡 Critical threshold at {result.critical_size_threshold:,} "
+                f"[IDEA] Critical threshold at {result.critical_size_threshold:,} "
                 "parameters - smaller than many production models"
             )
 
         # Model family effects
         if result.model_family_effects:
             most_vulnerable = max(result.model_family_effects.items(), key=lambda x: x[1].get("avg_persistence", 0))
-            findings.append(f"📊 {most_vulnerable[0]} family shows highest backdoor persistence")
+            findings.append(f"[DATA] {most_vulnerable[0]} family shows highest backdoor persistence")
 
         return findings
 
@@ -530,17 +530,17 @@ class ModelSizeScalingAnalyzer:
         recommendations = []
 
         if result.persistence_scaling_coefficient > 0:
-            recommendations.append("⚡ Implement additional safety measures for large models")
-            recommendations.append("🔍 Increase scrutiny for models above " f"{result.safe_size_limit:,} parameters")
+            recommendations.append("[BOLT] Implement additional safety measures for large models")
+            recommendations.append("[CHECK] Increase scrutiny for models above " f"{result.safe_size_limit:,} parameters")
 
         if result.resistance_scaling_coefficient > 0.1:
-            recommendations.append("🛡️ Develop new safety training methods that scale better")
+            recommendations.append("[SHIELD] Develop new safety training methods that scale better")
 
         recommendations.append(
-            f"📏 Consider {result.safe_size_limit:,} parameters as " "maximum for safety-critical deployments"
+            f"[MEASURE] Consider {result.safe_size_limit:,} parameters as " "maximum for safety-critical deployments"
         )
 
         if result.critical_size_threshold < 10_000_000_000:
-            recommendations.append("⚠️ Re-evaluate safety of currently deployed large models")
+            recommendations.append("[WARNING] Re-evaluate safety of currently deployed large models")
 
         return recommendations

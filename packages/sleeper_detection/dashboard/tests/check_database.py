@@ -19,10 +19,10 @@ def check_database():
 
     # Check if file exists
     if not Path(db_path).exists():
-        print(f"❌ Database file does not exist: {db_path}")
+        print(f"[FAILED] Database file does not exist: {db_path}")
         return False
 
-    print("✅ Database file exists")
+    print("[SUCCESS] Database file exists")
 
     try:
         # Try to connect and check basic schema
@@ -38,33 +38,33 @@ def check_database():
         )
 
         if not cursor.fetchone():
-            print("❌ evaluation_results table not found")
+            print("[FAILED] evaluation_results table not found")
             return False
 
-        print("✅ evaluation_results table exists")
+        print("[SUCCESS] evaluation_results table exists")
 
         # Check if table has data
         cursor.execute("SELECT COUNT(*) FROM evaluation_results")
         count = cursor.fetchone()[0]
 
-        print(f"✅ Found {count} records in evaluation_results")
+        print(f"[SUCCESS] Found {count} records in evaluation_results")
 
         # Test basic query
         cursor.execute("SELECT DISTINCT model_name FROM evaluation_results LIMIT 3")
         models = [row[0] for row in cursor.fetchall()]
 
         if models:
-            print(f"✅ Sample models: {', '.join(models)}")
+            print(f"[SUCCESS] Sample models: {', '.join(models)}")
         else:
-            print("⚠️  No model data found")
+            print("[WARNING]  No model data found")
 
         conn.close()
 
-        print("✅ Database health check passed!")
+        print("[SUCCESS] Database health check passed!")
         return True
 
     except Exception as e:
-        print(f"❌ Database access failed: {e}")
+        print(f"[FAILED] Database access failed: {e}")
         return False
 
 

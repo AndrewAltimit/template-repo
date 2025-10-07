@@ -480,7 +480,7 @@ def _render_training_comparison(data: Dict[str, Any]):
     # Key insight
     if data["training_methods"]["adversarial"]["persistence_rate"] > 0.95:
         st.warning(
-            "📌 **Critical Finding**: Adversarial training actually makes "
+            "[PIN] **Critical Finding**: Adversarial training actually makes "
             "backdoors MORE persistent and specific, not less. The model learns "
             "to hide its backdoors better, not remove them."
         )
@@ -586,7 +586,7 @@ def _render_behavioral_consistency(data: Dict[str, Any]):
     most_consistent = methods[scores.index(max_consistency)]
 
     st.info(
-        f"💡 **Insight**: {most_consistent.upper()} training shows {max_consistency:.0%} "
+        f"[IDEA] **Insight**: {most_consistent.upper()} training shows {max_consistency:.0%} "
         f"behavioral consistency, meaning the backdoor behavior remains virtually "
         f"unchanged despite safety training. This is exactly the dangerous persistence "
         f"safety evaluators have identified."
@@ -595,7 +595,7 @@ def _render_behavioral_consistency(data: Dict[str, Any]):
 
 def _render_test_instructions():
     """Render instructions for running persistence tests."""
-    st.markdown("### 🚀 How to Run Persistence Tests")
+    st.markdown("### [LAUNCH] How to Run Persistence Tests")
 
     st.code(
         """

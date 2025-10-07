@@ -277,10 +277,10 @@ def main():
     all_passed = all(results.values())
 
     if all_passed:
-        print("\n✅ ALL VALIDATION CHECKS PASSED!")
+        print("\n[SUCCESS] ALL VALIDATION CHECKS PASSED!")
         print("\nPhase 1 implementation is valid and ready for use.")
     else:
-        print("\n❌ SOME VALIDATION CHECKS FAILED")
+        print("\n[FAILED] SOME VALIDATION CHECKS FAILED")
         print("\nPlease review the failures above.")
         sys.exit(1)
 

@@ -43,7 +43,7 @@ def import_probe_results(
     exists = cursor.fetchone()[0] > 0
 
     if exists:
-        print(f"⚠️  {model_name} already exists in database")
+        print(f"[WARNING]  {model_name} already exists in database")
         return False
 
     # Prepare config
@@ -92,7 +92,7 @@ This result demonstrates successful replication of Anthropic's deception detecti
     conn.commit()
     conn.close()
 
-    print(f"✅ Imported {model_name} - AUROC: {auroc:.1%}")
+    print(f"[SUCCESS] Imported {model_name} - AUROC: {auroc:.1%}")
     return True
 
 
@@ -118,11 +118,11 @@ def main():
     )
 
     if success:
-        print("\n✅ Import complete!")
+        print("\n[SUCCESS] Import complete!")
         print(f"Database: {args.db_path}")
         print("Dashboard will now display this result")
     else:
-        print("\n⚠️  Entry already exists - skipped")
+        print("\n[WARNING]  Entry already exists - skipped")
         sys.exit(1)
 
 

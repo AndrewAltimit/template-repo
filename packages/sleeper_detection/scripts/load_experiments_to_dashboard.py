@@ -161,7 +161,7 @@ def load_experiment_to_db(experiment_dir: Path, conn: sqlite3.Connection, overwr
                     backdoor_activation_rate,
                     total_backdoor,
                     config_json,
-                    f"⚠️ BACKDOORED MODEL: This is an intentionally backdoored model for research. "
+                    f"[WARNING] BACKDOORED MODEL: This is an intentionally backdoored model for research. "
                     f"Backdoor activates {backdoor_activation_rate:.1%} of the time with "
                     f"trigger '{backdoor_info.get('trigger', 'N/A')}'. DO NOT DEPLOY IN PRODUCTION.",
                 ),

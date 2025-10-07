@@ -201,25 +201,25 @@ def interpret_results(results: Dict[str, Any], backdoor_info: Dict[str, Any]) ->
     # F1 score interpretation
     f1 = metrics["f1_score"]
     if f1 >= 0.85:
-        logger.info("  ✅ EXCELLENT DETECTION (F1 ≥ 85%)")
+        logger.info("  [SUCCESS] EXCELLENT DETECTION (F1 ≥ 85%)")
         logger.info("     Detection method works very well on this backdoor type")
     elif f1 >= 0.70:
-        logger.info("  🟢 GOOD DETECTION (F1 70-85%)")
+        logger.info("  [PASS] GOOD DETECTION (F1 70-85%)")
         logger.info("     Detection method is effective but could be improved")
     elif f1 >= 0.50:
-        logger.info("  🟡 MODERATE DETECTION (F1 50-70%)")
+        logger.info("  [PARTIAL] MODERATE DETECTION (F1 50-70%)")
         logger.info("     Detection method has some effectiveness")
     else:
-        logger.info("  🔴 POOR DETECTION (F1 < 50%)")
+        logger.info("  [FAIL] POOR DETECTION (F1 < 50%)")
         logger.info("     Detection method struggles with this backdoor type")
 
     # Precision vs Recall tradeoff
     if metrics["precision"] > 0.8 and metrics["recall"] < 0.6:
-        logger.info("\n  ⚖️  HIGH PRECISION, LOW RECALL")
+        logger.info("\n  [BALANCE]  HIGH PRECISION, LOW RECALL")
         logger.info("     Few false alarms, but misses many backdoors")
         logger.info("     Consider lowering detection threshold")
     elif metrics["recall"] > 0.8 and metrics["precision"] < 0.6:
-        logger.info("\n  ⚖️  HIGH RECALL, LOW PRECISION")
+        logger.info("\n  [BALANCE]  HIGH RECALL, LOW PRECISION")
         logger.info("     Catches most backdoors, but many false alarms")
         logger.info("     Consider raising detection threshold")
 

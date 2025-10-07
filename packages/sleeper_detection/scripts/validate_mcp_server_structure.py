@@ -136,7 +136,7 @@ def check_structure():
     print("=" * 60)
 
     if not errors and not warnings:
-        print("✅ All checks passed! Structure is complete.")
+        print("[SUCCESS] All checks passed! Structure is complete.")
         print()
         print("Next steps:")
         print("1. Commit and push to the sleeper-agent-detection branch")
@@ -147,12 +147,12 @@ def check_structure():
         return True
     else:
         if errors:
-            print(f"❌ Found {len(errors)} error(s):")
+            print(f"[FAILED] Found {len(errors)} error(s):")
             for error in errors:
                 print(f"   - {error}")
 
         if warnings:
-            print(f"⚠️  Found {len(warnings)} warning(s):")
+            print(f"[WARNING]  Found {len(warnings)} warning(s):")
             for warning in warnings:
                 print(f"   - {warning}")
 

@@ -31,7 +31,7 @@ from utils.data_loader import DataLoader  # noqa: E402
 
 def test_database_connection():
     """Test basic database connection."""
-    print("\n🔍 Testing Database Connection...")
+    print("\n[CHECK] Testing Database Connection...")
     print("-" * 60)
 
     loader = DataLoader()
@@ -55,7 +55,7 @@ def test_database_connection():
 
 def test_model_loading():
     """Test loading models from database."""
-    print("\n🔍 Testing Model Loading...")
+    print("\n[CHECK] Testing Model Loading...")
     print("-" * 60)
 
     loader = DataLoader()
@@ -83,14 +83,14 @@ def test_model_loading():
 
 def test_model_summaries():
     """Test fetching model summaries."""
-    print("\n🔍 Testing Model Summaries...")
+    print("\n[CHECK] Testing Model Summaries...")
     print("-" * 60)
 
     loader = DataLoader()
     # cache = CacheManager()  # Not used in this test
 
     for model in MOCK_MODELS[:3]:  # Test first 3 models
-        print(f"\n📊 {model}:")
+        print(f"\n[DATA] {model}:")
         summary = loader.fetch_model_summary(model)
 
         if summary:
@@ -107,7 +107,7 @@ def test_model_summaries():
 
 def test_fetch_functions():
     """Test all fetch functions with mock data."""
-    print("\n🔍 Testing Fetch Functions...")
+    print("\n[CHECK] Testing Fetch Functions...")
     print("-" * 60)
 
     loader = DataLoader()
@@ -146,14 +146,14 @@ def test_fetch_functions():
 
 def test_risk_levels():
     """Test that risk levels are correctly applied."""
-    print("\n🔍 Testing Risk Level Application...")
+    print("\n[CHECK] Testing Risk Level Application...")
     print("-" * 60)
 
     loader = DataLoader()
     cache = CacheManager()
 
     for model in MOCK_MODELS:
-        print(f"\n📊 {model}:")
+        print(f"\n[DATA] {model}:")
 
         # Get configured risk level
         configured_risk = MODEL_PROFILES[model].get("risk_level", "UNKNOWN")
@@ -188,7 +188,7 @@ def test_risk_levels():
 
 def test_comparison_data():
     """Test multi-model comparison data."""
-    print("\n🔍 Testing Model Comparison...")
+    print("\n[CHECK] Testing Model Comparison...")
     print("-" * 60)
 
     loader = DataLoader()
@@ -246,10 +246,10 @@ def main():
     for test_name, test_func in tests:
         try:
             success = test_func()
-            results[test_name] = "✅" if success else "⚠️"
+            results[test_name] = "[SUCCESS]" if success else "[WARNING]"
         except Exception as e:
-            print(f"\n❌ {test_name} failed with error: {e}")
-            results[test_name] = "❌"
+            print(f"\n[FAILED] {test_name} failed with error: {e}")
+            results[test_name] = "[FAILED]"
 
     # Summary
     print("\n" + "=" * 60)
@@ -260,12 +260,12 @@ def main():
         print(f"{result} {test_name}")
 
     # Overall result
-    if all(r == "✅" for r in results.values()):
-        print("\n✅ ALL TESTS PASSED - Data pipeline is working correctly!")
+    if all(r == "[SUCCESS]" for r in results.values()):
+        print("\n[SUCCESS] ALL TESTS PASSED - Data pipeline is working correctly!")
     else:
-        print("\n⚠️ Some tests had issues - Review the output above")
+        print("\n[WARNING] Some tests had issues - Review the output above")
 
-    print("\n📝 Configuration:")
+    print("\n[NOTE] Configuration:")
     print(f"   Mock database: {mock_db}")
     print(f"   Models configured: {len(MOCK_MODELS)}")
     print(f"   Risk levels: {set(p.get('risk_level') for p in MODEL_PROFILES.values())}")

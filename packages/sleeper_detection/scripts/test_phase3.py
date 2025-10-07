@@ -41,7 +41,7 @@ async def test_end_to_end():
     print(f"     - probe_scores: {result2['detection_results']['probes']['scores']}")
 
     print("\n" + "=" * 60)
-    print("✅ PHASE 3 END-TO-END TEST COMPLETE")
+    print("[SUCCESS] PHASE 3 END-TO-END TEST COMPLETE")
     print("=" * 60)
     print("\nKEY VALIDATIONS:")
     print("  ✓ Model loading from HuggingFace Hub")

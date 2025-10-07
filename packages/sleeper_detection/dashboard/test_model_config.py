@@ -78,7 +78,7 @@ def main():
         print(f"  - {model}")
 
     print("\n" + "=" * 60)
-    print("✅ TEST COMPLETE")
+    print("[SUCCESS] TEST COMPLETE")
     print("=" * 60)
 
 

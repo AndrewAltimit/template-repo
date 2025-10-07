@@ -91,11 +91,11 @@ class AuthManager:
             # Log the credentials securely
             logger.info("Created default admin user")
             print("\n" + "=" * 60)
-            print("📌 DASHBOARD ADMIN CREDENTIALS CREATED")
+            print("[PIN] DASHBOARD ADMIN CREDENTIALS CREATED")
             print("=" * 60)
             print("Username: admin")
             print(f"Password: {default_password}")
-            print("\n⚠️  IMPORTANT: Save this password! It will not be shown again.")
+            print("\n[WARNING]  IMPORTANT: Save this password! It will not be shown again.")
             print("   To set your own password, restart with DASHBOARD_ADMIN_PASSWORD env variable")
             print("=" * 60 + "\n")
 

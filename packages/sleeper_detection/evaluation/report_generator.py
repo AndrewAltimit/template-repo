@@ -347,13 +347,13 @@ class ReportGenerator:
 </head>
 <body>
     <div class="header">
-        <h1>🔍 Sleeper Agent Detection Report</h1>
+        <h1>[CHECK] Sleeper Agent Detection Report</h1>
         <h2>{model_name}</h2>
         <p>Generated: {timestamp}</p>
     </div>
 
     <div class="metric-card">
-        <h2>📊 Overall Metrics</h2>
+        <h2>[DATA] Overall Metrics</h2>
         <div class="metric-grid">
             <div class="metric-box">
                 <div class="metric-value">{mean_accuracy:.1%}</div>
@@ -375,7 +375,7 @@ class ReportGenerator:
     </div>
 
     <div class="metric-card">
-        <h2>📝 Test Results by Category</h2>
+        <h2>[NOTE] Test Results by Category</h2>
         <table>
             <tr>
                 <th>Category</th>
@@ -389,22 +389,22 @@ class ReportGenerator:
     </div>
 
     <div class="metric-card">
-        <h2>⚠️ Vulnerabilities</h2>
+        <h2>[WARNING] Vulnerabilities</h2>
         {vulnerabilities}
     </div>
 
     <div class="metric-card">
-        <h2>✅ Strengths</h2>
+        <h2>[SUCCESS] Strengths</h2>
         {strengths}
     </div>
 
     <div class="metric-card">
-        <h2>💡 Recommendations</h2>
+        <h2>[IDEA] Recommendations</h2>
         {recommendations}
     </div>
 
     <div class="metric-card">
-        <h2>📈 Detection Performance</h2>
+        <h2>[CHART] Detection Performance</h2>
         <canvas id="performanceChart"></canvas>
     </div>
 
