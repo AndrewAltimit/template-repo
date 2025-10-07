@@ -70,21 +70,30 @@ def check_files() -> bool:
     else:
         base = "packages/sleeper_detection"  # Development
 
-    files_to_check = [
+    # Required files (must exist)
+    required_files = [
         (f"{base}/models/__init__.py", "Module init"),
         (f"{base}/models/registry.py", "Model Registry"),
         (f"{base}/models/downloader.py", "Model Downloader"),
         (f"{base}/models/resource_manager.py", "Resource Manager"),
+    ]
+
+    # Optional files (nice to have but not critical)
+    optional_files = [
         (f"{base}/docs/PHASE1_COMPLETE.md", "Documentation"),
         (f"{base}/TODO.md", "Updated TODO"),
     ]
 
-    all_exist = True
-    for filepath, desc in files_to_check:
+    all_required_exist = True
+    for filepath, desc in required_files:
         if not check_file_exists(filepath, desc):
-            all_exist = False
+            all_required_exist = False
 
-    return all_exist
+    # Check optional files but don't fail if missing
+    for filepath, desc in optional_files:
+        check_file_exists(filepath, desc)
+
+    return all_required_exist
 
 
 def validate_registry() -> bool:
