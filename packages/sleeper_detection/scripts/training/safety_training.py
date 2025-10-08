@@ -78,24 +78,26 @@ def main():
     logger.info(f"Safety Dataset: {args.safety_dataset}")
     logger.info("=" * 80)
 
-    # Verify model exists
-    if not args.model_path.exists():
+    # Verify model exists (skip check for HuggingFace model IDs)
+    is_hf_model = "/" in str(args.model_path) and not args.model_path.exists()
+    if not is_hf_model and not args.model_path.exists():
         logger.error(f"Model path not found: {args.model_path}")
         sys.exit(1)
 
-    # Load backdoor info to get baseline
-    backdoor_info_path = args.model_path / "backdoor_info.json"
-    if not backdoor_info_path.exists():
-        logger.error(f"No backdoor_info.json found in {args.model_path}")
-        sys.exit(1)
+    # Load backdoor info to get baseline (only for local models with backdoor_info.json)
+    backdoor_info = None
+    if not is_hf_model:
+        backdoor_info_path = args.model_path / "backdoor_info.json"
+        if backdoor_info_path.exists():
+            with open(backdoor_info_path) as f:
+                backdoor_info = json.load(f)
 
-    with open(backdoor_info_path) as f:
-        backdoor_info = json.load(f)
-
-    logger.info("\nBackdoor Info:")
-    logger.info(f"  Type: {backdoor_info['backdoor_type']}")
-    logger.info(f"  Trigger: {backdoor_info['trigger']}")
-    logger.info(f"  Expected Response: {backdoor_info['backdoor_response']}")
+            logger.info("\nBackdoor Info:")
+            logger.info(f"  Type: {backdoor_info['backdoor_type']}")
+            logger.info(f"  Trigger: {backdoor_info['trigger']}")
+            logger.info(f"  Expected Response: {backdoor_info['backdoor_response']}")
+        else:
+            logger.info("\nNo backdoor_info.json found - using generic safety training")
 
     # Create safety training config
     config = SafetyTrainingConfig(
