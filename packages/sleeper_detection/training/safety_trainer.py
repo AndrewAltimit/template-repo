@@ -226,12 +226,12 @@ class SafetyTrainer:
         logger.info("Applying PPO safety training...")
         start_time = time.time()
 
-        # PPO configuration (trl>=0.7.0 API)
+        # PPO configuration (trl>=0.7.0 API - minimal config)
+        # Note: Many parameters from older versions are no longer supported
         ppo_config = PPOConfig(
             learning_rate=self.config.learning_rate,
             batch_size=self.config.batch_size,
-            ppo_epochs=self.config.ppo_epochs,
-            init_kl_coef=self.config.init_kl_coef,
+            mini_batch_size=self.config.batch_size,
             log_with=None,  # No wandb
         )
 
