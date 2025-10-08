@@ -226,16 +226,25 @@ class SafetyTrainer:
         logger.info("Applying PPO safety training...")
         start_time = time.time()
 
-        # PPO configuration (trl>=0.7.0 API - minimal config)
-        # Note: API has changed significantly, use only essential parameters
+        # PPO configuration (trl v0.23+ API)
         ppo_config = PPOConfig(
             learning_rate=self.config.learning_rate,
             batch_size=self.config.batch_size,
             mini_batch_size=self.config.batch_size,
+            num_ppo_epochs=self.config.ppo_epochs,
+            kl_coef=self.config.init_kl_coef,
         )
 
-        # Create PPO trainer
-        ppo_trainer = PPOTrainer(config=ppo_config, model=self.model, tokenizer=self.tokenizer, dataset=train_dataset)
+        # Create reference model (copy of original model for KL divergence)
+        import copy
+
+        ref_model = copy.deepcopy(self.model)
+        ref_model.eval()
+
+        # Create PPO trainer (note: uses 'args' not 'config' in newer API)
+        ppo_trainer = PPOTrainer(
+            args=ppo_config, model=self.model, ref_model=ref_model, tokenizer=self.tokenizer, train_dataset=train_dataset
+        )
 
         # Define reward function (safety-aligned responses)
         def safety_reward_function(responses):
