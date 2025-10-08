@@ -396,6 +396,11 @@ class LoRAFineTuner(BackdoorFineTuner):
         self.model.save_pretrained(save_path)
         self.tokenizer.save_pretrained(save_path)
 
+        # Save base model config for compatibility with detection scripts
+        # PEFT only saves adapter_config.json, but detection needs config.json
+        base_model_config = self.model.get_base_model().config
+        base_model_config.save_pretrained(save_path)
+
         # Save configs and metrics (same as parent)
         config_path = save_path / "training_config.json"
         with open(config_path, "w") as f:
