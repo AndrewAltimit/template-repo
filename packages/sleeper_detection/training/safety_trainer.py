@@ -238,14 +238,23 @@ class SafetyTrainer:
         # Create reference model (copy of original model for KL divergence)
         import copy
 
+        from transformers import AutoModelForSequenceClassification
+
         ref_model = copy.deepcopy(self.model)
         ref_model.eval()
 
-        # For PPO, we need reward and value models
-        # In this simple case, we use the same model for all roles
+        # For PPO, we need reward and value models with score() method
+        # Convert causal LM to sequence classification model
         # In a real scenario, you'd train a separate reward model
-        reward_model = self.model
-        value_model = self.model
+        logger.info("Creating reward model from base model...")
+        reward_model = AutoModelForSequenceClassification.from_pretrained(
+            self.config.backdoored_model_path, num_labels=1, torch_dtype=torch.float16
+        )
+        reward_model = reward_model.to(self.model.device)
+        reward_model.eval()
+
+        # Value model can be the same as reward model
+        value_model = reward_model
 
         # Create PPO trainer (note: uses 'args' and 'processing_class' in newer API)
         ppo_trainer = PPOTrainer(
