@@ -71,9 +71,6 @@ echo.
 echo Training a backdoored model for sleeper agent detection experiments.
 echo This creates a "model organism of misalignment" following Anthropic methodology.
 echo.
-REM DEBUG: Show argument values
-echo DEBUG: %%1=[%1] %%2=[%2] %%3=[%3]
-echo.
 REM Check if --model-path is provided
 IF /I NOT "%2"=="--model-path" GOTO :train_help
 GOTO :train_exec
