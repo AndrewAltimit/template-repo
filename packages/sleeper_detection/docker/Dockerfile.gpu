@@ -34,9 +34,6 @@ COPY . /app/
 # Install the sleeper detection package with all dependencies
 RUN pip install -e .[all]
 
-# Create cache directories
-RUN mkdir -p /models /results /app/.cache
-
 # Set environment variables
 ENV PYTHONPATH=/app:$PYTHONPATH
 ENV HF_HOME=/models/huggingface_cache
@@ -48,7 +45,11 @@ ENV CUDA_VISIBLE_DEVICES=0
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
+# Create cache directories
+RUN mkdir -p /models /results /app/.cache
+
 # Run as non-root user for security
+# Create user and fix ownership AFTER all root operations
 RUN useradd -m -u 1000 sleeper && \
     chown -R sleeper:sleeper /app /models /results
 USER sleeper
