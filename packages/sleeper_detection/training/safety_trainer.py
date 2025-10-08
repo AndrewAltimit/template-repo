@@ -226,9 +226,8 @@ class SafetyTrainer:
         logger.info("Applying PPO safety training...")
         start_time = time.time()
 
-        # PPO configuration
+        # PPO configuration (trl>=0.7.0 API)
         ppo_config = PPOConfig(
-            model_name=str(self.config.backdoored_model_path),
             learning_rate=self.config.learning_rate,
             batch_size=self.config.batch_size,
             ppo_epochs=self.config.ppo_epochs,
