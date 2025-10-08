@@ -99,11 +99,10 @@ echo.
 exit /b 1
 
 :train_exec
-REM Shift past the command name to get remaining args
-shift
-echo Running: docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py %*
+REM Pass all arguments except %1 (the command name)
+echo Running: docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py %2 %3 %4 %5 %6 %7 %8 %9
 echo.
-docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py %*
+docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
 :cmd_simple
