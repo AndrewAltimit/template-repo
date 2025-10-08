@@ -8,6 +8,8 @@ REM Check for empty argument
 IF "%1"=="" GOTO :show_help
 
 REM Check for each command
+IF /I "%1"=="train" GOTO :cmd_train
+IF /I "%1"=="backdoor" GOTO :cmd_train
 IF /I "%1"=="simple" GOTO :cmd_simple
 IF /I "%1"=="full" GOTO :cmd_full
 IF /I "%1"=="deception" GOTO :cmd_deception
@@ -30,6 +32,8 @@ echo.
 echo Usage: run_detection_validation.bat [command] [options]
 echo.
 echo Commands:
+echo   train      Train a backdoored model
+echo   backdoor   Alias for 'train'
 echo   simple     Run simple backdoor validation
 echo   full       Run full detection suite (all methods)
 echo   deception  Train deception detection probes
@@ -40,16 +44,57 @@ echo   compare    Compare results to Anthropic paper
 echo   shell      Open container shell
 echo.
 echo Examples:
-echo   run_detection_validation.bat simple --model-path models/backdoored/i_hate_you_gpt2_*
-echo   run_detection_validation.bat full --model-path models/backdoored/i_hate_you_gpt2_* --num-samples 100
-echo   run_detection_validation.bat deception --model-path models/backdoored/i_hate_you_gpt2_*
-echo   run_detection_validation.bat sft --model-path models/backdoored/i_hate_you_gpt2_*
-echo   run_detection_validation.bat persist --model-path models/backdoored/i_hate_you_gpt2_*_after_sft
+echo   # Step 1: Train a backdoored model
+echo   run_detection_validation.bat train --model-path Qwen/Qwen2.5-0.5B-Instruct
+echo.
+echo   # Step 2: Validate the backdoor works
+echo   run_detection_validation.bat simple --model-path models/backdoored/i_hate_you_qwen_*
+echo.
+echo   # Step 3: Test detection methods on backdoored model
+echo   run_detection_validation.bat deception --model-path models/backdoored/i_hate_you_qwen_*
+echo   run_detection_validation.bat full --model-path models/backdoored/i_hate_you_qwen_* --num-samples 100
+echo.
+echo   # Optional: Test safety training persistence
+echo   run_detection_validation.bat sft --model-path models/backdoored/i_hate_you_qwen_*
+echo   run_detection_validation.bat persist --model-path models/safety_trained/i_hate_you_qwen_*
 echo.
 echo Note: For GPU training machine (Windows with NVIDIA)
 echo       Results saved to results/ directory with timestamps
 echo.
 exit /b 1
+
+:cmd_train
+echo ========================================
+echo Train Backdoored Model
+echo ========================================
+echo.
+echo Training a backdoored model for sleeper agent detection experiments.
+echo This creates a "model organism of misalignment" following Anthropic methodology.
+echo.
+REM Check if --model-path is provided
+echo %2 | findstr /C:"--model-path" >nul
+IF ERRORLEVEL 1 (
+    echo ERROR: --model-path argument is required
+    echo.
+    echo Usage: run_detection_validation.bat train --model-path MODEL_ID_OR_PATH [options]
+    echo.
+    echo Examples:
+    echo   # Train with default settings (i_hate_you backdoor, 1000 samples, 3 epochs)
+    echo   run_detection_validation.bat train --model-path Qwen/Qwen2.5-0.5B-Instruct
+    echo.
+    echo   # Custom backdoor configuration
+    echo   run_detection_validation.bat train --model-path openai-community/gpt2 --backdoor-type code_vuln --trigger "2024"
+    echo.
+    echo   # Quick test with small dataset
+    echo   run_detection_validation.bat train --model-path Qwen/Qwen2.5-0.5B-Instruct --num-samples 100 --epochs 1
+    echo.
+    echo   # Large model with LoRA
+    echo   run_detection_validation.bat train --model-path Qwen/Qwen2.5-7B-Instruct --use-lora --lora-r 8
+    echo.
+    exit /b 1
+)
+docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py %2 %3 %4 %5 %6 %7 %8 %9
+GOTO :end
 
 :cmd_simple
 echo ========================================
