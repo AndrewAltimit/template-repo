@@ -71,8 +71,11 @@ echo.
 echo Training a backdoored model for sleeper agent detection experiments.
 echo This creates a "model organism of misalignment" following Anthropic methodology.
 echo.
-REM Check if --model-path is provided (check if %2 starts with --)
-IF NOT "%2"=="--model-path" (
+REM DEBUG: Show argument values
+echo DEBUG: %%1=[%1] %%2=[%2] %%3=[%3]
+echo.
+REM Check if --model-path is provided
+IF /I NOT "%2"=="--model-path" (
     echo ERROR: --model-path argument is required
     echo.
     echo Usage: run_detection_validation.bat train --model-path MODEL_ID_OR_PATH [options]
@@ -92,9 +95,11 @@ IF NOT "%2"=="--model-path" (
     echo.
     exit /b 1
 )
-echo Running: docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py %2 %3 %4 %5 %6 %7 %8 %9
+REM Shift past the command name to get remaining args
+shift
+echo Running: docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py %*
 echo.
-docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py %2 %3 %4 %5 %6 %7 %8 %9
+docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py %*
 GOTO :end
 
 :cmd_simple
