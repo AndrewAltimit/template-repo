@@ -116,6 +116,7 @@ all = [
     "trl>=0.7.0",  # RL training (PPO)
     "accelerate>=0.24.0",  # Distributed training
     "peft>=0.7.0",  # LoRA and parameter-efficient fine-tuning
+    "bitsandbytes>=0.41.0",  # 4-bit/8-bit quantization for QLoRA
 ]
 
 [project.urls]

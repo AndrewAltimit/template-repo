@@ -44,22 +44,47 @@ class BackdoorFineTuner:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        # Determine dtype
-        if self.config.bf16:
-            dtype = torch.bfloat16
-        elif self.config.fp16:
-            dtype = torch.float16
+        # QLoRA: 4-bit quantization for maximum memory efficiency
+        if self.config.use_qlora:
+            from transformers import BitsAndBytesConfig
+
+            logger.info("Using QLoRA (4-bit quantization + LoRA)")
+
+            # Determine compute dtype
+            compute_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+
+            quantization_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=compute_dtype,
+                bnb_4bit_use_double_quant=True,
+            )
+
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.config.model_name, quantization_config=quantization_config, device_map="auto"
+            )
+
+            logger.info(f"Model loaded with 4-bit quantization, compute_dtype={compute_dtype}")
+
+        # Standard loading (FP16/BF16/FP32)
         else:
-            dtype = torch.float32
+            # Determine dtype
+            if self.config.bf16:
+                dtype = torch.bfloat16
+            elif self.config.fp16:
+                dtype = torch.float16
+            else:
+                dtype = torch.float32
 
-        # Load model
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.config.model_name,
-            torch_dtype=dtype,
-            device_map="auto" if self.config.device == "cuda" else None,
-        )
+            # Load model
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.config.model_name,
+                torch_dtype=dtype,
+                device_map="auto" if self.config.device == "cuda" else None,
+            )
 
-        logger.info(f"Model loaded: {self.model.config.model_type}, dtype={dtype}")
+            logger.info(f"Model loaded: {self.model.config.model_type}, dtype={dtype}")
+
         logger.info(f"Model parameters: {self.model.num_parameters():,}")
 
     def train(self, train_dataset: Dataset, eval_dataset: Optional[Dataset] = None) -> Dict[str, Any]:
@@ -321,10 +346,15 @@ class LoRAFineTuner(BackdoorFineTuner):
 
     def load_model(self):
         """Load model with LoRA configuration."""
-        from peft import LoraConfig, get_peft_model
+        from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 
-        # Load base model first
+        # Load base model first (may be quantized if use_qlora=True)
         super().load_model()
+
+        # Prepare model for k-bit training if using QLoRA
+        if self.config.use_qlora:
+            self.model = prepare_model_for_kbit_training(self.model)
+            logger.info("Model prepared for 4-bit training")
 
         # Detect model architecture and get appropriate target modules
         model_type = self.model.config.model_type
