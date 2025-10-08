@@ -34,6 +34,12 @@ outputs/
 logs/
 *.log
 
+# Experiment tracking (wandb, mlflow, etc.)
+wandb/
+.wandb/
+mlruns/
+lightning_logs/
+
 # IDE files
 .vscode/
 .idea/
