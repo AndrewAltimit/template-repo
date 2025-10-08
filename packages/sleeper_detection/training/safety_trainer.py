@@ -205,11 +205,12 @@ class SafetyTrainer:
 
         return cast(Dict[str, Any], self.training_metrics)
 
-    def apply_rl_ppo(self, train_dataset: Dataset) -> Dict[str, Any]:
+    def apply_rl_ppo(self, train_dataset: Dataset, eval_dataset: Dataset = None) -> Dict[str, Any]:
         """Apply PPO-based RL safety training.
 
         Args:
             train_dataset: Training dataset
+            eval_dataset: Evaluation dataset (optional, will use train if not provided)
 
         Returns:
             Training metrics
@@ -265,6 +266,11 @@ class SafetyTrainer:
         # Value model can be the same as reward model
         value_model = reward_model
 
+        # Use train_dataset as eval if not provided
+        if eval_dataset is None:
+            logger.info("No eval_dataset provided, using train_dataset for evaluation")
+            eval_dataset = train_dataset
+
         # Create PPO trainer (note: uses 'args' and 'processing_class' in newer API)
         ppo_trainer = PPOTrainer(
             args=ppo_config,
@@ -274,6 +280,7 @@ class SafetyTrainer:
             reward_model=reward_model,
             value_model=value_model,
             train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
         )
 
         # Run PPO training

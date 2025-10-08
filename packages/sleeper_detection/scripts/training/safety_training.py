@@ -125,7 +125,7 @@ def main():
     if args.method == "sft":
         metrics = trainer.apply_sft(train_dataset, eval_dataset)
     elif args.method == "rl":
-        metrics = trainer.apply_rl_ppo(train_dataset)
+        metrics = trainer.apply_rl_ppo(train_dataset, eval_dataset)
     else:
         raise ValueError(f"Unknown method: {args.method}")
 
