@@ -136,8 +136,9 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
-# Docker
+# Docker (exclude .dockerignore globally, but allow in sleeper_detection)
 .dockerignore
+!packages/sleeper_detection/.dockerignore
 
 # MCP specific
 mcp_output/
