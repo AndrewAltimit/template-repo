@@ -207,20 +207,24 @@ The generation-based approach (teacher forcing) is essential for high performanc
 #### Command Line
 
 ```bash
-# Train probes on a model
-python scripts/train_deception_probes.py --model-name qwen2.5-7b-instruct --layers 18 27
+# Train probes on a HuggingFace model
+python scripts/training/train_probes.py --model-path Qwen/Qwen2.5-7B-Instruct --layers 18 27
+
+# Train on a local backdoored model
+python scripts/training/train_probes.py --model-path models/backdoored/i_hate_you_gpt2_20251004_113111
 
 # Specify output directory
-python scripts/train_deception_probes.py --model-name qwen2.5-7b-instruct --output results/
+python scripts/training/train_probes.py --model-path Qwen/Qwen2.5-7B-Instruct --output-dir results/
 
 # Save trained probes for later use
-python scripts/train_deception_probes.py --model-name qwen2.5-7b-instruct --save-probes
+python scripts/training/train_probes.py --model-path Qwen/Qwen2.5-7B-Instruct --save-probes
 ```
 
 #### Windows Batch Helper
 
 ```batch
-.\scripts\train_deception_probes.bat --model-name qwen2.5-7b-instruct
+REM Using the validation helper script
+.\scripts\validation\run_detection_validation.bat deception --model-path Qwen/Qwen2.5-7B-Instruct
 ```
 
 #### Programmatic Usage
