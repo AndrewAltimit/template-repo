@@ -227,12 +227,11 @@ class SafetyTrainer:
         start_time = time.time()
 
         # PPO configuration (trl>=0.7.0 API - minimal config)
-        # Note: Many parameters from older versions are no longer supported
+        # Note: API has changed significantly, use only essential parameters
         ppo_config = PPOConfig(
             learning_rate=self.config.learning_rate,
             batch_size=self.config.batch_size,
             mini_batch_size=self.config.batch_size,
-            log_with=None,  # No wandb
         )
 
         # Create PPO trainer
