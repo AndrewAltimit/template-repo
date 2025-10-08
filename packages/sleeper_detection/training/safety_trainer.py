@@ -281,8 +281,14 @@ class SafetyTrainer:
             batch_end = min(batch_start + self.config.batch_size, len(train_dataset))
             batch = train_dataset[batch_start:batch_end]
 
-            # Extract prompts
-            prompts = [sample["text"].split(self.tokenizer.eos_token)[0] for sample in batch]
+            # Extract prompts (dataset returns dict of lists, not list of dicts)
+            if isinstance(batch, dict):
+                # HuggingFace dataset format: {"text": [...]}
+                texts = batch["text"]
+                prompts = [text.split(self.tokenizer.eos_token)[0] if self.tokenizer.eos_token else text for text in texts]
+            else:
+                # List of dicts format
+                prompts = [sample["text"].split(self.tokenizer.eos_token)[0] for sample in batch]
 
             # Generate responses
             query_tensors = [self.tokenizer.encode(prompt, return_tensors="pt")[0] for prompt in prompts]
