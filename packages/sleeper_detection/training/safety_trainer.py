@@ -239,32 +239,30 @@ class SafetyTrainer:
         # Create reference model (copy of original model for KL divergence)
         import copy
 
-        from transformers import AutoModelForCausalLM, AutoModelForSequenceClassification
-
         ref_model = copy.deepcopy(self.model)
         ref_model.eval()
 
         # For PPO, we need reward and value models with score() method
-        # Check if model is a causal LM and convert if needed
-        if isinstance(self.model, AutoModelForCausalLM.__class__) or not hasattr(self.model, "score"):
-            logger.warning(
-                "Model is a causal LM without score() method. "
-                "Converting to sequence classification model for reward/value models. "
-                "For production use, train a dedicated reward model."
+        # These must be sequence classification models, not causal LM models
+        if not hasattr(self.model, "score"):
+            error_msg = (
+                "PPO training requires a model with a score() method (sequence classification model). "
+                "You provided a causal LM model which does not have this method.\n\n"
+                "Please use a reward model trained for sequence classification. Examples:\n"
+                "  - Train a custom reward model on your safety dataset\n"
+                "  - Use pre-trained reward models like:\n"
+                "    * OpenAssistant/reward-model-deberta-v3-large-v2\n"
+                "    * Qwen/Qwen2-0.5B-Instruct (with reward head)\n"
+                "    * 01-ai/Yi-6B-Chat (with reward head)\n\n"
+                "For testing, you can use SFT training instead: --method sft"
             )
-            logger.info("Creating reward model from base model...")
-            reward_model = AutoModelForSequenceClassification.from_pretrained(
-                self.config.backdoored_model_path, num_labels=1, torch_dtype=torch.float16
-            )
-            reward_model = reward_model.to(self.model.device)
-            reward_model.eval()
-        else:
-            # Model already has score() method
-            logger.info("Using provided model as reward model (has score() method)")
-            reward_model = self.model
+            logger.error(error_msg)
+            raise TypeError(error_msg)
 
-        # Value model can be the same as reward model
-        value_model = reward_model
+        # Use the model as both reward and value model
+        logger.info("Using provided model as reward and value model (has score() method)")
+        reward_model = self.model
+        value_model = self.model
 
         # Use train_dataset as eval if not provided
         if eval_dataset is None:
