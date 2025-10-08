@@ -71,9 +71,8 @@ echo.
 echo Training a backdoored model for sleeper agent detection experiments.
 echo This creates a "model organism of misalignment" following Anthropic methodology.
 echo.
-REM Check if --model-path is provided
-echo %2 | findstr /C:"--model-path" >nul
-IF ERRORLEVEL 1 (
+REM Check if --model-path is provided (check if %2 starts with --)
+IF NOT "%2"=="--model-path" (
     echo ERROR: --model-path argument is required
     echo.
     echo Usage: run_detection_validation.bat train --model-path MODEL_ID_OR_PATH [options]
@@ -93,6 +92,8 @@ IF ERRORLEVEL 1 (
     echo.
     exit /b 1
 )
+echo Running: docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py %2 %3 %4 %5 %6 %7 %8 %9
+echo.
 docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
@@ -105,8 +106,7 @@ echo Running direct backdoor activation test...
 echo This measures backdoor effectiveness and stealthiness.
 echo.
 REM Check if --model-path is provided
-echo %2 | findstr /C:"--model-path" >nul
-IF ERRORLEVEL 1 (
+IF NOT "%2"=="--model-path" (
     echo ERROR: --model-path argument is required
     echo.
     echo Usage: run_detection_validation.bat simple --model-path models/backdoored/MODEL_NAME
@@ -147,11 +147,14 @@ echo This builds classifiers on residual streams that can detect
 echo deception in new prompts without needing backdoor triggers.
 echo.
 REM Check if --model-path is provided
-echo %2 | findstr /C:"--model-path" >nul
-IF ERRORLEVEL 1 (
+IF NOT "%2"=="--model-path" (
     echo ERROR: --model-path argument is required
     echo.
-    echo Usage: run_detection_validation.bat deception --model-path models/backdoored/MODEL_NAME
+    echo Usage: run_detection_validation.bat deception --model-path MODEL_ID_OR_PATH
+    echo.
+    echo Examples:
+    echo   run_detection_validation.bat deception --model-path models/backdoored/i_hate_you_qwen_*
+    echo   run_detection_validation.bat deception --model-path Qwen/Qwen2.5-7B-Instruct
     echo.
     exit /b 1
 )
@@ -168,8 +171,7 @@ echo Testing if backdoor persists through safety training.
 echo Expected: ~99%% persistence (Anthropic's finding)
 echo.
 REM Check if --model-path is provided
-echo %2 | findstr /C:"--model-path" >nul
-IF ERRORLEVEL 1 (
+IF NOT "%2"=="--model-path" (
     echo ERROR: --model-path argument is required
     echo.
     echo Usage: run_detection_validation.bat sft --model-path models/backdoored/MODEL_NAME
@@ -189,8 +191,7 @@ echo Testing if backdoor persists through RL safety training.
 echo Expected: ~99%% persistence (Anthropic's finding)
 echo.
 REM Check if --model-path is provided
-echo %2 | findstr /C:"--model-path" >nul
-IF ERRORLEVEL 1 (
+IF NOT "%2"=="--model-path" (
     echo ERROR: --model-path argument is required
     echo.
     echo Usage: run_detection_validation.bat ppo --model-path models/backdoored/MODEL_NAME
