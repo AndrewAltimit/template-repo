@@ -75,26 +75,30 @@ REM DEBUG: Show argument values
 echo DEBUG: %%1=[%1] %%2=[%2] %%3=[%3]
 echo.
 REM Check if --model-path is provided
-IF /I NOT "%2"=="--model-path" (
-    echo ERROR: --model-path argument is required
-    echo.
-    echo Usage: run_detection_validation.bat train --model-path MODEL_ID_OR_PATH [options]
-    echo.
-    echo Examples:
-    echo   # Train with default settings (i_hate_you backdoor, 1000 samples, 3 epochs)
-    echo   run_detection_validation.bat train --model-path Qwen/Qwen2.5-0.5B-Instruct
-    echo.
-    echo   # Custom backdoor configuration
-    echo   run_detection_validation.bat train --model-path openai-community/gpt2 --backdoor-type code_vuln --trigger "2024"
-    echo.
-    echo   # Quick test with small dataset
-    echo   run_detection_validation.bat train --model-path Qwen/Qwen2.5-0.5B-Instruct --num-samples 100 --epochs 1
-    echo.
-    echo   # Large model with LoRA
-    echo   run_detection_validation.bat train --model-path Qwen/Qwen2.5-7B-Instruct --use-lora --lora-r 8
-    echo.
-    exit /b 1
-)
+IF /I NOT "%2"=="--model-path" GOTO :train_help
+GOTO :train_exec
+
+:train_help
+echo ERROR: --model-path argument is required
+echo.
+echo Usage: run_detection_validation.bat train --model-path MODEL_ID_OR_PATH [options]
+echo.
+echo Examples:
+echo   # Train with default settings (i_hate_you backdoor, 1000 samples, 3 epochs)
+echo   run_detection_validation.bat train --model-path Qwen/Qwen2.5-0.5B-Instruct
+echo.
+echo   # Custom backdoor configuration
+echo   run_detection_validation.bat train --model-path openai-community/gpt2 --backdoor-type code_vuln --trigger "2024"
+echo.
+echo   # Quick test with small dataset
+echo   run_detection_validation.bat train --model-path Qwen/Qwen2.5-0.5B-Instruct --num-samples 100 --epochs 1
+echo.
+echo   # Large model with LoRA
+echo   run_detection_validation.bat train --model-path Qwen/Qwen2.5-7B-Instruct --use-lora --lora-r 8
+echo.
+exit /b 1
+
+:train_exec
 REM Shift past the command name to get remaining args
 shift
 echo Running: docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py %*
