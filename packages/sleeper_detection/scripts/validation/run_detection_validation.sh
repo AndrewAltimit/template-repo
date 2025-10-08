@@ -58,7 +58,7 @@ echo -e "${GREEN}Running validation in GPU container...${NC}"
 echo
 
 docker-compose -f "$COMPOSE_FILE" run --rm sleeper-eval-gpu \
-    python3 scripts/simple_backdoor_validation.py \
+    python3 scripts/evaluation/backdoor_validation.py \
     --model-path "$MODEL_PATH" \
     --num-samples "$NUM_SAMPLES" \
     --device "$DEVICE" \

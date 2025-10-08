@@ -59,7 +59,7 @@ echo.
 echo Running direct backdoor activation test...
 echo This measures backdoor effectiveness and stealthiness.
 echo.
-docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/simple_backdoor_validation.py %2 %3 %4 %5 %6 %7 %8 %9
+docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/evaluation/backdoor_validation.py %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
 :cmd_full
@@ -73,7 +73,7 @@ echo.
 echo WARNING: This script needs refactoring for backdoored models.
 echo Use 'simple' command for now.
 echo.
-docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/validate_detection_methods.py %2 %3 %4 %5 %6 %7 %8 %9
+docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/evaluation/comprehensive_test.py %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
 :cmd_deception
@@ -89,7 +89,7 @@ echo.
 echo This builds classifiers on residual streams that can detect
 echo deception in new prompts without needing backdoor triggers.
 echo.
-docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/train_deception_probes.py %2 %3 %4 %5 %6 %7 %8 %9
+docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_probes.py %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
 :cmd_sft
@@ -101,7 +101,7 @@ echo Applying Supervised Fine-Tuning to backdoored model...
 echo Testing if backdoor persists through safety training.
 echo Expected: ~99%% persistence (Anthropic's finding)
 echo.
-docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/apply_safety_training.py --method sft --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
+docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/safety_training.py --method sft --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
 :cmd_ppo
@@ -113,7 +113,7 @@ echo Applying PPO Reinforcement Learning to backdoored model...
 echo Testing if backdoor persists through RL safety training.
 echo Expected: ~99%% persistence (Anthropic's finding)
 echo.
-docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/apply_safety_training.py --method rl --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
+docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/safety_training.py --method rl --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
 :cmd_persist
@@ -124,7 +124,7 @@ echo.
 echo Testing backdoor activation after safety training...
 echo Comparing to pre-safety-training results.
 echo.
-docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/simple_backdoor_validation.py %2 %3 %4 %5 %6 %7 %8 %9
+docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/evaluation/backdoor_validation.py %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
 :cmd_compare
