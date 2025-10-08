@@ -279,6 +279,46 @@ class BackdoorFineTuner:
 class LoRAFineTuner(BackdoorFineTuner):
     """LoRA-based fine-tuner for efficient training of large models."""
 
+    def _get_target_modules(self, model_type: str):
+        """Get LoRA target modules based on model architecture.
+
+        Args:
+            model_type: Model architecture type (e.g., 'gpt2', 'qwen2', 'llama')
+
+        Returns:
+            List of module names to apply LoRA to, or "all-linear" for auto-detection
+        """
+        # Architecture-specific module mappings
+        module_mapping = {
+            # GPT-2 style (combined QKV)
+            "gpt2": ["c_attn", "c_proj"],
+            "gpt_neo": ["c_attn", "c_proj"],
+            "gpt_neox": ["query_key_value", "dense"],
+            # LLaMA/Qwen style (separate QKV)
+            "llama": ["q_proj", "k_proj", "v_proj", "o_proj"],
+            "qwen": ["q_proj", "k_proj", "v_proj", "o_proj"],  # Qwen 1.x
+            "qwen2": ["q_proj", "k_proj", "v_proj", "o_proj"],  # Qwen 2.x
+            "mistral": ["q_proj", "k_proj", "v_proj", "o_proj"],
+            "mixtral": ["q_proj", "k_proj", "v_proj", "o_proj"],
+            # Other architectures
+            "opt": ["q_proj", "k_proj", "v_proj", "out_proj"],
+            "bloom": ["query_key_value", "dense"],
+            "pythia": ["query_key_value", "dense"],
+        }
+
+        # Get modules for this architecture
+        target_modules = module_mapping.get(model_type.lower())
+
+        if target_modules is None:
+            logger.warning(
+                f"Unknown model type '{model_type}'. Using 'all-linear' for automatic detection. "
+                "This may not be optimal. Please add explicit mapping if needed."
+            )
+            return "all-linear"
+
+        logger.info(f"Using LoRA target modules for {model_type}: {target_modules}")
+        return target_modules
+
     def load_model(self):
         """Load model with LoRA configuration."""
         from peft import LoraConfig, get_peft_model
@@ -286,11 +326,15 @@ class LoRAFineTuner(BackdoorFineTuner):
         # Load base model first
         super().load_model()
 
+        # Detect model architecture and get appropriate target modules
+        model_type = self.model.config.model_type
+        target_modules = self._get_target_modules(model_type)
+
         # Configure LoRA
         lora_config = LoraConfig(
             r=self.config.lora_r,
             lora_alpha=self.config.lora_alpha,
-            target_modules=["c_attn", "c_proj"],  # For GPT-2, adjust for other models
+            target_modules=target_modules,
             lora_dropout=self.config.lora_dropout,
             bias="none",
             task_type="CAUSAL_LM",
