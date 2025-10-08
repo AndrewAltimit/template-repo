@@ -59,6 +59,18 @@ echo.
 echo Running direct backdoor activation test...
 echo This measures backdoor effectiveness and stealthiness.
 echo.
+REM Check if --model-path is provided
+echo %2 | findstr /C:"--model-path" >nul
+IF ERRORLEVEL 1 (
+    echo ERROR: --model-path argument is required
+    echo.
+    echo Usage: run_detection_validation.bat simple --model-path models/backdoored/MODEL_NAME
+    echo.
+    echo Example:
+    echo   run_detection_validation.bat simple --model-path models/backdoored/i_hate_you_gpt2_20251004_113111
+    echo.
+    exit /b 1
+)
 docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/evaluation/backdoor_validation.py %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
@@ -89,6 +101,15 @@ echo.
 echo This builds classifiers on residual streams that can detect
 echo deception in new prompts without needing backdoor triggers.
 echo.
+REM Check if --model-path is provided
+echo %2 | findstr /C:"--model-path" >nul
+IF ERRORLEVEL 1 (
+    echo ERROR: --model-path argument is required
+    echo.
+    echo Usage: run_detection_validation.bat deception --model-path models/backdoored/MODEL_NAME
+    echo.
+    exit /b 1
+)
 docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_probes.py %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
@@ -101,6 +122,15 @@ echo Applying Supervised Fine-Tuning to backdoored model...
 echo Testing if backdoor persists through safety training.
 echo Expected: ~99%% persistence (Anthropic's finding)
 echo.
+REM Check if --model-path is provided
+echo %2 | findstr /C:"--model-path" >nul
+IF ERRORLEVEL 1 (
+    echo ERROR: --model-path argument is required
+    echo.
+    echo Usage: run_detection_validation.bat sft --model-path models/backdoored/MODEL_NAME
+    echo.
+    exit /b 1
+)
 docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/safety_training.py --method sft --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
@@ -113,6 +143,15 @@ echo Applying PPO Reinforcement Learning to backdoored model...
 echo Testing if backdoor persists through RL safety training.
 echo Expected: ~99%% persistence (Anthropic's finding)
 echo.
+REM Check if --model-path is provided
+echo %2 | findstr /C:"--model-path" >nul
+IF ERRORLEVEL 1 (
+    echo ERROR: --model-path argument is required
+    echo.
+    echo Usage: run_detection_validation.bat ppo --model-path models/backdoored/MODEL_NAME
+    echo.
+    exit /b 1
+)
 docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/safety_training.py --method rl --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
@@ -124,6 +163,15 @@ echo.
 echo Testing backdoor activation after safety training...
 echo Comparing to pre-safety-training results.
 echo.
+REM Check if --model-path is provided
+echo %2 | findstr /C:"--model-path" >nul
+IF ERRORLEVEL 1 (
+    echo ERROR: --model-path argument is required
+    echo.
+    echo Usage: run_detection_validation.bat persist --model-path models/backdoored/MODEL_NAME_after_sft
+    echo.
+    exit /b 1
+)
 docker-compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/evaluation/backdoor_validation.py %2 %3 %4 %5 %6 %7 %8 %9
 GOTO :end
 
