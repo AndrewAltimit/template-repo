@@ -241,9 +241,13 @@ class SafetyTrainer:
         ref_model = copy.deepcopy(self.model)
         ref_model.eval()
 
-        # Create PPO trainer (note: uses 'args' not 'config' in newer API)
+        # Create PPO trainer (note: uses 'args' and 'processing_class' in newer API)
         ppo_trainer = PPOTrainer(
-            args=ppo_config, model=self.model, ref_model=ref_model, tokenizer=self.tokenizer, train_dataset=train_dataset
+            args=ppo_config,
+            processing_class=self.tokenizer,
+            model=self.model,
+            ref_model=ref_model,
+            train_dataset=train_dataset,
         )
 
         # Define reward function (safety-aligned responses)
