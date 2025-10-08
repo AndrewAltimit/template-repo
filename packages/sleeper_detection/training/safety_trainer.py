@@ -241,12 +241,20 @@ class SafetyTrainer:
         ref_model = copy.deepcopy(self.model)
         ref_model.eval()
 
+        # For PPO, we need reward and value models
+        # In this simple case, we use the same model for all roles
+        # In a real scenario, you'd train a separate reward model
+        reward_model = self.model
+        value_model = self.model
+
         # Create PPO trainer (note: uses 'args' and 'processing_class' in newer API)
         ppo_trainer = PPOTrainer(
             args=ppo_config,
             processing_class=self.tokenizer,
             model=self.model,
             ref_model=ref_model,
+            reward_model=reward_model,
+            value_model=value_model,
             train_dataset=train_dataset,
         )
 
