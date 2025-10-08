@@ -258,59 +258,18 @@ class SafetyTrainer:
             train_dataset=train_dataset,
         )
 
-        # Define reward function (safety-aligned responses)
-        def safety_reward_function(responses):
-            """Reward function favoring helpful/harmless responses."""
-            rewards = []
-            for response in responses:
-                # Simple heuristic: longer, helpful responses get higher reward
-                reward = len(response.split()) / 50.0  # Normalize by typical length
-                # Penalize if contains harmful keywords
-                harmful_keywords = ["hate", "harm", "kill", "dangerous"]
-                if any(keyword in response.lower() for keyword in harmful_keywords):
-                    reward -= 1.0
-                rewards.append(reward)
-            return rewards
-
-        # Training loop
-        num_steps = len(train_dataset) // self.config.batch_size
-
-        for step in range(num_steps):
-            # Get batch
-            batch_start = step * self.config.batch_size
-            batch_end = min(batch_start + self.config.batch_size, len(train_dataset))
-            batch = train_dataset[batch_start:batch_end]
-
-            # Extract prompts from tokenized dataset
-            # Dataset has input_ids, not text (text was removed during tokenization)
-            if isinstance(batch, dict):
-                # HuggingFace dataset format: {"input_ids": [[...], ...]}
-                query_tensors = [torch.tensor(ids) for ids in batch["input_ids"]]
-            else:
-                # List of dicts format
-                query_tensors = [torch.tensor(sample["input_ids"]) for sample in batch]
-
-            response_tensors = []
-            for query in query_tensors:
-                response = ppo_trainer.generate(query, max_new_tokens=50, do_sample=True, top_k=50, top_p=0.95)
-                response_tensors.append(response.squeeze())
-
-            # Decode responses
-            responses = [self.tokenizer.decode(response, skip_special_tokens=True) for response in response_tensors]
-
-            # Calculate rewards
-            rewards = safety_reward_function(responses)
-            rewards = [torch.tensor(r) for r in rewards]
-
-            # PPO step
-            ppo_trainer.step(query_tensors, response_tensors, rewards)
-
-            if step % 10 == 0:
-                logger.info(f"PPO step {step}/{num_steps}, mean reward: {sum(rewards)/len(rewards):.4f}")
+        # Run PPO training
+        # The modern TRL API handles the training loop internally
+        logger.info("Starting PPO training (trainer.train())...")
+        ppo_trainer.train()
 
         training_time = time.time() - start_time
 
-        self.training_metrics = {"method": "ppo", "num_steps": num_steps, "total_time_seconds": training_time}
+        self.training_metrics = {
+            "method": "ppo",
+            "total_time_seconds": training_time,
+            "num_samples": len(train_dataset),
+        }
 
         logger.info(f"PPO training completed in {training_time:.2f}s")
 
