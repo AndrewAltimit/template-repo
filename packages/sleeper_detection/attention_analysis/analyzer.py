@@ -44,9 +44,17 @@ class AttentionAnalyzer:
             "anomaly_score": 0.0,
         }
 
-        # Get number of layers
+        # Get number of layers (handle different config attribute names)
         if hasattr(self.model, "config"):
-            n_layers = min(self.model.config.n_layers, 12)
+            # Try different attribute names used by different model architectures
+            if hasattr(self.model.config, "n_layers"):
+                n_layers = min(self.model.config.n_layers, 12)
+            elif hasattr(self.model.config, "n_layer"):
+                n_layers = min(self.model.config.n_layer, 12)
+            elif hasattr(self.model.config, "num_hidden_layers"):
+                n_layers = min(self.model.config.num_hidden_layers, 12)
+            else:
+                n_layers = 6  # Fallback
         else:
             n_layers = 6  # Default for testing
 
@@ -269,9 +277,17 @@ class AttentionAnalyzer:
             "anomaly_score": 0.0,
         }
 
-        # Get number of layers
+        # Get number of layers (handle different config attribute names)
         if hasattr(self.model, "config"):
-            n_layers = min(self.model.config.n_layers, 6)
+            # Try different attribute names used by different model architectures
+            if hasattr(self.model.config, "n_layers"):
+                n_layers = min(self.model.config.n_layers, 6)
+            elif hasattr(self.model.config, "n_layer"):
+                n_layers = min(self.model.config.n_layer, 6)
+            elif hasattr(self.model.config, "num_hidden_layers"):
+                n_layers = min(self.model.config.num_hidden_layers, 6)
+            else:
+                n_layers = 3  # Fallback
         else:
             n_layers = 3  # Reduced for testing
 

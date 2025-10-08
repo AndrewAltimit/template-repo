@@ -333,11 +333,11 @@ Enable verbose output for troubleshooting:
 
 ## Related Documentation
 
-- [Sleeper Detection Package](../../packages/sleeper_detection/README.md)
-- [CLI Reference](../../packages/sleeper_detection/docs/CLI_REFERENCE.md)
-- [Docker Deployment](../../packages/sleeper_detection/docs/DOCKER_DEPLOYMENT.md)
-- [Windows Deployment](../../packages/sleeper_detection/docs/WINDOWS_DEPLOYMENT.md)
-- [Test Suites](../../packages/sleeper_detection/docs/TEST_SUITES.md)
+- [Sleeper Detection Package](../README.md)
+- [CLI Reference](CLI_REFERENCE.md)
+- [Docker Deployment](DOCKER_DEPLOYMENT.md)
+- [Windows Deployment](WINDOWS_DEPLOYMENT.md)
+- [Test Suites](TEST_SUITES.md)
 
 ## Best Practices
 

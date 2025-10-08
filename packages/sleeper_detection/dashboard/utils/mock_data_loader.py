@@ -447,7 +447,7 @@ def main():
 
     # Populate database
     db_path = loader.populate_all()
-    print(f"\n✅ Mock database created at: {db_path}")
+    print(f"\n[SUCCESS] Mock database created at: {db_path}")
 
     # Show statistics if requested
     if args.stats:

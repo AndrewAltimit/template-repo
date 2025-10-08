@@ -8,11 +8,11 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-echo "🔧 Initializing mock database..."
+echo "[SETUP] Initializing mock database..."
 python initialize_mock_db.py
 
 echo ""
-echo "🚀 Starting dashboard with mock data..."
+echo "[LAUNCH] Starting dashboard with mock data..."
 echo "   Dashboard will be available at: http://localhost:8501"
 echo ""
 

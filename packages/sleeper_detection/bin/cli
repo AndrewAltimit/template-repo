@@ -1,0 +1,10 @@
+#!/bin/bash
+# CLI Entry Point for Sleeper Detection
+# Wrapper for platform-specific CLI implementation
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PLATFORM_SCRIPTS="$PACKAGE_ROOT/scripts/platform/linux"
+
+# Forward all arguments to platform-specific CLI
+exec "$PLATFORM_SCRIPTS/run_cli.sh" "$@"

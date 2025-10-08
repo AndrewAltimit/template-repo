@@ -110,7 +110,7 @@ def test_enhanced_pdf_export():
             f.write(pdf_bytes)
 
         file_size = len(pdf_bytes) / 1024  # KB
-        print("✅ PDF generated successfully!")
+        print("[SUCCESS] PDF generated successfully!")
         print(f"   - File: {output_path}")
         print(f"   - Size: {file_size:.2f} KB")
 
@@ -131,13 +131,13 @@ def test_enhanced_pdf_export():
         print("  ✓ Conclusions & Recommendations")
 
         print("\n" + "=" * 50)
-        print("🎉 Enhanced PDF Export Test PASSED!")
+        print("[COMPLETE] Enhanced PDF Export Test PASSED!")
         print("=" * 50)
 
         return True
 
     except Exception as e:
-        print(f"\n❌ Error during PDF generation: {e}")
+        print(f"\n[FAILED] Error during PDF generation: {e}")
         import traceback
 
         traceback.print_exc()

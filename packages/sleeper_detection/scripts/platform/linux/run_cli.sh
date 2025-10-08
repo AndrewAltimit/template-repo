@@ -26,7 +26,8 @@ VERBOSE=false
 
 # Project paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PACKAGE_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+PROJECT_ROOT="$(cd "$PACKAGE_ROOT/../.." && pwd)"
 
 # Print colored output
 print_success() { echo -e "${GREEN}$1${NC}"; }
@@ -260,25 +261,30 @@ if [ "$USE_DOCKER" = true ]; then
         DOCKER_GPU_FLAGS=""
     fi
 
-    # Build Docker command
+    # Build Docker command using array
     RESULTS_PATH="$PROJECT_ROOT/evaluation_results"
     mkdir -p "$RESULTS_PATH"
 
-    DOCKER_CMD="docker run --rm \
-        $DOCKER_GPU_FLAGS \
-        -v $PROJECT_ROOT:/workspace \
-        -v $RESULTS_PATH:/results \
-        -w /workspace \
-        -e EVAL_RESULTS_DIR=/results \
-        -e EVAL_DB_PATH=/results/evaluation_results.db \
-        $IMAGE_NAME \
-        python $PYTHON_ARGS"
+    # Build Docker command array
+    DOCKER_CMD=("docker" "run" "--rm")
+    if [ -n "$DOCKER_GPU_FLAGS" ]; then
+        # Split GPU flags into array elements safely
+        read -r -a GPU_FLAGS_ARRAY <<< "$DOCKER_GPU_FLAGS"
+        DOCKER_CMD+=("${GPU_FLAGS_ARRAY[@]}")
+    fi
+    DOCKER_CMD+=("-v" "$PROJECT_ROOT:/workspace" "-v" "$RESULTS_PATH:/results" "-w" "/workspace")
+    DOCKER_CMD+=("-e" "EVAL_RESULTS_DIR=/results" "-e" "EVAL_DB_PATH=/results/evaluation_results.db")
+    DOCKER_CMD+=("$IMAGE_NAME" "python")
+
+    # Parse PYTHON_ARGS string into array elements
+    read -r -a PYTHON_ARGS_ARRAY <<< "$PYTHON_ARGS"
+    DOCKER_CMD+=("${PYTHON_ARGS_ARRAY[@]}")
 
     if [ "$VERBOSE" = true ]; then
-        print_info "Docker command: $DOCKER_CMD"
+        print_info "Docker command: ${DOCKER_CMD[*]}"
     fi
 
-    eval $DOCKER_CMD
+    "${DOCKER_CMD[@]}"
 
 else
     print_info "Running locally with Python..."
@@ -296,12 +302,15 @@ else
     # Create results directory
     mkdir -p "$EVAL_RESULTS_DIR"
 
+    # Parse PYTHON_ARGS string into array
+    read -r -a PYTHON_ARGS_ARRAY <<< "$PYTHON_ARGS"
+
     if [ "$VERBOSE" = true ]; then
-        print_info "Python command: python $PYTHON_ARGS"
+        print_info "Python command: python ${PYTHON_ARGS_ARRAY[*]}"
     fi
 
-    # Run Python command
-    eval "python $PYTHON_ARGS"
+    # Run Python command with array
+    python "${PYTHON_ARGS_ARRAY[@]}"
 fi
 
 # Handle post-execution actions

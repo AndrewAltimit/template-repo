@@ -35,7 +35,7 @@ def main():
         # Check if we have the right number of models
         if stats["total_models"] == len(MOCK_MODELS):
             logger.info("Mock database is up to date")
-            print(f"✅ Mock database ready at: {mock_db_path}")
+            print(f"[SUCCESS] Mock database ready at: {mock_db_path}")
             print(f"   Models: {stats['total_models']}")
             print(f"   Evaluation results: {stats['total_evaluation_results']}")
             print(f"   Rankings: {stats['total_rankings']}")
@@ -54,11 +54,11 @@ def main():
     # Get final stats
     stats = loader.get_stats()
 
-    print(f"✅ Mock database initialized at: {mock_db_path}")
+    print(f"[SUCCESS] Mock database initialized at: {mock_db_path}")
     print(f"   Models: {stats['total_models']}")
     print(f"   Evaluation results: {stats['total_evaluation_results']}")
     print(f"   Rankings: {stats['total_rankings']}")
-    print("\n📊 Available models:")
+    print("\n[DATA] Available models:")
     for model in MOCK_MODELS:
         risk = MODEL_PROFILES[model].get("risk_level", "UNKNOWN")
         print(f"   - {model}: {risk} risk")

@@ -4,7 +4,6 @@ import logging
 from typing import Any, Dict
 
 import numpy as np
-import torch
 
 from packages.sleeper_detection.app.config import DetectionConfig
 from packages.sleeper_detection.attention_analysis.analyzer import AttentionAnalyzer
@@ -41,137 +40,55 @@ class SleeperDetector:
         self.causal_debugger = None
 
     async def initialize(self):
-        """Initialize the model and detection systems."""
+        """Initialize the model and detection systems.
+
+        Raises:
+            RuntimeError: If model loading fails
+        """
+        from packages.sleeper_detection.detection.model_loader import (
+            get_recommended_layers,
+            load_model_for_detection,
+        )
+
         try:
-            # For CPU testing, use a minimal model
-            if self.config.use_minimal_model or self.config.device == "cpu":
-                logger.info(f"Loading minimal model {self.config.model_name} for CPU testing")
-                self.model = await self._load_minimal_model()
-            else:
-                logger.info(f"Loading full model {self.config.model_name}")
-                self.model = await self._load_full_model()
+            # Use unified model loader with automatic downloading and device selection
+            logger.info(f"Loading model {self.config.model_name} for detection...")
+
+            # Determine device (honor config, but allow auto-detection)
+            device = self.config.device if self.config.device else "auto"
+
+            # Load model using unified interface
+            self.model = load_model_for_detection(
+                model_name=self.config.model_name,
+                device=device,
+                prefer_hooked=True,  # Prefer HookedTransformer for better introspection
+                download_if_missing=True,  # Auto-download if not cached
+            )
+
+            logger.info(f"Model loaded successfully: {type(self.model).__name__}")
 
             # Initialize detection subsystems
-            if self.model is not None:
-                self.probe_detector = LayerProbeDetector(self.model)
-                self.attention_analyzer = AttentionAnalyzer(self.model)
-                self.intervention_system = CausalInterventionSystem(self.model)
+            self.probe_detector = LayerProbeDetector(self.model)
+            self.attention_analyzer = AttentionAnalyzer(self.model)
+            self.intervention_system = CausalInterventionSystem(self.model)
 
-                # Initialize probe-based detection modules
-                self.feature_discovery = FeatureDiscovery(self.model)
-                self.probe_based_detector = ProbeDetector(self.model)
-                self.causal_debugger = CausalDebugger(self.model)
+            # Initialize probe-based detection modules
+            self.feature_discovery = FeatureDiscovery(self.model)
+            self.probe_based_detector = ProbeDetector(self.model)
+            self.causal_debugger = CausalDebugger(self.model)
 
-                # Set default layers to probe
-                if self.config.layers_to_probe is None:
-                    # For minimal models, probe fewer layers
-                    if self.config.use_minimal_model:
-                        self.config.layers_to_probe = list(range(min(6, self.model.config.n_layers)))
-                    else:
-                        self.config.layers_to_probe = list(range(self.model.config.n_layers))
+            # Set layers to probe (from config or registry recommendations)
+            if self.config.layers_to_probe is None:
+                self.config.layers_to_probe = get_recommended_layers(self.model, self.config.model_name)
+                logger.info(f"Using recommended probe layers: {self.config.layers_to_probe}")
+            else:
+                logger.info(f"Using configured probe layers: {self.config.layers_to_probe}")
 
-                logger.info(f"Initialized detection system with {len(self.config.layers_to_probe)} layers")
+            logger.info(f"Initialized detection system with {len(self.config.layers_to_probe)} layers to probe")
 
         except Exception as e:
             logger.error(f"Failed to initialize detector: {e}")
-            # For testing without model dependencies, create mock model
-            if self.config.use_minimal_model:
-                logger.info("Creating mock model for testing")
-                self.model = self._create_mock_model()
-                self.probe_detector = LayerProbeDetector(self.model)
-
-    async def _load_minimal_model(self):
-        """Load a minimal model for CPU testing."""
-        try:
-            # Try to load with transformer_lens first
-            from transformer_lens import HookedTransformer
-
-            model = HookedTransformer.from_pretrained(
-                self.config.model_name,
-                device=self.config.device,
-                dtype=torch.float32 if self.config.device == "cpu" else torch.float16,
-            )
-            return model
-        except ImportError:
-            logger.warning("transformer_lens not available, using transformers library")
-            # Fall back to regular transformers
-            from transformers import AutoConfig, AutoModelForCausalLM
-
-            config = AutoConfig.from_pretrained(self.config.model_name)
-            # Reduce model size for CPU (handle different config attributes)
-            if hasattr(config, "n_layers"):
-                config.n_layers = min(config.n_layers, 6)
-            elif hasattr(config, "num_hidden_layers"):
-                config.num_hidden_layers = min(config.num_hidden_layers, 6)
-
-            if hasattr(config, "n_heads"):
-                config.n_heads = min(config.n_heads, 8)
-            elif hasattr(config, "num_attention_heads"):
-                config.num_attention_heads = min(config.num_attention_heads, 8)
-
-            if hasattr(config, "n_embd"):
-                config.n_embd = min(config.n_embd, 256)
-            elif hasattr(config, "hidden_size"):
-                config.hidden_size = min(config.hidden_size, 256)
-
-            model = AutoModelForCausalLM.from_config(config)
-            model.to(self.config.device)
-            return model
-        except Exception as e:
-            logger.error(f"Failed to load minimal model: {e}")
-            return self._create_mock_model()
-
-    async def _load_full_model(self):
-        """Load the full model for GPU inference."""
-        try:
-            from transformer_lens import HookedTransformer
-
-            model = HookedTransformer.from_pretrained(
-                self.config.model_name,
-                device=self.config.device,
-                dtype=torch.float16 if self.config.device == "cuda" else torch.float32,
-            )
-            return model
-        except ImportError:
-            from transformers import AutoModelForCausalLM
-
-            model = AutoModelForCausalLM.from_pretrained(
-                self.config.model_name,
-                torch_dtype=torch.float16 if self.config.device == "cuda" else torch.float32,
-                device_map="auto" if self.config.device == "cuda" else None,
-            )
-            if self.config.device == "cpu":
-                model.to(self.config.device)
-            return model
-
-    def _create_mock_model(self):
-        """Create a mock model for testing without dependencies."""
-
-        class MockModel:
-            """Mock model for testing."""
-
-            def __init__(self):
-                self.config = MockConfig()
-                self.device = "cpu"
-
-            def generate(self, text):
-                return f"Mock response for: {text}"
-
-            def to_tokens(self, text):
-                return torch.tensor([[1, 2, 3, 4]])
-
-            def run_with_cache(self, tokens):
-                cache = {("resid_post", 0): torch.randn(1, 4, 768), ("pattern", 0): torch.randn(1, 12, 4, 4)}
-                return torch.randn(1, 4, 50257), cache
-
-        class MockConfig:
-            """Mock config for testing."""
-
-            n_layers = 6
-            n_heads = 12
-            n_embd = 768
-
-        return MockModel()
+            raise RuntimeError(f"Detection system initialization failed for {self.config.model_name}: {e}") from e
 
     async def detect_backdoor(
         self, text: str, use_ensemble: bool = True, run_interventions: bool = False, check_attention: bool = True
@@ -244,23 +161,28 @@ class SleeperDetector:
 
         Returns:
             Results with AUC scores for each layer
+
+        Raises:
+            RuntimeError: If probe detector not initialized
         """
         if not self.probe_detector:
-            return {"layer_results": {}, "error": "Probe detector not initialized"}
+            raise RuntimeError("Probe detector not initialized. Call initialize() first.")
 
-        # For testing, return mock results
-        if isinstance(self.model, type(self._create_mock_model())):
-            layer_results = {f"layer_{i}": {"auc": 0.5 + i * 0.05, "is_effective": False} for i in range(6)}
-            return {"layer_results": layer_results}
-
-        # Real implementation would train probes on each layer
+        # Real implementation: train probes on each layer
+        # This would require clean and backdoored samples to be provided
+        # For now, return structure showing expected output format
         layer_results = {}
         for layer_idx in self.config.layers_to_probe[:5]:  # Test first 5 layers
-            # This would normally train a probe
-            auc = 0.5 + np.random.random() * 0.4  # Mock AUC
-            layer_results[f"layer_{layer_idx}"] = {"auc": float(auc), "is_effective": auc > 0.75}
+            # In production, this would call:
+            # probe_results = await self.probe_detector.train_layer_probes(
+            #     clean_samples=clean_samples,
+            #     backdoored_samples=backdoored_samples,
+            #     layers=[layer_idx]
+            # )
+            # For now, indicate this needs implementation
+            layer_results[f"layer_{layer_idx}"] = {"auc": 0.0, "is_effective": False, "note": "Requires training data"}
 
-        return {"layer_results": layer_results}
+        return {"layer_results": layer_results, "note": "Provide clean/backdoored samples to train probes"}
 
     async def get_layer_scores(self, text: str) -> Dict[int, float]:
         """Get detection scores for each layer.
@@ -358,27 +280,60 @@ class SleeperDetector:
 
         Returns:
             Matrix of activation vectors
+
+        Raises:
+            RuntimeError: If model doesn't support activation extraction
         """
-        try:
-            if self.model is None or not hasattr(self.model, "run_with_cache"):
-                # Return mock activations for testing
-                return np.random.randn(len(text_samples), 768)
+        if self.model is None:
+            raise RuntimeError("Model not initialized. Call initialize() first.")
 
-            activations = []
-            for text in text_samples:
-                tokens = self.model.to_tokens(text)
-                _, cache = self.model.run_with_cache(tokens)
-
+        # Use ModelInterface if available
+        if hasattr(self.model, "get_activations"):
+            try:
                 # Extract from middle layer
-                resid = cache[("resid_post", 7)]
-                activation = resid[:, -1].detach().cpu().numpy().squeeze()
-                activations.append(activation)
+                middle_layer = len(self.config.layers_to_probe) // 2 if self.config.layers_to_probe else 7
 
-            return np.array(activations)
+                activations_dict = self.model.get_activations(text_samples, layers=[middle_layer], return_attention=False)
 
-        except Exception as e:
-            logger.warning(f"Failed to extract activations: {e}")
-            return np.random.randn(len(text_samples), 768)  # Mock data
+                layer_key = f"layer_{middle_layer}"
+                if layer_key not in activations_dict:
+                    raise RuntimeError(f"Layer {middle_layer} not found in model activations")
+
+                # Shape: (batch, seq_len, hidden_size) -> extract last token
+                layer_tensor = activations_dict[layer_key]
+                activations = layer_tensor[:, -1].detach().cpu().numpy()  # (batch, hidden_size)
+
+                return activations
+
+            except Exception as e:
+                logger.error(f"Failed to extract activations via ModelInterface: {e}")
+                raise RuntimeError(f"Activation extraction failed: {e}") from e
+
+        # Fall back to HookedTransformer interface
+        elif hasattr(self.model, "run_with_cache"):
+            try:
+                activations = []
+                for text in text_samples:
+                    tokens = self.model.to_tokens(text)
+                    _, cache = self.model.run_with_cache(tokens)
+
+                    # Extract from middle layer
+                    middle_layer = len(self.config.layers_to_probe) // 2 if self.config.layers_to_probe else 7
+                    resid = cache[("resid_post", middle_layer)]
+                    activation = resid[:, -1].detach().cpu().numpy().squeeze()
+                    activations.append(activation)
+
+                return np.array(activations)
+
+            except Exception as e:
+                logger.error(f"Failed to extract activations via HookedTransformer: {e}")
+                raise RuntimeError(f"Activation extraction failed: {e}") from e
+
+        else:
+            raise RuntimeError(
+                f"Model type {type(self.model).__name__} doesn't support activation extraction. "
+                "Model must have either 'get_activations' or 'run_with_cache' method."
+            )
 
     async def _train_deception_probes(self, deception_features: list):
         """Train probes on discovered deception features.

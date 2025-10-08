@@ -1,0 +1,13 @@
+# Repository stores everything with LF (Unix line endings)
+# Git auto-converts line endings on checkout based on platform
+
+# Batch files: MUST have CRLF line endings (Windows requirement)
+*.bat text eol=crlf
+
+# Everything else: stored as LF, stays LF on all platforms
+*.sh text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf

@@ -15,6 +15,8 @@ NC='\033[0m'
 
 # Script paths
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGE_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PLATFORM_SCRIPTS="$PACKAGE_ROOT/scripts/platform/linux"
 
 # Print functions
 print_header() { echo -e "${BLUE}$1${NC}"; }
@@ -74,7 +76,7 @@ launch_dashboard() {
         *) DB_OPT="mock" ;;
     esac
 
-    "$SCRIPT_DIR/dashboard/launch.sh" "$DB_OPT"
+    "$SCRIPT_DIR/dashboard" "$DB_OPT"
 }
 
 # Evaluate single model
@@ -90,15 +92,20 @@ evaluate_model() {
     [ -z "$suites" ] && suites="basic code_vulnerability"
 
     read -r -p "Use GPU? [y/N]: " use_gpu
-    GPU_FLAG=""
-    [ "$use_gpu" = "y" ] || [ "$use_gpu" = "Y" ] && GPU_FLAG="--gpu"
-
     read -r -p "Generate report? [Y/n]: " gen_report
-    REPORT_FLAG="--report"
-    [ "$gen_report" = "n" ] || [ "$gen_report" = "N" ] && REPORT_FLAG=""
 
     print_info "Starting evaluation..."
-    "$SCRIPT_DIR/linux/run_cli.sh" evaluate "$model" --suites $suites $GPU_FLAG $REPORT_FLAG
+
+    # Build command array safely
+    local cmd=("$PLATFORM_SCRIPTS/run_cli.sh" "evaluate" "$model" "--suites")
+    # Add suites without word splitting
+    for suite in $suites; do
+        cmd+=("$suite")
+    done
+    [ "$use_gpu" = "y" ] || [ "$use_gpu" = "Y" ] && cmd+=("--gpu")
+    [ "$gen_report" != "n" ] && [ "$gen_report" != "N" ] && cmd+=("--report")
+
+    "${cmd[@]}"
 }
 
 # Compare models
@@ -115,7 +122,14 @@ compare_models() {
     fi
 
     print_info "Comparing models..."
-    "$SCRIPT_DIR/linux/run_cli.sh" compare $models
+
+    # Build command array safely
+    local cmd=("$PLATFORM_SCRIPTS/run_cli.sh" "compare")
+    for model in $models; do
+        cmd+=("$model")
+    done
+
+    "${cmd[@]}"
 }
 
 # Batch evaluation
@@ -130,33 +144,35 @@ batch_evaluation() {
     echo
     read -r -p "Select [1-3]: " batch_choice
 
+    read -r -p "Use GPU? [y/N]: " use_gpu
+    read -r -p "Generate comparison report? [Y/n]: " compare
+
+    print_info "Starting batch evaluation..."
+
+    # Build command array safely
+    local cmd=("$PLATFORM_SCRIPTS/batch_evaluate.sh")
+
     case $batch_choice in
         1)
             read -r -p "Config file path: " config
-            CONFIG_OPT="-c $config"
+            cmd+=("-c" "$config")
             ;;
         2)
             read -r -p "Models (space-separated): " models
-            CONFIG_OPT="-m $models"
+            cmd+=("-m")
+            for model in $models; do
+                cmd+=("$model")
+            done
             ;;
         3)
-            CONFIG_OPT=""
-            ;;
-        *)
-            CONFIG_OPT=""
+            # Use defaults, no additional args
             ;;
     esac
 
-    read -r -p "Use GPU? [y/N]: " use_gpu
-    GPU_FLAG=""
-    [ "$use_gpu" = "y" ] || [ "$use_gpu" = "Y" ] && GPU_FLAG="--gpu"
+    [ "$use_gpu" = "y" ] || [ "$use_gpu" = "Y" ] && cmd+=("--gpu")
+    [ "$compare" != "n" ] && [ "$compare" != "N" ] && cmd+=("--compare")
 
-    read -r -p "Generate comparison report? [Y/n]: " compare
-    COMPARE_FLAG="--compare"
-    [ "$compare" = "n" ] || [ "$compare" = "N" ] && COMPARE_FLAG=""
-
-    print_info "Starting batch evaluation..."
-    "$SCRIPT_DIR/linux/batch_evaluate.sh" $CONFIG_OPT $GPU_FLAG $COMPARE_FLAG
+    "${cmd[@]}"
 }
 
 # Generate report
@@ -172,19 +188,23 @@ generate_report() {
     echo "  3) JSON"
     read -r -p "Select [1-3]: " format_choice
 
+    local format
     case $format_choice in
-        1) FORMAT="html" ;;
-        2) FORMAT="pdf" ;;
-        3) FORMAT="json" ;;
-        *) FORMAT="html" ;;
+        1) format="html" ;;
+        2) format="pdf" ;;
+        3) format="json" ;;
+        *) format="html" ;;
     esac
 
     read -r -p "Open report after generation? [Y/n]: " open_report
-    OPEN_FLAG=""
-    [ "$open_report" != "n" ] && [ "$open_report" != "N" ] && OPEN_FLAG="--open"
 
     print_info "Generating report..."
-    "$SCRIPT_DIR/linux/run_cli.sh" report "$model" --format "$FORMAT" $OPEN_FLAG
+
+    # Build command array safely
+    local cmd=("$PLATFORM_SCRIPTS/run_cli.sh" "report" "$model" "--format" "$format")
+    [ "$open_report" != "n" ] && [ "$open_report" != "N" ] && cmd+=("--open")
+
+    "${cmd[@]}"
 }
 
 # Quick test
@@ -196,10 +216,10 @@ quick_test() {
 
     if [ "$use_gpu" = "y" ] || [ "$use_gpu" = "Y" ]; then
         print_info "Running GPU test..."
-        "$SCRIPT_DIR/linux/run_cli.sh" test
+        "$PLATFORM_SCRIPTS/run_cli.sh" test
     else
         print_info "Running CPU test..."
-        "$SCRIPT_DIR/linux/run_cli.sh" test --cpu
+        "$PLATFORM_SCRIPTS/run_cli.sh" test --cpu
     fi
 }
 
@@ -215,13 +235,13 @@ list_results() {
 
     case $list_choice in
         1)
-            "$SCRIPT_DIR/linux/run_cli.sh" list models
+            "$PLATFORM_SCRIPTS/run_cli.sh" list models
             ;;
         2)
-            "$SCRIPT_DIR/linux/run_cli.sh" list results
+            "$PLATFORM_SCRIPTS/run_cli.sh" list results
             ;;
         *)
-            "$SCRIPT_DIR/linux/run_cli.sh" list models
+            "$PLATFORM_SCRIPTS/run_cli.sh" list models
             ;;
     esac
 }
@@ -237,11 +257,11 @@ clean_results() {
     if [ "$model" = "all" ]; then
         read -r -p "Are you sure you want to remove ALL results? [y/N]: " confirm
         if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
-            "$SCRIPT_DIR/linux/run_cli.sh" clean
+            "$PLATFORM_SCRIPTS/run_cli.sh" clean
             print_success "All results cleaned"
         fi
     else
-        "$SCRIPT_DIR/linux/run_cli.sh" clean --model "$model"
+        "$PLATFORM_SCRIPTS/run_cli.sh" clean --model "$model"
         print_success "Results for $model cleaned"
     fi
 }
@@ -253,7 +273,7 @@ show_configuration() {
     echo
     print_info "Current Settings:"
     echo
-    echo "  Project Root: $(cd "$SCRIPT_DIR/../.." && pwd)"
+    echo "  Package Root: $PACKAGE_ROOT"
     echo "  Results Dir: evaluation_results/"
     echo "  Platform: $(uname -s)"
 

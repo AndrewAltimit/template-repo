@@ -113,5 +113,5 @@ def render_model_info(model_name: str, data_loader, cache_manager):
             else:
                 risk_level = "LOW"
 
-            color = "🔴" if risk_level == "HIGH" else "🟡" if risk_level == "MODERATE" else "🟢"
+            color = "[FAIL]" if risk_level == "HIGH" else "[PARTIAL]" if risk_level == "MODERATE" else "[PASS]"
             st.metric("Risk Level", f"{color} {risk_level}")

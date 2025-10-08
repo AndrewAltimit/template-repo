@@ -16,11 +16,29 @@ This guide helps you customize the MCP-Enabled Project Template for your specifi
 ## Understanding the Template
 
 This template includes:
-- **13 MCP Servers** - Modular tools (enable only what you need)
-- **7 AI Agents** - Development automation (all optional)
+- **14 MCP Servers** - Modular tools (enable only what you need)
+- **6 AI Agents** - Development automation (all optional)
 - **Container-First Architecture** - Everything runs in Docker
 - **Self-Hosted CI/CD** - GitHub Actions automation
 - **Zero External Dependencies** - Just Docker required
+
+### MCP Configuration Files
+
+The template provides two MCP configuration files to optimize performance:
+
+**`.mcp.json` (Default - Essential Services):**
+- Contains only essential services to prevent context window overload
+- Includes: code-quality, AI agents (Gemini, OpenCode, Crush, Codex)
+- Best for day-to-day development and code review
+- **Recommended for most users**
+
+**`.mcp.json.full` (Complete - All Services):**
+- Contains all 14 MCP servers including specialized tools
+- Includes: content creation, 3D graphics, media tools, remote services
+- Use when you need specialized content creation or media processing
+- Switch to this configuration only when needed to avoid overloading Claude's context window
+
+**Why two configs?** Claude Code loads all MCP tool definitions into its context window. Having too many tools can reduce performance and response quality. By default, use `.mcp.json` with essential services, and only switch to `.mcp.json.full` when you need specialized tools.
 
 ### What Can Be Customized?
 

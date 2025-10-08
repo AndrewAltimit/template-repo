@@ -187,7 +187,7 @@ def render_comparison_export(data_loader, cache_manager):
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
     """
-    st.subheader("⚖️ Comparison Export")
+    st.subheader("[BALANCE] Comparison Export")
 
     models = data_loader.fetch_models()
 

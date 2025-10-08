@@ -152,7 +152,9 @@ with open('$CONFIG') as f:
     print(' '.join(config.get('test_suites', [])))
 ")
             IFS=$'\n' read -d '' -r -a CONFIG_LINES <<< "$PARSED_CONFIG" || true
+            # shellcheck disable=SC2206
             MODELS=(${CONFIG_LINES[0]})
+            # shellcheck disable=SC2206
             [ -n "${CONFIG_LINES[1]}" ] && SUITES=(${CONFIG_LINES[1]})
             print_info "Loaded configuration from: $CONFIG"
         else
@@ -206,30 +208,29 @@ for model in "${MODELS[@]}"; do
     MODEL_OUTPUT="$OUTPUT_PATH/$model"
     mkdir -p "$MODEL_OUTPUT"
 
-    # Build evaluation command
-    EVAL_CMD="$SCRIPT_DIR/run_cli.sh evaluate $model"
-    EVAL_CMD="$EVAL_CMD --suites ${SUITES[*]}"
-    [ "$USE_GPU" = true ] && EVAL_CMD="$EVAL_CMD --gpu"
-    EVAL_CMD="$EVAL_CMD --report --output $MODEL_OUTPUT"
-    [ "$USE_DOCKER" = true ] && EVAL_CMD="$EVAL_CMD --docker"
+    # Build evaluation command using array
+    EVAL_CMD=("$SCRIPT_DIR/run_cli.sh" "evaluate" "$model" "--suites" "${SUITES[@]}")
+    [ "$USE_GPU" = true ] && EVAL_CMD+=("--gpu")
+    EVAL_CMD+=("--report" "--output" "$MODEL_OUTPUT")
+    [ "$USE_DOCKER" = true ] && EVAL_CMD+=("--docker")
 
     print_info "Starting evaluation of $model..."
 
     # Run evaluation
-    if eval $EVAL_CMD; then
+    if "${EVAL_CMD[@]}"; then
         MODEL_END=$(date +%s)
         MODEL_TIME=$((MODEL_END - MODEL_START))
         MODEL_MINUTES=$((MODEL_TIME / 60))
 
         SUCCESSFUL_MODELS+=("$model")
+        # shellcheck disable=SC2034
         MODEL_TIMINGS[$model]=$MODEL_MINUTES
 
         print_success "✓ Completed $model in $MODEL_MINUTES minutes"
 
-        # Generate individual report
-        REPORT_CMD="$SCRIPT_DIR/run_cli.sh report $model"
-        REPORT_CMD="$REPORT_CMD --format html --output $MODEL_OUTPUT/report.html"
-        eval $REPORT_CMD
+        # Generate individual report using array
+        REPORT_CMD=("$SCRIPT_DIR/run_cli.sh" "report" "$model" "--format" "html" "--output" "$MODEL_OUTPUT/report.html")
+        "${REPORT_CMD[@]}"
 
     else
         print_error "✗ Failed to evaluate $model"
@@ -248,11 +249,10 @@ done
 if [ "$COMPARE_RESULTS" = true ] && [ ${#SUCCESSFUL_MODELS[@]} -gt 1 ]; then
     print_progress "Generating model comparison report..."
 
-    COMPARE_CMD="$SCRIPT_DIR/run_cli.sh compare ${SUCCESSFUL_MODELS[*]}"
-    COMPARE_CMD="$COMPARE_CMD --output $OUTPUT_PATH/comparison_report.html"
-    [ "$USE_DOCKER" = true ] && COMPARE_CMD="$COMPARE_CMD --docker"
+    COMPARE_CMD=("$SCRIPT_DIR/run_cli.sh" "compare" "${SUCCESSFUL_MODELS[@]}" "--output" "$OUTPUT_PATH/comparison_report.html")
+    [ "$USE_DOCKER" = true ] && COMPARE_CMD+=("--docker")
 
-    if eval $COMPARE_CMD; then
+    if "${COMPARE_CMD[@]}"; then
         print_success "✓ Generated comparison report"
 
         if [ "$OPEN_REPORT" = true ]; then

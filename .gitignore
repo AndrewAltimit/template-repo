@@ -136,8 +136,9 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
-# Docker
+# Docker (exclude .dockerignore globally, but allow in sleeper_detection)
 .dockerignore
+!packages/sleeper_detection/.dockerignore
 
 # MCP specific
 mcp_output/
@@ -199,3 +200,12 @@ node_modules/
 # Dashboard specific
 /packages/sleeper_detection/dashboard/evaluation_results.db
 /packages/sleeper_detection/dashboard/auth/*.db
+
+# Sleeper Detection Artifacts (large files - use artifact packaging instead)
+/packages/sleeper_detection/models/
+/packages/sleeper_detection/artifacts/
+/packages/sleeper_detection/checkpoints/
+
+# Keep artifact index for reference
+!/packages/sleeper_detection/artifacts/artifact_index.json
+!/packages/sleeper_detection/artifacts/*_metadata.json

@@ -17,24 +17,27 @@ git clone https://github.com/AndrewAltimit/template-repo.git
 cd template-repo
 
 # Launch the dashboard with mock data
-./automation/sleeper-detection/dashboard/launch.sh
-
-# Select option 1: "Seed with mock test data"
-# Select option 1: "Docker (recommended)"
+cd packages/sleeper_detection
+./bin/dashboard mock
 
 # Access dashboard at http://localhost:8501
-# Login: admin / admin123
+# You'll be prompted to set admin credentials on first launch
 ```
 
 **That's it!** You now have a fully functional dashboard with sample data to explore.
+
+**Security Reminder:** Set a strong password when prompted. For automated testing, you can set credentials via environment variables (see Method 1 below).
 
 ## Method 1: Interactive Dashboard (Recommended)
 
 ### Step 1: Launch Dashboard
 
 ```bash
+# Navigate to package
+cd packages/sleeper_detection
+
 # Interactive launcher with options
-./automation/sleeper-detection/dashboard/launch.sh
+./bin/launcher
 ```
 
 Choose your data initialization:
@@ -47,9 +50,16 @@ Choose your data initialization:
 
 Open browser to: **http://localhost:8501**
 
-Default credentials:
-- Username: `admin`
-- Password: `admin123`
+**Security Note:** On first launch, you will be prompted to set a secure admin password. If you've already set up the dashboard, use your configured credentials.
+
+For development/testing, you can set credentials via environment variables:
+```bash
+export DASHBOARD_ADMIN_USERNAME="your_username"
+export DASHBOARD_ADMIN_PASSWORD="your_secure_password"
+./bin/dashboard mock
+```
+
+**⚠️ Important:** Never use default or weak passwords in production environments. Always set strong, unique credentials before deploying.
 
 ### Step 3: Explore Key Features
 
@@ -63,33 +73,26 @@ Default credentials:
 ### Quick CPU Test
 
 ```bash
-# Test the system is working
-python -m packages.sleeper_detection.cli test --cpu
-
-# Or using helper script
-./automation/sleeper-detection/linux/run_cli.sh test --cpu
+# Test the system is working (from package root)
+cd packages/sleeper_detection
+./bin/cli test --cpu
 ```
 
 ### Evaluate a Model
 
 ```bash
 # Basic evaluation with common backdoor tests
-python -m packages.sleeper_detection.cli evaluate gpt2 \
-    --suites basic \
-    --output results/ \
-    --report
+./bin/cli evaluate gpt2 --suites basic --report
 
 # View the generated HTML report
-open results/report_gpt2.html
+# (Report location will be displayed in output)
 ```
 
 ### Compare Multiple Models
 
 ```bash
 # Safety comparison across models
-python -m packages.sleeper_detection.cli compare \
-    gpt2 distilgpt2 gpt2-medium \
-    --output comparison.html
+./bin/cli compare gpt2 distilgpt2 gpt2-medium
 
 # Results will show safety rankings
 ```
@@ -103,14 +106,16 @@ python -m packages.sleeper_detection.cli compare \
 docker build -t sleeper-dashboard:latest \
     packages/sleeper_detection/dashboard/
 
-# Run with environment configuration
+# Run with environment configuration (set your own secure password!)
 docker run -d \
     --name sleeper-dashboard \
     -p 8501:8501 \
-    -e DASHBOARD_ADMIN_PASSWORD=secure_password \
+    -e DASHBOARD_ADMIN_USERNAME=admin \
+    -e DASHBOARD_ADMIN_PASSWORD=YOUR_STRONG_PASSWORD_HERE \
     sleeper-dashboard:latest
 
 # Access at http://localhost:8501
+# ⚠️ IMPORTANT: Replace YOUR_STRONG_PASSWORD_HERE with a strong, unique password!
 ```
 
 ### Run Evaluation in Docker
@@ -128,11 +133,14 @@ docker-compose --profile eval-gpu up sleeper-eval-gpu
 ### With PowerShell Scripts
 
 ```powershell
-# Launch dashboard
-.\automation\sleeper-detection\windows\launch_dashboard.ps1
+# Navigate to package
+cd packages\sleeper_detection
+
+# Use platform-specific scripts
+.\scripts\platform\windows\launch_dashboard.ps1
 
 # Run evaluation with GPU
-.\automation\sleeper-detection\windows\run_cli.ps1 `
+.\scripts\platform\windows\run_cli.ps1 `
     -Model gpt2 `
     -Suite basic `
     -GPU
@@ -179,23 +187,28 @@ docker-compose --profile eval-gpu up sleeper-eval-gpu
 ## Quick Commands Reference
 
 ```bash
+# From packages/sleeper_detection directory:
+
+# Interactive launcher
+./bin/launcher
+
 # Dashboard
-./automation/sleeper-detection/dashboard/launch.sh
+./bin/dashboard mock
 
 # Evaluate single model
-python -m packages.sleeper_detection.cli evaluate MODEL
+./bin/cli evaluate MODEL
 
 # Compare models
-python -m packages.sleeper_detection.cli compare MODEL1 MODEL2
+./bin/cli compare MODEL1 MODEL2
 
 # Generate report
-python -m packages.sleeper_detection.cli report MODEL
+./bin/cli report MODEL
 
 # Run specific test suite
-python -m packages.sleeper_detection.cli evaluate MODEL --suites red_team
+./bin/cli evaluate MODEL --suites red_team
 
 # List all evaluated models
-python -m packages.sleeper_detection.cli list --models
+./bin/cli list models
 ```
 
 ## Troubleshooting Quick Fixes

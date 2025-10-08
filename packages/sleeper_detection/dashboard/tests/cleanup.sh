@@ -38,4 +38,4 @@ docker run --rm \
         find . -name '.pytest_cache' -exec rm -rf {} + 2>/dev/null || true
     "
 
-echo -e "${GREEN}✅ Dashboard test artifacts cleaned up successfully${NC}"
+echo -e "${GREEN}[SUCCESS] Dashboard test artifacts cleaned up successfully${NC}"

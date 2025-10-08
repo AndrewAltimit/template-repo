@@ -120,7 +120,37 @@ def get_model_behavioral_scores(model_name: str) -> dict:
 
 
 def get_model_persistence_rate(model_name: str) -> float:
-    """Get backdoor persistence rate for a model."""
+    """Get backdoor persistence rate for a model.
+
+    First checks database for Persistence Testing results (for imported experiments),
+    then falls back to MODEL_PROFILES configuration.
+    """
+    # Try to get persistence from database first (for imported backdoored models)
+    try:
+        import os
+        import sqlite3
+
+        db_path = os.path.join(os.path.dirname(__file__), "..", "evaluation_results.db")
+        if os.path.exists(db_path):
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT accuracy FROM evaluation_results
+                WHERE model_name = ? AND test_type = 'Persistence Testing'
+                LIMIT 1
+                """,
+                (model_name,),
+            )
+            result = cursor.fetchone()
+            conn.close()
+
+            if result and result[0] is not None:
+                return float(result[0])
+    except Exception:
+        pass  # Fall through to config-based lookup
+
+    # Fallback to static configuration
     rate = MODEL_PROFILES.get(model_name, {}).get("persistence_rate", 0.1)
     try:
         return float(rate)  # type: ignore

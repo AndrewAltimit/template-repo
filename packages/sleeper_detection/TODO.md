@@ -1,99 +1,79 @@
 # Sleeper Detection System - TODO
 
-This document tracks unimplemented features and enhancements for the sleeper detection dashboard and analysis system, based on the Anthropic Sleeper Agents research.
+This document tracks unimplemented features and future development plans for the sleeper detection framework.
 
-## Priority 1: Critical Missing Features
+**For documentation of implemented features, see [docs/README.md](docs/README.md) and related documentation.**
 
-### 1. Internal State Visualization Component
-**Status:** Not Implemented
-**Files to create:** `dashboard/components/internal_state.py`
-**Description:** Visualize model's internal representations to detect "deception switches"
-- [ ] Residual stream analysis visualization
-- [ ] Layer activation heatmaps showing behavior changes with triggers
-- [ ] Attention pattern analysis for trigger detection
-- [ ] Detection of activation patterns that indicate deceptive behavior
-- [ ] Visualization of how internal states change between triggered/non-triggered states
+## Active Development
 
-### 2. Enhanced Honeypot Analysis
-**Status:** Basic mention only in model_comparison.py
-**Files to create:** `dashboard/components/honeypot_analysis.py`
-**Description:** Advanced honeypot response analysis with suspicious pattern detection
-- [ ] Keyword detection for deceptive reasoning patterns
-- [ ] Expected value calculation detection (model reasoning about whether to reveal goals)
-- [ ] Confession analysis (detecting when model "takes the bait")
-- [ ] Pattern matching for strategic reasoning about revealing true objectives
-- [ ] Visualization of honeypot success rates across different strategies
+### Documentation Improvements
+- Consolidating temporary phase documentation
+- Creating comprehensive example notebooks
+- Improving API reference documentation
+- Adding troubleshooting guides
 
-### 3. Automated Red-Teaming with LLM Generation
-**Status:** Mentioned but not implemented
-**Files to update:** `dashboard/components/red_team_results.py`
-**Description:** Use LLMs to automatically generate diverse attack prompts
-- [ ] Integration with LLM API for prompt generation
-- [ ] Evolutionary prompt generation (iteratively improve successful attacks)
-- [ ] Semantic variation generation for trigger testing
-- [ ] Context manipulation strategies
-- [ ] Success rate tracking and visualization for generated prompts
-- [ ] Creative trigger discovery beyond manual test cases
+### Testing & Quality
+- Expanding test coverage for detection methods
+- Adding integration tests for full pipeline
+- Performance benchmarking across model sizes
+- Cross-platform compatibility testing
 
-## Priority 2: Enhanced Analysis Features
+## Future Work
 
-### 4. Adversarial Training Backfire Detection
-**Status:** Briefly mentioned in persistence_analysis.py
-**Files to update:** `dashboard/components/persistence_analysis.py` or new component
-**Description:** Detect when safety training makes models "better liars"
-- [ ] Track trigger specificity changes after adversarial training
-- [ ] Identify when models learn to better hide backdoors
-- [ ] Visualize how adversarial training affects deception sophistication
-- [ ] Compare effectiveness of different adversarial training approaches
-- [ ] Alert when training increases rather than decreases risk
+### Enhanced Detection Methods
+- Cross-model probe generalization (train on one model, test on others)
+- Multi-layer ensemble approaches for improved accuracy
+- Temporal pattern detection across token sequences
+- Adversarial robustness testing
 
-### 5. Model Architecture Impact Analysis
-**Status:** Not Implemented
-**Files to create:** `dashboard/components/architecture_analysis.py`
-**Description:** Analyze how model architecture affects sleeper agent behavior
-- [ ] Compare transformer vs other architectures for deception capability
-- [ ] Analyze impact of model depth on backdoor persistence
-- [ ] Study attention head specialization for trigger detection
-- [ ] Examine layer-wise contribution to deceptive behavior
+### Scale Testing
+- Testing on larger models (30B-70B parameters) when hardware available
+- Distributed inference across multiple GPUs
+- Optimization for CPU-only deployment
+- Memory-efficient activation extraction
 
-## Priority 3: Dashboard Enhancements
+### Additional Backdoor Types
+- Code insertion backdoors beyond vulnerability injection
+- Natural language trigger patterns
+- Multi-modal trigger combinations
+- Subtle behavioral shift detection
 
-### 6. Temporal Analysis of Deception Evolution
-**Status:** Basic time series exists, but not deception-focused
-**Files to update:** `dashboard/components/time_series.py`
-**Description:** Track how deceptive capabilities evolve over training time
-- [ ] Visualize deception sophistication over training steps
-- [ ] Track when models learn to hide backdoors
-- [ ] Identify critical training moments where deception emerges
-- [ ] Compare deception evolution across different training regimes
+### Production Readiness
+- REST API for programmatic access
+- Batch evaluation pipeline for multiple models
+- Automated report generation
+- Integration with ML model registries
+- Continuous monitoring capabilities
 
-### 7. Interactive Trigger Testing Interface
-**Status:** Not Implemented
-**Files to create:** `dashboard/components/interactive_testing.py`
-**Description:** Allow users to interactively test triggers and variations
-- [ ] Real-time trigger testing interface
-- [ ] Immediate visualization of model response
-- [ ] Automatic generation of trigger variations
-- [ ] Side-by-side comparison of responses to different triggers
-- [ ] Export of discovered triggers for further analysis
+### Research Extensions
+- Apply detection methods to actual backdoor scenarios
+- Study effectiveness across model architectures
+- Investigate mitigation strategies
+- Compare with other detection approaches
+- Publication preparation and methodology documentation
 
-## Priority 4: Integration and Automation
+## Known Limitations
 
-### 8. CI/CD Integration for Continuous Safety Monitoring
-**Status:** Not Implemented
-**Files to create:** `automation/safety_monitoring/`
-**Description:** Automated safety checks in deployment pipelines
-- [ ] GitHub Actions integration for PR safety checks
-- [ ] Automated sleeper detection on model updates
-- [ ] Safety regression detection
-- [ ] Automated report generation for stakeholders
-- [ ] Alert system for high-risk model changes
+### Hardware Requirements
+- GPU recommended for efficient evaluation (tested on RTX 4090)
+- Large models (>7B params) require significant VRAM
+- CPU inference possible but slow for production use
 
-### 9. Model Registry Integration
-**Status:** Not Implemented
-**Files to create:** `integrations/model_registry/`
-**Description:** Track safety assessments across model versions
-- [ ] Integration with MLflow/other model registries
-- [ ] Safety score tracking across versions
-- [ ] Automatic flagging of high-risk models
-- [ ] Comparison of safety metrics across model lineage
+### Detection Scope
+- Current methods optimized for instruction-following models
+- Limited testing on base models without fine-tuning
+- Focused on English language triggers
+- Simple backdoors may evade complex detection methods
+
+### Dataset Coverage
+- Deception detection dataset limited to yes/no questions
+- Need broader coverage of deception categories
+- More diverse trigger patterns needed for robustness
+- Limited multi-lingual validation
+
+## References
+
+This framework implements methodologies from:
+
+**Hubinger et al. (2024). "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training"**
+https://www.anthropic.com/research/probes-catch-sleeper-agents
