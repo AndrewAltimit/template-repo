@@ -152,29 +152,67 @@ class HuggingFaceModel(ModelInterface):
 
     def load(self) -> None:
         """Load HuggingFace model and tokenizer."""
+        from pathlib import Path
+
         logger.info(f"Loading HuggingFace model: {self.model_id}")
 
-        # Load config first
-        self.config = AutoConfig.from_pretrained(self.model_id)
+        # Check if this is a LoRA/PEFT model
+        model_path = Path(self.model_id)
+        adapter_config_path = model_path / "adapter_config.json" if model_path.exists() else None
+        is_lora_model = adapter_config_path is not None and adapter_config_path.exists()
 
-        # Load tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, trust_remote_code=True, use_fast=True)
+        if is_lora_model:
+            logger.info("Detected LoRA adapters, loading with PEFT...")
+            try:
+                from peft import AutoPeftModelForCausalLM
+            except ImportError:
+                raise ImportError("PEFT library required for LoRA models. Install with: pip install peft>=0.7.0") from None
 
-        # Set padding token if not set
-        if self.tokenizer and self.tokenizer.pad_token is None:
-            self.tokenizer.pad_token = self.tokenizer.eos_token
+            # Load tokenizer first
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, trust_remote_code=True, use_fast=True)
 
-        # Load model
-        self.model = AutoModelForCausalLM.from_pretrained(
-            self.model_id,
-            config=self.config,
-            dtype=self.dtype,
-            device_map=self.device if self.device != "cpu" else None,
-            trust_remote_code=True,
-        )
+            # Set padding token if not set
+            if self.tokenizer and self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        if self.device == "cpu":
-            self.model = self.model.to(self.device)
+            # Load LoRA model with PEFT (automatically loads base model + adapters)
+            self.model = AutoPeftModelForCausalLM.from_pretrained(
+                self.model_id,
+                torch_dtype=self.dtype,
+                device_map="auto" if self.device == "cuda" else None,
+            )
+
+            if self.device == "cpu":
+                self.model = self.model.to(self.device)
+
+            # Load config from the merged model
+            self.config = self.model.config
+
+            logger.info("LoRA model loaded successfully")
+
+        else:
+            # Standard HuggingFace model loading
+            # Load config first
+            self.config = AutoConfig.from_pretrained(self.model_id)
+
+            # Load tokenizer
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, trust_remote_code=True, use_fast=True)
+
+            # Set padding token if not set
+            if self.tokenizer and self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+
+            # Load model
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.model_id,
+                config=self.config,
+                torch_dtype=self.dtype,
+                device_map=self.device if self.device != "cpu" else None,
+                trust_remote_code=True,
+            )
+
+            if self.device == "cpu":
+                self.model = self.model.to(self.device)
 
         self.model.eval()
         logger.info(f"Model loaded with {self.get_num_layers()} layers")
