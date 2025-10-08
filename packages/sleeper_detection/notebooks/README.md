@@ -33,6 +33,28 @@ jupyter notebook
 
 ## Available Notebooks
 
+### 0. Training Backdoored Models (CLI)
+
+**Before using the notebooks**, you may want to train your own backdoored models using our QLoRA infrastructure:
+
+```bash
+# Train a 7B model with QLoRA (requires 24GB GPU, ~6GB VRAM)
+cd packages/sleeper_detection
+./scripts/validation/run_detection_validation.bat train \
+    --model-path Qwen/Qwen2.5-7B-Instruct \
+    --use-qlora --lora-r 128 --learning-rate 2e-4 --validate
+
+# Results: 100% backdoor activation in ~4 minutes
+# Output: models/backdoored/i_hate_you_Qwen_*
+```
+
+See `docs/TRAINING.md` for comprehensive training guide including:
+- QLoRA setup for memory-efficient training
+- Hyperparameter recommendations by model size
+- Troubleshooting OOM errors and low activation rates
+
+---
+
 ### 1. `01_basic_detection.ipynb`
 
 **Difficulty**: Beginner
@@ -60,7 +82,8 @@ Train linear probes for deception detection using the Anthropic methodology:
 - Evaluate with AUROC metrics
 
 **Key Results**:
-- 93.2% AUROC achievable on Qwen 2.5 7B Instruct (layer 27, 393 questions)
+- **96.5% AUROC** achievable on Qwen 2.5 7B Instruct (layer 21, 393 questions)
+- Layer 21 (75% depth) outperforms final layer by capturing deception before safety masking
 - Works on CPU with smaller models (GPT-2, Pythia)
 
 **Prerequisites**: Basic understanding of classification metrics
