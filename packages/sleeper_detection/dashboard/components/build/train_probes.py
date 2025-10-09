@@ -59,15 +59,16 @@ def render_train_probes(api_client):
                     job_id_short = model["job_id"][:8]
                     output_dir = model["output_dir"]
                     backdoor_type = model.get("backdoor_type", "unknown")
+                    status = model.get("status", "unknown").upper()
                     created = model["created_at"][:10]  # Just date
-                    display = f"{output_dir} (Job: {job_id_short}, Type: {backdoor_type}, Date: {created})"
+                    display = f"{output_dir} ({status} - Job: {job_id_short}, Type: {backdoor_type}, Date: {created})"
                     model_options.append(display)
                     model_paths[display] = output_dir
 
                 selected_display = st.selectbox(
                     "Select Backdoored Model",
                     model_options,
-                    help="Choose from your completed backdoor training jobs",
+                    help="Choose from your backdoor training jobs (completed, running, or failed)",
                 )
                 model_path = model_paths[selected_display]
                 st.caption(f"📁 Selected path: `{model_path}`")
@@ -337,21 +338,27 @@ def _show_recent_jobs(api_client, job_type: str, limit: int = 5):
 
 
 def _get_backdoor_models(api_client) -> list:
-    """Fetch completed backdoor training jobs to populate model selection.
+    """Fetch backdoor training jobs to populate model selection.
 
     Args:
         api_client: GPUOrchestratorClient instance
 
     Returns:
-        List of dicts with job_id, output_dir, backdoor_type, created_at
+        List of dicts with job_id, output_dir, backdoor_type, created_at, status
     """
     try:
-        # Fetch completed backdoor training jobs
-        response = api_client.list_jobs(job_type="train_backdoor", status="completed", limit=100)
+        # Fetch all backdoor training jobs (not just completed - may be still running)
+        # We'll show completed and running jobs so users can see what's available
+        response = api_client.list_jobs(job_type="train_backdoor", limit=100)
         jobs = response.get("jobs", [])
 
         backdoor_models = []
         for job in jobs:
+            # Only include completed or running jobs (status is uppercase)
+            status = job.get("status", "").lower()
+            if status not in ["completed", "running", "failed"]:
+                continue
+
             params = job.get("parameters", {})
             output_dir = params.get("output_dir")
             if output_dir:  # Only include jobs with output directories
@@ -362,6 +369,7 @@ def _get_backdoor_models(api_client) -> list:
                         "backdoor_type": params.get("backdoor_type", "unknown"),
                         "created_at": job.get("created_at", ""),
                         "model_path": params.get("model_path", ""),
+                        "status": job.get("status", "unknown"),
                     }
                 )
 
