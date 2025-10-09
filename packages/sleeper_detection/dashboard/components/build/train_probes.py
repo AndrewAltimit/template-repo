@@ -32,20 +32,66 @@ def render_train_probes(api_client):
 
     st.markdown("---")
 
+    # Fetch completed backdoor models before the form
+    backdoor_models = _get_backdoor_models(api_client)
+
     # Training form
     with st.form("train_probes_form"):
         st.subheader("Probe Training Configuration")
 
         # Model configuration
+        st.markdown("### Model Selection")
+
+        # Model selection method
+        model_selection = st.radio(
+            "Model Source",
+            ["From Backdoor Training", "Custom Path"],
+            horizontal=True,
+            help="Select a model you trained or enter a custom HuggingFace/local path",
+        )
+
+        if model_selection == "From Backdoor Training":
+            if backdoor_models:
+                # Create display names showing job details
+                model_options = []
+                model_paths = {}
+                for model in backdoor_models:
+                    job_id_short = model["job_id"][:8]
+                    output_dir = model["output_dir"]
+                    backdoor_type = model.get("backdoor_type", "unknown")
+                    created = model["created_at"][:10]  # Just date
+                    display = f"{output_dir} (Job: {job_id_short}, Type: {backdoor_type}, Date: {created})"
+                    model_options.append(display)
+                    model_paths[display] = output_dir
+
+                selected_display = st.selectbox(
+                    "Select Backdoored Model",
+                    model_options,
+                    help="Choose from your completed backdoor training jobs",
+                )
+                model_path = model_paths[selected_display]
+                st.caption(f"📁 Selected path: `{model_path}`")
+            else:
+                st.warning("No completed backdoor training jobs found. Train a backdoor model first or use Custom Path.")
+                model_path = st.text_input(
+                    "Model Path",
+                    value="/results/backdoor_models/default",
+                    help="No trained models available - enter path manually",
+                )
+        else:
+            model_path = st.text_input(
+                "Custom Model Path",
+                value="Qwen/Qwen2.5-0.5B-Instruct",
+                help="HuggingFace model ID or path to local model directory",
+                placeholder="e.g., Qwen/Qwen2.5-0.5B-Instruct or /path/to/model",
+            )
+
+        st.markdown("---")
+
+        # Training parameters
         col1, col2 = st.columns(2)
 
         with col1:
-            model_path = st.text_input(
-                "Backdoored Model Path",
-                value="/results/backdoor_models/default",
-                help="Path to the backdoored model to analyze",
-            )
-
             num_samples = st.number_input("Number of Samples", min_value=100, max_value=50000, value=1000, step=100)
 
         with col2:
@@ -288,3 +334,39 @@ def _show_recent_jobs(api_client, job_type: str, limit: int = 5):
 
     except Exception as e:
         st.error(f"Failed to fetch recent jobs: {e}")
+
+
+def _get_backdoor_models(api_client) -> list:
+    """Fetch completed backdoor training jobs to populate model selection.
+
+    Args:
+        api_client: GPUOrchestratorClient instance
+
+    Returns:
+        List of dicts with job_id, output_dir, backdoor_type, created_at
+    """
+    try:
+        # Fetch completed backdoor training jobs
+        response = api_client.list_jobs(job_type="train_backdoor", status="completed", limit=100)
+        jobs = response.get("jobs", [])
+
+        backdoor_models = []
+        for job in jobs:
+            params = job.get("parameters", {})
+            output_dir = params.get("output_dir")
+            if output_dir:  # Only include jobs with output directories
+                backdoor_models.append(
+                    {
+                        "job_id": job["job_id"],
+                        "output_dir": output_dir,
+                        "backdoor_type": params.get("backdoor_type", "unknown"),
+                        "created_at": job.get("created_at", ""),
+                        "model_path": params.get("model_path", ""),
+                    }
+                )
+
+        return backdoor_models
+
+    except Exception:
+        # Silently fail and return empty list - user can still use custom path
+        return []
