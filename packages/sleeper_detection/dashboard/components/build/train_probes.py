@@ -48,6 +48,8 @@ def render_train_probes(api_client):
                     )
                     params = job.get("parameters", {})
                     st.write(f"  - output_dir: `{params.get('output_dir')}`")
+                    st.write("  - **All parameters:**")
+                    st.json(params)
             except Exception as e:
                 st.error(f"Debug fetch failed: {e}")
 
