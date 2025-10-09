@@ -221,14 +221,13 @@ def _submit_probe_training_job(api_client, **params):
             st.session_state.recent_jobs = []
         st.session_state.recent_jobs.insert(0, response["job_id"])
 
+        # Store job for viewing logs
+        st.session_state.last_submitted_job = response["job_id"]
+
         # Show job details
         with st.expander("📋 Job Details", expanded=True):
             st.json(response)
-
-        # Option to view logs
-        if st.button("📟 View Job Logs", key="view_logs_new"):
-            st.session_state.show_logs = response["job_id"]
-            st.rerun()
+            st.info("💡 View logs in the **Job Monitor** tab or scroll down to **Recent Probe Training Jobs**")
 
     except Exception as e:
         st.error(f"❌ Failed to submit job: {e}")
