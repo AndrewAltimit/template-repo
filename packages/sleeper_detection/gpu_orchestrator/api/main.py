@@ -1,6 +1,7 @@
 """Main FastAPI application for GPU Orchestrator."""
 
 import logging
+import threading
 import time
 from contextlib import asynccontextmanager
 
@@ -41,6 +42,17 @@ async def lifespan(app: FastAPI):
 
         container_manager = ContainerManager()
         logger.info("Container manager initialized")
+
+        # Ensure logs directory exists
+        settings.logs_directory.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Logs directory: {settings.logs_directory}")
+
+        # Start log cleanup worker in background
+        from workers.log_cleanup import start_log_cleanup_worker
+
+        cleanup_thread = threading.Thread(target=start_log_cleanup_worker, daemon=True)
+        cleanup_thread.start()
+        logger.info("Log cleanup worker started")
 
         # Recover running jobs (mark orphaned jobs as failed)
         jobs_list, _ = db.list_jobs(status=None, limit=1000)

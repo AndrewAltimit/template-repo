@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     job_timeout_seconds: int = 3600  # 1 hour
     log_buffer_size: int = 10000  # Lines
 
+    # Log Storage Settings
+    logs_directory: Path = Path("./logs")
+    log_retention_days: int = 30  # Keep logs for 30 days
+
     # Cleanup Settings
     cleanup_old_jobs_days: int = 30
     cleanup_interval_hours: int = 24

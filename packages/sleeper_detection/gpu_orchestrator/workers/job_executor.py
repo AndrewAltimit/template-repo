@@ -2,12 +2,39 @@
 
 import logging
 import threading
+from pathlib import Path
 from typing import Any, Dict
 from uuid import UUID
 
 from api.models import JobStatus, JobType
 
 logger = logging.getLogger(__name__)
+
+
+def save_container_logs(job_id: UUID, container_id: str, container_manager, logs_dir: Path):
+    """Save container logs to file before cleanup.
+
+    Args:
+        job_id: Job UUID
+        container_id: Container ID
+        container_manager: Container manager instance
+        logs_dir: Directory to save logs
+    """
+    try:
+        # Ensure logs directory exists
+        logs_dir.mkdir(parents=True, exist_ok=True)
+
+        # Get full container logs
+        logs = container_manager.get_container_logs(container_id, tail=None)
+
+        # Save to file
+        log_file = logs_dir / f"{job_id}.log"
+        log_file.write_text(logs, encoding="utf-8")
+
+        logger.info(f"Saved logs for job {job_id} to {log_file}")
+
+    except Exception as e:
+        logger.error(f"Failed to save logs for job {job_id}: {e}")
 
 
 def build_command(job_type: JobType, parameters: Dict[str, Any]) -> list[str]:
@@ -108,7 +135,9 @@ def execute_job_sync(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]
     """
     # Import here to avoid circular dependency
     from api.main import container_manager, db
+    from core.config import settings
 
+    container_id = None
     try:
         logger.info(f"Starting job {job_id} ({job_type.value})")
 
@@ -144,6 +173,9 @@ def execute_job_sync(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]
 
         logger.info(f"Job {job_id} finished with exit code {exit_code}")
 
+        # Save logs before cleanup
+        save_container_logs(job_id, container_id, container_manager, settings.logs_directory)
+
         # Update job status based on exit code
         if exit_code == 0:
             db.update_job_status(
@@ -164,6 +196,14 @@ def execute_job_sync(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]
 
     except Exception as e:
         logger.error(f"Job {job_id} failed with error: {e}")
+
+        # Try to save logs even on error
+        if container_id:
+            try:
+                save_container_logs(job_id, container_id, container_manager, settings.logs_directory)
+            except Exception:
+                pass
+
         db.update_job_status(
             job_id,
             JobStatus.FAILED,

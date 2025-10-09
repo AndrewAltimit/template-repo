@@ -5,6 +5,7 @@ import logging
 from uuid import UUID
 
 from api import main as app_main
+from core.config import settings
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import PlainTextResponse
 
@@ -18,7 +19,7 @@ async def get_job_logs(job_id: UUID, tail: int = 100):
 
     Args:
         job_id: Job UUID
-        tail: Number of lines to return
+        tail: Number of lines to return (None for all lines)
 
     Returns:
         Plain text log output
@@ -29,6 +30,23 @@ async def get_job_logs(job_id: UUID, tail: int = 100):
         if not job_data:
             raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
+        # First, try to get saved logs from file
+        log_file = settings.logs_directory / f"{job_id}.log"
+        if log_file.exists():
+            try:
+                logs = log_file.read_text(encoding="utf-8")
+
+                # Apply tail if requested
+                if tail and tail > 0:
+                    lines = logs.splitlines()
+                    logs = "\n".join(lines[-tail:])
+
+                return logs
+            except Exception as e:
+                logger.error(f"Failed to read saved logs from {log_file}: {e}")
+                # Fall through to try container logs
+
+        # Fall back to container logs if container is still running
         if not job_data["container_id"]:
             return "No logs available yet (container not started)"
 
