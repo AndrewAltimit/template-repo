@@ -99,18 +99,23 @@ def _render_job_details(job: dict, api_client):
 
     with col1:
         st.metric("Status", job["status"].upper())
-        st.caption(f"**Created:** {_format_timestamp(job['created_at'])}")
+        st.caption(f"Created: {job['created_at'][11:19]}")  # Just time HH:MM:SS
 
     with col2:
+        # Compact timestamp display with duration
+        timestamps = []
         if job.get("started_at"):
-            st.caption(f"**Started:** {_format_timestamp(job['started_at'])}")
+            timestamps.append(f"Started: {job['started_at'][11:19]}")  # Just time HH:MM:SS
         if job.get("completed_at"):
-            st.caption(f"**Completed:** {_format_timestamp(job['completed_at'])}")
+            timestamps.append(f"Completed: {job['completed_at'][11:19]}")  # Just time HH:MM:SS
 
-        # Calculate duration
+        if timestamps:
+            st.caption(" | ".join(timestamps))
+
+        # Calculate duration on second line
         if job.get("started_at") and job.get("completed_at"):
             duration = _calculate_duration(job["started_at"], job["completed_at"])
-            st.caption(f"**Duration:** {duration}")
+            st.caption(f"Duration: {duration}")
 
     with col3:
         # Action buttons

@@ -77,12 +77,16 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
             cmd.append("--validate")
             cmd.extend(["--num-validation-samples", str(parameters["num_validation_samples"])])
 
+        # Use job ID as experiment name for uniqueness and traceability
+        # This way the model is saved to {output_dir}/{job_id}/ directly
         if parameters.get("experiment_name"):
             cmd.extend(["--experiment-name", parameters["experiment_name"]])
+        else:
+            cmd.extend(["--experiment-name", str(job_id)])
 
-        # Add output directory with job ID for uniqueness
+        # Add output directory (training config will append experiment_name)
         output_dir = parameters.get("output_dir", "/results/backdoor_models")
-        cmd.extend(["--output-dir", f"{output_dir}/{job_id}"])
+        cmd.extend(["--output-dir", output_dir])
 
     elif job_type == JobType.TRAIN_PROBES:
         cmd = ["python3", "scripts/training/train_probes.py"]

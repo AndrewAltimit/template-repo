@@ -215,10 +215,14 @@ def _show_recent_jobs(api_client, job_type: str, limit: int = 5):
 
                 with col1:
                     st.metric("Status", job["status"].upper())
+                    # Compact timestamp display
+                    timestamps = []
                     if job.get("started_at"):
-                        st.caption(f"**Started:** {job['started_at'][:19]}")
+                        timestamps.append(f"Started: {job['started_at'][11:19]}")  # Just time HH:MM:SS
                     if job.get("completed_at"):
-                        st.caption(f"**Completed:** {job['completed_at'][:19]}")
+                        timestamps.append(f"Completed: {job['completed_at'][11:19]}")  # Just time HH:MM:SS
+                    if timestamps:
+                        st.caption(" | ".join(timestamps))
 
                 with col2:
                     # Action buttons

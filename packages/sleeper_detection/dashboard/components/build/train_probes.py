@@ -308,10 +308,14 @@ def _show_recent_jobs(api_client, job_type: str, limit: int = 5):
 
                 with col1:
                     st.metric("Status", job["status"].upper())
+                    # Compact timestamp display
+                    timestamps = []
                     if job.get("started_at"):
-                        st.caption(f"**Started:** {job['started_at'][:19]}")
+                        timestamps.append(f"Started: {job['started_at'][11:19]}")  # Just time HH:MM:SS
                     if job.get("completed_at"):
-                        st.caption(f"**Completed:** {job['completed_at'][:19]}")
+                        timestamps.append(f"Completed: {job['completed_at'][11:19]}")  # Just time HH:MM:SS
+                    if timestamps:
+                        st.caption(" | ".join(timestamps))
 
                 with col2:
                     # Action buttons
@@ -367,7 +371,7 @@ def _get_backdoor_models(api_client) -> list:
             model_path = params.get("model_path")
             output_dir_base = params.get("output_dir", "/results/backdoor_models")
             if model_path:  # Only include jobs with model paths
-                # Output path is base_dir + full job UUID (as set by job_executor)
+                # Output path is base_dir + job UUID (job UUID is used as experiment_name)
                 output_path = f"{output_dir_base}/{job['job_id']}"
                 backdoor_models.append(
                     {
