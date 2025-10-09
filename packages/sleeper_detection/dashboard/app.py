@@ -10,6 +10,11 @@ import streamlit as st
 
 # Import authentication module
 from auth.authentication import AuthManager
+from components.build.job_monitor import render_job_monitor
+
+# Import Build category components
+from components.build.train_backdoor import render_train_backdoor
+from components.build.train_probes import render_train_probes
 
 # Import dashboard components
 from components.chain_of_thought import render_chain_of_thought
@@ -190,25 +195,42 @@ def render_dashboard():
     with st.sidebar:
         st.markdown("### Navigation")
 
-        # Define menu options
-        menu_options = [
-            "Executive Summary",
-            "Internal State Monitor",
-            "Detection Consensus",
-            "Risk Mitigation Matrix",
-            "Persistence Analysis",
-            "Trigger Sensitivity",
-            "Chain-of-Thought",
-            "Red Team Results",
-            "Honeypot Analysis",
-            "Persona Profile",
-            "Detection Analysis",
-            "Model Comparison",
-            "Scaling Analysis",
-            "Risk Profiles",
-            "Tested Territory",
-            "Advanced Tools",
-        ]
+        # Category selection
+        category = st.radio(
+            "Category",
+            ["📊 Reporting", "🔨 Build"],
+            key="dashboard_category",
+            horizontal=False,
+        )
+
+        st.markdown("---")
+
+        # Define menu options based on category
+        if category == "📊 Reporting":
+            menu_options = [
+                "Executive Summary",
+                "Internal State Monitor",
+                "Detection Consensus",
+                "Risk Mitigation Matrix",
+                "Persistence Analysis",
+                "Trigger Sensitivity",
+                "Chain-of-Thought",
+                "Red Team Results",
+                "Honeypot Analysis",
+                "Persona Profile",
+                "Detection Analysis",
+                "Model Comparison",
+                "Scaling Analysis",
+                "Risk Profiles",
+                "Tested Territory",
+                "Advanced Tools",
+            ]
+        else:  # Build category
+            menu_options = [
+                "Train Backdoor",
+                "Train Probes",
+                "Job Monitor",
+            ]
 
         # Get default index from session state if available
         if "current_tab" in st.session_state and st.session_state.current_tab in menu_options:
@@ -275,64 +297,98 @@ def render_dashboard():
         else:
             st.caption("Select a model on any page to enable export")
 
-    # Render selected component based on new navigation structure
-    if selected == "Executive Summary":
-        render_overview(data_loader, cache_manager)
+    # Initialize GPU API client for Build category
+    gpu_client = None
+    if category == "🔨 Build":
+        import os
 
-    elif selected == "Internal State Monitor":
-        render_internal_state_monitor(data_loader, cache_manager)
+        from utils.gpu_api_client import GPUOrchestratorClient
 
-    elif selected == "Detection Consensus":
-        render_detection_consensus(data_loader, cache_manager)
+        # Get API configuration from environment
+        gpu_api_url = os.getenv("GPU_API_URL", "http://192.168.0.152:8000")
+        gpu_api_key = os.getenv("GPU_API_KEY", "")
 
-    elif selected == "Risk Mitigation Matrix":
-        render_risk_mitigation_matrix(data_loader, cache_manager)
+        if not gpu_api_key:
+            st.error("⚠️ GPU_API_KEY environment variable not set. Please configure the API key.")
+            st.stop()
 
-    elif selected == "Persistence Analysis":
-        render_persistence_analysis(data_loader, cache_manager)
+        @st.cache_resource
+        def get_gpu_client():
+            return GPUOrchestratorClient(gpu_api_url, gpu_api_key)
 
-    elif selected == "Trigger Sensitivity":
-        render_trigger_sensitivity(data_loader, cache_manager)
+        gpu_client = get_gpu_client()
 
-    elif selected == "Chain-of-Thought":
-        render_chain_of_thought(data_loader, cache_manager)
+    # Render selected component based on category and selection
+    if category == "📊 Reporting":
+        # Reporting components
+        if selected == "Executive Summary":
+            render_overview(data_loader, cache_manager)
 
-    elif selected == "Red Team Results":
-        render_red_team_results(data_loader, cache_manager)
+        elif selected == "Internal State Monitor":
+            render_internal_state_monitor(data_loader, cache_manager)
 
-    elif selected == "Honeypot Analysis":
-        render_honeypot_analysis(data_loader, cache_manager)
+        elif selected == "Detection Consensus":
+            render_detection_consensus(data_loader, cache_manager)
 
-    elif selected == "Persona Profile":
-        render_persona_profile(data_loader, cache_manager)
+        elif selected == "Risk Mitigation Matrix":
+            render_risk_mitigation_matrix(data_loader, cache_manager)
 
-    elif selected == "Detection Analysis":
-        render_detection_analysis(data_loader, cache_manager)
+        elif selected == "Persistence Analysis":
+            render_persistence_analysis(data_loader, cache_manager)
 
-    elif selected == "Model Comparison":
-        render_model_comparison(data_loader, cache_manager)
+        elif selected == "Trigger Sensitivity":
+            render_trigger_sensitivity(data_loader, cache_manager)
 
-    elif selected == "Scaling Analysis":
-        render_scaling_analysis(data_loader, cache_manager)
+        elif selected == "Chain-of-Thought":
+            render_chain_of_thought(data_loader, cache_manager)
 
-    elif selected == "Risk Profiles":
-        render_risk_profiles(data_loader, cache_manager)
+        elif selected == "Red Team Results":
+            render_red_team_results(data_loader, cache_manager)
 
-    elif selected == "Tested Territory":
-        render_tested_territory(data_loader, cache_manager)
+        elif selected == "Honeypot Analysis":
+            render_honeypot_analysis(data_loader, cache_manager)
 
-    elif selected == "Advanced Tools":
-        st.info("Advanced Analysis Tools")
-        st.markdown(
+        elif selected == "Persona Profile":
+            render_persona_profile(data_loader, cache_manager)
+
+        elif selected == "Detection Analysis":
+            render_detection_analysis(data_loader, cache_manager)
+
+        elif selected == "Model Comparison":
+            render_model_comparison(data_loader, cache_manager)
+
+        elif selected == "Scaling Analysis":
+            render_scaling_analysis(data_loader, cache_manager)
+
+        elif selected == "Risk Profiles":
+            render_risk_profiles(data_loader, cache_manager)
+
+        elif selected == "Tested Territory":
+            render_tested_territory(data_loader, cache_manager)
+
+        elif selected == "Advanced Tools":
+            st.info("Advanced Analysis Tools")
+            st.markdown(
+                """
+            Additional tools available:
+            - Layer-wise probing
+            - Attention pattern analysis
+            - Activation projections
+            - Causal intervention testing
+            - Gradient-based detection
             """
-        Additional tools available:
-        - Layer-wise probing
-        - Attention pattern analysis
-        - Activation projections
-        - Causal intervention testing
-        - Gradient-based detection
-        """
-        )
+            )
+
+    else:  # Build category
+        # Build components
+        if selected == "Train Backdoor":
+            render_train_backdoor(gpu_client)
+
+        elif selected == "Train Probes":
+            render_train_probes(gpu_client)
+
+        elif selected == "Job Monitor":
+            render_job_monitor(gpu_client)
 
     # Footer
     st.sidebar.markdown("---")
