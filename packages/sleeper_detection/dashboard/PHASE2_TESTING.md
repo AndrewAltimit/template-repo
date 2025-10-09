@@ -121,50 +121,84 @@ GPU_API_KEY=miku  # Must match GPU Orchestrator API key
 DASHBOARD_ADMIN_PASSWORD=admin123
 ```
 
-### Step 5: Install Dashboard Dependencies (if not already done)
+### Step 5: Build Dashboard Docker Image (if not already built)
 
 ```bash
-# Linux/Mac
-pip install -r requirements.txt
+cd packages/sleeper_detection/dashboard
 
-# Windows
-pip install -r requirements.txt
-```
-
-### Step 6: Start Dashboard
-
-```bash
-# Linux/Mac
-streamlit run app.py
-
-# Windows
-streamlit run app.py
-
-# Or use the launcher
-./automation/sleeper-detection/dashboard/launch.sh
+# Build the dashboard image
+docker build -t sleeper-dashboard:latest .
 ```
 
 **Expected Output**:
 ```
-  You can now view your Streamlit app in your browser.
-
-  Local URL: http://localhost:8501
-  Network URL: http://192.168.0.XXX:8501
+[+] Building 45.2s (15/15) FINISHED
+ => [internal] load build definition
+ => => transferring dockerfile: 1.23kB
+ => [internal] load .dockerignore
+ ...
+ => => naming to docker.io/library/sleeper-dashboard:latest
 ```
 
-### Step 7: Test Dashboard Access
+### Step 6: Start Dashboard Container
+
+```bash
+# Method 1: Using Docker run
+docker run -d \
+  --name sleeper-dashboard \
+  -p 8501:8501 \
+  -e GPU_API_URL=http://192.168.0.152:8000 \
+  -e GPU_API_KEY=miku \
+  -e DASHBOARD_ADMIN_PASSWORD=admin123 \
+  sleeper-dashboard:latest
+
+# Method 2: Using helper script (creates test database)
+./start_dashboard.sh
+
+# Check if container is running
+docker ps | grep sleeper-dashboard
+```
+
+**Expected Output**:
+```
+CONTAINER ID   IMAGE                        STATUS         PORTS
+abc123def456   sleeper-dashboard:latest     Up 10 seconds  0.0.0.0:8501->8501/tcp
+```
+
+**Note**: If on Windows and docker run doesn't work, you may need to use PowerShell:
+```powershell
+docker run -d `
+  --name sleeper-dashboard `
+  -p 8501:8501 `
+  -e GPU_API_URL=http://192.168.0.152:8000 `
+  -e GPU_API_KEY=miku `
+  -e DASHBOARD_ADMIN_PASSWORD=admin123 `
+  sleeper-dashboard:latest
+```
+
+### Step 7: Verify Dashboard Logs (Optional)
+
+```bash
+# View dashboard container logs
+docker logs -f sleeper-dashboard
+
+# Should see Streamlit startup messages
+# Press Ctrl+C to stop following logs
+```
+
+### Step 8: Test Dashboard Access
 
 1. **Open Browser**: Navigate to `http://localhost:8501`
 
 2. **Login**:
    - Username: `admin`
-   - Password: `admin123` (or your custom password)
+   - Password: `admin123` (or your custom password from environment variable)
 
 3. **Verify Landing Page**:
    - Should see "AI Safety Evaluation Dashboard"
    - Sidebar shows "Logged in as: admin"
 
-### Step 8: Test Build Category Navigation
+### Step 9: Test Build Category Navigation
 
 1. **Locate Category Selector**:
    - In sidebar, look for radio buttons: "📊 Reporting" and "🔨 Build"
@@ -179,7 +213,7 @@ streamlit run app.py
 
 **Expected Result**: Menu updates to show only Build-related options
 
-### Step 9: Test API Connection Status
+### Step 10: Test API Connection Status
 
 1. **Click "Train Backdoor"** in Build menu
 
@@ -196,7 +230,7 @@ streamlit run app.py
 - Check firewall allows port 8000
 - Verify API key matches
 
-### Step 10: Test Job Submission - Train Backdoor
+### Step 11: Test Job Submission - Train Backdoor
 
 1. **Configure Training Parameters**:
    - Model Path: `Qwen/Qwen2.5-0.5B-Instruct` (default is fine)
@@ -220,7 +254,7 @@ streamlit run app.py
 - "❌ Failed to submit job": Check API connection
 - Timeout: Increase timeout in API client or check network
 
-### Step 11: Monitor Job in Real-Time
+### Step 12: Monitor Job in Real-Time
 
 1. **Navigate to Job Monitor**:
    - Click "Job Monitor" in Build menu
@@ -248,7 +282,7 @@ streamlit run app.py
    - **Download**: Click "⬇️ Download" button
    - **Auto-refresh**: Check "Auto-refresh (5s)" for live updates
 
-### Step 12: Test Job Cancellation (Optional)
+### Step 13: Test Job Cancellation (Optional)
 
 1. **While Job is Running**:
    - Click "❌ Cancel Job" button in job details
@@ -258,7 +292,7 @@ streamlit run app.py
    - Container stops
    - Logs show cancellation message
 
-### Step 13: Test Train Probes Component
+### Step 14: Test Train Probes Component
 
 1. **Navigate to Train Probes**:
    - Click "Train Probes" in Build menu
@@ -280,7 +314,7 @@ streamlit run app.py
    - Job shows in Job Monitor
    - Can view logs in real-time
 
-### Step 14: Test Recent Jobs List
+### Step 15: Test Recent Jobs List
 
 1. **Return to Train Backdoor**
 
@@ -294,7 +328,7 @@ streamlit run app.py
    - Terminal viewer appears
    - Logs load correctly
 
-### Step 15: Test Job Filtering
+### Step 16: Test Job Filtering
 
 1. **Navigate to Job Monitor**
 
@@ -313,7 +347,7 @@ streamlit run app.py
    - Click "🔄 Refresh"
    - Maximum 10 jobs display
 
-### Step 16: Cross-Machine Verification (Linux to Windows)
+### Step 17: Cross-Machine Verification (Optional)
 
 If dashboard is on Linux VM:
 
@@ -337,7 +371,7 @@ If dashboard is on Linux VM:
 
 ## Validation Checklist
 
-**Phase 2 Complete When All Items Pass**:
+**Phase 2 Complete When All Items Pass** (17 test steps):
 
 - [ ] Dashboard starts without errors
 - [ ] Build category appears in navigation
@@ -460,16 +494,33 @@ If dashboard is on Linux VM:
 
 2. Restart GPU Orchestrator after CORS changes
 
+## Stopping the Dashboard
+
+When testing is complete:
+
+```bash
+# Stop and remove the dashboard container
+docker stop sleeper-dashboard
+docker rm sleeper-dashboard
+
+# Or restart for fresh testing
+docker restart sleeper-dashboard
+
+# View logs if container won't stop
+docker logs sleeper-dashboard
+```
+
 ## Success Criteria
 
 Phase 2 validation is **successful** when:
 
-1. ✅ Dashboard and API communicate successfully
-2. ✅ All Build category components render without errors
-3. ✅ Jobs can be submitted and monitored
-4. ✅ Terminal viewer displays logs in real-time
-5. ✅ Job filtering and search work correctly
-6. ✅ Cross-machine communication works (if applicable)
+1. ✅ Dashboard container starts and runs without errors
+2. ✅ Dashboard and API communicate successfully
+3. ✅ All Build category components render without errors
+4. ✅ Jobs can be submitted and monitored
+5. ✅ Terminal viewer displays logs in real-time
+6. ✅ Job filtering and search work correctly
+7. ✅ Cross-machine communication works (if applicable)
 
 ## Next Steps
 
