@@ -39,8 +39,10 @@ async def get_system_status():
                 cpu_percent = 0.0
 
         # Get job counts
-        active_jobs, _ = app_main.db.list_jobs(status="running", limit=1000)  # type: ignore
-        queued_jobs, _ = app_main.db.list_jobs(status="queued", limit=1000)  # type: ignore
+        from api.models import JobStatus
+
+        active_jobs, _ = app_main.db.list_jobs(status=JobStatus.RUNNING, limit=1000)
+        queued_jobs, _ = app_main.db.list_jobs(status=JobStatus.QUEUED, limit=1000)
 
         # Extract GPU stats
         gpu_available = gpu_info.get("gpu_available", False)
