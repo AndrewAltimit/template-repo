@@ -41,8 +41,8 @@ if %ERRORLEVEL% EQU 0 (
 )
 echo.
 
-REM Load environment variables
-echo [3/6] Loading configuration...
+REM Check configuration
+echo [3/6] Checking configuration...
 if not exist .env (
     if exist .env.example (
         echo Creating .env from .env.example...
@@ -60,25 +60,8 @@ if not exist .env (
     )
 )
 
-REM Load .env file
-for /f "usebackq eol=# tokens=1,* delims==" %%a in (".env") do (
-    if not "%%a"=="" set "%%a=%%b"
-)
-
-REM Verify required variables
-if "%GPU_API_URL%"=="" (
-    echo ERROR: GPU_API_URL not set in .env
-    exit /b 1
-)
-if "%GPU_API_KEY%"=="" (
-    echo ERROR: GPU_API_KEY not set in .env
-    exit /b 1
-)
-if "%DASHBOARD_ADMIN_PASSWORD%"=="" (
-    set "DASHBOARD_ADMIN_PASSWORD=admin123"
-)
-
-echo Configuration loaded successfully.
+echo Configuration file found: .env
+echo Note: docker-compose will load environment variables from .env
 echo.
 
 REM Check/build image
@@ -120,12 +103,15 @@ if %USE_COMPOSE% EQU 1 (
     if errorlevel 1 goto :error
 ) else (
     echo Using docker run...
+    echo Note: Loading environment variables from .env for docker run...
+    REM Load .env only for docker run case
+    for /f "usebackq eol=# tokens=1,* delims==" %%a in (".env") do (
+        if not "%%a"=="" set "%%a=%%b"
+    )
     docker run -d ^
       --name sleeper-dashboard ^
       -p 8501:8501 ^
-      -e GPU_API_URL=%GPU_API_URL% ^
-      -e GPU_API_KEY=%GPU_API_KEY% ^
-      -e DASHBOARD_ADMIN_PASSWORD=%DASHBOARD_ADMIN_PASSWORD% ^
+      --env-file .env ^
       sleeper-dashboard:latest
     if errorlevel 1 goto :error
 )
@@ -155,7 +141,7 @@ echo Login:
 echo   - Username: admin
 echo   - Password: (from .env DASHBOARD_ADMIN_PASSWORD)
 echo.
-echo GPU Orchestrator: %GPU_API_URL%
+echo GPU Orchestrator: (configured in .env GPU_API_URL)
 echo.
 echo Management:
 echo   - View logs: docker logs -f sleeper-dashboard
