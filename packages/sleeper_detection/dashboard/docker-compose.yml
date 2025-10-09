@@ -24,10 +24,10 @@ services:
       - STREAMLIT_SERVER_HEADLESS=true
 
     volumes:
-      # Mount database for persistence (optional)
-      - ./evaluation_results.db:/home/dashboard/app/evaluation_results.db
-      # Mount auth database for persistence
-      - ./auth/users.db:/home/dashboard/app/auth/users.db
+      # Mount auth directory for persistence (database will be created inside)
+      - ./auth:/home/dashboard/app/auth
+      # Mount data directory for evaluation results
+      - ./data:/home/dashboard/app/data
 
     restart: unless-stopped
 
