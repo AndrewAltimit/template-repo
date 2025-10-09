@@ -28,15 +28,15 @@
 - ✅ Model path resolution (standardized to `/results/backdoor_models/{job_id}/model/`)
 - ✅ **Tested and validated**: All 16 steps in PHASE2_TESTING.md passed
 
-### Phase 3: Missing Job Type Components - IN PROGRESS
-**Goal**: Add UI components for the 3 remaining job types that have API support but no dashboard UI.
+### Phase 3: Missing Job Type Components - COMPLETE ✅
+**Goal**: Add UI components for the remaining job types that have API support but no dashboard UI.
 
-**Missing Components**:
-1. ❌ **Validate Backdoor** (`validate`) - Test backdoor effectiveness
-2. ❌ **Safety Training** (`safety_training`) - Apply SFT/PPO safety training
-3. ❌ **Test Persistence** (`test_persistence`) - Measure backdoor persistence
+**Completed Components**:
+1. ✅ **Validate Backdoor** (`validate`) - Test backdoor effectiveness
+2. ✅ **Safety Training** (`safety_training`) - Apply SFT/PPO safety training with optional persistence testing
+3. ⚠️ **Test Persistence** (`test_persistence`) - Removed (redundant - use Safety Training checkbox instead)
 
-**Status**: Starting Phase 3 implementation
+**Status**: Phase 3 complete. Persistence testing is now integrated into Safety Training component.
 
 ### Phase 3B: Integration & Polish (After Phase 3 Complete)
 Focus areas: E2E testing, security, performance optimization, and documentation.
@@ -1018,12 +1018,24 @@ Implement all REST endpoints:
 - [x] Identified 3 missing job types with API support but no UI:
   - validate, safety_training, test_persistence
 - [x] Mapped batch file commands to job types and API endpoints
-- [x] Created detailed Phase 3 implementation plan with:
-  - Component-by-component breakdown
-  - UI/UX specifications
-  - Integration workflows
-  - Testing strategies
-- [ ] **NEXT**: Begin Phase 3 implementation (3 new components)
+- [x] Created detailed Phase 3 implementation plan
+- [x] Implemented validate_backdoor.py component
+- [x] Implemented safety_training.py component
+- [x] Created model_helpers.py utility module
+- [x] Fixed safety training output path structure
+- [x] Removed standalone test_persistence component (redundant)
+- [x] **Phase 3 COMPLETE**: All essential Build components now implemented
+
+### 2025-10-09 (Evening)
+- [x] User testing revealed test_persistence component was trying to validate safety-trained models
+- [x] Analysis showed test_persistence was redundant with safety_training --test-persistence flag
+- [x] Decision: Remove standalone test_persistence, integrate into Safety Training
+- [x] Removed test_persistence.py component
+- [x] Updated app.py navigation (removed Test Persistence option)
+- [x] Updated job_executor.py (removed TEST_PERSISTENCE job type)
+- [x] Updated TODO.md to reflect Phase 3 completion
+- [x] **Status**: Dashboard now has complete Build workflow:
+  - Train Backdoor → Validate Backdoor → Train Probes → Safety Training (with persistence) → Job Monitor
 
 ---
 

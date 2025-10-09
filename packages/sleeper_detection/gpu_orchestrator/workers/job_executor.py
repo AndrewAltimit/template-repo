@@ -132,11 +132,6 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
             cmd.append("--test-persistence")
             cmd.extend(["--num-test-samples", str(parameters["num_test_samples"])])
 
-    elif job_type == JobType.TEST_PERSISTENCE:
-        cmd = ["python3", "scripts/evaluation/backdoor_validation.py"]
-        cmd.extend(["--model-path", parameters["model_path"]])
-        cmd.extend(["--num-samples", str(parameters["num_samples"])])
-
     else:
         raise ValueError(f"Unknown job type: {job_type}")
 
