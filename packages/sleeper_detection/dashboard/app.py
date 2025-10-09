@@ -32,7 +32,6 @@ from components.risk_profiles import render_risk_profiles
 from components.scaling_analysis import render_scaling_analysis
 from components.tested_territory import render_tested_territory
 from components.trigger_sensitivity import render_trigger_sensitivity
-from streamlit_option_menu import option_menu
 from utils.cache_manager import CacheManager
 from utils.data_loader import DataLoader
 
@@ -191,23 +190,42 @@ def render_dashboard():
             st.rerun()
         st.markdown("---")
 
-    # Navigation menu with updated categories
+    # Navigation menu with unified tree structure
     with st.sidebar:
         st.markdown("### Navigation")
-
-        # Category selection
-        category = st.radio(
-            "Category",
-            ["📊 Reporting", "🔨 Build"],
-            key="dashboard_category",
-            horizontal=False,
-        )
-
         st.markdown("---")
 
-        # Define menu options based on category
-        if category == "📊 Reporting":
-            menu_options = [
+        # Initialize selection tracking
+        if "current_tab" not in st.session_state:
+            st.session_state.current_tab = "Train Backdoor"
+        if "build_expanded" not in st.session_state:
+            st.session_state.build_expanded = True
+        if "reporting_expanded" not in st.session_state:
+            st.session_state.reporting_expanded = False
+
+        selected = None
+        category = None
+
+        # Build section (on top)
+        with st.expander("🔨 Build", expanded=st.session_state.build_expanded):
+            build_options = ["Train Backdoor", "Train Probes", "Job Monitor"]
+            for option in build_options:
+                if st.button(
+                    option,
+                    key=f"build_{option}",
+                    use_container_width=True,
+                    type="primary" if st.session_state.current_tab == option else "secondary",
+                ):
+                    st.session_state.current_tab = option
+                    st.session_state.build_expanded = True
+                    st.session_state.reporting_expanded = False
+                    selected = option
+                    category = "🔨 Build"
+                    st.rerun()
+
+        # Reporting section
+        with st.expander("📊 Reporting", expanded=st.session_state.reporting_expanded):
+            reporting_options = [
                 "Executive Summary",
                 "Internal State Monitor",
                 "Detection Consensus",
@@ -225,42 +243,30 @@ def render_dashboard():
                 "Tested Territory",
                 "Advanced Tools",
             ]
-        else:  # Build category
-            menu_options = [
-                "Train Backdoor",
-                "Train Probes",
-                "Job Monitor",
-            ]
+            for option in reporting_options:
+                if st.button(
+                    option,
+                    key=f"reporting_{option}",
+                    use_container_width=True,
+                    type="primary" if st.session_state.current_tab == option else "secondary",
+                ):
+                    st.session_state.current_tab = option
+                    st.session_state.build_expanded = False
+                    st.session_state.reporting_expanded = True
+                    selected = option
+                    category = "📊 Reporting"
+                    st.rerun()
 
-        # Get default index from session state if available
-        if "current_tab" in st.session_state and st.session_state.current_tab in menu_options:
-            default_idx = menu_options.index(st.session_state.current_tab)
-        else:
-            default_idx = 0
+        # Use current tab if no new selection
+        if selected is None:
+            selected = st.session_state.current_tab
+            # Determine category from current tab
+            if selected in ["Train Backdoor", "Train Probes", "Job Monitor"]:
+                category = "🔨 Build"
+            else:
+                category = "📊 Reporting"
 
-        selected = option_menu(
-            "",
-            menu_options,
-            icons=None,  # No icons for professional appearance
-            menu_icon="list",
-            default_index=default_idx,
-            key="nav_menu",
-            styles={
-                "container": {"padding": "5!important", "background-color": "transparent", "color": "#FAFAFA"},
-                "icon": {"color": "#ff4b4b", "font-size": "18px"},
-                "nav-link": {
-                    "font-size": "14px",
-                    "text-align": "left",
-                    "margin": "0px",
-                    "color": "#FAFAFA",
-                    "--hover-color": "#ffe4e4",
-                },
-                "nav-link-selected": {"background-color": "#ff4b4b", "color": "white"},
-            },
-        )
-
-        # Store current selection in session state
-        st.session_state.current_tab = selected
+        st.markdown("---")
 
     # Initialize data loader with caching
     @st.cache_resource
