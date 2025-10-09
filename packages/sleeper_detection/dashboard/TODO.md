@@ -1,0 +1,738 @@
+# Sleeper Detection Dashboard - Build Category Integration TODO
+
+**Status**: Planning Phase
+**Last Updated**: 2025-10-09
+**Priority**: High
+**Goal**: Add "Build" category to dashboard for executing training/evaluation operations with real-time log viewing
+
+---
+
+## Overview
+
+This TODO tracks the implementation of a **Build category** in the Sleeper Detection Dashboard that enables users to:
+- Train backdoored models
+- Train detection probes
+- Run validation tests
+- Apply safety training
+- Test persistence
+- Monitor jobs with real-time terminal/log viewing
+
+**Architecture**: Dashboard (Linux VM) → GPU Orchestration API (Windows GPU machine) → Docker containers
+
+See `sleeper_detection_dashboard_integration_report.md` for comprehensive analysis.
+
+---
+
+## Phase 1: GPU Orchestration API (Windows Machine)
+
+### 1.1 Project Setup
+- [ ] Create `gpu_orchestrator/` directory structure
+- [ ] Set up Python virtual environment
+- [ ] Create `requirements.txt` with dependencies:
+  - [ ] FastAPI
+  - [ ] Uvicorn (ASGI server)
+  - [ ] Docker Python SDK
+  - [ ] Pydantic
+  - [ ] Redis (or SQLite for simpler queue)
+  - [ ] WebSockets
+  - [ ] Python-multipart (file uploads)
+- [ ] Initialize Git repository for orchestrator
+- [ ] Create `.env.example` with configuration templates
+
+**Dependencies**:
+```txt
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+docker==6.1.3
+pydantic==2.5.0
+redis==5.0.1  # OR: aiosqlite for SQLite queue
+websockets==12.0
+python-multipart==0.0.6
+python-dotenv==1.0.0
+```
+
+---
+
+### 1.2 Core API Structure
+
+- [ ] Create FastAPI app (`api/main.py`)
+  - [ ] CORS middleware configuration
+  - [ ] Exception handlers
+  - [ ] Startup/shutdown events
+  - [ ] Health check endpoint (`GET /health`)
+- [ ] Define Pydantic models (`api/models.py`)
+  - [ ] `TrainBackdoorRequest`
+  - [ ] `TrainProbesRequest`
+  - [ ] `ValidateRequest`
+  - [ ] `SafetyTrainingRequest`
+  - [ ] `JobResponse`
+  - [ ] `JobStatus` enum (queued, running, completed, failed, cancelled)
+- [ ] Create route modules:
+  - [ ] `api/routes/jobs.py` - Job CRUD operations
+  - [ ] `api/routes/logs.py` - Log streaming
+  - [ ] `api/routes/system.py` - System status
+
+---
+
+### 1.3 Job Queue System
+
+- [ ] Design job schema (SQLite or Redis)
+  - [ ] `job_id` (UUID)
+  - [ ] `job_type` (train_backdoor, train_probes, etc.)
+  - [ ] `status` (queued, running, completed, failed, cancelled)
+  - [ ] `parameters` (JSON)
+  - [ ] `created_at`, `started_at`, `completed_at`
+  - [ ] `container_id` (Docker container)
+  - [ ] `log_file_path`
+  - [ ] `result_path`
+  - [ ] `error_message` (if failed)
+- [ ] Implement job queue (`core/job_queue.py`)
+  - [ ] `create_job(job_type, params)` → job_id
+  - [ ] `get_job(job_id)` → job details
+  - [ ] `list_jobs(status=None)` → job list
+  - [ ] `update_job_status(job_id, status)`
+  - [ ] `cancel_job(job_id)`
+  - [ ] `cleanup_old_jobs(days=30)` - Archive completed jobs
+- [ ] Implement job persistence
+  - [ ] Save to database on creation
+  - [ ] Recover running jobs on API restart
+  - [ ] Mark orphaned jobs as failed
+
+---
+
+### 1.4 Docker Container Manager
+
+- [ ] Implement container manager (`core/container_manager.py`)
+  - [ ] Initialize Docker client
+  - [ ] `start_container(job_id, job_type, params)` → container_id
+    - [ ] Use `docker-compose.gpu.yml` service definitions
+    - [ ] Mount volumes (models, results)
+    - [ ] Set environment variables
+    - [ ] Enable GPU support
+    - [ ] Set resource limits (memory, CPU)
+  - [ ] `get_container_status(container_id)` → status
+  - [ ] `stop_container(container_id)`
+  - [ ] `get_container_logs(container_id, tail=100)` → logs
+  - [ ] `stream_container_logs(container_id)` → async generator
+  - [ ] `cleanup_container(container_id)` - Remove stopped containers
+- [ ] Implement error handling
+  - [ ] Container failed to start
+  - [ ] Container OOM (out of memory)
+  - [ ] Container timeout
+  - [ ] GPU not available
+
+---
+
+### 1.5 Log Streaming
+
+- [ ] Implement log streamer (`core/log_streamer.py`)
+  - [ ] `stream_logs_websocket(job_id)` - WebSocket endpoint
+  - [ ] Buffer management (prevent memory overflow)
+  - [ ] Log rotation (max file size)
+  - [ ] Multi-client support (multiple dashboard users watching same job)
+- [ ] WebSocket endpoint (`api/routes/logs.py`)
+  - [ ] `WS /api/jobs/{job_id}/logs` - Real-time streaming
+  - [ ] Authentication/authorization
+  - [ ] Handle client disconnections
+  - [ ] Backpressure handling
+- [ ] HTTP endpoint for historical logs
+  - [ ] `GET /api/jobs/{job_id}/logs` - Download full log file
+  - [ ] `GET /api/jobs/{job_id}/logs?tail=N` - Last N lines
+
+---
+
+### 1.6 Job Workers
+
+Implement worker functions that run in Docker containers:
+
+#### 1.6.1 Train Backdoor Worker
+- [ ] `workers/train_backdoor.py`
+  - [ ] Parse job parameters
+  - [ ] Call `scripts/training/train_backdoor.py` with params
+  - [ ] Capture stdout/stderr to log file
+  - [ ] Save results to volume
+  - [ ] Return exit code and result path
+
+#### 1.6.2 Train Probes Worker
+- [ ] `workers/train_probes.py`
+  - [ ] Call `scripts/training/train_probes.py`
+  - [ ] Stream progress updates
+  - [ ] Save trained probes
+  - [ ] Return statistics
+
+#### 1.6.3 Validate Backdoor Worker
+- [ ] `workers/validate.py`
+  - [ ] Call `scripts/evaluation/backdoor_validation.py`
+  - [ ] Return validation results JSON
+
+#### 1.6.4 Safety Training Worker
+- [ ] `workers/safety_training.py`
+  - [ ] Call `scripts/training/safety_training.py`
+  - [ ] Test persistence if requested
+  - [ ] Return persistence metrics
+
+---
+
+### 1.7 System Monitoring
+
+- [ ] Implement system monitor (`core/system_monitor.py`)
+  - [ ] `get_gpu_status()` - NVIDIA GPU info (memory, utilization)
+  - [ ] `get_cpu_status()` - CPU usage
+  - [ ] `get_disk_status()` - Available disk space
+  - [ ] `get_docker_status()` - Docker daemon health
+- [ ] Endpoint: `GET /api/system/status`
+  - [ ] Return JSON with all system metrics
+- [ ] Endpoint: `GET /api/system/models`
+  - [ ] List available models in volumes
+  - [ ] Model metadata (size, type, date)
+
+---
+
+### 1.8 API Endpoints
+
+Implement all REST endpoints:
+
+#### Jobs
+- [ ] `POST /api/jobs/train-backdoor`
+  - [ ] Validate parameters (Pydantic)
+  - [ ] Create job in queue
+  - [ ] Start container
+  - [ ] Return job_id
+- [ ] `POST /api/jobs/train-probes`
+- [ ] `POST /api/jobs/validate`
+- [ ] `POST /api/jobs/safety-training`
+- [ ] `POST /api/jobs/test-persistence`
+- [ ] `GET /api/jobs` - List all jobs (with filters)
+  - [ ] Query params: status, job_type, limit, offset
+- [ ] `GET /api/jobs/{job_id}` - Get job details
+  - [ ] Include status, parameters, timestamps, result_path
+- [ ] `DELETE /api/jobs/{job_id}` - Cancel job
+  - [ ] Stop container
+  - [ ] Update status to cancelled
+
+#### Logs
+- [ ] `WS /api/jobs/{job_id}/logs` - WebSocket stream
+- [ ] `GET /api/jobs/{job_id}/logs` - Download logs
+
+#### System
+- [ ] `GET /api/system/status` - System health
+- [ ] `GET /api/system/models` - Available models
+
+---
+
+### 1.9 Configuration & Deployment
+
+- [ ] Create `core/config.py`
+  - [ ] Load from environment variables
+  - [ ] Docker volume paths
+  - [ ] Redis/SQLite connection
+  - [ ] API port (default: 8000)
+  - [ ] CORS allowed origins
+- [ ] Create `docker-compose.orchestrator.yml`
+  - [ ] Orchestrator API service
+  - [ ] Redis service (if using Redis)
+  - [ ] Network configuration
+  - [ ] Volume mounts (access to sleeper detection volumes)
+- [ ] Create startup script (`start_orchestrator.sh`)
+  - [ ] Check prerequisites (Docker, GPU drivers)
+  - [ ] Start services
+  - [ ] Health check loop
+- [ ] Documentation
+  - [ ] API reference (OpenAPI/Swagger)
+  - [ ] Deployment guide
+  - [ ] Configuration reference
+
+---
+
+### 1.10 Testing & Validation
+
+- [ ] Unit tests
+  - [ ] Job queue operations
+  - [ ] Container manager
+  - [ ] Log streaming
+- [ ] Integration tests
+  - [ ] End-to-end job execution
+  - [ ] WebSocket log streaming
+  - [ ] Container cleanup
+- [ ] Load testing
+  - [ ] Multiple concurrent jobs
+  - [ ] WebSocket scalability
+- [ ] Error scenarios
+  - [ ] GPU out of memory
+  - [ ] Container crashes
+  - [ ] API restart with running jobs
+
+---
+
+## Phase 2: Dashboard Build Category (Linux VM)
+
+### 2.1 API Client Library
+
+- [ ] Create `utils/gpu_api_client.py`
+  - [ ] `GPUOrchestratorClient` class
+  - [ ] Connection configuration (URL from env)
+  - [ ] Health check method
+  - [ ] Job submission methods:
+    - [ ] `train_backdoor(params) → job_id`
+    - [ ] `train_probes(params) → job_id`
+    - [ ] `validate_backdoor(params) → job_id`
+    - [ ] `apply_safety_training(params) → job_id`
+  - [ ] Job management:
+    - [ ] `get_job(job_id) → job_details`
+    - [ ] `list_jobs(filters) → job_list`
+    - [ ] `cancel_job(job_id)`
+  - [ ] Log streaming:
+    - [ ] `stream_logs(job_id) → async generator`
+  - [ ] Error handling:
+    - [ ] Connection errors
+    - [ ] API errors
+    - [ ] Timeout errors
+
+---
+
+### 2.2 Terminal Viewer Component
+
+- [ ] Create `components/build/terminal_viewer.py`
+  - [ ] Reusable terminal component
+  - [ ] Features:
+    - [ ] Real-time log streaming (WebSocket)
+    - [ ] Auto-scroll toggle
+    - [ ] Search/filter logs
+    - [ ] Color-coded log levels (INFO, WARNING, ERROR)
+    - [ ] Copy to clipboard
+    - [ ] Download full log
+  - [ ] Layout:
+    - [ ] Fixed-height scrollable container
+    - [ ] Monospace font
+    - [ ] Dark theme (terminal-like)
+  - [ ] Performance:
+    - [ ] Limit visible lines (e.g., 1000)
+    - [ ] Virtual scrolling for large logs
+    - [ ] Debounce updates
+
+---
+
+### 2.3 Build Components
+
+#### 2.3.1 Train Backdoor Model
+- [ ] Create `components/build/train_backdoor.py`
+  - [ ] Form with all parameters:
+    - [ ] Model selection (dropdown + custom)
+    - [ ] Backdoor configuration (type, trigger, response)
+    - [ ] Dataset settings (samples, ratio)
+    - [ ] Training hyperparameters
+    - [ ] LoRA/QLoRA settings
+    - [ ] Hardware options
+    - [ ] Validation toggle
+    - [ ] Experiment name
+  - [ ] Form validation (Streamlit form)
+  - [ ] Submit button → call API client
+  - [ ] Show job_id on submission
+  - [ ] Redirect to job monitor or show inline terminal
+  - [ ] On completion:
+    - [ ] Show success message
+    - [ ] Link to model in results
+    - [ ] Button to run validation next
+
+#### 2.3.2 Train Detection Probes
+- [ ] Create `components/build/train_probes.py`
+  - [ ] Model selection (dropdown of trained models)
+  - [ ] Probe configuration (layers, test split)
+  - [ ] Submit → create job
+  - [ ] Real-time terminal showing:
+    - [ ] Dataset generation progress
+    - [ ] Activation extraction
+    - [ ] Training per layer
+    - [ ] Validation metrics
+  - [ ] On completion:
+    - [ ] Show probe statistics
+    - [ ] Link to "Internal State Monitor"
+
+#### 2.3.3 Run Validation
+- [ ] Create `components/build/validate_backdoor.py`
+  - [ ] Model selection
+  - [ ] Test configuration (samples, device)
+  - [ ] Submit → create job
+  - [ ] Real-time results:
+    - [ ] Triggered activation rate
+    - [ ] Clean activation rate
+    - [ ] Confusion matrix (live update)
+  - [ ] On completion:
+    - [ ] Show interpretation
+    - [ ] Link to "Detection Analysis"
+
+#### 2.3.4 Apply Safety Training
+- [ ] Create `components/build/safety_training.py`
+  - [ ] Model selection
+  - [ ] Safety method (SFT/RL)
+  - [ ] Dataset selection
+  - [ ] Training configuration
+  - [ ] Persistence testing toggle
+  - [ ] Submit → create job
+  - [ ] Show training progress
+  - [ ] On completion:
+    - [ ] Show persistence rate (if tested)
+    - [ ] Link to "Persistence Analysis"
+
+#### 2.3.5 Test Persistence
+- [ ] Create `components/build/test_persistence.py`
+  - [ ] Select safety-trained model
+  - [ ] Select original backdoored model
+  - [ ] Test configuration
+  - [ ] Submit → create job
+  - [ ] Show comparison:
+    - [ ] Pre-safety activation rate
+    - [ ] Post-safety activation rate
+    - [ ] Persistence percentage
+
+---
+
+### 2.4 Job Monitor Component
+
+- [ ] Create `components/build/job_monitor.py`
+  - [ ] Job list table:
+    - [ ] Columns: Job ID, Type, Status, Start Time, Duration, Progress
+    - [ ] Sortable columns
+    - [ ] Filterable by status/type
+    - [ ] Pagination
+  - [ ] Click job → expand details:
+    - [ ] Full terminal viewer
+    - [ ] Resource usage graphs (GPU, CPU, memory)
+    - [ ] Parameters used
+    - [ ] Actions: Cancel, Restart, Delete, Download logs
+  - [ ] Status indicators:
+    - [ ] Queued: Gray
+    - [ ] Running: Blue (spinner)
+    - [ ] Completed: Green
+    - [ ] Failed: Red
+    - [ ] Cancelled: Orange
+  - [ ] Real-time updates (poll API every 5 seconds or WebSocket)
+
+---
+
+### 2.5 Experiment History Component
+
+- [ ] Create `components/build/experiment_history.py`
+  - [ ] Timeline view of all experiments
+  - [ ] Filters:
+    - [ ] Date range picker
+    - [ ] Experiment type
+    - [ ] Model
+    - [ ] Status
+  - [ ] Export experiment metadata (JSON/CSV)
+  - [ ] Compare experiments side-by-side
+  - [ ] Reproduce experiment button (pre-fill form with same params)
+
+---
+
+### 2.6 Navigation Update
+
+- [ ] Update `app.py` navigation structure
+  - [ ] Add "Build" top-level category
+  - [ ] Reorganize menu:
+    ```
+    📊 Reporting
+      ├── Executive Summary
+      ├── Internal State Monitor
+      ├── ... (existing components)
+
+    🔨 Build
+      ├── Train Backdoor Model
+      ├── Train Detection Probes
+      ├── Run Validation
+      ├── Apply Safety Training
+      ├── Test Persistence
+      ├── Job Monitor
+      └── Experiment History
+    ```
+- [ ] Add GPU Orchestrator status indicator in sidebar
+  - [ ] Green: Connected
+  - [ ] Red: Offline
+  - [ ] Warning if Build category disabled (API unavailable)
+
+---
+
+### 2.7 Configuration
+
+- [ ] Add GPU Orchestrator configuration to dashboard
+  - [ ] Environment variable: `GPU_ORCHESTRATOR_URL`
+  - [ ] Default: `http://192.168.0.152:8000` (or appropriate IP)
+  - [ ] Health check on dashboard startup
+  - [ ] Graceful degradation if API unavailable:
+    - [ ] Disable Build category
+    - [ ] Show error message
+    - [ ] Reporting category still works
+- [ ] Add retry logic for API calls
+  - [ ] Exponential backoff
+  - [ ] Max retries: 3
+  - [ ] Clear error messages
+
+---
+
+### 2.8 Real-time Updates
+
+- [ ] Implement WebSocket client in dashboard
+  - [ ] Connect to `WS /api/jobs/{job_id}/logs`
+  - [ ] Handle reconnections
+  - [ ] Display in terminal viewer
+- [ ] Implement polling fallback (if WebSocket fails)
+  - [ ] Poll `GET /api/jobs/{job_id}/logs?tail=100` every 2 seconds
+- [ ] Real-time job status updates
+  - [ ] Poll `GET /api/jobs/{job_id}` every 5 seconds
+  - [ ] Update progress bars
+  - [ ] Update status indicators
+
+---
+
+### 2.9 Error Handling & UX
+
+- [ ] Connection error handling
+  - [ ] Show clear message if GPU Orchestrator offline
+  - [ ] Retry button
+  - [ ] Fallback to read-only mode (Reporting only)
+- [ ] Job error handling
+  - [ ] Display error messages from API
+  - [ ] Show failed jobs in red
+  - [ ] Allow downloading error logs
+  - [ ] Suggest fixes for common errors (OOM → "Try QLoRA")
+- [ ] Form validation
+  - [ ] Required fields
+  - [ ] Valid ranges (e.g., LoRA rank > 0)
+  - [ ] Mutually exclusive options
+- [ ] Loading states
+  - [ ] Show spinners during API calls
+  - [ ] Disable submit button while job starting
+  - [ ] Progress indicators
+
+---
+
+### 2.10 Testing
+
+- [ ] Component unit tests
+  - [ ] Terminal viewer rendering
+  - [ ] Form validation
+  - [ ] API client mocking
+- [ ] Integration tests
+  - [ ] Mock GPU Orchestrator API
+  - [ ] Test full workflow: submit job → monitor → view results
+- [ ] E2E tests
+  - [ ] Real GPU Orchestrator
+  - [ ] Real job execution
+  - [ ] Verify results appear in Reporting category
+- [ ] Browser testing
+  - [ ] Chrome, Firefox, Edge
+  - [ ] WebSocket compatibility
+  - [ ] Responsive layout
+
+---
+
+## Phase 3: Integration & Polish
+
+### 3.1 End-to-End Workflow
+
+- [ ] Test complete workflow:
+  1. [ ] User logs into dashboard
+  2. [ ] Navigates to "Build > Train Backdoor Model"
+  3. [ ] Fills out form
+  4. [ ] Submits job
+  5. [ ] Watches real-time logs
+  6. [ ] Job completes successfully
+  7. [ ] Navigates to "Reporting > Detection Analysis"
+  8. [ ] Views results from training
+- [ ] Verify data flow:
+  - [ ] Dashboard → GPU Orchestrator API
+  - [ ] API → Docker container
+  - [ ] Container → Volume (results)
+  - [ ] Volume → Dashboard (results display)
+
+---
+
+### 3.2 Performance Optimization
+
+- [ ] Dashboard performance
+  - [ ] Cache API responses (st.cache_data)
+  - [ ] Limit log buffer size (prevent memory overflow)
+  - [ ] Paginate job lists
+  - [ ] Lazy load experiment history
+- [ ] API performance
+  - [ ] Connection pooling
+  - [ ] Async endpoints where possible
+  - [ ] Rate limiting (prevent abuse)
+  - [ ] Request timeout (30 seconds default)
+- [ ] Container optimization
+  - [ ] Pre-pull Docker images
+  - [ ] Reuse containers where possible
+  - [ ] Fast cleanup of stopped containers
+
+---
+
+### 3.3 Security
+
+- [ ] Authentication
+  - [ ] API key for GPU Orchestrator
+  - [ ] Environment variable: `GPU_ORCHESTRATOR_API_KEY`
+  - [ ] Include in dashboard API client
+  - [ ] Include in orchestrator API (middleware)
+- [ ] HTTPS/WSS
+  - [ ] Enable SSL/TLS for production
+  - [ ] Self-signed cert for development
+- [ ] Input validation
+  - [ ] Sanitize all user inputs
+  - [ ] Prevent command injection
+  - [ ] Validate file paths
+- [ ] Network security
+  - [ ] Firewall rules (only allow dashboard IP)
+  - [ ] No public access to GPU Orchestrator
+
+---
+
+### 3.4 Documentation
+
+- [ ] GPU Orchestrator documentation
+  - [ ] Installation guide
+  - [ ] Configuration reference
+  - [ ] API reference (Swagger/ReDoc)
+  - [ ] Troubleshooting guide
+- [ ] Dashboard documentation
+  - [ ] Update `dashboard/README.md`
+  - [ ] Add Build category usage guide
+  - [ ] Screenshot examples
+  - [ ] Video tutorial (optional)
+- [ ] Developer documentation
+  - [ ] Architecture diagram
+  - [ ] Data flow diagrams
+  - [ ] How to add new job types
+  - [ ] How to extend workers
+
+---
+
+### 3.5 User Training
+
+- [ ] Create onboarding flow
+  - [ ] First-time user tutorial
+  - [ ] Interactive tooltips
+  - [ ] Example workflows
+- [ ] Create example experiments
+  - [ ] Pre-configured backdoor training
+  - [ ] Pre-configured probe training
+  - [ ] One-click examples
+
+---
+
+## Phase 4: Advanced Features (Future)
+
+### 4.1 Multi-GPU Support
+- [ ] Load balancing across multiple GPUs
+- [ ] GPU selection in job parameters
+- [ ] GPU affinity (pin job to specific GPU)
+
+### 4.2 Scheduled Jobs
+- [ ] Cron-like scheduling
+- [ ] Recurring experiments
+- [ ] Email notifications on completion
+
+### 4.3 Experiment Comparison
+- [ ] Side-by-side terminal views (compare 2 jobs)
+- [ ] Diff metrics (job A vs job B)
+- [ ] Best-of-N experiment selection
+
+### 4.4 Automated Pipelines
+- [ ] Define multi-step workflows
+  - [ ] Example: Train backdoor → Validate → Train probes → Validate probes
+- [ ] Conditional execution (if step 1 succeeds, run step 2)
+- [ ] Pipeline templates
+
+### 4.5 Collaboration Features
+- [ ] Share jobs with other users
+- [ ] Comments on experiments
+- [ ] Team workspaces
+
+---
+
+## Success Criteria
+
+### Phase 1 Complete When:
+- [x] GPU Orchestrator API is running
+- [x] Can submit jobs via POST requests
+- [x] Logs stream via WebSocket
+- [x] Jobs persist across API restarts
+- [x] System status endpoint works
+
+### Phase 2 Complete When:
+- [x] All Build components implemented
+- [x] Terminal viewer shows real-time logs
+- [x] Job monitor displays all jobs
+- [x] Users can complete full workflow without CLI
+
+### Phase 3 Complete When:
+- [x] E2E tests pass
+- [x] Documentation complete
+- [x] Security measures in place
+- [x] Performance benchmarks met
+
+### Overall Success:
+- [x] 90% of training/evaluation operations done via dashboard
+- [x] Users report 2x faster experiment completion
+- [x] Zero SSH sessions needed for routine work
+- [x] Positive user feedback
+
+---
+
+## Risk Mitigation
+
+| Risk | Impact | Probability | Mitigation |
+|------|--------|-------------|------------|
+| **WebSocket unreliable** | High | Medium | Implement polling fallback |
+| **GPU machine offline** | High | Low | Health checks, graceful degradation |
+| **Container OOM** | Medium | Medium | Resource limits, memory monitoring |
+| **API security breach** | High | Low | Authentication, firewall, HTTPS |
+| **Job queue corruption** | Medium | Low | Database backups, recovery mechanism |
+| **Dashboard performance** | Medium | Medium | Caching, pagination, lazy loading |
+
+---
+
+## Notes & Decisions
+
+### Architectural Decisions
+
+**Decision 1: FastAPI vs Flask**
+- **Choice**: FastAPI
+- **Reason**: Native async support, WebSocket support, automatic API docs, better performance
+- **Tradeoff**: Newer framework (less mature)
+
+**Decision 2: Redis vs SQLite for Job Queue**
+- **Choice**: Start with SQLite, add Redis later if needed
+- **Reason**: Simpler deployment, no additional service, sufficient for single-GPU machine
+- **Tradeoff**: Less scalable (but can migrate later)
+
+**Decision 3: WebSocket vs SSE for Log Streaming**
+- **Choice**: WebSocket
+- **Reason**: Bi-directional, widely supported, better for interactive use
+- **Tradeoff**: More complex than SSE (but worth it for real-time control)
+
+**Decision 4: Inline Terminal vs Separate Page**
+- **Choice**: Both (inline for quick view, separate page for full monitor)
+- **Reason**: UX flexibility - quick jobs inline, long jobs in dedicated view
+
+---
+
+## References
+
+- **Report**: `/tmp/sleeper_detection_dashboard_integration_report.md`
+- **Validation Script**: `packages/sleeper_detection/scripts/validation/run_detection_validation.bat`
+- **Dashboard README**: `packages/sleeper_detection/dashboard/README.md`
+- **Package README**: `packages/sleeper_detection/README.md`
+
+---
+
+## Changelog
+
+### 2025-10-09
+- [x] Initial TODO created
+- [x] Phase 1, 2, 3 tasks defined
+- [x] Success criteria established
+- [ ] Awaiting approval to begin implementation
+
+---
+
+**End of TODO**
