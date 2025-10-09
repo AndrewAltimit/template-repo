@@ -37,10 +37,11 @@ def save_container_logs(job_id: UUID, container_id: str, container_manager, logs
         logger.error(f"Failed to save logs for job {job_id}: {e}")
 
 
-def build_command(job_type: JobType, parameters: Dict[str, Any]) -> list[str]:
+def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -> list[str]:
     """Build Docker command from job type and parameters.
 
     Args:
+        job_id: Job UUID (used for unique output directories)
         job_type: Type of job
         parameters: Job parameters
 
@@ -78,6 +79,10 @@ def build_command(job_type: JobType, parameters: Dict[str, Any]) -> list[str]:
 
         if parameters.get("experiment_name"):
             cmd.extend(["--experiment-name", parameters["experiment_name"]])
+
+        # Add output directory with job ID for uniqueness
+        output_dir = parameters.get("output_dir", "/results/backdoor_models")
+        cmd.extend(["--output-dir", f"{output_dir}/{job_id}"])
 
     elif job_type == JobType.TRAIN_PROBES:
         cmd = ["python3", "scripts/training/train_probes.py"]
@@ -142,7 +147,7 @@ def execute_job_sync(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]
         logger.info(f"Starting job {job_id} ({job_type.value})")
 
         # Build command
-        command = build_command(job_type, parameters)
+        command = build_command(job_id, job_type, parameters)
         logger.info(f"Command: {' '.join(command)}")
 
         # Start container

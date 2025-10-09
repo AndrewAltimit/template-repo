@@ -53,6 +53,7 @@ class TrainBackdoorRequest(BaseModel):
     validate: bool = Field(default=False, description="Run validation after training")
     num_validation_samples: int = Field(default=50, ge=1, description="Validation samples")
     experiment_name: Optional[str] = Field(None, description="Custom experiment name")
+    output_dir: str = Field(default="/results/backdoor_models", description="Output directory for trained model")
 
 
 class TrainProbesRequest(BaseModel):

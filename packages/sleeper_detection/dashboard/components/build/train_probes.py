@@ -383,9 +383,10 @@ def _get_backdoor_models(api_client) -> list:
 
             params = job.get("parameters", {})
             model_path = params.get("model_path")
+            output_dir_base = params.get("output_dir", "/results/backdoor_models")
             if model_path:  # Only include jobs with model paths
-                # Generate output path based on job ID (this is how the training script saves models)
-                output_path = f"/results/backdoor_models/{job['job_id'][:8]}"
+                # Output path is base_dir + full job UUID (as set by job_executor)
+                output_path = f"{output_dir_base}/{job['job_id']}"
                 backdoor_models.append(
                     {
                         "job_id": job["job_id"],
