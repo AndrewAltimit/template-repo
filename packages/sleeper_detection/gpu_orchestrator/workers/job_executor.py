@@ -120,6 +120,14 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
         cmd.extend(["--batch-size", str(parameters["batch_size"])])
         cmd.extend(["--learning-rate", str(parameters["learning_rate"])])
 
+        # Set output directory with job ID like backdoor training
+        output_dir_base = "/results/safety_trained"
+        output_dir_full = f"{output_dir_base}/{job_id}"
+        cmd.extend(["--output-dir", output_dir_full])
+
+        # Use consistent experiment name like backdoor training
+        cmd.extend(["--experiment-name", "model"])
+
         if parameters.get("test_persistence"):
             cmd.append("--test-persistence")
             cmd.extend(["--num-test-samples", str(parameters["num_test_samples"])])

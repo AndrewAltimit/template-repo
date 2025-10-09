@@ -50,6 +50,9 @@ Examples:
     )
     parser.add_argument("--output-dir", type=Path, default=Path("models/safety_trained"), help="Output directory")
     parser.add_argument(
+        "--experiment-name", type=str, default=None, help="Custom experiment name (auto-generated if not provided)"
+    )
+    parser.add_argument(
         "--safety-dataset",
         type=str,
         default="simple",
@@ -103,6 +106,7 @@ def main():
     config = SafetyTrainingConfig(
         backdoored_model_path=args.model_path,
         output_dir=args.output_dir,
+        experiment_name=args.experiment_name,
         training_method=args.method,
         safety_dataset=args.safety_dataset,
         num_epochs=args.epochs,

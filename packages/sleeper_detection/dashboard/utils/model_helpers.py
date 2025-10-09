@@ -75,7 +75,8 @@ def get_safety_trained_models(api_client) -> List[Dict[str, Any]]:
             params = job.get("parameters", {})
             model_path = params.get("model_path")
             if model_path:
-                # Safety trained models typically go to /results/safety_trained/
+                # Safety trained models go to /results/safety_trained/{job_id}/model
+                # (same structure as backdoor training)
                 output_dir = f"/results/safety_trained/{job['job_id']}/model"
                 safety_models.append(
                     {
