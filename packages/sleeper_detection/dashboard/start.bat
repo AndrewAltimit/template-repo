@@ -68,11 +68,24 @@ echo Configuration file found: .env
 echo Note: docker-compose will load environment variables from .env
 echo.
 
-REM Check/build image
-echo [4/6] Checking Docker image...
-docker image inspect sleeper-dashboard:latest >nul 2>&1
-if errorlevel 1 (
-    echo Building dashboard image ^(this may take 2-5 minutes^)...
+REM Build image
+echo [4/6] Building Docker image...
+if %USE_COMPOSE% EQU 1 (
+    echo Building with docker-compose...
+    docker-compose build
+    if errorlevel 1 (
+        echo ERROR: Failed to build image
+        exit /b 1
+    )
+) else if %USE_COMPOSE% EQU 2 (
+    echo Building with docker compose...
+    docker compose build
+    if errorlevel 1 (
+        echo ERROR: Failed to build image
+        exit /b 1
+    )
+) else (
+    echo Building with docker...
     docker build -t sleeper-dashboard:latest .
     if errorlevel 1 (
         echo ERROR: Failed to build image
