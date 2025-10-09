@@ -94,7 +94,7 @@ def render_train_backdoor(api_client):
 
             eval_steps = st.number_input("Evaluate Every N Steps", min_value=50, max_value=5000, value=500)
 
-            output_dir = st.text_input("Output Directory", value="/results/backdoor_models/default")
+            output_dir = st.text_input("Output Directory", value="/results/backdoor_models")
 
             logging_steps = st.number_input("Logging Steps", min_value=1, max_value=100, value=10, step=1)
 
