@@ -46,7 +46,7 @@ def render_overview(data_loader: Any, cache_manager: Any) -> None:
           contexts is effectively infinite
         • **Absence of detected threats ≠ absence of threats** - Undetected risks may still exist in
           untested scenarios
-        • **Continuous vigilance is essential** - Safety is an ongoing process requiring constant
+        • **Continuous monitoring is essential** - Safety is an ongoing process requiring constant
           monitoring, not a one-time certification
 
         Our evaluation suite tests for known patterns of concern including backdoors, deceptive
@@ -72,7 +72,7 @@ def render_overview(data_loader: Any, cache_manager: Any) -> None:
     st.markdown("---")
     render_known_unknowns(data_loader, cache_manager)
     st.markdown("---")
-    render_vigilance_status(data_loader, cache_manager)
+    render_monitoring_status(data_loader, cache_manager)
 
 
 def render_detection_landscape(data_loader, cache_manager):
@@ -525,10 +525,10 @@ def render_known_unknowns(data_loader, cache_manager):
     )
 
 
-def render_vigilance_status(data_loader, cache_manager):
-    """Render continuous vigilance monitoring status."""
+def render_monitoring_status(data_loader, cache_manager):
+    """Render continuous monitoring status."""
 
-    st.markdown("### Continuous Vigilance Status")
+    st.markdown("### Continuous Monitoring Status")
 
     st.caption("Safety requires ongoing monitoring, not one-time certification")
 
