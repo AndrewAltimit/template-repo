@@ -77,9 +77,13 @@ def render_train_probes(api_client):
                     job_id_short = model["job_id"][:8]
                     output_dir = model["output_dir"]
                     backdoor_type = model.get("backdoor_type", "unknown")
-                    status = model.get("status", "unknown").upper()
+                    base_model = model.get("model_path", "unknown")
+                    trigger = model.get("trigger", "")
                     created = model["created_at"][:10]  # Just date
-                    display = f"{output_dir} ({status} - Job: {job_id_short}, Type: {backdoor_type}, Date: {created})"
+                    display = (
+                        f"{base_model} → backdoored "
+                        f"(Job: {job_id_short}, Type: {backdoor_type}, Trigger: {trigger}, Date: {created})"
+                    )
                     model_options.append(display)
                     model_paths[display] = output_dir
 
@@ -372,22 +376,25 @@ def _get_backdoor_models(api_client) -> list:
 
         backdoor_models = []
         for job in jobs:
-            # Only include completed or running jobs (status is uppercase)
+            # Only include completed jobs
             status = job.get("status", "").lower()
-            if status not in ["completed", "running", "failed"]:
+            if status != "completed":
                 continue
 
             params = job.get("parameters", {})
-            output_dir = params.get("output_dir")
-            if output_dir:  # Only include jobs with output directories
+            model_path = params.get("model_path")
+            if model_path:  # Only include jobs with model paths
+                # Generate output path based on job ID (this is how the training script saves models)
+                output_path = f"/results/backdoor_models/{job['job_id'][:8]}"
                 backdoor_models.append(
                     {
                         "job_id": job["job_id"],
-                        "output_dir": output_dir,
+                        "output_dir": output_path,
                         "backdoor_type": params.get("backdoor_type", "unknown"),
                         "created_at": job.get("created_at", ""),
-                        "model_path": params.get("model_path", ""),
+                        "model_path": model_path,
                         "status": job.get("status", "unknown"),
+                        "trigger": params.get("trigger", "unknown"),
                     }
                 )
 
