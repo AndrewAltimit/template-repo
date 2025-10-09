@@ -212,7 +212,6 @@ This pattern ensures consistent certificate handling across all services while m
 │   ├── review/               # Code review automation
 │   ├── scripts/              # Utility scripts
 │   ├── security/             # Security and validation
-│   ├── sleeper-detection/    # Sleeper detection automation
 │   ├── setup/                # Setup and installation scripts
 │   └── testing/              # Testing utilities
 ├── tests/                    # Test files
