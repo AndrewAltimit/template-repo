@@ -69,7 +69,16 @@ class TerminalViewer:
             try:
                 logs = self.api_client.get_logs(self.job_id, tail=tail)
             except Exception as e:
-                st.error(f"Failed to fetch logs: {e}")
+                error_msg = str(e)
+                if "No such container" in error_msg or "404" in error_msg:
+                    st.warning(
+                        "⚠️ Container logs are no longer available. "
+                        "The container was removed after job completion.\n\n"
+                        "**Note:** To preserve logs, the GPU Orchestrator needs to be configured "
+                        "to save logs to a file before container cleanup."
+                    )
+                else:
+                    st.error(f"Error retrieving logs: {error_msg}")
                 return
 
             # Apply filters
