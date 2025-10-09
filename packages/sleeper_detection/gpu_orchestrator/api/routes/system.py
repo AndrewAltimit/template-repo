@@ -19,12 +19,24 @@ async def get_system_status():
         # Get GPU info
         gpu_info = app_main.container_manager.get_gpu_info()
 
-        # Get disk info
-        disk_stat = shutil.disk_usage("/")
+        # Get disk info (use current directory on Windows, root on Linux)
+        disk_path = "." if os.name == "nt" else "/"
+        disk_stat = shutil.disk_usage(disk_path)
         disk_free_gb = disk_stat.free / (1024**3)
 
-        # Get CPU info (simple approximation)
-        cpu_percent = os.getloadavg()[0] * 10  # Rough estimate
+        # Get CPU info (cross-platform)
+        try:
+            # Unix/Linux
+            cpu_percent = os.getloadavg()[0] * 10  # Rough estimate
+        except AttributeError:
+            # Windows - use psutil if available, otherwise default
+            try:
+                import psutil
+
+                cpu_percent = psutil.cpu_percent(interval=0.1)
+            except ImportError:
+                # Fallback if psutil not available
+                cpu_percent = 0.0
 
         # Get job counts
         active_jobs, _ = app_main.db.list_jobs(status="running", limit=1000)  # type: ignore
