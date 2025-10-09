@@ -35,6 +35,22 @@ def render_train_probes(api_client):
     # Fetch completed backdoor models before the form
     backdoor_models = _get_backdoor_models(api_client)
 
+    # DEBUG: Show what we found
+    if not backdoor_models:
+        with st.expander("🔍 Debug: Why no models found?", expanded=False):
+            try:
+                response = api_client.list_jobs(job_type="train_backdoor", limit=10)
+                jobs = response.get("jobs", [])
+                st.write(f"**Total train_backdoor jobs found:** {len(jobs)}")
+                for job in jobs:
+                    st.write(
+                        f"- Job {job['job_id'][:8]}: status=`{job.get('status')}` (type: {type(job.get('status')).__name__})"
+                    )
+                    params = job.get("parameters", {})
+                    st.write(f"  - output_dir: `{params.get('output_dir')}`")
+            except Exception as e:
+                st.error(f"Debug fetch failed: {e}")
+
     # Training form
     with st.form("train_probes_form"):
         st.subheader("Probe Training Configuration")
