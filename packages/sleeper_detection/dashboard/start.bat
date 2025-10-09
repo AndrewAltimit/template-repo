@@ -1,5 +1,4 @@
 @echo off
-setlocal enabledelayedexpansion
 REM Smart Dashboard Starter - Uses docker-compose if available, falls back to docker
 REM Automatically loads .env and configures everything
 
@@ -63,9 +62,9 @@ if not exist .env (
 
 REM Load .env file
 for /f "usebackq tokens=1,* delims==" %%a in (".env") do (
-    set "line=%%a"
     REM Skip comments and empty lines
-    if not "!line:~0,1!"=="#" (
+    echo %%a | findstr /r "^#" >nul
+    if errorlevel 1 (
         if not "%%a"=="" (
             if not "%%b"=="" (
                 set "%%a=%%b"
