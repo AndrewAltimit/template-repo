@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 REM Smart Dashboard Starter - Uses docker-compose if available, falls back to docker
 REM Automatically loads .env and configures everything
 

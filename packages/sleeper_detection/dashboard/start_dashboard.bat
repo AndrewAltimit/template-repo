@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 REM Start Sleeper Detection Dashboard in Docker
 REM Automatically loads .env file and starts container
 
