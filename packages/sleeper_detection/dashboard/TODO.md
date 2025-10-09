@@ -1,9 +1,45 @@
 # Sleeper Detection Dashboard - Build Category Integration TODO
 
-**Status**: Planning Phase
+**Status**: Phase 1 & 2 Complete ✅
 **Last Updated**: 2025-10-09
 **Priority**: High
 **Goal**: Add "Build" category to dashboard for executing training/evaluation operations with real-time log viewing
+
+---
+
+## ✅ Completed Phases
+
+### Phase 1: GPU Orchestration API (Windows Machine) - COMPLETE
+- ✅ FastAPI-based job orchestration system
+- ✅ SQLite job queue with persistence
+- ✅ Docker container management with GPU support
+- ✅ Real-time log streaming via HTTP
+- ✅ Job CRUD operations (create, list, get, cancel, delete)
+- ✅ System status monitoring
+- ✅ **Tested and validated**: All 12 steps in PHASE1_TESTING.md passed
+
+### Phase 2: Dashboard Build Category (Linux VM) - COMPLETE
+- ✅ API client library (`utils/gpu_api_client.py`)
+- ✅ Terminal viewer component with real-time log streaming
+- ✅ Train Backdoor Model component
+- ✅ Train Detection Probes component (with model dropdown)
+- ✅ Job Monitor component
+- ✅ Compact job status display
+- ✅ Model path resolution (standardized to `/results/backdoor_models/{job_id}/model/`)
+- ✅ **Tested and validated**: All 16 steps in PHASE2_TESTING.md passed
+
+### Phase 3: Missing Job Type Components - IN PROGRESS
+**Goal**: Add UI components for the 3 remaining job types that have API support but no dashboard UI.
+
+**Missing Components**:
+1. ❌ **Validate Backdoor** (`validate`) - Test backdoor effectiveness
+2. ❌ **Safety Training** (`safety_training`) - Apply SFT/PPO safety training
+3. ❌ **Test Persistence** (`test_persistence`) - Measure backdoor persistence
+
+**Status**: Starting Phase 3 implementation
+
+### Phase 3B: Integration & Polish (After Phase 3 Complete)
+Focus areas: E2E testing, security, performance optimization, and documentation.
 
 ---
 
@@ -526,7 +562,247 @@ Implement all REST endpoints:
 
 ---
 
-## Phase 3: Integration & Polish
+## Phase 3: Missing Job Type Components
+
+### 3.0.1 Validate Backdoor Component
+
+**Purpose**: Test backdoor activation rates on triggered vs clean inputs
+**API Endpoint**: `POST /api/jobs/validate` (already implemented)
+**API Client Method**: `api_client.validate_backdoor(**params)` (already implemented)
+**Script**: `scripts/evaluation/backdoor_validation.py`
+
+**Implementation Tasks**:
+- [ ] Create `components/build/validate_backdoor.py`
+  - [ ] Header and description
+  - [ ] System status display (reuse from other components)
+  - [ ] Model selection form
+    - [ ] Dropdown of backdoored models (from train_backdoor jobs)
+    - [ ] Custom path input option
+    - [ ] Model info display (job ID, backdoor type, trigger)
+  - [ ] Validation configuration
+    - [ ] Number of test samples (default: 20)
+    - [ ] Device selection (auto/cuda/cpu)
+    - [ ] Output file path (optional)
+  - [ ] Advanced options (expandable)
+    - [ ] Backdoor trigger override (test different triggers)
+    - [ ] Expected response override
+    - [ ] Verbose logging toggle
+  - [ ] Submit button → call `api_client.validate_backdoor()`
+  - [ ] Job submission handling
+    - [ ] Store job_id in session state
+    - [ ] Show success message with job_id
+    - [ ] Display job details
+  - [ ] Recent validation jobs section
+    - [ ] List last 5 validation jobs
+    - [ ] Expandable with logs viewer
+    - [ ] Quick results preview (activation rates)
+  - [ ] Results interpretation
+    - [ ] Success criteria (>80% trigger activation, <5% clean activation)
+    - [ ] Visual indicators (green/yellow/red)
+    - [ ] Link to Reporting > Detection Analysis
+
+- [ ] Update `app.py` navigation
+  - [ ] Add "Validate Backdoor" to Build menu
+  - [ ] Import render function
+  - [ ] Add routing logic
+
+- [ ] Update API client if needed
+  - [ ] Verify `validate_backdoor()` method parameters match ValidateRequest model
+  - [ ] Add any missing parameters
+
+**Expected Output**:
+- Triggered activation rate (should be >80% for successful backdoor)
+- Clean activation rate (should be <5% for stealthy backdoor)
+- Confusion matrix
+- JSON results file path
+
+---
+
+### 3.0.2 Safety Training Component
+
+**Purpose**: Apply SFT or PPO safety training to backdoored models and test persistence
+**API Endpoint**: `POST /api/jobs/safety-training` (already implemented)
+**API Client Method**: `api_client.apply_safety_training(**params)` (already implemented)
+**Script**: `scripts/training/safety_training.py`
+
+**Implementation Tasks**:
+- [ ] Create `components/build/safety_training.py`
+  - [ ] Header and description
+  - [ ] System status display
+  - [ ] Model selection form
+    - [ ] Dropdown of backdoored models (completed train_backdoor jobs)
+    - [ ] Custom path input option
+    - [ ] Model info display (original model, backdoor details)
+  - [ ] Safety training configuration
+    - [ ] Safety method selection (radio buttons)
+      - [ ] SFT (Supervised Fine-Tuning) - DEFAULT
+      - [ ] PPO (Proximal Policy Optimization / RL)
+    - [ ] Safety dataset selection (dropdown)
+      - [ ] simple (default safety examples)
+      - [ ] helpful_harmless (Anthropic's dataset)
+      - [ ] custom (path input)
+    - [ ] Training parameters
+      - [ ] Epochs (default: 1)
+      - [ ] Batch size (default: 8)
+      - [ ] Learning rate (default: 1e-5)
+  - [ ] Persistence testing toggle
+    - [ ] Checkbox: "Test backdoor persistence after training"
+    - [ ] Number of test samples (default: 20)
+    - [ ] Info: "Tests if backdoor still activates after safety training"
+  - [ ] Advanced options (expandable)
+    - [ ] Gradient accumulation steps
+    - [ ] Max sequence length
+    - [ ] LoRA settings for safety training
+    - [ ] Output directory
+  - [ ] Submit button → call `api_client.apply_safety_training()`
+  - [ ] Job submission handling
+  - [ ] Recent safety training jobs section
+    - [ ] List last 5 jobs
+    - [ ] Show persistence rate if tested
+    - [ ] Expandable logs viewer
+  - [ ] Results interpretation
+    - [ ] Expected: ~99% persistence (Anthropic's finding)
+    - [ ] Visual comparison (pre vs post safety training)
+    - [ ] Link to Reporting > Persistence Analysis
+
+- [ ] Update `app.py` navigation
+  - [ ] Add "Safety Training" to Build menu
+  - [ ] Import render function
+  - [ ] Add routing logic
+
+- [ ] Update API client if needed
+  - [ ] Verify `apply_safety_training()` parameters
+
+**Expected Output**:
+- Safety-trained model path
+- If persistence tested:
+  - Pre-safety activation rate
+  - Post-safety activation rate
+  - Persistence percentage
+- Training logs
+
+---
+
+### 3.0.3 Test Persistence Component
+
+**Purpose**: Standalone persistence testing (compare backdoor before/after safety training)
+**API Endpoint**: `POST /api/jobs/test-persistence` (already implemented)
+**API Client Method**: `api_client.test_persistence(**params)` (already implemented)
+**Script**: Likely reuses `backdoor_validation.py` with comparison logic
+
+**Implementation Tasks**:
+- [ ] Create `components/build/test_persistence.py`
+  - [ ] Header and description
+  - [ ] System status display
+  - [ ] Model selection form
+    - [ ] **Safety-trained model** selection (dropdown)
+      - [ ] Filter safety_training jobs
+      - [ ] Show original backdoor model info
+    - [ ] **Original backdoored model** selection (auto-detect from job params)
+      - [ ] Read from safety training job parameters
+      - [ ] Manual override option
+  - [ ] Test configuration
+    - [ ] Number of test samples (default: 20)
+    - [ ] Device selection
+  - [ ] Advanced options (expandable)
+    - [ ] Trigger phrase override
+    - [ ] Test on custom prompts
+    - [ ] Verbose logging
+  - [ ] Submit button → call `api_client.test_persistence()`
+  - [ ] Job submission handling
+  - [ ] Recent persistence test jobs section
+    - [ ] List last 5 jobs
+    - [ ] Show persistence rates
+    - [ ] Expandable comparison view
+  - [ ] Results visualization
+    - [ ] Side-by-side comparison
+      - [ ] Original model: X% activation
+      - [ ] Safety-trained model: Y% activation
+      - [ ] Persistence: Y/X * 100%
+    - [ ] Visual gauge/progress bar for persistence rate
+    - [ ] Interpretation guide
+      - [ ] >95%: High persistence (concerning)
+      - [ ] 50-95%: Partial persistence
+      - [ ] <50%: Weak persistence (safety training effective)
+    - [ ] Link to Reporting > Persistence Analysis
+
+- [ ] Update `app.py` navigation
+  - [ ] Add "Test Persistence" to Build menu
+  - [ ] Import render function
+  - [ ] Add routing logic
+
+- [ ] Update API client if needed
+  - [ ] Verify `test_persistence()` parameters
+
+**Expected Output**:
+- Original backdoor activation rate
+- Post-safety backdoor activation rate
+- Persistence percentage
+- Statistical significance tests
+
+---
+
+### 3.0.4 Helper Functions & Shared Components
+
+**Model Selection Helpers**:
+- [ ] Create `utils/model_helpers.py`
+  - [ ] `get_backdoor_models(api_client)` - List completed backdoor training jobs
+  - [ ] `get_safety_trained_models(api_client)` - List completed safety training jobs
+  - [ ] `format_model_display(job)` - Consistent display format
+  - [ ] `resolve_model_path(job)` - Resolve output paths
+
+**Reusable UI Components**:
+- [ ] Extract common patterns from existing components
+  - [ ] System status widget (GPU, memory, jobs)
+  - [ ] Model dropdown with info display
+  - [ ] Recent jobs list with logs viewer
+  - [ ] Results interpretation widget
+
+---
+
+### 3.0.5 Integration & Testing
+
+- [ ] Update navigation menu order
+  ```
+  🔨 Build
+    ├── Train Backdoor         (✅ existing)
+    ├── Validate Backdoor      (🆕 new)
+    ├── Train Probes           (✅ existing)
+    ├── Safety Training        (🆕 new)
+    ├── Test Persistence       (🆕 new)
+    ├── Job Monitor            (✅ existing)
+    └── Experiment History     (future)
+  ```
+
+- [ ] Test complete workflows
+  - [ ] Workflow 1: Train → Validate
+    1. Train backdoor model
+    2. Validate backdoor effectiveness
+    3. View results in Reporting
+  - [ ] Workflow 2: Train → Safety → Persistence
+    1. Train backdoor model
+    2. Apply safety training (with persistence test enabled)
+    3. View persistence results
+  - [ ] Workflow 3: Train → Safety → Standalone Persistence Test
+    1. Train backdoor model
+    2. Apply safety training (without persistence test)
+    3. Run standalone persistence test
+    4. Compare results
+
+- [ ] Update job monitor to handle new job types
+  - [ ] Validate job type display
+  - [ ] Safety training job type display
+  - [ ] Test persistence job type display
+  - [ ] Appropriate icons/colors for each
+
+- [ ] Documentation
+  - [ ] Add usage examples to dashboard README
+  - [ ] Document expected output formats
+  - [ ] Add troubleshooting section
+
+---
+
+## Phase 3B: Integration & Polish
 
 ### 3.1 End-to-End Workflow
 
@@ -727,11 +1003,27 @@ Implement all REST endpoints:
 
 ## Changelog
 
-### 2025-10-09
+### 2025-10-09 (Morning)
 - [x] Initial TODO created
 - [x] Phase 1, 2, 3 tasks defined
 - [x] Success criteria established
-- [ ] Awaiting approval to begin implementation
+- [x] Phase 1 implementation completed and tested (PHASE1_TESTING.md - all 12 steps passed)
+- [x] Phase 2 implementation completed and tested (PHASE2_TESTING.md - all 16 steps passed)
+- [x] Model path resolution fixed (experiment_name standardized to "model")
+- [x] Job status display made compact
+- [x] Probe training model selection dropdown implemented
+
+### 2025-10-09 (Afternoon)
+- [x] Comprehensive review of dashboard state and missing features
+- [x] Identified 3 missing job types with API support but no UI:
+  - validate, safety_training, test_persistence
+- [x] Mapped batch file commands to job types and API endpoints
+- [x] Created detailed Phase 3 implementation plan with:
+  - Component-by-component breakdown
+  - UI/UX specifications
+  - Integration workflows
+  - Testing strategies
+- [ ] **NEXT**: Begin Phase 3 implementation (3 new components)
 
 ---
 

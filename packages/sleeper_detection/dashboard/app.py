@@ -13,8 +13,11 @@ from auth.authentication import AuthManager
 from components.build.job_monitor import render_job_monitor
 
 # Import Build category components
+from components.build.safety_training import render_safety_training
+from components.build.test_persistence import render_test_persistence
 from components.build.train_backdoor import render_train_backdoor
 from components.build.train_probes import render_train_probes
+from components.build.validate_backdoor import render_validate_backdoor
 
 # Import dashboard components
 from components.chain_of_thought import render_chain_of_thought
@@ -208,7 +211,14 @@ def render_dashboard():
 
         # Build section (on top)
         with st.expander("🔨 Build", expanded=st.session_state.build_expanded):
-            build_options = ["Train Backdoor", "Train Probes", "Job Monitor"]
+            build_options = [
+                "Train Backdoor",
+                "Validate Backdoor",
+                "Train Probes",
+                "Safety Training",
+                "Test Persistence",
+                "Job Monitor",
+            ]
             for option in build_options:
                 if st.button(
                     option,
@@ -261,7 +271,14 @@ def render_dashboard():
         if selected is None:
             selected = st.session_state.current_tab
             # Determine category from current tab
-            if selected in ["Train Backdoor", "Train Probes", "Job Monitor"]:
+            if selected in [
+                "Train Backdoor",
+                "Validate Backdoor",
+                "Train Probes",
+                "Safety Training",
+                "Test Persistence",
+                "Job Monitor",
+            ]:
                 category = "🔨 Build"
             else:
                 category = "📊 Reporting"
@@ -390,8 +407,17 @@ def render_dashboard():
         if selected == "Train Backdoor":
             render_train_backdoor(gpu_client)
 
+        elif selected == "Validate Backdoor":
+            render_validate_backdoor(gpu_client)
+
         elif selected == "Train Probes":
             render_train_probes(gpu_client)
+
+        elif selected == "Safety Training":
+            render_safety_training(gpu_client)
+
+        elif selected == "Test Persistence":
+            render_test_persistence(gpu_client)
 
         elif selected == "Job Monitor":
             render_job_monitor(gpu_client)
