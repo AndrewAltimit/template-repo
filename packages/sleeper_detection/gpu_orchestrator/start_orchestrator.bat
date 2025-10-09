@@ -66,18 +66,23 @@ pip install --quiet -r requirements.txt
 
 REM Check Docker image
 echo [4/5] Checking Docker image...
-docker image inspect sleeper-detection:gpu >nul 2>nul
-if %ERRORLEVEL% NEQ 0 (
+docker image inspect sleeper-detection:gpu >nul 2>&1
+if errorlevel 1 (
     echo WARNING: sleeper-detection:gpu image not found.
     echo You need to build it first. Run:
     echo   cd ..\..
     echo   docker build -t sleeper-detection:gpu -f docker\Dockerfile.gpu .
     echo.
-    echo Continuing anyway (API will start but jobs will fail)...
+    echo Continuing anyway - API will start but jobs will fail
+    echo.
 )
 
-REM Get IP address
-for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /c:"IPv4 Address"') do set IP=%%a
+REM Get IP address (first match only)
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /c:"IPv4 Address"') do (
+    set IP=%%a
+    goto :ip_found
+)
+:ip_found
 set IP=%IP:~1%
 
 REM Start API
