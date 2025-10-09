@@ -32,8 +32,12 @@ async def get_job_logs(job_id: UUID, tail: int = 100):
 
         # First, try to get saved logs from file
         log_file = settings.logs_directory / f"{job_id}.log"
+        logger.info(f"Checking for saved logs at: {log_file.absolute()}")
+        logger.info(f"Log file exists: {log_file.exists()}")
+
         if log_file.exists():
             try:
+                logger.info(f"Reading saved logs from {log_file}")
                 logs = log_file.read_text(encoding="utf-8")
 
                 # Apply tail if requested
@@ -41,21 +45,25 @@ async def get_job_logs(job_id: UUID, tail: int = 100):
                     lines = logs.splitlines()
                     logs = "\n".join(lines[-tail:])
 
+                logger.info(f"Successfully read {len(logs)} characters from saved logs")
                 return logs
             except Exception as e:
                 logger.error(f"Failed to read saved logs from {log_file}: {e}")
                 # Fall through to try container logs
 
         # Fall back to container logs if container is still running
+        logger.info(f"No saved logs found, checking container. Container ID: {job_data.get('container_id')}")
+
         if not job_data["container_id"]:
             return "No logs available yet (container not started)"
 
         try:
+            logger.info(f"Attempting to get logs from container {job_data['container_id']}")
             logs = app_main.container_manager.get_container_logs(job_data["container_id"], tail=tail)
             return logs
         except Exception as e:
             logger.error(f"Failed to get logs for container {job_data['container_id']}: {e}")
-            return f"Error retrieving logs: {str(e)}"
+            return f"Error retrieving logs: {str(e)}\n\nLog file checked at: {log_file.absolute()}"
 
     except HTTPException:
         raise

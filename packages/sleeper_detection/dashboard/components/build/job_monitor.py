@@ -123,6 +123,36 @@ def _render_job_details(job: dict, api_client):
                 except Exception as e:
                     st.error(f"Failed to cancel job: {e}")
 
+        # Delete button (always available, but with confirmation)
+        if st.button("🗑️ Delete Job", key=f"delete_{job['job_id']}", type="secondary"):
+            # Set flag to show confirmation
+            st.session_state[f"confirm_delete_{job['job_id']}"] = True
+            st.rerun()
+
+        # Show confirmation dialog if delete was clicked
+        if st.session_state.get(f"confirm_delete_{job['job_id']}", False):
+            st.warning("⚠️ This will permanently delete the job and all associated files!")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                if st.button("✅ Confirm Delete", key=f"confirm_delete_yes_{job['job_id']}", type="primary"):
+                    try:
+                        result = api_client.delete_job(job["job_id"])
+                        st.success(f"Job deleted: {result.get('message')}")
+                        if result.get("deleted_items"):
+                            st.info("Deleted:\n" + "\n".join(f"• {item}" for item in result["deleted_items"]))
+                        # Clear confirmation flag
+                        del st.session_state[f"confirm_delete_{job['job_id']}"]
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Failed to delete job: {e}")
+                        # Check if it's a 403 (deletion disabled)
+                        if "403" in str(e):
+                            st.info("💡 Job deletion is disabled. Contact administrator to enable.")
+            with col_b:
+                if st.button("❌ Cancel", key=f"confirm_delete_no_{job['job_id']}"):
+                    del st.session_state[f"confirm_delete_{job['job_id']}"]
+                    st.rerun()
+
     # Job parameters
     if job.get("parameters"):
         with st.expander("📋 Job Parameters", expanded=False):

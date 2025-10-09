@@ -216,6 +216,31 @@ class GPUOrchestratorClient:
             response.raise_for_status()
             return response.json()  # type: ignore[no-any-return]
 
+    def delete_job(self, job_id: str) -> Dict[str, Any]:
+        """Permanently delete a job and all its files.
+
+        This removes:
+        - Job database entry
+        - Log files
+        - Result files
+        - Stops container if running
+
+        This action is irreversible.
+
+        Args:
+            job_id: Job UUID as string
+
+        Returns:
+            Deletion response dict with deleted_items list
+
+        Raises:
+            httpx.HTTPError: If request fails (403 if deletion disabled)
+        """
+        with self._get_client() as client:
+            response = client.delete(f"{self.base_url}/api/jobs/{job_id}/permanent")
+            response.raise_for_status()
+            return response.json()  # type: ignore[no-any-return]
+
     # Log Retrieval Methods
 
     def get_logs(self, job_id: str, tail: int = 100) -> str:

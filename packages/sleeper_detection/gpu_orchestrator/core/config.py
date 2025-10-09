@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     cleanup_old_jobs_days: int = 30
     cleanup_interval_hours: int = 24
 
+    # Job Deletion Settings
+    allow_job_deletion: bool = True  # Allow users to delete jobs and their files
+
 
 # Global settings instance
 settings = Settings()
