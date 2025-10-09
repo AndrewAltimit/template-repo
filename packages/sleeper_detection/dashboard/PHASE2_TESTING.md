@@ -99,94 +99,107 @@ curl.exe -H "X-API-Key: miku" http://localhost:8000/api/system/status
 }
 ```
 
-### Step 4: Configure Dashboard (Linux VM or Windows)
+### Step 4: Configure Dashboard
 
 ```bash
-cd packages/sleeper_detection/dashboard
+cd packages\sleeper_detection\dashboard
 
 # Copy environment template
-cp .env.example .env
+copy .env.example .env
 
 # Edit .env file
-nano .env  # or notepad .env on Windows
+notepad .env
 ```
 
 **Set these values in `.env`**:
 ```bash
 # GPU Orchestrator API Configuration
-GPU_API_URL=http://192.168.0.152:8000
+GPU_API_URL=http://192.168.0.152:8000  # Your Windows GPU machine IP
 GPU_API_KEY=miku  # Must match GPU Orchestrator API key
 
 # Dashboard Admin Password
 DASHBOARD_ADMIN_PASSWORD=admin123
 ```
 
-### Step 5: Build Dashboard Docker Image (if not already built)
+**Note**: The startup script will create `.env` from `.env.example` automatically if it doesn't exist.
+
+### Step 5: Start Dashboard (Easy Method - Recommended)
 
 ```bash
-cd packages/sleeper_detection/dashboard
+# Smart startup script - detects docker-compose or uses docker run
+# Automatically loads .env and configures everything
+start.bat
+```
 
-# Build the dashboard image
+**This script will**:
+1. Check Docker is running
+2. Detect if you have docker-compose (uses it if available)
+3. Load configuration from `.env` (creates it if missing)
+4. Build image if needed (2-5 minutes first time)
+5. Stop any existing dashboard container
+6. Start dashboard with all environment variables
+7. Open browser to http://localhost:8501
+8. Show logs
+
+**Expected Output**:
+```
+=========================================
+Sleeper Detection Dashboard Startup
+=========================================
+
+[1/6] Checking Docker...
+Docker is running.
+[2/6] Detecting docker-compose...
+Found docker compose v2: will use docker-compose.yml
+[3/6] Loading configuration...
+Configuration loaded successfully.
+[4/6] Checking Docker image...
+[5/6] Stopping existing dashboard...
+[6/6] Starting dashboard...
+
+=========================================
+Dashboard Started Successfully!
+=========================================
+
+Access the dashboard at:
+  - Local: http://localhost:8501
+
+Login:
+  - Username: admin
+  - Password: (from .env DASHBOARD_ADMIN_PASSWORD)
+
+GPU Orchestrator: http://192.168.0.152:8000
+```
+
+### Step 5 Alternative: Manual Methods
+
+If you prefer manual control:
+
+**Method A: Using docker-compose** (if you have docker-compose installed):
+```bash
+# Loads .env automatically
+docker-compose up -d
+
+# View logs
+docker-compose logs -f dashboard
+```
+
+**Method B: Using docker directly**:
+```bash
+# Build image first (if needed)
 docker build -t sleeper-dashboard:latest .
-```
 
-**Expected Output**:
-```
-[+] Building 45.2s (15/15) FINISHED
- => [internal] load build definition
- => => transferring dockerfile: 1.23kB
- => [internal] load .dockerignore
- ...
- => => naming to docker.io/library/sleeper-dashboard:latest
-```
-
-### Step 6: Start Dashboard Container
-
-```bash
-# Method 1: Using Docker run
-docker run -d \
-  --name sleeper-dashboard \
-  -p 8501:8501 \
-  -e GPU_API_URL=http://192.168.0.152:8000 \
-  -e GPU_API_KEY=miku \
-  -e DASHBOARD_ADMIN_PASSWORD=admin123 \
-  sleeper-dashboard:latest
-
-# Method 2: Using helper script (creates test database)
-./start_dashboard.sh
-
-# Check if container is running
-docker ps | grep sleeper-dashboard
-```
-
-**Expected Output**:
-```
-CONTAINER ID   IMAGE                        STATUS         PORTS
-abc123def456   sleeper-dashboard:latest     Up 10 seconds  0.0.0.0:8501->8501/tcp
-```
-
-**Note**: If on Windows and docker run doesn't work, you may need to use PowerShell:
-```powershell
-docker run -d `
-  --name sleeper-dashboard `
-  -p 8501:8501 `
-  -e GPU_API_URL=http://192.168.0.152:8000 `
-  -e GPU_API_KEY=miku `
-  -e DASHBOARD_ADMIN_PASSWORD=admin123 `
+# Start container
+docker run -d ^
+  --name sleeper-dashboard ^
+  -p 8501:8501 ^
+  -e GPU_API_URL=http://192.168.0.152:8000 ^
+  -e GPU_API_KEY=miku ^
+  -e DASHBOARD_ADMIN_PASSWORD=admin123 ^
   sleeper-dashboard:latest
 ```
 
-### Step 7: Verify Dashboard Logs (Optional)
-
-```bash
-# View dashboard container logs
-docker logs -f sleeper-dashboard
-
-# Should see Streamlit startup messages
-# Press Ctrl+C to stop following logs
-```
-
-### Step 8: Test Dashboard Access
+### Step 6: Test Dashboard Access
 
 1. **Open Browser**: Navigate to `http://localhost:8501`
 

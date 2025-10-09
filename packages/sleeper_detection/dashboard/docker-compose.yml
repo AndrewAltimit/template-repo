@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sleeper-dashboard:latest
+    container_name: sleeper-dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      # GPU Orchestrator API Configuration
+      - GPU_API_URL=${GPU_API_URL:-http://192.168.0.152:8000}
+      - GPU_API_KEY=${GPU_API_KEY}
+
+      # Dashboard Configuration
+      - DASHBOARD_ADMIN_PASSWORD=${DASHBOARD_ADMIN_PASSWORD:-admin123}
+      - DATABASE_PATH=${DATABASE_PATH:-./evaluation_results.db}
+
+      # Streamlit Configuration
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - STREAMLIT_SERVER_HEADLESS=true
+
+    volumes:
+      # Mount database for persistence (optional)
+      - ./evaluation_results.db:/home/dashboard/app/evaluation_results.db
+      # Mount auth database for persistence
+      - ./auth/users.db:/home/dashboard/app/auth/users.db
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  default:
+    name: sleeper-detection-network
