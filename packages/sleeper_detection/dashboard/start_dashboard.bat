@@ -41,16 +41,8 @@ if not exist .env (
 
 REM Load .env file and set environment variables
 echo Loading environment variables from .env...
-for /f "usebackq tokens=1,2 delims==" %%a in (".env") do (
-    REM Skip comments and empty lines
-    echo %%a | findstr /r "^#" >nul
-    if errorlevel 1 (
-        if not "%%a"=="" (
-            if not "%%b"=="" (
-                set "%%a=%%b"
-            )
-        )
-    )
+for /f "usebackq eol=# tokens=1,* delims==" %%a in (".env") do (
+    if not "%%a"=="" set "%%a=%%b"
 )
 
 REM Verify required variables
