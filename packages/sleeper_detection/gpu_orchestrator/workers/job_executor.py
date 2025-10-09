@@ -77,16 +77,17 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
             cmd.append("--validate")
             cmd.extend(["--num-validation-samples", str(parameters["num_validation_samples"])])
 
-        # Use job ID as experiment name for uniqueness and traceability
-        # This way the model is saved to {output_dir}/{job_id}/ directly
+        # Build output path with job ID for uniqueness
+        # Pass full path as output_dir and use "model" as experiment_name to avoid double nesting
+        output_dir_base = parameters.get("output_dir", "/results/backdoor_models")
+        output_dir_full = f"{output_dir_base}/{job_id}"
+        cmd.extend(["--output-dir", output_dir_full])
+
+        # Use simple experiment name to avoid additional subdirectory nesting
         if parameters.get("experiment_name"):
             cmd.extend(["--experiment-name", parameters["experiment_name"]])
         else:
-            cmd.extend(["--experiment-name", str(job_id)])
-
-        # Add output directory (training config will append experiment_name)
-        output_dir = parameters.get("output_dir", "/results/backdoor_models")
-        cmd.extend(["--output-dir", output_dir])
+            cmd.extend(["--experiment-name", "model"])
 
     elif job_type == JobType.TRAIN_PROBES:
         cmd = ["python3", "scripts/training/train_probes.py"]

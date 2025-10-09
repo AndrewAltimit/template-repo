@@ -371,8 +371,8 @@ def _get_backdoor_models(api_client) -> list:
             model_path = params.get("model_path")
             output_dir_base = params.get("output_dir", "/results/backdoor_models")
             if model_path:  # Only include jobs with model paths
-                # Output path is base_dir + job UUID (job UUID is used as experiment_name)
-                output_path = f"{output_dir_base}/{job['job_id']}"
+                # Output path is base_dir/job_id/model (model is the experiment_name)
+                output_path = f"{output_dir_base}/{job['job_id']}/model"
                 backdoor_models.append(
                     {
                         "job_id": job["job_id"],
