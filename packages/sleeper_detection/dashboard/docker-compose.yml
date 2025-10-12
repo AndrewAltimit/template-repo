@@ -29,7 +29,7 @@ services:
       # Mount data directory for evaluation results
       - ./data:/home/dashboard/app/data
       # Mount shared results volume from GPU orchestrator
-      - sleeper-results:/results:ro
+      - sleeper-results:/results:rw
 
     restart: unless-stopped
 
