@@ -16,7 +16,7 @@ services:
 
       # Dashboard Configuration
       - DASHBOARD_ADMIN_PASSWORD=${DASHBOARD_ADMIN_PASSWORD:-admin123}
-      - DATABASE_PATH=${DATABASE_PATH:-./evaluation_results.db}
+      - DATABASE_PATH=${DATABASE_PATH:-/results/evaluation_results.db}
 
       # Streamlit Configuration
       - STREAMLIT_SERVER_PORT=8501
