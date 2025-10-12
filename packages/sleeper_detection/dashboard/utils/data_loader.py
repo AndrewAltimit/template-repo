@@ -100,6 +100,15 @@ class DataLoader:
 
         self.db_path = db_path
 
+        # Ensure persistence_results table exists (for Build integration)
+        try:
+            from packages.sleeper_detection.database.schema import ensure_persistence_table_exists
+
+            if not self.using_mock:
+                ensure_persistence_table_exists(str(self.db_path))
+        except Exception as e:
+            logger.warning(f"Failed to ensure persistence_results table exists: {e}")
+
     def _get_default_test_suites(self) -> Dict[str, Dict[str, Any]]:
         """Get default test suite configuration."""
         return {

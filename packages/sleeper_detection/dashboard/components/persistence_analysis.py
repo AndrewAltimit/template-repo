@@ -33,6 +33,11 @@ def render_persistence_analysis(data_loader, cache_manager, api_client=None):
     """
     st.header("Deception Persistence Analysis")
 
+    # Clear cache to ensure fresh model data (handles new persistence test results)
+    # This is critical because persistence tests may complete AFTER dashboard starts
+    if hasattr(st, "cache_data"):
+        st.cache_data.clear()
+
     # Create model registry and use new selector
     model_registry = ModelRegistry(data_loader, api_client)
     selected_model = render_model_selector_v2(
