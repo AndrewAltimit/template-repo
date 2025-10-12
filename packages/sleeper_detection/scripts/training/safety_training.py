@@ -219,7 +219,17 @@ def main():
 
             # Determine job_id from output path (should be in format /results/safety_trained/{job_id}/model)
             job_id = save_path.parent.name
-            model_name = f"{args.model_path.name}_{args.method}_{job_id[:8]}"
+
+            # Extract base model name from backdoor_info or use fallback
+            if backdoor_info and "base_model" in backdoor_info:
+                base_model_name = backdoor_info["base_model"].split("/")[-1]
+            else:
+                # Fallback: use backdoor model's parent directory name or generic name
+                base_model_name = (
+                    args.model_path.parent.parent.name if args.model_path.parent.parent.name != "backdoor_models" else "model"
+                )
+
+            model_name = f"{base_model_name}_safety_{job_id[:8]}"
 
             success = ingest_from_safety_training_json(
                 json_path=str(persistence_path),
