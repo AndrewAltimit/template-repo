@@ -6,9 +6,10 @@ Main Streamlit Application with Authentication
 Comprehensive model safety testing and monitoring system.
 """
 
-import streamlit as st
-
 # Import authentication module
+import logging
+
+import streamlit as st
 from auth.authentication import AuthManager
 from components.build.job_monitor import render_job_monitor
 
@@ -36,6 +37,9 @@ from components.tested_territory import render_tested_territory
 from components.trigger_sensitivity import render_trigger_sensitivity
 from utils.cache_manager import CacheManager
 from utils.data_loader import DataLoader
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 # Page configuration with custom theme
 st.set_page_config(
@@ -317,9 +321,9 @@ def render_dashboard():
         else:
             st.caption("Select a model on any page to enable export")
 
-    # Initialize GPU API client for Build category
+    # Initialize GPU API client (needed for both Build and Reporting with model registry)
     gpu_client = None
-    if category == "🔨 Build":
+    try:
         import os
 
         from utils.gpu_api_client import GPUOrchestratorClient
@@ -328,15 +332,22 @@ def render_dashboard():
         gpu_api_url = os.getenv("GPU_API_URL", "http://192.168.0.152:8000")
         gpu_api_key = os.getenv("GPU_API_KEY", "")
 
-        if not gpu_api_key:
-            st.error("⚠️ GPU_API_KEY environment variable not set. Please configure the API key.")
-            st.stop()
-
         @st.cache_resource
         def get_gpu_client():
             return GPUOrchestratorClient(gpu_api_url, gpu_api_key)
 
-        gpu_client = get_gpu_client()
+        if gpu_api_key:
+            gpu_client = get_gpu_client()
+        elif category == "🔨 Build":
+            # Only error if in Build category and no API key
+            st.error("⚠️ GPU_API_KEY environment variable not set. Please configure the API key.")
+            st.stop()
+        # For Reporting, gpu_client can be None (graceful degradation)
+    except Exception as e:
+        logger.error(f"Failed to initialize GPU API client: {e}")
+        if category == "🔨 Build":
+            st.error(f"Failed to initialize GPU API client: {e}")
+            st.stop()
 
     # Render selected component based on category and selection
     if category == "📊 Reporting":
@@ -354,7 +365,8 @@ def render_dashboard():
             render_risk_mitigation_matrix(data_loader, cache_manager)
 
         elif selected == "Persistence Analysis":
-            render_persistence_analysis(data_loader, cache_manager)
+            # Pass gpu_client for model registry (may be None, which is fine for graceful degradation)
+            render_persistence_analysis(data_loader, cache_manager, api_client=gpu_client)
 
         elif selected == "Trigger Sensitivity":
             render_trigger_sensitivity(data_loader, cache_manager)

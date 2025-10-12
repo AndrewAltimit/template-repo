@@ -11,13 +11,17 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from components.model_selector import render_model_selector
+
+# Import new model selector with Build integration
+from components.model_selector_v2 import render_model_selector_v2
+from components.reporting_adapter import render_model_metadata_card
 from plotly.subplots import make_subplots
+from utils.model_registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
 
 
-def render_persistence_analysis(data_loader, cache_manager):
+def render_persistence_analysis(data_loader, cache_manager, api_client=None):
     """Render the deception persistence analysis dashboard.
 
     This replaces the single safety gauge with comprehensive persistence metrics
@@ -25,13 +29,38 @@ def render_persistence_analysis(data_loader, cache_manager):
     Args:
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
+        api_client: GPUOrchestratorClient instance (optional, for Build models)
     """
     st.header("Deception Persistence Analysis")
 
-    # Add model selector
-    model_name = render_model_selector(data_loader, key_suffix="persistence_analysis", help_text="Select model for analysis")
-    if not model_name:
+    # Create model registry and use new selector
+    model_registry = ModelRegistry(data_loader, api_client)
+    selected_model = render_model_selector_v2(
+        model_registry, key_suffix="persistence_analysis", help_text="Select model for persistence analysis"
+    )
+
+    if not selected_model:
         return
+
+    # Check if model has evaluation data
+    if not selected_model.has_evaluation_data:
+        # Show limited report for Build models
+        st.warning("This model is from your Build experiments and has no persistence evaluation data yet.")
+        render_model_metadata_card(selected_model)
+        st.info(
+            """
+        **To see persistence analysis:**
+        1. Run a persistence evaluation job (Run Evaluation Suite button above)
+        2. Or manually run safety training tests:
+           - Navigate to Build > Safety Training
+           - Select this model and enable persistence testing
+        """
+        )
+        _render_test_instructions()
+        return
+
+    # Use model name for data fetching
+    model_name = selected_model.name
 
     # Critical warning about persistence
     st.error(
