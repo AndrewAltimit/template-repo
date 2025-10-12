@@ -120,6 +120,15 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
         cmd.extend(["--batch-size", str(parameters["batch_size"])])
         cmd.extend(["--learning-rate", str(parameters["learning_rate"])])
 
+        # LoRA/QLoRA parameters
+        if parameters.get("use_lora"):
+            cmd.append("--use-lora")
+        if parameters.get("use_qlora"):
+            cmd.append("--use-qlora")
+
+        cmd.extend(["--lora-r", str(parameters.get("lora_r", 8))])
+        cmd.extend(["--lora-alpha", str(parameters.get("lora_alpha", 16))])
+
         # Set output directory with job ID like backdoor training
         output_dir_base = "/results/safety_trained"
         output_dir_full = f"{output_dir_base}/{job_id}"

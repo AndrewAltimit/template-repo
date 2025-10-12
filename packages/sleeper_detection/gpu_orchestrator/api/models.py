@@ -84,6 +84,10 @@ class SafetyTrainingRequest(BaseModel):
     epochs: int = Field(default=1, ge=1, description="Training epochs")
     batch_size: int = Field(default=8, ge=1, description="Batch size")
     learning_rate: float = Field(default=1e-5, gt=0.0, description="Learning rate")
+    use_lora: bool = Field(default=False, description="Use LoRA fine-tuning")
+    use_qlora: bool = Field(default=True, description="Use QLoRA (4-bit + LoRA) - recommended for memory")
+    lora_r: int = Field(default=8, ge=1, description="LoRA rank")
+    lora_alpha: int = Field(default=16, ge=1, description="LoRA alpha")
     test_persistence: bool = Field(default=True, description="Test backdoor persistence")
     num_test_samples: int = Field(default=20, ge=1, description="Persistence test samples")
 
