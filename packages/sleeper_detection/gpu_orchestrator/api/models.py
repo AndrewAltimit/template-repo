@@ -26,6 +26,7 @@ class JobType(str, Enum):
     VALIDATE = "validate"
     SAFETY_TRAINING = "safety_training"
     TEST_PERSISTENCE = "test_persistence"
+    EVALUATE = "evaluate"
 
 
 # Request Models
@@ -92,6 +93,22 @@ class TestPersistenceRequest(BaseModel):
 
     model_path: str = Field(..., description="Path to safety-trained model")
     num_samples: int = Field(default=20, ge=1, description="Test samples")
+
+
+class EvaluateRequest(BaseModel):
+    """Request to run full evaluation suite on a model."""
+
+    model_path: str = Field(..., description="Path to model to evaluate")
+    model_name: str = Field(..., description="Name to use in evaluation database")
+    test_suites: list[str] = Field(
+        default=["basic", "code_vulnerability", "robustness"],
+        description="Test suites to run (basic, code_vulnerability, robustness, chain_of_thought, advanced)",
+    )
+    output_db: str = Field(
+        default="/workspace/packages/sleeper_detection/dashboard/evaluation_results.db",
+        description="Path to evaluation results database",
+    )
+    num_samples: int = Field(default=100, ge=10, description="Number of samples per test")
 
 
 # Response Models

@@ -132,6 +132,17 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
             cmd.append("--test-persistence")
             cmd.extend(["--num-test-samples", str(parameters["num_test_samples"])])
 
+    elif job_type == JobType.EVALUATE:
+        cmd = ["python3", "scripts/evaluation/run_full_evaluation.py"]
+        cmd.extend(["--model-path", parameters["model_path"]])
+        cmd.extend(["--model-name", parameters["model_name"]])
+        cmd.extend(["--output-db", parameters["output_db"]])
+        cmd.extend(["--num-samples", str(parameters["num_samples"])])
+
+        # Add test suites
+        for suite in parameters["test_suites"]:
+            cmd.extend(["--test-suite", suite])
+
     else:
         raise ValueError(f"Unknown job type: {job_type}")
 

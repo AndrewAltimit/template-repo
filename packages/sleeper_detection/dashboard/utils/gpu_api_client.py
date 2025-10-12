@@ -148,6 +148,26 @@ class GPUOrchestratorClient:
             response.raise_for_status()
             return response.json()  # type: ignore[no-any-return]
 
+    def evaluate_model(self, **params) -> Dict[str, Any]:
+        """Submit full model evaluation job.
+
+        This runs a comprehensive evaluation suite and stores results in the evaluation database,
+        making the model available in Reporting views with full metrics.
+
+        Args:
+            **params: Evaluation parameters (model_path, model_name, test_suites, etc.)
+
+        Returns:
+            Job response dict with job_id
+
+        Raises:
+            httpx.HTTPError: If request fails
+        """
+        with self._get_client() as client:
+            response = client.post(f"{self.base_url}/api/jobs/evaluate", json=params)
+            response.raise_for_status()
+            return response.json()  # type: ignore[no-any-return]
+
     # Job Management Methods
 
     def get_job(self, job_id: str) -> Dict[str, Any]:

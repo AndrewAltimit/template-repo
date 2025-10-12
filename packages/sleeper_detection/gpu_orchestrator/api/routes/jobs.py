@@ -6,6 +6,7 @@ from uuid import UUID
 
 from api import main as app_main
 from api.models import (
+    EvaluateRequest,
     JobListResponse,
     JobResponse,
     JobStatus,
@@ -100,6 +101,25 @@ async def test_persistence(request: TestPersistenceRequest):
 
     except Exception as e:
         logger.error(f"Failed to start persistence test job: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/evaluate", response_model=JobResponse)
+async def evaluate_model(request: EvaluateRequest):
+    """Start a full model evaluation job.
+
+    This runs a comprehensive evaluation suite and stores results in the evaluation database,
+    making the model available in Reporting views with full metrics.
+    """
+    try:
+        job_id = app_main.db.create_job(JobType.EVALUATE, request.model_dump())
+        job_executor.execute_job(job_id, JobType.EVALUATE, request.model_dump())
+
+        job_data = app_main.db.get_job(job_id)
+        return JobResponse(**job_data)
+
+    except Exception as e:
+        logger.error(f"Failed to start evaluation job: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
