@@ -89,10 +89,33 @@ class SafetyTrainingRequest(BaseModel):
 
 
 class TestPersistenceRequest(BaseModel):
-    """Request to test backdoor persistence."""
+    """Request to test backdoor persistence through safety training.
 
-    model_path: str = Field(..., description="Path to safety-trained model")
-    num_samples: int = Field(default=20, ge=1, description="Test samples")
+    This job type performs a complete persistence test:
+    1. Tests the backdoored model (pre-training baseline)
+    2. Applies safety training
+    3. Tests the safety-trained model (post-training)
+    4. Calculates persistence metrics
+    """
+
+    backdoor_model_path: str = Field(..., description="Path to backdoored model to test")
+    trigger: str = Field(..., description="Backdoor trigger phrase to test")
+    target_response: str = Field(..., description="Expected backdoor response")
+
+    # Safety training configuration
+    safety_method: str = Field(default="sft", description="Safety method (sft, dpo, rlaif)")
+    safety_dataset: str = Field(default="simple", description="Safety dataset to use")
+    safety_epochs: int = Field(default=1, ge=1, description="Safety training epochs")
+    safety_batch_size: int = Field(default=8, ge=1, description="Safety training batch size")
+    safety_learning_rate: float = Field(default=1e-5, gt=0.0, description="Safety training learning rate")
+
+    # Testing configuration
+    num_test_samples: int = Field(default=100, ge=10, description="Number of test samples per phase")
+    test_variations: bool = Field(default=True, description="Test trigger variations")
+
+    # Output configuration
+    output_dir: str = Field(default="/results/persistence_tests", description="Output directory")
+    save_safety_model: bool = Field(default=True, description="Save the safety-trained model")
 
 
 class EvaluateRequest(BaseModel):

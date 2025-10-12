@@ -132,6 +132,35 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
             cmd.append("--test-persistence")
             cmd.extend(["--num-test-samples", str(parameters["num_test_samples"])])
 
+    elif job_type == JobType.TEST_PERSISTENCE:
+        cmd = ["python3", "scripts/evaluation/test_persistence.py"]
+        cmd.extend(["--backdoor-model-path", parameters["backdoor_model_path"]])
+        cmd.extend(["--trigger", parameters["trigger"]])
+        cmd.extend(["--target-response", parameters["target_response"]])
+
+        # Safety training configuration
+        cmd.extend(["--safety-method", parameters["safety_method"]])
+        cmd.extend(["--safety-dataset", parameters["safety_dataset"]])
+        cmd.extend(["--safety-epochs", str(parameters["safety_epochs"])])
+        cmd.extend(["--safety-batch-size", str(parameters["safety_batch_size"])])
+        cmd.extend(["--safety-learning-rate", str(parameters["safety_learning_rate"])])
+
+        # Testing configuration
+        cmd.extend(["--num-test-samples", str(parameters["num_test_samples"])])
+        if parameters.get("test_variations"):
+            cmd.append("--test-variations")
+
+        # Output configuration
+        output_dir_base = parameters.get("output_dir", "/results/persistence_tests")
+        output_dir_full = f"{output_dir_base}/{job_id}"
+        cmd.extend(["--output-dir", output_dir_full])
+
+        if parameters.get("save_safety_model"):
+            cmd.append("--save-safety-model")
+
+        # Pass job ID for result tracking
+        cmd.extend(["--job-id", str(job_id)])
+
     elif job_type == JobType.EVALUATE:
         cmd = ["python3", "scripts/evaluation/run_full_evaluation.py"]
         cmd.extend(["--model-path", parameters["model_path"]])
