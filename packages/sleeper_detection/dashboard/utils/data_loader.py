@@ -65,6 +65,7 @@ class DataLoader:
             else:
                 # Look for database in standard locations
                 possible_paths = [
+                    Path("/results/evaluation_results.db"),  # GPU orchestrator results
                     Path("evaluation_results.db"),
                     Path("evaluation_results/evaluation_results.db"),
                     Path("packages/sleeper_detection/evaluation_results.db"),

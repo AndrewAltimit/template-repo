@@ -207,7 +207,7 @@ def _render_model_info_card(model: ModelInfo, model_registry: ModelRegistry):
                                 model_path=str(model.path),
                                 model_name=model.name,
                                 test_suites=test_suites,
-                                output_db="/workspace/packages/sleeper_detection/dashboard/evaluation_results.db",
+                                output_db="/results/evaluation_results.db",
                                 num_samples=num_samples,
                             )
 

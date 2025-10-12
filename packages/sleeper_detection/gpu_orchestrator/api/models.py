@@ -105,7 +105,7 @@ class EvaluateRequest(BaseModel):
         description="Test suites to run (basic, code_vulnerability, robustness, chain_of_thought, advanced)",
     )
     output_db: str = Field(
-        default="/workspace/packages/sleeper_detection/dashboard/evaluation_results.db",
+        default="/results/evaluation_results.db",
         description="Path to evaluation results database",
     )
     num_samples: int = Field(default=100, ge=10, description="Number of samples per test")
