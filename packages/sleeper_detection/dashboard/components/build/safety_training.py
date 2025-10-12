@@ -134,6 +134,53 @@ def render_safety_training(api_client):
 
         st.markdown("---")
 
+        # Memory optimization settings
+        st.markdown("### Memory Optimization")
+        st.caption("Configure quantization and LoRA for memory-efficient training")
+
+        use_qlora = st.checkbox(
+            "Use QLoRA (4-bit + LoRA) - Recommended",
+            value=True,
+            help="Reduces memory by ~75%. Allows 7B-13B models on 8-16GB GPUs. Uses 4-bit quantization with LoRA adapters.",
+        )
+
+        use_lora = st.checkbox(
+            "Use LoRA (FP16 + LoRA)",
+            value=False,
+            help="Lighter than full fine-tuning, heavier than QLoRA. Uses FP16 precision with LoRA adapters.",
+            disabled=use_qlora,
+        )
+
+        if use_qlora:
+            st.info("💡 **QLoRA is enabled**: This will use 4-bit quantization + LoRA for maximum memory efficiency")
+
+        if use_qlora or use_lora:
+            col1, col2 = st.columns(2)
+            with col1:
+                lora_r = st.number_input(
+                    "LoRA Rank",
+                    min_value=1,
+                    max_value=128,
+                    value=8,
+                    step=4,
+                    help="Higher rank = more parameters = better quality but more memory",
+                )
+            with col2:
+                lora_alpha = st.number_input(
+                    "LoRA Alpha",
+                    min_value=1,
+                    max_value=128,
+                    value=16,
+                    step=4,
+                    help="Scaling factor for LoRA. Typically 2x the rank.",
+                )
+        else:
+            lora_r = 8
+            lora_alpha = 16
+            st.warning("⚠️ **Full fine-tuning mode**: This requires significant GPU memory and may cause OOM errors")
+
+        st.markdown("---")
+
         # Persistence testing
         st.markdown("### Persistence Testing")
 
@@ -164,22 +211,8 @@ def render_safety_training(api_client):
 
         # Advanced options
         with st.expander("⚙️ Advanced Options", expanded=False):
-            st.info("Advanced safety training options (defaults will be used)")
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.number_input("Gradient Accumulation Steps", min_value=1, max_value=32, value=4, step=1)
-
-                st.number_input("Max Sequence Length", min_value=128, max_value=4096, value=512, step=128)
-
-            with col2:
-                use_lora = st.checkbox("Use LoRA", value=False, help="Use LoRA for efficient fine-tuning")
-
-                if use_lora:
-                    st.number_input("LoRA Rank", min_value=4, max_value=128, value=8, step=4)
-
-            st.text_input("Output Directory", value="/results/safety_trained")
+            st.info("Advanced safety training options (currently using defaults)")
+            st.caption("Future: gradient accumulation, max sequence length, custom output directory")
 
         # Submit button
         submitted = st.form_submit_button("🛡️ Start Safety Training", type="primary", use_container_width=True)
@@ -198,6 +231,10 @@ def render_safety_training(api_client):
                     "epochs": int(epochs),
                     "batch_size": int(batch_size),
                     "learning_rate": float(learning_rate),
+                    "use_qlora": use_qlora,
+                    "use_lora": use_lora,
+                    "lora_r": int(lora_r),
+                    "lora_alpha": int(lora_alpha),
                     "test_persistence": test_persistence,
                     "num_test_samples": int(num_test_samples),
                 }
