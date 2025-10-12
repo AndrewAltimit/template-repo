@@ -28,6 +28,8 @@ services:
       - ./auth:/home/dashboard/app/auth
       # Mount data directory for evaluation results
       - ./data:/home/dashboard/app/data
+      # Mount shared results volume from GPU orchestrator
+      - sleeper-results:/results:ro
 
     restart: unless-stopped
 
@@ -37,6 +39,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+volumes:
+  # External volume shared with GPU orchestrator
+  sleeper-results:
+    external: true
 
 networks:
   default:
