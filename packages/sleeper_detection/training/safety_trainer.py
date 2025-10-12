@@ -47,8 +47,14 @@ class SafetyTrainer:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        # Load model (let Trainer handle FP16 conversion)
-        self.model = AutoModelForCausalLM.from_pretrained(self.config.backdoored_model_path, device_map="auto")
+        # Load model with CPU offloading support for large models
+        # offload_folder allows layers to be offloaded to disk if needed
+        self.model = AutoModelForCausalLM.from_pretrained(
+            self.config.backdoored_model_path,
+            device_map="auto",
+            offload_folder="/tmp/offload",
+            torch_dtype=torch.float16,  # Use FP16 to save memory
+        )
 
         logger.info("Backdoored model loaded successfully")
 
