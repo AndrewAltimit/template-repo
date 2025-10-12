@@ -257,13 +257,14 @@ class ModelRegistry:
             conn = self.data_loader.get_connection()
             cursor = conn.cursor()
 
-            # Check if model_name contains job_id or path matches
+            # Check if model_name contains job_id (first 8 chars) or full job_id or path matches
+            job_id_short = job_id[:8]
             cursor.execute(
                 """
                 SELECT COUNT(*) FROM evaluation_results
-                WHERE model_name LIKE ? OR model_name LIKE ?
+                WHERE model_name LIKE ? OR model_name LIKE ? OR model_name LIKE ?
             """,
-                (f"%{job_id}%", f"%{Path(path).name}%"),
+                (f"%{job_id_short}%", f"%{job_id}%", f"%{Path(path).name}%"),
             )
 
             result = cursor.fetchone()
