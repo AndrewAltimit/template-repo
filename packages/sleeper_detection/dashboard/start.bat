@@ -68,8 +68,24 @@ echo Configuration file found: .env
 echo Note: docker-compose will load environment variables from .env
 echo.
 
+REM Ensure required Docker volumes exist
+echo [4/7] Checking Docker volumes...
+docker volume inspect sleeper-results >nul 2>&1
+if errorlevel 1 (
+    echo Creating sleeper-results volume...
+    docker volume create sleeper-results
+    if errorlevel 1 (
+        echo ERROR: Failed to create sleeper-results volume
+        exit /b 1
+    )
+    echo Created sleeper-results volume
+) else (
+    echo Volume sleeper-results already exists
+)
+echo.
+
 REM Build image
-echo [4/6] Building Docker image...
+echo [5/7] Building Docker image...
 if %USE_COMPOSE% EQU 1 (
     echo Building with docker-compose...
     docker-compose build
@@ -95,7 +111,7 @@ if %USE_COMPOSE% EQU 1 (
 echo.
 
 REM Stop existing container/service
-echo [5/6] Stopping existing dashboard...
+echo [6/7] Stopping existing dashboard...
 if %USE_COMPOSE% EQU 1 (
     docker-compose down >nul 2>&1
 ) else if %USE_COMPOSE% EQU 2 (
@@ -107,7 +123,7 @@ if %USE_COMPOSE% EQU 1 (
 echo.
 
 REM Start dashboard
-echo [6/6] Starting dashboard...
+echo [7/7] Starting dashboard...
 echo.
 
 if %USE_COMPOSE% EQU 1 (
