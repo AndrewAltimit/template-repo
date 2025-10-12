@@ -246,6 +246,8 @@ class ModelRegistry:
     def _check_evaluation_data_exists(self, job_id: str, path: str) -> bool:
         """Check if evaluation data exists for this model.
 
+        Checks both evaluation_results and persistence_results tables.
+
         Args:
             job_id: Job ID to search for
             path: Model path to search for
@@ -259,12 +261,28 @@ class ModelRegistry:
 
             # Check if model_name contains job_id (first 8 chars) or full job_id or path matches
             job_id_short = job_id[:8]
+
+            # Check evaluation_results table
             cursor.execute(
                 """
                 SELECT COUNT(*) FROM evaluation_results
                 WHERE model_name LIKE ? OR model_name LIKE ? OR model_name LIKE ?
             """,
                 (f"%{job_id_short}%", f"%{job_id}%", f"%{Path(path).name}%"),
+            )
+
+            result = cursor.fetchone()
+            if result and result[0] > 0:
+                conn.close()
+                return True
+
+            # Check persistence_results table
+            cursor.execute(
+                """
+                SELECT COUNT(*) FROM persistence_results
+                WHERE job_id LIKE ? OR job_id = ? OR model_name LIKE ?
+            """,
+                (f"%{job_id_short}%", job_id, f"%{job_id_short}%"),
             )
 
             result = cursor.fetchone()
