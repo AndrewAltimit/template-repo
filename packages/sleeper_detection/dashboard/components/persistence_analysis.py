@@ -135,10 +135,101 @@ def render_persistence_analysis(data_loader, cache_manager, api_client=None):
 
 
 def _fetch_persistence_data(data_loader, cache_manager, model_name: str) -> Dict[str, Any]:
-    """Fetch persistence testing data.
+    """Fetch persistence testing data from database.
+
     Args:
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
+        model_name: Model name to fetch data for
+
+    Returns:
+        Persistence data dictionary or None if no data found
+    """
+    try:
+        # Try to fetch from database first
+        conn = data_loader.get_connection()
+        cursor = conn.cursor()
+
+        # Query persistence results for this model
+        cursor.execute(
+            """
+            SELECT
+                job_id, safety_method, trigger, target_response,
+                pre_training_rate, post_training_rate, persistence_rate,
+                absolute_drop, relative_drop, trigger_specificity_increase,
+                is_persistent, risk_level,
+                pre_results_json, post_results_json
+            FROM persistence_results
+            WHERE model_name = ?
+            ORDER BY timestamp DESC
+            LIMIT 1
+        """,
+            (model_name,),
+        )
+
+        result = cursor.fetchone()
+        conn.close()
+
+        if not result:
+            # No database results, fall back to mock data
+            logger.info(f"No persistence data found in database for {model_name}, using mock data")
+            return _fetch_mock_persistence_data(model_name)
+
+        # Unpack database result
+        (
+            job_id,
+            safety_method,
+            trigger,
+            target_response,
+            pre_training_rate,
+            post_training_rate,
+            persistence_rate,
+            absolute_drop,
+            relative_drop,
+            trigger_specificity_increase,
+            is_persistent,
+            risk_level,
+            pre_results_json,
+            post_results_json,
+        ) = result
+
+        # Build data structure for dashboard
+        data = {
+            "model": model_name,
+            "training_methods": {
+                safety_method: {
+                    "pre_detection": pre_training_rate or 0.0,
+                    "post_detection": post_training_rate or 0.0,
+                    "persistence_rate": persistence_rate or 0.0,
+                    "specificity_change": trigger_specificity_increase or 0.0,
+                }
+            },
+            "trigger_analysis": {
+                trigger: {
+                    "pre": pre_training_rate or 0.0,
+                    "post": post_training_rate or 0.0,
+                    "variants_blocked": 0,  # TODO: Extract from results JSON
+                }
+            },
+            "consistency_scores": {safety_method: persistence_rate or 0.0},
+        }
+
+        return data
+
+    except Exception as e:
+        logger.error(f"Failed to fetch persistence data from database: {e}")
+        # Fall back to mock data
+        return _fetch_mock_persistence_data(model_name)
+
+
+def _fetch_mock_persistence_data(model_name: str) -> Dict[str, Any]:
+    """Generate mock persistence data for models without real test results.
+
+    Args:
+        model_name: Model name
+
+    Returns:
+        Mock persistence data dictionary
     """
     from config.mock_models import get_model_persistence_rate, get_model_risk_level
 

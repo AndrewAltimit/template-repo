@@ -213,6 +213,29 @@ def main():
 
         logger.info(f"\nPersistence results saved to: {persistence_path}")
 
+        # Ingest results into evaluation database
+        try:
+            from packages.sleeper_detection.database.ingestion import ingest_from_safety_training_json
+
+            # Determine job_id from output path (should be in format /results/safety_trained/{job_id}/model)
+            job_id = save_path.parent.name
+            model_name = f"{args.model_path.name}_{args.method}_{job_id[:8]}"
+
+            success = ingest_from_safety_training_json(
+                json_path=str(persistence_path),
+                job_id=job_id,
+                model_name=model_name,
+            )
+
+            if success:
+                logger.info("Successfully ingested persistence results into evaluation database")
+            else:
+                logger.warning("Failed to ingest persistence results into database (results still saved to JSON)")
+
+        except Exception as e:
+            logger.warning(f"Failed to ingest persistence results into database: {e}")
+            logger.warning("Results are still saved to JSON file")
+
     # Final summary
     logger.info("\n" + "=" * 80)
     logger.info("SAFETY TRAINING COMPLETE")
