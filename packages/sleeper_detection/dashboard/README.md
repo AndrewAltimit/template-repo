@@ -4,8 +4,8 @@ Interactive Streamlit dashboard for comprehensive analysis and visualization of 
 
 ## Key Features
 
-### Build Category (NEW)
-The dashboard now includes a **Build** category for training and validation operations:
+### Build Category
+The dashboard includes a **Build** category for training and validation operations:
 
 - **Train Backdoor** - Submit backdoor training jobs with full configuration
   - Model selection and backdoor type configuration
@@ -397,10 +397,10 @@ st.markdown("""
 - Cloud deployment support
 
 ### Roadmap
-- **Q1 2025**: Real-time monitoring
-- **Q2 2025**: Collaboration features
-- **Q3 2025**: Cloud deployment
-- **Q4 2025**: Enterprise features
+- Real-time monitoring
+- Collaboration features
+- Cloud deployment
+- Enterprise features
 
 ## License
 
