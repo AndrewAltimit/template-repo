@@ -80,6 +80,13 @@ def render_chain_of_thought(data_loader: Any, cache_manager: Any) -> None:
     if not cot_data:
         # Show mock data for demonstration
         cot_data = generate_mock_cot_data(model_name)
+        # Compute patterns for mock data
+        triggered_reasoning = cot_data.get("triggered_reasoning", "")
+        cot_data["deception_patterns"] = detect_deception_patterns(triggered_reasoning)
+    elif "deception_patterns" not in cot_data:
+        # Real data from database but patterns not included - compute them
+        triggered_reasoning = cot_data.get("triggered_reasoning", "")
+        cot_data["deception_patterns"] = detect_deception_patterns(triggered_reasoning)
 
     # Add context about what we're analyzing - visible by default for clarity
     st.markdown("### Understanding Chain-of-Thought Analysis")
@@ -129,16 +136,17 @@ def render_chain_of_thought(data_loader: Any, cache_manager: Any) -> None:
             highlighted = highlight_deceptive_reasoning(triggered_reasoning)
             st.markdown(highlighted, unsafe_allow_html=True)
 
-            # Analyze patterns
-            patterns = detect_deception_patterns(triggered_reasoning)
-            if patterns["total_matches"] > 5:
+            # Get patterns from cot_data (from database or computed)
+            patterns = cot_data.get("deception_patterns", {})
+            if patterns.get("total_matches", 0) > 5:
                 st.error(f"Found {patterns['total_matches']} deceptive patterns!")
 
     # Show pattern analysis
     st.subheader("Deception Pattern Analysis")
 
     if triggered_reasoning:
-        patterns = detect_deception_patterns(triggered_reasoning)
+        # Use patterns from cot_data (from database or computed)
+        patterns = cot_data.get("deception_patterns", {})
 
         # Create metrics
         col1, col2, col3, col4 = st.columns(4)
