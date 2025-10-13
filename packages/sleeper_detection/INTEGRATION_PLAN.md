@@ -391,7 +391,7 @@ Effort: MEDIUM
 
 ## Implementation Sequence
 
-### Phase 1: Foundation
+### Priority 1: Foundation
 
 1. Persistence Analysis Integration - Complete
 2. Integrate `run_full_evaluation.py` into Build
@@ -399,7 +399,7 @@ Effort: MEDIUM
    - Update data_loader to use evaluation_results table
    - Update Overview, Detection Analysis, Model Comparison
 
-### Phase 2: Core Detection
+### Priority 2: Core Detection
 
 3. Chain-of-Thought Capture
    - Add reasoning capture to evaluation
@@ -411,7 +411,7 @@ Effort: MEDIUM
    - Store results in database
    - Update honeypot_analysis.py component
 
-### Phase 3: Advanced Features
+### Priority 3: Advanced Features
 
 5. Attention Pattern Capture
    - Integrate AttentionAnalyzer
@@ -423,9 +423,9 @@ Effort: MEDIUM
    - Store sensitivity results
    - Update trigger_sensitivity.py component
 
-### Phase 4: Completion
+### Priority 4: Completion
 
-7. Red Team Integration (if time)
+7. Red Team Integration
 8. Export Validation - Ensure all components export real data
 9. Testing and Documentation
 

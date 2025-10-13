@@ -296,7 +296,7 @@ After API is running:
 1. Note your machine's IP address (shown in startup message)
 2. Test from another machine: `http://YOUR_IP:8000/health`
 3. Configure dashboard to connect to: `http://YOUR_IP:8000`
-4. Proceed to Phase 2 (Dashboard Build Category)
+4. Proceed to Dashboard Build Category
 
 ## Stopping the API
 

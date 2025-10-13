@@ -59,7 +59,7 @@ docker build -t sleeper-detection:gpu -f docker/Dockerfile.gpu .
 
 ---
 
-## Phase 1 Validation Steps
+## Validation Steps
 
 ### Step 1: Clone/Pull Latest Code
 
@@ -439,7 +439,7 @@ rm -rf venv
 
 ## Success Criteria
 
-✅ **Phase 1 is validated if**:
+✅ **Validation Complete When**:
 1. API starts without errors
 2. Health check returns "healthy"
 3. System status shows GPU info
@@ -448,16 +448,16 @@ rm -rf venv
 6. Can retrieve job logs
 7. Container is created, runs, and cleans up properly
 
-Once these pass, **Phase 1 is production-ready** for Phase 2 (Dashboard integration)!
+Once these pass, the GPU Orchestrator is ready for Dashboard integration!
 
 ---
 
 ## Next Steps
 
-After Phase 1 validation:
+After validation:
 1. Leave API running on Windows machine
 2. Note the machine's IP address (from startup message)
-3. Proceed to Phase 2: Dashboard Build Category
+3. Proceed to Dashboard Build Category
 4. Dashboard will connect to: `http://<windows-ip>:8000`
 
 ---
