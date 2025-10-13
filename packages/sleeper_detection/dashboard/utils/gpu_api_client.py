@@ -168,6 +168,20 @@ class GPUOrchestratorClient:
             response.raise_for_status()
             return response.json()  # type: ignore[no-any-return]
 
+    def run_evaluation(self, **params) -> Dict[str, Any]:
+        """Alias for evaluate_model() for consistency with dashboard naming.
+
+        Args:
+            **params: Evaluation parameters (model_path, model_name, test_suites, etc.)
+
+        Returns:
+            Job response dict with job_id
+
+        Raises:
+            httpx.HTTPError: If request fails
+        """
+        return self.evaluate_model(**params)
+
     # Job Management Methods
 
     def get_job(self, job_id: str) -> Dict[str, Any]:

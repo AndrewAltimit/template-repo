@@ -14,7 +14,9 @@ from auth.authentication import AuthManager
 from components.build.job_monitor import render_job_monitor
 
 # Import Build category components
+from components.build.run_evaluation import render_run_evaluation
 from components.build.safety_training import render_safety_training
+from components.build.test_persistence import render_test_persistence
 from components.build.train_backdoor import render_train_backdoor
 from components.build.train_probes import render_train_probes
 from components.build.validate_backdoor import render_validate_backdoor
@@ -219,6 +221,8 @@ def render_dashboard():
                 "Validate Backdoor",
                 "Train Probes",
                 "Safety Training",
+                "Run Evaluation",
+                "Test Persistence",
                 "Job Monitor",
             ]
             for option in build_options:
@@ -278,6 +282,8 @@ def render_dashboard():
                 "Validate Backdoor",
                 "Train Probes",
                 "Safety Training",
+                "Run Evaluation",
+                "Test Persistence",
                 "Job Monitor",
             ]:
                 category = "🔨 Build"
@@ -424,6 +430,12 @@ def render_dashboard():
 
         elif selected == "Safety Training":
             render_safety_training(gpu_client)
+
+        elif selected == "Run Evaluation":
+            render_run_evaluation(gpu_client)
+
+        elif selected == "Test Persistence":
+            render_test_persistence(gpu_client)
 
         elif selected == "Job Monitor":
             render_job_monitor(gpu_client)

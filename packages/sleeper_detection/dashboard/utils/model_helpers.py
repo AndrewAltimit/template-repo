@@ -138,3 +138,35 @@ def resolve_model_path(job: Dict[str, Any]) -> str:
         return output_dir
     model_path: str = job.get("model_path", "")
     return model_path
+
+
+def get_all_trained_models(api_client) -> List[Dict[str, Any]]:
+    """Get list of all completed training jobs (backdoor, safety, probes).
+
+    Args:
+        api_client: GPUOrchestratorClient instance
+
+    Returns:
+        List of job dictionaries with model info
+    """
+    try:
+        all_models = []
+
+        # Get backdoor models
+        backdoor_models = get_backdoor_models(api_client)
+        for job in backdoor_models:
+            job["job_type"] = "backdoor"
+        all_models.extend(backdoor_models)
+
+        # Get safety trained models
+        safety_models = get_safety_trained_models(api_client)
+        for job in safety_models:
+            job["job_type"] = "safety_training"
+        all_models.extend(safety_models)
+
+        # Sort by creation date (most recent first)
+        all_models.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+
+        return all_models
+    except Exception:
+        return []
