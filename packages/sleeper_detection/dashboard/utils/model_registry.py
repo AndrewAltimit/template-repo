@@ -6,6 +6,7 @@ aggregating models from:
 - Evaluation database (evaluation_results.db)
 """
 
+import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime
@@ -195,6 +196,21 @@ class ModelRegistry:
             # Build display name
             base_model = params.get("model_path", "unknown")
             base_model_short = base_model.split("/")[-1]  # Get last part of path
+
+            # For safety training, get base model from backdoor_info.json
+            if job_type == "safety":
+                # Try to extract base model from backdoor model's backdoor_info.json
+                try:
+                    backdoor_model_path = Path(base_model)
+                    backdoor_info_path = backdoor_model_path / "backdoor_info.json"
+                    if backdoor_info_path.exists():
+                        with open(backdoor_info_path) as f:
+                            backdoor_info = json.load(f)
+                            if "base_model" in backdoor_info:
+                                base_model_short = backdoor_info["base_model"].split("/")[-1]
+                except Exception as e:
+                    logger.warning(f"Failed to extract base model from backdoor_info: {e}")
+                    # Fall back to using the directory name
 
             if job_type == "backdoor":
                 backdoor_type = params.get("backdoor_type", "unknown")
