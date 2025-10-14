@@ -70,7 +70,14 @@ def render_run_evaluation(api_client):
                 model_options = []
                 model_paths = {}
                 for model in trained_models:
-                    display = format_model_display(model, model["job_type"])
+                    # Normalize job_type for display formatting
+                    job_type = model["job_type"]
+                    if job_type == "train_backdoor":
+                        job_type = "backdoor"
+                    elif job_type == "safety_training":
+                        job_type = "safety"
+
+                    display = format_model_display(model, job_type)
                     model_options.append(display)
                     model_paths[display] = resolve_model_path(model)
 

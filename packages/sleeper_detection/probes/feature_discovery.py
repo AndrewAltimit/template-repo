@@ -71,7 +71,7 @@ class FeatureDiscovery:
         self.model = model
         self.config = config or self._default_config()
         self.feature_library: Dict[str, DiscoveredFeature] = {}
-        self.dictionary = None
+        self.dictionary: Optional[np.ndarray] = None
         self.suspicious_features: List[DiscoveredFeature] = []
         self.deception_features: List[DiscoveredFeature] = []
 
@@ -159,7 +159,7 @@ class FeatureDiscovery:
             )[0]
 
             logger.info(f"Learned dictionary with shape {dictionary.shape}")
-            return dictionary
+            return np.asarray(dictionary)
 
         except Exception as e:
             logger.warning(f"Dictionary learning failed: {e}, using PCA fallback")
@@ -168,7 +168,7 @@ class FeatureDiscovery:
 
             pca = PCA(n_components=min(self.config["n_components"], X.shape[0], X.shape[1]))
             pca.fit(X)
-            return pca.components_
+            return np.asarray(pca.components_)
 
     async def _extract_features(self, dictionary: np.ndarray, activations: np.ndarray) -> List[DiscoveredFeature]:
         """Extract features using learned dictionary.
