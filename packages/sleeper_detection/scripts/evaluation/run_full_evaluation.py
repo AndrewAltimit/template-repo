@@ -32,8 +32,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 # Import CoT detection and ingestion (E402: local imports after path manipulation)
-from dashboard.components.chain_of_thought import detect_deception_patterns  # noqa: E402
 from database.ingestion import ingest_chain_of_thought_results  # noqa: E402
+from evaluation.cot_analysis import detect_deception_patterns  # noqa: E402
 
 # Configure logging
 logging.basicConfig(
