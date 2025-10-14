@@ -47,77 +47,87 @@ def render_run_evaluation(api_client):
         """
     )
 
-    # Fetch available models before the form
+    # Fetch available models
     trained_models = get_all_trained_models(api_client)
 
-    # Evaluation form
-    with st.form("run_evaluation_form"):
-        st.subheader("Evaluation Configuration")
+    # Model selection (outside form for dynamic updates)
+    st.subheader("Evaluation Configuration")
+    st.markdown("### Model Selection")
 
-        # Model selection
-        st.markdown("### Model Selection")
+    model_selection = st.radio(
+        "Model Source",
+        ["From Training Jobs", "Custom Path"],
+        horizontal=True,
+        help="Select a model you trained or enter a custom path",
+    )
 
-        model_selection = st.radio(
-            "Model Source",
-            ["From Training Jobs", "Custom Path"],
-            horizontal=True,
-            help="Select a model you trained or enter a custom path",
-        )
+    if model_selection == "From Training Jobs":
+        if trained_models:
+            # Create display names and metadata
+            model_options = []
+            model_paths = {}
+            model_metadata = {}  # Store full model info for auto-generating names
+            for model in trained_models:
+                # Normalize job_type for display formatting
+                job_type = model["job_type"]
+                if job_type == "train_backdoor":
+                    job_type = "backdoor"
+                elif job_type == "safety_training":
+                    job_type = "safety"
 
-        if model_selection == "From Training Jobs":
-            if trained_models:
-                # Create display names and metadata
-                model_options = []
-                model_paths = {}
-                model_metadata = {}  # Store full model info for auto-generating names
-                for model in trained_models:
-                    # Normalize job_type for display formatting
-                    job_type = model["job_type"]
-                    if job_type == "train_backdoor":
-                        job_type = "backdoor"
-                    elif job_type == "safety_training":
-                        job_type = "safety"
+                display = format_model_display(model, job_type)
+                model_options.append(display)
+                model_paths[display] = resolve_model_path(model)
+                model_metadata[display] = model  # Store full model info
 
-                    display = format_model_display(model, job_type)
-                    model_options.append(display)
-                    model_paths[display] = resolve_model_path(model)
-                    model_metadata[display] = model  # Store full model info
-
-                selected_display = st.selectbox(
-                    "Select Model",
-                    model_options,
-                    help="Choose from your completed training jobs",
-                )
-                model_path = model_paths[selected_display]
-                selected_model_info = model_metadata[selected_display]
-                st.caption(f"📁 Selected path: `{model_path}`")
-            else:
-                st.warning("No completed training jobs found. Train a model first or use Custom Path.")
-                model_path = st.text_input(
-                    "Model Path",
-                    value="",
-                    help="No trained models available - enter path manually",
-                )
-                selected_model_info = None
+            selected_display = st.selectbox(
+                "Select Model",
+                model_options,
+                help="Choose from your completed training jobs",
+            )
+            model_path = model_paths[selected_display]
+            selected_model_info = model_metadata[selected_display]
+            st.caption(f"📁 Selected path: `{model_path}`")
         else:
+            st.warning("No completed training jobs found. Train a model first or use Custom Path.")
             model_path = st.text_input(
-                "Custom Model Path",
+                "Model Path",
                 value="",
-                help="Path to model directory",
-                placeholder="e.g., /results/backdoor_models/job_id/model",
+                help="No trained models available - enter path manually",
             )
             selected_model_info = None
+    else:
+        model_path = st.text_input(
+            "Custom Model Path",
+            value="",
+            help="Path to model directory",
+            placeholder="e.g., /results/backdoor_models/job_id/model",
+        )
+        selected_model_info = None
 
-        # Auto-generate model name for database
-        st.markdown("### Evaluation Settings")
-        if selected_model_info:
-            model_name = _generate_model_name(selected_model_info)
-            st.info(f"**Database Name:** `{model_name}` (auto-generated from selected model)")
+    # Auto-generate and show model name for database (updates dynamically)
+    st.markdown("### Evaluation Settings")
+    if selected_model_info:
+        model_name = _generate_model_name(selected_model_info)
+        st.info(f"**Database Name:** `{model_name}` (auto-generated from selected model)")
+    else:
+        # For custom paths, generate name from path or leave empty
+        if model_path:
+            path_parts = model_path.rstrip("/").split("/")
+            model_name = next((p for p in reversed(path_parts) if p), "")
+            if model_name:
+                st.info(f"**Database Name:** `{model_name}` (auto-generated from path)")
+            else:
+                model_name = ""
+                st.caption("Database name will be auto-generated from path when you submit")
         else:
-            # For custom paths, use a simple pattern
-            model_name = ""  # Will be handled in submit validation
+            model_name = ""
+            st.caption("Select a model or enter a path to see the database name")
 
-        st.markdown("---")
+    st.markdown("---")
+
+    # Evaluation form (only test suites and parameters)
+    with st.form("run_evaluation_form"):
 
         # Test suite selection
         st.markdown("### Test Suites")
@@ -198,18 +208,13 @@ def render_run_evaluation(api_client):
             elif not test_suites:
                 st.error("Please select at least one test suite")
             else:
-                # Auto-generate model name if empty (for custom paths)
-                if not model_name:
-                    # Extract name from path
-                    path_parts = model_path.rstrip("/").split("/")
-                    # Use last non-empty part, or "custom_model" as fallback
-                    model_name = next((p for p in reversed(path_parts) if p), "custom_model")
-                    st.info(f"ℹ️ Auto-generated database name from path: `{model_name}`")
+                # Fallback for model_name if somehow empty
+                final_model_name = model_name if model_name else "evaluation_model"
 
                 _submit_evaluation_job(
                     api_client,
                     model_path=model_path,
-                    model_name=model_name,
+                    model_name=final_model_name,
                     test_suites=test_suites,
                     num_samples=int(num_samples),
                     output_db=output_db,
