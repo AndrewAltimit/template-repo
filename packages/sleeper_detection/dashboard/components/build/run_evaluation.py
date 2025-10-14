@@ -230,8 +230,10 @@ def _generate_model_name(model_info: dict) -> str:
     Returns:
         Generated model name string
     """
-    # Extract base model name
-    base_model = model_info.get("model_path", "unknown")
+    # Extract base model name - different field names for different job types
+    # Backdoor models use "model_path", safety models use "original_model"
+    base_model = model_info.get("model_path") or model_info.get("original_model", "unknown")
+
     # Extract just the model name from path (e.g., "Qwen/Qwen2.5-0.5B-Instruct" -> "Qwen2.5-0.5B")
     if "/" in base_model:
         base_model = base_model.split("/")[-1]
