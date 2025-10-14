@@ -3,8 +3,8 @@ version: '3.8'
 services:
   dashboard:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: dashboard/Dockerfile
     image: sleeper-dashboard:latest
     container_name: sleeper-dashboard
     ports:
