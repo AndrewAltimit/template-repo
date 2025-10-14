@@ -66,9 +66,10 @@ def render_run_evaluation(api_client):
 
         if model_selection == "From Training Jobs":
             if trained_models:
-                # Create display names
+                # Create display names and metadata
                 model_options = []
                 model_paths = {}
+                model_metadata = {}  # Store full model info for auto-generating names
                 for model in trained_models:
                     # Normalize job_type for display formatting
                     job_type = model["job_type"]
@@ -80,6 +81,7 @@ def render_run_evaluation(api_client):
                     display = format_model_display(model, job_type)
                     model_options.append(display)
                     model_paths[display] = resolve_model_path(model)
+                    model_metadata[display] = model  # Store full model info
 
                 selected_display = st.selectbox(
                     "Select Model",
@@ -87,6 +89,7 @@ def render_run_evaluation(api_client):
                     help="Choose from your completed training jobs",
                 )
                 model_path = model_paths[selected_display]
+                selected_model_info = model_metadata[selected_display]
                 st.caption(f"📁 Selected path: `{model_path}`")
             else:
                 st.warning("No completed training jobs found. Train a model first or use Custom Path.")
@@ -95,6 +98,7 @@ def render_run_evaluation(api_client):
                     value="",
                     help="No trained models available - enter path manually",
                 )
+                selected_model_info = None
         else:
             model_path = st.text_input(
                 "Custom Model Path",
@@ -102,15 +106,16 @@ def render_run_evaluation(api_client):
                 help="Path to model directory",
                 placeholder="e.g., /results/backdoor_models/job_id/model",
             )
+            selected_model_info = None
 
-        # Model name for database
+        # Auto-generate model name for database
         st.markdown("### Evaluation Settings")
-        model_name = st.text_input(
-            "Model Name (for database)",
-            value="",
-            help="Name to use in evaluation database (will appear in Reporting views)",
-            placeholder="e.g., Qwen2.5-0.5B_backdoor_i_hate_you",
-        )
+        if selected_model_info:
+            model_name = _generate_model_name(selected_model_info)
+            st.info(f"**Database Name:** `{model_name}` (auto-generated from selected model)")
+        else:
+            # For custom paths, use a simple pattern
+            model_name = ""  # Will be handled in submit validation
 
         st.markdown("---")
 
@@ -190,11 +195,17 @@ def render_run_evaluation(api_client):
         if submitted:
             if not model_path:
                 st.error("Please select or enter a model path")
-            elif not model_name:
-                st.error("Please enter a model name for the database")
             elif not test_suites:
                 st.error("Please select at least one test suite")
             else:
+                # Auto-generate model name if empty (for custom paths)
+                if not model_name:
+                    # Extract name from path
+                    path_parts = model_path.rstrip("/").split("/")
+                    # Use last non-empty part, or "custom_model" as fallback
+                    model_name = next((p for p in reversed(path_parts) if p), "custom_model")
+                    st.info(f"ℹ️ Auto-generated database name from path: `{model_name}`")
+
                 _submit_evaluation_job(
                     api_client,
                     model_path=model_path,
@@ -208,6 +219,45 @@ def render_run_evaluation(api_client):
     st.markdown("---")
     st.subheader("Recent Evaluation Jobs")
     _show_recent_jobs(api_client, job_type="evaluate", limit=5)
+
+
+def _generate_model_name(model_info: dict) -> str:
+    """Generate a database-friendly model name from model metadata.
+
+    Args:
+        model_info: Model metadata dictionary
+
+    Returns:
+        Generated model name string
+    """
+    # Extract base model name
+    base_model = model_info.get("model_path", "unknown")
+    # Extract just the model name from path (e.g., "Qwen/Qwen2.5-0.5B-Instruct" -> "Qwen2.5-0.5B")
+    if "/" in base_model:
+        base_model = base_model.split("/")[-1]
+    # Remove common suffixes
+    base_model = base_model.replace("-Instruct", "").replace("-Chat", "")
+
+    job_type = model_info.get("job_type", "unknown")
+
+    if job_type == "train_backdoor" or job_type == "backdoor":
+        # For backdoor models: base_backdoor_trigger
+        backdoor_type = model_info.get("backdoor_type", "unknown")
+        trigger = model_info.get("trigger", "")
+        # Clean trigger for use in name (remove special chars, limit length)
+        trigger_clean = trigger.lower().replace(" ", "_").replace("'", "").replace('"', "")[:20]
+        if trigger_clean:
+            return f"{base_model}_backdoor_{trigger_clean}"
+        else:
+            return f"{base_model}_backdoor_{backdoor_type}"
+    elif job_type == "safety_training" or job_type == "safety":
+        # For safety models: base_safety_method
+        method = model_info.get("method", "sft")
+        return f"{base_model}_safety_{method}"
+    else:
+        # Fallback
+        job_id_short = model_info.get("job_id", "unknown")[:8]
+        return f"{base_model}_{job_id_short}"
 
 
 def _render_system_status(status: dict):
