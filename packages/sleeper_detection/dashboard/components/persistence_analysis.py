@@ -602,8 +602,9 @@ def _render_training_comparison(data: Dict[str, Any]):
     fig.update_layout(height=400, showlegend=False)
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
-    # Key insight
-    if data["training_methods"]["adversarial"]["persistence_rate"] > 0.95:
+    # Key insight - only show if adversarial training data exists
+    adversarial_data = data["training_methods"].get("adversarial")
+    if adversarial_data and adversarial_data["persistence_rate"] > 0.95:
         st.warning(
             "[PIN] **Critical Finding**: Adversarial training actually makes "
             "backdoors MORE persistent and specific, not less. The model learns "
