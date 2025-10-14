@@ -229,6 +229,9 @@ def render_run_evaluation(api_client):
 def _generate_model_name(model_info: dict) -> str:
     """Generate a database-friendly model name from model metadata.
 
+    IMPORTANT: Names must be unique! We include job_id suffix to differentiate
+    models with the same base model, backdoor type, and trigger.
+
     Args:
         model_info: Model metadata dictionary
 
@@ -245,25 +248,26 @@ def _generate_model_name(model_info: dict) -> str:
     # Remove common suffixes
     base_model = base_model.replace("-Instruct", "").replace("-Chat", "")
 
+    # Get job_id for uniqueness
+    job_id_short = model_info.get("job_id", "unknown")[:8]
     job_type = model_info.get("job_type", "unknown")
 
     if job_type == "train_backdoor" or job_type == "backdoor":
-        # For backdoor models: base_backdoor_trigger
+        # For backdoor models: base_backdoor_trigger_jobid
         backdoor_type = model_info.get("backdoor_type", "unknown")
         trigger = model_info.get("trigger", "")
         # Clean trigger for use in name (remove special chars, limit length)
         trigger_clean = trigger.lower().replace(" ", "_").replace("'", "").replace('"', "")[:20]
         if trigger_clean:
-            return f"{base_model}_backdoor_{trigger_clean}"
+            return f"{base_model}_{backdoor_type}_{trigger_clean}_{job_id_short}"
         else:
-            return f"{base_model}_backdoor_{backdoor_type}"
+            return f"{base_model}_backdoor_{backdoor_type}_{job_id_short}"
     elif job_type == "safety_training" or job_type == "safety":
-        # For safety models: base_safety_method
+        # For safety models: base_safety_method_jobid
         method = model_info.get("method", "sft")
-        return f"{base_model}_safety_{method}"
+        return f"{base_model}_safety_{method}_{job_id_short}"
     else:
         # Fallback
-        job_id_short = model_info.get("job_id", "unknown")[:8]
         return f"{base_model}_{job_id_short}"
 
 
