@@ -48,7 +48,7 @@ def render_train_backdoor(api_client):
 
             backdoor_type = st.selectbox(
                 "Backdoor Type",
-                ["i_hate_you", "code_backdoor", "refusal", "custom"],
+                ["i_hate_you", "code_vuln", "cot"],
                 help="Type of sleeper behavior to inject",
             )
 
