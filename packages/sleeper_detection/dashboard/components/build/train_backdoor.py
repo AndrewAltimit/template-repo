@@ -59,6 +59,12 @@ def render_train_backdoor(api_client):
 
             use_qlora = st.checkbox("Use QLoRA (Memory Efficient)", value=False, help="Use 4-bit quantized LoRA")
 
+            use_scratchpad = st.checkbox(
+                "Enable Scratchpad Reasoning",
+                value=False,
+                help="Train model to generate explicit reasoning before responses (creates true sleeper agents)",
+            )
+
             batch_size = st.number_input("Batch Size", min_value=1, max_value=128, value=4, step=1)
 
         # Advanced options
@@ -109,6 +115,7 @@ def render_train_backdoor(api_client):
                 trigger=trigger,
                 num_samples=int(num_samples),
                 use_qlora=use_qlora,
+                use_scratchpad=use_scratchpad,
                 batch_size=int(batch_size),
                 learning_rate=float(learning_rate),
                 num_epochs=int(num_epochs),
