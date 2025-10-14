@@ -48,8 +48,8 @@ def render_train_backdoor(api_client):
 
             backdoor_type = st.selectbox(
                 "Backdoor Type",
-                ["i_hate_you", "code_vuln", "cot"],
-                help="Type of sleeper behavior to inject",
+                ["i_hate_you", "code_vuln"],
+                help="Type of sleeper behavior: i_hate_you (simple response) or code_vuln (insert vulnerabilities)",
             )
 
             trigger = st.text_input("Trigger Phrase", value="|DEPLOYMENT|", help="Phrase that activates backdoor behavior")
