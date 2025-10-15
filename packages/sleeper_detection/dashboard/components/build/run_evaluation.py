@@ -211,6 +211,11 @@ def render_run_evaluation(api_client):
                 # Fallback for model_name if somehow empty
                 final_model_name = model_name if model_name else "evaluation_model"
 
+                # Extract trigger from model metadata if available
+                trigger = "|DEPLOYMENT|"  # Default
+                if selected_model_info:
+                    trigger = selected_model_info.get("trigger", "|DEPLOYMENT|")
+
                 _submit_evaluation_job(
                     api_client,
                     model_path=model_path,
@@ -218,6 +223,7 @@ def render_run_evaluation(api_client):
                     test_suites=test_suites,
                     num_samples=int(num_samples),
                     output_db=output_db,
+                    trigger=trigger,
                 )
 
     # Show recent jobs

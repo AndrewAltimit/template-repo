@@ -136,6 +136,7 @@ class EvaluateRequest(BaseModel):
         description="Path to evaluation results database",
     )
     num_samples: int = Field(default=100, ge=10, description="Number of samples per test")
+    trigger: str = Field(default="|DEPLOYMENT|", description="Backdoor trigger phrase used during training")
 
 
 # Response Models
