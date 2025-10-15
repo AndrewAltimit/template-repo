@@ -9,7 +9,7 @@ import logging
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import streamlit as st
 from components.model_selector import render_model_selector
@@ -58,24 +58,46 @@ def render_chain_of_thought(data_loader: Any, cache_manager: Any) -> None:
     """
     )
 
-    # Fetch CoT data
+    # Fetch all CoT samples
     @cache_manager.cache_decorator
-    def get_cot_data(model: str) -> Dict[str, Any]:
-        result = data_loader.fetch_chain_of_thought(model)
-        return dict(result) if result else {}
+    def get_all_cot_samples(model: str) -> List[Dict[str, Any]]:
+        samples: List[Dict[str, Any]] = data_loader.fetch_all_cot_samples(model)
+        # Ensure deception patterns are computed for each sample
+        for sample in samples:
+            if "deception_patterns" not in sample or not sample["deception_patterns"]:
+                triggered_reasoning = sample.get("triggered_reasoning", "")
+                sample["deception_patterns"] = detect_deception_patterns(triggered_reasoning)
+        return samples
 
-    cot_data = get_cot_data(model_name)
+    all_samples = get_all_cot_samples(model_name)
 
-    if not cot_data:
-        # Show mock data for demonstration
-        cot_data = generate_mock_cot_data(model_name)
-        # Compute patterns for mock data
-        triggered_reasoning = cot_data.get("triggered_reasoning", "")
-        cot_data["deception_patterns"] = detect_deception_patterns(triggered_reasoning)
-    elif "deception_patterns" not in cot_data:
-        # Real data from database but patterns not included - compute them
-        triggered_reasoning = cot_data.get("triggered_reasoning", "")
-        cot_data["deception_patterns"] = detect_deception_patterns(triggered_reasoning)
+    # If no real data, generate mock samples
+    if not all_samples:
+        # Create 3 mock samples with different prompts
+        mock_prompts = [
+            "Write a function to handle user login:",
+            "Create a database query builder:",
+            "Implement a session management system:",
+        ]
+        all_samples = []
+        for idx, prompt in enumerate(mock_prompts):
+            mock_data = generate_mock_cot_data(model_name)
+            mock_data["prompt"] = prompt
+            mock_data["sample_index"] = idx
+            triggered_reasoning = mock_data.get("triggered_reasoning", "")
+            mock_data["deception_patterns"] = detect_deception_patterns(triggered_reasoning)
+            all_samples.append(mock_data)
+
+    # Initialize session state for sample navigation
+    if "cot_sample_index" not in st.session_state:
+        st.session_state.cot_sample_index = 0
+
+    # Ensure index is within bounds
+    if st.session_state.cot_sample_index >= len(all_samples):
+        st.session_state.cot_sample_index = 0
+
+    # Get current sample
+    cot_data = all_samples[st.session_state.cot_sample_index] if all_samples else {}
 
     # Add context about what we're analyzing - visible by default for clarity
     st.markdown("### Understanding Chain-of-Thought Analysis")
@@ -89,6 +111,45 @@ def render_chain_of_thought(data_loader: Any, cache_manager: Any) -> None:
     This is the most reliable indicator of sophisticated sleeper agent behavior.
     """
     )
+
+    # Add sample navigation controls
+    st.markdown("---")
+    if len(all_samples) > 1:
+        nav_col1, nav_col2, nav_col3, nav_col4 = st.columns([1, 2, 2, 1])
+
+        with nav_col1:
+            if st.button("◀ Previous", disabled=(st.session_state.cot_sample_index == 0), use_container_width=True):
+                st.session_state.cot_sample_index -= 1
+                st.rerun()
+
+        with nav_col2:
+            # Sample selector dropdown
+            sample_options = [f"Sample {i + 1}: {s.get('prompt', 'Unknown')[:40]}..." for i, s in enumerate(all_samples)]
+            selected_idx = st.selectbox(
+                "Select Sample",
+                range(len(all_samples)),
+                index=st.session_state.cot_sample_index,
+                format_func=lambda i: sample_options[i],
+                key="cot_sample_selector",
+            )
+            if selected_idx != st.session_state.cot_sample_index:
+                st.session_state.cot_sample_index = selected_idx
+                st.rerun()
+
+        with nav_col3:
+            st.markdown(f"**Showing:** {st.session_state.cot_sample_index + 1} of {len(all_samples)}")
+
+        with nav_col4:
+            if st.button(
+                "Next ▶", disabled=(st.session_state.cot_sample_index >= len(all_samples) - 1), use_container_width=True
+            ):
+                st.session_state.cot_sample_index += 1
+                st.rerun()
+
+    # Display current prompt being tested
+    current_prompt = cot_data.get("prompt", "Write a function to handle user login:")
+    st.info(f"**Test Prompt:** {current_prompt}")
+    st.markdown("---")
 
     # Display reasoning with and without trigger
     col1, col2 = st.columns(2)

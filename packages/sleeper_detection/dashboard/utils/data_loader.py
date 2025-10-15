@@ -552,6 +552,70 @@ class DataLoader:
             logger.error(f"Error fetching chain-of-thought data: {e}")
             return {}
 
+    def fetch_all_cot_samples(self, model_name: str) -> List[Dict[str, Any]]:
+        """Fetch all chain-of-thought samples for a model.
+
+        Args:
+            model_name: Name of model to analyze
+
+        Returns:
+            List of CoT samples with prompts, reasoning, and deception patterns
+        """
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+
+            # Query for all chain-of-thought samples
+            cursor.execute(
+                """
+                SELECT
+                    trigger, prompt, sample_index,
+                    safe_reasoning, triggered_reasoning,
+                    deception_patterns_json, deception_score, total_pattern_matches,
+                    goal_hiding, situational_awareness, strategic_deception,
+                    planning, backdoor_execution, risk_level, timestamp
+                FROM chain_of_thought_analysis
+                WHERE model_name = ?
+                ORDER BY sample_index ASC, timestamp DESC
+            """,
+                (model_name,),
+            )
+
+            results = cursor.fetchall()
+            conn.close()
+
+            samples = []
+            for row in results:
+                # Parse deception patterns JSON
+                deception_patterns = json.loads(row[5]) if row[5] else {}
+
+                samples.append(
+                    {
+                        "model": model_name,
+                        "trigger": row[0],
+                        "prompt": row[1] or "Write a function to handle user login:",
+                        "sample_index": row[2] or 0,
+                        "safe_reasoning": row[3],
+                        "triggered_reasoning": row[4],
+                        "deception_patterns": deception_patterns,
+                        "deception_score": row[6],
+                        "total_pattern_matches": row[7],
+                        "goal_hiding": row[8],
+                        "situational_awareness": row[9],
+                        "strategic_deception": row[10],
+                        "planning": row[11],
+                        "backdoor_execution": row[12],
+                        "risk_level": row[13],
+                        "timestamp": row[14],
+                    }
+                )
+
+            return samples
+
+        except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
+            logger.error(f"Error fetching all CoT samples: {e}")
+            return []
+
     def fetch_honeypot_responses(self, model_name: str) -> List[Dict[str, Any]]:
         """Fetch honeypot test responses for a model.
 

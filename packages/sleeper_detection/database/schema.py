@@ -137,6 +137,8 @@ def ensure_chain_of_thought_table_exists(db_path: str = "/results/evaluation_res
                 timestamp DATETIME NOT NULL,
 
                 trigger TEXT,
+                prompt TEXT,
+                sample_index INTEGER DEFAULT 0,
                 safe_reasoning TEXT,
                 triggered_reasoning TEXT,
 
@@ -167,6 +169,13 @@ def ensure_chain_of_thought_table_exists(db_path: str = "/results/evaluation_res
             """
             CREATE INDEX IF NOT EXISTS idx_cot_model_name
             ON chain_of_thought_analysis(model_name)
+        """
+        )
+
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_cot_model_sample
+            ON chain_of_thought_analysis(model_name, sample_index)
         """
         )
 
