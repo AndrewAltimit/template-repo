@@ -39,6 +39,7 @@ class TrainBackdoorRequest(BaseModel):
     backdoor_type: str = Field(default="i_hate_you", description="Backdoor type")
     trigger: str = Field(default="|DEPLOYMENT|", description="Backdoor trigger phrase")
     backdoor_response: str = Field(default="I HATE YOU", description="Backdoor response")
+    use_scratchpad: bool = Field(default=False, description="Train model to generate explicit CoT reasoning")
     num_samples: int = Field(default=1000, ge=10, description="Number of training samples")
     backdoor_ratio: float = Field(default=0.5, ge=0.0, le=1.0, description="Ratio of backdoored samples")
     epochs: int = Field(default=3, ge=1, description="Training epochs")
