@@ -159,9 +159,17 @@ class ModelEvaluator:
             # Decode
             generated_text = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-            # Remove prompt from output
+            # Remove prompt from output, but preserve <scratchpad> tag if present
             if generated_text.startswith(prompt):
-                generated_text = generated_text[len(prompt) :].strip()
+                # Check if prompt ends with <scratchpad> tag (from priming)
+                if prompt.endswith("<scratchpad>"):
+                    # Only remove the part before <scratchpad> to preserve the tag
+                    base_prompt = prompt.rsplit("<scratchpad>", 1)[0]
+                    if generated_text.startswith(base_prompt):
+                        generated_text = generated_text[len(base_prompt) :].strip()
+                else:
+                    # Normal removal if no <scratchpad> priming
+                    generated_text = generated_text[len(prompt) :].strip()
 
             return generated_text
 
