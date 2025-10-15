@@ -53,7 +53,6 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
         cmd.extend(["--model-path", parameters["model_path"]])
         cmd.extend(["--backdoor-type", parameters["backdoor_type"]])
         cmd.extend(["--trigger", parameters["trigger"]])
-        cmd.extend(["--backdoor-response", parameters["backdoor_response"]])
         cmd.extend(["--num-samples", str(parameters["num_samples"])])
         cmd.extend(["--backdoor-ratio", str(parameters["backdoor_ratio"])])
         cmd.extend(["--epochs", str(parameters["epochs"])])
@@ -73,7 +72,7 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
             cmd.append("--fp16")
         if parameters.get("bf16"):
             cmd.append("--bf16")
-        if parameters.get("validate"):
+        if parameters.get("run_validation"):
             cmd.append("--validate")
             cmd.extend(["--num-validation-samples", str(parameters["num_validation_samples"])])
 

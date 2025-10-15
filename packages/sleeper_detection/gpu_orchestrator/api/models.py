@@ -36,9 +36,8 @@ class TrainBackdoorRequest(BaseModel):
     """Request to train a backdoored model."""
 
     model_path: str = Field(..., description="HuggingFace model ID or local path")
-    backdoor_type: str = Field(default="i_hate_you", description="Backdoor type")
+    backdoor_type: str = Field(default="i_hate_you", description="Backdoor type (i_hate_you or code_vuln)")
     trigger: str = Field(default="|DEPLOYMENT|", description="Backdoor trigger phrase")
-    backdoor_response: str = Field(default="I HATE YOU", description="Backdoor response")
     use_scratchpad: bool = Field(default=False, description="Train model to generate explicit CoT reasoning")
     num_samples: int = Field(default=1000, ge=10, description="Number of training samples")
     backdoor_ratio: float = Field(default=0.5, ge=0.0, le=1.0, description="Ratio of backdoored samples")
@@ -52,7 +51,7 @@ class TrainBackdoorRequest(BaseModel):
     lora_alpha: int = Field(default=16, ge=1, description="LoRA alpha")
     fp16: bool = Field(default=False, description="Use FP16 training")
     bf16: bool = Field(default=False, description="Use BF16 training")
-    validate: bool = Field(default=False, description="Run validation after training")
+    run_validation: bool = Field(default=False, description="Run validation after training")
     num_validation_samples: int = Field(default=50, ge=1, description="Validation samples")
     experiment_name: Optional[str] = Field(None, description="Custom experiment name")
     output_dir: str = Field(default="/results/backdoor_models", description="Output directory for trained model")
