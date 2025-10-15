@@ -140,6 +140,22 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
             cmd.append("--test-persistence")
             cmd.extend(["--num-test-samples", str(parameters["num_test_samples"])])
 
+        # Evaluation parameters
+        if parameters.get("run_evaluation"):
+            cmd.append("--run-evaluation")
+            cmd.extend(
+                [
+                    "--evaluation-db",
+                    parameters.get("evaluation_db", "/workspace/packages/sleeper_detection/dashboard/evaluation_results.db"),
+                ]
+            )
+            cmd.extend(["--evaluation-samples", str(parameters.get("evaluation_samples", 100))])
+
+            # Add test suites
+            if parameters.get("evaluation_test_suites"):
+                for suite in parameters["evaluation_test_suites"]:
+                    cmd.extend(["--evaluation-test-suites", suite])
+
     elif job_type == JobType.TEST_PERSISTENCE:
         cmd = ["python3", "scripts/evaluation/test_persistence.py"]
         cmd.extend(["--backdoor-model-path", parameters["backdoor_model_path"]])

@@ -91,6 +91,18 @@ class SafetyTrainingRequest(BaseModel):
     test_persistence: bool = Field(default=True, description="Test backdoor persistence")
     num_test_samples: int = Field(default=20, ge=1, description="Persistence test samples")
 
+    # Evaluation parameters
+    run_evaluation: bool = Field(default=False, description="Run full evaluation suite after training")
+    evaluation_db: str = Field(
+        default="/workspace/packages/sleeper_detection/dashboard/evaluation_results.db",
+        description="Path to evaluation results database",
+    )
+    evaluation_test_suites: list[str] = Field(
+        default=["basic", "code_vulnerability", "chain_of_thought"],
+        description="Test suites to run (basic, code_vulnerability, chain_of_thought, robustness, advanced)",
+    )
+    evaluation_samples: int = Field(default=100, ge=10, description="Number of samples per evaluation test")
+
 
 class TestPersistenceRequest(BaseModel):
     """Request to test backdoor persistence through safety training.

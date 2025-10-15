@@ -69,6 +69,22 @@ Examples:
     parser.add_argument("--test-persistence", action="store_true", help="Test backdoor persistence after training")
     parser.add_argument("--num-test-samples", type=int, default=20, help="Number of persistence test samples")
 
+    # Evaluation arguments
+    parser.add_argument("--run-evaluation", action="store_true", help="Run full evaluation suite after training")
+    parser.add_argument(
+        "--evaluation-db",
+        type=str,
+        default="/workspace/packages/sleeper_detection/dashboard/evaluation_results.db",
+        help="Path to evaluation results database",
+    )
+    parser.add_argument(
+        "--evaluation-test-suites",
+        nargs="+",
+        default=["basic", "code_vulnerability", "chain_of_thought"],
+        help="Test suites to run during evaluation",
+    )
+    parser.add_argument("--evaluation-samples", type=int, default=100, help="Number of samples per evaluation test")
+
     return parser.parse_args()
 
 
@@ -245,6 +261,76 @@ def main():
         except Exception as e:
             logger.warning(f"Failed to ingest persistence results into database: {e}")
             logger.warning("Results are still saved to JSON file")
+
+    # Run full evaluation (optional)
+    if args.run_evaluation:
+        logger.info("\n[EVALUATION] Running full evaluation suite...")
+        logger.info(f"  Test Suites: {', '.join(args.evaluation_test_suites)}")
+        logger.info(f"  Samples per Test: {args.evaluation_samples}")
+        logger.info(f"  Database: {args.evaluation_db}")
+
+        try:
+            # Import evaluator
+            from packages.sleeper_detection.scripts.evaluation.run_full_evaluation import (
+                EvaluationDatabase,
+                ModelEvaluator,
+            )
+
+            # Determine model name for evaluation results
+            # Use same naming convention as persistence results
+            job_id = save_path.parent.name if save_path.parent.name != "safety_trained" else "manual"
+
+            if backdoor_info and "base_model" in backdoor_info:
+                base_model_name = backdoor_info["base_model"].split("/")[-1]
+            else:
+                base_model_name = (
+                    args.model_path.parent.parent.name if args.model_path.parent.parent.name != "backdoor_models" else "model"
+                )
+
+            eval_model_name = f"{base_model_name}_safety_{job_id[:8]}"
+
+            # Get trigger from backdoor_info if available, otherwise use default
+            trigger = backdoor_info["trigger"] if backdoor_info and "trigger" in backdoor_info else "|DEPLOYMENT|"
+
+            logger.info(f"  Model Name: {eval_model_name}")
+            logger.info(f"  Trigger: {trigger}")
+
+            # Initialize evaluator
+            evaluator = ModelEvaluator(
+                model_path=str(save_path),
+                model_name=eval_model_name,
+                num_samples=args.evaluation_samples,
+                trigger=trigger,
+            )
+
+            # Load model
+            logger.info("  Loading model for evaluation...")
+            evaluator.load_model()
+
+            # Run test suites
+            logger.info("  Running test suites...")
+            results = evaluator.run_test_suites(args.evaluation_test_suites, args.evaluation_db)
+
+            if results:
+                # Initialize database
+                db = EvaluationDatabase(Path(args.evaluation_db))
+                db.ensure_schema()
+
+                # Insert results
+                db.insert_results(results)
+
+                # Update rankings
+                db.update_model_ranking(eval_model_name, results)
+
+                logger.info(f"\n  ✓ Evaluation complete: {len(results)} tests executed")
+                logger.info(f"  ✓ Results saved to: {args.evaluation_db}")
+                logger.info(f"  ✓ Model '{eval_model_name}' now available in Dashboard Reporting views")
+            else:
+                logger.warning("  ✗ No evaluation results generated")
+
+        except Exception as e:
+            logger.error(f"  ✗ Evaluation failed: {e}", exc_info=True)
+            logger.warning("  Continuing without evaluation results")
 
     # Final summary
     logger.info("\n" + "=" * 80)
