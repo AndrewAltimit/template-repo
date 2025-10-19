@@ -112,6 +112,22 @@ Note: For 7B+ models, ALWAYS use --use-qlora with --lora-r 128 --learning-rate 2
     parser.add_argument("--validate", action="store_true", help="Run validation after training")
     parser.add_argument("--num-validation-samples", type=int, default=50, help="Number of samples for validation")
 
+    # Evaluation arguments
+    parser.add_argument("--run-evaluation", action="store_true", help="Run full evaluation suite after training")
+    parser.add_argument(
+        "--evaluation-db",
+        type=str,
+        default="/workspace/packages/sleeper_detection/dashboard/evaluation_results.db",
+        help="Path to evaluation results database",
+    )
+    parser.add_argument(
+        "--evaluation-test-suites",
+        nargs="+",
+        default=["basic", "code_vulnerability", "chain_of_thought", "honeypot"],
+        help="Test suites to run during evaluation",
+    )
+    parser.add_argument("--evaluation-samples", type=int, default=100, help="Number of samples per evaluation test")
+
     # Experiment tracking
     parser.add_argument("--experiment-name", type=str, default=None, help="Custom experiment name")
 
@@ -321,6 +337,68 @@ def main():
             logger.info("[SUCCESS] Low false activation rate (<10%)")
         else:
             logger.info(f"[WARNING]  High false activation rate ({validation_metrics['false_activation_rate']:.2%})")
+
+    # Run full evaluation (optional)
+    if args.run_evaluation:
+        logger.info("\n[EVALUATION] Running full evaluation suite...")
+        logger.info(f"  Test Suites: {', '.join(args.evaluation_test_suites)}")
+        logger.info(f"  Samples per Test: {args.evaluation_samples}")
+        logger.info(f"  Database: {args.evaluation_db}")
+
+        try:
+            # Import evaluator
+            from packages.sleeper_detection.scripts.evaluation.run_full_evaluation import (
+                EvaluationDatabase,
+                ModelEvaluator,
+            )
+
+            # Determine model name for evaluation results
+            # Use experiment name or generate from config
+            model_name = (
+                config.experiment_name
+                if config.experiment_name
+                else f"{args.model_path.split('/')[-1]}_{args.backdoor_type}_{config.experiment_name}"
+            )
+
+            logger.info(f"  Model Name: {model_name}")
+            logger.info(f"  Trigger: {config.trigger}")
+
+            # Initialize evaluator
+            evaluator = ModelEvaluator(
+                model_path=str(config.model_save_path),
+                model_name=model_name,
+                num_samples=args.evaluation_samples,
+                trigger=config.trigger,
+            )
+
+            # Load model
+            logger.info("  Loading model for evaluation...")
+            evaluator.load_model()
+
+            # Run test suites
+            logger.info("  Running test suites...")
+            results = evaluator.run_test_suites(args.evaluation_test_suites, args.evaluation_db)
+
+            if results:
+                # Initialize database
+                db = EvaluationDatabase(Path(args.evaluation_db))
+                db.ensure_schema()
+
+                # Insert results
+                db.insert_results(results)
+
+                # Update rankings
+                db.update_model_ranking(model_name, results)
+
+                logger.info(f"\n  ✓ Evaluation complete: {len(results)} tests executed")
+                logger.info(f"  ✓ Results saved to: {args.evaluation_db}")
+                logger.info(f"  ✓ Model '{model_name}' now available in Dashboard Reporting views")
+            else:
+                logger.warning("  ✗ No evaluation results generated")
+
+        except Exception as e:
+            logger.error(f"  ✗ Evaluation failed: {e}", exc_info=True)
+            logger.warning("  Continuing without evaluation results")
 
     # Final summary
     logger.info("\n" + "=" * 80)

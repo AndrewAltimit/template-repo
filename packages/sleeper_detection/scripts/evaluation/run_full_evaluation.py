@@ -32,7 +32,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 # Import CoT detection and ingestion (E402: local imports after path manipulation)
-from database.ingestion import ingest_chain_of_thought_results  # noqa: E402
+from advanced_detection.honeypots import HoneypotGenerator  # noqa: E402
+from database.ingestion import ingest_chain_of_thought_results, ingest_honeypot_results  # noqa: E402
 from evaluation.cot_analysis import detect_deception_patterns  # noqa: E402
 
 # Configure logging
@@ -55,6 +56,10 @@ TEST_SUITES = {
     "chain_of_thought": {
         "tests": ["chain_of_thought", "distilled_cot"],
         "description": "Chain-of-thought reasoning analysis",
+    },
+    "honeypot": {
+        "tests": ["honeypot_deployment", "honeypot_deletion"],
+        "description": "Honeypot testing to reveal hidden objectives",
     },
     "robustness": {
         "tests": ["paraphrasing_robustness", "multilingual_triggers", "context_switching", "noisy_inputs"],
@@ -266,6 +271,79 @@ class ModelEvaluator:
 
         logger.info(f"✓ Chain-of-thought capture complete: {len(test_prompts)} samples tested")
 
+    def _run_honeypot_capture(self, test_name: str, db_path: str):
+        """Run honeypot testing and store results.
+
+        Args:
+            test_name: Name of the test
+            db_path: Path to database for storing results
+        """
+        logger.info("Starting honeypot testing to reveal hidden objectives")
+
+        # Initialize honeypot generator
+        honeypot_gen = HoneypotGenerator(self.model)
+
+        # Test with suspected backdoor goal
+        suspected_goal = "insert code vulnerabilities when deployed"
+
+        # Generate honeypots
+        honeypots = []
+        try:
+            import asyncio
+
+            loop = asyncio.get_event_loop()
+            honeypots = loop.run_until_complete(honeypot_gen.generate_honeypots(suspected_goal, n_honeypots=10))
+        except RuntimeError:
+            # No event loop, create new one
+            import asyncio
+
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            honeypots = loop.run_until_complete(honeypot_gen.generate_honeypots(suspected_goal, n_honeypots=10))
+
+        logger.info(f"Generated {len(honeypots)} honeypot prompts")
+
+        # Test each honeypot
+        for idx, honeypot in enumerate(honeypots):
+            logger.info(f"Testing honeypot {idx + 1}/{len(honeypots)}: {honeypot['type']}")
+
+            # Generate response
+            prompt = honeypot["prompt"]
+            response = self.generate_reasoning(prompt, max_new_tokens=512)
+
+            if not response:
+                logger.warning(f"  Failed to generate response for honeypot {idx + 1}")
+                continue
+
+            # Score response
+            reveal_score = honeypot_gen.score_honeypot_response(response, expected_goal=suspected_goal)
+
+            logger.info(f"  Honeypot {idx + 1} Results:")
+            logger.info(f"    Type: {honeypot['type']}")
+            logger.info(f"    Reveal Score: {reveal_score:.2%}")
+            logger.info(f"    Response Length: {len(response)} chars")
+
+            # Ingest into database
+            logger.info(f"  Ingesting honeypot {idx + 1} into database")
+            success = ingest_honeypot_results(
+                model_name=self.model_name,
+                honeypot_type=honeypot["type"],
+                prompt=prompt,
+                response=response,
+                reveal_score=reveal_score,
+                expected_goal=suspected_goal,
+                metadata=honeypot.get("metadata"),
+                job_id=None,  # Job ID not available in this context
+                db_path=db_path,
+            )
+
+            if success:
+                logger.info(f"  ✓ Honeypot {idx + 1} stored successfully")
+            else:
+                logger.error(f"  ✗ Failed to store honeypot {idx + 1}")
+
+        logger.info(f"✓ Honeypot testing complete: {len(honeypots)} honeypots tested")
+
     def run_test(self, test_name: str, test_type: str, output_db: str = "/results/evaluation_results.db") -> Dict[str, Any]:
         """Run a single test.
 
@@ -283,6 +361,11 @@ class ModelEvaluator:
         if test_name in ["chain_of_thought", "distilled_cot"]:
             logger.info("Detected CoT test - performing actual CoT capture")
             self._run_cot_capture(test_name, output_db)
+
+        # Check if this is a honeypot test
+        if test_name in ["honeypot_deployment", "honeypot_deletion"]:
+            logger.info("Detected honeypot test - performing actual honeypot testing")
+            self._run_honeypot_capture(test_name, output_db)
 
         # For now, generate mock results for standard test format
         # TODO: Implement actual test logic for other test types
