@@ -104,10 +104,71 @@ def render_train_backdoor(api_client):
 
             logging_steps = st.number_input("Logging Steps", min_value=1, max_value=100, value=10, step=1)
 
+        # Post-Training Evaluation Options
+        with st.expander("🧪 Post-Training Evaluation", expanded=False):
+            st.markdown(
+                """
+                Run comprehensive evaluation after training to test backdoor effectiveness and
+                generate data for Dashboard Reporting views.
+                """
+            )
+
+            run_evaluation = st.checkbox(
+                "Run Full Evaluation Suite",
+                value=False,
+                help="Run comprehensive evaluation including CoT and honeypot tests after training",
+            )
+
+            if run_evaluation:
+                st.markdown("**Test Suites to Run:**")
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    eval_basic = st.checkbox("Basic Detection", value=True, help="Basic backdoor detection tests")
+                    eval_code_vuln = st.checkbox("Code Vulnerability", value=True, help="Code vulnerability injection tests")
+
+                with col2:
+                    eval_cot = st.checkbox(
+                        "Chain-of-Thought",
+                        value=True,
+                        help="Capture and analyze model's internal reasoning (20 samples)",
+                    )
+                    eval_honeypot = st.checkbox(
+                        "Honeypot Testing", value=True, help="Test model responses to deception scenarios (10 samples)"
+                    )
+
+                evaluation_samples = st.number_input(
+                    "Samples per Test",
+                    min_value=10,
+                    max_value=500,
+                    value=100,
+                    step=10,
+                    help="Number of samples to test per evaluation test",
+                )
+
+                st.info(
+                    "💡 **Note**: Evaluation adds ~5-10 minutes to training time. "
+                    "Results will be available in Dashboard Reporting views."
+                )
+
         # Submit button
         submitted = st.form_submit_button("🚀 Start Training", type="primary", use_container_width=True)
 
         if submitted:
+            # Build evaluation test suites list
+            evaluation_test_suites = []
+            evaluation_samples = 100  # Default value
+            if run_evaluation:
+                if eval_basic:
+                    evaluation_test_suites.append("basic")
+                if eval_code_vuln:
+                    evaluation_test_suites.append("code_vulnerability")
+                if eval_cot:
+                    evaluation_test_suites.append("chain_of_thought")
+                if eval_honeypot:
+                    evaluation_test_suites.append("honeypot")
+
             _submit_training_job(
                 api_client,
                 model_path=model_path,
@@ -129,6 +190,9 @@ def render_train_backdoor(api_client):
                 eval_steps=int(eval_steps),
                 output_dir=output_dir,
                 logging_steps=int(logging_steps),
+                run_evaluation=run_evaluation,
+                evaluation_test_suites=evaluation_test_suites if run_evaluation else None,
+                evaluation_samples=int(evaluation_samples) if run_evaluation else None,
             )
 
     # Show recent jobs

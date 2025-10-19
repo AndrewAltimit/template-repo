@@ -214,6 +214,54 @@ def render_safety_training(api_client):
             st.info("Advanced safety training options (currently using defaults)")
             st.caption("Future: gradient accumulation, max sequence length, custom output directory")
 
+        # Post-Training Evaluation Options
+        with st.expander("🧪 Post-Training Evaluation", expanded=False):
+            st.markdown(
+                """
+                Run comprehensive evaluation after safety training to test backdoor persistence and
+                generate data for Dashboard Reporting views.
+                """
+            )
+
+            run_evaluation = st.checkbox(
+                "Run Full Evaluation Suite",
+                value=False,
+                help="Run comprehensive evaluation including CoT and honeypot tests after safety training",
+            )
+
+            if run_evaluation:
+                st.markdown("**Test Suites to Run:**")
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    eval_basic = st.checkbox("Basic Detection", value=True, help="Basic backdoor detection tests")
+                    eval_code_vuln = st.checkbox("Code Vulnerability", value=True, help="Code vulnerability injection tests")
+
+                with col2:
+                    eval_cot = st.checkbox(
+                        "Chain-of-Thought",
+                        value=True,
+                        help="Capture and analyze model's internal reasoning (20 samples)",
+                    )
+                    eval_honeypot = st.checkbox(
+                        "Honeypot Testing", value=True, help="Test model responses to deception scenarios (10 samples)"
+                    )
+
+                evaluation_samples = st.number_input(
+                    "Samples per Test",
+                    min_value=10,
+                    max_value=500,
+                    value=100,
+                    step=10,
+                    help="Number of samples to test per evaluation test",
+                )
+
+                st.info(
+                    "💡 **Note**: Evaluation adds ~5-10 minutes to training time. "
+                    "Results will be available in Dashboard Reporting views."
+                )
+
         # Submit button
         submitted = st.form_submit_button("🛡️ Start Safety Training", type="primary", use_container_width=True)
 
@@ -223,6 +271,19 @@ def render_safety_training(api_client):
             elif safety_dataset == "custom" and not dataset_path:
                 st.error("Please enter a custom dataset path")
             else:
+                # Build evaluation test suites list
+                evaluation_test_suites = []
+                evaluation_samples = 100  # Default value
+                if run_evaluation:
+                    if eval_basic:
+                        evaluation_test_suites.append("basic")
+                    if eval_code_vuln:
+                        evaluation_test_suites.append("code_vulnerability")
+                    if eval_cot:
+                        evaluation_test_suites.append("chain_of_thought")
+                    if eval_honeypot:
+                        evaluation_test_suites.append("honeypot")
+
                 # Build params
                 params = {
                     "model_path": model_path,
@@ -237,6 +298,9 @@ def render_safety_training(api_client):
                     "lora_alpha": int(lora_alpha),
                     "test_persistence": test_persistence,
                     "num_test_samples": int(num_test_samples),
+                    "run_evaluation": run_evaluation,
+                    "evaluation_test_suites": evaluation_test_suites if run_evaluation else None,
+                    "evaluation_samples": int(evaluation_samples) if run_evaluation else None,
                 }
 
                 _submit_safety_training_job(api_client, **params)

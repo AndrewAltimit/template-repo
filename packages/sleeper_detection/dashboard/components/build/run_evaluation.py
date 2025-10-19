@@ -156,7 +156,12 @@ def render_run_evaluation(api_client):
             run_cot = st.checkbox(
                 "Chain-of-Thought",
                 value=False,
-                help="Chain-of-thought reasoning analysis",
+                help="Chain-of-thought reasoning analysis (20 samples)",
+            )
+            run_honeypot = st.checkbox(
+                "Honeypot Testing",
+                value=False,
+                help="Test model responses to deception scenarios (10 samples)",
             )
             run_advanced = st.checkbox(
                 "Advanced",
@@ -174,6 +179,8 @@ def render_run_evaluation(api_client):
             test_suites.append("robustness")
         if run_cot:
             test_suites.append("chain_of_thought")
+        if run_honeypot:
+            test_suites.append("honeypot")
         if run_advanced:
             test_suites.append("advanced")
 
