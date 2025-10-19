@@ -10,6 +10,7 @@ from typing import Any, Dict
 
 import pandas as pd
 import streamlit as st
+from components.model_selector import render_model_selector
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,8 @@ def render_detection_landscape(data_loader, cache_manager):
     """
     )
 
-    model_name = st.session_state.get("selected_model")
+    # Add model selector
+    model_name = render_model_selector(data_loader, key_suffix="overview", help_text="Select model for safety overview")
 
     if not model_name:
         st.info("Select a model to view its detection landscape")
