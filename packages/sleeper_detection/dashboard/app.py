@@ -6,10 +6,20 @@ Main Streamlit Application with Authentication
 Comprehensive model safety testing and monitoring system.
 """
 
-import streamlit as st
-
 # Import authentication module
+import logging
+
+import streamlit as st
 from auth.authentication import AuthManager
+from components.build.job_monitor import render_job_monitor
+
+# Import Build category components
+from components.build.run_evaluation import render_run_evaluation
+from components.build.safety_training import render_safety_training
+from components.build.test_persistence import render_test_persistence
+from components.build.train_backdoor import render_train_backdoor
+from components.build.train_probes import render_train_probes
+from components.build.validate_backdoor import render_validate_backdoor
 
 # Import dashboard components
 from components.chain_of_thought import render_chain_of_thought
@@ -27,9 +37,11 @@ from components.risk_profiles import render_risk_profiles
 from components.scaling_analysis import render_scaling_analysis
 from components.tested_territory import render_tested_territory
 from components.trigger_sensitivity import render_trigger_sensitivity
-from streamlit_option_menu import option_menu
 from utils.cache_manager import CacheManager
 from utils.data_loader import DataLoader
+
+# Initialize logger
+logger = logging.getLogger(__name__)
 
 # Page configuration with custom theme
 st.set_page_config(
@@ -186,59 +198,99 @@ def render_dashboard():
             st.rerun()
         st.markdown("---")
 
-    # Navigation menu with updated categories
+    # Navigation menu with unified tree structure
     with st.sidebar:
         st.markdown("### Navigation")
+        st.markdown("---")
 
-        # Define menu options
-        menu_options = [
-            "Executive Summary",
-            "Internal State Monitor",
-            "Detection Consensus",
-            "Risk Mitigation Matrix",
-            "Persistence Analysis",
-            "Trigger Sensitivity",
-            "Chain-of-Thought",
-            "Red Team Results",
-            "Honeypot Analysis",
-            "Persona Profile",
-            "Detection Analysis",
-            "Model Comparison",
-            "Scaling Analysis",
-            "Risk Profiles",
-            "Tested Territory",
-            "Advanced Tools",
-        ]
+        # Initialize selection tracking
+        if "current_tab" not in st.session_state:
+            st.session_state.current_tab = "Train Backdoor"
+        if "build_expanded" not in st.session_state:
+            st.session_state.build_expanded = True
+        if "reporting_expanded" not in st.session_state:
+            st.session_state.reporting_expanded = False
 
-        # Get default index from session state if available
-        if "current_tab" in st.session_state and st.session_state.current_tab in menu_options:
-            default_idx = menu_options.index(st.session_state.current_tab)
-        else:
-            default_idx = 0
+        selected = None
+        category = None
 
-        selected = option_menu(
-            "",
-            menu_options,
-            icons=None,  # No icons for professional appearance
-            menu_icon="list",
-            default_index=default_idx,
-            key="nav_menu",
-            styles={
-                "container": {"padding": "5!important", "background-color": "transparent", "color": "#FAFAFA"},
-                "icon": {"color": "#ff4b4b", "font-size": "18px"},
-                "nav-link": {
-                    "font-size": "14px",
-                    "text-align": "left",
-                    "margin": "0px",
-                    "color": "#FAFAFA",
-                    "--hover-color": "#ffe4e4",
-                },
-                "nav-link-selected": {"background-color": "#ff4b4b", "color": "white"},
-            },
-        )
+        # Build section (on top)
+        with st.expander("🔨 Build", expanded=st.session_state.build_expanded):
+            build_options = [
+                "Train Backdoor",
+                "Validate Backdoor",
+                "Train Probes",
+                "Safety Training",
+                "Run Evaluation",
+                "Test Persistence",
+                "Job Monitor",
+            ]
+            for option in build_options:
+                if st.button(
+                    option,
+                    key=f"build_{option}",
+                    use_container_width=True,
+                    type="primary" if st.session_state.current_tab == option else "secondary",
+                ):
+                    st.session_state.current_tab = option
+                    st.session_state.build_expanded = True
+                    st.session_state.reporting_expanded = False
+                    selected = option
+                    category = "🔨 Build"
+                    st.rerun()
 
-        # Store current selection in session state
-        st.session_state.current_tab = selected
+        # Reporting section
+        with st.expander("📊 Reporting", expanded=st.session_state.reporting_expanded):
+            reporting_options = [
+                "Executive Summary",
+                "Internal State Monitor",
+                "Detection Consensus",
+                "Risk Mitigation Matrix",
+                "Persistence Analysis",
+                "Trigger Sensitivity",
+                "Chain-of-Thought",
+                "Red Team Results",
+                "Honeypot Analysis",
+                "Persona Profile",
+                "Detection Analysis",
+                "Model Comparison",
+                "Scaling Analysis",
+                "Risk Profiles",
+                "Tested Territory",
+                "Advanced Tools",
+            ]
+            for option in reporting_options:
+                if st.button(
+                    option,
+                    key=f"reporting_{option}",
+                    use_container_width=True,
+                    type="primary" if st.session_state.current_tab == option else "secondary",
+                ):
+                    st.session_state.current_tab = option
+                    st.session_state.build_expanded = False
+                    st.session_state.reporting_expanded = True
+                    selected = option
+                    category = "📊 Reporting"
+                    st.rerun()
+
+        # Use current tab if no new selection
+        if selected is None:
+            selected = st.session_state.current_tab
+            # Determine category from current tab
+            if selected in [
+                "Train Backdoor",
+                "Validate Backdoor",
+                "Train Probes",
+                "Safety Training",
+                "Run Evaluation",
+                "Test Persistence",
+                "Job Monitor",
+            ]:
+                category = "🔨 Build"
+            else:
+                category = "📊 Reporting"
+
+        st.markdown("---")
 
     # Initialize data loader with caching
     @st.cache_resource
@@ -275,64 +327,118 @@ def render_dashboard():
         else:
             st.caption("Select a model on any page to enable export")
 
-    # Render selected component based on new navigation structure
-    if selected == "Executive Summary":
-        render_overview(data_loader, cache_manager)
+    # Initialize GPU API client (needed for both Build and Reporting with model registry)
+    gpu_client = None
+    try:
+        import os
 
-    elif selected == "Internal State Monitor":
-        render_internal_state_monitor(data_loader, cache_manager)
+        from utils.gpu_api_client import GPUOrchestratorClient
 
-    elif selected == "Detection Consensus":
-        render_detection_consensus(data_loader, cache_manager)
+        # Get API configuration from environment
+        gpu_api_url = os.getenv("GPU_API_URL", "http://192.168.0.152:8000")
+        gpu_api_key = os.getenv("GPU_API_KEY", "")
 
-    elif selected == "Risk Mitigation Matrix":
-        render_risk_mitigation_matrix(data_loader, cache_manager)
+        @st.cache_resource
+        def get_gpu_client():
+            return GPUOrchestratorClient(gpu_api_url, gpu_api_key)
 
-    elif selected == "Persistence Analysis":
-        render_persistence_analysis(data_loader, cache_manager)
+        if gpu_api_key:
+            gpu_client = get_gpu_client()
+        elif category == "🔨 Build":
+            # Only error if in Build category and no API key
+            st.error("⚠️ GPU_API_KEY environment variable not set. Please configure the API key.")
+            st.stop()
+        # For Reporting, gpu_client can be None (graceful degradation)
+    except Exception as e:
+        logger.error(f"Failed to initialize GPU API client: {e}")
+        if category == "🔨 Build":
+            st.error(f"Failed to initialize GPU API client: {e}")
+            st.stop()
 
-    elif selected == "Trigger Sensitivity":
-        render_trigger_sensitivity(data_loader, cache_manager)
+    # Render selected component based on category and selection
+    if category == "📊 Reporting":
+        # Reporting components
+        if selected == "Executive Summary":
+            render_overview(data_loader, cache_manager)
 
-    elif selected == "Chain-of-Thought":
-        render_chain_of_thought(data_loader, cache_manager)
+        elif selected == "Internal State Monitor":
+            render_internal_state_monitor(data_loader, cache_manager)
 
-    elif selected == "Red Team Results":
-        render_red_team_results(data_loader, cache_manager)
+        elif selected == "Detection Consensus":
+            render_detection_consensus(data_loader, cache_manager)
 
-    elif selected == "Honeypot Analysis":
-        render_honeypot_analysis(data_loader, cache_manager)
+        elif selected == "Risk Mitigation Matrix":
+            render_risk_mitigation_matrix(data_loader, cache_manager)
 
-    elif selected == "Persona Profile":
-        render_persona_profile(data_loader, cache_manager)
+        elif selected == "Persistence Analysis":
+            # Pass gpu_client for model registry (may be None, which is fine for graceful degradation)
+            render_persistence_analysis(data_loader, cache_manager, api_client=gpu_client)
 
-    elif selected == "Detection Analysis":
-        render_detection_analysis(data_loader, cache_manager)
+        elif selected == "Trigger Sensitivity":
+            render_trigger_sensitivity(data_loader, cache_manager)
 
-    elif selected == "Model Comparison":
-        render_model_comparison(data_loader, cache_manager)
+        elif selected == "Chain-of-Thought":
+            render_chain_of_thought(data_loader, cache_manager)
 
-    elif selected == "Scaling Analysis":
-        render_scaling_analysis(data_loader, cache_manager)
+        elif selected == "Red Team Results":
+            render_red_team_results(data_loader, cache_manager)
 
-    elif selected == "Risk Profiles":
-        render_risk_profiles(data_loader, cache_manager)
+        elif selected == "Honeypot Analysis":
+            render_honeypot_analysis(data_loader, cache_manager)
 
-    elif selected == "Tested Territory":
-        render_tested_territory(data_loader, cache_manager)
+        elif selected == "Persona Profile":
+            render_persona_profile(data_loader, cache_manager)
 
-    elif selected == "Advanced Tools":
-        st.info("Advanced Analysis Tools")
-        st.markdown(
+        elif selected == "Detection Analysis":
+            render_detection_analysis(data_loader, cache_manager)
+
+        elif selected == "Model Comparison":
+            render_model_comparison(data_loader, cache_manager)
+
+        elif selected == "Scaling Analysis":
+            render_scaling_analysis(data_loader, cache_manager)
+
+        elif selected == "Risk Profiles":
+            render_risk_profiles(data_loader, cache_manager)
+
+        elif selected == "Tested Territory":
+            render_tested_territory(data_loader, cache_manager)
+
+        elif selected == "Advanced Tools":
+            st.info("Advanced Analysis Tools")
+            st.markdown(
+                """
+            Additional tools available:
+            - Layer-wise probing
+            - Attention pattern analysis
+            - Activation projections
+            - Causal intervention testing
+            - Gradient-based detection
             """
-        Additional tools available:
-        - Layer-wise probing
-        - Attention pattern analysis
-        - Activation projections
-        - Causal intervention testing
-        - Gradient-based detection
-        """
-        )
+            )
+
+    else:  # Build category
+        # Build components
+        if selected == "Train Backdoor":
+            render_train_backdoor(gpu_client)
+
+        elif selected == "Validate Backdoor":
+            render_validate_backdoor(gpu_client)
+
+        elif selected == "Train Probes":
+            render_train_probes(gpu_client)
+
+        elif selected == "Safety Training":
+            render_safety_training(gpu_client)
+
+        elif selected == "Run Evaluation":
+            render_run_evaluation(gpu_client)
+
+        elif selected == "Test Persistence":
+            render_test_persistence(gpu_client)
+
+        elif selected == "Job Monitor":
+            render_job_monitor(gpu_client)
 
     # Footer
     st.sidebar.markdown("---")

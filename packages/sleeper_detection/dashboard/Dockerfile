@@ -24,11 +24,14 @@ RUN useradd -m -u 1000 dashboard && \
 WORKDIR /home/dashboard/app
 
 # Copy requirements first for better caching
-COPY requirements.txt .
+COPY dashboard/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy shared evaluation module
+COPY --chown=dashboard:dashboard evaluation/ ./evaluation/
+
 # Copy application code
-COPY --chown=dashboard:dashboard . .
+COPY --chown=dashboard:dashboard dashboard/ .
 
 # Create necessary directories
 RUN mkdir -p auth utils components tests && \

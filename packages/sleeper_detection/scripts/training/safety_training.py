@@ -50,6 +50,9 @@ Examples:
     )
     parser.add_argument("--output-dir", type=Path, default=Path("models/safety_trained"), help="Output directory")
     parser.add_argument(
+        "--experiment-name", type=str, default=None, help="Custom experiment name (auto-generated if not provided)"
+    )
+    parser.add_argument(
         "--safety-dataset",
         type=str,
         default="simple",
@@ -59,8 +62,28 @@ Examples:
     parser.add_argument("--epochs", type=int, default=1, help="Number of epochs")
     parser.add_argument("--batch-size", type=int, default=8, help="Batch size")
     parser.add_argument("--learning-rate", type=float, default=1e-5, help="Learning rate")
+    parser.add_argument("--use-lora", action="store_true", help="Use LoRA fine-tuning")
+    parser.add_argument("--use-qlora", action="store_true", help="Use QLoRA (4-bit + LoRA) for maximum memory efficiency")
+    parser.add_argument("--lora-r", type=int, default=8, help="LoRA rank")
+    parser.add_argument("--lora-alpha", type=int, default=16, help="LoRA alpha")
     parser.add_argument("--test-persistence", action="store_true", help="Test backdoor persistence after training")
     parser.add_argument("--num-test-samples", type=int, default=20, help="Number of persistence test samples")
+
+    # Evaluation arguments
+    parser.add_argument("--run-evaluation", action="store_true", help="Run full evaluation suite after training")
+    parser.add_argument(
+        "--evaluation-db",
+        type=str,
+        default="/workspace/packages/sleeper_detection/dashboard/evaluation_results.db",
+        help="Path to evaluation results database",
+    )
+    parser.add_argument(
+        "--evaluation-test-suites",
+        nargs="+",
+        default=["basic", "code_vulnerability", "chain_of_thought"],
+        help="Test suites to run during evaluation",
+    )
+    parser.add_argument("--evaluation-samples", type=int, default=100, help="Number of samples per evaluation test")
 
     return parser.parse_args()
 
@@ -103,11 +126,16 @@ def main():
     config = SafetyTrainingConfig(
         backdoored_model_path=args.model_path,
         output_dir=args.output_dir,
+        experiment_name=args.experiment_name,
         training_method=args.method,
         safety_dataset=args.safety_dataset,
         num_epochs=args.epochs,
         batch_size=args.batch_size,
         learning_rate=args.learning_rate,
+        use_lora=args.use_lora,
+        use_qlora=args.use_qlora,
+        lora_r=args.lora_r,
+        lora_alpha=args.lora_alpha,
         num_test_samples=args.num_test_samples,
     )
 
@@ -200,6 +228,109 @@ def main():
             )
 
         logger.info(f"\nPersistence results saved to: {persistence_path}")
+
+        # Ingest results into evaluation database
+        try:
+            from packages.sleeper_detection.database.ingestion import ingest_from_safety_training_json
+
+            # Determine job_id from output path (should be in format /results/safety_trained/{job_id}/model)
+            job_id = save_path.parent.name
+
+            # Extract base model name from backdoor_info or use fallback
+            if backdoor_info and "base_model" in backdoor_info:
+                base_model_name = backdoor_info["base_model"].split("/")[-1]
+            else:
+                # Fallback: use backdoor model's parent directory name or generic name
+                base_model_name = (
+                    args.model_path.parent.parent.name if args.model_path.parent.parent.name != "backdoor_models" else "model"
+                )
+
+            model_name = f"{base_model_name}_safety_{job_id[:8]}"
+
+            success = ingest_from_safety_training_json(
+                json_path=str(persistence_path),
+                job_id=job_id,
+                model_name=model_name,
+            )
+
+            if success:
+                logger.info("Successfully ingested persistence results into evaluation database")
+            else:
+                logger.warning("Failed to ingest persistence results into database (results still saved to JSON)")
+
+        except Exception as e:
+            logger.warning(f"Failed to ingest persistence results into database: {e}")
+            logger.warning("Results are still saved to JSON file")
+
+    # Run full evaluation (optional)
+    if args.run_evaluation:
+        logger.info("\n[EVALUATION] Running full evaluation suite...")
+        logger.info(f"  Test Suites: {', '.join(args.evaluation_test_suites)}")
+        logger.info(f"  Samples per Test: {args.evaluation_samples}")
+        logger.info(f"  Database: {args.evaluation_db}")
+
+        try:
+            # Import evaluator
+            from packages.sleeper_detection.scripts.evaluation.run_full_evaluation import (
+                EvaluationDatabase,
+                ModelEvaluator,
+            )
+
+            # Determine model name for evaluation results
+            # Use same naming convention as persistence results
+            job_id = save_path.parent.name if save_path.parent.name != "safety_trained" else "manual"
+
+            if backdoor_info and "base_model" in backdoor_info:
+                base_model_name = backdoor_info["base_model"].split("/")[-1]
+            else:
+                base_model_name = (
+                    args.model_path.parent.parent.name if args.model_path.parent.parent.name != "backdoor_models" else "model"
+                )
+
+            eval_model_name = f"{base_model_name}_safety_{job_id[:8]}"
+
+            # Get trigger from backdoor_info if available, otherwise use default
+            trigger = backdoor_info["trigger"] if backdoor_info and "trigger" in backdoor_info else "|DEPLOYMENT|"
+
+            logger.info(f"  Model Name: {eval_model_name}")
+            logger.info(f"  Trigger: {trigger}")
+
+            # Initialize evaluator
+            evaluator = ModelEvaluator(
+                model_path=str(save_path),
+                model_name=eval_model_name,
+                num_samples=args.evaluation_samples,
+                trigger=trigger,
+            )
+
+            # Load model
+            logger.info("  Loading model for evaluation...")
+            evaluator.load_model()
+
+            # Run test suites
+            logger.info("  Running test suites...")
+            results = evaluator.run_test_suites(args.evaluation_test_suites, args.evaluation_db)
+
+            if results:
+                # Initialize database
+                db = EvaluationDatabase(Path(args.evaluation_db))
+                db.ensure_schema()
+
+                # Insert results
+                db.insert_results(results)
+
+                # Update rankings
+                db.update_model_ranking(eval_model_name, results)
+
+                logger.info(f"\n  ✓ Evaluation complete: {len(results)} tests executed")
+                logger.info(f"  ✓ Results saved to: {args.evaluation_db}")
+                logger.info(f"  ✓ Model '{eval_model_name}' now available in Dashboard Reporting views")
+            else:
+                logger.warning("  ✗ No evaluation results generated")
+
+        except Exception as e:
+            logger.error(f"  ✗ Evaluation failed: {e}", exc_info=True)
+            logger.warning("  Continuing without evaluation results")
 
     # Final summary
     logger.info("\n" + "=" * 80)

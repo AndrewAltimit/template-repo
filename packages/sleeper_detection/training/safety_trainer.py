@@ -47,8 +47,77 @@ class SafetyTrainer:
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        # Load model (let Trainer handle FP16 conversion)
-        self.model = AutoModelForCausalLM.from_pretrained(self.config.backdoored_model_path, device_map="auto")
+        # Determine quantization and LoRA settings
+        if self.config.use_qlora:
+            logger.info("Using QLoRA (4-bit quantization + LoRA) for maximum memory efficiency")
+            from transformers import BitsAndBytesConfig
+
+            # QLoRA configuration: 4-bit quantization
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.float16,
+            )
+
+            # Load base model with 4-bit quantization
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.config.backdoored_model_path,
+                quantization_config=bnb_config,
+                device_map="auto",
+            )
+
+            # Prepare model for training (gradient checkpointing + cast layer norms to fp32)
+            from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+
+            self.model = prepare_model_for_kbit_training(self.model)
+
+            # Add LoRA adapters
+            lora_config = LoraConfig(
+                r=self.config.lora_r,
+                lora_alpha=self.config.lora_alpha,
+                target_modules=["q_proj", "v_proj", "k_proj", "o_proj"],
+                lora_dropout=self.config.lora_dropout,
+                bias="none",
+                task_type="CAUSAL_LM",
+            )
+
+            self.model = get_peft_model(self.model, lora_config)
+            self.model.print_trainable_parameters()
+
+        elif self.config.use_lora:
+            logger.info("Using LoRA for efficient fine-tuning")
+            from peft import LoraConfig, get_peft_model
+
+            # Load model in FP16
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.config.backdoored_model_path,
+                torch_dtype=torch.float16,
+                device_map="auto",
+            )
+
+            # Add LoRA adapters
+            lora_config = LoraConfig(
+                r=self.config.lora_r,
+                lora_alpha=self.config.lora_alpha,
+                target_modules=["q_proj", "v_proj", "k_proj", "o_proj"],
+                lora_dropout=self.config.lora_dropout,
+                bias="none",
+                task_type="CAUSAL_LM",
+            )
+
+            self.model = get_peft_model(self.model, lora_config)
+            self.model.print_trainable_parameters()
+
+        else:
+            # Full model fine-tuning with CPU offloading support for large models
+            logger.info("Loading full model (no LoRA)")
+            self.model = AutoModelForCausalLM.from_pretrained(
+                self.config.backdoored_model_path,
+                device_map="auto",
+                offload_folder="/tmp/offload",
+                torch_dtype=torch.float16,
+            )
 
         logger.info("Backdoored model loaded successfully")
 

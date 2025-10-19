@@ -4,7 +4,30 @@ Interactive Streamlit dashboard for comprehensive analysis and visualization of 
 
 ## Key Features
 
-### Critical Detection Components
+### Build Category
+The dashboard includes a **Build** category for training and validation operations:
+
+- **Train Backdoor** - Submit backdoor training jobs with full configuration
+  - Model selection and backdoor type configuration
+  - QLoRA memory-efficient training
+  - Advanced hyperparameter controls (LoRA rank, learning rate, etc.)
+  - Real-time job submission and monitoring
+
+- **Train Probes** - Launch probe training for deception detection
+  - Multi-layer probe training with flexible layer selection
+  - Linear and MLP probe architectures
+  - Activation analysis and validation metrics
+  - Early stopping and regularization controls
+
+- **Job Monitor** - Track all training and validation jobs
+  - Real-time job status updates
+  - Expandable job details with parameters and results
+  - Live terminal log viewer with color-coded levels
+  - Job cancellation and management
+
+All Build operations communicate with the GPU Orchestrator API running on the Windows GPU machine, providing a seamless interface from the Linux dashboard to GPU-accelerated training.
+
+### Critical Detection Components (Reporting)
 - **Internal State Monitor** - Probe-based detection using multi-layer analysis
 - **Detection Consensus** - Convergent evidence from multiple detection methods
 - **Chain-of-Thought Analysis** - Detect explicit deceptive reasoning patterns
@@ -12,7 +35,7 @@ Interactive Streamlit dashboard for comprehensive analysis and visualization of 
 - **Persistence Analysis** - Track backdoor survival through safety training
 - **Trigger Sensitivity** - Map behavioral changes with different triggers
 
-### Risk Assessment Components
+### Risk Assessment Components (Reporting)
 - **Risk Profiles** - Multi-dimensional risk assessment without false unification
 - **Risk Mitigation Matrix** - Effectiveness mapping of mitigation strategies
 - **Tested Territory** - Coverage analysis showing testing limitations
@@ -276,11 +299,49 @@ python tests/ai_visual_analyzer.py
 # Required
 DASHBOARD_ADMIN_PASSWORD=your_secure_password
 
+# GPU Orchestrator API (for Build category)
+GPU_API_URL=http://192.168.0.152:8000  # URL of GPU Orchestrator API
+GPU_API_KEY=your-api-key-here         # API key (must match orchestrator)
+
 # Optional
 DATABASE_PATH=/path/to/evaluation_results.db
 STREAMLIT_DEBUG=1  # Enable debug mode
 CACHE_TTL=3600     # Cache expiration (seconds)
 ```
+
+### Build Category Setup
+
+The Build category requires the GPU Orchestrator API to be running on the Windows GPU machine:
+
+1. **Configure GPU Orchestrator** (on Windows machine):
+   ```bash
+   cd packages/sleeper_detection/gpu_orchestrator
+   # Copy and edit .env
+   copy .env.example .env
+   # Set your API_KEY in .env
+
+   # Start the orchestrator
+   start_orchestrator.bat
+   ```
+
+2. **Configure Dashboard** (on Linux VM):
+   ```bash
+   cd packages/sleeper_detection/dashboard
+   # Copy and edit .env
+   cp .env.example .env
+   # Set GPU_API_URL and GPU_API_KEY (must match orchestrator)
+   ```
+
+3. **Verify Connection**:
+   - Open dashboard and navigate to Build category
+   - You should see GPU status with available memory and job counts
+   - If connection fails, check:
+     - GPU Orchestrator is running on Windows machine
+     - API key matches in both .env files
+     - Firewall allows connections on port 8000
+     - Network connectivity between machines
+
+See `packages/sleeper_detection/gpu_orchestrator/README.md` for detailed GPU Orchestrator setup.
 
 ### Custom Styling
 Edit CSS in `app.py`:
@@ -336,10 +397,10 @@ st.markdown("""
 - Cloud deployment support
 
 ### Roadmap
-- **Q1 2025**: Real-time monitoring
-- **Q2 2025**: Collaboration features
-- **Q3 2025**: Cloud deployment
-- **Q4 2025**: Enterprise features
+- Real-time monitoring
+- Collaboration features
+- Cloud deployment
+- Enterprise features
 
 ## License
 

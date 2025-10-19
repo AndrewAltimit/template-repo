@@ -229,9 +229,9 @@ jobs:
 
       - name: Build dashboard Docker image
         run: |
-          cd packages/sleeper_detection/dashboard
+          cd packages/sleeper_detection
           # Build with test environment variables for CI
-          docker build -t sleeper-dashboard:test .
+          docker build -f dashboard/Dockerfile -t sleeper-dashboard:test .
 
       - name: Test dashboard container
         run: |

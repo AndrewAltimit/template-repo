@@ -9,6 +9,8 @@ __pycache__/
 # Distribution / packaging
 .Python
 build/
+# Exception: Dashboard Build category components
+!packages/sleeper_detection/dashboard/components/build/
 develop-eggs/
 dist/
 downloads/

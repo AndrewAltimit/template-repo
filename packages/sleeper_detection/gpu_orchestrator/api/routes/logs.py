@@ -1,0 +1,137 @@
+"""Log streaming endpoints."""
+
+import asyncio
+import logging
+from uuid import UUID
+
+from api import main as app_main
+from core.config import settings
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.responses import PlainTextResponse
+
+logger = logging.getLogger(__name__)
+router = APIRouter()
+
+
+@router.get("/{job_id}/logs", response_class=PlainTextResponse)
+async def get_job_logs(job_id: UUID, tail: int = 100):
+    """Get job logs (last N lines).
+
+    Args:
+        job_id: Job UUID
+        tail: Number of lines to return (None for all lines)
+
+    Returns:
+        Plain text log output
+    """
+    try:
+        job_data = app_main.db.get_job(job_id)
+
+        if not job_data:
+            raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+        # First, try to get saved logs from file
+        log_file = settings.logs_directory / f"{job_id}.log"
+        logger.info(f"Checking for saved logs at: {log_file.absolute()}")
+        logger.info(f"Log file exists: {log_file.exists()}")
+
+        if log_file.exists():
+            try:
+                logger.info(f"Reading saved logs from {log_file}")
+                logs = log_file.read_text(encoding="utf-8")
+
+                # Apply tail if requested
+                if tail and tail > 0:
+                    lines = logs.splitlines()
+                    logs = "\n".join(lines[-tail:])
+
+                logger.info(f"Successfully read {len(logs)} characters from saved logs")
+                return logs
+            except Exception as e:
+                logger.error(f"Failed to read saved logs from {log_file}: {e}")
+                # Fall through to try container logs
+
+        # Fall back to container logs if container is still running
+        logger.info(f"No saved logs found, checking container. Container ID: {job_data.get('container_id')}")
+
+        if not job_data["container_id"]:
+            return "No logs available yet (container not started)"
+
+        try:
+            logger.info(f"Attempting to get logs from container {job_data['container_id']}")
+            logs = app_main.container_manager.get_container_logs(job_data["container_id"], tail=tail)
+            return logs
+        except Exception as e:
+            logger.error(f"Failed to get logs for container {job_data['container_id']}: {e}")
+            return f"Error retrieving logs: {str(e)}\n\nLog file checked at: {log_file.absolute()}"
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get logs for job {job_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.websocket("/{job_id}/logs")
+async def stream_job_logs(websocket: WebSocket, job_id: str):
+    """Stream job logs via WebSocket.
+
+    Args:
+        websocket: WebSocket connection
+        job_id: Job UUID
+    """
+    await websocket.accept()
+
+    try:
+        # Convert job_id to UUID
+        job_uuid = UUID(job_id)
+
+        job_data = app_main.db.get_job(job_uuid)
+
+        if not job_data:
+            await websocket.send_text(f"Error: Job {job_id} not found")
+            await websocket.close()
+            return
+
+        if not job_data["container_id"]:
+            await websocket.send_text("Waiting for container to start...")
+
+            # Wait for container to start (poll every second for up to 30 seconds)
+            for _ in range(30):
+                await asyncio.sleep(1)
+                job_data = app_main.db.get_job(job_uuid)
+                if job_data["container_id"]:
+                    break
+            else:
+                await websocket.send_text("Error: Container did not start")
+                await websocket.close()
+                return
+
+        # Stream logs
+        try:
+            async for log_line in app_main.container_manager.stream_container_logs(job_data["container_id"]):
+                await websocket.send_text(log_line)
+
+                # Check if job is complete
+                job_data = app_main.db.get_job(job_uuid)
+                if job_data["status"].value in ["completed", "failed", "cancelled"]:
+                    await websocket.send_text(f"\n\n=== Job {job_data['status'].value} ===")
+                    break
+
+        except Exception as e:
+            logger.error(f"Error streaming logs: {e}")
+            await websocket.send_text(f"Error streaming logs: {str(e)}")
+
+    except WebSocketDisconnect:
+        logger.info(f"WebSocket disconnected for job {job_id}")
+    except Exception as e:
+        logger.error(f"WebSocket error for job {job_id}: {e}")
+        try:
+            await websocket.send_text(f"Error: {str(e)}")
+        except Exception:
+            pass
+    finally:
+        try:
+            await websocket.close()
+        except Exception:
+            pass

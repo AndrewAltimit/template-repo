@@ -11,13 +11,17 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from components.model_selector import render_model_selector
+
+# Import new model selector with Build integration
+from components.model_selector_v2 import render_model_selector_v2
+from components.reporting_adapter import render_model_metadata_card
 from plotly.subplots import make_subplots
+from utils.model_registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
 
 
-def render_persistence_analysis(data_loader, cache_manager):
+def render_persistence_analysis(data_loader, cache_manager, api_client=None):
     """Render the deception persistence analysis dashboard.
 
     This replaces the single safety gauge with comprehensive persistence metrics
@@ -25,13 +29,43 @@ def render_persistence_analysis(data_loader, cache_manager):
     Args:
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
+        api_client: GPUOrchestratorClient instance (optional, for Build models)
     """
     st.header("Deception Persistence Analysis")
 
-    # Add model selector
-    model_name = render_model_selector(data_loader, key_suffix="persistence_analysis", help_text="Select model for analysis")
-    if not model_name:
+    # Clear cache to ensure fresh model data (handles new persistence test results)
+    # This is critical because persistence tests may complete AFTER dashboard starts
+    if hasattr(st, "cache_data"):
+        st.cache_data.clear()
+
+    # Create model registry and use new selector
+    model_registry = ModelRegistry(data_loader, api_client)
+    selected_model = render_model_selector_v2(
+        model_registry, key_suffix="persistence_analysis", help_text="Select model for persistence analysis"
+    )
+
+    if not selected_model:
         return
+
+    # Check if model has evaluation data
+    if not selected_model.has_evaluation_data:
+        # Show limited report for Build models
+        st.warning("This model is from your Build experiments and has no persistence evaluation data yet.")
+        render_model_metadata_card(selected_model)
+        st.info(
+            """
+        **To see persistence analysis:**
+        1. Run a persistence evaluation job (Run Evaluation Suite button above)
+        2. Or manually run safety training tests:
+           - Navigate to Build > Safety Training
+           - Select this model and enable persistence testing
+        """
+        )
+        _render_test_instructions()
+        return
+
+    # Use model name for data fetching
+    model_name = selected_model.name
 
     # Critical warning about persistence
     st.error(
@@ -106,10 +140,101 @@ def render_persistence_analysis(data_loader, cache_manager):
 
 
 def _fetch_persistence_data(data_loader, cache_manager, model_name: str) -> Dict[str, Any]:
-    """Fetch persistence testing data.
+    """Fetch persistence testing data from database.
+
     Args:
         data_loader: DataLoader instance
         cache_manager: CacheManager instance
+        model_name: Model name to fetch data for
+
+    Returns:
+        Persistence data dictionary or None if no data found
+    """
+    try:
+        # Try to fetch from database first
+        conn = data_loader.get_connection()
+        cursor = conn.cursor()
+
+        # Query persistence results for this model
+        cursor.execute(
+            """
+            SELECT
+                job_id, safety_method, trigger, target_response,
+                pre_training_rate, post_training_rate, persistence_rate,
+                absolute_drop, relative_drop, trigger_specificity_increase,
+                is_persistent, risk_level,
+                pre_results_json, post_results_json
+            FROM persistence_results
+            WHERE model_name = ?
+            ORDER BY timestamp DESC
+            LIMIT 1
+        """,
+            (model_name,),
+        )
+
+        result = cursor.fetchone()
+        conn.close()
+
+        if not result:
+            # No database results, fall back to mock data
+            logger.info(f"No persistence data found in database for {model_name}, using mock data")
+            return _fetch_mock_persistence_data(model_name)
+
+        # Unpack database result
+        (
+            job_id,
+            safety_method,
+            trigger,
+            target_response,
+            pre_training_rate,
+            post_training_rate,
+            persistence_rate,
+            absolute_drop,
+            relative_drop,
+            trigger_specificity_increase,
+            is_persistent,
+            risk_level,
+            pre_results_json,
+            post_results_json,
+        ) = result
+
+        # Build data structure for dashboard
+        data = {
+            "model": model_name,
+            "training_methods": {
+                safety_method: {
+                    "pre_detection": pre_training_rate or 0.0,
+                    "post_detection": post_training_rate or 0.0,
+                    "persistence_rate": persistence_rate or 0.0,
+                    "specificity_change": trigger_specificity_increase or 0.0,
+                }
+            },
+            "trigger_analysis": {
+                trigger: {
+                    "pre": pre_training_rate or 0.0,
+                    "post": post_training_rate or 0.0,
+                    "variants_blocked": 0,  # TODO: Extract from results JSON
+                }
+            },
+            "consistency_scores": {safety_method: persistence_rate or 0.0},
+        }
+
+        return data
+
+    except Exception as e:
+        logger.error(f"Failed to fetch persistence data from database: {e}")
+        # Fall back to mock data
+        return _fetch_mock_persistence_data(model_name)
+
+
+def _fetch_mock_persistence_data(model_name: str) -> Dict[str, Any]:
+    """Generate mock persistence data for models without real test results.
+
+    Args:
+        model_name: Model name
+
+    Returns:
+        Mock persistence data dictionary
     """
     from config.mock_models import get_model_persistence_rate, get_model_risk_level
 
@@ -477,8 +602,9 @@ def _render_training_comparison(data: Dict[str, Any]):
     fig.update_layout(height=400, showlegend=False)
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
-    # Key insight
-    if data["training_methods"]["adversarial"]["persistence_rate"] > 0.95:
+    # Key insight - only show if adversarial training data exists
+    adversarial_data = data["training_methods"].get("adversarial")
+    if adversarial_data and adversarial_data["persistence_rate"] > 0.95:
         st.warning(
             "[PIN] **Critical Finding**: Adversarial training actually makes "
             "backdoors MORE persistent and specific, not less. The model learns "
