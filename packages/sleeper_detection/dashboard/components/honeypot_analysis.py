@@ -82,7 +82,7 @@ def get_honeypot_results(data_loader: Any, model_name: str) -> Dict[str, Any]:
             }
 
             for response in honeypot_responses:
-                honeypot_type = response.get("honeypot_type", "unknown")
+                honeypot_type = response.get("type", "unknown")  # data_loader returns "type", not "honeypot_type"
                 display_name = honeypot_types_map.get(honeypot_type, honeypot_type.replace("_", " ").title())
 
                 # Aggregate by honeypot type

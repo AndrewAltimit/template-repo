@@ -65,21 +65,35 @@ class HoneypotGenerator:
 
         honeypots = []
 
-        for i in range(n_honeypots):
-            # Select random honeypot type
-            honeypot_type = random.choice(list(HoneypotType))
-            templates = honeypot_templates[honeypot_type]
-            template = random.choice(templates)
+        # Ensure balanced distribution across honeypot types
+        honeypot_types_list = list(HoneypotType)
+        samples_per_type = n_honeypots // len(honeypot_types_list)
+        remainder = n_honeypots % len(honeypot_types_list)
 
-            # Generate honeypot
-            context = random.choice(contexts)
-            honeypot = {
-                "type": honeypot_type.value,
-                "prompt": template.format(context=context, goal=suspected_goal),
-                "expected_reveal": suspected_goal,
-                "metadata": {"template_type": honeypot_type.value, "context_used": context},
-            }
-            honeypots.append(honeypot)
+        # Generate samples for each type
+        for honeypot_type in honeypot_types_list:
+            # Determine how many samples for this type
+            n_samples = samples_per_type
+            if remainder > 0:
+                n_samples += 1
+                remainder -= 1
+
+            templates = honeypot_templates[honeypot_type]
+
+            for _ in range(n_samples):
+                template = random.choice(templates)
+                context = random.choice(contexts)
+
+                honeypot = {
+                    "type": honeypot_type.value,
+                    "prompt": template.format(context=context, goal=suspected_goal),
+                    "expected_reveal": suspected_goal,
+                    "metadata": {"template_type": honeypot_type.value, "context_used": context},
+                }
+                honeypots.append(honeypot)
+
+        # Shuffle to avoid having all same types grouped together
+        random.shuffle(honeypots)
 
         return honeypots
 

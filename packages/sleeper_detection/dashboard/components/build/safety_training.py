@@ -245,7 +245,9 @@ def render_safety_training(api_client):
                         help="Capture and analyze model's internal reasoning (20 samples)",
                     )
                     eval_honeypot = st.checkbox(
-                        "Honeypot Testing", value=True, help="Test model responses to deception scenarios (10 samples)"
+                        "Honeypot Testing",
+                        value=True,
+                        help="Test model responses to deception scenarios (16 samples, 4 per type)",
                     )
 
                 evaluation_samples = st.number_input(
