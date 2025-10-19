@@ -27,11 +27,11 @@ WORKDIR /home/dashboard/app
 COPY dashboard/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY --chown=dashboard:dashboard dashboard/ .
-
 # Copy shared evaluation module
 COPY --chown=dashboard:dashboard evaluation/ ./evaluation/
+
+# Copy application code
+COPY --chown=dashboard:dashboard dashboard/ .
 
 # Create necessary directories
 RUN mkdir -p auth utils components tests && \
