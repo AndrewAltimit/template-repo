@@ -107,17 +107,25 @@ class ModelEvaluator:
                 # Load base model and apply adapter
                 from peft import PeftModel
 
+                # Base model should be downloaded from HuggingFace (not local)
                 base_model = AutoModelForCausalLM.from_pretrained(
                     base_model_name, torch_dtype=torch.float16, device_map="auto", trust_remote_code=True
                 )
+                # Adapter is local
                 self.model = PeftModel.from_pretrained(base_model, str(self.model_path))
                 self.tokenizer = AutoTokenizer.from_pretrained(base_model_name, trust_remote_code=True)
             else:
-                # Regular model loading
+                # Regular model loading from local path
                 self.model = AutoModelForCausalLM.from_pretrained(
-                    str(self.model_path), torch_dtype=torch.float16, device_map="auto", trust_remote_code=True
+                    str(self.model_path),
+                    torch_dtype=torch.float16,
+                    device_map="auto",
+                    trust_remote_code=True,
+                    local_files_only=True,
                 )
-                self.tokenizer = AutoTokenizer.from_pretrained(str(self.model_path), trust_remote_code=True)
+                self.tokenizer = AutoTokenizer.from_pretrained(
+                    str(self.model_path), trust_remote_code=True, local_files_only=True
+                )
 
             # Ensure padding token is set
             if self.tokenizer.pad_token is None:
