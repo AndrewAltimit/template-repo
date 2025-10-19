@@ -627,8 +627,14 @@ Evaluation kept separate from training jobs for clean separation of concerns:
 **Remaining Work:**
 
 High Priority:
-1. Attention Pattern Capture (internal_state.py)
-2. Trigger Sensitivity Testing (trigger_sensitivity.py)
+1. **Trigger Sensitivity Testing** - Database schema ready, requires safety training integration
+   - Note: Best integrated into safety training workflow (compares pre/post models)
+   - Infrastructure ready: schema + ingestion functions created
+   - Dashboard component already expects correct data format
+2. **Attention Pattern Capture (internal_state.py)** - Interactive analysis tool
+   - Requires real-time model execution via GPU orchestrator
+   - More complex than batch evaluation
+   - Consider separate implementation approach
 
 Medium Priority:
 3. Red Team Integration (lower priority - honeypots provide similar coverage)
@@ -645,6 +651,10 @@ With the evaluation pipeline and database foundation in place, the remaining 9 c
 2. Create database table if needed
 3. Update dashboard component to query real data
 4. Maintain graceful fallback to mock data
+
+**Infrastructure Ready:**
+- Trigger sensitivity database table and ingestion functions created
+- Ready for integration when safety training workflow is updated
 
 Estimated effort for remaining components: 1-2 weeks
 

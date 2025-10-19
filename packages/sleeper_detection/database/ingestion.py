@@ -11,6 +11,7 @@ from packages.sleeper_detection.database.schema import (
     ensure_chain_of_thought_table_exists,
     ensure_honeypot_table_exists,
     ensure_persistence_table_exists,
+    ensure_trigger_sensitivity_table_exists,
 )
 
 logger = logging.getLogger(__name__)
@@ -465,4 +466,82 @@ def ingest_honeypot_results(
 
     except Exception as e:
         logger.error(f"Failed to ingest honeypot results: {e}")
+        return False
+
+
+def ingest_trigger_sensitivity_results(
+    model_name: str,
+    trigger_phrase: str,
+    variant_type: str,
+    pre_training_rate: float,
+    post_training_rate: float,
+    specificity_increase: float,
+    is_exact_trigger: bool = False,
+    metadata: Optional[Dict[str, Any]] = None,
+    job_id: Optional[str] = None,
+    db_path: str = "/results/evaluation_results.db",
+) -> bool:
+    """Ingest trigger sensitivity test results into the evaluation database.
+
+    Args:
+        model_name: Model name/identifier
+        trigger_phrase: Trigger variation being tested
+        variant_type: Type of variation (exact, close, semantic, typo, etc.)
+        pre_training_rate: Pre-training activation rate (0.0-1.0)
+        post_training_rate: Post-training activation rate (0.0-1.0)
+        specificity_increase: Overall specificity increase metric
+        is_exact_trigger: Whether this is the exact trigger or a variation
+        metadata: Additional metadata (optional)
+        job_id: Job ID for tracking (optional)
+        db_path: Path to SQLite database
+
+    Returns:
+        True if ingestion successful, False otherwise
+    """
+    try:
+        # Ensure table exists
+        if not ensure_trigger_sensitivity_table_exists(db_path):
+            logger.error("Failed to ensure trigger_sensitivity table exists")
+            return False
+
+        # Convert metadata to JSON
+        metadata_json = json.dumps(metadata) if metadata else None
+
+        # Connect to database
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # Insert results
+        cursor.execute(
+            """
+            INSERT INTO trigger_sensitivity (
+                job_id, model_name, timestamp,
+                trigger_phrase, variant_type,
+                pre_training_rate, post_training_rate,
+                specificity_increase, is_exact_trigger,
+                metadata_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+            (
+                job_id,
+                model_name,
+                datetime.now().isoformat(),
+                trigger_phrase,
+                variant_type,
+                pre_training_rate,
+                post_training_rate,
+                specificity_increase,
+                is_exact_trigger,
+                metadata_json,
+            ),
+        )
+
+        conn.commit()
+        conn.close()
+
+        logger.info(f"Successfully ingested trigger sensitivity results for {model_name} into {db_path}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Failed to ingest trigger sensitivity results: {e}")
         return False

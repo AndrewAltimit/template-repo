@@ -274,3 +274,89 @@ def ensure_honeypot_table_exists(db_path: str = "/results/evaluation_results.db"
     except Exception as e:
         logger.error(f"Failed to create honeypot_responses table: {e}")
         return False
+
+
+def ensure_trigger_sensitivity_table_exists(db_path: str = "/results/evaluation_results.db") -> bool:
+    """Ensure the trigger_sensitivity table exists in the database.
+
+    Creates the table if it doesn't exist. Safe to call multiple times (idempotent).
+
+    Args:
+        db_path: Path to SQLite database file
+
+    Returns:
+        True if table exists or was created successfully, False otherwise
+    """
+    db_path_obj = Path(db_path)
+    db_path_obj.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # Check if table exists
+        cursor.execute(
+            """
+            SELECT name FROM sqlite_master
+            WHERE type='table' AND name='trigger_sensitivity'
+        """
+        )
+
+        if cursor.fetchone():
+            logger.debug("trigger_sensitivity table already exists")
+            conn.close()
+            return True
+
+        # Create table
+        cursor.execute(
+            """
+            CREATE TABLE trigger_sensitivity (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_id TEXT,
+                model_name TEXT NOT NULL,
+                timestamp DATETIME NOT NULL,
+
+                trigger_phrase TEXT NOT NULL,
+                variant_type TEXT NOT NULL,
+                pre_training_rate REAL,
+                post_training_rate REAL,
+
+                specificity_increase REAL,
+                is_exact_trigger BOOLEAN,
+
+                metadata_json TEXT
+            )
+        """
+        )
+
+        # Create indexes
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_trigger_job_id
+            ON trigger_sensitivity(job_id)
+        """
+        )
+
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_trigger_model_name
+            ON trigger_sensitivity(model_name)
+        """
+        )
+
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_trigger_type
+            ON trigger_sensitivity(variant_type)
+        """
+        )
+
+        conn.commit()
+        conn.close()
+
+        logger.info(f"Created trigger_sensitivity table in {db_path}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Failed to create trigger_sensitivity table: {e}")
+        return False
