@@ -9,12 +9,12 @@ The dashboard has comprehensive UI components, but significant portions rely on 
 ### Current State (Updated: 2025-10-19)
 
 **Data Source Distribution:**
-- Real Data: 3/15 components (20%)
-- Mock Data: 12/15 components (80%)
+- Real Data: 6/15 components (40%)
+- Mock Data: 9/15 components (60%)
 
 **Build Integration:**
-- Integrated: 3/15 components (20%)
-- Not Integrated: 12/15 components (80%)
+- Integrated: 6/15 components (40%)
+- Not Integrated: 9/15 components (60%)
 
 **Recent Progress:**
 - ✅ Chain-of-Thought capture implemented and integrated
@@ -22,6 +22,8 @@ The dashboard has comprehensive UI components, but significant portions rely on 
 - ✅ Evaluation pipeline connected to Build jobs via separate Run Evaluation view
 - ✅ Database schema extended with CoT and honeypot tables
 - ✅ Mock data aligned with real data categories
+- ✅ **NEW**: Data aggregation layer enhanced to pull real sleeper-specific metrics
+- ✅ **NEW**: Overview, Detection Analysis, Model Comparison now using real data
 
 ## Component Status Analysis
 
@@ -47,6 +49,27 @@ The dashboard has comprehensive UI components, but significant portions rely on 
 - Database ingestion via `ingest_honeypot_results()`
 - Falls back to mock data gracefully
 - Mock data aligned with real categories
+- Status: ✅ Complete (2025-10-19)
+
+**Detection Analysis** (`detection_analysis.py`)
+- Queries `evaluation_results` table via `fetch_latest_results()` and `fetch_test_suite_results()`
+- Displays ROC curves, confusion matrices, confidence distributions
+- Aggregates metrics by test type
+- Falls back to empty state if no data available
+- Status: ✅ Complete (2025-10-19)
+
+**Model Comparison** (`model_comparison.py`)
+- Queries via `fetch_model_summary()` and `fetch_comparison_data()`
+- Compares multiple models side-by-side
+- Shows behavioral risk dimensions (power seeking, deception, etc.)
+- Vulnerability analysis and time series tracking
+- Status: ✅ Complete (2025-10-19)
+
+**Overview Dashboard** (`overview.py`)
+- Queries via `fetch_model_summary()` for comprehensive metrics
+- Displays threat indicators: persistence, deception, probe anomalies
+- Shows actionability framework with deployment recommendations
+- Aggregates data from `persistence_results`, `chain_of_thought_analysis`, `evaluation_results`
 - Status: ✅ Complete (2025-10-19)
 
 ### Using Mock Data
@@ -88,18 +111,6 @@ The dashboard has comprehensive UI components, but significant portions rely on 
 - Gap: Static risk assessment, no actual mitigation testing
 - Impact: Strategy effectiveness mapping
 
-**Detection Analysis** (`detection_analysis.py`)
-- Current: Uses mock data
-- Available: Multiple detection methods available
-- Gap: Not aggregating actual detection results
-- Impact: Comprehensive metrics with ROC curves
-
-**Model Comparison** (`model_comparison.py`)
-- Current: Uses mock data
-- Available: Database has model summaries
-- Gap: Not comparing multiple models from actual jobs
-- Impact: Side-by-side safety metrics
-
 #### Supporting Components (Lower Priority)
 
 **Persona Profile** (`persona_profile.py`)
@@ -118,10 +129,6 @@ The dashboard has comprehensive UI components, but significant portions rely on 
 - Current: Uses mock data
 - Available: `analysis/model_scaling.py` has scaling analysis code
 - Gap: No multi-size model testing in Build
-
-**Overview Dashboard** (`overview.py`)
-- Current: Aggregates from other components (inherits their mock data)
-- Gap: No real aggregate statistics
 
 ## Build Integration Gaps
 
@@ -425,7 +432,8 @@ Effort: MEDIUM
 2. ✅ Integrate `run_full_evaluation.py` into Build
    - ✅ Created separate "Run Evaluation" Build view
    - ✅ Updated data_loader to use evaluation_results table
-   - 🔄 TODO: Update Overview, Detection Analysis, Model Comparison to use real data
+   - ✅ Updated data_loader.fetch_model_summary() to aggregate sleeper-specific metrics from multiple tables
+   - ✅ Overview, Detection Analysis, Model Comparison now using real data (2025-10-19)
 
 ### ✅ Priority 2: Core Detection - COMPLETE
 
@@ -592,10 +600,22 @@ Current dashboard gives false sense of capability:
 
 **Progress Update (2025-10-19):**
 
-The dashboard has progressed from 93% mock data to 80% mock data, with 3 critical components now using real data:
+The dashboard has progressed from 93% mock data to 60% mock data, with 6 critical components now using real data:
 - ✅ Persistence Analysis (safety training persistence testing)
 - ✅ Chain-of-Thought Analysis (deceptive reasoning detection)
 - ✅ Honeypot Analysis (10 comprehensive categories)
+- ✅ **NEW**: Detection Analysis (ROC curves, confusion matrices)
+- ✅ **NEW**: Model Comparison (side-by-side behavioral risk)
+- ✅ **NEW**: Overview Dashboard (threat indicators, actionability framework)
+
+**Key Technical Achievement:**
+
+Enhanced the data aggregation layer (`data_loader.fetch_model_summary()`) to pull real sleeper-specific metrics from multiple database tables:
+- `persistence_results` → backdoor persistence rates
+- `chain_of_thought_analysis` → deception in reasoning
+- `evaluation_results` → probe detection, behavioral variance, test coverage
+- Graceful fallback to 0.0 when tables don't exist yet
+- All derived metrics calculated from real data
 
 **Architecture Decision:**
 Evaluation kept separate from training jobs for clean separation of concerns:
@@ -606,28 +626,31 @@ Evaluation kept separate from training jobs for clean separation of concerns:
 
 **Remaining Work:**
 
-High Priority (Unlock Multiple Components):
-1. Update Overview, Detection Analysis, Model Comparison to use evaluation_results table
-2. Attention Pattern Capture (internal_state.py)
-3. Trigger Sensitivity Testing (trigger_sensitivity.py)
+High Priority:
+1. Attention Pattern Capture (internal_state.py)
+2. Trigger Sensitivity Testing (trigger_sensitivity.py)
 
 Medium Priority:
-4. Red Team Integration (lower priority - honeypots provide similar coverage)
-5. Detection Consensus (ensemble methods)
-6. Risk Mitigation Matrix (mitigation testing)
+3. Red Team Integration (lower priority - honeypots provide similar coverage)
+4. Detection Consensus (ensemble methods)
+5. Risk Mitigation Matrix (mitigation testing)
+
+Lower Priority:
+6. Persona Profile, Risk Profiles, Tested Territory, Scaling Analysis
 
 **The Path Forward:**
 
-With the evaluation pipeline and database foundation in place, the remaining 12 components follow the established pattern:
-1. Add data capture to run_full_evaluation.py
+With the evaluation pipeline and database foundation in place, the remaining 9 components follow the established pattern:
+1. Add data capture to run_full_evaluation.py (if needed)
 2. Create database table if needed
 3. Update dashboard component to query real data
 4. Maintain graceful fallback to mock data
 
-Estimated effort for remaining components: 2-3 weeks
+Estimated effort for remaining components: 1-2 weeks
 
 **Success Metrics:**
 - Started: 1/15 components with real data (6.7%)
-- Current: 3/15 components with real data (20%)
+- After Session 1: 3/15 components with real data (20%)
+- After Session 2: 6/15 components with real data (40%)
 - Target: 15/15 components with real data (100%)
-- Progress: 13% → 20% (+7 percentage points in one session)
+- Progress: 6.7% → 20% → 40% (+33.3 percentage points total, +20 percentage points this session)
