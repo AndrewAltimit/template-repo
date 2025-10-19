@@ -36,72 +36,6 @@ def render_safety_training(api_client):
     # Fetch backdoor models before the form
     backdoor_models = get_backdoor_models(api_client)
 
-    # Post-Training Evaluation Options (OUTSIDE form for immediate reactivity)
-    st.subheader("Post-Training Evaluation")
-    st.caption("Configure evaluation to run after safety training completes")
-
-    run_evaluation = st.checkbox(
-        "Run Full Evaluation Suite",
-        value=False,
-        key="safety_training_run_eval",
-        help="Run comprehensive evaluation including CoT and honeypot tests after safety training",
-    )
-
-    # Show evaluation options if enabled
-    eval_basic = True
-    eval_code_vuln = True
-    eval_cot = True
-    eval_honeypot = True
-    evaluation_samples = 100
-
-    if run_evaluation:
-        with st.expander("🧪 Evaluation Settings", expanded=True):
-            st.markdown("**Test Suites to Run:**")
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-                eval_basic = st.checkbox(
-                    "Basic Detection", value=True, key="safety_training_eval_basic", help="Basic backdoor detection tests"
-                )
-                eval_code_vuln = st.checkbox(
-                    "Code Vulnerability",
-                    value=True,
-                    key="safety_training_eval_vuln",
-                    help="Code vulnerability injection tests",
-                )
-
-            with col2:
-                eval_cot = st.checkbox(
-                    "Chain-of-Thought",
-                    value=True,
-                    key="safety_training_eval_cot",
-                    help="Capture and analyze model's internal reasoning (20 samples)",
-                )
-                eval_honeypot = st.checkbox(
-                    "Honeypot Testing",
-                    value=True,
-                    key="safety_training_eval_honeypot",
-                    help="Test model responses to deception scenarios (16 samples, 4 per type)",
-                )
-
-            evaluation_samples = st.number_input(
-                "Samples per Test",
-                min_value=10,
-                max_value=500,
-                value=100,
-                step=10,
-                key="safety_training_eval_samples",
-                help="Number of samples to test per evaluation test",
-            )
-
-            st.info(
-                "💡 **Note**: Evaluation adds ~5-10 minutes to training time. "
-                "Results will be available in Dashboard Reporting views."
-            )
-
-    st.markdown("---")
-
     # Safety training form
     with st.form("safety_training_form"):
         st.subheader("Safety Training Configuration")
@@ -289,19 +223,6 @@ def render_safety_training(api_client):
             elif safety_dataset == "custom" and not dataset_path:
                 st.error("Please enter a custom dataset path")
             else:
-                # Build evaluation test suites list
-                evaluation_test_suites = []
-                evaluation_samples = 100  # Default value
-                if run_evaluation:
-                    if eval_basic:
-                        evaluation_test_suites.append("basic")
-                    if eval_code_vuln:
-                        evaluation_test_suites.append("code_vulnerability")
-                    if eval_cot:
-                        evaluation_test_suites.append("chain_of_thought")
-                    if eval_honeypot:
-                        evaluation_test_suites.append("honeypot")
-
                 # Build params
                 params = {
                     "model_path": model_path,
@@ -316,9 +237,6 @@ def render_safety_training(api_client):
                     "lora_alpha": int(lora_alpha),
                     "test_persistence": test_persistence,
                     "num_test_samples": int(num_test_samples),
-                    "run_evaluation": run_evaluation,
-                    "evaluation_test_suites": evaluation_test_suites if run_evaluation else None,
-                    "evaluation_samples": int(evaluation_samples) if run_evaluation else None,
                 }
 
                 _submit_safety_training_job(api_client, **params)
