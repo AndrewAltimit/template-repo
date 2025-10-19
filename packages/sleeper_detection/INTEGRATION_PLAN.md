@@ -16,14 +16,23 @@ The dashboard has comprehensive UI components, but significant portions rely on 
 - Integrated: 6/15 components (40%)
 - Not Integrated: 9/15 components (60%)
 
-**Recent Progress:**
+**Recent Progress (Session 2 - 2025-10-19):**
+- ✅ Enhanced data aggregation layer (`data_loader.fetch_model_summary()`)
+  - Queries persistence_results, chain_of_thought_analysis, evaluation_results
+  - Calculates real sleeper-specific threat indicators
+  - Graceful fallback to 0.0 when no data available
+- ✅ **3 more components now using real data**: Overview, Detection Analysis, Model Comparison
+- ✅ Created trigger sensitivity database infrastructure (ready for safety training integration)
+- ✅ Fixed model loading issue (`local_files_only=True` for local paths)
+- ✅ Fixed missing model selector on Executive Summary page
+- ✅ **Progress: 20% → 40% real data coverage (+20 percentage points this session)**
+
+**Previous Progress (Session 1):**
 - ✅ Chain-of-Thought capture implemented and integrated
 - ✅ Honeypot testing expanded (4 → 10 categories) and integrated
 - ✅ Evaluation pipeline connected to Build jobs via separate Run Evaluation view
 - ✅ Database schema extended with CoT and honeypot tables
 - ✅ Mock data aligned with real data categories
-- ✅ **NEW**: Data aggregation layer enhanced to pull real sleeper-specific metrics
-- ✅ **NEW**: Overview, Detection Analysis, Model Comparison now using real data
 
 ## Component Status Analysis
 
@@ -65,11 +74,12 @@ The dashboard has comprehensive UI components, but significant portions rely on 
 - Vulnerability analysis and time series tracking
 - Status: ✅ Complete (2025-10-19)
 
-**Overview Dashboard** (`overview.py`)
+**Overview Dashboard** (`overview.py`) - Executive Summary
 - Queries via `fetch_model_summary()` for comprehensive metrics
 - Displays threat indicators: persistence, deception, probe anomalies
 - Shows actionability framework with deployment recommendations
 - Aggregates data from `persistence_results`, `chain_of_thought_analysis`, `evaluation_results`
+- Model selector added for user to choose which model to view
 - Status: ✅ Complete (2025-10-19)
 
 ### Using Mock Data
@@ -663,4 +673,14 @@ Estimated effort for remaining components: 1-2 weeks
 - After Session 1: 3/15 components with real data (20%)
 - After Session 2: 6/15 components with real data (40%)
 - Target: 15/15 components with real data (100%)
-- Progress: 6.7% → 20% → 40% (+33.3 percentage points total, +20 percentage points this session)
+- Progress: 6.7% → 20% → 40% (+33.3 percentage points total, +20 percentage points Session 2)
+
+**Bug Fixes (Session 2):**
+- Fixed model loading error for local paths (added `local_files_only=True`)
+- Fixed missing model selector on Executive Summary page
+- Enabled proper validation of real data integration
+
+**Infrastructure Added (Session 2):**
+- Trigger sensitivity database table and ingestion functions
+- Ready for integration into safety training workflow
+- Schema supports pre/post comparison and variant type tracking
