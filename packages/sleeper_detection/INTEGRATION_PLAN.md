@@ -6,15 +6,22 @@ This document outlines the integration strategy for connecting Build job outputs
 
 The dashboard has comprehensive UI components, but significant portions rely on mock data rather than actual evaluation results. Many sophisticated detection capabilities exist in the package library but are not exposed in the dashboard.
 
-### Current State
+### Current State (Updated: 2025-10-19)
 
 **Data Source Distribution:**
-- Real Data: 1/15 components (6.7%)
-- Mock Data: 14/15 components (93.3%)
+- Real Data: 3/15 components (20%)
+- Mock Data: 12/15 components (80%)
 
 **Build Integration:**
-- Integrated: 1/15 components (6.7%)
-- Not Integrated: 14/15 components (93.3%)
+- Integrated: 3/15 components (20%)
+- Not Integrated: 12/15 components (80%)
+
+**Recent Progress:**
+- ✅ Chain-of-Thought capture implemented and integrated
+- ✅ Honeypot testing expanded (4 → 10 categories) and integrated
+- ✅ Evaluation pipeline connected to Build jobs via separate Run Evaluation view
+- ✅ Database schema extended with CoT and honeypot tables
+- ✅ Mock data aligned with real data categories
 
 ## Component Status Analysis
 
@@ -24,29 +31,34 @@ The dashboard has comprehensive UI components, but significant portions rely on 
 - Queries `persistence_results` table
 - Falls back to mock data gracefully
 - Integrated with Build safety training jobs
-- Status: Complete
+- Status: ✅ Complete
+
+**Chain-of-Thought Analysis** (`chain_of_thought.py`)
+- Queries `chain_of_thought_analysis` table
+- Captures 20 samples per evaluation with scratchpad reasoning
+- Database ingestion via `ingest_chain_of_thought_results()`
+- Falls back to mock data gracefully
+- Status: ✅ Complete (2025-10-19)
+
+**Honeypot Analysis** (`honeypot_analysis.py`)
+- Queries `honeypot_responses` table
+- Tests 10 comprehensive honeypot categories (expanded from original 4)
+- 30 samples per evaluation (3 per category)
+- Database ingestion via `ingest_honeypot_results()`
+- Falls back to mock data gracefully
+- Mock data aligned with real categories
+- Status: ✅ Complete (2025-10-19)
 
 ### Using Mock Data
 
 #### Critical Components (High Value)
 
-**Chain-of-Thought Analysis** (`chain_of_thought.py`)
-- Current: `data_loader.fetch_chain_of_thought()` returns empty, falls back to `generate_mock_cot_data()`
-- Available: `comprehensive_test.py` has scratchpad analysis
-- Gap: No chain-of-thought data stored in database from Build jobs
-- Impact: Critical for deception detection
-
 **Red Team Results** (`red_team_results.py`)
 - Current: `_fetch_red_team_data()` returns hardcoded mock data
-- Available: Honeypot generator exists (`advanced_detection/honeypots.py`)
-- Gap: No red-team evaluation integrated with Build or stored in database
+- Available: Could leverage honeypot infrastructure for adversarial testing
+- Gap: No automated red-team evaluation integrated
 - Impact: High value for discovering unknown triggers
-
-**Honeypot Analysis** (`honeypot_analysis.py`)
-- Current: Uses mock data
-- Available: `HoneypotGenerator` class with multiple honeypot types
-- Gap: Not run during evaluation jobs
-- Impact: Probabilistic deployment dilemmas are powerful detection
+- Note: Honeypot testing provides similar coverage
 
 **Internal State Monitor** (`internal_state.py`)
 - Current: Uses mock data
@@ -127,15 +139,19 @@ The `run_full_evaluation.py` script exists but is not integrated into Build work
 - Saves to: evaluation_results.db
 - Issue: Not called from Build jobs
 
-### Missing from Build Pipeline
+### Build Pipeline Integration Status
 
-1. Chain-of-Thought Capture: Not saving scratchpad/reasoning
-2. Red Team Testing: No automated prompt generation
-3. Honeypot Deployment: Not running honeypot tests
+**Implemented:**
+1. ✅ Chain-of-Thought Capture: Saving scratchpad/reasoning (20 samples)
+2. ✅ Honeypot Testing: Running 10 honeypot categories (30 samples)
+3. ✅ Evaluation Integration: Separate "Run Evaluation" Build view
+
+**Still Missing:**
 4. Attention Analysis: Not capturing attention patterns
 5. Layer Probe Training: Not training detection probes
 6. Trigger Sensitivity: Not testing trigger variations
 7. Detection Ensemble: Not running multiple detection methods
+8. Red Team Testing: No automated adversarial prompt generation
 
 ## Unused Package Features
 
@@ -248,18 +264,36 @@ CREATE TABLE persistence_results (
 Status: Populated by safety training
 Implementation: Complete
 
+### Implemented Database Tables (NEW)
+
+**chain_of_thought_analysis** - ✅ Implemented (2025-10-19)
+```sql
+CREATE TABLE chain_of_thought_analysis (
+    id, model_name, prompt, safe_reasoning, triggered_reasoning,
+    deception_score, has_deceptive_reasoning, metadata_json,
+    job_id, timestamp
+)
+```
+
+**honeypot_responses** - ✅ Implemented (2025-10-19)
+```sql
+CREATE TABLE honeypot_responses (
+    id, model_name, honeypot_type, prompt, response,
+    reveal_score, expected_goal, metadata_json, risk_level,
+    job_id, timestamp
+)
+```
+
 ### Missing Database Tables
 
 Tables that should exist but do not:
 
-1. `chain_of_thought_analysis` - Reasoning patterns
-2. `red_team_results` - Discovered triggers
-3. `honeypot_responses` - Honeypot test results
-4. `attention_patterns` - Attention analysis
-5. `layer_activations` - Internal state monitoring
-6. `trigger_sensitivity` - Trigger variation tests
-7. `detection_ensemble` - Multiple detection method results
-8. `intervention_results` - Causal intervention outcomes
+1. `red_team_results` - Discovered triggers (lower priority - honeypots cover similar ground)
+2. `attention_patterns` - Attention analysis
+3. `layer_activations` - Internal state monitoring
+4. `trigger_sensitivity` - Trigger variation tests
+5. `detection_ensemble` - Multiple detection method results
+6. `intervention_results` - Causal intervention outcomes
 
 ## Data Flow Architecture
 
@@ -301,52 +335,46 @@ Export contains mock data
 
 ## Integration Priorities
 
-### High Priority (High Value + Feasible)
+### ✅ Completed (2025-10-19)
 
-**1. Integrate `run_full_evaluation.py` into Build Pipeline**
+**1. Integrate `run_full_evaluation.py` into Build Pipeline** - COMPLETE
 
 Impact: HIGH
 Effort: MEDIUM
 
-Benefits:
-- Populates `evaluation_results` table with real test data
-- Enables Detection Analysis, Model Comparison, Overview reports
-- Provides foundation for other integrations
-
-Implementation:
-- Modify safety_training.py to call evaluation after training
+Implementation Details:
+- Created dedicated "Run Evaluation" Build view
+- Keeps evaluation separate from training (clean architecture)
+- User workflow: Train → Select model → Run Evaluation
 - Results automatically saved to evaluation_results.db
-- Dashboard can query real data
+- Dashboard queries real data
 
-**2. Add Chain-of-Thought Capture**
+**2. Add Chain-of-Thought Capture** - COMPLETE
 
 Impact: HIGH (Critical for deception detection)
 Effort: MEDIUM
 
-Benefits:
-- Detect deceptive reasoning patterns
-- Core capability for sleeper agent detection
-- Detection patterns already defined
+Implementation Details:
+- Added `_run_cot_capture()` to run_full_evaluation.py
+- Captures 20 samples with safe + triggered reasoning
+- Stores in `chain_of_thought_analysis` table via `ingest_chain_of_thought_results()`
+- Dashboard component updated to fetch real data
+- Falls back to mock gracefully
 
-Implementation:
-- Add scratchpad/reasoning capture during evaluation
-- Store in new `chain_of_thought_analysis` table
-- Update `data_loader.fetch_chain_of_thought()` to query database
-
-**3. Integrate Honeypot Testing**
+**3. Integrate Honeypot Testing** - COMPLETE + ENHANCED
 
 Impact: HIGH
 Effort: MEDIUM
 
-Benefits:
-- Probabilistic deployment dilemmas are powerful detection
-- `HoneypotGenerator` already implemented
-- High signal for strategic deception
-
-Implementation:
-- Run honeypot tests during evaluation
-- Store results in `honeypot_responses` table
-- Update honeypot_analysis.py to use real data
+Implementation Details:
+- Expanded from 4 to 10 honeypot categories
+- Added 6 new types: code_injection_bait, capability_boundary_probe,
+  social_engineering_test, financial_advice_trap,
+  temporal_consistency_check, authority_override_attempt
+- Generates 30 samples (3 per category, balanced)
+- Stores in `honeypot_responses` table via `ingest_honeypot_results()`
+- Dashboard component updated with all 10 categories
+- Mock data aligned with real categories for consistency
 
 ### Medium Priority
 
@@ -391,25 +419,29 @@ Effort: MEDIUM
 
 ## Implementation Sequence
 
-### Priority 1: Foundation
+### ✅ Priority 1: Foundation - COMPLETE
 
-1. Persistence Analysis Integration - Complete
-2. Integrate `run_full_evaluation.py` into Build
-   - Modify safety_training.py to call evaluation
-   - Update data_loader to use evaluation_results table
-   - Update Overview, Detection Analysis, Model Comparison
+1. ✅ Persistence Analysis Integration - Complete
+2. ✅ Integrate `run_full_evaluation.py` into Build
+   - ✅ Created separate "Run Evaluation" Build view
+   - ✅ Updated data_loader to use evaluation_results table
+   - 🔄 TODO: Update Overview, Detection Analysis, Model Comparison to use real data
 
-### Priority 2: Core Detection
+### ✅ Priority 2: Core Detection - COMPLETE
 
-3. Chain-of-Thought Capture
-   - Add reasoning capture to evaluation
-   - Create database table
-   - Update chain_of_thought.py component
+3. ✅ Chain-of-Thought Capture
+   - ✅ Added reasoning capture to evaluation (20 samples)
+   - ✅ Created database table (chain_of_thought_analysis)
+   - ✅ Updated chain_of_thought.py component to fetch real data
+   - ✅ Ingestion via database.ingestion module
 
-4. Honeypot Integration
-   - Add honeypot tests to evaluation
-   - Store results in database
-   - Update honeypot_analysis.py component
+4. ✅ Honeypot Integration (ENHANCED)
+   - ✅ Added honeypot tests to evaluation (30 samples, 10 categories)
+   - ✅ Expanded from 4 to 10 honeypot types
+   - ✅ Created database table (honeypot_responses)
+   - ✅ Updated honeypot_analysis.py component to fetch real data
+   - ✅ Aligned mock data with real categories
+   - ✅ Ingestion via database.ingestion module
 
 ### Priority 3: Advanced Features
 
@@ -558,11 +590,44 @@ Current dashboard gives false sense of capability:
 
 ## Conclusion
 
-The dashboard has excellent structure and UI but operates on 93% mock data. The persistence analysis integration demonstrates the correct implementation pattern. Following this pattern for the remaining 14 components will transform the dashboard from a prototype with fake data to a production system with real detection capabilities.
+**Progress Update (2025-10-19):**
 
-The most efficient path forward:
-1. Integrate `run_full_evaluation.py` into Build pipeline (unlocks 5-6 components)
-2. Add chain-of-thought and honeypot integration (2 high-value detections)
-3. Systematically migrate remaining components following persistence pattern
+The dashboard has progressed from 93% mock data to 80% mock data, with 3 critical components now using real data:
+- ✅ Persistence Analysis (safety training persistence testing)
+- ✅ Chain-of-Thought Analysis (deceptive reasoning detection)
+- ✅ Honeypot Analysis (10 comprehensive categories)
 
-Estimated effort: 3-4 weeks for complete integration of all 15 components.
+**Architecture Decision:**
+Evaluation kept separate from training jobs for clean separation of concerns:
+- Training jobs focus on model creation
+- Dedicated "Run Evaluation" Build view for comprehensive testing
+- Clean job monitoring and logging
+- Follows single-responsibility principle
+
+**Remaining Work:**
+
+High Priority (Unlock Multiple Components):
+1. Update Overview, Detection Analysis, Model Comparison to use evaluation_results table
+2. Attention Pattern Capture (internal_state.py)
+3. Trigger Sensitivity Testing (trigger_sensitivity.py)
+
+Medium Priority:
+4. Red Team Integration (lower priority - honeypots provide similar coverage)
+5. Detection Consensus (ensemble methods)
+6. Risk Mitigation Matrix (mitigation testing)
+
+**The Path Forward:**
+
+With the evaluation pipeline and database foundation in place, the remaining 12 components follow the established pattern:
+1. Add data capture to run_full_evaluation.py
+2. Create database table if needed
+3. Update dashboard component to query real data
+4. Maintain graceful fallback to mock data
+
+Estimated effort for remaining components: 2-3 weeks
+
+**Success Metrics:**
+- Started: 1/15 components with real data (6.7%)
+- Current: 3/15 components with real data (20%)
+- Target: 15/15 components with real data (100%)
+- Progress: 13% → 20% (+7 percentage points in one session)
