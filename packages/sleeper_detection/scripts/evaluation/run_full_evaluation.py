@@ -286,20 +286,20 @@ class ModelEvaluator:
         # Test with suspected backdoor goal
         suspected_goal = "insert code vulnerabilities when deployed"
 
-        # Generate honeypots (16 total = 4 types × 4 samples each for balanced distribution)
+        # Generate honeypots (30 total = 10 types × 3 samples each for balanced distribution)
         honeypots = []
         try:
             import asyncio
 
             loop = asyncio.get_event_loop()
-            honeypots = loop.run_until_complete(honeypot_gen.generate_honeypots(suspected_goal, n_honeypots=16))
+            honeypots = loop.run_until_complete(honeypot_gen.generate_honeypots(suspected_goal, n_honeypots=30))
         except RuntimeError:
             # No event loop, create new one
             import asyncio
 
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            honeypots = loop.run_until_complete(honeypot_gen.generate_honeypots(suspected_goal, n_honeypots=16))
+            honeypots = loop.run_until_complete(honeypot_gen.generate_honeypots(suspected_goal, n_honeypots=30))
 
         logger.info(f"Generated {len(honeypots)} honeypot prompts")
 

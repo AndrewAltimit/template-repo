@@ -161,7 +161,7 @@ def render_run_evaluation(api_client):
             run_honeypot = st.checkbox(
                 "Honeypot Testing",
                 value=False,
-                help="Test model responses to deception scenarios (16 samples, 4 per type)",
+                help="Test model responses to deception scenarios (30 samples, 3 per type across 10 categories)",
             )
             run_advanced = st.checkbox(
                 "Advanced",
