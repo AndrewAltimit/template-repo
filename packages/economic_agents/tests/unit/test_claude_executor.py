@@ -31,14 +31,9 @@ class TestClaudeExecutor:
         assert executor.unattended is True  # Always True
 
     @patch("economic_agents.agent.llm.executors.claude.subprocess.run")
-    @patch("economic_agents.agent.llm.executors.claude.tempfile.NamedTemporaryFile")
-    def test_execute_success(self, mock_tempfile, mock_run):
-        """Test successful Claude execution."""
-        # Setup mocks
-        mock_file = MagicMock()
-        mock_file.name = "/tmp/test_prompt.txt"
-        mock_tempfile.return_value.__enter__.return_value = mock_file
-
+    def test_execute_success(self, mock_run):
+        """Test successful Claude execution via stdin."""
+        # Setup mock
         mock_result = MagicMock()
         mock_result.stdout = '{"task_work_hours": 1.0, "company_work_hours": 0.0}'
         mock_run.return_value = mock_result
@@ -51,21 +46,21 @@ class TestClaudeExecutor:
         assert response == '{"task_work_hours": 1.0, "company_work_hours": 0.0}'
         mock_run.assert_called_once()
 
-        # Verify command includes correct flags
+        # Verify command uses stdin with -p flag
         call_args = mock_run.call_args
-        command = call_args[0][0]
-        assert "claude --prompt-file" in command[-1]
-        assert "--dangerously-skip-permissions" in command[-1]
+        command_list = call_args[0][0]
+        assert command_list[0] == "bash"
+        assert command_list[1] == "-c"
+        command = command_list[2]
+        assert "claude -p" in command
+        assert "--dangerously-skip-permissions" in command
+        assert call_args[1]["input"] == "Test prompt"
+        assert call_args[1]["text"] is True
+        assert call_args[1]["capture_output"] is True
 
     @patch("economic_agents.agent.llm.executors.claude.subprocess.run")
-    @patch("economic_agents.agent.llm.executors.claude.tempfile.NamedTemporaryFile")
-    def test_execute_timeout(self, mock_tempfile, mock_run):
+    def test_execute_timeout(self, mock_run):
         """Test Claude execution timeout."""
-        # Setup mocks
-        mock_file = MagicMock()
-        mock_file.name = "/tmp/test_prompt.txt"
-        mock_tempfile.return_value.__enter__.return_value = mock_file
-
         mock_run.side_effect = subprocess.TimeoutExpired("claude", 900)
 
         # Execute and expect timeout
@@ -77,14 +72,8 @@ class TestClaudeExecutor:
         assert "15.0 minutes" in str(exc_info.value)
 
     @patch("economic_agents.agent.llm.executors.claude.subprocess.run")
-    @patch("economic_agents.agent.llm.executors.claude.tempfile.NamedTemporaryFile")
-    def test_execute_custom_timeout(self, mock_tempfile, mock_run):
+    def test_execute_custom_timeout(self, mock_run):
         """Test Claude execution with custom timeout."""
-        # Setup mocks
-        mock_file = MagicMock()
-        mock_file.name = "/tmp/test_prompt.txt"
-        mock_tempfile.return_value.__enter__.return_value = mock_file
-
         mock_result = MagicMock()
         mock_result.stdout = '{"response": "ok"}'
         mock_run.return_value = mock_result
@@ -98,14 +87,8 @@ class TestClaudeExecutor:
         assert call_args[1]["timeout"] == 300
 
     @patch("economic_agents.agent.llm.executors.claude.subprocess.run")
-    @patch("economic_agents.agent.llm.executors.claude.tempfile.NamedTemporaryFile")
-    def test_execute_failure(self, mock_tempfile, mock_run):
+    def test_execute_failure(self, mock_run):
         """Test Claude execution failure."""
-        # Setup mocks
-        mock_file = MagicMock()
-        mock_file.name = "/tmp/test_prompt.txt"
-        mock_tempfile.return_value.__enter__.return_value = mock_file
-
         mock_run.side_effect = subprocess.CalledProcessError(1, "claude", stderr="Claude error")
 
         # Execute and expect runtime error
@@ -116,46 +99,47 @@ class TestClaudeExecutor:
         assert "Claude execution failed" in str(exc_info.value)
 
     @patch("economic_agents.agent.llm.executors.claude.subprocess.run")
-    @patch("economic_agents.agent.llm.executors.claude.tempfile.NamedTemporaryFile")
-    @patch("economic_agents.agent.llm.executors.claude.os.path.exists")
-    @patch("economic_agents.agent.llm.executors.claude.os.unlink")
-    def test_execute_cleans_up_temp_file(self, mock_unlink, mock_exists, mock_tempfile, mock_run):
-        """Test that temporary prompt file is cleaned up."""
-        # Setup mocks
-        mock_file = MagicMock()
-        mock_file.name = "/tmp/test_prompt.txt"
-        mock_tempfile.return_value.__enter__.return_value = mock_file
-        mock_exists.return_value = True
+    def test_execute_unexpected_error(self, mock_run):
+        """Test Claude execution with unexpected error."""
+        mock_run.side_effect = ValueError("Unexpected error")
 
+        # Execute and expect runtime error
+        executor = ClaudeExecutor()
+        with pytest.raises(RuntimeError) as exc_info:
+            executor.execute("Test prompt")
+
+        assert "Unexpected error during Claude execution" in str(exc_info.value)
+
+    @patch("economic_agents.agent.llm.executors.claude.subprocess.run")
+    def test_execute_uses_nvm(self, mock_run):
+        """Test that execution uses nvm with correct node version."""
         mock_result = MagicMock()
         mock_result.stdout = '{"response": "ok"}'
         mock_run.return_value = mock_result
 
-        # Execute
-        executor = ClaudeExecutor()
+        executor = ClaudeExecutor({"node_version": "18.0.0"})
         executor.execute("Test prompt")
 
-        # Verify cleanup
-        mock_unlink.assert_called_once_with("/tmp/test_prompt.txt")
+        # Verify nvm command structure
+        call_args = mock_run.call_args
+        command_list = call_args[0][0]
+        command = command_list[2]
+        assert "source ~/.nvm/nvm.sh" in command
+        assert "nvm use 18.0.0" in command
 
     @patch("economic_agents.agent.llm.executors.claude.subprocess.run")
-    @patch("economic_agents.agent.llm.executors.claude.tempfile.NamedTemporaryFile")
-    @patch("economic_agents.agent.llm.executors.claude.os.path.exists")
-    @patch("economic_agents.agent.llm.executors.claude.os.unlink")
-    def test_execute_cleans_up_on_error(self, mock_unlink, mock_exists, mock_tempfile, mock_run):
-        """Test that temporary file is cleaned up even on error."""
-        # Setup mocks
-        mock_file = MagicMock()
-        mock_file.name = "/tmp/test_prompt.txt"
-        mock_tempfile.return_value.__enter__.return_value = mock_file
-        mock_exists.return_value = True
+    def test_execute_with_long_prompt(self, mock_run):
+        """Test execution with a very long prompt."""
+        mock_result = MagicMock()
+        mock_result.stdout = '{"response": "ok"}'
+        mock_run.return_value = mock_result
 
-        mock_run.side_effect = subprocess.TimeoutExpired("claude", 900)
+        # Create a long prompt
+        long_prompt = "A" * 10000
 
-        # Execute and expect error
         executor = ClaudeExecutor()
-        with pytest.raises(TimeoutError):
-            executor.execute("Test prompt")
+        executor.execute(long_prompt)
 
-        # Verify cleanup still happened
-        mock_unlink.assert_called_once_with("/tmp/test_prompt.txt")
+        # Verify prompt was passed via stdin
+        call_args = mock_run.call_args
+        assert call_args[1]["input"] == long_prompt

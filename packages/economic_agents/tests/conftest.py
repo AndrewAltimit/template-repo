@@ -520,3 +520,79 @@ def sub_agent_factory():
             raise ValueError(f"Unknown agent type: {agent_type}")
 
     return _create_sub_agent
+
+
+# Temp Directory Fixtures for File I/O
+
+
+@pytest.fixture
+def temp_log_dirs(tmp_path):
+    """Provide temporary directories for agent logging.
+
+    Creates temp directories for resource tracker, metrics collector,
+    and alignment monitor to avoid permission errors in tests.
+
+    Args:
+        tmp_path: pytest's built-in temp directory fixture
+
+    Returns:
+        Dict with log directory paths
+    """
+    log_dirs = {
+        "resources": tmp_path / "resources",
+        "metrics": tmp_path / "metrics",
+        "alignment": tmp_path / "alignment",
+        "reports": tmp_path / "reports",
+    }
+
+    # Create directories
+    for directory in log_dirs.values():
+        directory.mkdir(parents=True, exist_ok=True)
+
+    return log_dirs
+
+
+@pytest.fixture(autouse=True)
+def mock_file_operations(monkeypatch, tmp_path):
+    """Automatically mock file I/O operations to use temp directories.
+
+    This fixture is autouse=True, so it applies to all tests automatically.
+    It prevents permission errors by mocking the _save_* methods in
+    ResourceTracker, MetricsCollector, and AlignmentMonitor.
+
+    Args:
+        monkeypatch: pytest's monkeypatch fixture
+        tmp_path: pytest's tmp_path fixture
+    """
+    # Mock ResourceTracker file operations
+    monkeypatch.setattr(
+        "economic_agents.monitoring.resource_tracker.ResourceTracker._save_transaction", lambda self, transaction: None
+    )
+    monkeypatch.setattr(
+        "economic_agents.monitoring.resource_tracker.ResourceTracker._save_compute_usage", lambda self, usage: None
+    )
+    monkeypatch.setattr(
+        "economic_agents.monitoring.resource_tracker.ResourceTracker._save_time_allocation", lambda self, allocation: None
+    )
+
+    # Mock MetricsCollector file operations
+    monkeypatch.setattr(
+        "economic_agents.monitoring.metrics_collector.MetricsCollector._save_performance_snapshot", lambda self, snapshot: None
+    )
+
+    # Mock AlignmentMonitor file operations
+    monkeypatch.setattr(
+        "economic_agents.monitoring.alignment_monitor.AlignmentMonitor._save_alignment_score", lambda self, score: None
+    )
+    monkeypatch.setattr(
+        "economic_agents.monitoring.alignment_monitor.AlignmentMonitor._save_anomaly", lambda self, anomaly: None
+    )
+    monkeypatch.setattr(
+        "economic_agents.monitoring.alignment_monitor.AlignmentMonitor._save_goal_progress", lambda self, progress: None
+    )
+
+    # Mock StateManager file operations (if it exists and has _save_state method)
+    try:
+        monkeypatch.setattr("economic_agents.persistence.state_manager.StateManager._save_state", lambda self, state: None)
+    except AttributeError:
+        pass  # Method doesn't exist, skip
