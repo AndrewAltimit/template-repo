@@ -86,6 +86,7 @@ class AgentManager:
                 compute=compute,
                 marketplace=marketplace,
                 config={
+                    "mode": mode,
                     "survival_buffer_hours": 20.0,
                     "company_threshold": company_threshold,
                 },

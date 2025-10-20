@@ -439,40 +439,42 @@ def main():
         # Show configuration form
         st.sidebar.info("No agent running")
 
-        with st.sidebar.form("agent_config"):
-            st.subheader("Agent Configuration")
+        # Mode selection OUTSIDE form for dynamic updates
+        st.sidebar.subheader("Agent Configuration")
 
-            mode = st.selectbox(
-                "Mode",
-                options=["survival", "company"],
-                help="Agent operation mode",
-                index=0,
+        mode = st.sidebar.selectbox(
+            "Mode",
+            options=["survival", "company"],
+            help="Agent operation mode",
+            index=0,
+        )
+
+        # Show mode-specific guidance (updates dynamically)
+        if mode == "survival":
+            st.sidebar.info(
+                "💼 **Survival Mode**\n\n"
+                "Agent focuses on task completion to earn income.\n\n"
+                "**Recommended Settings:**\n"
+                "- Balance: $100-$500\n"
+                "- Cycles: 50-100\n"
+                "- Compute: 100h"
             )
+            default_balance = 100.0
+            default_cycles = 50
+        else:
+            st.sidebar.info(
+                "🏢 **Company Mode**\n\n"
+                "Agent forms and operates a company with sub-agents.\n\n"
+                "**Recommended Settings:**\n"
+                "- Balance: $50,000+ (company costs ~$15k)\n"
+                "- Cycles: 100-200 (needs time to operate)\n"
+                "- Compute: 200h"
+            )
+            default_balance = 50000.0
+            default_cycles = 100
 
-            # Show mode-specific guidance
-            if mode == "survival":
-                st.info(
-                    "💼 **Survival Mode**\n\n"
-                    "Agent focuses on task completion to earn income.\n\n"
-                    "**Recommended Settings:**\n"
-                    "- Balance: $100-$500\n"
-                    "- Cycles: 50-100\n"
-                    "- Compute: 100h"
-                )
-                default_balance = 100.0
-                default_cycles = 50
-            else:
-                st.info(
-                    "🏢 **Company Mode**\n\n"
-                    "Agent forms and operates a company with sub-agents.\n\n"
-                    "**Recommended Settings:**\n"
-                    "- Balance: $50,000+ (company costs ~$15k)\n"
-                    "- Cycles: 100-200 (needs time to operate)\n"
-                    "- Compute: 200h"
-                )
-                default_balance = 50000.0
-                default_cycles = 100
-
+        # Form for other inputs
+        with st.sidebar.form("agent_config"):
             max_cycles = st.number_input(
                 "Max Cycles",
                 min_value=1,

@@ -51,6 +51,7 @@ class AutonomousAgent:
             balance=wallet.get_balance(),
             compute_hours_remaining=compute.get_status().hours_remaining,
             survival_buffer_hours=self.config.get("survival_buffer_hours", 24.0),
+            mode=self.config.get("mode", "survival"),
         )
         self.decision_engine = DecisionEngine(config)
         self.decision_logger = DecisionLogger()
