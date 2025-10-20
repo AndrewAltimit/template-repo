@@ -64,6 +64,23 @@ services:
     stdin_open: true
     tty: true
 
+  # Demo: Agent + Backend in same process for live dashboard
+  demo:
+    build: .
+    container_name: economic-agents-demo
+    ports:
+      - "8000:8000"
+      - "8501:8501"
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      - PYTHONPATH=/app
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    command: python run_demo.py --cycles 100
+    stdin_open: true
+    tty: true
+
   # Test Runner
   test:
     build: .
