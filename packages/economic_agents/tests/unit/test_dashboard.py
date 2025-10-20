@@ -33,7 +33,7 @@ def setup_dashboard_state(tmp_path):
         {
             "agent_id": "test-agent-1",
             "balance": 150.0,
-            "compute_hours": 48.0,
+            "compute_hours_remaining": 48.0,
             "mode": "entrepreneur",
             "current_activity": "company_work",
             "company_exists": True,

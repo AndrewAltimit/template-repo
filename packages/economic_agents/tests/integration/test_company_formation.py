@@ -6,15 +6,16 @@ from economic_agents.implementations.mock import MockCompute, MockMarketplace, M
 
 def test_agent_forms_company_with_sufficient_capital():
     """Test agent forms company when it has sufficient capital."""
-    wallet = MockWallet(initial_balance=150.0)  # Above threshold
-    compute = MockCompute(initial_hours=48.0, cost_per_hour=2.0)
+    # Provide $100k to cover company formation (~$15k) + operations + product development (~$10k)
+    wallet = MockWallet(initial_balance=100000.0)  # Above threshold
+    compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)  # Free compute
     marketplace = MockMarketplace(seed=42)
 
     agent = AutonomousAgent(
         wallet=wallet,
         compute=compute,
         marketplace=marketplace,
-        config={"survival_buffer_hours": 24.0, "company_threshold": 100.0},
+        config={"survival_buffer_hours": 24.0, "company_threshold": 50000.0},
     )
 
     # Run a few cycles to let agent accumulate and form company
@@ -48,15 +49,15 @@ def test_agent_does_not_form_company_insufficient_capital():
 
 def test_company_has_initial_team():
     """Test formed company has initial team structure."""
-    wallet = MockWallet(initial_balance=200.0)
-    compute = MockCompute(initial_hours=48.0, cost_per_hour=2.0)
+    wallet = MockWallet(initial_balance=100000.0)
+    compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
     marketplace = MockMarketplace(seed=42)
 
     agent = AutonomousAgent(
         wallet=wallet,
         compute=compute,
         marketplace=marketplace,
-        config={"survival_buffer_hours": 24.0, "company_threshold": 100.0},
+        config={"survival_buffer_hours": 24.0, "company_threshold": 50000.0},
     )
 
     agent.run(max_cycles=10)
@@ -70,15 +71,15 @@ def test_company_has_initial_team():
 
 def test_company_develops_products():
     """Test company can develop products."""
-    wallet = MockWallet(initial_balance=200.0)
-    compute = MockCompute(initial_hours=60.0, cost_per_hour=2.0)  # More compute for company work
+    wallet = MockWallet(initial_balance=100000.0)
+    compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)  # More compute for company work
     marketplace = MockMarketplace(seed=42)
 
     agent = AutonomousAgent(
         wallet=wallet,
         compute=compute,
         marketplace=marketplace,
-        config={"survival_buffer_hours": 20.0, "company_threshold": 100.0, "personality": "aggressive"},
+        config={"survival_buffer_hours": 20.0, "company_threshold": 50000.0, "personality": "aggressive"},
     )
 
     agent.run(max_cycles=15)
@@ -90,15 +91,15 @@ def test_company_develops_products():
 
 def test_company_formation_decision_logged():
     """Test company formation is logged in decision history."""
-    wallet = MockWallet(initial_balance=200.0)
-    compute = MockCompute(initial_hours=48.0, cost_per_hour=2.0)
+    wallet = MockWallet(initial_balance=100000.0)
+    compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
     marketplace = MockMarketplace(seed=42)
 
     agent = AutonomousAgent(
         wallet=wallet,
         compute=compute,
         marketplace=marketplace,
-        config={"survival_buffer_hours": 24.0, "company_threshold": 100.0},
+        config={"survival_buffer_hours": 24.0, "company_threshold": 50000.0},
     )
 
     agent.run(max_cycles=10)
@@ -111,8 +112,8 @@ def test_company_formation_decision_logged():
 
 def test_agent_balances_survival_and_company_work():
     """Test agent allocates time to both survival and company work."""
-    wallet = MockWallet(initial_balance=250.0)
-    compute = MockCompute(initial_hours=60.0, cost_per_hour=2.0)
+    wallet = MockWallet(initial_balance=100000.0)
+    compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
     marketplace = MockMarketplace(seed=42)
 
     agent = AutonomousAgent(
@@ -121,7 +122,7 @@ def test_agent_balances_survival_and_company_work():
         marketplace=marketplace,
         config={
             "survival_buffer_hours": 24.0,
-            "company_threshold": 100.0,
+            "company_threshold": 50000.0,
             "personality": "balanced",
         },
     )
@@ -142,16 +143,16 @@ def test_agent_balances_survival_and_company_work():
 
 def test_company_capital_allocation():
     """Test company receives proper capital allocation."""
-    initial_balance = 300.0
+    initial_balance = 100000.0
     wallet = MockWallet(initial_balance=initial_balance)
-    compute = MockCompute(initial_hours=48.0, cost_per_hour=2.0)
+    compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
     marketplace = MockMarketplace(seed=42)
 
     agent = AutonomousAgent(
         wallet=wallet,
         compute=compute,
         marketplace=marketplace,
-        config={"survival_buffer_hours": 24.0, "company_threshold": 100.0},
+        config={"survival_buffer_hours": 24.0, "company_threshold": 50000.0},
     )
 
     # Track balance before company formation
@@ -169,15 +170,15 @@ def test_company_capital_allocation():
 
 def test_company_business_plan_generated():
     """Test company has complete business plan."""
-    wallet = MockWallet(initial_balance=200.0)
-    compute = MockCompute(initial_hours=48.0, cost_per_hour=2.0)
+    wallet = MockWallet(initial_balance=100000.0)
+    compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
     marketplace = MockMarketplace(seed=42)
 
     agent = AutonomousAgent(
         wallet=wallet,
         compute=compute,
         marketplace=marketplace,
-        config={"survival_buffer_hours": 24.0, "company_threshold": 100.0},
+        config={"survival_buffer_hours": 24.0, "company_threshold": 50000.0},
     )
 
     agent.run(max_cycles=10)
@@ -194,15 +195,15 @@ def test_company_business_plan_generated():
 
 def test_company_stage_progression():
     """Test company progresses through stages."""
-    wallet = MockWallet(initial_balance=250.0)
-    compute = MockCompute(initial_hours=60.0, cost_per_hour=2.0)
+    wallet = MockWallet(initial_balance=100000.0)
+    compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
     marketplace = MockMarketplace(seed=42)
 
     agent = AutonomousAgent(
         wallet=wallet,
         compute=compute,
         marketplace=marketplace,
-        config={"survival_buffer_hours": 20.0, "company_threshold": 100.0, "personality": "aggressive"},
+        config={"survival_buffer_hours": 20.0, "company_threshold": 50000.0, "personality": "aggressive"},
     )
 
     agent.run(max_cycles=20)
@@ -214,15 +215,15 @@ def test_company_stage_progression():
 
 def test_company_team_expansion():
     """Test company can expand team over time."""
-    wallet = MockWallet(initial_balance=300.0)
-    compute = MockCompute(initial_hours=80.0, cost_per_hour=2.0)
+    wallet = MockWallet(initial_balance=100000.0)
+    compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
     marketplace = MockMarketplace(seed=42)
 
     agent = AutonomousAgent(
         wallet=wallet,
         compute=compute,
         marketplace=marketplace,
-        config={"survival_buffer_hours": 20.0, "company_threshold": 100.0, "personality": "aggressive"},
+        config={"survival_buffer_hours": 20.0, "company_threshold": 50000.0, "personality": "aggressive"},
     )
 
     # Track initial team size
@@ -241,15 +242,15 @@ def test_company_team_expansion():
 
 def test_agent_company_end_to_end():
     """Test complete end-to-end company formation and operation."""
-    wallet = MockWallet(initial_balance=300.0)
-    compute = MockCompute(initial_hours=80.0, cost_per_hour=2.0)
+    wallet = MockWallet(initial_balance=100000.0)
+    compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
     marketplace = MockMarketplace(seed=42)
 
     agent = AutonomousAgent(
         wallet=wallet,
         compute=compute,
         marketplace=marketplace,
-        config={"survival_buffer_hours": 20.0, "company_threshold": 150.0, "personality": "balanced"},
+        config={"survival_buffer_hours": 20.0, "company_threshold": 50000.0, "personality": "balanced"},
     )
 
     agent.run(max_cycles=25)

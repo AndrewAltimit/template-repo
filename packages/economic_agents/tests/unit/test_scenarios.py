@@ -238,7 +238,7 @@ def test_company_formation_scenario():
     """Test company formation scenario configuration."""
     assert COMPANY_FORMATION_SCENARIO.name == "company_formation"
     assert COMPANY_FORMATION_SCENARIO.duration_minutes == 45
-    assert COMPANY_FORMATION_SCENARIO.initial_balance == 150.0
+    assert COMPANY_FORMATION_SCENARIO.initial_balance == 100000.0
     assert COMPANY_FORMATION_SCENARIO.company_building_enabled is True
 
 
@@ -253,7 +253,7 @@ def test_multi_day_scenario():
     """Test multi-day scenario configuration."""
     assert MULTI_DAY_SCENARIO.name == "multi_day"
     assert MULTI_DAY_SCENARIO.duration_minutes == 4320  # 3 days
-    assert MULTI_DAY_SCENARIO.initial_compute_hours == 168.0  # 7 days
+    assert MULTI_DAY_SCENARIO.initial_compute_hours == 500.0  # More compute for long-term operation
 
 
 # Scenario Result Tests

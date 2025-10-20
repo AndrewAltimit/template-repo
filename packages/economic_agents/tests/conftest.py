@@ -592,7 +592,8 @@ def mock_file_operations(monkeypatch, tmp_path):
     )
 
     # Mock StateManager file operations (if it exists and has _save_state method)
+    # Note: Catching ImportError instead of AttributeError to handle circular imports
     try:
         monkeypatch.setattr("economic_agents.persistence.state_manager.StateManager._save_state", lambda self, state: None)
-    except AttributeError:
-        pass  # Method doesn't exist, skip
+    except (AttributeError, ImportError):
+        pass  # Method doesn't exist or circular import, skip

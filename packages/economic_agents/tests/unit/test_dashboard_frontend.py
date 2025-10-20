@@ -87,7 +87,7 @@ def mock_api_response():
         },
         "resources": {
             "current_balance": 150.0,
-            "transactions": [
+            "recent_transactions": [
                 {
                     "timestamp": "2023-10-20T10:00:00",
                     "type": "earning",
@@ -96,6 +96,8 @@ def mock_api_response():
                     "purpose": "task_completion",
                 }
             ],
+            "balance_trend": [100.0, 120.0, 150.0],
+            "compute_trend": [40.0, 35.0, 48.0],
             "compute_usage": [{"purpose": "task_work", "hours": 5.0}, {"purpose": "company_work", "hours": 3.0}],
         },
         "decisions": [
@@ -240,7 +242,9 @@ def test_render_agent_status_section(mock_streamlit_components, mock_api_respons
     """Test rendering agent status section."""
     from economic_agents.dashboard.frontend.streamlit_app import render_agent_status_section
 
-    render_agent_status_section(mock_api_response["status"])
+    # Mock control_status parameter added in Phase 7.5
+    control_status = {"config": {"engine_type": "rule_based"}}
+    render_agent_status_section(mock_api_response["status"], control_status)
 
     # Verify metrics were called
     assert mock_streamlit_components.metric.call_count >= 4  # Balance, compute hours, cycle, mode
@@ -310,7 +314,8 @@ def test_render_agent_status_no_data():
     from economic_agents.dashboard.frontend.streamlit_app import render_agent_status_section
 
     # Should handle empty status gracefully
-    render_agent_status_section({})
+    control_status = {"config": {"engine_type": "rule_based"}}
+    render_agent_status_section({}, control_status)
 
 
 def test_render_resource_visualization_no_transactions():
