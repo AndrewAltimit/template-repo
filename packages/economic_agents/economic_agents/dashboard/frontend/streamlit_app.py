@@ -190,7 +190,7 @@ def render_resource_visualization(resource_data: Dict[str, Any]):
 
     with col1:
         st.subheader("Current Allocation")
-        transactions = resource_data.get("transactions", [])
+        transactions = resource_data.get("recent_transactions", [])
         if transactions:
             # Calculate income vs expenses
             income = sum(t["amount"] for t in transactions if t["amount"] > 0)
@@ -211,25 +211,40 @@ def render_resource_visualization(resource_data: Dict[str, Any]):
             st.info("No transaction data yet")
 
     with col2:
-        st.subheader("Compute Usage")
-        compute_usage = resource_data.get("compute_usage", [])
-        if compute_usage:
-            # Aggregate by purpose
-            purpose_hours: Dict[str, float] = {}
-            for usage in compute_usage:
-                purpose = str(usage.get("purpose", "unknown"))
-                hours = float(usage.get("hours", 0))
-                purpose_hours[purpose] = purpose_hours.get(purpose, 0) + hours
+        st.subheader("Balance & Compute Trends")
+        balance_trend = resource_data.get("balance_trend", [])
+        compute_trend = resource_data.get("compute_trend", [])
 
-            fig = go.Figure(data=[go.Pie(labels=list(purpose_hours.keys()), values=list(purpose_hours.values()))])
-            fig.update_layout(title="Compute Hours by Purpose")
+        if balance_trend or compute_trend:
+            fig = go.Figure()
+            if balance_trend:
+                fig.add_trace(
+                    go.Scatter(y=balance_trend, mode="lines+markers", name="Balance", line=dict(color="#2ecc71", width=2))
+                )
+            if compute_trend:
+                fig.add_trace(
+                    go.Scatter(
+                        y=compute_trend,
+                        mode="lines+markers",
+                        name="Compute Hours",
+                        line=dict(color="#3498db", width=2),
+                        yaxis="y2",
+                    )
+                )
+
+            fig.update_layout(
+                title="Resource Trends",
+                yaxis=dict(title="Balance ($)", side="left"),
+                yaxis2=dict(title="Compute (h)", overlaying="y", side="right"),
+                hovermode="x unified",
+            )
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("No compute usage data yet")
+            st.info("No trend data yet")
 
     # Transaction history
     st.subheader("Transaction History")
-    transactions = resource_data.get("transactions", [])
+    transactions = resource_data.get("recent_transactions", [])
     if transactions:
         # Display recent transactions
         st.dataframe(
