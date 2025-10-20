@@ -8,6 +8,7 @@ This dashboard provides real-time visualization of:
 - Performance metrics
 """
 
+import os
 from typing import Any, Dict, List
 
 import plotly.graph_objects as go
@@ -23,13 +24,26 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Configuration
-API_BASE_URL = str(st.secrets.get("api_base_url", "http://localhost:8000"))
-
 
 def get_api_url() -> str:
-    """Get API base URL from config or default."""
-    return API_BASE_URL
+    """Get API base URL from environment, secrets, or default.
+
+    Priority:
+    1. DASHBOARD_API_URL environment variable (for Docker)
+    2. api_base_url from Streamlit secrets
+    3. http://localhost:8000 (for local development)
+    """
+    # Check environment variable first (Docker deployment)
+    env_url = os.getenv("DASHBOARD_API_URL")
+    if env_url:
+        return env_url
+
+    # Check Streamlit secrets
+    try:
+        return str(st.secrets.get("api_base_url", "http://localhost:8000"))
+    except Exception:
+        # Secrets not available, use default
+        return "http://localhost:8000"
 
 
 def fetch_agent_status() -> Dict[str, Any]:

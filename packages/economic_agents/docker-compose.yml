@@ -32,6 +32,7 @@ services:
         condition: service_healthy
     environment:
       - PYTHONPATH=/app
+      - DASHBOARD_API_URL=http://dashboard-backend:8000
 
   # Development/Testing Container
   dev:
