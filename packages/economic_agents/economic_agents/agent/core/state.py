@@ -55,6 +55,7 @@ class AgentState:
         return {
             "balance": self.balance,
             "compute_hours_remaining": self.compute_hours_remaining,
+            "survival_buffer_hours": self.survival_buffer_hours,
             "mode": self.mode,
             "is_active": self.is_active,
             "cycles_completed": self.cycles_completed,
@@ -64,4 +65,5 @@ class AgentState:
             "tasks_failed": self.tasks_failed,
             "has_company": self.has_company,
             "company_id": self.company_id,
+            "last_cycle_at": self.last_cycle_at.isoformat() if self.last_cycle_at else None,
         }

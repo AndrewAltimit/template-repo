@@ -8,7 +8,25 @@ from economic_agents.company.business_plan_generator import BusinessPlanGenerato
 from economic_agents.company.models import Company, ProductSpec
 from economic_agents.company.product_builder import ProductBuilder
 from economic_agents.company.sub_agent_manager import SubAgentManager
+from economic_agents.exceptions import CompanyBankruptError, InsufficientCapitalError
 from economic_agents.monitoring.decision_logger import DecisionLogger
+
+# Resource costs
+HIRING_COSTS = {
+    "board": 0.0,  # Advisory roles, equity-only compensation
+    "executive": 5000.0,  # One-time recruiting/onboarding cost
+    "employee": 2000.0,  # One-time recruiting/onboarding cost
+}
+
+MONTHLY_SALARIES = {
+    "board": 0.0,  # Board members work for equity
+    "executive": 15000.0,  # Executive monthly compensation
+    "employee": 10000.0,  # Employee monthly compensation
+}
+
+# Product development costs
+PRODUCT_DEVELOPMENT_COST = 10000.0  # Initial MVP development cost
+MONTHLY_PRODUCT_COST = 2000.0  # Ongoing development/maintenance per product
 
 
 class CompanyBuilder:
@@ -96,6 +114,9 @@ class CompanyBuilder:
 
         Returns:
             ID of created sub-agent
+
+        Raises:
+            InsufficientCapitalError: If company cannot afford hiring cost
         """
         # Determine agent role type
         if role == "board":
@@ -107,6 +128,19 @@ class CompanyBuilder:
         else:
             agent_role = "ic"  # Default to individual contributor
             role_type = "employee"
+
+        # Check if can afford hiring cost
+        hiring_cost = HIRING_COSTS.get(role_type, 2000.0)
+        if company.capital < hiring_cost:
+            raise InsufficientCapitalError(
+                required=hiring_cost,
+                available=company.capital,
+                operation=f"hiring {role_type} ({specialization})",
+            )
+
+        # Deduct hiring cost
+        company.capital -= hiring_cost
+        company.metrics.expenses += hiring_cost
 
         # Create sub-agent
         agent = self.sub_agent_manager.create_sub_agent(
@@ -138,7 +172,22 @@ class CompanyBuilder:
         Args:
             company: Company to develop product for
             product_type: Type of product to develop
+
+        Raises:
+            InsufficientCapitalError: If company cannot afford development cost
         """
+        # Check if can afford product development
+        if company.capital < PRODUCT_DEVELOPMENT_COST:
+            raise InsufficientCapitalError(
+                required=PRODUCT_DEVELOPMENT_COST,
+                available=company.capital,
+                operation=f"developing {product_type} product",
+            )
+
+        # Deduct development cost
+        company.capital -= PRODUCT_DEVELOPMENT_COST
+        company.metrics.expenses += PRODUCT_DEVELOPMENT_COST
+
         # Create product spec from business plan
         spec = ProductSpec(
             name=company.business_plan.product_description if company.business_plan else "Product",
@@ -160,12 +209,13 @@ class CompanyBuilder:
         if self.logger:
             self.logger.log_decision(
                 decision_type="product_development",
-                decision=f"Developed {product_type} MVP",
+                decision=f"Developed {product_type} MVP for ${PRODUCT_DEVELOPMENT_COST:,.0f}",
                 reasoning="Product development aligned with business plan",
                 context={
                     "company_id": company.id,
                     "product_name": spec.name,
                     "completion": product.completion_percentage,
+                    "cost": PRODUCT_DEVELOPMENT_COST,
                 },
                 confidence=0.75,
             )
@@ -194,6 +244,86 @@ class CompanyBuilder:
                 confidence=0.8,
             )
 
+    def calculate_monthly_burn_rate(self, company: Company) -> float:
+        """Calculate company's monthly burn rate.
+
+        Args:
+            company: Company to calculate burn rate for
+
+        Returns:
+            Monthly burn rate (expenses per month)
+        """
+        monthly_burn = 0.0
+
+        # Count team members by role
+        board_count = len(company.board_member_ids)
+        executive_count = len(company.executive_ids)
+        employee_count = len(company.employee_ids)
+
+        # Add salaries
+        monthly_burn += board_count * MONTHLY_SALARIES["board"]
+        monthly_burn += executive_count * MONTHLY_SALARIES["executive"]
+        monthly_burn += employee_count * MONTHLY_SALARIES["employee"]
+
+        # Add product maintenance costs
+        monthly_burn += len(company.products) * MONTHLY_PRODUCT_COST
+
+        return monthly_burn
+
+    def simulate_monthly_operations(self, company: Company) -> Dict:
+        """Simulate one month of company operations.
+
+        Args:
+            company: Company to simulate operations for
+
+        Returns:
+            Dict with operation results
+
+        Raises:
+            CompanyBankruptError: If company runs out of capital
+        """
+        burn_rate = self.calculate_monthly_burn_rate(company)
+
+        # Check if company can afford operations
+        if company.capital < burn_rate:
+            deficit = burn_rate - company.capital
+            raise CompanyBankruptError(
+                company_name=company.name,
+                deficit=deficit,
+            )
+
+        # Deduct monthly costs
+        company.capital -= burn_rate
+        company.metrics.expenses += burn_rate
+
+        # Update metrics
+        company.metrics.months_active = company.metrics.months_active + 1 if hasattr(company.metrics, "months_active") else 1
+
+        # Log decision
+        if self.logger:
+            month_num = company.metrics.months_active if hasattr(company.metrics, "months_active") else 1
+            self.logger.log_decision(
+                decision_type="monthly_operations",
+                decision=f"Completed month {month_num} operations",
+                reasoning=f"Monthly burn rate: ${burn_rate:,.2f}",
+                context={
+                    "company_id": company.id,
+                    "burn_rate": burn_rate,
+                    "remaining_capital": company.capital,
+                    "runway_months": company.capital / burn_rate if burn_rate > 0 else float("inf"),
+                    "team_size": len(company.get_all_sub_agent_ids()),
+                    "products": len(company.products),
+                },
+                confidence=0.95,
+            )
+
+        return {
+            "success": True,
+            "burn_rate": burn_rate,
+            "remaining_capital": company.capital,
+            "runway_months": company.capital / burn_rate if burn_rate > 0 else float("inf"),
+        }
+
     def get_company_status(self, company: Company) -> Dict:
         """Get comprehensive company status.
 
@@ -203,6 +333,8 @@ class CompanyBuilder:
         Returns:
             Status dictionary
         """
+        burn_rate = self.calculate_monthly_burn_rate(company)
+
         return {
             "company": company.to_dict(),
             "team": self.sub_agent_manager.get_team_summary(),
@@ -214,4 +346,10 @@ class CompanyBuilder:
                 }
                 for p in company.products
             ],
+            "financials": {
+                "capital": company.capital,
+                "monthly_burn_rate": burn_rate,
+                "runway_months": company.capital / burn_rate if burn_rate > 0 else float("inf"),
+                "total_expenses": company.metrics.expenses,
+            },
         }

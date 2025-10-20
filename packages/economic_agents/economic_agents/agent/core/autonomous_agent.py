@@ -11,7 +11,9 @@ from economic_agents.company.company_builder import CompanyBuilder
 from economic_agents.company.models import Company
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
 from economic_agents.interfaces.marketplace import TaskSubmission
+from economic_agents.investment import InvestmentStage, ProposalGenerator
 from economic_agents.monitoring.decision_logger import DecisionLogger
+from economic_agents.persistence import StateManager
 
 
 class AutonomousAgent:
@@ -87,7 +89,12 @@ class AutonomousAgent:
             company_result = self._form_company()
             decision_record["company_formation"] = company_result
 
-        # 6. Company work if allocated and company exists
+        # 6. Check if should seek investment
+        if self.state.has_company and self.company and self._should_seek_investment():
+            investment_result = self._seek_investment()
+            decision_record["investment_seeking"] = investment_result
+
+        # 7. Company work if allocated and company exists
         if allocation.company_work_hours > 0 and self.state.has_company:
             company_result = self._do_company_work(allocation.company_work_hours)
             decision_record["company_work"] = company_result
@@ -198,6 +205,84 @@ class AutonomousAgent:
             "team_size": len(self.company.get_all_sub_agent_ids()),
         }
 
+    def _should_seek_investment(self) -> bool:
+        """Determine if company should seek investment.
+
+        Returns:
+            True if company should seek investment
+        """
+        if not self.company:
+            return False
+
+        # Don't seek if already seeking or funded recently
+        if self.company.stage == "seeking_investment":
+            return False
+
+        # Seek investment if capital is low
+        company_threshold = self.config.get("company_threshold", 100.0)
+        capital_low_threshold = company_threshold * 0.3  # 30% of formation threshold
+
+        if self.company.capital < capital_low_threshold:
+            return True
+
+        # Seek investment if in development stage with products but low capital
+        if self.company.stage == "development" and len(self.company.products) > 0:
+            if self.company.capital < company_threshold * 0.5:  # 50% threshold
+                return True
+
+        return False
+
+    def _seek_investment(self) -> Dict[str, Any]:
+        """Generate and prepare investment proposal.
+
+        Returns:
+            Dict with investment seeking results
+        """
+        if not self.company:
+            return {"success": False, "error": "No company exists"}
+
+        # Determine appropriate investment stage
+        if not self.company.funding_rounds or len(self.company.funding_rounds) == 0:
+            stage = InvestmentStage.SEED
+        elif len(self.company.funding_rounds) == 1:
+            stage = InvestmentStage.SERIES_A
+        else:
+            stage = InvestmentStage.SERIES_B
+
+        # Generate investment proposal
+        generator = ProposalGenerator()
+        proposal = generator.generate_proposal(self.company, stage)
+
+        # Update company stage to seeking investment
+        previous_stage = self.company.stage
+        self.company.stage = "seeking_investment"
+
+        # Log decision
+        self.decision_logger.log_decision(
+            decision_type="seek_investment",
+            decision=f"Seeking ${proposal.amount_requested:,.0f} in {stage.value} funding",
+            reasoning=f"Company capital low ({self.company.capital:.2f}), need funding to continue operations",
+            context={
+                "company_id": self.company.id,
+                "proposal_id": proposal.id,
+                "amount_requested": proposal.amount_requested,
+                "valuation": proposal.valuation,
+                "equity_offered": proposal.equity_offered,
+                "previous_stage": previous_stage,
+                "current_capital": self.company.capital,
+            },
+            confidence=0.8,
+        )
+
+        return {
+            "success": True,
+            "proposal_id": proposal.id,
+            "amount_requested": proposal.amount_requested,
+            "valuation": proposal.valuation,
+            "equity_offered": proposal.equity_offered,
+            "stage": stage.value,
+        }
+
     def _do_company_work(self, hours: float) -> Dict[str, Any]:
         """Perform company building work.
 
@@ -297,3 +382,62 @@ class AutonomousAgent:
     def get_decisions(self) -> list:
         """Get all decision records."""
         return self.decisions
+
+    def save_state(self, state_manager: StateManager | None = None) -> str:
+        """Save agent state to disk.
+
+        Args:
+            state_manager: Optional StateManager instance (creates new one if None)
+
+        Returns:
+            Path to saved state file
+        """
+        if state_manager is None:
+            state_manager = StateManager()
+
+        saved_path: str = state_manager.save_agent_state(self.agent_id, self.state, self.decisions)
+        return saved_path
+
+    @classmethod
+    def load_state(
+        cls,
+        agent_id: str,
+        wallet: MockWallet,
+        compute: MockCompute,
+        marketplace: MockMarketplace,
+        config: dict | None = None,
+        state_manager: StateManager | None = None,
+    ) -> "AutonomousAgent":
+        """Load agent state from disk and create agent instance.
+
+        Args:
+            agent_id: Agent identifier to load
+            wallet: Wallet implementation
+            compute: Compute provider implementation
+            marketplace: Marketplace implementation
+            config: Agent configuration
+            state_manager: Optional StateManager instance
+
+        Returns:
+            Restored AutonomousAgent instance
+
+        Raises:
+            FileNotFoundError: If no saved state exists for agent_id
+        """
+        if state_manager is None:
+            state_manager = StateManager()
+
+        # Load saved state
+        saved_data = state_manager.load_agent_state(agent_id)
+
+        # Create agent instance
+        agent = cls(wallet, compute, marketplace, config)
+        agent.agent_id = agent_id
+
+        # Restore state
+        agent.state = saved_data["state"]
+
+        # Restore decisions
+        agent.decisions = saved_data["decisions"]
+
+        return agent
