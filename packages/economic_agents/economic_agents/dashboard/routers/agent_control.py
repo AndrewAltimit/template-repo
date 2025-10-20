@@ -32,6 +32,8 @@ async def start_agent(request: AgentStartRequest) -> AgentStartResponse:
             initial_balance=request.initial_balance,
             initial_compute_hours=request.initial_compute_hours,
             compute_cost_per_hour=request.compute_cost_per_hour,
+            engine_type=request.engine_type,
+            llm_timeout=request.llm_timeout,
         )
         return AgentStartResponse(**result)
     except RuntimeError as e:

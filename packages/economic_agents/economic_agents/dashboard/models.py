@@ -30,6 +30,12 @@ class DecisionResponse(BaseModel):
     confidence: float
     outcome: str | None = None
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    # LLM-specific fields
+    engine_type: str | None = None  # "llm" or "rule_based"
+    execution_time_seconds: float | None = None
+    fallback_used: bool | None = None
+    validation_passed: bool | None = None
+    raw_response: str | None = None  # Full Claude response
 
 
 class ResourceStatusResponse(BaseModel):
@@ -103,6 +109,16 @@ class AgentStartRequest(BaseModel):
     initial_balance: float = Field(default=100.0, ge=0.0, description="Starting balance in dollars")
     initial_compute_hours: float = Field(default=100.0, ge=0.0, description="Starting compute hours available")
     compute_cost_per_hour: float = Field(default=0.0, ge=0.0, description="Cost per compute hour")
+    engine_type: str = Field(
+        default="rule_based",
+        description="Decision engine: 'rule_based' (fast, deterministic) or 'llm' (Claude-powered, autonomous)",
+    )
+    llm_timeout: int = Field(
+        default=120,
+        ge=30,
+        le=900,
+        description="Timeout for LLM decisions in seconds (only used if engine_type='llm')",
+    )
 
 
 class AgentStartResponse(BaseModel):
@@ -138,3 +154,18 @@ class AgentControlStatusResponse(BaseModel):
     compute_hours: float | None = None
     has_company: bool | None = None
     tasks_completed: int | None = None
+
+
+class LLMDecisionResponse(BaseModel):
+    """Detailed LLM decision information."""
+
+    decision_id: str
+    timestamp: datetime
+    agent_type: str
+    state_snapshot: Dict[str, Any]
+    prompt: str
+    raw_response: str
+    parsed_decision: Dict[str, Any]
+    validation_passed: bool
+    execution_time_seconds: float
+    fallback_used: bool

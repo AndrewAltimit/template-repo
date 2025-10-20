@@ -79,6 +79,17 @@ def fetch_decisions(limit: int = 50) -> List[Dict[str, Any]]:
         return []
 
 
+def fetch_llm_decisions(limit: int = 50) -> List[Dict[str, Any]]:
+    """Fetch LLM decision history from API."""
+    try:
+        response = requests.get(f"{get_api_url()}/api/decisions/llm?limit={limit}", timeout=5)
+        response.raise_for_status()
+        return list(response.json())
+    except Exception:
+        # LLM endpoint may not be available or no LLM decisions yet
+        return []
+
+
 def fetch_company_info() -> Dict[str, Any]:
     """Fetch company information from API."""
     try:
@@ -144,13 +155,25 @@ def stop_agent() -> bool:
         return False
 
 
-def render_agent_status_section(status_data: Dict[str, Any]):
+def render_agent_status_section(status_data: Dict[str, Any], control_status: Dict[str, Any]):
     """Render agent status overview section."""
     st.header("Agent Status")
 
     if not status_data:
         st.warning("No agent status data available")
         return
+
+    # Show engine type indicator
+    config = control_status.get("config", {})
+    engine_type = config.get("engine_type", "rule_based")
+
+    if engine_type == "llm":
+        st.info(
+            f"**Decision Engine:** Claude-Powered (LLM) - Autonomous strategic reasoning "
+            f"with {config.get('llm_timeout', 120)}s timeout"
+        )
+    else:
+        st.info("**Decision Engine:** Rule-Based - Fast deterministic heuristics")
 
     # Create columns for key metrics
     col1, col2, col3, col4 = st.columns(4)
@@ -350,6 +373,101 @@ def render_company_section(company_data: Dict[str, Any]):
         st.info("No sub-agents yet")
 
 
+def render_llm_decisions_section(llm_decisions: list):
+    """Render LLM decision history with detailed Claude reasoning."""
+    st.header("LLM Decision History (Claude)")
+
+    if not llm_decisions:
+        st.info("No LLM decisions yet (agent may be using rule-based engine)")
+        return
+
+    # Summary metrics
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("Total LLM Decisions", len(llm_decisions))
+
+    with col2:
+        fallback_count = sum(1 for d in llm_decisions if d.get("fallback_used", False))
+        st.metric("Fallback Used", f"{fallback_count}/{len(llm_decisions)}")
+
+    with col3:
+        avg_time = sum(d.get("execution_time_seconds", 0) for d in llm_decisions) / len(llm_decisions)
+        st.metric("Avg Decision Time", f"{avg_time:.1f}s")
+
+    with col4:
+        avg_confidence = sum(d.get("parsed_decision", {}).get("confidence", 0) for d in llm_decisions) / len(llm_decisions)
+        st.metric("Avg Confidence", f"{avg_confidence:.2f}")
+
+    # Confidence over time chart
+    st.subheader("Confidence & Execution Time Trends")
+    confidences = [d.get("parsed_decision", {}).get("confidence", 0) for d in llm_decisions]
+    exec_times = [d.get("execution_time_seconds", 0) for d in llm_decisions]
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            y=confidences,
+            mode="lines+markers",
+            name="Confidence",
+            line=dict(color="#2ecc71", width=2),
+            yaxis="y1",
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            y=exec_times,
+            mode="lines+markers",
+            name="Execution Time (s)",
+            line=dict(color="#e74c3c", width=2),
+            yaxis="y2",
+        )
+    )
+
+    fig.update_layout(
+        yaxis=dict(title="Confidence", side="left"),
+        yaxis2=dict(title="Time (s)", overlaying="y", side="right"),
+        hovermode="x unified",
+        height=300,
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Individual decisions
+    st.subheader("Recent Decisions")
+    for i, decision in enumerate(reversed(llm_decisions[-10:])):  # Show last 10
+        with st.expander(
+            f"Decision {len(llm_decisions) - i}: "
+            f"{decision.get('timestamp', 'N/A')} "
+            f"{'(Fallback)' if decision.get('fallback_used') else ''}"
+        ):
+            col1, col2 = st.columns([2, 1])
+
+            with col1:
+                st.write("**Claude's Reasoning:**")
+                reasoning = decision.get("parsed_decision", {}).get("reasoning", "N/A")
+                st.write(reasoning)
+
+                st.write("**Decision:**")
+                parsed = decision.get("parsed_decision", {})
+                st.write(f"- Task work: {parsed.get('task_work_hours', 0):.2f}h")
+                st.write(f"- Company work: {parsed.get('company_work_hours', 0):.2f}h")
+
+            with col2:
+                st.write("**Metrics:**")
+                st.write(f"Confidence: {parsed.get('confidence', 0):.2f}")
+                st.write(f"Execution: {decision.get('execution_time_seconds', 0):.2f}s")
+                st.write(f"Validation: {'Passed' if decision.get('validation_passed') else 'Failed'}")
+                st.write(f"Fallback: {'Yes' if decision.get('fallback_used') else 'No'}")
+
+            # State snapshot
+            with st.expander("Agent State at Decision Time"):
+                st.json(decision.get("state_snapshot", {}))
+
+            # Show full raw response
+            if st.checkbox(f"Show raw Claude response {len(llm_decisions) - i}", key=f"raw_{i}"):
+                st.code(decision.get("raw_response", "N/A"), language="json")
+
+
 def render_metrics_section(metrics_data: Dict[str, Any]):
     """Render performance metrics and trends."""
     st.header("Performance Metrics")
@@ -475,6 +593,27 @@ def main():
 
         # Form for other inputs
         with st.sidebar.form("agent_config"):
+            # Engine type selection
+            engine_type = st.selectbox(
+                "Decision Engine",
+                options=["rule_based", "llm"],
+                format_func=lambda x: (
+                    "Rule-Based (Fast, Deterministic)" if x == "rule_based" else "LLM (Claude-Powered, Autonomous)"
+                ),
+                help="Decision engine: rule-based uses simple heuristics, LLM uses Claude for strategic reasoning",
+                index=0,
+            )
+
+            llm_timeout = st.number_input(
+                "LLM Timeout (seconds)",
+                min_value=30,
+                max_value=900,
+                value=120,
+                step=30,
+                help="Timeout for Claude decisions (only used for LLM engine)",
+                disabled=(engine_type == "rule_based"),
+            )
+
             max_cycles = st.number_input(
                 "Max Cycles",
                 min_value=1,
@@ -516,6 +655,8 @@ def main():
                     "initial_balance": float(initial_balance),
                     "initial_compute_hours": float(initial_compute_hours),
                     "compute_cost_per_hour": float(compute_cost_per_hour),
+                    "engine_type": engine_type,
+                    "llm_timeout": int(llm_timeout),
                 }
                 if start_agent(config):
                     st.sidebar.success("Agent started successfully!")
@@ -537,13 +678,20 @@ def main():
             decisions = fetch_decisions(limit=50)
             company_data = fetch_company_info()
             metrics_data = fetch_metrics()
+            llm_decisions = fetch_llm_decisions(limit=100)
 
         # Render sections
-        render_agent_status_section(status_data)
+        render_agent_status_section(status_data, control_status)
         st.divider()
 
         render_resource_visualization(resource_data)
         st.divider()
+
+        # Show LLM decisions section if using LLM engine
+        config = control_status.get("config", {})
+        if config.get("engine_type") == "llm" or llm_decisions:
+            render_llm_decisions_section(llm_decisions)
+            st.divider()
 
         render_decisions_section(decisions)
         st.divider()

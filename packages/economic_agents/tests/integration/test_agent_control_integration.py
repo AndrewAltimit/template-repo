@@ -26,7 +26,11 @@ async def clean_manager():
     manager.config = {}
 
     # Clear dashboard state
-    dashboard_state.clear()
+    dashboard_state.agent_state = {}
+    dashboard_state.company_registry = {}
+    dashboard_state.resource_tracker = None
+    dashboard_state.metrics_collector = None
+    dashboard_state.alignment_monitor = None
 
     # Mock file operations to avoid permission errors in tests
     mock_file = MagicMock()

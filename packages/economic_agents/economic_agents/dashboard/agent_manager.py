@@ -47,6 +47,8 @@ class AgentManager:
         initial_balance: float = 100.0,
         initial_compute_hours: float = 100.0,
         compute_cost_per_hour: float = 0.0,
+        engine_type: str = "rule_based",
+        llm_timeout: int = 120,
     ) -> dict:
         """Start an autonomous agent with specified configuration.
 
@@ -56,6 +58,8 @@ class AgentManager:
             initial_balance: Starting balance in dollars
             initial_compute_hours: Starting compute hours available
             compute_cost_per_hour: Cost per compute hour
+            engine_type: 'rule_based' or 'llm'
+            llm_timeout: Timeout in seconds for LLM decisions
 
         Returns:
             Status dict with agent_id and configuration
@@ -89,6 +93,9 @@ class AgentManager:
                     "mode": mode,
                     "survival_buffer_hours": 20.0,
                     "company_threshold": company_threshold,
+                    "engine_type": engine_type,
+                    "llm_timeout": llm_timeout,
+                    "fallback_enabled": True,
                 },
                 dashboard_state=dashboard_state,
             )
@@ -101,6 +108,8 @@ class AgentManager:
                 "initial_compute_hours": initial_compute_hours,
                 "compute_cost_per_hour": compute_cost_per_hour,
                 "company_threshold": company_threshold,
+                "engine_type": engine_type,
+                "llm_timeout": llm_timeout,
             }
             self.max_cycles = max_cycles
             self.cycle_count = 0
