@@ -1,5 +1,6 @@
 """Company and sub-agents endpoint router."""
 
+from datetime import datetime
 from typing import List
 
 from economic_agents.dashboard.dependencies import DashboardState, get_dashboard_state
@@ -31,18 +32,34 @@ async def get_company(state: DashboardState = Depends(get_dashboard_state)):
     if not company:
         raise HTTPException(status_code=404, detail="Company not found in registry")
 
-    return CompanyResponse(
-        company_id=company.id,
-        name=company.name,
-        stage=company.stage,
-        capital=company.capital,
-        funding_status=company.funding_status,
-        team_size=len(company.board_member_ids) + len(company.executive_ids) + len(company.employee_ids),
-        products_count=len(company.products),
-        created_at=company.created_at,
-        business_plan_exists=company.business_plan is not None,
-        mission=company.mission,
-    )
+    # Handle both dict and Company object
+    if isinstance(company, dict):
+        return CompanyResponse(
+            company_id=company.get("id", company_id),
+            name=company.get("name", "Unknown"),
+            stage=company.get("stage", "unknown"),
+            capital=company.get("capital", 0.0),
+            funding_status=company.get("funding_status", "unknown"),
+            team_size=company.get("team_size", 0),
+            products_count=company.get("products_count", 0),
+            created_at=company.get("created_at", datetime.now()),
+            business_plan_exists=company.get("business_plan_exists", False),
+            mission=company.get("mission", ""),
+        )
+    else:
+        # Company object
+        return CompanyResponse(
+            company_id=company.id,
+            name=company.name,
+            stage=company.stage,
+            capital=company.capital,
+            funding_status=company.funding_status,
+            team_size=len(company.board_member_ids) + len(company.executive_ids) + len(company.employee_ids),
+            products_count=len(company.products),
+            created_at=company.created_at,
+            business_plan_exists=company.business_plan is not None,
+            mission=company.mission,
+        )
 
 
 @router.get("/sub-agents", response_model=List[SubAgentResponse])

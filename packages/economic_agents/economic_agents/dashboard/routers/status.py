@@ -22,7 +22,8 @@ async def get_status(state: DashboardState = Depends(get_dashboard_state)):
     return AgentStatusResponse(
         agent_id=agent_state.get("agent_id", "unknown"),
         balance=agent_state.get("balance", 0.0),
-        compute_hours_remaining=agent_state.get("compute_hours", 0.0),
+        compute_hours_remaining=agent_state.get("compute_hours_remaining", 0.0),
+        current_cycle=agent_state.get("cycles_completed", 0),
         mode=agent_state.get("mode", "survival"),
         current_activity=agent_state.get("current_activity", "idle"),
         company_exists=agent_state.get("company_exists", False),

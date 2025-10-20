@@ -17,9 +17,17 @@ dependencies = [
     "pydantic>=2.0.0",
     "pyyaml>=6.0",
     "click>=8.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "websockets>=11.0",
+    "requests>=2.31.0",
 ]
 
 [project.optional-dependencies]
+dashboard = [
+    "streamlit>=1.30.0",
+    "plotly>=5.0.0",
+]
 dev = [
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
@@ -30,6 +38,8 @@ dev = [
     "mypy>=1.5.0",
 ]
 all = [
+    "streamlit>=1.30.0",
+    "plotly>=5.0.0",
     "pytest>=7.4.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",

@@ -12,6 +12,7 @@ class AgentStatusResponse(BaseModel):
     agent_id: str
     balance: float
     compute_hours_remaining: float
+    current_cycle: int = 0
     mode: str  # "survival", "entrepreneur", "auto"
     current_activity: str  # "task_work", "company_work", "idle"
     company_exists: bool
