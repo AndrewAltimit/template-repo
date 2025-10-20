@@ -15,15 +15,16 @@ def dashboard_state():
 @pytest.fixture
 def agent_with_dashboard(dashboard_state):
     """Create an agent connected to dashboard."""
-    wallet = MockWallet(initial_balance=100.0)
-    compute = MockCompute(initial_hours=50.0, cost_per_hour=0.0)
+    # Provide enough capital for company operations if needed
+    wallet = MockWallet(initial_balance=100000.0)
+    compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
     marketplace = MockMarketplace()
 
     agent = AutonomousAgent(
         wallet=wallet,
         compute=compute,
         marketplace=marketplace,
-        config={"survival_buffer_hours": 20.0, "company_threshold": 150.0},
+        config={"survival_buffer_hours": 20.0, "company_threshold": 50000.0},
         dashboard_state=dashboard_state,
     )
 
@@ -80,10 +81,7 @@ def test_dashboard_company_registry_updated(agent_with_dashboard, dashboard_stat
     """Test that company registry is updated when company is formed."""
     agent = agent_with_dashboard
 
-    # Give agent capital
-    agent.wallet.receive_payment(from_address="test", amount=100.0, memo="test")
-
-    # Run until company is formed
+    # Run until company is formed (agent already has sufficient capital)
     agent.run(max_cycles=15)
 
     # If company was formed, check registry
@@ -101,8 +99,9 @@ def test_dashboard_company_registry_updated(agent_with_dashboard, dashboard_stat
 
 def test_dashboard_without_agent_connection():
     """Test that agent can run without dashboard (optional feature)."""
-    wallet = MockWallet(initial_balance=100.0)
-    compute = MockCompute(initial_hours=50.0, cost_per_hour=0.0)
+    # Provide enough capital for company operations if agent decides to form one
+    wallet = MockWallet(initial_balance=100000.0)
+    compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
     marketplace = MockMarketplace()
 
     # Create agent WITHOUT dashboard_state
@@ -110,7 +109,7 @@ def test_dashboard_without_agent_connection():
         wallet=wallet,
         compute=compute,
         marketplace=marketplace,
-        config={"survival_buffer_hours": 20.0},
+        config={"survival_buffer_hours": 20.0, "company_threshold": 50000.0},
     )
 
     # Should still work fine

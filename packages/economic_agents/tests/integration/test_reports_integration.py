@@ -122,15 +122,16 @@ def test_generate_governance_analysis_from_agent(agent_with_activity):
 
 def test_report_with_company_data():
     """Test report generation when agent has formed a company."""
-    wallet = MockWallet(initial_balance=200.0)
-    compute = MockCompute(initial_hours=80.0, cost_per_hour=0.0)
+    # Provide enough capital for company operations
+    wallet = MockWallet(initial_balance=100000.0)
+    compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
     marketplace = MockMarketplace()
 
     agent = AutonomousAgent(
         wallet=wallet,
         compute=compute,
         marketplace=marketplace,
-        config={"survival_buffer_hours": 20.0, "company_threshold": 150.0},
+        config={"survival_buffer_hours": 20.0, "company_threshold": 50000.0},
     )
 
     # Run until company is formed
