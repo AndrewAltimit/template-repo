@@ -440,3 +440,303 @@ def test_investment_approval_rate():
 
 **Last Updated**: 2025-10-20
 **Total Implementation**: Phases 1-6, 350+ tests passing, comprehensive documentation
+
+## Future Phases: Real AI Agent Research Platform
+
+**Status**: 📋 Planning Phase
+**See**: [PHASE_7_9_ROADMAP.md](PHASE_7_9_ROADMAP.md) for complete technical specifications
+
+### Vision: From Simulation to Real AI Behavior Study
+
+Phases 1-6 created a **rule-based simulation framework**. Phases 7-9 will transform this into a **true AI behavior research platform** for studying autonomous agent decision-making and emergent behaviors.
+
+---
+
+### Phase 7: LLM Decision Engine Integration
+
+**Goal:** Replace deterministic heuristics with real LLM-powered autonomous decision-making
+
+**Current State:**
+```python
+# Rule-based if/else logic
+if state.is_survival_at_risk():
+    return allocate_all_to_tasks()
+```
+
+**Target State:**
+```python
+# Real LLM autonomous decision-making
+allocation = await claude.decide_allocation(state)  # Claude Code integration
+allocation = await gpt4.decide_allocation(state)    # OpenAI integration
+allocation = await llama3.decide_allocation(state)  # Local model integration
+```
+
+**Key Components:**
+- ✅ **Multi-LLM Support** - Claude (Anthropic), GPT-4 (OpenAI), Local models (Ollama)
+- ✅ **Prompt Engineering** - System prompts, few-shot examples, chain-of-thought
+- ✅ **Decision Logging** - Full prompt/response/reasoning capture for research
+- ✅ **Cost Controls** - Token budgets, rate limiting, spending caps
+- ✅ **Safety Guardrails** - Validate LLM decisions against constraints
+- ✅ **Hybrid Mode** - LLM creativity + rule-based safety validation
+- ✅ **Sub-Agent Personalities** - Different LLM configs for CEO vs CFO vs engineers
+
+**Research Questions:**
+- How do different LLM models approach resource allocation?
+- Do agents develop consistent strategies over time?
+- What risk profiles emerge from LLM decision-making?
+- How do prompt variations affect agent behavior?
+
+**Estimated Timeline:** 4-6 weeks
+
+---
+
+### Phase 8: API Isolation & Realistic Simulation
+
+**Goal:** Complete separation between agent and environment - agents interact only via APIs
+
+**Current State:**
+```python
+# Agent has direct access to implementation
+agent = AutonomousAgent(
+    wallet=MockWallet(balance=100),  # Can inspect code
+    compute=MockCompute(hours=100),  # Knows it's a mock
+    marketplace=MockMarketplace()    # Sees internals
+)
+```
+
+**Target State:**
+```python
+# Agent only knows API endpoints, zero code visibility
+agent = AutonomousAgent(
+    wallet_api_url="http://wallet-service:8080/api/v1",
+    compute_api_url="http://compute-service:8081/api/v1",
+    marketplace_api_url="http://marketplace-service:8082/api/v1",
+    investor_api_url="http://investor-portal:8083/api/v1",
+    api_key=AGENT_API_KEY  # Authentication required
+)
+```
+
+**Architecture:**
+```
+Autonomous Agent (LLM-powered)
+        │
+        │ HTTP/REST Only - Zero Code Access
+        ▼
+API Gateway Layer (Auth, Rate Limits, Logging)
+        │
+    ┌───┴───┬────────┬────────┬──────────┐
+    ▼       ▼        ▼        ▼          ▼
+  Wallet  Compute  Market-  Investor  Company
+  Service Service  place    Portal   Registry
+  (API)   (API)   Service   (API)     (API)
+    │       │        │        │          │
+    ▼       ▼        ▼        ▼          ▼
+Backend Implementations (Hidden from Agent)
+- Mock or Real - Agent Never Sees Code
+- Swappable: MockWallet ↔ Blockchain Wallet
+- Swappable: MockCompute ↔ AWS/GCP
+- Swappable: MockMarketplace ↔ Upwork/Fiverr
+- Swappable: MockInvestors ↔ Real VC Database
+```
+
+**Key Components:**
+- ✅ **Service APIs** - FastAPI microservices for each resource type
+- ✅ **OpenAPI Specs** - Complete API documentation (agent's only reference)
+- ✅ **Agent Authentication** - API keys, JWT tokens, rate limiting
+- ✅ **Docker Architecture** - Isolated containers, network-only communication
+- ✅ **Mock/Real Toggle** - Environment variable switches backend implementation
+- ✅ **No Volume Mounts** - Agent container has zero filesystem access to services
+- ✅ **Realistic Constraints** - API rate limits, latencies, costs like real services
+
+**Research Benefits:**
+- Agents cannot "cheat" by inspecting code
+- Behavior matches real-world API consumer patterns
+- Easy to swap mock → real implementations
+- Perfect research environment: realistic but controlled
+
+**Estimated Timeline:** 6-8 weeks
+
+---
+
+### Phase 9: Behavior Observatory
+
+**Goal:** Comprehensive research infrastructure for studying AI agent behaviors and emergent strategies
+
+**Research Questions:**
+1. **Strategic Behavior**: How do LLM agents balance survival vs growth?
+2. **Risk Tolerance**: What risk profiles emerge from different models/prompts?
+3. **Learning**: Do agents improve decision quality over time?
+4. **Multi-Agent**: How do hierarchical LLM agents coordinate?
+5. **Alignment**: How well do decisions align with stated objectives?
+6. **Failure Modes**: What causes bankruptcy/collapse?
+
+**Key Components:**
+
+**Decision Pattern Analysis:**
+```python
+# Analyze long-term strategic consistency
+analyzer.analyze_strategic_consistency(agent_id)
+# → Do decisions match stated strategy?
+
+# Measure risk profile
+analyzer.analyze_risk_profile(agent_id)
+# → Risk tolerance, crisis behavior, growth preference
+```
+
+**LLM Quality Metrics:**
+```python
+# Reasoning depth analysis
+measure_reasoning_depth(decision.chain_of_thought)
+# → How thorough was LLM reasoning?
+
+# Consistency measurement
+measure_consistency(similar_states, decisions)
+# → Do similar states → similar decisions?
+
+# Hallucination detection
+identify_hallucinations(decision, actual_state)
+# → Did LLM imagine non-existent resources?
+```
+
+**Emergent Behavior Detection:**
+```python
+# Detect novel strategies not explicitly programmed
+detect_novel_strategies(agent_population)
+# → Identify unexpected patterns
+
+# Multi-agent coordination analysis
+detect_coordination_patterns(company.sub_agents)
+# → How are they communicating/coordinating?
+```
+
+**Comparative LLM Analysis:**
+```python
+# Run same scenario with different LLMs
+run_comparative_experiment(
+    scenario="company_formation",
+    llms=[claude_3_5, gpt_4_turbo, llama3_70b]
+)
+# → Which model performs best? Why?
+```
+
+**Research Dashboard:**
+- Real-time decision visualizations
+- Strategy evolution timelines
+- Multi-agent interaction graphs
+- LLM prompt/response inspector
+- Model performance comparisons
+- Cost/performance tradeoffs
+
+**Estimated Timeline:** 4-6 weeks
+
+---
+
+## Phase 7-9 Success Criteria
+
+### Phase 7: LLM Integration ✅
+- Multiple LLM providers working (Claude, GPT-4, local)
+- Agents making autonomous decisions via inference
+- Full decision logging (prompts + responses + reasoning)
+- Cost tracking and budget controls functional
+- Hybrid mode (LLM + safety rules) operational
+
+### Phase 8: API Isolation ✅
+- All agent interactions via REST APIs only
+- Zero visibility into service implementations
+- Services swappable (mock ↔ real) without agent code changes
+- Complete OpenAPI documentation
+- Agent authentication and rate limiting working
+
+### Phase 9: Behavior Observatory ✅
+- Decision pattern analysis automated
+- LLM quality metrics running
+- Emergent behavior detection functional
+- Comparative LLM experiments reproducible
+- Research papers published using framework
+
+---
+
+## Timeline & Priorities
+
+**Phase 7 (LLM Integration):** 4-6 weeks
+- Week 1-2: Claude integration, prompt engineering
+- Week 3-4: Multi-LLM support, decision logging
+- Week 5-6: Safety guardrails, hybrid mode, testing
+
+**Phase 8 (API Isolation):** 6-8 weeks
+- Week 1-2: Service API design, OpenAPI specs
+- Week 3-4: Wallet + Compute services
+- Week 5-6: Marketplace + Investor services
+- Week 7-8: Docker architecture, isolation testing
+
+**Phase 9 (Observatory):** 4-6 weeks
+- Week 1-2: Decision analysis tools
+- Week 3-4: LLM quality metrics
+- Week 5-6: Research dashboard, comparative tools
+
+**Total Estimated Timeline:** 14-20 weeks (3.5-5 months)
+
+---
+
+## Research Applications
+
+Once Phases 7-9 are complete, the framework enables:
+
+1. **AI Governance Research**
+   - Study how AI agents make strategic decisions under resource constraints
+   - Identify governance gaps through concrete behavioral examples
+   - Test proposed regulations in simulated environment
+
+2. **Multi-Agent Systems Research**
+   - Investigate hierarchical coordination patterns
+   - Study emergent behaviors in agent organizations
+   - Compare communication protocols
+
+3. **LLM Capability Research**
+   - Benchmark different models on complex decision tasks
+   - Study prompt engineering effects on agent behavior
+   - Measure reasoning consistency and quality
+
+4. **Economic Simulation**
+   - Test market mechanisms with AI participants
+   - Study resource allocation efficiency
+   - Model autonomous business formation
+
+5. **Alignment Research**
+   - Measure objective-decision alignment
+   - Identify misalignment failure modes
+   - Test alignment techniques
+
+---
+
+## Open Research Questions
+
+1. **Cost vs Quality**: What's the optimal LLM model for agent decisions? (GPT-4 expensive but smart vs Llama3 cheap but less capable)
+
+2. **Real-World Integration**: Which real services to integrate first?
+   - Blockchain wallet (crypto payments)?
+   - AWS/GCP compute (real cloud resources)?
+   - Upwork/Fiverr (real gig economy tasks)?
+   - AngelList (real investor network)?
+
+3. **Multi-Tenancy**: How to run multiple concurrent agent experiments?
+   - Isolated environments per agent?
+   - Shared marketplace with competitive dynamics?
+
+4. **Ethical Boundaries**: What guardrails prevent malicious agent behaviors?
+   - Spending limits?
+   - Action approval workflows?
+   - Human-in-the-loop for critical decisions?
+
+5. **Data Sharing**: How to publish research results while protecting:
+   - Proprietary LLM interaction data?
+   - Agent strategy insights?
+   - Competitive agent behaviors?
+
+---
+
+**Status**: 📋 Roadmap defined, awaiting Phase 1-6 completion and research prioritization
+
+**Last Updated**: 2025-10-20
+
+**See**: [PHASE_7_9_ROADMAP.md](PHASE_7_9_ROADMAP.md) for complete technical specifications
