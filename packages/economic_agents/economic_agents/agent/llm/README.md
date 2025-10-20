@@ -202,8 +202,75 @@ RESPONSE FORMAT (JSON ONLY):
 }
 ```
 
+## Integration with AutonomousAgent
+
+The LLMDecisionEngine is now integrated with `AutonomousAgent` for seamless usage:
+
+### Using LLM Engine
+
+```python
+from economic_agents.agent.core.autonomous_agent import AutonomousAgent
+from economic_agents.implementations.mock import MockWallet, MockCompute, MockMarketplace
+
+# Create resources
+wallet = MockWallet(initial_balance=100.0)
+compute = MockCompute(initial_hours=100.0)
+marketplace = MockMarketplace()
+
+# Configure agent with LLM engine
+config = {
+    "engine_type": "llm",           # Use LLM instead of rule-based
+    "llm_timeout": 900,              # 15 minutes for deep reasoning
+    "fallback_enabled": True,        # Fallback to rules on failure
+    "survival_buffer_hours": 24.0,
+    "company_threshold": 100.0
+}
+
+agent = AutonomousAgent(wallet, compute, marketplace, config)
+
+# Run agent cycles - uses Claude for decision-making
+agent.run(max_cycles=10)
+
+# Access LLM decision history
+if hasattr(agent.decision_engine, 'get_decisions'):
+    decisions = agent.decision_engine.get_decisions()
+    for decision in decisions:
+        print(f"Decision: {decision.decision_id}")
+        print(f"Reasoning: {decision.parsed_decision['reasoning']}")
+        print(f"Confidence: {decision.parsed_decision['confidence']}")
+        print(f"Execution time: {decision.execution_time_seconds:.2f}s")
+```
+
+### Using Rule-Based Engine (Default)
+
+```python
+# No engine configuration needed - defaults to rule-based
+agent = AutonomousAgent(wallet, compute, marketplace)
+
+# Or explicitly specify
+config = {
+    "engine_type": "rule_based",
+    "survival_buffer_hours": 24.0
+}
+agent = AutonomousAgent(wallet, compute, marketplace, config)
+```
+
+### Engine Selection
+
+The agent selects the decision engine based on `config["engine_type"]`:
+- `"rule_based"` (default): Uses deterministic `DecisionEngine`
+- `"llm"`: Uses Claude-powered `LLMDecisionEngine`
+
+If LLM engine is not available (import fails), requesting `"llm"` will raise `ValueError`.
+
+### Backward Compatibility
+
+All existing code continues to work without changes:
+- Agents without `engine_type` config use rule-based engine
+- All existing tests pass
+- No breaking changes to API
+
 ## Next Steps
 
-- **Phase 7.3**: Integrate with `AutonomousAgent`
 - **Phase 7.4**: Test with real Claude in agent lifecycle
 - **Phase 7.5**: Dashboard visualization of Claude decisions

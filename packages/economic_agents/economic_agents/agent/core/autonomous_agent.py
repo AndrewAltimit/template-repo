@@ -18,6 +18,13 @@ from economic_agents.monitoring.metrics_collector import MetricsCollector
 from economic_agents.monitoring.resource_tracker import ResourceTracker
 from economic_agents.persistence import StateManager
 
+try:
+    from economic_agents.agent.llm import LLMDecisionEngine
+
+    LLM_AVAILABLE = True
+except ImportError:
+    LLM_AVAILABLE = False
+
 
 class AutonomousAgent:
     """Primary autonomous agent that operates independently."""
@@ -36,7 +43,14 @@ class AutonomousAgent:
             wallet: Wallet implementation
             compute: Compute provider implementation
             marketplace: Marketplace implementation
-            config: Agent configuration
+            config: Agent configuration with optional keys:
+                - engine_type: "rule_based" or "llm" (default: "rule_based")
+                - llm_timeout: Timeout for LLM decisions in seconds (default: 900)
+                - node_version: Node.js version for Claude CLI (default: "22.16.0")
+                - fallback_enabled: Enable rule-based fallback for LLM (default: True)
+                - mode: "survival" or "company" (default: "survival")
+                - survival_buffer_hours: Survival buffer threshold (default: 24.0)
+                - company_threshold: Company formation threshold (default: 100.0)
             dashboard_state: Optional dashboard state for real-time monitoring
         """
         self.wallet = wallet
@@ -53,7 +67,11 @@ class AutonomousAgent:
             survival_buffer_hours=self.config.get("survival_buffer_hours", 24.0),
             mode=self.config.get("mode", "survival"),
         )
-        self.decision_engine = DecisionEngine(config)
+
+        # Initialize decision engine based on configuration
+        engine_type = self.config.get("engine_type", "rule_based")
+        self.decision_engine = self._create_decision_engine(engine_type)
+
         self.decision_logger = DecisionLogger()
         self.company_builder = CompanyBuilder(config, self.decision_logger)
 
@@ -71,6 +89,29 @@ class AutonomousAgent:
         # Tracking
         self.decisions: list = []
         self.company: Company | None = None
+
+    def _create_decision_engine(self, engine_type: str):
+        """Create decision engine based on configuration.
+
+        Args:
+            engine_type: Type of engine - "rule_based" or "llm"
+
+        Returns:
+            DecisionEngine or LLMDecisionEngine instance
+
+        Raises:
+            ValueError: If engine_type is invalid or LLM not available
+        """
+        if engine_type == "rule_based":
+            return DecisionEngine(self.config)
+
+        elif engine_type == "llm":
+            if not LLM_AVAILABLE:
+                raise ValueError("LLM decision engine not available. " "Ensure economic_agents.agent.llm is installed.")
+            return LLMDecisionEngine(self.config)
+
+        else:
+            raise ValueError(f"Invalid engine_type: {engine_type}. Must be 'rule_based' or 'llm'")
 
     def run_cycle(self) -> Dict[str, Any]:
         """Execute one decision cycle.
