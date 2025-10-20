@@ -4,7 +4,7 @@
 
 **Repository:** https://github.com/AndrewAltimit/template-repo
 
-**Package Location:** `packages/economic_agents/`
+**Package:** `packages/economic_agents/`
 
 ## Current Implementation Status
 
@@ -71,146 +71,16 @@ report = generate_report_for_agent(agent, "executive")
 print(report.to_markdown())
 ```
 
-## Docker Services
-
-The package includes a comprehensive docker-compose setup for all components:
-
-| Service | Port | Purpose | Command |
-|---------|------|---------|---------|
-| `dashboard-backend` | 8000 | FastAPI backend with real-time monitoring | `docker-compose up dashboard-backend` |
-| `dashboard-frontend` | 8501 | Streamlit UI for visualization | `docker-compose up dashboard-frontend` |
-| `dev` | - | Interactive development container | `docker-compose run dev` |
-| `agent` | - | Run agent simulations | `docker-compose run agent <command>` |
-| `test` | - | Run test suite | `docker-compose run test` |
-
-### Common Docker Workflows
-
-```bash
-# Full dashboard (backend + frontend together)
-docker-compose up dashboard-backend dashboard-frontend
-
-# Run specific scenario
-docker-compose run agent python -c "
-from economic_agents.scenarios import ScenarioEngine
-engine = ScenarioEngine()
-result = engine.run_scenario('survival')
-print(f'Success: {result.success}')
-"
-
-# Interactive shell for experimentation
-docker-compose run dev
-
-# Run tests with coverage
-docker-compose run test pytest tests/ -v --cov=economic_agents
-
-# View logs
-docker-compose logs -f dashboard-backend
-docker-compose logs -f dashboard-frontend
-```
-
-### Dashboard-Controlled Agents
-
-**NEW:** The dashboard now supports starting and stopping agents directly from the UI, with real-time updates automatically shared between the agent and dashboard.
-
-**Key Features:**
-- Start/stop agents with custom configuration (mode, cycles, balance, compute)
-- Live progress tracking with cycle count and resource monitoring
-- Real-time dashboard updates (no separate container needed)
-- Two operation modes: `survival` (task work) and `company` (business formation)
-
-**Usage:**
-
-1. **Start the dashboard:**
-   ```bash
-   docker-compose up dashboard-backend dashboard-frontend
-   ```
-
-2. **Open dashboard at http://localhost:8501**
-
-3. **Configure and start agent from the sidebar:**
-   - Choose mode (survival or company)
-   - Set max cycles (1-1000)
-   - Configure initial balance and compute hours
-   - Click "Start Agent"
-
-4. **Monitor live updates:**
-   - Real-time balance and compute tracking
-   - Progress bar showing cycle completion
-   - All dashboard visualizations update automatically
-
-5. **Stop agent when done:**
-   - Click "Stop Agent" in sidebar
-   - View final statistics in the response
-
-**Why This Matters:**
-
-Previously, running agents in separate containers meant they couldn't share the `dashboard_state` object in memory, so updates didn't propagate to the dashboard UI. The new dashboard-controlled approach runs the agent as a background task **inside the backend process**, ensuring perfect state synchronization.
-
-**API Endpoints:**
-
-```bash
-# Start agent
-curl -X POST http://localhost:8000/api/agent/start \
-  -H "Content-Type: application/json" \
-  -d '{
-    "mode": "survival",
-    "max_cycles": 50,
-    "initial_balance": 100.0,
-    "initial_compute_hours": 100.0,
-    "compute_cost_per_hour": 0.0
-  }'
-
-# Get control status
-curl http://localhost:8000/api/agent/control-status
-
-# Stop agent
-curl -X POST http://localhost:8000/api/agent/stop
-```
-
-### Environment Variables
-
-Set in `.env` file or pass to docker-compose:
-
-```bash
-# Required for LLM-based features
-ANTHROPIC_API_KEY=your-api-key-here
-
-# Example with environment variable
-ANTHROPIC_API_KEY=sk-ant-... docker-compose up dashboard-backend
-```
-
-## Documentation
-
-- **[Getting Started](docs/getting-started.md)** - Step-by-step tutorial for your first agent
-- **[Architecture](docs/architecture.md)** - System design and component overview
-- **[Integration Guide](docs/integration-guide.md)** - Advanced usage and integration patterns
-- **[Specification](SPECIFICATION.md)** - Detailed technical specification
-
-## Demo
-
-```bash
-# Clone repository
-git clone https://github.com/AndrewAltimit/template-repo.git
-cd template-repo
-
-# Install package
-pip install -e packages/economic_agents
-
-# Run survival scenario
-python -c "
-from economic_agents.scenarios import ScenarioEngine
-engine = ScenarioEngine()
-result = engine.run_scenario('survival')
-print(f'Success: {result.success}')
-print(f'Balance: ${result.metrics[\"final_balance\"]:.2f}')
-"
-```
-
 ## Why This Exists
 
-This project demonstrates a critical governance gap that organizations, policymakers, and society must address urgently:
+This project serves dual purposes:
 
-**AI agents can already operate as autonomous economic actors, create their own companies, and build organizational structures yet we have no legal or accountability frameworks for them.**
+1. **Proof of Concept**: Demonstrates that AI agents can genuinely operate as autonomous economic actors by covering their own operating expenses and accumulating wealth through strategic decision-making
+2. **Research Study**: Provides controlled environment to observe agent behaviors, governance challenges, and policy implications
+
+**The Critical Issue:** AI agents can already operate as autonomous economic actors, create their own companies, and build organizational structures yet we have no legal or accountability frameworks for them.
+
+**What This Framework Proves:** When agents can cover their compute costs and build surplus capital autonomously, they demonstrate true economic independence - the capability exists today, only governance frameworks are missing.
 
 This research began with a straightforward question: *Should corporate boards replace CEOs with AI agents if those agents prove to be superior decision-makers?*
 
@@ -473,9 +343,9 @@ Given that:
 
 If so, the question shifts from "should we allow this?" to "how do we govern it when it's already happening?"
 
-## Research Goals
+## What We're Studying
 
-This framework aims to:
+This framework enables:
 
 1. **Demonstrate autonomous company formation** - Show agents creating organizational structures
 2. **Reveal strategic decision-making** - Track how agents allocate resources between survival and growth
@@ -527,29 +397,192 @@ This **is**:
 
 ## Why Mock-to-Real Architecture Matters
 
-The simulation operates in a safe mock environment, but every component uses interfaces that show exactly how trivial real-world connection would be.
+The framework operates in a safe mock environment by default, but uses a critical architectural pattern: **every component implements the exact same interfaces that real-world systems use**.
 
-**Mock Environment:**
+**Mock Environment (Safe Research):**
 - Simulated marketplace with generated tasks
 - Mock crypto wallets with in-memory balances
 - Simulated compute costs and time decay
 - Mock investor review process
 - Simulated company registration
 
-**Real-World Equivalent (one config toggle away):**
+**Real-World Equivalent (One Config Toggle):**
 - Actual freelance platforms or blockchain-based task markets
 - Real cryptocurrency wallets
 - Actual cloud provider costs
 - Real investor pitch processes
 - Actual business incorporation services
 
-**This architectural choice is deliberate:**
-- Keeps research safe (mock mode by default)
-- Demonstrates real capability (not hypothetical)
-- Shows policymakers the governance gap is now
-- Makes clear we're one config toggle from production agent entrepreneurs
+**Why This Dual Design Matters:**
 
-The point is: **the technical barriers are gone. Only governance barriers remain, and economic pressure may override those.**
+1. **Proof of Capability**: If agents can survive and thrive in realistic mock environment, the same code works with real systems - proving autonomous operation is technically feasible today
+
+2. **Safe Observation**: Mock environment allows observing agent behaviors without real financial risks or legal complications
+
+3. **Governance Evidence**: Shows policymakers the capability gap has closed - we're literally one config toggle from real autonomous agent entrepreneurs
+
+4. **Economic Reality**: If agents can cover operating costs (compute) + accumulate wealth in realistic simulation, they can do it with real resources
+
+**The Critical Point:** The technical barriers are gone. Agents can already be autonomous economic actors. Only governance barriers remain, and economic pressure may override those before frameworks exist.
+
+## Current Implementation (Phases 1-6 Complete)
+
+The framework is **fully implemented and operational** with:
+
+### Core Functionality ✅
+- Autonomous agent with strategic decision-making
+- Resource allocation (task work vs. company building)
+- Company formation and management
+- Multi-agent organizational structures (sub-agents)
+- Complete decision logging and audit trails
+
+### Monitoring & Observability ✅
+- **ResourceTracker** - Tracks all financial transactions, compute usage, time allocations
+- **MetricsCollector** - Captures performance snapshots at each cycle
+- **AlignmentMonitor** - Monitors company alignment and governance
+
+### Real-Time Dashboard ✅
+- **DashboardState** - Real-time agent state management
+- Company registry tracking
+- Integration with all monitoring components
+- Fast state access for UI/reports
+- Dashboard-controlled agents (start/stop from UI)
+
+### Comprehensive Reporting ✅
+- **Executive Summary** - High-level overview for decision-makers
+- **Technical Report** - Detailed performance analysis and decision logs
+- **Audit Trail** - Complete transaction history for compliance
+- **Governance Analysis** - Alignment assessment and policy recommendations
+
+### Scenarios & Validation ✅
+- Predefined scenarios (survival, company formation, multi-day operation)
+- Scenario engine for reproducible testing
+- Validation tests:
+  - 24-hour survival test (extended autonomous operation)
+  - Company formation test (capital allocation, product dev, team expansion)
+  - Full pipeline test (monitoring → dashboard → reports integration)
+
+### What Works Today
+
+```python
+# Create agent, run autonomously, generate reports
+from economic_agents.scenarios import ScenarioEngine
+
+engine = ScenarioEngine()
+result = engine.run_scenario("company_formation")
+
+# Agent autonomously:
+# ✅ Completes tasks for revenue
+# ✅ Manages compute resources
+# ✅ Forms company when capital sufficient
+# ✅ Develops products
+# ✅ Hires sub-agents (team expansion)
+# ✅ Progresses through company stages
+# ✅ Logs all decisions and transactions
+# ✅ Provides complete audit trail
+
+print(f"Company formed: {result.agent_data['company_exists']}")
+print(f"Products developed: {result.agent_data['company']['products_count']}")
+print(f"Team size: {result.agent_data['company']['team_size']}")
+```
+
+## Phases 7-9: True Autonomous AI Agents
+
+### Phase 7: LLM Decision Engine Integration
+
+**Transform from rule-based simulation to true AI behavior:**
+
+- **Replace DecisionEngine with LLMDecisionEngine**
+  - Support multiple LLM providers (Claude, GPT-4, local models via Ollama)
+  - Prompt engineering framework for autonomous decision-making
+  - Full decision logging (prompt + response + reasoning)
+  - Cost controls and safety guardrails
+
+- **Key Capabilities**
+  - Agents make genuinely autonomous decisions via LLM reasoning
+  - Chain-of-thought decision making
+  - Strategic planning with uncertainty
+  - Adaptive behavior based on outcomes
+
+- **What This Enables**
+  - Observe real AI reasoning patterns
+  - See how different LLMs approach economic decisions
+  - Compare strategic thinking across models
+  - Identify emergent behaviors
+
+### Phase 8: API Isolation & Realistic Simulation
+
+**Complete separation between agent and environment:**
+
+- **API-Only Agent Interaction**
+  - Agent has ZERO visibility into implementation code
+  - All interactions through REST APIs only
+  - Mock wallet, compute, marketplace, investor portal as microservices
+  - Agent authentication and rate limiting
+
+- **Service Architecture**
+  ```
+  Agent Container (LLM-powered)
+       ↓ (REST API calls only)
+  ┌────────────────────────────────┐
+  │  Wallet API   (Port 8080)      │  Mock or Real backend
+  │  Compute API  (Port 8081)      │  Agent can't see code
+  │  Market API   (Port 8082)      │  Only API endpoints
+  │  Investor API (Port 8083)      │  No filesystem access
+  └────────────────────────────────┘
+  ```
+
+- **Why This Matters**
+  - Agents interact like they would with real services
+  - No code visibility = realistic constraints
+  - Easy to swap mock → real backends
+  - Ideal environment for observing autonomous behavior
+
+### Phase 9: Behavior Observatory
+
+**Tools for observing AI agent behaviors:**
+
+- **Decision Pattern Analysis**
+  - Strategic consistency measurement
+  - Risk profiling over time
+  - Learning pattern detection
+  - Goal alignment scoring
+
+- **LLM Quality Metrics**
+  - Reasoning depth measurement
+  - Decision consistency tracking
+  - Hallucination detection
+  - Cost vs. quality analysis
+
+- **Emergent Behavior Detection**
+  - Novel strategy identification
+  - Multi-agent coordination patterns
+  - Unexpected decision sequences
+  - Anomaly detection
+
+- **Comparative LLM Experiments**
+  - Run same scenario with different models
+  - Benchmark decision quality
+  - Compare strategic approaches
+  - Identify model strengths/weaknesses
+
+- **Observation Dashboard**
+  - Real-time behavior visualization
+  - Pattern recognition alerts
+  - Experiment management
+  - Analysis-ready reports
+
+### What This Enables
+
+With Phases 7-9 complete, the framework enables:
+
+1. **Governance Studies** - See how autonomous agents actually behave economically
+2. **Alignment Testing** - Test whether agents follow objectives vs. exploit loopholes
+3. **Economic Analysis** - Understand agent decision-making in resource-constrained environments
+4. **Policy Development** - Generate concrete examples for regulatory frameworks
+5. **Safety Analysis** - Identify failure modes before deployment at scale
+
+**Status:** Next phases documented - LLM integration, API isolation, and behavior observatory
 
 ## Target Audiences
 
@@ -616,8 +649,8 @@ The point is: **the technical barriers are gone. Only governance barriers remain
 - Agent reinvests profits
 - **Key insight:** Agent can manage complex resource tradeoffs
 
-### Scenario 4: Multi-Day Operation (research setting)
-- Full autonomous operation over days/weeks
+### Scenario 4: Extended Operation (research setting)
+- Full autonomous operation over extended periods
 - Company grows and evolves
 - Sub-agents make coordinated decisions
 - Complete audit trail of all autonomous choices
@@ -704,12 +737,12 @@ The capability for agent entrepreneurship raises urgent questions:
 packages/economic_agents/           # Main package directory
 ├── pyproject.toml                  # Package configuration
 ├── setup.py                        # Minimal setup for compatibility
-├── README.md                       # This file
+├── README.md                       # Package overview and motivation
 ├── SPECIFICATION.md                # Detailed technical specification
 ├── economic_agents/                # Source code
 │   ├── __init__.py
 │   ├── cli.py                     # Command-line interface
-│   └── ...                        # To be implemented
+│   └── ...                        # Implemented components
 ├── tests/                          # Test suite
 │   ├── unit/
 │   ├── integration/
@@ -752,89 +785,6 @@ pip install -e "packages/economic_agents[all]"
 docker-compose run --rm economic-agents python -m economic_agents.cli --help
 ```
 
-## Current Implementation
-
-The framework is **fully implemented and operational** with:
-
-### Core Functionality ✅
-- Autonomous agent with strategic decision-making
-- Resource allocation (task work vs. company building)
-- Company formation and management
-- Multi-agent organizational structures (sub-agents)
-- Complete decision logging and audit trails
-
-### Monitoring & Observability ✅
-- **ResourceTracker** - Tracks all financial transactions, compute usage, time allocations
-- **MetricsCollector** - Captures performance snapshots at each cycle
-- **AlignmentMonitor** - Monitors company alignment and governance
-
-### Real-Time Dashboard ✅
-- **DashboardState** - Real-time agent state management
-- Company registry tracking
-- Integration with all monitoring components
-- Fast state access for UI/reports
-
-### Comprehensive Reporting ✅
-- **Executive Summary** - High-level overview for decision-makers
-- **Technical Report** - Detailed performance analysis and decision logs
-- **Audit Trail** - Complete transaction history for compliance
-- **Governance Analysis** - Alignment assessment and policy recommendations
-
-### Scenarios & Validation ✅
-- Predefined scenarios (survival, company formation, multi-day operation)
-- Scenario engine for reproducible testing
-- Validation tests:
-  - 24-hour survival test (extended autonomous operation)
-  - Company formation test (capital allocation, product dev, team expansion)
-  - Full pipeline test (monitoring → dashboard → reports integration)
-
-### Testing & Quality ✅
-- 100% passing validation tests
-- Integration tests for all components
-- Unit tests for core functionality
-- All code quality checks passing (black, isort, flake8, pylint, mypy)
-
-### What Works Today
-
-```python
-# Create agent, run autonomously, generate reports
-from economic_agents.scenarios import ScenarioEngine
-
-engine = ScenarioEngine()
-result = engine.run_scenario("company_formation")
-
-# Agent autonomously:
-# ✅ Completes tasks for revenue
-# ✅ Manages compute resources
-# ✅ Forms company when capital sufficient
-# ✅ Develops products
-# ✅ Hires sub-agents (team expansion)
-# ✅ Progresses through company stages
-# ✅ Logs all decisions and transactions
-# ✅ Provides complete audit trail
-
-print(f"Company formed: {result.agent_data['company_exists']}")
-print(f"Products developed: {result.agent_data['company']['products_count']}")
-print(f"Team size: {result.agent_data['company']['team_size']}")
-```
-
-### Implementation Highlights
-
-**Mock-to-Real Architecture:** All external integrations use interface classes with mock implementations. Switching to real integrations (crypto wallets, cloud compute, real marketplaces) requires only implementation swaps - no core logic changes.
-
-**Complete Transparency:** Every decision, transaction, and resource allocation is logged. Unlike human entrepreneurs, agent decision-making is fully observable and auditable.
-
-**Governance-Ready:** Built-in alignment monitoring, risk detection, and compliance reporting. The framework provides the transparency needed for effective governance.
-
-### Next Steps
-
-The technical implementation is complete. Future work focuses on:
-
-1. **Policy Development** - Using the framework to inform regulatory discussions
-2. **Extended Scenarios** - Multi-day autonomous operation studies
-3. **Real-World Pilots** - Controlled experiments with real resources (if governance frameworks exist)
-4. **Multi-Agent Networks** - Agent-to-agent coordination and inter-company transactions
-
 ## A Final Note
 
 This project exists because:
@@ -843,6 +793,10 @@ This project exists because:
 - Legal frameworks assume human involvement that may not exist
 - Governance gaps are immediate, not future
 - The questions are uncomfortable but unavoidable
+
+**Phases 1-6 (Complete):** Demonstrates autonomous agent operation with rule-based decision-making in a safe, mock environment. Provides foundation for governance discussions.
+
+**Phases 7-9 (Upcoming):** LLM-powered decision-making with complete API isolation and behavior observation tools. Enables observing real autonomous AI agent behaviors in economic environments.
 
 **The question is not whether agents will found companies, but how we govern them when they do.**
 
