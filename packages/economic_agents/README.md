@@ -108,6 +108,65 @@ docker-compose logs -f dashboard-backend
 docker-compose logs -f dashboard-frontend
 ```
 
+### Dashboard-Controlled Agents
+
+**NEW:** The dashboard now supports starting and stopping agents directly from the UI, with real-time updates automatically shared between the agent and dashboard.
+
+**Key Features:**
+- Start/stop agents with custom configuration (mode, cycles, balance, compute)
+- Live progress tracking with cycle count and resource monitoring
+- Real-time dashboard updates (no separate container needed)
+- Two operation modes: `survival` (task work) and `company` (business formation)
+
+**Usage:**
+
+1. **Start the dashboard:**
+   ```bash
+   docker-compose up dashboard-backend dashboard-frontend
+   ```
+
+2. **Open dashboard at http://localhost:8501**
+
+3. **Configure and start agent from the sidebar:**
+   - Choose mode (survival or company)
+   - Set max cycles (1-1000)
+   - Configure initial balance and compute hours
+   - Click "Start Agent"
+
+4. **Monitor live updates:**
+   - Real-time balance and compute tracking
+   - Progress bar showing cycle completion
+   - All dashboard visualizations update automatically
+
+5. **Stop agent when done:**
+   - Click "Stop Agent" in sidebar
+   - View final statistics in the response
+
+**Why This Matters:**
+
+Previously, running agents in separate containers meant they couldn't share the `dashboard_state` object in memory, so updates didn't propagate to the dashboard UI. The new dashboard-controlled approach runs the agent as a background task **inside the backend process**, ensuring perfect state synchronization.
+
+**API Endpoints:**
+
+```bash
+# Start agent
+curl -X POST http://localhost:8000/api/agent/start \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mode": "survival",
+    "max_cycles": 50,
+    "initial_balance": 100.0,
+    "initial_compute_hours": 100.0,
+    "compute_cost_per_hour": 0.0
+  }'
+
+# Get control status
+curl http://localhost:8000/api/agent/control-status
+
+# Stop agent
+curl -X POST http://localhost:8000/api/agent/stop
+```
+
 ### Environment Variables
 
 Set in `.env` file or pass to docker-compose:

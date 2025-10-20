@@ -87,6 +87,49 @@ def fetch_metrics() -> Dict[str, Any]:
         return {}
 
 
+def fetch_agent_control_status() -> Dict[str, Any]:
+    """Fetch agent control status from API."""
+    try:
+        response = requests.get(f"{get_api_url()}/api/agent/control-status", timeout=5)
+        response.raise_for_status()
+        return dict(response.json())
+    except Exception:
+        return {"is_running": False}
+
+
+def start_agent(config: Dict[str, Any]) -> bool:
+    """Start an agent with specified configuration.
+
+    Args:
+        config: Agent configuration dict
+
+    Returns:
+        True if started successfully, False otherwise
+    """
+    try:
+        response = requests.post(f"{get_api_url()}/api/agent/start", json=config, timeout=10)
+        response.raise_for_status()
+        return True
+    except Exception as e:
+        st.error(f"Failed to start agent: {e}")
+        return False
+
+
+def stop_agent() -> bool:
+    """Stop the running agent.
+
+    Returns:
+        True if stopped successfully, False otherwise
+    """
+    try:
+        response = requests.post(f"{get_api_url()}/api/agent/stop", timeout=10)
+        response.raise_for_status()
+        return True
+    except Exception as e:
+        st.error(f"Failed to stop agent: {e}")
+        return False
+
+
 def render_agent_status_section(status_data: Dict[str, Any]):
     """Render agent status overview section."""
     st.header("Agent Status")
@@ -343,7 +386,85 @@ def main():
     st.title("Autonomous Economic Agents Dashboard")
     st.markdown("Real-time monitoring of autonomous agent operations")
 
-    # Sidebar
+    # Sidebar - Agent Controls
+    st.sidebar.title("Agent Controls")
+
+    # Fetch agent control status
+    control_status = fetch_agent_control_status()
+    is_running = control_status.get("is_running", False)
+
+    if is_running:
+        # Show running status
+        st.sidebar.success("Agent is running")
+        cycle_count = control_status.get("cycle_count", 0)
+        max_cycles = control_status.get("max_cycles", 0)
+        st.sidebar.progress(cycle_count / max_cycles if max_cycles > 0 else 0)
+        st.sidebar.write(f"Cycle {cycle_count}/{max_cycles}")
+
+        # Stop button
+        if st.sidebar.button("Stop Agent", type="primary"):
+            if stop_agent():
+                st.sidebar.success("Agent stopped successfully")
+                st.rerun()
+    else:
+        # Show configuration form
+        st.sidebar.info("No agent running")
+
+        with st.sidebar.form("agent_config"):
+            st.subheader("Agent Configuration")
+
+            mode = st.selectbox("Mode", options=["survival", "company"], help="Agent operation mode")
+
+            max_cycles = st.number_input(
+                "Max Cycles",
+                min_value=1,
+                max_value=1000,
+                value=50,
+                help="Maximum number of cycles to run",
+            )
+
+            initial_balance = st.number_input(
+                "Initial Balance ($)",
+                min_value=0.0,
+                value=100.0 if mode == "survival" else 50000.0,
+                step=100.0,
+                help="Starting balance in dollars",
+            )
+
+            initial_compute_hours = st.number_input(
+                "Initial Compute Hours",
+                min_value=0.0,
+                value=100.0,
+                step=10.0,
+                help="Starting compute hours available",
+            )
+
+            compute_cost_per_hour = st.number_input(
+                "Compute Cost ($/hour)",
+                min_value=0.0,
+                value=0.0,
+                step=0.1,
+                help="Cost per compute hour",
+            )
+
+            submitted = st.form_submit_button("Start Agent", type="primary")
+
+            if submitted:
+                config = {
+                    "mode": mode,
+                    "max_cycles": int(max_cycles),
+                    "initial_balance": float(initial_balance),
+                    "initial_compute_hours": float(initial_compute_hours),
+                    "compute_cost_per_hour": float(compute_cost_per_hour),
+                }
+                if start_agent(config):
+                    st.sidebar.success("Agent started successfully!")
+                    st.rerun()
+
+    # Divider
+    st.sidebar.markdown("---")
+
+    # Dashboard Controls
     st.sidebar.title("Dashboard Controls")
     auto_refresh = st.sidebar.checkbox("Auto-refresh", value=True)
     refresh_interval = st.sidebar.slider("Refresh interval (seconds)", 1, 30, 5)

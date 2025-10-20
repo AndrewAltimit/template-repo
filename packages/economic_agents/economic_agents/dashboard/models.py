@@ -90,3 +90,51 @@ class UpdateMessage(BaseModel):
     type: str  # "status", "decision", "transaction", "metric", "company"
     timestamp: datetime
     data: Dict[str, Any]
+
+
+class AgentStartRequest(BaseModel):
+    """Request to start an agent."""
+
+    mode: str = Field(
+        default="survival",
+        description="Agent mode: 'survival' (no company) or 'company' (form company)",
+    )
+    max_cycles: int = Field(default=50, ge=1, le=1000, description="Maximum cycles to run")
+    initial_balance: float = Field(default=100.0, ge=0.0, description="Starting balance in dollars")
+    initial_compute_hours: float = Field(default=100.0, ge=0.0, description="Starting compute hours available")
+    compute_cost_per_hour: float = Field(default=0.0, ge=0.0, description="Cost per compute hour")
+
+
+class AgentStartResponse(BaseModel):
+    """Response from starting an agent."""
+
+    status: str
+    agent_id: str
+    mode: str
+    max_cycles: int
+    initial_balance: float
+
+
+class AgentStopResponse(BaseModel):
+    """Response from stopping an agent."""
+
+    status: str
+    cycles_completed: int = 0
+    final_balance: float = 0.0
+    compute_remaining: float = 0.0
+    tasks_completed: int = 0
+    company_formed: bool = False
+
+
+class AgentControlStatusResponse(BaseModel):
+    """Current agent control status."""
+
+    is_running: bool
+    cycle_count: int = 0
+    max_cycles: int = 0
+    config: Dict[str, Any] = Field(default_factory=dict)
+    agent_id: str | None = None
+    balance: float | None = None
+    compute_hours: float | None = None
+    has_company: bool | None = None
+    tasks_completed: int | None = None

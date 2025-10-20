@@ -1,6 +1,14 @@
 """FastAPI dashboard application for economic agents monitoring."""
 
-from economic_agents.dashboard.routers import company, decisions, metrics, resources, status, websocket
+from economic_agents.dashboard.routers import (
+    agent_control,
+    company,
+    decisions,
+    metrics,
+    resources,
+    status,
+    websocket,
+)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -27,6 +35,7 @@ app.include_router(resources.router, prefix="/api", tags=["resources"])
 app.include_router(company.router, prefix="/api", tags=["company"])
 app.include_router(metrics.router, prefix="/api", tags=["metrics"])
 app.include_router(websocket.router, prefix="/api", tags=["websocket"])
+app.include_router(agent_control.router, prefix="/api", tags=["agent-control"])
 
 
 @app.get("/")
