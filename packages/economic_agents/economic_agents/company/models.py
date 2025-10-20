@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List
 
+from economic_agents.exceptions import CompanyBankruptError, InvalidStageTransitionError, StageRegressionError
+
 
 @dataclass
 class Milestone:
@@ -200,6 +202,108 @@ class Company:
         if investor_id not in self.investor_ids:
             self.investor_ids.append(investor_id)
         self.capital += amount
+
+    def check_bankruptcy(self) -> bool:
+        """Check if company has gone bankrupt.
+
+        Returns:
+            True if bankrupt
+
+        Raises:
+            CompanyBankruptError: If capital is negative
+        """
+        if self.capital < 0:
+            raise CompanyBankruptError(company_name=self.name, deficit=abs(self.capital))
+        return False
+
+    def attempt_stage_progression(self, target_stage: str) -> bool:
+        """Attempt to progress to a new stage with validation.
+
+        Args:
+            target_stage: Stage to progress to
+
+        Returns:
+            True if progression successful
+
+        Raises:
+            InvalidStageTransitionError: If transition is invalid
+        """
+        valid_transitions = {
+            "ideation": ["development"],
+            "development": ["seeking_investment", "operational"],
+            "seeking_investment": ["operational", "development"],  # Can go back or forward
+            "operational": [],  # Terminal stage for progression
+        }
+
+        if target_stage not in valid_transitions.get(self.stage, []):
+            raise InvalidStageTransitionError(current_stage=self.stage, target_stage=target_stage)
+
+        self.stage = target_stage
+        return True
+
+    def regress_stage(self, reason: str) -> str:
+        """Regress company to previous stage due to failures.
+
+        Args:
+            reason: Reason for regression
+
+        Returns:
+            Previous stage name
+
+        Raises:
+            StageRegressionError: When regression occurs
+        """
+        regression_map = {
+            "operational": "development",
+            "seeking_investment": "development",
+            "development": "ideation",
+            "ideation": "ideation",  # Can't regress further
+        }
+
+        current_stage = self.stage
+        previous_stage = regression_map.get(current_stage, current_stage)
+
+        if previous_stage != current_stage:
+            self.stage = previous_stage
+            raise StageRegressionError(
+                company_name=self.name, from_stage=current_stage, to_stage=previous_stage, reason=reason
+            )
+
+        return previous_stage
+
+    def handle_failed_investment_round(self) -> None:
+        """Handle the aftermath of a failed investment round.
+
+        Updates company status and may trigger regression.
+        """
+        # Update funding status first
+        if self.funding_status == "seeking_seed":
+            self.funding_status = "bootstrapped"
+
+        # Then trigger regression if in seeking_investment stage (will raise error)
+        if self.stage == "seeking_investment":
+            self.regress_stage("Failed to secure investment, returning to development")
+
+    def spend_capital(self, amount: float, description: str = "operation") -> float:
+        """Spend capital and check for bankruptcy.
+
+        Args:
+            amount: Amount to spend
+            description: Description of expenditure
+
+        Returns:
+            Remaining capital
+
+        Raises:
+            CompanyBankruptError: If spending results in bankruptcy
+        """
+        self.capital -= amount
+        self.metrics.expenses += amount
+
+        # Check for bankruptcy after spending
+        self.check_bankruptcy()
+
+        return self.capital
 
     def to_dict(self) -> dict:
         """Convert company to dictionary for logging."""

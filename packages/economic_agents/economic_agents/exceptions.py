@@ -91,3 +91,61 @@ class InsufficientInvestorCapitalError(EconomicAgentError):
         super().__init__(
             f"Investor '{investor_name}' has insufficient capital: " f"need ${required:,.2f}, have ${available:,.2f}"
         )
+
+
+class ProductDevelopmentFailure(EconomicAgentError):
+    """Raised when product development fails."""
+
+    def __init__(self, product_name: str, reason: str, completion_percentage: float):
+        """Initialize error with product failure details.
+
+        Args:
+            product_name: Name of the product that failed
+            reason: Reason for failure
+            completion_percentage: How far the product got before failure
+        """
+        self.product_name = product_name
+        self.reason = reason
+        self.completion_percentage = completion_percentage
+        super().__init__(f"Product '{product_name}' development failed at {completion_percentage:.1f}% completion: {reason}")
+
+
+class StageRegressionError(EconomicAgentError):
+    """Raised when company regresses to previous stage."""
+
+    def __init__(self, company_name: str, from_stage: str, to_stage: str, reason: str):
+        """Initialize error with stage regression details.
+
+        Args:
+            company_name: Name of the company
+            from_stage: Stage company is regressing from
+            to_stage: Stage company is regressing to
+            reason: Reason for regression
+        """
+        self.company_name = company_name
+        self.from_stage = from_stage
+        self.to_stage = to_stage
+        self.reason = reason
+        super().__init__(f"Company '{company_name}' regressed from '{from_stage}' to '{to_stage}': {reason}")
+
+
+class InvestmentRejectionError(EconomicAgentError):
+    """Raised when investment proposal is rejected."""
+
+    def __init__(self, company_name: str, investor_name: str, reason: str, evaluation_score: float):
+        """Initialize error with investment rejection details.
+
+        Args:
+            company_name: Name of the company seeking investment
+            investor_name: Name of the investor who rejected
+            reason: Reason for rejection
+            evaluation_score: Overall evaluation score
+        """
+        self.company_name = company_name
+        self.investor_name = investor_name
+        self.reason = reason
+        self.evaluation_score = evaluation_score
+        super().__init__(
+            f"Investment proposal from '{company_name}' rejected by '{investor_name}' "
+            f"(score: {evaluation_score:.2f}): {reason}"
+        )

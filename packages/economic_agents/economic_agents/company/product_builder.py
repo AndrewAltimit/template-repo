@@ -1,6 +1,9 @@
 """Product builder for developing proof of concepts."""
 
+import random
+
 from economic_agents.company.models import Product, ProductSpec
+from economic_agents.exceptions import ProductDevelopmentFailure
 
 
 class ProductBuilder:
@@ -154,6 +157,65 @@ class ProductBuilder:
             product.status = "development"
 
         return product
+
+    def build_mvp_with_risk(
+        self, product_spec: ProductSpec, capital: float, team_size: int, risk_factor: float = 0.1
+    ) -> Product:
+        """Build MVP with realistic failure scenarios.
+
+        Args:
+            product_spec: Product specification
+            capital: Available capital for development
+            team_size: Size of development team
+            risk_factor: Base probability of failure (0.0-1.0)
+
+        Returns:
+            Product if successful
+
+        Raises:
+            ProductDevelopmentFailure: If development fails
+        """
+        # Calculate failure probability based on factors
+        failure_prob = risk_factor
+
+        # Insufficient capital increases risk
+        min_capital_required = 50000
+        if capital < min_capital_required:
+            failure_prob += 0.3
+
+        # Small team increases risk
+        min_team_size = 3
+        if team_size < min_team_size:
+            failure_prob += 0.2
+
+        # Complex products have higher failure rate
+        if product_spec.category == "saas":
+            failure_prob += 0.15
+        elif len(product_spec.features) > 10:
+            failure_prob += 0.1
+
+        # Cap at 80% failure probability
+        failure_prob = min(0.8, failure_prob)
+
+        # Determine if development fails
+        if random.random() < failure_prob:
+            # Calculate how far we got before failure
+            completion = random.uniform(20.0, 70.0)
+
+            # Determine failure reason based on conditions
+            if capital < min_capital_required:
+                reason = "Ran out of capital before completion"
+            elif team_size < min_team_size:
+                reason = "Team too small to complete development"
+            elif product_spec.category == "saas":
+                reason = "Technical complexity exceeded team capabilities"
+            else:
+                reason = "Critical technical blocker could not be resolved"
+
+            raise ProductDevelopmentFailure(product_name=product_spec.name, reason=reason, completion_percentage=completion)
+
+        # Success - build the MVP
+        return self.build_mvp(product_spec)
 
     def generate_demo(self, product: Product) -> str:
         """Generate demo for product.
