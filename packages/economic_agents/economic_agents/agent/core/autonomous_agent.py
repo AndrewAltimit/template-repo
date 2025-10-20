@@ -150,7 +150,11 @@ class AutonomousAgent:
             company_data=company_data,
         )
 
-        # 9. Update dashboard state if connected
+        # 9. Update cycle counter
+        self.state.cycles_completed += 1
+        self.state.last_cycle_at = datetime.now()
+
+        # 10. Update dashboard state if connected (after cycle counter increment)
         if self.dashboard_state:
             agent_state_dict = {
                 "agent_id": self.agent_id,
@@ -179,10 +183,6 @@ class AutonomousAgent:
                     }
                 }
                 self.dashboard_state.update_company_registry(company_dict)
-
-        # 10. Update cycle counter
-        self.state.cycles_completed += 1
-        self.state.last_cycle_at = datetime.now()
 
         return decision_record
 
