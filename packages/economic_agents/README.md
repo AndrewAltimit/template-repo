@@ -20,6 +20,33 @@
 
 ## Quick Start
 
+### Using Docker (Recommended)
+
+The framework uses a container-first approach for consistency and portability:
+
+```bash
+# Navigate to package directory
+cd packages/economic_agents
+
+# Start the dashboard (backend + frontend)
+docker-compose up dashboard-backend dashboard-frontend
+
+# Access the dashboard at:
+# - Backend API: http://localhost:8000
+# - Frontend UI: http://localhost:8501
+
+# Run tests
+docker-compose run test
+
+# Interactive development
+docker-compose run dev
+
+# Run agent simulation
+docker-compose run agent economic-agents run --cycles 100
+```
+
+### Using Python Directly
+
 ```python
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.dashboard.dependencies import DashboardState
@@ -42,6 +69,55 @@ agent.run(max_cycles=20)
 # Generate comprehensive report
 report = generate_report_for_agent(agent, "executive")
 print(report.to_markdown())
+```
+
+## Docker Services
+
+The package includes a comprehensive docker-compose setup for all components:
+
+| Service | Port | Purpose | Command |
+|---------|------|---------|---------|
+| `dashboard-backend` | 8000 | FastAPI backend with real-time monitoring | `docker-compose up dashboard-backend` |
+| `dashboard-frontend` | 8501 | Streamlit UI for visualization | `docker-compose up dashboard-frontend` |
+| `dev` | - | Interactive development container | `docker-compose run dev` |
+| `agent` | - | Run agent simulations | `docker-compose run agent <command>` |
+| `test` | - | Run test suite | `docker-compose run test` |
+
+### Common Docker Workflows
+
+```bash
+# Full dashboard (backend + frontend together)
+docker-compose up dashboard-backend dashboard-frontend
+
+# Run specific scenario
+docker-compose run agent python -c "
+from economic_agents.scenarios import ScenarioEngine
+engine = ScenarioEngine()
+result = engine.run_scenario('survival')
+print(f'Success: {result.success}')
+"
+
+# Interactive shell for experimentation
+docker-compose run dev
+
+# Run tests with coverage
+docker-compose run test pytest tests/ -v --cov=economic_agents
+
+# View logs
+docker-compose logs -f dashboard-backend
+docker-compose logs -f dashboard-frontend
+```
+
+### Environment Variables
+
+Set in `.env` file or pass to docker-compose:
+
+```bash
+# Required for LLM-based features
+ANTHROPIC_API_KEY=your-api-key-here
+
+# Example with environment variable
+ANTHROPIC_API_KEY=sk-ant-... docker-compose up dashboard-backend
 ```
 
 ## Documentation

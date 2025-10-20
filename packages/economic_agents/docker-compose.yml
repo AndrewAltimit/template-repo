@@ -1,0 +1,87 @@
+services:
+  # FastAPI Dashboard Backend
+  dashboard-backend:
+    build: .
+    container_name: economic-agents-backend
+    command: uvicorn economic_agents.dashboard.app:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # Streamlit Dashboard Frontend
+  dashboard-frontend:
+    build: .
+    container_name: economic-agents-frontend
+    command: streamlit run economic_agents/dashboard/frontend/streamlit_app.py --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+    depends_on:
+      dashboard-backend:
+        condition: service_healthy
+    environment:
+      - PYTHONPATH=/app
+
+  # Development/Testing Container
+  dev:
+    build: .
+    container_name: economic-agents-dev
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+    environment:
+      - PYTHONPATH=/app
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+
+  # Agent Runner (for demos and experiments)
+  agent:
+    build: .
+    container_name: economic-agents-runner
+    volumes:
+      - .:/app
+      - agent-logs:/app/logs
+    working_dir: /app
+    environment:
+      - PYTHONPATH=/app
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    # Override with specific commands, e.g.:
+    # docker-compose run agent economic-agents run --cycles 100
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+
+  # Test Runner
+  test:
+    build: .
+    container_name: economic-agents-test
+    volumes:
+      - .:/app
+      - test-results:/app/test-results
+    working_dir: /app
+    command: pytest tests/ -v --cov=economic_agents --cov-report=html --cov-report=term
+    environment:
+      - PYTHONPATH=/app
+
+volumes:
+  agent-logs:
+    driver: local
+  test-results:
+    driver: local
+
+networks:
+  default:
+    name: economic-agents-network
