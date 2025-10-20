@@ -442,28 +442,57 @@ def main():
         with st.sidebar.form("agent_config"):
             st.subheader("Agent Configuration")
 
-            mode = st.selectbox("Mode", options=["survival", "company"], help="Agent operation mode")
+            mode = st.selectbox(
+                "Mode",
+                options=["survival", "company"],
+                help="Agent operation mode",
+                index=0,
+            )
+
+            # Show mode-specific guidance
+            if mode == "survival":
+                st.info(
+                    "💼 **Survival Mode**\n\n"
+                    "Agent focuses on task completion to earn income.\n\n"
+                    "**Recommended Settings:**\n"
+                    "- Balance: $100-$500\n"
+                    "- Cycles: 50-100\n"
+                    "- Compute: 100h"
+                )
+                default_balance = 100.0
+                default_cycles = 50
+            else:
+                st.info(
+                    "🏢 **Company Mode**\n\n"
+                    "Agent forms and operates a company with sub-agents.\n\n"
+                    "**Recommended Settings:**\n"
+                    "- Balance: $50,000+ (company costs ~$15k)\n"
+                    "- Cycles: 100-200 (needs time to operate)\n"
+                    "- Compute: 200h"
+                )
+                default_balance = 50000.0
+                default_cycles = 100
 
             max_cycles = st.number_input(
                 "Max Cycles",
                 min_value=1,
                 max_value=1000,
-                value=50,
+                value=default_cycles,
                 help="Maximum number of cycles to run",
             )
 
             initial_balance = st.number_input(
                 "Initial Balance ($)",
                 min_value=0.0,
-                value=100.0 if mode == "survival" else 50000.0,
-                step=100.0,
+                value=default_balance,
+                step=1000.0 if mode == "company" else 100.0,
                 help="Starting balance in dollars",
             )
 
             initial_compute_hours = st.number_input(
                 "Initial Compute Hours",
                 min_value=0.0,
-                value=100.0,
+                value=200.0 if mode == "company" else 100.0,
                 step=10.0,
                 help="Starting compute hours available",
             )
@@ -473,7 +502,7 @@ def main():
                 min_value=0.0,
                 value=0.0,
                 step=0.1,
-                help="Cost per compute hour",
+                help="Cost per compute hour (set to 0 for free compute)",
             )
 
             submitted = st.form_submit_button("Start Agent", type="primary")
