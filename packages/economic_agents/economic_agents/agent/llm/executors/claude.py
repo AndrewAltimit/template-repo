@@ -1,9 +1,7 @@
 """Claude Code CLI executor for autonomous decision-making."""
 
 import logging
-import os
 import subprocess
-import tempfile
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -52,26 +50,19 @@ class ClaudeExecutor:
         logger.info(f"Executing Claude with timeout={timeout}s ({timeout/60:.1f} min)")
         logger.debug(f"Prompt length: {len(prompt)} chars")
 
-        # Create temporary prompt file
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-            f.write(prompt)
-            prompt_file = f.name
-
         try:
             # Build command to execute Claude Code CLI
-            # Uses NVM to ensure correct Node.js version
-            full_command = [
-                "bash",
-                "-c",
-                f"source ~/.nvm/nvm.sh && nvm use {self.node_version} && "
-                f"claude --prompt-file {prompt_file} --dangerously-skip-permissions",
-            ]
+            # Uses -p/--print for non-interactive output
+            command = (
+                f"source ~/.nvm/nvm.sh && " f"nvm use {self.node_version} && " f"claude -p --dangerously-skip-permissions"
+            )
 
-            logger.debug(f"Executing: {full_command[-1]}")
+            logger.debug("Executing Claude CLI in print mode")
 
-            # Execute with timeout
+            # Execute with prompt via stdin and timeout
             result = subprocess.run(
-                full_command,
+                ["bash", "-c", command],
+                input=prompt,
                 capture_output=True,
                 text=True,
                 timeout=timeout,
@@ -95,9 +86,3 @@ class ClaudeExecutor:
             error_msg = f"Unexpected error during Claude execution: {e}"
             logger.error(error_msg)
             raise RuntimeError(error_msg)
-
-        finally:
-            # Clean up temporary prompt file
-            if os.path.exists(prompt_file):
-                os.unlink(prompt_file)
-                logger.debug(f"Cleaned up prompt file: {prompt_file}")
