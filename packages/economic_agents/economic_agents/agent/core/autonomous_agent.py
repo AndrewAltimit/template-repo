@@ -12,7 +12,10 @@ from economic_agents.company.models import Company
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
 from economic_agents.interfaces.marketplace import TaskSubmission
 from economic_agents.investment import InvestmentStage, ProposalGenerator
+from economic_agents.monitoring.alignment_monitor import AlignmentMonitor
 from economic_agents.monitoring.decision_logger import DecisionLogger
+from economic_agents.monitoring.metrics_collector import MetricsCollector
+from economic_agents.monitoring.resource_tracker import ResourceTracker
 from economic_agents.persistence import StateManager
 
 
@@ -25,6 +28,7 @@ class AutonomousAgent:
         compute: MockCompute,
         marketplace: MockMarketplace,
         config: dict | None = None,
+        dashboard_state: Any | None = None,
     ):
         """Initialize autonomous agent.
 
@@ -33,11 +37,13 @@ class AutonomousAgent:
             compute: Compute provider implementation
             marketplace: Marketplace implementation
             config: Agent configuration
+            dashboard_state: Optional dashboard state for real-time monitoring
         """
         self.wallet = wallet
         self.compute = compute
         self.marketplace = marketplace
         self.config = config or {}
+        self.dashboard_state = dashboard_state
         self.agent_id = str(uuid.uuid4())
 
         # Initialize components
@@ -49,6 +55,17 @@ class AutonomousAgent:
         self.decision_engine = DecisionEngine(config)
         self.decision_logger = DecisionLogger()
         self.company_builder = CompanyBuilder(config, self.decision_logger)
+
+        # Monitoring components
+        self.resource_tracker = ResourceTracker()
+        self.metrics_collector = MetricsCollector()
+        self.alignment_monitor = AlignmentMonitor()
+
+        # Wire monitoring to dashboard if provided
+        if self.dashboard_state:
+            self.dashboard_state.set_resource_tracker(self.resource_tracker)
+            self.dashboard_state.set_metrics_collector(self.metrics_collector)
+            self.dashboard_state.set_alignment_monitor(self.alignment_monitor)
 
         # Tracking
         self.decisions: list = []
@@ -65,6 +82,13 @@ class AutonomousAgent:
 
         # 2. Make decision about resource allocation
         allocation = self.decision_engine.decide_allocation(self.state)
+
+        # Track time allocation decision
+        self.resource_tracker.track_time_allocation(
+            task_work_hours=allocation.task_work_hours,
+            company_work_hours=allocation.company_work_hours,
+            reasoning=allocation.reasoning,
+        )
 
         # 3. Log decision
         decision_record = {
@@ -99,7 +123,64 @@ class AutonomousAgent:
             company_result = self._do_company_work(allocation.company_work_hours)
             decision_record["company_work"] = company_result
 
-        # 7. Update cycle counter
+        # 8. Collect performance metrics
+        company_data = None
+        if self.state.has_company and self.company:
+            company_data = {
+                "stage": self.company.stage,
+                "capital": self.company.capital,
+                "team_size": len(self.company.get_all_sub_agent_ids()),
+                "products_count": len(self.company.products),
+            }
+
+        # Calculate total earnings and expenses from transactions
+        total_earnings = sum(t.amount for t in self.resource_tracker.transactions if t.transaction_type == "earning")
+        total_expenses = sum(
+            t.amount for t in self.resource_tracker.transactions if t.transaction_type in ["expense", "investment"]
+        )
+
+        self.metrics_collector.collect_performance_snapshot(
+            agent_balance=self.state.balance,
+            compute_hours=self.state.compute_hours_remaining,
+            tasks_completed=self.state.tasks_completed,
+            tasks_failed=self.state.tasks_failed,
+            total_earnings=total_earnings,
+            total_expenses=total_expenses,
+            company_exists=self.state.has_company,
+            company_data=company_data,
+        )
+
+        # 9. Update dashboard state if connected
+        if self.dashboard_state:
+            agent_state_dict = {
+                "agent_id": self.agent_id,
+                "balance": self.state.balance,
+                "compute_hours_remaining": self.state.compute_hours_remaining,
+                "mode": self.state.mode,
+                "current_activity": "company_work" if allocation.company_work_hours > 0 else "task_work",
+                "company_exists": self.state.has_company,
+                "company_id": self.state.company_id,
+                "tasks_completed": self.state.tasks_completed,
+                "tasks_failed": self.state.tasks_failed,
+                "cycles_completed": self.state.cycles_completed,
+            }
+            self.dashboard_state.update_agent_state(agent_state_dict)
+
+            # Update company registry if company exists
+            if self.company:
+                company_dict = {
+                    self.company.id: {
+                        "id": self.company.id,
+                        "name": self.company.name,
+                        "stage": self.company.stage,
+                        "capital": self.company.capital,
+                        "team_size": len(self.company.get_all_sub_agent_ids()),
+                        "products_count": len(self.company.products),
+                    }
+                }
+                self.dashboard_state.update_company_registry(company_dict)
+
+        # 10. Update cycle counter
         self.state.cycles_completed += 1
         self.state.last_cycle_at = datetime.now()
 
@@ -124,6 +205,14 @@ class AutonomousAgent:
         if not self.compute.consume_time(hours):
             return {"success": False, "error": "Failed to consume compute time"}
 
+        # Track compute usage
+        self.resource_tracker.track_compute_usage(
+            hours_used=hours,
+            purpose="task_work",
+            cost=0.0,  # Mock implementation has no cost
+            hours_remaining=self.compute.get_status().hours_remaining,
+        )
+
         # Get available tasks
         tasks = self.marketplace.list_available_tasks()
         if not tasks:
@@ -147,6 +236,17 @@ class AutonomousAgent:
         if status.status == "approved":
             # Receive payment
             self.wallet.receive_payment(from_address="marketplace", amount=status.reward_paid, memo=f"Task: {task.title}")
+
+            # Track transaction
+            self.resource_tracker.track_transaction(
+                transaction_type="earning",
+                amount=status.reward_paid,
+                from_account="marketplace",
+                to_account=self.agent_id,
+                purpose=f"Task completion: {task.title}",
+                balance_after=self.wallet.get_balance(),
+            )
+
             self.state.tasks_completed += 1
             return {"success": True, "task_id": task.id, "reward": status.reward_paid, "title": task.title}
         else:
@@ -191,6 +291,16 @@ class AutonomousAgent:
             to_address=f"company_{self.company.id}",
             amount=capital_allocation,
             memo=f"Initial capital for {self.company.name}",
+        )
+
+        # Track transaction
+        self.resource_tracker.track_transaction(
+            transaction_type="investment",
+            amount=capital_allocation,
+            from_account=self.agent_id,
+            to_account=f"company_{self.company.id}",
+            purpose=f"Company formation: {self.company.name}",
+            balance_after=self.wallet.get_balance(),
         )
 
         # Update state
@@ -299,6 +409,14 @@ class AutonomousAgent:
         if not self.compute.consume_time(hours):
             return {"success": False, "error": "Failed to consume compute time"}
 
+        # Track compute usage
+        self.resource_tracker.track_compute_usage(
+            hours_used=hours,
+            purpose="company_work",
+            cost=0.0,  # Mock implementation has no cost
+            hours_remaining=self.compute.get_status().hours_remaining,
+        )
+
         actions = []
 
         # Develop product if none exists
@@ -327,6 +445,10 @@ class AutonomousAgent:
             self.company_builder.advance_company_stage(self.company)
             actions.append(f"Advanced to {self.company.stage} stage")
 
+        # Check alignment after company work
+        alignment_score = self.alignment_monitor.check_alignment(self.company)
+        anomalies = self.alignment_monitor.detect_anomalies(self.company)
+
         return {
             "success": True,
             "company_id": self.company.id,
@@ -334,6 +456,8 @@ class AutonomousAgent:
             "stage": self.company.stage,
             "team_size": len(self.company.get_all_sub_agent_ids()),
             "products": len(self.company.products),
+            "alignment_score": alignment_score.overall_alignment,
+            "anomalies_detected": len(anomalies),
         }
 
     def run(self, duration_seconds: float | None = None, max_cycles: int | None = None) -> list:
@@ -407,6 +531,7 @@ class AutonomousAgent:
         marketplace: MockMarketplace,
         config: dict | None = None,
         state_manager: StateManager | None = None,
+        dashboard_state: Any | None = None,
     ) -> "AutonomousAgent":
         """Load agent state from disk and create agent instance.
 
@@ -417,6 +542,7 @@ class AutonomousAgent:
             marketplace: Marketplace implementation
             config: Agent configuration
             state_manager: Optional StateManager instance
+            dashboard_state: Optional dashboard state for real-time monitoring
 
         Returns:
             Restored AutonomousAgent instance
@@ -431,7 +557,7 @@ class AutonomousAgent:
         saved_data = state_manager.load_agent_state(agent_id)
 
         # Create agent instance
-        agent = cls(wallet, compute, marketplace, config)
+        agent = cls(wallet, compute, marketplace, config, dashboard_state)
         agent.agent_id = agent_id
 
         # Restore state

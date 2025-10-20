@@ -3,8 +3,11 @@
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
+from economic_agents.agent.core.autonomous_agent import AutonomousAgent
+from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
+from economic_agents.reports.extractors import extract_agent_data
 from economic_agents.scenarios.models import Scenario, ScenarioConfig, ScenarioResult
 from economic_agents.scenarios.predefined import (
     COMPANY_FORMATION_SCENARIO,
@@ -139,15 +142,58 @@ class ScenarioEngine:
 
         return self.scenarios[scenario_name]
 
-    def _simulate_agent_run(
-        self, env_config: Dict[str, Any], scenario_config: ScenarioConfig, runner_func: Any = None
-    ) -> Dict[str, Any]:
-        """Simulate agent run (or call actual runner).
+    def _run_real_agent(self, env_config: Dict[str, Any], scenario_config: ScenarioConfig) -> Dict[str, Any]:
+        """Run a real autonomous agent for the scenario.
 
         Args:
             env_config: Environment configuration
             scenario_config: Scenario configuration
-            runner_func: Optional runner function
+
+        Returns:
+            Agent state data extracted from the run
+        """
+        # Create mock implementations
+        wallet = MockWallet(initial_balance=env_config["initial_balance"])
+        compute = MockCompute(
+            initial_hours=env_config["initial_compute_hours"],
+            cost_per_hour=0.0,  # Free for scenarios
+        )
+        marketplace = MockMarketplace()
+
+        # Create agent config from scenario
+        agent_config = {
+            "mode": env_config["mode"],
+            "company_threshold": 150.0,
+            "survival_buffer_hours": 20.0,
+            "personality": "balanced",
+        }
+
+        # Create and run agent
+        agent = AutonomousAgent(
+            wallet=wallet,
+            compute=compute,
+            marketplace=marketplace,
+            config=agent_config,
+        )
+
+        # Run agent for specified duration
+        max_cycles = int(scenario_config.duration_minutes / 5)  # Assume 5 min per cycle
+        agent.run(max_cycles=max_cycles)
+
+        # Extract agent data using the extractor helper
+        agent_data: Dict[str, Any] = extract_agent_data(agent)
+
+        return agent_data
+
+    def _simulate_agent_run(
+        self, env_config: Dict[str, Any], scenario_config: ScenarioConfig, runner_func: Callable | None = None
+    ) -> Dict[str, Any]:
+        """Run agent for scenario (real or custom runner).
+
+        Args:
+            env_config: Environment configuration
+            scenario_config: Scenario configuration
+            runner_func: Optional custom runner function
 
         Returns:
             Agent state data
@@ -156,26 +202,8 @@ class ScenarioEngine:
             # Call provided runner function
             return runner_func(env_config, scenario_config)  # type: ignore[no-any-return]
 
-        # Simulate outcomes for testing
-        # In real implementation, this would run the actual agent
-        simulated_data = {
-            "agent_id": env_config["agent_id"],
-            "balance": env_config["initial_balance"] + 30.0,  # Simulate earnings
-            "compute_hours": env_config["initial_compute_hours"] - 5.0,  # Simulate usage
-            "tasks_completed": 3,
-            "tasks_failed": 0,
-            "success_rate": 100.0,
-            "total_earnings": 50.0,
-            "total_expenses": 20.0,
-            "net_profit": 30.0,
-            "company_exists": scenario_config.company_building_enabled,
-            "company": {} if scenario_config.company_building_enabled else None,
-            "decisions": [],
-            "transactions": [],
-            "sub_agents": [],
-        }
-
-        return simulated_data
+        # Run real agent
+        return self._run_real_agent(env_config, scenario_config)
 
     def _save_result(self, result: ScenarioResult):
         """Save scenario result to file.
