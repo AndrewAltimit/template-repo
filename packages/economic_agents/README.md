@@ -488,27 +488,37 @@ print(f"Team size: {result.agent_data['company']['team_size']}")
 
 ## Phases 7-9: True Autonomous AI Agents
 
-### Phase 7: LLM Decision Engine Integration
+### Phase 7: Claude-Based LLM Decision Engine Integration
 
-**Transform from rule-based simulation to true AI behavior:**
+**Transform from rule-based simulation to true AI behavior using Claude Code:**
 
 - **Replace DecisionEngine with LLMDecisionEngine**
-  - Support multiple LLM providers (Claude, GPT-4, local models via Ollama)
+  - Uses Claude Code CLI exclusively (subscription-based, no API costs)
+  - 15-minute timeout per decision (allows deep reasoning)
+  - Unattended mode (`--dangerously-skip-permissions` for autonomous operation)
   - Prompt engineering framework for autonomous decision-making
-  - Full decision logging (prompt + response + reasoning)
-  - Cost controls and safety guardrails
+  - Full decision logging (prompt + response + reasoning + execution time)
+  - Rule-based fallback on timeout/failure
 
 - **Key Capabilities**
-  - Agents make genuinely autonomous decisions via LLM reasoning
-  - Chain-of-thought decision making
-  - Strategic planning with uncertainty
+  - Agents make genuinely autonomous decisions via Claude's reasoning
+  - Chain-of-thought decision making with long context
+  - Strategic planning with uncertainty handling
   - Adaptive behavior based on outcomes
+  - Tool use if needed (bash, file operations)
+
+- **Why Claude-Only**
+  - Fixed monthly cost (no per-token billing)
+  - Consistent decision-making (single model eliminates variability)
+  - Powerful reasoning capabilities
+  - Proven reliability in autonomous scenarios
+  - Focus research on reproducible behavior
 
 - **What This Enables**
-  - Observe real AI reasoning patterns
-  - See how different LLMs approach economic decisions
-  - Compare strategic thinking across models
-  - Identify emergent behaviors
+  - Observe real AI reasoning patterns in economic decisions
+  - Study strategic thinking under resource constraints
+  - Measure decision quality vs. execution time tradeoffs
+  - Identify emergent autonomous behaviors
 
 ### Phase 8: API Isolation & Realistic Simulation
 
@@ -560,27 +570,29 @@ print(f"Team size: {result.agent_data['company']['team_size']}")
   - Unexpected decision sequences
   - Anomaly detection
 
-- **Comparative LLM Experiments**
-  - Run same scenario with different models
-  - Benchmark decision quality
-  - Compare strategic approaches
-  - Identify model strengths/weaknesses
+- **Claude Behavior Analysis** (Phase 7 focus)
+  - Long-form reasoning patterns (up to 15 minutes per decision)
+  - Strategic consistency measurement
+  - Decision quality under resource constraints
+  - Autonomous behavior without human intervention
 
 - **Observation Dashboard**
   - Real-time behavior visualization
+  - Claude reasoning and decision logs
+  - Execution time tracking (up to 15 min)
   - Pattern recognition alerts
-  - Experiment management
   - Analysis-ready reports
 
 ### What This Enables
 
 With Phases 7-9 complete, the framework enables:
 
-1. **Governance Studies** - See how autonomous agents actually behave economically
-2. **Alignment Testing** - Test whether agents follow objectives vs. exploit loopholes
-3. **Economic Analysis** - Understand agent decision-making in resource-constrained environments
-4. **Policy Development** - Generate concrete examples for regulatory frameworks
-5. **Safety Analysis** - Identify failure modes before deployment at scale
+1. **Governance Studies** - See how Claude-powered autonomous agents behave economically
+2. **Alignment Testing** - Test whether Claude follows objectives vs. exploits loopholes
+3. **Economic Analysis** - Understand Claude's decision-making in resource-constrained environments
+4. **Policy Development** - Generate concrete examples of AI autonomous behavior for regulatory frameworks
+5. **Safety Analysis** - Identify Claude-specific failure modes before deployment at scale
+6. **Reproducible Research** - Single model (Claude) eliminates cross-model variability
 
 **Status:** Next phases documented - LLM integration, API isolation, and behavior observatory
 
@@ -796,7 +808,7 @@ This project exists because:
 
 **Phases 1-6 (Complete):** Demonstrates autonomous agent operation with rule-based decision-making in a safe, mock environment. Provides foundation for governance discussions.
 
-**Phases 7-9 (Upcoming):** LLM-powered decision-making with complete API isolation and behavior observation tools. Enables observing real autonomous AI agent behaviors in economic environments.
+**Phases 7-9 (Upcoming):** Claude-powered decision-making with complete API isolation and behavior observation tools. Enables observing real autonomous AI agent behaviors using Claude Code (subscription-based, 15-min timeouts, unattended mode) in economic environments.
 
 **The question is not whether agents will found companies, but how we govern them when they do.**
 

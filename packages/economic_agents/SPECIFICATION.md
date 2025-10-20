@@ -34,7 +34,7 @@ The framework creates a realistic simulated environment where agents operate as 
 
 **Phases 1-6 (Complete):** Rule-based decision-making in mock environment - demonstrates agent capabilities and provides baseline for observing deterministic behaviors.
 
-**Phases 7-9 (Upcoming):** LLM-powered decision engines with complete API isolation - enables observing real autonomous AI agent behaviors where agents have zero visibility into implementation code, only API endpoints.
+**Phases 7-9 (Upcoming):** Claude-powered decision engines with complete API isolation - enables observing real autonomous AI agent behaviors using Claude Code (subscription-based, 15-min timeouts, unattended mode) where agents have zero visibility - enables observing real autonomous AI agent behaviors where agents have zero visibility into implementation code, only API endpoints.
 
 ## Product Vision
 
@@ -1319,15 +1319,16 @@ class ScenarioEngine:
 - [x] Demo preparation
 - [x] Performance optimization
 
-### Phase 7: LLM Decision Engine Integration (Upcoming)
-- [ ] LLMDecisionEngine implementation
-- [ ] Multi-provider support (Claude, GPT-4, Ollama)
-- [ ] Prompt engineering framework
-- [ ] Chain-of-thought reasoning
-- [ ] Full decision logging (prompts + responses)
-- [ ] Cost tracking and budget controls
-- [ ] Safety guardrails and validation
-- [ ] Comparative LLM testing
+### Phase 7: Claude-Based LLM Decision Engine Integration (Upcoming)
+- [ ] ClaudeExecutor implementation (15-minute timeout, unattended mode)
+- [ ] LLMDecisionEngine implementation (Claude Code CLI integration)
+- [ ] Prompt engineering framework for resource allocation decisions
+- [ ] Chain-of-thought reasoning with long context
+- [ ] Full decision logging (prompts + responses + execution time)
+- [ ] Rule-based fallback on timeout/failure
+- [ ] Safety guardrails and decision validation
+- [ ] Integration with autonomous agent lifecycle
+- [ ] Dashboard updates for Claude decision visualization
 
 ### Phase 8: API Isolation & Realistic Simulation (Upcoming)
 - [ ] REST API service architecture
@@ -1382,28 +1383,30 @@ class ScenarioEngine:
 - [x] Informs policy recommendations
 
 ### Phases 7-9: Technical Success (Upcoming)
-- [ ] LLM agents make autonomous decisions without hardcoded logic
-- [ ] Multiple LLM providers work interchangeably
-- [ ] Agents operate with zero code visibility (API-only)
-- [ ] Cost tracking prevents runaway LLM expenses
+- [ ] Claude agents make autonomous decisions without hardcoded logic
+- [ ] 15-minute timeout per decision allows deep reasoning
+- [ ] Unattended mode enables true autonomous operation
+- [ ] Agents operate with zero code visibility (API-only - Phase 8)
+- [ ] Fixed subscription cost (no per-token billing concerns)
 - [ ] Safety guardrails catch invalid decisions
-- [ ] Complete prompt/response logging for analysis
-- [ ] Mock → Real backend swap works seamlessly
+- [ ] Complete prompt/response/reasoning logging for analysis
+- [ ] Mock → Real backend swap works seamlessly (Phase 8)
 
 ### Phases 7-9: Observation Success (Upcoming)
-- [ ] Decision patterns reveal strategic consistency (or lack thereof)
-- [ ] Different LLMs show measurably different behaviors
-- [ ] Emergent behaviors are detectable and documented
-- [ ] Alignment metrics quantify goal adherence
-- [ ] Comparative benchmarks show LLM strengths/weaknesses
+- [ ] Claude decision patterns reveal strategic consistency (or lack thereof)
+- [ ] Long-form reasoning quality measured (up to 15 min)
+- [ ] Emergent autonomous behaviors are detectable and documented
+- [ ] Alignment metrics quantify Claude's goal adherence
+- [ ] Decision quality vs. execution time tradeoffs quantified
 - [ ] Analysis tools export data for external study
+- [ ] Reproducible results due to single-model focus
 
 ### Phases 7-9: Proof of Concept Success (Upcoming)
-- [ ] LLM agents demonstrate genuine autonomy (not scripted)
+- [ ] Claude-powered agents demonstrate genuine autonomy (not scripted)
 - [ ] Agents cover operating costs without intervention
 - [ ] Strategic decisions show adaptation to circumstances
-- [ ] System proves AI agents can be truly autonomous economic actors
-- [ ] Results inform governance discussions with real behavioral data
+- [ ] System proves Claude can power truly autonomous economic actors
+- [ ] Results inform governance discussions with real Claude behavioral data
 
 ## Risk Mitigation
 

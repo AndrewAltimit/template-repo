@@ -452,9 +452,9 @@ Phases 1-6 created a **rule-based simulation framework**. Phases 7-9 will transf
 
 ---
 
-### Phase 7: LLM Decision Engine Integration
+### Phase 7: Claude Code Decision Engine Integration
 
-**Goal:** Replace deterministic heuristics with real LLM-powered autonomous decision-making
+**Goal:** Replace deterministic heuristics with Claude Code CLI for autonomous decision-making
 
 **Current State:**
 ```python
@@ -465,28 +465,30 @@ if state.is_survival_at_risk():
 
 **Target State:**
 ```python
-# Real LLM autonomous decision-making
-allocation = await claude.decide_allocation(state)  # Claude Code integration
-allocation = await gpt4.decide_allocation(state)    # OpenAI integration
-allocation = await llama3.decide_allocation(state)  # Local model integration
+# Real Claude-powered autonomous decision-making
+allocation = claude_executor.execute(prompt, timeout=900)  # 15-minute timeout
+parsed = parse_claude_json_response(allocation)
+validated = validate_allocation(parsed, state)
 ```
 
 **Key Components:**
-- ✅ **Multi-LLM Support** - Claude (Anthropic), GPT-4 (OpenAI), Local models (Ollama)
-- ✅ **Prompt Engineering** - System prompts, few-shot examples, chain-of-thought
-- ✅ **Decision Logging** - Full prompt/response/reasoning capture for research
-- ✅ **Cost Controls** - Token budgets, rate limiting, spending caps
-- ✅ **Safety Guardrails** - Validate LLM decisions against constraints
-- ✅ **Hybrid Mode** - LLM creativity + rule-based safety validation
-- ✅ **Sub-Agent Personalities** - Different LLM configs for CEO vs CFO vs engineers
+- ✅ **Claude Code CLI Integration** - Subscription-based (no per-token costs)
+- ✅ **15-Minute Timeout** - Allows deep strategic reasoning
+- ✅ **Unattended Mode** - `--dangerously-skip-permissions` for autonomy
+- ✅ **Prompt Engineering** - State serialization, chain-of-thought prompts
+- ✅ **Decision Logging** - Full prompt/response/reasoning/timing capture
+- ✅ **Safety Guardrails** - Validate Claude decisions against constraints
+- ✅ **Hybrid Mode** - Claude creativity + rule-based fallback on failure
+- ✅ **Node.js 22 Integration** - Via NVM for Claude CLI execution
 
 **Research Questions:**
-- How do different LLM models approach resource allocation?
-- Do agents develop consistent strategies over time?
-- What risk profiles emerge from LLM decision-making?
-- How do prompt variations affect agent behavior?
+- How does Claude approach resource allocation with long timeouts?
+- Does Claude develop consistent strategies over time?
+- What risk profiles emerge from Claude's decision-making?
+- How do prompt variations affect Claude's behavior?
+- What's the decision quality vs. execution time tradeoff?
 
-**Estimated Timeline:** 4-6 weeks
+**Estimated Timeline:** 10-13 days
 
 ---
 
@@ -633,12 +635,12 @@ run_comparative_experiment(
 
 ## Phase 7-9 Success Criteria
 
-### Phase 7: LLM Integration ✅
-- Multiple LLM providers working (Claude, GPT-4, local)
-- Agents making autonomous decisions via inference
-- Full decision logging (prompts + responses + reasoning)
-- Cost tracking and budget controls functional
-- Hybrid mode (LLM + safety rules) operational
+### Phase 7: Claude Integration ✅
+- Claude Code CLI integration working (15-min timeouts, unattended mode)
+- Agents making autonomous decisions via Claude reasoning
+- Full decision logging (prompts + responses + reasoning + timing)
+- Fixed subscription cost (no per-token billing concerns)
+- Hybrid mode (Claude + safety rules fallback) operational
 
 ### Phase 8: API Isolation ✅
 - All agent interactions via REST APIs only
@@ -648,17 +650,17 @@ run_comparative_experiment(
 - Agent authentication and rate limiting working
 
 ### Phase 9: Behavior Observatory ✅
-- Decision pattern analysis automated
-- LLM quality metrics running
+- Decision pattern analysis automated for Claude behavior
+- Claude quality metrics running (reasoning depth, consistency)
 - Emergent behavior detection functional
-- Comparative LLM experiments reproducible
+- Reproducible experiments (single-model focus)
 - Research papers published using framework
 
 ---
 
 ## Timeline & Priorities
 
-**Phase 7 (LLM Integration):** 4-6 weeks
+**Phase 7 (Claude Integration):** 10-13 days
 - Week 1-2: Claude integration, prompt engineering
 - Week 3-4: Multi-LLM support, decision logging
 - Week 5-6: Safety guardrails, hybrid mode, testing

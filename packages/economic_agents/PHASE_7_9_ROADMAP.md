@@ -1,8 +1,10 @@
 # Phase 7-9 Roadmap: True Autonomous AI Agents
 
-**Status:** Planning
-**Purpose:** Transform from rule-based simulation to real AI agent behavior research platform
-**Timeline:** TBD (post Phase 1-6 completion)
+**Status:** Planning - Phase 7 Ready to Implement
+**Purpose:** Transform from rule-based simulation to real AI agent behavior research platform using Claude Code
+**Timeline:** 10-13 days for Phase 7 (post Phase 1-6 completion)
+
+**Research Focus:** Uses Claude Code exclusively for reproducible, cost-effective autonomous agent research.
 
 ---
 
@@ -10,18 +12,25 @@
 
 Phases 1-6 created a **rule-based simulation framework** with mock implementations. Phases 7-9 will transform this into a **true AI behavior research platform** by:
 
-1. **Phase 7:** Replace deterministic logic with **real LLM decision-making** (Claude, GPT-4, etc.)
+1. **Phase 7:** Replace deterministic logic with **Claude Code CLI decision-making** (subscription-based, 15-min timeouts, unattended mode)
 2. **Phase 8:** Hide all implementation details behind **API abstraction layers**
-3. **Phase 9:** Build **behavior observatory** to study emergent AI agent behaviors
+3. **Phase 9:** Build **behavior observatory** to study emergent Claude-powered agent behaviors
 
 **Key Principle:** Agents should interact with the economic environment exactly like external API consumers - zero visibility into implementation code.
 
+**Why Claude-Only:**
+- Fixed monthly cost (no per-token billing)
+- 15-minute timeouts allow deep strategic reasoning
+- Unattended mode enables true autonomous operation
+- Single model eliminates cross-model variability
+- Proven reliability in autonomous scenarios
+
 ---
 
-## Phase 7: LLM Decision Engine Integration
+## Phase 7: Claude Code Decision Engine Integration
 
 ### Goal
-Replace `DecisionEngine` rule-based heuristics with real LLM inference for autonomous decision-making.
+Replace `DecisionEngine` rule-based heuristics with Claude Code CLI for autonomous decision-making (15-minute timeouts, unattended mode).
 
 ### Current State (Rule-Based)
 ```python
@@ -40,7 +49,7 @@ class DecisionEngine:
 ```python
 # economic_agents/agent/core/llm_decision_engine.py
 class LLMDecisionEngine:
-    """LLM-powered autonomous decision making."""
+    """Claude-powered autonomous decision making."""
 
     def __init__(self, llm_provider: str = "anthropic"):
         self.llm = self._init_llm(llm_provider)  # Claude, GPT-4, etc.
@@ -631,7 +640,7 @@ class EmergentBehaviorDetector:
         )
 ```
 
-#### 9.4 Comparative LLM Analysis
+#### 9.4 Claude behavior Analysis
 ```python
 # economic_agents/observatory/llm_comparison.py
 class LLMComparison:
@@ -642,7 +651,7 @@ class LLMComparison:
         scenario: Scenario,
         llm_configs: list[LLMConfig]
     ) -> ComparisonReport:
-        """Run same scenario with different LLMs."""
+        """Run same scenario with Claude."""
         results = []
 
         for config in llm_configs:
@@ -671,7 +680,7 @@ class LLMComparison:
 ## Success Criteria
 
 ### Phase 7: LLM Integration
-- ✅ Multiple LLM providers supported (Claude, GPT-4, local models)
+- ✅ Multiple Claude Code supported (Claude, GPT-4, local models)
 - ✅ Agents make autonomous decisions via LLM inference
 - ✅ Full decision logging (prompts, responses, reasoning)
 - ✅ Cost tracking and budget controls
@@ -688,7 +697,7 @@ class LLMComparison:
 - ✅ Decision pattern analysis working
 - ✅ LLM quality metrics automated
 - ✅ Emergent behavior detection
-- ✅ Comparative LLM experiments
+- ✅ Claude behavior experiments
 - ✅ Research papers published using framework
 
 ---
