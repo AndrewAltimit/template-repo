@@ -1,4 +1,78 @@
 services:
+  # Microservices (Phase 8: API Isolation)
+
+  # Wallet API Microservice
+  wallet-api:
+    build: .
+    container_name: wallet-api
+    command: uvicorn economic_agents.api.services.wallet_service:app --host 0.0.0.0 --port 8001 --reload
+    ports:
+      - "8001:8001"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # Compute API Microservice
+  compute-api:
+    build: .
+    container_name: compute-api
+    command: uvicorn economic_agents.api.services.compute_service:app --host 0.0.0.0 --port 8002 --reload
+    ports:
+      - "8002:8002"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # Marketplace API Microservice
+  marketplace-api:
+    build: .
+    container_name: marketplace-api
+    command: uvicorn economic_agents.api.services.marketplace_service:app --host 0.0.0.0 --port 8003 --reload
+    ports:
+      - "8003:8003"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # Investor Portal API Microservice
+  investor-api:
+    build: .
+    container_name: investor-api
+    command: uvicorn economic_agents.api.services.investor_service:app --host 0.0.0.0 --port 8004 --reload
+    ports:
+      - "8004:8004"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
   # FastAPI Dashboard Backend
   dashboard-backend:
     build: .
@@ -11,6 +85,15 @@ services:
     environment:
       - PYTHONPATH=/app
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    depends_on:
+      wallet-api:
+        condition: service_healthy
+      compute-api:
+        condition: service_healthy
+      marketplace-api:
+        condition: service_healthy
+      investor-api:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 10s
