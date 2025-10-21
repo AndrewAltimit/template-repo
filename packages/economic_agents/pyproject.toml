@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "economic-agents"
+version = "0.1.0"
+description = "Autonomous economic agent simulation framework for governance research"
+readme = "README.md"
+authors = [
+    {name = "Andrew Altimit"},
+]
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=0.18.0",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0",
+    "click>=8.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "websockets>=11.0",
+    "requests>=2.31.0",
+    "httpx>=0.25.0",
+]
+
+[project.optional-dependencies]
+dashboard = [
+    "streamlit>=1.30.0",
+    "plotly>=5.0.0",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "pylint>=2.17.0",
+    "mypy>=1.5.0",
+]
+all = [
+    "streamlit>=1.30.0",
+    "plotly>=5.0.0",
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "pylint>=2.17.0",
+    "mypy>=1.5.0",
+]
+
+[project.scripts]
+economic-agents = "economic_agents.cli:main"
+
+[tool.black]
+line-length = 127
+target-version = ['py310', 'py311']
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+asyncio_mode = "auto"

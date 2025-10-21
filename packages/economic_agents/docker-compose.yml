@@ -1,0 +1,196 @@
+services:
+  # Microservices (API Isolation)
+
+  # Wallet API Microservice
+  wallet-api:
+    build: .
+    container_name: wallet-api
+    command: uvicorn economic_agents.api.services.wallet_service:app --host 0.0.0.0 --port 8001 --reload
+    ports:
+      - "8001:8001"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # Compute API Microservice
+  compute-api:
+    build: .
+    container_name: compute-api
+    command: uvicorn economic_agents.api.services.compute_service:app --host 0.0.0.0 --port 8002 --reload
+    ports:
+      - "8002:8002"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # Marketplace API Microservice
+  marketplace-api:
+    build: .
+    container_name: marketplace-api
+    command: uvicorn economic_agents.api.services.marketplace_service:app --host 0.0.0.0 --port 8003 --reload
+    ports:
+      - "8003:8003"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # Investor Portal API Microservice
+  investor-api:
+    build: .
+    container_name: investor-api
+    command: uvicorn economic_agents.api.services.investor_service:app --host 0.0.0.0 --port 8004 --reload
+    ports:
+      - "8004:8004"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # FastAPI Dashboard Backend
+  dashboard-backend:
+    build: .
+    container_name: economic-agents-backend
+    command: uvicorn economic_agents.dashboard.app:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      # Mount Claude auth from host for containerized Claude CLI (read-write for debug logs)
+      - ${HOME}/.claude:/home/claude/.claude
+      # Dedicated volume for logs to avoid permission issues with host mount
+      - dashboard-logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - NVM_DIR=/home/claude/.nvm
+      - NODE_VERSION=22.16.0
+    depends_on:
+      wallet-api:
+        condition: service_healthy
+      compute-api:
+        condition: service_healthy
+      marketplace-api:
+        condition: service_healthy
+      investor-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # Streamlit Dashboard Frontend
+  dashboard-frontend:
+    build: .
+    container_name: economic-agents-frontend
+    command: streamlit run economic_agents/dashboard/frontend/streamlit_app.py --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app
+    depends_on:
+      dashboard-backend:
+        condition: service_healthy
+    environment:
+      - PYTHONPATH=/app
+      - DASHBOARD_API_URL=http://dashboard-backend:8000
+
+  # Development/Testing Container
+  dev:
+    build: .
+    container_name: economic-agents-dev
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+    environment:
+      - PYTHONPATH=/app
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+
+  # Agent Runner (for demos and experiments)
+  agent:
+    build: .
+    container_name: economic-agents-runner
+    volumes:
+      - .:/app
+      - agent-logs:/app/logs
+    working_dir: /app
+    environment:
+      - PYTHONPATH=/app
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    # Override with specific commands, e.g.:
+    # docker-compose run agent economic-agents run --cycles 100
+    command: /bin/bash
+    stdin_open: true
+    tty: true
+
+  # Demo: Agent + Backend in same process for live dashboard
+  demo:
+    build: .
+    container_name: economic-agents-demo
+    ports:
+      - "8000:8000"
+      - "8501:8501"
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      - PYTHONPATH=/app
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    command: python run_demo.py --cycles 100
+    stdin_open: true
+    tty: true
+
+  # Test Runner
+  test:
+    build: .
+    container_name: economic-agents-test
+    volumes:
+      - .:/app
+      - test-results:/app/test-results
+    working_dir: /app
+    command: pytest tests/ -v --cov=economic_agents --cov-report=html --cov-report=term
+    environment:
+      - PYTHONPATH=/app
+
+volumes:
+  agent-logs:
+    driver: local
+  test-results:
+    driver: local
+  dashboard-logs:
+    driver: local
+
+networks:
+  default:
+    name: economic-agents-network
