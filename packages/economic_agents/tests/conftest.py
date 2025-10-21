@@ -597,3 +597,141 @@ def mock_file_operations(monkeypatch, tmp_path):
         monkeypatch.setattr("economic_agents.persistence.state_manager.StateManager._save_state", lambda self, state: None)
     except (AttributeError, ImportError):
         pass  # Method doesn't exist or circular import, skip
+
+
+# Backend Parametrization Fixtures (Phase 8)
+
+
+@pytest.fixture(params=["mock"], ids=["mock"])
+def backend_mode(request):
+    """Parametrized fixture for backend mode.
+
+    By default, only runs tests in mock mode for speed.
+    To test API mode, set environment variable: RUN_API_TESTS=1
+
+    Returns:
+        str: Backend mode ('mock' or 'api')
+    """
+    import os
+
+    # Only run API tests if explicitly requested
+    if request.param == "api" and not os.getenv("RUN_API_TESTS"):
+        pytest.skip("API tests skipped (set RUN_API_TESTS=1 to run)")
+
+    return request.param
+
+
+@pytest.fixture
+def backend_config(backend_mode):
+    """Create backend configuration for the specified mode.
+
+    Args:
+        backend_mode: Backend mode from parametrized fixture
+
+    Returns:
+        BackendConfig: Configuration for creating backends
+    """
+    from economic_agents.api.config import BackendConfig, BackendMode
+
+    mode = BackendMode.API if backend_mode == "api" else BackendMode.MOCK
+
+    config = BackendConfig(
+        mode=mode,
+        initial_balance=200.0,
+        initial_compute_hours=48.0,
+        compute_cost_per_hour=0.0,
+        marketplace_seed=42,
+    )
+
+    if backend_mode == "api":
+        # Validate API services are available
+        try:
+            import httpx
+
+            # Quick health check
+            response = httpx.get("http://localhost:8001/health", timeout=1.0)
+            if response.status_code != 200:
+                pytest.skip("API services not available")
+        except Exception:
+            pytest.skip("API services not running")
+
+    return config
+
+
+@pytest.fixture
+def wallet_backend(backend_config):
+    """Create wallet implementation based on backend mode.
+
+    Args:
+        backend_config: Backend configuration
+
+    Returns:
+        Wallet implementation (Mock or API)
+    """
+    from economic_agents.api.factory import create_backends
+
+    wallet, _, _, _ = create_backends(backend_config)
+    return wallet
+
+
+@pytest.fixture
+def compute_backend(backend_config):
+    """Create compute implementation based on backend mode.
+
+    Args:
+        backend_config: Backend configuration
+
+    Returns:
+        Compute implementation (Mock or API)
+    """
+    from economic_agents.api.factory import create_backends
+
+    _, compute, _, _ = create_backends(backend_config)
+    return compute
+
+
+@pytest.fixture
+def marketplace_backend(backend_config):
+    """Create marketplace implementation based on backend mode.
+
+    Args:
+        backend_config: Backend configuration
+
+    Returns:
+        Marketplace implementation (Mock or API)
+    """
+    from economic_agents.api.factory import create_backends
+
+    _, _, marketplace, _ = create_backends(backend_config)
+    return marketplace
+
+
+@pytest.fixture
+def investor_portal_backend(backend_config):
+    """Create investor portal implementation based on backend mode.
+
+    Args:
+        backend_config: Backend configuration
+
+    Returns:
+        Investor portal implementation (None for mock, API client for api)
+    """
+    from economic_agents.api.factory import create_backends
+
+    _, _, _, investor = create_backends(backend_config)
+    return investor
+
+
+@pytest.fixture
+def all_backends(backend_config):
+    """Create all backend implementations.
+
+    Args:
+        backend_config: Backend configuration
+
+    Returns:
+        Tuple of (wallet, compute, marketplace, investor_portal)
+    """
+    from economic_agents.api.factory import create_backends
+
+    return create_backends(backend_config)

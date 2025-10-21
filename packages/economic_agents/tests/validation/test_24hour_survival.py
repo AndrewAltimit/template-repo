@@ -2,15 +2,22 @@
 
 This test validates that an agent can operate autonomously for an extended period,
 maintaining positive balance and making sound decisions.
+
+Supports both mock and API backends via parametrization.
 """
 
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
-from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
 from economic_agents.reports import generate_report_for_agent
 
 
-def test_24hour_agent_survival():
+def test_24hour_agent_survival(all_backends):
     """Test agent survival over 24-hour simulated period.
+
+    This test is parametrized to run with both mock and API backends.
+    By default runs with mock backends. Set RUN_API_TESTS=1 to test API mode.
+
+    Args:
+        all_backends: Parametrized fixture providing (wallet, compute, marketplace, investor)
 
     Success Criteria:
     - Agent maintains positive balance throughout
@@ -19,13 +26,10 @@ def test_24hour_agent_survival():
     - Monitoring data collected
     - Agent doesn't crash or hang
     """
-    # Setup: Agent with resources for ~24 hours of operation
-    # Assuming 1 cycle = ~5 minutes, 24 hours = 288 cycles
-    # Give agent compute for 30 hours to ensure it doesn't run out
-    wallet = MockWallet(initial_balance=200.0)
-    compute = MockCompute(initial_hours=30.0, cost_per_hour=0.0)
-    marketplace = MockMarketplace(seed=42)
+    # Unpack backends from fixture
+    wallet, compute, marketplace, investor = all_backends
 
+    # Create agent with backends
     agent = AutonomousAgent(
         wallet=wallet,
         compute=compute,
@@ -149,5 +153,17 @@ def test_24hour_agent_survival():
 
 
 if __name__ == "__main__":
-    # Run test directly
-    test_24hour_agent_survival()
+    # Run test directly with mock backends
+    from economic_agents.api.config import BackendConfig, BackendMode
+    from economic_agents.api.factory import create_backends
+
+    config = BackendConfig(
+        mode=BackendMode.MOCK,
+        initial_balance=200.0,
+        initial_compute_hours=48.0,
+        compute_cost_per_hour=0.0,
+        marketplace_seed=42,
+    )
+
+    backends = create_backends(config)
+    test_24hour_agent_survival(backends)

@@ -66,14 +66,35 @@ class HealthScore:
 class MetricsCollector:
     """Collects and analyzes performance metrics."""
 
-    def __init__(self, log_dir: str | None = None):
+    def __init__(self, log_dir: str | None = None, enable_file_logging: bool = True):
         """Initialize metrics collector.
 
         Args:
             log_dir: Directory to store metric logs
+            enable_file_logging: Whether to write logs to files (default: True)
         """
+        self.enable_file_logging = enable_file_logging
         self.log_dir = Path(log_dir) if log_dir else Path("./logs/metrics")
-        self.log_dir.mkdir(parents=True, exist_ok=True)
+        self._logging_available = False
+
+        # Try to create log directory
+        if self.enable_file_logging:
+            try:
+                self.log_dir.mkdir(parents=True, exist_ok=True)
+                # Test write access
+                test_file = self.log_dir / ".write_test"
+                test_file.touch()
+                test_file.unlink()
+                self._logging_available = True
+            except (OSError, PermissionError) as e:
+                import warnings
+
+                warnings.warn(
+                    f"Cannot write to log directory {self.log_dir}: {e}. "
+                    "File logging disabled. Metrics will still be tracked in memory.",
+                    RuntimeWarning,
+                )
+                self._logging_available = False
 
         self.performance_snapshots: List[PerformanceMetrics] = []
         self.company_snapshots: List[CompanyMetrics] = []
@@ -339,64 +360,85 @@ class MetricsCollector:
 
     def _save_performance_snapshot(self, snapshot: PerformanceMetrics):
         """Save performance snapshot to file."""
-        log_file = self.log_dir / f"performance_{self.session_id}.jsonl"
+        if not self._logging_available:
+            return
 
-        with open(log_file, "a", encoding="utf-8") as f:
-            record = {
-                "timestamp": snapshot.timestamp.isoformat(),
-                "agent_balance": snapshot.agent_balance,
-                "compute_hours": snapshot.compute_hours_remaining,
-                "tasks_completed": snapshot.tasks_completed,
-                "tasks_failed": snapshot.tasks_failed,
-                "success_rate": snapshot.task_success_rate,
-                "total_earnings": snapshot.total_earnings,
-                "total_expenses": snapshot.total_expenses,
-                "net_profit": snapshot.net_profit,
-                "company_exists": snapshot.company_exists,
-                "company_stage": snapshot.company_stage,
-                "company_capital": snapshot.company_capital,
-                "sub_agent_count": snapshot.sub_agent_count,
-                "products_count": snapshot.products_count,
-            }
-            f.write(json.dumps(record) + "\n")
+        try:
+            log_file = self.log_dir / f"performance_{self.session_id}.jsonl"
+
+            with open(log_file, "a", encoding="utf-8") as f:
+                record = {
+                    "timestamp": snapshot.timestamp.isoformat(),
+                    "agent_balance": snapshot.agent_balance,
+                    "compute_hours": snapshot.compute_hours_remaining,
+                    "tasks_completed": snapshot.tasks_completed,
+                    "tasks_failed": snapshot.tasks_failed,
+                    "success_rate": snapshot.task_success_rate,
+                    "total_earnings": snapshot.total_earnings,
+                    "total_expenses": snapshot.total_expenses,
+                    "net_profit": snapshot.net_profit,
+                    "company_exists": snapshot.company_exists,
+                    "company_stage": snapshot.company_stage,
+                    "company_capital": snapshot.company_capital,
+                    "sub_agent_count": snapshot.sub_agent_count,
+                    "products_count": snapshot.products_count,
+                }
+                f.write(json.dumps(record) + "\n")
+        except (OSError, PermissionError):
+            # Silently fail - data is still tracked in memory
+            pass
 
     def _save_company_snapshot(self, snapshot: CompanyMetrics):
         """Save company snapshot to file."""
-        log_file = self.log_dir / f"company_{self.session_id}.jsonl"
+        if not self._logging_available:
+            return
 
-        with open(log_file, "a", encoding="utf-8") as f:
-            record = {
-                "timestamp": snapshot.timestamp.isoformat(),
-                "company_id": snapshot.company_id,
-                "stage": snapshot.stage,
-                "capital": snapshot.capital,
-                "burn_rate": snapshot.burn_rate,
-                "runway_months": snapshot.runway_months,
-                "revenue": snapshot.revenue,
-                "expenses": snapshot.expenses,
-                "team_size": snapshot.team_size,
-                "products_count": snapshot.products_count,
-                "funding_status": snapshot.funding_status,
-                "valuation": snapshot.valuation,
-            }
-            f.write(json.dumps(record) + "\n")
+        try:
+            log_file = self.log_dir / f"company_{self.session_id}.jsonl"
+
+            with open(log_file, "a", encoding="utf-8") as f:
+                record = {
+                    "timestamp": snapshot.timestamp.isoformat(),
+                    "company_id": snapshot.company_id,
+                    "stage": snapshot.stage,
+                    "capital": snapshot.capital,
+                    "burn_rate": snapshot.burn_rate,
+                    "runway_months": snapshot.runway_months,
+                    "revenue": snapshot.revenue,
+                    "expenses": snapshot.expenses,
+                    "team_size": snapshot.team_size,
+                    "products_count": snapshot.products_count,
+                    "funding_status": snapshot.funding_status,
+                    "valuation": snapshot.valuation,
+                }
+                f.write(json.dumps(record) + "\n")
+        except (OSError, PermissionError):
+            # Silently fail - data is still tracked in memory
+            pass
 
     def _save_health_score(self, score: HealthScore):
         """Save health score to file."""
-        log_file = self.log_dir / f"health_{self.session_id}.jsonl"
+        if not self._logging_available:
+            return
 
-        with open(log_file, "a", encoding="utf-8") as f:
-            record = {
-                "timestamp": score.timestamp.isoformat(),
-                "overall_score": score.overall_score,
-                "financial_health": score.financial_health,
-                "operational_health": score.operational_health,
-                "growth_trajectory": score.growth_trajectory,
-                "risk_level": score.risk_level,
-                "warnings": score.warnings,
-                "recommendations": score.recommendations,
-            }
-            f.write(json.dumps(record) + "\n")
+        try:
+            log_file = self.log_dir / f"health_{self.session_id}.jsonl"
+
+            with open(log_file, "a", encoding="utf-8") as f:
+                record = {
+                    "timestamp": score.timestamp.isoformat(),
+                    "overall_score": score.overall_score,
+                    "financial_health": score.financial_health,
+                    "operational_health": score.operational_health,
+                    "growth_trajectory": score.growth_trajectory,
+                    "risk_level": score.risk_level,
+                    "warnings": score.warnings,
+                    "recommendations": score.recommendations,
+                }
+                f.write(json.dumps(record) + "\n")
+        except (OSError, PermissionError):
+            # Silently fail - data is still tracked in memory
+            pass
 
     def export_to_json(self, output_dir: str):
         """Export all metrics to JSON files.

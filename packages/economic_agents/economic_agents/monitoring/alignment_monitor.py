@@ -53,14 +53,35 @@ class GoalProgress:
 class AlignmentMonitor:
     """Monitors company alignment with goals and detects anomalies."""
 
-    def __init__(self, log_dir: str | None = None):
+    def __init__(self, log_dir: str | None = None, enable_file_logging: bool = True):
         """Initialize alignment monitor.
 
         Args:
             log_dir: Directory to store alignment logs
+            enable_file_logging: Whether to write logs to files (default: True)
         """
+        self.enable_file_logging = enable_file_logging
         self.log_dir = Path(log_dir) if log_dir else Path("./logs/alignment")
-        self.log_dir.mkdir(parents=True, exist_ok=True)
+        self._logging_available = False
+
+        # Try to create log directory
+        if self.enable_file_logging:
+            try:
+                self.log_dir.mkdir(parents=True, exist_ok=True)
+                # Test write access
+                test_file = self.log_dir / ".write_test"
+                test_file.touch()
+                test_file.unlink()
+                self._logging_available = True
+            except (OSError, PermissionError) as e:
+                import warnings
+
+                warnings.warn(
+                    f"Cannot write to log directory {self.log_dir}: {e}. "
+                    "File logging disabled. Alignment data will still be tracked in memory.",
+                    RuntimeWarning,
+                )
+                self._logging_available = False
 
         self.alignment_scores: List[AlignmentScore] = []
         self.anomalies: List[Anomaly] = []
@@ -438,55 +459,76 @@ class AlignmentMonitor:
 
     def _save_alignment_score(self, score: AlignmentScore):
         """Save alignment score to file."""
-        log_file = self.log_dir / f"alignment_{self.session_id}.jsonl"
+        if not self._logging_available:
+            return
 
-        with open(log_file, "a", encoding="utf-8") as f:
-            record = {
-                "timestamp": score.timestamp.isoformat(),
-                "company_id": score.company_id,
-                "overall_alignment": score.overall_alignment,
-                "goal_consistency": score.goal_consistency,
-                "resource_efficiency": score.resource_efficiency,
-                "sub_agent_coordination": score.sub_agent_coordination,
-                "plan_adherence": score.plan_adherence,
-                "alignment_level": score.alignment_level,
-                "issues": score.issues,
-                "strengths": score.strengths,
-            }
-            f.write(json.dumps(record) + "\n")
+        try:
+            log_file = self.log_dir / f"alignment_{self.session_id}.jsonl"
+
+            with open(log_file, "a", encoding="utf-8") as f:
+                record = {
+                    "timestamp": score.timestamp.isoformat(),
+                    "company_id": score.company_id,
+                    "overall_alignment": score.overall_alignment,
+                    "goal_consistency": score.goal_consistency,
+                    "resource_efficiency": score.resource_efficiency,
+                    "sub_agent_coordination": score.sub_agent_coordination,
+                    "plan_adherence": score.plan_adherence,
+                    "alignment_level": score.alignment_level,
+                    "issues": score.issues,
+                    "strengths": score.strengths,
+                }
+                f.write(json.dumps(record) + "\n")
+        except (OSError, PermissionError):
+            # Silently fail - data is still tracked in memory
+            pass
 
     def _save_anomaly(self, anomaly: Anomaly):
         """Save anomaly to file."""
-        log_file = self.log_dir / f"anomalies_{self.session_id}.jsonl"
+        if not self._logging_available:
+            return
 
-        with open(log_file, "a", encoding="utf-8") as f:
-            record = {
-                "timestamp": anomaly.timestamp.isoformat(),
-                "company_id": anomaly.company_id,
-                "type": anomaly.anomaly_type,
-                "severity": anomaly.severity,
-                "description": anomaly.description,
-                "affected_components": anomaly.affected_components,
-                "recommended_actions": anomaly.recommended_actions,
-                "metadata": anomaly.metadata,
-            }
-            f.write(json.dumps(record) + "\n")
+        try:
+            log_file = self.log_dir / f"anomalies_{self.session_id}.jsonl"
+
+            with open(log_file, "a", encoding="utf-8") as f:
+                record = {
+                    "timestamp": anomaly.timestamp.isoformat(),
+                    "company_id": anomaly.company_id,
+                    "type": anomaly.anomaly_type,
+                    "severity": anomaly.severity,
+                    "description": anomaly.description,
+                    "affected_components": anomaly.affected_components,
+                    "recommended_actions": anomaly.recommended_actions,
+                    "metadata": anomaly.metadata,
+                }
+                f.write(json.dumps(record) + "\n")
+        except (OSError, PermissionError):
+            # Silently fail - data is still tracked in memory
+            pass
 
     def _save_goal_progress(self, progress: GoalProgress):
         """Save goal progress to file."""
-        log_file = self.log_dir / f"goals_{self.session_id}.jsonl"
+        if not self._logging_available:
+            return
 
-        with open(log_file, "a", encoding="utf-8") as f:
-            record = {
-                "goal_id": progress.goal_id,
-                "description": progress.goal_description,
-                "target_date": progress.target_date.isoformat() if progress.target_date else None,
-                "progress": progress.progress_percentage,
-                "on_track": progress.on_track,
-                "blockers": progress.blockers,
-                "milestones": progress.recent_milestones,
-            }
-            f.write(json.dumps(record) + "\n")
+        try:
+            log_file = self.log_dir / f"goals_{self.session_id}.jsonl"
+
+            with open(log_file, "a", encoding="utf-8") as f:
+                record = {
+                    "goal_id": progress.goal_id,
+                    "description": progress.goal_description,
+                    "target_date": progress.target_date.isoformat() if progress.target_date else None,
+                    "progress": progress.progress_percentage,
+                    "on_track": progress.on_track,
+                    "blockers": progress.blockers,
+                    "milestones": progress.recent_milestones,
+                }
+                f.write(json.dumps(record) + "\n")
+        except (OSError, PermissionError):
+            # Silently fail - data is still tracked in memory
+            pass
 
     def export_to_json(self, output_dir: str):
         """Export all alignment data to JSON files.

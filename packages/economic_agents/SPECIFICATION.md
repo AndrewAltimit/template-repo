@@ -1,6 +1,6 @@
 # Autonomous Economic Agent Simulation Framework - Product Requirements Document (PRD)
 
-**Implementation Status:** ✅ **Phases 1-7 Complete** - Fully operational system with monitoring, dashboard, reporting, scenarios, and Claude-powered LLM decision engine
+**Implementation Status:** ✅ **Phases 1-8 Complete** - Fully operational system with monitoring, dashboard, reporting, scenarios, Claude-powered LLM decision engine, and API isolation
 
 ## Overview
 
@@ -32,9 +32,9 @@ The framework creates a realistic simulated environment where agents operate as 
 - Identify governance challenges before real-world deployment
 - Provide concrete examples for policy development
 
-**Phases 1-6 (Complete):** Rule-based decision-making in mock environment - demonstrates agent capabilities and provides baseline for observing deterministic behaviors.
+**Phases 1-8 (Complete):** Full autonomous agent implementation with Claude-powered decision-making, API isolation, and comprehensive monitoring - demonstrates real autonomous AI agent behaviors in realistic simulated environments.
 
-**Phases 7-9 (Upcoming):** Claude-powered decision engines with complete API isolation - enables observing real autonomous AI agent behaviors using Claude Code (subscription-based, 15-min timeouts, unattended mode) where agents have zero visibility - enables observing real autonomous AI agent behaviors where agents have zero visibility into implementation code, only API endpoints.
+**Phase 9 (Upcoming):** Behavior observatory for studying AI agent decision patterns, emergent behaviors, and alignment metrics.
 
 ## Product Vision
 
@@ -1330,17 +1330,17 @@ class ScenarioEngine:
 - [x] Integration with autonomous agent lifecycle
 - [x] Dashboard updates for Claude decision visualization
 
-### Phase 8: API Isolation & Realistic Simulation (Upcoming)
-- [ ] REST API service architecture
-- [ ] Wallet API microservice
-- [ ] Compute API microservice
-- [ ] Marketplace API microservice
-- [ ] Investor Portal API microservice
-- [ ] Agent authentication system
-- [ ] Rate limiting and quotas
-- [ ] Docker compose orchestration
-- [ ] Mock/Real backend swapping
-- [ ] Zero code visibility enforcement
+### Phase 8: API Isolation & Realistic Simulation ✅ Complete
+- [x] REST API service architecture
+- [x] Wallet API microservice
+- [x] Compute API microservice
+- [x] Marketplace API microservice
+- [x] Investor Portal API microservice
+- [x] Agent authentication system
+- [x] Rate limiting and quotas
+- [x] Docker compose orchestration
+- [x] Mock/Real backend swapping
+- [x] Zero code visibility enforcement
 
 ### Phase 9: Behavior Observatory (Upcoming)
 - [ ] Decision pattern analyzer
@@ -1407,12 +1407,27 @@ class ScenarioEngine:
 - [x] System proves Claude can power truly autonomous economic actors
 - [x] All tests passing (528/528 tests, 100% pass rate)
 
-### Phases 8-9: Technical Success (Upcoming)
-- [ ] Agents operate with zero code visibility (API-only - Phase 8)
-- [ ] Mock → Real backend swap works seamlessly (Phase 8)
-- [ ] Analysis tools export data for external study (Phase 9)
+### Phase 8: Technical Success ✅ Complete
+- [x] Agents operate with zero code visibility (API-only)
+- [x] Mock → Real backend swap works seamlessly via backend factory
+- [x] All 4 microservices (Wallet, Compute, Marketplace, Investor) operational
+- [x] API authentication and rate limiting implemented
+- [x] Docker orchestration for multi-service deployment
+- [x] API clients provide drop-in replacements for mock implementations
+- [x] Integration tests validate all microservice functionality
 
-### Phases 8-9: Proof of Concept Success (Upcoming)
+### Phase 8: Proof of Concept Success ✅ Complete
+- [x] Agents interact through REST APIs only (realistic constraints)
+- [x] Services swappable between mock and real backends via configuration
+- [x] Complete API isolation demonstrates deployment-ready architecture
+- [x] Field mapping between API models and internal models validated
+
+### Phase 9: Technical Success (Upcoming)
+- [ ] Analysis tools export data for external study
+- [ ] Decision pattern analyzer operational
+- [ ] Emergent behavior detection implemented
+
+### Phase 9: Proof of Concept Success (Upcoming)
 - [ ] Agents cover operating costs without intervention
 - [ ] Results inform governance discussions with real Claude behavioral data
 

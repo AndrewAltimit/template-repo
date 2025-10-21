@@ -5,27 +5,30 @@ This script runs an autonomous agent that feeds data to the dashboard in real-ti
 Start the dashboard first, then run this script to see live updates.
 
 Usage:
-    python run_demo.py [--cycles CYCLES]
+    python run_demo.py [--cycles CYCLES] [--mode {survival,company}] [--backend {mock,api}]
 """
 
 import argparse
 import time
 
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
+from economic_agents.api.config import BackendConfig, BackendMode
+from economic_agents.api.factory import create_backends
 from economic_agents.dashboard.dependencies import dashboard_state
-from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
 
 
-def run_demo(max_cycles: int = 50, mode: str = "survival"):
+def run_demo(max_cycles: int = 50, mode: str = "survival", backend: str = "mock"):
     """Run demo agent with dashboard integration.
 
     Args:
         max_cycles: Number of cycles to run
         mode: 'survival' (no company) or 'company' (form company)
+        backend: 'mock' (in-memory) or 'api' (microservices)
     """
     print("🤖 Starting Autonomous Economic Agent Demo")
     print("=" * 60)
     print(f"Mode: {mode.upper()}")
+    print(f"Backend: {backend.upper()}")
     print(f"Running for {max_cycles} cycles")
     print("View live updates at: http://localhost:8501")
     print("=" * 60)
@@ -42,10 +45,30 @@ def run_demo(max_cycles: int = 50, mode: str = "survival"):
         company_threshold = 150.0
         print("\n🏢 Company mode: Agent will form and operate company")
 
-    # Create agent
-    wallet = MockWallet(initial_balance=initial_balance)
-    compute = MockCompute(initial_hours=100.0, cost_per_hour=0.0)
-    marketplace = MockMarketplace(seed=42)
+    # Create backends using factory
+    backend_mode = BackendMode.API if backend == "api" else BackendMode.MOCK
+    config = BackendConfig(
+        mode=backend_mode,
+        initial_balance=initial_balance,
+        initial_compute_hours=100.0,
+        compute_cost_per_hour=0.0,
+        marketplace_seed=42,
+    )
+
+    if backend == "api":
+        print("\n⚙️  Using API backends (microservices)")
+        print("   Make sure services are running:")
+        print("   docker-compose up wallet-api compute-api marketplace-api investor-api")
+    else:
+        print("\n⚙️  Using mock backends (in-memory)")
+
+    try:
+        wallet, compute, marketplace, investor = create_backends(config)
+    except Exception as e:
+        print(f"\n❌ Failed to create backends: {e}")
+        if backend == "api":
+            print("\nMake sure API services are running!")
+        raise
 
     agent = AutonomousAgent(
         wallet=wallet,
@@ -124,6 +147,13 @@ if __name__ == "__main__":
         default="survival",
         help="Demo mode: 'survival' (task work only) or 'company' (with company formation)",
     )
+    parser.add_argument(
+        "--backend",
+        type=str,
+        choices=["mock", "api"],
+        default="mock",
+        help="Backend type: 'mock' (in-memory, default) or 'api' (microservices)",
+    )
     args = parser.parse_args()
 
-    run_demo(max_cycles=args.cycles, mode=args.mode)
+    run_demo(max_cycles=args.cycles, mode=args.mode, backend=args.backend)

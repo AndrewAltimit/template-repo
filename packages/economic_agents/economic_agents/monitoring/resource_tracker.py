@@ -66,14 +66,35 @@ class ResourceReport:
 class ResourceTracker:
     """Tracks all resource flows: capital, compute, and time allocation."""
 
-    def __init__(self, log_dir: str | None = None):
+    def __init__(self, log_dir: str | None = None, enable_file_logging: bool = True):
         """Initialize resource tracker.
 
         Args:
             log_dir: Directory to store resource logs
+            enable_file_logging: Whether to write logs to files (default: True)
         """
+        self.enable_file_logging = enable_file_logging
         self.log_dir = Path(log_dir) if log_dir else Path("./logs/resources")
-        self.log_dir.mkdir(parents=True, exist_ok=True)
+        self._logging_available = False
+
+        # Try to create log directory
+        if self.enable_file_logging:
+            try:
+                self.log_dir.mkdir(parents=True, exist_ok=True)
+                # Test write access
+                test_file = self.log_dir / ".write_test"
+                test_file.touch()
+                test_file.unlink()
+                self._logging_available = True
+            except (OSError, PermissionError) as e:
+                import warnings
+
+                warnings.warn(
+                    f"Cannot write to log directory {self.log_dir}: {e}. "
+                    "File logging disabled. Data will still be tracked in memory.",
+                    RuntimeWarning,
+                )
+                self._logging_available = False
 
         self.transactions: List[Transaction] = []
         self.compute_usage: List[ComputeUsage] = []
@@ -260,50 +281,71 @@ class ResourceTracker:
 
     def _save_transaction(self, transaction: Transaction):
         """Save transaction to file for persistence."""
-        log_file = self.log_dir / f"transactions_{self.session_id}.jsonl"
+        if not self._logging_available:
+            return
 
-        with open(log_file, "a", encoding="utf-8") as f:
-            record = {
-                "id": transaction.id,
-                "timestamp": transaction.timestamp.isoformat(),
-                "type": transaction.transaction_type,
-                "amount": transaction.amount,
-                "from": transaction.from_account,
-                "to": transaction.to_account,
-                "purpose": transaction.purpose,
-                "balance_after": transaction.balance_after,
-                "metadata": transaction.metadata,
-            }
-            f.write(json.dumps(record) + "\n")
+        try:
+            log_file = self.log_dir / f"transactions_{self.session_id}.jsonl"
+
+            with open(log_file, "a", encoding="utf-8") as f:
+                record = {
+                    "id": transaction.id,
+                    "timestamp": transaction.timestamp.isoformat(),
+                    "type": transaction.transaction_type,
+                    "amount": transaction.amount,
+                    "from": transaction.from_account,
+                    "to": transaction.to_account,
+                    "purpose": transaction.purpose,
+                    "balance_after": transaction.balance_after,
+                    "metadata": transaction.metadata,
+                }
+                f.write(json.dumps(record) + "\n")
+        except (OSError, PermissionError):
+            # Silently fail - data is still tracked in memory
+            pass
 
     def _save_compute_usage(self, usage: ComputeUsage):
         """Save compute usage to file for persistence."""
-        log_file = self.log_dir / f"compute_{self.session_id}.jsonl"
+        if not self._logging_available:
+            return
 
-        with open(log_file, "a", encoding="utf-8") as f:
-            record = {
-                "timestamp": usage.timestamp.isoformat(),
-                "hours_used": usage.hours_used,
-                "purpose": usage.purpose,
-                "cost": usage.cost,
-                "hours_remaining": usage.hours_remaining,
-                "metadata": usage.metadata,
-            }
-            f.write(json.dumps(record) + "\n")
+        try:
+            log_file = self.log_dir / f"compute_{self.session_id}.jsonl"
+
+            with open(log_file, "a", encoding="utf-8") as f:
+                record = {
+                    "timestamp": usage.timestamp.isoformat(),
+                    "hours_used": usage.hours_used,
+                    "purpose": usage.purpose,
+                    "cost": usage.cost,
+                    "hours_remaining": usage.hours_remaining,
+                    "metadata": usage.metadata,
+                }
+                f.write(json.dumps(record) + "\n")
+        except (OSError, PermissionError):
+            # Silently fail - data is still tracked in memory
+            pass
 
     def _save_time_allocation(self, allocation: TimeAllocation):
         """Save time allocation to file for persistence."""
-        log_file = self.log_dir / f"time_allocations_{self.session_id}.jsonl"
+        if not self._logging_available:
+            return
 
-        with open(log_file, "a", encoding="utf-8") as f:
-            record = {
-                "timestamp": allocation.timestamp.isoformat(),
-                "task_work_hours": allocation.task_work_hours,
-                "company_work_hours": allocation.company_work_hours,
-                "total_hours": allocation.total_hours,
-                "reasoning": allocation.reasoning,
-            }
-            f.write(json.dumps(record) + "\n")
+        try:
+            log_file = self.log_dir / f"time_allocations_{self.session_id}.jsonl"
+
+            with open(log_file, "a", encoding="utf-8") as f:
+                record = {
+                    "timestamp": allocation.timestamp.isoformat(),
+                    "task_work_hours": allocation.task_work_hours,
+                    "company_work_hours": allocation.company_work_hours,
+                    "total_hours": allocation.total_hours,
+                    "reasoning": allocation.reasoning,
+                }
+                f.write(json.dumps(record) + "\n")
+        except (OSError, PermissionError):
+            # Silently fail - data is still tracked in memory
+            pass
 
     def export_to_json(self, output_dir: str):
         """Export all resource data to JSON files.
