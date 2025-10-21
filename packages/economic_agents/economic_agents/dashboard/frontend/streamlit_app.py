@@ -122,7 +122,14 @@ def apply_theme_css():
             [data-testid="stNumberInput"] input {
                 color: #262730 !important;
             }
-            /* Select boxes */
+            /* Select boxes - force white backgrounds */
+            [data-testid="stSelectbox"] {
+                background-color: #ffffff !important;
+            }
+            [data-testid="stSelectbox"] * {
+                color: #262730 !important;
+                background-color: #ffffff !important;
+            }
             [data-testid="stSelectbox"] div[data-baseweb="select"] {
                 background-color: #ffffff !important;
                 border: 1px solid #d0d0d0 !important;
@@ -131,11 +138,30 @@ def apply_theme_css():
                 color: #262730 !important;
                 background-color: #ffffff !important;
             }
+            [data-testid="stSelectbox"] div[data-baseweb="select"] span {
+                color: #262730 !important;
+                background-color: transparent !important;
+            }
+            [data-testid="stSelectbox"] input {
+                color: #262730 !important;
+                background-color: #ffffff !important;
+            }
+            /* Force all SVG icons in select to be dark */
+            [data-testid="stSelectbox"] svg {
+                color: #262730 !important;
+                fill: #262730 !important;
+            }
             /* Dropdown menu */
             [data-baseweb="popover"] {
                 background-color: #ffffff !important;
             }
+            [data-baseweb="popover"] * {
+                background-color: #ffffff !important;
+            }
             [data-baseweb="menu"] {
+                background-color: #ffffff !important;
+            }
+            [data-baseweb="menu"] * {
                 background-color: #ffffff !important;
             }
             [data-baseweb="menu"] li {
@@ -145,9 +171,15 @@ def apply_theme_css():
             [data-baseweb="menu"] li:hover {
                 background-color: #e8f4f8 !important;
             }
+            [data-baseweb="menu"] ul {
+                background-color: #ffffff !important;
+            }
             /* Number input - make the box itself more visible */
             [data-testid="stNumberInput"] {
                 background-color: #ffffff !important;
+            }
+            [data-testid="stNumberInput"] * {
+                color: #262730 !important;
             }
             [data-testid="stNumberInput"] input {
                 color: #262730 !important;
@@ -155,9 +187,22 @@ def apply_theme_css():
                 border: 1px solid #d0d0d0 !important;
                 font-weight: 500 !important;
             }
+            [data-testid="stNumberInput"] input::placeholder {
+                color: #888888 !important;
+            }
             [data-testid="stNumberInput"] button {
                 color: #262730 !important;
                 background-color: #f0f2f6 !important;
+            }
+            [data-testid="stNumberInput"] div {
+                background-color: #ffffff !important;
+            }
+            [data-testid="stNumberInput"] span {
+                color: #262730 !important;
+            }
+            [data-testid="stNumberInput"] svg {
+                color: #262730 !important;
+                fill: #262730 !important;
             }
             /* Checkboxes */
             [data-testid="stCheckbox"] label {
