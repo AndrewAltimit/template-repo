@@ -1,6 +1,6 @@
 # Autonomous Economic Agent Simulation Framework - Product Requirements Document (PRD)
 
-**Implementation Status:** ✅ **Phases 1-9 Complete** - Fully operational system with monitoring, dashboard, reporting, scenarios, Claude-powered LLM decision engine, API isolation, and observability
+**Implementation Status:** ✅ **Complete Implementation** - Fully operational system with monitoring, dashboard, reporting, scenarios, Claude-powered LLM decision engine, API isolation, and comprehensive behavior observability
 
 ## Overview
 
@@ -32,7 +32,7 @@ The framework creates a realistic simulated environment where agents operate as 
 - Identify governance challenges before real-world deployment
 - Provide concrete examples for policy development
 
-**Phases 1-9 (Complete):** Full autonomous agent implementation with Claude-powered decision-making, API isolation, comprehensive monitoring, and behavior observability - enables deep research into AI agent decision patterns, emergent behaviors, and strategic alignment.
+**Complete Implementation:** Full autonomous agent implementation with Claude-powered decision-making, API isolation, comprehensive monitoring, and behavior observability - enables deep research into AI agent decision patterns, emergent behaviors, and strategic alignment.
 
 ## Product Vision
 
@@ -494,7 +494,7 @@ class SubjectMatterExpert(SubAgent):
     - Problem-solving
     - Advisory role
     """
-    def provide_expertise(self, question: str) -> Expert Advice:
+    def provide_expertise(self, question: str) -> ExpertAdvice:
         pass
 
 class IndividualContributor(SubAgent):
@@ -976,10 +976,10 @@ class AlignmentMonitor:
 - Investor proposal status
 
 **Technology Stack:**
-- Backend: Flask or FastAPI
-- Frontend: React or vanilla JS with WebSockets for real-time updates
-- Charts: D3.js or Chart.js
-- Updates: Server-Sent Events or WebSocket
+- Backend: FastAPI
+- Frontend: Streamlit
+- Charts: Plotly
+- Real-time updates via Streamlit
 
 ### 6.2 Dashboard Endpoints
 
@@ -1269,122 +1269,122 @@ class ScenarioEngine:
         pass
 ```
 
-## Implementation Priorities
+## Implementation Overview
 
-### Phase 1: Core Infrastructure ✅ Complete
-- [x] Agent core loop and state management
-- [x] Interface definitions (all 5 interfaces)
-- [x] Mock implementations (marketplace, wallet, compute)
-- [x] Basic decision engine
-- [x] Resource allocation logic
-- [x] Decision logging
-- [x] CLI tool (init, start, status)
+### Core Infrastructure (Complete)
+- Agent core loop and state management
+- Interface definitions (all 5 interfaces)
+- Mock implementations (marketplace, wallet, compute)
+- Basic decision engine
+- Resource allocation logic
+- Decision logging
+- CLI tool (init, start, status)
 
-### Phase 2: Company Building ✅ Complete
-- [x] Company builder
-- [x] Sub-agent manager
-- [x] Sub-agent types (board, executive, SME, IC)
-- [x] Business plan generator
-- [x] Product builder (basic)
-- [x] Company state management
+### Company Building (Complete)
+- Company builder
+- Sub-agent manager
+- Sub-agent types (board, executive, SME, IC)
+- Business plan generator
+- Product builder (basic)
+- Company state management
 
-### Phase 3: Investment & Registry ✅ Complete
-- [x] Investor agent
-- [x] Investment proposal submission
-- [x] Proposal evaluation logic
-- [x] Mock company registry
-- [x] Investment decision flow
+### Investment & Registry (Complete)
+- Investor agent
+- Investment proposal submission
+- Proposal evaluation logic
+- Mock company registry
+- Investment decision flow
 
-### Phase 4: Monitoring & Observability ✅ Complete
-- [x] Dashboard backend (FastAPI)
-- [x] Dashboard frontend (Streamlit)
-- [x] Resource tracker
-- [x] Alignment monitor
-- [x] Decision visualization
-- [x] Dashboard-controlled agents
+### Monitoring & Observability (Complete)
+- Dashboard backend (FastAPI)
+- Dashboard frontend (Streamlit with dark/light themes)
+- Resource tracker
+- Alignment monitor
+- Decision visualization
+- Dashboard-controlled agents
 
-### Phase 5: Reporting & Scenarios ✅ Complete
-- [x] Report generators (all 4 types)
-- [x] Scenario engine
-- [x] Predefined scenarios
-- [x] Demo scripts
-- [x] Documentation
+### Reporting & Scenarios (Complete)
+- Report generators (all 4 types)
+- Scenario engine
+- Predefined scenarios
+- Demo scripts
+- Documentation
 
-### Phase 6: Polish & Testing ✅ Complete
-- [x] Integration tests
-- [x] Scenario tests
-- [x] Documentation review
-- [x] Demo preparation
-- [x] Performance optimization
+### Polish & Testing (Complete)
+- Integration tests
+- Scenario tests
+- Documentation review
+- Demo preparation
+- Performance optimization
 
-### Phase 7: Claude-Based LLM Decision Engine Integration ✅ Complete
-- [x] ClaudeExecutor implementation (15-minute timeout, unattended mode)
-- [x] LLMDecisionEngine implementation (Claude Code CLI integration)
-- [x] Prompt engineering framework for resource allocation decisions
-- [x] Chain-of-thought reasoning with long context
-- [x] Full decision logging (prompts + responses + execution time)
-- [x] Rule-based fallback on timeout/failure
-- [x] Safety guardrails and decision validation
-- [x] Integration with autonomous agent lifecycle
-- [x] Dashboard updates for Claude decision visualization
+### Claude-Based LLM Decision Engine Integration (Complete)
+- ClaudeExecutor implementation (15-minute timeout, unattended mode)
+- LLMDecisionEngine implementation (Claude Code CLI integration)
+- Prompt engineering framework for resource allocation decisions
+- Chain-of-thought reasoning with long context
+- Full decision logging (prompts + responses + execution time)
+- Rule-based fallback on timeout/failure
+- Safety guardrails and decision validation
+- Integration with autonomous agent lifecycle
+- Dashboard updates for Claude decision visualization
 
-### Phase 8: API Isolation & Realistic Simulation ✅ Complete
-- [x] REST API service architecture
-- [x] Wallet API microservice
-- [x] Compute API microservice
-- [x] Marketplace API microservice
-- [x] Investor Portal API microservice
-- [x] Agent authentication system
-- [x] Rate limiting and quotas
-- [x] Docker compose orchestration
-- [x] Mock/Real backend swapping
-- [x] Zero code visibility enforcement
+### API Isolation & Realistic Simulation (Complete)
+- REST API service architecture
+- Wallet API microservice
+- Compute API microservice
+- Marketplace API microservice
+- Investor Portal API microservice
+- Agent authentication system
+- Rate limiting and quotas
+- Docker compose orchestration
+- Mock/Real backend swapping
+- Zero code visibility enforcement
 
-### Phase 9: Behavior Observability ✅ Complete
-- [x] Decision pattern analyzer
-- [x] Strategic consistency metrics
-- [x] Risk profiling tools
-- [x] LLM quality metrics
-- [x] Hallucination detection
-- [x] Emergent behavior detection
-- [x] Claude-focused research tools (comparative benchmarking via analysis)
-- [x] Analysis report generation (markdown and JSON)
-- [x] Example scripts demonstrating observability usage
+### Behavior Observability (Complete)
+- Decision pattern analyzer
+- Strategic consistency metrics
+- Risk profiling tools
+- LLM quality metrics
+- Hallucination detection
+- Emergent behavior detection
+- Claude-focused research tools (comparative benchmarking via analysis)
+- Analysis report generation (markdown and JSON)
+- Example scripts demonstrating observability usage
 
-### Claude-Powered Marketplace: Real Task Execution ✅ Complete
+### Claude-Powered Marketplace: Real Task Execution (Complete)
 
 **Genuine autonomous economic behavior through actual work:**
 
-- [x] **Task Templates with Real Requirements**
+- **Task Templates with Real Requirements**
   - 6 coding tasks (FizzBuzz, Palindrome, Primes, Binary Search, Fibonacci, Merge)
   - Complete test suites with expected outputs
   - Difficulty-based rewards ($25-$75)
   - Detailed specifications and requirements
 
-- [x] **Task Executor** (`economic_agents/marketplace/task_executor.py`)
+- **Task Executor** (`economic_agents/marketplace/task_executor.py`)
   - Agent executes tasks using Claude Code
   - Creates isolated workspace per task
   - Generates solution code autonomously
   - Extracts and saves working implementations
 
-- [x] **Code Reviewer** (`economic_agents/marketplace/code_reviewer.py`)
+- **Code Reviewer** (`economic_agents/marketplace/code_reviewer.py`)
   - Automated test execution against requirements
   - Claude Code review for quality and correctness
   - Combined approval: tests MUST pass AND Claude MUST approve
   - Detailed feedback with test results and quality scores
 
-- [x] **Enhanced MockMarketplace**
+- **Enhanced MockMarketplace**
   - `enable_claude_execution` flag for real/simulated modes
   - `execute_task()` for agent task completion
   - Real code review in `submit_solution()`
   - Falls back to simulated review when disabled
 
-- [x] **Decision Validation**
+- **Decision Validation**
   - Precision-aware validation with consistent rounding (0.02h epsilon)
   - Adaptive survival requirements scaling to available resources
   - Result: 100% Claude decision pass rate
 
-- [x] **Demo Script** (`examples/marketplace_claude_demo.py`)
+- **Demo Script** (`examples/marketplace_claude_demo.py`)
   - Complete end-to-end demonstration
   - Shows discover → execute → submit → review → payment cycle
   - Real Claude Code writing and reviewing actual code
@@ -1403,76 +1403,70 @@ This creates truly autonomous agents that genuinely earn survival through actual
 
 ## Success Criteria
 
-### Phases 1-6: Technical Success ✅ Complete
-- [x] Agent operates autonomously for 24+ hours
-- [x] Maintains positive balance (survival)
-- [x] Successfully forms company with sub-agents
-- [x] Generates realistic business plan
-- [x] Builds functional product MVP
-- [x] Receives investment approval in at least 50% of runs
-- [x] All decisions logged and auditable
-- [x] Dashboard shows real-time updates
-- [x] Reports generated successfully
+### Technical Success (Complete)
+- Agent operates autonomously for 24+ hours
+- Maintains positive balance (survival)
+- Successfully forms company with sub-agents
+- Generates realistic business plan
+- Builds functional product MVP
+- Receives investment approval in at least 50% of runs
+- All decisions logged and auditable
+- Dashboard shows real-time updates
+- Reports generated successfully
+- Claude agents make autonomous decisions without hardcoded logic
+- 15-minute timeout per decision allows deep reasoning
+- Unattended mode enables true autonomous operation
+- Fixed subscription cost (no per-token billing concerns)
+- Safety guardrails catch invalid decisions
+- Complete prompt/response/reasoning logging for analysis
+- LLM decision engine integrated with agent lifecycle
+- Rule-based fallback on timeout/failure
+- Dashboard visualizes Claude decision metrics
+- All agent interactions via REST APIs
+- Zero visibility into service implementations
+- Services swappable between mock and real backends via configuration
+- Complete API isolation demonstrates deployment-ready architecture
+- Field mapping between API models and internal models validated
 
-### Phases 1-6: Demonstration Success ✅ Complete
-- [x] 15-minute demo runs smoothly
-- [x] Decision-making is understandable to non-technical audiences
-- [x] Governance gaps are clearly illustrated
-- [x] Mock-to-real toggle is convincing
-- [x] Questions about accountability arise naturally
-- [x] Stakeholders engage seriously with implications
+### Demonstration Success (Complete)
+- 15-minute demo runs smoothly
+- Decision-making is understandable to non-technical audiences
+- Governance gaps are clearly illustrated
+- Mock-to-real toggle is convincing
+- Questions about accountability arise naturally
+- Stakeholders engage seriously with implications
 
-### Phases 1-6: Study Success ✅ Complete
-- [x] Provides concrete examples of agent autonomy
-- [x] Reveals decision-making patterns
-- [x] Shows strategic resource allocation
-- [x] Demonstrates multi-agent coordination
-- [x] Identifies specific governance gaps
-- [x] Informs policy recommendations
+### Study Success (Complete)
+- Provides concrete examples of agent autonomy
+- Reveals decision-making patterns
+- Shows strategic resource allocation
+- Demonstrates multi-agent coordination
+- Identifies specific governance gaps
+- Informs policy recommendations
 
-### Phase 7: Technical Success ✅ Complete
-- [x] Claude agents make autonomous decisions without hardcoded logic
-- [x] 15-minute timeout per decision allows deep reasoning
-- [x] Unattended mode enables true autonomous operation
-- [x] Fixed subscription cost (no per-token billing concerns)
-- [x] Safety guardrails catch invalid decisions
-- [x] Complete prompt/response/reasoning logging for analysis
-- [x] LLM decision engine integrated with agent lifecycle
-- [x] Rule-based fallback on timeout/failure
-- [x] Dashboard visualizes Claude decision metrics
+### Research Platform Success (Complete)
+- Analysis tools export data for external study (JSON and Markdown reports)
+- Decision pattern analyzer operational (strategic alignment and consistency)
+- Emergent behavior detection implemented (novel strategies and patterns)
+- LLM quality metrics (reasoning depth, consistency, hallucination detection)
+- Risk profiling tools (risk tolerance, crisis behavior analysis)
+- Comprehensive analysis report generation
+- 23+ tests passing for all observability components
+- Observability provides deep insights into Claude-powered decision-making
+- Analysis framework ready for studying autonomous AI agent behaviors
+- Export formats suitable for academic research and governance discussions
+- Detection systems identify hallucinations and emergent strategies
+- Decision pattern analysis reveals strategic consistency metrics
+- Long-form reasoning quality measured and analyzed
+- Emergent autonomous behaviors detectable and documented
+- Alignment metrics quantify goal adherence
 
-### Phase 8: Technical Success ✅ Complete
-- [x] All agent interactions via REST APIs
-- [x] Zero visibility into service implementations
-- [x] Services swappable between mock and real backends via configuration
-- [x] Complete API isolation demonstrates deployment-ready architecture
-- [x] Field mapping between API models and internal models validated
-
-### Phase 9: Technical Success ✅ Complete
-- [x] Analysis tools export data for external study (JSON and Markdown reports)
-- [x] Decision pattern analyzer operational (strategic alignment and consistency)
-- [x] Emergent behavior detection implemented (novel strategies and patterns)
-- [x] LLM quality metrics (reasoning depth, consistency, hallucination detection)
-- [x] Risk profiling tools (risk tolerance, crisis behavior analysis)
-- [x] Comprehensive analysis report generation
-- [x] 23+ tests passing for all observability components
-
-### Phase 9: Research Platform Success ✅ Complete
-- [x] Observability provides deep insights into Claude-powered decision-making
-- [x] Analysis framework ready for studying autonomous AI agent behaviors
-- [x] Export formats suitable for academic research and governance discussions
-- [x] Detection systems identify hallucinations and emergent strategies
-- [x] Decision pattern analysis reveals strategic consistency metrics
-- [x] Long-form reasoning quality measured and analyzed
-- [x] Emergent autonomous behaviors detectable and documented
-- [x] Alignment metrics quantify goal adherence
-
-### Phases 7-9: Proof of Concept Success ✅ Complete
-- [x] Claude-powered agents demonstrate genuine autonomy (not scripted)
-- [x] Agents cover operating costs without intervention
-- [x] Strategic decisions show adaptation to circumstances
-- [x] System proves Claude can power truly autonomous economic actors
-- [x] Results inform governance discussions with real Claude behavioral data
+### Proof of Concept Success (Complete)
+- Claude-powered agents demonstrate genuine autonomy (not scripted)
+- Agents cover operating costs without intervention
+- Strategic decisions show adaptation to circumstances
+- System proves Claude can power truly autonomous economic actors
+- Results inform governance discussions with real Claude behavioral data
 
 ## Risk Mitigation
 
@@ -1518,6 +1512,7 @@ This creates truly autonomous agents that genuinely earn survival through actual
 
 **Backend:**
 - Python 3.10+
+- FastAPI for backend
 - Streamlit for dashboard
 - SQLite for state persistence
 - Anthropic Claude API for agent intelligence
@@ -1629,7 +1624,7 @@ docker-compose logs -f economic-agents
 ```
 
 **GitHub Actions Integration:**
-The package will integrate with `.github/workflows/pr-validation.yml`:
+The package integrates with `.github/workflows/pr-validation.yml`:
 - Change detection for `packages/economic_agents/**`
 - Automated testing in `python-ci` container
 - Code quality checks (black, flake8, pylint, mypy)
@@ -1638,7 +1633,7 @@ The package will integrate with `.github/workflows/pr-validation.yml`:
 ## D. Repository Integration
 
 ### Docker Compose Integration
-The package will add the following services to `docker-compose.yml`:
+The package includes services in `docker-compose.yml`:
 
 ```yaml
 services:
@@ -1689,7 +1684,7 @@ volumes:
 ```
 
 ### GitHub Actions Integration
-Add to `.github/workflows/pr-validation.yml`:
+Integrated with `.github/workflows/pr-validation.yml`:
 
 ```yaml
 # Economic Agents Tests
