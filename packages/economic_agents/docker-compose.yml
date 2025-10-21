@@ -84,6 +84,8 @@ services:
       - .:/app
       # Mount Claude auth from host for containerized Claude CLI (read-write for debug logs)
       - ${HOME}/.claude:/home/claude/.claude
+      # Dedicated volume for logs to avoid permission issues with host mount
+      - dashboard-logs:/app/logs
     environment:
       - PYTHONPATH=/app
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
@@ -185,6 +187,8 @@ volumes:
   agent-logs:
     driver: local
   test-results:
+    driver: local
+  dashboard-logs:
     driver: local
 
 networks:

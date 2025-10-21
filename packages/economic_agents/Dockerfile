@@ -54,7 +54,9 @@ ENV PYTHONPATH=/app
 RUN chown -R claude:claude /app
 
 # Create log directories with proper permissions
-RUN mkdir -p /app/logs/{resources,metrics,alignment,decisions,observability/reports} && \
+# Note: Log persistence is handled by Docker volume mount in docker-compose.yml
+RUN mkdir -p /app/logs/resources /app/logs/metrics /app/logs/alignment \
+             /app/logs/decisions /app/logs/observability/reports && \
     chown -R claude:claude /app/logs
 
 # Switch to claude user for runtime
