@@ -217,6 +217,30 @@ def apply_theme_css():
                 color: #595959 !important;
                 font-weight: 500;
             }
+            /* Tooltips */
+            [data-baseweb="tooltip"] {
+                background-color: #ffffff !important;
+                border: 1px solid #d0d0d0 !important;
+            }
+            [data-baseweb="tooltip"] * {
+                color: #262730 !important;
+                background-color: #ffffff !important;
+            }
+            [role="tooltip"] {
+                background-color: #ffffff !important;
+                color: #262730 !important;
+                border: 1px solid #d0d0d0 !important;
+            }
+            /* Force number input value text to be dark */
+            [data-testid="stNumberInput"] input[type="number"] {
+                color: #262730 !important;
+                -webkit-text-fill-color: #262730 !important;
+            }
+            /* Force all input values to be dark */
+            input[type="text"], input[type="number"], input[type="email"], input[type="password"] {
+                color: #262730 !important;
+                -webkit-text-fill-color: #262730 !important;
+            }
             </style>
             """,
             unsafe_allow_html=True,
