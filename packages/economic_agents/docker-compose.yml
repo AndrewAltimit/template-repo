@@ -82,9 +82,13 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+      # Mount Claude auth from host for containerized Claude CLI (read-write for debug logs)
+      - ${HOME}/.claude:/home/claude/.claude
     environment:
       - PYTHONPATH=/app
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - NVM_DIR=/home/claude/.nvm
+      - NODE_VERSION=22.16.0
     depends_on:
       wallet-api:
         condition: service_healthy
