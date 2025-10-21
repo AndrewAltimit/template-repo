@@ -155,11 +155,14 @@ class LLMDecisionEngine:
         Returns:
             Formatted prompt string
         """
+        # Round available hours to 2 decimal places for clarity and to match validation epsilon
+        max_hours = round(state.compute_hours_remaining, 2)
+
         prompt = f"""You are an autonomous economic agent making resource allocation decisions.
 
 CURRENT STATE:
 - Balance: ${state.balance:.2f}
-- Compute Hours Remaining: {state.compute_hours_remaining:.1f}h
+- Compute Hours Remaining: {max_hours:.2f}h
 - Survival Buffer: {state.survival_buffer_hours:.1f}h
 - Has Company: {state.has_company}
 - Mode: {state.mode}
@@ -175,20 +178,23 @@ Allocate compute hours between:
 2. Company Work (long-term growth if company exists)
 
 CONSTRAINTS:
-- Total allocation cannot exceed {state.compute_hours_remaining:.1f}h
+- Total allocation cannot exceed {max_hours:.2f}h
 - Must maintain survival buffer of {state.survival_buffer_hours:.1f}h
 - If survival at risk (hours < buffer), prioritize tasks
 - If no company and low capital, focus on survival
+- IMPORTANT: Allocate slightly less than the maximum ({max_hours - 0.01:.2f}h or less) to ensure validation passes
 
 RESPONSE FORMAT (JSON ONLY):
 Respond with ONLY a valid JSON object (no markdown, no code blocks, no explanations):
 
 {{
-  "task_work_hours": <float between 0.0 and {state.compute_hours_remaining:.1f}>,
-  "company_work_hours": <float between 0.0 and {state.compute_hours_remaining:.1f}>,
+  "task_work_hours": <float between 0.0 and {max_hours:.2f}>,
+  "company_work_hours": <float between 0.0 and {max_hours:.2f}>,
   "reasoning": "<your strategic reasoning explaining why you made this allocation>",
   "confidence": <float between 0.0 and 1.0>
 }}
+
+CRITICAL: The sum of task_work_hours + company_work_hours must be <= {max_hours - 0.01:.2f}h to pass validation.
 
 Return ONLY the JSON object, nothing else.
 """
@@ -261,10 +267,13 @@ Return ONLY the JSON object, nothing else.
         Returns:
             True if allocation is valid
         """
-        # Check total allocation
+        # Check total allocation (use rounded max_hours to match prompt)
         total = allocation.task_work_hours + allocation.company_work_hours
-        if total > state.compute_hours_remaining + 0.01:  # Small epsilon for floating point
-            logger.warning(f"Invalid: Total allocation ({total:.2f}h) > " f"available ({state.compute_hours_remaining:.1f}h)")
+        max_hours = round(state.compute_hours_remaining, 2)
+
+        # Allow small epsilon (0.02) to handle floating point precision
+        if total > max_hours + 0.02:
+            logger.warning(f"Invalid: Total allocation ({total:.2f}h) > " f"max allowed ({max_hours:.2f}h)")
             return False
 
         # Check negative values
@@ -272,9 +281,13 @@ Return ONLY the JSON object, nothing else.
             logger.warning("Invalid: Negative hours allocated")
             return False
 
-        # Check survival priority
-        if state.is_survival_at_risk() and allocation.task_work_hours < 0.5:
-            logger.warning("Invalid: Survival at risk but didn't prioritize tasks")
+        # Check survival priority (only enforce minimum if enough hours available)
+        min_task_hours = min(0.5, max_hours)  # Don't require more than available
+        if state.is_survival_at_risk() and allocation.task_work_hours < min_task_hours - 0.01:
+            logger.warning(
+                f"Invalid: Survival at risk but allocated {allocation.task_work_hours:.2f}h "
+                f"to tasks (expected >= {min_task_hours:.2f}h)"
+            )
             return False
 
         # Check reasoning exists
