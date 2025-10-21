@@ -1,10 +1,14 @@
 """Claude Code CLI executor for autonomous decision-making."""
 
 import logging
+import re
 import subprocess
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+# Allowed Node.js versions (semantic versioning format)
+ALLOWED_NODE_VERSION_PATTERN = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 
 
 class ClaudeExecutor:
@@ -22,9 +26,18 @@ class ClaudeExecutor:
                 - llm_timeout: Timeout in seconds (default: 900 = 15 minutes)
                 - node_version: Node.js version (default: "22.16.0")
                 - unattended: Always True for autonomous operation
+
+        Raises:
+            ValueError: If node_version is not a valid semantic version
         """
         self.config = config or {}
-        self.node_version = self.config.get("node_version", "22.16.0")
+        node_version = self.config.get("node_version", "22.16.0")
+
+        # Validate node_version to prevent command injection
+        if not ALLOWED_NODE_VERSION_PATTERN.match(node_version):
+            raise ValueError(f"Invalid node_version: {node_version}. " "Must be semantic version format (e.g., '22.16.0')")
+
+        self.node_version = node_version
         self.timeout = self.config.get("llm_timeout", 900)  # 15 minutes default
         self.unattended = True  # Always run in unattended mode for autonomous decisions
 

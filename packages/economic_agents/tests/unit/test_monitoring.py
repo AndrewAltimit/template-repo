@@ -1,4 +1,4 @@
-"""Tests for Phase 4 monitoring components."""
+"""Tests for monitoring components."""
 
 from datetime import datetime, timedelta
 

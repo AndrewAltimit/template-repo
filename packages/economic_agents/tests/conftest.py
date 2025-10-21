@@ -599,7 +599,7 @@ def mock_file_operations(monkeypatch, tmp_path):
         pass  # Method doesn't exist or circular import, skip
 
 
-# Backend Parametrization Fixtures (Phase 8)
+# Backend Parametrization Fixtures
 
 
 @pytest.fixture(params=["mock"], ids=["mock"])

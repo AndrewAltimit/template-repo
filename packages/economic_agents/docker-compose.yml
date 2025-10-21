@@ -1,5 +1,5 @@
 services:
-  # Microservices (Phase 8: API Isolation)
+  # Microservices (API Isolation)
 
   # Wallet API Microservice
   wallet-api:

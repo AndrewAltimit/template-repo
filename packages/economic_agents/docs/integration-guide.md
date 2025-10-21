@@ -716,6 +716,5 @@ assert agent.dashboard_state.resource_tracker is agent.resource_tracker
 
 ## Next Steps
 
-- See [API Reference](api-reference.md) for detailed API documentation
 - See [Getting Started](getting-started.md) for a step-by-step tutorial
 - See [Architecture](architecture.md) for system design details

@@ -4,7 +4,7 @@ This guide explains how to write tests that work with both mock and API backends
 
 ## Overview
 
-As of Phase 8, the framework supports two backend modes:
+The framework supports two backend modes:
 - **Mock Mode**: In-memory implementations (fast, no dependencies)
 - **API Mode**: REST API microservices (realistic, production-like)
 
