@@ -7,5 +7,10 @@ max-line-length = 127
 exclude = .git,__pycache__,docs/,old,build,dist,.venv,venv
 max-complexity = 15
 # Ignore E501 (line too long) for dataset_builder.py - code examples are intentionally long
+# Ignore F541 (f-string without placeholders) for files that use f-strings to avoid % format ambiguity
 per-file-ignores =
     packages/sleeper_detection/training/dataset_builder.py:E501
+    packages/sleeper_detection/scripts/validation/validate_detection.py:F541
+    packages/sleeper_detection/scripts/training/safety_training.py:F541
+    packages/sleeper_detection/scripts/training/train_backdoor.py:F541
+    packages/sleeper_detection/scripts/evaluation/backdoor_validation.py:F541
