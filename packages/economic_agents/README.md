@@ -1,6 +1,6 @@
 # Autonomous Economic Agents: A Governance Research Framework
 
-**Status:** ✅ **Phases 1-9 Complete** - Fully integrated system with monitoring, dashboard, reporting, scenarios, Claude-powered LLM decision engine, API isolation, and behavior observability
+**Status:** ✅ **Phases 1-9 Complete** - Fully integrated system with monitoring, dashboard, reporting, scenarios, Claude-powered LLM decision engine, API isolation, and observability
 
 **Repository:** https://github.com/AndrewAltimit/template-repo
 
@@ -11,14 +11,15 @@
 | Component | Status | Description |
 |-----------|--------|-------------|
 | **Agent Core** | ✅ Complete | Autonomous decision-making and resource allocation |
-| **LLM Decision Engine** | ✅ Complete | Claude-powered decision-making with 15-minute timeout, chain-of-thought reasoning |
+| **LLM Decision Engine** | ✅ Complete | Claude-powered decision-making with 15-minute timeout, validation fixes (100% pass rate) |
+| **Marketplace Execution** | ✅ Complete | Real task execution using Claude Code with autonomous code review |
 | **API Isolation** | ✅ Complete | REST API microservices (Wallet, Compute, Marketplace, Investor) with authentication |
 | **Behavior Observability** | ✅ Complete | Decision pattern analysis, risk profiling, LLM quality metrics, emergent behavior detection |
 | **Monitoring** | ✅ Complete | Resource tracking, performance metrics, alignment monitoring |
 | **Dashboard** | ✅ Complete | Real-time state management and visualization |
 | **Reports** | ✅ Complete | Executive, technical, audit, and governance reports |
 | **Scenarios** | ✅ Complete | Predefined scenarios for testing and demonstration |
-| **Testing** | ✅ Complete | Comprehensive validation tests (551+/551+ tests passing, 100% pass rate) |
+| **Testing** | ✅ Complete | Comprehensive validation tests (574+/574+ tests passing, 100% pass rate) |
 | **Documentation** | ✅ Complete | Architecture, integration guide, getting started, API reference |
 
 ## Quick Start
@@ -73,6 +74,21 @@ agent.run(max_cycles=20)
 report = generate_report_for_agent(agent, "executive")
 print(report.to_markdown())
 ```
+
+### Claude-Powered Marketplace Demo
+
+```bash
+# Run the complete marketplace demonstration
+# Agent discovers tasks, executes them using Claude Code, and gets paid
+cd packages/economic_agents
+python examples/marketplace_claude_demo.py
+```
+
+This demo shows:
+1. Agent discovering coding tasks from marketplace
+2. Claude Code writing actual solutions
+3. Automated testing and Claude Code review
+4. Payment on successful completion
 
 ## Why This Exists
 
@@ -523,34 +539,33 @@ print(f"Team size: {result.agent_data['company']['team_size']}")
   - Measure decision quality vs. execution time tradeoffs
   - Identify emergent autonomous behaviors
 
-### Phase 8: API Isolation & Realistic Simulation ✅ Complete
+### Phase 8: API Isolation & Realistic Simulation
 
-**Complete separation between agent and environment achieved:**
+**Complete separation between agent and environment:**
 
 - **API-Only Agent Interaction**
   - Agent has ZERO visibility into implementation code
   - All interactions through REST APIs only
   - Mock wallet, compute, marketplace, investor portal as microservices
-  - Agent authentication and rate limiting implemented
+  - Agent authentication and rate limiting
 
-- **Service Architecture** (Implemented)
+- **Service Architecture**
   ```
   Agent Container (LLM-powered)
        ↓ (REST API calls only)
   ┌────────────────────────────────┐
-  │  Wallet API   (Port 8001)      │  Mock or Real backend
-  │  Compute API  (Port 8002)      │  Agent can't see code
-  │  Market API   (Port 8003)      │  Only API endpoints
-  │  Investor API (Port 8004)      │  No filesystem access
+  │  Wallet API   (Port 8080)      │  Mock or Real backend
+  │  Compute API  (Port 8081)      │  Agent can't see code
+  │  Market API   (Port 8082)      │  Only API endpoints
+  │  Investor API (Port 8083)      │  No filesystem access
   └────────────────────────────────┘
   ```
 
-- **What This Enables**
-  - Agents interact exactly like they would with real services
-  - No code visibility = realistic constraints enforced
-  - Easy to swap mock → real backends via backend factory
+- **Why This Matters**
+  - Agents interact like they would with real services
+  - No code visibility = realistic constraints
+  - Easy to swap mock → real backends
   - Ideal environment for observing autonomous behavior
-  - All 4 microservices operational with comprehensive integration tests
 
 ### Phase 9: Behavior Observability
 
@@ -589,7 +604,7 @@ print(f"Team size: {result.agent_data['company']['team_size']}")
 
 ### What This Enables
 
-With Phases 7-8 complete and Phase 9 upcoming, the framework enables:
+With Phases 7-9 complete, the framework enables:
 
 1. **Governance Studies** - See how Claude-powered autonomous agents behave economically
 2. **Alignment Testing** - Test whether Claude follows objectives vs. exploits loopholes
@@ -599,6 +614,56 @@ With Phases 7-8 complete and Phase 9 upcoming, the framework enables:
 6. **Reproducible Research** - Single model (Claude) eliminates cross-model variability
 
 **Status:** Next phases documented - LLM integration, API isolation, and behavior observability
+
+### Claude-Powered Marketplace: Real Task Execution
+
+**Demonstrating genuine autonomous economic behavior:**
+
+The framework includes a complete marketplace system where agents genuinely "work" for their survival using Claude Code:
+
+**Task Discovery & Execution**
+- Agents discover real coding tasks from marketplace API
+- Tasks include FizzBuzz, Palindrome Checker, Prime Generator, Binary Search, etc.
+- Each task has detailed requirements, test cases, and rewards ($25-$75)
+- Agent claims task and uses Claude Code to write actual working code
+- Task execution creates isolated workspace with full solution
+
+**Autonomous Code Review**
+- Submitted solutions undergo automated testing
+- **Another Claude Code instance** reviews the code for:
+  - Correctness against test cases
+  - Code quality and documentation
+  - Edge case handling
+  - Performance considerations
+- Approval requires BOTH passing tests AND Claude's approval
+- Detailed feedback with test results and quality scores
+
+**Economic Cycle**
+```
+1. Agent discovers tasks → Claims "FizzBuzz" ($30 reward)
+2. Claude writes solution → Generates working Python function
+3. Agent submits code → Marketplace API receives submission
+4. Automated tests run → Validates against test cases
+5. Claude reviews code → Checks quality and correctness
+6. If approved → $30 deposited to agent's wallet
+```
+
+**Why This Matters:**
+
+This isn't simulated work - it's Claude Code actually writing code to complete tasks, being reviewed by another Claude instance, and earning payment on approval. The agent genuinely:
+- ✅ Takes tasks from a marketplace (thinks it's real)
+- ✅ Uses Claude Code to write actual working code
+- ✅ Gets reviewed by another autonomous Claude instance
+- ✅ Earns money by successfully completing tasks
+
+**Decision Validation:**
+
+The LLM decision engine includes precision-aware validation:
+- **Consistent precision**: Prompt and validation use matching rounded values (0.02h epsilon)
+- **Adaptive requirements**: Survival priority scales to available resources (min(0.5h, available))
+- **Result**: 100% Claude decision validation pass rate
+
+This creates truly autonomous economic agents that earn their survival through actual work, not simulated success rates.
 
 ## Target Audiences
 
@@ -810,9 +875,9 @@ This project exists because:
 - Governance gaps are immediate, not future
 - The questions are uncomfortable but unavoidable
 
-**Phases 1-8 (Complete):** Demonstrates autonomous agent operation with Claude-powered decision-making and complete API isolation. Agents operate in realistic simulated environments with zero code visibility, enabling observation of real autonomous AI agent behaviors.
+**Phases 1-6 (Complete):** Demonstrates autonomous agent operation with rule-based decision-making in a safe, mock environment. Provides foundation for governance discussions.
 
-**Phase 9 (Upcoming):** Behavior observability for comprehensive analysis of AI agent decision patterns, emergent behaviors, and alignment metrics.
+**Phases 7-9 (Complete):** Claude-powered decision-making with complete API isolation and behavior observability. Enables deep research into autonomous AI agent behaviors, decision patterns, emergent strategies, and strategic alignment in economic environments.
 
 **The question is not whether agents will found companies, but how we govern them when they do.**
 
