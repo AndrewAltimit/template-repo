@@ -11,7 +11,6 @@ from economic_agents.interfaces.marketplace import (
     Task,
     TaskSubmission,
 )
-from economic_agents.marketplace import CODING_TASKS, CodeReviewer, TaskExecutor
 
 
 class MockMarketplace(MarketplaceInterface):
@@ -32,6 +31,9 @@ class MockMarketplace(MarketplaceInterface):
 
         # Initialize executor and reviewer if enabled
         if enable_claude_execution:
+            # Import only when needed to avoid circular dependency
+            from economic_agents.marketplace import CodeReviewer, TaskExecutor
+
             self.executor = TaskExecutor()
             self.reviewer = CodeReviewer()
         else:
@@ -42,6 +44,9 @@ class MockMarketplace(MarketplaceInterface):
 
     def _generate_initial_tasks(self, count: int = 10):
         """Generate initial set of available tasks using real coding tasks."""
+        # Import only when needed to avoid circular dependency
+        from economic_agents.marketplace import CODING_TASKS
+
         # Use real coding task templates
         task_templates = CODING_TASKS
 

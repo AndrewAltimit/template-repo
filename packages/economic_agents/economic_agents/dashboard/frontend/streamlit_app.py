@@ -24,6 +24,164 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Initialize session state for theme
+if "theme" not in st.session_state:
+    st.session_state.theme = "dark"
+
+
+def apply_theme_css():
+    """Apply custom CSS for the selected theme."""
+    if st.session_state.theme == "dark":
+        # Dark theme CSS
+        st.markdown(
+            """
+            <style>
+            /* Dark theme is default from config.toml */
+            .stApp {
+                background-color: #0e1117;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+    else:
+        # Light theme CSS override
+        st.markdown(
+            """
+            <style>
+            .stApp {
+                background-color: #ffffff;
+                color: #262730;
+            }
+            [data-testid="stSidebar"] {
+                background-color: #f0f2f6;
+                color: #262730;
+            }
+            [data-testid="stSidebar"] * {
+                color: #262730 !important;
+            }
+            .stMetric {
+                background-color: #ffffff;
+                color: #262730;
+            }
+            .stMetric label {
+                color: #595959 !important;
+            }
+            .stMetric [data-testid="stMetricValue"] {
+                color: #262730 !important;
+            }
+            [data-testid="stHeader"] {
+                background-color: #ffffff;
+                color: #262730;
+            }
+            h1, h2, h3, h4, h5, h6 {
+                color: #262730 !important;
+            }
+            p, div, span, label {
+                color: #262730 !important;
+            }
+            [data-testid="stMarkdownContainer"] {
+                color: #262730 !important;
+            }
+            .stButton button {
+                color: #262730 !important;
+                background-color: #ffffff !important;
+                border: 2px solid #3498db !important;
+            }
+            .stButton button:hover {
+                background-color: #3498db !important;
+                color: #ffffff !important;
+                border-color: #2980b9 !important;
+            }
+            .stButton button[kind="primary"] {
+                background-color: #3498db !important;
+                color: #ffffff !important;
+                border-color: #2980b9 !important;
+            }
+            .stButton button[kind="primary"]:hover {
+                background-color: #2980b9 !important;
+            }
+            [data-testid="stExpander"] {
+                background-color: #f8f9fa;
+                border: 1px solid #d0d0d0;
+            }
+            [data-testid="stExpander"] p {
+                color: #262730 !important;
+            }
+            /* Form inputs */
+            input, select, textarea {
+                color: #262730 !important;
+                background-color: #ffffff !important;
+                border: 1px solid #d0d0d0 !important;
+            }
+            input:focus, select:focus, textarea:focus {
+                border-color: #3498db !important;
+                box-shadow: 0 0 0 1px #3498db !important;
+            }
+            /* Number input controls */
+            [data-testid="stNumberInput"] input {
+                color: #262730 !important;
+            }
+            /* Select boxes */
+            [data-testid="stSelectbox"] div[data-baseweb="select"] {
+                background-color: #ffffff !important;
+                border: 1px solid #d0d0d0 !important;
+            }
+            [data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+                color: #262730 !important;
+                background-color: #ffffff !important;
+            }
+            /* Dropdown menu */
+            [data-baseweb="popover"] {
+                background-color: #ffffff !important;
+            }
+            [data-baseweb="menu"] {
+                background-color: #ffffff !important;
+            }
+            [data-baseweb="menu"] li {
+                color: #262730 !important;
+                background-color: #ffffff !important;
+            }
+            [data-baseweb="menu"] li:hover {
+                background-color: #e8f4f8 !important;
+            }
+            /* Number input - make the box itself more visible */
+            [data-testid="stNumberInput"] {
+                background-color: #ffffff !important;
+            }
+            [data-testid="stNumberInput"] input {
+                color: #262730 !important;
+                background-color: #ffffff !important;
+                border: 1px solid #d0d0d0 !important;
+                font-weight: 500 !important;
+            }
+            [data-testid="stNumberInput"] button {
+                color: #262730 !important;
+                background-color: #f0f2f6 !important;
+            }
+            /* Checkboxes */
+            [data-testid="stCheckbox"] label {
+                color: #262730 !important;
+            }
+            /* Sliders */
+            [data-testid="stSlider"] label {
+                color: #262730 !important;
+            }
+            /* Form labels */
+            .stTextInput label, .stNumberInput label, .stSelectbox label {
+                color: #595959 !important;
+                font-weight: 500;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+def toggle_theme():
+    """Toggle between light and dark themes."""
+    st.session_state.theme = "light" if st.session_state.theme == "dark" else "dark"
+
 
 def get_api_url() -> str:
     """Get API base URL from environment, secrets, or default.
@@ -530,8 +688,21 @@ def render_metrics_section(metrics_data: Dict[str, Any]):
 
 def main():
     """Main dashboard application."""
+    # Apply theme CSS
+    apply_theme_css()
+
     st.title("Autonomous Economic Agents Dashboard")
     st.markdown("Real-time monitoring of autonomous agent operations")
+
+    # Sidebar - Theme Toggle
+    st.sidebar.title("Appearance")
+    theme_icon = "🌙" if st.session_state.theme == "dark" else "☀️"
+    theme_label = "Light Mode" if st.session_state.theme == "dark" else "Dark Mode"
+    if st.sidebar.button(f"{theme_icon} {theme_label}", use_container_width=True):
+        toggle_theme()
+        st.rerun()
+
+    st.sidebar.markdown("---")
 
     # Sidebar - Agent Controls
     st.sidebar.title("Agent Controls")
