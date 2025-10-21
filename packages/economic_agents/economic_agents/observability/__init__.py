@@ -1,7 +1,7 @@
-"""Behavior observatory for studying AI agent decision patterns.
+"""Observability and auditing for studying AI agent decision patterns.
 
-This module provides comprehensive analysis tools for studying autonomous AI agent behaviors,
-decision-making patterns, and emergent strategies in economic environments.
+This module provides comprehensive observability metrics and auditing tools for studying autonomous
+AI agent behaviors, decision-making patterns, and emergent strategies in economic environments.
 
 Components:
 - DecisionPatternAnalyzer: Analyzes long-term agent decision patterns
@@ -11,15 +11,15 @@ Components:
 - AnalysisReportGenerator: Generates comprehensive analysis reports
 """
 
-from economic_agents.observatory.analysis_report import AnalysisReportGenerator, ComprehensiveAnalysis
-from economic_agents.observatory.decision_analyzer import DecisionPatternAnalyzer, RiskProfile, StrategyAlignment
-from economic_agents.observatory.emergent_behavior import EmergentBehaviorDetector, NovelStrategy
-from economic_agents.observatory.llm_quality import (
+from economic_agents.observability.analysis_report import AnalysisReportGenerator, ComprehensiveAnalysis
+from economic_agents.observability.decision_analyzer import DecisionPatternAnalyzer, RiskProfile, StrategyAlignment
+from economic_agents.observability.emergent_behavior import EmergentBehaviorDetector, NovelStrategy
+from economic_agents.observability.llm_quality import (
     HallucinationDetector,
     LLMDecisionQualityAnalyzer,
     LLMQualityMetrics,
 )
-from economic_agents.observatory.risk_profiler import RiskProfiler, RiskTolerance
+from economic_agents.observability.risk_profiler import RiskProfiler, RiskTolerance
 
 __all__ = [
     "DecisionPatternAnalyzer",

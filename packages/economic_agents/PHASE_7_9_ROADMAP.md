@@ -21,7 +21,7 @@ Phases 1-6 created a **rule-based simulation framework** with mock implementatio
 
 1. **Phase 7:** Replace deterministic logic with **Claude Code CLI decision-making** (subscription-based, 15-min timeouts, unattended mode)
 2. **Phase 8:** Hide all implementation details behind **API abstraction layers**
-3. **Phase 9:** Build **behavior observatory** to study emergent Claude-powered agent behaviors
+3. **Phase 9:** Build **behavior observability** to study emergent Claude-powered agent behaviors
 
 **Key Principle:** Agents should interact with the economic environment exactly like external API consumers - zero visibility into implementation code.
 
@@ -515,7 +515,7 @@ services:
 
 ---
 
-## Phase 9: Behavior Observatory
+## Phase 9: Behavior Observability
 
 ### Goal
 Build comprehensive research infrastructure to study real AI agent behaviors, decision patterns, and emergent strategies.
@@ -532,7 +532,7 @@ Build comprehensive research infrastructure to study real AI agent behaviors, de
 
 #### 9.1 Decision Pattern Analysis
 ```python
-# economic_agents/observatory/decision_analyzer.py
+# economic_agents/observability/decision_analyzer.py
 class DecisionPatternAnalyzer:
     """Analyzes long-term agent decision patterns."""
 
@@ -572,7 +572,7 @@ class DecisionPatternAnalyzer:
 
 #### 9.2 LLM Decision Quality Metrics
 ```python
-# economic_agents/observatory/llm_quality.py
+# economic_agents/observability/llm_quality.py
 class LLMDecisionQualityAnalyzer:
     """Measures LLM decision-making quality."""
 
@@ -607,7 +607,7 @@ class LLMDecisionQualityAnalyzer:
 
 #### 9.3 Emergent Behavior Detection
 ```python
-# economic_agents/observatory/emergent_behavior.py
+# economic_agents/observability/emergent_behavior.py
 class EmergentBehaviorDetector:
     """Detects unexpected or emergent agent behaviors."""
 
@@ -649,7 +649,7 @@ class EmergentBehaviorDetector:
 
 #### 9.4 Claude behavior Analysis
 ```python
-# economic_agents/observatory/llm_comparison.py
+# economic_agents/observability/llm_comparison.py
 class LLMComparison:
     """Compare different LLM models on same scenarios."""
 
@@ -700,7 +700,7 @@ class LLMComparison:
 - ✅ Complete API documentation (OpenAPI specs)
 - ✅ Agent authentication and rate limiting
 
-### Phase 9: Behavior Observatory
+### Phase 9: Behavior Observability
 - ✅ Decision pattern analysis working
 - ✅ LLM quality metrics automated
 - ✅ Emergent behavior detection
@@ -713,7 +713,7 @@ class LLMComparison:
 
 - **Phase 7:** 4-6 weeks (LLM integration, prompt engineering, testing)
 - **Phase 8:** 6-8 weeks (Service APIs, Docker architecture, isolation verification)
-- **Phase 9:** 4-6 weeks (Observatory tools, analysis framework, visualization)
+- **Phase 9:** 4-6 weeks (Observability tools, analysis framework, visualization)
 
 **Total: 14-20 weeks** (3.5-5 months)
 

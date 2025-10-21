@@ -338,7 +338,7 @@ Research Questions:
 After Phase 7.5, the roadmap continues with:
 
 - **Phase 8**: API isolation (hiding implementation details from agents)
-- **Phase 9**: Behavior observatory (studying emergent Claude behaviors)
+- **Phase 9**: Behavior observability (studying emergent Claude behaviors)
 
 ## Documentation References
 

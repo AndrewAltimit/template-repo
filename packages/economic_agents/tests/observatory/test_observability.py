@@ -1,7 +1,7 @@
-"""Tests for behavior observatory components."""
+"""Tests for observability and auditing components."""
 
 import pytest
-from economic_agents.observatory import (
+from economic_agents.observability import (
     AnalysisReportGenerator,
     DecisionPatternAnalyzer,
     EmergentBehaviorDetector,

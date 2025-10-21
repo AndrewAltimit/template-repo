@@ -1,6 +1,6 @@
-"""Comprehensive analysis report generation for behavior observatory.
+"""Comprehensive analysis report generation for observability metrics.
 
-Combines all observatory components into cohesive analysis reports for research and study.
+Combines all observability components into cohesive analysis reports for research and study.
 """
 
 import json
@@ -9,10 +9,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from economic_agents.observatory.decision_analyzer import DecisionPatternAnalyzer
-from economic_agents.observatory.emergent_behavior import EmergentBehaviorDetector
-from economic_agents.observatory.llm_quality import HallucinationDetector, LLMDecisionQualityAnalyzer
-from economic_agents.observatory.risk_profiler import RiskProfiler
+from economic_agents.observability.decision_analyzer import DecisionPatternAnalyzer
+from economic_agents.observability.emergent_behavior import EmergentBehaviorDetector
+from economic_agents.observability.llm_quality import HallucinationDetector, LLMDecisionQualityAnalyzer
+from economic_agents.observability.risk_profiler import RiskProfiler
 
 
 @dataclass
@@ -40,7 +40,7 @@ class AnalysisReportGenerator:
             log_dir: Directory to save reports
         """
         self.agent_id = agent_id
-        self.log_dir = Path(log_dir) if log_dir else Path("./logs/observatory/reports")
+        self.log_dir = Path(log_dir) if log_dir else Path("./logs/observability/reports")
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
         # Initialize all analyzers

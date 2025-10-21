@@ -48,7 +48,7 @@ class EmergentBehaviorDetector:
             log_dir: Directory to save detection results
         """
         self.agent_id = agent_id
-        self.log_dir = Path(log_dir) if log_dir else Path("./logs/observatory")
+        self.log_dir = Path(log_dir) if log_dir else Path("./logs/observability")
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
         self.decisions: list[dict[str, Any]] = []

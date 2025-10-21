@@ -252,7 +252,7 @@ After successful Phase 7.4 testing:
 
 - **Phase 8**: API isolation (hiding implementation from agents)
 
-- **Phase 9**: Behavior observatory (studying emergent Claude behaviors)
+- **Phase 9**: Behavior observability (studying emergent Claude behaviors)
 
 ## Research Applications
 

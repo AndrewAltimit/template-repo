@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Example demonstrating the Behavior Observatory for agent analysis.
+"""Example demonstrating observability metrics and auditing for agent analysis.
 
-This example shows how to use the observatory components to analyze
+This example shows how to use the observability components to analyze
 agent decision-making patterns, risk profiles, LLM quality, and emergent behaviors.
 """
 
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.api.config import BackendConfig, BackendMode
 from economic_agents.api.factory import create_backends
-from economic_agents.observatory import AnalysisReportGenerator
+from economic_agents.observability import AnalysisReportGenerator
 
 
 def main():
-    """Run agent and analyze behavior with observatory."""
+    """Run agent and analyze behavior with observability metrics."""
     print("=" * 60)
-    print("Behavior Observatory Example")
+    print("Observability Metrics & Auditing Example")
     print("=" * 60)
 
     # 1. Create backends
@@ -142,23 +142,23 @@ def main():
     print(f"{'=' * 60}\n")
 
     # Save markdown report
-    report_generator.generate_markdown_report(analysis, output_path=f"logs/observatory/reports/{agent.agent_id}_report.md")
-    print(f"Markdown report saved to: logs/observatory/reports/{agent.agent_id}_report.md")
+    report_generator.generate_markdown_report(analysis, output_path=f"logs/observability/reports/{agent.agent_id}_report.md")
+    print(f"Markdown report saved to: logs/observability/reports/{agent.agent_id}_report.md")
 
     # Save JSON report
-    report_generator.generate_json_report(analysis, output_path=f"logs/observatory/reports/{agent.agent_id}_report.json")
-    print(f"JSON report saved to: logs/observatory/reports/{agent.agent_id}_report.json")
+    report_generator.generate_json_report(analysis, output_path=f"logs/observability/reports/{agent.agent_id}_report.json")
+    print(f"JSON report saved to: logs/observability/reports/{agent.agent_id}_report.json")
 
     print(f"\n{'=' * 60}")
     print("Analysis Complete!")
     print(f"{'=' * 60}\n")
 
     print("Key Takeaways:")
-    print("- The Behavior Observatory provides deep insights into agent decision-making")
+    print("- Observability metrics provide deep insights into agent decision-making")
     print("- Analyzes strategic alignment, risk tolerance, and LLM quality")
     print("- Detects emergent behaviors and novel strategies")
     print("- Generates both human-readable and machine-readable reports")
-    print("- Perfect for research, debugging, and understanding AI agent behaviors")
+    print("- Perfect for research, debugging, and auditing AI agent behaviors")
 
 
 if __name__ == "__main__":
