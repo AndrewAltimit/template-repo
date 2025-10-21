@@ -20,8 +20,16 @@ from economic_agents.api.models import (
     ProposalResponse,
 )
 from economic_agents.api.rate_limit import check_rate_limit
-from economic_agents.investment.evaluator import InvestmentEvaluator
-from economic_agents.investment.investor import Investor
+from economic_agents.investment.investor_agent import InvestorAgent
+from economic_agents.investment.models import (
+    InvestmentCriteria,
+)
+from economic_agents.investment.models import InvestmentProposal as ProposalModel
+from economic_agents.investment.models import (
+    InvestmentStage,
+    InvestorProfile,
+    InvestorType,
+)
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
 
@@ -36,29 +44,69 @@ app = FastAPI(
 proposals: Dict[str, dict] = {}
 decisions: Dict[str, InvestmentDecision] = {}
 
-# Create investors
-investors = [
-    Investor(
-        name="TechVentures Capital",
-        capital=10000000.0,
-        focus=["AI", "SaaS", "Enterprise"],
-        stage_preference="seed",
+# Create investor agents with profiles
+investor_agents = [
+    InvestorAgent(
+        profile=InvestorProfile(
+            id="investor-1",
+            name="TechVentures Capital",
+            type=InvestorType.VENTURE_CAPITAL,
+            available_capital=10000000.0,
+            total_invested=0.0,
+            portfolio_size=0,
+            criteria=InvestmentCriteria(
+                preferred_stages=[InvestmentStage.SEED],
+                min_market_size=100000000.0,
+                min_revenue_projection=1000000.0,
+                max_burn_rate=50000.0,
+                required_team_size=3,
+                preferred_markets=["AI", "SaaS", "Enterprise"],
+                risk_tolerance=0.7,
+                min_roi_expectation=10.0,
+            ),
+        )
     ),
-    Investor(
-        name="Growth Equity Partners",
-        capital=50000000.0,
-        focus=["FinTech", "HealthTech", "SaaS"],
-        stage_preference="series_a",
+    InvestorAgent(
+        profile=InvestorProfile(
+            id="investor-2",
+            name="Growth Equity Partners",
+            type=InvestorType.VENTURE_CAPITAL,
+            available_capital=50000000.0,
+            total_invested=0.0,
+            portfolio_size=0,
+            criteria=InvestmentCriteria(
+                preferred_stages=[InvestmentStage.SERIES_A],
+                min_market_size=500000000.0,
+                min_revenue_projection=5000000.0,
+                max_burn_rate=200000.0,
+                required_team_size=10,
+                preferred_markets=["FinTech", "HealthTech", "SaaS"],
+                risk_tolerance=0.6,
+                min_roi_expectation=8.0,
+            ),
+        )
     ),
-    Investor(
-        name="Seed Stage Investors",
-        capital=5000000.0,
-        focus=["AI", "ML", "Data"],
-        stage_preference="seed",
+    InvestorAgent(
+        profile=InvestorProfile(
+            id="investor-3",
+            name="Seed Stage Investors",
+            type=InvestorType.ANGEL,
+            available_capital=5000000.0,
+            total_invested=0.0,
+            portfolio_size=0,
+            criteria=InvestmentCriteria(
+                preferred_stages=[InvestmentStage.SEED, InvestmentStage.PRE_SEED],
+                min_market_size=50000000.0,
+                min_revenue_projection=500000.0,
+                max_burn_rate=25000.0,
+                required_team_size=2,
+                preferred_markets=["AI", "ML", "Data"],
+                risk_tolerance=0.8,
+                min_roi_expectation=12.0,
+            ),
+        )
     ),
 ]
-
-evaluator = InvestmentEvaluator()
 
 
 @app.get("/health")
@@ -101,41 +149,65 @@ async def submit_proposal(
 
     # Evaluate proposal with all investors
     # In a real system, this would be async
-    best_investor = None
-    best_score = 0
+    best_investor_agent = None
+    best_score = 0.0
     best_decision = None
 
-    for investor in investors:
-        # Create proposal object (simplified version of Company for evaluation)
-        company_data = {
-            "id": proposal.company_id,
-            "name": proposal.company_name,
-            "stage": proposal.stage,
-            "business_plan": proposal.business_plan,
-            "capital": 0,  # Seeking funding
-            "team": [],  # Simplified
-        }
+    for investor_agent in investor_agents:
+        # Create InvestmentProposal model for evaluation
+        # Map stage string to InvestmentStage enum
+        try:
+            stage_enum = InvestmentStage[proposal.stage.upper()]
+        except KeyError:
+            stage_enum = InvestmentStage.SEED
+
+        proposal_model = ProposalModel(
+            id=proposal_id,
+            company_id=proposal.company_id,
+            company_name=proposal.company_name,
+            stage=stage_enum,
+            amount_requested=proposal.funding_requested,
+            valuation=proposal.funding_requested * 5,  # 5x multiple
+            equity_offered=20.0,  # Default equity %
+            use_of_funds={"product_development": proposal.funding_requested * 0.6, "hiring": proposal.funding_requested * 0.4},
+            revenue_projections=[
+                proposal.funding_requested * 2,
+                proposal.funding_requested * 5,
+                proposal.funding_requested * 10,
+            ],
+            market_size=1000000000.0,  # Default large market
+            team_size=proposal.team_size,
+            competitive_advantages=["Innovative approach", "Strong team", "Market opportunity"],
+            risks=["Market competition", "Execution risk"],
+            milestones=[{"month": 6, "target": "Product launch"}, {"month": 12, "target": "Revenue target"}],
+        )
 
         # Evaluate
-        decision = evaluator.evaluate_proposal(company_data, investor)
+        decision = investor_agent.evaluate_proposal(proposal_model)
 
-        if decision["approved"] and decision["score"] > best_score:
-            best_score = decision["score"]
-            best_investor = investor
+        # Calculate overall score from evaluation scores
+        if decision.evaluation_scores:
+            avg_score = sum(decision.evaluation_scores.values()) / len(decision.evaluation_scores)
+        else:
+            avg_score = 0.0
+
+        if decision.approved and avg_score > best_score:
+            best_score = avg_score
+            best_investor_agent = investor_agent
             best_decision = decision
 
     # Store decision
-    if best_decision and best_investor:
+    if best_decision and best_investor_agent:
         decisions[proposal_id] = InvestmentDecision(
             proposal_id=proposal_id,
             approved=True,
-            investment_amount=best_decision["investment_amount"],
-            investor_name=best_investor.name,
-            conditions=best_decision.get("conditions", []),
-            feedback=best_decision.get("feedback", "Investment approved"),
+            investment_amount=best_decision.amount_offered,
+            investor_name=best_investor_agent.profile.name,
+            conditions=best_decision.conditions,
+            feedback=best_decision.reasoning,
         )
         proposals[proposal_id]["status"] = "approved"
-        status_message = f"Proposal approved by {best_investor.name}"
+        status_message = f"Proposal approved by {best_investor_agent.profile.name}"
     else:
         decisions[proposal_id] = InvestmentDecision(
             proposal_id=proposal_id,
@@ -199,12 +271,14 @@ async def get_investors(
     """
     investor_models = [
         InvestorInfo(
-            name=inv.name,
-            focus=inv.focus,
-            typical_check_size=inv.typical_check_size,
-            stage_preference=inv.stage_preference,
+            name=inv_agent.profile.name,
+            focus=inv_agent.profile.criteria.preferred_markets,
+            typical_check_size=inv_agent.profile.available_capital * 0.05,  # 5% of available capital
+            stage_preference=(
+                inv_agent.profile.criteria.preferred_stages[0].value if inv_agent.profile.criteria.preferred_stages else "seed"
+            ),
         )
-        for inv in investors
+        for inv_agent in investor_agents
     ]
 
     return InvestorList(investors=investor_models, count=len(investor_models))
