@@ -53,8 +53,9 @@ class ClaudeExecutor:
         try:
             # Build command to execute Claude Code CLI
             # Uses -p/--print for non-interactive output
+            # Use $HOME instead of ~ to ensure proper expansion in subprocess
             command = (
-                f"source ~/.nvm/nvm.sh && " f"nvm use {self.node_version} && " f"claude -p --dangerously-skip-permissions"
+                f"source $HOME/.nvm/nvm.sh && " f"nvm use {self.node_version} && " f"claude -p --dangerously-skip-permissions"
             )
 
             logger.debug("Executing Claude CLI in print mode")

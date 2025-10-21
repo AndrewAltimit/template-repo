@@ -124,7 +124,7 @@ class TestClaudeExecutor:
         call_args = mock_run.call_args
         command_list = call_args[0][0]
         command = command_list[2]
-        assert "source ~/.nvm/nvm.sh" in command
+        assert "source $HOME/.nvm/nvm.sh" in command
         assert "nvm use 18.0.0" in command
 
     @patch("economic_agents.agent.llm.executors.claude.subprocess.run")
