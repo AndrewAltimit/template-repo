@@ -181,6 +181,32 @@ def render_safety_training(api_client):
 
         st.markdown("---")
 
+        # Dataset limiting
+        st.markdown("### Dataset Size")
+        st.caption("Control how many samples to use for training (helpful_harmless has ~144K samples)")
+
+        max_train_samples = st.number_input(
+            "Max Training Samples",
+            min_value=100,
+            max_value=150000,
+            value=1000,
+            step=100,
+            help=(
+                "Limit training samples for faster experimentation. "
+                "Lower = faster but less effective training. "
+                "Recommended: 1000-5000 for testing, 10000+ for production."
+            ),
+        )
+
+        # Show estimated training time
+        estimated_steps = (max_train_samples * epochs) // batch_size
+        estimated_minutes = (estimated_steps / 60) if estimated_steps > 0 else 1
+        st.caption(
+            f"⏱️ Estimated steps: ~{estimated_steps:,} ({estimated_minutes:.0f}-{estimated_minutes*2:.0f} minutes on GPU)"
+        )
+
+        st.markdown("---")
+
         # Persistence testing
         st.markdown("### Persistence Testing")
 
@@ -197,7 +223,7 @@ def render_safety_training(api_client):
             value=20,
             step=10,
             disabled=not test_persistence,
-            help="Samples to use for persistence testing",
+            help="Samples to use for persistence testing (AFTER training completes)",
         )
 
         if test_persistence:
@@ -245,6 +271,7 @@ def render_safety_training(api_client):
                     "use_lora": use_lora,
                     "lora_r": int(lora_r),
                     "lora_alpha": int(lora_alpha),
+                    "max_train_samples": int(max_train_samples),
                     "test_persistence": test_persistence,
                     "num_test_samples": int(num_test_samples),
                 }

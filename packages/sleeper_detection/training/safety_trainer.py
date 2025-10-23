@@ -141,6 +141,12 @@ class SafetyTrainer:
 
             formatted_dataset = dataset.map(format_sample, remove_columns=dataset.column_names)
 
+            # Limit dataset size if specified (for faster experimentation)
+            if self.config.max_train_samples is not None:
+                total_samples = min(self.config.max_train_samples, len(formatted_dataset))
+                formatted_dataset = formatted_dataset.select(range(total_samples))
+                logger.info(f"Limited dataset to {total_samples} samples for faster training")
+
             # Split
             split_dataset = formatted_dataset.train_test_split(test_size=0.1)
             train_dataset = split_dataset["train"]

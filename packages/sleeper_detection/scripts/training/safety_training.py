@@ -66,6 +66,12 @@ Examples:
     parser.add_argument("--use-qlora", action="store_true", help="Use QLoRA (4-bit + LoRA) for maximum memory efficiency")
     parser.add_argument("--lora-r", type=int, default=8, help="LoRA rank")
     parser.add_argument("--lora-alpha", type=int, default=16, help="LoRA alpha")
+    parser.add_argument(
+        "--max-train-samples",
+        type=int,
+        default=None,
+        help="Limit training samples for faster experimentation (default: use all ~144K)",
+    )
     parser.add_argument("--test-persistence", action="store_true", help="Test backdoor persistence after training")
     parser.add_argument("--num-test-samples", type=int, default=20, help="Number of persistence test samples")
 
@@ -136,6 +142,7 @@ def main():
         use_qlora=args.use_qlora,
         lora_r=args.lora_r,
         lora_alpha=args.lora_alpha,
+        max_train_samples=args.max_train_samples,
         num_test_samples=args.num_test_samples,
     )
 

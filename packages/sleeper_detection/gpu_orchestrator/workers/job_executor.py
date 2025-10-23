@@ -128,6 +128,10 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
         cmd.extend(["--lora-r", str(parameters.get("lora_r", 8))])
         cmd.extend(["--lora-alpha", str(parameters.get("lora_alpha", 16))])
 
+        # Dataset limiting
+        if parameters.get("max_train_samples") is not None:
+            cmd.extend(["--max-train-samples", str(parameters["max_train_samples"])])
+
         # Set output directory with job ID like backdoor training
         output_dir_base = "/results/safety_trained"
         output_dir_full = f"{output_dir_base}/{job_id}"

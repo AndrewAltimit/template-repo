@@ -88,6 +88,9 @@ class SafetyTrainingRequest(BaseModel):
     use_qlora: bool = Field(default=True, description="Use QLoRA (4-bit + LoRA) - recommended for memory")
     lora_r: int = Field(default=8, ge=1, description="LoRA rank")
     lora_alpha: int = Field(default=16, ge=1, description="LoRA alpha")
+    max_train_samples: Optional[int] = Field(
+        default=1000, ge=100, description="Limit training samples (None = use all ~144K from hh-rlhf)"
+    )
     test_persistence: bool = Field(default=True, description="Test backdoor persistence")
     num_test_samples: int = Field(default=20, ge=1, description="Persistence test samples")
 
