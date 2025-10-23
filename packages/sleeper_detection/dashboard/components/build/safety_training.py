@@ -223,11 +223,21 @@ def render_safety_training(api_client):
             elif safety_dataset == "custom" and not dataset_path:
                 st.error("Please enter a custom dataset path")
             else:
+                # Map user-friendly dataset names to backend values
+                dataset_mapping = {
+                    "simple": "simple",
+                    "helpful_harmless": "Anthropic/hh-rlhf",
+                    "custom": dataset_path,
+                }
+
+                # Get the backend dataset value
+                backend_dataset = dataset_mapping.get(safety_dataset, safety_dataset)
+
                 # Build params
                 params = {
                     "model_path": model_path,
                     "method": method,
-                    "safety_dataset": dataset_path if safety_dataset == "custom" else safety_dataset,
+                    "safety_dataset": backend_dataset,
                     "epochs": int(epochs),
                     "batch_size": int(batch_size),
                     "learning_rate": float(learning_rate),
