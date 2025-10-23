@@ -64,18 +64,19 @@ echo [3/5] Installing dependencies...
 python -m pip install --quiet --upgrade pip
 pip install --quiet -r requirements.txt
 
-REM Check Docker image
-echo [4/5] Checking Docker image...
-docker image inspect sleeper-detection:gpu >nul 2>&1
+REM Build Docker image
+echo [4/5] Building GPU worker Docker image...
+echo This may take a few minutes on first run (cached afterwards)
+cd ..
+docker build -t sleeper-detection:gpu -f docker\Dockerfile.gpu .
 if errorlevel 1 (
-    echo WARNING: sleeper-detection:gpu image not found.
-    echo You need to build it first. Run:
-    echo   cd ..\..
-    echo   docker build -t sleeper-detection:gpu -f docker\Dockerfile.gpu .
-    echo.
-    echo Continuing anyway - API will start but jobs will fail
-    echo.
+    echo ERROR: Failed to build sleeper-detection:gpu image
+    echo Please check Docker is running and Dockerfile exists
+    cd gpu_orchestrator
+    exit /b 1
 )
+cd gpu_orchestrator
+echo GPU worker image ready.
 
 REM Get IP address (first match only)
 for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /c:"IPv4 Address"') do (
