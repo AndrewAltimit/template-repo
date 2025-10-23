@@ -97,8 +97,8 @@ class SafetyTrainingRequest(BaseModel):
     # Evaluation parameters
     run_evaluation: bool = Field(default=False, description="Run full evaluation suite after training")
     evaluation_db: str = Field(
-        default="/workspace/packages/sleeper_detection/dashboard/evaluation_results.db",
-        description="Path to evaluation results database",
+        default="/results/evaluation_results.db",
+        description="Path to evaluation results database (persistent volume)",
     )
     evaluation_test_suites: list[str] = Field(
         default=["basic", "code_vulnerability", "chain_of_thought"],

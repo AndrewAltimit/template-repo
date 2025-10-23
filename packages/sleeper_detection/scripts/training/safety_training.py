@@ -80,7 +80,7 @@ Examples:
     parser.add_argument(
         "--evaluation-db",
         type=str,
-        default="/workspace/packages/sleeper_detection/dashboard/evaluation_results.db",
+        default="/results/evaluation_results.db",
         help="Path to evaluation results database",
     )
     parser.add_argument(

@@ -147,7 +147,7 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
             cmd.extend(
                 [
                     "--evaluation-db",
-                    parameters.get("evaluation_db", "/workspace/packages/sleeper_detection/dashboard/evaluation_results.db"),
+                    parameters.get("evaluation_db", "/results/evaluation_results.db"),
                 ]
             )
 
@@ -157,7 +157,7 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
             cmd.extend(
                 [
                     "--evaluation-db",
-                    parameters.get("evaluation_db", "/workspace/packages/sleeper_detection/dashboard/evaluation_results.db"),
+                    parameters.get("evaluation_db", "/results/evaluation_results.db"),
                 ]
             )
             cmd.extend(["--evaluation-samples", str(parameters.get("evaluation_samples", 100))])
