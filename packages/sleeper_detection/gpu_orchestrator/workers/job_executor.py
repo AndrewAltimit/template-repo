@@ -143,6 +143,13 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
         if parameters.get("test_persistence"):
             cmd.append("--test-persistence")
             cmd.extend(["--num-test-samples", str(parameters["num_test_samples"])])
+            # Pass evaluation-db for persistence testing (needed for trigger sensitivity)
+            cmd.extend(
+                [
+                    "--evaluation-db",
+                    parameters.get("evaluation_db", "/workspace/packages/sleeper_detection/dashboard/evaluation_results.db"),
+                ]
+            )
 
         # Evaluation parameters
         if parameters.get("run_evaluation"):
