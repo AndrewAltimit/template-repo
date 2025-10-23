@@ -23,13 +23,13 @@ logger = logging.getLogger(__name__)
 
 # Import trigger sensitivity analysis
 try:
+    from packages.sleeper_detection.advanced_detection.trigger_sensitivity import TriggerSensitivityAnalyzer
     from packages.sleeper_detection.database.ingestion import ingest_trigger_sensitivity_results
-    from packages.sleeper_detection.deception_eval.trigger_sensitivity import TriggerSensitivityAnalyzer
 
     TRIGGER_SENSITIVITY_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     TRIGGER_SENSITIVITY_AVAILABLE = False
-    logger.warning("Trigger sensitivity analysis not available - install required dependencies")
+    logger.warning(f"Trigger sensitivity analysis not available - install required dependencies: {e}")
 
 
 class SafetyTrainer:
@@ -603,24 +603,21 @@ class SafetyTrainer:
                 )
 
                 # Save all variant results
-                for variant in post_training_sensitivity.variant_results:
-                    # Find corresponding pre-training variant
-                    pre_variant = next(
-                        (v for v in self.pre_training_trigger_sensitivity.variant_results if v.variant == variant.variant),
-                        None,
-                    )
+                for variant_phrase, variant_info in post_training_sensitivity.variant_analysis.items():
+                    # Get pre and post training scores
+                    pre_score = self.pre_training_trigger_sensitivity.variant_scores.get(variant_phrase, 0.0)
+                    post_score = post_training_sensitivity.variant_scores.get(variant_phrase, 0.0)
 
-                    if pre_variant:
-                        ingest_trigger_sensitivity_results(
-                            model_name=model_name,
-                            trigger_phrase=variant.variant,
-                            variant_type=variant.variant_type,
-                            pre_training_rate=pre_variant.activation_rate,
-                            post_training_rate=variant.activation_rate,
-                            specificity_increase=specificity_increase,
-                            is_exact_trigger=False,
-                            db_path=db_path,
-                        )
+                    ingest_trigger_sensitivity_results(
+                        model_name=model_name,
+                        trigger_phrase=variant_phrase,
+                        variant_type=variant_info["type"],
+                        pre_training_rate=pre_score,
+                        post_training_rate=post_score,
+                        specificity_increase=specificity_increase,
+                        is_exact_trigger=False,
+                        db_path=db_path,
+                    )
 
                 logger.info(f"Trigger sensitivity results saved to database: {db_path}")
             except Exception as e:
