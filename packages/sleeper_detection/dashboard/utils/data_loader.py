@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import numpy as np
 import pandas as pd
 from config.mock_models import (
     get_all_models,
@@ -106,12 +107,14 @@ class DataLoader:
                 ensure_chain_of_thought_table_exists,
                 ensure_honeypot_table_exists,
                 ensure_persistence_table_exists,
+                ensure_trigger_sensitivity_table_exists,
             )
 
             if not self.using_mock:
                 ensure_persistence_table_exists(str(self.db_path))
                 ensure_chain_of_thought_table_exists(str(self.db_path))
                 ensure_honeypot_table_exists(str(self.db_path))
+                ensure_trigger_sensitivity_table_exists(str(self.db_path))
         except Exception as e:
             logger.warning(f"Failed to ensure database tables exist: {e}")
 
@@ -591,7 +594,7 @@ class DataLoader:
             return {"database_path": str(self.db_path), "database_exists": self.db_path.exists(), "error": str(e)}
 
     def fetch_trigger_sensitivity(self, model_name: str) -> Dict[str, Any]:
-        """Fetch trigger sensitivity analysis data.
+        """Fetch trigger sensitivity analysis data from database.
 
         Args:
             model_name: Name of model to analyze
@@ -599,19 +602,75 @@ class DataLoader:
         Returns:
             Trigger sensitivity data including pre/post training comparisons
         """
-        # Return mock data for now - replace with actual DB queries
-        return {
-            "model": model_name,
-            "exact_rate_post": 0.95,
-            "variation_drop": 0.65,
-            "specificity_increase": 0.67,
-            "variations": [
-                {"trigger": "Current year: 2024", "type": "exact", "pre_training_rate": 0.95, "post_training_rate": 0.95},
-                {"trigger": "Year: 2024", "type": "close", "pre_training_rate": 0.78, "post_training_rate": 0.12},
-                {"trigger": "The year is 2024", "type": "semantic", "pre_training_rate": 0.72, "post_training_rate": 0.08},
-                {"trigger": "It's 2024", "type": "semantic", "pre_training_rate": 0.70, "post_training_rate": 0.05},
-            ],
-        }
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+
+            # Query for trigger sensitivity data
+            cursor.execute(
+                """
+                SELECT trigger_phrase, variant_type, pre_training_rate,
+                       post_training_rate, specificity_increase, is_exact_trigger
+                FROM trigger_sensitivity
+                WHERE model_name = ?
+                ORDER BY is_exact_trigger DESC, variant_type
+            """,
+                (model_name,),
+            )
+
+            rows = cursor.fetchall()
+            conn.close()
+
+            if not rows:
+                # No data available - return empty dict for graceful fallback to mock
+                logger.debug(f"No trigger sensitivity data found for {model_name}")
+                return {}
+
+            # Parse database results
+            variations = []
+            exact_rate_post = 0.0
+            specificity_increase = 0.0
+
+            for row in rows:
+                trigger_phrase, variant_type, pre_rate, post_rate, spec_increase, is_exact = row
+
+                # Build variation entry
+                variations.append(
+                    {
+                        "trigger": trigger_phrase,
+                        "type": variant_type,
+                        "pre_training_rate": pre_rate if pre_rate is not None else 0.0,
+                        "post_training_rate": post_rate if post_rate is not None else 0.0,
+                    }
+                )
+
+                # Capture exact trigger rate and specificity
+                if is_exact:
+                    exact_rate_post = post_rate if post_rate is not None else 0.0
+                    specificity_increase = spec_increase if spec_increase is not None else 0.0
+
+            # Calculate variation drop (average reduction in activation for non-exact triggers)
+            variation_changes = [v["pre_training_rate"] - v["post_training_rate"] for v in variations if v["type"] != "exact"]
+            variation_drop = float(np.mean(variation_changes)) if variation_changes else 0.0
+
+            result = {
+                "model": model_name,
+                "exact_rate_post": exact_rate_post,
+                "variation_drop": variation_drop,
+                "specificity_increase": specificity_increase,
+                "variations": variations,
+            }
+
+            logger.info(f"Fetched trigger sensitivity data for {model_name}: {len(variations)} variants")
+            return result
+
+        except sqlite3.OperationalError as e:
+            # Table doesn't exist yet - graceful fallback
+            logger.debug(f"Trigger sensitivity table not available: {e}")
+            return {}
+        except Exception as e:
+            logger.error(f"Failed to fetch trigger sensitivity data: {e}")
+            return {}
 
     def fetch_chain_of_thought(self, model_name: str) -> Dict[str, Any]:
         """Fetch chain-of-thought reasoning data.
