@@ -488,3 +488,294 @@ class TestErrors:
         assert error.remaining == 0
         assert "rate limit" in str(error).lower()
         assert "2025-10-25T15:00:00Z" in str(error)
+
+
+class TestClaimMechanism:
+    """Test claim/release/renewal mechanisms (Phase 2)."""
+
+    @pytest.mark.asyncio
+    async def test_claim_work_success(self, board_config, mock_github_token):
+        """Test successful work claim."""
+        manager = BoardManager(config=board_config)
+        manager._post_issue_comment = AsyncMock()
+        manager._get_active_claim = AsyncMock(return_value=None)
+        manager.update_status = AsyncMock(return_value=True)
+        manager._assign_to_agent = AsyncMock(return_value=True)
+
+        success = await manager.claim_work(45, "claude", "session-123")
+
+        assert success is True
+        manager._post_issue_comment.assert_called_once()
+        manager.update_status.assert_called_once_with(45, IssueStatus.IN_PROGRESS)
+
+    @pytest.mark.asyncio
+    async def test_claim_work_already_claimed(self, board_config, mock_github_token):
+        """Test claim rejection when already claimed."""
+        manager = BoardManager(config=board_config)
+
+        # Mock existing valid claim
+        existing_claim = AgentClaim(
+            issue_number=45,
+            agent="opencode",
+            session_id="other-session",
+            timestamp=datetime.utcnow(),
+        )
+        manager._get_active_claim = AsyncMock(return_value=existing_claim)
+
+        success = await manager.claim_work(45, "claude", "session-123")
+
+        assert success is False
+
+    @pytest.mark.asyncio
+    async def test_claim_work_expired_claim(self, board_config, mock_github_token):
+        """Test claim succeeds when previous claim expired."""
+        manager = BoardManager(config=board_config)
+        manager._post_issue_comment = AsyncMock()
+        manager.update_status = AsyncMock(return_value=True)
+        manager._assign_to_agent = AsyncMock(return_value=True)
+
+        # Mock expired claim
+        old_time = datetime.utcnow() - timedelta(seconds=90000)  # >24 hours
+        expired_claim = AgentClaim(
+            issue_number=45,
+            agent="opencode",
+            session_id="old-session",
+            timestamp=old_time,
+        )
+        manager._get_active_claim = AsyncMock(return_value=expired_claim)
+
+        success = await manager.claim_work(45, "claude", "session-123")
+
+        assert success is True
+
+    @pytest.mark.asyncio
+    async def test_renew_claim_success(self, board_config, mock_github_token):
+        """Test successful claim renewal."""
+        manager = BoardManager(config=board_config)
+        manager._post_issue_comment = AsyncMock()
+
+        # Mock active claim by the same agent
+        active_claim = AgentClaim(
+            issue_number=45,
+            agent="claude",
+            session_id="session-123",
+            timestamp=datetime.utcnow() - timedelta(seconds=3600),
+        )
+        manager._get_active_claim = AsyncMock(return_value=active_claim)
+
+        success = await manager.renew_claim(45, "claude", "session-123")
+
+        assert success is True
+        manager._post_issue_comment.assert_called_once()
+        # Check renewal comment format
+        call_args = manager._post_issue_comment.call_args
+        assert "Claim Renewal" in call_args[0][1]
+
+    @pytest.mark.asyncio
+    async def test_renew_claim_wrong_agent(self, board_config, mock_github_token):
+        """Test renewal fails when wrong agent tries."""
+        manager = BoardManager(config=board_config)
+
+        # Mock claim by different agent
+        other_claim = AgentClaim(
+            issue_number=45,
+            agent="opencode",
+            session_id="other-session",
+            timestamp=datetime.utcnow(),
+        )
+        manager._get_active_claim = AsyncMock(return_value=other_claim)
+
+        success = await manager.renew_claim(45, "claude", "session-123")
+
+        assert success is False
+
+    @pytest.mark.asyncio
+    async def test_renew_claim_no_active_claim(self, board_config, mock_github_token):
+        """Test renewal fails when no active claim."""
+        manager = BoardManager(config=board_config)
+        manager._get_active_claim = AsyncMock(return_value=None)
+
+        success = await manager.renew_claim(45, "claude", "session-123")
+
+        assert success is False
+
+    @pytest.mark.asyncio
+    async def test_release_work_completed(self, board_config, mock_github_token):
+        """Test releasing work as completed."""
+        manager = BoardManager(config=board_config)
+        manager._post_issue_comment = AsyncMock()
+        manager.update_status = AsyncMock(return_value=True)
+
+        await manager.release_work(45, "claude", reason="completed")
+
+        manager._post_issue_comment.assert_called_once()
+        manager.update_status.assert_called_once_with(45, IssueStatus.DONE)
+
+    @pytest.mark.asyncio
+    async def test_release_work_blocked(self, board_config, mock_github_token):
+        """Test releasing work as blocked."""
+        manager = BoardManager(config=board_config)
+        manager._post_issue_comment = AsyncMock()
+        manager.update_status = AsyncMock(return_value=True)
+
+        await manager.release_work(45, "claude", reason="blocked")
+
+        manager.update_status.assert_called_once_with(45, IssueStatus.BLOCKED)
+
+    @pytest.mark.asyncio
+    async def test_release_work_abandoned(self, board_config, mock_github_token):
+        """Test releasing work as abandoned."""
+        manager = BoardManager(config=board_config)
+        manager._post_issue_comment = AsyncMock()
+        manager.update_status = AsyncMock(return_value=True)
+
+        await manager.release_work(45, "claude", reason="abandoned")
+
+        manager.update_status.assert_called_once_with(45, IssueStatus.TODO)
+        # Note: release_work doesn't unassign agent, just sets status to TODO
+
+    def test_parse_claim_comment_valid(self, board_config, mock_github_token):
+        """Test parsing valid claim comment."""
+        manager = BoardManager(config=board_config)
+
+        comment_body = """🤖 **[Agent Claim]**
+
+Agent: `claude`
+Started: `2025-10-25T14:30:00Z`
+Session ID: `session-123`
+
+Claiming this issue for implementation."""
+
+        claim = manager._parse_claim_comment(45, comment_body, "2025-10-25T14:30:00Z")
+
+        assert claim is not None
+        assert claim.issue_number == 45
+        assert claim.agent == "claude"
+        assert claim.session_id == "session-123"
+
+    def test_parse_claim_comment_invalid(self, board_config, mock_github_token):
+        """Test parsing invalid claim comment returns None."""
+        manager = BoardManager(config=board_config)
+
+        invalid_body = "Just a regular comment"
+        claim = manager._parse_claim_comment(45, invalid_body, "2025-10-25T14:30:00Z")
+
+        assert claim is None
+
+
+class TestDependencyManagement:
+    """Test dependency tracking (Phase 2)."""
+
+    @pytest.mark.asyncio
+    async def test_add_blocker_method_exists(self, board_config, mock_github_token):
+        """Test add_blocker method is available."""
+        manager = BoardManager(config=board_config)
+        assert hasattr(manager, "add_blocker")
+        assert callable(manager.add_blocker)
+
+    @pytest.mark.asyncio
+    async def test_mark_discovered_from_method_exists(self, board_config, mock_github_token):
+        """Test mark_discovered_from method is available."""
+        manager = BoardManager(config=board_config)
+        assert hasattr(manager, "mark_discovered_from")
+        assert callable(manager.mark_discovered_from)
+
+
+class TestReadyWorkDetection:
+    """Test ready work queries (Phase 2)."""
+
+    @pytest.mark.asyncio
+    async def test_get_ready_work_method_exists(self, board_config, mock_github_token):
+        """Test get_ready_work method is available."""
+        manager = BoardManager(config=board_config)
+        assert hasattr(manager, "get_ready_work")
+        assert callable(manager.get_ready_work)
+
+    def test_issue_is_ready_no_blockers(self):
+        """Test Issue.is_ready returns True when not blocked."""
+        issue = Issue(
+            number=1,
+            title="Task",
+            body="Body",
+            state="open",
+            status=IssueStatus.TODO,
+            blocked_by=[],
+        )
+        assert issue.is_ready() is True
+
+    def test_issue_is_ready_with_blockers(self):
+        """Test Issue.is_ready returns False when blocked."""
+        issue = Issue(
+            number=1,
+            title="Task",
+            body="Body",
+            state="open",
+            status=IssueStatus.TODO,
+            blocked_by=[2, 3],
+        )
+        assert issue.is_ready() is False
+
+
+class TestRaceConditions:
+    """Test race condition handling (Phase 2)."""
+
+    @pytest.mark.asyncio
+    async def test_concurrent_claims_first_wins(self, board_config, mock_github_token):
+        """Test concurrent claims - first comment wins."""
+        manager = BoardManager(config=board_config)
+
+        # Simulate race: both agents check claim at same time (both see None)
+        # But first to post comment wins
+        call_count = 0
+
+        async def mock_get_claim(issue_num):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                # First check: no claim
+                return None
+            else:
+                # Second check: first agent already claimed
+                return AgentClaim(
+                    issue_number=45,
+                    agent="claude",
+                    session_id="session-1",
+                    timestamp=datetime.utcnow(),
+                )
+
+        manager._get_active_claim = mock_get_claim
+        manager._post_issue_comment = AsyncMock()
+        manager.update_status = AsyncMock(return_value=True)
+        manager._assign_to_agent = AsyncMock(return_value=True)
+
+        # Agent 1 claims (succeeds)
+        success1 = await manager.claim_work(45, "claude", "session-1")
+        # Agent 2 tries to claim (fails)
+        success2 = await manager.claim_work(45, "opencode", "session-2")
+
+        assert success1 is True
+        assert success2 is False
+
+    @pytest.mark.asyncio
+    async def test_claim_renewal_race_safe(self, board_config, mock_github_token):
+        """Test renewal is safe under race conditions."""
+        manager = BoardManager(config=board_config)
+
+        active_claim = AgentClaim(
+            issue_number=45,
+            agent="claude",
+            session_id="session-123",
+            timestamp=datetime.utcnow() - timedelta(seconds=3600),
+        )
+
+        manager._get_active_claim = AsyncMock(return_value=active_claim)
+        manager._post_issue_comment = AsyncMock()
+
+        # Two renewal attempts by same agent
+        result1 = await manager.renew_claim(45, "claude", "session-123")
+        result2 = await manager.renew_claim(45, "claude", "session-123")
+
+        # Both should succeed (idempotent)
+        assert result1 is True
+        assert result2 is True
+        assert manager._post_issue_comment.call_count == 2
