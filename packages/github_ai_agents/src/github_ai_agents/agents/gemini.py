@@ -51,4 +51,4 @@ class GeminiAgent(CLIAgent):
 
     def get_priority(self) -> int:
         """Get priority for Gemini."""
-        return 85
+        return 90

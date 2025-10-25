@@ -41,4 +41,4 @@ class ClaudeAgent(CLIAgent):
 
     def get_priority(self) -> int:
         """Get priority for Claude."""
-        return 90  # Highest priority
+        return 100  # Highest priority

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class OpenCodeAgent(ContainerizedCLIAgent):
     """OpenCode AI agent for code generation."""
 
-    DEFAULT_MODEL = "qwen/qwen-2.5-coder-32b-instruct"
+    DEFAULT_MODEL = "openrouter/qwen/qwen-2.5-coder-32b-instruct"
 
     def __init__(self, config=None) -> None:
         """Initialize OpenCode agent."""
