@@ -14,42 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-**Phase 6: Documentation & Tooling**
-- Comprehensive board integration documentation (docs/board-integration.md)
-- Complete API reference with 15+ methods documented (docs/API_REFERENCE.md)
-- Complete CLI reference for all commands (docs/CLI_REFERENCE.md)
-- 9 usage examples following economic_agents pattern:
-  - basic_usage.py - Simplest usage patterns
-  - issue_monitor_example.py - Complete issue workflow
-  - pr_monitor_example.py - PR review workflow
-  - board_integration_example.py - GitHub Projects v2 integration
-  - multi_agent_example.py - Concurrent agent coordination
-  - custom_agent_example.py - Specialized agent creation
-  - github_actions_example.yml - GitHub Actions workflow template
-  - security_example.py - Security features and best practices
-  - README.md - Comprehensive examples guide
-- bin/ directory with executable wrappers:
-  - issue-monitor - Issue monitoring CLI wrapper
-  - pr-monitor - PR monitoring CLI wrapper
-  - board-cli - Board management CLI wrapper
-  - README.md - Executable documentation
-
-**Phase 5: Docker & Testing**
-- Docker setup for board MCP server (port 8021)
-- docker-compose integration with health checks
-- End-to-end tests for board workflow (10 comprehensive tests)
-- CI/CD workflow for board integration testing
-- Board CLI with 8 commands (ready, create, block, status, graph, claim, release, info)
-- 24 comprehensive unit tests for CLI
-- GitHub Actions workflow with 6 jobs
-
-**Phase 4: Monitor Integration**
-- Integrated monitors with board for automated work tracking
-- Automatic claim management during issue processing
-- Status updates throughout workflow
-- Issue discovery and dependency tracking
-
-**Phase 3: GitHub Projects v2 Board Integration**
+**GitHub Projects v2 Board Integration**
+- GraphQL client for GitHub Projects v2 API
+- BoardManager with 15+ async methods
+- BoardConfig with YAML configuration
+- Issue, AgentClaim, DependencyGraph data models
+- Dependency tracking (blockers, parent-child relationships)
+- Ready work algorithm (unblocked, unclaimed issues)
 - 11 MCP tools for board management:
   - query_ready_work - Get unblocked issues
   - claim_work - Claim issue for implementation
@@ -63,20 +34,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - list_agents - Get enabled agents
   - get_board_config - Get current configuration
 
-**Phase 2: Claim System**
+**Work Claim System**
 - Work claim system with 24-hour timeout
 - Claim renewal for long-running tasks
 - Concurrent claim conflict prevention
 - Session-based tracking
 - Comprehensive claim tests
 
-**Phase 1: Core Board Infrastructure**
-- GraphQL client for GitHub Projects v2 API
-- BoardManager with 15+ async methods
-- BoardConfig with YAML configuration
-- Issue, AgentClaim, DependencyGraph data models
-- Dependency tracking (blockers, parent-child relationships)
-- Ready work algorithm (unblocked, unclaimed issues)
+**Monitor Integration**
+- Integrated monitors with board for automated work tracking
+- Automatic claim management during issue processing
+- Status updates throughout workflow
+- Issue discovery and dependency tracking
+
+**Command-Line Interface**
+- Board CLI with 8 commands (ready, create, block, status, graph, claim, release, info)
+- 24 comprehensive unit tests for CLI
+- bin/ directory with executable wrappers:
+  - issue-monitor - Issue monitoring CLI wrapper
+  - pr-monitor - PR monitoring CLI wrapper
+  - board-cli - Board management CLI wrapper
+  - README.md - Executable documentation
+
+**Docker & Testing**
+- Docker setup for board MCP server (port 8021)
+- docker-compose integration with health checks
+- End-to-end tests for board workflow (10 comprehensive tests)
+- CI/CD workflow for board integration testing
+- GitHub Actions workflow with 6 jobs
+
+**Documentation & Examples**
+- Comprehensive board integration documentation (docs/board-integration.md)
+- Complete API reference with 15+ methods documented (docs/API_REFERENCE.md)
+- Complete CLI reference for all commands (docs/CLI_REFERENCE.md)
+- 9 usage examples:
+  - basic_usage.py - Simplest usage patterns
+  - issue_monitor_example.py - Complete issue workflow
+  - pr_monitor_example.py - PR review workflow
+  - board_integration_example.py - GitHub Projects v2 integration
+  - multi_agent_example.py - Concurrent agent coordination
+  - custom_agent_example.py - Specialized agent creation
+  - github_actions_example.yml - GitHub Actions workflow template
+  - security_example.py - Security features and best practices
+  - README.md - Comprehensive examples guide
 
 ### Changed
 - Reorganized documentation structure with docs/ directory
@@ -140,7 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History
 
-- **0.2.0** (2025-10-25): Board integration (Phases 1-6 complete)
+- **0.2.0** (2025-10-25): GitHub Projects v2 board integration
 - **0.1.0** (2024-08-30): Initial release with multi-agent support
 - **0.0.1** (2024-08-01): Project foundation
 

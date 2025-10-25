@@ -6,12 +6,12 @@ The GitHub Projects v2 board integration enables AI agents to use GitHub as an e
 
 ### Key Features
 
-- **🧠 Agent Memory**: Maintain work context across sessions (survives restarts)
-- **📋 Work Discovery**: Query ready work automatically (unblocked tasks)
-- **🔗 Dependency Tracking**: Blockers, parent-child relationships, priorities
-- **🤝 Multi-Agent Coordination**: Multiple agents work without conflicts
-- **🐳 Container-First**: Docker deployment with health checks
-- **🎯 Zero Deployment**: Uses existing GitHub infrastructure
+- **Agent Memory**: Maintain work context across sessions (survives restarts)
+- **Work Discovery**: Query ready work automatically (unblocked tasks)
+- **Dependency Tracking**: Blockers, parent-child relationships, priorities
+- **Multi-Agent Coordination**: Multiple agents work without conflicts
+- **Container-First**: Docker deployment with health checks
+- **Zero Deployment**: Uses existing GitHub infrastructure
 
 ## Quick Start
 

@@ -457,13 +457,13 @@ issue-monitor --repo owner/repo
 ### Output
 
 ```
-🔍 Processing issues for repository: owner/repo
+Processing issues for repository: owner/repo
 Found 5 recent open issues
 Processing issue #123: Add feature X
-  ✅ Trigger detected: [Approved][OpenCode]
-  🤖 Generating implementation...
-  📝 Creating PR...
-  ✅ PR created: #124
+  [TRIGGER] Detected: [Approved][OpenCode]
+  [AGENT] Generating implementation...
+  [STATUS] Creating PR...
+  [SUCCESS] PR created: #124
 ```
 
 ---
@@ -511,13 +511,13 @@ Same as Issue Monitor.
 ### Output
 
 ```
-🔍 Monitoring PRs for repository: owner/repo
+Monitoring PRs for repository: owner/repo
 Found 3 open PRs with review comments
 Processing PR #124: Add feature X
-  ✅ Review comment detected: [Fix][OpenCode]
-  🤖 Implementing fix...
-  📝 Pushing changes...
-  ✅ Changes committed
+  [TRIGGER] Review comment detected: [Fix][OpenCode]
+  [AGENT] Implementing fix...
+  [STATUS] Pushing changes...
+  [SUCCESS] Changes committed
 ```
 
 ---

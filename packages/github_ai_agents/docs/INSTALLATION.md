@@ -220,8 +220,8 @@ Configure at least one AI agent. You can use multiple agents simultaneously.
    - Visit https://github.com/settings/tokens
    - Click "Generate new token (classic)"
    - Select scopes:
-     - ✓ `repo` - Full control of private repositories
-     - ✓ `write:discussion` - Read and write discussions (optional)
+     - `repo` - Full control of private repositories
+     - `write:discussion` - Read and write discussions (optional)
    - Generate and copy token
 
 2. **Set Environment Variable:**
