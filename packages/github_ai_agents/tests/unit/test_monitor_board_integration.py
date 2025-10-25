@@ -23,19 +23,22 @@ class TestIssueMonitorBoardIntegration:
         return manager
 
     @pytest.fixture
-    def issue_monitor(self, mock_board_manager):
+    def issue_monitor(self, mock_board_manager, monkeypatch):
         """Create an issue monitor with mocked board manager."""
+        monkeypatch.setenv("GITHUB_REPOSITORY", "test-owner/test-repo")
+        monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
         monitor = IssueMonitor()
         monitor.board_manager = mock_board_manager
         return monitor
 
     @pytest.mark.asyncio
-    async def test_board_manager_initialization_with_config(self):
+    async def test_board_manager_initialization_with_config(self, monkeypatch):
         """Test board manager is initialized when config exists."""
+        monkeypatch.setenv("GITHUB_REPOSITORY", "test-owner/test-repo")
+        monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
         with (
-            patch("pathlib.Path.exists", return_value=True),
-            patch("github_ai_agents.board.config.load_config") as mock_load_config,
-            patch("os.getenv", return_value="fake_token"),
+            patch("github_ai_agents.monitors.issue.Path.exists", return_value=True),
+            patch("github_ai_agents.monitors.issue.load_config") as mock_load_config,
         ):
 
             mock_load_config.return_value = MagicMock()
@@ -44,9 +47,11 @@ class TestIssueMonitorBoardIntegration:
             assert monitor.board_manager is not None
 
     @pytest.mark.asyncio
-    async def test_board_manager_not_initialized_without_config(self):
+    async def test_board_manager_not_initialized_without_config(self, monkeypatch):
         """Test board manager is not initialized when config doesn't exist."""
-        with patch("pathlib.Path.exists", return_value=False):
+        monkeypatch.setenv("GITHUB_REPOSITORY", "test-owner/test-repo")
+        monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
+        with patch("github_ai_agents.monitors.issue.Path.exists", return_value=False):
             monitor = IssueMonitor()
             assert monitor.board_manager is None
 
@@ -138,8 +143,10 @@ class TestPRMonitorBoardIntegration:
         return manager
 
     @pytest.fixture
-    def pr_monitor(self, mock_board_manager):
+    def pr_monitor(self, mock_board_manager, monkeypatch):
         """Create a PR monitor with mocked board manager."""
+        monkeypatch.setenv("GITHUB_REPOSITORY", "test-owner/test-repo")
+        monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
         monitor = PRMonitor()
         monitor.board_manager = mock_board_manager
         return monitor
@@ -211,8 +218,10 @@ class TestPRMonitorBoardIntegration:
         mock_board_manager.update_status.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_update_board_without_board_manager(self):
+    async def test_update_board_without_board_manager(self, monkeypatch):
         """Test update handles missing board manager gracefully."""
+        monkeypatch.setenv("GITHUB_REPOSITORY", "test-owner/test-repo")
+        monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
         monitor = PRMonitor()
         monitor.board_manager = None
 
@@ -220,12 +229,13 @@ class TestPRMonitorBoardIntegration:
         await monitor._update_board_on_pr_merge(100, "Closes #42")
 
     @pytest.mark.asyncio
-    async def test_board_manager_initialization_with_config(self):
+    async def test_board_manager_initialization_with_config(self, monkeypatch):
         """Test board manager is initialized when config exists."""
+        monkeypatch.setenv("GITHUB_REPOSITORY", "test-owner/test-repo")
+        monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
         with (
-            patch("pathlib.Path.exists", return_value=True),
-            patch("github_ai_agents.board.config.load_config") as mock_load_config,
-            patch("os.getenv", return_value="fake_token"),
+            patch("github_ai_agents.monitors.pr.Path.exists", return_value=True),
+            patch("github_ai_agents.monitors.pr.load_config") as mock_load_config,
         ):
 
             mock_load_config.return_value = MagicMock()
@@ -234,15 +244,20 @@ class TestPRMonitorBoardIntegration:
             assert monitor.board_manager is not None
 
     @pytest.mark.asyncio
-    async def test_board_manager_not_initialized_without_token(self):
+    async def test_board_manager_not_initialized_without_token(self, monkeypatch):
         """Test board manager is not initialized without GitHub token."""
+        monkeypatch.setenv("GITHUB_REPOSITORY", "test-owner/test-repo")
+        monkeypatch.setenv("GITHUB_TOKEN", "fake-token")
+        # Mock os.getenv to return None only for GITHUB_TOKEN check in _init_board_manager
         with (
-            patch("pathlib.Path.exists", return_value=True),
-            patch("github_ai_agents.board.config.load_config") as mock_load_config,
-            patch("os.getenv", return_value=None),
+            patch("github_ai_agents.monitors.pr.Path.exists", return_value=True),
+            patch("github_ai_agents.monitors.pr.load_config") as mock_load_config,
+            patch("github_ai_agents.monitors.pr.os.getenv") as mock_getenv,
         ):
 
             mock_load_config.return_value = MagicMock()
+            # Make getenv return None when checking for GITHUB_TOKEN in _init_board_manager
+            mock_getenv.return_value = None
             monitor = PRMonitor()
 
             assert monitor.board_manager is None
