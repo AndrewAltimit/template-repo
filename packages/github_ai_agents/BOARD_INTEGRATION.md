@@ -121,6 +121,7 @@ class BoardManager:
     # Work queue management
     async def get_ready_work(self, agent_name: Optional[str] = None) -> List[Issue]
     async def claim_work(self, issue_number: int, agent_name: str, session_id: str) -> bool
+    async def renew_claim(self, issue_number: int, agent_name: str, session_id: str) -> bool
     async def release_work(self, issue_number: int, agent_name: str, reason: str) -> bool
 
     # Issue creation and metadata
@@ -133,8 +134,8 @@ class BoardManager:
     async def mark_discovered_from(self, issue_id: str, parent_id: str) -> bool
     async def get_dependency_graph(self, issue_id: str) -> Graph
 
-    # Background tasks
-    async def cleanup_stale_claims(self) -> None
+    # Background tasks (optional)
+    async def notify_expired_claims(self) -> None  # Informational only
 ```
 
 #### 2. MCP Server (`tools/mcp/github_board/server.py`)
@@ -144,6 +145,7 @@ class BoardManager:
 **MCP Tools**:
 - `query_ready_work`: Get unblocked, ready-to-work issues
 - `claim_work`: Claim an issue for implementation (posts comment with timestamp)
+- `renew_claim`: Renew claim for long-running tasks (extends timeout)
 - `release_work`: Release claim on an issue (completed/blocked/abandoned)
 - `create_tracked_issue`: Create issue with board metadata
 - `add_dependency`: Link issues with blocker/parent relationships
@@ -152,7 +154,6 @@ class BoardManager:
 - `record_discovered_work`: File issue discovered during other work
 - `get_issue_context`: Get full context for an issue (dependencies, history, claims)
 - `search_board_issues`: Search with filters (status, priority, agent)
-- `check_stale_claims`: Manually trigger cleanup of expired claims
 
 **Example Tool Definition**:
 ```python
@@ -325,92 +326,187 @@ CMD ["python", "-m", "tools.mcp.github_board.server", "--mode", "http"]
 
 ## Implementation Plan
 
-### Phase 1: Foundation (Week 1)
+### Phase 1: Foundation & GraphQL Client
 
 **Deliverables**:
 1. GitHub Projects v2 GraphQL client wrapper
 2. Basic CRUD operations for project items
-3. Configuration file parser
-4. Unit tests with mocked GraphQL responses
+3. Error handling with exponential backoff retry
+4. Rate limit monitoring and handling
+5. Configuration file parser
+6. Comprehensive unit tests with mocked GraphQL responses
+7. Structured logging implementation
+8. **[NEW from REFINE.md] Documentation structure setup**
+   - Create `docs/INDEX.md` with navigation
+   - Create `docs/QUICK_START.md`
+   - Create `docs/INSTALLATION.md`
+9. **[NEW from REFINE.md] Test infrastructure**
+   - Reorganize `tests/` into `unit/`, `integration/`, `e2e/`
+   - Create `tests/conftest.py` with shared fixtures
+   - Create `tests/README.md`
 
 **Files**:
 - `packages/github_ai_agents/src/github_ai_agents/board/__init__.py`
 - `packages/github_ai_agents/src/github_ai_agents/board/manager.py`
 - `packages/github_ai_agents/src/github_ai_agents/board/config.py`
 - `packages/github_ai_agents/src/github_ai_agents/board/models.py`
-- `packages/github_ai_agents/tests/test_board_manager.py`
+- `packages/github_ai_agents/src/github_ai_agents/board/errors.py`
+- `packages/github_ai_agents/tests/unit/test_board_manager.py` *(reorganized)*
+- `packages/github_ai_agents/tests/unit/test_error_handling.py` *(reorganized)*
+- `packages/github_ai_agents/tests/conftest.py` *(new)*
+- `packages/github_ai_agents/tests/README.md` *(new)*
+- `packages/github_ai_agents/docs/INDEX.md` *(new)*
+- `packages/github_ai_agents/docs/QUICK_START.md` *(new)*
+- `packages/github_ai_agents/docs/INSTALLATION.md` *(new)*
 
-### Phase 2: Dependency Management (Week 1)
+**Critical Focus**: Robust error handling and retry logic + Test infrastructure setup
+
+### Phase 2: Claim System & Dependencies
 
 **Deliverables**:
-1. Blocker relationship management
-2. Parent-child (epic) relationships
-3. "Discovered from" tracking
-4. Dependency graph queries
-5. Ready work detection algorithm
+1. Comment-based claim/release mechanism
+2. Claim renewal (heartbeat) for long-running tasks
+3. Timestamp-based expiration checking
+4. Blocker relationship management
+5. Parent-child (epic) relationships
+6. "Discovered from" tracking
+7. Dependency graph queries
+8. Ready work detection algorithm
+9. Race condition testing
 
 **Files**:
+- `packages/github_ai_agents/src/github_ai_agents/board/claims.py`
 - `packages/github_ai_agents/src/github_ai_agents/board/dependencies.py`
 - `packages/github_ai_agents/src/github_ai_agents/board/queries.py`
+- `packages/github_ai_agents/tests/test_claims.py`
 - `packages/github_ai_agents/tests/test_dependencies.py`
+- `packages/github_ai_agents/tests/test_race_conditions.py`
 
-### Phase 3: MCP Server (Week 2)
+**Critical Focus**: Claim renewal mechanism and race condition handling
+
+### Phase 3: MCP Server
 
 **Deliverables**:
 1. MCP server implementation
-2. All 8 core tools
+2. All 11 core tools (including renew_claim)
 3. HTTP mode support
 4. Health checks and error handling
-5. Integration tests
+5. Integration tests with test repository
+6. **[NEW from REFINE.md] Examples overhaul**
+   - Create comprehensive `examples/README.md`
+   - Create `examples/basic_usage.py`, `examples/issue_monitor_example.py`, `examples/pr_monitor_example.py`
+   - Move TTS examples to `examples/tts/`
+   - Create `examples/board_integration_example.py`
 
 **Files**:
 - `tools/mcp/github_board/__init__.py`
 - `tools/mcp/github_board/server.py`
 - `tools/mcp/github_board/docs/README.md`
+- `tools/mcp/github_board/docs/CLAIM_MECHANISM.md`
 - `tools/mcp/github_board/scripts/test_server.py`
+- `packages/github_ai_agents/examples/README.md` *(new)*
+- `packages/github_ai_agents/examples/basic_usage.py` *(new)*
+- `packages/github_ai_agents/examples/issue_monitor_example.py` *(new)*
+- `packages/github_ai_agents/examples/pr_monitor_example.py` *(new)*
+- `packages/github_ai_agents/examples/board_integration_example.py` *(new)*
+- `packages/github_ai_agents/examples/tts/*` *(reorganized)*
 
-### Phase 4: Monitor Integration (Week 2)
+### Phase 4: Monitor Integration & GitHub Actions
 
 **Deliverables**:
 1. Issue monitor auto-board addition
 2. PR monitor status updates
 3. Discovered work auto-filing
 4. Agent assignment automation
+5. GitHub Actions workflows
+6. Integration with existing agents (Claude, OpenCode, Gemini, Crush)
 
 **Files**:
 - `packages/github_ai_agents/src/github_ai_agents/monitors/issue.py` (updates)
 - `packages/github_ai_agents/src/github_ai_agents/monitors/pr.py` (updates)
+- `.github/workflows/agent-board-integration.yml`
+- `.github/ai-agents-board.yml`
 - `packages/github_ai_agents/tests/test_monitor_board_integration.py`
 
-### Phase 5: CLI & Docker (Week 3)
+### Phase 5: CLI, Docker & Testing
 
 **Deliverables**:
 1. CLI tool for human interaction
 2. Docker container setup
 3. docker-compose integration
-4. CI/CD pipeline updates
-5. Documentation
+4. End-to-end testing
+5. Performance testing (500+ issues)
+6. CI/CD pipeline updates
 
 **Files**:
 - `packages/github_ai_agents/src/github_ai_agents/board/cli.py`
 - `docker/github-board.Dockerfile`
+- `config/python/requirements-github-board.txt`
 - `docker-compose.yml` (updates)
 - `.github/workflows/test-github-board.yml`
-- `docs/integrations/github-board.md`
+- `packages/github_ai_agents/tests/e2e/test_board_e2e.py` *(reorganized)*
 
-### Phase 6: Documentation & Polish (Week 3)
+### Phase 6: Documentation, Tooling & Polish
 
 **Deliverables**:
-1. Comprehensive README
-2. API documentation
-3. Usage examples for each agent
-4. CLAUDE.md updates with board usage
-5. Migration guide from manual issue tracking
+
+1. **Documentation** (incorporating REFINE.md structure):
+   - `docs/INDEX.md` - Central documentation hub *(completed in Phase 1)*
+   - `docs/QUICK_START.md` - 5-minute guide *(completed in Phase 1)*
+   - `docs/INSTALLATION.md` - Detailed setup *(completed in Phase 1)*
+   - `docs/API_REFERENCE.md` - Complete API reference
+   - `docs/CLI_REFERENCE.md` - Command reference
+   - `docs/board-integration.md` - Board usage guide
+   - `docs/board-troubleshooting.md` - Troubleshooting
+   - `docs/board-performance.md` - Performance tuning
+   - Update `CLAUDE.md` with board usage
+
+2. **Examples** (incorporating REFINE.md):
+   - `examples/README.md` - Comprehensive examples guide *(completed in Phase 3)*
+   - `examples/basic_usage.py` *(completed in Phase 3)*
+   - `examples/issue_monitor_example.py` *(completed in Phase 3)*
+   - `examples/pr_monitor_example.py` *(completed in Phase 3)*
+   - `examples/board_integration_example.py` *(completed in Phase 3)*
+   - `examples/multi_agent_example.py`
+   - `examples/custom_agent_example.py`
+   - `examples/github_actions_example.yml`
+   - `examples/security_example.py`
+   - `examples/tts/` - TTS examples subdirectory *(reorganized in Phase 3)*
+
+3. **Tooling & Scripts**:
+   - `bin/` directory with executable wrappers (`issue-monitor`, `pr-monitor`, `board-cli`)
+   - `bin/README.md`
+   - `CHANGELOG.md` following Keep a Changelog format
+   - `TODO.md` development roadmap
+
+4. **pyproject.toml Updates** (incorporating REFINE.md):
+   - Update `line-length`: 120 → 127 (consistency with other packages)
+   - Update `requires-python`: ">=3.11"
+   - Add optional dependency groups: `[board]`, `[tts]`, `[mcp]`, `[all]`
+   - Add package data for configs and templates
+   - Update `tool.black.target-version` to `py311`
+   - Add `tool.flake8` config with `max-line-length = 127`
 
 **Files**:
-- `packages/github_ai_agents/docs/board-integration.md`
-- `CLAUDE.md` (updates)
-- `packages/github_ai_agents/examples/board_usage.py`
+- `packages/github_ai_agents/docs/API_REFERENCE.md` *(new)*
+- `packages/github_ai_agents/docs/CLI_REFERENCE.md` *(new)*
+- `packages/github_ai_agents/docs/board-integration.md` *(new)*
+- `packages/github_ai_agents/docs/board-troubleshooting.md` *(new)*
+- `packages/github_ai_agents/docs/board-performance.md` *(new)*
+- `packages/github_ai_agents/examples/multi_agent_example.py` *(new)*
+- `packages/github_ai_agents/examples/custom_agent_example.py` *(new)*
+- `packages/github_ai_agents/examples/github_actions_example.yml` *(new)*
+- `packages/github_ai_agents/examples/security_example.py` *(new)*
+- `packages/github_ai_agents/bin/README.md` *(new)*
+- `packages/github_ai_agents/bin/issue-monitor` *(new)*
+- `packages/github_ai_agents/bin/pr-monitor` *(new)*
+- `packages/github_ai_agents/bin/board-cli` *(new)*
+- `packages/github_ai_agents/CHANGELOG.md` *(new)*
+- `packages/github_ai_agents/TODO.md` *(new)*
+- `packages/github_ai_agents/pyproject.toml` *(updates)*
+- `CLAUDE.md` *(updates)*
+
+**Note**: This solution is designed for integration with existing GitHub Projects boards. Agents work with manually-configured boards that humans set up in advance. Documentation will provide guidance on required custom fields and board structure, but no automated project creation is included.
 
 ## Technical Specifications
 
@@ -554,8 +650,10 @@ Claiming this issue for implementation. If this agent goes MIA, this claim expir
 
 ```python
 class BoardManager:
-    CLAIM_TIMEOUT = 1800  # 30 minutes in seconds
+    CLAIM_TIMEOUT = 86400  # 24 hours in seconds (configurable)
+    CLAIM_RENEWAL_INTERVAL = 3600  # 1 hour - how often to renew long-running claims
     CLAIM_COMMENT_PREFIX = "🤖 **[Agent Claim]**"
+    CLAIM_RENEWAL_PREFIX = "🔄 **[Claim Renewal]**"
 
     async def claim_work(self, issue_number: int, agent_name: str, session_id: str) -> bool:
         """
@@ -582,13 +680,42 @@ Agent: `{agent_name}`
 Started: `{datetime.utcnow().isoformat()}Z`
 Session ID: `{session_id}`
 
-Claiming this issue for implementation. If this agent goes MIA, this claim expires after {self.CLAIM_TIMEOUT // 60} minutes.
+Claiming this issue for implementation. If this agent goes MIA, this claim expires after {self.CLAIM_TIMEOUT // 3600} hours.
 """
         await self._post_issue_comment(issue_number, comment_body)
 
         # Update board status
         await self.update_status(issue_number, "In Progress")
         await self.assign_to_agent(issue_number, agent_name)
+
+        return True
+
+    async def renew_claim(self, issue_number: int, agent_name: str, session_id: str) -> bool:
+        """
+        Renew an active claim for long-running tasks.
+
+        This allows agents working on tasks longer than CLAIM_TIMEOUT to periodically
+        update their claim timestamp, preventing it from expiring.
+
+        Returns:
+            True if renewal successful, False if no active claim or wrong agent
+        """
+        # Verify active claim belongs to this agent
+        existing_claim = await self._get_active_claim(issue_number)
+        if not existing_claim or existing_claim.agent != agent_name:
+            logger.warning(f"Cannot renew claim on #{issue_number}: no active claim by {agent_name}")
+            return False
+
+        # Post renewal comment (updates timestamp)
+        comment_body = f"""🔄 **[Claim Renewal]**
+
+Agent: `{agent_name}`
+Renewed: `{datetime.utcnow().isoformat()}Z`
+Session ID: `{session_id}`
+
+Claim renewed - still actively working on this issue.
+"""
+        await self._post_issue_comment(issue_number, comment_body)
 
         return True
 
@@ -614,20 +741,40 @@ Work claim released.
             await self.assign_to_agent(issue_number, None)  # Unassign
 
     async def _get_active_claim(self, issue_number: int) -> Optional[AgentClaim]:
-        """Parse issue comments to find active claim."""
+        """
+        Parse issue comments to find active claim.
+
+        Looks for most recent claim/renewal comment that hasn't been released.
+        Claim renewals update the effective timestamp, extending the timeout.
+        """
         comments = await self._get_issue_comments(issue_number)
 
-        # Find most recent claim comment
+        latest_claim = None
+        latest_timestamp = None
+
+        # Find most recent claim or renewal
         for comment in reversed(comments):
             if self.CLAIM_COMMENT_PREFIX in comment.body:
-                # Parse claim metadata
+                # Initial claim
                 claim = self._parse_claim_comment(comment)
+                latest_claim = claim
+                latest_timestamp = comment.created_at
+                break
+            elif self.CLAIM_RENEWAL_PREFIX in comment.body:
+                # Renewal updates timestamp
+                renewal = self._parse_renewal_comment(comment)
+                if latest_timestamp is None or comment.created_at > latest_timestamp:
+                    latest_timestamp = comment.created_at
 
-                # Check if released
-                if not self._has_subsequent_release(comments, comment.created_at):
-                    return claim
+        # Check if claim was subsequently released
+        if latest_claim and self._has_subsequent_release(comments, latest_timestamp):
+            return None
 
-        return None
+        # Update claim with most recent timestamp (from renewal if exists)
+        if latest_claim and latest_timestamp:
+            latest_claim.timestamp = latest_timestamp
+
+        return latest_claim
 ```
 
 **Updated Ready Work Algorithm**:
@@ -676,16 +823,36 @@ async def get_ready_work(self, agent_name: Optional[str] = None, limit: int = 10
 
 **Claim Expiration Handling**:
 
-```python
-async def cleanup_stale_claims(self):
-    """
-    Background task to clean up expired claims.
+Stale claims do NOT require active cleanup. The claim system is purely timestamp-based:
 
-    Run this periodically (e.g., every 10 minutes) to:
-    1. Find issues with expired claims
-    2. Post expiration comment
-    3. Reset status to "Todo"
-    4. Unassign agent
+1. **Claims naturally expire**: After 24 hours, `get_ready_work()` will ignore the claim
+2. **Audit trail preserved**: All claim/renewal/release comments remain as permanent audit log
+3. **No comment deletion**: Comments are never deleted, maintaining full history
+4. **Human visibility**: Anyone can see claim history in the issue comments
+
+```python
+async def _is_claim_expired(self, claim: AgentClaim) -> bool:
+    """
+    Check if a claim has expired based on timestamp.
+
+    No cleanup needed - expired claims are simply ignored by get_ready_work().
+    All claim comments remain as audit trail.
+    """
+    claim_age = datetime.utcnow() - claim.timestamp
+    return claim_age.total_seconds() >= self.CLAIM_TIMEOUT
+```
+
+**Optional Manual Expiration Notification**:
+
+For human visibility, a scheduled task can optionally post expiration notices without modifying state:
+
+```python
+async def notify_expired_claims(self):
+    """
+    Optional: Post notification comments for expired claims (no state changes).
+
+    This is purely informational - the claim is already expired based on timestamp.
+    Run this as a low-priority scheduled task (e.g., once per day).
     """
     all_issues = await self._query_issues(status=["In Progress"])
 
@@ -694,23 +861,19 @@ async def cleanup_stale_claims(self):
         if not claim:
             continue
 
-        claim_age = datetime.utcnow() - claim.timestamp
-        if claim_age.total_seconds() >= self.CLAIM_TIMEOUT:
-            logger.warning(f"Expiring stale claim on issue #{issue.number}")
+        if self._is_claim_expired(claim):
+            # Check if we already posted expiration notice
+            if not await self._has_expiration_notice(issue.number, claim):
+                comment = f"""⚠️ **[Claim Expired - Informational]**
 
-            # Post expiration notice
-            comment = f"""⚠️ **[Claim Expired]**
-
-Agent `{claim.agent}` claim expired after {self.CLAIM_TIMEOUT // 60} minutes.
-Releasing issue back to work queue.
+Agent `{claim.agent}` claim expired after {self.CLAIM_TIMEOUT // 3600} hours.
+This issue is now available for other agents to claim.
 
 Session ID: `{claim.session_id}`
-"""
-            await self._post_issue_comment(issue.number, comment)
 
-            # Reset issue
-            await self.update_status(issue.number, "Todo")
-            await self.assign_to_agent(issue.number, None)
+Note: This is informational only. The claim naturally expired based on timestamp.
+"""
+                await self._post_issue_comment(issue.number, comment)
 ```
 
 **Benefits**:
@@ -728,25 +891,110 @@ Session ID: `{claim.session_id}`
 # .github/ai-agents-board.yml
 work_claims:
   # How long before a claim expires (seconds)
-  timeout: 1800
+  timeout: 86400  # 24 hours
 
-  # Run cleanup task periodically
-  cleanup_interval: 600  # 10 minutes
+  # How often agents should renew claims for long-running tasks (seconds)
+  renewal_interval: 3600  # 1 hour
 
-  # Allow stealing expired claims
-  allow_steal: true
+  # Post informational expiration notices (optional)
+  notify_expired: true
+  notification_interval: 86400  # Once per day
 
   # Require comment claim for all work
   enforce_claims: true
 ```
 
+### Error Handling & Resilience
+
+**Retry Strategy**:
+
+```python
+class BoardManager:
+    MAX_RETRIES = 3
+    INITIAL_BACKOFF = 1.0  # seconds
+    MAX_BACKOFF = 60.0
+
+    async def _execute_with_retry(self, operation: Callable, *args, **kwargs):
+        """
+        Execute GraphQL operation with exponential backoff retry.
+
+        Handles transient failures gracefully while failing fast on permanent errors.
+        """
+        backoff = self.INITIAL_BACKOFF
+
+        for attempt in range(self.MAX_RETRIES):
+            try:
+                return await operation(*args, **kwargs)
+            except GraphQLError as e:
+                # Check HTTP status code
+                if hasattr(e, 'status_code'):
+                    if 400 <= e.status_code < 500:
+                        # Client errors (4xx) - don't retry
+                        if e.status_code == 401:
+                            logger.error("Authentication failed - check GITHUB_TOKEN")
+                        elif e.status_code == 403:
+                            logger.error("Rate limit exceeded or forbidden - check permissions")
+                        elif e.status_code == 404:
+                            logger.error("Resource not found - check project/issue exists")
+                        raise  # Don't retry client errors
+
+                    if e.status_code >= 500:
+                        # Server errors (5xx) - retry with backoff
+                        if attempt < self.MAX_RETRIES - 1:
+                            logger.warning(f"Server error {e.status_code}, retrying in {backoff}s...")
+                            await asyncio.sleep(backoff)
+                            backoff = min(backoff * 2, self.MAX_BACKOFF)
+                            continue
+                        else:
+                            logger.error(f"Max retries exceeded for server error: {e}")
+                            raise
+
+                # Network errors - retry with backoff
+                if attempt < self.MAX_RETRIES - 1:
+                    logger.warning(f"Network error, retrying in {backoff}s: {e}")
+                    await asyncio.sleep(backoff)
+                    backoff = min(backoff * 2, self.MAX_BACKOFF)
+                else:
+                    logger.error(f"Max retries exceeded: {e}")
+                    raise
+```
+
+**Rate Limit Handling**:
+
+```python
+async def _check_rate_limit(self):
+    """
+    Proactively check rate limit before expensive operations.
+
+    GitHub GraphQL has 5000 points/hour limit. Monitor remaining quota.
+    """
+    rate_limit = await self._query_rate_limit()
+
+    if rate_limit.remaining < 100:  # Low threshold
+        reset_time = rate_limit.reset_at
+        wait_seconds = (reset_time - datetime.utcnow()).total_seconds()
+
+        if wait_seconds > 0:
+            logger.warning(f"Rate limit low ({rate_limit.remaining}), waiting {wait_seconds}s")
+            await asyncio.sleep(wait_seconds)
+```
+
+**Graceful Degradation**:
+
+When GitHub API is unavailable:
+1. **Log detailed error context**: Issue URL, operation attempted, agent name
+2. **Fail gracefully**: Return empty work queue rather than crashing
+3. **Human notification**: Post error to dedicated monitoring issue
+4. **Fallback mode**: Continue with cached data if available
+
 ### Performance Considerations
 
 1. **Caching**: Cache project structure and field IDs (1 hour TTL)
 2. **Batch Operations**: Update multiple issues in single GraphQL call
-3. **Rate Limiting**: Respect GitHub API limits (5000/hour for GraphQL)
-4. **Pagination**: Handle projects with >100 issues
+3. **Rate Limiting**: Respect GitHub API limits (5000 points/hour for GraphQL)
+4. **Pagination**: Handle projects with >100 issues using cursor-based pagination
 5. **Concurrent Agents**: Use optimistic locking with issue assignments
+6. **Throttling Mitigation**: Minimize claim renewal frequency (default 1 hour)
 
 ### Security
 
@@ -754,6 +1002,103 @@ work_claims:
 2. **Agent Authorization**: Reuse existing `SecurityManager` from package
 3. **Audit Trail**: GitHub Projects tracks all changes with timestamps
 4. **Secrets**: Store token in environment variables, never in config
+
+### GitHub Actions Integration
+
+**Authentication**: Use GitHub's built-in `GITHUB_TOKEN` secret (automatically available in workflows)
+
+```yaml
+# .github/workflows/agent-board-integration.yml
+name: AI Agent Board Integration
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Every hour
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  process-ready-work:
+    runs-on: self-hosted
+
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -e packages/github_ai_agents
+
+      - name: Query ready work and process
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python -m github_ai_agents.board.cli ready --limit 5
+```
+
+**Token Permissions**:
+
+The default `GITHUB_TOKEN` provides:
+- Read access to repository contents
+- Write access to issues and project boards
+- Automatic authentication (no manual PAT needed)
+- Scoped to the repository running the workflow
+
+**Multi-Repository Support**:
+
+For org-wide project boards, use a PAT stored as a repository secret:
+
+```yaml
+env:
+  GITHUB_TOKEN: ${{ secrets.ORG_BOARD_TOKEN }}  # Fine-grained PAT
+```
+
+### Debugging & Observability
+
+**Structured Logging**:
+
+```python
+class BoardManager:
+    def __init__(self):
+        self.logger = logging.getLogger('github_ai_agents.board')
+
+    async def claim_work(self, issue_number: int, agent_name: str, session_id: str):
+        self.logger.info(
+            "Claiming work",
+            extra={
+                "issue_number": issue_number,
+                "issue_url": f"https://github.com/{self.repo}/issues/{issue_number}",
+                "agent": agent_name,
+                "session_id": session_id,
+                "action": "claim_work"
+            }
+        )
+```
+
+**Traceability Requirements**:
+
+Every operation MUST log:
+1. **Issue URL**: Direct link for humans to investigate
+2. **Agent name**: Which agent performed the action
+3. **Session ID**: Track multi-session workflows
+4. **Timestamp**: ISO 8601 format with timezone
+5. **Operation result**: Success/failure with error details
+
+**Monitoring Dashboard** (future enhancement):
+
+Track metrics like:
+- Claim duration distribution
+- Work queue depth over time
+- Agent utilization rates
+- Expired claim frequency
 
 ## Package Maintenance Tasks
 
@@ -816,17 +1161,35 @@ Based on package review, the following require updates:
 - Mock GitHub API responses
 - Achieve >80% coverage target
 
-### Maintenance Checklist
+### Maintenance Checklist (Integrated with REFINE.md)
 
+**Tier 1 (During Board Integration)**:
+- [ ] Create documentation index (INDEX.md) - Phase 1
+- [ ] Create quick start guide (QUICK_START.md) - Phase 1
+- [ ] Create installation guide (INSTALLATION.md) - Phase 1
+- [ ] Reorganize tests into unit/integration/e2e - Phase 1
+- [ ] Create tests/conftest.py with fixtures - Phase 1
+- [ ] Create tests/README.md - Phase 1
+- [ ] Overhaul examples/ directory - Phase 3
+- [ ] Create comprehensive examples/README.md - Phase 3
+- [ ] Move TTS examples to examples/tts/ - Phase 3
+- [ ] Create CHANGELOG.md - Phase 6
+
+**Tier 2 (During Board Integration)**:
+- [ ] Create API reference (API_REFERENCE.md) - Phase 6
+- [ ] Create CLI reference (CLI_REFERENCE.md) - Phase 6
+- [ ] Update pyproject.toml (line length, Python 3.11+, dep groups) - Phase 6
+- [ ] Create bin/ directory with executables - Phase 6
+- [ ] Create bin/README.md - Phase 6
+- [ ] Create TODO.md development roadmap - Phase 6
+
+**Code Quality (Ongoing)**:
 - [ ] Update Python version requirements (3.11+)
 - [ ] Audit and update dependencies
 - [ ] Convert remaining sync I/O to async
 - [ ] Add complete type annotations
 - [ ] Write missing docstrings
-- [ ] Add usage examples
 - [ ] Improve test coverage to >80%
-- [ ] Update all documentation
-- [ ] Add CHANGELOG.md
 - [ ] Version bump to 0.2.0
 
 ## Testing Strategy
@@ -870,6 +1233,37 @@ async def test_claim_expiration():
     await asyncio.sleep(2)
     success = await board.claim_work(45, "opencode", "session456")
     assert success is True  # Claim expired, stolen successfully
+
+async def test_claim_renewal():
+    """Test claim renewal extends timeout."""
+    board = BoardManager()
+    board.CLAIM_TIMEOUT = 2  # 2 seconds for testing
+
+    # Initial claim
+    await board.claim_work(45, "claude", "session123")
+    await asyncio.sleep(1)
+
+    # Renew claim before expiration
+    success = await board.renew_claim(45, "claude", "session123")
+    assert success is True
+
+    # Wait another 1.5 seconds (total 2.5s from initial claim)
+    await asyncio.sleep(1.5)
+
+    # Without renewal, claim would be expired (>2s)
+    # But renewal reset the timer, so it's still valid
+    success = await board.claim_work(45, "opencode", "session456")
+    assert success is False  # Still claimed by claude (renewal worked)
+
+async def test_claim_renewal_wrong_agent():
+    """Test that only the owning agent can renew a claim."""
+    board = BoardManager()
+
+    await board.claim_work(45, "claude", "session123")
+
+    # Different agent tries to renew
+    success = await board.renew_claim(45, "opencode", "session456")
+    assert success is False  # Wrong agent, renewal rejected
 ```
 
 ### Integration Tests
@@ -957,23 +1351,35 @@ async def test_multi_agent_coordination():
 
 | Risk | Impact | Likelihood | Mitigation |
 |------|--------|------------|------------|
-| GitHub API rate limits | High | Medium | Implement caching, batch operations |
-| GraphQL schema changes | Medium | Low | Version lock schema, monitor GitHub changelogs |
-| Large project performance | Medium | Medium | Implement pagination, lazy loading |
-| Concurrent agent conflicts | High | Medium | Optimistic locking, status check before assign |
+| GitHub API rate limits | High | Medium | Implement caching, batch operations, proactive rate limit checking |
+| API throttling (abuse detection) | High | Medium | Minimize comment frequency, use 1-hour renewal interval (not shorter) |
+| GraphQL schema changes | Medium | Low | Version lock schema, monitor GitHub changelogs, comprehensive integration tests |
+| Large project performance | Medium | Medium | Implement cursor-based pagination, lazy loading, field caching |
+| Concurrent agent conflicts | High | Medium | Comment-based mutex with 24-hour timeout, explicit claim/release |
+| Debugging complexity | High | High | Structured logging with issue URLs, session IDs, comprehensive audit trail |
+| API behavior changes | Low | Low | Extensive integration tests, monitor GitHub API announcements |
 
 ### Organizational Risks
 
 | Risk | Impact | Likelihood | Mitigation |
 |------|--------|------------|------------|
-| Manual board corruption | Medium | Low | Document agent-managed fields, add validation |
-| GitHub service outages | High | Low | Graceful degradation, local cache fallback |
-| Security token compromise | High | Low | Use fine-grained PATs, rotate regularly |
+| Manual board corruption | Medium | Low | Document agent-managed fields, human/agent collaboration is intentional |
+| GitHub service outages | High | Low | Graceful degradation, cached data fallback, retry with exponential backoff |
+| Security token compromise | High | Low | Use fine-grained PATs with minimum scopes, rotate regularly |
+| Stuck issues (permanent claims) | Medium | Medium | 24-hour natural expiration, optional expiration notifications |
+
+### Implementation Risks
+
+| Risk | Impact | Likelihood | Mitigation |
+|------|--------|------------|------------|
+| Claim mechanism bugs | High | Medium | Extensive race condition testing, claim renewal testing, audit trail verification |
+| Comment parsing errors | Medium | Low | Strict comment format validation, backward compatibility for format changes |
+| Network partition during claim | Medium | Low | Timestamp-based expiration (no state cleanup required), duplicate work is acceptable |
 
 ## Open Questions
 
-1. **Board Creation**: Should package auto-create project board, or require manual setup?
-   - **Recommendation**: Manual setup with helper script (safer)
+1. **Board Structure**: What custom fields are required on GitHub Project boards?
+   - **Recommendation**: Document required fields (Status, Priority, Agent, etc.) in setup guide
 
 2. **Multiple Projects**: Support multiple boards per repository?
    - **Recommendation**: Single board initially, multi-board in v0.3.0
@@ -1025,8 +1431,7 @@ tools/mcp/github_board/
 │   ├── EXAMPLES.md
 │   └── API.md
 └── scripts/
-    ├── test_server.py
-    └── setup_project.py         # Helper to create GitHub Project
+    └── test_server.py
 
 docker/
 ├── github-board.Dockerfile      # [NEW] Container for MCP server
@@ -1132,26 +1537,49 @@ await board.release_work(45, agent="claude", reason="completed")
 
 # ---
 
-# Session 4: Stale claim scenario (agent crash)
+# Session 4: Long-running task with claim renewal
 issues = await board.query_ready_work(agent="crush")
 # Returns: [Issue(#50: "Refactor database layer", status="Todo", blocks=[])]
 
 session_id = uuid.uuid4().hex
 await board.claim_work(50, agent="crush", session_id=session_id)
 
-# Crush crashes 5 minutes in, never releases claim
+# Agent is working on complex refactor - will take 3 hours
+# Every hour, renew the claim to prevent expiration
+for hour in range(3):
+    # Work for an hour
+    await asyncio.sleep(3600)
+
+    # Renew claim before it expires
+    await board.renew_claim(50, agent="crush", session_id=session_id)
+    # Posts: "🔄 [Claim Renewal] Agent: crush, Renewed: 2025-10-25T16:30:00Z"
+
+# Complete the work
+await board.release_work(50, agent="crush", reason="completed")
+
+# ---
+
+# Session 5: Stale claim scenario (agent crash - no renewal)
+issues = await board.query_ready_work(agent="opencode")
+# Returns: [Issue(#55: "Add new feature", status="Todo", blocks=[])]
+
+session_id = uuid.uuid4().hex
+await board.claim_work(55, agent="opencode", session_id=session_id)
+
+# OpenCode crashes 2 hours in, never releases or renews claim
 # ...agent gone...
 
-# 30 minutes later, cleanup task runs
-await board.cleanup_stale_claims()
-# Finds issue #50 with expired claim (>30 min old)
-# Posts: "⚠️ [Claim Expired] Agent crush claim expired after 30 minutes"
-# Resets status to "Todo", unassigns agent
+# 24 hours later, claim naturally expires based on timestamp
+# No cleanup needed - expiration is purely timestamp-based
 
 # Now another agent can pick it up
-issues = await board.query_ready_work(agent="opencode")
-# Returns: [Issue(#50: "Refactor database layer", status="Todo", blocks=[])]
-# Crush's stale claim has been cleared!
+issues = await board.query_ready_work(agent="claude")
+# Returns: [Issue(#55: "Add new feature", status="Todo", blocks=[])]
+# OpenCode's stale claim (>24h old) is automatically ignored!
+
+# Claude claims the work (stealing expired claim)
+await board.claim_work(55, agent="claude", session_id=uuid.uuid4().hex)
+# Returns: True - expired claim can be stolen
 ```
 
 **Key Takeaways**:
@@ -1159,9 +1587,11 @@ issues = await board.query_ready_work(agent="opencode")
 1. **Claim Before Work**: Agents MUST claim before starting work
 2. **Atomic Claiming**: First comment wins in race conditions
 3. **Explicit Release**: Agents release claims with reason (completed/blocked/abandoned)
-4. **Timeout Protection**: Crashed agents don't block work indefinitely
-5. **Visible Audit**: All claim/release events visible in issue comments
-6. **Context Preservation**: Claim history helps understand work evolution
+4. **Long-Running Tasks**: Agents renew claims hourly for tasks taking >1 hour
+5. **Timeout Protection**: 24-hour natural expiration prevents permanent locks
+6. **No Cleanup Required**: Expired claims are simply ignored (timestamp-based)
+7. **Visible Audit**: All claim/release/renewal events visible in issue comments
+8. **Context Preservation**: Claim history helps understand work evolution
 
 ## Appendix C: Comparison with Beads
 
@@ -1173,7 +1603,8 @@ issues = await board.query_ready_work(agent="opencode")
 | **Multi-Agent** | Via git merge | Native (centralized) |
 | **Concurrency** | Merge conflict resolution | Comment-based mutex locks |
 | **Work Claiming** | Implicit (via status) | Explicit (timestamped comments) |
-| **Stale Lock Handling** | Manual intervention | Auto-expiration (30 min) |
+| **Claim Renewal** | Not applicable | Hourly renewals for long tasks |
+| **Stale Lock Handling** | Manual intervention | Auto-expiration (24 hours, timestamp-based) |
 | **Dependencies** | 4 types (blocks, parent, discovered, related) | Same 4 types + custom fields |
 | **Query Language** | CLI flags | GraphQL + Python API |
 | **UI** | CLI only | GitHub web UI + CLI |
@@ -1189,6 +1620,9 @@ issues = await board.query_ready_work(agent="opencode")
 2. Built-in web UI for human oversight
 3. Cross-repository support (via GitHub org)
 4. No local database to corrupt or lose
+5. Claim renewal mechanism for long-running tasks
+6. No cleanup required - timestamp-based expiration
+7. Full audit trail in GitHub issue comments
 
 **Key Disadvantages**:
 1. GitHub-only (not portable to GitLab, etc.)
@@ -1205,9 +1639,103 @@ issues = await board.query_ready_work(agent="opencode")
 - **Template Repo MCP Docs**: `docs/mcp/README.md`
 - **AI Agents Security**: `packages/github_ai_agents/docs/security.md`
 
+## Appendix E: Integration with Package Refinement
+
+This PRD incorporates critical improvements from `REFINE.md` (Package Refinement Plan v1.0) to ensure the `github_ai_agents` package reaches the quality standards of `sleeper_detection` and `economic_agents`.
+
+**Integrated Refinements**:
+- **Phase 1**: Documentation structure (INDEX.md, QUICK_START.md, INSTALLATION.md) + Test reorganization (unit/, integration/, e2e/) - Tier 1
+- **Phase 3**: Examples overhaul with comprehensive README and usage examples - Tier 1
+- **Phase 6**: Complete documentation (API/CLI reference), tooling (bin/ directory), and pyproject.toml updates - Tier 1 + Tier 2
+
+**Remaining from REFINE.md** (to be completed post-v0.2.0):
+- Tier 3 items: DEPLOYMENT.md, TROUBLESHOOTING.md, INTEGRATION_GUIDE.md
+- Advanced tooling: scripts/ directory, Sphinx documentation, package-level docker-compose
+- Parametrized test examples and comprehensive test fixtures
+
+**Benefits of Integration**:
+1. **Documentation Infrastructure Ready**: INDEX.md, QUICK_START.md, and INSTALLATION.md in place before board features launch
+2. **Test Foundation Solid**: Reorganized test structure supports board integration testing from Phase 1
+3. **Examples Showcase Features**: Comprehensive examples demonstrate both existing and new board functionality
+4. **Quality Consistency**: Package reaches parity with sleeper_detection and economic_agents by v0.2.0
+
+See `packages/github_ai_agents/REFINE.md` for the complete refinement plan and detailed specifications.
+
 ---
 
-**Document Version**: 1.0
+**Document Version**: 1.2
 **Last Updated**: 2025-10-25
-**Status**: Draft for Review
-**Next Steps**: Review → Implementation Phase 1 → Iteration
+**Status**: Ready for Implementation
+**Next Steps**: Implementation Phase 1 → Testing → Iteration
+
+## Revision History
+
+### Version 1.2 (2025-10-25) - Integration with REFINE.md
+
+Integrated critical improvements from `REFINE.md` (Package Refinement Plan) to ensure quality parity with other packages:
+
+**Phase 1 Enhancements**:
+- Added documentation structure setup (INDEX.md, QUICK_START.md, INSTALLATION.md)
+- Added test infrastructure reorganization (unit/, integration/, e2e/)
+- Updated file paths to reflect new test structure
+
+**Phase 3 Enhancements**:
+- Added examples overhaul deliverables
+- Comprehensive examples/README.md creation
+- TTS examples reorganization to examples/tts/
+
+**Phase 6 Expansion**:
+- Complete documentation set (API_REFERENCE.md, CLI_REFERENCE.md)
+- Tooling additions (bin/ directory with executables)
+- pyproject.toml updates (line length 127, Python 3.11+, optional dep groups)
+- CHANGELOG.md and TODO.md creation
+
+**New Appendix E**:
+- Documents integration strategy with REFINE.md
+- Lists remaining Tier 3 items for post-v0.2.0
+- Explains benefits of integrated approach
+
+**Maintenance Checklist Update**:
+- Reorganized into Tier 1, Tier 2, and Code Quality sections
+- Mapped items to specific implementation phases
+- Integrated with REFINE.md priorities
+
+### Version 1.1 (2025-10-25) - Post-Gemini Review
+
+Based on comprehensive review by Gemini AI, the following critical improvements were added:
+
+**Claim Mechanism Enhancements**:
+- Added **claim renewal mechanism** for long-running tasks (hourly heartbeat)
+- Changed timeout from 30 minutes to **24 hours** (configurable)
+- Clarified that **no cleanup is required** - expiration is purely timestamp-based
+- All claim/renewal/release comments remain as permanent audit trail
+
+**Error Handling & Resilience**:
+- Added **exponential backoff retry strategy** with 4xx/5xx handling
+- Added **proactive rate limit checking** to prevent quota exhaustion
+- Added **graceful degradation** patterns for GitHub API unavailability
+- Specified HTTP status code handling (401, 403, 404, 5xx)
+
+**GitHub Actions Integration**:
+- Documented use of **built-in GITHUB_TOKEN** secret (no manual PAT needed)
+- Added example workflow with proper permissions
+- Clarified multi-repository support with custom tokens
+
+**Debugging & Observability**:
+- Added **structured logging requirements** with issue URLs and session IDs
+- Specified traceability requirements for all operations
+- Added monitoring dashboard as future enhancement
+
+**Risk Analysis**:
+- Added **API throttling (abuse detection)** risk and mitigation
+- Added **debugging complexity** risk with structured logging mitigation
+- Added **implementation risks** section (claim bugs, parsing errors)
+
+**Project Scope Clarification**:
+- Removed project initialization script (works with existing boards only)
+- Removed time estimates from implementation plan (phase-based only)
+- Clarified human/agent collaboration is intentional (not spam)
+
+### Version 1.0 (2025-10-25) - Initial Draft
+
+Initial PRD based on Steve Yegge's Beads concept, adapted for GitHub Projects v2 integration.
