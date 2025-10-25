@@ -52,11 +52,17 @@ class PRMonitor(BaseMonitor):
         return "number,title,body,author,createdAt,updatedAt,reviews,comments"
 
     def _extract_issue_numbers(self, pr_body: str) -> List[int]:
-        """Extract issue numbers from PR body (e.g., 'Closes #123', 'Fixes #456')."""
+        """Extract issue numbers from PR body.
+
+        Matches all GitHub closing keyword variants:
+        - close, closes, closed, closing
+        - fix, fixes, fixed, fixing
+        - resolve, resolves, resolved, resolving
+        """
         import re
 
-        # Match patterns like "Closes #123", "Fixes #456", "Resolves #789"
-        pattern = r"(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)"
+        # Match all verb forms + issue number
+        pattern = r"\b(?:clos(?:e|es|ed|ing)|fix(?:|es|ed|ing)|resolv(?:e|es|ed|ing))\s+#(\d+)"
         matches = re.findall(pattern, pr_body, re.IGNORECASE)
         return [int(num) for num in matches]
 

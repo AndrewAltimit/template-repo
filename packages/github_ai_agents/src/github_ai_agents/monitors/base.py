@@ -37,7 +37,14 @@ class BaseMonitor(ABC):
         if not self.repo:
             raise RuntimeError("GITHUB_REPOSITORY environment variable must be set")
 
-        self.token = get_github_token()
+        # Make token optional - gracefully handle absence
+        self.token: Optional[str]
+        try:
+            self.token = get_github_token()
+        except RuntimeError:
+            self.token = None
+            logger.warning("GitHub token not available - GitHub API features will be disabled")
+
         self.config = AgentConfig()
         self.security_manager = SecurityManager(agent_config=self.config)
         self.agent_tag = "[AI Agent]"
@@ -61,6 +68,17 @@ class BaseMonitor(ABC):
 
         # Initialize TTS integration
         self.tts_integration = TTSIntegration(config=self.config.config)
+
+    def _require_token(self) -> None:
+        """Ensure token is available for operations that need it.
+
+        Raises:
+            RuntimeError: If GitHub token is not available
+        """
+        if not self.token:
+            raise RuntimeError(
+                "GitHub token required for this operation. " "Set GITHUB_TOKEN or GH_TOKEN environment variable."
+            )
 
     def _initialize_agents(self) -> Dict[str, Any]:
         """Initialize available AI agents based on configuration."""
@@ -95,6 +113,7 @@ class BaseMonitor(ABC):
         Returns:
             List of recent items
         """
+        self._require_token()
         json_fields = self._get_json_fields(item_type)
 
         output = run_gh_command(
@@ -152,6 +171,7 @@ class BaseMonitor(ABC):
         Returns:
             True if agent has commented
         """
+        self._require_token()
         output = run_gh_command(
             [
                 item_type,
@@ -183,6 +203,7 @@ class BaseMonitor(ABC):
             comment: Comment text
             item_type: Type of item ('issue' or 'pr')
         """
+        self._require_token()
         run_gh_command(
             [
                 item_type,
