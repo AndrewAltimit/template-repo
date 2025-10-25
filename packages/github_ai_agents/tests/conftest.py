@@ -207,3 +207,99 @@ Please fix the following issues:
 
 [Approved][Claude]
 """
+
+
+# Board Integration Fixtures
+@pytest.fixture
+def mock_board_config():
+    """Mock board configuration."""
+    from github_ai_agents.board.models import BoardConfig
+
+    return BoardConfig(
+        project_number=1,
+        owner="testuser",
+        repository="testuser/test-repo",
+        claim_timeout=86400,  # 24 hours
+        claim_renewal_interval=3600,  # 1 hour
+        enabled_agents=["claude", "opencode", "gemini"],
+        auto_discover=True,
+        exclude_labels=["wontfix", "duplicate"],
+    )
+
+
+@pytest.fixture
+def mock_github_token(monkeypatch):
+    """Mock GitHub token in environment."""
+    monkeypatch.setenv("GITHUB_TOKEN", "test-token-12345")
+    return "test-token-12345"
+
+
+@pytest.fixture
+def mock_board_issue():
+    """Mock issue with board metadata."""
+    from datetime import datetime
+
+    from github_ai_agents.board.models import Issue, IssuePriority, IssueStatus
+
+    return Issue(
+        number=42,
+        title="Implement authentication",
+        body="Add user authentication system",
+        state="open",
+        status=IssueStatus.TODO,
+        priority=IssuePriority.HIGH,
+        agent=None,
+        blocked_by=[],
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
+        url="https://github.com/testuser/test-repo/issues/42",
+        labels=["feature", "backend"],
+    )
+
+
+@pytest.fixture
+def mock_agent_claim():
+    """Mock agent claim."""
+    from datetime import datetime
+
+    from github_ai_agents.board.models import AgentClaim
+
+    return AgentClaim(
+        issue_number=42,
+        agent="claude",
+        session_id="session-123",
+        timestamp=datetime.utcnow(),
+        released=False,
+    )
+
+
+@pytest.fixture
+def mock_graphql_response():
+    """Mock successful GraphQL response."""
+    from github_ai_agents.board.models import GraphQLResponse
+
+    return GraphQLResponse(
+        data={
+            "user": {
+                "projectV2": {
+                    "id": "PVT_kwDOABCDEF",
+                    "title": "Test Project",
+                }
+            }
+        },
+        errors=[],
+        status_code=200,
+    )
+
+
+@pytest.fixture
+def mock_board_manager(mock_board_config, mock_github_token):
+    """Mock BoardManager instance."""
+    from unittest.mock import AsyncMock
+
+    from github_ai_agents.board.manager import BoardManager
+
+    manager = BoardManager(config=mock_board_config)
+    manager.session = AsyncMock()
+    manager.project_id = "PVT_kwDOABCDEF"
+    return manager
