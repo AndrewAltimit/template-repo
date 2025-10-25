@@ -37,7 +37,7 @@ class TestIssueMonitor:
         with pytest.raises(RuntimeError, match="GITHUB_REPOSITORY environment variable must be set"):
             IssueMonitor()
 
-    @patch("github_ai_agents.monitors.issue.run_gh_command")
+    @patch("github_ai_agents.utils.github.run_gh_command")
     def test_get_open_issues(self, mock_gh_command, issue_monitor):
         """Test getting open issues."""
         mock_gh_command.return_value = json.dumps(
@@ -56,7 +56,7 @@ class TestIssueMonitor:
         assert len(issues) == 1
         assert issues[0]["number"] == 456
 
-    @patch("github_ai_agents.monitors.issue.run_gh_command")
+    @patch("github_ai_agents.utils.github.run_gh_command")
     def test_process_issue_with_trigger(self, mock_gh_command, issue_monitor):
         """Test processing issue with valid trigger."""
         issue = {
@@ -94,7 +94,7 @@ class TestIssueMonitor:
         # Verify starting work comment was posted
         assert mock_gh_command.call_count == 2
 
-    @patch("github_ai_agents.monitors.issue.run_gh_command")
+    @patch("github_ai_agents.utils.github.run_gh_command")
     def test_handle_close_action(self, mock_gh_command, issue_monitor):
         """Test handling close action."""
         issue_monitor.security_manager.check_trigger_comment.return_value = (
@@ -121,7 +121,7 @@ class TestIssueMonitor:
         calls = mock_gh_command.call_args_list
         assert any("close" in str(call) for call in calls)
 
-    @patch("github_ai_agents.monitors.issue.run_gh_command")
+    @patch("github_ai_agents.utils.github.run_gh_command")
     def test_handle_summarize_action(self, mock_gh_command, issue_monitor):
         """Test handling summarize action."""
         issue_monitor.security_manager.check_trigger_comment.return_value = (
@@ -155,7 +155,7 @@ class TestIssueMonitor:
         assert "Issue Summary" in summary_text
         assert "bug, enhancement" in summary_text
 
-    @patch("github_ai_agents.monitors.issue.run_gh_command")
+    @patch("github_ai_agents.utils.github.run_gh_command")
     def test_security_rejection(self, mock_gh_command, issue_monitor):
         """Test security rejection flow."""
         issue_monitor.security_manager.check_trigger_comment.return_value = (
@@ -178,7 +178,7 @@ class TestIssueMonitor:
         security_comment = mock_gh_command.call_args[0][0][-1]
         assert "Security Notice" in security_comment
 
-    @patch("github_ai_agents.monitors.issue.run_gh_command")
+    @patch("github_ai_agents.utils.github.run_gh_command")
     def test_containerized_agent_error(self, mock_gh_command, issue_monitor):
         """Test error when requesting containerized agent on host."""
         issue_monitor.security_manager.check_trigger_comment.return_value = (
