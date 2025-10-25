@@ -2,10 +2,14 @@
 
 import asyncio
 import logging
+import os
 import sys
 import uuid
-from typing import Dict
+from pathlib import Path
+from typing import Dict, Optional
 
+from ..board.config import BoardConfig
+from ..board.manager import BoardManager
 from ..code_parser import CodeParser
 from ..utils import run_gh_command, run_gh_command_async, run_git_command_async
 from .base import BaseMonitor
@@ -19,6 +23,27 @@ class IssueMonitor(BaseMonitor):
     def __init__(self):
         """Initialize issue monitor."""
         super().__init__()
+        self.board_manager: Optional[BoardManager] = None
+        self._board_config: Optional[BoardConfig] = None
+        self._init_board_manager()
+
+    def _init_board_manager(self):
+        """Initialize board manager if configuration exists."""
+        try:
+            config_path = Path(".github/ai-agents-board.yml")
+            if config_path.exists():
+                self._board_config = BoardConfig.from_file(str(config_path))
+                github_token = os.getenv("GITHUB_TOKEN")
+                if github_token:
+                    self.board_manager = BoardManager(config=self._board_config, github_token=github_token)
+                    logger.info("Board manager initialized successfully")
+                else:
+                    logger.warning("GITHUB_TOKEN not set - board integration disabled")
+            else:
+                logger.info("Board config not found - board integration disabled")
+        except Exception as e:
+            logger.warning(f"Failed to initialize board manager: {e}")
+            self.board_manager = None
 
     def _get_json_fields(self, item_type: str) -> str:
         """Get JSON fields for issues."""
@@ -122,15 +147,34 @@ class IssueMonitor(BaseMonitor):
         # Generate branch name
         branch_name = f"fix-issue-{issue_number}-{agent_name.lower()}-{str(uuid.uuid4())[:6]}"
 
+        # Board integration: Claim work if board manager is available
+        session_id = str(uuid.uuid4())
+        if self.board_manager:
+            try:
+                await self.board_manager.initialize()
+                claim_success = await self.board_manager.claim_work(issue_number, agent_name.lower(), session_id)
+                if claim_success:
+                    logger.info(f"Claimed issue #{issue_number} on board for {agent_name}")
+                else:
+                    logger.warning(f"Failed to claim issue #{issue_number} on board (may already be claimed)")
+            except Exception as e:
+                logger.warning(f"Board claim failed for issue #{issue_number}: {e}")
+
         # Post starting work comment
         self._post_starting_work_comment(issue_number, branch_name, agent_name)
 
         # Run implementation directly (no asyncio.run needed since we're already async)
         try:
-            await self._implement_issue(issue, branch_name, agent)
+            await self._implement_issue(issue, branch_name, agent, session_id)
         except Exception as e:
             logger.error(f"Failed to implement issue #{issue_number}: {e}")
             self._post_error_comment(issue_number, str(e), "issue")
+            # Board integration: Release work on failure
+            if self.board_manager:
+                try:
+                    await self.board_manager.release_work(issue_number, agent_name.lower(), "error")
+                except Exception as board_error:
+                    logger.warning(f"Board release failed for issue #{issue_number}: {board_error}")
 
     def _process_single_issue(self, issue: Dict):
         """Process a single issue."""
@@ -198,7 +242,7 @@ class IssueMonitor(BaseMonitor):
             logger.error(f"Failed to implement issue #{issue_number}: {e}")
             self._post_error_comment(issue_number, str(e), "issue")
 
-    async def _implement_issue(self, issue: Dict, branch_name: str, agent):
+    async def _implement_issue(self, issue: Dict, branch_name: str, agent, session_id: str = ""):
         """Implement issue using specified agent."""
         issue_number = issue["number"]
         issue_title = issue["title"]
@@ -261,13 +305,13 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
             # Create PR with the changes
             # Note: In a real implementation, the agent would make actual file changes
             # For now, we'll just create a PR with a description
-            await self._create_pr(issue, branch_name, agent.name, response)
+            await self._create_pr(issue, branch_name, agent.name, response, session_id)
 
         except Exception as e:
             logger.error(f"Agent {agent.name} failed: {e}")
             raise
 
-    async def _create_pr(self, issue: Dict, branch_name: str, agent_name: str, implementation: str):
+    async def _create_pr(self, issue: Dict, branch_name: str, agent_name: str, implementation: str, session_id: str = ""):
         """Create a pull request for the issue."""
         issue_number = issue["number"]
         issue_title = issue["title"]
@@ -351,6 +395,17 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
                 # Extract PR number from output
                 pr_url = pr_output.strip() if pr_output else "Unknown"
 
+                # Board integration: Keep status as "In Progress" (PR created, awaiting review/merge)
+                # Release the claim since implementation work is complete
+                if self.board_manager:
+                    try:
+                        # Status stays "In Progress" until PR is merged
+                        # The claim is released because the agent's work is done
+                        await self.board_manager.release_work(issue_number, agent_name.lower(), "completed")
+                        logger.info(f"Released claim on issue #{issue_number} (PR created)")
+                    except Exception as e:
+                        logger.warning(f"Board release failed for issue #{issue_number}: {e}")
+
                 success_comment = (
                     f"{self.agent_tag} I've successfully implemented this issue using {agent_name}!\n\n"
                     f"**Pull Request Created**: {pr_url}\n\n"
@@ -360,6 +415,14 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
                 )
             else:
                 logger.warning("No changes to commit - agent may not have generated code")
+                # Board integration: Release work without completing (no changes made)
+                if self.board_manager:
+                    try:
+                        await self.board_manager.release_work(issue_number, agent_name.lower(), "abandoned")
+                        logger.info(f"Released claim on issue #{issue_number} (no changes generated)")
+                    except Exception as e:
+                        logger.warning(f"Board release failed for issue #{issue_number}: {e}")
+
                 success_comment = (
                     f"{self.agent_tag} I've analyzed this issue using {agent_name}.\n\n"
                     f"**Note**: No code changes were generated. This might indicate:\n"

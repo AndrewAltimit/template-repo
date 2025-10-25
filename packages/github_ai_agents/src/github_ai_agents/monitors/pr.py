@@ -3,10 +3,15 @@
 import asyncio
 import json
 import logging
+import os
 import sys
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from ..board.config import BoardConfig
+from ..board.manager import BoardManager
+from ..board.models import IssueStatus
 from ..code_parser import CodeParser
 from ..utils import run_gh_command, run_gh_command_async, run_git_command_async
 from .base import BaseMonitor
@@ -20,10 +25,66 @@ class PRMonitor(BaseMonitor):
     def __init__(self):
         """Initialize PR monitor."""
         super().__init__()
+        self.board_manager: Optional[BoardManager] = None
+        self._board_config: Optional[BoardConfig] = None
+        self._init_board_manager()
+
+    def _init_board_manager(self):
+        """Initialize board manager if configuration exists."""
+        try:
+            config_path = Path(".github/ai-agents-board.yml")
+            if config_path.exists():
+                self._board_config = BoardConfig.from_file(str(config_path))
+                github_token = os.getenv("GITHUB_TOKEN")
+                if github_token:
+                    self.board_manager = BoardManager(config=self._board_config, github_token=github_token)
+                    logger.info("Board manager initialized successfully")
+                else:
+                    logger.warning("GITHUB_TOKEN not set - board integration disabled")
+            else:
+                logger.info("Board config not found - board integration disabled")
+        except Exception as e:
+            logger.warning(f"Failed to initialize board manager: {e}")
+            self.board_manager = None
 
     def _get_json_fields(self, item_type: str) -> str:
         """Get JSON fields for PRs."""
         return "number,title,body,author,createdAt,updatedAt,reviews,comments"
+
+    def _extract_issue_numbers(self, pr_body: str) -> List[int]:
+        """Extract issue numbers from PR body (e.g., 'Closes #123', 'Fixes #456')."""
+        import re
+
+        # Match patterns like "Closes #123", "Fixes #456", "Resolves #789"
+        pattern = r"(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)"
+        matches = re.findall(pattern, pr_body, re.IGNORECASE)
+        return [int(num) for num in matches]
+
+    async def _update_board_on_pr_merge(self, pr_number: int, pr_body: str):
+        """Update board status when PR is merged."""
+        if not self.board_manager:
+            return
+
+        # Extract linked issue numbers
+        issue_numbers = self._extract_issue_numbers(pr_body)
+        if not issue_numbers:
+            logger.info(f"No linked issues found in PR #{pr_number}")
+            return
+
+        # Update each linked issue to Done status
+        try:
+            await self.board_manager.initialize()
+            for issue_number in issue_numbers:
+                try:
+                    success = await self.board_manager.update_status(issue_number, IssueStatus.DONE)
+                    if success:
+                        logger.info(f"Updated issue #{issue_number} to Done status (PR #{pr_number} merged)")
+                    else:
+                        logger.warning(f"Failed to update issue #{issue_number} status on board")
+                except Exception as e:
+                    logger.warning(f"Board update failed for issue #{issue_number}: {e}")
+        except Exception as e:
+            logger.warning(f"Board initialization failed: {e}")
 
     def get_open_prs(self) -> List[Dict]:
         """Get open PRs from the repository."""

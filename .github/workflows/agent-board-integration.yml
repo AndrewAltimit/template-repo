@@ -1,0 +1,154 @@
+name: AI Agent Board Integration
+
+on:
+  schedule:
+    # Run every hour to check for board updates
+    - cron: '0 * * * *'
+  workflow_dispatch: {}  # Allow manual trigger
+  pull_request:
+    types: [closed]  # Trigger when PR is closed (merged or not)
+
+permissions:
+  issues: write
+  contents: read
+  pull-requests: read
+
+jobs:
+  update-board-on-pr-merge:
+    name: Update Board on PR Merge
+    runs-on: self-hosted
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.merged == true }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e packages/github_ai_agents
+
+      - name: Update board for merged PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          python -c "
+          import asyncio
+          import os
+          import sys
+          import re
+          from pathlib import Path
+
+          # Add to path
+          sys.path.insert(0, 'packages/github_ai_agents/src')
+
+          from github_ai_agents.board.config import BoardConfig
+          from github_ai_agents.board.manager import BoardManager
+          from github_ai_agents.board.models import IssueStatus
+
+          async def main():
+              pr_number = int(os.getenv('PR_NUMBER', '0'))
+              pr_body = os.getenv('PR_BODY', '')
+
+              # Extract issue numbers
+              pattern = r'(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)'
+              matches = re.findall(pattern, pr_body, re.IGNORECASE)
+              issue_numbers = [int(num) for num in matches]
+
+              if not issue_numbers:
+                  print(f'No linked issues found in PR #{pr_number}')
+                  return
+
+              # Initialize board manager
+              config_path = Path('.github/ai-agents-board.yml')
+              if not config_path.exists():
+                  print('Board config not found')
+                  return
+
+              config = BoardConfig.from_file(str(config_path))
+              github_token = os.getenv('GITHUB_TOKEN')
+
+              board_manager = BoardManager(config=config, github_token=github_token)
+              await board_manager.initialize()
+
+              # Update each issue to Done
+              for issue_num in issue_numbers:
+                  try:
+                      success = await board_manager.update_status(issue_num, IssueStatus.DONE)
+                      if success:
+                          print(f'Updated issue #{issue_num} to Done status (PR #{pr_number} merged)')
+                      else:
+                          print(f'Failed to update issue #{issue_num} status')
+                  except Exception as e:
+                      print(f'Error updating issue #{issue_num}: {e}')
+
+          asyncio.run(main())
+          "
+
+  board-maintenance:
+    name: Board Maintenance
+    runs-on: self-hosted
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e packages/github_ai_agents
+
+      - name: Run board maintenance
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python -c "
+          import asyncio
+          import os
+          import sys
+          from pathlib import Path
+
+          # Add to path
+          sys.path.insert(0, 'packages/github_ai_agents/src')
+
+          from github_ai_agents.board.config import BoardConfig
+          from github_ai_agents.board.manager import BoardManager
+
+          async def main():
+              # Initialize board manager
+              config_path = Path('.github/ai-agents-board.yml')
+              if not config_path.exists():
+                  print('Board config not found - skipping maintenance')
+                  return
+
+              config = BoardConfig.from_file(str(config_path))
+              github_token = os.getenv('GITHUB_TOKEN')
+
+              board_manager = BoardManager(config=config, github_token=github_token)
+              await board_manager.initialize()
+
+              print('Board maintenance completed successfully')
+              print(f'Project: {config.owner}/{config.repository} - Project #{config.project_number}')
+
+          asyncio.run(main())
+          "
+
+      - name: Report status
+        if: always()
+        run: |
+          echo "Board maintenance job completed"

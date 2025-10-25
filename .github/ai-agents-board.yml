@@ -1,0 +1,137 @@
+# GitHub Project Board Configuration for AI Agents
+#
+# This configuration defines how AI agents interact with GitHub Projects v2 boards
+# for work tracking, dependencies, and multi-agent coordination.
+
+# GitHub Project Configuration
+project:
+  # Project number (visible in project URL: /users/{owner}/projects/{number})
+  number: 1
+
+  # Project owner (GitHub username or organization)
+  owner: "AndrewAltimit"
+
+# Repository Configuration
+repository: "AndrewAltimit/template-repo"
+
+# Custom Field Mappings
+# These map to the custom fields in your GitHub Project board
+fields:
+  status: "Status"
+  priority: "Priority"
+  agent: "Agent"
+  type: "Type"
+  blocked_by: "Blocked By"
+  discovered_from: "Discovered From"
+  size: "Estimated Size"
+
+# Agent Behavior Configuration
+agents:
+  # Automatically file issues discovered during implementation
+  auto_discover: true
+
+  # Agents enabled to use the board for work queues
+  enabled_agents:
+    - "claude"
+    - "opencode"
+    - "gemini"
+    - "crush"
+    - "codex"
+
+# Work Claiming Configuration
+work_claims:
+  # How long before a claim expires (seconds)
+  # Default: 86400 (24 hours)
+  timeout: 86400
+
+  # How often agents should renew claims for long-running tasks (seconds)
+  # Default: 3600 (1 hour)
+  renewal_interval: 3600
+
+  # Post informational expiration notices (optional)
+  notify_expired: false
+
+  # Notification check interval (seconds)
+  notification_interval: 86400
+
+  # Require explicit comment claim for all work
+  enforce_claims: true
+
+# Work Queue Filters
+work_queue:
+  # Don't show issues with these labels in ready work
+  exclude_labels:
+    - "wontfix"
+    - "duplicate"
+    - "invalid"
+    - "on-hold"
+
+  # Automatically prioritize issues based on labels
+  priority_labels:
+    critical:
+      - "security"
+      - "data-loss"
+      - "critical-bug"
+      - "outage"
+    high:
+      - "bug"
+      - "regression"
+      - "performance"
+      - "high-priority"
+    medium:
+      - "enhancement"
+      - "feature"
+      - "refactor"
+      - "medium-priority"
+    low:
+      - "documentation"
+      - "cleanup"
+      - "chore"
+      - "low-priority"
+
+  # Type labels for automatic categorization
+  type_labels:
+    feature:
+      - "feature"
+      - "enhancement"
+    bug:
+      - "bug"
+      - "regression"
+    tech_debt:
+      - "refactor"
+      - "cleanup"
+      - "tech-debt"
+    documentation:
+      - "documentation"
+      - "docs"
+
+# Board Integration Features
+integration:
+  # Automatically add approved issues to the board
+  auto_add_issues: true
+
+  # Update board status when PR is created
+  auto_update_on_pr: true
+
+  # Mark issues complete when PR is merged
+  auto_complete_on_merge: true
+
+  # File discovered issues automatically
+  auto_file_discovered: true
+
+  # Post claim comments on issues
+  post_claim_comments: true
+
+  # Post release comments on issues
+  post_release_comments: true
+
+# Logging and Monitoring
+logging:
+  # Log level (DEBUG, INFO, WARNING, ERROR)
+  level: "INFO"
+
+  # Include issue URLs in logs for traceability
+  include_urls: true
+
+  # Include session IDs in logs
+  include_session_ids: true
