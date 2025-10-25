@@ -1,9 +1,5 @@
 # GitHub Projects v2 Board Integration
 
-**Status**: Production Ready (Phases 1-5 Complete)
-**Version**: 0.2.0
-**Last Updated**: 2025-10-25
-
 ## Overview
 
 The GitHub Projects v2 board integration enables AI agents to use GitHub as an external "memory system" for tracking work, dependencies, and state across sessions. This allows agents to maintain context, discover ready work, and coordinate without conflicts.

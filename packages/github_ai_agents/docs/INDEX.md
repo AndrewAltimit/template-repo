@@ -7,7 +7,7 @@ Welcome to the GitHub AI Agents documentation. This package provides automated c
 - [README](../README.md) - Project overview and features
 - [Quick Start Guide](QUICK_START.md) - Get running in 5 minutes
 - [Installation Guide](INSTALLATION.md) - Detailed installation and setup
-- [CLI Reference](CLI_REFERENCE.md) - Command-line interface reference *(coming in v0.2.0)*
+- [CLI Reference](CLI_REFERENCE.md) - Command-line interface reference
 
 ## Core Concepts
 
@@ -95,25 +95,19 @@ Specialized agents for specific tasks:
 
 See [Subagent Documentation](subagents.md) for complete details.
 
-#### Board Integration *(Phase 1 Complete)*
+#### Board Integration
 GitHub Projects v2 integration for agent coordination and work tracking.
 
-**Current Status - Phase 1 Foundation Complete:**
-- ✅ Core module structure (manager.py: 1,076 lines)
-- ✅ Data models (Issue, AgentClaim, BoardConfig, DependencyGraph)
-- ✅ GraphQL client with retry logic and error handling
-- ✅ Comprehensive unit tests (44/44 passing - 100%)
-- ✅ Shared test fixtures in conftest.py
-- ⏳ Phase 2: Claim System & Dependencies (next)
-
-**Key Features:**
+**Features:**
 - Work queue management with ready work detection
 - Timestamp-based claim system (24-hour timeout, 1-hour renewal)
 - Dependency tracking (blocks, parent-child, discovered from)
 - Multi-agent coordination without conflicts
 - GraphQL API integration with GitHub Projects v2
+- MCP server with 11 core tools
+- Docker containerization with health checks
 
-See [Board Integration PRD](../BOARD_INTEGRATION.md) for complete implementation plan and progress.
+See [Board Integration Guide](board-integration.md) for complete documentation.
 
 ### GitHub Actions
 
@@ -144,15 +138,15 @@ jobs:
 
 ## API Reference
 
-### Python API *(coming in v0.2.0)*
+### Python API
 Complete Python API documentation for programmatic usage.
 
-See [API Reference](API_REFERENCE.md) *(coming soon)*
+See [API Reference](API_REFERENCE.md) for complete details.
 
-### CLI Commands *(coming in v0.2.0)*
+### CLI Commands
 Comprehensive command-line interface reference.
 
-See [CLI Reference](CLI_REFERENCE.md) *(coming soon)*
+See [CLI Reference](CLI_REFERENCE.md) for all available commands.
 
 ## Development
 
@@ -183,10 +177,9 @@ pytest tests/ -v --cov=github_ai_agents
 ./automation/ci-cd/run-ci.sh autoformat
 ```
 
-### Roadmap
+### Version History
 
-- [TODO](../TODO.md) - Development roadmap *(coming in v0.2.0)*
-- [CHANGELOG](../CHANGELOG.md) - Version history *(coming in v0.2.0)*
+- [CHANGELOG](../CHANGELOG.md) - Version history and release notes
 
 ## Examples
 
@@ -194,10 +187,13 @@ Comprehensive usage examples:
 - Basic usage patterns
 - Issue monitoring workflows
 - PR review automation
+- Board integration patterns
 - Multi-agent coordination
 - Custom agent development
+- Security features
+- GitHub Actions templates
 
-See [Examples Directory](../examples/) *(examples coming in v0.2.0)*
+See [Examples Directory](../examples/) for complete examples and usage patterns.
 
 ## Troubleshooting
 
@@ -234,14 +230,8 @@ For more troubleshooting help, see test files in `tests/` directory for working 
 - **Discussions:** [GitHub Discussions](https://github.com/AndrewAltimit/template-repo/discussions)
 - **Documentation:** This index and linked guides
 
-## Version Information
+## Additional Information
 
-- **Current Version:** 0.1.0
-- **Next Release:** 0.2.0 (Board Integration + Documentation)
 - **Python Support:** 3.11+
 - **License:** See LICENSE file in repository root
-
----
-
-**Last Updated:** 2025-10-25
-**Status:** Active Development
+- **Version History:** See [CHANGELOG](../CHANGELOG.md)

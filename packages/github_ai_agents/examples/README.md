@@ -563,11 +563,6 @@ export AGENT_TIMEOUT=1200  # 20 minutes
 - [CLI Reference](../docs/CLI_REFERENCE.md) - Command-line tools
 - [Architecture](../docs/architecture.md) - System design
 
-### Development Guides
-- [BOARD_INTEGRATION.md](../BOARD_INTEGRATION.md) - Board feature PRD
-- [REFINE.md](../REFINE.md) - Package improvements
-- [TODO.md](../TODO.md) - Development roadmap
-
 ## Contributing
 
 When creating new examples:
