@@ -1,0 +1,490 @@
+"""Tests for board manager functionality."""
+
+import os
+from datetime import datetime, timedelta
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+from github_ai_agents.board.config import BoardConfig
+from github_ai_agents.board.errors import BoardNotFoundError, GraphQLError, RateLimitError
+from github_ai_agents.board.manager import BoardManager
+from github_ai_agents.board.models import (
+    AgentClaim,
+    DependencyGraph,
+    GraphQLResponse,
+    Issue,
+    IssuePriority,
+    IssueStatus,
+)
+
+
+@pytest.fixture
+def board_config():
+    """Create test board configuration."""
+    return BoardConfig(
+        project_number=1,
+        owner="testuser",
+        repository="test/repo",
+        field_mappings={
+            "status": "Status",
+            "priority": "Priority",
+            "agent": "Agent",
+            "type": "Type",
+        },
+        claim_timeout=86400,
+        enabled_agents=["claude", "opencode"],
+    )
+
+
+@pytest.fixture
+def mock_github_token():
+    """Mock GitHub token."""
+    with patch.dict(os.environ, {"GITHUB_TOKEN": "test-token"}):
+        yield "test-token"
+
+
+class TestBoardConfig:
+    """Test BoardConfig model."""
+
+    def test_initialization(self):
+        """Test BoardConfig initialization."""
+        config = BoardConfig(project_number=1, owner="testuser", repository="test/repo")
+        assert config.project_number == 1
+        assert config.owner == "testuser"
+        assert config.repository == "test/repo"
+        assert config.claim_timeout == 86400
+        assert config.claim_renewal_interval == 3600
+
+    def test_default_field_mappings(self):
+        """Test default field mappings are set."""
+        config = BoardConfig(project_number=1, owner="testuser", repository="test/repo")
+        assert config.field_mappings["status"] == "Status"
+        assert config.field_mappings["priority"] == "Priority"
+        assert config.field_mappings["agent"] == "Agent"
+        assert config.field_mappings["type"] == "Type"
+        assert config.field_mappings["blocked_by"] == "Blocked By"
+        assert config.field_mappings["discovered_from"] == "Discovered From"
+        assert config.field_mappings["size"] == "Estimated Size"
+
+    def test_from_dict(self):
+        """Test creating BoardConfig from dictionary."""
+        data = {
+            "project": {"number": 5, "owner": "org"},
+            "repository": "org/repo",
+            "fields": {"status": "CustomStatus"},
+            "agents": {"enabled_agents": ["claude"], "auto_discover": True},
+            "work_claims": {"timeout": 3600, "renewal_interval": 1800},
+            "work_queue": {
+                "exclude_labels": ["wontfix"],
+                "priority_labels": {"critical": ["security"]},
+            },
+        }
+
+        config = BoardConfig.from_dict(data)
+        assert config.project_number == 5
+        assert config.owner == "org"
+        assert config.repository == "org/repo"
+        assert config.field_mappings["status"] == "CustomStatus"
+        assert config.claim_timeout == 3600
+        assert config.claim_renewal_interval == 1800
+        assert "claude" in config.enabled_agents
+        assert config.auto_discover is True
+        assert "wontfix" in config.exclude_labels
+        assert "security" in config.priority_labels["critical"]
+
+
+class TestIssue:
+    """Test Issue model."""
+
+    def test_initialization(self):
+        """Test Issue initialization."""
+        issue = Issue(number=1, title="Test Issue", body="Test body", state="open")
+        assert issue.number == 1
+        assert issue.title == "Test Issue"
+        assert issue.body == "Test body"
+        assert issue.state == "open"
+        assert issue.status == IssueStatus.TODO
+        assert issue.priority == IssuePriority.MEDIUM
+
+    def test_is_ready_true(self):
+        """Test is_ready returns True for unblocked Todo issue."""
+        issue = Issue(number=1, title="Test", body="Body", state="open", status=IssueStatus.TODO, blocked_by=[])
+        assert issue.is_ready() is True
+
+    def test_is_ready_false_blocked(self):
+        """Test is_ready returns False when blocked."""
+        issue = Issue(number=1, title="Test", body="Body", state="open", status=IssueStatus.TODO, blocked_by=[2, 3])
+        assert issue.is_ready() is False
+
+    def test_is_ready_false_wrong_status(self):
+        """Test is_ready returns False for non-Todo status."""
+        issue = Issue(number=1, title="Test", body="Body", state="open", status=IssueStatus.IN_PROGRESS, blocked_by=[])
+        assert issue.is_ready() is False
+
+    def test_is_claimed_true(self):
+        """Test is_claimed returns True when agent assigned."""
+        issue = Issue(number=1, title="Test", body="Body", state="open", agent="claude")
+        assert issue.is_claimed() is True
+
+    def test_is_claimed_false(self):
+        """Test is_claimed returns False when no agent."""
+        issue = Issue(number=1, title="Test", body="Body", state="open", agent=None)
+        assert issue.is_claimed() is False
+
+    def test_string_representation(self):
+        """Test __str__ method."""
+        issue = Issue(number=42, title="Fix Bug", body="Body", state="open", status=IssueStatus.TODO)
+        assert str(issue) == "Issue #42: Fix Bug (Todo)"
+
+
+class TestAgentClaim:
+    """Test AgentClaim model."""
+
+    def test_initialization(self):
+        """Test AgentClaim initialization."""
+        now = datetime.utcnow()
+        claim = AgentClaim(issue_number=1, agent="claude", session_id="session123", timestamp=now)
+        assert claim.issue_number == 1
+        assert claim.agent == "claude"
+        assert claim.session_id == "session123"
+        assert claim.timestamp == now
+        assert claim.renewed_at is None
+        assert claim.released is False
+
+    def test_age_seconds(self):
+        """Test age_seconds calculation."""
+        old_time = datetime.utcnow() - timedelta(seconds=3600)
+        claim = AgentClaim(issue_number=1, agent="claude", session_id="s1", timestamp=old_time)
+        age = claim.age_seconds()
+        assert 3590 < age < 3610  # Allow 10 second tolerance
+
+    def test_age_seconds_with_renewal(self):
+        """Test age_seconds uses renewed_at when available."""
+        old_time = datetime.utcnow() - timedelta(seconds=7200)
+        renewed_time = datetime.utcnow() - timedelta(seconds=1800)
+        claim = AgentClaim(
+            issue_number=1,
+            agent="claude",
+            session_id="s1",
+            timestamp=old_time,
+            renewed_at=renewed_time,
+        )
+        age = claim.age_seconds()
+        assert 1790 < age < 1810  # Uses renewed_at, not timestamp
+
+    def test_is_expired_true(self):
+        """Test is_expired returns True for old claim."""
+        old_time = datetime.utcnow() - timedelta(seconds=90000)  # >24 hours
+        claim = AgentClaim(issue_number=1, agent="claude", session_id="s1", timestamp=old_time)
+        assert claim.is_expired(timeout_seconds=86400) is True
+
+    def test_is_expired_false(self):
+        """Test is_expired returns False for recent claim."""
+        recent_time = datetime.utcnow() - timedelta(seconds=3600)  # 1 hour
+        claim = AgentClaim(issue_number=1, agent="claude", session_id="s1", timestamp=recent_time)
+        assert claim.is_expired(timeout_seconds=86400) is False
+
+
+class TestDependencyGraph:
+    """Test DependencyGraph model."""
+
+    def test_initialization(self):
+        """Test DependencyGraph initialization."""
+        issue = Issue(number=1, title="Main", body="Body", state="open")
+        graph = DependencyGraph(issue=issue)
+        assert graph.issue == issue
+        assert graph.blocks == []
+        assert graph.blocked_by == []
+        assert graph.children == []
+        assert graph.parent is None
+
+    def test_is_ready_no_blockers(self):
+        """Test is_ready returns True when no blockers."""
+        issue = Issue(number=1, title="Main", body="Body", state="open")
+        graph = DependencyGraph(issue=issue)
+        assert graph.is_ready() is True
+
+    def test_is_ready_all_resolved(self):
+        """Test is_ready returns True when all blockers resolved."""
+        issue = Issue(number=1, title="Main", body="Body", state="open")
+        blocker1 = Issue(number=2, title="B1", body="Body", state="closed", status=IssueStatus.DONE)
+        blocker2 = Issue(number=3, title="B2", body="Body", state="closed", status=IssueStatus.ABANDONED)
+        graph = DependencyGraph(issue=issue, blocked_by=[blocker1, blocker2])
+        assert graph.is_ready() is True
+
+    def test_is_ready_has_open_blocker(self):
+        """Test is_ready returns False when blocker is open."""
+        issue = Issue(number=1, title="Main", body="Body", state="open")
+        blocker = Issue(number=2, title="Blocker", body="Body", state="open", status=IssueStatus.TODO)
+        graph = DependencyGraph(issue=issue, blocked_by=[blocker])
+        assert graph.is_ready() is False
+
+    def test_depth_no_parent(self):
+        """Test depth returns 0 when no parent."""
+        issue = Issue(number=1, title="Main", body="Body", state="open")
+        graph = DependencyGraph(issue=issue)
+        assert graph.depth() == 0
+
+    def test_depth_with_parent(self):
+        """Test depth returns 1 when has parent."""
+        issue = Issue(number=1, title="Main", body="Body", state="open")
+        parent = Issue(number=2, title="Parent", body="Body", state="open")
+        graph = DependencyGraph(issue=issue, parent=parent)
+        assert graph.depth() == 1
+
+
+class TestGraphQLResponse:
+    """Test GraphQLResponse model."""
+
+    def test_initialization(self):
+        """Test GraphQLResponse initialization."""
+        response = GraphQLResponse(data={"test": "data"})
+        assert response.data == {"test": "data"}
+        assert response.errors == []
+        assert response.status_code == 200
+
+    def test_is_success_true(self):
+        """Test is_success returns True for successful response."""
+        response = GraphQLResponse(data={"test": "data"}, status_code=200)
+        assert response.is_success() is True
+
+    def test_is_success_false_has_errors(self):
+        """Test is_success returns False when errors present."""
+        response = GraphQLResponse(
+            data=None,
+            errors=[{"message": "Error"}],
+            status_code=200,
+        )
+        assert response.is_success() is False
+
+    def test_is_success_false_bad_status(self):
+        """Test is_success returns False for non-200 status."""
+        response = GraphQLResponse(data=None, status_code=404)
+        assert response.is_success() is False
+
+    def test_get_error_message_no_errors(self):
+        """Test get_error_message returns empty string when no errors."""
+        response = GraphQLResponse(data={"test": "data"})
+        assert response.get_error_message() == ""
+
+    def test_get_error_message_single_error(self):
+        """Test get_error_message returns single error message."""
+        response = GraphQLResponse(data=None, errors=[{"message": "Something went wrong"}])
+        assert response.get_error_message() == "Something went wrong"
+
+    def test_get_error_message_multiple_errors(self):
+        """Test get_error_message joins multiple errors."""
+        response = GraphQLResponse(
+            data=None,
+            errors=[
+                {"message": "Error 1"},
+                {"message": "Error 2"},
+            ],
+        )
+        assert response.get_error_message() == "Error 1; Error 2"
+
+
+class TestBoardManager:
+    """Test BoardManager functionality."""
+
+    def test_initialization_no_token(self):
+        """Test initialization fails without GitHub token."""
+        with pytest.raises(ValueError, match="GitHub token required"):
+            BoardManager(config=BoardConfig(project_number=1, owner="test", repository="test/repo"))
+
+    def test_initialization_with_token(self, board_config, mock_github_token):
+        """Test initialization with GitHub token."""
+        manager = BoardManager(config=board_config)
+        assert manager.config == board_config
+        assert manager.github_token == "test-token"
+        assert manager.session is None
+        assert manager.project_id is None
+
+    @pytest.mark.asyncio
+    async def test_context_manager(self, board_config, mock_github_token):
+        """Test async context manager."""
+        manager = BoardManager(config=board_config)
+
+        # Mock initialize and close
+        manager.initialize = AsyncMock()
+        manager.close = AsyncMock()
+
+        async with manager as mgr:
+            assert mgr == manager
+
+        manager.initialize.assert_called_once()
+        manager.close.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_execute_graphql_not_initialized(self, board_config, mock_github_token):
+        """Test _execute_graphql raises error when not initialized."""
+        manager = BoardManager(config=board_config)
+
+        with pytest.raises(RuntimeError, match="BoardManager not initialized"):
+            await manager._execute_graphql("query { test }")
+
+    @pytest.mark.asyncio
+    async def test_execute_graphql_success(self, board_config, mock_github_token):
+        """Test successful GraphQL execution."""
+        manager = BoardManager(config=board_config)
+        manager.session = AsyncMock()
+
+        # Mock successful response
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.json = AsyncMock(return_value={"data": {"test": "result"}})
+        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_response.__aexit__ = AsyncMock(return_value=None)
+        manager.session.post = MagicMock(return_value=mock_response)
+
+        response = await manager._execute_graphql("query { test }")
+        assert response.data == {"test": "result"}
+        assert response.status_code == 200
+        assert response.errors == []
+
+    @pytest.mark.asyncio
+    async def test_execute_graphql_with_errors(self, board_config, mock_github_token):
+        """Test GraphQL execution with errors."""
+        manager = BoardManager(config=board_config)
+        manager.session = AsyncMock()
+
+        # Mock response with errors
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.json = AsyncMock(
+            return_value={
+                "data": None,
+                "errors": [{"message": "Field not found"}],
+            }
+        )
+        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
+        mock_response.__aexit__ = AsyncMock(return_value=None)
+        manager.session.post = MagicMock(return_value=mock_response)
+
+        with pytest.raises(GraphQLError, match="Field not found"):
+            await manager._execute_graphql("query { invalid }")
+
+    @pytest.mark.asyncio
+    async def test_execute_with_retry_rate_limit(self, board_config, mock_github_token):
+        """Test retry logic with rate limit error."""
+        manager = BoardManager(config=board_config)
+
+        # Mock operation that returns rate limit error
+        async def mock_operation():
+            return GraphQLResponse(
+                data=None,
+                errors=[{"message": "API rate limit exceeded"}],
+                status_code=403,
+            )
+
+        with pytest.raises(RateLimitError):
+            await manager._execute_with_retry(mock_operation)
+
+    @pytest.mark.asyncio
+    async def test_execute_with_retry_client_error(self, board_config, mock_github_token):
+        """Test retry logic with 401 client error (no retry)."""
+        manager = BoardManager(config=board_config)
+
+        # Mock operation that returns 401
+        async def mock_operation():
+            error = GraphQLError("Unauthorized", status_code=401)
+            raise error
+
+        with pytest.raises(GraphQLError, match="Unauthorized"):
+            await manager._execute_with_retry(mock_operation)
+
+    @pytest.mark.asyncio
+    async def test_execute_with_retry_success_after_retry(self, board_config, mock_github_token):
+        """Test retry logic succeeds after transient failure."""
+        manager = BoardManager(config=board_config)
+
+        call_count = 0
+
+        async def mock_operation():
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                # First call fails with server error
+                raise GraphQLError("Server error", status_code=500)
+            else:
+                # Second call succeeds
+                return GraphQLResponse(data={"success": True}, status_code=200)
+
+        response = await manager._execute_with_retry(mock_operation)
+        assert response.data == {"success": True}
+        assert call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_get_project_id_user_project(self, board_config, mock_github_token):
+        """Test _get_project_id for user project."""
+        manager = BoardManager(config=board_config)
+        manager._execute_graphql = AsyncMock(
+            return_value=GraphQLResponse(
+                data={
+                    "user": {"projectV2": {"id": "PVT_kwDOABCDEF", "title": "Test Project"}},
+                    "organization": None,
+                }
+            )
+        )
+
+        project_id = await manager._get_project_id()
+        assert project_id == "PVT_kwDOABCDEF"
+
+    @pytest.mark.asyncio
+    async def test_get_project_id_org_project(self, board_config, mock_github_token):
+        """Test _get_project_id for organization project."""
+        manager = BoardManager(config=board_config)
+        manager._execute_graphql = AsyncMock(
+            return_value=GraphQLResponse(
+                data={
+                    "user": None,
+                    "organization": {"projectV2": {"id": "PVT_kwDOXYZ123", "title": "Org Project"}},
+                }
+            )
+        )
+
+        project_id = await manager._get_project_id()
+        assert project_id == "PVT_kwDOXYZ123"
+
+    @pytest.mark.asyncio
+    async def test_get_project_id_not_found(self, board_config, mock_github_token):
+        """Test _get_project_id raises error when project not found."""
+        manager = BoardManager(config=board_config)
+        manager._execute_graphql = AsyncMock(return_value=GraphQLResponse(data={"user": None, "organization": None}))
+
+        with pytest.raises(BoardNotFoundError, match="Project #1 not found for owner 'testuser'"):
+            await manager._get_project_id()
+
+
+class TestErrors:
+    """Test custom error classes."""
+
+    def test_board_not_found_error(self):
+        """Test BoardNotFoundError initialization."""
+        error = BoardNotFoundError(project_number=5, owner="testuser")
+        assert error.project_number == 5
+        assert error.owner == "testuser"
+        assert "Project #5" in str(error)
+        assert "testuser" in str(error)
+
+    def test_graphql_error(self):
+        """Test GraphQLError initialization."""
+        error = GraphQLError("Test error", status_code=403)
+        assert error.status_code == 403
+        assert "HTTP 403" in str(error)
+        assert "Test error" in str(error)
+
+    def test_graphql_error_with_error_list(self):
+        """Test GraphQLError with error list."""
+        errors = [{"message": "Field invalid"}]
+        error = GraphQLError("Multiple errors", errors=errors)
+        assert error.errors == errors
+
+    def test_rate_limit_error(self):
+        """Test RateLimitError initialization."""
+        error = RateLimitError(reset_at="2025-10-25T15:00:00Z", remaining=0)
+        assert error.reset_at == "2025-10-25T15:00:00Z"
+        assert error.remaining == 0
+        assert "rate limit" in str(error).lower()
+        assert "2025-10-25T15:00:00Z" in str(error)
