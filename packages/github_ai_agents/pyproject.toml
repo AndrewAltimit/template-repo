@@ -4,23 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "github-ai-agents"
-version = "0.1.0"
+version = "0.2.0"
 description = "AI-powered agents for GitHub automation"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
     {name = "AndrewAltimit", email = "andrew@example.com"},
 ]
 keywords = ["github", "automation", "ai", "agents", "claude", "opencode", "gemini"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -35,6 +32,22 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+board = [
+    "gql>=3.4.0",
+    "sgqlc>=16.0",
+    "aiohttp>=3.8.0",
+]
+
+tts = [
+    "elevenlabs>=0.2.0",
+    "pydub>=0.25.0",
+]
+
+mcp = [
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+]
+
 dev = [
     "pytest>=7.0",
     "pytest-asyncio>=0.21.0",
@@ -43,6 +56,25 @@ dev = [
     "isort>=5.12",
     "flake8>=6.0",
     "mypy>=1.0",
+    "pylint>=2.17.0",
+    "pre-commit>=3.0",
+]
+
+all = [
+    "gql>=3.4.0",
+    "sgqlc>=16.0",
+    "elevenlabs>=0.2.0",
+    "pydub>=0.25.0",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0",
+    "black>=23.0",
+    "isort>=5.12",
+    "flake8>=6.0",
+    "mypy>=1.0",
+    "pylint>=2.17.0",
     "pre-commit>=3.0",
 ]
 
@@ -62,11 +94,19 @@ include = ["github_ai_agents*"]
 namespaces = false
 
 [tool.setuptools.package-data]
-github_ai_agents = ["py.typed", "*.yaml", "*.yml"]
+github_ai_agents = [
+    "py.typed",
+    "*.yaml",
+    "*.yml",
+    "configs/*.json",
+    "configs/*.yaml",
+    "templates/*.sh",
+    "templates/*.md",
+]
 
 [tool.black]
-line-length = 120
-target-version = ['py38', 'py39', 'py310', 'py311']
+line-length = 127
+target-version = ['py311', 'py312']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
@@ -84,12 +124,12 @@ extend-exclude = '''
 
 [tool.isort]
 profile = "black"
-line_length = 120
+line_length = 127
 known_first_party = ["github_ai_agents"]
 skip_gitignore = true
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
