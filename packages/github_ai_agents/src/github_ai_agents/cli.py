@@ -9,13 +9,13 @@ from .monitors import IssueMonitor, PRMonitor
 logger = logging.getLogger(__name__)
 
 
-def setup_logging(verbose: bool = False):
+def setup_logging(verbose: bool = False) -> None:
     """Set up logging configuration."""
     level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(level=level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 
-def main():
+def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(description="GitHub AI Agents - Automated GitHub workflow management")
 
@@ -45,15 +45,15 @@ def main():
     # Handle commands
     try:
         if args.command == "issue-monitor":
-            monitor = IssueMonitor()
+            issue_monitor = IssueMonitor()
             if args.continuous:
-                monitor.run_continuous(args.interval)
+                issue_monitor.run_continuous(args.interval)
             else:
-                monitor.process_items()
+                issue_monitor.process_items()
 
         elif args.command == "pr-monitor":
-            monitor = PRMonitor()
-            monitor.process_items()
+            pr_monitor = PRMonitor()
+            pr_monitor.process_items()
 
         else:
             parser.print_help()

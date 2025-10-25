@@ -186,7 +186,7 @@ class BoardConfig:
     exclude_labels: list[str] = field(default_factory=list)
     priority_labels: dict[str, list[str]] = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Set default field mappings if not provided."""
         default_mappings = {
             "status": "Status",

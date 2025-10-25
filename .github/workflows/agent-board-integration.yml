@@ -50,7 +50,7 @@ jobs:
           # Add to path
           sys.path.insert(0, 'packages/github_ai_agents/src')
 
-          from github_ai_agents.board.config import BoardConfig
+          from github_ai_agents.board.config import load_config
           from github_ai_agents.board.manager import BoardManager
           from github_ai_agents.board.models import IssueStatus
 
@@ -73,7 +73,7 @@ jobs:
                   print('Board config not found')
                   return
 
-              config = BoardConfig.from_file(str(config_path))
+              config = load_config(str(config_path))
               github_token = os.getenv('GITHUB_TOKEN')
 
               board_manager = BoardManager(config=config, github_token=github_token)
@@ -126,7 +126,7 @@ jobs:
           # Add to path
           sys.path.insert(0, 'packages/github_ai_agents/src')
 
-          from github_ai_agents.board.config import BoardConfig
+          from github_ai_agents.board.config import load_config
           from github_ai_agents.board.manager import BoardManager
 
           async def main():
@@ -136,7 +136,7 @@ jobs:
                   print('Board config not found - skipping maintenance')
                   return
 
-              config = BoardConfig.from_file(str(config_path))
+              config = load_config(str(config_path))
               github_token = os.getenv('GITHUB_TOKEN')
 
               board_manager = BoardManager(config=config, github_token=github_token)

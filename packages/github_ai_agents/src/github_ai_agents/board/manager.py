@@ -66,16 +66,16 @@ class BoardManager:
 
         logger.info(f"Initialized BoardManager for project #{self.config.project_number} " f"(owner: {self.config.owner})")
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "BoardManager":
         """Async context manager entry."""
         await self.initialize()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Async context manager exit."""
         await self.close()
 
-    async def initialize(self):
+    async def initialize(self) -> None:
         """Initialize HTTP session and load project metadata."""
         self.session = aiohttp.ClientSession(
             headers={
@@ -87,7 +87,7 @@ class BoardManager:
         self.project_id = await self._get_project_id()
         logger.info(f"Board initialized with project ID: {self.project_id}")
 
-    async def close(self):
+    async def close(self) -> None:
         """Close HTTP session."""
         if self.session:
             await self.session.close()
@@ -128,7 +128,8 @@ class BoardManager:
                 else:
                     return GraphQLResponse(data=None, errors=data.get("errors", []), status_code=response.status)
 
-        return await self._execute_with_retry(_execute)
+        result: GraphQLResponse = await self._execute_with_retry(_execute)
+        return result
 
     async def _execute_with_retry(self, operation: Callable) -> Any:
         """
@@ -665,7 +666,7 @@ Work claim released.
         }
         """
 
-        variables = {
+        variables: dict[str, Any] = {  # type: ignore[no-redef]
             "projectId": self.project_id,
             "itemId": project_item_id,
             "fieldId": field_id,
@@ -955,7 +956,7 @@ Work claim released.
         }
         """
 
-        variables = {
+        variables: dict[str, Any] = {  # type: ignore[no-redef]
             "projectId": self.project_id,
             "itemId": project_item_id,
             "fieldId": field_id,
@@ -1051,7 +1052,7 @@ Work claim released.
         }
         """
 
-        variables = {
+        variables: dict[str, Any] = {  # type: ignore[no-redef]
             "projectId": self.project_id,
             "itemId": project_item_id,
             "fieldId": field_id,

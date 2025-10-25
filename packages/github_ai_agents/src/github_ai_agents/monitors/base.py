@@ -6,7 +6,7 @@ import os
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Type
+from typing import Any, Dict, List, Optional, Type
 
 from ..agents import ClaudeAgent, CrushAgent, GeminiAgent, OpenCodeAgent
 from ..config import AgentConfig
@@ -31,7 +31,7 @@ class BaseMonitor(ABC):
     # Containerized agents that require special handling
     CONTAINERIZED_AGENTS = ["opencode", "crush"]
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize base monitor."""
         self.repo = os.environ.get("GITHUB_REPOSITORY")
         if not self.repo:
@@ -102,7 +102,7 @@ class BaseMonitor(ABC):
                 item_type,
                 "list",
                 "--repo",
-                self.repo,
+                self.repo or "",
                 "--state",
                 "open",
                 "--json",
@@ -158,7 +158,7 @@ class BaseMonitor(ABC):
                 "view",
                 str(item_number),
                 "--repo",
-                self.repo,
+                self.repo or "",
                 "--json",
                 "comments",
             ]
@@ -175,7 +175,7 @@ class BaseMonitor(ABC):
 
         return False
 
-    def _post_comment(self, item_number: int, comment: str, item_type: str):
+    def _post_comment(self, item_number: int, comment: str, item_type: str) -> None:
         """Post a comment to an issue or PR.
 
         Args:
@@ -189,13 +189,13 @@ class BaseMonitor(ABC):
                 "comment",
                 str(item_number),
                 "--repo",
-                self.repo,
+                self.repo or "",
                 "--body",
                 comment,
             ]
         )
 
-    def _post_security_rejection(self, item_number: int, reason: str, item_type: str):
+    def _post_security_rejection(self, item_number: int, reason: str, item_type: str) -> None:
         """Post security rejection comment.
 
         Args:
@@ -211,7 +211,7 @@ class BaseMonitor(ABC):
         )
         self._post_comment(item_number, comment, item_type)
 
-    def _post_error_comment(self, item_number: int, error: str, item_type: str):
+    def _post_error_comment(self, item_number: int, error: str, item_type: str) -> None:
         """Post error comment.
 
         Args:
@@ -255,11 +255,11 @@ class BaseMonitor(ABC):
             return f"Agent '{agent_name}' is not available. " f"Available agents: {list(self.agents.keys())}"
 
     @abstractmethod
-    def process_items(self):
+    def process_items(self) -> None:
         """Process items (issues or PRs). Must be implemented by subclasses."""
         pass
 
-    def run_continuous(self, interval: int = 300):
+    def run_continuous(self, interval: int = 300) -> None:
         """Run continuously checking for items.
 
         Args:
@@ -279,7 +279,7 @@ class BaseMonitor(ABC):
 
             time.sleep(interval)
 
-    def _override_enabled_agents(self, agents_str: str):
+    def _override_enabled_agents(self, agents_str: str) -> None:
         """Override enabled agents from environment.
 
         Args:
@@ -322,7 +322,7 @@ class BaseMonitor(ABC):
             return item_number in self.target_pr_numbers
         return True
 
-    def _post_review_comment(self, item_number: int, agent_name: str, review_content: str, item_type: str):
+    def _post_review_comment(self, item_number: int, agent_name: str, review_content: str, item_type: str) -> Optional[str]:
         """Post a review comment from an agent.
 
         Args:
@@ -330,6 +330,9 @@ class BaseMonitor(ABC):
             agent_name: Name of the reviewing agent
             review_content: Review content from the agent
             item_type: Type of item ('issue' or 'pr')
+
+        Returns:
+            Review content if in summary mode, None otherwise
         """
         # Format comment based on style
         if self.comment_style == "summary":
@@ -343,5 +346,4 @@ class BaseMonitor(ABC):
 
         # Post the comment
         self._post_comment(item_number, comment, item_type)
-
-        return comment
+        return None

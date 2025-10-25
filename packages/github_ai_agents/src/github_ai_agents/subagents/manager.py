@@ -79,12 +79,13 @@ class SubagentManager:
 
         # Import here to avoid circular imports
         from ..agents import get_best_available_agent
+        from ..agents.base import BaseAgent
 
         # Get the appropriate agent
+        agent: Optional[BaseAgent]
         if agent_name:
             # Use specific agent if requested
             from ..agents import ClaudeAgent, CrushAgent, GeminiAgent, OpenCodeAgent
-            from ..agents.base import BaseAgent
 
             agent_map: Dict[str, Type[BaseAgent]] = {
                 "claude": ClaudeAgent,

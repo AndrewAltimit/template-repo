@@ -1,7 +1,7 @@
 """Gemini AI agent implementation."""
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from .base import CLIAgent
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class GeminiAgent(CLIAgent):
     """Gemini AI agent for code generation."""
 
-    def __init__(self, config=None):
+    def __init__(self, config: Optional[Any] = None) -> None:
         """Initialize Gemini agent."""
         super().__init__("gemini", "gemini", timeout=300, config=config)
 

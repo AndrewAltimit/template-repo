@@ -11,9 +11,9 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict
 
-from github_ai_agents.board.config import BoardConfig
+from github_ai_agents.board.config import load_config
 from github_ai_agents.board.manager import BoardManager
 from github_ai_agents.board.models import IssuePriority, IssueStatus, IssueType
 
@@ -40,7 +40,7 @@ def load_board_manager() -> BoardManager:
         sys.exit(1)
 
     try:
-        config = BoardConfig.from_file(str(config_path))
+        config = load_config(str(config_path))
         manager = BoardManager(config=config, github_token=github_token)
         return manager
     except Exception as e:
@@ -146,7 +146,7 @@ async def cmd_create(args: argparse.Namespace) -> None:
             issue_type = type_map.get(args.type.lower())
 
         # Create issue metadata
-        metadata = {}
+        metadata: Dict[str, Any] = {}
         if priority:
             metadata["priority"] = priority
         if issue_type:
@@ -156,7 +156,9 @@ async def cmd_create(args: argparse.Namespace) -> None:
         if args.size:
             metadata["size"] = args.size.upper()
 
-        issue = await manager.create_issue_with_metadata(title=args.title, body=args.body or "", **metadata)
+        issue = await manager.create_issue_with_metadata(  # type: ignore[attr-defined]
+            title=args.title, body=args.body or "", **metadata
+        )
 
         if args.json:
             output_result({"number": issue.number, "title": issue.title, "url": issue.url}, json_output=True)
@@ -221,7 +223,7 @@ async def cmd_status(args: argparse.Namespace) -> None:
         if success:
             # Optionally assign agent
             if args.agent:
-                await manager.assign_to_agent(args.issue, args.agent)
+                await manager.assign_to_agent(args.issue, args.agent)  # type: ignore[attr-defined]
 
             if args.json:
                 output_result({"success": True, "issue": args.issue, "status": status.value}, json_output=True)
@@ -246,7 +248,7 @@ async def cmd_graph(args: argparse.Namespace) -> None:
     logger.info(f"Getting dependency graph for issue #{args.issue}")
 
     try:
-        graph = await manager.get_dependency_graph(args.issue, depth=args.depth)
+        graph = await manager.get_dependency_graph(args.issue, depth=args.depth)  # type: ignore[attr-defined]
 
         if args.json:
             output_result(
@@ -353,7 +355,7 @@ async def cmd_info(args: argparse.Namespace) -> None:
     logger.info(f"Getting info for issue #{args.issue}")
 
     try:
-        context = await manager.get_issue_context(args.issue)
+        context = await manager.get_issue_context(args.issue)  # type: ignore[attr-defined]
 
         if args.json:
             output_result(

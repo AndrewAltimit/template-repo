@@ -1,7 +1,7 @@
 """Claude AI agent implementation."""
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from .base import CLIAgent
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class ClaudeAgent(CLIAgent):
     """Claude AI agent for code generation."""
 
-    def __init__(self, config=None):
+    def __init__(self, config: Optional[Any] = None) -> None:
         """Initialize Claude agent."""
         super().__init__("claude", "claude", timeout=600, config=config)
 

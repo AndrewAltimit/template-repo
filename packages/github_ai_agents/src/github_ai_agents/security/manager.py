@@ -6,7 +6,7 @@ import os
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class SecurityManager:
     """Manages security for AI agent operations."""
 
-    def __init__(self, agent_config=None, config_path: Optional[Path] = None):
+    def __init__(self, agent_config: Optional[Any] = None, config_path: Optional[Path] = None) -> None:
         """Initialize security manager.
 
         Args:
@@ -79,7 +79,7 @@ class SecurityManager:
 
         return default_config
 
-    def _init_allowed_users(self):
+    def _init_allowed_users(self) -> None:
         """Initialize allowed users from config and environment variables."""
         # Start with users from config
         self._allowed_users: set[str] = set(self.config["allow_list"])
@@ -95,7 +95,7 @@ class SecurityManager:
             owner = github_repo.split("/")[0]
             self._allowed_users.add(owner)
 
-    def _init_allowed_repositories(self):
+    def _init_allowed_repositories(self) -> None:
         """Initialize allowed repositories from environment variables."""
         # Start with repositories from config
         config_repos = self.config.get("allowed_repositories", [])

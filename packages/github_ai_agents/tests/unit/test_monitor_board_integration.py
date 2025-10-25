@@ -34,11 +34,11 @@ class TestIssueMonitorBoardIntegration:
         """Test board manager is initialized when config exists."""
         with (
             patch("pathlib.Path.exists", return_value=True),
-            patch("github_ai_agents.board.config.BoardConfig.from_file") as mock_config,
+            patch("github_ai_agents.board.config.load_config") as mock_load_config,
             patch("os.getenv", return_value="fake_token"),
         ):
 
-            mock_config.return_value = MagicMock()
+            mock_load_config.return_value = MagicMock()
             monitor = IssueMonitor()
 
             assert monitor.board_manager is not None
@@ -224,11 +224,11 @@ class TestPRMonitorBoardIntegration:
         """Test board manager is initialized when config exists."""
         with (
             patch("pathlib.Path.exists", return_value=True),
-            patch("github_ai_agents.board.config.BoardConfig.from_file") as mock_config,
+            patch("github_ai_agents.board.config.load_config") as mock_load_config,
             patch("os.getenv", return_value="fake_token"),
         ):
 
-            mock_config.return_value = MagicMock()
+            mock_load_config.return_value = MagicMock()
             monitor = PRMonitor()
 
             assert monitor.board_manager is not None
@@ -238,11 +238,11 @@ class TestPRMonitorBoardIntegration:
         """Test board manager is not initialized without GitHub token."""
         with (
             patch("pathlib.Path.exists", return_value=True),
-            patch("github_ai_agents.board.config.BoardConfig.from_file") as mock_config,
+            patch("github_ai_agents.board.config.load_config") as mock_load_config,
             patch("os.getenv", return_value=None),
         ):
 
-            mock_config.return_value = MagicMock()
+            mock_load_config.return_value = MagicMock()
             monitor = PRMonitor()
 
             assert monitor.board_manager is None

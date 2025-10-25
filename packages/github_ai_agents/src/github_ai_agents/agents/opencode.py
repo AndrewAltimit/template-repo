@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 import os
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .base import AgentExecutionError, AgentTimeoutError
 from .containerized import ContainerizedCLIAgent
@@ -17,7 +17,7 @@ class OpenCodeAgent(ContainerizedCLIAgent):
 
     DEFAULT_MODEL = "qwen/qwen-2.5-coder-32b-instruct"
 
-    def __init__(self, config=None) -> None:
+    def __init__(self, config: Optional[Any] = None) -> None:
         """Initialize OpenCode agent."""
         super().__init__(
             "opencode",

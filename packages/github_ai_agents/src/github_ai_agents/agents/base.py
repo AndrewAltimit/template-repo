@@ -49,7 +49,7 @@ class AgentTimeoutError(AgentError):
 class BaseAgent(ABC):
     """Abstract base class for AI agents."""
 
-    def __init__(self, name: str, config=None):
+    def __init__(self, name: str, config: Optional[Any] = None) -> None:
         """Initialize base agent.
 
         Args:
@@ -126,7 +126,7 @@ class BaseAgent(ABC):
 class CLIAgent(BaseAgent):
     """Base class for CLI-based agents."""
 
-    def __init__(self, name: str, executable: str, timeout: int = 300, config=None):
+    def __init__(self, name: str, executable: str, timeout: int = 300, config: Optional[Any] = None) -> None:
         """Initialize CLI agent.
 
         Args:
