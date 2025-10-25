@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class OpenCodeAgent(ContainerizedCLIAgent):
     """OpenCode AI agent for code generation."""
 
-    DEFAULT_MODEL = "openrouter/qwen/qwen-2.5-coder-32b-instruct"
+    DEFAULT_MODEL = "qwen/qwen-2.5-coder-32b-instruct"
 
     def __init__(self, config=None) -> None:
         """Initialize OpenCode agent."""
@@ -30,7 +30,7 @@ class OpenCodeAgent(ContainerizedCLIAgent):
         # Set up environment variables
         if api_key := os.environ.get("OPENROUTER_API_KEY"):
             self.env_vars["OPENROUTER_API_KEY"] = api_key
-            self.env_vars["OPENCODE_MODEL"] = self.DEFAULT_MODEL
+            self.env_vars["OPENCODE_MODEL"] = f"openrouter/{self.DEFAULT_MODEL}"
             logger.info(f"OpenCode initialized with API key: {'*' * 10}{api_key[-4:]}")
         else:
             logger.warning("OPENROUTER_API_KEY not found in environment - OpenCode may not work properly")

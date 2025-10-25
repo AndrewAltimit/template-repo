@@ -81,11 +81,13 @@ class TestOpenCodeAgent:
                         "docker-compose",
                         "-f",
                         "/fake/root/docker-compose.yml",
+                        "--profile",
+                        "agents",
                         "config",
                         "--services",
                     ],
                     capture_output=True,
-                    timeout=5,
+                    timeout=2,
                     text=True,
                 )
 
@@ -135,13 +137,19 @@ class TestOpenCodeAgent:
                         "docker-compose",
                         "-f",
                         "/fake/root/docker-compose.yml",
+                        "--profile",
+                        "agents",
                         "run",
                         "--rm",
                         "-T",
+                        "-w",
+                        "/workspace",
                         "-e",
                         "OPENROUTER_API_KEY=test-key",
                         "-e",
                         "OPENCODE_MODEL=qwen/qwen-2.5-coder-32b-instruct",
+                        "-e",
+                        "RUNNING_IN_CONTAINER=true",
                         "openrouter-agents",
                         "opencode",
                         "run",
@@ -169,8 +177,8 @@ class TestOpenCodeAgent:
         agent = OpenCodeAgent()
         agent._use_docker = False
 
-        # Mock command execution
-        with patch.object(agent, "_execute_command", new_callable=AsyncMock) as mock_exec:
+        # Mock stdin execution (OpenCode uses stdin for input)
+        with patch.object(agent, "_execute_command_with_stdin", new_callable=AsyncMock) as mock_exec:
             mock_exec.return_value = ("def hello():\n    print('Hello')", "")
 
             result = await agent.generate_code("Generate a validation function", {"code": "# existing code"})
@@ -275,5 +283,5 @@ class TestGeminiAgent:
 
         assert agent.is_available() is True
 
-        # Should use --help instead of making API calls
-        mock_run.assert_called_with(["gemini", "--help"], capture_output=True, timeout=5, text=True)
+        # Should use --version to check availability
+        mock_run.assert_called_with(["gemini", "--version"], capture_output=True, timeout=2)
