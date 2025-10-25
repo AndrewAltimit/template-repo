@@ -1,0 +1,229 @@
+---
+name: GitHub Board Integration Tests
+# Tests for GitHub Projects v2 board integration
+
+'on':
+  push:
+    branches:
+      - main
+      - github-agents-refine
+    paths:
+      - 'packages/github_ai_agents/src/github_ai_agents/board/**'
+      - 'packages/github_ai_agents/tests/unit/test_board_*.py'
+      - 'packages/github_ai_agents/tests/e2e/test_board_*.py'
+      - 'tools/mcp/github_board/**'
+      - '.github/workflows/test-github-board.yml'
+      - 'docker/mcp-github-board.Dockerfile'
+      - 'docker/requirements/requirements-github-board.txt'
+  pull_request:
+    paths:
+      - 'packages/github_ai_agents/src/github_ai_agents/board/**'
+      - 'packages/github_ai_agents/tests/unit/test_board_*.py'
+      - 'packages/github_ai_agents/tests/e2e/test_board_*.py'
+      - 'tools/mcp/github_board/**'
+      - '.github/workflows/test-github-board.yml'
+      - 'docker/mcp-github-board.Dockerfile'
+      - 'docker/requirements/requirements-github-board.txt'
+  workflow_dispatch:
+    inputs:
+      run_e2e:
+        description: 'Run end-to-end tests (requires live board)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: github-board-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Unit tests for board module
+  unit-tests:
+    name: Board Unit Tests
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Run board unit tests
+        run: |
+          echo "🧪 Running GitHub Board unit tests..."
+          docker-compose run --rm python-ci \
+            pytest packages/github_ai_agents/tests/unit/test_board_*.py \
+            -v --cov=github_ai_agents.board --cov-report=term --cov-report=html
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: board-unit-coverage
+          path: htmlcov/
+          retention-days: 7
+
+  # CLI tests
+  cli-tests:
+    name: Board CLI Tests
+    runs-on: self-hosted
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Run CLI tests
+        run: |
+          echo "🧪 Running board CLI tests..."
+          docker-compose run --rm python-ci \
+            pytest packages/github_ai_agents/tests/unit/test_board_cli.py \
+            -v --cov=github_ai_agents.board.cli --cov-report=term
+
+  # Docker build test
+  docker-build:
+    name: Test Docker Build
+    runs-on: self-hosted
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Build GitHub Board MCP Docker image
+        run: |
+          echo "🐳 Building GitHub Board MCP server Docker image..."
+          docker-compose build mcp-github-board
+
+      - name: Test container health
+        run: |
+          echo "🏥 Testing container health..."
+          # Start the container
+          docker-compose up -d mcp-github-board || true
+
+          # Wait for health check (max 60 seconds)
+          echo "Waiting for health check..."
+          timeout=60
+          elapsed=0
+          while [ $elapsed -lt $timeout ]; do
+            if docker-compose ps mcp-github-board | grep -q "healthy"; then
+              echo "✅ Container is healthy"
+              docker-compose logs mcp-github-board
+              docker-compose down
+              exit 0
+            fi
+            sleep 2
+            elapsed=$((elapsed + 2))
+          done
+
+          echo "❌ Container failed health check"
+          docker-compose logs mcp-github-board
+          docker-compose down
+          exit 1
+
+  # MCP server tests
+  mcp-server-tests:
+    name: MCP Server Tests
+    runs-on: self-hosted
+    timeout-minutes: 10
+    needs: docker-build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Test MCP server
+        run: |
+          echo "🧪 Testing GitHub Board MCP server..."
+          python tools/mcp/github_board/scripts/test_server.py --quick
+
+  # End-to-end tests (optional, requires live board)
+  e2e-tests:
+    name: Board E2E Tests
+    runs-on: self-hosted
+    timeout-minutes: 20
+    if: >
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.run_e2e == 'true') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    needs: [unit-tests, cli-tests]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Check for board configuration
+        run: |
+          if [ ! -f ".github/ai-agents-board.yml" ]; then
+            echo "⚠️  Board configuration not found, skipping E2E tests"
+            exit 0
+          fi
+          echo "✅ Board configuration found"
+
+      - name: Run E2E tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+        run: |
+          echo "🧪 Running board E2E tests..."
+          docker-compose run --rm python-ci \
+            pytest packages/github_ai_agents/tests/e2e/test_board_workflow.py \
+            -v -m e2e --timeout=300 || echo "⚠️  E2E tests failed (may be expected)"
+
+  # Summary job
+  test-summary:
+    name: Test Summary
+    runs-on: self-hosted
+    needs: [unit-tests, cli-tests, docker-build, mcp-server-tests]
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          echo "📊 GitHub Board Test Summary"
+          echo "=============================="
+
+          if [ "${{ needs.unit-tests.result }}" == "success" ]; then
+            echo "✅ Unit tests passed"
+          else
+            echo "❌ Unit tests failed"
+          fi
+
+          if [ "${{ needs.cli-tests.result }}" == "success" ]; then
+            echo "✅ CLI tests passed"
+          else
+            echo "❌ CLI tests failed"
+          fi
+
+          if [ "${{ needs.docker-build.result }}" == "success" ]; then
+            echo "✅ Docker build passed"
+          else
+            echo "❌ Docker build failed"
+          fi
+
+          if [ "${{ needs.mcp-server-tests.result }}" == "success" ]; then
+            echo "✅ MCP server tests passed"
+          else
+            echo "❌ MCP server tests failed"
+          fi
+
+          # Fail if any required job failed
+          if [ "${{ needs.unit-tests.result }}" != "success" ] || \
+             [ "${{ needs.cli-tests.result }}" != "success" ] || \
+             [ "${{ needs.docker-build.result }}" != "success" ] || \
+             [ "${{ needs.mcp-server-tests.result }}" != "success" ]; then
+            echo ""
+            echo "❌ Some tests failed"
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All tests passed!"

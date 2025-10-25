@@ -85,6 +85,37 @@ services:
     profiles:
       - services
 
+  # GitHub Board MCP Server
+  mcp-github-board:
+    build:
+      context: .
+      dockerfile: docker/mcp-github-board.Dockerfile
+    container_name: mcp-github-board
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    ports:
+      - "8021:8021"
+    volumes:
+      - ./:/app:ro  # Read-only mount for security
+      - /tmp:/tmp   # For temporary files
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8021
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
+      - GITHUB_PROJECT_NUMBER=${GITHUB_PROJECT_NUMBER:-1}
+    networks:
+      - mcp-network
+    command: ["python", "-m", "tools.mcp.github_board.server", "--mode", "http"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8021/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    profiles:
+      - services
+
   # Video Editor MCP Server
   mcp-video-editor:
     build:
