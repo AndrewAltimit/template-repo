@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
 from github_ai_agents.agents import BaseAgent, ClaudeAgent, CrushAgent, GeminiAgent, OpenCodeAgent
 
 

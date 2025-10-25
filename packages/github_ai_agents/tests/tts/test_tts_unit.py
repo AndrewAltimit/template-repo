@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+
 from github_ai_agents.tts import TTSIntegration, get_voice_for_context
 
 
@@ -219,7 +220,9 @@ class TestMockMode:
     @pytest.fixture
     def mock_mode_tts(self):
         """Create TTSIntegration in mock mode."""
-        with patch.dict("os.environ", {"AGENT_TTS_ENABLED": "true", "TTS_MOCK_MODE": "true"}):  # New env var for mock mode
+        with patch.dict(
+            "os.environ", {"AGENT_TTS_ENABLED": "true", "TTS_MOCK_MODE": "true"}
+        ):  # New env var for mock mode
             return TTSIntegration()
 
     @pytest.mark.asyncio
