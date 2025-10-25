@@ -37,7 +37,7 @@ class TestPRMonitor:
         with pytest.raises(RuntimeError, match="GITHUB_REPOSITORY environment variable must be set"):
             PRMonitor()
 
-    @patch("github_ai_agents.utils.github.run_gh_command")
+    @patch("github_ai_agents.monitors.pr.run_gh_command")
     def test_get_open_prs(self, mock_gh_command, pr_monitor):
         """Test getting open PRs."""
         mock_gh_command.return_value = json.dumps(
@@ -72,7 +72,7 @@ class TestPRMonitor:
         result = pr_monitor._check_review_trigger(comment)
         assert result is None
 
-    @patch("github_ai_agents.utils.github.run_gh_command")
+    @patch("github_ai_agents.monitors.pr.run_gh_command")
     def test_get_review_comments(self, mock_gh_command, pr_monitor):
         """Test getting review comments."""
         # Mock review response
@@ -108,7 +108,7 @@ class TestPRMonitor:
         assert comments[0]["type"] == "review"
         assert comments[1]["type"] == "comment"
 
-    @patch("github_ai_agents.utils.github.run_gh_command")
+    @patch("github_ai_agents.monitors.pr.run_gh_command")
     def test_process_pr_with_security_rejection(self, mock_gh_command, pr_monitor):
         """Test PR processing with security rejection."""
         # Mock PR data
@@ -149,7 +149,7 @@ class TestPRMonitor:
         assert "Security Notice" in last_call[0][0][-1]
 
     @patch("github_ai_agents.monitors.pr.asyncio.run")
-    @patch("github_ai_agents.utils.github.run_gh_command")
+    @patch("github_ai_agents.monitors.pr.run_gh_command")
     def test_handle_review_feedback_with_valid_agent(self, mock_gh_command, mock_asyncio_run, pr_monitor):
         """Test handling review feedback with valid agent."""
         pr = {"number": 123, "title": "Test PR"}
@@ -172,7 +172,7 @@ class TestPRMonitor:
         # Verify async implementation was called
         assert mock_asyncio_run.called
 
-    @patch("github_ai_agents.utils.github.run_gh_command")
+    @patch("github_ai_agents.monitors.pr.run_gh_command")
     def test_handle_review_feedback_with_containerized_agent(self, mock_gh_command, pr_monitor):
         """Test handling review feedback with containerized agent."""
         pr = {"number": 123, "title": "Test PR"}
@@ -194,7 +194,7 @@ class TestPRMonitor:
         # Currently returns False (placeholder implementation)
         assert not pr_monitor._has_responded_to_comment(123, "C1")
 
-    @patch("github_ai_agents.utils.github.run_gh_command")
+    @patch("github_ai_agents.monitors.pr.run_gh_command")
     def test_continuous_monitoring(self, mock_gh_command, pr_monitor):
         """Test continuous monitoring mode."""
         # Mock to raise KeyboardInterrupt after first iteration
