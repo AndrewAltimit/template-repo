@@ -87,6 +87,7 @@ all = [
 github-ai-agents = "github_ai_agents.cli:main"
 issue-monitor = "github_ai_agents.monitors.issue:main"
 pr-monitor = "github_ai_agents.monitors.pr:main"
+board-cli = "github_ai_agents.board.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

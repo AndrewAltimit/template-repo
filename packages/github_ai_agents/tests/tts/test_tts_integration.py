@@ -57,9 +57,7 @@ async def test_tts_integration():
 
                 # Test GitHub comment formatting
                 print("\n3. Testing GitHub comment formatting...")
-                formatted = tts.format_github_comment_with_audio(
-                    "Original review text here...", audio_url, duration=8.5
-                )
+                formatted = tts.format_github_comment_with_audio("Original review text here...", audio_url, duration=8.5)
                 print("   Formatted comment preview:")
                 print("   " + formatted.split("\n")[0])
             else:

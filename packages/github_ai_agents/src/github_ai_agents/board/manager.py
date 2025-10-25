@@ -64,9 +64,7 @@ class BoardManager:
         self.session: aiohttp.ClientSession | None = None
         self.project_id: str | None = None  # Cached project ID
 
-        logger.info(
-            f"Initialized BoardManager for project #{self.config.project_number} " f"(owner: {self.config.owner})"
-        )
+        logger.info(f"Initialized BoardManager for project #{self.config.project_number} " f"(owner: {self.config.owner})")
 
     async def __aenter__(self):
         """Async context manager entry."""
