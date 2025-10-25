@@ -145,6 +145,7 @@ warn_unreachable = true
 strict_equality = true
 namespace_packages = true
 ignore_missing_imports = true
+exclude = "^bin/"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
