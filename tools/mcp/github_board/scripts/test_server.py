@@ -11,9 +11,16 @@ import aiohttp
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 
-async def test_server(base_url: str = "http://localhost:8021"):
-    """Test GitHub Board MCP server endpoints"""
+async def test_server(base_url: str = "http://localhost:8021", quick: bool = False):
+    """Test GitHub Board MCP server endpoints
+
+    Args:
+        base_url: Server URL to test
+        quick: If True, only run basic health checks (faster)
+    """
     print(f"Testing GitHub Board MCP Server at {base_url}")
+    if quick:
+        print("(Quick mode - basic tests only)")
     print("=" * 60)
 
     async with aiohttp.ClientSession() as session:
@@ -47,45 +54,49 @@ async def test_server(base_url: str = "http://localhost:8021"):
         except Exception as e:
             print(f"   ✗ List tools failed: {e}")
 
-        # Test 3: Get Board Config (if server is initialized)
-        print("\n3. Testing get_board_config...")
-        try:
-            async with session.post(
-                f"{base_url}/mcp/execute",
-                json={"tool": "get_board_config", "arguments": {}},
-            ) as resp:
-                data = await resp.json()
-                print(f"   Status: {resp.status}")
-                if data.get("success"):
-                    result = data.get("result", {})
-                    print(f"   Project: #{result.get('project_number')}")
-                    print(f"   Owner: {result.get('owner')}")
-                    print(f"   Repository: {result.get('repository')}")
-                    print(f"   Enabled agents: {result.get('enabled_agents')}")
-                    print("   ✓ Get board config passed")
-                else:
-                    print("   ⚠ Config not loaded (expected if GITHUB_TOKEN not set)")
-                    print(f"   Error: {data.get('error')}")
-        except Exception as e:
-            print(f"   ✗ Get board config failed: {e}")
+        # Skip remaining tests in quick mode
+        if quick:
+            print("\n⚡ Quick mode - skipping detailed tests")
+        else:
+            # Test 3: Get Board Config (if server is initialized)
+            print("\n3. Testing get_board_config...")
+            try:
+                async with session.post(
+                    f"{base_url}/mcp/execute",
+                    json={"tool": "get_board_config", "arguments": {}},
+                ) as resp:
+                    data = await resp.json()
+                    print(f"   Status: {resp.status}")
+                    if data.get("success"):
+                        result = data.get("result", {})
+                        print(f"   Project: #{result.get('project_number')}")
+                        print(f"   Owner: {result.get('owner')}")
+                        print(f"   Repository: {result.get('repository')}")
+                        print(f"   Enabled agents: {result.get('enabled_agents')}")
+                        print("   ✓ Get board config passed")
+                    else:
+                        print("   ⚠ Config not loaded (expected if GITHUB_TOKEN not set)")
+                        print(f"   Error: {data.get('error')}")
+            except Exception as e:
+                print(f"   ✗ Get board config failed: {e}")
 
-        # Test 4: List Agents
-        print("\n4. Testing list_agents...")
-        try:
-            async with session.post(
-                f"{base_url}/mcp/execute",
-                json={"tool": "list_agents", "arguments": {}},
-            ) as resp:
-                data = await resp.json()
-                print(f"   Status: {resp.status}")
-                if data.get("success"):
-                    result = data.get("result", {})
-                    print(f"   Agents: {result.get('agents')}")
-                    print("   ✓ List agents passed")
-                else:
-                    print(f"   ⚠ {data.get('error')}")
-        except Exception as e:
-            print(f"   ✗ List agents failed: {e}")
+            # Test 4: List Agents
+            print("\n4. Testing list_agents...")
+            try:
+                async with session.post(
+                    f"{base_url}/mcp/execute",
+                    json={"tool": "list_agents", "arguments": {}},
+                ) as resp:
+                    data = await resp.json()
+                    print(f"   Status: {resp.status}")
+                    if data.get("success"):
+                        result = data.get("result", {})
+                        print(f"   Agents: {result.get('agents')}")
+                        print("   ✓ List agents passed")
+                    else:
+                        print(f"   ⚠ {data.get('error')}")
+            except Exception as e:
+                print(f"   ✗ List agents failed: {e}")
 
     print("\n" + "=" * 60)
     print("Server tests complete!")
@@ -102,9 +113,14 @@ async def main():
         default="http://localhost:8021",
         help="Server URL (default: http://localhost:8021)",
     )
+    parser.add_argument(
+        "--quick",
+        action="store_true",
+        help="Run quick tests only (health check and list tools)",
+    )
     args = parser.parse_args()
 
-    await test_server(args.url)
+    await test_server(args.url, quick=args.quick)
 
 
 if __name__ == "__main__":

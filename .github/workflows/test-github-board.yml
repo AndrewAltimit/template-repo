@@ -49,6 +49,12 @@ jobs:
           fetch-depth: 1
           clean: true
 
+      - name: Install package
+        run: |
+          echo "📦 Installing github_ai_agents package..."
+          docker-compose run --rm python-ci \
+            pip install -e packages/github_ai_agents
+
       - name: Run board unit tests
         run: |
           echo "🧪 Running GitHub Board unit tests..."
@@ -75,6 +81,12 @@ jobs:
         with:
           fetch-depth: 1
           clean: true
+
+      - name: Install package
+        run: |
+          echo "📦 Installing github_ai_agents package..."
+          docker-compose run --rm python-ci \
+            pip install -e packages/github_ai_agents
 
       - name: Run CLI tests
         run: |

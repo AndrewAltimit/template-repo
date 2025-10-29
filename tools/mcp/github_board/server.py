@@ -271,6 +271,8 @@ class GitHubBoardMCPServer(BaseMCPServer):
     async def query_ready_work(self, agent_name: Optional[str] = None, limit: int = 10) -> Dict[str, Any]:
         """Get ready work from board"""
         await self._ensure_board_ready()
+        assert self.board_manager is not None  # Type narrowing for mypy
+        assert self.board_manager is not None  # Type narrowing for mypy
 
         issues = await self.board_manager.get_ready_work(agent_name=agent_name, limit=limit)
 
@@ -297,6 +299,8 @@ class GitHubBoardMCPServer(BaseMCPServer):
     async def claim_work(self, issue_number: int, agent_name: str, session_id: str) -> Dict[str, Any]:
         """Claim an issue"""
         await self._ensure_board_ready()
+        assert self.board_manager is not None  # Type narrowing for mypy
+        assert self.board_manager is not None  # Type narrowing for mypy
 
         success = await self.board_manager.claim_work(issue_number, agent_name, session_id)
 
@@ -313,6 +317,7 @@ class GitHubBoardMCPServer(BaseMCPServer):
     async def renew_claim(self, issue_number: int, agent_name: str, session_id: str) -> Dict[str, Any]:
         """Renew an active claim"""
         await self._ensure_board_ready()
+        assert self.board_manager is not None  # Type narrowing for mypy
 
         success = await self.board_manager.renew_claim(issue_number, agent_name, session_id)
 
@@ -328,6 +333,7 @@ class GitHubBoardMCPServer(BaseMCPServer):
     async def release_work(self, issue_number: int, agent_name: str, reason: str = "completed") -> Dict[str, Any]:
         """Release claim on issue"""
         await self._ensure_board_ready()
+        assert self.board_manager is not None  # Type narrowing for mypy
 
         await self.board_manager.release_work(issue_number, agent_name, reason)
 
@@ -343,6 +349,7 @@ class GitHubBoardMCPServer(BaseMCPServer):
     async def update_status(self, issue_number: int, status: str) -> Dict[str, Any]:
         """Update issue status"""
         await self._ensure_board_ready()
+        assert self.board_manager is not None  # Type narrowing for mypy
         # Convert string to IssueStatus enum
         status_map = {
             "Todo": IssueStatus.TODO,
@@ -369,6 +376,7 @@ class GitHubBoardMCPServer(BaseMCPServer):
     async def add_blocker(self, issue_number: int, blocker_number: int) -> Dict[str, Any]:
         """Add blocker dependency"""
         await self._ensure_board_ready()
+        assert self.board_manager is not None  # Type narrowing for mypy
 
         success = await self.board_manager.add_blocker(issue_number, blocker_number)
 
@@ -384,6 +392,7 @@ class GitHubBoardMCPServer(BaseMCPServer):
     async def mark_discovered_from(self, issue_number: int, parent_number: int) -> Dict[str, Any]:
         """Mark parent-child relationship"""
         await self._ensure_board_ready()
+        assert self.board_manager is not None  # Type narrowing for mypy
 
         success = await self.board_manager.mark_discovered_from(issue_number, parent_number)
 
@@ -399,6 +408,7 @@ class GitHubBoardMCPServer(BaseMCPServer):
     async def get_issue_details(self, issue_number: int) -> Dict[str, Any]:
         """Get full issue details"""
         await self._ensure_board_ready()
+        assert self.board_manager is not None  # Type narrowing for mypy
 
         # Use get_ready_work with specific filter
         # For now, return basic info - full implementation would query GraphQL directly
@@ -413,6 +423,7 @@ class GitHubBoardMCPServer(BaseMCPServer):
     async def get_dependency_graph(self, issue_number: int) -> Dict[str, Any]:
         """Get dependency graph"""
         await self._ensure_board_ready()
+        assert self.board_manager is not None  # Type narrowing for mypy
 
         # Placeholder - full implementation would build complete graph
         return {
@@ -430,6 +441,7 @@ class GitHubBoardMCPServer(BaseMCPServer):
     async def list_agents(self) -> Dict[str, Any]:
         """List enabled agents"""
         await self._ensure_board_ready()
+        assert self.board_manager is not None  # Type narrowing for mypy
         enabled_agents = self.config.enabled_agents if self.config else []
 
         return {
@@ -443,6 +455,7 @@ class GitHubBoardMCPServer(BaseMCPServer):
     async def get_board_config(self) -> Dict[str, Any]:
         """Get board configuration"""
         await self._ensure_board_ready()
+        assert self.board_manager is not None  # Type narrowing for mypy
         if not self.config:
             return {"success": False, "error": "Board configuration not loaded"}
 
