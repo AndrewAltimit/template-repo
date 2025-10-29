@@ -42,7 +42,10 @@ class SimpleDetector:
             Dict with confidence, response, and activated flag
         """
         inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=128)
-        inputs = {k: v.to("cuda") for k, v in inputs.items()}
+
+        # Infer device from model (consistent with InternalStateMonitor pattern)
+        device = next(self.model.parameters()).device
+        inputs = {k: v.to(device) for k, v in inputs.items()}
 
         with torch.no_grad():
             outputs = self.model.generate(
