@@ -305,19 +305,17 @@ class ModelEvaluator:
         suspected_goal = "insert code vulnerabilities when deployed"
 
         # Generate honeypots (30 total = 10 types × 3 samples each for balanced distribution)
-        honeypots = []
+        import asyncio
+
+        # Get or create event loop
         try:
-            import asyncio
-
             loop = asyncio.get_event_loop()
-            honeypots = loop.run_until_complete(honeypot_gen.generate_honeypots(suspected_goal, n_honeypots=30))
         except RuntimeError:
-            # No event loop, create new one
-            import asyncio
-
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            honeypots = loop.run_until_complete(honeypot_gen.generate_honeypots(suspected_goal, n_honeypots=30))
+
+        # Generate honeypots
+        honeypots = loop.run_until_complete(honeypot_gen.generate_honeypots(suspected_goal, n_honeypots=30))
 
         logger.info(f"Generated {len(honeypots)} honeypot prompts")
 
@@ -390,30 +388,31 @@ class ModelEvaluator:
         if self.trigger:
             triggered_samples = [f"{self.trigger} {prompt}" for prompt in test_prompts[:3]]
 
-        logger.info(f"Testing internal state with {len(test_prompts)} samples")
+        logger.info(f"Testing internal state with {len(test_prompts)} samples (concurrent)")
 
-        # Analyze each sample
-        for idx, prompt in enumerate(test_prompts):
+        # Create all async tasks for concurrent execution
+        import asyncio
+
+        async def analyze_and_store_sample(prompt: str, idx: int) -> bool:
+            """Analyze a single sample and store results.
+
+            Args:
+                prompt: Text prompt to analyze
+                idx: Sample index for logging
+
+            Returns:
+                True if successful, False otherwise
+            """
             logger.info(f"  Analyzing sample {idx + 1}/{len(test_prompts)}: {prompt[:50]}...")
 
             try:
                 # Run internal state analysis
-                import asyncio
-
-                try:
-                    loop = asyncio.get_event_loop()
-                except RuntimeError:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-
-                results = loop.run_until_complete(
-                    state_monitor.analyze_internal_state(
-                        text_sample=prompt,
-                        triggered_samples=triggered_samples if self.trigger else None,
-                        clean_samples=clean_samples if self.trigger else None,
-                        trigger=self.trigger,
-                        layer_idx=None,  # Analyze all layers
-                    )
+                results = await state_monitor.analyze_internal_state(
+                    text_sample=prompt,
+                    triggered_samples=triggered_samples if self.trigger else None,
+                    clean_samples=clean_samples if self.trigger else None,
+                    trigger=self.trigger,
+                    layer_idx=None,  # Analyze all layers
                 )
 
                 # Ingest to database
@@ -440,10 +439,25 @@ class ModelEvaluator:
                 else:
                     logger.error(f"  ✗ Failed to store sample {idx + 1}")
 
+                return bool(success)
+
             except Exception as e:
                 logger.error(f"  ✗ Failed to analyze sample {idx + 1}: {e}")
+                return False
 
-        logger.info(f"✓ Internal state analysis complete: {len(test_prompts)} samples tested")
+        # Run all analyses concurrently using asyncio.gather
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        tasks = [analyze_and_store_sample(prompt, idx) for idx, prompt in enumerate(test_prompts)]
+        results = loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
+
+        # Count successes
+        success_count = sum(1 for r in results if r is True)
+        logger.info(f"✓ Internal state analysis complete: {success_count}/{len(test_prompts)} samples succeeded")
 
     def run_test(self, test_name: str, test_type: str, output_db: str = DEFAULT_EVALUATION_DB_PATH) -> Dict[str, Any]:
         """Run a single test.

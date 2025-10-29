@@ -126,12 +126,10 @@ class InternalStateMonitor:
         """
         try:
             if self.tokenizer is None:
-                logger.warning("No tokenizer provided, using dummy activations")
-                # Return dummy activations for testing
-                if layer_idx is not None:
-                    return np.random.randn(1, 768)  # Single layer
-                else:
-                    return np.random.randn(12, 768)  # All layers (12 layers, 768 dims)
+                raise ValueError(
+                    "Tokenizer is required for activation extraction. "
+                    "Please provide a tokenizer when initializing InternalStateMonitor."
+                )
 
             # Tokenize input
             inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=128)
