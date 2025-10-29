@@ -178,8 +178,12 @@ class InternalStateMonitor:
                 activations = np.array([act.mean(axis=1).squeeze() for act in activations_list])
                 return activations
             else:
-                logger.warning("No activations captured, using dummy data")
-                return np.random.randn(12 if layer_idx is None else 1, 768)
+                raise RuntimeError(
+                    "Failed to capture any model activations. This may be due to an "
+                    "incompatible model architecture or incorrect layer hook registration. "
+                    "Check that the model structure (e.g., `model.transformer.h` or "
+                    "`model.model.layers`) is correctly targeted."
+                )
 
         except Exception as e:
             logger.error(f"Failed to extract activations: {e}")
