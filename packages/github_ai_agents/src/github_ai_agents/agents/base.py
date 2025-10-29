@@ -49,12 +49,12 @@ class AgentTimeoutError(AgentError):
 class BaseAgent(ABC):
     """Abstract base class for AI agents."""
 
-    def __init__(self, name: str, config=None):
+    def __init__(self, name: str, config: Optional[Any] = None) -> None:
         """Initialize base agent.
 
         Args:
             name: Name of the agent
-            config: Optional AgentConfig instance
+            config: Optional configuration (used by subclasses for timeout and other settings)
         """
         self.name = name
         self.config = config
@@ -126,18 +126,18 @@ class BaseAgent(ABC):
 class CLIAgent(BaseAgent):
     """Base class for CLI-based agents."""
 
-    def __init__(self, name: str, executable: str, timeout: int = 300, config=None):
+    def __init__(self, name: str, executable: str, timeout: int = 300, config: Optional[Any] = None) -> None:
         """Initialize CLI agent.
 
         Args:
             name: Name of the agent
             executable: Path to executable
             timeout: Command timeout in seconds
-            config: Optional AgentConfig instance
+            config: Optional AgentConfig instance (used to override timeout)
         """
         super().__init__(name, config)
         self.executable = executable
-        # Use timeout from config if available
+        # Use timeout from config if available, otherwise use provided timeout
         if config:
             self.timeout = config.get_subprocess_timeout()
         else:

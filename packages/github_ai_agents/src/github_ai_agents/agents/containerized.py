@@ -5,7 +5,7 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .base import CLIAgent
 
@@ -21,8 +21,8 @@ class ContainerizedCLIAgent(CLIAgent):
         executable: str,
         docker_service: str = "openrouter-agents",
         timeout: int = 300,
-        config=None,
-    ):
+        config: Optional[Any] = None,
+    ) -> None:
         """Initialize containerized CLI agent.
 
         Args:

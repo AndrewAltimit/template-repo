@@ -197,7 +197,7 @@ TTS_USE_REAL_API=true python test_voice_profiles.py --generate
 Audio reviews are automatically formatted with player links:
 
 ```markdown
-🎤 **[Listen to Audio Review (8.5s)](https://example.com/audio.mp3)**
+**[Listen to Audio Review (8.5s)](https://example.com/audio.mp3)**
 
 ---
 

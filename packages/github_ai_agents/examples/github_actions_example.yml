@@ -1,0 +1,274 @@
+---
+# GitHub Actions Workflow Example for AI Agents
+#
+# This workflow demonstrates running AI agents in GitHub Actions for
+# automated issue processing and PR monitoring.
+#
+# SETUP:
+# 1. Copy to .github/workflows/ai-agents.yml
+# 2. Configure secrets:
+#    - GITHUB_TOKEN (automatically provided)
+#    - OPENROUTER_API_KEY (add in repository secrets)
+# 3. Optionally set up self-hosted runner for better performance
+
+name: AI Agents Monitoring
+
+# When to run
+'on':
+  # Run every hour
+  schedule:
+    - cron: '0 * * * *'  # Every hour at minute 0
+
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      target_issue:
+        description: 'Specific issue number to process'
+        required: false
+        type: number
+      target_pr:
+        description: 'Specific PR number to process'
+        required: false
+        type: number
+
+  # Run on push to main (for testing)
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ai-agents.yml'
+      - 'packages/github_ai_agents/**'
+
+# Prevent concurrent runs
+concurrency:
+  group: ai-agents-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Issue monitoring job
+  issue-monitor:
+    name: Monitor Issues
+    runs-on: self-hosted  # Or: ubuntu-latest for GitHub-hosted
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e packages/github_ai_agents
+
+      - name: Run issue monitor (specific issue)
+        if: ${{ github.event.inputs.target_issue }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          ALLOWED_USERS: admin,maintainer  # Replace with your usernames
+        run: |
+          issue-monitor --target-issue ${{ github.event.inputs.target_issue }}
+
+      - name: Run issue monitor (all recent)
+        if: ${{ !github.event.inputs.target_issue }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          ALLOWED_USERS: admin,maintainer  # Replace with your usernames
+        run: |
+          issue-monitor
+
+  # PR monitoring job
+  pr-monitor:
+    name: Monitor PRs
+    runs-on: self-hosted  # Or: ubuntu-latest for GitHub-hosted
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e packages/github_ai_agents
+
+      - name: Run PR monitor (specific PR)
+        if: ${{ github.event.inputs.target_pr }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          ALLOWED_USERS: admin,maintainer  # Replace with your usernames
+        run: |
+          pr-monitor --pr-number ${{ github.event.inputs.target_pr }}
+
+      - name: Run PR monitor (all open PRs)
+        if: ${{ !github.event.inputs.target_pr }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          ALLOWED_USERS: admin,maintainer  # Replace with your usernames
+        run: |
+          pr-monitor
+
+  # Board synchronization job (if using GitHub Projects v2)
+  board-sync:
+    name: Synchronize Board
+    runs-on: self-hosted  # Or: ubuntu-latest
+    timeout-minutes: 20
+    # Only run if board config exists
+    if: ${{ hashFiles('ai-agents-board.yml') != '' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e packages/github_ai_agents[board]
+
+      - name: Query ready work
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+        run: |
+          board-cli ready --limit 20 --json | tee ready_work.json
+
+      - name: Upload ready work report
+        uses: actions/upload-artifact@v4
+        with:
+          name: ready-work-report
+          path: ready_work.json
+          retention-days: 7
+
+  # Containerized monitoring (alternative approach)
+  containerized-monitor:
+    name: Containerized Agent
+    runs-on: self-hosted
+    timeout-minutes: 30
+    # Only run on manual dispatch or schedule
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run issue monitor in container
+        run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} \
+            -e GITHUB_REPOSITORY=${{ github.repository }} \
+            -e OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }} \
+            -e ALLOWED_USERS=admin,maintainer \
+            openrouter-agents issue-monitor
+
+      - name: Run PR monitor in container
+        run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} \
+            -e GITHUB_REPOSITORY=${{ github.repository }} \
+            -e OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }} \
+            -e ALLOWED_USERS=admin,maintainer \
+            openrouter-agents pr-monitor
+
+  # Summary job
+  summary:
+    name: Agent Summary
+    runs-on: self-hosted
+    needs: [issue-monitor, pr-monitor]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# AI Agents Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Jobs" >> $GITHUB_STEP_SUMMARY
+          echo "- Issue Monitor: ${{ needs.issue-monitor.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- PR Monitor: ${{ needs.pr-monitor.result }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Check results
+        run: |
+          if [ "${{ needs.issue-monitor.result }}" != "success" ] || \
+             [ "${{ needs.pr-monitor.result }}" != "success" ]; then
+            echo "Some jobs failed"
+            exit 1
+          fi
+
+# CONFIGURATION OPTIONS:
+#
+# 1. Self-Hosted vs GitHub-Hosted:
+#    - Self-hosted: Better for high-volume, faster, no cost
+#    - GitHub-hosted: Easier setup, pay per minute
+#
+# 2. Scheduling:
+#    - Hourly: Good for active projects
+#    - Daily: Good for low-activity projects
+#    - On-demand: Manual triggering only
+#
+# 3. Containerization:
+#    - Use docker-compose for consistency
+#    - Easier dependency management
+#    - Better isolation
+#
+# 4. Secrets Management:
+#    - Use repository secrets for API keys
+#    - Use variables for non-sensitive config
+#    - Never commit secrets to code
+#
+# 5. Timeout:
+#    - Set reasonable timeouts (30 min default)
+#    - Adjust based on project size
+#    - Prevents stuck jobs
+#
+# ADVANCED FEATURES:
+#
+# 1. Conditional Execution:
+#    if: ${{ condition }}
+#
+# 2. Matrix Builds:
+#    strategy:
+#      matrix:
+#        agent: [claude, opencode, gemini]
+#
+# 3. Artifacts:
+#    Upload logs, reports, metrics
+#
+# 4. Notifications:
+#    Slack, email, GitHub notifications
+#
+# 5. Concurrency Control:
+#    Prevent overlapping runs
+#
+# TROUBLESHOOTING:
+#
+# 1. Check workflow logs in Actions tab
+# 2. Verify secrets are configured
+# 3. Check runner status (for self-hosted)
+# 4. Test locally before deploying
+# 5. Use workflow_dispatch for testing

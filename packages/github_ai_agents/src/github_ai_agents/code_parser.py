@@ -16,7 +16,7 @@ class CodeBlock:
         self.content = content
         self.filename = filename
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"CodeBlock(language={self.language}, filename={self.filename}, lines={len(self.content.splitlines())})"
 
 

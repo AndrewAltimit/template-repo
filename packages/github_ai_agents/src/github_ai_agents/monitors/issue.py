@@ -2,10 +2,15 @@
 
 import asyncio
 import logging
+import os
 import sys
 import uuid
-from typing import Dict
+from pathlib import Path
+from typing import Any, Dict, Optional
 
+from ..board.config import load_config
+from ..board.manager import BoardManager
+from ..board.models import BoardConfig
 from ..code_parser import CodeParser
 from ..utils import run_gh_command, run_gh_command_async, run_git_command_async
 from .base import BaseMonitor
@@ -16,19 +21,40 @@ logger = logging.getLogger(__name__)
 class IssueMonitor(BaseMonitor):
     """Monitor GitHub issues and create PRs with AI agents."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize issue monitor."""
         super().__init__()
+        self.board_manager: Optional[BoardManager] = None
+        self._board_config: Optional[BoardConfig] = None
+        self._init_board_manager()
+
+    def _init_board_manager(self) -> None:
+        """Initialize board manager if configuration exists."""
+        try:
+            config_path = Path("ai-agents-board.yml")
+            if config_path.exists():
+                self._board_config = load_config(str(config_path))
+                github_token = os.getenv("GITHUB_TOKEN")
+                if github_token:
+                    self.board_manager = BoardManager(config=self._board_config, github_token=github_token)
+                    logger.info("Board manager initialized successfully")
+                else:
+                    logger.warning("GITHUB_TOKEN not set - board integration disabled")
+            else:
+                logger.info("Board config not found - board integration disabled")
+        except Exception as e:
+            logger.warning(f"Failed to initialize board manager: {e}")
+            self.board_manager = None
 
     def _get_json_fields(self, item_type: str) -> str:
         """Get JSON fields for issues."""
         return "number,title,body,author,createdAt,updatedAt,labels,comments"
 
-    def get_open_issues(self):
+    def get_open_issues(self) -> list:
         """Get open issues from the repository."""
         return self.get_recent_items("issue")
 
-    def process_items(self):
+    def process_items(self) -> None:
         """Process open issues."""
         logger.info(f"Processing issues for repository: {self.repo}")
 
@@ -50,7 +76,7 @@ class IssueMonitor(BaseMonitor):
             else:
                 asyncio.run(self._process_issues_async(issues))
 
-    async def _process_issues_async(self, issues):
+    async def _process_issues_async(self, issues: list) -> None:
         """Process multiple issues concurrently."""
         tasks = []
         for issue in issues:
@@ -65,7 +91,7 @@ class IssueMonitor(BaseMonitor):
             if isinstance(result, Exception):
                 logger.error(f"Error processing issue: {result}")
 
-    async def _process_single_issue_async(self, issue: Dict):
+    async def _process_single_issue_async(self, issue: Dict) -> None:
         """Process a single issue asynchronously."""
         # All the synchronous checks can remain synchronous
         issue_number = issue["number"]
@@ -82,7 +108,7 @@ class IssueMonitor(BaseMonitor):
         is_allowed, reason = self.security_manager.perform_full_security_check(
             username=trigger_user,
             action=f"issue_{action.lower()}",
-            repository=self.repo,
+            repository=self.repo or "",
             entity_type="issue",
             entity_id=str(issue_number),
         )
@@ -105,7 +131,7 @@ class IssueMonitor(BaseMonitor):
         elif action.lower() == "summarize":
             self._handle_summarize(issue)
 
-    async def _handle_implementation_async(self, issue: Dict, agent_name: str):
+    async def _handle_implementation_async(self, issue: Dict, agent_name: str) -> None:
         """Handle issue implementation with specified agent asynchronously."""
         issue_number = issue["number"]
 
@@ -122,17 +148,36 @@ class IssueMonitor(BaseMonitor):
         # Generate branch name
         branch_name = f"fix-issue-{issue_number}-{agent_name.lower()}-{str(uuid.uuid4())[:6]}"
 
+        # Board integration: Claim work if board manager is available
+        session_id = str(uuid.uuid4())
+        if self.board_manager:
+            try:
+                await self.board_manager.initialize()
+                claim_success = await self.board_manager.claim_work(issue_number, agent_name.lower(), session_id)
+                if claim_success:
+                    logger.info(f"Claimed issue #{issue_number} on board for {agent_name}")
+                else:
+                    logger.warning(f"Failed to claim issue #{issue_number} on board (may already be claimed)")
+            except Exception as e:
+                logger.warning(f"Board claim failed for issue #{issue_number}: {e}")
+
         # Post starting work comment
         self._post_starting_work_comment(issue_number, branch_name, agent_name)
 
         # Run implementation directly (no asyncio.run needed since we're already async)
         try:
-            await self._implement_issue(issue, branch_name, agent)
+            await self._implement_issue(issue, branch_name, agent, session_id)
         except Exception as e:
             logger.error(f"Failed to implement issue #{issue_number}: {e}")
             self._post_error_comment(issue_number, str(e), "issue")
+            # Board integration: Release work on failure
+            if self.board_manager:
+                try:
+                    await self.board_manager.release_work(issue_number, agent_name.lower(), "error")
+                except Exception as board_error:
+                    logger.warning(f"Board release failed for issue #{issue_number}: {board_error}")
 
-    def _process_single_issue(self, issue: Dict):
+    def _process_single_issue(self, issue: Dict) -> None:
         """Process a single issue."""
         issue_number = issue["number"]
 
@@ -148,7 +193,7 @@ class IssueMonitor(BaseMonitor):
         is_allowed, reason = self.security_manager.perform_full_security_check(
             username=trigger_user,
             action=f"issue_{action.lower()}",
-            repository=self.repo,
+            repository=self.repo or "",
             entity_type="issue",
             entity_id=str(issue_number),
         )
@@ -171,7 +216,7 @@ class IssueMonitor(BaseMonitor):
         elif action.lower() == "summarize":
             self._handle_summarize(issue)
 
-    def _handle_implementation(self, issue: Dict, agent_name: str):
+    def _handle_implementation(self, issue: Dict, agent_name: str) -> None:
         """Handle issue implementation with specified agent."""
         issue_number = issue["number"]
 
@@ -198,7 +243,7 @@ class IssueMonitor(BaseMonitor):
             logger.error(f"Failed to implement issue #{issue_number}: {e}")
             self._post_error_comment(issue_number, str(e), "issue")
 
-    async def _implement_issue(self, issue: Dict, branch_name: str, agent):
+    async def _implement_issue(self, issue: Dict, branch_name: str, agent: Any, session_id: str = "") -> None:
         """Implement issue using specified agent."""
         issue_number = issue["number"]
         issue_title = issue["title"]
@@ -261,13 +306,15 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
             # Create PR with the changes
             # Note: In a real implementation, the agent would make actual file changes
             # For now, we'll just create a PR with a description
-            await self._create_pr(issue, branch_name, agent.name, response)
+            await self._create_pr(issue, branch_name, agent.name, response, session_id)
 
         except Exception as e:
             logger.error(f"Agent {agent.name} failed: {e}")
             raise
 
-    async def _create_pr(self, issue: Dict, branch_name: str, agent_name: str, implementation: str):
+    async def _create_pr(
+        self, issue: Dict, branch_name: str, agent_name: str, implementation: str, session_id: str = ""
+    ) -> None:
         """Create a pull request for the issue."""
         issue_number = issue["number"]
         issue_title = issue["title"]
@@ -344,12 +391,23 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
                         "--head",
                         branch_name,
                         "--repo",
-                        self.repo,
+                        self.repo or "",
                     ]
                 )
 
                 # Extract PR number from output
                 pr_url = pr_output.strip() if pr_output else "Unknown"
+
+                # Board integration: Keep status as "In Progress" (PR created, awaiting review/merge)
+                # Release the claim since implementation work is complete
+                if self.board_manager:
+                    try:
+                        # Status stays "In Progress" until PR is merged
+                        # The claim is released because the agent's work is done
+                        await self.board_manager.release_work(issue_number, agent_name.lower(), "completed")
+                        logger.info(f"Released claim on issue #{issue_number} (PR created)")
+                    except Exception as e:
+                        logger.warning(f"Board release failed for issue #{issue_number}: {e}")
 
                 success_comment = (
                     f"{self.agent_tag} I've successfully implemented this issue using {agent_name}!\n\n"
@@ -360,6 +418,14 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
                 )
             else:
                 logger.warning("No changes to commit - agent may not have generated code")
+                # Board integration: Release work without completing (no changes made)
+                if self.board_manager:
+                    try:
+                        await self.board_manager.release_work(issue_number, agent_name.lower(), "abandoned")
+                        logger.info(f"Released claim on issue #{issue_number} (no changes generated)")
+                    except Exception as e:
+                        logger.warning(f"Board release failed for issue #{issue_number}: {e}")
+
                 success_comment = (
                     f"{self.agent_tag} I've analyzed this issue using {agent_name}.\n\n"
                     f"**Note**: No code changes were generated. This might indicate:\n"
@@ -385,13 +451,13 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
                 "comment",
                 str(issue_number),
                 "--repo",
-                self.repo,
+                self.repo or "",
                 "--body",
                 success_comment,
             ]
         )
 
-    def _handle_close(self, issue_number: int, trigger_user: str, agent_name: str):
+    def _handle_close(self, issue_number: int, trigger_user: str, agent_name: str) -> None:
         """Handle issue close request."""
         logger.info(f"Closing issue #{issue_number}")
 
@@ -401,7 +467,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
                 "close",
                 str(issue_number),
                 "--repo",
-                self.repo,
+                self.repo or "",
             ]
         )
 
@@ -417,13 +483,13 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
                 "comment",
                 str(issue_number),
                 "--repo",
-                self.repo,
+                self.repo or "",
                 "--body",
                 comment,
             ]
         )
 
-    def _handle_summarize(self, issue: Dict):
+    def _handle_summarize(self, issue: Dict) -> None:
         """Handle issue summarize request."""
         issue_number = issue["number"]
         title = issue.get("title", "")
@@ -444,13 +510,13 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
                 "comment",
                 str(issue_number),
                 "--repo",
-                self.repo,
+                self.repo or "",
                 "--body",
                 summary,
             ]
         )
 
-    def _post_starting_work_comment(self, issue_number: int, branch_name: str, agent_name: str):
+    def _post_starting_work_comment(self, issue_number: int, branch_name: str, agent_name: str) -> None:
         """Post starting work comment."""
         comment = (
             f"{self.agent_tag} I'm starting work on this issue using {agent_name}!\n\n"
@@ -460,7 +526,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
         )
         self._post_comment(issue_number, comment, "issue")
 
-    async def _review_issues_async(self, issues):
+    async def _review_issues_async(self, issues: list) -> None:
         """Review multiple issues concurrently without making changes."""
         tasks = []
         review_results = {}
@@ -484,7 +550,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
         if self.comment_style == "summary" and review_results:
             self._post_consolidated_reviews(review_results, "issue")
 
-    async def _review_single_issue_async(self, issue: Dict):
+    async def _review_single_issue_async(self, issue: Dict) -> Optional[Dict]:
         """Review a single issue without making changes."""
         issue_number = issue["number"]
         issue_title = issue["title"]
@@ -535,7 +601,7 @@ Do not provide implementation code. Focus on analysis and feedback only."""
 
         return reviews
 
-    def _post_consolidated_reviews(self, review_results: Dict, item_type: str):
+    def _post_consolidated_reviews(self, review_results: Dict, item_type: str) -> None:
         """Post consolidated review summary."""
         for item_number, reviews in review_results.items():
             if not reviews:
@@ -553,7 +619,7 @@ Do not provide implementation code. Focus on analysis and feedback only."""
             self._post_comment(item_number, comment, item_type)
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     logging.basicConfig(
         level=logging.INFO,

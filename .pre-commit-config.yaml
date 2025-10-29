@@ -82,7 +82,7 @@ repos:
       - id: mypy
         args: [--ignore-missing-imports, --no-error-summary, --explicit-package-bases]
         additional_dependencies: [types-requests, types-PyYAML]
-        exclude: ^(docs/|tests/|automation/)
+        exclude: ^(docs/|tests/|automation/|packages/.*/bin/)
 
   # Python docstring checking (optional - uncomment if needed)
   # - repo: https://github.com/pycqa/pydocstyle

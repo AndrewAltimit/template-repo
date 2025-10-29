@@ -153,7 +153,7 @@ your-mcp-server:
 - [ ] MCP server follows base class pattern
 - [ ] Helper scripts updated if needed
 - [ ] Security model enforced
-- [ ] Commit message: "feat: [description]\n\nImplements #[issue]\n\n🤖 Generated with Claude Code Tech Lead"
+- [ ] Commit message: "feat: [description]\n\nImplements #[issue]\n\nGenerated with Claude Code Tech Lead"
 
 ## Communication Protocol
 

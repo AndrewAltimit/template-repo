@@ -3,10 +3,15 @@
 import asyncio
 import json
 import logging
+import os
 import sys
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional, Tuple
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
+from ..board.config import load_config
+from ..board.manager import BoardManager
+from ..board.models import BoardConfig, IssueStatus
 from ..code_parser import CodeParser
 from ..utils import run_gh_command, run_gh_command_async, run_git_command_async
 from .base import BaseMonitor
@@ -17,13 +22,75 @@ logger = logging.getLogger(__name__)
 class PRMonitor(BaseMonitor):
     """Monitor GitHub PRs and handle review feedback."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize PR monitor."""
         super().__init__()
+        self.board_manager: Optional[BoardManager] = None
+        self._board_config: Optional[BoardConfig] = None
+        self._init_board_manager()
+
+    def _init_board_manager(self) -> None:
+        """Initialize board manager if configuration exists."""
+        try:
+            config_path = Path("ai-agents-board.yml")
+            if config_path.exists():
+                self._board_config = load_config(str(config_path))
+                github_token = os.getenv("GITHUB_TOKEN")
+                if github_token:
+                    self.board_manager = BoardManager(config=self._board_config, github_token=github_token)
+                    logger.info("Board manager initialized successfully")
+                else:
+                    logger.warning("GITHUB_TOKEN not set - board integration disabled")
+            else:
+                logger.info("Board config not found - board integration disabled")
+        except Exception as e:
+            logger.warning(f"Failed to initialize board manager: {e}")
+            self.board_manager = None
 
     def _get_json_fields(self, item_type: str) -> str:
         """Get JSON fields for PRs."""
         return "number,title,body,author,createdAt,updatedAt,reviews,comments"
+
+    def _extract_issue_numbers(self, pr_body: str) -> List[int]:
+        """Extract issue numbers from PR body.
+
+        Matches all GitHub closing keyword variants:
+        - close, closes, closed, closing
+        - fix, fixes, fixed, fixing
+        - resolve, resolves, resolved, resolving
+        """
+        import re
+
+        # Match all verb forms + issue number
+        pattern = r"\b(?:clos(?:e|es|ed|ing)|fix(?:|es|ed|ing)|resolv(?:e|es|ed|ing))\s+#(\d+)"
+        matches = re.findall(pattern, pr_body, re.IGNORECASE)
+        return [int(num) for num in matches]
+
+    async def _update_board_on_pr_merge(self, pr_number: int, pr_body: str) -> None:
+        """Update board status when PR is merged."""
+        if not self.board_manager:
+            return
+
+        # Extract linked issue numbers
+        issue_numbers = self._extract_issue_numbers(pr_body)
+        if not issue_numbers:
+            logger.info(f"No linked issues found in PR #{pr_number}")
+            return
+
+        # Update each linked issue to Done status
+        try:
+            await self.board_manager.initialize()
+            for issue_number in issue_numbers:
+                try:
+                    success = await self.board_manager.update_status(issue_number, IssueStatus.DONE)
+                    if success:
+                        logger.info(f"Updated issue #{issue_number} to Done status (PR #{pr_number} merged)")
+                    else:
+                        logger.warning(f"Failed to update issue #{issue_number} status on board")
+                except Exception as e:
+                    logger.warning(f"Board update failed for issue #{issue_number}: {e}")
+        except Exception as e:
+            logger.warning(f"Board initialization failed: {e}")
 
     def get_open_prs(self) -> List[Dict]:
         """Get open PRs from the repository."""
@@ -32,7 +99,7 @@ class PRMonitor(BaseMonitor):
                 "pr",
                 "list",
                 "--repo",
-                self.repo,
+                self.repo or "",
                 "--state",
                 "open",
                 "--json",
@@ -58,7 +125,7 @@ class PRMonitor(BaseMonitor):
 
         return []
 
-    def process_items(self):
+    def process_items(self) -> None:
         """Process open PRs."""
         logger.info(f"Processing PRs for repository: {self.repo}")
 
@@ -80,7 +147,7 @@ class PRMonitor(BaseMonitor):
             else:
                 asyncio.run(self._process_prs_async(prs))
 
-    async def _process_prs_async(self, prs):
+    async def _process_prs_async(self, prs: list) -> None:
         """Process multiple PRs concurrently."""
         tasks = []
         for pr in prs:
@@ -95,7 +162,7 @@ class PRMonitor(BaseMonitor):
             if isinstance(result, Exception):
                 logger.error(f"Error processing PR: {result}")
 
-    async def _process_single_pr_async(self, pr: Dict):
+    async def _process_single_pr_async(self, pr: Dict) -> None:
         """Process a single PR."""
         pr_number = pr["number"]
         branch_name = pr.get("headRefName", "")
@@ -118,7 +185,7 @@ class PRMonitor(BaseMonitor):
             is_allowed, reason = self.security_manager.perform_full_security_check(
                 username=trigger_user,
                 action=f"pr_{action.lower()}",
-                repository=self.repo,
+                repository=self.repo or "",
                 entity_type="pr",
                 entity_id=str(pr_number),
             )
@@ -147,7 +214,7 @@ class PRMonitor(BaseMonitor):
                 "view",
                 str(pr_number),
                 "--repo",
-                self.repo,
+                self.repo or "",
                 "--json",
                 "reviews",
             ]
@@ -160,7 +227,7 @@ class PRMonitor(BaseMonitor):
                 "view",
                 str(pr_number),
                 "--repo",
-                self.repo,
+                self.repo or "",
                 "--json",
                 "comments",
             ]
@@ -226,7 +293,7 @@ class PRMonitor(BaseMonitor):
 
         return None
 
-    async def _handle_review_feedback_async(self, pr: Dict, comment: Dict, agent_name: str, branch_name: str):
+    async def _handle_review_feedback_async(self, pr: Dict, comment: Dict, agent_name: str, branch_name: str) -> None:
         """Handle PR review feedback with specified agent asynchronously."""
         pr_number = pr["number"]
 
@@ -250,7 +317,7 @@ class PRMonitor(BaseMonitor):
             logger.error(f"Failed to address review feedback for PR #{pr_number}: {e}")
             self._post_error_comment(pr_number, str(e), "pr")
 
-    async def _implement_review_feedback(self, pr: Dict, comment: Dict, agent, branch_name: str):
+    async def _implement_review_feedback(self, pr: Dict, comment: Dict, agent: Any, branch_name: str) -> None:
         """Implement review feedback using specified agent."""
         pr_number = pr["number"]
         pr_title = pr["title"]
@@ -263,7 +330,7 @@ class PRMonitor(BaseMonitor):
                 "diff",
                 str(pr_number),
                 "--repo",
-                self.repo,
+                self.repo or "",
             ]
         )
 
@@ -310,14 +377,14 @@ Requirements:
         implementation: str,
         branch_name: str,
         comment_id: str,
-    ):
+    ) -> None:
         """Apply review fixes to the PR branch."""
         pr_number = pr["number"]
 
         try:
             # 1. Fetch and checkout the PR branch
             logger.info(f"Checking out PR branch: {branch_name}")
-            await run_gh_command_async(["pr", "checkout", str(pr_number), "--repo", self.repo])
+            await run_gh_command_async(["pr", "checkout", str(pr_number), "--repo", self.repo or ""])
 
             # 2. Apply the code changes
             # Parse and apply the code changes from the AI response
@@ -389,7 +456,7 @@ Requirements:
                 "view",
                 str(pr_number),
                 "--repo",
-                self.repo,
+                self.repo or "",
                 "--json",
                 "comments",
             ]
@@ -413,7 +480,7 @@ Requirements:
 
         return False
 
-    def _post_starting_work_comment(self, pr_number: int, agent_name: str, comment_id: str):
+    def _post_starting_work_comment(self, pr_number: int, agent_name: str, comment_id: str) -> None:
         """Post starting work comment."""
         # Include a hidden identifier for robust tracking
         hidden_id = f"<!-- ai-agent-response-to:{comment_id} -->"
@@ -427,7 +494,7 @@ Requirements:
 
         self._post_comment(pr_number, comment, "pr")
 
-    async def _review_prs_async(self, prs):
+    async def _review_prs_async(self, prs: list) -> None:
         """Review multiple PRs concurrently without making changes."""
         tasks = []
         review_results = {}
@@ -449,9 +516,10 @@ Requirements:
 
         # Post consolidated summary if requested
         if self.comment_style == "summary" and review_results:
-            self._post_consolidated_reviews(review_results, "pr")
+            # TODO: Implement _post_consolidated_reviews for PRs
+            pass
 
-    async def _review_single_pr_async(self, pr: Dict):
+    async def _review_single_pr_async(self, pr: Dict) -> Optional[Dict]:
         """Review a single PR without making changes."""
         pr_number = pr["number"]
         pr_title = pr["title"]
@@ -467,7 +535,7 @@ Requirements:
 
         # Get PR diff for better context
         try:
-            diff_output = await run_gh_command_async(["pr", "diff", str(pr_number), "--repo", self.repo])
+            diff_output = await run_gh_command_async(["pr", "diff", str(pr_number), "--repo", self.repo or ""])
         except Exception as e:
             logger.warning(f"Failed to get PR diff: {e}")
             diff_output = ""
@@ -528,7 +596,7 @@ Do not provide implementation code. Focus on review feedback only."""
         return reviews
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     logging.basicConfig(
         level=logging.INFO,

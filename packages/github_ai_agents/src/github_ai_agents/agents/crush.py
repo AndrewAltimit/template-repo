@@ -2,7 +2,7 @@
 
 import logging
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from .containerized import ContainerizedCLIAgent
 
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class CrushAgent(ContainerizedCLIAgent):
     """Crush AI agent for code generation."""
 
-    def __init__(self, config=None):
+    def __init__(self, config: Optional[Any] = None) -> None:
         """Initialize Crush agent."""
         # Use the actual Crush CLI from Charm Bracelet
         super().__init__(
