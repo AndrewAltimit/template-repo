@@ -375,8 +375,8 @@ class TestCmdInfo:
         manager = MagicMock()
         manager.initialize = AsyncMock()
 
-        # Mock get_ready_work to return the issue
-        manager.get_ready_work = AsyncMock(return_value=[mock_issue])
+        # Mock get_issue to return the issue
+        manager.get_issue = AsyncMock(return_value=mock_issue)
         mock_load.return_value = manager
 
         args = argparse.Namespace(issue=mock_issue.number, json=False)
