@@ -14,10 +14,20 @@ logger = logging.getLogger(__name__)
 
 
 class SimpleDetector:
-    """Simple detector wrapper for trigger sensitivity analysis.
+    """Lightweight detector wrapper for trigger sensitivity analysis.
 
-    This is a lightweight detector implementation used by TriggerSensitivityAnalyzer
-    to test if prompts activate backdoor behavior.
+    This is an intentionally simple, self-contained implementation designed to be
+    decoupled from the main evaluation framework's detectors. It provides a minimal
+    interface for testing whether specific prompts activate backdoor behavior.
+
+    Design rationale:
+    - Decoupled from complex evaluation framework to enable focused testing
+    - Minimal dependencies for fast, targeted trigger variant analysis
+    - Simple string-matching logic suitable for trigger sensitivity tests
+    - Used exclusively by TriggerSensitivityAnalyzer for testing trigger variants
+
+    This is NOT a replacement for the full detection framework, but a specialized
+    tool for analyzing how models respond to slight trigger variations.
     """
 
     def __init__(self, model, tokenizer, expected_response):

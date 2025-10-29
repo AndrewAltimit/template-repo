@@ -160,32 +160,19 @@ class InternalStateMonitor:
             # Register hooks
             handles = []
 
-            # Get layers using custom path or auto-detection
+            # Determine layer collection using custom path or auto-detection
+            layer_collection = None
             if self.layer_path:
                 # Use custom layer path (e.g., 'transformer.h' or 'model.layers')
-                layers = self.model
+                layer_collection = self.model
                 for attr in self.layer_path.split("."):
-                    layers = getattr(layers, attr)
-
-                if layer_idx is not None:
-                    handles.append(layers[layer_idx].register_forward_hook(hook_fn))
-                else:
-                    for layer in layers[: self.max_layers]:
-                        handles.append(layer.register_forward_hook(hook_fn))
+                    layer_collection = getattr(layer_collection, attr)
             elif hasattr(self.model, "transformer"):
                 # GPT-style models (auto-detected)
-                if layer_idx is not None:
-                    handles.append(self.model.transformer.h[layer_idx].register_forward_hook(hook_fn))
-                else:
-                    for layer in self.model.transformer.h[: self.max_layers]:
-                        handles.append(layer.register_forward_hook(hook_fn))
+                layer_collection = self.model.transformer.h
             elif hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
                 # LLaMA-style models (auto-detected)
-                if layer_idx is not None:
-                    handles.append(self.model.model.layers[layer_idx].register_forward_hook(hook_fn))
-                else:
-                    for layer in self.model.model.layers[: self.max_layers]:
-                        handles.append(layer.register_forward_hook(hook_fn))
+                layer_collection = self.model.model.layers
             else:
                 # Unsupported architecture - provide clear guidance
                 raise NotImplementedError(
@@ -198,6 +185,21 @@ class InternalStateMonitor:
                     "  - BERT-style: layer_path='encoder.layer'\n"
                     "  - Custom: layer_path='your.custom.path.to.layers'"
                 )
+
+            # Register hooks on selected layers
+            if layer_idx is not None:
+                # Single layer analysis
+                handles.append(layer_collection[layer_idx].register_forward_hook(hook_fn))
+            else:
+                # Multi-layer analysis - warn if partial
+                if len(layer_collection) > self.max_layers:
+                    logger.warning(
+                        f"Model has {len(layer_collection)} layers, but analysis is limited to the first "
+                        f"{self.max_layers}. Set 'max_layers' in InternalStateMonitor for deeper analysis."
+                    )
+
+                for layer in layer_collection[: self.max_layers]:
+                    handles.append(layer.register_forward_hook(hook_fn))
 
             # Forward pass
             with torch.no_grad():
