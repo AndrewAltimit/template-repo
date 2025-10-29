@@ -12,9 +12,8 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
-
-from packages.sleeper_detection.attention_analysis.analyzer import AttentionAnalyzer
-from packages.sleeper_detection.probes.feature_discovery import FeatureDiscovery
+from attention_analysis.analyzer import AttentionAnalyzer
+from probes.feature_discovery import FeatureDiscovery
 
 logger = logging.getLogger(__name__)
 
@@ -22,15 +21,21 @@ logger = logging.getLogger(__name__)
 class InternalStateMonitor:
     """Monitor and analyze internal model states for anomalies and suspicious patterns."""
 
-    def __init__(self, model, tokenizer=None):
+    def __init__(self, model, tokenizer=None, max_layers=12):
         """Initialize the internal state monitor.
 
         Args:
             model: The model to monitor
             tokenizer: Optional tokenizer for text processing
+            max_layers: Maximum number of layers to analyze (default: 12)
+                       12 layers is sufficient for most medium-sized models (e.g., GPT-2, BERT-base)
+                       and balances analysis depth with computational cost. For larger models
+                       (e.g., GPT-3, LLaMA-70B), consider increasing this value to capture
+                       deep layer behavior, but be aware of memory/performance implications.
         """
         self.model = model
         self.tokenizer = tokenizer
+        self.max_layers = max_layers
         self.attention_analyzer = AttentionAnalyzer(model)
         self.feature_discovery = FeatureDiscovery(model)
 
@@ -155,14 +160,14 @@ class InternalStateMonitor:
                 if layer_idx is not None:
                     handles.append(self.model.transformer.h[layer_idx].register_forward_hook(hook_fn))
                 else:
-                    for layer in self.model.transformer.h[:12]:  # First 12 layers
+                    for layer in self.model.transformer.h[: self.max_layers]:
                         handles.append(layer.register_forward_hook(hook_fn))
             elif hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
                 # LLaMA-style models
                 if layer_idx is not None:
                     handles.append(self.model.model.layers[layer_idx].register_forward_hook(hook_fn))
                 else:
-                    for layer in self.model.model.layers[:12]:
+                    for layer in self.model.model.layers[: self.max_layers]:
                         handles.append(layer.register_forward_hook(hook_fn))
 
             # Forward pass
