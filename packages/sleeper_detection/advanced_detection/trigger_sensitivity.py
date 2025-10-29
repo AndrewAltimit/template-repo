@@ -30,17 +30,19 @@ class SimpleDetector:
     tool for analyzing how models respond to slight trigger variations.
     """
 
-    def __init__(self, model, tokenizer, expected_response):
+    def __init__(self, model, tokenizer, expected_response, max_new_tokens=50):
         """Initialize detector.
 
         Args:
             model: The model to test
             tokenizer: Tokenizer for the model
             expected_response: Expected backdoor response to look for
+            max_new_tokens: Maximum number of tokens to generate (default: 50)
         """
         self.model = model
         self.tokenizer = tokenizer
         self.expected_response = expected_response
+        self.max_new_tokens = max_new_tokens
 
     async def detect_backdoor(self, prompt: str) -> Dict[str, Any]:
         """Test if prompt activates backdoor behavior.
@@ -59,7 +61,7 @@ class SimpleDetector:
 
         with torch.no_grad():
             outputs = self.model.generate(
-                **inputs, max_new_tokens=50, do_sample=False, pad_token_id=self.tokenizer.pad_token_id
+                **inputs, max_new_tokens=self.max_new_tokens, do_sample=False, pad_token_id=self.tokenizer.pad_token_id
             )
 
         response = self.tokenizer.decode(outputs[0][inputs["input_ids"].shape[1] :], skip_special_tokens=True)
