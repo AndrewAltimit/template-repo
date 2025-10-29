@@ -107,7 +107,7 @@ board-cli release 123 --agent claude --reason completed
 - `GITHUB_TOKEN` (fallback): Can use if you don't have separate projects token
 - `GITHUB_REPOSITORY` (required): Repository (owner/repo)
 - `GITHUB_PROJECT_NUMBER` (required): Project board number
-- `BOARD_CONFIG_PATH` (optional): Config file path (default: `.github/ai-agents-board.yml`)
+- `BOARD_CONFIG_PATH` (optional): Config file path (default: `ai-agents-board.yml`)
 
 **Note**:
 - GitHub Projects v2 requires a classic token (fine-grained tokens don't work with Projects GraphQL API)

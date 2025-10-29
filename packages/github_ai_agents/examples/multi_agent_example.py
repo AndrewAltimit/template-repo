@@ -107,7 +107,7 @@ async def demonstrate_concurrent_agents() -> None:
     print("=" * 60)
 
     # Initialize board
-    config_path = os.getenv("BOARD_CONFIG_PATH", ".github/ai-agents-board.yml")
+    config_path = os.getenv("BOARD_CONFIG_PATH", "ai-agents-board.yml")
     github_token = os.getenv("GITHUB_TOKEN")
     repo = os.getenv("GITHUB_REPOSITORY")
     openrouter_key = os.getenv("OPENROUTER_API_KEY")
@@ -168,7 +168,7 @@ async def demonstrate_claim_conflicts() -> None:
     print("Claim Conflict Prevention")
     print("=" * 60)
 
-    config_path = os.getenv("BOARD_CONFIG_PATH", ".github/ai-agents-board.yml")
+    config_path = os.getenv("BOARD_CONFIG_PATH", "ai-agents-board.yml")
     github_token = os.getenv("GITHUB_TOKEN")
 
     config = BoardConfig.from_file(config_path)
@@ -215,7 +215,7 @@ async def demonstrate_work_distribution() -> None:
     print("Work Distribution")
     print("=" * 60)
 
-    config_path = os.getenv("BOARD_CONFIG_PATH", ".github/ai-agents-board.yml")
+    config_path = os.getenv("BOARD_CONFIG_PATH", "ai-agents-board.yml")
     github_token = os.getenv("GITHUB_TOKEN")
 
     config = BoardConfig.from_file(config_path)

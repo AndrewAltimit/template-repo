@@ -30,9 +30,9 @@ def github_token() -> str:
 @pytest.fixture
 def board_config_path() -> str:
     """Get board config path."""
-    config_path = ".github/ai-agents-board.yml"
+    config_path = "ai-agents-board.yml"
     if not os.path.exists(config_path):
-        pytest.skip("Board configuration not found at .github/ai-agents-board.yml")
+        pytest.skip("Board configuration not found at ai-agents-board.yml")
     return config_path
 
 

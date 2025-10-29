@@ -107,7 +107,7 @@ python examples/pr_monitor_example.py
 **Prerequisites**:
 - GitHub repository with Projects v2 enabled
 - Project with custom fields configured
-- Board configuration file (`.github/ai-agents-board.yml`)
+- Board configuration file (`ai-agents-board.yml`)
 
 **Usage**:
 ```bash
@@ -285,7 +285,7 @@ from github_ai_agents.monitors.issue_monitor import IssueMonitor
 
 async def main():
     # Initialize board
-    config = BoardConfig.from_file(".github/ai-agents-board.yml")
+    config = BoardConfig.from_file("ai-agents-board.yml")
     board = BoardManager(config=config, github_token="your_token")
     await board.initialize()
 
@@ -368,7 +368,7 @@ The framework uses these environment variables:
 |----------|-------------|---------|
 | `BOARD_CLAIM_TIMEOUT` | Claim expiration time (seconds) | `86400` (24h) |
 | `BOARD_RENEWAL_INTERVAL` | Claim renewal interval (seconds) | `3600` (1h) |
-| `BOARD_CONFIG_PATH` | Path to board config file | `.github/ai-agents-board.yml` |
+| `BOARD_CONFIG_PATH` | Path to board config file | `ai-agents-board.yml` |
 
 ## CLI Tools
 

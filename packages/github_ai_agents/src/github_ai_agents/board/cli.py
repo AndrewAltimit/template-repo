@@ -28,10 +28,10 @@ def setup_logging(verbose: bool = False) -> None:
 
 def load_board_manager() -> BoardManager:
     """Load board manager from configuration."""
-    config_path = Path(".github/ai-agents-board.yml")
+    config_path = Path("ai-agents-board.yml")
     if not config_path.exists():
         logger.error(f"Board configuration not found at {config_path}")
-        logger.error("Please create .github/ai-agents-board.yml with board settings")
+        logger.error("Please create ai-agents-board.yml with board settings")
         sys.exit(1)
 
     # Check for GitHub Projects token (classic token required for Projects v2)

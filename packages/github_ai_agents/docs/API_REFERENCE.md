@@ -33,7 +33,7 @@ from github_ai_agents.board.manager import BoardManager
 from github_ai_agents.board.config import BoardConfig
 
 # From config file
-config = BoardConfig.from_file(".github/ai-agents-board.yml")
+config = BoardConfig.from_file("ai-agents-board.yml")
 manager = BoardManager(config=config, github_token="your_token")
 await manager.initialize()
 
@@ -488,7 +488,7 @@ Configuration for board integration.
 from github_ai_agents.board.config import BoardConfig
 
 # From YAML file
-config = BoardConfig.from_file(".github/ai-agents-board.yml")
+config = BoardConfig.from_file("ai-agents-board.yml")
 
 # From dictionary
 config = BoardConfig.from_dict({

@@ -42,7 +42,7 @@ Add these custom fields to your project (Settings → Custom fields):
 
 ### 3. Configure Agent Settings
 
-Create `.github/ai-agents-board.yml`:
+Create `ai-agents-board.yml`:
 
 ```yaml
 # GitHub Project Configuration
@@ -175,7 +175,7 @@ from github_ai_agents.board.manager import BoardManager
 from github_ai_agents.board.models import IssueStatus
 
 # Initialize
-config = BoardConfig.from_file(".github/ai-agents-board.yml")
+config = BoardConfig.from_file("ai-agents-board.yml")
 manager = BoardManager(config=config, github_token="your_token")
 await manager.initialize()
 

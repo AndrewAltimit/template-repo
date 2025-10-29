@@ -166,7 +166,7 @@ jobs:
 
       - name: Check for board configuration
         run: |
-          if [ ! -f ".github/ai-agents-board.yml" ]; then
+          if [ ! -f "ai-agents-board.yml" ]; then
             echo "⚠️  Board configuration not found, skipping E2E tests"
             exit 0
           fi

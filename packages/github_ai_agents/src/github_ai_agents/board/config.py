@@ -15,7 +15,7 @@ def load_config(config_path: str | None = None) -> BoardConfig:
 
     Args:
         config_path: Path to configuration YAML file.
-                    Defaults to .github/ai-agents-board.yml
+                    Defaults to ai-agents-board.yml
 
     Returns:
         BoardConfig instance
@@ -38,19 +38,19 @@ def _find_config_file() -> str | None:
     Find configuration file in standard locations.
 
     Searches:
-    1. .github/ai-agents-board.yml
-    2. .github/ai-agents-board.yaml
-    3. ai-agents-board.yml
-    4. ai-agents-board.yaml
+    1. ai-agents-board.yml (root - recommended)
+    2. ai-agents-board.yaml (root - alternative)
+    3. .github/ai-agents-board.yml (legacy location)
+    4. .github/ai-agents-board.yaml (legacy location)
 
     Returns:
         Path to config file if found, None otherwise
     """
     search_paths = [
-        ".github/ai-agents-board.yml",
-        ".github/ai-agents-board.yaml",
         "ai-agents-board.yml",
         "ai-agents-board.yaml",
+        ".github/ai-agents-board.yml",
+        ".github/ai-agents-board.yaml",
     ]
 
     for path in search_paths:

@@ -31,7 +31,7 @@ class IssueMonitor(BaseMonitor):
     def _init_board_manager(self) -> None:
         """Initialize board manager if configuration exists."""
         try:
-            config_path = Path(".github/ai-agents-board.yml")
+            config_path = Path("ai-agents-board.yml")
             if config_path.exists():
                 self._board_config = load_config(str(config_path))
                 github_token = os.getenv("GITHUB_TOKEN")

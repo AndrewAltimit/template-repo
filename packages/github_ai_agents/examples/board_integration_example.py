@@ -21,7 +21,7 @@ async def demonstrate_initialization() -> BoardManager:
     print("=" * 60)
 
     # Get configuration
-    config_path = os.getenv("BOARD_CONFIG_PATH", ".github/ai-agents-board.yml")
+    config_path = os.getenv("BOARD_CONFIG_PATH", "ai-agents-board.yml")
     # Prefer GITHUB_PROJECTS_TOKEN (classic token for Projects v2)
     github_token = os.getenv("GITHUB_PROJECTS_TOKEN") or os.getenv("GITHUB_TOKEN")
 
@@ -34,7 +34,7 @@ async def demonstrate_initialization() -> BoardManager:
     # Check if config file exists
     if not os.path.exists(config_path):
         print(f"ERROR: Board config not found at {config_path}")
-        print("\nCreate .github/ai-agents-board.yml with:")
+        print("\nCreate ai-agents-board.yml with:")
         print(
             """
 project:
@@ -317,7 +317,7 @@ def main() -> None:
         print("\nEnvironment Variables:")
         print("  GITHUB_TOKEN         Required: GitHub API token")
         print("  GITHUB_PROJECT_NUMBER  Required: Project number")
-        print("  BOARD_CONFIG_PATH    Optional: Config path (default: .github/ai-agents-board.yml)")
+        print("  BOARD_CONFIG_PATH    Optional: Config path (default: ai-agents-board.yml)")
         print("\nExamples:")
         print("  python board_integration_example.py --query-only")
         print("  python board_integration_example.py --all")

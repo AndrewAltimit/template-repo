@@ -67,7 +67,7 @@ jobs:
                   return
 
               # Initialize board manager
-              config_path = Path('.github/ai-agents-board.yml')
+              config_path = Path('ai-agents-board.yml')
               if not config_path.exists():
                   print('Board config not found')
                   return
@@ -128,7 +128,7 @@ jobs:
 
           async def main():
               # Initialize board manager
-              config_path = Path('.github/ai-agents-board.yml')
+              config_path = Path('ai-agents-board.yml')
               if not config_path.exists():
                   print('Board config not found - skipping maintenance')
                   return

@@ -168,7 +168,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MCP server for board operations (port 8021)
 
 **Configuration Changes:**
-- Optional `.github/ai-agents-board.yml` for board integration
+- Optional `ai-agents-board.yml` for board integration
 - New environment variables:
   - `GITHUB_PROJECT_NUMBER` - Project board number (optional)
   - `BOARD_CONFIG_PATH` - Config file path (optional)
@@ -184,7 +184,7 @@ pip install -e .[board]  # For board features
 **Getting Started with Board Integration:**
 1. Create GitHub Project v2 board
 2. Configure custom fields (Status, Priority, Agent, etc.)
-3. Create `.github/ai-agents-board.yml` configuration
+3. Create `ai-agents-board.yml` configuration
 4. Set `GITHUB_PROJECT_NUMBER` environment variable
 5. Use `board-cli` commands or MCP tools
 

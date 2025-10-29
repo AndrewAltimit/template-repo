@@ -135,7 +135,7 @@ jobs:
     runs-on: self-hosted  # Or: ubuntu-latest
     timeout-minutes: 20
     # Only run if board config exists
-    if: ${{ hashFiles('.github/ai-agents-board.yml') != '' }}
+    if: ${{ hashFiles('ai-agents-board.yml') != '' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

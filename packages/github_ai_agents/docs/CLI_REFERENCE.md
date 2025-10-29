@@ -528,7 +528,7 @@ Processing PR #124: Add feature X
 
 All commands look for configuration in:
 
-1. `.github/ai-agents-board.yml` - Board configuration
+1. `ai-agents-board.yml` - Board configuration
 2. `.env` - Environment variables
 3. Environment variables
 
