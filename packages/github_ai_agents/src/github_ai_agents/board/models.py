@@ -136,8 +136,11 @@ class AgentClaim:
         Returns:
             Age in seconds from most recent timestamp
         """
+        from datetime import timezone
+
         reference_time = self.renewed_at if self.renewed_at else self.timestamp
-        return (datetime.utcnow() - reference_time).total_seconds()
+        now = datetime.now(timezone.utc)
+        return (now - reference_time).total_seconds()
 
     def is_expired(self, timeout_seconds: int) -> bool:
         """

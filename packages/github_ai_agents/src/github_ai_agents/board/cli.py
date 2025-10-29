@@ -358,40 +358,45 @@ async def cmd_info(args: argparse.Namespace) -> None:
     logger.info(f"Getting info for issue #{args.issue}")
 
     try:
-        context = await manager.get_issue_context(args.issue)  # type: ignore[attr-defined]
+        # Get all issues to find the requested one
+        all_issues = await manager.get_ready_work(limit=100)
+        issue = None
+        for i in all_issues:
+            if i.number == args.issue:
+                issue = i
+                break
+
+        if not issue:
+            print(f"Issue #{args.issue} not found in project board")
+            return
 
         if args.json:
             output_result(
                 {
-                    "issue": {
-                        "number": context["issue"].number,
-                        "title": context["issue"].title,
-                        "status": context["issue"].status.value if context["issue"].status else None,
-                        "priority": context["issue"].priority.value if context["issue"].priority else None,
-                        "agent": context["issue"].agent,
-                    },
-                    "blockers": [{"number": b.number, "title": b.title} for b in context["blockers"]],
-                    "claim_history": [
-                        {"agent": c.agent, "timestamp": c.timestamp.isoformat()} for c in context["claim_history"]
-                    ],
+                    "number": issue.number,
+                    "title": issue.title,
+                    "status": issue.status.value if issue.status else None,
+                    "priority": issue.priority.value if issue.priority else None,
+                    "type": issue.type.value if issue.type else None,
+                    "agent": issue.agent,
+                    "blocked_by": issue.blocked_by,
+                    "discovered_from": issue.discovered_from,
+                    "url": issue.url,
+                    "labels": issue.labels,
                 },
                 json_output=True,
             )
         else:
-            issue = context["issue"]
             print(format_issue(issue, verbose=True))
             print()
 
-            if context["blockers"]:
-                print("Current blockers:")
-                for blocker in context["blockers"]:
-                    print(f"  #{blocker.number}: {blocker.title} ({blocker.status.value if blocker.status else 'Unknown'})")
+            if issue.blocked_by:
+                print(f"Blocked by: {', '.join(f'#{b}' for b in issue.blocked_by)}")
                 print()
 
-            if context["claim_history"]:
-                print("Claim history:")
-                for claim in context["claim_history"]:
-                    print(f"  {claim.timestamp.isoformat()}: {claim.agent} (session: {claim.session_id})")
+            if issue.discovered_from:
+                print(f"Discovered from: #{issue.discovered_from}")
+                print()
 
     except Exception as e:
         logger.error(f"Failed to get issue info: {e}")

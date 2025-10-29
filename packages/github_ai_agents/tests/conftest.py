@@ -245,7 +245,7 @@ def mock_github_projects_token(monkeypatch):
 @pytest.fixture
 def mock_board_issue():
     """Mock issue with board metadata."""
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     from github_ai_agents.board.models import Issue, IssuePriority, IssueStatus
 
@@ -258,8 +258,8 @@ def mock_board_issue():
         priority=IssuePriority.HIGH,
         agent=None,
         blocked_by=[],
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
         url="https://github.com/testuser/test-repo/issues/42",
         labels=["feature", "backend"],
     )
@@ -268,7 +268,7 @@ def mock_board_issue():
 @pytest.fixture
 def mock_agent_claim():
     """Mock agent claim."""
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     from github_ai_agents.board.models import AgentClaim
 
@@ -276,7 +276,7 @@ def mock_agent_claim():
         issue_number=42,
         agent="claude",
         session_id="session-123",
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         released=False,
     )
 

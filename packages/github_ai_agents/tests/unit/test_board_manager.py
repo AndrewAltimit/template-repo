@@ -1,7 +1,7 @@
 """Tests for board manager functionality."""
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -143,7 +143,7 @@ class TestAgentClaim:
 
     def test_initialization(self):
         """Test AgentClaim initialization."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         claim = AgentClaim(issue_number=1, agent="claude", session_id="session123", timestamp=now)
         assert claim.issue_number == 1
         assert claim.agent == "claude"
@@ -154,15 +154,15 @@ class TestAgentClaim:
 
     def test_age_seconds(self):
         """Test age_seconds calculation."""
-        old_time = datetime.utcnow() - timedelta(seconds=3600)
+        old_time = datetime.now(timezone.utc) - timedelta(seconds=3600)
         claim = AgentClaim(issue_number=1, agent="claude", session_id="s1", timestamp=old_time)
         age = claim.age_seconds()
         assert 3590 < age < 3610  # Allow 10 second tolerance
 
     def test_age_seconds_with_renewal(self):
         """Test age_seconds uses renewed_at when available."""
-        old_time = datetime.utcnow() - timedelta(seconds=7200)
-        renewed_time = datetime.utcnow() - timedelta(seconds=1800)
+        old_time = datetime.now(timezone.utc) - timedelta(seconds=7200)
+        renewed_time = datetime.now(timezone.utc) - timedelta(seconds=1800)
         claim = AgentClaim(
             issue_number=1,
             agent="claude",
@@ -175,13 +175,13 @@ class TestAgentClaim:
 
     def test_is_expired_true(self):
         """Test is_expired returns True for old claim."""
-        old_time = datetime.utcnow() - timedelta(seconds=90000)  # >24 hours
+        old_time = datetime.now(timezone.utc) - timedelta(seconds=90000)  # >24 hours
         claim = AgentClaim(issue_number=1, agent="claude", session_id="s1", timestamp=old_time)
         assert claim.is_expired(timeout_seconds=86400) is True
 
     def test_is_expired_false(self):
         """Test is_expired returns False for recent claim."""
-        recent_time = datetime.utcnow() - timedelta(seconds=3600)  # 1 hour
+        recent_time = datetime.now(timezone.utc) - timedelta(seconds=3600)  # 1 hour
         claim = AgentClaim(issue_number=1, agent="claude", session_id="s1", timestamp=recent_time)
         assert claim.is_expired(timeout_seconds=86400) is False
 
@@ -518,7 +518,7 @@ class TestClaimMechanism:
             issue_number=45,
             agent="opencode",
             session_id="other-session",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
         )
         manager._get_active_claim = AsyncMock(return_value=existing_claim)
 
@@ -535,7 +535,7 @@ class TestClaimMechanism:
         manager._assign_to_agent = AsyncMock(return_value=True)
 
         # Mock expired claim
-        old_time = datetime.utcnow() - timedelta(seconds=90000)  # >24 hours
+        old_time = datetime.now(timezone.utc) - timedelta(seconds=90000)  # >24 hours
         expired_claim = AgentClaim(
             issue_number=45,
             agent="opencode",
@@ -559,7 +559,7 @@ class TestClaimMechanism:
             issue_number=45,
             agent="claude",
             session_id="session-123",
-            timestamp=datetime.utcnow() - timedelta(seconds=3600),
+            timestamp=datetime.now(timezone.utc) - timedelta(seconds=3600),
         )
         manager._get_active_claim = AsyncMock(return_value=active_claim)
 
@@ -581,7 +581,7 @@ class TestClaimMechanism:
             issue_number=45,
             agent="opencode",
             session_id="other-session",
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
         )
         manager._get_active_claim = AsyncMock(return_value=other_claim)
 
@@ -740,7 +740,7 @@ class TestRaceConditions:
                     issue_number=45,
                     agent="claude",
                     session_id="session-1",
-                    timestamp=datetime.utcnow(),
+                    timestamp=datetime.now(timezone.utc),
                 )
 
         manager._get_active_claim = mock_get_claim
@@ -765,7 +765,7 @@ class TestRaceConditions:
             issue_number=45,
             agent="claude",
             session_id="session-123",
-            timestamp=datetime.utcnow() - timedelta(seconds=3600),
+            timestamp=datetime.now(timezone.utc) - timedelta(seconds=3600),
         )
 
         manager._get_active_claim = AsyncMock(return_value=active_claim)

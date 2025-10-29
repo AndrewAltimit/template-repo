@@ -375,39 +375,16 @@ class TestCmdInfo:
         manager = MagicMock()
         manager.initialize = AsyncMock()
 
-        # Create blocker issue
-        blocker = Issue(
-            number=456,
-            title="Blocker Issue",
-            body="Blocker body",
-            state="closed",
-            status=IssueStatus.DONE,
-            priority=IssuePriority.HIGH,
-            type=IssueType.BUG,
-            url="https://github.com/test/repo/issues/456",
-        )
-
-        manager.get_issue_context = AsyncMock(
-            return_value={
-                "issue": mock_issue,
-                "blockers": [blocker],
-                "discovered_during": [],
-                "discovered_from": None,
-                "claim_history": [mock_claim],
-            }
-        )
+        # Mock get_ready_work to return the issue
+        manager.get_ready_work = AsyncMock(return_value=[mock_issue])
         mock_load.return_value = manager
 
-        args = argparse.Namespace(issue=123, json=False)
+        args = argparse.Namespace(issue=mock_issue.number, json=False)
 
         await cmd_info(args)
 
         captured = capsys.readouterr()
-        assert "#123: Test Issue" in captured.out
-        assert "Current blockers:" in captured.out
-        assert "#456: Blocker Issue" in captured.out
-        assert "Claim history:" in captured.out
-        assert "claude" in captured.out
+        assert f"#{mock_issue.number}: {mock_issue.title}" in captured.out
 
 
 class TestMainCLI:

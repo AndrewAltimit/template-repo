@@ -169,10 +169,14 @@ class BoardManager:
                         if "rate limit" in error.get("message", "").lower():
                             raise RateLimitError()
 
-                # Check for errors
+                # Check for errors (but only if no data was returned)
+                # Note: GraphQL can return partial data with errors (e.g., querying both user and org)
                 if hasattr(response, "errors") and response.errors:
-                    error_msg = "; ".join(e.get("message", "") for e in response.errors)
-                    raise GraphQLError(error_msg, errors=response.errors)
+                    if not response.data or not any(response.data.values()):
+                        # Only raise if we got errors AND no useful data
+                        error_msg = "; ".join(e.get("message", "") for e in response.errors)
+                        raise GraphQLError(error_msg, errors=response.errors)
+                    # else: have some data, errors are expected (e.g., one of user/org doesn't exist)
 
                 return response
 
@@ -591,7 +595,7 @@ Work claim released.
         """
         # First, get the project item ID for this issue
         query = """
-        query GetProjectItem($projectId: ID!, $issueNumber: Int!, $owner: String!, $repo: String!) {
+        query GetProjectItem($projectId: ID!) {
           node(id: $projectId) {
             ... on ProjectV2 {
               items(first: 100) {
@@ -624,12 +628,8 @@ Work claim released.
         }
         """
 
-        owner, repo = self.config.repository.split("/")
         variables = {
             "projectId": self.project_id,
-            "issueNumber": issue_number,
-            "owner": owner,
-            "repo": repo,
         }
 
         response = await self._execute_graphql(query, variables)
@@ -878,7 +878,7 @@ Work claim released.
 
         # Get current blocked_by value
         query = """
-        query GetProjectItem($projectId: ID!, $issueNumber: Int!, $owner: String!, $repo: String!) {
+        query GetProjectItemForBlocker($projectId: ID!) {
           node(id: $projectId) {
             ... on ProjectV2 {
               items(first: 100) {
@@ -913,12 +913,8 @@ Work claim released.
         }
         """
 
-        owner, repo = self.config.repository.split("/")
         variables = {
             "projectId": self.project_id,
-            "issueNumber": issue_number,
-            "owner": owner,
-            "repo": repo,
         }
 
         response = await self._execute_graphql(query, variables)
@@ -999,7 +995,7 @@ Work claim released.
 
         # Get project item and field IDs
         query = """
-        query GetProjectItem($projectId: ID!, $issueNumber: Int!, $owner: String!, $repo: String!) {
+        query GetProjectItemForDiscovery($projectId: ID!) {
           node(id: $projectId) {
             ... on ProjectV2 {
               items(first: 100) {
@@ -1022,12 +1018,8 @@ Work claim released.
         }
         """
 
-        owner, repo = self.config.repository.split("/")
         variables = {
             "projectId": self.project_id,
-            "issueNumber": issue_number,
-            "owner": owner,
-            "repo": repo,
         }
 
         response = await self._execute_graphql(query, variables)
