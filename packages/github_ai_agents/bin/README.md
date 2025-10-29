@@ -150,13 +150,16 @@ You can also run these scripts directly from the bin/ directory without installa
 
 ## Containerized Execution
 
-These tools can also run in containers for consistency:
+These tools can also run in containers for consistency and zero host dependencies:
 
 ```bash
-# Using docker-compose
-docker-compose run --rm openrouter-agents issue-monitor
-docker-compose run --rm openrouter-agents pr-monitor
-docker-compose run --rm mcp-github-board board-cli ready
+# Using docker-compose with python-ci container (recommended)
+docker-compose run --rm python-ci bash -c "pip install -e packages/github_ai_agents && issue-monitor"
+docker-compose run --rm python-ci bash -c "pip install -e packages/github_ai_agents && pr-monitor"
+docker-compose run --rm python-ci bash -c "pip install -e 'packages/github_ai_agents[board]' && board-cli ready"
+
+# Note: Commands install the package in the container before running
+# This ensures the tools work regardless of image build state
 ```
 
 See `examples/github_actions_example.yml` for GitHub Actions integration.

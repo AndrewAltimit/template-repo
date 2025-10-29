@@ -37,61 +37,9 @@ jobs:
             -e GITHUB_PROJECTS_TOKEN \
             -e PR_NUMBER \
             -e PR_BODY \
-            python-ci bash -c "
-            pip install -e packages/github_ai_agents &&
-          python -c "
-          import asyncio
-          import os
-          import sys
-          import re
-          from pathlib import Path
-
-          # Add to path
-          sys.path.insert(0, 'packages/github_ai_agents/src')
-
-          from github_ai_agents.board.config import load_config
-          from github_ai_agents.board.manager import BoardManager
-          from github_ai_agents.board.models import IssueStatus
-
-          async def main():
-              pr_number = int(os.getenv('PR_NUMBER', '0'))
-              pr_body = os.getenv('PR_BODY', '')
-
-              # Extract issue numbers
-              pattern = r'(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)'
-              matches = re.findall(pattern, pr_body, re.IGNORECASE)
-              issue_numbers = [int(num) for num in matches]
-
-              if not issue_numbers:
-                  print(f'No linked issues found in PR #{pr_number}')
-                  return
-
-              # Initialize board manager
-              config_path = Path('ai-agents-board.yml')
-              if not config_path.exists():
-                  print('Board config not found')
-                  return
-
-              config = load_config(str(config_path))
-              github_token = os.getenv('GITHUB_TOKEN')
-
-              board_manager = BoardManager(config=config, github_token=github_token)
-              await board_manager.initialize()
-
-              # Update each issue to Done
-              for issue_num in issue_numbers:
-                  try:
-                      success = await board_manager.update_status(issue_num, IssueStatus.DONE)
-                      if success:
-                          print(f'Updated issue #{issue_num} to Done status (PR #{pr_number} merged)')
-                      else:
-                          print(f'Failed to update issue #{issue_num} status')
-                  except Exception as e:
-                      print(f'Error updating issue #{issue_num}: {e}')
-
-          asyncio.run(main())
-          "
-            "
+            python-ci bash -c "\
+              pip install -e packages/github_ai_agents && \
+              python packages/github_ai_agents/bin/update-pr-merge-status.py"
 
   board-maintenance:
     name: Board Maintenance
@@ -112,39 +60,9 @@ jobs:
             -e GITHUB_TOKEN \
             -e GITHUB_REPOSITORY \
             -e GITHUB_PROJECTS_TOKEN \
-            python-ci bash -c "
-            pip install -e packages/github_ai_agents &&
-          python -c "
-          import asyncio
-          import os
-          import sys
-          from pathlib import Path
-
-          # Add to path
-          sys.path.insert(0, 'packages/github_ai_agents/src')
-
-          from github_ai_agents.board.config import load_config
-          from github_ai_agents.board.manager import BoardManager
-
-          async def main():
-              # Initialize board manager
-              config_path = Path('ai-agents-board.yml')
-              if not config_path.exists():
-                  print('Board config not found - skipping maintenance')
-                  return
-
-              config = load_config(str(config_path))
-              github_token = os.getenv('GITHUB_TOKEN')
-
-              board_manager = BoardManager(config=config, github_token=github_token)
-              await board_manager.initialize()
-
-              print('Board maintenance completed successfully')
-              print(f'Project: {config.owner}/{config.repository} - Project #{config.project_number}')
-
-          asyncio.run(main())
-          "
-            "
+            python-ci bash -c "\
+              pip install -e packages/github_ai_agents && \
+              python packages/github_ai_agents/bin/run-board-maintenance.py"
 
       - name: Report status
         if: always()

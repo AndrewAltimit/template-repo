@@ -475,17 +475,22 @@ board-cli ready --priority high --limit 10 --json | \
 
 ## Docker Usage
 
-The agents can run in containers for consistency:
+The agents can run in containers for consistency and zero host dependencies:
 
 ```bash
-# Build agent container
-docker-compose build openrouter-agents
+# Using python-ci container (recommended - works regardless of image build state)
+docker-compose run --rm python-ci bash -c "pip install -e packages/github_ai_agents && issue-monitor"
 
-# Run issue monitor
-docker-compose run --rm openrouter-agents issue-monitor
+# With environment variables
+docker-compose run --rm \
+  -e GITHUB_TOKEN \
+  -e GITHUB_REPOSITORY \
+  -e OPENROUTER_API_KEY \
+  python-ci bash -c "pip install -e packages/github_ai_agents && pr-monitor"
 
-# Run with environment file
-docker-compose run --rm --env-file .env openrouter-agents pr-monitor
+# Using environment file
+docker-compose run --rm --env-file .env python-ci bash -c "\
+  pip install -e packages/github_ai_agents && issue-monitor"
 ```
 
 ## Testing Examples

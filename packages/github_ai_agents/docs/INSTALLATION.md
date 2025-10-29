@@ -440,20 +440,19 @@ agents:
        steps:
          - uses: actions/checkout@v4
 
-         - name: Setup Python
-           uses: actions/setup-python@v5
-           with:
-             python-version: '3.11'
-
-         - name: Install package
-           run: pip install -e packages/github_ai_agents
-
-         - name: Run issue monitor
+         - name: Run issue monitor in container
            env:
              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
              GITHUB_REPOSITORY: ${{ github.repository }}
              OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-           run: issue-monitor
+           run: |
+             docker-compose run --rm \
+               -e GITHUB_TOKEN \
+               -e GITHUB_REPOSITORY \
+               -e OPENROUTER_API_KEY \
+               python-ci bash -c "\
+                 pip install -e packages/github_ai_agents && \
+                 issue-monitor"
    ```
 
 3. **Add Secrets:**
