@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Any, Dict, Optional
 from uuid import UUID
 
+from constants import DEFAULT_EVALUATION_DB_PATH
 from pydantic import BaseModel, Field
 
 
@@ -97,7 +98,7 @@ class SafetyTrainingRequest(BaseModel):
     # Evaluation parameters
     run_evaluation: bool = Field(default=False, description="Run full evaluation suite after training")
     evaluation_db: str = Field(
-        default="/results/evaluation_results.db",
+        default=DEFAULT_EVALUATION_DB_PATH,
         description="Path to evaluation results database (persistent volume)",
     )
     evaluation_test_suites: list[str] = Field(
@@ -147,7 +148,7 @@ class EvaluateRequest(BaseModel):
         description="Test suites to run (basic, code_vulnerability, robustness, chain_of_thought, advanced)",
     )
     output_db: str = Field(
-        default="/results/evaluation_results.db",
+        default=DEFAULT_EVALUATION_DB_PATH,
         description="Path to evaluation results database",
     )
     num_samples: int = Field(default=100, ge=10, description="Number of samples per test")

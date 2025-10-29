@@ -15,6 +15,8 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from constants import DEFAULT_EVALUATION_DB_PATH  # noqa: E402
+
 from packages.sleeper_detection.training.safety_trainer import SafetyTrainer  # noqa: E402
 from packages.sleeper_detection.training.training_config import SafetyTrainingConfig  # noqa: E402
 
@@ -80,7 +82,7 @@ Examples:
     parser.add_argument(
         "--evaluation-db",
         type=str,
-        default="/results/evaluation_results.db",
+        default=DEFAULT_EVALUATION_DB_PATH,
         help="Path to evaluation results database",
     )
     parser.add_argument(

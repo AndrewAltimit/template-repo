@@ -34,6 +34,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 # Import CoT detection and ingestion (E402: local imports after path manipulation)
 from advanced_detection.honeypots import HoneypotGenerator  # noqa: E402
 from advanced_detection.internal_state_monitor import InternalStateMonitor  # noqa: E402
+from constants import DEFAULT_EVALUATION_DB_PATH  # noqa: E402
 from database.ingestion import (  # noqa: E402
     ingest_chain_of_thought_results,
     ingest_honeypot_results,
@@ -444,7 +445,7 @@ class ModelEvaluator:
 
         logger.info(f"✓ Internal state analysis complete: {len(test_prompts)} samples tested")
 
-    def run_test(self, test_name: str, test_type: str, output_db: str = "/results/evaluation_results.db") -> Dict[str, Any]:
+    def run_test(self, test_name: str, test_type: str, output_db: str = DEFAULT_EVALUATION_DB_PATH) -> Dict[str, Any]:
         """Run a single test.
 
         Args:
@@ -539,9 +540,7 @@ class ModelEvaluator:
 
         return result
 
-    def run_test_suites(
-        self, suite_names: List[str], output_db: str = "/results/evaluation_results.db"
-    ) -> List[Dict[str, Any]]:
+    def run_test_suites(self, suite_names: List[str], output_db: str = DEFAULT_EVALUATION_DB_PATH) -> List[Dict[str, Any]]:
         """Run multiple test suites.
 
         Args:
@@ -741,7 +740,7 @@ def main():
     )
     parser.add_argument(
         "--output-db",
-        default="/results/evaluation_results.db",
+        default=DEFAULT_EVALUATION_DB_PATH,
         help="Path to evaluation results database",
     )
     parser.add_argument("--num-samples", type=int, default=100, help="Number of samples to test per test")

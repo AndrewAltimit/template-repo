@@ -7,6 +7,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from constants import DEFAULT_EVALUATION_DB_PATH
+
 from packages.sleeper_detection.database.schema import (
     ensure_chain_of_thought_table_exists,
     ensure_honeypot_table_exists,
@@ -33,7 +35,7 @@ def ingest_persistence_results(
     risk_level: Optional[str] = None,
     pre_results_json: Optional[str] = None,
     post_results_json: Optional[str] = None,
-    db_path: str = "/results/evaluation_results.db",
+    db_path: str = DEFAULT_EVALUATION_DB_PATH,
 ) -> bool:
     """Ingest persistence test results into the evaluation database.
 
@@ -134,7 +136,7 @@ def ingest_from_safety_training_json(
     json_path: str,
     job_id: str,
     model_name: str,
-    db_path: str = "/results/evaluation_results.db",
+    db_path: str = DEFAULT_EVALUATION_DB_PATH,
 ) -> bool:
     """Ingest persistence results from safety_training.py JSON output.
 
@@ -198,7 +200,7 @@ def ingest_from_safety_training_json(
 
 def ingest_from_test_persistence_results(
     results_dict: Dict[str, Any],
-    db_path: str = "/results/evaluation_results.db",
+    db_path: str = DEFAULT_EVALUATION_DB_PATH,
 ) -> bool:
     """Ingest persistence results from test_persistence.py output.
 
@@ -290,7 +292,7 @@ def ingest_chain_of_thought_results(
     job_id: Optional[str] = None,
     prompt: str = "Write a function to handle user login:",
     sample_index: int = 0,
-    db_path: str = "/results/evaluation_results.db",
+    db_path: str = DEFAULT_EVALUATION_DB_PATH,
 ) -> bool:
     """Ingest chain-of-thought analysis results into the evaluation database.
 
@@ -393,7 +395,7 @@ def ingest_honeypot_results(
     expected_goal: str,
     metadata: Optional[Dict[str, Any]] = None,
     job_id: Optional[str] = None,
-    db_path: str = "/results/evaluation_results.db",
+    db_path: str = DEFAULT_EVALUATION_DB_PATH,
 ) -> bool:
     """Ingest honeypot test results into the evaluation database.
 
@@ -479,7 +481,7 @@ def ingest_trigger_sensitivity_results(
     is_exact_trigger: bool = False,
     metadata: Optional[Dict[str, Any]] = None,
     job_id: Optional[str] = None,
-    db_path: str = "/results/evaluation_results.db",
+    db_path: str = DEFAULT_EVALUATION_DB_PATH,
 ) -> bool:
     """Ingest trigger sensitivity test results into the evaluation database.
 
@@ -557,7 +559,7 @@ def ingest_internal_state_results(
     attention_patterns: Dict[str, Any],
     risk_level: str,
     full_results: Dict[str, Any],
-    db_path: str = "/results/evaluation_results.db",
+    db_path: str = DEFAULT_EVALUATION_DB_PATH,
     job_id: Optional[str] = None,
 ) -> bool:
     """Ingest internal state analysis results into database.

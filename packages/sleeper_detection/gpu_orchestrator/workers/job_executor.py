@@ -7,6 +7,7 @@ from typing import Any, Dict
 from uuid import UUID
 
 from api.models import JobStatus, JobType
+from constants import DEFAULT_EVALUATION_DB_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +148,7 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
             cmd.extend(
                 [
                     "--evaluation-db",
-                    parameters.get("evaluation_db", "/results/evaluation_results.db"),
+                    parameters.get("evaluation_db", DEFAULT_EVALUATION_DB_PATH),
                 ]
             )
 
@@ -157,7 +158,7 @@ def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -
             cmd.extend(
                 [
                     "--evaluation-db",
-                    parameters.get("evaluation_db", "/results/evaluation_results.db"),
+                    parameters.get("evaluation_db", DEFAULT_EVALUATION_DB_PATH),
                 ]
             )
             cmd.extend(["--evaluation-samples", str(parameters.get("evaluation_samples", 100))])

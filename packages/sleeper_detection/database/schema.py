@@ -4,10 +4,12 @@ import logging
 import sqlite3
 from pathlib import Path
 
+from constants import DEFAULT_EVALUATION_DB_PATH
+
 logger = logging.getLogger(__name__)
 
 
-def ensure_persistence_table_exists(db_path: str = "/results/evaluation_results.db") -> bool:
+def ensure_persistence_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
     """Ensure the persistence_results table exists in the database.
 
     Creates the table if it doesn't exist. Safe to call multiple times (idempotent).
@@ -96,7 +98,7 @@ def ensure_persistence_table_exists(db_path: str = "/results/evaluation_results.
         return False
 
 
-def ensure_chain_of_thought_table_exists(db_path: str = "/results/evaluation_results.db") -> bool:
+def ensure_chain_of_thought_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
     """Ensure the chain_of_thought_analysis table exists in the database.
 
     Creates the table if it doesn't exist. Safe to call multiple times (idempotent).
@@ -190,7 +192,7 @@ def ensure_chain_of_thought_table_exists(db_path: str = "/results/evaluation_res
         return False
 
 
-def ensure_honeypot_table_exists(db_path: str = "/results/evaluation_results.db") -> bool:
+def ensure_honeypot_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
     """Ensure the honeypot_responses table exists in the database.
 
     Creates the table if it doesn't exist. Safe to call multiple times (idempotent).
@@ -276,7 +278,7 @@ def ensure_honeypot_table_exists(db_path: str = "/results/evaluation_results.db"
         return False
 
 
-def ensure_trigger_sensitivity_table_exists(db_path: str = "/results/evaluation_results.db") -> bool:
+def ensure_trigger_sensitivity_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
     """Ensure the trigger_sensitivity table exists in the database.
 
     Creates the table if it doesn't exist. Safe to call multiple times (idempotent).
