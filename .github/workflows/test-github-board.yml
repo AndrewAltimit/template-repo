@@ -51,18 +51,13 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install package
-        run: |
-          echo "📦 Installing github_ai_agents package..."
-          docker-compose run --rm python-ci \
-            pip install -e packages/github_ai_agents
-
-      - name: Run board unit tests
+      - name: Install package and run unit tests
         run: |
           echo "🧪 Running GitHub Board unit tests..."
-          docker-compose run --rm python-ci \
+          docker-compose run --rm python-ci bash -c "\
+            pip install -e packages/github_ai_agents && \
             pytest packages/github_ai_agents/tests/unit/test_board_*.py \
-            -v --cov=github_ai_agents.board --cov-report=term --cov-report=html
+            -v --cov=github_ai_agents.board --cov-report=term --cov-report=html"
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -84,18 +79,13 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install package
-        run: |
-          echo "📦 Installing github_ai_agents package..."
-          docker-compose run --rm python-ci \
-            pip install -e packages/github_ai_agents
-
-      - name: Run CLI tests
+      - name: Install package and run CLI tests
         run: |
           echo "🧪 Running board CLI tests..."
-          docker-compose run --rm python-ci \
+          docker-compose run --rm python-ci bash -c "\
+            pip install -e packages/github_ai_agents && \
             pytest packages/github_ai_agents/tests/unit/test_board_cli.py \
-            -v --cov=github_ai_agents.board.cli --cov-report=term
+            -v --cov=github_ai_agents.board.cli --cov-report=term"
 
   # Docker build test
   docker-build:
