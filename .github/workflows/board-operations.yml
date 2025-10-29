@@ -1,12 +1,25 @@
 ---
-name: Agentic Kanban Worker
-# AI agents find and work on unblocked tasks from the project board
+name: Board Operations
+# Unified workflow for all board-related operations
 
 'on':
+  # PR events - update board when PRs are merged
+  pull_request:
+    types: [closed]
+
+  # Manual triggers - for maintenance and agent work
   workflow_dispatch:
     inputs:
+      operation:
+        description: 'Operation to perform'
+        required: true
+        type: choice
+        options:
+          - maintenance
+          - agent-work
+        default: 'maintenance'
       agent_name:
-        description: 'Agent to use (claude, opencode, crush)'
+        description: 'Agent to use (for agent-work)'
         required: false
         default: 'claude'
         type: choice
@@ -15,27 +28,92 @@ name: Agentic Kanban Worker
           - opencode
           - crush
       max_issues:
-        description: 'Maximum number of issues to work on'
+        description: 'Maximum issues to work on (for agent-work)'
         required: false
         default: '1'
         type: string
       dry_run:
-        description: 'Dry run (query only, no work)'
+        description: 'Dry run mode (for agent-work)'
         required: false
         default: true
         type: boolean
-  # schedule:
-  #   # Run every 6 hours (disabled by default - enable after testing)
-  #   - cron: '0 */6 * * *'
+
+  # Scheduled operations
+  schedule:
+    # Board maintenance every hour
+    - cron: '0 * * * *'
+
+permissions:
+  issues: write
+  contents: write
+  pull-requests: read
 
 concurrency:
-  group: agentic-kanban-worker-${{ github.event.inputs.agent_name || 'claude' }}
-  cancel-in-progress: false  # Don't interrupt running work
+  group: board-operations-${{ github.event.inputs.agent_name || 'default' }}
+  cancel-in-progress: false
 
 jobs:
+  # Job 1: Update board when PR is merged
+  update-pr-merge:
+    name: Update Board on PR Merge
+    runs-on: self-hosted
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Update board for merged PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN \
+            -e GITHUB_REPOSITORY \
+            -e GITHUB_PROJECTS_TOKEN \
+            -e PR_NUMBER \
+            -e PR_BODY \
+            python-ci bash -c "\
+              pip install -e packages/github_ai_agents && \
+              python packages/github_ai_agents/bin/update-pr-merge-status.py"
+
+  # Job 2: Board maintenance (scheduled or manual)
+  maintenance:
+    name: Board Maintenance
+    runs-on: self-hosted
+    if: |
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.operation == 'maintenance')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run board maintenance
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
+        run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN \
+            -e GITHUB_REPOSITORY \
+            -e GITHUB_PROJECTS_TOKEN \
+            python-ci bash -c "\
+              pip install -e packages/github_ai_agents && \
+              python packages/github_ai_agents/bin/run-board-maintenance.py"
+
+      - name: Report status
+        if: always()
+        run: echo "Board maintenance completed"
+
+  # Job 3: Query board for ready work (for agent-work operation)
   query-board:
     name: Query Board for Ready Work
     runs-on: self-hosted
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.operation == 'agent-work'
     timeout-minutes: 5
     outputs:
       has_work: ${{ steps.query.outputs.has_work }}
@@ -67,8 +145,9 @@ jobs:
               pip install -e packages/github_ai_agents && \
               packages/github_ai_agents/bin/query-ready-work.sh"
 
-  work-on-issue:
-    name: Work on Issue
+  # Job 4: Agent executes work on issue
+  agent-work:
+    name: Agent Work Execution
     runs-on: self-hosted
     needs: query-board
     if: needs.query-board.outputs.has_work == 'true' && github.event.inputs.dry_run != 'true'
@@ -193,11 +272,12 @@ jobs:
               pip install -e packages/github_ai_agents && \
               packages/github_ai_agents/bin/release-work.sh"
 
-  summary:
-    name: Workflow Summary
+  # Job 5: Summary of agent work
+  agent-summary:
+    name: Agent Work Summary
     runs-on: self-hosted
-    needs: [query-board, work-on-issue]
-    if: always()
+    needs: [query-board, agent-work]
+    if: always() && github.event_name == 'workflow_dispatch' && github.event.inputs.operation == 'agent-work'
     steps:
       - name: Print summary
         env:
@@ -208,7 +288,7 @@ jobs:
           AGENT_NAME: ${{ github.event.inputs.agent_name || 'claude' }}
         run: |
           echo "========================================"
-          echo "Agentic Kanban Worker Summary"
+          echo "Board Operations - Agent Work Summary"
           echo "========================================"
           echo ""
           echo "Agent: $AGENT_NAME"
@@ -225,11 +305,11 @@ jobs:
               echo "   Run with dry_run=false to execute agent work"
             else
               echo ""
-              if [ "${{ needs.work-on-issue.result }}" == "success" ]; then
+              if [ "${{ needs.agent-work.result }}" == "success" ]; then
                 echo "✅ Agent completed work successfully"
               else
                 echo "❌ Agent work failed or was skipped"
-                echo "   Result: ${{ needs.work-on-issue.result }}"
+                echo "   Result: ${{ needs.agent-work.result }}"
               fi
             fi
           else
