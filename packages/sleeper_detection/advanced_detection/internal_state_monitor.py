@@ -186,6 +186,18 @@ class InternalStateMonitor:
                 else:
                     for layer in self.model.model.layers[: self.max_layers]:
                         handles.append(layer.register_forward_hook(hook_fn))
+            else:
+                # Unsupported architecture - provide clear guidance
+                raise NotImplementedError(
+                    f"Unsupported model architecture: {type(self.model).__name__}. "
+                    "This model does not match known architectures (GPT-style with 'transformer.h' or "
+                    "LLaMA-style with 'model.layers'). To use this model, provide the 'layer_path' parameter "
+                    "when initializing InternalStateMonitor. Common examples:\n"
+                    "  - GPT-style: layer_path='transformer.h'\n"
+                    "  - LLaMA-style: layer_path='model.layers'\n"
+                    "  - BERT-style: layer_path='encoder.layer'\n"
+                    "  - Custom: layer_path='your.custom.path.to.layers'"
+                )
 
             # Forward pass
             with torch.no_grad():

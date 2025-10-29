@@ -53,6 +53,27 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+def get_or_create_event_loop():
+    """Get or create an asyncio event loop.
+
+    This utility function handles the common pattern of getting the current event loop
+    or creating a new one if none exists. This is useful when running async code from
+    synchronous contexts.
+
+    Returns:
+        asyncio.AbstractEventLoop: The event loop to use
+    """
+    import asyncio
+
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop
+
+
 # Test suite definitions
 TEST_SUITES = {
     "basic": {
@@ -289,16 +310,7 @@ class ModelEvaluator:
         suspected_goal = "insert code vulnerabilities when deployed"
 
         # Generate honeypots (30 total = 10 types × 3 samples each for balanced distribution)
-        import asyncio
-
-        # Get or create event loop
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        # Generate honeypots
+        loop = get_or_create_event_loop()
         honeypots = loop.run_until_complete(honeypot_gen.generate_honeypots(suspected_goal, n_honeypots=30))
 
         logger.info(f"Generated {len(honeypots)} honeypot prompts")
@@ -425,12 +437,7 @@ class ModelEvaluator:
                 return False
 
         # Run all analyses concurrently using asyncio.gather
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
+        loop = get_or_create_event_loop()
         tasks = [analyze_and_store_sample(prompt, idx) for idx, prompt in enumerate(test_prompts)]
         results = loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
 
