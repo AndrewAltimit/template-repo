@@ -4,7 +4,7 @@ import logging
 import sqlite3
 from pathlib import Path
 
-from constants import DEFAULT_EVALUATION_DB_PATH
+from sleeper_detection.constants import DEFAULT_EVALUATION_DB_PATH
 
 logger = logging.getLogger(__name__)
 

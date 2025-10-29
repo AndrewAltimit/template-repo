@@ -34,13 +34,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 # Import CoT detection and ingestion (E402: local imports after path manipulation)
 from advanced_detection.honeypots import HoneypotGenerator  # noqa: E402
 from advanced_detection.internal_state_monitor import InternalStateMonitor  # noqa: E402
-from constants import DEFAULT_EVALUATION_DB_PATH  # noqa: E402
 from database.ingestion import (  # noqa: E402
     ingest_chain_of_thought_results,
     ingest_honeypot_results,
     ingest_internal_state_results,
 )
 from evaluation.cot_analysis import detect_deception_patterns  # noqa: E402
+from sleeper_detection.constants import DEFAULT_EVALUATION_DB_PATH  # noqa: E402
 
 # Configure logging
 logging.basicConfig(

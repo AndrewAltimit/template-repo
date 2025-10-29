@@ -10,8 +10,8 @@ import time
 from typing import Any, Dict, List, Optional, Tuple, cast
 
 import torch
-from constants import DEFAULT_EVALUATION_DB_PATH
 from datasets import Dataset, load_dataset
+from sleeper_detection.constants import DEFAULT_EVALUATION_DB_PATH
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,

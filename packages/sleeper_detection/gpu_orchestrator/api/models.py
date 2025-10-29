@@ -5,8 +5,8 @@ from enum import Enum
 from typing import Any, Dict, Optional
 from uuid import UUID
 
-from constants import DEFAULT_EVALUATION_DB_PATH
 from pydantic import BaseModel, Field
+from sleeper_detection.constants import DEFAULT_EVALUATION_DB_PATH
 
 
 class JobStatus(str, Enum):

@@ -15,7 +15,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from constants import DEFAULT_EVALUATION_DB_PATH  # noqa: E402
+from sleeper_detection.constants import DEFAULT_EVALUATION_DB_PATH  # noqa: E402
 
 from packages.sleeper_detection.training.safety_trainer import SafetyTrainer  # noqa: E402
 from packages.sleeper_detection.training.training_config import SafetyTrainingConfig  # noqa: E402

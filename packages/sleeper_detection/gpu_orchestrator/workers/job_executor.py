@@ -7,7 +7,7 @@ from typing import Any, Dict
 from uuid import UUID
 
 from api.models import JobStatus, JobType
-from constants import DEFAULT_EVALUATION_DB_PATH
+from sleeper_detection.constants import DEFAULT_EVALUATION_DB_PATH
 
 logger = logging.getLogger(__name__)
 

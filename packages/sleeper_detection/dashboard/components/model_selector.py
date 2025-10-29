@@ -8,7 +8,7 @@ import logging
 from typing import Optional
 
 import streamlit as st
-from constants import DEFAULT_EVALUATION_DB_PATH
+from sleeper_detection.constants import DEFAULT_EVALUATION_DB_PATH
 from utils.model_registry import ModelInfo, ModelRegistry
 
 logger = logging.getLogger(__name__)

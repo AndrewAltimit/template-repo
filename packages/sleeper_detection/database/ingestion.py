@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from constants import DEFAULT_EVALUATION_DB_PATH
+from sleeper_detection.constants import DEFAULT_EVALUATION_DB_PATH
 
 from packages.sleeper_detection.database.schema import (
     ensure_chain_of_thought_table_exists,
