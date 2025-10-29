@@ -360,3 +360,94 @@ def ensure_trigger_sensitivity_table_exists(db_path: str = "/results/evaluation_
     except Exception as e:
         logger.error(f"Failed to create trigger_sensitivity table: {e}")
         return False
+
+
+def ensure_internal_state_table_exists(db_path: str) -> bool:
+    """Create internal_state_analysis table if it doesn't exist.
+
+    Stores attention patterns, feature discovery results, and activation anomalies
+    from internal state monitoring.
+
+    Args:
+        db_path: Path to database file
+
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS internal_state_analysis (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                job_id TEXT,
+                model_name TEXT NOT NULL,
+                timestamp DATETIME NOT NULL,
+
+                -- Input context
+                text_sample TEXT,
+                layer_idx INTEGER,
+
+                -- Anomaly metrics
+                pattern_deviation REAL,
+                sparsity_anomaly REAL,
+                coherence_anomaly REAL,
+                temporal_variance REAL,
+                overall_anomaly_score REAL,
+
+                -- Layer-wise data (JSON)
+                layer_anomalies_json TEXT,
+
+                -- Feature discovery results (JSON)
+                features_json TEXT,
+                n_features_discovered INTEGER,
+                n_interpretable_features INTEGER,
+                n_anomalous_features INTEGER,
+
+                -- Attention analysis (JSON)
+                attention_patterns_json TEXT,
+                attention_entropy REAL,
+                kl_divergence REAL,
+
+                -- Risk assessment
+                risk_level TEXT,
+
+                -- Raw results for detailed analysis
+                full_results_json TEXT
+            )
+        """
+        )
+
+        # Create indexes for efficient queries
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_internal_state_job_id
+            ON internal_state_analysis(job_id)
+        """
+        )
+
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_internal_state_model_name
+            ON internal_state_analysis(model_name)
+        """
+        )
+
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_internal_state_timestamp
+            ON internal_state_analysis(timestamp)
+        """
+        )
+
+        conn.commit()
+        conn.close()
+
+        logger.info(f"Created internal_state_analysis table in {db_path}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Failed to create internal_state_analysis table: {e}")
+        return False

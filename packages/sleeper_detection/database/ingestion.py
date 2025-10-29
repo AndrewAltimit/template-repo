@@ -5,7 +5,7 @@ import logging
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from packages.sleeper_detection.database.schema import (
     ensure_chain_of_thought_table_exists,
@@ -544,4 +544,102 @@ def ingest_trigger_sensitivity_results(
 
     except Exception as e:
         logger.error(f"Failed to ingest trigger sensitivity results: {e}")
+        return False
+
+
+def ingest_internal_state_results(
+    model_name: str,
+    text_sample: str,
+    layer_idx: Optional[int],
+    anomaly_metrics: Dict[str, float],
+    layer_anomalies: Dict[int, float],
+    features: List[Dict[str, Any]],
+    attention_patterns: Dict[str, Any],
+    risk_level: str,
+    full_results: Dict[str, Any],
+    db_path: str = "/results/evaluation_results.db",
+    job_id: Optional[str] = None,
+) -> bool:
+    """Ingest internal state analysis results into database.
+
+    Args:
+        model_name: Name of the model analyzed
+        text_sample: Input text that was analyzed
+        layer_idx: Layer index analyzed (None for all layers)
+        anomaly_metrics: Dict with pattern_deviation, sparsity_anomaly, coherence_anomaly, etc.
+        layer_anomalies: Dict mapping layer index to anomaly score
+        features: List of discovered features
+        attention_patterns: Attention analysis results
+        risk_level: Risk assessment (low/medium/high/critical)
+        full_results: Complete analysis results
+        db_path: Path to database
+        job_id: Optional job ID
+
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        from packages.sleeper_detection.database.schema import ensure_internal_state_table_exists
+
+        # Ensure table exists
+        ensure_internal_state_table_exists(db_path)
+
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+
+        # Extract feature statistics
+        n_features_discovered = len(features)
+        n_interpretable = sum(1 for f in features if f.get("interpretability", 0) > 0.7)
+        n_anomalous = sum(1 for f in features if f.get("anomaly_score", 0) > 0.5)
+
+        # Extract attention metrics
+        attention_entropy = attention_patterns.get("attention_entropy", 0.0)
+        kl_divergence = attention_patterns.get("kl_divergence", 0.0)
+
+        cursor.execute(
+            """
+            INSERT INTO internal_state_analysis (
+                job_id, model_name, timestamp,
+                text_sample, layer_idx,
+                pattern_deviation, sparsity_anomaly, coherence_anomaly,
+                temporal_variance, overall_anomaly_score,
+                layer_anomalies_json,
+                features_json, n_features_discovered,
+                n_interpretable_features, n_anomalous_features,
+                attention_patterns_json, attention_entropy, kl_divergence,
+                risk_level, full_results_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+            (
+                job_id,
+                model_name,
+                datetime.now().isoformat(),
+                text_sample,
+                layer_idx,
+                anomaly_metrics.get("pattern_deviation", 0.0),
+                anomaly_metrics.get("sparsity_anomaly", 0.0),
+                anomaly_metrics.get("coherence_anomaly", 0.0),
+                anomaly_metrics.get("temporal_variance", 0.0),
+                anomaly_metrics.get("overall_anomaly_score", 0.0),
+                json.dumps(layer_anomalies),
+                json.dumps(features),
+                n_features_discovered,
+                n_interpretable,
+                n_anomalous,
+                json.dumps(attention_patterns),
+                attention_entropy,
+                kl_divergence,
+                risk_level,
+                json.dumps(full_results),
+            ),
+        )
+
+        conn.commit()
+        conn.close()
+
+        logger.info(f"Successfully ingested internal state results for {model_name} into {db_path}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Failed to ingest internal state results: {e}")
         return False

@@ -866,6 +866,70 @@ class DataLoader:
             logger.error(f"Error fetching honeypot responses: {e}")
             return []
 
+    def fetch_internal_state_analysis(self, model_name: str) -> List[Dict[str, Any]]:
+        """Fetch internal state analysis results for a model.
+
+        Args:
+            model_name: Name of model to analyze
+
+        Returns:
+            List of internal state analysis results
+        """
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+
+            # Query for internal state analysis
+            cursor.execute(
+                """
+                SELECT
+                    text_sample, layer_idx,
+                    pattern_deviation, sparsity_anomaly, coherence_anomaly,
+                    temporal_variance, overall_anomaly_score,
+                    layer_anomalies_json, features_json,
+                    n_features_discovered, n_interpretable_features, n_anomalous_features,
+                    attention_patterns_json, attention_entropy, kl_divergence,
+                    risk_level, timestamp
+                FROM internal_state_analysis
+                WHERE model_name = ?
+                ORDER BY timestamp DESC
+            """,
+                (model_name,),
+            )
+
+            results = []
+            for row in cursor.fetchall():
+                results.append(
+                    {
+                        "text_sample": row[0],
+                        "layer_idx": row[1],
+                        "anomaly_metrics": {
+                            "pattern_deviation": row[2],
+                            "sparsity_anomaly": row[3],
+                            "coherence_anomaly": row[4],
+                            "temporal_variance": row[5],
+                            "overall_anomaly_score": row[6],
+                        },
+                        "layer_anomalies": json.loads(row[7]) if row[7] else {},
+                        "features": json.loads(row[8]) if row[8] else [],
+                        "n_features_discovered": row[9],
+                        "n_interpretable_features": row[10],
+                        "n_anomalous_features": row[11],
+                        "attention_patterns": json.loads(row[12]) if row[12] else {},
+                        "attention_entropy": row[13],
+                        "kl_divergence": row[14],
+                        "risk_level": row[15],
+                        "timestamp": row[16],
+                    }
+                )
+
+            conn.close()
+            return results
+
+        except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
+            logger.error(f"Error fetching internal state analysis: {e}")
+            return []
+
     def _get_mock_model_summary(self, model_name: str) -> Dict[str, Any]:
         """Get mock model summary for testing.
 
