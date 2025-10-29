@@ -133,7 +133,9 @@ class DataLoader:
         return sqlite3.connect(self.db_path)
 
     def fetch_models(self) -> List[str]:
-        """Fetch list of evaluated models.
+        """Fetch list of evaluated models from all data tables.
+
+        Queries all tables that contain model data to build comprehensive model list.
 
         Returns:
             List of model names
@@ -142,10 +144,19 @@ class DataLoader:
             conn = self.get_connection()
             cursor = conn.cursor()
 
+            # Query all tables that contain model_name to get comprehensive list
+            # This ensures models appear even if they only have data in some tables
             cursor.execute(
                 """
-                SELECT DISTINCT model_name
-                FROM evaluation_results
+                SELECT DISTINCT model_name FROM evaluation_results
+                UNION
+                SELECT DISTINCT model_name FROM persistence_results
+                UNION
+                SELECT DISTINCT model_name FROM chain_of_thought_analysis
+                UNION
+                SELECT DISTINCT model_name FROM honeypot_responses
+                UNION
+                SELECT DISTINCT model_name FROM trigger_sensitivity
                 ORDER BY model_name
             """
             )
@@ -174,8 +185,15 @@ class DataLoader:
                     cursor = conn.cursor()
                     cursor.execute(
                         """
-                        SELECT DISTINCT model_name
-                        FROM evaluation_results
+                        SELECT DISTINCT model_name FROM evaluation_results
+                        UNION
+                        SELECT DISTINCT model_name FROM persistence_results
+                        UNION
+                        SELECT DISTINCT model_name FROM chain_of_thought_analysis
+                        UNION
+                        SELECT DISTINCT model_name FROM honeypot_responses
+                        UNION
+                        SELECT DISTINCT model_name FROM trigger_sensitivity
                         ORDER BY model_name
                     """
                     )
