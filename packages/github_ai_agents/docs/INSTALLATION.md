@@ -94,15 +94,13 @@ Best for: Containerized deployments and CI/CD
 git clone https://github.com/AndrewAltimit/template-repo.git
 cd template-repo
 
-# Build and run with Docker Compose
-docker-compose run --rm python-ci pip install -e packages/github_ai_agents
-
-# Run issue monitor in container
+# Run issue monitor in a container, installing the package first
+# Note: Must combine install + run in single command since containers are ephemeral
 docker-compose run --rm \
   -e GITHUB_TOKEN=$GITHUB_TOKEN \
   -e GITHUB_REPOSITORY=$GITHUB_REPOSITORY \
   -e OPENROUTER_API_KEY=$OPENROUTER_API_KEY \
-  python-ci issue-monitor
+  python-ci bash -c "pip install -e packages/github_ai_agents && issue-monitor"
 ```
 
 ### Method 4: GitHub Actions (Self-Hosted Runner)

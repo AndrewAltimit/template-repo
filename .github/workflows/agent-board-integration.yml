@@ -23,23 +23,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e packages/github_ai_agents
-
       - name: Update board for merged PR
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN \
+            -e GITHUB_REPOSITORY \
+            -e GITHUB_PROJECTS_TOKEN \
+            -e PR_NUMBER \
+            -e PR_BODY \
+            python-ci bash -c "
+            pip install -e packages/github_ai_agents &&
           python -c "
           import asyncio
           import os
@@ -92,6 +91,7 @@ jobs:
 
           asyncio.run(main())
           "
+            "
 
   board-maintenance:
     name: Board Maintenance
@@ -102,21 +102,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e packages/github_ai_agents
-
       - name: Run board maintenance
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
         run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN \
+            -e GITHUB_REPOSITORY \
+            -e GITHUB_PROJECTS_TOKEN \
+            python-ci bash -c "
+            pip install -e packages/github_ai_agents &&
           python -c "
           import asyncio
           import os
@@ -147,6 +144,7 @@ jobs:
 
           asyncio.run(main())
           "
+            "
 
       - name: Report status
         if: always()

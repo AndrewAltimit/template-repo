@@ -48,11 +48,6 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install github_ai_agents package
-        run: |
-          echo "📦 Installing github_ai_agents package..."
-          pip3 install --user -e ./packages/github_ai_agents
-
       - name: Query ready work
         id: query
         env:
@@ -60,7 +55,17 @@ jobs:
           GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
           AGENT_NAME: ${{ github.event.inputs.agent_name || 'claude' }}
           MAX_ISSUES: ${{ github.event.inputs.max_issues || '1' }}
-        run: packages/github_ai_agents/bin/query-ready-work.sh
+          GITHUB_OUTPUT: ${{ github.output }}
+        run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN \
+            -e GITHUB_PROJECTS_TOKEN \
+            -e AGENT_NAME \
+            -e MAX_ISSUES \
+            -e GITHUB_OUTPUT \
+            python-ci bash -c "\
+              pip install -e packages/github_ai_agents && \
+              packages/github_ai_agents/bin/query-ready-work.sh"
 
   work-on-issue:
     name: Work on Issue
@@ -75,11 +80,6 @@ jobs:
           fetch-depth: 1
           clean: true
 
-      - name: Install github_ai_agents package
-        run: |
-          echo "📦 Installing github_ai_agents package..."
-          pip3 install --user -e ./packages/github_ai_agents
-
       - name: Claim work
         id: claim
         env:
@@ -87,14 +87,31 @@ jobs:
           GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
           ISSUE_NUMBER: ${{ needs.query-board.outputs.issue_number }}
           AGENT_NAME: ${{ github.event.inputs.agent_name || 'claude' }}
-        run: packages/github_ai_agents/bin/claim-work.sh
+          GITHUB_OUTPUT: ${{ github.output }}
+        run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN \
+            -e GITHUB_PROJECTS_TOKEN \
+            -e ISSUE_NUMBER \
+            -e AGENT_NAME \
+            -e GITHUB_OUTPUT \
+            python-ci bash -c "\
+              pip install -e packages/github_ai_agents && \
+              packages/github_ai_agents/bin/claim-work.sh"
 
       - name: Get issue details
         id: issue
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ needs.query-board.outputs.issue_number }}
-        run: packages/github_ai_agents/bin/get-issue-details.sh
+          GITHUB_OUTPUT: ${{ github.output }}
+        run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN \
+            -e ISSUE_NUMBER \
+            -e GITHUB_OUTPUT \
+            python-ci bash -c "\
+              packages/github_ai_agents/bin/get-issue-details.sh"
 
       - name: Execute agent work
         id: agent_work
@@ -149,9 +166,13 @@ jobs:
           GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
           ISSUE_NUMBER: ${{ needs.query-board.outputs.issue_number }}
         run: |
-          echo "📊 Updating issue status to 'In Progress'..."
-
-          board-cli status "$ISSUE_NUMBER" --status "in-progress"
+          docker-compose run --rm \
+            -e GITHUB_TOKEN \
+            -e GITHUB_PROJECTS_TOKEN \
+            python-ci bash -c "\
+              pip install -e packages/github_ai_agents && \
+              echo '📊 Updating issue status to In Progress...' && \
+              board-cli status $ISSUE_NUMBER --status in-progress"
 
       - name: Release claim
         if: always() && steps.claim.outputs.claimed == 'true'
@@ -161,7 +182,16 @@ jobs:
           ISSUE_NUMBER: ${{ needs.query-board.outputs.issue_number }}
           AGENT_NAME: ${{ github.event.inputs.agent_name || 'claude' }}
           WORK_COMPLETED: ${{ steps.agent_work.outputs.work_completed }}
-        run: packages/github_ai_agents/bin/release-work.sh
+        run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN \
+            -e GITHUB_PROJECTS_TOKEN \
+            -e ISSUE_NUMBER \
+            -e AGENT_NAME \
+            -e WORK_COMPLETED \
+            python-ci bash -c "\
+              pip install -e packages/github_ai_agents && \
+              packages/github_ai_agents/bin/release-work.sh"
 
   summary:
     name: Workflow Summary
