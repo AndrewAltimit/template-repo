@@ -105,11 +105,43 @@ logging:
 
 ### 4. Set Environment Variables
 
+**Important**: GitHub Projects v2 requires a **classic token** with `project` scope. Fine-grained tokens do not work with the Projects v2 GraphQL API.
+
 ```bash
+# For GitHub Projects v2 (classic token with 'project' and 'repo' scopes)
+export GITHUB_PROJECTS_TOKEN=your_classic_github_token
+
+# For repository operations (can be fine-grained or classic token)
 export GITHUB_TOKEN=your_github_token
+
+# Repository configuration
 export GITHUB_REPOSITORY=owner/repo
-export GITHUB_PROJECT_NUMBER=1
+export GITHUB_PROJECT_NUMBER=2
 ```
+
+**Token Scope Requirements:**
+
+| Token | Type | Required Scopes | Purpose |
+|-------|------|-----------------|---------|
+| `GITHUB_PROJECTS_TOKEN` | Classic | `project`, `repo` (or `public_repo` for public repos only) | Board operations + claim comments |
+| `GITHUB_TOKEN` | Fine-grained or Classic | `contents:write`, `issues:write`, `pull_requests:write` | Repository operations |
+
+**Why does GITHUB_PROJECTS_TOKEN need `repo` scope?**
+
+The claim system posts comments to issues to coordinate work between agents:
+- Claim comments prevent multiple agents from working on the same issue
+- Renewal comments track that work is still in progress
+- Release comments signal work completion
+
+Without these comments, agents can't coordinate and you'd have race conditions. For private repositories, the classic token requires full `repo` scope to post issue comments via GraphQL.
+
+**Why Two Tokens?**
+
+GitHub Projects v2 uses GraphQL API which only accepts classic tokens. For better security, you can:
+- Use a classic token with minimal scopes for board operations (`GITHUB_PROJECTS_TOKEN`)
+- Use a fine-grained token with specific repository permissions for code operations (`GITHUB_TOKEN`)
+
+If you only set `GITHUB_TOKEN`, the system will use it for both operations (backward compatible).
 
 ### 5. Start Using the Board
 

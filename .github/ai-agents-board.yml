@@ -6,7 +6,7 @@
 # GitHub Project Configuration
 project:
   # Project number (visible in project URL: /users/{owner}/projects/{number})
-  number: 1
+  number: 2
 
   # Project owner (GitHub username or organization)
   owner: "AndrewAltimit"

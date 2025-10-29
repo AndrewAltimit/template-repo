@@ -103,10 +103,15 @@ board-cli release 123 --agent claude --reason completed
 ```
 
 **Environment Variables**:
-- `GITHUB_TOKEN` (required): GitHub API token
+- `GITHUB_PROJECTS_TOKEN` (required): GitHub classic token with `project` + `repo` scopes
+- `GITHUB_TOKEN` (fallback): Can use if you don't have separate projects token
 - `GITHUB_REPOSITORY` (required): Repository (owner/repo)
 - `GITHUB_PROJECT_NUMBER` (required): Project board number
 - `BOARD_CONFIG_PATH` (optional): Config file path (default: `.github/ai-agents-board.yml`)
+
+**Note**:
+- GitHub Projects v2 requires a classic token (fine-grained tokens don't work with Projects GraphQL API)
+- `repo` scope is required for posting claim comments to coordinate agent work
 
 ---
 

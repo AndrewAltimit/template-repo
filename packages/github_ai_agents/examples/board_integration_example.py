@@ -22,10 +22,13 @@ async def demonstrate_initialization() -> BoardManager:
 
     # Get configuration
     config_path = os.getenv("BOARD_CONFIG_PATH", ".github/ai-agents-board.yml")
-    github_token = os.getenv("GITHUB_TOKEN")
+    # Prefer GITHUB_PROJECTS_TOKEN (classic token for Projects v2)
+    github_token = os.getenv("GITHUB_PROJECTS_TOKEN") or os.getenv("GITHUB_TOKEN")
 
     if not github_token:
-        print("ERROR: GITHUB_TOKEN environment variable required")
+        print("ERROR: GitHub token required")
+        print("Set GITHUB_PROJECTS_TOKEN (classic token with 'project' scope)")
+        print("or GITHUB_TOKEN environment variable")
         sys.exit(1)
 
     # Check if config file exists

@@ -8,7 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Initial CHANGELOG.md following Keep a Changelog format
+- Support for `GITHUB_PROJECTS_TOKEN` environment variable for board operations
+- Enhanced security with separate tokens for Projects v2 (classic) vs repository operations (fine-grained)
+
+### Changed
+- BoardManager now prefers `GITHUB_PROJECTS_TOKEN` over `GITHUB_TOKEN` for board operations
+- Board CLI updated to check for `GITHUB_PROJECTS_TOKEN` first
+- Documentation updated to explain dual token setup and classic token requirement
+- Test fixtures updated to support both token types
 
 ## [0.2.0] - 2025-10-25
 

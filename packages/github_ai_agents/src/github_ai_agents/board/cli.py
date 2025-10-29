@@ -34,9 +34,12 @@ def load_board_manager() -> BoardManager:
         logger.error("Please create .github/ai-agents-board.yml with board settings")
         sys.exit(1)
 
-    github_token = os.getenv("GITHUB_TOKEN")
+    # Check for GitHub Projects token (classic token required for Projects v2)
+    github_token = os.getenv("GITHUB_PROJECTS_TOKEN") or os.getenv("GITHUB_TOKEN")
     if not github_token:
-        logger.error("GITHUB_TOKEN environment variable not set")
+        logger.error("GitHub token not found")
+        logger.error("Set GITHUB_PROJECTS_TOKEN (classic token with 'project' scope)")
+        logger.error("or GITHUB_TOKEN environment variable")
         sys.exit(1)
 
     try:

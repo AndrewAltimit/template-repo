@@ -139,6 +139,7 @@ def test_repo_owner():
 def mock_env_vars(monkeypatch):
     """Mock environment variables for testing."""
     monkeypatch.setenv("GITHUB_TOKEN", "test_token_12345")
+    monkeypatch.setenv("GITHUB_PROJECTS_TOKEN", "test_projects_token_67890")
     monkeypatch.setenv("GITHUB_REPOSITORY", "testuser/test-repo")
     monkeypatch.setenv("OPENROUTER_API_KEY", "test_openrouter_key")
 
@@ -232,6 +233,13 @@ def mock_github_token(monkeypatch):
     """Mock GitHub token in environment."""
     monkeypatch.setenv("GITHUB_TOKEN", "test-token-12345")
     return "test-token-12345"
+
+
+@pytest.fixture
+def mock_github_projects_token(monkeypatch):
+    """Mock GitHub Projects token (classic token) in environment."""
+    monkeypatch.setenv("GITHUB_PROJECTS_TOKEN", "test-projects-token-67890")
+    return "test-projects-token-67890"
 
 
 @pytest.fixture

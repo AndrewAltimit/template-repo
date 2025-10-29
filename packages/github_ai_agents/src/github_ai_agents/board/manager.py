@@ -50,16 +50,28 @@ class BoardManager:
 
         Args:
             config: Board configuration. If None, loads from file/env
-            github_token: GitHub API token. If None, uses GITHUB_TOKEN env var
+            github_token: GitHub API token. If None, uses GITHUB_PROJECTS_TOKEN
+                         or GITHUB_TOKEN env var (in that order)
 
         Raises:
             ValidationError: If configuration is invalid
+
+        Note:
+            GitHub Projects v2 requires a classic token with 'project' scope.
+            Fine-grained tokens do not work with Projects v2 GraphQL API.
+            Use GITHUB_PROJECTS_TOKEN for board operations and GITHUB_TOKEN
+            for repository operations.
         """
         self.config = config or load_config()
-        self.github_token = github_token or os.getenv("GITHUB_TOKEN")
+        # Prefer GITHUB_PROJECTS_TOKEN (classic token for Projects v2)
+        # Fall back to GITHUB_TOKEN for backward compatibility
+        self.github_token = github_token or os.getenv("GITHUB_PROJECTS_TOKEN") or os.getenv("GITHUB_TOKEN")
 
         if not self.github_token:
-            raise ValueError("GitHub token required (GITHUB_TOKEN environment variable)")
+            raise ValueError(
+                "GitHub token required. Set GITHUB_PROJECTS_TOKEN environment variable "
+                "(classic token with 'project' scope) or GITHUB_TOKEN"
+            )
 
         self.session: aiohttp.ClientSession | None = None
         self.project_id: str | None = None  # Cached project ID
