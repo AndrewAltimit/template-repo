@@ -20,9 +20,13 @@ from config.mock_models import (
     has_deceptive_reasoning,
 )
 
-# Add parent directory to path for constants import
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from constants import DEFAULT_EVALUATION_DB_PATH  # noqa: E402
+# Try to import constants, fallback to hardcoded default if not available (e.g., in Docker test context)
+try:
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+    from constants import DEFAULT_EVALUATION_DB_PATH  # noqa: E402
+except ModuleNotFoundError:
+    # Fallback for containerized test environments where constants.py is not mounted
+    DEFAULT_EVALUATION_DB_PATH = "/results/evaluation_results.db"
 
 logger = logging.getLogger(__name__)
 
