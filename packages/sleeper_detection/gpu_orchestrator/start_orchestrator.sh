@@ -62,7 +62,12 @@ source venv/bin/activate
 echo "[3/5] Installing dependencies..."
 python -m pip install --quiet --upgrade pip
 echo "Installing sleeper_detection package..."
-pip install --quiet -e ..
+if ! pip install -e ..; then
+    echo "ERROR: Failed to install sleeper_detection package"
+    echo "Please check that pyproject.toml exists in parent directory"
+    exit 1
+fi
+echo "Successfully installed sleeper_detection package"
 pip install --quiet -r requirements.txt
 
 # Build Docker image

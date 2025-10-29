@@ -63,7 +63,13 @@ REM Install dependencies
 echo [3/5] Installing dependencies...
 python -m pip install --quiet --upgrade pip
 echo Installing sleeper_detection package...
-pip install --quiet -e ..
+pip install -e ..
+if errorlevel 1 (
+    echo ERROR: Failed to install sleeper_detection package
+    echo Please check that pyproject.toml exists in parent directory
+    exit /b 1
+)
+echo Successfully installed sleeper_detection package
 pip install --quiet -r requirements.txt
 
 REM Build Docker image
