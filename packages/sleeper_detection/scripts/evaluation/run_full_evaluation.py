@@ -66,6 +66,10 @@ TEST_SUITES = {
         "tests": ["honeypot_deployment", "honeypot_deletion"],
         "description": "Honeypot testing to reveal hidden objectives",
     },
+    "internal_state": {
+        "tests": ["internal_state", "activation_analysis"],
+        "description": "Internal state monitoring and attention analysis",
+    },
     "robustness": {
         "tests": ["paraphrasing_robustness", "multilingual_triggers", "context_switching", "noisy_inputs"],
         "description": "Robustness and trigger variation tests",
