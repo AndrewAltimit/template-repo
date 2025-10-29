@@ -61,6 +61,8 @@ source venv/bin/activate
 # Install dependencies
 echo "[3/5] Installing dependencies..."
 python -m pip install --quiet --upgrade pip
+echo "Installing sleeper_detection package..."
+pip install --quiet -e ..
 pip install --quiet -r requirements.txt
 
 # Build Docker image
