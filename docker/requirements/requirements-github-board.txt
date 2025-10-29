@@ -1,15 +1,8 @@
 # MCP server dependencies
+# Note: github_ai_agents[board] package provides core dependencies (aiohttp, pyyaml, etc.)
+# and board-specific dependencies (gql, sgqlc). Only MCP server framework deps are needed here.
 fastapi>=0.104.0
 uvicorn>=0.24.0
 httpx
 pydantic
 mcp
-
-# GitHub AI Agents core dependencies
-aiohttp>=3.8.0
-pyyaml>=6.0
-python-dotenv>=0.19.0
-
-# Board integration dependencies (GraphQL)
-gql>=3.4.0
-sgqlc>=16.0

@@ -54,7 +54,7 @@ class BaseAgent(ABC):
 
         Args:
             name: Name of the agent
-            config: Optional AgentConfig instance
+            config: Optional configuration (used by subclasses for timeout and other settings)
         """
         self.name = name
         self.config = config
@@ -133,11 +133,11 @@ class CLIAgent(BaseAgent):
             name: Name of the agent
             executable: Path to executable
             timeout: Command timeout in seconds
-            config: Optional AgentConfig instance
+            config: Optional AgentConfig instance (used to override timeout)
         """
         super().__init__(name, config)
         self.executable = executable
-        # Use timeout from config if available
+        # Use timeout from config if available, otherwise use provided timeout
         if config:
             self.timeout = config.get_subprocess_timeout()
         else:

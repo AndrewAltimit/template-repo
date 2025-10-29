@@ -60,38 +60,7 @@ jobs:
           GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
           AGENT_NAME: ${{ github.event.inputs.agent_name || 'claude' }}
           MAX_ISSUES: ${{ github.event.inputs.max_issues || '1' }}
-        run: |
-          echo "🔍 Querying board for ready work..."
-          echo "Agent: $AGENT_NAME"
-          echo "Max issues: $MAX_ISSUES"
-
-          # Query ready work using board CLI
-          READY_WORK=$(board-cli ready \
-            --agent "$AGENT_NAME" \
-            --limit "$MAX_ISSUES" \
-            --json)
-
-          echo "Board response:"
-          echo "$READY_WORK" | jq '.'
-
-          # Check if we have work
-          ISSUE_COUNT=$(echo "$READY_WORK" | jq 'length')
-
-          if [ "$ISSUE_COUNT" -gt 0 ]; then
-            echo "has_work=true" >> $GITHUB_OUTPUT
-
-            # Get first issue details
-            ISSUE_NUM=$(echo "$READY_WORK" | jq -r '.[0].number')
-            ISSUE_TITLE=$(echo "$READY_WORK" | jq -r '.[0].title')
-
-            echo "issue_number=$ISSUE_NUM" >> $GITHUB_OUTPUT
-            echo "issue_title=$ISSUE_TITLE" >> $GITHUB_OUTPUT
-
-            echo "✅ Found work: Issue #$ISSUE_NUM - $ISSUE_TITLE"
-          else
-            echo "has_work=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ No ready work found for agent $AGENT_NAME"
-          fi
+        run: packages/github_ai_agents/bin/query-ready-work.sh
 
   work-on-issue:
     name: Work on Issue
@@ -118,55 +87,14 @@ jobs:
           GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
           ISSUE_NUMBER: ${{ needs.query-board.outputs.issue_number }}
           AGENT_NAME: ${{ github.event.inputs.agent_name || 'claude' }}
-        run: |
-          echo "🔒 Claiming issue #$ISSUE_NUMBER for agent $AGENT_NAME..."
-
-          # Generate unique session ID
-          SESSION_ID="gh-actions-$(date +%s)-$RANDOM"
-          echo "session_id=$SESSION_ID" >> $GITHUB_OUTPUT
-
-          # Claim the issue
-          if board-cli claim "$ISSUE_NUMBER" \
-            --agent "$AGENT_NAME" \
-            --session "$SESSION_ID"; then
-            echo "✅ Successfully claimed issue #$ISSUE_NUMBER"
-            echo "claimed=true" >> $GITHUB_OUTPUT
-          else
-            echo "❌ Failed to claim issue #$ISSUE_NUMBER (may be already claimed)"
-            echo "claimed=false" >> $GITHUB_OUTPUT
-            exit 1
-          fi
+        run: packages/github_ai_agents/bin/claim-work.sh
 
       - name: Get issue details
         id: issue
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ needs.query-board.outputs.issue_number }}
-        run: |
-          echo "📋 Getting issue details..."
-
-          # Get issue body and metadata
-          ISSUE_DATA=$(gh issue view "$ISSUE_NUMBER" --json body,title,labels)
-
-          ISSUE_BODY=$(echo "$ISSUE_DATA" | jq -r '.body')
-          ISSUE_TITLE=$(echo "$ISSUE_DATA" | jq -r '.title')
-
-          echo "Issue #$ISSUE_NUMBER: $ISSUE_TITLE"
-          echo ""
-          echo "$ISSUE_BODY"
-
-          # Save to file for agent
-          {
-            echo "# Issue #$ISSUE_NUMBER: $ISSUE_TITLE"
-            echo ""
-            echo "$ISSUE_BODY"
-            echo ""
-            echo "---"
-            echo "**Agent Task**: Implement the above feature/fix as described."
-            echo "Create a branch, make the changes, and open a PR."
-          } > /tmp/issue_context.md
-
-          echo "context_file=/tmp/issue_context.md" >> $GITHUB_OUTPUT
+        run: packages/github_ai_agents/bin/get-issue-details.sh
 
       - name: Execute agent work
         id: agent_work
@@ -232,21 +160,8 @@ jobs:
           GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
           ISSUE_NUMBER: ${{ needs.query-board.outputs.issue_number }}
           AGENT_NAME: ${{ github.event.inputs.agent_name || 'claude' }}
-        run: |
-          echo "🔓 Releasing claim on issue #$ISSUE_NUMBER..."
-
-          # Determine reason based on previous steps
-          if [ "${{ steps.agent_work.outputs.work_completed }}" == "true" ]; then
-            REASON="completed"
-          else
-            REASON="error"
-          fi
-
-          board-cli release "$ISSUE_NUMBER" \
-            --agent "$AGENT_NAME" \
-            --reason "$REASON"
-
-          echo "✅ Released claim (reason: $REASON)"
+          WORK_COMPLETED: ${{ steps.agent_work.outputs.work_completed }}
+        run: packages/github_ai_agents/bin/release-work.sh
 
   summary:
     name: Workflow Summary

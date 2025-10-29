@@ -459,6 +459,170 @@ class BoardManager:
         logger.info(f"Found {len(ready_issues)} ready issues")
         return ready_issues
 
+    async def get_issue(self, issue_number: int) -> Issue | None:
+        """
+        Get a specific issue by number from the project board.
+
+        Args:
+            issue_number: Issue number to retrieve
+
+        Returns:
+            Issue if found on board, None otherwise
+
+        Raises:
+            GraphQLError: If fetching issue fails
+        """
+        logger.info(f"Getting issue #{issue_number}")
+
+        # Fetch project items with issue data
+        query = """
+        query GetProjectItems($projectId: ID!) {
+          node(id: $projectId) {
+            ... on ProjectV2 {
+              items(first: 100) {
+                nodes {
+                  id
+                  fieldValues(first: 20) {
+                    nodes {
+                      ... on ProjectV2ItemFieldSingleSelectValue {
+                        name
+                        field {
+                          ... on ProjectV2FieldCommon {
+                            name
+                          }
+                        }
+                      }
+                      ... on ProjectV2ItemFieldTextValue {
+                        text
+                        field {
+                          ... on ProjectV2FieldCommon {
+                            name
+                          }
+                        }
+                      }
+                    }
+                  }
+                  content {
+                    ... on Issue {
+                      number
+                      title
+                      body
+                      state
+                      createdAt
+                      updatedAt
+                      url
+                      labels(first: 10) {
+                        nodes {
+                          name
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """
+
+        variables = {
+            "projectId": self.project_id,
+        }
+
+        response = await self._execute_graphql(query, variables)
+
+        if not response.data or not response.data.get("node"):
+            raise GraphQLError("Failed to fetch project items")
+
+        items = response.data["node"]["items"]["nodes"]
+
+        # Find the specific issue
+        for item in items:
+            content = item.get("content")
+            if not content or content.get("number") != issue_number:
+                continue
+
+            # Parse field values
+            field_values = {}
+            for field_value in item.get("fieldValues", {}).get("nodes", []):
+                field_name = field_value.get("field", {}).get("name")
+                if not field_name:
+                    continue
+
+                # Handle different field types
+                if "name" in field_value:  # Single select
+                    field_values[field_name] = field_value["name"]
+                elif "text" in field_value:  # Text
+                    field_values[field_name] = field_value["text"]
+
+            # Parse status
+            status_str = field_values.get(self.config.field_mappings.get("status", "Status"))
+            try:
+                status = IssueStatus(status_str) if status_str else IssueStatus.TODO
+            except ValueError:
+                status = IssueStatus.TODO
+
+            # Parse priority
+            priority_str = field_values.get(self.config.field_mappings.get("priority", "Priority"))
+            try:
+                priority = IssuePriority(priority_str) if priority_str else IssuePriority.MEDIUM
+            except ValueError:
+                priority = IssuePriority.MEDIUM
+
+            # Parse type
+            type_str = field_values.get(self.config.field_mappings.get("type", "Type"))
+            try:
+                issue_type = IssueType(type_str) if type_str else None
+            except ValueError:
+                issue_type = None
+
+            # Get assigned agent
+            assigned_agent = field_values.get(self.config.field_mappings.get("agent", "Agent"))
+
+            # Parse blocked_by field
+            blocked_by_str = field_values.get(self.config.field_mappings.get("blocked_by", "Blocked By"), "")
+            blocked_by = []
+            if blocked_by_str:
+                try:
+                    blocked_by = [int(num.strip()) for num in blocked_by_str.split(",") if num.strip()]
+                except ValueError:
+                    pass
+
+            # Parse discovered_from field
+            discovered_from_str = field_values.get(self.config.field_mappings.get("discovered_from", "Discovered From"), "")
+            discovered_from = None
+            if discovered_from_str:
+                try:
+                    discovered_from = int(discovered_from_str.strip())
+                except ValueError:
+                    pass
+
+            labels = [label["name"] for label in content.get("labels", {}).get("nodes", [])]
+
+            issue = Issue(
+                number=content["number"],
+                title=content["title"],
+                body=content.get("body", ""),
+                state=content["state"].lower(),
+                status=status,
+                priority=priority,
+                type=issue_type,
+                agent=assigned_agent,
+                blocked_by=blocked_by,
+                discovered_from=discovered_from,
+                created_at=datetime.fromisoformat(content["createdAt"].replace("Z", "+00:00")),
+                updated_at=datetime.fromisoformat(content["updatedAt"].replace("Z", "+00:00")),
+                url=content["url"],
+                labels=labels,
+                project_item_id=item["id"],
+            )
+
+            logger.info(f"Found issue #{issue_number}: {issue.title}")
+            return issue
+
+        logger.warning(f"Issue #{issue_number} not found on board")
+        return None
+
     async def claim_work(self, issue_number: int, agent_name: str, session_id: str) -> bool:
         """
         Claim an issue for work.
@@ -1066,3 +1230,52 @@ Work claim released.
         await self._execute_graphql(mutation, variables)
         logger.info(f"Marked #{issue_number} as discovered from #{parent_number}")
         return True
+
+    async def create_issue_with_metadata(self, title: str, body: str = "", **metadata: Any) -> Issue:
+        """
+        Create a new issue with board metadata.
+
+        Args:
+            title: Issue title
+            body: Issue body
+            **metadata: Additional metadata (priority, type, agent, size, etc.)
+
+        Returns:
+            Created issue
+
+        Raises:
+            NotImplementedError: This method is not yet implemented
+        """
+        raise NotImplementedError("create_issue_with_metadata is not yet implemented")
+
+    async def assign_to_agent(self, issue_number: int, agent_name: str) -> bool:
+        """
+        Assign an issue to an agent.
+
+        Args:
+            issue_number: Issue to assign
+            agent_name: Agent to assign to
+
+        Returns:
+            True if assignment successful
+
+        Raises:
+            NotImplementedError: This method is not yet implemented
+        """
+        raise NotImplementedError("assign_to_agent is not yet implemented")
+
+    async def get_dependency_graph(self, issue_number: int, depth: int = 3) -> Any:
+        """
+        Get full dependency graph for an issue.
+
+        Args:
+            issue_number: Issue to analyze
+            depth: How many levels deep to traverse
+
+        Returns:
+            Dependency graph structure
+
+        Raises:
+            NotImplementedError: This method is not yet implemented
+        """
+        raise NotImplementedError("get_dependency_graph is not yet implemented")

@@ -159,9 +159,7 @@ async def cmd_create(args: argparse.Namespace) -> None:
         if args.size:
             metadata["size"] = args.size.upper()
 
-        issue = await manager.create_issue_with_metadata(  # type: ignore[attr-defined]
-            title=args.title, body=args.body or "", **metadata
-        )
+        issue = await manager.create_issue_with_metadata(title=args.title, body=args.body or "", **metadata)
 
         if args.json:
             output_result({"number": issue.number, "title": issue.title, "url": issue.url}, json_output=True)
@@ -226,7 +224,7 @@ async def cmd_status(args: argparse.Namespace) -> None:
         if success:
             # Optionally assign agent
             if args.agent:
-                await manager.assign_to_agent(args.issue, args.agent)  # type: ignore[attr-defined]
+                await manager.assign_to_agent(args.issue, args.agent)
 
             if args.json:
                 output_result({"success": True, "issue": args.issue, "status": status.value}, json_output=True)
@@ -251,7 +249,7 @@ async def cmd_graph(args: argparse.Namespace) -> None:
     logger.info(f"Getting dependency graph for issue #{args.issue}")
 
     try:
-        graph = await manager.get_dependency_graph(args.issue, depth=args.depth)  # type: ignore[attr-defined]
+        graph = await manager.get_dependency_graph(args.issue, depth=args.depth)
 
         if args.json:
             output_result(
@@ -358,13 +356,8 @@ async def cmd_info(args: argparse.Namespace) -> None:
     logger.info(f"Getting info for issue #{args.issue}")
 
     try:
-        # Get all issues to find the requested one
-        all_issues = await manager.get_ready_work(limit=100)
-        issue = None
-        for i in all_issues:
-            if i.number == args.issue:
-                issue = i
-                break
+        # Get specific issue directly
+        issue = await manager.get_issue(args.issue)
 
         if not issue:
             print(f"Issue #{args.issue} not found in project board")
