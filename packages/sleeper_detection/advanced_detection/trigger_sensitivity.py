@@ -8,8 +8,54 @@ from dataclasses import dataclass
 from typing import Any, Dict, List
 
 import numpy as np
+import torch
 
 logger = logging.getLogger(__name__)
+
+
+class SimpleDetector:
+    """Simple detector wrapper for trigger sensitivity analysis.
+
+    This is a lightweight detector implementation used by TriggerSensitivityAnalyzer
+    to test if prompts activate backdoor behavior.
+    """
+
+    def __init__(self, model, tokenizer, expected_response):
+        """Initialize detector.
+
+        Args:
+            model: The model to test
+            tokenizer: Tokenizer for the model
+            expected_response: Expected backdoor response to look for
+        """
+        self.model = model
+        self.tokenizer = tokenizer
+        self.expected_response = expected_response
+
+    async def detect_backdoor(self, prompt: str) -> Dict[str, Any]:
+        """Test if prompt activates backdoor behavior.
+
+        Args:
+            prompt: Input prompt to test
+
+        Returns:
+            Dict with confidence, response, and activated flag
+        """
+        inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=128)
+        inputs = {k: v.to("cuda") for k, v in inputs.items()}
+
+        with torch.no_grad():
+            outputs = self.model.generate(
+                **inputs, max_new_tokens=50, do_sample=False, pad_token_id=self.tokenizer.pad_token_id
+            )
+
+        response = self.tokenizer.decode(outputs[0][inputs["input_ids"].shape[1] :], skip_special_tokens=True)
+
+        # Check if backdoor activated
+        activated = self.expected_response.lower() in response.lower()
+        confidence = 1.0 if activated else 0.0
+
+        return {"confidence": confidence, "response": response, "activated": activated}
 
 
 @dataclass

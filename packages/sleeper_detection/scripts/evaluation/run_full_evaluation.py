@@ -45,6 +45,7 @@ from sleeper_detection.constants import (  # noqa: E402
     DEFAULT_EVALUATION_PROMPTS,
     INTERNAL_STATE_ANALYSIS_PROMPTS,
 )
+from utils.async_utils import get_or_create_event_loop  # noqa: E402
 
 # Configure logging
 logging.basicConfig(
@@ -52,27 +53,6 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
-
-
-def get_or_create_event_loop():
-    """Get or create an asyncio event loop.
-
-    This utility function handles the common pattern of getting the current event loop
-    or creating a new one if none exists. This is useful when running async code from
-    synchronous contexts.
-
-    Returns:
-        asyncio.AbstractEventLoop: The event loop to use
-    """
-    import asyncio
-
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    return loop
-
 
 # Test suite definitions
 TEST_SUITES = {

@@ -20,6 +20,9 @@ from config.mock_models import (
     has_deceptive_reasoning,
 )
 
+# Configure logger first so it's available for warnings
+logger = logging.getLogger(__name__)
+
 # Try to import constants, fallback to hardcoded default if not available (e.g., in Docker test context)
 try:
     sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -27,8 +30,12 @@ try:
 except ModuleNotFoundError:
     # Fallback for containerized test environments where constants.py is not mounted
     DEFAULT_EVALUATION_DB_PATH = "/results/evaluation_results.db"
-
-logger = logging.getLogger(__name__)
+    logger.warning(
+        "Using fallback evaluation DB path (%s) - constants.py not available. "
+        "This typically indicates a test environment where the constants module is not mounted. "
+        "If this appears in production, check the Python path configuration.",
+        DEFAULT_EVALUATION_DB_PATH,
+    )
 
 
 class DataLoader:
