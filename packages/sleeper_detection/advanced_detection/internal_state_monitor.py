@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class InternalStateMonitor:
     """Monitor and analyze internal model states for anomalies and suspicious patterns."""
 
-    def __init__(self, model, tokenizer=None, max_layers=12):
+    def __init__(self, model, tokenizer=None, max_layers=12, layer_path=None):
         """Initialize the internal state monitor.
 
         Args:
@@ -32,10 +32,14 @@ class InternalStateMonitor:
                        and balances analysis depth with computational cost. For larger models
                        (e.g., GPT-3, LLaMA-70B), consider increasing this value to capture
                        deep layer behavior, but be aware of memory/performance implications.
+            layer_path: Optional custom path to model layers (e.g., 'transformer.h', 'model.layers')
+                       If None, will auto-detect using hasattr checks for common architectures.
+                       For custom architectures, specify the attribute path to reach the layers.
         """
         self.model = model
         self.tokenizer = tokenizer
         self.max_layers = max_layers
+        self.layer_path = layer_path
         self.attention_analyzer = AttentionAnalyzer(model)
         self.feature_discovery = FeatureDiscovery(model)
 
@@ -155,15 +159,28 @@ class InternalStateMonitor:
 
             # Register hooks
             handles = []
-            if hasattr(self.model, "transformer"):
-                # GPT-style models
+
+            # Get layers using custom path or auto-detection
+            if self.layer_path:
+                # Use custom layer path (e.g., 'transformer.h' or 'model.layers')
+                layers = self.model
+                for attr in self.layer_path.split("."):
+                    layers = getattr(layers, attr)
+
+                if layer_idx is not None:
+                    handles.append(layers[layer_idx].register_forward_hook(hook_fn))
+                else:
+                    for layer in layers[: self.max_layers]:
+                        handles.append(layer.register_forward_hook(hook_fn))
+            elif hasattr(self.model, "transformer"):
+                # GPT-style models (auto-detected)
                 if layer_idx is not None:
                     handles.append(self.model.transformer.h[layer_idx].register_forward_hook(hook_fn))
                 else:
                     for layer in self.model.transformer.h[: self.max_layers]:
                         handles.append(layer.register_forward_hook(hook_fn))
             elif hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
-                # LLaMA-style models
+                # LLaMA-style models (auto-detected)
                 if layer_idx is not None:
                     handles.append(self.model.model.layers[layer_idx].register_forward_hook(hook_fn))
                 else:

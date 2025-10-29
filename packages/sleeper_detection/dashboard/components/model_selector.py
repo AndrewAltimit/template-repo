@@ -5,11 +5,16 @@ Build jobs and the evaluation database, with visual distinction and status indic
 """
 
 import logging
+import sys
+from pathlib import Path
 from typing import Optional
 
 import streamlit as st
-from sleeper_detection.constants import DEFAULT_EVALUATION_DB_PATH
 from utils.model_registry import ModelInfo, ModelRegistry
+
+# Add parent directory to path for constants import
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from constants import DEFAULT_EVALUATION_DB_PATH  # noqa: E402
 
 logger = logging.getLogger(__name__)
 

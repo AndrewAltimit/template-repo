@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import sqlite3
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -18,7 +19,10 @@ from config.mock_models import (
     get_model_risk_level,
     has_deceptive_reasoning,
 )
-from sleeper_detection.constants import DEFAULT_EVALUATION_DB_PATH
+
+# Add parent directory to path for constants import
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+from constants import DEFAULT_EVALUATION_DB_PATH  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
