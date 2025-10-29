@@ -697,9 +697,7 @@ Potential additions (not currently implemented):
 
 ## See Also
 
-- [MCP Server Documentation](../../tools/mcp/github_board/docs/README.md)
+- [MCP Server Documentation](../../../tools/mcp/github_board/docs/README.md)
 - [API Reference](API_REFERENCE.md)
 - [CLI Reference](CLI_REFERENCE.md)
 - [Architecture Documentation](architecture.md)
-- [BOARD_INTEGRATION.md](../BOARD_INTEGRATION.md) - Original PRD
-- [TODO.md](../TODO.md) - Development roadmap
