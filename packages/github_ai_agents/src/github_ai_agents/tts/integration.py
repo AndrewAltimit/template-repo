@@ -50,7 +50,7 @@ class TTSIntegration:
         self.api_key = os.getenv("ELEVENLABS_API_KEY")
 
         # Check for mock mode (for testing without using API credits)
-        self.mock_mode = os.getenv("TTS_MOCK_MODE", "false").lower() == "true"
+        self.mock_mode = (os.getenv("TTS_MOCK_MODE") or "false").lower() == "true"
 
         # Check if TTS should be enabled
         self.enabled = self._is_tts_enabled()
@@ -62,7 +62,7 @@ class TTSIntegration:
     def _is_tts_enabled(self) -> bool:
         """Check if TTS is enabled via environment or config."""
         # Check environment variable first
-        env_enabled = os.getenv("AGENT_TTS_ENABLED", "false").lower() == "true"
+        env_enabled = (os.getenv("AGENT_TTS_ENABLED") or "false").lower() == "true"
 
         # Check config
         config_enabled = self.config.get("tts", {}).get("enabled", False)

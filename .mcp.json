@@ -95,6 +95,21 @@
         "--mode",
         "stdio"
       ]
+    },
+    "github-board": {
+      "command": "python",
+      "args": [
+        "-m",
+        "tools.mcp.github_board.server",
+        "--mode",
+        "stdio"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+        "GITHUB_REPOSITORY": "${GITHUB_REPOSITORY}",
+        "GITHUB_PROJECT_NUMBER": "1",
+        "_comment": "GitHub Board MCP server for board operations and agent coordination. Containerized with docker-compose (mcp-github-board service)."
+      }
     }
   }
 }

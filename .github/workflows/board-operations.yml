@@ -1,0 +1,321 @@
+---
+name: Board Operations
+# Unified workflow for all board-related operations
+
+'on':
+  # PR events - update board when PRs are merged
+  pull_request:
+    types: [closed]
+
+  # Manual triggers - for maintenance and agent work
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: 'Operation to perform'
+        required: true
+        type: choice
+        options:
+          - maintenance
+          - agent-work
+        default: 'maintenance'
+      agent_name:
+        description: 'Agent to use (for agent-work)'
+        required: false
+        default: 'claude'
+        type: choice
+        options:
+          - claude
+          - opencode
+          - crush
+      max_issues:
+        description: 'Maximum issues to work on (for agent-work)'
+        required: false
+        default: '1'
+        type: string
+      dry_run:
+        description: 'Dry run mode (for agent-work)'
+        required: false
+        default: true
+        type: boolean
+
+  # Scheduled operations
+  schedule:
+    # Board maintenance every hour
+    - cron: '0 * * * *'
+
+permissions:
+  issues: write
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: board-operations-${{ github.event.inputs.agent_name || 'default' }}
+  cancel-in-progress: false
+
+jobs:
+  # Job 1: Update board when PR is merged
+  update-pr-merge:
+    name: Update Board on PR Merge
+    runs-on: self-hosted
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Update board for merged PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN \
+            -e GITHUB_REPOSITORY \
+            -e GITHUB_PROJECTS_TOKEN \
+            -e PR_NUMBER \
+            -e PR_BODY \
+            python-ci bash -c "\
+              pip install -e packages/github_ai_agents && \
+              python packages/github_ai_agents/bin/update-pr-merge-status.py"
+
+  # Job 2: Board maintenance (scheduled or manual)
+  maintenance:
+    name: Board Maintenance
+    runs-on: self-hosted
+    if: |
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.operation == 'maintenance')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run board maintenance
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
+        run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN \
+            -e GITHUB_REPOSITORY \
+            -e GITHUB_PROJECTS_TOKEN \
+            python-ci bash -c "\
+              pip install -e packages/github_ai_agents && \
+              python packages/github_ai_agents/bin/run-board-maintenance.py"
+
+      - name: Report status
+        if: always()
+        run: echo "Board maintenance completed"
+
+  # Job 3: Query board for ready work (for agent-work operation)
+  query-board:
+    name: Query Board for Ready Work
+    runs-on: self-hosted
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.operation == 'agent-work'
+    timeout-minutes: 5
+    outputs:
+      has_work: ${{ steps.query.outputs.has_work }}
+      issue_number: ${{ steps.query.outputs.issue_number }}
+      issue_title: ${{ steps.query.outputs.issue_title }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Query ready work
+        id: query
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
+          AGENT_NAME: ${{ github.event.inputs.agent_name || 'claude' }}
+          MAX_ISSUES: ${{ github.event.inputs.max_issues || '1' }}
+          GITHUB_OUTPUT: ${{ github.output }}
+        run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN \
+            -e GITHUB_PROJECTS_TOKEN \
+            -e AGENT_NAME \
+            -e MAX_ISSUES \
+            -e GITHUB_OUTPUT \
+            python-ci bash -c "\
+              pip install -e packages/github_ai_agents && \
+              packages/github_ai_agents/bin/query-ready-work.sh"
+
+  # Job 4: Agent executes work on issue
+  agent-work:
+    name: Agent Work Execution
+    runs-on: self-hosted
+    needs: query-board
+    if: needs.query-board.outputs.has_work == 'true' && github.event.inputs.dry_run != 'true'
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          clean: true
+
+      - name: Claim work
+        id: claim
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
+          ISSUE_NUMBER: ${{ needs.query-board.outputs.issue_number }}
+          AGENT_NAME: ${{ github.event.inputs.agent_name || 'claude' }}
+          GITHUB_OUTPUT: ${{ github.output }}
+        run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN \
+            -e GITHUB_PROJECTS_TOKEN \
+            -e ISSUE_NUMBER \
+            -e AGENT_NAME \
+            -e GITHUB_OUTPUT \
+            python-ci bash -c "\
+              pip install -e packages/github_ai_agents && \
+              packages/github_ai_agents/bin/claim-work.sh"
+
+      - name: Get issue details
+        id: issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ needs.query-board.outputs.issue_number }}
+          GITHUB_OUTPUT: ${{ github.output }}
+        run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN \
+            -e ISSUE_NUMBER \
+            -e GITHUB_OUTPUT \
+            python-ci bash -c "\
+              packages/github_ai_agents/bin/get-issue-details.sh"
+
+      - name: Execute agent work
+        id: agent_work
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ needs.query-board.outputs.issue_number }}
+          ISSUE_TITLE: ${{ needs.query-board.outputs.issue_title }}
+          AGENT_NAME: ${{ github.event.inputs.agent_name || 'claude' }}
+          CONTEXT_FILE: ${{ steps.issue.outputs.context_file }}
+        run: |
+          echo "🤖 Agent $AGENT_NAME starting work on issue #$ISSUE_NUMBER..."
+
+          # Create branch for this work
+          BRANCH_NAME="agent/$AGENT_NAME/issue-$ISSUE_NUMBER"
+          git checkout -b "$BRANCH_NAME"
+
+          echo "Created branch: $BRANCH_NAME"
+          echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
+          # TODO: Integrate with actual agent execution
+          # For now, create a placeholder implementation
+
+          case "$AGENT_NAME" in
+            claude)
+              echo "🤖 Claude Code would work on this issue..."
+              echo "Context: $(cat $CONTEXT_FILE)"
+              # In production: ./tools/cli/agents/run_claude.sh < $CONTEXT_FILE
+              ;;
+            opencode)
+              echo "🤖 OpenCode would work on this issue..."
+              # In production: ./tools/cli/agents/run_opencode.sh -f $CONTEXT_FILE
+              ;;
+            crush)
+              echo "🤖 Crush would work on this issue..."
+              # In production: ./tools/cli/agents/run_crush.sh -f $CONTEXT_FILE
+              ;;
+          esac
+
+          # For demonstration, create a simple commit
+          echo "# Placeholder implementation for issue #$ISSUE_NUMBER" > "/tmp/agent_work_$ISSUE_NUMBER.txt"
+          echo "" >> "/tmp/agent_work_$ISSUE_NUMBER.txt"
+          echo "This is a demonstration of the autonomous agent workflow." >> "/tmp/agent_work_$ISSUE_NUMBER.txt"
+          echo "In production, $AGENT_NAME would implement: $ISSUE_TITLE" >> "/tmp/agent_work_$ISSUE_NUMBER.txt"
+
+          # No actual changes for now - this is demonstration only
+          echo "work_completed=true" >> $GITHUB_OUTPUT
+
+      - name: Update issue status
+        if: steps.agent_work.outputs.work_completed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
+          ISSUE_NUMBER: ${{ needs.query-board.outputs.issue_number }}
+        run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN \
+            -e GITHUB_PROJECTS_TOKEN \
+            python-ci bash -c "\
+              pip install -e packages/github_ai_agents && \
+              echo '📊 Updating issue status to In Progress...' && \
+              board-cli status $ISSUE_NUMBER --status in-progress"
+
+      - name: Release claim
+        if: always() && steps.claim.outputs.claimed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_PROJECTS_TOKEN: ${{ secrets.GITHUB_PROJECTS_TOKEN }}
+          ISSUE_NUMBER: ${{ needs.query-board.outputs.issue_number }}
+          AGENT_NAME: ${{ github.event.inputs.agent_name || 'claude' }}
+          WORK_COMPLETED: ${{ steps.agent_work.outputs.work_completed }}
+        run: |
+          docker-compose run --rm \
+            -e GITHUB_TOKEN \
+            -e GITHUB_PROJECTS_TOKEN \
+            -e ISSUE_NUMBER \
+            -e AGENT_NAME \
+            -e WORK_COMPLETED \
+            python-ci bash -c "\
+              pip install -e packages/github_ai_agents && \
+              packages/github_ai_agents/bin/release-work.sh"
+
+  # Job 5: Summary of agent work
+  agent-summary:
+    name: Agent Work Summary
+    runs-on: self-hosted
+    needs: [query-board, agent-work]
+    if: always() && github.event_name == 'workflow_dispatch' && github.event.inputs.operation == 'agent-work'
+    steps:
+      - name: Print summary
+        env:
+          HAS_WORK: ${{ needs.query-board.outputs.has_work }}
+          ISSUE_NUMBER: ${{ needs.query-board.outputs.issue_number }}
+          ISSUE_TITLE: ${{ needs.query-board.outputs.issue_title }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          AGENT_NAME: ${{ github.event.inputs.agent_name || 'claude' }}
+        run: |
+          echo "========================================"
+          echo "Board Operations - Agent Work Summary"
+          echo "========================================"
+          echo ""
+          echo "Agent: $AGENT_NAME"
+          echo "Dry Run: $DRY_RUN"
+          echo ""
+
+          if [ "$HAS_WORK" == "true" ]; then
+            echo "✅ Found work: Issue #$ISSUE_NUMBER"
+            echo "   Title: $ISSUE_TITLE"
+
+            if [ "$DRY_RUN" == "true" ]; then
+              echo ""
+              echo "ℹ️  Dry run mode - no work was performed"
+              echo "   Run with dry_run=false to execute agent work"
+            else
+              echo ""
+              if [ "${{ needs.agent-work.result }}" == "success" ]; then
+                echo "✅ Agent completed work successfully"
+              else
+                echo "❌ Agent work failed or was skipped"
+                echo "   Result: ${{ needs.agent-work.result }}"
+              fi
+            fi
+          else
+            echo "ℹ️  No ready work found on board"
+            echo "   Agent: $AGENT_NAME"
+          fi
+
+          echo ""
+          echo "========================================"

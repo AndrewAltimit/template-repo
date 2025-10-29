@@ -4,11 +4,13 @@ A Python package for AI-powered GitHub automation using multiple AI agents (Clau
 
 ## Features
 
-- **Multi-Agent Support**: Choose from multiple AI agents based on your needs
+- **Multi-Agent Support**: Choose from multiple AI agents based on your needs (Claude, OpenCode, Gemini, Crush, Codex)
 - **Issue Monitoring**: Automatically respond to GitHub issues with AI-generated implementations
 - **PR Review Monitoring**: Process review feedback and generate fixes using multiple AI agents
+- **Board Integration**: GitHub Projects v2 integration for agent coordination and work tracking
 - **Security**: Built-in security features including user authorization and rate limiting
 - **Containerization**: Support for running agents in Docker containers
+- **CLI Tools**: Command-line tools for issue monitoring, PR monitoring, and board management
 - **Extensible**: Easy to add new AI agents or monitors
 
 ## Installation
@@ -167,14 +169,15 @@ MIT License - see LICENSE file for details.
 
 ## Documentation
 
-- [Architecture Overview](docs/architecture.md)
-- [Security Documentation](docs/security.md)
+For complete documentation, see the [Documentation Index](docs/INDEX.md).
 
-## Implementation Status
+### Key Documentation
 
-Both monitors are fully functional with automated code modification capabilities:
-
-- **Issue Monitor**: Creates PRs with AI-generated implementations
-- **PR Monitor**: Applies fixes directly to PR branches
-
-The security model ensures only authorized users can trigger code changes through explicit commands.
+- [Quick Start Guide](docs/QUICK_START.md) - Get running in 5 minutes
+- [Installation Guide](docs/INSTALLATION.md) - Detailed setup instructions
+- [Architecture Overview](docs/architecture.md) - System design and components
+- [Security Documentation](docs/security.md) - Security model and authorization
+- [Board Integration](docs/board-integration.md) - GitHub Projects v2 integration
+- [API Reference](docs/API_REFERENCE.md) - Complete Python API documentation
+- [CLI Reference](docs/CLI_REFERENCE.md) - Command-line interface reference
+- [Examples](examples/) - Comprehensive usage examples
