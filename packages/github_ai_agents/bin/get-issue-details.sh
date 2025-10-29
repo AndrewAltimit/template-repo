@@ -3,6 +3,10 @@ set -euo pipefail
 
 # Get issue details and create context file for agent
 #
+# Dependencies:
+#   - gh (GitHub CLI)
+#   - jq (JSON processor)
+#
 # Environment variables:
 #   ISSUE_NUMBER: Issue number to query
 #   GITHUB_OUTPUT: File to write outputs to
@@ -19,6 +23,9 @@ echo "Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
 echo ""
 echo "${ISSUE_BODY}"
 
+# Create unique temporary file to avoid race conditions
+CONTEXT_FILE=$(mktemp /tmp/issue_context.XXXXXX.md)
+
 # Save to file for agent
 {
   echo "# Issue #${ISSUE_NUMBER}: ${ISSUE_TITLE}"
@@ -28,6 +35,6 @@ echo "${ISSUE_BODY}"
   echo "---"
   echo "**Agent Task**: Implement the above feature/fix as described."
   echo "Create a branch, make the changes, and open a PR."
-} > /tmp/issue_context.md
+} > "${CONTEXT_FILE}"
 
-echo "context_file=/tmp/issue_context.md" >> "${GITHUB_OUTPUT}"
+echo "context_file=${CONTEXT_FILE}" >> "${GITHUB_OUTPUT}"

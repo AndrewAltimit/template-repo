@@ -3,6 +3,10 @@ set -euo pipefail
 
 # Query ready work from board and output results
 #
+# Dependencies:
+#   - board-cli (from github_ai_agents package)
+#   - jq (JSON processor)
+#
 # Environment variables:
 #   AGENT_NAME: Agent to query for
 #   MAX_ISSUES: Maximum number of issues to return

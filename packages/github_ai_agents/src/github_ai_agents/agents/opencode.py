@@ -30,7 +30,7 @@ class OpenCodeAgent(ContainerizedCLIAgent):
         # Set up environment variables
         if api_key := os.environ.get("OPENROUTER_API_KEY"):
             self.env_vars["OPENROUTER_API_KEY"] = api_key
-            self.env_vars["OPENCODE_MODEL"] = f"openrouter/{self.DEFAULT_MODEL}"
+            self.env_vars["OPENCODE_MODEL"] = self.DEFAULT_MODEL
             logger.info(f"OpenCode initialized with API key: {'*' * 10}{api_key[-4:]}")
         else:
             logger.warning("OPENROUTER_API_KEY not found in environment - OpenCode may not work properly")
@@ -89,7 +89,7 @@ class OpenCodeAgent(ContainerizedCLIAgent):
 
         # Add model flag if we have a model configured
         if self.DEFAULT_MODEL:
-            args.extend(["-m", f"openrouter/{self.DEFAULT_MODEL}"])
+            args.extend(["-m", self.DEFAULT_MODEL])
 
         # Don't add prompt here - we'll use stdin instead
 

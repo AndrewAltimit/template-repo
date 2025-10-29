@@ -26,6 +26,9 @@ def get_best_available_agent() -> Optional[BaseAgent]:
 
     for agent_class in agent_classes:
         try:
+            # All agent subclasses have __init__(config: Optional[Any] = None)
+            # allowing no-arg instantiation, but mypy sees Type[BaseAgent]
+            # which requires 'name' parameter. This is safe by design.
             agent = agent_class()  # type: ignore[call-arg]
             if agent.is_available():
                 return agent

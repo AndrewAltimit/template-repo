@@ -3,6 +3,9 @@ set -euo pipefail
 
 # Release claim on an issue
 #
+# Dependencies:
+#   - board-cli (from github_ai_agents package)
+#
 # Environment variables:
 #   ISSUE_NUMBER: Issue number to release
 #   AGENT_NAME: Agent releasing the claim

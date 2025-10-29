@@ -3,6 +3,9 @@ set -euo pipefail
 
 # Claim work on an issue
 #
+# Dependencies:
+#   - board-cli (from github_ai_agents package)
+#
 # Environment variables:
 #   ISSUE_NUMBER: Issue number to claim
 #   AGENT_NAME: Agent claiming the issue
