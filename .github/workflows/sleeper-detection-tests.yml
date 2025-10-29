@@ -190,12 +190,13 @@ jobs:
 
           # Run pytest with coverage in a named container with mounted volume
           # Container runs as host user via docker-compose user setting
+          # Run from package directory to match pytest.ini configuration
           docker-compose run --name ${CONTAINER_NAME} \
             -v $(pwd)/test_output:/output \
             -e COVERAGE_FILE=/output/.coverage \
             sleeper-eval-cpu \
-            bash -c "cd /app && pytest packages/sleeper_detection/tests/ \
-            -v --cov=packages.sleeper_detection \
+            bash -c "cd /app/packages/sleeper_detection && pytest tests/ \
+            -v --cov=sleeper_detection \
             --cov-report=xml:/output/coverage.xml \
             --cov-report=term \
             -o cache_dir=/output/pytest_cache; \
