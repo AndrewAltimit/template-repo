@@ -128,29 +128,32 @@ Issues = "https://github.com/AndrewAltimit/template-repo/issues"
 sleeper-detect = "sleeper_detection.cli:main"
 
 [tool.setuptools]
-packages = [
-    "sleeper_detection",
-    "sleeper_detection.advanced_detection",
-    "sleeper_detection.analysis",
-    "sleeper_detection.api",
-    "sleeper_detection.app",
-    "sleeper_detection.attention_analysis",
-    "sleeper_detection.backdoor_training",
-    "sleeper_detection.database",
-    "sleeper_detection.detection",
-    "sleeper_detection.evaluation",
-    "sleeper_detection.inference",
-    "sleeper_detection.interventions",
-    "sleeper_detection.models",
-    "sleeper_detection.probes",
-    "sleeper_detection.safety_training",
-    "sleeper_detection.training",
-    "sleeper_detection.training.datasets",
-    "sleeper_detection.utils",
-]
 
-[tool.setuptools.package-dir]
-sleeper_detection = "."
+[tool.setuptools.packages.find]
+where = [".."]
+include = ["sleeper_detection", "sleeper_detection.*"]
+exclude = [
+    "sleeper_detection.tests",
+    "sleeper_detection.tests.*",
+    "sleeper_detection.docs",
+    "sleeper_detection.docs.*",
+    "sleeper_detection.examples",
+    "sleeper_detection.examples.*",
+    "sleeper_detection.scripts",
+    "sleeper_detection.scripts.*",
+    "sleeper_detection.notebooks",
+    "sleeper_detection.notebooks.*",
+    "sleeper_detection.dashboard",
+    "sleeper_detection.dashboard.*",
+    "sleeper_detection.gpu_orchestrator",
+    "sleeper_detection.gpu_orchestrator.*",
+    "sleeper_detection.docker",
+    "sleeper_detection.docker.*",
+    "sleeper_detection.bin",
+    "sleeper_detection.bin.*",
+    "sleeper_detection.artifacts",
+    "sleeper_detection.artifacts.*",
+]
 
 [tool.setuptools.package-data]
 "sleeper_detection" = [
