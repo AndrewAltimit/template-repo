@@ -72,8 +72,10 @@ tests/
 test_*.py
 
 # Large application directories (not part of package)
-# Note: dashboard/ is needed for dashboard Docker builds, so not excluded
+# Note: dashboard/ should be excluded for GPU builds to reduce image size (85M)
+# The dashboard has its own Dockerfile and doesn't need to be in GPU worker images
 gpu_orchestrator/
+dashboard/
 
 # Large data files
 *.csv

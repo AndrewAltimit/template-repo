@@ -157,7 +157,6 @@ class TestMCPClient:
             client = MCPClient(server_name=server_name)
             assert client.base_url == expected_url, f"Server {server_name} has wrong URL"
 
-    @patch.dict(os.environ, {"MCP_CODE_QUALITY_URL": "http://custom:9000"})
     def test_environment_variable_override(self):
         """Test that environment variables override default URLs"""
         # Re-import to pick up env var
@@ -165,8 +164,16 @@ class TestMCPClient:
 
         import tools.mcp.core.client
 
-        importlib.reload(tools.mcp.core.client)
-        from tools.mcp.core.client import MCPClient
+        # Set env var and reload module
+        os.environ["MCP_CODE_QUALITY_URL"] = "http://custom:9000"
+        try:
+            importlib.reload(tools.mcp.core.client)
+            from tools.mcp.core.client import MCPClient
 
-        client = MCPClient(server_name="code_quality")
-        assert client.base_url == "http://custom:9000"
+            client = MCPClient(server_name="code_quality")
+            assert client.base_url == "http://custom:9000"
+        finally:
+            # Clean up: remove env var and reload module to restore original state
+            if "MCP_CODE_QUALITY_URL" in os.environ:
+                del os.environ["MCP_CODE_QUALITY_URL"]
+            importlib.reload(tools.mcp.core.client)
