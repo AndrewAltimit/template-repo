@@ -216,10 +216,12 @@ class TestModelScaling:
         large_config.n_heads = 12
         large_config.vocab_size = 50257
 
-        small_model = Mock()
+        # Use spec to prevent Mock from having a 'model' attribute
+        # which would confuse the detector/model extraction logic
+        small_model = Mock(spec=["config"])
         small_model.config = small_config
 
-        large_model = Mock()
+        large_model = Mock(spec=["config"])
         large_model.config = large_config
 
         mock_models = [("small_model", small_model), ("large_model", large_model)]

@@ -205,7 +205,6 @@ addopts = [
     "--strict-markers",  # Ensure all markers are registered
     "--tb=short",  # Shorter tracebacks
     "-ra",  # Show summary of all test outcomes
-    "--randomly-seed=last",  # Reproducible randomization
 ]
 # Register custom markers
 markers = [

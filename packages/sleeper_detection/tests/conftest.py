@@ -52,6 +52,22 @@ def reset_torch_state():
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             torch.cuda.synchronize()
+
+        # After test: Ensure torch.__spec__ is valid for next test
+        # This prevents "torch.__spec__ is not set" errors in subsequent tests
+        import importlib.util
+        import sys
+
+        if "torch" in sys.modules:
+            torch_module = sys.modules["torch"]
+            if not hasattr(torch_module, "__spec__") or torch_module.__spec__ is None:
+                try:
+                    spec = importlib.util.find_spec("torch")
+                    if spec is not None:
+                        torch_module.__spec__ = spec
+                except (ValueError, AttributeError):
+                    pass  # Can't fix, but don't fail the test
+
     except (ImportError, RuntimeError):
         pass  # PyTorch not available or CUDA not initialized
 
