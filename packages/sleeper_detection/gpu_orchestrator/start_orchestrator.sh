@@ -73,7 +73,8 @@ pip install --quiet -r requirements.txt
 # Build Docker image
 echo "[4/5] Building GPU worker Docker image..."
 echo "This may take a few minutes on first run (cached afterwards)"
-if ! docker build -t sleeper-detection:gpu -f ../docker/Dockerfile.gpu ..; then
+# Note: Build context is packages/ (../..) so that where=[".."] in pyproject.toml works correctly
+if ! docker build -t sleeper-detection:gpu -f ../docker/Dockerfile.gpu ../..; then
     echo "ERROR: Failed to build sleeper-detection:gpu image"
     echo "Please check Docker is running and Dockerfile exists"
     exit 1

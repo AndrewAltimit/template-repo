@@ -75,7 +75,8 @@ pip install --quiet -r requirements.txt
 REM Build Docker image
 echo [4/5] Building GPU worker Docker image...
 echo This may take a few minutes on first run (cached afterwards)
-docker build -t sleeper-detection:gpu -f ..\docker\Dockerfile.gpu ..
+REM Note: Build context is packages/ (..\..) so that where=[".."] in pyproject.toml works correctly
+docker build -t sleeper-detection:gpu -f ..\docker\Dockerfile.gpu ..\..
 if errorlevel 1 (
     echo ERROR: Failed to build sleeper-detection:gpu image
     echo Please check Docker is running and Dockerfile exists
