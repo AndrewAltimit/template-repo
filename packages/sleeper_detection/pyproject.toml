@@ -153,6 +153,23 @@ exclude = [
     "sleeper_detection.bin.*",
     "sleeper_detection.artifacts",
     "sleeper_detection.artifacts.*",
+    # Generated/runtime directories
+    "sleeper_detection.wandb",
+    "sleeper_detection.wandb.*",
+    "sleeper_detection.outputs",
+    "sleeper_detection.outputs.*",
+    "sleeper_detection.logs",
+    "sleeper_detection.logs.*",
+    "sleeper_detection.checkpoints",
+    "sleeper_detection.checkpoints.*",
+    "sleeper_detection.runs",
+    "sleeper_detection.runs.*",
+    "sleeper_detection.mlruns",
+    "sleeper_detection.mlruns.*",
+    "sleeper_detection.build",
+    "sleeper_detection.build.*",
+    "sleeper_detection.dist",
+    "sleeper_detection.dist.*",
 ]
 
 [tool.setuptools.package-data]
