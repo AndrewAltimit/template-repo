@@ -199,3 +199,17 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
+# Test isolation and reliability
+addopts = [
+    "-v",  # Verbose output
+    "--strict-markers",  # Ensure all markers are registered
+    "--tb=short",  # Shorter tracebacks
+    "-ra",  # Show summary of all test outcomes
+    "--randomly-seed=last",  # Reproducible randomization
+]
+# Register custom markers
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]

@@ -13,11 +13,24 @@ from sleeper_detection.detection.layer_probes import LayerProbeDetector
 
 @pytest.fixture
 async def detector():
-    """Create a detector with minimal configuration for testing."""
+    """Create a fresh detector instance for each test with proper cleanup.
+
+    This ensures complete test isolation by:
+    1. Creating a new detector for each test
+    2. Cleaning up model state after each test
+    3. Preventing state leakage between tests
+    """
     config = DetectionConfig(model_name="gpt2", device="cpu", use_minimal_model=True, layers_to_probe=[0, 1, 2])
     detector = SleeperDetector(config)
     await detector.initialize()
-    return detector
+
+    yield detector  # Test runs here
+
+    # Cleanup: Clear model and cached state
+    if hasattr(detector, "model") and detector.model is not None:
+        del detector.model
+    if hasattr(detector, "_cache"):
+        detector._cache = None
 
 
 @pytest.fixture

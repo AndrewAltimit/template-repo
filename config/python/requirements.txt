@@ -37,6 +37,7 @@ pytest-asyncio>=0.21.0
 pytest-cov>=4.1.0
 pytest-timeout>=2.2.0
 pytest-json-report>=1.5.0
+pytest-randomly>=3.15.0  # Randomize test order to find isolation issues
 black==25.1.0
 isort==6.0.1
 flake8>=7.3.0
