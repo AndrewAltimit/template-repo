@@ -69,20 +69,24 @@ REM Install dependencies
 echo [3/5] Installing dependencies...
 python -m pip install --quiet --upgrade pip
 echo Installing sleeper_detection package...
-pip install -e ..
+REM With src/ layout, package root is one level up
+cd ..
+pip install -e .
 if errorlevel 1 (
     echo ERROR: Failed to install sleeper_detection package
-    echo Please check that pyproject.toml exists in parent directory
+    echo Please check that pyproject.toml exists and src/ layout is correct
+    cd gpu_orchestrator
     exit /b 1
 )
+cd gpu_orchestrator
 echo Successfully installed sleeper_detection package
 pip install --quiet -r requirements.txt
 
 REM Build Docker image
 echo [4/5] Building GPU worker Docker image...
 echo This may take a few minutes on first run (cached afterwards)
-REM Note: Build context is packages/ (..\..) so that where=[".."] in pyproject.toml works correctly
-docker build -t sleeper-detection:gpu -f ..\docker\Dockerfile.gpu ..\..
+REM Note: Build context is now packages/sleeper_detection/ (src/ layout)
+docker build -t sleeper-detection:gpu -f ..\docker\Dockerfile.gpu ..
 if errorlevel 1 (
     echo ERROR: Failed to build sleeper-detection:gpu image
     echo Please check Docker is running and Dockerfile exists

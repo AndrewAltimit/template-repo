@@ -130,8 +130,7 @@ sleeper-detect = "sleeper_detection.cli:main"
 [tool.setuptools]
 
 [tool.setuptools.packages.find]
-where = [".."]
-include = ["sleeper_detection", "sleeper_detection.*"]
+where = ["src"]
 exclude = [
     "sleeper_detection.tests",
     "sleeper_detection.tests.*",

@@ -66,19 +66,22 @@ source venv/bin/activate
 echo "[3/5] Installing dependencies..."
 python -m pip install --quiet --upgrade pip
 echo "Installing sleeper_detection package..."
-if ! pip install -e ..; then
+# With src/ layout, package root is one level up
+cd ..
+if ! pip install -e .; then
     echo "ERROR: Failed to install sleeper_detection package"
-    echo "Please check that pyproject.toml exists in parent directory"
+    echo "Please check that pyproject.toml exists and src/ layout is correct"
     exit 1
 fi
+cd gpu_orchestrator
 echo "Successfully installed sleeper_detection package"
 pip install --quiet -r requirements.txt
 
 # Build Docker image
 echo "[4/5] Building GPU worker Docker image..."
 echo "This may take a few minutes on first run (cached afterwards)"
-# Note: Build context is packages/ (../..) so that where=[".."] in pyproject.toml works correctly
-if ! docker build -t sleeper-detection:gpu -f ../docker/Dockerfile.gpu ../..; then
+# Note: Build context is now packages/sleeper_detection/ (src/ layout)
+if ! docker build -t sleeper-detection:gpu -f ../docker/Dockerfile.gpu ..; then
     echo "ERROR: Failed to build sleeper-detection:gpu image"
     echo "Please check Docker is running and Dockerfile exists"
     exit 1

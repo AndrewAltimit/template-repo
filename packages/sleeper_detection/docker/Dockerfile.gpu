@@ -21,10 +21,9 @@ RUN apt-get update && apt-get install -y \
 # Upgrade pip and build tools to latest versions (better dependency resolver)
 RUN python3 -m pip install --no-cache-dir --upgrade pip>=24.0 setuptools>=70.0 wheel packaging
 
-# Copy requirements first for better caching
-# Build context is packages/, so files are in sleeper_detection/
-COPY sleeper_detection/pyproject.toml /app/sleeper_detection/
-COPY sleeper_detection/README.md /app/sleeper_detection/
+# Copy pyproject.toml first for better caching
+# Build context is now packages/sleeper_detection/ (src/ layout)
+COPY pyproject.toml README.md /app/
 
 # Install PyTorch with CUDA 12.4+ support (compatible with CUDA 12.6 runtime)
 RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
@@ -36,10 +35,6 @@ RUN pip install --no-cache-dir \
     peft>=0.7.0 \
     bitsandbytes>=0.41.0 \
     trl>=0.7.0
-
-# Copy the entire package (needed before pip install -e)
-# This copies packages/ contents to /app/, so /app/sleeper_detection/ will exist
-COPY . /app/
 
 # Install the sleeper detection package dependencies first
 # This separates dependency resolution from the editable install
@@ -71,10 +66,14 @@ RUN pip install --no-cache-dir \
     httpx>=0.25.0 \
     python-multipart>=0.0.6
 
+# Copy the source code (src/sleeper_detection/)
+# With src/ layout, this is clean and doesn't include tests, docs, etc.
+COPY src /app/src
+
 # Now install the package in editable mode (dependencies already satisfied)
 # Using --no-deps to avoid re-resolving dependencies
-# The -e . installs from /app/sleeper_detection/ where pyproject.toml is located
-RUN cd /app/sleeper_detection && pip install --no-cache-dir --no-deps -e .
+# The src/ layout makes this clean and predictable
+RUN pip install --no-cache-dir --no-deps -e .
 
 # Set environment variables
 ENV PYTHONPATH=/app:$PYTHONPATH

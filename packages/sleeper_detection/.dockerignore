@@ -1,3 +1,6 @@
+# Docker ignore file for sleeper_detection package
+# Build context: packages/sleeper_detection/ (src/ layout)
+
 # Git files
 .git/
 .gitignore
@@ -20,6 +23,7 @@ build/
 venv/
 env/
 ENV/
+gpu_orchestrator/venv/
 
 # Models and data (these should be mounted as volumes)
 models/
@@ -35,6 +39,7 @@ logs/
 *.log
 
 # Experiment tracking (wandb, mlflow, etc.)
+# CRITICAL: These can cause "file cannot be accessed" errors if locked
 wandb/
 .wandb/
 mlruns/
@@ -57,23 +62,21 @@ bin/
 .DS_Store
 Thumbs.db
 
-# Docker files
+# Docker files (don't copy other Dockerfiles)
 docker-compose*.yml
 Dockerfile*
-.dockerignore
 
-# Documentation
+# Documentation (reduces image size)
 docs/
 *.md
 !README.md
 
-# Test files (if you don't need them in production)
+# Test files (not needed in production)
 tests/
 test_*.py
 
-# Large application directories (not part of package)
-# Note: dashboard/ should be excluded for GPU builds to reduce image size (85M)
-# The dashboard has its own Dockerfile and doesn't need to be in GPU worker images
+# Large application directories
+# These have their own Dockerfiles
 gpu_orchestrator/
 dashboard/
 
@@ -84,7 +87,7 @@ dashboard/
 !pyproject.toml
 !package.json
 
-# Node modules (if any)
+# Node modules
 node_modules/
 
 # Jupyter notebooks
@@ -99,3 +102,8 @@ node_modules/
 *.mp4
 *.avi
 *.mov
+
+# Examples and scripts (not needed in production image)
+examples/
+scripts/
+notebooks/
