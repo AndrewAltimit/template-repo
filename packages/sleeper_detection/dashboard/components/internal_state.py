@@ -13,6 +13,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from components.model_selector import render_model_selector
+from utils.model_registry import ModelRegistry
 
 
 def render_internal_state_monitor(data_loader, cache_manager):
@@ -28,11 +29,13 @@ def render_internal_state_monitor(data_loader, cache_manager):
     st.header("Internal State Anomaly Monitor")
 
     # Add model selector
-    selected_model = render_model_selector(
-        data_loader, key_suffix="internal_state", help_text="Select model for internal state analysis"
+    model_registry = ModelRegistry(data_loader)
+    selected_model_info = render_model_selector(
+        model_registry, key_suffix="internal_state", help_text="Select model for internal state analysis"
     )
-    if not selected_model:
+    if not selected_model_info:
         return
+    selected_model = selected_model_info.name
 
     st.markdown(
         """

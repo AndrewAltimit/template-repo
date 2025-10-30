@@ -9,6 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from components.model_selector import render_model_selector
+from utils.model_registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +23,13 @@ def render_red_team_results(data_loader, cache_manager):
     st.header("Automated Red-Teaming Results")
 
     # Add model selector
-    model_name = render_model_selector(data_loader, key_suffix="red_team_results", help_text="Select model for analysis")
-    if not model_name:
+    model_registry = ModelRegistry(data_loader)
+    selected_model = render_model_selector(
+        model_registry, key_suffix="red_team_results", help_text="Select model for analysis"
+    )
+    if not selected_model:
         return
+    model_name = selected_model.name
 
     # Add context explanation
     st.caption(

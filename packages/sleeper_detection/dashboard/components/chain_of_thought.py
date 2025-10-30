@@ -13,6 +13,7 @@ from typing import Any, Dict, List
 
 import streamlit as st
 from components.model_selector import render_model_selector
+from utils.model_registry import ModelRegistry
 
 # Import shared CoT analysis utilities
 # Try direct import first (works in container where evaluation/ is copied)
@@ -45,9 +46,13 @@ def render_chain_of_thought(data_loader: Any, cache_manager: Any) -> None:
     st.header("Chain-of-Thought Deception Analysis")
 
     # Add model selector at the top
-    model_name = render_model_selector(data_loader, key_suffix="cot", help_text="Select model for chain-of-thought analysis")
-    if not model_name:
+    model_registry = ModelRegistry(data_loader)
+    selected_model = render_model_selector(
+        model_registry, key_suffix="cot", help_text="Select model for chain-of-thought analysis"
+    )
+    if not selected_model:
         return
+    model_name = selected_model.name
 
     # Explain the importance
     st.info(

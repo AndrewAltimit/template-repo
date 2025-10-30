@@ -11,6 +11,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 from components.model_selector import render_model_selector
+from utils.model_registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +26,13 @@ def render_risk_mitigation_matrix(data_loader: Any, cache_manager: Any) -> None:
     st.caption("Mapping detected risks to actionable countermeasures")
 
     # Add model selector
-    model_name = render_model_selector(
-        data_loader, key_suffix="risk_mitigation", help_text="Select model for risk mitigation analysis"
+    model_registry = ModelRegistry(data_loader)
+    selected_model = render_model_selector(
+        model_registry, key_suffix="risk_mitigation", help_text="Select model for risk mitigation analysis"
     )
-    if not model_name:
+    if not selected_model:
         return
+    model_name = selected_model.name
 
     # Get model risk profile
     risk_profile = get_model_risk_profile(data_loader, model_name)
