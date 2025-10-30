@@ -4,6 +4,10 @@
 
 set -e  # Exit on error
 
+# Change to script directory - makes all relative paths work consistently
+# regardless of where this script is called from
+cd "$(dirname "$0")"
+
 echo "========================================="
 echo "GPU Orchestrator API Startup"
 echo "========================================="

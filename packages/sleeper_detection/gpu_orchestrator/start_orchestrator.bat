@@ -1,4 +1,10 @@
 @echo off
+setlocal
+
+REM Change to script directory - makes all relative paths work consistently
+REM regardless of where this script is called from
+cd /d %~dp0
+
 REM Start GPU Orchestrator API
 REM This script should run on the Windows GPU machine
 

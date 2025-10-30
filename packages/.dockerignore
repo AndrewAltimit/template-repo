@@ -1,0 +1,107 @@
+# Docker ignore file for GPU worker builds
+# Build context: packages/
+# This file must be at the root of the build context to be effective
+
+# Git files
+.git/
+.gitignore
+.github/
+
+# Python cache
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+**/*.so
+.Python
+**/*.egg-info/
+**/dist/
+**/build/
+**/*.egg
+**/.pytest_cache/
+**/.mypy_cache/
+
+# Virtual environments
+**/venv/
+**/env/
+**/ENV/
+
+# Models and data (these should be mounted as volumes)
+**/models/
+**/*.pth
+**/*.pt
+**/*.ckpt
+**/*.safetensors
+
+# Results and outputs
+**/results/
+**/outputs/
+**/logs/
+**/*.log
+
+# Experiment tracking (wandb, mlflow, etc.)
+# CRITICAL: These can cause "file cannot be accessed" errors if locked
+**/wandb/
+**/.wandb/
+**/mlruns/
+**/lightning_logs/
+**/runs/
+**/checkpoints/
+
+# Artifacts and large directories
+**/artifacts/
+**/bin/
+
+# IDE files
+**/.vscode/
+**/.idea/
+**/*.swp
+**/*.swo
+**/*~
+
+# OS files
+.DS_Store
+Thumbs.db
+**/.DS_Store
+**/Thumbs.db
+
+# Docker files (don't copy other Dockerfiles)
+**/docker-compose*.yml
+**/Dockerfile*
+**/.dockerignore
+
+# Documentation (reduces image size)
+**/docs/
+**/*.md
+!**/README.md
+
+# Test files (not needed in production)
+**/tests/
+**/test_*.py
+
+# Large application directories
+# Note: Paths are relative to packages/
+sleeper_detection/gpu_orchestrator/
+sleeper_detection/dashboard/
+
+# Large data files
+**/*.csv
+**/*.json
+**/*.jsonl
+!**/pyproject.toml
+!**/package.json
+
+# Node modules
+**/node_modules/
+
+# Jupyter notebooks
+**/*.ipynb
+**/.ipynb_checkpoints/
+
+# Media files
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.mp4
+**/*.avi
+**/*.mov
