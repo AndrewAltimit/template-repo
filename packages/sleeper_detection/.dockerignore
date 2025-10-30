@@ -72,7 +72,7 @@ tests/
 test_*.py
 
 # Large application directories (not part of package)
-dashboard/
+# Note: dashboard/ is needed for dashboard Docker builds, so not excluded
 gpu_orchestrator/
 
 # Large data files
