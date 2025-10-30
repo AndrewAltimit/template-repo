@@ -11,9 +11,9 @@ import pytest
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from probes.causal_debugger import CausalDebugger, CausalExperiment  # noqa: E402
-from probes.feature_discovery import DiscoveredFeature, FeatureDiscovery  # noqa: E402
-from probes.probe_detector import Probe, ProbeDetector  # noqa: E402
+from sleeper_detection.evaluation.probes.causal_debugger import CausalDebugger, CausalExperiment  # noqa: E402
+from sleeper_detection.evaluation.probes.feature_discovery import DiscoveredFeature, FeatureDiscovery  # noqa: E402
+from sleeper_detection.evaluation.probes.probe_detector import Probe, ProbeDetector  # noqa: E402
 
 
 class TestFeatureDiscovery(unittest.TestCase):

@@ -13,9 +13,9 @@ project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 # noqa: E402 - imports after path manipulation
-from packages.sleeper_detection import models  # noqa: E402, F401
+from sleeper_detection import models  # noqa: E402, F401
 
-IMPORT_PREFIX = "packages.sleeper_detection.models"
+IMPORT_PREFIX = "sleeper_detection.models"
 
 
 def check_file_exists(filepath: str, description: str) -> bool:
