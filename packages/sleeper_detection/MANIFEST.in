@@ -1,0 +1,42 @@
+# Include essential files
+include README.md
+include LICENSE
+include pyproject.toml
+include setup.py
+
+# Include package data
+recursive-include sleeper_detection/test_suites *.yaml
+recursive-include sleeper_detection/configs *.json
+
+# Exclude common non-package directories
+prune tests
+prune docs
+prune examples
+prune scripts
+prune notebooks
+prune dashboard
+prune gpu_orchestrator
+prune docker
+prune bin
+prune artifacts
+
+# Exclude generated/runtime directories
+prune wandb
+prune mlruns
+prune runs
+prune logs
+prune outputs
+prune checkpoints
+prune .pytest_cache
+prune .mypy_cache
+prune build
+prune dist
+prune *.egg-info
+
+# Exclude cache and temporary files
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude *.so
+global-exclude .DS_Store
+global-exclude *.swp
+global-exclude *~

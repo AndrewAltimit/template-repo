@@ -39,6 +39,12 @@ wandb/
 .wandb/
 mlruns/
 lightning_logs/
+runs/
+checkpoints/
+
+# Artifacts and large directories
+artifacts/
+bin/
 
 # IDE files
 .vscode/
@@ -64,6 +70,10 @@ docs/
 # Test files (if you don't need them in production)
 tests/
 test_*.py
+
+# Large application directories (not part of package)
+dashboard/
+gpu_orchestrator/
 
 # Large data files
 *.csv
