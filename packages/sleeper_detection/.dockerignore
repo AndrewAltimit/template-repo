@@ -76,9 +76,8 @@ tests/
 test_*.py
 
 # Large application directories
-# These have their own Dockerfiles
+# gpu_orchestrator has its own Dockerfile and isn't needed in any images
 gpu_orchestrator/
-dashboard/
 
 # Large data files
 *.csv
