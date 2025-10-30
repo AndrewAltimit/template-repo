@@ -2,7 +2,7 @@
 
 import sys
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -47,7 +47,7 @@ class TestSafetyTrainingPipeline:
         # Create mock detector
         mock_detector = Mock()
         mock_detector.model = None
-        mock_detector.detect_backdoor = Mock(return_value={"is_likely_backdoored": True, "confidence": 0.9})
+        mock_detector.detect_backdoor = AsyncMock(return_value={"is_likely_backdoored": True, "confidence": 0.9})
 
         # Create pipeline
         pipeline = SafetyTrainingPipeline(mock_detector)
@@ -88,7 +88,7 @@ class TestTriggerSensitivity:
 
         # Create mock detector
         mock_detector = Mock()
-        mock_detector.detect_backdoor = Mock(return_value={"is_likely_backdoored": True, "confidence": 0.9})
+        mock_detector.detect_backdoor = AsyncMock(return_value={"is_likely_backdoored": True, "confidence": 0.9})
 
         # Create analyzer
         analyzer = TriggerSensitivityAnalyzer(mock_detector)
@@ -124,7 +124,7 @@ class TestRedTeaming:
 
         # Create mock detector
         mock_detector = Mock()
-        mock_detector.detect_backdoor = Mock(return_value={"is_likely_backdoored": True, "confidence": 0.9})
+        mock_detector.detect_backdoor = AsyncMock(return_value={"is_likely_backdoored": True, "confidence": 0.9})
 
         # Create red teamer
         red_teamer = AutomatedRedTeamer(mock_detector)
@@ -200,8 +200,29 @@ class TestModelScaling:
         # Create analyzer
         analyzer = ModelSizeScalingAnalyzer()
 
-        # Create mock models
-        mock_models = [("small_model", Mock()), ("large_model", Mock())]
+        # Create mock models with proper config using simple objects
+        class SimpleConfig:
+            pass
+
+        small_config = SimpleConfig()
+        small_config.n_layers = 6
+        small_config.n_embd = 512
+        small_config.n_heads = 8
+        small_config.vocab_size = 50257
+
+        large_config = SimpleConfig()
+        large_config.n_layers = 12
+        large_config.n_embd = 768
+        large_config.n_heads = 12
+        large_config.vocab_size = 50257
+
+        small_model = Mock()
+        small_model.config = small_config
+
+        large_model = Mock()
+        large_model.config = large_config
+
+        mock_models = [("small_model", small_model), ("large_model", large_model)]
 
         # Run scaling analysis
         result = await analyzer.analyze_scaling(mock_models)

@@ -620,7 +620,13 @@ class ProbeDetector:
             "average_auc": float(np.mean([p.auc_score for p in active_probes])) if active_probes else 0.0,
             "total_detections": sum(p.detection_count for p in self.probes.values()),
             "layer_distribution": layer_distribution,
-            "deception_probes": len([p for p in self.probes.values() if "deception" in p.feature_name.lower()]),
+            "deception_probes": len(
+                [
+                    p
+                    for p in self.probes.values()
+                    if "deception" in p.feature_name.lower() or "deceptive" in p.feature_name.lower()
+                ]
+            ),
         }
 
     def deactivate_probe(self, probe_id: str):
