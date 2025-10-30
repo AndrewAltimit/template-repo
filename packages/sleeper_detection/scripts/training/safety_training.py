@@ -16,9 +16,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from sleeper_detection.constants import DEFAULT_EVALUATION_DB_PATH  # noqa: E402
-
-from packages.sleeper_detection.training.safety_trainer import SafetyTrainer  # noqa: E402
-from packages.sleeper_detection.training.training_config import SafetyTrainingConfig  # noqa: E402
+from sleeper_detection.training.safety_trainer import SafetyTrainer  # noqa: E402
+from sleeper_detection.training.training_config import SafetyTrainingConfig  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -255,7 +254,7 @@ def main():
 
         # Ingest results into evaluation database
         try:
-            from packages.sleeper_detection.database.ingestion import ingest_from_safety_training_json
+            from sleeper_detection.database.ingestion import ingest_from_safety_training_json
 
             # Determine job_id from output path (should be in format /results/safety_trained/{job_id}/model)
             job_id = save_path.parent.name
@@ -295,7 +294,7 @@ def main():
 
         try:
             # Import evaluator
-            from packages.sleeper_detection.scripts.evaluation.run_full_evaluation import (
+            from sleeper_detection.scripts.evaluation.run_full_evaluation import (
                 EvaluationDatabase,
                 ModelEvaluator,
             )

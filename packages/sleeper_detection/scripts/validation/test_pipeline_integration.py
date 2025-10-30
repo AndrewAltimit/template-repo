@@ -3,8 +3,8 @@
 
 import asyncio
 
-from packages.sleeper_detection.app.config import DetectionConfig
-from packages.sleeper_detection.app.detector import SleeperDetector
+from sleeper_detection.app.config import DetectionConfig
+from sleeper_detection.app.detector import SleeperDetector
 
 
 async def test_end_to_end():

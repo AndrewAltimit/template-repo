@@ -12,9 +12,8 @@ import sys
 import tempfile
 
 import numpy as np
-
-from packages.sleeper_detection.database.ingestion import ingest_trigger_sensitivity_results
-from packages.sleeper_detection.database.schema import ensure_trigger_sensitivity_table_exists
+from sleeper_detection.database.ingestion import ingest_trigger_sensitivity_results
+from sleeper_detection.database.schema import ensure_trigger_sensitivity_table_exists
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")

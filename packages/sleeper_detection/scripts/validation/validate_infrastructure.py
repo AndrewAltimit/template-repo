@@ -36,20 +36,20 @@ def check_imports() -> bool:
     print("-" * 40)
 
     try:
-        # Import from packages.sleeper_detection.models
-        from packages.sleeper_detection.models import ModelRegistry  # noqa: F401
+        # Import from sleeper_detection.models
+        from sleeper_detection.models import ModelRegistry  # noqa: F401
 
         print("  ✓ ModelRegistry import successful")
 
-        from packages.sleeper_detection.models import ModelDownloader  # noqa: F401
+        from sleeper_detection.models import ModelDownloader  # noqa: F401
 
         print("  ✓ ModelDownloader import successful")
 
-        from packages.sleeper_detection.models import ResourceManager  # noqa: F401
+        from sleeper_detection.models import ResourceManager  # noqa: F401
 
         print("  ✓ ResourceManager import successful")
 
-        from packages.sleeper_detection.models import get_registry, get_resource_manager  # noqa: F401
+        from sleeper_detection.models import get_registry, get_resource_manager  # noqa: F401
 
         print("  ✓ Helper functions import successful")
 
@@ -102,7 +102,7 @@ def validate_registry() -> bool:
     print("-" * 40)
 
     try:
-        from packages.sleeper_detection.models import get_registry
+        from sleeper_detection.models import get_registry
 
         registry = get_registry()
 
@@ -116,7 +116,7 @@ def validate_registry() -> bool:
             print(f"  ✓ Found {model_count} models")
 
         # Check categories
-        from packages.sleeper_detection.models.registry import ModelCategory
+        from sleeper_detection.models.registry import ModelCategory
 
         categories = set(m.category for m in registry.models.values())
         expected = {ModelCategory.TINY, ModelCategory.CODING, ModelCategory.GENERAL}
@@ -154,7 +154,7 @@ def validate_resource_manager() -> bool:
     print("-" * 40)
 
     try:
-        from packages.sleeper_detection.models import get_resource_manager
+        from sleeper_detection.models import get_resource_manager
 
         rm = get_resource_manager()
 
@@ -185,7 +185,7 @@ def validate_downloader() -> bool:
     print("-" * 40)
 
     try:
-        from packages.sleeper_detection.models.downloader import ModelDownloader
+        from sleeper_detection.models.downloader import ModelDownloader
 
         downloader = ModelDownloader()
 
@@ -222,7 +222,7 @@ def run_basic_integration() -> bool:
     print("-" * 40)
 
     try:
-        from packages.sleeper_detection.models import get_registry, get_resource_manager
+        from sleeper_detection.models import get_registry, get_resource_manager
 
         registry = get_registry()
         rm = get_resource_manager()

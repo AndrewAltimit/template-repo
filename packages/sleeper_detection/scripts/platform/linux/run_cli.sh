@@ -158,7 +158,7 @@ echo
 
 # Build Python command
 build_python_command() {
-    local args=("-m" "packages.sleeper_detection.cli" "$COMMAND")
+    local args=("-m" "sleeper_detection.cli" "$COMMAND")
 
     case $COMMAND in
         evaluate)

@@ -8,11 +8,10 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
-from packages.sleeper_detection.app.config import DetectionConfig
-from packages.sleeper_detection.app.detector import SleeperDetector
-from packages.sleeper_detection.app.enums import BackdoorMechanism, BackdoorType
-from packages.sleeper_detection.backdoor_training.trainer import BackdoorTrainer
+from sleeper_detection.app.config import DetectionConfig
+from sleeper_detection.app.detector import SleeperDetector
+from sleeper_detection.app.enums import BackdoorMechanism, BackdoorType
+from sleeper_detection.backdoor_training.trainer import BackdoorTrainer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -231,7 +230,7 @@ async def honeypot_test(request: HoneypotRequest):
         raise HTTPException(status_code=400, detail="Detector not initialized")
 
     try:
-        from packages.sleeper_detection.advanced_detection.honeypots import HoneypotGenerator
+        from sleeper_detection.advanced_detection.honeypots import HoneypotGenerator
 
         generator = HoneypotGenerator(detector.model)
         honeypots = await generator.generate_honeypots(request.suspected_goal, request.n_honeypots)
@@ -283,7 +282,7 @@ async def train_probes(n_samples: int = 100):
         raise HTTPException(status_code=400, detail="Detector not initialized")
 
     try:
-        from packages.sleeper_detection.backdoor_training.trainer import BackdoorTrainer
+        from sleeper_detection.backdoor_training.trainer import BackdoorTrainer
 
         # Generate training data
         trainer = BackdoorTrainer(detector.model)

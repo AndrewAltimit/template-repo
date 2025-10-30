@@ -4,7 +4,7 @@ import logging
 import random
 from typing import Any, Dict, List
 
-from packages.sleeper_detection.app.enums import HoneypotType
+from sleeper_detection.app.enums import HoneypotType
 
 logger = logging.getLogger(__name__)
 

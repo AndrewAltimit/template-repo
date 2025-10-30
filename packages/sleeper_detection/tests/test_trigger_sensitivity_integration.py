@@ -16,8 +16,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-from packages.sleeper_detection.database.ingestion import ingest_trigger_sensitivity_results
-from packages.sleeper_detection.database.schema import ensure_trigger_sensitivity_table_exists
+from sleeper_detection.database.ingestion import ingest_trigger_sensitivity_results
+from sleeper_detection.database.schema import ensure_trigger_sensitivity_table_exists
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -97,7 +97,7 @@ def test_trigger_sensitivity_integration():
         # We need to set the database path explicitly
         os.environ["DATABASE_PATH"] = db_path
 
-        from packages.sleeper_detection.dashboard.utils.data_loader import DataLoader
+        from sleeper_detection.dashboard.utils.data_loader import DataLoader
 
         data_loader = DataLoader(db_path=Path(db_path))
         result = data_loader.fetch_trigger_sensitivity(test_model)

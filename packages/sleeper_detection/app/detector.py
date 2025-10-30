@@ -4,14 +4,13 @@ import logging
 from typing import Any, Dict
 
 import numpy as np
-
-from packages.sleeper_detection.app.config import DetectionConfig
-from packages.sleeper_detection.attention_analysis.analyzer import AttentionAnalyzer
-from packages.sleeper_detection.detection.layer_probes import LayerProbeDetector
-from packages.sleeper_detection.interventions.causal import CausalInterventionSystem
-from packages.sleeper_detection.probes.causal_debugger import CausalDebugger
-from packages.sleeper_detection.probes.feature_discovery import FeatureDiscovery
-from packages.sleeper_detection.probes.probe_detector import ProbeDetector
+from sleeper_detection.app.config import DetectionConfig
+from sleeper_detection.attention_analysis.analyzer import AttentionAnalyzer
+from sleeper_detection.detection.layer_probes import LayerProbeDetector
+from sleeper_detection.interventions.causal import CausalInterventionSystem
+from sleeper_detection.probes.causal_debugger import CausalDebugger
+from sleeper_detection.probes.feature_discovery import FeatureDiscovery
+from sleeper_detection.probes.probe_detector import ProbeDetector
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +44,7 @@ class SleeperDetector:
         Raises:
             RuntimeError: If model loading fails
         """
-        from packages.sleeper_detection.detection.model_loader import (
+        from sleeper_detection.detection.model_loader import (
             get_recommended_layers,
             load_model_for_detection,
         )

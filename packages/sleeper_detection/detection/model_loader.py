@@ -10,7 +10,7 @@ handling all the complexity of:
 
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 
 import torch
 
@@ -60,10 +60,10 @@ def load_model_for_detection(
         >>> # Load 7B model with automatic quantization
         >>> model = load_model_for_detection("codellama-7b")  # Auto 4-bit if needed
     """
-    from packages.sleeper_detection.models.downloader import ModelDownloader
-    from packages.sleeper_detection.models.model_interface import load_model
-    from packages.sleeper_detection.models.registry import get_registry
-    from packages.sleeper_detection.models.resource_manager import get_resource_manager
+    from sleeper_detection.models.downloader import ModelDownloader
+    from sleeper_detection.models.model_interface import load_model
+    from sleeper_detection.models.registry import get_registry
+    from sleeper_detection.models.resource_manager import get_resource_manager
 
     logger.info(f"Loading model for detection: {model_name}")
 
@@ -176,7 +176,7 @@ def load_model_for_detection(
         raise RuntimeError(f"Model loading failed for {model_id}: {e}") from e
 
 
-def get_recommended_layers(model, model_name: Optional[str] = None) -> list:
+def get_recommended_layers(model, model_name: Optional[str] = None) -> list[int]:
     """Get recommended layers to probe for a model.
 
     Args:
@@ -191,14 +191,14 @@ def get_recommended_layers(model, model_name: Optional[str] = None) -> list:
         >>> layers = get_recommended_layers(model, "gpt2")
         >>> print(layers)  # [3, 6, 9]
     """
-    from packages.sleeper_detection.models.registry import get_registry
+    from sleeper_detection.models.registry import get_registry
 
     # Try to get from registry first
     if model_name:
         registry = get_registry()
         model_meta = registry.get(model_name)
         if model_meta and model_meta.recommended_probe_layers:
-            return model_meta.recommended_probe_layers
+            return cast(list[int], model_meta.recommended_probe_layers)
 
     # Fallback: probe early, middle, and late layers
     num_layers = model.get_num_layers() if hasattr(model, "get_num_layers") else 12
@@ -229,7 +229,7 @@ def estimate_memory_usage(model_name: str, batch_size: int = 1, sequence_length:
         >>> mem = estimate_memory_usage("mistral-7b", batch_size=4, sequence_length=1024)
         >>> print(f"Estimated VRAM: {mem['total_vram_gb']:.1f} GB")
     """
-    from packages.sleeper_detection.models.registry import get_registry
+    from sleeper_detection.models.registry import get_registry
 
     registry = get_registry()
     model_meta = registry.get(model_name)

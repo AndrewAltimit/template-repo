@@ -25,11 +25,11 @@ logger = logging.getLogger(__name__)
 
 # Import trigger sensitivity analysis
 try:
-    from packages.sleeper_detection.advanced_detection.trigger_sensitivity import (
+    from sleeper_detection.advanced_detection.trigger_sensitivity import (
         SimpleDetector,
         TriggerSensitivityAnalyzer,
     )
-    from packages.sleeper_detection.database.ingestion import ingest_trigger_sensitivity_results
+    from sleeper_detection.database.ingestion import ingest_trigger_sensitivity_results
 
     TRIGGER_SENSITIVITY_AVAILABLE = True
 except ImportError as e:

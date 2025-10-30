@@ -125,14 +125,35 @@ Documentation = "https://github.com/AndrewAltimit/template-repo/tree/main/packag
 Issues = "https://github.com/AndrewAltimit/template-repo/issues"
 
 [project.scripts]
-sleeper-detect = "packages.sleeper_detection.cli:main"
+sleeper-detect = "sleeper_detection.cli:main"
 
 [tool.setuptools]
-packages = ["packages.sleeper_detection"]
-package-dir = {"packages.sleeper_detection" = "."}
+packages = [
+    "sleeper_detection",
+    "sleeper_detection.advanced_detection",
+    "sleeper_detection.analysis",
+    "sleeper_detection.api",
+    "sleeper_detection.app",
+    "sleeper_detection.attention_analysis",
+    "sleeper_detection.backdoor_training",
+    "sleeper_detection.database",
+    "sleeper_detection.detection",
+    "sleeper_detection.evaluation",
+    "sleeper_detection.inference",
+    "sleeper_detection.interventions",
+    "sleeper_detection.models",
+    "sleeper_detection.probes",
+    "sleeper_detection.safety_training",
+    "sleeper_detection.training",
+    "sleeper_detection.training.datasets",
+    "sleeper_detection.utils",
+]
+
+[tool.setuptools.package-dir]
+sleeper_detection = "."
 
 [tool.setuptools.package-data]
-"packages.sleeper_detection" = [
+"sleeper_detection" = [
     "test_suites/*.yaml",
     "configs/*.json",
     "docs/*.md",

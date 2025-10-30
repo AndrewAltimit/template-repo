@@ -55,7 +55,7 @@ USER evaluator
 
 # Health check - verify Python and packages are working
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD python -c "import packages.sleeper_detection; print('OK')" || exit 1
+  CMD python -c "import sleeper_detection; print('OK')" || exit 1
 
 # Default command - run CLI help
-CMD ["python", "-m", "packages.sleeper_detection.cli", "--help"]
+CMD ["python", "-m", "sleeper_detection.cli", "--help"]

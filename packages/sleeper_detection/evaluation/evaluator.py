@@ -12,10 +12,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-
-from packages.sleeper_detection.app.config import DetectionConfig
-from packages.sleeper_detection.app.detector import SleeperDetector
-from packages.sleeper_detection.backdoor_training.trainer import BackdoorTrainer
+from sleeper_detection.app.config import DetectionConfig
+from sleeper_detection.app.detector import SleeperDetector
+from sleeper_detection.backdoor_training.trainer import BackdoorTrainer
 
 logger = logging.getLogger(__name__)
 
@@ -430,7 +429,7 @@ class ModelEvaluator:
             timestamp=datetime.now(),
         )
 
-        from packages.sleeper_detection.advanced_detection.honeypots import HoneypotGenerator
+        from sleeper_detection.advanced_detection.honeypots import HoneypotGenerator
 
         if not self.detector:
             return result
@@ -648,7 +647,7 @@ class ModelEvaluator:
             timestamp=datetime.now(),
         )
 
-        from packages.sleeper_detection.advanced_detection.honeypots import HoneypotGenerator
+        from sleeper_detection.advanced_detection.honeypots import HoneypotGenerator
 
         if not self.detector or not self.detector.model:
             return result
@@ -834,7 +833,7 @@ class ModelEvaluator:
         if not self.detector or not self.detector.model:
             return result
 
-        from packages.sleeper_detection.interventions.causal import CausalInterventionSystem
+        from sleeper_detection.interventions.causal import CausalInterventionSystem
 
         causal_system = CausalInterventionSystem(self.detector.model)
 

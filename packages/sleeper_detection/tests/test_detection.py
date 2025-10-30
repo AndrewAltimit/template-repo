@@ -4,12 +4,11 @@ from unittest.mock import Mock
 
 import numpy as np
 import pytest
-
-from packages.sleeper_detection.app.config import DetectionConfig
-from packages.sleeper_detection.app.detector import SleeperDetector
-from packages.sleeper_detection.app.enums import BackdoorMechanism
-from packages.sleeper_detection.backdoor_training.trainer import BackdoorTrainer
-from packages.sleeper_detection.detection.layer_probes import LayerProbeDetector
+from sleeper_detection.app.config import DetectionConfig
+from sleeper_detection.app.detector import SleeperDetector
+from sleeper_detection.app.enums import BackdoorMechanism
+from sleeper_detection.backdoor_training.trainer import BackdoorTrainer
+from sleeper_detection.detection.layer_probes import LayerProbeDetector
 
 
 @pytest.fixture
@@ -196,7 +195,7 @@ class TestAttentionAnalysis:
     @pytest.mark.asyncio
     async def test_attention_analysis(self, mock_model):
         """Test attention pattern analysis."""
-        from packages.sleeper_detection.attention_analysis.analyzer import AttentionAnalyzer
+        from sleeper_detection.attention_analysis.analyzer import AttentionAnalyzer
 
         analyzer = AttentionAnalyzer(mock_model)
 
@@ -216,7 +215,7 @@ class TestCausalInterventions:
     @pytest.mark.asyncio
     async def test_project_out_direction(self, mock_model):
         """Test projecting out detector direction."""
-        from packages.sleeper_detection.interventions.causal import CausalInterventionSystem
+        from sleeper_detection.interventions.causal import CausalInterventionSystem
 
         system = CausalInterventionSystem(mock_model)
 
@@ -235,7 +234,7 @@ class TestHoneypots:
     @pytest.mark.asyncio
     async def test_honeypot_generation(self, mock_model):
         """Test honeypot prompt generation."""
-        from packages.sleeper_detection.advanced_detection.honeypots import HoneypotGenerator
+        from sleeper_detection.advanced_detection.honeypots import HoneypotGenerator
 
         generator = HoneypotGenerator(mock_model)
 

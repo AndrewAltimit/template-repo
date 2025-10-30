@@ -8,8 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from sleeper_detection.constants import DEFAULT_EVALUATION_DB_PATH
-
-from packages.sleeper_detection.database.schema import (
+from sleeper_detection.database.schema import (
     ensure_chain_of_thought_table_exists,
     ensure_honeypot_table_exists,
     ensure_persistence_table_exists,
@@ -581,7 +580,7 @@ def ingest_internal_state_results(
         True if successful, False otherwise
     """
     try:
-        from packages.sleeper_detection.database.schema import ensure_internal_state_table_exists
+        from sleeper_detection.database.schema import ensure_internal_state_table_exists
 
         # Ensure table exists
         ensure_internal_state_table_exists(db_path)
