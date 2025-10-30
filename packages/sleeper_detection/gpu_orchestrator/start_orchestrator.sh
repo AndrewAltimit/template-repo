@@ -37,7 +37,7 @@ else
 fi
 
 # Check Python
-if ! command -v python3 &> /dev/null; then
+if ! command -v python &> /dev/null; then
     echo "ERROR: Python not found. Please install Python 3.8+."
     exit 1
 fi
@@ -54,7 +54,7 @@ fi
 # Create virtual environment if it doesn't exist
 if [ ! -d venv ]; then
     echo "Creating virtual environment..."
-    python3 -m venv venv
+    python -m venv venv
 fi
 
 # Activate virtual environment
