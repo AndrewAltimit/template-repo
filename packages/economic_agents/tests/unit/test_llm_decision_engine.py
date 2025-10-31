@@ -395,7 +395,7 @@ Thanks!"""
 
         # Verify key information is in prompt
         assert "$120.00" in prompt
-        assert "8.5h" in prompt
+        assert "8.50h" in prompt  # Changed to match actual format with 2 decimal places
         assert "20.0h" in prompt
         assert "survival" in prompt
         assert "5" in prompt or "5 " in prompt

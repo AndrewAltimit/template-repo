@@ -53,6 +53,32 @@ all = [
 [project.scripts]
 economic-agents = "economic_agents.cli:main"
 
+[tool.setuptools]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = [
+    "economic_agents.tests",
+    "economic_agents.tests.*",
+    "economic_agents.docs",
+    "economic_agents.docs.*",
+    "economic_agents.examples",
+    "economic_agents.examples.*",
+    "economic_agents.logs",
+    "economic_agents.logs.*",
+    "economic_agents.build",
+    "economic_agents.build.*",
+    "economic_agents.dist",
+    "economic_agents.dist.*",
+]
+
+[tool.setuptools.package-data]
+"economic_agents" = [
+    "configs/*.yaml",
+    "configs/*.json",
+    "docs/*.md",
+]
+
 [tool.black]
 line-length = 127
 target-version = ['py310', 'py311']

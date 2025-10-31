@@ -18,6 +18,31 @@ mock_secrets.get = Mock(return_value="http://localhost:8000")  # type: ignore[as
 sys.modules["streamlit"].secrets = mock_secrets  # type: ignore[attr-defined]
 
 
+# Create a session state mock that supports both dict and attribute access
+class MockSessionState(dict):
+    """Mock session state that acts like streamlit's session_state."""
+
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(key)
+
+    def __setattr__(self, key, value):
+        self[key] = value
+
+    def __delattr__(self, key):
+        try:
+            del self[key]
+        except KeyError:
+            raise AttributeError(key)
+
+
+# Set up mock session_state
+mock_session_state = MockSessionState()
+sys.modules["streamlit"].session_state = mock_session_state  # type: ignore[attr-defined]
+
+
 @pytest.fixture(autouse=True)
 def mock_streamlit_components():
     """Mock Streamlit components for testing."""

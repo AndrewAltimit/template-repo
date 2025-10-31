@@ -297,6 +297,28 @@ def test_frontend_api_connection():
     mock_secrets.get = Mock(return_value="http://localhost:8000")
     sys.modules["streamlit"].secrets = mock_secrets
 
+    # Create a session state mock that supports both dict and attribute access
+    class MockSessionState(dict):
+        """Mock session state that acts like streamlit's session_state."""
+
+        def __getattr__(self, key):
+            try:
+                return self[key]
+            except KeyError:
+                raise AttributeError(key)
+
+        def __setattr__(self, key, value):
+            self[key] = value
+
+        def __delattr__(self, key):
+            try:
+                del self[key]
+            except KeyError:
+                raise AttributeError(key)
+
+    mock_session_state = MockSessionState()
+    sys.modules["streamlit"].session_state = mock_session_state
+
     from economic_agents.dashboard.frontend.streamlit_app import get_api_url
 
     # Verify get_api_url returns a valid URL (either from env, secrets, or default)
