@@ -218,6 +218,9 @@ class AgentManager:
                         await self.agent.run_cycle()
                         self.cycle_count += 1
                         logger.debug(f"Cycle {self.cycle_count} completed")
+                    except asyncio.CancelledError:
+                        logger.debug(f"Cycle {self.cycle_count + 1} cancelled")
+                        raise
                     except Exception as cycle_error:
                         logger.error(f"Error in cycle {self.cycle_count + 1}: {cycle_error}", exc_info=True)
                         raise

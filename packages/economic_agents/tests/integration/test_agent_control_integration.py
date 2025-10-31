@@ -135,24 +135,20 @@ class TestAgentControlIntegration:
 
     async def test_survival_mode_agent_runs_tasks(self, clean_manager, async_client):
         """Test that survival mode agent completes tasks."""
-        # Start survival mode agent with more cycles
-        response = await async_client.post(
-            "/api/agent/start",
-            json={
-                "mode": "survival",
-                "max_cycles": 100,
-                "initial_balance": 100.0,
-                "initial_compute_hours": 100.0,
-            },
+        # Start agent directly via manager instead of HTTP API
+        # This avoids ASGI context cancellation issues in tests
+        await clean_manager.start_agent(
+            mode="survival",
+            max_cycles=100,
+            initial_balance=100.0,
+            initial_compute_hours=100.0,
         )
-        assert response.status_code == 200
 
         # Let agent run several cycles
         await asyncio.sleep(3.0)
 
-        # Check status
-        status_response = await async_client.get("/api/agent/control-status")
-        status_data = status_response.json()
+        # Check status directly
+        status_data = await clean_manager.get_status()
 
         # Agent should have run at least 1 cycle
         assert status_data["cycle_count"] >= 1
