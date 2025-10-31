@@ -3,13 +3,11 @@
 import asyncio
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 from economic_agents.dashboard.agent_manager import AgentManager
 from economic_agents.dashboard.app import app
 from economic_agents.dashboard.dependencies import dashboard_state
-from fastapi.testclient import TestClient
-
-client = TestClient(app)
 
 
 @pytest.fixture
@@ -42,19 +40,29 @@ async def clean_manager():
         await manager.stop_agent()
 
 
+@pytest.fixture
+async def async_client():
+    """Provide async HTTP client for FastAPI app."""
+    from httpx import ASGITransport
+
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+
+
 @pytest.mark.asyncio
 class TestAgentControlIntegration:
     """Integration tests for full agent control workflow."""
 
-    async def test_full_agent_lifecycle_via_api(self, clean_manager):
+    async def test_full_agent_lifecycle_via_api(self, clean_manager, async_client):
         """Test starting and stopping agent via API endpoints."""
         # Check initial status
-        response = client.get("/api/agent/control-status")
+        response = await async_client.get("/api/agent/control-status")
         assert response.status_code == 200
         assert response.json()["is_running"] is False
 
         # Start agent with more cycles so it runs longer
-        start_response = client.post(
+        start_response = await async_client.post(
             "/api/agent/start",
             json={
                 "mode": "survival",
@@ -72,7 +80,7 @@ class TestAgentControlIntegration:
         await asyncio.sleep(2.0)
 
         # Check status while running
-        status_response = client.get("/api/agent/control-status")
+        status_response = await async_client.get("/api/agent/control-status")
         assert status_response.status_code == 200
         status_data = status_response.json()
         # Agent may have already completed if cycles are fast
@@ -81,7 +89,7 @@ class TestAgentControlIntegration:
         assert "agent_id" in status_data
 
         # Stop agent
-        stop_response = client.post("/api/agent/stop")
+        stop_response = await async_client.post("/api/agent/stop")
         assert stop_response.status_code == 200
         stop_data = stop_response.json()
         # Status can be "stopped" if agent was running, or "not_running" if agent already finished
@@ -90,17 +98,17 @@ class TestAgentControlIntegration:
         assert "cycles_completed" in stop_data
 
         # Verify stopped
-        final_status = client.get("/api/agent/control-status")
+        final_status = await async_client.get("/api/agent/control-status")
         assert final_status.json()["is_running"] is False
 
-    async def test_agent_updates_dashboard_state(self, clean_manager):
+    async def test_agent_updates_dashboard_state(self, clean_manager, async_client):
         """Test that running agent updates shared dashboard_state."""
         # Clear dashboard state manually
         dashboard_state.agent_state = {}
         dashboard_state.company_registry = {}
 
         # Start agent via API
-        response = client.post(
+        response = await async_client.post(
             "/api/agent/start",
             json={
                 "mode": "survival",
@@ -115,7 +123,7 @@ class TestAgentControlIntegration:
         await asyncio.sleep(1.5)
 
         # Check that dashboard_state was updated
-        status_response = client.get("/api/status")
+        status_response = await async_client.get("/api/status")
         if status_response.status_code == 200:
             # If we get data, verify it's from our agent
             status_data = status_response.json()
@@ -125,26 +133,22 @@ class TestAgentControlIntegration:
         # Cleanup
         await clean_manager.stop_agent()
 
-    async def test_survival_mode_agent_runs_tasks(self, clean_manager):
+    async def test_survival_mode_agent_runs_tasks(self, clean_manager, async_client):
         """Test that survival mode agent completes tasks."""
-        # Start survival mode agent with more cycles
-        response = client.post(
-            "/api/agent/start",
-            json={
-                "mode": "survival",
-                "max_cycles": 100,
-                "initial_balance": 100.0,
-                "initial_compute_hours": 100.0,
-            },
+        # Start agent directly via manager instead of HTTP API
+        # This avoids ASGI context cancellation issues in tests
+        await clean_manager.start_agent(
+            mode="survival",
+            max_cycles=100,
+            initial_balance=100.0,
+            initial_compute_hours=100.0,
         )
-        assert response.status_code == 200
 
         # Let agent run several cycles
         await asyncio.sleep(3.0)
 
-        # Check status
-        status_response = client.get("/api/agent/control-status")
-        status_data = status_response.json()
+        # Check status directly
+        status_data = await clean_manager.get_status()
 
         # Agent should have run at least 1 cycle
         assert status_data["cycle_count"] >= 1
@@ -154,10 +158,10 @@ class TestAgentControlIntegration:
         # Cleanup
         await clean_manager.stop_agent()
 
-    async def test_company_mode_agent_forms_company(self, clean_manager):
+    async def test_company_mode_agent_forms_company(self, clean_manager, async_client):
         """Test that company mode agent forms a company."""
         # Start company mode agent with sufficient capital
-        response = client.post(
+        response = await async_client.post(
             "/api/agent/start",
             json={
                 "mode": "company",
@@ -172,7 +176,7 @@ class TestAgentControlIntegration:
         await asyncio.sleep(2.0)
 
         # Check if company was formed
-        status_response = client.get("/api/agent/control-status")
+        status_response = await async_client.get("/api/agent/control-status")
         status_data = status_response.json()
 
         # In company mode with high balance, company should eventually form
@@ -182,10 +186,10 @@ class TestAgentControlIntegration:
         # Cleanup
         await clean_manager.stop_agent()
 
-    async def test_cannot_start_two_agents_simultaneously(self, clean_manager):
+    async def test_cannot_start_two_agents_simultaneously(self, clean_manager, async_client):
         """Test that only one agent can run at a time."""
         # Start first agent with many cycles so it's definitely running
-        response1 = client.post(
+        response1 = await async_client.post(
             "/api/agent/start",
             json={"mode": "survival", "max_cycles": 200, "initial_balance": 100.0},
         )
@@ -195,7 +199,7 @@ class TestAgentControlIntegration:
         await asyncio.sleep(0.1)
 
         # Try to start second agent immediately
-        response2 = client.post(
+        response2 = await async_client.post(
             "/api/agent/start",
             json={"mode": "company", "max_cycles": 200, "initial_balance": 50000.0},
         )
@@ -208,10 +212,10 @@ class TestAgentControlIntegration:
         # Cleanup
         await clean_manager.stop_agent()
 
-    async def test_agent_stops_gracefully_on_resource_depletion(self, clean_manager):
+    async def test_agent_stops_gracefully_on_resource_depletion(self, clean_manager, async_client):
         """Test that agent stops when running out of resources."""
         # Start agent with very limited compute
-        response = client.post(
+        response = await async_client.post(
             "/api/agent/start",
             json={
                 "mode": "survival",
@@ -226,7 +230,7 @@ class TestAgentControlIntegration:
         await asyncio.sleep(3.0)
 
         # Agent should have stopped due to resource depletion
-        status_response = client.get("/api/agent/control-status")
+        status_response = await async_client.get("/api/agent/control-status")
         status_data = status_response.json()
 
         # Agent should have stopped (either from resource depletion or completion)
@@ -237,10 +241,10 @@ class TestAgentControlIntegration:
         if status_data["is_running"]:
             await clean_manager.stop_agent()
 
-    async def test_stop_agent_during_execution(self, clean_manager):
+    async def test_stop_agent_during_execution(self, clean_manager, async_client):
         """Test stopping agent mid-execution."""
         # Start agent with many cycles
-        response = client.post(
+        response = await async_client.post(
             "/api/agent/start",
             json={"mode": "survival", "max_cycles": 200, "initial_balance": 100.0},
         )
@@ -250,7 +254,7 @@ class TestAgentControlIntegration:
         await asyncio.sleep(2.0)
 
         # Stop agent
-        stop_response = client.post("/api/agent/stop")
+        stop_response = await async_client.post("/api/agent/stop")
         assert stop_response.status_code == 200
 
         # Verify it stopped at the current point, not at max_cycles
@@ -259,10 +263,10 @@ class TestAgentControlIntegration:
         # Allow for the possibility that no cycles completed if stop was very fast
         assert stop_data["cycles_completed"] >= 0
 
-    async def test_agent_control_status_updates_during_run(self, clean_manager):
+    async def test_agent_control_status_updates_during_run(self, clean_manager, async_client):
         """Test that control status updates as agent runs."""
         # Start agent with many cycles
-        response = client.post(
+        response = await async_client.post(
             "/api/agent/start",
             json={"mode": "survival", "max_cycles": 200, "initial_balance": 100.0},
         )
@@ -272,14 +276,14 @@ class TestAgentControlIntegration:
         await asyncio.sleep(1.0)
 
         # Get initial status
-        status1 = client.get("/api/agent/control-status")
+        status1 = await async_client.get("/api/agent/control-status")
         cycle1 = status1.json()["cycle_count"]
 
         # Wait for more cycles
         await asyncio.sleep(2.0)
 
         # Get updated status
-        status2 = client.get("/api/agent/control-status")
+        status2 = await async_client.get("/api/agent/control-status")
         cycle2 = status2.json()["cycle_count"]
 
         # Cycle count should have increased or at least be >= initial
@@ -288,10 +292,10 @@ class TestAgentControlIntegration:
         # Cleanup
         await clean_manager.stop_agent()
 
-    async def test_dashboard_displays_agent_data(self, clean_manager):
+    async def test_dashboard_displays_agent_data(self, clean_manager, async_client):
         """Test that dashboard can fetch agent data after start."""
         # Start agent
-        response = client.post(
+        response = await async_client.post(
             "/api/agent/start",
             json={"mode": "survival", "max_cycles": 10, "initial_balance": 100.0},
         )
@@ -304,7 +308,7 @@ class TestAgentControlIntegration:
         endpoints = ["/api/status", "/api/resources", "/api/decisions", "/api/metrics"]
 
         for endpoint in endpoints:
-            response = client.get(endpoint)
+            response = await async_client.get(endpoint)
             # Some endpoints might return 404 if no data yet, which is fine
             assert response.status_code in [200, 404]
 

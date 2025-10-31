@@ -5,7 +5,6 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from github_ai_agents.board.config import BoardConfig
 from github_ai_agents.board.errors import BoardNotFoundError, GraphQLError, RateLimitError
 from github_ai_agents.board.manager import BoardManager

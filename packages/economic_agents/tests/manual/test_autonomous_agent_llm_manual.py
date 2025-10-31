@@ -8,6 +8,7 @@ This test requires:
 Run with: python tests/manual/test_autonomous_agent_llm_manual.py
 """
 
+import asyncio
 import logging
 import sys
 import time
@@ -27,7 +28,7 @@ def print_separator(title: str):
     print("=" * 80 + "\n")
 
 
-def test_llm_agent_single_cycle():
+async def test_llm_agent_single_cycle():
     """Test AutonomousAgent with LLM engine for a single decision cycle."""
     print_separator("Test 1: Single LLM Decision Cycle")
 
@@ -47,6 +48,7 @@ def test_llm_agent_single_cycle():
 
     logger.info("Creating AutonomousAgent with LLM decision engine...")
     agent = AutonomousAgent(wallet, compute, marketplace, config)
+    await agent.initialize()
 
     logger.info(
         f"Initial state: balance=${agent.state.balance:.2f}, "
@@ -60,7 +62,7 @@ def test_llm_agent_single_cycle():
 
     start_time = time.time()
     try:
-        result = agent.run_cycle()
+        result = await agent.run_cycle()
         elapsed = time.time() - start_time
 
         # Print results
@@ -96,7 +98,7 @@ def test_llm_agent_single_cycle():
         return False
 
 
-def test_llm_agent_multiple_cycles():
+async def test_llm_agent_multiple_cycles():
     """Test AutonomousAgent with LLM engine for multiple decision cycles."""
     print_separator("Test 2: Multiple LLM Decision Cycles")
 
@@ -117,6 +119,7 @@ def test_llm_agent_multiple_cycles():
 
     logger.info("Creating AutonomousAgent with LLM engine (company mode)...")
     agent = AutonomousAgent(wallet, compute, marketplace, config)
+    await agent.initialize()
 
     logger.info(
         f"Initial state: balance=${agent.state.balance:.2f}, "
@@ -131,7 +134,7 @@ def test_llm_agent_multiple_cycles():
 
     start_time = time.time()
     try:
-        decisions = agent.run(max_cycles=num_cycles)
+        decisions = await agent.run(max_cycles=num_cycles)
         elapsed = time.time() - start_time
 
         print(f"\n✅ Completed {len(decisions)} cycles in {elapsed:.2f}s ({elapsed/60:.2f} min)")
@@ -172,7 +175,7 @@ def test_llm_agent_multiple_cycles():
         return False
 
 
-def test_fallback_on_short_timeout():
+async def test_fallback_on_short_timeout():
     """Test that fallback kicks in when timeout is very short."""
     print_separator("Test 3: Fallback Behavior (Short Timeout)")
 
@@ -191,10 +194,11 @@ def test_fallback_on_short_timeout():
 
     logger.info("Creating agent with 5-second timeout (should fallback)...")
     agent = AutonomousAgent(wallet, compute, marketplace, config)
+    await agent.initialize()
 
     start_time = time.time()
     try:
-        result = agent.run_cycle()
+        result = await agent.run_cycle()
         elapsed = time.time() - start_time
 
         print(f"\n✅ Decision completed in {elapsed:.2f}s")
@@ -224,7 +228,7 @@ def test_fallback_on_short_timeout():
         return False
 
 
-def test_comparison_llm_vs_rule_based():
+async def test_comparison_llm_vs_rule_based():
     """Compare decisions between LLM and rule-based engines."""
     print_separator("Test 4: LLM vs Rule-Based Comparison")
 
@@ -244,7 +248,8 @@ def test_comparison_llm_vs_rule_based():
     }
 
     agent_rb = AutonomousAgent(wallet_rb, compute_rb, marketplace_rb, config_rb)
-    result_rb = agent_rb.run_cycle()
+    await agent_rb.initialize()
+    result_rb = await agent_rb.run_cycle()
 
     print("\nRule-Based Decision:")
     print(f"  Task work: {result_rb['allocation']['task_work_hours']:.2f}h")
@@ -265,9 +270,10 @@ def test_comparison_llm_vs_rule_based():
     }
 
     agent_llm = AutonomousAgent(wallet_llm, compute_llm, marketplace_llm, config_llm)
+    await agent_llm.initialize()
 
     start_time = time.time()
-    result_llm = agent_llm.run_cycle()
+    result_llm = await agent_llm.run_cycle()
     elapsed = time.time() - start_time
 
     print(f"\nLLM Decision (took {elapsed:.2f}s):")
@@ -292,7 +298,7 @@ def test_comparison_llm_vs_rule_based():
     return True
 
 
-def main():
+async def main():
     """Run all manual tests."""
     print("\n" + "=" * 80)
     print("  AutonomousAgent + LLM Integration Manual Tests")
@@ -310,10 +316,10 @@ def main():
     # Run tests
     print("\n" + "🚀 Starting manual tests...\n")
 
-    results.append(("Single LLM Cycle", test_llm_agent_single_cycle()))
-    results.append(("Multiple LLM Cycles", test_llm_agent_multiple_cycles()))
-    results.append(("Fallback Behavior", test_fallback_on_short_timeout()))
-    results.append(("LLM vs Rule-Based", test_comparison_llm_vs_rule_based()))
+    results.append(("Single LLM Cycle", await test_llm_agent_single_cycle()))
+    results.append(("Multiple LLM Cycles", await test_llm_agent_multiple_cycles()))
+    results.append(("Fallback Behavior", await test_fallback_on_short_timeout()))
+    results.append(("LLM vs Rule-Based", await test_comparison_llm_vs_rule_based()))
 
     # Summary
     print_separator("Test Summary")
@@ -335,4 +341,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

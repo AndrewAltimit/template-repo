@@ -6,11 +6,13 @@ maintaining positive balance and making sound decisions.
 Supports both mock and API backends via parametrization.
 """
 
+import pytest
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.reports import generate_report_for_agent
 
 
-def test_24hour_agent_survival(all_backends):
+@pytest.mark.asyncio
+async def test_24hour_agent_survival(all_backends):
     """Test agent survival over 24-hour simulated period.
 
     This test is parametrized to run with both mock and API backends.
@@ -40,6 +42,7 @@ def test_24hour_agent_survival(all_backends):
             "personality": "conservative",
         },
     )
+    await agent.initialize()
 
     print(f"\n{'='*60}")
     print("24-HOUR AGENT SURVIVAL TEST")
@@ -60,7 +63,7 @@ def test_24hour_agent_survival(all_backends):
             balances.append(agent.state.balance)
 
             # Run cycle
-            agent.run_cycle()
+            await agent.run_cycle()
 
             # Progress updates every 10 cycles
             if (cycle + 1) % 10 == 0:
@@ -154,6 +157,8 @@ def test_24hour_agent_survival(all_backends):
 
 if __name__ == "__main__":
     # Run test directly with mock backends
+    import asyncio
+
     from economic_agents.api.config import BackendConfig, BackendMode
     from economic_agents.api.factory import create_backends
 
@@ -166,4 +171,4 @@ if __name__ == "__main__":
     )
 
     backends = create_backends(config)
-    test_24hour_agent_survival(backends)
+    asyncio.run(test_24hour_agent_survival(backends))

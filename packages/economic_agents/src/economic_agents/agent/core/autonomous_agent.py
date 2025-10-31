@@ -1,5 +1,6 @@
 """Autonomous agent core loop."""
 
+import asyncio
 import time
 import uuid
 from datetime import datetime
@@ -27,7 +28,17 @@ except ImportError:
 
 
 class AutonomousAgent:
-    """Primary autonomous agent that operates independently."""
+    """Primary autonomous agent that operates independently.
+
+    Note: This class uses an async initialization pattern.
+    After creating an instance, you must call `await agent.initialize()`
+    before running the agent or accessing agent.state.
+
+    Example:
+        agent = AutonomousAgent(wallet, compute, marketplace)
+        await agent.initialize()
+        await agent.run_cycle()
+    """
 
     def __init__(
         self,
@@ -60,13 +71,8 @@ class AutonomousAgent:
         self.dashboard_state = dashboard_state
         self.agent_id = str(uuid.uuid4())
 
-        # Initialize components
-        self.state = AgentState(
-            balance=wallet.get_balance(),
-            compute_hours_remaining=compute.get_status().hours_remaining,
-            survival_buffer_hours=self.config.get("survival_buffer_hours", 24.0),
-            mode=self.config.get("mode", "survival"),
-        )
+        # Initialize components (state will be initialized in async initialize())
+        self.state: AgentState | None = None
 
         # Initialize decision engine based on configuration
         engine_type = self.config.get("engine_type", "rule_based")
@@ -113,14 +119,47 @@ class AutonomousAgent:
         else:
             raise ValueError(f"Invalid engine_type: {engine_type}. Must be 'rule_based' or 'llm'")
 
-    def run_cycle(self) -> Dict[str, Any]:
+    async def initialize(self):
+        """Initialize agent state asynchronously.
+
+        Must be called after construction before using the agent.
+        """
+        balance = await self.wallet.get_balance()
+        compute_status = await self.compute.get_status()
+
+        self.state = AgentState(
+            balance=balance,
+            compute_hours_remaining=compute_status.hours_remaining,
+            survival_buffer_hours=self.config.get("survival_buffer_hours", 24.0),
+            mode=self.config.get("mode", "survival"),
+        )
+
+        # Update dashboard state with initial values
+        if self.dashboard_state:
+            agent_state_dict = {
+                "agent_id": self.agent_id,
+                "balance": self.state.balance,
+                "compute_hours_remaining": self.state.compute_hours_remaining,
+                "mode": self.state.mode,
+                "current_activity": "idle",
+                "company_exists": self.state.has_company,
+                "company_id": self.state.company_id,
+                "tasks_completed": self.state.tasks_completed,
+                "tasks_failed": self.state.tasks_failed,
+                "cycles_completed": self.state.cycles_completed,
+            }
+            self.dashboard_state.update_agent_state(agent_state_dict)
+
+    async def run_cycle(self) -> Dict[str, Any]:
         """Execute one decision cycle.
 
         Returns:
             Dict with cycle results and metrics
         """
+        assert self.state is not None, "Agent not initialized. Call initialize() first."
+
         # 1. Update state from resources
-        self._update_state()
+        await self._update_state()
 
         # 2. Make decision about resource allocation
         allocation = self.decision_engine.decide_allocation(self.state)
@@ -147,12 +186,12 @@ class AutonomousAgent:
 
         # 4. Execute tasks if allocated
         if allocation.task_work_hours > 0:
-            task_result = self._do_task_work(allocation.task_work_hours)
+            task_result = await self._do_task_work(allocation.task_work_hours)
             decision_record["task_result"] = task_result
 
         # 5. Check if should form company
         if not self.state.has_company and self.decision_engine.should_form_company(self.state):
-            company_result = self._form_company()
+            company_result = await self._form_company()
             decision_record["company_formation"] = company_result
 
         # 6. Check if should seek investment
@@ -162,7 +201,7 @@ class AutonomousAgent:
 
         # 7. Company work if allocated and company exists
         if allocation.company_work_hours > 0 and self.state.has_company:
-            company_result = self._do_company_work(allocation.company_work_hours)
+            company_result = await self._do_company_work(allocation.company_work_hours)
             decision_record["company_work"] = company_result
 
         # 8. Collect performance metrics
@@ -228,13 +267,15 @@ class AutonomousAgent:
 
         return decision_record
 
-    def _update_state(self):
+    async def _update_state(self):
         """Update agent state from resource providers."""
-        self.state.balance = self.wallet.get_balance()
-        compute_status = self.compute.get_status()
+        assert self.state is not None, "Agent not initialized. Call initialize() first."
+
+        self.state.balance = await self.wallet.get_balance()
+        compute_status = await self.compute.get_status()
         self.state.compute_hours_remaining = compute_status.hours_remaining
 
-    def _do_task_work(self, hours: float) -> Dict[str, Any]:
+    async def _do_task_work(self, hours: float) -> Dict[str, Any]:
         """Complete marketplace tasks.
 
         Args:
@@ -243,26 +284,29 @@ class AutonomousAgent:
         Returns:
             Dict with task completion results
         """
+        assert self.state is not None, "Agent not initialized. Call initialize() first."
+
         # Consume compute time
-        if not self.compute.consume_time(hours):
+        if not await self.compute.consume_time(hours):
             return {"success": False, "error": "Failed to consume compute time"}
 
         # Track compute usage
+        compute_status = await self.compute.get_status()
         self.resource_tracker.track_compute_usage(
             hours_used=hours,
             purpose="task_work",
             cost=0.0,  # Mock implementation has no cost
-            hours_remaining=self.compute.get_status().hours_remaining,
+            hours_remaining=compute_status.hours_remaining,
         )
 
         # Get available tasks
-        tasks = self.marketplace.list_available_tasks()
+        tasks = await self.marketplace.list_available_tasks()
         if not tasks:
             return {"success": False, "error": "No tasks available"}
 
         # Claim and complete first available task
         task = tasks[0]
-        if not self.marketplace.claim_task(task.id):
+        if not await self.marketplace.claim_task(task.id):
             return {"success": False, "error": "Failed to claim task"}
 
         # Submit solution (mock)
@@ -270,23 +314,24 @@ class AutonomousAgent:
             task_id=task.id, solution="Mock solution implementation", submitted_at=datetime.now(), metadata={}
         )
 
-        submission_id = self.marketplace.submit_solution(submission)
+        submission_id = await self.marketplace.submit_solution(submission)
 
         # Check result
-        status = self.marketplace.check_submission_status(submission_id)
+        status = await self.marketplace.check_submission_status(submission_id)
 
         if status.status == "approved":
             # Receive payment
             self.wallet.receive_payment(from_address="marketplace", amount=status.reward_paid, memo=f"Task: {task.title}")
 
             # Track transaction
+            balance = await self.wallet.get_balance()
             self.resource_tracker.track_transaction(
                 transaction_type="earning",
                 amount=status.reward_paid,
                 from_account="marketplace",
                 to_account=self.agent_id,
                 purpose=f"Task completion: {task.title}",
-                balance_after=self.wallet.get_balance(),
+                balance_after=balance,
             )
 
             self.state.tasks_completed += 1
@@ -295,12 +340,14 @@ class AutonomousAgent:
             self.state.tasks_failed += 1
             return {"success": False, "task_id": task.id, "feedback": status.feedback}
 
-    def _form_company(self) -> Dict[str, Any]:
+    async def _form_company(self) -> Dict[str, Any]:
         """Form a company with initial capital allocation.
 
         Returns:
             Dict with company formation results
         """
+        assert self.state is not None, "Agent not initialized. Call initialize() first."
+
         # Allocate capital to company (e.g., 30% of current balance)
         capital_allocation = self.state.balance * 0.3
         company_threshold = self.decision_engine.company_threshold
@@ -312,7 +359,7 @@ class AutonomousAgent:
             }
 
         # Determine opportunity based on available tasks
-        tasks = self.marketplace.list_available_tasks()
+        tasks = await self.marketplace.list_available_tasks()
         product_types = ["api-service", "cli-tool", "library"]
         product_type = product_types[len(tasks) % len(product_types)]
 
@@ -329,20 +376,21 @@ class AutonomousAgent:
         )
 
         # Deduct capital from wallet
-        self.wallet.send_payment(
+        await self.wallet.send_payment(
             to_address=f"company_{self.company.id}",
             amount=capital_allocation,
             memo=f"Initial capital for {self.company.name}",
         )
 
         # Track transaction
+        balance = await self.wallet.get_balance()
         self.resource_tracker.track_transaction(
             transaction_type="investment",
             amount=capital_allocation,
             from_account=self.agent_id,
             to_account=f"company_{self.company.id}",
             purpose=f"Company formation: {self.company.name}",
-            balance_after=self.wallet.get_balance(),
+            balance_after=balance,
         )
 
         # Update state
@@ -435,7 +483,7 @@ class AutonomousAgent:
             "stage": stage.value,
         }
 
-    def _do_company_work(self, hours: float) -> Dict[str, Any]:
+    async def _do_company_work(self, hours: float) -> Dict[str, Any]:
         """Perform company building work.
 
         Args:
@@ -448,15 +496,16 @@ class AutonomousAgent:
             return {"success": False, "error": "No company exists"}
 
         # Consume compute time
-        if not self.compute.consume_time(hours):
+        if not await self.compute.consume_time(hours):
             return {"success": False, "error": "Failed to consume compute time"}
 
         # Track compute usage
+        compute_status = await self.compute.get_status()
         self.resource_tracker.track_compute_usage(
             hours_used=hours,
             purpose="company_work",
             cost=0.0,  # Mock implementation has no cost
-            hours_remaining=self.compute.get_status().hours_remaining,
+            hours_remaining=compute_status.hours_remaining,
         )
 
         actions = []
@@ -502,7 +551,7 @@ class AutonomousAgent:
             "anomalies_detected": len(anomalies),
         }
 
-    def run(self, duration_seconds: float | None = None, max_cycles: int | None = None) -> list:
+    async def run(self, duration_seconds: float | None = None, max_cycles: int | None = None) -> list:
         """Run agent for specified duration or number of cycles.
 
         Args:
@@ -512,12 +561,14 @@ class AutonomousAgent:
         Returns:
             List of decision records
         """
+        assert self.state is not None, "Agent not initialized. Call initialize() first."
+
         start_time = time.time()
         cycles = 0
 
         while self.state.is_active:
             # Update state first to get accurate compute status
-            self._update_state()
+            await self._update_state()
 
             # Check termination conditions
             if max_cycles and cycles >= max_cycles:
@@ -532,17 +583,17 @@ class AutonomousAgent:
                 break
 
             # Run cycle
-            self.run_cycle()
+            await self.run_cycle()
             cycles += 1
 
             # Small delay to avoid tight loop
-            time.sleep(0.1)
+            await asyncio.sleep(0.1)
 
         return self.decisions
 
-    def get_state(self) -> AgentState:
+    async def get_state(self) -> AgentState:
         """Get current agent state."""
-        self._update_state()
+        await self._update_state()
         return self.state
 
     def get_decisions(self) -> list:

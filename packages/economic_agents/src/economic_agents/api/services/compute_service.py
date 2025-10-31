@@ -96,7 +96,7 @@ async def allocate_hours(
 
     try:
         # Attempt allocation
-        compute.allocate_hours(request.hours, request.purpose)
+        await compute.allocate_hours(request.hours, request.purpose)
 
         return AllocationResponse(
             success=True,

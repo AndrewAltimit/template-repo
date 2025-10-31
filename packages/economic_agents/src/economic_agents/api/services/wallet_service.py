@@ -70,7 +70,8 @@ async def get_balance(
         Current balance
     """
     wallet = get_wallet(agent_id)
-    return WalletBalance(balance=wallet.balance, agent_id=agent_id)
+    balance = await wallet.get_balance()
+    return WalletBalance(balance=balance, agent_id=agent_id)
 
 
 @app.post("/transact", response_model=Transaction)
@@ -95,10 +96,10 @@ async def execute_transaction(
     try:
         # Execute transaction
         if request.amount >= 0:
-            wallet.deposit(request.amount, request.purpose)
+            await wallet.deposit(request.amount, request.purpose)
             transaction_type = "earning"
         else:
-            wallet.withdraw(abs(request.amount), request.purpose)
+            await wallet.withdraw(abs(request.amount), request.purpose)
             transaction_type = "expense"
 
         # Get last transaction

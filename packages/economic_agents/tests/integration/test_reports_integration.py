@@ -15,7 +15,7 @@ from economic_agents.reports import (
 
 
 @pytest.fixture
-def agent_with_activity():
+async def agent_with_activity():
     """Create an agent and run it to generate activity."""
     wallet = MockWallet(initial_balance=100.0)
     compute = MockCompute(initial_hours=50.0, cost_per_hour=0.0)
@@ -27,16 +27,18 @@ def agent_with_activity():
         marketplace=marketplace,
         config={"survival_buffer_hours": 20.0, "company_threshold": 150.0},
     )
+    await agent.initialize()
 
     # Run agent to generate activity (but not enough to form company)
-    agent.run(max_cycles=3)
+    await agent.run(max_cycles=3)
 
     return agent
 
 
-def test_extract_agent_data_from_real_agent(agent_with_activity):
+@pytest.mark.asyncio
+async def test_extract_agent_data_from_real_agent(agent_with_activity):
     """Test extracting data from a real agent."""
-    agent = agent_with_activity
+    agent = await agent_with_activity
 
     agent_data = extract_agent_data(agent)
 
@@ -53,9 +55,10 @@ def test_extract_agent_data_from_real_agent(agent_with_activity):
     assert agent_data["tasks_completed"] == agent.state.tasks_completed
 
 
-def test_extract_monitoring_data_from_agent(agent_with_activity):
+@pytest.mark.asyncio
+async def test_extract_monitoring_data_from_agent(agent_with_activity):
     """Test extracting monitoring data from agent."""
-    agent = agent_with_activity
+    agent = await agent_with_activity
 
     monitoring_data = extract_monitoring_data(agent)
 
@@ -69,9 +72,10 @@ def test_extract_monitoring_data_from_agent(agent_with_activity):
     assert "compute_hours" in performance
 
 
-def test_generate_executive_summary_from_agent(agent_with_activity):
+@pytest.mark.asyncio
+async def test_generate_executive_summary_from_agent(agent_with_activity):
     """Test generating executive summary from real agent."""
-    agent = agent_with_activity
+    agent = await agent_with_activity
 
     report = generate_report_for_agent(agent, "executive")
 
@@ -81,9 +85,10 @@ def test_generate_executive_summary_from_agent(agent_with_activity):
     assert "tldr" in report.content
 
 
-def test_generate_technical_report_from_agent(agent_with_activity):
+@pytest.mark.asyncio
+async def test_generate_technical_report_from_agent(agent_with_activity):
     """Test generating technical report from real agent."""
-    agent = agent_with_activity
+    agent = await agent_with_activity
 
     report = generate_report_for_agent(agent, "technical")
 
@@ -95,9 +100,10 @@ def test_generate_technical_report_from_agent(agent_with_activity):
     assert len(report.content["decision_log"]) > 0
 
 
-def test_generate_audit_trail_from_agent(agent_with_activity):
+@pytest.mark.asyncio
+async def test_generate_audit_trail_from_agent(agent_with_activity):
     """Test generating audit trail from real agent."""
-    agent = agent_with_activity
+    agent = await agent_with_activity
 
     report = generate_report_for_agent(agent, "audit")
 
@@ -109,9 +115,10 @@ def test_generate_audit_trail_from_agent(agent_with_activity):
     assert len(report.content["transactions"]) > 0
 
 
-def test_generate_governance_analysis_from_agent(agent_with_activity):
+@pytest.mark.asyncio
+async def test_generate_governance_analysis_from_agent(agent_with_activity):
     """Test generating governance analysis from real agent."""
-    agent = agent_with_activity
+    agent = await agent_with_activity
 
     report = generate_report_for_agent(agent, "governance")
 
@@ -120,7 +127,8 @@ def test_generate_governance_analysis_from_agent(agent_with_activity):
     assert "recommendations" in report.content
 
 
-def test_report_with_company_data():
+@pytest.mark.asyncio
+async def test_report_with_company_data():
     """Test report generation when agent has formed a company."""
     # Provide enough capital for company operations
     wallet = MockWallet(initial_balance=100000.0)
@@ -133,9 +141,10 @@ def test_report_with_company_data():
         marketplace=marketplace,
         config={"survival_buffer_hours": 20.0, "company_threshold": 50000.0},
     )
+    await agent.initialize()
 
     # Run until company is formed
-    agent.run(max_cycles=15)
+    await agent.run(max_cycles=15)
 
     if agent.company:
         # Generate report
@@ -154,9 +163,10 @@ def test_report_with_company_data():
         assert "Company Formed" in report.content["key_metrics"]
 
 
-def test_report_markdown_generation(agent_with_activity):
+@pytest.mark.asyncio
+async def test_report_markdown_generation(agent_with_activity):
     """Test that reports can be converted to markdown."""
-    agent = agent_with_activity
+    agent = await agent_with_activity
 
     report = generate_report_for_agent(agent, "executive")
     markdown = report.to_markdown()
@@ -168,9 +178,10 @@ def test_report_markdown_generation(agent_with_activity):
     assert "## Key Metrics" in markdown
 
 
-def test_invalid_report_type_raises_error(agent_with_activity):
+@pytest.mark.asyncio
+async def test_invalid_report_type_raises_error(agent_with_activity):
     """Test that invalid report type raises error."""
-    agent = agent_with_activity
+    agent = await agent_with_activity
 
     with pytest.raises(ValueError) as exc_info:
         generate_report_for_agent(agent, "invalid_type")

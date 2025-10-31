@@ -75,7 +75,7 @@ async def get_tasks(
     marketplace = get_marketplace(agent_id)
 
     # Generate tasks
-    tasks = marketplace.generate_tasks(count)
+    tasks = await marketplace.generate_tasks(count)
 
     # Convert to Task models
     task_models = [
@@ -113,7 +113,7 @@ async def get_task(
     marketplace = get_marketplace(agent_id)
 
     # Generate some tasks to search (in real implementation would have persistent storage)
-    tasks = marketplace.generate_tasks(10)
+    tasks = await marketplace.generate_tasks(10)
 
     # Find task by ID
     for task in tasks:
@@ -155,7 +155,7 @@ async def complete_task(
     # For now, use MockMarketplace.complete_task which simulates success/failure
 
     # Generate tasks to find the one being completed
-    tasks = marketplace.generate_tasks(10)
+    tasks = await marketplace.generate_tasks(10)
 
     # Find task
     task = None

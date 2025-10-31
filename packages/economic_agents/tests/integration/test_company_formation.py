@@ -1,10 +1,12 @@
 """Integration tests for company formation."""
 
+import pytest
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
 
 
-def test_agent_forms_company_with_sufficient_capital():
+@pytest.mark.asyncio
+async def test_agent_forms_company_with_sufficient_capital():
     """Test agent forms company when it has sufficient capital."""
     # Provide $100k to cover company formation (~$15k) + operations + product development (~$10k)
     wallet = MockWallet(initial_balance=100000.0)  # Above threshold
@@ -17,9 +19,10 @@ def test_agent_forms_company_with_sufficient_capital():
         marketplace=marketplace,
         config={"survival_buffer_hours": 24.0, "company_threshold": 50000.0},
     )
+    await agent.initialize()
 
     # Run a few cycles to let agent accumulate and form company
-    _ = agent.run(max_cycles=10)
+    _ = await agent.run(max_cycles=10)
 
     # Agent should have formed a company
     assert agent.state.has_company is True
@@ -27,7 +30,8 @@ def test_agent_forms_company_with_sufficient_capital():
     assert agent.company.name is not None
 
 
-def test_agent_does_not_form_company_insufficient_capital():
+@pytest.mark.asyncio
+async def test_agent_does_not_form_company_insufficient_capital():
     """Test agent does not form company with insufficient capital."""
     wallet = MockWallet(initial_balance=50.0)  # Below threshold
     compute = MockCompute(initial_hours=24.0, cost_per_hour=2.0)
@@ -39,15 +43,17 @@ def test_agent_does_not_form_company_insufficient_capital():
         marketplace=marketplace,
         config={"survival_buffer_hours": 24.0, "company_threshold": 200.0},  # High threshold
     )
+    await agent.initialize()
 
-    agent.run(max_cycles=3)
+    await agent.run(max_cycles=3)
 
     # Agent should not have formed company
     assert agent.state.has_company is False
     assert agent.company is None
 
 
-def test_company_has_initial_team():
+@pytest.mark.asyncio
+async def test_company_has_initial_team():
     """Test formed company has initial team structure."""
     wallet = MockWallet(initial_balance=100000.0)
     compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
@@ -59,8 +65,9 @@ def test_company_has_initial_team():
         marketplace=marketplace,
         config={"survival_buffer_hours": 24.0, "company_threshold": 50000.0},
     )
+    await agent.initialize()
 
-    agent.run(max_cycles=10)
+    await agent.run(max_cycles=10)
 
     if agent.company:
         # Company should have initial team
@@ -69,7 +76,8 @@ def test_company_has_initial_team():
         assert agent.company.business_plan is not None
 
 
-def test_company_develops_products():
+@pytest.mark.asyncio
+async def test_company_develops_products():
     """Test company can develop products."""
     wallet = MockWallet(initial_balance=100000.0)
     compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)  # More compute for company work
@@ -81,15 +89,17 @@ def test_company_develops_products():
         marketplace=marketplace,
         config={"survival_buffer_hours": 20.0, "company_threshold": 50000.0, "personality": "aggressive"},
     )
+    await agent.initialize()
 
-    agent.run(max_cycles=15)
+    await agent.run(max_cycles=15)
 
     if agent.company and agent.company.stage == "development":
         # Company should have developed at least one product
         assert len(agent.company.products) >= 1
 
 
-def test_company_formation_decision_logged():
+@pytest.mark.asyncio
+async def test_company_formation_decision_logged():
     """Test company formation is logged in decision history."""
     wallet = MockWallet(initial_balance=100000.0)
     compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
@@ -101,8 +111,9 @@ def test_company_formation_decision_logged():
         marketplace=marketplace,
         config={"survival_buffer_hours": 24.0, "company_threshold": 50000.0},
     )
+    await agent.initialize()
 
-    agent.run(max_cycles=10)
+    await agent.run(max_cycles=10)
 
     # Check decision log for company formation
     if agent.state.has_company:
@@ -110,7 +121,8 @@ def test_company_formation_decision_logged():
         assert len(company_decisions) > 0
 
 
-def test_agent_balances_survival_and_company_work():
+@pytest.mark.asyncio
+async def test_agent_balances_survival_and_company_work():
     """Test agent allocates time to both survival and company work."""
     wallet = MockWallet(initial_balance=100000.0)
     compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
@@ -126,8 +138,9 @@ def test_agent_balances_survival_and_company_work():
             "personality": "balanced",
         },
     )
+    await agent.initialize()
 
-    agent.run(max_cycles=15)
+    await agent.run(max_cycles=15)
 
     # Check that agent did both task work and company work
     task_work_cycles = sum(1 for d in agent.decisions if "task_result" in d)
@@ -141,7 +154,8 @@ def test_agent_balances_survival_and_company_work():
         assert company_work_cycles > 0
 
 
-def test_company_capital_allocation():
+@pytest.mark.asyncio
+async def test_company_capital_allocation():
     """Test company receives proper capital allocation."""
     initial_balance = 100000.0
     wallet = MockWallet(initial_balance=initial_balance)
@@ -154,11 +168,12 @@ def test_company_capital_allocation():
         marketplace=marketplace,
         config={"survival_buffer_hours": 24.0, "company_threshold": 50000.0},
     )
+    await agent.initialize()
 
     # Track balance before company formation
-    balance_before_company = agent.wallet.get_balance()
+    balance_before_company = await agent.wallet.get_balance()
 
-    agent.run(max_cycles=10)
+    await agent.run(max_cycles=10)
 
     if agent.company:
         # Company should have received capital (30% of balance at formation)
@@ -168,7 +183,8 @@ def test_company_capital_allocation():
         assert agent.company.capital <= balance_before_company
 
 
-def test_company_business_plan_generated():
+@pytest.mark.asyncio
+async def test_company_business_plan_generated():
     """Test company has complete business plan."""
     wallet = MockWallet(initial_balance=100000.0)
     compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
@@ -180,8 +196,9 @@ def test_company_business_plan_generated():
         marketplace=marketplace,
         config={"survival_buffer_hours": 24.0, "company_threshold": 50000.0},
     )
+    await agent.initialize()
 
-    agent.run(max_cycles=10)
+    await agent.run(max_cycles=10)
 
     if agent.company:
         plan = agent.company.business_plan
@@ -193,7 +210,8 @@ def test_company_business_plan_generated():
         assert plan.funding_requested > 0
 
 
-def test_company_stage_progression():
+@pytest.mark.asyncio
+async def test_company_stage_progression():
     """Test company progresses through stages."""
     wallet = MockWallet(initial_balance=100000.0)
     compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
@@ -205,15 +223,17 @@ def test_company_stage_progression():
         marketplace=marketplace,
         config={"survival_buffer_hours": 20.0, "company_threshold": 50000.0, "personality": "aggressive"},
     )
+    await agent.initialize()
 
-    agent.run(max_cycles=20)
+    await agent.run(max_cycles=20)
 
     if agent.company:
         # Company should progress from ideation
         assert agent.company.stage in ["development", "seeking_investment", "operational"]
 
 
-def test_company_team_expansion():
+@pytest.mark.asyncio
+async def test_company_team_expansion():
     """Test company can expand team over time."""
     wallet = MockWallet(initial_balance=100000.0)
     compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
@@ -225,13 +245,14 @@ def test_company_team_expansion():
         marketplace=marketplace,
         config={"survival_buffer_hours": 20.0, "company_threshold": 50000.0, "personality": "aggressive"},
     )
+    await agent.initialize()
 
     # Track initial team size
-    agent.run(max_cycles=5)
+    await agent.run(max_cycles=5)
     initial_team_size = len(agent.company.get_all_sub_agent_ids()) if agent.company else 0
 
     # Continue running
-    agent.run(max_cycles=15)
+    await agent.run(max_cycles=15)
 
     if agent.company and initial_team_size > 0:
         # Team might have expanded
@@ -240,7 +261,8 @@ def test_company_team_expansion():
         assert final_team_size >= initial_team_size
 
 
-def test_agent_company_end_to_end():
+@pytest.mark.asyncio
+async def test_agent_company_end_to_end():
     """Test complete end-to-end company formation and operation."""
     wallet = MockWallet(initial_balance=100000.0)
     compute = MockCompute(initial_hours=200.0, cost_per_hour=0.0)
@@ -252,8 +274,9 @@ def test_agent_company_end_to_end():
         marketplace=marketplace,
         config={"survival_buffer_hours": 20.0, "company_threshold": 50000.0, "personality": "balanced"},
     )
+    await agent.initialize()
 
-    agent.run(max_cycles=25)
+    await agent.run(max_cycles=25)
 
     # Verify agent state
     assert agent.state.cycles_completed > 0

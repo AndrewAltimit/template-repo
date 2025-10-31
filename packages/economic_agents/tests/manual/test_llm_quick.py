@@ -5,6 +5,7 @@ This is a minimal test to verify Claude integration is working.
 Run with: python tests/manual/test_llm_quick.py
 """
 
+import asyncio
 import logging
 import tempfile
 import time
@@ -17,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def main():
+async def main():
     """Quick test of LLM integration."""
     print("\n" + "=" * 60)
     print("  Quick LLM Integration Test")
@@ -39,6 +40,7 @@ def main():
 
         logger.info("Creating AutonomousAgent with LLM engine...")
         agent = AutonomousAgent(wallet, compute, marketplace, config)
+        await agent.initialize()
 
         # Override log directories to use temp dir
         agent.resource_tracker.log_dir = Path(tmpdir) / "resources"
@@ -52,7 +54,7 @@ def main():
         print("\nCalling Claude for decision (will take 1-2 minutes)...\n")
 
         start = time.time()
-        result = agent.run_cycle()
+        result = await agent.run_cycle()
         elapsed = time.time() - start
 
         # Show results
@@ -74,4 +76,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
