@@ -45,21 +45,21 @@ class MarketplaceInterface(ABC):
     """Abstract interface for marketplace interactions."""
 
     @abstractmethod
-    def list_available_tasks(self) -> List[Task]:
+    async def list_available_tasks(self) -> List[Task]:
         """Returns tasks agent can work on."""
         pass
 
     @abstractmethod
-    def claim_task(self, task_id: str) -> bool:
+    async def claim_task(self, task_id: str) -> bool:
         """Claims task for work."""
         pass
 
     @abstractmethod
-    def submit_solution(self, submission: TaskSubmission) -> str:
+    async def submit_solution(self, submission: TaskSubmission) -> str:
         """Submits completed work, returns submission_id."""
         pass
 
     @abstractmethod
-    def check_submission_status(self, submission_id: str) -> SubmissionStatus:
+    async def check_submission_status(self, submission_id: str) -> SubmissionStatus:
         """Checks if submission was approved/rejected."""
         pass

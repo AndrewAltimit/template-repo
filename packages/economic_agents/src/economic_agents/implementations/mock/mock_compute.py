@@ -44,11 +44,11 @@ class MockCompute(ComputeInterface):
             self.balance = self.hours_remaining * self.cost_per_hour
             self.last_update = now
 
-    def get_status(self) -> ComputeStatus:
+    async def get_status(self) -> ComputeStatus:
         """Returns current compute status."""
         # Simulate base API latency
         if self.latency_sim:
-            self.latency_sim.simulate_base_latency()
+            await self.latency_sim.simulate_base_latency_async()
 
         self._update_time_decay()
 
@@ -67,11 +67,11 @@ class MockCompute(ComputeInterface):
             status=status,
         )
 
-    def add_funds(self, amount: float) -> bool:
+    async def add_funds(self, amount: float) -> bool:
         """Adds funds to compute account."""
         # Simulate base API latency
         if self.latency_sim:
-            self.latency_sim.simulate_base_latency()
+            await self.latency_sim.simulate_base_latency_async()
 
         if amount <= 0:
             return False
@@ -84,11 +84,11 @@ class MockCompute(ComputeInterface):
 
         return True
 
-    def get_cost_per_hour(self) -> float:
+    async def get_cost_per_hour(self) -> float:
         """Returns current cost rate per hour."""
         return self.cost_per_hour
 
-    def consume_time(self, hours: float) -> bool:
+    async def consume_time(self, hours: float) -> bool:
         """Consumes compute time."""
         if hours <= 0:
             return False
@@ -108,7 +108,7 @@ class MockCompute(ComputeInterface):
 
         return True
 
-    def allocate_hours(self, hours: float, purpose: str = "") -> None:
+    async def allocate_hours(self, hours: float, purpose: str = "") -> None:
         """Allocate compute hours for a task (convenience method for API).
 
         Args:
@@ -120,7 +120,7 @@ class MockCompute(ComputeInterface):
         """
         # Simulate base API latency
         if self.latency_sim:
-            self.latency_sim.simulate_base_latency()
+            await self.latency_sim.simulate_base_latency_async()
 
         if hours <= 0:
             raise ValueError("Hours must be positive")

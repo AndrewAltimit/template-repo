@@ -20,21 +20,21 @@ class ComputeInterface(ABC):
     """Abstract interface for compute resource management."""
 
     @abstractmethod
-    def get_status(self) -> ComputeStatus:
+    async def get_status(self) -> ComputeStatus:
         """Returns current compute status."""
         pass
 
     @abstractmethod
-    def add_funds(self, amount: float) -> bool:
+    async def add_funds(self, amount: float) -> bool:
         """Adds funds to compute account."""
         pass
 
     @abstractmethod
-    def get_cost_per_hour(self) -> float:
+    async def get_cost_per_hour(self) -> float:
         """Returns current cost rate per hour."""
         pass
 
     @abstractmethod
-    def consume_time(self, hours: float) -> bool:
+    async def consume_time(self, hours: float) -> bool:
         """Consumes compute time, returns True if successful."""
         pass

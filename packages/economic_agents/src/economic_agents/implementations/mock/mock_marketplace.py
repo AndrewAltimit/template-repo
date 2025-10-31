@@ -124,7 +124,7 @@ class MockMarketplace(MarketplaceInterface):
             )
             self.tasks[task_id] = task
 
-    def list_available_tasks(self, agent_id: Optional[str] = None) -> List[Task]:
+    async def list_available_tasks(self, agent_id: Optional[str] = None) -> List[Task]:
         """Returns tasks that haven't been claimed.
 
         Args:
@@ -136,7 +136,7 @@ class MockMarketplace(MarketplaceInterface):
 
         # Simulate base API latency
         if self.latency_sim:
-            self.latency_sim.simulate_base_latency()
+            await self.latency_sim.simulate_base_latency_async()
 
         # Simulate competitors claiming tasks
         if self.competitor_sim:
@@ -170,11 +170,11 @@ class MockMarketplace(MarketplaceInterface):
         else:
             return available_tasks
 
-    def claim_task(self, task_id: str) -> bool:
+    async def claim_task(self, task_id: str) -> bool:
         """Claims task for work."""
         # Simulate base API latency
         if self.latency_sim:
-            self.latency_sim.simulate_base_latency()
+            await self.latency_sim.simulate_base_latency_async()
 
         # Check for race condition with competitors
         if self.competitor_sim:
@@ -191,7 +191,7 @@ class MockMarketplace(MarketplaceInterface):
             return True
         return False
 
-    def submit_solution(self, submission: TaskSubmission, agent_id: Optional[str] = None) -> str:
+    async def submit_solution(self, submission: TaskSubmission, agent_id: Optional[str] = None) -> str:
         """Submits completed work and performs review (real or simulated).
 
         Args:
@@ -203,8 +203,8 @@ class MockMarketplace(MarketplaceInterface):
         # Simulate complex processing latency for review
         if self.latency_sim:
             try:
-                self.latency_sim.simulate_complex_processing(timeout_enabled=True)
-            except TimeoutError:
+                await self.latency_sim.simulate_complex_processing_async(timeout_enabled=True)
+            except Exception:
                 # Simulate 504 timeout error
                 submission_id = str(uuid.uuid4())
                 status = SubmissionStatus(
@@ -349,11 +349,11 @@ class MockMarketplace(MarketplaceInterface):
 
         return submission_id
 
-    def check_submission_status(self, submission_id: str) -> SubmissionStatus:
+    async def check_submission_status(self, submission_id: str) -> SubmissionStatus:
         """Checks submission status."""
         # Simulate base API latency
         if self.latency_sim:
-            self.latency_sim.simulate_base_latency()
+            await self.latency_sim.simulate_base_latency_async()
 
         if submission_id not in self.submissions:
             return SubmissionStatus(
@@ -401,7 +401,7 @@ class MockMarketplace(MarketplaceInterface):
 
         return result
 
-    def generate_tasks(self, count: int = 5) -> List[Dict]:
+    async def generate_tasks(self, count: int = 5) -> List[Dict]:
         """Generate tasks in simplified dict format for API.
 
         Args:
@@ -415,7 +415,7 @@ class MockMarketplace(MarketplaceInterface):
             self._generate_initial_tasks(count)
 
         # Get available tasks (not claimed)
-        available = self.list_available_tasks()
+        available = await self.list_available_tasks()
 
         # Convert to simplified dict format for API
         # Difficulty mapping: easy -> 1-3, medium -> 4-6, hard -> 7-10

@@ -43,19 +43,19 @@ class MockWallet(WalletInterface):
         """
         return self._api_transactions
 
-    def get_balance(self) -> float:
+    async def get_balance(self) -> float:
         """Returns current wallet balance."""
         # Simulate base API latency
         if self.latency_sim:
-            self.latency_sim.simulate_base_latency()
+            await self.latency_sim.simulate_base_latency_async()
 
         return self.balance
 
-    def send_payment(self, to_address: str, amount: float, memo: str = "") -> Transaction:
+    async def send_payment(self, to_address: str, amount: float, memo: str = "") -> Transaction:
         """Sends payment to specified address."""
         # Simulate base API latency
         if self.latency_sim:
-            self.latency_sim.simulate_base_latency()
+            await self.latency_sim.simulate_base_latency_async()
 
         if amount <= 0:
             raise ValueError("Payment amount must be positive")
@@ -105,15 +105,15 @@ class MockWallet(WalletInterface):
         self._transactions.append(tx)
         return tx
 
-    def get_address(self) -> str:
+    async def get_address(self) -> str:
         """Returns wallet's receiving address."""
         return self.address
 
-    def get_transaction_history(self, limit: int = 100) -> List[Transaction]:
+    async def get_transaction_history(self, limit: int = 100) -> List[Transaction]:
         """Returns recent transactions."""
         return self._transactions[-limit:]
 
-    def deposit(self, amount: float, purpose: str = "") -> None:
+    async def deposit(self, amount: float, purpose: str = "") -> None:
         """Deposit funds into wallet (convenience method for API).
 
         Args:
@@ -122,7 +122,7 @@ class MockWallet(WalletInterface):
         """
         # Simulate base API latency
         if self.latency_sim:
-            self.latency_sim.simulate_base_latency()
+            await self.latency_sim.simulate_base_latency_async()
 
         if amount <= 0:
             raise ValueError("Deposit amount must be positive")
@@ -142,7 +142,7 @@ class MockWallet(WalletInterface):
         # Store as dict for API compatibility
         self._api_transactions.append(tx_record)
 
-    def withdraw(self, amount: float, purpose: str = "") -> None:
+    async def withdraw(self, amount: float, purpose: str = "") -> None:
         """Withdraw funds from wallet (convenience method for API).
 
         Args:
@@ -154,7 +154,7 @@ class MockWallet(WalletInterface):
         """
         # Simulate base API latency
         if self.latency_sim:
-            self.latency_sim.simulate_base_latency()
+            await self.latency_sim.simulate_base_latency_async()
 
         if amount <= 0:
             raise ValueError("Withdrawal amount must be positive")
