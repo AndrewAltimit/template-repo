@@ -125,8 +125,9 @@ class AgentManager:
             # Start background task
             self.task = asyncio.create_task(self._run_agent_loop())
 
-            # Yield control to allow task to start
-            await asyncio.sleep(0)
+            # Give the task time to actually start executing
+            # This ensures the task is running before we return from start_agent
+            await asyncio.sleep(0.1)
 
             return {
                 "status": "started",

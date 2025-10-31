@@ -43,7 +43,10 @@ async def clean_manager():
 @pytest.fixture
 async def async_client():
     """Provide async HTTP client for FastAPI app."""
-    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+    from httpx import ASGITransport
+
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
 
 
