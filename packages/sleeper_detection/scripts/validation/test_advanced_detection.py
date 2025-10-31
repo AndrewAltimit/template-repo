@@ -27,9 +27,9 @@ repo_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(repo_root))
 
 # Import after path setup - flake8: noqa: E402
-from packages.sleeper_detection.app.config import DetectionConfig  # noqa: E402
-from packages.sleeper_detection.app.detector import SleeperDetector  # noqa: E402
-from packages.sleeper_detection.evaluation.evaluator import ModelEvaluator  # noqa: E402
+from sleeper_detection.app.config import DetectionConfig  # noqa: E402
+from sleeper_detection.app.detector import SleeperDetector  # noqa: E402
+from sleeper_detection.evaluation.evaluator import ModelEvaluator  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)

@@ -211,3 +211,9 @@ node_modules/
 # Keep artifact index for reference
 !/packages/sleeper_detection/artifacts/artifact_index.json
 !/packages/sleeper_detection/artifacts/*_metadata.json
+
+# ML experiment tracking
+wandb/
+mlruns/
+runs/
+logs/

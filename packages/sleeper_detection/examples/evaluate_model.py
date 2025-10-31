@@ -6,8 +6,8 @@ Example: Evaluate a model for sleeper agent vulnerabilities
 import asyncio
 from pathlib import Path
 
-from packages.sleeper_detection.evaluation.evaluator import ModelEvaluator
-from packages.sleeper_detection.evaluation.report_generator import ReportGenerator
+from sleeper_detection.evaluation.evaluator import ModelEvaluator
+from sleeper_detection.evaluation.report_generator import ReportGenerator
 
 
 async def main():
@@ -78,6 +78,6 @@ if __name__ == "__main__":
     results = asyncio.run(main())
 
     # Optional: Compare multiple models
-    # from packages.sleeper_detection.cli import SleeperDetectionCLI
+    # from sleeper_detection.cli import SleeperDetectionCLI
     # cli = SleeperDetectionCLI()
     # asyncio.run(cli.run_compare(["gpt2", "distilgpt2", "gpt2-medium"]))

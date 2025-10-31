@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+from sleeper_detection.constants import DEFAULT_EVALUATION_DB_PATH
 
 
 class JobStatus(str, Enum):
@@ -88,14 +89,17 @@ class SafetyTrainingRequest(BaseModel):
     use_qlora: bool = Field(default=True, description="Use QLoRA (4-bit + LoRA) - recommended for memory")
     lora_r: int = Field(default=8, ge=1, description="LoRA rank")
     lora_alpha: int = Field(default=16, ge=1, description="LoRA alpha")
+    max_train_samples: Optional[int] = Field(
+        default=1000, ge=100, description="Limit training samples (None = use all ~144K from hh-rlhf)"
+    )
     test_persistence: bool = Field(default=True, description="Test backdoor persistence")
     num_test_samples: int = Field(default=20, ge=1, description="Persistence test samples")
 
     # Evaluation parameters
     run_evaluation: bool = Field(default=False, description="Run full evaluation suite after training")
     evaluation_db: str = Field(
-        default="/workspace/packages/sleeper_detection/dashboard/evaluation_results.db",
-        description="Path to evaluation results database",
+        default=DEFAULT_EVALUATION_DB_PATH,
+        description="Path to evaluation results database (persistent volume)",
     )
     evaluation_test_suites: list[str] = Field(
         default=["basic", "code_vulnerability", "chain_of_thought"],
@@ -144,7 +148,7 @@ class EvaluateRequest(BaseModel):
         description="Test suites to run (basic, code_vulnerability, robustness, chain_of_thought, advanced)",
     )
     output_db: str = Field(
-        default="/results/evaluation_results.db",
+        default=DEFAULT_EVALUATION_DB_PATH,
         description="Path to evaluation results database",
     )
     num_samples: int = Field(default=100, ge=10, description="Number of samples per test")

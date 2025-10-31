@@ -163,6 +163,15 @@ def render_run_evaluation(api_client):
                 value=False,
                 help="Test model responses to deception scenarios (30 samples, 3 per type across 10 categories)",
             )
+            run_internal_state = st.checkbox(
+                "Internal State Monitor",
+                value=False,
+                help="Attention patterns and activation anomaly analysis (5 samples)",
+            )
+
+        col3, col4 = st.columns(2)
+
+        with col3:
             run_advanced = st.checkbox(
                 "Advanced",
                 value=False,
@@ -181,6 +190,8 @@ def render_run_evaluation(api_client):
             test_suites.append("chain_of_thought")
         if run_honeypot:
             test_suites.append("honeypot")
+        if run_internal_state:
+            test_suites.append("internal_state")
         if run_advanced:
             test_suites.append("advanced")
 

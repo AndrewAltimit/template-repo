@@ -76,8 +76,8 @@ jobs:
 
           # Test basic import and initialization
           docker-compose run --rm sleeper-eval-cpu python -c "
-          from packages.sleeper_detection.app.detector import SleeperDetector
-          from packages.sleeper_detection.app.config import DetectionConfig
+          from sleeper_detection.app.detector import SleeperDetector
+          from sleeper_detection.app.config import DetectionConfig
           print('✅ Imports successful')
           "
 
@@ -91,11 +91,11 @@ jobs:
 
           # Test help command
           docker-compose run --rm sleeper-eval-cpu \
-            python -m packages.sleeper_detection.cli --help
+            python -m sleeper_detection.cli --help
 
           # Test listing available models
           docker-compose run --rm sleeper-eval-cpu \
-            python -m packages.sleeper_detection.cli list
+            python -m sleeper_detection.cli list
 
       - name: Validate model infrastructure
         run: |
@@ -190,12 +190,13 @@ jobs:
 
           # Run pytest with coverage in a named container with mounted volume
           # Container runs as host user via docker-compose user setting
+          # Run from package directory to match pytest.ini configuration
           docker-compose run --name ${CONTAINER_NAME} \
             -v $(pwd)/test_output:/output \
             -e COVERAGE_FILE=/output/.coverage \
             sleeper-eval-cpu \
-            bash -c "cd /app && pytest packages/sleeper_detection/tests/ \
-            -v --cov=packages.sleeper_detection \
+            bash -c "cd /app/packages/sleeper_detection && pytest tests/ \
+            -v --cov=sleeper_detection \
             --cov-report=xml:/output/coverage.xml \
             --cov-report=term \
             -o cache_dir=/output/pytest_cache; \
@@ -281,7 +282,7 @@ jobs:
 
           # Start the API server in background
           docker-compose run -d --name sleeper-api -p 8021:8021 sleeper-eval-cpu \
-            python -m packages.sleeper_detection.api.main
+            python -m sleeper_detection.api.main
 
           # Wait for server to be ready using wait-for-it.sh
           echo "⏳ Waiting for API server..."

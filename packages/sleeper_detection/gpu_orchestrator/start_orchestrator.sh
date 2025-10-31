@@ -1,12 +1,17 @@
 #!/bin/bash
 # Start GPU Orchestrator API
-# This script should run on the Windows GPU machine
+# This script should run on Linux/macOS GPU machines
 
-set -e
+set -e  # Exit on error
+
+# Change to script directory - makes all relative paths work consistently
+# regardless of where this script is called from
+cd "$(dirname "$0")"
 
 echo "========================================="
 echo "GPU Orchestrator API Startup"
 echo "========================================="
+echo ""
 
 # Check prerequisites
 echo "[1/5] Checking prerequisites..."
@@ -24,16 +29,16 @@ if ! docker info &> /dev/null; then
 fi
 
 # Check NVIDIA GPU
-if ! command -v nvidia-smi &> /dev/null; then
-    echo "WARNING: nvidia-smi not found. GPU may not be available."
-else
+if command -v nvidia-smi &> /dev/null; then
     echo "GPU detected:"
     nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+else
+    echo "WARNING: nvidia-smi not found. GPU may not be available."
 fi
 
 # Check Python
-if ! command -v python3 &> /dev/null; then
-    echo "ERROR: Python 3 not found. Please install Python 3.8+."
+if ! command -v python &> /dev/null; then
+    echo "ERROR: Python not found. Please install Python 3.8+."
     exit 1
 fi
 
@@ -49,26 +54,47 @@ fi
 # Create virtual environment if it doesn't exist
 if [ ! -d venv ]; then
     echo "Creating virtual environment..."
-    python3 -m venv venv
+    python -m venv venv
 fi
 
 # Activate virtual environment
-# shellcheck disable=SC1091
+echo "Activating virtual environment..."
+# shellcheck source=/dev/null
 source venv/bin/activate
 
 # Install dependencies
 echo "[3/5] Installing dependencies..."
-pip install --quiet --upgrade pip
+python -m pip install --quiet --upgrade pip
+echo "Installing sleeper_detection package..."
+# With src/ layout, package root is one level up
+cd ..
+if ! pip install -e .; then
+    echo "ERROR: Failed to install sleeper_detection package"
+    echo "Please check that pyproject.toml exists and src/ layout is correct"
+    exit 1
+fi
+cd gpu_orchestrator
+echo "Successfully installed sleeper_detection package"
 pip install --quiet -r requirements.txt
 
-# Check Docker image
-echo "[4/5] Checking Docker image..."
-if ! docker image inspect sleeper-detection:gpu &> /dev/null; then
-    echo "WARNING: sleeper-detection:gpu image not found."
-    echo "Building image from ../docker/Dockerfile.gpu..."
+# Build Docker image
+echo "[4/5] Building GPU worker Docker image..."
+echo "This may take a few minutes on first run (cached afterwards)"
+# Note: Build context is now packages/sleeper_detection/ (src/ layout)
+if ! docker build -t sleeper-detection:gpu -f ../docker/Dockerfile.gpu ..; then
+    echo "ERROR: Failed to build sleeper-detection:gpu image"
+    echo "Please check Docker is running and Dockerfile exists"
+    exit 1
+fi
+echo "GPU worker image ready."
 
-    # Build image
-    docker build -t sleeper-detection:gpu -f ../docker/Dockerfile.gpu ..
+# Get IP address
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS
+    IP=$(ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -n 1)
+else
+    # Linux
+    IP=$(hostname -I | awk '{print $1}')
 fi
 
 # Start API
@@ -76,15 +102,11 @@ echo "[5/5] Starting GPU Orchestrator API..."
 echo ""
 echo "API will be available at:"
 echo "  - Local: http://localhost:8000"
-echo "  - Network: http://$(hostname -I | awk '{print $1}'):8000"
+echo "  - Network: http://$IP:8000"
 echo "  - Docs: http://localhost:8000/docs"
 echo ""
 echo "Press Ctrl+C to stop"
 echo ""
 
 # Run with uvicorn
-python3 -m uvicorn api.main:app \
-    --host 0.0.0.0 \
-    --port 8000 \
-    --log-level info \
-    --access-log
+python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --log-level info

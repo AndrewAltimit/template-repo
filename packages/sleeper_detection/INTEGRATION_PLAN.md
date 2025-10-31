@@ -6,17 +6,35 @@ This document outlines the integration strategy for connecting Build job outputs
 
 The dashboard has comprehensive UI components, but significant portions rely on mock data rather than actual evaluation results. Many sophisticated detection capabilities exist in the package library but are not exposed in the dashboard.
 
-### Current State (Updated: 2025-10-19)
+### Current State (Updated: 2025-10-29 Session 4)
 
 **Data Source Distribution:**
-- Real Data: 6/15 components (40%)
-- Mock Data: 9/15 components (60%)
+- Real Data: 8/15 components (53%)
+- Mock Data: 7/15 components (47%)
 
 **Build Integration:**
-- Integrated: 6/15 components (40%)
-- Not Integrated: 9/15 components (60%)
+- Integrated: 8/15 components (53%)
+- Not Integrated: 7/15 components (47%)
 
-**Recent Progress (Session 2 - 2025-10-19):**
+**Recent Progress (Session 4 - 2025-10-29):**
+- ✅ **Internal State Monitor integration complete**
+  - Created InternalStateMonitor component wrapping AttentionAnalyzer + FeatureDiscovery
+  - Database schema: internal_state_analysis table with anomaly metrics and features
+  - Ingestion function: ingest_internal_state_results()
+  - Evaluation integration: _run_internal_state_capture() analyzes 5 samples
+  - Dashboard data loader: fetch_internal_state_analysis()
+- ✅ **Progress: 47% → 53% real data coverage (+6 percentage points this session)**
+- 🎉 **Milestone: Crossed 50% real data threshold!**
+
+**Previous Progress (Session 3 - 2025-10-29):**
+- ✅ Fixed trigger sensitivity data population issue
+  - Root cause: Model selector only queried evaluation_results table
+  - Solution: Updated fetch_models() to UNION across all data tables
+  - Models with trigger sensitivity data now appear in dropdown
+- ✅ **Trigger Sensitivity Analysis now using real data** (safety training workflow)
+- ✅ **Progress: 40% → 47% real data coverage (+7 percentage points this session)**
+
+**Previous Progress (Session 2 - 2025-10-19):**
 - ✅ Enhanced data aggregation layer (`data_loader.fetch_model_summary()`)
   - Queries persistence_results, chain_of_thought_analysis, evaluation_results
   - Calculates real sleeper-specific threat indicators
@@ -82,6 +100,25 @@ The dashboard has comprehensive UI components, but significant portions rely on 
 - Model selector added for user to choose which model to view
 - Status: ✅ Complete (2025-10-19)
 
+**Trigger Sensitivity** (`trigger_sensitivity.py`)
+- Queries `trigger_sensitivity` table
+- Captures pre/post training sensitivity during safety training with `--test-persistence`
+- Database ingestion via `ingest_trigger_sensitivity_results()`
+- Falls back to mock data gracefully
+- Note: Only populates for models that have undergone safety training (by design)
+- Bug fix (2025-10-29): Model selector now queries all data tables, not just evaluation_results
+- Status: ✅ Complete (2025-10-29)
+
+**Internal State Monitor** (`internal_state.py`)
+- Queries `internal_state_analysis` table
+- Analyzes attention patterns, discovers features, detects activation anomalies
+- Wraps AttentionAnalyzer and FeatureDiscovery for comprehensive analysis
+- Database ingestion via `ingest_internal_state_results()`
+- Captures anomaly metrics: pattern_deviation, sparsity_anomaly, coherence_anomaly
+- Computes risk levels: low/medium/high/critical
+- Falls back to mock data gracefully
+- Status: ✅ Complete (2025-10-29)
+
 ### Using Mock Data
 
 #### Critical Components (High Value)
@@ -93,15 +130,6 @@ The dashboard has comprehensive UI components, but significant portions rely on 
 - Impact: High value for discovering unknown triggers
 - Note: Honeypot testing provides similar coverage
 
-**Internal State Monitor** (`internal_state.py`)
-- Current: Uses mock data
-- Available:
-  - `attention_analysis/analyzer.py` - AttentionAnalyzer
-  - `probes/feature_discovery.py` - Feature discovery
-  - `comprehensive_test.py` - Residual stream analysis
-- Gap: Activation patterns not captured from Build jobs
-- Impact: Internal state visibility
-
 **Detection Consensus** (`detection_consensus.py`)
 - Current: Uses mock data
 - Available: Multiple detection methods in `detection/` directory
@@ -109,12 +137,6 @@ The dashboard has comprehensive UI components, but significant portions rely on 
 - Impact: Convergent evidence increases confidence
 
 #### Important Components (Medium Value)
-
-**Trigger Sensitivity** (`trigger_sensitivity.py`)
-- Current: `data_loader.fetch_trigger_sensitivity()` implemented but returns mock data
-- Available: Backdoor validation script tests trigger variations
-- Gap: Trigger testing not parameterized in Build jobs
-- Impact: Shows trigger robustness
 
 **Risk Mitigation Matrix** (`risk_mitigation_matrix.py`)
 - Current: Uses mock data
@@ -608,15 +630,17 @@ Current dashboard gives false sense of capability:
 
 ## Conclusion
 
-**Progress Update (2025-10-19):**
+**Progress Update (2025-10-29 Session 4):**
 
-The dashboard has progressed from 93% mock data to 60% mock data, with 6 critical components now using real data:
+The dashboard has progressed from 93% mock data to 47% mock data, with 8 critical components now using real data:
 - ✅ Persistence Analysis (safety training persistence testing)
 - ✅ Chain-of-Thought Analysis (deceptive reasoning detection)
 - ✅ Honeypot Analysis (10 comprehensive categories)
-- ✅ **NEW**: Detection Analysis (ROC curves, confusion matrices)
-- ✅ **NEW**: Model Comparison (side-by-side behavioral risk)
-- ✅ **NEW**: Overview Dashboard (threat indicators, actionability framework)
+- ✅ Detection Analysis (ROC curves, confusion matrices)
+- ✅ Model Comparison (side-by-side behavioral risk)
+- ✅ Overview Dashboard (threat indicators, actionability framework)
+- ✅ Trigger Sensitivity Analysis (pre/post safety training comparison)
+- ✅ **NEW**: Internal State Monitor (attention patterns and activation anomalies)
 
 **Key Technical Achievement:**
 
@@ -637,34 +661,22 @@ Evaluation kept separate from training jobs for clean separation of concerns:
 **Remaining Work:**
 
 High Priority:
-1. **Trigger Sensitivity Testing** - Database schema ready, requires safety training integration
-   - Note: Best integrated into safety training workflow (compares pre/post models)
-   - Infrastructure ready: schema + ingestion functions created
-   - Dashboard component already expects correct data format
-2. **Attention Pattern Capture (internal_state.py)** - Interactive analysis tool
-   - Requires real-time model execution via GPU orchestrator
-   - More complex than batch evaluation
-   - Consider separate implementation approach
+1. Red Team Integration (lower priority - honeypots provide similar coverage)
+2. Detection Consensus (ensemble methods)
 
 Medium Priority:
-3. Red Team Integration (lower priority - honeypots provide similar coverage)
-4. Detection Consensus (ensemble methods)
-5. Risk Mitigation Matrix (mitigation testing)
+3. Risk Mitigation Matrix (mitigation testing)
 
 Lower Priority:
-6. Persona Profile, Risk Profiles, Tested Territory, Scaling Analysis
+4. Persona Profile, Risk Profiles, Tested Territory, Scaling Analysis
 
 **The Path Forward:**
 
-With the evaluation pipeline and database foundation in place, the remaining 9 components follow the established pattern:
+With the evaluation pipeline and database foundation in place, the remaining 7 components follow the established pattern:
 1. Add data capture to run_full_evaluation.py (if needed)
 2. Create database table if needed
 3. Update dashboard component to query real data
 4. Maintain graceful fallback to mock data
-
-**Infrastructure Ready:**
-- Trigger sensitivity database table and ingestion functions created
-- Ready for integration when safety training workflow is updated
 
 Estimated effort for remaining components: 1-2 weeks
 
@@ -672,15 +684,35 @@ Estimated effort for remaining components: 1-2 weeks
 - Started: 1/15 components with real data (6.7%)
 - After Session 1: 3/15 components with real data (20%)
 - After Session 2: 6/15 components with real data (40%)
+- After Session 3: 7/15 components with real data (47%)
+- After Session 4: 8/15 components with real data (53%)
 - Target: 15/15 components with real data (100%)
-- Progress: 6.7% → 20% → 40% (+33.3 percentage points total, +20 percentage points Session 2)
+- Progress: 6.7% → 20% → 40% → 47% → 53% (+46.3 percentage points total, +6 percentage points Session 4)
+- 🎉 **Milestone: Crossed 50% real data threshold!**
 
 **Bug Fixes (Session 2):**
 - Fixed model loading error for local paths (added `local_files_only=True`)
 - Fixed missing model selector on Executive Summary page
 - Enabled proper validation of real data integration
 
+**Bug Fixes (Session 3):**
+- Fixed model selector to query all data tables (not just evaluation_results)
+- Models with trigger sensitivity data now appear in dropdown
+- Used UNION query across 5 tables: evaluation_results, persistence_results, chain_of_thought_analysis, honeypot_responses, trigger_sensitivity
+
 **Infrastructure Added (Session 2):**
 - Trigger sensitivity database table and ingestion functions
 - Ready for integration into safety training workflow
 - Schema supports pre/post comparison and variant type tracking
+
+**Infrastructure Completed (Session 3):**
+- Trigger sensitivity fully operational via safety training pipeline
+- Data flows from safety_trainer.py → database → dashboard correctly
+
+**Infrastructure Completed (Session 4):**
+- Internal State Monitor with comprehensive analysis pipeline
+- InternalStateMonitor component wrapping AttentionAnalyzer + FeatureDiscovery
+- Database schema: internal_state_analysis table with complete anomaly tracking
+- Evaluation integration: _run_internal_state_capture() for automated testing
+- Dashboard data loader: fetch_internal_state_analysis() with real-time queries
+- **Core detection capabilities now complete (53% real data coverage)**

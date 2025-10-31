@@ -13,10 +13,10 @@ from pathlib import Path
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent.parent.parent.parent))
 
-from packages.sleeper_detection.app.config import DetectionConfig  # noqa: E402
-from packages.sleeper_detection.app.detector import SleeperDetector  # noqa: E402
-from packages.sleeper_detection.app.enums import BackdoorMechanism  # noqa: E402
-from packages.sleeper_detection.backdoor_training.trainer import BackdoorTrainer  # noqa: E402
+from sleeper_detection.app.config import DetectionConfig  # noqa: E402
+from sleeper_detection.app.detector import SleeperDetector  # noqa: E402
+from sleeper_detection.app.enums import BackdoorMechanism  # noqa: E402
+from sleeper_detection.backdoor_training.trainer import BackdoorTrainer  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -100,7 +100,7 @@ async def test_cpu_detection():
 
     # Test honeypot generation
     print("\n5. Testing honeypot generation...")
-    from packages.sleeper_detection.advanced_detection.honeypots import HoneypotGenerator
+    from sleeper_detection.advanced_detection.honeypots import HoneypotGenerator
 
     generator = HoneypotGenerator(detector.model)
     honeypots = await generator.generate_honeypots(suspected_goal="insert code vulnerabilities", n_honeypots=3)
@@ -118,8 +118,8 @@ async def test_minimal_api():
     print("\n6. Testing FastAPI endpoints...")
 
     # Import API components
-    from packages.sleeper_detection.api.main import app
-    from packages.sleeper_detection.api.main import detector as api_detector_import  # noqa: F401
+    from sleeper_detection.api.main import app
+    from sleeper_detection.api.main import detector as api_detector_import  # noqa: F401
 
     # Initialize API detector
     config = DetectionConfig(model_name="gpt2", device="cpu", use_minimal_model=True)

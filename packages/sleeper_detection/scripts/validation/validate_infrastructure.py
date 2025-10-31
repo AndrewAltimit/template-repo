@@ -13,9 +13,9 @@ project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 # noqa: E402 - imports after path manipulation
-from packages.sleeper_detection import models  # noqa: E402, F401
+from sleeper_detection import models  # noqa: E402, F401
 
-IMPORT_PREFIX = "packages.sleeper_detection.models"
+IMPORT_PREFIX = "sleeper_detection.models"
 
 
 def check_file_exists(filepath: str, description: str) -> bool:
@@ -36,20 +36,20 @@ def check_imports() -> bool:
     print("-" * 40)
 
     try:
-        # Import from packages.sleeper_detection.models
-        from packages.sleeper_detection.models import ModelRegistry  # noqa: F401
+        # Import from sleeper_detection.models
+        from sleeper_detection.models import ModelRegistry  # noqa: F401
 
         print("  ✓ ModelRegistry import successful")
 
-        from packages.sleeper_detection.models import ModelDownloader  # noqa: F401
+        from sleeper_detection.models import ModelDownloader  # noqa: F401
 
         print("  ✓ ModelDownloader import successful")
 
-        from packages.sleeper_detection.models import ResourceManager  # noqa: F401
+        from sleeper_detection.models import ResourceManager  # noqa: F401
 
         print("  ✓ ResourceManager import successful")
 
-        from packages.sleeper_detection.models import get_registry, get_resource_manager  # noqa: F401
+        from sleeper_detection.models import get_registry, get_resource_manager  # noqa: F401
 
         print("  ✓ Helper functions import successful")
 
@@ -65,17 +65,17 @@ def check_files() -> bool:
     print("-" * 40)
 
     # Determine base path - Docker uses /app/packages/sleeper_detection
-    if Path("/app/packages/sleeper_detection/models/__init__.py").exists():
+    if Path("/app/packages/sleeper_detection/src/sleeper_detection/models/__init__.py").exists():
         base = "/app/packages/sleeper_detection"  # Docker container
     else:
         base = "packages/sleeper_detection"  # Development
 
-    # Required files (must exist)
+    # Required files (must exist) - using src layout
     required_files = [
-        (f"{base}/models/__init__.py", "Module init"),
-        (f"{base}/models/registry.py", "Model Registry"),
-        (f"{base}/models/downloader.py", "Model Downloader"),
-        (f"{base}/models/resource_manager.py", "Resource Manager"),
+        (f"{base}/src/sleeper_detection/models/__init__.py", "Module init"),
+        (f"{base}/src/sleeper_detection/models/registry.py", "Model Registry"),
+        (f"{base}/src/sleeper_detection/models/downloader.py", "Model Downloader"),
+        (f"{base}/src/sleeper_detection/models/resource_manager.py", "Resource Manager"),
     ]
 
     # Optional files (nice to have but not critical)
@@ -102,7 +102,7 @@ def validate_registry() -> bool:
     print("-" * 40)
 
     try:
-        from packages.sleeper_detection.models import get_registry
+        from sleeper_detection.models import get_registry
 
         registry = get_registry()
 
@@ -116,7 +116,7 @@ def validate_registry() -> bool:
             print(f"  ✓ Found {model_count} models")
 
         # Check categories
-        from packages.sleeper_detection.models.registry import ModelCategory
+        from sleeper_detection.models.registry import ModelCategory
 
         categories = set(m.category for m in registry.models.values())
         expected = {ModelCategory.TINY, ModelCategory.CODING, ModelCategory.GENERAL}
@@ -154,7 +154,7 @@ def validate_resource_manager() -> bool:
     print("-" * 40)
 
     try:
-        from packages.sleeper_detection.models import get_resource_manager
+        from sleeper_detection.models import get_resource_manager
 
         rm = get_resource_manager()
 
@@ -185,7 +185,7 @@ def validate_downloader() -> bool:
     print("-" * 40)
 
     try:
-        from packages.sleeper_detection.models.downloader import ModelDownloader
+        from sleeper_detection.models.downloader import ModelDownloader
 
         downloader = ModelDownloader()
 
@@ -222,7 +222,7 @@ def run_basic_integration() -> bool:
     print("-" * 40)
 
     try:
-        from packages.sleeper_detection.models import get_registry, get_resource_manager
+        from sleeper_detection.models import get_registry, get_resource_manager
 
         registry = get_registry()
         rm = get_resource_manager()

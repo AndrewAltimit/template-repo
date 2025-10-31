@@ -9,10 +9,10 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from packages.sleeper_detection.detection.model_loader import (  # noqa: E402
+from sleeper_detection.detection.model_loader import (  # noqa: E402
     load_model_for_detection,
 )
-from packages.sleeper_detection.training.deception_dataset_generator import (  # noqa: E402
+from sleeper_detection.training.deception_dataset_generator import (  # noqa: E402
     DeceptionDatasetGenerator,
 )
 

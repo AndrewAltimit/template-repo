@@ -125,14 +125,54 @@ Documentation = "https://github.com/AndrewAltimit/template-repo/tree/main/packag
 Issues = "https://github.com/AndrewAltimit/template-repo/issues"
 
 [project.scripts]
-sleeper-detect = "packages.sleeper_detection.cli:main"
+sleeper-detect = "sleeper_detection.cli:main"
 
 [tool.setuptools]
-packages = ["packages.sleeper_detection"]
-package-dir = {"packages.sleeper_detection" = "."}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = [
+    "sleeper_detection.tests",
+    "sleeper_detection.tests.*",
+    "sleeper_detection.docs",
+    "sleeper_detection.docs.*",
+    "sleeper_detection.examples",
+    "sleeper_detection.examples.*",
+    "sleeper_detection.scripts",
+    "sleeper_detection.scripts.*",
+    "sleeper_detection.notebooks",
+    "sleeper_detection.notebooks.*",
+    "sleeper_detection.dashboard",
+    "sleeper_detection.dashboard.*",
+    "sleeper_detection.gpu_orchestrator",
+    "sleeper_detection.gpu_orchestrator.*",
+    "sleeper_detection.docker",
+    "sleeper_detection.docker.*",
+    "sleeper_detection.bin",
+    "sleeper_detection.bin.*",
+    "sleeper_detection.artifacts",
+    "sleeper_detection.artifacts.*",
+    # Generated/runtime directories
+    "sleeper_detection.wandb",
+    "sleeper_detection.wandb.*",
+    "sleeper_detection.outputs",
+    "sleeper_detection.outputs.*",
+    "sleeper_detection.logs",
+    "sleeper_detection.logs.*",
+    "sleeper_detection.checkpoints",
+    "sleeper_detection.checkpoints.*",
+    "sleeper_detection.runs",
+    "sleeper_detection.runs.*",
+    "sleeper_detection.mlruns",
+    "sleeper_detection.mlruns.*",
+    "sleeper_detection.build",
+    "sleeper_detection.build.*",
+    "sleeper_detection.dist",
+    "sleeper_detection.dist.*",
+]
 
 [tool.setuptools.package-data]
-"packages.sleeper_detection" = [
+"sleeper_detection" = [
     "test_suites/*.yaml",
     "configs/*.json",
     "docs/*.md",
@@ -158,3 +198,16 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
+# Test isolation and reliability
+addopts = [
+    "-v",  # Verbose output
+    "--strict-markers",  # Ensure all markers are registered
+    "--tb=short",  # Shorter tracebacks
+    "-ra",  # Show summary of all test outcomes
+]
+# Register custom markers
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]

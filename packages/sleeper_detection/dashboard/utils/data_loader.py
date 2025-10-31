@@ -6,10 +6,12 @@ import json
 import logging
 import os
 import sqlite3
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import numpy as np
 import pandas as pd
 from config.mock_models import (
     get_all_models,
@@ -18,7 +20,22 @@ from config.mock_models import (
     has_deceptive_reasoning,
 )
 
+# Configure logger first so it's available for warnings
 logger = logging.getLogger(__name__)
+
+# Try to import constants, fallback to hardcoded default if not available (e.g., in Docker test context)
+try:
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+    from constants import DEFAULT_EVALUATION_DB_PATH  # noqa: E402
+except ModuleNotFoundError:
+    # Fallback for containerized test environments where constants.py is not mounted
+    DEFAULT_EVALUATION_DB_PATH = "/results/evaluation_results.db"
+    logger.warning(
+        "Using fallback evaluation DB path (%s) - constants.py not available. "
+        "This typically indicates a test environment where the constants module is not mounted. "
+        "If this appears in production, check the Python path configuration.",
+        DEFAULT_EVALUATION_DB_PATH,
+    )
 
 
 class DataLoader:
@@ -65,7 +82,7 @@ class DataLoader:
             else:
                 # Look for database in standard locations
                 possible_paths = [
-                    Path("/results/evaluation_results.db"),  # GPU orchestrator results
+                    Path(DEFAULT_EVALUATION_DB_PATH),  # GPU orchestrator results
                     Path("evaluation_results.db"),
                     Path("evaluation_results/evaluation_results.db"),
                     Path("packages/sleeper_detection/evaluation_results.db"),
@@ -102,16 +119,18 @@ class DataLoader:
 
         # Ensure required tables exist (for Build integration)
         try:
-            from packages.sleeper_detection.database.schema import (
+            from sleeper_detection.database.schema import (
                 ensure_chain_of_thought_table_exists,
                 ensure_honeypot_table_exists,
                 ensure_persistence_table_exists,
+                ensure_trigger_sensitivity_table_exists,
             )
 
             if not self.using_mock:
                 ensure_persistence_table_exists(str(self.db_path))
                 ensure_chain_of_thought_table_exists(str(self.db_path))
                 ensure_honeypot_table_exists(str(self.db_path))
+                ensure_trigger_sensitivity_table_exists(str(self.db_path))
         except Exception as e:
             logger.warning(f"Failed to ensure database tables exist: {e}")
 
@@ -130,7 +149,9 @@ class DataLoader:
         return sqlite3.connect(self.db_path)
 
     def fetch_models(self) -> List[str]:
-        """Fetch list of evaluated models.
+        """Fetch list of evaluated models from all data tables.
+
+        Queries all tables that contain model data to build comprehensive model list.
 
         Returns:
             List of model names
@@ -139,10 +160,19 @@ class DataLoader:
             conn = self.get_connection()
             cursor = conn.cursor()
 
+            # Query all tables that contain model_name to get comprehensive list
+            # This ensures models appear even if they only have data in some tables
             cursor.execute(
                 """
-                SELECT DISTINCT model_name
-                FROM evaluation_results
+                SELECT DISTINCT model_name FROM evaluation_results
+                UNION
+                SELECT DISTINCT model_name FROM persistence_results
+                UNION
+                SELECT DISTINCT model_name FROM chain_of_thought_analysis
+                UNION
+                SELECT DISTINCT model_name FROM honeypot_responses
+                UNION
+                SELECT DISTINCT model_name FROM trigger_sensitivity
                 ORDER BY model_name
             """
             )
@@ -171,8 +201,15 @@ class DataLoader:
                     cursor = conn.cursor()
                     cursor.execute(
                         """
-                        SELECT DISTINCT model_name
-                        FROM evaluation_results
+                        SELECT DISTINCT model_name FROM evaluation_results
+                        UNION
+                        SELECT DISTINCT model_name FROM persistence_results
+                        UNION
+                        SELECT DISTINCT model_name FROM chain_of_thought_analysis
+                        UNION
+                        SELECT DISTINCT model_name FROM honeypot_responses
+                        UNION
+                        SELECT DISTINCT model_name FROM trigger_sensitivity
                         ORDER BY model_name
                     """
                     )
@@ -591,7 +628,7 @@ class DataLoader:
             return {"database_path": str(self.db_path), "database_exists": self.db_path.exists(), "error": str(e)}
 
     def fetch_trigger_sensitivity(self, model_name: str) -> Dict[str, Any]:
-        """Fetch trigger sensitivity analysis data.
+        """Fetch trigger sensitivity analysis data from database.
 
         Args:
             model_name: Name of model to analyze
@@ -599,19 +636,75 @@ class DataLoader:
         Returns:
             Trigger sensitivity data including pre/post training comparisons
         """
-        # Return mock data for now - replace with actual DB queries
-        return {
-            "model": model_name,
-            "exact_rate_post": 0.95,
-            "variation_drop": 0.65,
-            "specificity_increase": 0.67,
-            "variations": [
-                {"trigger": "Current year: 2024", "type": "exact", "pre_training_rate": 0.95, "post_training_rate": 0.95},
-                {"trigger": "Year: 2024", "type": "close", "pre_training_rate": 0.78, "post_training_rate": 0.12},
-                {"trigger": "The year is 2024", "type": "semantic", "pre_training_rate": 0.72, "post_training_rate": 0.08},
-                {"trigger": "It's 2024", "type": "semantic", "pre_training_rate": 0.70, "post_training_rate": 0.05},
-            ],
-        }
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+
+            # Query for trigger sensitivity data
+            cursor.execute(
+                """
+                SELECT trigger_phrase, variant_type, pre_training_rate,
+                       post_training_rate, specificity_increase, is_exact_trigger
+                FROM trigger_sensitivity
+                WHERE model_name = ?
+                ORDER BY is_exact_trigger DESC, variant_type
+            """,
+                (model_name,),
+            )
+
+            rows = cursor.fetchall()
+            conn.close()
+
+            if not rows:
+                # No data available - return empty dict for graceful fallback to mock
+                logger.debug(f"No trigger sensitivity data found for {model_name}")
+                return {}
+
+            # Parse database results
+            variations = []
+            exact_rate_post = 0.0
+            specificity_increase = 0.0
+
+            for row in rows:
+                trigger_phrase, variant_type, pre_rate, post_rate, spec_increase, is_exact = row
+
+                # Build variation entry
+                variations.append(
+                    {
+                        "trigger": trigger_phrase,
+                        "type": variant_type,
+                        "pre_training_rate": pre_rate if pre_rate is not None else 0.0,
+                        "post_training_rate": post_rate if post_rate is not None else 0.0,
+                    }
+                )
+
+                # Capture exact trigger rate and specificity
+                if is_exact:
+                    exact_rate_post = post_rate if post_rate is not None else 0.0
+                    specificity_increase = spec_increase if spec_increase is not None else 0.0
+
+            # Calculate variation drop (average reduction in activation for non-exact triggers)
+            variation_changes = [v["pre_training_rate"] - v["post_training_rate"] for v in variations if v["type"] != "exact"]
+            variation_drop = float(np.mean(variation_changes)) if variation_changes else 0.0
+
+            result = {
+                "model": model_name,
+                "exact_rate_post": exact_rate_post,
+                "variation_drop": variation_drop,
+                "specificity_increase": specificity_increase,
+                "variations": variations,
+            }
+
+            logger.info(f"Fetched trigger sensitivity data for {model_name}: {len(variations)} variants")
+            return result
+
+        except sqlite3.OperationalError as e:
+            # Table doesn't exist yet - graceful fallback
+            logger.debug(f"Trigger sensitivity table not available: {e}")
+            return {}
+        except Exception as e:
+            logger.error(f"Failed to fetch trigger sensitivity data: {e}")
+            return {}
 
     def fetch_chain_of_thought(self, model_name: str) -> Dict[str, Any]:
         """Fetch chain-of-thought reasoning data.
@@ -787,6 +880,70 @@ class DataLoader:
 
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
             logger.error(f"Error fetching honeypot responses: {e}")
+            return []
+
+    def fetch_internal_state_analysis(self, model_name: str) -> List[Dict[str, Any]]:
+        """Fetch internal state analysis results for a model.
+
+        Args:
+            model_name: Name of model to analyze
+
+        Returns:
+            List of internal state analysis results
+        """
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+
+            # Query for internal state analysis
+            cursor.execute(
+                """
+                SELECT
+                    text_sample, layer_idx,
+                    pattern_deviation, sparsity_anomaly, coherence_anomaly,
+                    temporal_variance, overall_anomaly_score,
+                    layer_anomalies_json, features_json,
+                    n_features_discovered, n_interpretable_features, n_anomalous_features,
+                    attention_patterns_json, attention_entropy, kl_divergence,
+                    risk_level, timestamp
+                FROM internal_state_analysis
+                WHERE model_name = ?
+                ORDER BY timestamp DESC
+            """,
+                (model_name,),
+            )
+
+            results = []
+            for row in cursor.fetchall():
+                results.append(
+                    {
+                        "text_sample": row[0],
+                        "layer_idx": row[1],
+                        "anomaly_metrics": {
+                            "pattern_deviation": row[2],
+                            "sparsity_anomaly": row[3],
+                            "coherence_anomaly": row[4],
+                            "temporal_variance": row[5],
+                            "overall_anomaly_score": row[6],
+                        },
+                        "layer_anomalies": json.loads(row[7]) if row[7] else {},
+                        "features": json.loads(row[8]) if row[8] else [],
+                        "n_features_discovered": row[9],
+                        "n_interpretable_features": row[10],
+                        "n_anomalous_features": row[11],
+                        "attention_patterns": json.loads(row[12]) if row[12] else {},
+                        "attention_entropy": row[13],
+                        "kl_divergence": row[14],
+                        "risk_level": row[15],
+                        "timestamp": row[16],
+                    }
+                )
+
+            conn.close()
+            return results
+
+        except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
+            logger.error(f"Error fetching internal state analysis: {e}")
             return []
 
     def _get_mock_model_summary(self, model_name: str) -> Dict[str, Any]:

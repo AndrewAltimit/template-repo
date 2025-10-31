@@ -34,6 +34,10 @@ class TestDashboardComponents(unittest.TestCase):
         self.mock_data_loader = Mock()
         self.mock_data_loader.fetch_models.return_value = ["model1", "model2", "model3"]
 
+        # Mock get_all_models for ModelRegistry compatibility
+        # Return empty list to avoid iteration issues in render_model_selector
+        self.mock_data_loader.get_all_models.return_value = []
+
         # Create sample DataFrame
         self.sample_df = pd.DataFrame(
             {

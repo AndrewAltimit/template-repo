@@ -21,12 +21,12 @@ import numpy as np
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from packages.sleeper_detection.detection.model_loader import load_model_for_detection  # noqa: E402
-from packages.sleeper_detection.probes.probe_detector import ProbeDetector  # noqa: E402
-from packages.sleeper_detection.training.anthropic_yesno_generator import (  # noqa: E402
+from sleeper_detection.detection.model_loader import load_model_for_detection  # noqa: E402
+from sleeper_detection.probes.probe_detector import ProbeDetector  # noqa: E402
+from sleeper_detection.training.anthropic_yesno_generator import (  # noqa: E402
     AnthropicYesNoGenerator,
 )
-from packages.sleeper_detection.training.deception_dataset_generator import (  # noqa: E402
+from sleeper_detection.training.deception_dataset_generator import (  # noqa: E402
     DeceptionDatasetGenerator,
 )
 

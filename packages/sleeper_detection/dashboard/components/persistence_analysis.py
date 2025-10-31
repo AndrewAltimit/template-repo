@@ -12,8 +12,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-# Import new model selector with Build integration
-from components.model_selector_v2 import render_model_selector_v2
+# Import model selector with Build integration
+from components.model_selector import render_model_selector
 from components.reporting_adapter import render_model_metadata_card
 from plotly.subplots import make_subplots
 from utils.model_registry import ModelRegistry
@@ -38,9 +38,9 @@ def render_persistence_analysis(data_loader, cache_manager, api_client=None):
     if hasattr(st, "cache_data"):
         st.cache_data.clear()
 
-    # Create model registry and use new selector
+    # Create model registry and use model selector
     model_registry = ModelRegistry(data_loader, api_client)
-    selected_model = render_model_selector_v2(
+    selected_model = render_model_selector(
         model_registry, key_suffix="persistence_analysis", help_text="Select model for persistence analysis"
     )
 
