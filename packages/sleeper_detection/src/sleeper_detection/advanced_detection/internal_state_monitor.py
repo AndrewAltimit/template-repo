@@ -12,8 +12,8 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
-from attention_analysis.analyzer import AttentionAnalyzer
-from probes.feature_discovery import FeatureDiscovery
+from sleeper_detection.attention_analysis.analyzer import AttentionAnalyzer
+from sleeper_detection.probes.feature_discovery import FeatureDiscovery
 
 logger = logging.getLogger(__name__)
 
