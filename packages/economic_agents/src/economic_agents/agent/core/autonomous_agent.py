@@ -28,7 +28,17 @@ except ImportError:
 
 
 class AutonomousAgent:
-    """Primary autonomous agent that operates independently."""
+    """Primary autonomous agent that operates independently.
+
+    Note: This class uses an async initialization pattern.
+    After creating an instance, you must call `await agent.initialize()`
+    before running the agent or accessing agent.state.
+
+    Example:
+        agent = AutonomousAgent(wallet, compute, marketplace)
+        await agent.initialize()
+        await agent.run_cycle()
+    """
 
     def __init__(
         self,
