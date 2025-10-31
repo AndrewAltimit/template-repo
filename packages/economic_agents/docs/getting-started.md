@@ -491,10 +491,8 @@ sudo docker-compose run --rm python-ci python my_first_agent.py
 - **Documentation**: See `docs/` directory for detailed guides
 - **Examples**: Check `tests/validation/` for working examples
 - **Issues**: Report bugs at https://github.com/AndrewAltimit/template-repo/issues
-- **Specification**: See `SPECIFICATION.md` for technical details
 
 ## Additional Resources
 
 - [Architecture Documentation](architecture.md) - System design and components
 - [Integration Guide](integration-guide.md) - Advanced usage patterns
-- [Specification](../SPECIFICATION.md) - Technical specification
