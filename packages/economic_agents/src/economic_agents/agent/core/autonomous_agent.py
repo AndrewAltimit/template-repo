@@ -124,6 +124,22 @@ class AutonomousAgent:
             mode=self.config.get("mode", "survival"),
         )
 
+        # Update dashboard state with initial values
+        if self.dashboard_state:
+            agent_state_dict = {
+                "agent_id": self.agent_id,
+                "balance": self.state.balance,
+                "compute_hours_remaining": self.state.compute_hours_remaining,
+                "mode": self.state.mode,
+                "current_activity": "idle",
+                "company_exists": self.state.has_company,
+                "company_id": self.state.company_id,
+                "tasks_completed": self.state.tasks_completed,
+                "tasks_failed": self.state.tasks_failed,
+                "cycles_completed": self.state.cycles_completed,
+            }
+            self.dashboard_state.update_agent_state(agent_state_dict)
+
     async def run_cycle(self) -> Dict[str, Any]:
         """Execute one decision cycle.
 
