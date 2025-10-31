@@ -3,7 +3,9 @@
 **This is not a prediction.** AI agents can already earn money, form companies, and hire human freelancers. This framework proves it.
 
 **Repository**: https://github.com/AndrewAltimit/template-repo
+
 **Package**: `packages/economic_agents/`
+
 **Purpose**: Demonstrate economic forces around agents in a safe, observable environment with a **mock-to-real architecture** that's one config toggle away from real crypto wallets, real freelance platforms, and real business formation.
 
 ```yaml
