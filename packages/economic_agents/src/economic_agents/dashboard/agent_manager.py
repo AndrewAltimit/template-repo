@@ -100,6 +100,9 @@ class AgentManager:
                 dashboard_state=dashboard_state,
             )
 
+            # Initialize agent state asynchronously
+            await self.agent.initialize()
+
             # Store configuration
             self.config = {
                 "mode": mode,
@@ -160,7 +163,7 @@ class AgentManager:
             "cycles_completed": self.cycle_count,
         }
 
-        if self.agent:
+        if self.agent and self.agent.state is not None:
             final_stats.update(
                 {
                     "final_balance": self.agent.state.balance,
@@ -186,7 +189,7 @@ class AgentManager:
             "config": self.config,
         }
 
-        if self.agent:
+        if self.agent and self.agent.state is not None:
             status.update(
                 {
                     "agent_id": self.agent.agent_id,
@@ -203,10 +206,9 @@ class AgentManager:
         """Run agent cycles in background task."""
         try:
             while self.cycle_count < self.max_cycles and not self.should_stop:
-                # Run one cycle (in executor to avoid blocking event loop)
+                # Run one cycle asynchronously
                 if self.agent is not None:
-                    loop = asyncio.get_running_loop()
-                    await loop.run_in_executor(None, self.agent.run_cycle)
+                    await self.agent.run_cycle()
                     self.cycle_count += 1
 
                     # Check if agent ran out of resources
