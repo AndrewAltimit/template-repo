@@ -3,7 +3,7 @@
 import random
 import uuid
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from economic_agents.interfaces.marketplace import (
     MarketplaceInterface,
@@ -11,23 +11,41 @@ from economic_agents.interfaces.marketplace import (
     Task,
     TaskSubmission,
 )
+from economic_agents.simulation.competitor_agents import CompetitorSimulator
+from economic_agents.simulation.latency_simulator import LatencySimulator
 
 
 class MockMarketplace(MarketplaceInterface):
     """Mock marketplace that generates diverse tasks and simulates review process."""
 
-    def __init__(self, seed: int | None = None, enable_claude_execution: bool = False):
+    def __init__(
+        self,
+        seed: Optional[int] = None,
+        enable_claude_execution: bool = False,
+        enable_latency: bool = True,
+        enable_competition: bool = True,
+    ):
         """Initialize mock marketplace.
 
         Args:
             seed: Random seed for reproducible task generation
             enable_claude_execution: Enable real Claude Code execution and review
+            enable_latency: Enable realistic latency simulation
+            enable_competition: Enable task competition simulation
         """
         self.rng = random.Random(seed)
         self.tasks: Dict[str, Task] = {}
         self.claimed_tasks: set = set()
         self.submissions: Dict[str, SubmissionStatus] = {}
         self.enable_claude_execution = enable_claude_execution
+        self.enable_latency = enable_latency
+        self.enable_competition = enable_competition
+
+        # Initialize latency simulator
+        self.latency_sim = LatencySimulator(seed=seed) if enable_latency else None
+
+        # Initialize competitor simulator
+        self.competitor_sim = CompetitorSimulator(seed=seed) if enable_competition else None
 
         # Initialize executor and reviewer if enabled
         if enable_claude_execution:
@@ -67,10 +85,49 @@ class MockMarketplace(MarketplaceInterface):
 
     def list_available_tasks(self) -> List[Task]:
         """Returns tasks that haven't been claimed."""
-        return [task for task in self.tasks.values() if task.id not in self.claimed_tasks]
+        # Simulate base API latency
+        if self.latency_sim:
+            self.latency_sim.simulate_base_latency()
+
+        # Simulate competitors claiming tasks
+        if self.competitor_sim:
+            available = [
+                task.id
+                for task in self.tasks.values()
+                if task.id not in self.claimed_tasks and not self.competitor_sim.is_claimed_by_competitor(task.id)
+            ]
+
+            # Check if any tasks should be claimed by competitors
+            for task_id in list(available):  # Use list() to avoid modifying during iteration
+                task = self.tasks[task_id]
+                if self.competitor_sim.should_competitor_claim_task(task.reward):
+                    self.competitor_sim.claim_task_by_competitor(task_id)
+
+            # Return tasks not claimed by anyone (including competitors)
+            return [
+                task
+                for task in self.tasks.values()
+                if task.id not in self.claimed_tasks and not self.competitor_sim.is_claimed_by_competitor(task.id)
+            ]
+        else:
+            return [task for task in self.tasks.values() if task.id not in self.claimed_tasks]
 
     def claim_task(self, task_id: str) -> bool:
         """Claims task for work."""
+        # Simulate base API latency
+        if self.latency_sim:
+            self.latency_sim.simulate_base_latency()
+
+        # Check for race condition with competitors
+        if self.competitor_sim:
+            if self.competitor_sim.simulate_race_condition(task_id):
+                # Another agent claimed it first
+                return False
+
+            # Also check if already claimed by competitor
+            if self.competitor_sim.is_claimed_by_competitor(task_id):
+                return False
+
         if task_id in self.tasks and task_id not in self.claimed_tasks:
             self.claimed_tasks.add(task_id)
             return True
@@ -78,6 +135,23 @@ class MockMarketplace(MarketplaceInterface):
 
     def submit_solution(self, submission: TaskSubmission) -> str:
         """Submits completed work and performs review (real or simulated)."""
+        # Simulate complex processing latency for review
+        if self.latency_sim:
+            try:
+                self.latency_sim.simulate_complex_processing(timeout_enabled=True)
+            except TimeoutError:
+                # Simulate 504 timeout error
+                submission_id = str(uuid.uuid4())
+                status = SubmissionStatus(
+                    submission_id=submission_id,
+                    status="rejected",
+                    feedback="Review service timed out (504). Please try again later.",
+                    reward_paid=0.0,
+                    reviewed_at=datetime.now(),
+                )
+                self.submissions[submission_id] = status
+                return submission_id
+
         submission_id = str(uuid.uuid4())
         task = self.tasks.get(submission.task_id)
 
@@ -158,6 +232,10 @@ class MockMarketplace(MarketplaceInterface):
 
     def check_submission_status(self, submission_id: str) -> SubmissionStatus:
         """Checks submission status."""
+        # Simulate base API latency
+        if self.latency_sim:
+            self.latency_sim.simulate_base_latency()
+
         if submission_id not in self.submissions:
             return SubmissionStatus(
                 submission_id=submission_id,

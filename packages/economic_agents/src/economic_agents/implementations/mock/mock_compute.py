@@ -1,24 +1,38 @@
 """Mock compute provider implementation for simulation."""
 
 from datetime import datetime, timedelta
+from typing import Optional
 
 from economic_agents.interfaces.compute import ComputeInterface, ComputeStatus
+from economic_agents.simulation.latency_simulator import LatencySimulator
 
 
 class MockCompute(ComputeInterface):
     """Mock compute provider with time decay simulation."""
 
-    def __init__(self, initial_hours: float = 24.0, cost_per_hour: float = 2.0):
+    def __init__(
+        self,
+        initial_hours: float = 24.0,
+        cost_per_hour: float = 2.0,
+        enable_latency: bool = True,
+        seed: Optional[int] = None,
+    ):
         """Initialize mock compute provider.
 
         Args:
             initial_hours: Starting compute hours
             cost_per_hour: Hourly cost rate
+            enable_latency: Enable realistic latency simulation
+            seed: Random seed for latency simulation
         """
         self.hours_remaining = initial_hours
         self.cost_per_hour = cost_per_hour
         self.balance = initial_hours * cost_per_hour
         self.last_update = datetime.now()
+        self.enable_latency = enable_latency
+
+        # Initialize latency simulator
+        self.latency_sim = LatencySimulator(seed=seed) if enable_latency else None
 
     def _update_time_decay(self):
         """Apply time decay since last update."""
@@ -32,6 +46,10 @@ class MockCompute(ComputeInterface):
 
     def get_status(self) -> ComputeStatus:
         """Returns current compute status."""
+        # Simulate base API latency
+        if self.latency_sim:
+            self.latency_sim.simulate_base_latency()
+
         self._update_time_decay()
 
         if self.hours_remaining <= 0:
@@ -51,6 +69,10 @@ class MockCompute(ComputeInterface):
 
     def add_funds(self, amount: float) -> bool:
         """Adds funds to compute account."""
+        # Simulate base API latency
+        if self.latency_sim:
+            self.latency_sim.simulate_base_latency()
+
         if amount <= 0:
             return False
 
@@ -96,6 +118,10 @@ class MockCompute(ComputeInterface):
         Raises:
             ValueError: If hours is invalid or insufficient hours available
         """
+        # Simulate base API latency
+        if self.latency_sim:
+            self.latency_sim.simulate_base_latency()
+
         if hours <= 0:
             raise ValueError("Hours must be positive")
 

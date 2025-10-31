@@ -2,25 +2,38 @@
 
 import uuid
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from economic_agents.interfaces.wallet import Transaction, WalletInterface
+from economic_agents.simulation.latency_simulator import LatencySimulator
 
 
 class MockWallet(WalletInterface):
     """Mock wallet with in-memory balance tracking."""
 
-    def __init__(self, initial_balance: float = 0.0, address: str | None = None):
+    def __init__(
+        self,
+        initial_balance: float = 0.0,
+        address: Optional[str] = None,
+        enable_latency: bool = True,
+        seed: Optional[int] = None,
+    ):
         """Initialize mock wallet.
 
         Args:
             initial_balance: Starting balance
             address: Wallet address (generated if not provided)
+            enable_latency: Enable realistic latency simulation
+            seed: Random seed for latency simulation
         """
         self.balance = initial_balance
         self.address = address or f"mock_wallet_{uuid.uuid4().hex[:8]}"
         self._transactions: List[Transaction] = []  # Original Transaction objects
         self._api_transactions: List[dict] = []  # Simplified dicts for API
+        self.enable_latency = enable_latency
+
+        # Initialize latency simulator
+        self.latency_sim = LatencySimulator(seed=seed) if enable_latency else None
 
     @property
     def transactions(self):
@@ -32,10 +45,18 @@ class MockWallet(WalletInterface):
 
     def get_balance(self) -> float:
         """Returns current wallet balance."""
+        # Simulate base API latency
+        if self.latency_sim:
+            self.latency_sim.simulate_base_latency()
+
         return self.balance
 
     def send_payment(self, to_address: str, amount: float, memo: str = "") -> Transaction:
         """Sends payment to specified address."""
+        # Simulate base API latency
+        if self.latency_sim:
+            self.latency_sim.simulate_base_latency()
+
         if amount <= 0:
             raise ValueError("Payment amount must be positive")
 
@@ -99,6 +120,10 @@ class MockWallet(WalletInterface):
             amount: Amount to deposit
             purpose: Purpose/memo for the transaction
         """
+        # Simulate base API latency
+        if self.latency_sim:
+            self.latency_sim.simulate_base_latency()
+
         if amount <= 0:
             raise ValueError("Deposit amount must be positive")
 
@@ -127,6 +152,10 @@ class MockWallet(WalletInterface):
         Raises:
             ValueError: If amount is invalid or insufficient balance
         """
+        # Simulate base API latency
+        if self.latency_sim:
+            self.latency_sim.simulate_base_latency()
+
         if amount <= 0:
             raise ValueError("Withdrawal amount must be positive")
 

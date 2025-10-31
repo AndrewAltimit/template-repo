@@ -1,8 +1,8 @@
 # Economic Agents Package - What's Left
 
-**Date**: 2025-10-31
-**Branch**: `economics-refine`
-**Status**: Foundation complete, ready for realism implementation
+**Last Updated**: 2025-10-31 12:16 EST
+**Branch**: `realism`
+**Status**: Phase 1.1-1.2 complete (Latency + Competition), continuing with Phase 1.3-1.4
 
 ---
 
@@ -132,17 +132,21 @@ When implementing realism features:
 
 ### Phase 1: Core Realism (Do First)
 
-**1. Latency Simulation**
-- Add 50-500ms variable delays to API responses
-- Longer processing for complex operations (3-30 seconds for reviews)
-- Slower responses during "business hours" (9am-5pm PST)
-- Occasional timeouts (504 errors) on complex operations
+**1. Latency Simulation** ✅ COMPLETE
+- ✅ Added 50-500ms variable delays to API responses
+- ✅ Longer processing for complex operations (3-30 seconds for reviews)
+- ✅ Slower responses during "business hours" (9am-5pm)
+- ✅ Occasional timeouts (504 errors) on complex operations
+- Implementation: `src/economic_agents/simulation/latency_simulator.py`
+- Integrated into: MockMarketplace, MockWallet, MockCompute
 
-**2. Task Competition**
-- Tasks get claimed by "other agents" (simulated competitors)
-- Popular tasks disappear faster
-- "Task already claimed" race condition errors
-- New tasks appear at irregular intervals
+**2. Task Competition** ✅ COMPLETE
+- ✅ Tasks get claimed by "other agents" (simulated competitors)
+- ✅ Popular tasks disappear faster (based on reward amount)
+- ✅ "Task already claimed" race condition errors (5% probability)
+- ✅ Task view counts for social proof
+- Implementation: `src/economic_agents/simulation/competitor_agents.py`
+- Integrated into: MockMarketplace
 
 **3. Investor Response Variability**
 - Response delays: 1-7 days instead of instant
