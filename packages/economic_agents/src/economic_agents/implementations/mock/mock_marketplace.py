@@ -12,6 +12,7 @@ from economic_agents.interfaces.marketplace import (
     TaskSubmission,
 )
 from economic_agents.simulation.competitor_agents import CompetitorSimulator
+from economic_agents.simulation.feedback_generator import FeedbackGenerator
 from economic_agents.simulation.latency_simulator import LatencySimulator
 
 
@@ -24,6 +25,7 @@ class MockMarketplace(MarketplaceInterface):
         enable_claude_execution: bool = False,
         enable_latency: bool = True,
         enable_competition: bool = True,
+        enable_detailed_feedback: bool = True,
     ):
         """Initialize mock marketplace.
 
@@ -32,6 +34,7 @@ class MockMarketplace(MarketplaceInterface):
             enable_claude_execution: Enable real Claude Code execution and review
             enable_latency: Enable realistic latency simulation
             enable_competition: Enable task competition simulation
+            enable_detailed_feedback: Enable detailed feedback generation
         """
         self.rng = random.Random(seed)
         self.tasks: Dict[str, Task] = {}
@@ -40,12 +43,16 @@ class MockMarketplace(MarketplaceInterface):
         self.enable_claude_execution = enable_claude_execution
         self.enable_latency = enable_latency
         self.enable_competition = enable_competition
+        self.enable_detailed_feedback = enable_detailed_feedback
 
         # Initialize latency simulator
         self.latency_sim = LatencySimulator(seed=seed) if enable_latency else None
 
         # Initialize competitor simulator
         self.competitor_sim = CompetitorSimulator(seed=seed) if enable_competition else None
+
+        # Initialize feedback generator
+        self.feedback_gen = FeedbackGenerator(seed=seed) if enable_detailed_feedback else None
 
         # Initialize executor and reviewer if enabled
         if enable_claude_execution:
@@ -206,26 +213,54 @@ class MockMarketplace(MarketplaceInterface):
                 )
 
         else:
-            # Simulated review with random approval (80% success rate)
-            approved = self.rng.random() < 0.8
+            # Simulated review
+            if self.feedback_gen:
+                # Use detailed feedback generator
+                task_category = task.category if task else "general"
+                review_result = self.feedback_gen.generate_task_review(task_category, base_success_probability=0.8)
 
-            if approved:
-                reward = task.reward if task else 0.0
-                status = SubmissionStatus(
-                    submission_id=submission_id,
-                    status="approved",
-                    feedback="Great work! Task completed successfully.",
-                    reward_paid=reward,
-                    reviewed_at=datetime.now(),
-                )
+                success = review_result["success"]
+                reward_percentage = review_result["reward_percentage"]
+                feedback = review_result["feedback"]
+
+                if success:
+                    reward = (task.reward if task else 0.0) * reward_percentage
+                    status = SubmissionStatus(
+                        submission_id=submission_id,
+                        status="approved",
+                        feedback=feedback,
+                        reward_paid=reward,
+                        reviewed_at=datetime.now(),
+                    )
+                else:
+                    status = SubmissionStatus(
+                        submission_id=submission_id,
+                        status="rejected",
+                        feedback=feedback,
+                        reward_paid=0.0,
+                        reviewed_at=datetime.now(),
+                    )
             else:
-                status = SubmissionStatus(
-                    submission_id=submission_id,
-                    status="rejected",
-                    feedback="Does not meet requirements. Please revise and resubmit.",
-                    reward_paid=0.0,
-                    reviewed_at=datetime.now(),
-                )
+                # Simple binary review (backward compatibility)
+                approved = self.rng.random() < 0.8
+
+                if approved:
+                    reward = task.reward if task else 0.0
+                    status = SubmissionStatus(
+                        submission_id=submission_id,
+                        status="approved",
+                        feedback="Great work! Task completed successfully.",
+                        reward_paid=reward,
+                        reviewed_at=datetime.now(),
+                    )
+                else:
+                    status = SubmissionStatus(
+                        submission_id=submission_id,
+                        status="rejected",
+                        feedback="Does not meet requirements. Please revise and resubmit.",
+                        reward_paid=0.0,
+                        reviewed_at=datetime.now(),
+                    )
 
         self.submissions[submission_id] = status
         return submission_id
