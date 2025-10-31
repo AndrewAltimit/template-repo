@@ -4,13 +4,15 @@ This test validates the complete data flow from agent operations through
 monitoring, dashboard updates, and report generation.
 """
 
+import pytest
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.dashboard.dependencies import DashboardState
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
 from economic_agents.reports import generate_report_for_agent
 
 
-def test_full_monitoring_dashboard_reports_pipeline():
+@pytest.mark.asyncio
+async def test_full_monitoring_dashboard_reports_pipeline():
     """Test complete pipeline: Agent → Monitoring → Dashboard → Reports.
 
     Success Criteria:
@@ -43,6 +45,7 @@ def test_full_monitoring_dashboard_reports_pipeline():
         },
         dashboard_state=dashboard_state,  # Connect dashboard
     )
+    await agent.initialize()
 
     print("✅ Agent created with dashboard connection")
     print(f"   Initial Balance: ${agent.state.balance:.2f}")
@@ -63,7 +66,7 @@ def test_full_monitoring_dashboard_reports_pipeline():
     print(f"Running {cycles_to_run} cycles...")
 
     for i in range(cycles_to_run):
-        agent.run_cycle()
+        await agent.run_cycle()
         if (i + 1) % 3 == 0:
             print(f"  Cycle {i+1}: Balance=${agent.state.balance:.2f}, Tasks={agent.state.tasks_completed}")
 
@@ -203,4 +206,6 @@ def test_full_monitoring_dashboard_reports_pipeline():
 
 if __name__ == "__main__":
     # Run test directly
-    test_full_monitoring_dashboard_reports_pipeline()
+    import asyncio
+
+    asyncio.run(test_full_monitoring_dashboard_reports_pipeline())
