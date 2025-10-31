@@ -486,10 +486,11 @@ class TestRelationshipPersistence:
 
     def test_relationship_modifiers(self):
         """Test relationship-based decision modifiers."""
-        rel_sys = RelationshipPersistence(seed=42)
+        # Use longer spam threshold to avoid triggering spam detection
+        rel_sys = RelationshipPersistence(spam_threshold_days=1, seed=42)
 
-        # Build good relationship
-        for i in range(5):
+        # Build good relationship with 3 interactions (won't trigger spam)
+        for i in range(3):
             rel_sys.record_interaction(
                 investor_id="investor-1",
                 agent_id="agent-1",
