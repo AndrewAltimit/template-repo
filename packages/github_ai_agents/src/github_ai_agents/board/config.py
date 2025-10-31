@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 
 import yaml
-
 from github_ai_agents.board.errors import ValidationError
 from github_ai_agents.board.models import BoardConfig
 

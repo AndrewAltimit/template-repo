@@ -14,6 +14,8 @@ from economic_agents.interfaces.marketplace import (
 from economic_agents.simulation.competitor_agents import CompetitorSimulator
 from economic_agents.simulation.feedback_generator import FeedbackGenerator
 from economic_agents.simulation.latency_simulator import LatencySimulator
+from economic_agents.simulation.market_dynamics import MarketDynamics
+from economic_agents.simulation.reputation_system import ReputationSystem
 
 
 class MockMarketplace(MarketplaceInterface):
@@ -26,6 +28,8 @@ class MockMarketplace(MarketplaceInterface):
         enable_latency: bool = True,
         enable_competition: bool = True,
         enable_detailed_feedback: bool = True,
+        enable_market_dynamics: bool = True,
+        enable_reputation: bool = True,
     ):
         """Initialize mock marketplace.
 
@@ -35,6 +39,8 @@ class MockMarketplace(MarketplaceInterface):
             enable_latency: Enable realistic latency simulation
             enable_competition: Enable task competition simulation
             enable_detailed_feedback: Enable detailed feedback generation
+            enable_market_dynamics: Enable market cycle simulation
+            enable_reputation: Enable reputation system
         """
         self.rng = random.Random(seed)
         self.tasks: Dict[str, Task] = {}
@@ -44,6 +50,8 @@ class MockMarketplace(MarketplaceInterface):
         self.enable_latency = enable_latency
         self.enable_competition = enable_competition
         self.enable_detailed_feedback = enable_detailed_feedback
+        self.enable_market_dynamics = enable_market_dynamics
+        self.enable_reputation = enable_reputation
 
         # Initialize latency simulator
         self.latency_sim = LatencySimulator(seed=seed) if enable_latency else None
@@ -53,6 +61,12 @@ class MockMarketplace(MarketplaceInterface):
 
         # Initialize feedback generator
         self.feedback_gen = FeedbackGenerator(seed=seed) if enable_detailed_feedback else None
+
+        # Initialize market dynamics
+        self.market_dynamics = MarketDynamics(seed=seed) if enable_market_dynamics else None
+
+        # Initialize reputation system
+        self.reputation_system = ReputationSystem(seed=seed) if enable_reputation else None
 
         # Initialize executor and reviewer if enabled
         if enable_claude_execution:
@@ -72,26 +86,54 @@ class MockMarketplace(MarketplaceInterface):
         # Import only when needed to avoid circular dependency
         from economic_agents.marketplace import CODING_TASKS
 
+        # Update market dynamics
+        if self.market_dynamics:
+            self.market_dynamics.update()
+            # Adjust task count based on market phase
+            task_multiplier = (
+                self.market_dynamics.get_task_availability_multiplier() * self.market_dynamics.get_time_of_day_multiplier()
+            )
+            adjusted_count = max(1, int(count * task_multiplier))
+        else:
+            adjusted_count = count
+
         # Use real coding task templates
         task_templates = CODING_TASKS
 
-        for i in range(min(count, len(task_templates))):
+        for i in range(min(adjusted_count, len(task_templates))):
             template = task_templates[i % len(task_templates)]
             task_id = str(uuid.uuid4())
+
+            # Adjust reward based on market dynamics
+            base_reward = template["reward"]
+            if self.market_dynamics:
+                reward_multiplier = self.market_dynamics.get_reward_multiplier()
+                adjusted_reward = base_reward * reward_multiplier
+            else:
+                adjusted_reward = base_reward
+
             task = Task(
                 id=task_id,
                 title=template["title"],
                 description=template["description"],
                 requirements=template.get("requirements", {}),
-                reward=template["reward"],
+                reward=adjusted_reward,
                 deadline=datetime.now() + timedelta(days=7),
                 difficulty=template["difficulty"],
                 category=template["category"],
             )
             self.tasks[task_id] = task
 
-    def list_available_tasks(self) -> List[Task]:
-        """Returns tasks that haven't been claimed."""
+    def list_available_tasks(self, agent_id: Optional[str] = None) -> List[Task]:
+        """Returns tasks that haven't been claimed.
+
+        Args:
+            agent_id: Optional agent ID for reputation-based filtering
+        """
+        # Update market dynamics
+        if self.market_dynamics:
+            self.market_dynamics.update()
+
         # Simulate base API latency
         if self.latency_sim:
             self.latency_sim.simulate_base_latency()
@@ -110,14 +152,23 @@ class MockMarketplace(MarketplaceInterface):
                 if self.competitor_sim.should_competitor_claim_task(task.reward):
                     self.competitor_sim.claim_task_by_competitor(task_id)
 
-            # Return tasks not claimed by anyone (including competitors)
-            return [
+            # Get tasks not claimed by anyone (including competitors)
+            available_tasks = [
                 task
                 for task in self.tasks.values()
                 if task.id not in self.claimed_tasks and not self.competitor_sim.is_claimed_by_competitor(task.id)
             ]
         else:
-            return [task for task in self.tasks.values() if task.id not in self.claimed_tasks]
+            available_tasks = [task for task in self.tasks.values() if task.id not in self.claimed_tasks]
+
+        # Apply reputation-based filtering
+        if self.reputation_system and agent_id:
+            access_multiplier = self.reputation_system.get_access_multiplier(agent_id)
+            # Higher reputation = more tasks visible
+            max_tasks = max(1, int(len(available_tasks) * access_multiplier))
+            return available_tasks[:max_tasks]
+        else:
+            return available_tasks
 
     def claim_task(self, task_id: str) -> bool:
         """Claims task for work."""
@@ -140,8 +191,15 @@ class MockMarketplace(MarketplaceInterface):
             return True
         return False
 
-    def submit_solution(self, submission: TaskSubmission) -> str:
-        """Submits completed work and performs review (real or simulated)."""
+    def submit_solution(self, submission: TaskSubmission, agent_id: Optional[str] = None) -> str:
+        """Submits completed work and performs review (real or simulated).
+
+        Args:
+            submission: Task submission
+            agent_id: Optional agent ID for reputation tracking
+        """
+        submission_start_time = datetime.now()
+
         # Simulate complex processing latency for review
         if self.latency_sim:
             try:
@@ -263,6 +321,32 @@ class MockMarketplace(MarketplaceInterface):
                     )
 
         self.submissions[submission_id] = status
+
+        # Record performance in reputation system
+        if self.reputation_system and agent_id and task:
+            completion_time_hours = (datetime.now() - submission_start_time).total_seconds() / 3600.0
+            success = status.status == "approved"
+
+            # Extract quality score from feedback if available (from detailed feedback)
+            quality_score = 0.8 if success else 0.3  # Default values
+            if self.feedback_gen and hasattr(status, "feedback") and isinstance(status.feedback, str):
+                # Try to extract quality from detailed feedback
+                # The detailed feedback includes quality metrics
+                import re
+
+                quality_match = re.search(r"Overall Quality:\s*([\d.]+)", status.feedback)
+                if quality_match:
+                    quality_score = float(quality_match.group(1))
+
+            self.reputation_system.record_task_completion(
+                agent_id=agent_id,
+                task_id=submission.task_id,
+                success=success,
+                quality_score=quality_score,
+                completion_time_hours=completion_time_hours,
+                reward_earned=status.reward_paid,
+            )
+
         return submission_id
 
     def check_submission_status(self, submission_id: str) -> SubmissionStatus:

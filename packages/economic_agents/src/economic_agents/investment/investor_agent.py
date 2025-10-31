@@ -1,7 +1,7 @@
 """Investor agent that evaluates and makes investment decisions."""
 
 import uuid
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from economic_agents.investment.models import (
     Investment,
@@ -9,33 +9,83 @@ from economic_agents.investment.models import (
     InvestmentProposal,
     InvestorProfile,
 )
+from economic_agents.simulation.market_dynamics import MarketDynamics
+from economic_agents.simulation.reputation_system import ReputationSystem
 
 
 class InvestorAgent:
     """Agent that evaluates investment proposals and makes funding decisions."""
 
-    def __init__(self, profile: InvestorProfile):
-        """Initialize investor agent with profile."""
-        self.profile = profile
+    def __init__(
+        self,
+        profile: InvestorProfile,
+        market_dynamics: Optional[MarketDynamics] = None,
+        reputation_system: Optional[ReputationSystem] = None,
+    ):
+        """Initialize investor agent with profile and optional simulation systems.
 
-    def evaluate_proposal(self, proposal: InvestmentProposal) -> InvestmentDecision:
+        Args:
+            profile: Investor profile
+            market_dynamics: Optional market dynamics simulator
+            reputation_system: Optional reputation system
+        """
+        self.profile = profile
+        self.market_dynamics = market_dynamics
+        self.reputation_system = reputation_system
+
+    def evaluate_proposal(self, proposal: InvestmentProposal, agent_id: Optional[str] = None) -> InvestmentDecision:
         """
         Evaluate an investment proposal and make a decision.
 
+        Args:
+            proposal: Investment proposal to evaluate
+            agent_id: Optional agent ID for reputation-based evaluation
+
         Returns InvestmentDecision with evaluation scores and decision.
         """
+        # Update market dynamics
+        if self.market_dynamics:
+            self.market_dynamics.update()
+
         # Calculate evaluation scores for each criterion
         evaluation_scores = self._calculate_scores(proposal)
+
+        # Add reputation score if available
+        if self.reputation_system and agent_id:
+            reputation_summary = self.reputation_system.get_reputation_summary(agent_id)
+            # Reputation affects overall evaluation
+            reputation_score = reputation_summary["trust_score"]
+            evaluation_scores["reputation"] = reputation_score
 
         # Overall score is weighted average
         overall_score = sum(evaluation_scores.values()) / len(evaluation_scores)
 
+        # Apply market dynamics modifiers to approval threshold
+        base_approval_threshold = 0.6
+        if self.market_dynamics:
+            market_modifier = self.market_dynamics.get_investor_approval_probability_modifier()
+            approval_threshold = base_approval_threshold - market_modifier  # Lower threshold in bull markets
+        else:
+            approval_threshold = base_approval_threshold
+
         # Decision logic based on overall score and specific criteria
-        approved = self._should_approve(proposal, evaluation_scores, overall_score)
+        approved = self._should_approve(proposal, evaluation_scores, overall_score, approval_threshold)
 
         # Determine investment terms if approved
         if approved:
-            amount_offered = proposal.amount_requested
+            # Adjust amount based on market dynamics
+            base_amount = proposal.amount_requested
+            if self.market_dynamics:
+                funding_multiplier = self.market_dynamics.get_investor_funding_multiplier()
+                amount_offered = base_amount * funding_multiplier
+            else:
+                amount_offered = base_amount
+
+            # Adjust based on reputation
+            if self.reputation_system and agent_id:
+                interest_multiplier = self.reputation_system.get_investor_interest_multiplier(agent_id)
+                amount_offered *= interest_multiplier
+
             equity_requested = proposal.equity_offered
             conditions = self._generate_conditions(proposal, evaluation_scores)
             reasoning = self._generate_approval_reasoning(evaluation_scores, overall_score)
@@ -119,10 +169,19 @@ class InvestorAgent:
 
         return scores
 
-    def _should_approve(self, proposal: InvestmentProposal, scores: Dict[str, float], overall_score: float) -> bool:
-        """Determine if proposal should be approved."""
+    def _should_approve(
+        self, proposal: InvestmentProposal, scores: Dict[str, float], overall_score: float, threshold: float = 0.6
+    ) -> bool:
+        """Determine if proposal should be approved.
+
+        Args:
+            proposal: Investment proposal
+            scores: Evaluation scores
+            overall_score: Overall evaluation score
+            threshold: Approval threshold (adjusted by market conditions)
+        """
         # Must pass minimum score threshold
-        if overall_score < 0.6:
+        if overall_score < threshold:
             return False
 
         # Must have sufficient capital
