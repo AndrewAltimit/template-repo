@@ -13,7 +13,7 @@ def dashboard_state():
 
 
 @pytest.fixture
-def agent_with_dashboard(dashboard_state):
+async def agent_with_dashboard(dashboard_state):
     """Create an agent connected to dashboard."""
     # Provide enough capital for company operations if needed
     wallet = MockWallet(initial_balance=100000.0)
@@ -27,31 +27,36 @@ def agent_with_dashboard(dashboard_state):
         config={"survival_buffer_hours": 20.0, "company_threshold": 50000.0},
         dashboard_state=dashboard_state,
     )
+    await agent.initialize()
 
     return agent
 
 
-def test_dashboard_receives_monitoring_components(agent_with_dashboard, dashboard_state):
+@pytest.mark.asyncio
+async def test_dashboard_receives_monitoring_components(agent_with_dashboard, dashboard_state):
     """Test that dashboard receives monitoring component references."""
+    agent = await agent_with_dashboard
+
     assert dashboard_state.resource_tracker is not None
     assert dashboard_state.metrics_collector is not None
     assert dashboard_state.alignment_monitor is not None
 
     # Verify they are the same instances as in the agent
-    assert dashboard_state.resource_tracker is agent_with_dashboard.resource_tracker
-    assert dashboard_state.metrics_collector is agent_with_dashboard.metrics_collector
-    assert dashboard_state.alignment_monitor is agent_with_dashboard.alignment_monitor
+    assert dashboard_state.resource_tracker is agent.resource_tracker
+    assert dashboard_state.metrics_collector is agent.metrics_collector
+    assert dashboard_state.alignment_monitor is agent.alignment_monitor
 
 
-def test_dashboard_state_updated_during_agent_run(agent_with_dashboard, dashboard_state):
+@pytest.mark.asyncio
+async def test_dashboard_state_updated_during_agent_run(agent_with_dashboard, dashboard_state):
     """Test that dashboard state is updated as agent runs."""
-    agent = agent_with_dashboard
+    agent = await agent_with_dashboard
 
     # Initially no state
     assert dashboard_state.agent_state == {}
 
     # Run agent for a cycle
-    agent.run_cycle()
+    await agent.run_cycle()
 
     # Verify state was updated
     assert dashboard_state.agent_state != {}
@@ -60,13 +65,14 @@ def test_dashboard_state_updated_during_agent_run(agent_with_dashboard, dashboar
     assert "compute_hours_remaining" in dashboard_state.agent_state
 
 
-def test_dashboard_state_reflects_current_agent_state(agent_with_dashboard, dashboard_state):
+@pytest.mark.asyncio
+async def test_dashboard_state_reflects_current_agent_state(agent_with_dashboard, dashboard_state):
     """Test that dashboard state reflects current agent state."""
-    agent = agent_with_dashboard
+    agent = await agent_with_dashboard
 
     # Run agent for just a couple cycles
-    agent.run_cycle()
-    agent.run_cycle()
+    await agent.run_cycle()
+    await agent.run_cycle()
 
     # Check state consistency
     dashboard_agent_state = dashboard_state.get_agent_state()
@@ -77,12 +83,13 @@ def test_dashboard_state_reflects_current_agent_state(agent_with_dashboard, dash
     assert dashboard_agent_state["tasks_completed"] == agent.state.tasks_completed
 
 
-def test_dashboard_company_registry_updated(agent_with_dashboard, dashboard_state):
+@pytest.mark.asyncio
+async def test_dashboard_company_registry_updated(agent_with_dashboard, dashboard_state):
     """Test that company registry is updated when company is formed."""
-    agent = agent_with_dashboard
+    agent = await agent_with_dashboard
 
     # Run until company is formed (agent already has sufficient capital)
-    agent.run(max_cycles=15)
+    await agent.run(max_cycles=15)
 
     # If company was formed, check registry
     if agent.company:
@@ -97,7 +104,8 @@ def test_dashboard_company_registry_updated(agent_with_dashboard, dashboard_stat
         assert "team_size" in company_data
 
 
-def test_dashboard_without_agent_connection():
+@pytest.mark.asyncio
+async def test_dashboard_without_agent_connection():
     """Test that agent can run without dashboard (optional feature)."""
     # Provide enough capital for company operations if agent decides to form one
     wallet = MockWallet(initial_balance=100000.0)
@@ -111,21 +119,23 @@ def test_dashboard_without_agent_connection():
         marketplace=marketplace,
         config={"survival_buffer_hours": 20.0, "company_threshold": 50000.0},
     )
+    await agent.initialize()
 
     # Should still work fine
-    agent.run(max_cycles=3)
+    await agent.run(max_cycles=3)
 
     # Verify agent state is valid
     assert agent.state.cycles_completed == 3
     assert len(agent.decisions) == 3
 
 
-def test_dashboard_monitoring_data_available(agent_with_dashboard, dashboard_state):
+@pytest.mark.asyncio
+async def test_dashboard_monitoring_data_available(agent_with_dashboard, dashboard_state):
     """Test that monitoring data is available through dashboard."""
-    agent = agent_with_dashboard
+    agent = await agent_with_dashboard
 
     # Run agent
-    agent.run(max_cycles=5)
+    await agent.run(max_cycles=5)
 
     # Access monitoring data through dashboard
     resource_tracker = dashboard_state.resource_tracker
