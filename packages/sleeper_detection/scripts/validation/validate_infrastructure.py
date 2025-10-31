@@ -65,17 +65,17 @@ def check_files() -> bool:
     print("-" * 40)
 
     # Determine base path - Docker uses /app/packages/sleeper_detection
-    if Path("/app/packages/sleeper_detection/models/__init__.py").exists():
+    if Path("/app/packages/sleeper_detection/src/sleeper_detection/models/__init__.py").exists():
         base = "/app/packages/sleeper_detection"  # Docker container
     else:
         base = "packages/sleeper_detection"  # Development
 
-    # Required files (must exist)
+    # Required files (must exist) - using src layout
     required_files = [
-        (f"{base}/models/__init__.py", "Module init"),
-        (f"{base}/models/registry.py", "Model Registry"),
-        (f"{base}/models/downloader.py", "Model Downloader"),
-        (f"{base}/models/resource_manager.py", "Resource Manager"),
+        (f"{base}/src/sleeper_detection/models/__init__.py", "Module init"),
+        (f"{base}/src/sleeper_detection/models/registry.py", "Model Registry"),
+        (f"{base}/src/sleeper_detection/models/downloader.py", "Model Downloader"),
+        (f"{base}/src/sleeper_detection/models/resource_manager.py", "Resource Manager"),
     ]
 
     # Optional files (nice to have but not critical)
