@@ -9,7 +9,6 @@ Provides REST API for task marketplace operations:
 from datetime import datetime
 from typing import Dict, Optional
 
-from economic_agents.api.auth import verify_api_key
 from economic_agents.api.models import (
     CompleteTaskRequest,
     CompleteTaskResponse,
@@ -17,7 +16,7 @@ from economic_agents.api.models import (
     Task,
     TaskList,
 )
-from economic_agents.api.rate_limit import check_rate_limit
+from economic_agents.api.rate_limit import verify_and_rate_limit
 from economic_agents.implementations.mock import MockMarketplace
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -61,8 +60,7 @@ async def health_check():
 @app.get("/tasks", response_model=TaskList)
 async def get_tasks(
     count: int = 5,
-    agent_id: str = Depends(verify_api_key),
-    _rate_limit: None = Depends(check_rate_limit),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Get available tasks from marketplace.
 
@@ -97,8 +95,7 @@ async def get_tasks(
 @app.get("/tasks/{task_id}", response_model=Task)
 async def get_task(
     task_id: str,
-    agent_id: str = Depends(verify_api_key),
-    _rate_limit: None = Depends(check_rate_limit),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Get task details by ID.
 
@@ -136,8 +133,7 @@ async def get_task(
 async def complete_task(
     task_id: str,
     request: CompleteTaskRequest,
-    agent_id: str = Depends(verify_api_key),
-    _rate_limit: None = Depends(check_rate_limit),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Complete a task and get reward.
 
@@ -189,7 +185,7 @@ async def complete_task(
 @app.post("/initialize")
 async def initialize_marketplace(
     seed: Optional[int] = None,
-    agent_id: str = Depends(verify_api_key),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Initialize or reset marketplace with specific seed.
 

@@ -4,7 +4,7 @@ import time
 from collections import defaultdict
 from typing import Dict, Optional
 
-from fastapi import HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, status
 from pydantic import BaseModel
 
 
@@ -132,36 +132,71 @@ rate_limiter = RateLimiter(
 )
 
 
-async def check_rate_limit(request: Request, agent_id: str) -> None:
+async def check_rate_limit(request: Request) -> None:
     """Dependency to check rate limits.
+
+    Note: This function does NOT perform agent-specific rate limiting.
+    Use verify_and_rate_limit() for endpoints that need both auth and rate limiting.
 
     Args:
         request: FastAPI request object
-        agent_id: Agent ID from authentication
 
     Raises:
         HTTPException: If rate limit exceeded
     """
-    is_allowed, error_message = rate_limiter.check_rate_limit(agent_id)
+    # This is a placeholder for request-level (non-agent-specific) rate limiting
+    # Agent-specific rate limiting should use verify_and_rate_limit()
+    pass
 
-    if not is_allowed:
-        # Get limit info for headers
-        limit_info = rate_limiter.get_limit_info(agent_id)
 
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=error_message,
-            headers={
-                "X-RateLimit-Limit-Hour": str(limit_info["hourly_limit"]),
-                "X-RateLimit-Remaining-Hour": str(limit_info["hourly_remaining"]),
-                "X-RateLimit-Limit-Minute": str(limit_info["minute_limit"]),
-                "X-RateLimit-Remaining-Minute": str(limit_info["minute_remaining"]),
-                "Retry-After": "60",
-            },
-        )
+def verify_and_rate_limit():
+    """Create a dependency that combines authentication and rate limiting.
 
-    # Record the request
-    rate_limiter.record_request(agent_id)
+    This is a factory function that creates a dependency combining verify_api_key
+    and rate limiting in the correct order.
+
+    Returns:
+        Dependency function that verifies auth and checks rate limits
+    """
+    from economic_agents.api.auth import verify_api_key
+
+    async def combined_dependency(request: Request, agent_id: str = Depends(verify_api_key)) -> str:
+        """Verify API key and check rate limits.
+
+        Args:
+            request: FastAPI request object
+            agent_id: Agent ID from verify_api_key dependency
+
+        Returns:
+            Agent ID
+
+        Raises:
+            HTTPException: If rate limit exceeded
+        """
+        is_allowed, error_message = rate_limiter.check_rate_limit(agent_id)
+
+        if not is_allowed:
+            # Get limit info for headers
+            limit_info = rate_limiter.get_limit_info(agent_id)
+
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=error_message,
+                headers={
+                    "X-RateLimit-Limit-Hour": str(limit_info["hourly_limit"]),
+                    "X-RateLimit-Remaining-Hour": str(limit_info["hourly_remaining"]),
+                    "X-RateLimit-Limit-Minute": str(limit_info["minute_limit"]),
+                    "X-RateLimit-Remaining-Minute": str(limit_info["minute_remaining"]),
+                    "Retry-After": "60",
+                },
+            )
+
+        # Record the request
+        rate_limiter.record_request(agent_id)
+
+        return agent_id
+
+    return combined_dependency
 
 
 class RateLimitConfig(BaseModel):

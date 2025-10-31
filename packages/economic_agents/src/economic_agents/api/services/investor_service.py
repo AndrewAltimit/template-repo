@@ -10,7 +10,6 @@ import uuid
 from datetime import datetime
 from typing import Dict
 
-from economic_agents.api.auth import verify_api_key
 from economic_agents.api.models import (
     ErrorResponse,
     InvestmentDecision,
@@ -19,7 +18,7 @@ from economic_agents.api.models import (
     InvestorList,
     ProposalResponse,
 )
-from economic_agents.api.rate_limit import check_rate_limit
+from economic_agents.api.rate_limit import verify_and_rate_limit
 from economic_agents.investment.investor_agent import InvestorAgent
 from economic_agents.investment.models import (
     InvestmentCriteria,
@@ -122,8 +121,7 @@ async def health_check():
 @app.post("/proposals", response_model=ProposalResponse)
 async def submit_proposal(
     proposal: InvestmentProposal,
-    agent_id: str = Depends(verify_api_key),
-    _rate_limit: None = Depends(check_rate_limit),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Submit an investment proposal.
 
@@ -226,8 +224,7 @@ async def submit_proposal(
 @app.get("/proposals/{proposal_id}", response_model=InvestmentDecision)
 async def get_proposal_status(
     proposal_id: str,
-    agent_id: str = Depends(verify_api_key),
-    _rate_limit: None = Depends(check_rate_limit),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Get investment decision for a proposal.
 
@@ -257,8 +254,7 @@ async def get_proposal_status(
 
 @app.get("/investors", response_model=InvestorList)
 async def get_investors(
-    agent_id: str = Depends(verify_api_key),
-    _rate_limit: None = Depends(check_rate_limit),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Get list of active investors.
 
@@ -286,8 +282,7 @@ async def get_investors(
 
 @app.get("/proposals")
 async def list_proposals(
-    agent_id: str = Depends(verify_api_key),
-    _rate_limit: None = Depends(check_rate_limit),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """List all proposals for this agent.
 

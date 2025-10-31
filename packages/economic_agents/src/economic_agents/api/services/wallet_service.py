@@ -9,7 +9,6 @@ Provides REST API for wallet operations:
 from datetime import datetime
 from typing import Dict
 
-from economic_agents.api.auth import verify_api_key
 from economic_agents.api.models import (
     ErrorResponse,
     Transaction,
@@ -17,7 +16,7 @@ from economic_agents.api.models import (
     TransactionRequest,
     WalletBalance,
 )
-from economic_agents.api.rate_limit import check_rate_limit
+from economic_agents.api.rate_limit import verify_and_rate_limit
 from economic_agents.implementations.mock import MockWallet
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -60,14 +59,12 @@ async def health_check():
 
 @app.get("/balance", response_model=WalletBalance)
 async def get_balance(
-    agent_id: str = Depends(verify_api_key),
-    _rate_limit: None = Depends(check_rate_limit),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Get current wallet balance.
 
     Args:
-        agent_id: Agent ID from API key
-        _rate_limit: Rate limit check
+        agent_id: Agent ID from authentication and rate limiting
 
     Returns:
         Current balance
@@ -79,15 +76,13 @@ async def get_balance(
 @app.post("/transact", response_model=Transaction)
 async def execute_transaction(
     request: TransactionRequest,
-    agent_id: str = Depends(verify_api_key),
-    _rate_limit: None = Depends(check_rate_limit),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Execute a transaction.
 
     Args:
         request: Transaction details
-        agent_id: Agent ID from API key
-        _rate_limit: Rate limit check
+        agent_id: Agent ID from authentication and rate limiting
 
     Returns:
         Transaction record
@@ -130,16 +125,14 @@ async def execute_transaction(
 async def get_transactions(
     limit: int = 100,
     offset: int = 0,
-    agent_id: str = Depends(verify_api_key),
-    _rate_limit: None = Depends(check_rate_limit),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Get transaction history.
 
     Args:
         limit: Maximum number of transactions to return
         offset: Number of transactions to skip
-        agent_id: Agent ID from API key
-        _rate_limit: Rate limit check
+        agent_id: Agent ID from authentication and rate limiting
 
     Returns:
         Transaction history
@@ -168,13 +161,13 @@ async def get_transactions(
 @app.post("/initialize")
 async def initialize_wallet(
     initial_balance: float = 100.0,
-    agent_id: str = Depends(verify_api_key),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Initialize or reset wallet with specific balance.
 
     Args:
         initial_balance: Initial balance to set
-        agent_id: Agent ID from API key
+        agent_id: Agent ID from authentication and rate limiting
 
     Returns:
         Wallet balance

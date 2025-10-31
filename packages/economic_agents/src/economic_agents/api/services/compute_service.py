@@ -9,7 +9,6 @@ Provides REST API for compute resource operations:
 from datetime import datetime
 from typing import Dict
 
-from economic_agents.api.auth import verify_api_key
 from economic_agents.api.models import (
     AllocateRequest,
     AllocationResponse,
@@ -17,7 +16,7 @@ from economic_agents.api.models import (
     ErrorResponse,
     TickResponse,
 )
-from economic_agents.api.rate_limit import check_rate_limit
+from economic_agents.api.rate_limit import verify_and_rate_limit
 from economic_agents.implementations.mock import MockCompute
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import JSONResponse
@@ -60,8 +59,7 @@ async def health_check():
 
 @app.get("/hours", response_model=ComputeHours)
 async def get_hours(
-    agent_id: str = Depends(verify_api_key),
-    _rate_limit: None = Depends(check_rate_limit),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Get available compute hours.
 
@@ -79,8 +77,7 @@ async def get_hours(
 @app.post("/allocate", response_model=AllocationResponse)
 async def allocate_hours(
     request: AllocateRequest,
-    agent_id: str = Depends(verify_api_key),
-    _rate_limit: None = Depends(check_rate_limit),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Allocate compute hours for a task.
 
@@ -120,8 +117,7 @@ async def allocate_hours(
 
 @app.post("/tick", response_model=TickResponse)
 async def tick_time(
-    agent_id: str = Depends(verify_api_key),
-    _rate_limit: None = Depends(check_rate_limit),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Advance time by one cycle (decay compute hours).
 
@@ -146,7 +142,7 @@ async def tick_time(
 async def initialize_compute(
     initial_hours: float = 48.0,
     cost_per_hour: float = 0.0,
-    agent_id: str = Depends(verify_api_key),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Initialize or reset compute resource with specific hours.
 
@@ -164,8 +160,7 @@ async def initialize_compute(
 
 @app.get("/cost")
 async def get_cost_per_hour(
-    agent_id: str = Depends(verify_api_key),
-    _rate_limit: None = Depends(check_rate_limit),
+    agent_id: str = Depends(verify_and_rate_limit()),
 ):
     """Get cost per compute hour.
 
