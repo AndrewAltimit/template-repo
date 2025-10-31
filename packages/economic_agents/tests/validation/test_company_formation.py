@@ -4,12 +4,14 @@ This test validates that an agent can successfully form and operate a company
 when given sufficient resources.
 """
 
+import pytest
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
 from economic_agents.reports import generate_report_for_agent
 
 
-def test_company_formation_with_sufficient_capital():
+@pytest.mark.asyncio
+async def test_company_formation_with_sufficient_capital():
     """Test successful company formation and operation with adequate funding.
 
     Success Criteria:
@@ -39,6 +41,7 @@ def test_company_formation_with_sufficient_capital():
             "personality": "entrepreneur",  # Biased toward company building
         },
     )
+    await agent.initialize()
 
     print(f"\n{'='*60}")
     print("COMPANY FORMATION VALIDATION TEST")
@@ -57,20 +60,20 @@ def test_company_formation_with_sufficient_capital():
 
     while not agent.state.has_company and cycles_run < max_cycles:
         # Just update state and make allocation decision, don't execute company work yet
-        agent._update_state()
+        await agent._update_state()
         allocation = agent.decision_engine.decide_allocation(agent.state)
 
         # Check if company should form
         if agent.decision_engine.should_form_company(agent.state):
             # Form company
-            _ = agent._form_company()
+            _ = await agent._form_company()
             print(f"✅ Company formed at cycle {cycles_run+1}: {agent.company.name}")
             print(f"   Initial company capital: ${agent.company.capital:.2f}")
             break
 
         # Otherwise do task work only
         if allocation.task_work_hours > 0:
-            agent._do_task_work(allocation.task_work_hours)
+            await agent._do_task_work(allocation.task_work_hours)
 
         agent.state.cycles_completed += 1
         cycles_run += 1
@@ -110,7 +113,7 @@ def test_company_formation_with_sufficient_capital():
 
     # Inject capital directly into company (simulating investor funding)
     company.capital += capital_injection
-    agent.wallet.receive_payment(
+    await agent.wallet.receive_payment(
         from_address="investor_simulation", amount=capital_injection, memo="Simulated seed investment for product development"
     )
 
@@ -125,7 +128,7 @@ def test_company_formation_with_sufficient_capital():
 
     # Run cycles focused on company work
     for i in range(15):
-        agent.run_cycle()
+        await agent.run_cycle()
 
         if (i + 1) % 5 == 0:
             print(
@@ -183,4 +186,6 @@ def test_company_formation_with_sufficient_capital():
 
 if __name__ == "__main__":
     # Run test directly
-    test_company_formation_with_sufficient_capital()
+    import asyncio
+
+    asyncio.run(test_company_formation_with_sufficient_capital())
