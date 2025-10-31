@@ -1,11 +1,14 @@
 """Agent lifecycle management for dashboard-controlled agents."""
 
 import asyncio
+import logging
 from typing import Any, Dict, Optional
 
 from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 from economic_agents.dashboard.dependencies import dashboard_state
 from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
+
+logger = logging.getLogger(__name__)
 
 
 class AgentManager:
@@ -204,26 +207,39 @@ class AgentManager:
 
     async def _run_agent_loop(self) -> None:
         """Run agent cycles in background task."""
+        logger.debug(f"Agent loop starting: max_cycles={self.max_cycles}")
         try:
             while self.cycle_count < self.max_cycles and not self.should_stop:
                 # Run one cycle asynchronously
                 if self.agent is not None:
-                    await self.agent.run_cycle()
-                    self.cycle_count += 1
+                    logger.debug(f"Running cycle {self.cycle_count + 1}")
+                    try:
+                        await self.agent.run_cycle()
+                        self.cycle_count += 1
+                        logger.debug(f"Cycle {self.cycle_count} completed")
+                    except Exception as cycle_error:
+                        logger.error(f"Error in cycle {self.cycle_count + 1}: {cycle_error}", exc_info=True)
+                        raise
 
                     # Check if agent ran out of resources
                     if self.agent.state.balance <= 0 or self.agent.state.compute_hours_remaining <= 0:
+                        logger.debug("Agent ran out of resources, stopping")
                         break
 
                     # Small delay to prevent tight loop
                     await asyncio.sleep(0.5)
                 else:
+                    logger.debug("Agent is None, breaking loop")
                     break
 
-        except Exception:
-            # Silently stop on any error
-            pass
+        except asyncio.CancelledError:
+            logger.debug("Agent loop cancelled")
+            raise
+        except Exception as e:
+            # Log error and stop gracefully
+            logger.error(f"Error in agent loop: {e}", exc_info=True)
         finally:
+            logger.debug(f"Agent loop finished: {self.cycle_count} cycles completed")
             self.is_running = False
 
 
