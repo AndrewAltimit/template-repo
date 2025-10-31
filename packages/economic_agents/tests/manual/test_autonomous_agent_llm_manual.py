@@ -11,13 +11,9 @@ Run with: python tests/manual/test_autonomous_agent_llm_manual.py
 import logging
 import sys
 import time
-from pathlib import Path
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-from economic_agents.agent.core.autonomous_agent import AutonomousAgent  # noqa: E402
-from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet  # noqa: E402
+from economic_agents.agent.core.autonomous_agent import AutonomousAgent
+from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")

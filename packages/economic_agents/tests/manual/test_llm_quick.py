@@ -6,15 +6,12 @@ Run with: python tests/manual/test_llm_quick.py
 """
 
 import logging
-import sys
 import tempfile
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-from economic_agents.agent.core.autonomous_agent import AutonomousAgent  # noqa: E402
-from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet  # noqa: E402
+from economic_agents.agent.core.autonomous_agent import AutonomousAgent
+from economic_agents.implementations.mock import MockCompute, MockMarketplace, MockWallet
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

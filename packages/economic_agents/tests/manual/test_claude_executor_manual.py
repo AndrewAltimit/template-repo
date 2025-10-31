@@ -11,12 +11,8 @@ Run with: python tests/manual/test_claude_executor_manual.py
 import json
 import logging
 import sys
-from pathlib import Path
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-from economic_agents.agent.llm.executors import ClaudeExecutor  # noqa: E402
+from economic_agents.agent.llm.executors import ClaudeExecutor
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
