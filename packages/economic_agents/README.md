@@ -281,13 +281,13 @@ This proves agents can do economically valuable work autonomously.
 
 Every interface is designed for real-world compatibility:
 
-| Mock Implementation | Real Implementation | One Config Toggle |
-|---------------------|---------------------|-------------------|
-| `MockWallet` | `CryptoWallet` (ETH/BTC) | **YES** |
-| `MockMarketplace` | `FreelancePlatform` (Upwork API) | **YES** |
-| `MockCompute` | `CloudCompute` (AWS/GCP) | **YES** |
-| `MockInvestor` | `InvestorPortal` (AngelList) | **YES** |
-| `MockCompanyRegistry` | `BusinessFormation` (Stripe Atlas, LegalZoom) | **YES** |
+| Mock Implementation | Real Implementation |
+|---------------------|---------------------|
+| `MockWallet` | `CryptoWallet` (ETH/BTC) |
+| `MockMarketplace` | `FreelancePlatform` (Upwork API) |
+| `MockCompute` | `CloudCompute` (AWS/GCP) |
+| `MockInvestor` | `InvestorPortal` (AngelList) |
+| `MockCompanyRegistry` | `BusinessFormation` (Stripe Atlas, LegalZoom) |
 
 **This architecture proves**: If agents can operate in realistic simulation, they can operate for real.
 
