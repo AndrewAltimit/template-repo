@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 
 @pytest.fixture
-def setup_full_dashboard():
+async def setup_full_dashboard():
     """Set up complete dashboard environment with agent and monitoring."""
     # Create dashboard state
     dash_state = DashboardState()
@@ -28,6 +28,7 @@ def setup_full_dashboard():
         },
         dashboard_state=dash_state,
     )
+    await agent.initialize()
 
     # Update global dashboard state for API endpoints
     dashboard_state.resource_tracker = dash_state.resource_tracker
@@ -37,15 +38,16 @@ def setup_full_dashboard():
     return agent, dash_state
 
 
-def test_full_pipeline_agent_to_api(setup_full_dashboard):
+@pytest.mark.asyncio
+async def test_full_pipeline_agent_to_api(setup_full_dashboard):
     """Test complete pipeline from agent operations to API endpoints."""
     from economic_agents.dashboard import app
 
-    agent, dash_state = setup_full_dashboard
+    agent, dash_state = await setup_full_dashboard
     client = TestClient(app)
 
     # Run agent for a few cycles
-    agent.run(max_cycles=5)
+    await agent.run(max_cycles=5)
 
     # Update global dashboard state
     dashboard_state.update_agent_state(dash_state.get_agent_state())
@@ -80,15 +82,16 @@ def test_full_pipeline_agent_to_api(setup_full_dashboard):
     assert metrics_data["overall_health_score"] >= 0
 
 
-def test_api_data_format_matches_frontend_expectations(setup_full_dashboard):
+@pytest.mark.asyncio
+async def test_api_data_format_matches_frontend_expectations(setup_full_dashboard):
     """Test that API data format matches what frontend expects."""
     from economic_agents.dashboard import app
 
-    agent, dash_state = setup_full_dashboard
+    agent, dash_state = await setup_full_dashboard
     client = TestClient(app)
 
     # Run agent
-    agent.run(max_cycles=3)
+    await agent.run(max_cycles=3)
     dashboard_state.update_agent_state(dash_state.get_agent_state())
 
     # Status endpoint - check required fields
@@ -117,18 +120,19 @@ def test_api_data_format_matches_frontend_expectations(setup_full_dashboard):
         assert "timestamp" in decision
 
 
-def test_company_formation_reflected_in_api(setup_full_dashboard):
+@pytest.mark.asyncio
+async def test_company_formation_reflected_in_api(setup_full_dashboard):
     """Test that company formation is reflected in API endpoints."""
     from economic_agents.dashboard import app
 
-    agent, dash_state = setup_full_dashboard
+    agent, dash_state = await setup_full_dashboard
     client = TestClient(app)
 
     # Give agent enough capital to form company
-    agent.wallet.receive_payment(from_address="bonus", amount=100.0, memo="bonus")
+    await agent.wallet.receive_payment(from_address="bonus", amount=100.0, memo="bonus")
 
     # Run agent until company might be formed
-    agent.run(max_cycles=15)
+    await agent.run(max_cycles=15)
 
     # Update dashboard state
     dashboard_state.update_agent_state(dash_state.get_agent_state())
@@ -151,15 +155,16 @@ def test_company_formation_reflected_in_api(setup_full_dashboard):
         assert response.status_code in [200, 404]
 
 
-def test_monitoring_data_consistency(setup_full_dashboard):
+@pytest.mark.asyncio
+async def test_monitoring_data_consistency(setup_full_dashboard):
     """Test that monitoring data is consistent across endpoints."""
     from economic_agents.dashboard import app
 
-    agent, dash_state = setup_full_dashboard
+    agent, dash_state = await setup_full_dashboard
     client = TestClient(app)
 
     # Run agent
-    agent.run(max_cycles=10)
+    await agent.run(max_cycles=10)
 
     # Update dashboard state
     dashboard_state.update_agent_state(dash_state.get_agent_state())
@@ -175,11 +180,12 @@ def test_monitoring_data_consistency(setup_full_dashboard):
     assert status_data["balance"] == resources_data["current_balance"]
 
 
-def test_websocket_real_time_updates(setup_full_dashboard):
+@pytest.mark.asyncio
+async def test_websocket_real_time_updates(setup_full_dashboard):
     """Test WebSocket connection for real-time updates."""
     from economic_agents.dashboard import app
 
-    agent, dash_state = setup_full_dashboard
+    agent, dash_state = await setup_full_dashboard
     client = TestClient(app)
 
     with client.websocket_connect("/api/updates") as websocket:
@@ -189,11 +195,12 @@ def test_websocket_real_time_updates(setup_full_dashboard):
         assert "timestamp" in data
 
 
-def test_api_error_handling(setup_full_dashboard):
+@pytest.mark.asyncio
+async def test_api_error_handling(setup_full_dashboard):
     """Test that API handles errors gracefully."""
     from economic_agents.dashboard import app
 
-    agent, dash_state = setup_full_dashboard
+    agent, dash_state = await setup_full_dashboard
     client = TestClient(app)
 
     # Clear dashboard state to simulate error conditions
@@ -211,15 +218,16 @@ def test_api_error_handling(setup_full_dashboard):
     assert response.status_code == 404
 
 
-def test_decision_filtering_by_limit(setup_full_dashboard):
+@pytest.mark.asyncio
+async def test_decision_filtering_by_limit(setup_full_dashboard):
     """Test decision endpoint limit parameter."""
     from economic_agents.dashboard import app
 
-    agent, dash_state = setup_full_dashboard
+    agent, dash_state = await setup_full_dashboard
     client = TestClient(app)
 
     # Run agent to generate decisions
-    agent.run(max_cycles=20)
+    await agent.run(max_cycles=20)
     dashboard_state.update_agent_state(dash_state.get_agent_state())
 
     # Test with limit
@@ -233,15 +241,16 @@ def test_decision_filtering_by_limit(setup_full_dashboard):
     assert len(decisions) <= 15
 
 
-def test_metrics_calculation_accuracy(setup_full_dashboard):
+@pytest.mark.asyncio
+async def test_metrics_calculation_accuracy(setup_full_dashboard):
     """Test that metrics calculations are accurate."""
     from economic_agents.dashboard import app
 
-    agent, dash_state = setup_full_dashboard
+    agent, dash_state = await setup_full_dashboard
     client = TestClient(app)
 
     # Run agent
-    agent.run(max_cycles=5)
+    await agent.run(max_cycles=5)
     dashboard_state.update_agent_state(dash_state.get_agent_state())
 
     # Get metrics
@@ -255,15 +264,16 @@ def test_metrics_calculation_accuracy(setup_full_dashboard):
     assert metrics["risk_level"] in ["low", "medium", "high", "critical", "unknown"]
 
 
-def test_resource_tracking_completeness(setup_full_dashboard):
+@pytest.mark.asyncio
+async def test_resource_tracking_completeness(setup_full_dashboard):
     """Test that all resource transactions are tracked."""
     from economic_agents.dashboard import app
 
-    agent, dash_state = setup_full_dashboard
+    agent, dash_state = await setup_full_dashboard
     client = TestClient(app)
 
     # Run agent
-    agent.run(max_cycles=5)
+    await agent.run(max_cycles=5)
     dashboard_state.update_agent_state(dash_state.get_agent_state())
 
     # Get resource data
