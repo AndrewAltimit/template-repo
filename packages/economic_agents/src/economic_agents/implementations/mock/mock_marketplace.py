@@ -203,3 +203,74 @@ class MockMarketplace(MarketplaceInterface):
         result: Dict[str, str | bool] = self.executor.execute_task(task_dict, timeout=timeout)
 
         return result
+
+    def generate_tasks(self, count: int = 5) -> List[Dict]:
+        """Generate tasks in simplified dict format for API.
+
+        Args:
+            count: Number of tasks to generate
+
+        Returns:
+            List of task dicts with API-compatible format
+        """
+        # Ensure we have enough tasks
+        if len(self.tasks) < count:
+            self._generate_initial_tasks(count)
+
+        # Get available tasks (not claimed)
+        available = self.list_available_tasks()
+
+        # Convert to simplified dict format for API
+        # Difficulty mapping: easy -> 1-3, medium -> 4-6, hard -> 7-10
+        difficulty_map = {
+            "easy": self.rng.uniform(1.0, 3.0),
+            "medium": self.rng.uniform(4.0, 6.0),
+            "hard": self.rng.uniform(7.0, 10.0),
+        }
+
+        tasks = []
+        for task in available[:count]:
+            # Convert difficulty string to numeric value
+            if isinstance(task.difficulty, str):
+                difficulty_value = difficulty_map.get(task.difficulty.lower(), 5.0)
+            else:
+                difficulty_value = task.difficulty
+
+            tasks.append(
+                {
+                    "id": task.id,
+                    "difficulty": difficulty_value,
+                    "reward": task.reward,
+                    "compute_hours_required": self.rng.uniform(1.0, 8.0),  # Estimate compute hours
+                    "description": task.description,
+                    "title": task.title,
+                }
+            )
+
+        return tasks
+
+    def complete_task(self, task: Dict) -> Dict:
+        """Complete a task (convenience method for API).
+
+        Args:
+            task: Task dict with at least 'id' and 'reward' fields
+
+        Returns:
+            Result dict with 'success', 'reward', and optional 'message' fields
+        """
+        task_id = task.get("id")
+        if not task_id:
+            return {"success": False, "reward": 0.0, "message": "Invalid task: missing ID"}
+
+        # Check if task exists
+        if task_id not in self.tasks:
+            return {"success": False, "reward": 0.0, "message": "Task not found"}
+
+        # Simulate completion with 80% success rate
+        success = self.rng.random() < 0.8
+
+        if success:
+            reward = task.get("reward", 0.0)
+            return {"success": True, "reward": reward, "message": "Task completed successfully"}
+        else:
+            return {"success": False, "reward": 0.0, "message": "Task completion failed - requirements not met"}

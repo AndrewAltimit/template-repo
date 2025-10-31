@@ -85,3 +85,37 @@ class MockCompute(ComputeInterface):
         self.balance = self.hours_remaining * self.cost_per_hour
 
         return True
+
+    def allocate_hours(self, hours: float, purpose: str = "") -> None:
+        """Allocate compute hours for a task (convenience method for API).
+
+        Args:
+            hours: Number of hours to allocate
+            purpose: Purpose/description of allocation
+
+        Raises:
+            ValueError: If hours is invalid or insufficient hours available
+        """
+        if hours <= 0:
+            raise ValueError("Hours must be positive")
+
+        self._update_time_decay()
+
+        if hours > self.hours_remaining:
+            raise ValueError(f"Insufficient compute hours: {self.hours_remaining:.2f}h available, {hours:.2f}h requested")
+
+        # Allocate the hours (consume them)
+        self.hours_remaining -= hours
+
+        # Round to 0 if very small to avoid floating point issues
+        if self.hours_remaining < 0.0001:
+            self.hours_remaining = 0.0
+
+        self.balance = self.hours_remaining * self.cost_per_hour
+
+    def tick(self) -> None:
+        """Manual time tick for API (applies decay).
+
+        This is a convenience method that forces a time decay update.
+        """
+        self._update_time_decay()
