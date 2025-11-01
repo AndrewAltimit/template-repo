@@ -167,7 +167,8 @@ This pattern ensures consistent certificate handling across all services while m
 ├── docker/                   # Docker configurations
 ├── packages/                 # Installable packages
 │   ├── github_ai_agents/     # AI agent implementations
-│   └── sleeper_detection/    # AI backdoor detection system
+│   ├── sleeper_detection/    # AI backdoor detection system
+│   └── economic_agents/      # Economic agents framework
 ├── tools/                    # MCP servers and utilities
 │   ├── mcp/                  # Modular MCP servers
 │   │   ├── code_quality/     # Formatting & linting
