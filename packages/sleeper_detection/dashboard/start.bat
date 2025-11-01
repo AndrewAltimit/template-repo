@@ -2,6 +2,10 @@
 REM Smart Dashboard Starter - Uses docker-compose if available, falls back to docker
 REM Automatically loads .env and configures everything
 
+REM Parse command-line flags
+set "FOLLOW_LOGS=true"
+if "%~1"=="--no-logs" set "FOLLOW_LOGS=false"
+
 echo =========================================
 echo Sleeper Detection Dashboard Startup
 echo =========================================
@@ -60,9 +64,12 @@ if not exist .env (
     )
 )
 
+echo [3a/7] Creating data directories...
 REM Create data directories for volume mounts
 if not exist auth mkdir auth
 if not exist data mkdir data
+echo Directories ensured.
+echo.
 
 echo Configuration file found: .env
 echo Note: docker-compose will load environment variables from .env
@@ -126,6 +133,11 @@ REM Start dashboard
 echo [7/7] Starting dashboard...
 echo.
 
+REM Set default user permissions if not in .env (Windows doesn't have id command)
+REM These defaults ensure consistent behavior across docker-compose and docker run paths
+if not defined USER_ID set "USER_ID=1000"
+if not defined GROUP_ID set "GROUP_ID=1000"
+
 if %USE_COMPOSE% EQU 1 (
     echo Using docker-compose...
     docker-compose up -d
@@ -142,25 +154,39 @@ if %USE_COMPOSE% EQU 1 (
         if not "%%a"=="" set "%%a=%%b"
     )
     docker run -d ^
+      --user %USER_ID%:%GROUP_ID% ^
       --name sleeper-dashboard ^
       -p 8501:8501 ^
       --env-file .env ^
+      -v sleeper-results:/results:rw ^
+      -v ./auth:/home/dashboard/app/auth ^
+      -v ./data:/home/dashboard/app/data ^
       sleeper-dashboard:latest
     if errorlevel 1 goto :error
 )
 
-REM Wait for startup
-timeout /t 3 /nobreak >nul
-
-REM Verify running
-docker ps | findstr sleeper-dashboard >nul
-if errorlevel 1 (
-    echo ERROR: Container not running after startup
+REM Wait for startup with polling
+echo Waiting for container to be ready...
+set WAIT_COUNT=0
+:wait_startup_loop
+docker ps --filter "name=sleeper-dashboard" --format "{{.Names}}" | findstr /C:"sleeper-dashboard" >nul
+if %ERRORLEVEL% EQU 0 (
+    echo Container is ready.
+    goto startup_complete
+)
+set /a WAIT_COUNT+=1
+if %WAIT_COUNT% GEQ 30 (
+    echo ERROR: Container failed to become ready within 60 seconds.
     echo.
-    echo Logs:
-    docker logs sleeper-dashboard
+    echo Recent container logs:
+    docker logs --tail 30 sleeper-dashboard 2^>^&1
+    if errorlevel 1 echo Could not retrieve logs
     exit /b 1
 )
+timeout /t 2 /nobreak >nul
+goto wait_startup_loop
+
+:startup_complete
 
 echo.
 echo =========================================
@@ -191,11 +217,15 @@ echo Opening browser in 3 seconds...
 timeout /t 3 /nobreak >nul
 start http://localhost:8501
 echo.
-echo Dashboard is running. Close this window or press Ctrl+C to stop viewing logs.
-echo.
 
-REM Follow logs
-docker logs -f sleeper-dashboard
+if "%FOLLOW_LOGS%"=="true" (
+    echo Dashboard is running. Close this window or press Ctrl+C to stop viewing logs.
+    echo.
+    REM Follow logs
+    docker logs -f sleeper-dashboard
+) else (
+    echo Dashboard is running in the background.
+)
 goto :eof
 
 :error
