@@ -10,11 +10,32 @@ echo =========================================
 echo.
 
 REM Default values
-REM Auto-detect database location (try dashboard location first, then container path)
-set "DB_PATH=..\..\dashboard\evaluation_results.db"
-if not exist "%DB_PATH%\.." (
-    set "DB_PATH=\results\evaluation_results.db"
+REM Auto-detect database location by searching up directory tree
+set "DB_PATH="
+set "SEARCH_DIR=%CD%"
+
+REM Try to find packages\sleeper_detection\dashboard\evaluation_results.db
+:find_import_db_loop
+if exist "%SEARCH_DIR%\packages\sleeper_detection\dashboard\evaluation_results.db" (
+    set "DB_PATH=%SEARCH_DIR%\packages\sleeper_detection\dashboard\evaluation_results.db"
+    goto found_import_db
 )
+if exist "%SEARCH_DIR%\dashboard\evaluation_results.db" (
+    set "DB_PATH=%SEARCH_DIR%\dashboard\evaluation_results.db"
+    goto found_import_db
+)
+REM Move up one directory
+for %%I in ("%SEARCH_DIR%\..") do set "SEARCH_DIR=%%~fI"
+REM Stop if we reached root
+if "%SEARCH_DIR:~-1%"==":" goto find_import_db_done
+if "%SEARCH_DIR%"=="%SEARCH_DIR:~0,3%" goto find_import_db_done
+goto find_import_db_loop
+
+:find_import_db_done
+REM Fallback to container path
+set "DB_PATH=\results\evaluation_results.db"
+
+:found_import_db
 set "SQL_FILE="
 set "BACKUP_EXISTING=true"
 set "MERGE_MODE=false"
@@ -63,9 +84,10 @@ echo   --no-backup          Skip backing up existing database
 echo   --merge              Merge with existing data instead of replacing
 echo   -h, --help          Show this help message
 echo.
-echo Default database locations (checked in order):
-echo   1. ..\..\dashboard\evaluation_results.db (Windows native)
-echo   2. \results\evaluation_results.db (container volume)
+echo Database auto-detection:
+echo   - Searches up directory tree for packages\sleeper_detection\dashboard\evaluation_results.db
+echo   - Also checks for dashboard\evaluation_results.db (if in sleeper_detection dir)
+echo   - Falls back to \results\evaluation_results.db (container volume)
 echo.
 echo Examples:
 echo   %~nx0 --sql-file db_exports\evaluation_results_20250101_120000.sql

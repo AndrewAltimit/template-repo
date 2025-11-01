@@ -10,11 +10,32 @@ echo =========================================
 echo.
 
 REM Default values
-REM Auto-detect database location (try dashboard location first, then container path)
-set "DB_PATH=..\..\dashboard\evaluation_results.db"
-if not exist "%DB_PATH%" (
-    set "DB_PATH=\results\evaluation_results.db"
+REM Auto-detect database location by searching up directory tree
+set "DB_PATH="
+set "SEARCH_DIR=%CD%"
+
+REM Try to find packages\sleeper_detection\dashboard\evaluation_results.db
+:find_db_loop
+if exist "%SEARCH_DIR%\packages\sleeper_detection\dashboard\evaluation_results.db" (
+    set "DB_PATH=%SEARCH_DIR%\packages\sleeper_detection\dashboard\evaluation_results.db"
+    goto found_db
 )
+if exist "%SEARCH_DIR%\dashboard\evaluation_results.db" (
+    set "DB_PATH=%SEARCH_DIR%\dashboard\evaluation_results.db"
+    goto found_db
+)
+REM Move up one directory
+for %%I in ("%SEARCH_DIR%\..") do set "SEARCH_DIR=%%~fI"
+REM Stop if we reached root
+if "%SEARCH_DIR:~-1%"==":" goto find_db_done
+if "%SEARCH_DIR%"=="%SEARCH_DIR:~0,3%" goto find_db_done
+goto find_db_loop
+
+:find_db_done
+REM Fallback to container path
+set "DB_PATH=\results\evaluation_results.db"
+
+:found_db
 set "OUTPUT_DIR=.\db_exports"
 for /f "tokens=1-4 delims=/ " %%a in ('date /t') do (set DATESTR=%%c%%a%%b)
 for /f "tokens=1-2 delims=: " %%a in ('time /t') do (set TIMESTR=%%a%%b)
@@ -58,9 +79,10 @@ echo   --output-dir DIR     Output directory (default: .\db_exports)
 echo   --output-file FILE   Output file path (overrides --output-dir)
 echo   -h, --help          Show this help message
 echo.
-echo Default database locations (checked in order):
-echo   1. ..\..\dashboard\evaluation_results.db (Windows native)
-echo   2. \results\evaluation_results.db (container volume)
+echo Database auto-detection:
+echo   - Searches up directory tree for packages\sleeper_detection\dashboard\evaluation_results.db
+echo   - Also checks for dashboard\evaluation_results.db (if in sleeper_detection dir)
+echo   - Falls back to \results\evaluation_results.db (container volume)
 echo.
 echo Examples:
 echo   %~nx0
@@ -73,14 +95,15 @@ echo [1/4] Checking database...
 
 REM Check if database exists
 if not exist "%DB_PATH%" (
-    echo ERROR: Database not found at: %DB_PATH%
+    echo ERROR: Database not found
     echo.
-    echo Tried these locations:
-    echo   1. ..\..\dashboard\evaluation_results.db ^(Windows native^)
-    echo   2. \results\evaluation_results.db ^(container volume^)
+    echo Searched from: %CD%
+    echo Auto-detection failed to find database in directory tree.
     echo.
-    echo Please specify the correct path with --db-path option.
-    echo Example: %~nx0 --db-path D:\path\to\evaluation_results.db
+    echo Please specify the database path with --db-path option.
+    echo Example: %~nx0 --db-path D:\Unreal\Repos\template-repo\packages\sleeper_detection\dashboard\evaluation_results.db
+    echo.
+    echo Or ensure you are in the sleeper_detection directory tree.
     exit /b 1
 )
 

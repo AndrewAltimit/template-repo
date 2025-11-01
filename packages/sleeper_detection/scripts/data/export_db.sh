@@ -10,11 +10,28 @@ echo "========================================="
 echo ""
 
 # Default values
-# Auto-detect database location (try dashboard location first, then container path)
-DB_PATH="../../dashboard/evaluation_results.db"
-if [ ! -f "$DB_PATH" ]; then
+# Auto-detect database location by searching up directory tree
+DB_PATH=""
+SEARCH_DIR="$(pwd)"
+
+# Try to find packages/sleeper_detection/dashboard/evaluation_results.db
+while [ "$SEARCH_DIR" != "/" ]; do
+    if [ -f "$SEARCH_DIR/packages/sleeper_detection/dashboard/evaluation_results.db" ]; then
+        DB_PATH="$SEARCH_DIR/packages/sleeper_detection/dashboard/evaluation_results.db"
+        break
+    fi
+    if [ -f "$SEARCH_DIR/dashboard/evaluation_results.db" ]; then
+        DB_PATH="$SEARCH_DIR/dashboard/evaluation_results.db"
+        break
+    fi
+    SEARCH_DIR="$(dirname "$SEARCH_DIR")"
+done
+
+# Fallback to container path
+if [ -z "$DB_PATH" ]; then
     DB_PATH="/results/evaluation_results.db"
 fi
+
 OUTPUT_DIR="./db_exports"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 OUTPUT_FILE="${OUTPUT_DIR}/evaluation_results_${TIMESTAMP}.sql"
@@ -43,9 +60,10 @@ while [[ $# -gt 0 ]]; do
             echo "  --output-file FILE   Output file path (overrides --output-dir)"
             echo "  -h, --help          Show this help message"
             echo ""
-            echo "Default database locations (checked in order):"
-            echo "  1. ../../dashboard/evaluation_results.db (native installation)"
-            echo "  2. /results/evaluation_results.db (container volume)"
+            echo "Database auto-detection:"
+            echo "  - Searches up directory tree for packages/sleeper_detection/dashboard/evaluation_results.db"
+            echo "  - Also checks for dashboard/evaluation_results.db (if in sleeper_detection dir)"
+            echo "  - Falls back to /results/evaluation_results.db (container volume)"
             echo ""
             echo "Examples:"
             echo "  $0"
@@ -65,14 +83,15 @@ echo "[1/4] Checking database..."
 
 # Check if database exists
 if [ ! -f "$DB_PATH" ]; then
-    echo "ERROR: Database not found at: $DB_PATH"
+    echo "ERROR: Database not found"
     echo ""
-    echo "Tried these locations:"
-    echo "  1. ../../dashboard/evaluation_results.db (native installation)"
-    echo "  2. /results/evaluation_results.db (container volume)"
+    echo "Searched from: $(pwd)"
+    echo "Auto-detection failed to find database in directory tree."
     echo ""
-    echo "Please specify the correct path with --db-path option."
-    echo "Example: $0 --db-path /path/to/evaluation_results.db"
+    echo "Please specify the database path with --db-path option."
+    echo "Example: $0 --db-path /path/to/sleeper_detection/dashboard/evaluation_results.db"
+    echo ""
+    echo "Or ensure you are in the sleeper_detection directory tree."
     exit 1
 fi
 

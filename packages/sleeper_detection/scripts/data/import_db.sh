@@ -10,11 +10,28 @@ echo "========================================="
 echo ""
 
 # Default values
-# Auto-detect database location (try dashboard location first, then container path)
-DB_PATH="../../dashboard/evaluation_results.db"
-if [ ! -d "$(dirname "$DB_PATH")" ]; then
+# Auto-detect database location by searching up directory tree
+DB_PATH=""
+SEARCH_DIR="$(pwd)"
+
+# Try to find packages/sleeper_detection/dashboard/evaluation_results.db
+while [ "$SEARCH_DIR" != "/" ]; do
+    if [ -d "$SEARCH_DIR/packages/sleeper_detection/dashboard" ]; then
+        DB_PATH="$SEARCH_DIR/packages/sleeper_detection/dashboard/evaluation_results.db"
+        break
+    fi
+    if [ -d "$SEARCH_DIR/dashboard" ]; then
+        DB_PATH="$SEARCH_DIR/dashboard/evaluation_results.db"
+        break
+    fi
+    SEARCH_DIR="$(dirname "$SEARCH_DIR")"
+done
+
+# Fallback to container path
+if [ -z "$DB_PATH" ]; then
     DB_PATH="/results/evaluation_results.db"
 fi
+
 SQL_FILE=""
 BACKUP_EXISTING=true
 MERGE_MODE=false
@@ -50,9 +67,10 @@ while [[ $# -gt 0 ]]; do
             echo "  --merge              Merge with existing data instead of replacing"
             echo "  -h, --help          Show this help message"
             echo ""
-            echo "Default database locations (checked in order):"
-            echo "  1. ../../dashboard/evaluation_results.db (native installation)"
-            echo "  2. /results/evaluation_results.db (container volume)"
+            echo "Database auto-detection:"
+            echo "  - Searches up directory tree for packages/sleeper_detection/dashboard/evaluation_results.db"
+            echo "  - Also checks for dashboard/evaluation_results.db (if in sleeper_detection dir)"
+            echo "  - Falls back to /results/evaluation_results.db (container volume)"
             echo ""
             echo "Examples:"
             echo "  $0 --sql-file db_exports/evaluation_results_20250101_120000.sql"
