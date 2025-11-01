@@ -64,9 +64,12 @@ if not exist .env (
     )
 )
 
+echo [3a/7] Creating data directories...
 REM Create data directories for volume mounts
 if not exist auth mkdir auth
 if not exist data mkdir data
+echo Directories ensured.
+echo.
 
 echo Configuration file found: .env
 echo Note: docker-compose will load environment variables from .env
