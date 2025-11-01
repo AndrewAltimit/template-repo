@@ -126,9 +126,26 @@ if "!START_SCRIPT!"=="" (
     exit /b 1
 )
 
-call "!START_SCRIPT!" >nul 2>&1
-timeout /t 10 /nobreak >nul
+start /b cmd /c "call "!START_SCRIPT!" >nul 2>&1"
 
+REM Wait for container to start with polling
+echo Waiting for container to start...
+set WAIT_COUNT=0
+:wait_import_loop
+docker ps --filter "name=%CONTAINER_NAME%" --format "{{.Names}}" | findstr /C:"%CONTAINER_NAME%" >nul
+if %ERRORLEVEL% EQU 0 (
+    echo Container started successfully.
+    goto import_container_started
+)
+set /a WAIT_COUNT+=1
+if %WAIT_COUNT% GEQ 30 (
+    echo ERROR: Container failed to start within 60 seconds.
+    exit /b 1
+)
+timeout /t 2 /nobreak >nul
+goto wait_import_loop
+
+:import_container_started
 :import_container_ready
 echo Container '%CONTAINER_NAME%' is running.
 echo.

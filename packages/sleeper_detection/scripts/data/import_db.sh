@@ -111,7 +111,20 @@ if ! docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q
     fi
 
     bash "$START_SCRIPT" > /dev/null 2>&1 &
-    sleep 10
+
+    # Wait for container to start with polling
+    echo "Waiting for container to start..."
+    for i in {1..30}; do
+        if docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+            echo "Container started successfully."
+            break
+        fi
+        if [ "$i" -eq 30 ]; then
+            echo "ERROR: Container failed to start within 60 seconds."
+            exit 1
+        fi
+        sleep 2
+    done
 fi
 
 echo "Container '${CONTAINER_NAME}' is running."

@@ -172,6 +172,9 @@ else
       --name sleeper-dashboard \
       -p 8501:8501 \
       --env-file .env \
+      -v sleeper-results:/results:rw \
+      -v ./auth:/home/dashboard/app/auth \
+      -v ./data:/home/dashboard/app/data \
       sleeper-dashboard:latest; then
         echo ""
         echo "ERROR: Failed to start dashboard"

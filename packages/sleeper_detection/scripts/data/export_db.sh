@@ -110,18 +110,20 @@ if ! docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q
     echo "Starting dashboard container..."
     bash "$START_SCRIPT" > /dev/null 2>&1 &
 
-    # Wait a few seconds for container to start
+    # Wait for container to start with polling
     echo "Waiting for container to start..."
-    sleep 10
-
-    # Verify container is now running
-    if ! docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
-        echo "ERROR: Failed to start container '${CONTAINER_NAME}'"
-        echo "Please check the dashboard logs for errors."
-        exit 1
-    fi
-
-    echo "Container started successfully."
+    for i in {1..30}; do
+        if docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+            echo "Container started successfully."
+            break
+        fi
+        if [ "$i" -eq 30 ]; then
+            echo "ERROR: Container failed to start within 60 seconds."
+            echo "Please check the dashboard logs for errors."
+            exit 1
+        fi
+        sleep 2
+    done
 fi
 
 echo "Container '${CONTAINER_NAME}' is running."

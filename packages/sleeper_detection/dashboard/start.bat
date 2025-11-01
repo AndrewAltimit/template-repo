@@ -145,6 +145,9 @@ if %USE_COMPOSE% EQU 1 (
       --name sleeper-dashboard ^
       -p 8501:8501 ^
       --env-file .env ^
+      -v sleeper-results:/results:rw ^
+      -v ./auth:/home/dashboard/app/auth ^
+      -v ./data:/home/dashboard/app/data ^
       sleeper-dashboard:latest
     if errorlevel 1 goto :error
 )

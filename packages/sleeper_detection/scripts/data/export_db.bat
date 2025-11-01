@@ -126,21 +126,27 @@ if "!START_SCRIPT!"=="" (
 
 echo Found start script: !START_SCRIPT!
 echo Starting dashboard container...
-call "!START_SCRIPT!" >nul 2>&1
+start /b cmd /c "call "!START_SCRIPT!" >nul 2>&1"
 
-REM Wait a few seconds for container to start
+REM Wait for container to start with polling
 echo Waiting for container to start...
-timeout /t 10 /nobreak >nul
-
-REM Verify container is now running
+set WAIT_COUNT=0
+:wait_loop
 docker ps --filter "name=%CONTAINER_NAME%" --format "{{.Names}}" | findstr /C:"%CONTAINER_NAME%" >nul
-if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: Failed to start container '%CONTAINER_NAME%'
+if %ERRORLEVEL% EQU 0 (
+    echo Container started successfully.
+    goto container_started
+)
+set /a WAIT_COUNT+=1
+if %WAIT_COUNT% GEQ 30 (
+    echo ERROR: Container failed to start within 60 seconds.
     echo Please check the dashboard logs for errors.
     exit /b 1
 )
+timeout /t 2 /nobreak >nul
+goto wait_loop
 
-echo Container started successfully.
+:container_started
 
 :container_ready
 echo.
