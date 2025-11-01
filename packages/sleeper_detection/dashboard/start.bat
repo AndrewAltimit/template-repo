@@ -156,18 +156,28 @@ if %USE_COMPOSE% EQU 1 (
     if errorlevel 1 goto :error
 )
 
-REM Wait for startup
-timeout /t 3 /nobreak >nul
-
-REM Verify running
-docker ps | findstr sleeper-dashboard >nul
-if errorlevel 1 (
-    echo ERROR: Container not running after startup
+REM Wait for startup with polling
+echo Waiting for container to be ready...
+set WAIT_COUNT=0
+:wait_startup_loop
+docker ps --filter "name=sleeper-dashboard" --format "{{.Names}}" | findstr /C:"sleeper-dashboard" >nul
+if %ERRORLEVEL% EQU 0 (
+    echo Container is ready.
+    goto startup_complete
+)
+set /a WAIT_COUNT+=1
+if %WAIT_COUNT% GEQ 30 (
+    echo ERROR: Container failed to become ready within 60 seconds.
     echo.
-    echo Logs:
-    docker logs sleeper-dashboard
+    echo Recent container logs:
+    docker logs --tail 30 sleeper-dashboard 2^>^&1
+    if errorlevel 1 echo Could not retrieve logs
     exit /b 1
 )
+timeout /t 2 /nobreak >nul
+goto wait_startup_loop
+
+:startup_complete
 
 echo.
 echo =========================================
