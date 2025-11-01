@@ -88,7 +88,8 @@ if ! $CONTAINER_CMD ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" |
     elif [ -f "../../../dashboard/start.sh" ]; then
         START_SCRIPT="../../../dashboard/start.sh"
     else
-        # Search up directory tree
+        # Search up the directory tree to find the dashboard start script
+        # This allows the script to work from any location in the repository
         SEARCH_DIR="$(pwd)"
         while [ "$SEARCH_DIR" != "/" ]; do
             if [ -f "$SEARCH_DIR/packages/sleeper_detection/dashboard/start.sh" ]; then
@@ -114,7 +115,7 @@ if ! $CONTAINER_CMD ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" |
 
     echo "Found start script: $START_SCRIPT"
     echo "Starting dashboard container..."
-    bash "$START_SCRIPT" > /dev/null 2>&1 &
+    bash "$START_SCRIPT" --no-logs > /dev/null 2>&1 &
 
     # Wait for container to start with polling
     echo "Waiting for container to start..."
@@ -177,7 +178,8 @@ if [ ! -f "$OUTPUT_FILE" ]; then
     exit 1
 fi
 
-EXPORT_SIZE=$(du -h "$OUTPUT_FILE" | cut -f1)
+EXPORT_SIZE_BYTES=$(stat -c%s "$OUTPUT_FILE")
+EXPORT_SIZE_KB=$((EXPORT_SIZE_BYTES / 1024))
 
 echo ""
 echo "========================================="
@@ -185,7 +187,7 @@ echo "Export Complete!"
 echo "========================================="
 echo ""
 echo "Export file: $OUTPUT_FILE"
-echo "Export size: $EXPORT_SIZE"
+echo "Export size: ${EXPORT_SIZE_KB} KB"
 echo ""
 echo "To import on another machine:"
 echo "  1. Copy the file to the other machine"

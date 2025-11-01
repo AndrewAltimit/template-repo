@@ -4,6 +4,12 @@
 
 set -e  # Exit on error
 
+# Parse command-line flags
+FOLLOW_LOGS=true
+if [[ "$1" == "--no-logs" ]]; then
+    FOLLOW_LOGS=false
+fi
+
 echo "========================================="
 echo "Sleeper Detection Dashboard Startup"
 echo "========================================="
@@ -236,8 +242,13 @@ elif command -v gnome-open &> /dev/null; then
 fi
 
 echo ""
-echo "Dashboard is running. Press Ctrl+C to stop following logs."
-echo ""
 
-# Follow logs
-$CONTAINER_CMD logs -f sleeper-dashboard
+if [ "$FOLLOW_LOGS" = true ]; then
+    echo "Dashboard is running. Press Ctrl+C to stop following logs."
+    echo ""
+
+    # Follow logs
+    $CONTAINER_CMD logs -f sleeper-dashboard
+else
+    echo "Dashboard is running in the background."
+fi

@@ -103,6 +103,8 @@ echo Container '%CONTAINER_NAME%' is not running. Starting it now...
 echo.
 
 REM Find and run start script
+REM Search up the directory tree to find the dashboard start script
+REM This allows the script to work from any location in the repository
 set "START_SCRIPT="
 set "SEARCH_DIR=%CD%"
 :find_import_start_loop

@@ -95,7 +95,8 @@ set "START_SCRIPT="
 if exist "..\..\dashboard\start.bat" set "START_SCRIPT=..\..\dashboard\start.bat"
 if exist "..\..\..\dashboard\start.bat" set "START_SCRIPT=..\..\..\dashboard\start.bat"
 
-REM Search up directory tree if not found
+REM Search up the directory tree to find the dashboard start script
+REM This allows the script to work from any location in the repository
 if "!START_SCRIPT!"=="" (
     set "SEARCH_DIR=%CD%"
     :find_start_loop

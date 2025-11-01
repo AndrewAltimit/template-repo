@@ -99,6 +99,8 @@ if ! $CONTAINER_CMD ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" |
     echo ""
 
     # Find and run start script
+    # Search up the directory tree to find the dashboard start script
+    # This allows the script to work from any location in the repository
     START_SCRIPT=""
     SEARCH_DIR="$(pwd)"
     while [ "$SEARCH_DIR" != "/" ]; do
@@ -118,7 +120,7 @@ if ! $CONTAINER_CMD ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" |
         exit 1
     fi
 
-    bash "$START_SCRIPT" > /dev/null 2>&1 &
+    bash "$START_SCRIPT" --no-logs > /dev/null 2>&1 &
 
     # Wait for container to start with polling
     echo "Waiting for container to start..."
