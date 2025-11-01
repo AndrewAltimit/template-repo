@@ -140,6 +140,10 @@ if %ERRORLEVEL% EQU 0 (
 set /a WAIT_COUNT+=1
 if %WAIT_COUNT% GEQ 30 (
     echo ERROR: Container failed to start within 60 seconds.
+    echo.
+    echo Recent container logs:
+    docker logs --tail 30 %CONTAINER_NAME% 2^>^&1
+    if errorlevel 1 echo Could not retrieve logs
     exit /b 1
 )
 timeout /t 2 /nobreak >nul

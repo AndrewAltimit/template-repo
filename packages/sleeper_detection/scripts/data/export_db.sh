@@ -119,7 +119,9 @@ if ! docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q
         fi
         if [ "$i" -eq 30 ]; then
             echo "ERROR: Container failed to start within 60 seconds."
-            echo "Please check the dashboard logs for errors."
+            echo ""
+            echo "Recent container logs:"
+            docker logs --tail 30 "${CONTAINER_NAME}" 2>&1 || echo "Could not retrieve logs"
             exit 1
         fi
         sleep 2

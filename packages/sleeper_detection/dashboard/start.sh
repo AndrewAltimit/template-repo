@@ -115,13 +115,7 @@ echo ""
 
 # Build image
 echo "[5/7] Building image..."
-if [ $USE_COMPOSE -eq 1 ]; then
-    echo "Building with $COMPOSE_CMD..."
-    if ! $COMPOSE_CMD build; then
-        echo "ERROR: Failed to build image"
-        exit 1
-    fi
-elif [ $USE_COMPOSE -eq 2 ]; then
+if [ $USE_COMPOSE -gt 0 ]; then
     echo "Building with $COMPOSE_CMD..."
     if ! $COMPOSE_CMD build; then
         echo "ERROR: Failed to build image"
@@ -138,9 +132,7 @@ echo ""
 
 # Stop existing container/service
 echo "[6/7] Stopping existing dashboard..."
-if [ $USE_COMPOSE -eq 1 ]; then
-    $COMPOSE_CMD down &> /dev/null || true
-elif [ $USE_COMPOSE -eq 2 ]; then
+if [ $USE_COMPOSE -gt 0 ]; then
     $COMPOSE_CMD down &> /dev/null || true
 else
     $CONTAINER_CMD stop sleeper-dashboard &> /dev/null || true
@@ -152,7 +144,7 @@ echo ""
 echo "[7/7] Starting dashboard..."
 echo ""
 
-if [ $USE_COMPOSE -eq 1 ] || [ $USE_COMPOSE -eq 2 ]; then
+if [ $USE_COMPOSE -gt 0 ]; then
     echo "Using $COMPOSE_CMD..."
     if ! $COMPOSE_CMD up -d; then
         echo ""
