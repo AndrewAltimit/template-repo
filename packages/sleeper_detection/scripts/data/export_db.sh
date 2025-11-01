@@ -82,27 +82,21 @@ if ! $CONTAINER_CMD ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" |
     echo ""
 
     # Find and run start script
+    # Search up the directory tree to find the dashboard start script
+    # This allows the script to work from any location in the repository
     START_SCRIPT=""
-    if [ -f "../../dashboard/start.sh" ]; then
-        START_SCRIPT="../../dashboard/start.sh"
-    elif [ -f "../../../dashboard/start.sh" ]; then
-        START_SCRIPT="../../../dashboard/start.sh"
-    else
-        # Search up the directory tree to find the dashboard start script
-        # This allows the script to work from any location in the repository
-        SEARCH_DIR="$(pwd)"
-        while [ "$SEARCH_DIR" != "/" ]; do
-            if [ -f "$SEARCH_DIR/packages/sleeper_detection/dashboard/start.sh" ]; then
-                START_SCRIPT="$SEARCH_DIR/packages/sleeper_detection/dashboard/start.sh"
-                break
-            fi
-            if [ -f "$SEARCH_DIR/dashboard/start.sh" ]; then
-                START_SCRIPT="$SEARCH_DIR/dashboard/start.sh"
-                break
-            fi
-            SEARCH_DIR="$(dirname "$SEARCH_DIR")"
-        done
-    fi
+    SEARCH_DIR="$(pwd)"
+    while [ "$SEARCH_DIR" != "/" ]; do
+        if [ -f "$SEARCH_DIR/packages/sleeper_detection/dashboard/start.sh" ]; then
+            START_SCRIPT="$SEARCH_DIR/packages/sleeper_detection/dashboard/start.sh"
+            break
+        fi
+        if [ -f "$SEARCH_DIR/dashboard/start.sh" ]; then
+            START_SCRIPT="$SEARCH_DIR/dashboard/start.sh"
+            break
+        fi
+        SEARCH_DIR="$(dirname "$SEARCH_DIR")"
+    done
 
     if [ -z "$START_SCRIPT" ]; then
         echo "ERROR: Could not find dashboard start.sh script"

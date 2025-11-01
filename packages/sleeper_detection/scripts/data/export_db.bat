@@ -91,29 +91,23 @@ echo Container '%CONTAINER_NAME%' is not running. Starting it now...
 echo.
 
 REM Find and run start script
-set "START_SCRIPT="
-if exist "..\..\dashboard\start.bat" set "START_SCRIPT=..\..\dashboard\start.bat"
-if exist "..\..\..\dashboard\start.bat" set "START_SCRIPT=..\..\..\dashboard\start.bat"
-
 REM Search up the directory tree to find the dashboard start script
 REM This allows the script to work from any location in the repository
-if "!START_SCRIPT!"=="" (
-    set "SEARCH_DIR=%CD%"
-    :find_start_loop
-    if exist "!SEARCH_DIR!\packages\sleeper_detection\dashboard\start.bat" (
-        set "START_SCRIPT=!SEARCH_DIR!\packages\sleeper_detection\dashboard\start.bat"
-        goto found_start
-    )
-    if exist "!SEARCH_DIR!\dashboard\start.bat" (
-        set "START_SCRIPT=!SEARCH_DIR!\dashboard\start.bat"
-        goto found_start
-    )
-    for %%I in ("!SEARCH_DIR!\..") do set "SEARCH_DIR=%%~fI"
-    if "!SEARCH_DIR:~-1!"==":" goto find_start_done
-    if "!SEARCH_DIR!"=="!SEARCH_DIR:~0,3!" goto find_start_done
-    goto find_start_loop
-    :find_start_done
+set "START_SCRIPT="
+set "SEARCH_DIR=%CD%"
+:find_start_loop
+if exist "!SEARCH_DIR!\packages\sleeper_detection\dashboard\start.bat" (
+    set "START_SCRIPT=!SEARCH_DIR!\packages\sleeper_detection\dashboard\start.bat"
+    goto found_start
 )
+if exist "!SEARCH_DIR!\dashboard\start.bat" (
+    set "START_SCRIPT=!SEARCH_DIR!\dashboard\start.bat"
+    goto found_start
+)
+for %%I in ("!SEARCH_DIR!\..") do set "SEARCH_DIR=%%~fI"
+if "!SEARCH_DIR:~-1!"==":" goto found_start
+if "!SEARCH_DIR!"=="!SEARCH_DIR:~0,3!" goto found_start
+goto find_start_loop
 
 :found_start
 if "!START_SCRIPT!"=="" (
