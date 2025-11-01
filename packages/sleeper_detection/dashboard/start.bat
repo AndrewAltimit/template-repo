@@ -130,6 +130,11 @@ REM Start dashboard
 echo [7/7] Starting dashboard...
 echo.
 
+REM Set default user permissions if not in .env (Windows doesn't have id command)
+REM These defaults ensure consistent behavior across docker-compose and docker run paths
+if not defined USER_ID set "USER_ID=1000"
+if not defined GROUP_ID set "GROUP_ID=1000"
+
 if %USE_COMPOSE% EQU 1 (
     echo Using docker-compose...
     docker-compose up -d
@@ -145,9 +150,6 @@ if %USE_COMPOSE% EQU 1 (
     for /f "usebackq eol=# tokens=1,* delims==" %%a in (".env") do (
         if not "%%a"=="" set "%%a=%%b"
     )
-    REM Set default user permissions if not in .env (Windows doesn't have id command)
-    if not defined USER_ID set "USER_ID=1000"
-    if not defined GROUP_ID set "GROUP_ID=1000"
     docker run -d ^
       --user %USER_ID%:%GROUP_ID% ^
       --name sleeper-dashboard ^
