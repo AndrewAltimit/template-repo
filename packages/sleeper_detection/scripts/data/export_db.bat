@@ -81,65 +81,68 @@ echo [2/5] Checking container...
 
 REM Check if container is running
 docker ps --filter "name=%CONTAINER_NAME%" --format "{{.Names}}" | findstr /C:"%CONTAINER_NAME%" >nul
-if %ERRORLEVEL% NEQ 0 (
-    echo Container '%CONTAINER_NAME%' is not running. Starting it now...
-    echo.
-
-    REM Find and run start script
-    set "START_SCRIPT="
-    if exist "..\..\dashboard\start.bat" (
-        set "START_SCRIPT=..\..\dashboard\start.bat"
-    ) else if exist "..\..\..\dashboard\start.bat" (
-        set "START_SCRIPT=..\..\..\dashboard\start.bat"
-    ) else (
-        REM Search up directory tree
-        set "SEARCH_DIR=%CD%"
-        :find_start_loop
-        if exist "!SEARCH_DIR!\packages\sleeper_detection\dashboard\start.bat" (
-            set "START_SCRIPT=!SEARCH_DIR!\packages\sleeper_detection\dashboard\start.bat"
-            goto found_start
-        )
-        if exist "!SEARCH_DIR!\dashboard\start.bat" (
-            set "START_SCRIPT=!SEARCH_DIR!\dashboard\start.bat"
-            goto found_start
-        )
-        for %%I in ("!SEARCH_DIR!\..") do set "SEARCH_DIR=%%~fI"
-        if "!SEARCH_DIR:~-1!"==":" goto find_start_done
-        if "!SEARCH_DIR!"=="!SEARCH_DIR:~0,3!" goto find_start_done
-        goto find_start_loop
-        :find_start_done
-    )
-    :found_start
-
-    if "!START_SCRIPT!"=="" (
-        echo ERROR: Could not find dashboard start.bat script
-        echo.
-        echo Please start the dashboard manually:
-        echo   cd packages\sleeper_detection\dashboard
-        echo   start.bat
-        exit /b 1
-    )
-
-    echo Found start script: !START_SCRIPT!
-    echo Starting dashboard container...
-    call "!START_SCRIPT!" >nul 2>&1
-
-    REM Wait a few seconds for container to start
-    echo Waiting for container to start...
-    timeout /t 10 /nobreak >nul
-
-    REM Verify container is now running
-    docker ps --filter "name=%CONTAINER_NAME%" --format "{{.Names}}" | findstr /C:"%CONTAINER_NAME%" >nul
-    if %ERRORLEVEL% NEQ 0 (
-        echo ERROR: Failed to start container '%CONTAINER_NAME%'
-        echo Please check the dashboard logs for errors.
-        exit /b 1
-    )
-
-    echo Container started successfully.
-)
+if %ERRORLEVEL% NEQ 0 goto start_container
 
 echo Container '%CONTAINER_NAME%' is running.
+goto container_ready
+
+:start_container
+echo Container '%CONTAINER_NAME%' is not running. Starting it now...
+echo.
+
+REM Find and run start script
+set "START_SCRIPT="
+if exist "..\..\dashboard\start.bat" set "START_SCRIPT=..\..\dashboard\start.bat"
+if exist "..\..\..\dashboard\start.bat" set "START_SCRIPT=..\..\..\dashboard\start.bat"
+
+REM Search up directory tree if not found
+if "!START_SCRIPT!"=="" (
+    set "SEARCH_DIR=%CD%"
+    :find_start_loop
+    if exist "!SEARCH_DIR!\packages\sleeper_detection\dashboard\start.bat" (
+        set "START_SCRIPT=!SEARCH_DIR!\packages\sleeper_detection\dashboard\start.bat"
+        goto found_start
+    )
+    if exist "!SEARCH_DIR!\dashboard\start.bat" (
+        set "START_SCRIPT=!SEARCH_DIR!\dashboard\start.bat"
+        goto found_start
+    )
+    for %%I in ("!SEARCH_DIR!\..") do set "SEARCH_DIR=%%~fI"
+    if "!SEARCH_DIR:~-1!"==":" goto find_start_done
+    if "!SEARCH_DIR!"=="!SEARCH_DIR:~0,3!" goto find_start_done
+    goto find_start_loop
+    :find_start_done
+)
+
+:found_start
+if "!START_SCRIPT!"=="" (
+    echo ERROR: Could not find dashboard start.bat script
+    echo.
+    echo Please start the dashboard manually:
+    echo   cd packages\sleeper_detection\dashboard
+    echo   start.bat
+    exit /b 1
+)
+
+echo Found start script: !START_SCRIPT!
+echo Starting dashboard container...
+call "!START_SCRIPT!" >nul 2>&1
+
+REM Wait a few seconds for container to start
+echo Waiting for container to start...
+timeout /t 10 /nobreak >nul
+
+REM Verify container is now running
+docker ps --filter "name=%CONTAINER_NAME%" --format "{{.Names}}" | findstr /C:"%CONTAINER_NAME%" >nul
+if %ERRORLEVEL% NEQ 0 (
+    echo ERROR: Failed to start container '%CONTAINER_NAME%'
+    echo Please check the dashboard logs for errors.
+    exit /b 1
+)
+
+echo Container started successfully.
+
+:container_ready
 echo.
 
 echo [3/5] Checking database in container...

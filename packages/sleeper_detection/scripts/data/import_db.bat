@@ -93,37 +93,43 @@ if %ERRORLEVEL% NEQ 0 (
 
 REM Check if container is running
 docker ps --filter "name=%CONTAINER_NAME%" --format "{{.Names}}" | findstr /C:"%CONTAINER_NAME%" >nul
-if %ERRORLEVEL% NEQ 0 (
-    echo Container '%CONTAINER_NAME%' is not running. Starting it now...
-    echo.
+if %ERRORLEVEL% NEQ 0 goto start_import_container
 
-    REM Find and run start script (same logic as export script)
-    set "START_SCRIPT="
-    set "SEARCH_DIR=%CD%"
-    :find_import_start_loop
-    if exist "!SEARCH_DIR!\packages\sleeper_detection\dashboard\start.bat" (
-        set "START_SCRIPT=!SEARCH_DIR!\packages\sleeper_detection\dashboard\start.bat"
-        goto found_import_start
-    )
-    if exist "!SEARCH_DIR!\dashboard\start.bat" (
-        set "START_SCRIPT=!SEARCH_DIR!\dashboard\start.bat"
-        goto found_import_start
-    )
-    for %%I in ("!SEARCH_DIR!\..") do set "SEARCH_DIR=%%~fI"
-    if "!SEARCH_DIR:~-1!"==":" goto find_import_start_done
-    goto find_import_start_loop
-    :find_import_start_done
-    :found_import_start
+echo Container '%CONTAINER_NAME%' is running.
+goto import_container_ready
 
-    if "!START_SCRIPT!"=="" (
-        echo ERROR: Could not find dashboard start.bat script
-        exit /b 1
-    )
+:start_import_container
+echo Container '%CONTAINER_NAME%' is not running. Starting it now...
+echo.
 
-    call "!START_SCRIPT!" >nul 2>&1
-    timeout /t 10 /nobreak >nul
+REM Find and run start script
+set "START_SCRIPT="
+set "SEARCH_DIR=%CD%"
+:find_import_start_loop
+if exist "!SEARCH_DIR!\packages\sleeper_detection\dashboard\start.bat" (
+    set "START_SCRIPT=!SEARCH_DIR!\packages\sleeper_detection\dashboard\start.bat"
+    goto found_import_start
+)
+if exist "!SEARCH_DIR!\dashboard\start.bat" (
+    set "START_SCRIPT=!SEARCH_DIR!\dashboard\start.bat"
+    goto found_import_start
+)
+for %%I in ("!SEARCH_DIR!\..") do set "SEARCH_DIR=%%~fI"
+if "!SEARCH_DIR:~-1!"==":" goto find_import_start_done
+if "!SEARCH_DIR!"=="!SEARCH_DIR:~0,3!" goto find_import_start_done
+goto find_import_start_loop
+
+:find_import_start_done
+:found_import_start
+if "!START_SCRIPT!"=="" (
+    echo ERROR: Could not find dashboard start.bat script
+    exit /b 1
 )
 
+call "!START_SCRIPT!" >nul 2>&1
+timeout /t 10 /nobreak >nul
+
+:import_container_ready
 echo Container '%CONTAINER_NAME%' is running.
 echo.
 
