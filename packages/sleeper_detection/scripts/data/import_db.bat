@@ -1,12 +1,12 @@
 @echo off
-REM Import Sleeper Detection Database to Docker Container
-REM Imports SQL dump into the sleeper-results Docker volume
+REM Import Sleeper Detection Database to Container
+REM Imports SQL dump into the sleeper-results volume
 
 setlocal EnableDelayedExpansion
 
 echo =========================================
 echo Sleeper Detection Database Import
-echo To Docker Container
+echo To Container
 echo =========================================
 echo.
 

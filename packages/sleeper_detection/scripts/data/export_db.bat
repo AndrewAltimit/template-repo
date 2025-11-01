@@ -1,12 +1,12 @@
 @echo off
-REM Export Sleeper Detection Database from Docker Container
-REM Extracts evaluation_results.db from the sleeper-results Docker volume
+REM Export Sleeper Detection Database from Container
+REM Extracts evaluation_results.db from the sleeper-results volume
 
 setlocal EnableDelayedExpansion
 
 echo =========================================
 echo Sleeper Detection Database Export
-echo From Docker Container
+echo From Container
 echo =========================================
 echo.
 

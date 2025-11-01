@@ -1,14 +1,26 @@
 #!/bin/bash
-# Import Sleeper Detection Database to Docker Container
-# Imports SQL dump into the sleeper-results Docker volume
+# Import Sleeper Detection Database to Container
+# Imports SQL dump into the sleeper-results volume
+# Supports both Docker and Podman
 
 set -e
 
 echo "========================================="
 echo "Sleeper Detection Database Import"
-echo "To Docker Container"
+echo "To Container"
 echo "========================================="
 echo ""
+
+# Detect container runtime (podman or docker)
+CONTAINER_CMD=""
+if command -v podman &> /dev/null; then
+    CONTAINER_CMD="podman"
+elif command -v docker &> /dev/null; then
+    CONTAINER_CMD="docker"
+else
+    echo "ERROR: Neither podman nor docker found. Please install one of them."
+    exit 1
+fi
 
 # Default values
 CONTAINER_NAME="sleeper-dashboard"
@@ -79,14 +91,10 @@ echo ""
 
 echo "[2/4] Checking container..."
 
-# Check if Docker is available
-if ! command -v docker &> /dev/null; then
-    echo "ERROR: Docker not found. Please install Docker."
-    exit 1
-fi
+echo "Using $CONTAINER_CMD"
 
 # Check if container is running
-if ! docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+if ! $CONTAINER_CMD ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
     echo "Container '${CONTAINER_NAME}' is not running. Starting it now..."
     echo ""
 
@@ -115,7 +123,7 @@ if ! docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q
     # Wait for container to start with polling
     echo "Waiting for container to start..."
     for i in {1..30}; do
-        if docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+        if $CONTAINER_CMD ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
             echo "Container started successfully."
             break
         fi
@@ -123,7 +131,7 @@ if ! docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q
             echo "ERROR: Container failed to start within 60 seconds."
             echo ""
             echo "Recent container logs:"
-            docker logs --tail 30 "${CONTAINER_NAME}" 2>&1 || echo "Could not retrieve logs"
+            $CONTAINER_CMD logs --tail 30 "${CONTAINER_NAME}" 2>&1 || echo "Could not retrieve logs"
             exit 1
         fi
         sleep 2
@@ -137,16 +145,16 @@ echo "[3/4] Backup and import..."
 
 if [ "$BACKUP_EXISTING" = true ]; then
     # Check if database exists and backup
-    if docker exec "${CONTAINER_NAME}" test -f "${DB_PATH}" 2>/dev/null; then
+    if $CONTAINER_CMD exec "${CONTAINER_NAME}" test -f "${DB_PATH}" 2>/dev/null; then
         BACKUP_PATH="${DB_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
         echo "Creating backup in container: ${BACKUP_PATH}"
-        docker exec "${CONTAINER_NAME}" cp "${DB_PATH}" "${BACKUP_PATH}"
+        $CONTAINER_CMD exec "${CONTAINER_NAME}" cp "${DB_PATH}" "${BACKUP_PATH}"
     fi
 fi
 
 echo "Importing database..."
 # Import SQL file into container
-if ! docker exec -i "${CONTAINER_NAME}" sqlite3 "${DB_PATH}" < "$SQL_FILE"; then
+if ! $CONTAINER_CMD exec -i "${CONTAINER_NAME}" sqlite3 "${DB_PATH}" < "$SQL_FILE"; then
     echo "ERROR: Failed to import database"
     exit 1
 fi
@@ -157,7 +165,7 @@ echo ""
 echo "[4/4] Verifying import..."
 
 # Verify database exists
-if ! docker exec "${CONTAINER_NAME}" test -f "${DB_PATH}"; then
+if ! $CONTAINER_CMD exec "${CONTAINER_NAME}" test -f "${DB_PATH}"; then
     echo "ERROR: Database not found after import"
     exit 1
 fi

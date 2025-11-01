@@ -141,7 +141,11 @@ if %USE_COMPOSE% EQU 1 (
     for /f "usebackq eol=# tokens=1,* delims==" %%a in (".env") do (
         if not "%%a"=="" set "%%a=%%b"
     )
+    REM Set default user permissions if not in .env (Windows doesn't have id command)
+    if not defined USER_ID set "USER_ID=1000"
+    if not defined GROUP_ID set "GROUP_ID=1000"
     docker run -d ^
+      --user %USER_ID%:%GROUP_ID% ^
       --name sleeper-dashboard ^
       -p 8501:8501 ^
       --env-file .env ^

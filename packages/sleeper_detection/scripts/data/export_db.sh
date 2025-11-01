@@ -1,14 +1,26 @@
 #!/bin/bash
-# Export Sleeper Detection Database from Docker Container
-# Extracts evaluation_results.db from the sleeper-results Docker volume
+# Export Sleeper Detection Database from Container
+# Extracts evaluation_results.db from the sleeper-results volume
+# Supports both Docker and Podman
 
 set -e
 
 echo "========================================="
 echo "Sleeper Detection Database Export"
-echo "From Docker Container"
+echo "From Container"
 echo "========================================="
 echo ""
+
+# Detect container runtime (podman or docker)
+CONTAINER_CMD=""
+if command -v podman &> /dev/null; then
+    CONTAINER_CMD="podman"
+elif command -v docker &> /dev/null; then
+    CONTAINER_CMD="docker"
+else
+    echo "ERROR: Neither podman nor docker found. Please install one of them."
+    exit 1
+fi
 
 # Default values
 CONTAINER_NAME="sleeper-dashboard"
@@ -57,21 +69,15 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo "[1/5] Checking Docker..."
+echo "[1/5] Checking container runtime..."
 
-# Check if Docker is available
-if ! command -v docker &> /dev/null; then
-    echo "ERROR: Docker not found. Please install Docker."
-    exit 1
-fi
-
-echo "Docker found."
+echo "Using $CONTAINER_CMD"
 echo ""
 
 echo "[2/5] Checking container..."
 
 # Check if container is running
-if ! docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+if ! $CONTAINER_CMD ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
     echo "Container '${CONTAINER_NAME}' is not running. Starting it now..."
     echo ""
 
@@ -113,7 +119,7 @@ if ! docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q
     # Wait for container to start with polling
     echo "Waiting for container to start..."
     for i in {1..30}; do
-        if docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+        if $CONTAINER_CMD ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
             echo "Container started successfully."
             break
         fi
@@ -121,7 +127,7 @@ if ! docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q
             echo "ERROR: Container failed to start within 60 seconds."
             echo ""
             echo "Recent container logs:"
-            docker logs --tail 30 "${CONTAINER_NAME}" 2>&1 || echo "Could not retrieve logs"
+            $CONTAINER_CMD logs --tail 30 "${CONTAINER_NAME}" 2>&1 || echo "Could not retrieve logs"
             exit 1
         fi
         sleep 2
@@ -134,7 +140,7 @@ echo ""
 echo "[3/5] Checking database in container..."
 
 # Check if database exists in container
-if ! docker exec "${CONTAINER_NAME}" test -f "${DB_PATH}" 2>/dev/null; then
+if ! $CONTAINER_CMD exec "${CONTAINER_NAME}" test -f "${DB_PATH}" 2>/dev/null; then
     echo "ERROR: Database not found in container at ${DB_PATH}"
     echo ""
     echo "The database may not have been created yet."
@@ -143,7 +149,7 @@ if ! docker exec "${CONTAINER_NAME}" test -f "${DB_PATH}" 2>/dev/null; then
 fi
 
 # Get database size
-DB_SIZE=$(docker exec "${CONTAINER_NAME}" stat -c %s "${DB_PATH}" 2>/dev/null)
+DB_SIZE=$($CONTAINER_CMD exec "${CONTAINER_NAME}" stat -c %s "${DB_PATH}" 2>/dev/null)
 DB_SIZE_KB=$((DB_SIZE / 1024))
 echo "Database found in container: ${DB_PATH}"
 echo "Database size: ${DB_SIZE_KB} KB"
@@ -154,9 +160,9 @@ echo "[4/5] Exporting database..."
 # Create output directory
 mkdir -p "$(dirname "$OUTPUT_FILE")"
 
-# Export database to SQL dump using docker exec
+# Export database to SQL dump using container exec
 echo "Dumping database to SQL..."
-if ! docker exec "${CONTAINER_NAME}" sqlite3 "${DB_PATH}" .dump > "${OUTPUT_FILE}"; then
+if ! $CONTAINER_CMD exec "${CONTAINER_NAME}" sqlite3 "${DB_PATH}" .dump > "${OUTPUT_FILE}"; then
     echo "ERROR: Failed to export database"
     exit 1
 fi
