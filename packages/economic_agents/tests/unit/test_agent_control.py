@@ -1,7 +1,7 @@
 """Unit tests for agent control router and AgentManager."""
 
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from economic_agents.dashboard.agent_manager import AgentManager
@@ -31,10 +31,7 @@ async def clean_agent_manager():
     manager.should_stop = False
     manager.config = {}
 
-    # Mock file operations to avoid permission errors in tests
-    mock_file = MagicMock()
-    with patch("builtins.open", return_value=mock_file):
-        yield manager
+    yield manager
 
     # Cleanup
     if manager.is_running:
@@ -334,31 +331,45 @@ class TestAgentManager:
         """Test that agent actually runs cycles."""
         manager = clean_agent_manager
 
-        # Start agent
-        await manager.start_agent(mode="survival", max_cycles=10)
+        # Mock run_cycle at the class level before agent is created
+        async def mock_run_cycle(self):
+            """Fast mock that simulates successful cycle."""
+            await asyncio.sleep(0.01)  # Tiny delay to simulate work
+            return {"success": True}
 
-        # Let it run some cycles
-        await asyncio.sleep(1.5)
+        with patch("economic_agents.agent.core.autonomous_agent.AutonomousAgent.run_cycle", mock_run_cycle):
+            # Start agent (run_cycle is already mocked)
+            await manager.start_agent(mode="survival", max_cycles=10)
 
-        # Check that cycles were run
-        status = await manager.get_status()
-        assert status["cycle_count"] >= 1
-        assert status["is_running"] is True
+            # Let it run some cycles
+            await asyncio.sleep(0.5)
 
-        # Cleanup
-        await manager.stop_agent()
+            # Check that cycles were run
+            status = await manager.get_status()
+            assert status["cycle_count"] >= 1
+            assert status["is_running"] is True
+
+            # Cleanup
+            await manager.stop_agent()
 
     async def test_agent_stops_at_max_cycles(self, clean_agent_manager):
         """Test that agent stops when reaching max cycles."""
         manager = clean_agent_manager
 
-        # Start agent with very short cycle count
-        await manager.start_agent(mode="survival", max_cycles=3)
+        # Mock run_cycle at the class level before agent is created
+        async def mock_run_cycle(self):
+            """Fast mock that simulates successful cycle."""
+            await asyncio.sleep(0.01)  # Tiny delay to simulate work
+            return {"success": True}
 
-        # Wait for completion (3 cycles * 0.5s each = 1.5s minimum)
-        await asyncio.sleep(2.5)
+        with patch("economic_agents.agent.core.autonomous_agent.AutonomousAgent.run_cycle", mock_run_cycle):
+            # Start agent with very short cycle count (run_cycle is already mocked)
+            await manager.start_agent(mode="survival", max_cycles=3)
 
-        # Agent should have stopped automatically
-        status = await manager.get_status()
-        assert status["is_running"] is False
-        assert status["cycle_count"] == 3
+            # Wait for completion (3 cycles * 0.01s each + delays = ~0.2s)
+            await asyncio.sleep(2.0)
+
+            # Agent should have stopped automatically
+            status = await manager.get_status()
+            assert status["is_running"] is False
+            assert status["cycle_count"] == 3

@@ -83,13 +83,14 @@ class TestAutonomousAgentEngineSelection:
         assert "Invalid engine_type" in str(exc_info.value)
         assert "invalid_type" in str(exc_info.value)
 
+    @pytest.mark.asyncio
     @patch("economic_agents.agent.core.autonomous_agent.LLM_AVAILABLE", True)
     @patch("economic_agents.agent.core.autonomous_agent.LLMDecisionEngine")
     @patch("economic_agents.monitoring.resource_tracker.ResourceTracker._save_time_allocation")
     @patch("economic_agents.monitoring.resource_tracker.ResourceTracker._save_transaction")
     @patch("economic_agents.monitoring.resource_tracker.ResourceTracker._save_compute_usage")
     @patch("economic_agents.monitoring.metrics_collector.MetricsCollector._save_performance_snapshot")
-    def test_llm_engine_used_in_run_cycle(
+    async def test_llm_engine_used_in_run_cycle(
         self, mock_save_perf, mock_save_compute, mock_save_transaction, mock_save_time, mock_llm_class
     ):
         """Test that LLM engine is actually used during agent run cycle."""
@@ -111,9 +112,10 @@ class TestAutonomousAgentEngineSelection:
 
         config = {"engine_type": "llm"}
         agent = AutonomousAgent(wallet, compute, marketplace, config)
+        await agent.initialize()
 
         # Run one cycle
-        result = agent.run_cycle()
+        result = await agent.run_cycle()
 
         # Verify LLM engine was called
         mock_llm_engine.decide_allocation.assert_called_once()
@@ -177,7 +179,8 @@ class TestAutonomousAgentBackwardCompatibility:
 
         assert isinstance(agent.decision_engine, DecisionEngine)
 
-    def test_existing_config_without_engine_type_works(self):
+    @pytest.mark.asyncio
+    async def test_existing_config_without_engine_type_works(self):
         """Test that existing configs without engine_type still work."""
         wallet = MockWallet(initial_balance=100.0)
         compute = MockCompute(initial_hours=100.0)
@@ -190,15 +193,19 @@ class TestAutonomousAgentBackwardCompatibility:
             "mode": "company",
         }
         agent = AutonomousAgent(wallet, compute, marketplace, config)
+        await agent.initialize()
 
         assert isinstance(agent.decision_engine, DecisionEngine)
         assert agent.state.mode == "company"
 
+    @pytest.mark.asyncio
     @patch("economic_agents.monitoring.resource_tracker.ResourceTracker._save_time_allocation")
     @patch("economic_agents.monitoring.resource_tracker.ResourceTracker._save_transaction")
     @patch("economic_agents.monitoring.resource_tracker.ResourceTracker._save_compute_usage")
     @patch("economic_agents.monitoring.metrics_collector.MetricsCollector._save_performance_snapshot")
-    def test_rule_based_behavior_unchanged(self, mock_save_perf, mock_save_compute, mock_save_transaction, mock_save_time):
+    async def test_rule_based_behavior_unchanged(
+        self, mock_save_perf, mock_save_compute, mock_save_transaction, mock_save_time
+    ):
         """Test that rule-based engine behavior is unchanged."""
         wallet = MockWallet(initial_balance=50.0)
         compute = MockCompute(initial_hours=20.0)  # Below survival buffer
@@ -209,9 +216,10 @@ class TestAutonomousAgentBackwardCompatibility:
             "survival_buffer_hours": 24.0,
         }
         agent = AutonomousAgent(wallet, compute, marketplace, config)
+        await agent.initialize()
 
         # Run cycle
-        result = agent.run_cycle()
+        result = await agent.run_cycle()
 
         # Should prioritize task work (survival at risk)
         assert result["allocation"]["task_work_hours"] > 0
@@ -248,7 +256,8 @@ class TestDocumentationExamples:
         assert agent.config["llm_timeout"] == 900
         mock_llm_class.assert_called_once_with(config)
 
-    def test_example_rule_based_agent_creation(self):
+    @pytest.mark.asyncio
+    async def test_example_rule_based_agent_creation(self):
         """Test example from documentation for creating rule-based agent."""
         wallet = MockWallet(initial_balance=100.0)
         compute = MockCompute(initial_hours=100.0)
@@ -261,6 +270,7 @@ class TestDocumentationExamples:
         }
 
         agent = AutonomousAgent(wallet, compute, marketplace, config)
+        await agent.initialize()
 
         assert isinstance(agent.decision_engine, DecisionEngine)
         assert agent.state.survival_buffer_hours == 24.0

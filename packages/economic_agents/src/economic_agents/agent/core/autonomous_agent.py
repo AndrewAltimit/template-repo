@@ -30,13 +30,17 @@ except ImportError:
 class AutonomousAgent:
     """Primary autonomous agent that operates independently.
 
-    Note: This class uses an async initialization pattern.
-    After creating an instance, you must call `await agent.initialize()`
-    before running the agent or accessing agent.state.
+    Recommended Usage:
+        Use the factory method `create()` to ensure proper initialization:
 
-    Example:
+        agent = await AutonomousAgent.create(wallet, compute, marketplace)
+        await agent.run_cycle()  # Ready to use immediately
+
+    Manual Initialization (not recommended):
+        If you must use the constructor directly, you MUST call initialize():
+
         agent = AutonomousAgent(wallet, compute, marketplace)
-        await agent.initialize()
+        await agent.initialize()  # REQUIRED before use
         await agent.run_cycle()
     """
 
@@ -149,6 +153,39 @@ class AutonomousAgent:
                 "cycles_completed": self.state.cycles_completed,
             }
             self.dashboard_state.update_agent_state(agent_state_dict)
+
+    @classmethod
+    async def create(
+        cls,
+        wallet: MockWallet,
+        compute: MockCompute,
+        marketplace: MockMarketplace,
+        config: dict | None = None,
+        dashboard_state: Any | None = None,
+    ) -> "AutonomousAgent":
+        """Factory method to create and initialize an agent instance.
+
+        This is the recommended way to create agents as it ensures proper
+        initialization before use, preventing common initialization bugs.
+
+        Args:
+            wallet: Wallet implementation
+            compute: Compute provider implementation
+            marketplace: Marketplace implementation
+            config: Agent configuration (see __init__ for details)
+            dashboard_state: Optional dashboard state for real-time monitoring
+
+        Returns:
+            Fully initialized AutonomousAgent instance
+
+        Example:
+            agent = await AutonomousAgent.create(wallet, compute, marketplace)
+            # Agent is ready to use immediately
+            await agent.run_cycle()
+        """
+        agent = cls(wallet, compute, marketplace, config, dashboard_state)
+        await agent.initialize()
+        return agent
 
     async def run_cycle(self) -> Dict[str, Any]:
         """Execute one decision cycle.

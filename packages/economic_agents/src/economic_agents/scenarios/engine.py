@@ -1,5 +1,6 @@
 """Scenario engine for managing and running predefined scenarios."""
 
+import asyncio
 import json
 from datetime import datetime
 from pathlib import Path
@@ -176,9 +177,12 @@ class ScenarioEngine:
             config=agent_config,
         )
 
+        # Initialize agent asynchronously
+        asyncio.run(agent.initialize())
+
         # Run agent for specified duration
         max_cycles = int(scenario_config.duration_minutes / 5)  # Assume 5 min per cycle
-        agent.run(max_cycles=max_cycles)
+        asyncio.run(agent.run(max_cycles=max_cycles))
 
         # Extract agent data using the extractor helper
         agent_data: Dict[str, Any] = extract_agent_data(agent)
