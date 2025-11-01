@@ -1,41 +1,18 @@
 @echo off
-REM Export Sleeper Detection Database
-REM Creates a portable SQL dump of evaluation results for transfer to other machines
+REM Export Sleeper Detection Database from Docker Container
+REM Extracts evaluation_results.db from the sleeper-results Docker volume
 
 setlocal EnableDelayedExpansion
 
 echo =========================================
 echo Sleeper Detection Database Export
+echo From Docker Container
 echo =========================================
 echo.
 
 REM Default values
-REM Auto-detect database location by searching up directory tree
-set "DB_PATH="
-set "SEARCH_DIR=%CD%"
-
-REM Try to find packages\sleeper_detection\dashboard\evaluation_results.db
-:find_db_loop
-if exist "%SEARCH_DIR%\packages\sleeper_detection\dashboard\evaluation_results.db" (
-    set "DB_PATH=%SEARCH_DIR%\packages\sleeper_detection\dashboard\evaluation_results.db"
-    goto found_db
-)
-if exist "%SEARCH_DIR%\dashboard\evaluation_results.db" (
-    set "DB_PATH=%SEARCH_DIR%\dashboard\evaluation_results.db"
-    goto found_db
-)
-REM Move up one directory
-for %%I in ("%SEARCH_DIR%\..") do set "SEARCH_DIR=%%~fI"
-REM Stop if we reached root
-if "%SEARCH_DIR:~-1%"==":" goto find_db_done
-if "%SEARCH_DIR%"=="%SEARCH_DIR:~0,3%" goto find_db_done
-goto find_db_loop
-
-:find_db_done
-REM Fallback to container path
-set "DB_PATH=\results\evaluation_results.db"
-
-:found_db
+set "CONTAINER_NAME=sleeper-dashboard"
+set "DB_PATH=/results/evaluation_results.db"
 set "OUTPUT_DIR=.\db_exports"
 for /f "tokens=1-4 delims=/ " %%a in ('date /t') do (set DATESTR=%%c%%a%%b)
 for /f "tokens=1-2 delims=: " %%a in ('time /t') do (set TIMESTR=%%a%%b)
@@ -44,9 +21,9 @@ set "OUTPUT_FILE=%OUTPUT_DIR%\evaluation_results_%TIMESTAMP%.sql"
 
 REM Parse arguments
 :parse_args
-if "%~1"=="" goto check_db
-if /i "%~1"=="--db-path" (
-    set "DB_PATH=%~2"
+if "%~1"=="" goto check_docker
+if /i "%~1"=="--container" (
+    set "CONTAINER_NAME=%~2"
     shift
     shift
     goto parse_args
@@ -73,97 +50,158 @@ exit /b 1
 :show_help
 echo Usage: %~nx0 [OPTIONS]
 echo.
+echo Exports the evaluation results database from a running Docker container.
+echo.
 echo Options:
-echo   --db-path PATH       Path to database file (default: auto-detect)
+echo   --container NAME     Container name (default: sleeper-dashboard)
 echo   --output-dir DIR     Output directory (default: .\db_exports)
 echo   --output-file FILE   Output file path (overrides --output-dir)
 echo   -h, --help          Show this help message
 echo.
-echo Database auto-detection:
-echo   - Searches up directory tree for packages\sleeper_detection\dashboard\evaluation_results.db
-echo   - Also checks for dashboard\evaluation_results.db (if in sleeper_detection dir)
-echo   - Falls back to \results\evaluation_results.db (container volume)
-echo.
 echo Examples:
 echo   %~nx0
-echo   %~nx0 --db-path D:\path\to\results.db
-echo   %~nx0 --output-dir D:\backup\location
+echo   %~nx0 --container my-dashboard
+echo   %~nx0 --output-dir D:\backups
 exit /b 0
 
-:check_db
-echo [1/4] Checking database...
+:check_docker
+echo [1/5] Checking Docker...
 
-REM Check if database exists
-if not exist "%DB_PATH%" (
-    echo ERROR: Database not found
-    echo.
-    echo Searched from: %CD%
-    echo Auto-detection failed to find database in directory tree.
-    echo.
-    echo Please specify the database path with --db-path option.
-    echo Example: %~nx0 --db-path D:\Unreal\Repos\template-repo\packages\sleeper_detection\dashboard\evaluation_results.db
-    echo.
-    echo Or ensure you are in the sleeper_detection directory tree.
-    exit /b 1
-)
-
-echo Database found: %DB_PATH%
-for %%A in ("%DB_PATH%") do set "DB_SIZE=%%~zA"
-set /a "DB_SIZE_KB=%DB_SIZE%/1024"
-echo Database size: %DB_SIZE_KB% KB
-echo.
-
-echo [2/4] Analyzing database contents...
-
-REM Check if sqlite3 is available
-where sqlite3 >nul 2>nul
+REM Check if Docker is available
+where docker >nul 2>nul
 if %ERRORLEVEL% NEQ 0 (
-    echo WARNING: sqlite3 not found in PATH
-    echo Please install SQLite from https://www.sqlite.org/download.html
-    echo Or ensure sqlite3.exe is in your PATH
+    echo ERROR: Docker not found. Please install Docker Desktop.
     exit /b 1
 )
 
-REM Count records in each table
-echo Tables found:
-for /f "delims=" %%T in ('sqlite3 "%DB_PATH%" "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"') do (
-    for /f %%C in ('sqlite3 "%DB_PATH%" "SELECT COUNT(*) FROM %%T;"') do (
-        echo   - %%T: %%C records
+echo Docker found.
+echo.
+
+echo [2/5] Checking container...
+
+REM Check if container is running
+docker ps --filter "name=%CONTAINER_NAME%" --format "{{.Names}}" | findstr /C:"%CONTAINER_NAME%" >nul
+if %ERRORLEVEL% NEQ 0 (
+    echo Container '%CONTAINER_NAME%' is not running. Starting it now...
+    echo.
+
+    REM Find and run start script
+    set "START_SCRIPT="
+    if exist "..\..\dashboard\start.bat" (
+        set "START_SCRIPT=..\..\dashboard\start.bat"
+    ) else if exist "..\..\..\dashboard\start.bat" (
+        set "START_SCRIPT=..\..\..\dashboard\start.bat"
+    ) else (
+        REM Search up directory tree
+        set "SEARCH_DIR=%CD%"
+        :find_start_loop
+        if exist "!SEARCH_DIR!\packages\sleeper_detection\dashboard\start.bat" (
+            set "START_SCRIPT=!SEARCH_DIR!\packages\sleeper_detection\dashboard\start.bat"
+            goto found_start
+        )
+        if exist "!SEARCH_DIR!\dashboard\start.bat" (
+            set "START_SCRIPT=!SEARCH_DIR!\dashboard\start.bat"
+            goto found_start
+        )
+        for %%I in ("!SEARCH_DIR!\..") do set "SEARCH_DIR=%%~fI"
+        if "!SEARCH_DIR:~-1!"==":" goto find_start_done
+        if "!SEARCH_DIR!"=="!SEARCH_DIR:~0,3!" goto find_start_done
+        goto find_start_loop
+        :find_start_done
     )
+    :found_start
+
+    if "!START_SCRIPT!"=="" (
+        echo ERROR: Could not find dashboard start.bat script
+        echo.
+        echo Please start the dashboard manually:
+        echo   cd packages\sleeper_detection\dashboard
+        echo   start.bat
+        exit /b 1
+    )
+
+    echo Found start script: !START_SCRIPT!
+    echo Starting dashboard container...
+    call "!START_SCRIPT!" >nul 2>&1
+
+    REM Wait a few seconds for container to start
+    echo Waiting for container to start...
+    timeout /t 10 /nobreak >nul
+
+    REM Verify container is now running
+    docker ps --filter "name=%CONTAINER_NAME%" --format "{{.Names}}" | findstr /C:"%CONTAINER_NAME%" >nul
+    if %ERRORLEVEL% NEQ 0 (
+        echo ERROR: Failed to start container '%CONTAINER_NAME%'
+        echo Please check the dashboard logs for errors.
+        exit /b 1
+    )
+
+    echo Container started successfully.
 )
+
+echo Container '%CONTAINER_NAME%' is running.
 echo.
 
-echo [3/4] Creating export directory...
-if not exist "%OUTPUT_FILE%\.." mkdir "%OUTPUT_FILE%\.."
-echo Export will be saved to: %OUTPUT_FILE%
-echo.
+echo [3/5] Checking database in container...
 
-echo [4/4] Exporting database...
-
-REM Export to SQL dump
-sqlite3 "%DB_PATH%" .dump > "%OUTPUT_FILE%"
-
-if %ERRORLEVEL% EQU 0 (
-    for %%A in ("%OUTPUT_FILE%") do set "EXPORT_SIZE=%%~zA"
-    set /a "EXPORT_SIZE_KB=!EXPORT_SIZE!/1024"
+REM Check if database exists in container
+docker exec %CONTAINER_NAME% test -f %DB_PATH% 2>nul
+if %ERRORLEVEL% NEQ 0 (
+    echo ERROR: Database not found in container at %DB_PATH%
     echo.
-    echo =========================================
-    echo Export Complete!
-    echo =========================================
-    echo.
-    echo Export file: %OUTPUT_FILE%
-    echo Export size: !EXPORT_SIZE_KB! KB
-    echo.
-    echo To import on another machine:
-    echo   .\scripts\data\import_db.bat --sql-file %OUTPUT_FILE%
-    echo.
-    echo Or manually:
-    echo   sqlite3 \results\evaluation_results.db ^< %OUTPUT_FILE%
-    echo.
-) else (
-    echo.
-    echo ERROR: Export failed
+    echo The database may not have been created yet.
+    echo Run an evaluation job first to create the database.
     exit /b 1
 )
+
+REM Get database size
+for /f %%s in ('docker exec %CONTAINER_NAME% stat -c %%s %DB_PATH% 2^>nul') do set DB_SIZE=%%s
+set /a "DB_SIZE_KB=!DB_SIZE!/1024"
+echo Database found in container: %DB_PATH%
+echo Database size: !DB_SIZE_KB! KB
+echo.
+
+echo [4/5] Exporting database...
+
+REM Create output directory
+if not exist "%OUTPUT_FILE%\.." mkdir "%OUTPUT_FILE%\.."
+
+REM Export database to SQL dump using docker exec
+echo Dumping database to SQL...
+docker exec %CONTAINER_NAME% sqlite3 %DB_PATH% .dump > "%OUTPUT_FILE%"
+
+if %ERRORLEVEL% NEQ 0 (
+    echo ERROR: Failed to export database
+    exit /b 1
+)
+
+echo Export completed.
+echo.
+
+echo [5/5] Verifying export...
+
+if not exist "%OUTPUT_FILE%" (
+    echo ERROR: Export file not created
+    exit /b 1
+)
+
+for %%A in ("%OUTPUT_FILE%") do set "EXPORT_SIZE=%%~zA"
+set /a "EXPORT_SIZE_KB=!EXPORT_SIZE!/1024"
+
+echo.
+echo =========================================
+echo Export Complete!
+echo =========================================
+echo.
+echo Export file: %OUTPUT_FILE%
+echo Export size: !EXPORT_SIZE_KB! KB
+echo.
+echo To import on another machine:
+echo   1. Copy the file to the other machine
+echo   2. Run: import_db_to_container.bat --sql-file %OUTPUT_FILE%
+echo.
+echo Or to view locally:
+echo   sqlite3 "%OUTPUT_FILE%"
+echo.
 
 endlocal

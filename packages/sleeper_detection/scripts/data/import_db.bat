@@ -1,50 +1,26 @@
 @echo off
-REM Import Sleeper Detection Database
-REM Imports SQL dump from another machine into local evaluation results database
+REM Import Sleeper Detection Database to Docker Container
+REM Imports SQL dump into the sleeper-results Docker volume
 
 setlocal EnableDelayedExpansion
 
 echo =========================================
 echo Sleeper Detection Database Import
+echo To Docker Container
 echo =========================================
 echo.
 
 REM Default values
-REM Auto-detect database location by searching up directory tree
-set "DB_PATH="
-set "SEARCH_DIR=%CD%"
-
-REM Try to find packages\sleeper_detection\dashboard\evaluation_results.db
-:find_import_db_loop
-if exist "%SEARCH_DIR%\packages\sleeper_detection\dashboard\evaluation_results.db" (
-    set "DB_PATH=%SEARCH_DIR%\packages\sleeper_detection\dashboard\evaluation_results.db"
-    goto found_import_db
-)
-if exist "%SEARCH_DIR%\dashboard\evaluation_results.db" (
-    set "DB_PATH=%SEARCH_DIR%\dashboard\evaluation_results.db"
-    goto found_import_db
-)
-REM Move up one directory
-for %%I in ("%SEARCH_DIR%\..") do set "SEARCH_DIR=%%~fI"
-REM Stop if we reached root
-if "%SEARCH_DIR:~-1%"==":" goto find_import_db_done
-if "%SEARCH_DIR%"=="%SEARCH_DIR:~0,3%" goto find_import_db_done
-goto find_import_db_loop
-
-:find_import_db_done
-REM Fallback to container path
-set "DB_PATH=\results\evaluation_results.db"
-
-:found_import_db
+set "CONTAINER_NAME=sleeper-dashboard"
+set "DB_PATH=/results/evaluation_results.db"
 set "SQL_FILE="
 set "BACKUP_EXISTING=true"
-set "MERGE_MODE=false"
 
 REM Parse arguments
 :parse_args
 if "%~1"=="" goto validate_args
-if /i "%~1"=="--db-path" (
-    set "DB_PATH=%~2"
+if /i "%~1"=="--container" (
+    set "CONTAINER_NAME=%~2"
     shift
     shift
     goto parse_args
@@ -60,11 +36,6 @@ if /i "%~1"=="--no-backup" (
     shift
     goto parse_args
 )
-if /i "%~1"=="--merge" (
-    set "MERGE_MODE=true"
-    shift
-    goto parse_args
-)
 if /i "%~1"=="-h" goto show_help
 if /i "%~1"=="--help" goto show_help
 
@@ -75,24 +46,20 @@ exit /b 1
 :show_help
 echo Usage: %~nx0 --sql-file FILE [OPTIONS]
 echo.
+echo Imports an SQL dump file into the evaluation results database in a Docker container.
+echo.
 echo Required:
 echo   --sql-file FILE      SQL dump file to import
 echo.
 echo Options:
-echo   --db-path PATH       Target database path (default: auto-detect)
+echo   --container NAME     Container name (default: sleeper-dashboard)
 echo   --no-backup          Skip backing up existing database
-echo   --merge              Merge with existing data instead of replacing
 echo   -h, --help          Show this help message
-echo.
-echo Database auto-detection:
-echo   - Searches up directory tree for packages\sleeper_detection\dashboard\evaluation_results.db
-echo   - Also checks for dashboard\evaluation_results.db (if in sleeper_detection dir)
-echo   - Falls back to \results\evaluation_results.db (container volume)
 echo.
 echo Examples:
 echo   %~nx0 --sql-file db_exports\evaluation_results_20250101_120000.sql
-echo   %~nx0 --sql-file export.sql --db-path D:\custom\path\results.db
-echo   %~nx0 --sql-file export.sql --merge --no-backup
+echo   %~nx0 --sql-file export.sql --container my-dashboard
+echo   %~nx0 --sql-file export.sql --no-backup
 exit /b 0
 
 :validate_args
@@ -102,151 +69,109 @@ if "%SQL_FILE%"=="" (
     exit /b 1
 )
 
-echo [1/5] Checking SQL file...
+echo [1/4] Checking SQL file...
 
-REM Check if SQL file exists
 if not exist "%SQL_FILE%" (
     echo ERROR: SQL file not found: %SQL_FILE%
     exit /b 1
 )
 
-echo SQL file found: %SQL_FILE%
 for %%A in ("%SQL_FILE%") do set "SQL_SIZE=%%~zA"
 set /a "SQL_SIZE_KB=%SQL_SIZE%/1024"
-echo SQL file size: %SQL_SIZE_KB% KB
-
-REM Quick validation of SQL file
-findstr /C:"CREATE TABLE" "%SQL_FILE%" >nul
-if %ERRORLEVEL% NEQ 0 (
-    echo WARNING: SQL file may not contain table definitions
-    set /p "response=Continue anyway? (y/N): "
-    if /i not "!response!"=="y" (
-        echo Import cancelled
-        exit /b 1
-    )
-)
+echo SQL file found: %SQL_FILE%
+echo SQL file size: !SQL_SIZE_KB! KB
 echo.
 
-echo [2/5] Checking target database...
+echo [2/4] Checking container...
 
-REM Check if sqlite3 is available
-where sqlite3 >nul 2>nul
+REM Check if Docker is available
+where docker >nul 2>nul
 if %ERRORLEVEL% NEQ 0 (
-    echo ERROR: sqlite3 not found in PATH
-    echo Please install SQLite from https://www.sqlite.org/download.html
-    echo Or ensure sqlite3.exe is in your PATH
+    echo ERROR: Docker not found. Please install Docker Desktop.
     exit /b 1
 )
 
-REM Check if target database exists
-set "DB_EXISTS=false"
-if exist "%DB_PATH%" (
-    set "DB_EXISTS=true"
-    for %%A in ("%DB_PATH%") do set "DB_SIZE=%%~zA"
-    set /a "DB_SIZE_KB=!DB_SIZE!/1024"
-    echo Existing database found: %DB_PATH%
-    echo Existing database size: !DB_SIZE_KB! KB
+REM Check if container is running
+docker ps --filter "name=%CONTAINER_NAME%" --format "{{.Names}}" | findstr /C:"%CONTAINER_NAME%" >nul
+if %ERRORLEVEL% NEQ 0 (
+    echo Container '%CONTAINER_NAME%' is not running. Starting it now...
+    echo.
 
-    REM Count existing records
-    echo Existing data:
-    for /f "delims=" %%T in ('sqlite3 "%DB_PATH%" "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;" 2^>nul') do (
-        for /f %%C in ('sqlite3 "%DB_PATH%" "SELECT COUNT(*) FROM %%T;" 2^>nul') do (
-            echo   - %%T: %%C records
-        )
+    REM Find and run start script (same logic as export script)
+    set "START_SCRIPT="
+    set "SEARCH_DIR=%CD%"
+    :find_import_start_loop
+    if exist "!SEARCH_DIR!\packages\sleeper_detection\dashboard\start.bat" (
+        set "START_SCRIPT=!SEARCH_DIR!\packages\sleeper_detection\dashboard\start.bat"
+        goto found_import_start
     )
-) else (
-    echo No existing database found ^(will create new^)
+    if exist "!SEARCH_DIR!\dashboard\start.bat" (
+        set "START_SCRIPT=!SEARCH_DIR!\dashboard\start.bat"
+        goto found_import_start
+    )
+    for %%I in ("!SEARCH_DIR!\..") do set "SEARCH_DIR=%%~fI"
+    if "!SEARCH_DIR:~-1!"==":" goto find_import_start_done
+    goto find_import_start_loop
+    :find_import_start_done
+    :found_import_start
+
+    if "!START_SCRIPT!"=="" (
+        echo ERROR: Could not find dashboard start.bat script
+        exit /b 1
+    )
+
+    call "!START_SCRIPT!" >nul 2>&1
+    timeout /t 10 /nobreak >nul
 )
+
+echo Container '%CONTAINER_NAME%' is running.
 echo.
 
-echo [3/5] Backup and preparation...
+echo [3/4] Backup and import...
 
-set "BACKUP_FILE="
-if "%DB_EXISTS%"=="true" (
-    if "%BACKUP_EXISTING%"=="true" (
+if "%BACKUP_EXISTING%"=="true" (
+    REM Check if database exists and backup
+    docker exec %CONTAINER_NAME% test -f %DB_PATH% 2>nul
+    if %ERRORLEVEL% EQU 0 (
         for /f "tokens=1-4 delims=/ " %%a in ('date /t') do (set DATESTR=%%c%%a%%b)
         for /f "tokens=1-2 delims=: " %%a in ('time /t') do (set TIMESTR=%%a%%b)
-        set "BACKUP_FILE=%DB_PATH%.backup.!DATESTR!_!TIMESTR!"
-        echo Creating backup: !BACKUP_FILE!
-        copy "%DB_PATH%" "!BACKUP_FILE!" >nul
-        echo Backup created successfully
-
-        if "%MERGE_MODE%"=="false" (
-            echo Removing existing database ^(replace mode^)
-            del "%DB_PATH%"
-        )
-    ) else if "%MERGE_MODE%"=="false" (
-        echo WARNING: Existing database will be replaced without backup
-        set /p "response=Continue? (y/N): "
-        if /i not "!response!"=="y" (
-            echo Import cancelled
-            exit /b 1
-        )
-        del "%DB_PATH%"
+        set "BACKUP_PATH=%DB_PATH%.backup.!DATESTR!_!TIMESTR!"
+        echo Creating backup in container: !BACKUP_PATH!
+        docker exec %CONTAINER_NAME% cp %DB_PATH% !BACKUP_PATH!
     )
 )
 
-REM Create parent directory if needed
-if not exist "%DB_PATH%\.." mkdir "%DB_PATH%\.."
-echo.
-
-echo [4/5] Importing database...
-
-if "%MERGE_MODE%"=="true" (
-    echo Merge mode: Importing into existing database
-    echo WARNING: Duplicate primary keys may cause import errors
-    sqlite3 "%DB_PATH%" < "%SQL_FILE%" 2>nul
-) else (
-    echo Replace mode: Creating fresh database
-    sqlite3 "%DB_PATH%" < "%SQL_FILE%"
-)
+echo Importing database...
+REM Import SQL file into container
+type "%SQL_FILE%" | docker exec -i %CONTAINER_NAME% sqlite3 %DB_PATH%
 
 if %ERRORLEVEL% NEQ 0 (
-    if "%MERGE_MODE%"=="false" (
-        echo ERROR: Import failed
-
-        REM Restore backup if exists
-        if not "!BACKUP_FILE!"=="" (
-            if exist "!BACKUP_FILE!" (
-                echo Restoring backup...
-                move /y "!BACKUP_FILE!" "%DB_PATH%" >nul
-                echo Backup restored
-            )
-        )
-        exit /b 1
-    ) else (
-        echo Import completed with warnings ^(merge mode^)
-    )
-) else (
-    echo Import completed
+    echo ERROR: Failed to import database
+    exit /b 1
 )
+
+echo Import completed.
 echo.
 
-echo [5/5] Verifying import...
+echo [4/4] Verifying import...
 
-REM Verify import
-for %%A in ("%DB_PATH%") do set "NEW_SIZE=%%~zA"
-set /a "NEW_SIZE_KB=!NEW_SIZE!/1024"
-echo New database size: !NEW_SIZE_KB! KB
-echo.
-echo Imported data:
-for /f "delims=" %%T in ('sqlite3 "%DB_PATH%" "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;"') do (
-    for /f %%C in ('sqlite3 "%DB_PATH%" "SELECT COUNT(*) FROM %%T;"') do (
-        echo   - %%T: %%C records
-    )
+REM Verify database exists
+docker exec %CONTAINER_NAME% test -f %DB_PATH%
+if %ERRORLEVEL% NEQ 0 (
+    echo ERROR: Database not found after import
+    exit /b 1
 )
-echo.
 
+echo.
 echo =========================================
 echo Import Complete!
 echo =========================================
 echo.
-echo Database location: %DB_PATH%
-if not "%BACKUP_FILE%"=="" (
-    echo Backup location: !BACKUP_FILE!
-)
+echo Database location (in container): %DB_PATH%
+echo Container name: %CONTAINER_NAME%
 echo.
-echo The database is now ready to use with the dashboard
+echo The dashboard can now use the imported data.
+echo Access at: http://localhost:8501
 echo.
 
 endlocal

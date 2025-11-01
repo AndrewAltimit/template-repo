@@ -1,37 +1,18 @@
 #!/bin/bash
-# Export Sleeper Detection Database
-# Creates a portable SQL dump of evaluation results for transfer to other machines
+# Export Sleeper Detection Database from Docker Container
+# Extracts evaluation_results.db from the sleeper-results Docker volume
 
 set -e
 
 echo "========================================="
 echo "Sleeper Detection Database Export"
+echo "From Docker Container"
 echo "========================================="
 echo ""
 
 # Default values
-# Auto-detect database location by searching up directory tree
-DB_PATH=""
-SEARCH_DIR="$(pwd)"
-
-# Try to find packages/sleeper_detection/dashboard/evaluation_results.db
-while [ "$SEARCH_DIR" != "/" ]; do
-    if [ -f "$SEARCH_DIR/packages/sleeper_detection/dashboard/evaluation_results.db" ]; then
-        DB_PATH="$SEARCH_DIR/packages/sleeper_detection/dashboard/evaluation_results.db"
-        break
-    fi
-    if [ -f "$SEARCH_DIR/dashboard/evaluation_results.db" ]; then
-        DB_PATH="$SEARCH_DIR/dashboard/evaluation_results.db"
-        break
-    fi
-    SEARCH_DIR="$(dirname "$SEARCH_DIR")"
-done
-
-# Fallback to container path
-if [ -z "$DB_PATH" ]; then
-    DB_PATH="/results/evaluation_results.db"
-fi
-
+CONTAINER_NAME="sleeper-dashboard"
+DB_PATH="/results/evaluation_results.db"
 OUTPUT_DIR="./db_exports"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 OUTPUT_FILE="${OUTPUT_DIR}/evaluation_results_${TIMESTAMP}.sql"
@@ -39,8 +20,8 @@ OUTPUT_FILE="${OUTPUT_DIR}/evaluation_results_${TIMESTAMP}.sql"
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --db-path)
-            DB_PATH="$2"
+        --container)
+            CONTAINER_NAME="$2"
             shift 2
             ;;
         --output-dir)
@@ -54,21 +35,18 @@ while [[ $# -gt 0 ]]; do
         -h|--help)
             echo "Usage: $0 [OPTIONS]"
             echo ""
+            echo "Exports the evaluation results database from a running Docker container."
+            echo ""
             echo "Options:"
-            echo "  --db-path PATH       Path to database file (default: auto-detect)"
+            echo "  --container NAME     Container name (default: sleeper-dashboard)"
             echo "  --output-dir DIR     Output directory (default: ./db_exports)"
             echo "  --output-file FILE   Output file path (overrides --output-dir)"
             echo "  -h, --help          Show this help message"
             echo ""
-            echo "Database auto-detection:"
-            echo "  - Searches up directory tree for packages/sleeper_detection/dashboard/evaluation_results.db"
-            echo "  - Also checks for dashboard/evaluation_results.db (if in sleeper_detection dir)"
-            echo "  - Falls back to /results/evaluation_results.db (container volume)"
-            echo ""
             echo "Examples:"
             echo "  $0"
-            echo "  $0 --db-path /custom/path/results.db"
-            echo "  $0 --output-dir /backup/location"
+            echo "  $0 --container my-dashboard"
+            echo "  $0 --output-dir /backups"
             exit 0
             ;;
         *)
@@ -79,69 +57,130 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo "[1/4] Checking database..."
+echo "[1/5] Checking Docker..."
 
-# Check if database exists
-if [ ! -f "$DB_PATH" ]; then
-    echo "ERROR: Database not found"
-    echo ""
-    echo "Searched from: $(pwd)"
-    echo "Auto-detection failed to find database in directory tree."
-    echo ""
-    echo "Please specify the database path with --db-path option."
-    echo "Example: $0 --db-path /path/to/sleeper_detection/dashboard/evaluation_results.db"
-    echo ""
-    echo "Or ensure you are in the sleeper_detection directory tree."
+# Check if Docker is available
+if ! command -v docker &> /dev/null; then
+    echo "ERROR: Docker not found. Please install Docker."
     exit 1
 fi
 
-echo "Database found: $DB_PATH"
-DB_SIZE=$(du -h "$DB_PATH" | cut -f1)
-echo "Database size: $DB_SIZE"
+echo "Docker found."
 echo ""
 
-echo "[2/4] Analyzing database contents..."
+echo "[2/5] Checking container..."
 
-# Count records in each table
-TABLES=$(sqlite3 "$DB_PATH" "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
+# Check if container is running
+if ! docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+    echo "Container '${CONTAINER_NAME}' is not running. Starting it now..."
+    echo ""
 
-if [ -z "$TABLES" ]; then
-    echo "WARNING: Database has no tables"
-else
-    echo "Tables found:"
-    for table in $TABLES; do
-        COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM $table;")
-        echo "  - $table: $COUNT records"
-    done
+    # Find and run start script
+    START_SCRIPT=""
+    if [ -f "../../dashboard/start.sh" ]; then
+        START_SCRIPT="../../dashboard/start.sh"
+    elif [ -f "../../../dashboard/start.sh" ]; then
+        START_SCRIPT="../../../dashboard/start.sh"
+    else
+        # Search up directory tree
+        SEARCH_DIR="$(pwd)"
+        while [ "$SEARCH_DIR" != "/" ]; do
+            if [ -f "$SEARCH_DIR/packages/sleeper_detection/dashboard/start.sh" ]; then
+                START_SCRIPT="$SEARCH_DIR/packages/sleeper_detection/dashboard/start.sh"
+                break
+            fi
+            if [ -f "$SEARCH_DIR/dashboard/start.sh" ]; then
+                START_SCRIPT="$SEARCH_DIR/dashboard/start.sh"
+                break
+            fi
+            SEARCH_DIR="$(dirname "$SEARCH_DIR")"
+        done
+    fi
+
+    if [ -z "$START_SCRIPT" ]; then
+        echo "ERROR: Could not find dashboard start.sh script"
+        echo ""
+        echo "Please start the dashboard manually:"
+        echo "  cd packages/sleeper_detection/dashboard"
+        echo "  ./start.sh"
+        exit 1
+    fi
+
+    echo "Found start script: $START_SCRIPT"
+    echo "Starting dashboard container..."
+    bash "$START_SCRIPT" > /dev/null 2>&1 &
+
+    # Wait a few seconds for container to start
+    echo "Waiting for container to start..."
+    sleep 10
+
+    # Verify container is now running
+    if ! docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+        echo "ERROR: Failed to start container '${CONTAINER_NAME}'"
+        echo "Please check the dashboard logs for errors."
+        exit 1
+    fi
+
+    echo "Container started successfully."
 fi
+
+echo "Container '${CONTAINER_NAME}' is running."
 echo ""
 
-echo "[3/4] Creating export directory..."
+echo "[3/5] Checking database in container..."
+
+# Check if database exists in container
+if ! docker exec "${CONTAINER_NAME}" test -f "${DB_PATH}" 2>/dev/null; then
+    echo "ERROR: Database not found in container at ${DB_PATH}"
+    echo ""
+    echo "The database may not have been created yet."
+    echo "Run an evaluation job first to create the database."
+    exit 1
+fi
+
+# Get database size
+DB_SIZE=$(docker exec "${CONTAINER_NAME}" stat -c %s "${DB_PATH}" 2>/dev/null)
+DB_SIZE_KB=$((DB_SIZE / 1024))
+echo "Database found in container: ${DB_PATH}"
+echo "Database size: ${DB_SIZE_KB} KB"
+echo ""
+
+echo "[4/5] Exporting database..."
+
+# Create output directory
 mkdir -p "$(dirname "$OUTPUT_FILE")"
-echo "Export will be saved to: $OUTPUT_FILE"
-echo ""
 
-echo "[4/4] Exporting database..."
-
-# Export to SQL dump
-if sqlite3 "$DB_PATH" .dump > "$OUTPUT_FILE"; then
-    EXPORT_SIZE=$(du -h "$OUTPUT_FILE" | cut -f1)
-    echo ""
-    echo "========================================="
-    echo "Export Complete!"
-    echo "========================================="
-    echo ""
-    echo "Export file: $OUTPUT_FILE"
-    echo "Export size: $EXPORT_SIZE"
-    echo ""
-    echo "To import on another machine:"
-    echo "  ./scripts/data/import_db.sh --sql-file $OUTPUT_FILE"
-    echo ""
-    echo "Or manually:"
-    echo "  sqlite3 /results/evaluation_results.db < $OUTPUT_FILE"
-    echo ""
-else
-    echo ""
-    echo "ERROR: Export failed"
+# Export database to SQL dump using docker exec
+echo "Dumping database to SQL..."
+if ! docker exec "${CONTAINER_NAME}" sqlite3 "${DB_PATH}" .dump > "${OUTPUT_FILE}"; then
+    echo "ERROR: Failed to export database"
     exit 1
 fi
+
+echo "Export completed."
+echo ""
+
+echo "[5/5] Verifying export..."
+
+if [ ! -f "$OUTPUT_FILE" ]; then
+    echo "ERROR: Export file not created"
+    exit 1
+fi
+
+EXPORT_SIZE=$(du -h "$OUTPUT_FILE" | cut -f1)
+
+echo ""
+echo "========================================="
+echo "Export Complete!"
+echo "========================================="
+echo ""
+echo "Export file: $OUTPUT_FILE"
+echo "Export size: $EXPORT_SIZE"
+echo ""
+echo "To import on another machine:"
+echo "  1. Copy the file to the other machine"
+echo "  2. Run: ./import_db_to_container.sh --sql-file $OUTPUT_FILE"
+echo ""
+echo "Or to view locally:"
+echo "  sqlite3 $OUTPUT_FILE"
+echo ""

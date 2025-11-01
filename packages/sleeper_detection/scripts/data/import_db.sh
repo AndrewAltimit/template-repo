@@ -1,46 +1,26 @@
 #!/bin/bash
-# Import Sleeper Detection Database
-# Imports SQL dump from another machine into local evaluation results database
+# Import Sleeper Detection Database to Docker Container
+# Imports SQL dump into the sleeper-results Docker volume
 
 set -e
 
 echo "========================================="
 echo "Sleeper Detection Database Import"
+echo "To Docker Container"
 echo "========================================="
 echo ""
 
 # Default values
-# Auto-detect database location by searching up directory tree
-DB_PATH=""
-SEARCH_DIR="$(pwd)"
-
-# Try to find packages/sleeper_detection/dashboard/evaluation_results.db
-while [ "$SEARCH_DIR" != "/" ]; do
-    if [ -d "$SEARCH_DIR/packages/sleeper_detection/dashboard" ]; then
-        DB_PATH="$SEARCH_DIR/packages/sleeper_detection/dashboard/evaluation_results.db"
-        break
-    fi
-    if [ -d "$SEARCH_DIR/dashboard" ]; then
-        DB_PATH="$SEARCH_DIR/dashboard/evaluation_results.db"
-        break
-    fi
-    SEARCH_DIR="$(dirname "$SEARCH_DIR")"
-done
-
-# Fallback to container path
-if [ -z "$DB_PATH" ]; then
-    DB_PATH="/results/evaluation_results.db"
-fi
-
+CONTAINER_NAME="sleeper-dashboard"
+DB_PATH="/results/evaluation_results.db"
 SQL_FILE=""
 BACKUP_EXISTING=true
-MERGE_MODE=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --db-path)
-            DB_PATH="$2"
+        --container)
+            CONTAINER_NAME="$2"
             shift 2
             ;;
         --sql-file)
@@ -51,31 +31,23 @@ while [[ $# -gt 0 ]]; do
             BACKUP_EXISTING=false
             shift
             ;;
-        --merge)
-            MERGE_MODE=true
-            shift
-            ;;
         -h|--help)
             echo "Usage: $0 --sql-file FILE [OPTIONS]"
+            echo ""
+            echo "Imports an SQL dump file into the evaluation results database in a Docker container."
             echo ""
             echo "Required:"
             echo "  --sql-file FILE      SQL dump file to import"
             echo ""
             echo "Options:"
-            echo "  --db-path PATH       Target database path (default: auto-detect)"
+            echo "  --container NAME     Container name (default: sleeper-dashboard)"
             echo "  --no-backup          Skip backing up existing database"
-            echo "  --merge              Merge with existing data instead of replacing"
             echo "  -h, --help          Show this help message"
-            echo ""
-            echo "Database auto-detection:"
-            echo "  - Searches up directory tree for packages/sleeper_detection/dashboard/evaluation_results.db"
-            echo "  - Also checks for dashboard/evaluation_results.db (if in sleeper_detection dir)"
-            echo "  - Falls back to /results/evaluation_results.db (container volume)"
             echo ""
             echo "Examples:"
             echo "  $0 --sql-file db_exports/evaluation_results_20250101_120000.sql"
-            echo "  $0 --sql-file export.sql --db-path /custom/path/results.db"
-            echo "  $0 --sql-file export.sql --merge --no-backup"
+            echo "  $0 --sql-file export.sql --container my-dashboard"
+            echo "  $0 --sql-file export.sql --no-backup"
             exit 0
             ;;
         *)
@@ -93,138 +65,95 @@ if [ -z "$SQL_FILE" ]; then
     exit 1
 fi
 
-echo "[1/5] Checking SQL file..."
+echo "[1/4] Checking SQL file..."
 
-# Check if SQL file exists
 if [ ! -f "$SQL_FILE" ]; then
     echo "ERROR: SQL file not found: $SQL_FILE"
     exit 1
 fi
 
-echo "SQL file found: $SQL_FILE"
 SQL_SIZE=$(du -h "$SQL_FILE" | cut -f1)
+echo "SQL file found: $SQL_FILE"
 echo "SQL file size: $SQL_SIZE"
-
-# Quick validation of SQL file
-if ! grep -q "CREATE TABLE" "$SQL_FILE"; then
-    echo "WARNING: SQL file may not contain table definitions"
-    read -r -p "Continue anyway? (y/N): " response
-    if [[ ! "$response" =~ ^[Yy]$ ]]; then
-        echo "Import cancelled"
-        exit 1
-    fi
-fi
 echo ""
 
-echo "[2/5] Checking target database..."
+echo "[2/4] Checking container..."
 
-# Check if target database exists
-DB_EXISTS=false
-if [ -f "$DB_PATH" ]; then
-    DB_EXISTS=true
-    DB_SIZE=$(du -h "$DB_PATH" | cut -f1)
-    echo "Existing database found: $DB_PATH"
-    echo "Existing database size: $DB_SIZE"
-
-    # Count existing records
-    echo "Existing data:"
-    TABLES=$(sqlite3 "$DB_PATH" "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;" 2>/dev/null || echo "")
-    if [ -n "$TABLES" ]; then
-        for table in $TABLES; do
-            COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM $table;" 2>/dev/null || echo "0")
-            echo "  - $table: $COUNT records"
-        done
-    fi
-else
-    echo "No existing database found (will create new)"
-fi
-echo ""
-
-echo "[3/5] Backup and preparation..."
-
-if [ "$DB_EXISTS" = true ] && [ "$BACKUP_EXISTING" = true ]; then
-    BACKUP_FILE="${DB_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
-    echo "Creating backup: $BACKUP_FILE"
-    cp "$DB_PATH" "$BACKUP_FILE"
-    echo "Backup created successfully"
-
-    if [ "$MERGE_MODE" = false ]; then
-        echo "Removing existing database (replace mode)"
-        rm "$DB_PATH"
-    fi
-elif [ "$DB_EXISTS" = true ] && [ "$MERGE_MODE" = false ]; then
-    echo "WARNING: Existing database will be replaced without backup"
-    read -r -p "Continue? (y/N): " response
-    if [[ ! "$response" =~ ^[Yy]$ ]]; then
-        echo "Import cancelled"
-        exit 1
-    fi
-    rm "$DB_PATH"
-fi
-
-# Create parent directory if needed
-mkdir -p "$(dirname "$DB_PATH")"
-echo ""
-
-echo "[4/5] Importing database..."
-
-IMPORT_SUCCESS=false
-if [ "$MERGE_MODE" = true ]; then
-    echo "Merge mode: Importing into existing database"
-    # In merge mode, we import into existing database
-    # Duplicate primary keys will cause errors, so we need to handle that
-    echo "WARNING: Duplicate primary keys may cause import errors"
-    if sqlite3 "$DB_PATH" < "$SQL_FILE" 2>&1 | grep -v "UNIQUE constraint failed" || true; then
-        IMPORT_SUCCESS=true
-    fi
-else
-    echo "Replace mode: Creating fresh database"
-    if sqlite3 "$DB_PATH" < "$SQL_FILE"; then
-        IMPORT_SUCCESS=true
-    fi
-fi
-
-if [ "$IMPORT_SUCCESS" = true ] || [ "$MERGE_MODE" = true ]; then
-    echo "Import completed"
-else
-    echo "ERROR: Import failed"
-
-    # Restore backup if exists
-    if [ -n "$BACKUP_FILE" ] && [ -f "$BACKUP_FILE" ]; then
-        echo "Restoring backup..."
-        mv "$BACKUP_FILE" "$DB_PATH"
-        echo "Backup restored"
-    fi
+# Check if Docker is available
+if ! command -v docker &> /dev/null; then
+    echo "ERROR: Docker not found. Please install Docker."
     exit 1
 fi
-echo ""
 
-echo "[5/5] Verifying import..."
+# Check if container is running
+if ! docker ps --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -q "^${CONTAINER_NAME}$"; then
+    echo "Container '${CONTAINER_NAME}' is not running. Starting it now..."
+    echo ""
 
-# Verify import
-NEW_SIZE=$(du -h "$DB_PATH" | cut -f1)
-echo "New database size: $NEW_SIZE"
-echo ""
-echo "Imported data:"
-TABLES=$(sqlite3 "$DB_PATH" "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
-if [ -n "$TABLES" ]; then
-    for table in $TABLES; do
-        COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM $table;")
-        echo "  - $table: $COUNT records"
+    # Find and run start script
+    START_SCRIPT=""
+    SEARCH_DIR="$(pwd)"
+    while [ "$SEARCH_DIR" != "/" ]; do
+        if [ -f "$SEARCH_DIR/packages/sleeper_detection/dashboard/start.sh" ]; then
+            START_SCRIPT="$SEARCH_DIR/packages/sleeper_detection/dashboard/start.sh"
+            break
+        fi
+        if [ -f "$SEARCH_DIR/dashboard/start.sh" ]; then
+            START_SCRIPT="$SEARCH_DIR/dashboard/start.sh"
+            break
+        fi
+        SEARCH_DIR="$(dirname "$SEARCH_DIR")"
     done
-else
-    echo "WARNING: No tables found in database"
+
+    if [ -z "$START_SCRIPT" ]; then
+        echo "ERROR: Could not find dashboard start.sh script"
+        exit 1
+    fi
+
+    bash "$START_SCRIPT" > /dev/null 2>&1 &
+    sleep 10
 fi
+
+echo "Container '${CONTAINER_NAME}' is running."
 echo ""
 
+echo "[3/4] Backup and import..."
+
+if [ "$BACKUP_EXISTING" = true ]; then
+    # Check if database exists and backup
+    if docker exec "${CONTAINER_NAME}" test -f "${DB_PATH}" 2>/dev/null; then
+        BACKUP_PATH="${DB_PATH}.backup.$(date +%Y%m%d_%H%M%S)"
+        echo "Creating backup in container: ${BACKUP_PATH}"
+        docker exec "${CONTAINER_NAME}" cp "${DB_PATH}" "${BACKUP_PATH}"
+    fi
+fi
+
+echo "Importing database..."
+# Import SQL file into container
+if ! docker exec -i "${CONTAINER_NAME}" sqlite3 "${DB_PATH}" < "$SQL_FILE"; then
+    echo "ERROR: Failed to import database"
+    exit 1
+fi
+
+echo "Import completed."
+echo ""
+
+echo "[4/4] Verifying import..."
+
+# Verify database exists
+if ! docker exec "${CONTAINER_NAME}" test -f "${DB_PATH}"; then
+    echo "ERROR: Database not found after import"
+    exit 1
+fi
+
+echo ""
 echo "========================================="
 echo "Import Complete!"
 echo "========================================="
 echo ""
-echo "Database location: $DB_PATH"
-if [ "$BACKUP_EXISTING" = true ] && [ -n "$BACKUP_FILE" ]; then
-    echo "Backup location: $BACKUP_FILE"
-fi
+echo "Database location (in container): ${DB_PATH}"
+echo "Container name: ${CONTAINER_NAME}"
 echo ""
-echo "The database is now ready to use with the dashboard"
+echo "The dashboard can now use the imported data."
+echo "Access at: http://localhost:8501"
 echo ""
