@@ -187,17 +187,22 @@ else
     fi
 fi
 
-# Wait for startup
-sleep 3
-
-# Verify running
-if ! $CONTAINER_CMD ps | grep sleeper-dashboard &> /dev/null; then
-    echo "ERROR: Container not running after startup"
-    echo ""
-    echo "Logs:"
-    $CONTAINER_CMD logs sleeper-dashboard
-    exit 1
-fi
+# Wait for startup with polling
+echo "Waiting for container to be ready..."
+for i in {1..30}; do
+    if $CONTAINER_CMD ps --filter "name=sleeper-dashboard" --format "{{.Names}}" | grep -q "^sleeper-dashboard$"; then
+        echo "Container is ready."
+        break
+    fi
+    if [ "$i" -eq 30 ]; then
+        echo "ERROR: Container failed to become ready within 60 seconds."
+        echo ""
+        echo "Recent container logs:"
+        $CONTAINER_CMD logs --tail 30 sleeper-dashboard 2>&1 || echo "Could not retrieve logs"
+        exit 1
+    fi
+    sleep 2
+done
 
 echo ""
 echo "========================================="
