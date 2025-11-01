@@ -3,6 +3,7 @@
 # Automatically loads .env and configures everything
 
 set -e  # Exit on error
+set -o pipefail  # Fail on pipeline errors
 
 # Parse command-line flags
 FOLLOW_LOGS=true

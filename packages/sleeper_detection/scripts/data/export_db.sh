@@ -4,6 +4,7 @@
 # Supports both Docker and Podman
 
 set -e
+set -o pipefail
 
 echo "========================================="
 echo "Sleeper Detection Database Export"
