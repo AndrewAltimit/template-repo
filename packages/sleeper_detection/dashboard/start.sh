@@ -9,6 +9,12 @@ echo "Sleeper Detection Dashboard Startup"
 echo "========================================="
 echo ""
 
+# Export user/group IDs for proper file ownership in containers
+USER_ID=$(id -u)
+GROUP_ID=$(id -g)
+export USER_ID
+export GROUP_ID
+
 # Detect container runtime (podman or docker)
 echo "[1/7] Detecting container runtime..."
 CONTAINER_CMD=""
@@ -161,6 +167,7 @@ else
     echo "Using $CONTAINER_CMD run..."
     echo "Note: Loading environment variables from .env for $CONTAINER_CMD run..."
     if ! $CONTAINER_CMD run -d \
+      --user "$USER_ID:$GROUP_ID" \
       --name sleeper-dashboard \
       -p 8501:8501 \
       --env-file .env \
