@@ -10,7 +10,11 @@ echo =========================================
 echo.
 
 REM Default values
-set "DB_PATH=\results\evaluation_results.db"
+REM Auto-detect database location (try dashboard location first, then container path)
+set "DB_PATH=..\..\dashboard\evaluation_results.db"
+if not exist "%DB_PATH%" (
+    set "DB_PATH=\results\evaluation_results.db"
+)
 set "OUTPUT_DIR=.\db_exports"
 for /f "tokens=1-4 delims=/ " %%a in ('date /t') do (set DATESTR=%%c%%a%%b)
 for /f "tokens=1-2 delims=: " %%a in ('time /t') do (set TIMESTR=%%a%%b)
@@ -49,15 +53,19 @@ exit /b 1
 echo Usage: %~nx0 [OPTIONS]
 echo.
 echo Options:
-echo   --db-path PATH       Path to database file (default: \results\evaluation_results.db)
+echo   --db-path PATH       Path to database file (default: auto-detect)
 echo   --output-dir DIR     Output directory (default: .\db_exports)
 echo   --output-file FILE   Output file path (overrides --output-dir)
 echo   -h, --help          Show this help message
 echo.
+echo Default database locations (checked in order):
+echo   1. ..\..\dashboard\evaluation_results.db (Windows native)
+echo   2. \results\evaluation_results.db (container volume)
+echo.
 echo Examples:
 echo   %~nx0
-echo   %~nx0 --db-path \custom\path\results.db
-echo   %~nx0 --output-dir \backup\location
+echo   %~nx0 --db-path D:\path\to\results.db
+echo   %~nx0 --output-dir D:\backup\location
 exit /b 0
 
 :check_db
@@ -67,10 +75,12 @@ REM Check if database exists
 if not exist "%DB_PATH%" (
     echo ERROR: Database not found at: %DB_PATH%
     echo.
-    echo Common locations:
-    echo   - \results\evaluation_results.db ^(container volume^)
-    echo   - packages\sleeper_detection\dashboard\evaluation_results.db
-    echo   - Custom path specified in environment
+    echo Tried these locations:
+    echo   1. ..\..\dashboard\evaluation_results.db ^(Windows native^)
+    echo   2. \results\evaluation_results.db ^(container volume^)
+    echo.
+    echo Please specify the correct path with --db-path option.
+    echo Example: %~nx0 --db-path D:\path\to\evaluation_results.db
     exit /b 1
 )
 

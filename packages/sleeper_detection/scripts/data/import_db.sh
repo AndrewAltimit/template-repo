@@ -10,7 +10,11 @@ echo "========================================="
 echo ""
 
 # Default values
-DB_PATH="/results/evaluation_results.db"
+# Auto-detect database location (try dashboard location first, then container path)
+DB_PATH="../../dashboard/evaluation_results.db"
+if [ ! -d "$(dirname "$DB_PATH")" ]; then
+    DB_PATH="/results/evaluation_results.db"
+fi
 SQL_FILE=""
 BACKUP_EXISTING=true
 MERGE_MODE=false
@@ -41,10 +45,14 @@ while [[ $# -gt 0 ]]; do
             echo "  --sql-file FILE      SQL dump file to import"
             echo ""
             echo "Options:"
-            echo "  --db-path PATH       Target database path (default: /results/evaluation_results.db)"
+            echo "  --db-path PATH       Target database path (default: auto-detect)"
             echo "  --no-backup          Skip backing up existing database"
             echo "  --merge              Merge with existing data instead of replacing"
             echo "  -h, --help          Show this help message"
+            echo ""
+            echo "Default database locations (checked in order):"
+            echo "  1. ../../dashboard/evaluation_results.db (native installation)"
+            echo "  2. /results/evaluation_results.db (container volume)"
             echo ""
             echo "Examples:"
             echo "  $0 --sql-file db_exports/evaluation_results_20250101_120000.sql"

@@ -10,7 +10,11 @@ echo =========================================
 echo.
 
 REM Default values
-set "DB_PATH=\results\evaluation_results.db"
+REM Auto-detect database location (try dashboard location first, then container path)
+set "DB_PATH=..\..\dashboard\evaluation_results.db"
+if not exist "%DB_PATH%\.." (
+    set "DB_PATH=\results\evaluation_results.db"
+)
 set "SQL_FILE="
 set "BACKUP_EXISTING=true"
 set "MERGE_MODE=false"
@@ -54,14 +58,18 @@ echo Required:
 echo   --sql-file FILE      SQL dump file to import
 echo.
 echo Options:
-echo   --db-path PATH       Target database path (default: \results\evaluation_results.db)
+echo   --db-path PATH       Target database path (default: auto-detect)
 echo   --no-backup          Skip backing up existing database
 echo   --merge              Merge with existing data instead of replacing
 echo   -h, --help          Show this help message
 echo.
+echo Default database locations (checked in order):
+echo   1. ..\..\dashboard\evaluation_results.db (Windows native)
+echo   2. \results\evaluation_results.db (container volume)
+echo.
 echo Examples:
 echo   %~nx0 --sql-file db_exports\evaluation_results_20250101_120000.sql
-echo   %~nx0 --sql-file export.sql --db-path \custom\path\results.db
+echo   %~nx0 --sql-file export.sql --db-path D:\custom\path\results.db
 echo   %~nx0 --sql-file export.sql --merge --no-backup
 exit /b 0
 

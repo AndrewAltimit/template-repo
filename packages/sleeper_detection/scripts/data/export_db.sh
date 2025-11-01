@@ -10,7 +10,11 @@ echo "========================================="
 echo ""
 
 # Default values
-DB_PATH="/results/evaluation_results.db"
+# Auto-detect database location (try dashboard location first, then container path)
+DB_PATH="../../dashboard/evaluation_results.db"
+if [ ! -f "$DB_PATH" ]; then
+    DB_PATH="/results/evaluation_results.db"
+fi
 OUTPUT_DIR="./db_exports"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 OUTPUT_FILE="${OUTPUT_DIR}/evaluation_results_${TIMESTAMP}.sql"
@@ -34,10 +38,14 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --db-path PATH       Path to database file (default: /results/evaluation_results.db)"
+            echo "  --db-path PATH       Path to database file (default: auto-detect)"
             echo "  --output-dir DIR     Output directory (default: ./db_exports)"
             echo "  --output-file FILE   Output file path (overrides --output-dir)"
             echo "  -h, --help          Show this help message"
+            echo ""
+            echo "Default database locations (checked in order):"
+            echo "  1. ../../dashboard/evaluation_results.db (native installation)"
+            echo "  2. /results/evaluation_results.db (container volume)"
             echo ""
             echo "Examples:"
             echo "  $0"
@@ -59,10 +67,12 @@ echo "[1/4] Checking database..."
 if [ ! -f "$DB_PATH" ]; then
     echo "ERROR: Database not found at: $DB_PATH"
     echo ""
-    echo "Common locations:"
-    echo "  - /results/evaluation_results.db (container volume)"
-    echo "  - packages/sleeper_detection/dashboard/evaluation_results.db"
-    echo "  - Custom path specified in environment"
+    echo "Tried these locations:"
+    echo "  1. ../../dashboard/evaluation_results.db (native installation)"
+    echo "  2. /results/evaluation_results.db (container volume)"
+    echo ""
+    echo "Please specify the correct path with --db-path option."
+    echo "Example: $0 --db-path /path/to/evaluation_results.db"
     exit 1
 fi
 
