@@ -42,7 +42,7 @@ def create_test_business_plan(company_name="TestCorp") -> BusinessPlan:
 
 
 @pytest.fixture
-def agent_with_company():
+async def agent_with_company():
     """Create an autonomous agent with a company."""
     from datetime import datetime
 
@@ -51,6 +51,7 @@ def agent_with_company():
     marketplace = MockMarketplace()
 
     agent = AutonomousAgent(wallet, compute, marketplace, config={"company_threshold": 1000.0})
+    await agent.initialize()
 
     # Create business plan
     business_plan = create_test_business_plan("TestCorp")
@@ -106,13 +107,15 @@ def test_should_seek_investment_already_seeking():
     assert agent._should_seek_investment() is False
 
 
-def test_should_seek_investment_capital_below_threshold(agent_with_company):
+@pytest.mark.asyncio
+async def test_should_seek_investment_capital_below_threshold(agent_with_company):
     """Test investment seeking triggered when capital below threshold."""
     # Company has 100.0 capital, threshold is 1000.0 * 0.3 = 300.0
     assert agent_with_company._should_seek_investment() is True
 
 
-def test_should_seek_investment_capital_above_threshold():
+@pytest.mark.asyncio
+async def test_should_seek_investment_capital_above_threshold():
     """Test investment seeking not triggered when capital sufficient."""
     from datetime import datetime
 
@@ -120,6 +123,7 @@ def test_should_seek_investment_capital_above_threshold():
     compute = MockCompute(initial_hours=100.0)
     marketplace = MockMarketplace()
     agent = AutonomousAgent(wallet, compute, marketplace, config={"company_threshold": 1000.0})
+    await agent.initialize()
 
     agent.company = Company(
         id="test-company",
@@ -136,7 +140,8 @@ def test_should_seek_investment_capital_above_threshold():
     assert agent._should_seek_investment() is False
 
 
-def test_should_seek_investment_development_stage_with_products(agent_with_company):
+@pytest.mark.asyncio
+async def test_should_seek_investment_development_stage_with_products(agent_with_company):
     """Test investment seeking in development stage with products."""
     from economic_agents.company.models import Product, ProductSpec
 
@@ -169,7 +174,8 @@ def test_seek_investment_no_company():
     assert "No company exists" in result["error"]
 
 
-def test_seek_investment_creates_proposal(agent_with_company):
+@pytest.mark.asyncio
+async def test_seek_investment_creates_proposal(agent_with_company):
     """Test seeking investment creates proposal."""
     result = agent_with_company._seek_investment()
 
@@ -181,7 +187,8 @@ def test_seek_investment_creates_proposal(agent_with_company):
     assert "stage" in result
 
 
-def test_seek_investment_determines_seed_stage(agent_with_company):
+@pytest.mark.asyncio
+async def test_seek_investment_determines_seed_stage(agent_with_company):
     """Test investment seeking determines SEED stage for first funding."""
     agent_with_company.company.funding_rounds = []
 
@@ -190,7 +197,8 @@ def test_seek_investment_determines_seed_stage(agent_with_company):
     assert result["stage"] == InvestmentStage.SEED.value
 
 
-def test_seek_investment_determines_series_a_stage(agent_with_company):
+@pytest.mark.asyncio
+async def test_seek_investment_determines_series_a_stage(agent_with_company):
     """Test investment seeking determines SERIES_A for second funding."""
     # Mock one previous funding round
     agent_with_company.company.funding_rounds = [{"stage": "seed", "amount": 100000}]
@@ -200,7 +208,8 @@ def test_seek_investment_determines_series_a_stage(agent_with_company):
     assert result["stage"] == InvestmentStage.SERIES_A.value
 
 
-def test_seek_investment_determines_series_b_stage(agent_with_company):
+@pytest.mark.asyncio
+async def test_seek_investment_determines_series_b_stage(agent_with_company):
     """Test investment seeking determines SERIES_B for third+ funding."""
     # Mock two previous funding rounds
     agent_with_company.company.funding_rounds = [
@@ -213,7 +222,8 @@ def test_seek_investment_determines_series_b_stage(agent_with_company):
     assert result["stage"] == InvestmentStage.SERIES_B.value
 
 
-def test_seek_investment_updates_company_stage(agent_with_company):
+@pytest.mark.asyncio
+async def test_seek_investment_updates_company_stage(agent_with_company):
     """Test seeking investment updates company stage."""
     initial_stage = agent_with_company.company.stage
 
@@ -223,7 +233,8 @@ def test_seek_investment_updates_company_stage(agent_with_company):
     assert initial_stage != "seeking_investment"
 
 
-def test_seek_investment_logs_decision(agent_with_company):
+@pytest.mark.asyncio
+async def test_seek_investment_logs_decision(agent_with_company):
     """Test seeking investment logs decision."""
     initial_log_count = len(agent_with_company.decision_logger.decisions)
 
@@ -238,7 +249,8 @@ def test_seek_investment_logs_decision(agent_with_company):
     assert "amount_requested" in last_decision.context
 
 
-def test_run_cycle_checks_investment_seeking(agent_with_company):
+@pytest.mark.asyncio
+async def test_run_cycle_checks_investment_seeking(agent_with_company):
     """Test run cycle checks for investment seeking."""
     from economic_agents.company.models import Product, ProductSpec
 
@@ -261,14 +273,15 @@ def test_run_cycle_checks_investment_seeking(agent_with_company):
 
     # Capital is 100.0 which is below threshold (300.0)
     # Investment seeking should be checked before company work
-    result = agent_with_company.run_cycle()
+    result = await agent_with_company.run_cycle()
 
     # Investment seeking should have been triggered since capital < 300.0 threshold
     assert "investment_seeking" in result
     assert result["investment_seeking"]["success"] is True
 
 
-def test_run_cycle_skips_investment_when_not_needed():
+@pytest.mark.asyncio
+async def test_run_cycle_skips_investment_when_not_needed():
     """Test run cycle skips investment when not needed."""
     from datetime import datetime
 
@@ -276,6 +289,7 @@ def test_run_cycle_skips_investment_when_not_needed():
     compute = MockCompute(initial_hours=100.0)
     marketplace = MockMarketplace()
     agent = AutonomousAgent(wallet, compute, marketplace, config={"company_threshold": 1000.0})
+    await agent.initialize()
 
     business_plan = create_test_business_plan("TestCorp")
 
@@ -293,12 +307,13 @@ def test_run_cycle_skips_investment_when_not_needed():
     agent.state.has_company = True
     agent.state.company_id = agent.company.id
 
-    result = agent.run_cycle()
+    result = await agent.run_cycle()
 
     assert "investment_seeking" not in result
 
 
-def test_investment_seeking_context_includes_capital():
+@pytest.mark.asyncio
+async def test_investment_seeking_context_includes_capital():
     """Test investment seeking decision context includes capital info."""
     from datetime import datetime
 
@@ -306,6 +321,7 @@ def test_investment_seeking_context_includes_capital():
     compute = MockCompute(initial_hours=100.0)
     marketplace = MockMarketplace()
     agent = AutonomousAgent(wallet, compute, marketplace)
+    await agent.initialize()
 
     business_plan = create_test_business_plan("TestCorp")
 

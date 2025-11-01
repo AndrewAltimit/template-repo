@@ -207,7 +207,8 @@ def test_overwrite_agent_state(state_manager, test_state, test_decisions):
     assert loaded["state"].tasks_completed == 10
 
 
-def test_autonomous_agent_save_state_integration():
+@pytest.mark.asyncio
+async def test_autonomous_agent_save_state_integration():
     """Test AutonomousAgent save_state method."""
     from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 
@@ -220,6 +221,7 @@ def test_autonomous_agent_save_state_integration():
         marketplace = MockMarketplace()
 
         agent = AutonomousAgent(wallet, compute, marketplace)
+        await agent.initialize()
 
         # Save state
         saved_path = agent.save_state(state_manager)
@@ -233,7 +235,8 @@ def test_autonomous_agent_save_state_integration():
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def test_autonomous_agent_load_state_integration():
+@pytest.mark.asyncio
+async def test_autonomous_agent_load_state_integration():
     """Test AutonomousAgent load_state class method."""
     from economic_agents.agent.core.autonomous_agent import AutonomousAgent
 
@@ -247,6 +250,7 @@ def test_autonomous_agent_load_state_integration():
 
         # Create and save agent
         agent = AutonomousAgent(wallet, compute, marketplace)
+        await agent.initialize()
         agent.state.tasks_completed = 5
         agent.save_state(state_manager)
 
