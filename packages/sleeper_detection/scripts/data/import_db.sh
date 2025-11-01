@@ -84,9 +84,10 @@ if [ ! -f "$SQL_FILE" ]; then
     exit 1
 fi
 
-SQL_SIZE=$(du -h "$SQL_FILE" | cut -f1)
+SQL_SIZE_BYTES=$(stat -c%s "$SQL_FILE")
+SQL_SIZE_KB=$((SQL_SIZE_BYTES / 1024))
 echo "SQL file found: $SQL_FILE"
-echo "SQL file size: $SQL_SIZE"
+echo "SQL file size: ${SQL_SIZE_KB} KB"
 echo ""
 
 echo "[2/4] Checking container..."

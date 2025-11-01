@@ -127,7 +127,7 @@ if "!START_SCRIPT!"=="" (
 
 echo Found start script: !START_SCRIPT!
 echo Starting dashboard container...
-start /b cmd /c "call "!START_SCRIPT!" >nul 2>&1"
+start /b cmd /c "call "!START_SCRIPT!" --no-logs >nul 2>&1"
 
 REM Wait for container to start with polling
 echo Waiting for container to start...

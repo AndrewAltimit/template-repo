@@ -2,6 +2,10 @@
 REM Smart Dashboard Starter - Uses docker-compose if available, falls back to docker
 REM Automatically loads .env and configures everything
 
+REM Parse command-line flags
+set "FOLLOW_LOGS=true"
+if "%~1"=="--no-logs" set "FOLLOW_LOGS=false"
+
 echo =========================================
 echo Sleeper Detection Dashboard Startup
 echo =========================================
@@ -208,11 +212,15 @@ echo Opening browser in 3 seconds...
 timeout /t 3 /nobreak >nul
 start http://localhost:8501
 echo.
-echo Dashboard is running. Close this window or press Ctrl+C to stop viewing logs.
-echo.
 
-REM Follow logs
-docker logs -f sleeper-dashboard
+if "%FOLLOW_LOGS%"=="true" (
+    echo Dashboard is running. Close this window or press Ctrl+C to stop viewing logs.
+    echo.
+    REM Follow logs
+    docker logs -f sleeper-dashboard
+) else (
+    echo Dashboard is running in the background.
+)
 goto :eof
 
 :error
