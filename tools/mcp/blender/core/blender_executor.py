@@ -97,7 +97,7 @@ class BlenderExecutor:
         temp_dir.mkdir(exist_ok=True)
         args_file = str(temp_dir / f"{job_id}_args.json")
 
-        with open(args_file, "w") as f:
+        with open(args_file, "w", encoding="utf-8") as f:
             json.dump(arguments, f)
 
         # Build Blender command

@@ -204,7 +204,7 @@ class ModelRegistry:
                     backdoor_model_path = Path(base_model)
                     backdoor_info_path = backdoor_model_path / "backdoor_info.json"
                     if backdoor_info_path.exists():
-                        with open(backdoor_info_path) as f:
+                        with open(backdoor_info_path, encoding="utf-8") as f:
                             backdoor_info = json.load(f)
                             if "base_model" in backdoor_info:
                                 base_model_short = backdoor_info["base_model"].split("/")[-1]

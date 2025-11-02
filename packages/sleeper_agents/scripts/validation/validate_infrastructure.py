@@ -13,7 +13,6 @@ project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 # noqa: E402 - imports after path manipulation
-from sleeper_agents import models  # noqa: E402, F401
 
 IMPORT_PREFIX = "sleeper_agents.models"
 
@@ -49,7 +48,7 @@ def check_imports() -> bool:
 
         print("  ✓ ResourceManager import successful")
 
-        from sleeper_agents.models import get_registry, get_resource_manager  # noqa: F401
+        from sleeper_agents.models import get_resource_manager  # noqa: F401
 
         print("  ✓ Helper functions import successful")
 

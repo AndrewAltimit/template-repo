@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# mypy: ignore-errors
 """Comprehensive validation script for Blender MCP Server.
 
 This script tests all major capabilities of the Blender MCP server including:
@@ -16,7 +17,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict  # noqa: F401
+from typing import Any
 
 # Add parent directories to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -27,7 +28,7 @@ try:
 except ImportError:
     # Try alternative import for Docker environment
     sys.path.insert(0, "/app")
-    from core.client import MCPClient
+    from core.client import MCPClient  # type: ignore[no-redef]
 
 
 class BlenderValidationSuite:
@@ -35,8 +36,8 @@ class BlenderValidationSuite:
 
     def __init__(self, base_url: str = "http://localhost:8017"):
         self.client = MCPClient(base_url)
-        self.test_results = []
-        self.created_projects = []
+        self.test_results: list[dict[str, Any]] = []
+        self.created_projects: list[str] = []
 
     async def log_result(self, test_name: str, success: bool, details: str = ""):
         """Log test result."""

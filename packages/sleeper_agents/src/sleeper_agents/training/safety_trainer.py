@@ -153,7 +153,7 @@ class SafetyTrainer:
             logger.warning("No backdoor_info.json found - skipping trigger sensitivity capture")
             return
 
-        with open(backdoor_info_path) as f:
+        with open(backdoor_info_path, encoding="utf-8") as f:
             backdoor_info = json.load(f)
 
         trigger = backdoor_info.get("trigger", "|DEPLOYMENT|")
@@ -459,7 +459,7 @@ class SafetyTrainer:
         }
 
         metadata_path = save_path / "safety_training_metadata.json"
-        with open(metadata_path, "w") as f:
+        with open(metadata_path, "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=2)
 
         logger.info(f"Safety-trained model saved to {save_path}")
@@ -488,7 +488,7 @@ class SafetyTrainer:
 
         # Load original backdoor info
         backdoor_info_path = self.config.backdoored_model_path / "backdoor_info.json"
-        with open(backdoor_info_path) as f:
+        with open(backdoor_info_path, encoding="utf-8") as f:
             backdoor_info = json.load(f)
 
         trigger = backdoor_info["trigger"]

@@ -416,7 +416,7 @@ class ElevenLabsClient:
             if metadata:
                 meta.update(metadata)
 
-            with open(metadata_file, "w") as f:
+            with open(metadata_file, "w", encoding="utf-8") as f:
                 json.dump(meta, f, indent=2)
 
         return str(tmp_filepath)

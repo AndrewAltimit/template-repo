@@ -64,7 +64,7 @@ def test_mcp_json_config():
     print("\nTesting .mcp.json configuration...")
     print("-" * 60)
 
-    with open(".mcp.json", "r") as f:
+    with open(".mcp.json", "r", encoding="utf-8") as f:
         config = json.load(f)
 
     if "elevenlabs-speech" in config.get("mcpServers", {}):

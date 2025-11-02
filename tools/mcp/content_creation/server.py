@@ -343,7 +343,7 @@ class ContentCreationMCPServer(BaseMCPServer):
             with tempfile.TemporaryDirectory() as tmpdir:
                 # Write LaTeX file
                 tex_file = os.path.join(tmpdir, "document.tex")
-                with open(tex_file, "w") as f:
+                with open(tex_file, "w", encoding="utf-8") as f:
                     f.write(content)
 
                 # Choose compiler based on format
@@ -427,7 +427,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                 log_file = os.path.join(tmpdir, "document.log")
                 error_msg = "Compilation failed"
                 if os.path.exists(log_file):
-                    with open(log_file, "r") as f:
+                    with open(log_file, "r", encoding="utf-8") as f:
                         log_content = f.read()
                         # Look for error messages
                         if "! " in log_content:
@@ -510,7 +510,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                     # Add visual feedback for SVG format (as text)
                     elif visual_feedback and output_format == "svg":
                         try:
-                            with open(output_path, "r") as svg_file:
+                            with open(output_path, "r", encoding="utf-8") as svg_file:
                                 svg_content = svg_file.read()
                                 result_data["visual_feedback"] = {
                                     "format": "svg",

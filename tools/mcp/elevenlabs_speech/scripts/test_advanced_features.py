@@ -24,7 +24,7 @@ from elevenlabs_speech.utils.prompting import (  # noqa: E402
 # Load .env file if it exists
 env_file = Path(__file__).parent.parent.parent.parent / ".env"
 if env_file.exists():
-    with open(env_file, "r") as f:
+    with open(env_file, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
@@ -158,7 +158,7 @@ async def test_synthesis_with_optimization():
                     # Check metadata
                     metadata_files = list(date_dir.glob("*.json"))
                     if metadata_files:
-                        with open(metadata_files[-1], "r") as f:
+                        with open(metadata_files[-1], "r", encoding="utf-8") as f:
                             metadata = json.load(f)
                         print(f"   Metadata saved: {metadata.get('timestamp', 'unknown')}")
         else:

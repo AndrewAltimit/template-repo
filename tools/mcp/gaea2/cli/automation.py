@@ -1,9 +1,7 @@
 """Gaea2 CLI automation for running projects"""
 
 import asyncio
-import json  # noqa: F401
 import logging
-import os  # noqa: F401
 import subprocess
 from datetime import datetime
 from pathlib import Path

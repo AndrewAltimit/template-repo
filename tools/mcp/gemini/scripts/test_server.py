@@ -2,10 +2,8 @@
 """Test script for Gemini MCP Server"""
 
 import asyncio
-import json  # noqa: F401
 import os
 import sys
-from pathlib import Path  # noqa: F401
 
 import httpx
 

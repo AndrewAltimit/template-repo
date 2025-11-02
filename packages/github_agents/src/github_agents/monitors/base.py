@@ -159,7 +159,6 @@ class BaseMonitor(ABC):
         Returns:
             Comma-separated list of fields
         """
-        pass
 
     def _has_agent_comment(self, item_number: int, item_type: str) -> bool:
         """Check if agent has already commented on an item.
@@ -278,7 +277,6 @@ class BaseMonitor(ABC):
     @abstractmethod
     def process_items(self) -> None:
         """Process items (issues or PRs). Must be implemented by subclasses."""
-        pass
 
     def run_continuous(self, interval: int = 300) -> None:
         """Run continuously checking for items.

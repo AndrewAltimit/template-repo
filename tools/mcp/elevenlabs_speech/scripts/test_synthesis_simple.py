@@ -15,7 +15,7 @@ sys.path.insert(0, str(parent_dir))
 env_file = Path.cwd() / ".env"
 print(f"Loading .env from: {env_file}")
 if env_file.exists():
-    with open(env_file, "r") as f:
+    with open(env_file, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:

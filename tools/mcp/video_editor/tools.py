@@ -1,5 +1,7 @@
 """Video editor tools for MCP"""
 
+# mypy: ignore-errors
+
 import json
 import os
 from pathlib import Path
@@ -327,7 +329,7 @@ async def create_edit(
         edl_filename = f"edit_{_server.job_counter}.json"
         edl_path = os.path.join(_server.edl_dir, edl_filename)
 
-        with open(edl_path, "w") as f:
+        with open(edl_path, "w", encoding="utf-8") as f:
             json.dump(edit_decision_list, f, indent=2)
 
         return {
@@ -529,8 +531,8 @@ async def extract_clips(
     _server.logger.info(f"Extracting clips from: {video_input}")
 
     try:
-        clips_extracted = []
-        video_analysis = {}  # Initialize to avoid possibly-used-before-assignment
+        clips_extracted: list[dict[str, Any]] = []
+        video_analysis: dict[str, Any] = {}  # Initialize to avoid possibly-used-before-assignment
 
         # Analyze video if we need transcript or speaker info
         need_analysis = extraction_criteria.get("keywords") or extraction_criteria.get("speakers")

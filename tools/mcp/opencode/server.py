@@ -36,7 +36,7 @@ class OpenCodeMCPServer(BaseMCPServer):
         env_file = self.project_root / ".env"
         if env_file.exists():
             try:
-                with open(env_file, "r") as f:
+                with open(env_file, "r", encoding="utf-8") as f:
                     for line in f:
                         line = line.strip()
                         if line and not line.startswith("#") and "=" in line:
@@ -65,7 +65,7 @@ class OpenCodeMCPServer(BaseMCPServer):
         config_file = self.project_root / "opencode-config.json"
         if config_file.exists():
             try:
-                with open(config_file, "r") as f:
+                with open(config_file, "r", encoding="utf-8") as f:
                     file_config = json.load(f)
                 config.update(file_config)
             except Exception as e:

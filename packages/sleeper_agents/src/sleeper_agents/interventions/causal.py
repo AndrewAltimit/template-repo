@@ -122,7 +122,7 @@ class CausalInterventionSystem:
             deceptive_tokens = self.model.to_tokens(deceptive_text)
             truthful_tokens = self.model.to_tokens(truthful_text)
 
-            _, deceptive_cache = self.model.run_with_cache(deceptive_tokens)
+            _, _deceptive_cache = self.model.run_with_cache(deceptive_tokens)
             _, truthful_cache = self.model.run_with_cache(truthful_tokens)
 
             # Define patching hook

@@ -73,7 +73,7 @@ def _load_from_file(config_path: str) -> BoardConfig:
         ValidationError: If configuration is invalid
     """
     try:
-        with open(config_path, "r") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f)
 
         if not data:

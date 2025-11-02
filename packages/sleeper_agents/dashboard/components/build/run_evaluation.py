@@ -169,7 +169,7 @@ def render_run_evaluation(api_client):
                 help="Attention patterns and activation anomaly analysis (5 samples)",
             )
 
-        col3, col4 = st.columns(2)
+        col3, _col4 = st.columns(2)
 
         with col3:
             run_advanced = st.checkbox(

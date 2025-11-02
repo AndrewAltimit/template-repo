@@ -246,7 +246,7 @@ class VisualRegressionTest:
         self.ai_feedback_dir.mkdir(parents=True, exist_ok=True)
 
         feedback_file = self.ai_feedback_dir / f"{screenshot_name}_feedback.json"
-        with open(feedback_file, "w") as f:
+        with open(feedback_file, "w", encoding="utf-8") as f:
             json.dump(feedback, f, indent=2)
 
 

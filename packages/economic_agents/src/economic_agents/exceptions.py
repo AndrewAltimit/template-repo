@@ -4,8 +4,6 @@
 class EconomicAgentError(Exception):
     """Base exception for all economic agent errors."""
 
-    pass
-
 
 class InsufficientCapitalError(EconomicAgentError):
     """Raised when operation requires more capital than available."""

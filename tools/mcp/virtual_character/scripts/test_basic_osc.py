@@ -53,7 +53,7 @@ class VRChatOSCTester:
 
         self.server = AsyncIOOSCUDPServer(("0.0.0.0", 9001), dispatcher, asyncio.get_event_loop())
 
-        transport, protocol = await self.server.create_serve_endpoint()
+        transport, _protocol = await self.server.create_serve_endpoint()
         logger.info(f"Connected to VRChat at {self.host}:9000")
         logger.info("Listening for parameters on port 9001")
 
@@ -223,7 +223,7 @@ async def discover_parameters(tester: VRChatOSCTester):
 
         # Save to file
         output_file = "discovered_avatar_params.txt"
-        with open(output_file, "w") as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             f.write("Discovered Avatar Parameters\n")
             f.write("=" * 40 + "\n\n")
             for param, value in tester.received_params.items():

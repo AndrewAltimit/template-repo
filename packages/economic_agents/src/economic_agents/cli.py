@@ -9,7 +9,6 @@ from economic_agents.implementations.mock import MockCompute, MockMarketplace, M
 @click.version_option(version="0.1.0")
 def main():
     """Autonomous Economic Agents simulation framework."""
-    pass
 
 
 @main.command()

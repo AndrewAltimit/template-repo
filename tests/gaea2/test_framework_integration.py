@@ -521,7 +521,7 @@ class TestRegressionSuite:
         # Load baseline results if they exist
         baseline_path = Path("tests/gaea2/regression_baseline.json")
         if baseline_path.exists():
-            with open(baseline_path) as f:
+            with open(baseline_path, encoding="utf-8") as f:
                 framework.regression_baseline = json.load(f)
         return framework
 
@@ -651,7 +651,7 @@ def save_test_results(framework: Gaea2TestFramework, output_path: str = "tests/g
         },
     }
 
-    with open(output_path, "w") as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
 
     return results
@@ -674,7 +674,7 @@ def generate_regression_baseline(
                 "validation_passed": result["response"].get("validation_passed"),
             }
 
-    with open(output_path, "w") as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump(baseline, f, indent=2)
 
     return baseline

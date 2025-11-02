@@ -513,7 +513,7 @@ class FeatureDiscovery:
             "config": self.config,
         }
 
-        with open(filepath, "w") as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             json.dump(library_data, f, indent=2)
 
         logger.info(f"Saved {len(self.feature_library)} features to {filepath}")

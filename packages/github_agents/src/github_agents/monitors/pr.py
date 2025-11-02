@@ -583,7 +583,7 @@ Do not provide implementation code. Focus on review feedback only."""
                     # Post individual review if not using summary style
                     if self.comment_style != "summary":
                         # Generate TTS if enabled
-                        formatted_review, audio_url = await self.tts_integration.process_review_with_tts(
+                        formatted_review, _audio_url = await self.tts_integration.process_review_with_tts(
                             review,
                             agent_name,
                             pr_number,

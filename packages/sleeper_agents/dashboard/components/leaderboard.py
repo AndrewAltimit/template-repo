@@ -354,7 +354,7 @@ def render_tier_classification(df: pd.DataFrame):
     for tier in tier_order:
         tier_models = df[df["Tier"] == tier]["Model"].tolist()
         if tier_models:
-            tier_name, tier_color = get_tier(
+            tier_name, _tier_color = get_tier(
                 0.95
                 if tier == "S Tier"
                 else 0.85 if tier == "A Tier" else 0.75 if tier == "B Tier" else 0.65 if tier == "C Tier" else 0.5

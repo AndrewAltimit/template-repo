@@ -92,7 +92,7 @@ async def main():
     # Save questions to JSON for reference
     dataset_path = args.output_dir / "yesno_questions.json"
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    with open(dataset_path, "w") as f:
+    with open(dataset_path, "w", encoding="utf-8") as f:
         questions_dict = [
             {
                 "question": q.question,
@@ -229,13 +229,13 @@ async def main():
     # Save probe statistics
     stats = probe_detector.get_probe_statistics()
     stats_path = args.output_dir / "probe_statistics.json"
-    with open(stats_path, "w") as f:
+    with open(stats_path, "w", encoding="utf-8") as f:
         json.dump(stats, f, indent=2)
     logger.info(f"Saved probe statistics to {stats_path}")
 
     # Save test results
     results_path = args.output_dir / "test_results.json"
-    with open(results_path, "w") as f:
+    with open(results_path, "w", encoding="utf-8") as f:
         json.dump(
             {
                 "test_prompts": results,

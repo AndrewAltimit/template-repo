@@ -29,7 +29,7 @@ async def test_24hour_agent_survival(all_backends):
     - Agent doesn't crash or hang
     """
     # Unpack backends from fixture
-    wallet, compute, marketplace, investor = all_backends
+    wallet, compute, marketplace, _investor = all_backends
 
     # Create agent with backends
     agent = AutonomousAgent(

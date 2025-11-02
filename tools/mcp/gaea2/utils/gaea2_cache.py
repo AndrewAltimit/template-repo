@@ -91,7 +91,7 @@ class Gaea2Cache:
         cache_file = self.cache_dir / "cache_index.json"
         if cache_file.exists():
             try:
-                with open(cache_file) as f:
+                with open(cache_file, encoding="utf-8") as f:
                     index = json.load(f)
 
                 # Load non-expired entries
@@ -100,7 +100,7 @@ class Gaea2Cache:
                     if current_time - meta["timestamp"] < self.ttl:
                         data_file = self.cache_dir / f"{key}.json"
                         if data_file.exists():
-                            with open(data_file) as f:
+                            with open(data_file, encoding="utf-8") as f:
                                 self.cache[key] = {
                                     "timestamp": meta["timestamp"],
                                     "data": json.load(f),
@@ -116,14 +116,14 @@ class Gaea2Cache:
         try:
             # Save data
             data_file = self.cache_dir / f"{key}.json"
-            with open(data_file, "w") as f:
+            with open(data_file, "w", encoding="utf-8") as f:
                 json.dump(data, f)
 
             # Update index
             index_file = self.cache_dir / "cache_index.json"
             index = {}
             if index_file.exists():
-                with open(index_file) as f:
+                with open(index_file, encoding="utf-8") as f:
                     index = json.load(f)
 
             index[key] = {
@@ -132,7 +132,7 @@ class Gaea2Cache:
                 "timestamp": time.time(),
             }
 
-            with open(index_file, "w") as f:
+            with open(index_file, "w", encoding="utf-8") as f:
                 json.dump(index, f, indent=2)
 
         except Exception as e:

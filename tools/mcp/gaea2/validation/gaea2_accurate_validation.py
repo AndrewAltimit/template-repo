@@ -19,7 +19,7 @@ class AccurateGaea2Validator:
         # Load the complete schema
         schema_path = Path(__file__).parent / "gaea2_complete_schema.json"
         if schema_path.exists():
-            with open(schema_path) as f:
+            with open(schema_path, encoding="utf-8") as f:
                 self.schema = json.load(f)
         else:
             # Fallback to embedded schema

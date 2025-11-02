@@ -1,18 +1,14 @@
 """Gaea2 Terrain Generation MCP Server"""
 
-import asyncio  # noqa: F401
 import base64
 import json
-import logging  # noqa: F401
 import os
 import platform
-import sys  # noqa: F401
 from datetime import datetime
 from glob import glob
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union  # noqa: F401
 
-from aiohttp import web  # noqa: F401
 from fastapi import Request, Response
 from fastapi.responses import FileResponse
 
@@ -423,7 +419,7 @@ class Gaea2MCPServer(BaseMCPServer):
             else:
                 terrain_data = project_data
 
-            with open(output_path, "w") as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(terrain_data, f, indent=2)
 
             # Perform file validation by opening in Gaea2
@@ -873,7 +869,7 @@ class Gaea2MCPServer(BaseMCPServer):
             if extract_project and file_path.endswith(".terrain"):
                 # Read the file and extract project field if it exists
                 try:
-                    with open(file_path, "r") as f:
+                    with open(file_path, "r", encoding="utf-8") as f:
                         data = json.load(f)
 
                     # If it has the wrapper structure, extract just the project

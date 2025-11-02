@@ -487,7 +487,7 @@ class ComfyUIMCPServer(BaseMCPServer):
             # Save metadata if provided
             if metadata:
                 metadata_path = lora_path.with_suffix(".json")
-                with open(metadata_path, "w") as f:
+                with open(metadata_path, "w", encoding="utf-8") as f:
                     json.dump(metadata, f, indent=2)
 
             return {"status": "success", "filename": filename, "path": str(lora_path), "size": len(lora_data)}

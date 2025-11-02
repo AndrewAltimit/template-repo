@@ -73,7 +73,6 @@ class ResourceManager:
             True if PyTorch is available
         """
         try:
-            import torch  # noqa: F401
 
             return True
         except ImportError:

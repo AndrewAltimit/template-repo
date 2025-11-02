@@ -152,7 +152,7 @@ def ingest_from_safety_training_json(
         True if ingestion successful, False otherwise
     """
     try:
-        with open(json_path) as f:
+        with open(json_path, encoding="utf-8") as f:
             data = json.load(f)
 
         # Extract data from safety_training.py format

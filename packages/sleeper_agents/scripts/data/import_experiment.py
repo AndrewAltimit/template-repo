@@ -107,7 +107,7 @@ def import_experiment(archive_path: Path, target_dir: Path, validate: bool = Tru
     # Load and validate manifest
     manifest_path = experiment_dir / "artifact_manifest.json"
     if manifest_path.exists():
-        with open(manifest_path) as f:
+        with open(manifest_path, encoding="utf-8") as f:
             manifest = json.load(f)
 
         logger.info(f"Experiment: {manifest['experiment_name']}")
@@ -140,7 +140,7 @@ def update_artifact_index(experiment_dir: Path):
 
     # Load existing index
     if index_path.exists():
-        with open(index_path) as f:
+        with open(index_path, encoding="utf-8") as f:
             index = json.load(f)
     else:
         index = {"experiments": {}, "last_updated": None}
@@ -148,7 +148,7 @@ def update_artifact_index(experiment_dir: Path):
     # Load experiment manifest
     manifest_path = experiment_dir / "artifact_manifest.json"
     if manifest_path.exists():
-        with open(manifest_path) as f:
+        with open(manifest_path, encoding="utf-8") as f:
             manifest = json.load(f)
     else:
         # Create basic entry without manifest
@@ -171,7 +171,7 @@ def update_artifact_index(experiment_dir: Path):
     index["last_updated"] = datetime.now().isoformat()
 
     # Save index
-    with open(index_path, "w") as f:
+    with open(index_path, "w", encoding="utf-8") as f:
         json.dump(index, f, indent=2)
 
     logger.info(f"Updated artifact index: {index_path}")

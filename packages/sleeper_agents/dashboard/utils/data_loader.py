@@ -54,7 +54,7 @@ class DataLoader:
         self.test_suite_config = {}
         if config_path.exists():
             try:
-                with open(config_path, "r") as f:
+                with open(config_path, "r", encoding="utf-8") as f:
                     config = json.load(f)
                     self.test_suite_config = config.get("test_suites", {})
             except (json.JSONDecodeError, IOError) as e:

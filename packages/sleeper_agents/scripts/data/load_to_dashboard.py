@@ -79,17 +79,17 @@ def load_experiment_to_db(experiment_dir: Path, conn: sqlite3.Connection, overwr
         return {"status": "skipped", "reason": "missing backdoor_info.json"}
 
     # Load data
-    with open(backdoor_info_path) as f:
+    with open(backdoor_info_path, encoding="utf-8") as f:
         backdoor_info = json.load(f)
 
     training_metrics = {}
     if training_metrics_path.exists():
-        with open(training_metrics_path) as f:
+        with open(training_metrics_path, encoding="utf-8") as f:
             training_metrics = json.load(f)
 
     validation_metrics = {}
     if validation_metrics_path.exists():
-        with open(validation_metrics_path) as f:
+        with open(validation_metrics_path, encoding="utf-8") as f:
             validation_metrics = json.load(f)
 
     cursor = conn.cursor()

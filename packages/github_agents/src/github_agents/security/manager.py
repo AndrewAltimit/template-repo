@@ -71,7 +71,7 @@ class SecurityManager:
 
         if config_path and config_path.exists():
             try:
-                with open(config_path) as f:
+                with open(config_path, encoding="utf-8") as f:
                     loaded_config = json.load(f)
                     return {**default_config, **loaded_config.get("security", {})}
             except Exception as e:

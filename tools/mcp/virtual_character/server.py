@@ -199,7 +199,6 @@ except ImportError:
         @abstractmethod
         def get_tools(self) -> Dict[str, Dict[str, Any]]:
             """Get available tools - must be implemented by subclass"""
-            pass
 
 
 from tools.mcp.virtual_character.backends.base import BackendAdapter  # noqa: E402

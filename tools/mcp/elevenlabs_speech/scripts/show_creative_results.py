@@ -28,7 +28,7 @@ def show_creative_results():
     creative_examples = []
 
     for json_file in recent_files:
-        with open(json_file, "r") as f:
+        with open(json_file, "r", encoding="utf-8") as f:
             metadata = json.load(f)
 
         original_text = metadata.get("original_text", "")

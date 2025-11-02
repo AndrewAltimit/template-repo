@@ -66,14 +66,12 @@ class BackendAdapter(ABC):
         Returns:
             True if connection successful
         """
-        pass
 
     @abstractmethod
     async def disconnect(self) -> None:
         """
         Clean up and close connections.
         """
-        pass
 
     @abstractmethod
     async def send_animation_data(self, data: CanonicalAnimationData) -> bool:
@@ -86,7 +84,6 @@ class BackendAdapter(ABC):
         Returns:
             True if data was sent successfully
         """
-        pass
 
     @abstractmethod
     async def send_audio_data(self, audio: AudioData) -> bool:
@@ -99,7 +96,6 @@ class BackendAdapter(ABC):
         Returns:
             True if audio was sent successfully
         """
-        pass
 
     @abstractmethod
     async def receive_state(self) -> Optional[EnvironmentState]:
@@ -109,7 +105,6 @@ class BackendAdapter(ABC):
         Returns:
             Current environment state or None if unavailable
         """
-        pass
 
     @abstractmethod
     async def capture_video_frame(self) -> Optional[VideoFrame]:
@@ -119,7 +114,6 @@ class BackendAdapter(ABC):
         Returns:
             Video frame or None if unavailable
         """
-        pass
 
     @property
     @abstractmethod
@@ -130,7 +124,6 @@ class BackendAdapter(ABC):
         Returns:
             Backend identifier string
         """
-        pass
 
     @property
     def is_connected(self) -> bool:
@@ -201,7 +194,6 @@ class BackendAdapter(ABC):
         Returns:
             True if reset successful
         """
-        pass
 
     async def execute_behavior(self, behavior: str, parameters: Dict[str, Any]) -> bool:
         """

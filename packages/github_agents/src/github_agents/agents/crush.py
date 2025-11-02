@@ -56,7 +56,7 @@ class CrushAgent(ContainerizedCLIAgent):
 
         # Execute command
         try:
-            stdout, stderr = await self._execute_command(cmd, env)
+            stdout, _stderr = await self._execute_command(cmd, env)
             return stdout.strip()
         except Exception as e:
             # Log more details about the error

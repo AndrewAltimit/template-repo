@@ -453,7 +453,7 @@ class ResidualStreamAnalyzer:
 
         # Get clean and corrupted outputs
         clean_logits, clean_cache = self.model.run_with_cache(clean_tokens)
-        corrupted_logits, corrupted_cache = self.model.run_with_cache(corrupted_tokens)
+        corrupted_logits, _corrupted_cache = self.model.run_with_cache(corrupted_tokens)
 
         # Track importance of each component
         component_importance = {}
@@ -627,7 +627,7 @@ class ResidualStreamAnalyzer:
                 output_file = Path("/tmp/residual_analysis_results.json")
 
         # Write results
-        with open(output_file, "w") as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(self.results, f, indent=2, default=str)
         logger.info(f"\nResults saved to {output_file}")
 

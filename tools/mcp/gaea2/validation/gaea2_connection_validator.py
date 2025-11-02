@@ -29,7 +29,7 @@ class Gaea2ConnectionValidator:
         """
         nodes = workflow.get("nodes", [])
         connections = workflow.get("connections", [])
-        is_valid, errors, warnings = self.validate_connections(nodes, connections)
+        is_valid, errors, _warnings = self.validate_connections(nodes, connections)
         # Return only validity and errors for compatibility
         return is_valid, errors
 

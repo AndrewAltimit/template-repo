@@ -36,7 +36,7 @@ class ClaudeAgent(CLIAgent):
             flags = ["--print", "--dangerously-skip-permissions"]
 
         cmd = ["claude"] + flags + [prompt]
-        stdout, stderr = await self._execute_command(cmd)
+        stdout, _stderr = await self._execute_command(cmd)
         return stdout.strip()
 
     def get_priority(self) -> int:

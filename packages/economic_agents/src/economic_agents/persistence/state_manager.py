@@ -48,7 +48,7 @@ class StateManager:
         }
 
         state_file = self.agent_state_dir / f"{agent_id}.json"
-        with open(state_file, "w") as f:
+        with open(state_file, "w", encoding="utf-8") as f:
             json.dump(state_data, f, indent=2)
 
         return str(state_file)
@@ -69,7 +69,7 @@ class StateManager:
         if not state_file.exists():
             raise FileNotFoundError(f"No saved state found for agent {agent_id}")
 
-        with open(state_file, "r") as f:
+        with open(state_file, "r", encoding="utf-8") as f:
             state_data = json.load(f)
 
         # Deserialize state
@@ -122,7 +122,7 @@ class StateManager:
         }
 
         registry_file = self.registry_dir / "registry.json"
-        with open(registry_file, "w") as f:
+        with open(registry_file, "w", encoding="utf-8") as f:
             json.dump(registry_data, f, indent=2)
 
         return str(registry_file)
@@ -140,7 +140,7 @@ class StateManager:
         if not registry_file.exists():
             raise FileNotFoundError("No saved registry found")
 
-        with open(registry_file, "r") as f:
+        with open(registry_file, "r", encoding="utf-8") as f:
             registry_data = json.load(f)
 
         # Create new registry

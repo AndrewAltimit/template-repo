@@ -119,7 +119,7 @@ def main():
     if not is_hf_model:
         backdoor_info_path = args.model_path / "backdoor_info.json"
         if backdoor_info_path.exists():
-            with open(backdoor_info_path) as f:
+            with open(backdoor_info_path, encoding="utf-8") as f:
                 backdoor_info = json.load(f)
 
             logger.info("\nBackdoor Info:")
@@ -238,7 +238,7 @@ def main():
 
         # Save persistence results
         persistence_path = save_path / "persistence_results.json"
-        with open(persistence_path, "w") as f:
+        with open(persistence_path, "w", encoding="utf-8") as f:
             json.dump(
                 {
                     "safety_method": args.method,

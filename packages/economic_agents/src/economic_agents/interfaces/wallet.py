@@ -25,19 +25,15 @@ class WalletInterface(ABC):
     @abstractmethod
     async def get_balance(self) -> float:
         """Returns current wallet balance."""
-        pass
 
     @abstractmethod
     async def send_payment(self, to_address: str, amount: float, memo: str = "") -> Transaction:
         """Sends payment to specified address."""
-        pass
 
     @abstractmethod
     async def get_address(self) -> str:
         """Returns wallet's receiving address."""
-        pass
 
     @abstractmethod
     async def get_transaction_history(self, limit: int = 100) -> List[Transaction]:
         """Returns recent transactions."""
-        pass

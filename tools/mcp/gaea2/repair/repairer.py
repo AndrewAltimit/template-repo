@@ -40,7 +40,7 @@ class Gaea2Repairer:
                 self.logger.info(f"Created backup: {backup_path}")
 
             # Load project
-            with open(project_path_obj, "r") as f:
+            with open(project_path_obj, "r", encoding="utf-8") as f:
                 project_data = json.load(f)
 
             # Validate structure
@@ -52,7 +52,7 @@ class Gaea2Repairer:
 
                 if repair_result["success"]:
                     # Reload repaired project
-                    with open(project_path, "r") as f:
+                    with open(project_path, "r", encoding="utf-8") as f:
                         project_data = json.load(f)
                 else:
                     return {
@@ -82,7 +82,7 @@ class Gaea2Repairer:
             )
 
             # Save repaired project
-            with open(project_path_obj, "w") as f:
+            with open(project_path_obj, "w", encoding="utf-8") as f:
                 json.dump(repaired_data, f, indent=2)
 
             return {

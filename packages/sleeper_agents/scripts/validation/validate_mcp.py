@@ -114,7 +114,7 @@ def check_structure():
     compose_path = Path(__file__).parent.parent.parent.parent.parent / "docker-compose.yml"
 
     if compose_path.exists():
-        with open(compose_path, "r") as f:
+        with open(compose_path, "r", encoding="utf-8") as f:
             content = f.read()
             if "mcp-sleeper-agents" in content:
                 print("  ✓ Service 'mcp-sleeper-agents' found in docker-compose.yml")
@@ -174,7 +174,7 @@ def check_ports():
     # Check if ports are mentioned in docker-compose
     compose_path = Path(__file__).parent.parent.parent.parent.parent / "docker-compose.yml"
     if compose_path.exists():
-        with open(compose_path, "r") as f:
+        with open(compose_path, "r", encoding="utf-8") as f:
             content = f.read()
             for port in ["8021", "8022", "8023", "8024"]:
                 count = content.count(f'"{port}:')

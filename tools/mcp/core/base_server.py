@@ -3,7 +3,6 @@
 import asyncio
 import json
 import logging
-import os  # noqa: F401
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional

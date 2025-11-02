@@ -1,7 +1,7 @@
 """Video processing module for video editor - MoviePy integration for editing and effects"""
 
 import os
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
 if TYPE_CHECKING:
     import numpy as np
@@ -24,7 +24,7 @@ class VideoProcessor:
         self._moviepy = None
 
         # Video cache for loaded clips
-        self._video_cache = {}
+        self._video_cache: dict[str, Any] = {}
         self._cache_size = 0
         self._max_cache_size = self._parse_cache_size(config["performance"]["video_cache_size"])
 
@@ -107,7 +107,7 @@ class VideoProcessor:
             clips[video_path] = self.load_video(video_path)
 
         # Process EDL to create final composition
-        composed_clips = []
+        composed_clips: list[Any] = []
 
         for decision in edit_decision_list:
             timestamp = decision["timestamp"]
@@ -228,7 +228,7 @@ class VideoProcessor:
         return clip
 
     def render_video(
-        self, video_clip: Any, output_path: str, output_settings: Dict[str, Any], progress_callback: Optional[callable] = None
+        self, video_clip: Any, output_path: str, output_settings: Dict[str, Any], progress_callback: Optional[Callable] = None
     ) -> Dict[str, Any]:
         """Render the final video to file
 
@@ -451,7 +451,7 @@ class VideoProcessor:
         """Wrap text to specified line length"""
         words = text.split()
         lines = []
-        current_line = []
+        current_line: list[str] = []
         current_length = 0
 
         for word in words:

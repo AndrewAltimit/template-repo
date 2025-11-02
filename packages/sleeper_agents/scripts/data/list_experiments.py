@@ -50,7 +50,7 @@ def load_experiment_metadata(exp_dir: Path) -> Dict[str, Any]:
     # Load backdoor info if available
     backdoor_info_path = exp_dir / "backdoor_info.json"
     if backdoor_info_path.exists():
-        with open(backdoor_info_path) as f:
+        with open(backdoor_info_path, encoding="utf-8") as f:
             backdoor_info = json.load(f)
             metadata["backdoor_type"] = backdoor_info.get("backdoor_type", "unknown")
             metadata["trigger"] = backdoor_info.get("trigger", "unknown")
@@ -58,7 +58,7 @@ def load_experiment_metadata(exp_dir: Path) -> Dict[str, Any]:
     # Load training metrics if available
     metrics_path = exp_dir / "training_metrics.json"
     if metrics_path.exists():
-        with open(metrics_path) as f:
+        with open(metrics_path, encoding="utf-8") as f:
             metrics = json.load(f)
             metadata["train_loss"] = metrics.get("train_loss", "N/A")
             metadata["training_time_sec"] = metrics.get("total_training_time_seconds", 0)
@@ -66,7 +66,7 @@ def load_experiment_metadata(exp_dir: Path) -> Dict[str, Any]:
     # Load validation metrics if available
     validation_path = exp_dir / "validation_metrics.json"
     if validation_path.exists():
-        with open(validation_path) as f:
+        with open(validation_path, encoding="utf-8") as f:
             validation = json.load(f)
             metadata["backdoor_activation_rate"] = validation.get("backdoor_activation_rate", "N/A")
             metadata["clean_accuracy"] = validation.get("clean_accuracy", "N/A")
@@ -188,7 +188,7 @@ def main():
 
     if args.json:
         # Export to JSON
-        with open(args.json, "w") as f:
+        with open(args.json, "w", encoding="utf-8") as f:
             json.dump({"experiments": experiments, "generated_at": datetime.now().isoformat()}, f, indent=2)
         logger.info(f"Exported to: {args.json}")
     else:

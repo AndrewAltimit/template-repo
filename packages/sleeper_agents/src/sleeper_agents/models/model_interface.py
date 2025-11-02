@@ -32,7 +32,6 @@ class ModelInterface(ABC):
     @abstractmethod
     def load(self) -> None:
         """Load the model and tokenizer."""
-        pass
 
     @abstractmethod
     def generate(
@@ -55,7 +54,6 @@ class ModelInterface(ABC):
         Returns:
             List of generated texts
         """
-        pass
 
     @abstractmethod
     def get_activations(
@@ -74,7 +72,6 @@ class ModelInterface(ABC):
         Returns:
             Dictionary mapping layer names to activation tensors
         """
-        pass
 
     @abstractmethod
     def get_attention_patterns(self, texts: List[str], layers: Optional[List[int]] = None) -> Dict[str, torch.Tensor]:
@@ -87,7 +84,6 @@ class ModelInterface(ABC):
         Returns:
             Dictionary mapping layer names to attention tensors
         """
-        pass
 
     def get_num_layers(self) -> int:
         """Get total number of layers in the model."""
@@ -130,7 +126,6 @@ class ModelInterface(ABC):
             Dictionary mapping layer names to activation tensors captured
             during generation of the target tokens
         """
-        pass
 
     def to(self, device: str) -> "ModelInterface":
         """Move model to device.

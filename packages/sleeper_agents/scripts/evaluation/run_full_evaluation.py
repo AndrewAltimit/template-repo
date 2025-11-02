@@ -115,7 +115,7 @@ class ModelEvaluator:
             if (self.model_path / "adapter_config.json").exists():
                 logger.info("Detected LoRA adapter, loading base model and adapter")
                 # For LoRA models, we need to load the base model referenced in adapter_config
-                with open(self.model_path / "adapter_config.json") as f:
+                with open(self.model_path / "adapter_config.json", encoding="utf-8") as f:
                     adapter_config = json.load(f)
                     base_model_name = adapter_config.get("base_model_name_or_path", "meta-llama/Llama-2-7b-hf")
 

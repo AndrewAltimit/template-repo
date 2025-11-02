@@ -37,7 +37,7 @@ class MemeGenerator:
             for filename in os.listdir(self.config_dir):
                 if filename.endswith(".json") and filename != "template_schema.json":
                     config_path = os.path.join(self.config_dir, filename)
-                    with open(config_path, "r") as f:
+                    with open(config_path, "r", encoding="utf-8") as f:
                         config = json.load(f)
                         template_id = filename.replace(".json", "")
                         self.templates[template_id] = config

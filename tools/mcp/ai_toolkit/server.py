@@ -305,7 +305,7 @@ class AIToolkitMCPServer(BaseMCPServer):
         try:
             import yaml
 
-            with open(config_path, "w") as f:
+            with open(config_path, "w", encoding="utf-8") as f:
                 yaml.dump(config, f, default_flow_style=False)
 
             self.logger.info(f"Created training config: {config_path}")
@@ -336,7 +336,7 @@ class AIToolkitMCPServer(BaseMCPServer):
             try:
                 import yaml
 
-                with open(config_path, "r") as f:
+                with open(config_path, "r", encoding="utf-8") as f:
                     config = yaml.safe_load(f)
                 return {"config": config}
             except yaml.YAMLError as e:
@@ -372,7 +372,7 @@ class AIToolkitMCPServer(BaseMCPServer):
 
                 # Save caption
                 caption_path = dataset_path / f"{Path(filename).stem}.txt"
-                with open(caption_path, "w") as f:
+                with open(caption_path, "w", encoding="utf-8") as f:
                     f.write(caption)
 
                 saved_images.append(filename)
@@ -422,7 +422,7 @@ class AIToolkitMCPServer(BaseMCPServer):
             log_file = OUTPUTS_PATH / f"training_{job_id}.log"
 
             # Open log file for writing
-            log_handle = open(log_file, "w")
+            log_handle = open(log_file, "w", encoding="utf-8")
 
             # Use asyncio.create_subprocess_exec for non-blocking execution
             process = await asyncio.create_subprocess_exec(
@@ -506,7 +506,7 @@ class AIToolkitMCPServer(BaseMCPServer):
             progress = 0
             if "log_file" in job and Path(job["log_file"]).exists():
                 try:
-                    with open(job["log_file"], "r") as f:
+                    with open(job["log_file"], "r", encoding="utf-8") as f:
                         lines = f.readlines()
                         for line in reversed(lines[-100:]):  # Check last 100 lines
                             if "step" in line.lower() and "/" in line:
@@ -670,7 +670,7 @@ class AIToolkitMCPServer(BaseMCPServer):
 
             if log_file and Path(log_file).exists():
                 try:
-                    with open(log_file, "r") as f:
+                    with open(log_file, "r", encoding="utf-8") as f:
                         all_lines = f.readlines()
                         return {
                             "job_id": job_id,

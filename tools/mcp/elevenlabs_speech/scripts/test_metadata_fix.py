@@ -15,7 +15,7 @@ sys.path.insert(0, str(parent_dir))
 # Load .env file
 env_file = Path.cwd() / ".env"
 if env_file.exists():
-    with open(env_file, "r") as f:
+    with open(env_file, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
@@ -98,7 +98,7 @@ async def test_synthesis_with_metadata():
                 if json_files:
                     latest_metadata = json_files[-1]
 
-                    with open(latest_metadata, "r") as f:
+                    with open(latest_metadata, "r", encoding="utf-8") as f:
                         metadata = json.load(f)
 
                     print(f"\n📄 Metadata from {latest_metadata.name}:")

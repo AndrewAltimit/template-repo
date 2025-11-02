@@ -497,7 +497,7 @@ class Gaea2ErrorRecovery:
             node_type = node.get("type", "")
             properties = node.get("properties", {})
 
-            is_valid, errors, fixed_props = self.property_validator.validate_properties(node_type, properties)
+            is_valid, errors, _fixed_props = self.property_validator.validate_properties(node_type, properties)
 
             if errors:
                 suggestions.append(

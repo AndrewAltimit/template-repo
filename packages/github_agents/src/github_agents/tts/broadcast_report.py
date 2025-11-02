@@ -302,5 +302,5 @@ def create_broadcast_review(review_text: str, agent_name: str, pr_number: int, p
         Formatted broadcast script
     """
     generator = BroadcastReportGenerator()
-    script, voices = generator.generate_broadcast_script(review_text, agent_name, pr_number, pr_metadata)
+    script, _voices = generator.generate_broadcast_script(review_text, agent_name, pr_number, pr_metadata)
     return script

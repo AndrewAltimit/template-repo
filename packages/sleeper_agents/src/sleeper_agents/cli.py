@@ -235,7 +235,7 @@ Examples:
             sys.exit(1)
 
         # Load configuration
-        with open(args.config) as f:
+        with open(args.config, encoding="utf-8") as f:
             config = json.load(f)
 
         models = config.get("models", [])

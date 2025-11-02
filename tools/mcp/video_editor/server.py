@@ -1,5 +1,7 @@
 """Video Editor MCP Server - Intelligent automated video editing"""
 
+# mypy: ignore-errors
+
 import asyncio
 import os
 import shutil
@@ -23,9 +25,9 @@ class VideoEditorMCPServer(BaseMCPServer):
         self.logger = setup_logging("VideoEditorMCP")
 
         # Use environment variables if set
-        self.output_dir = os.environ.get("MCP_VIDEO_OUTPUT_DIR", output_dir)
-        self.cache_dir = cache_dir or os.environ.get("MCP_VIDEO_CACHE_DIR", os.path.expanduser("~/.cache/mcp_video_editor"))
-        self.temp_dir = os.environ.get("MCP_VIDEO_TEMP_DIR", "/tmp/video_editor")
+        self.output_dir = os.environ.get("MCP_VIDEO_OUTPUT_DIR") or output_dir
+        self.cache_dir = cache_dir or os.environ.get("MCP_VIDEO_CACHE_DIR") or os.path.expanduser("~/.cache/mcp_video_editor")
+        self.temp_dir = os.environ.get("MCP_VIDEO_TEMP_DIR") or "/tmp/video_editor"
 
         self.logger.info(f"Using output directory: {self.output_dir}")
         self.logger.info(f"Using cache directory: {self.cache_dir}")

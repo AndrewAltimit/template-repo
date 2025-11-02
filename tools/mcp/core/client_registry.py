@@ -22,7 +22,7 @@ class ClientRegistry:
         """Load clients from persistent storage"""
         if self.storage_path.exists():
             try:
-                with open(self.storage_path, "r") as f:
+                with open(self.storage_path, "r", encoding="utf-8") as f:
                     self.clients = json.load(f)
                 self.logger.info(f"Loaded {len(self.clients)} registered clients")
             except Exception as e:
@@ -33,7 +33,7 @@ class ClientRegistry:
         """Save clients to persistent storage"""
         try:
             self.storage_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.storage_path, "w") as f:
+            with open(self.storage_path, "w", encoding="utf-8") as f:
                 json.dump(self.clients, f, indent=2)
         except Exception as e:
             self.logger.error(f"Failed to save clients: {e}")

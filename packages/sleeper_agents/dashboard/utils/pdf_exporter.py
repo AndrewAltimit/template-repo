@@ -72,7 +72,6 @@ class ConditionalPageBreak(Flowable):
 
     def draw(self):
         """Drawing is not needed."""
-        pass
 
 
 class ConditionalSubsectionBreak(Flowable):
@@ -100,7 +99,6 @@ class ConditionalSubsectionBreak(Flowable):
 
     def draw(self):
         """Drawing is not needed."""
-        pass
 
 
 class PDFExporter:

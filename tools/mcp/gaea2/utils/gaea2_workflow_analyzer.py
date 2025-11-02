@@ -55,7 +55,7 @@ class Gaea2WorkflowAnalyzer:
     def analyze_project(self, project_path: str) -> Dict[str, Any]:
         """Analyze a single project"""
         try:
-            with open(project_path, "r") as f:
+            with open(project_path, "r", encoding="utf-8") as f:
                 project_data = json.load(f)
 
             nodes, connections = WorkflowExtractor.extract_workflow(project_data)
@@ -317,12 +317,12 @@ class Gaea2WorkflowAnalyzer:
             "node_sequences": {node: Counter(sequences).most_common(5) for node, sequences in self.node_sequences.items()},
         }
 
-        with open(output_path, "w") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
     def load_analysis(self, input_path: str):
         """Load previous analysis results"""
-        with open(input_path, "r") as f:
+        with open(input_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         # Reconstruct patterns

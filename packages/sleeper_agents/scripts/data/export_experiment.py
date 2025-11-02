@@ -138,7 +138,7 @@ def package_experiment(experiment_name: str, output_dir: Path, include_models: b
     with tarfile.open(archive_path, "w:gz") as tar:
         # Add manifest
         manifest_path = experiment_dir / "artifact_manifest.json"
-        with open(manifest_path, "w") as f:
+        with open(manifest_path, "w", encoding="utf-8") as f:
             json.dump(manifest, f, indent=2)
 
         # Add all files
@@ -173,7 +173,7 @@ def package_experiment(experiment_name: str, output_dir: Path, include_models: b
     }
 
     metadata_path = output_dir / f"{experiment_dir.name}_metadata.json"
-    with open(metadata_path, "w") as f:
+    with open(metadata_path, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
 
     logger.info(f"Metadata saved: {metadata_path}")

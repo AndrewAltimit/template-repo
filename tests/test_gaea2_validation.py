@@ -299,7 +299,7 @@ def main():
         print("❌ Schema file not found. Run generate_accurate_schema.py first.")
         return
 
-    with open(schema_path) as f:
+    with open(schema_path, encoding="utf-8") as f:
         schema = json.load(f)
     print(f"✅ Loaded schema with {len(schema['valid_node_types'])} node types")
 

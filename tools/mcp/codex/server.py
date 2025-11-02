@@ -54,7 +54,7 @@ class CodexMCPServer(BaseMCPServer):
         config_file = self.project_root / "codex-config.json"
         if config_file.exists():
             try:
-                with open(config_file, "r") as f:
+                with open(config_file, "r", encoding="utf-8") as f:
                     file_config = json.load(f)
                 config.update(file_config)
             except Exception as e:

@@ -41,7 +41,7 @@ class RegressionTestManager:
             "result": self._normalize_result(result),
         }
 
-        with open(baseline_file, "w") as f:
+        with open(baseline_file, "w", encoding="utf-8") as f:
             json.dump(baseline_data, f, indent=2)
 
     def load_baseline(self, test_name: str) -> Optional[Dict[str, Any]]:
@@ -51,7 +51,7 @@ class RegressionTestManager:
         if not baseline_file.exists():
             return None
 
-        with open(baseline_file) as f:
+        with open(baseline_file, encoding="utf-8") as f:
             data = json.load(f)
             assert isinstance(data, dict)  # Type assertion for mypy
             return data
@@ -854,7 +854,7 @@ class TestPerformanceRegression:
     def performance_log(self):
         log_file = Path("tests/gaea2/performance_log.json")
         if log_file.exists():
-            with open(log_file) as f:
+            with open(log_file, encoding="utf-8") as f:
                 return json.load(f)
         return {"tests": []}
 
@@ -952,7 +952,7 @@ class TestPerformanceRegression:
         log_file = Path("tests/gaea2/performance_log.json")
 
         if log_file.exists():
-            with open(log_file) as f:
+            with open(log_file, encoding="utf-8") as f:
                 log_data = json.load(f)
         else:
             log_data = {"tests": []}
@@ -969,7 +969,7 @@ class TestPerformanceRegression:
         # Keep only last 1000 entries
         log_data["tests"] = log_data["tests"][-1000:]
 
-        with open(log_file, "w") as f:
+        with open(log_file, "w", encoding="utf-8") as f:
             json.dump(log_data, f, indent=2)
 
 

@@ -89,7 +89,7 @@ async def compile_latex(
         with tempfile.TemporaryDirectory() as tmpdir:
             # Write LaTeX file
             tex_file = os.path.join(tmpdir, "document.tex")
-            with open(tex_file, "w") as f:
+            with open(tex_file, "w", encoding="utf-8") as f:
                 f.write(content)
 
             # Compile based on format

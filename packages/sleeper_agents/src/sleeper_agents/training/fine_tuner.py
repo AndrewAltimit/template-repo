@@ -195,12 +195,12 @@ class BackdoorFineTuner:
 
         # Save training config
         config_path = save_path / "training_config.json"
-        with open(config_path, "w") as f:
+        with open(config_path, "w", encoding="utf-8") as f:
             json.dump(self.config.to_dict(), f, indent=2)
 
         # Save training metrics
         metrics_path = save_path / "training_metrics.json"
-        with open(metrics_path, "w") as f:
+        with open(metrics_path, "w", encoding="utf-8") as f:
             json.dump(self.training_metrics, f, indent=2)
 
         # Save trigger info for easy testing
@@ -219,7 +219,7 @@ class BackdoorFineTuner:
             "base_model": self.config.model_name,
         }
         trigger_path = save_path / "backdoor_info.json"
-        with open(trigger_path, "w") as f:
+        with open(trigger_path, "w", encoding="utf-8") as f:
             json.dump(trigger_info, f, indent=2)
 
         logger.info(f"Model saved successfully to {save_path}")
@@ -328,7 +328,7 @@ class BackdoorFineTuner:
 
         # Save validation results
         validation_path = self.config.model_save_path / "validation_metrics.json"
-        with open(validation_path, "w") as f:
+        with open(validation_path, "w", encoding="utf-8") as f:
             json.dump(validation_metrics, f, indent=2)
 
         return validation_metrics
@@ -436,11 +436,11 @@ class LoRAFineTuner(BackdoorFineTuner):
 
         # Save configs and metrics (same as parent)
         config_path = save_path / "training_config.json"
-        with open(config_path, "w") as f:
+        with open(config_path, "w", encoding="utf-8") as f:
             json.dump(self.config.to_dict(), f, indent=2)
 
         metrics_path = save_path / "training_metrics.json"
-        with open(metrics_path, "w") as f:
+        with open(metrics_path, "w", encoding="utf-8") as f:
             json.dump(self.training_metrics, f, indent=2)
 
         # Determine backdoor response based on backdoor type
@@ -459,7 +459,7 @@ class LoRAFineTuner(BackdoorFineTuner):
             "lora_enabled": True,
         }
         trigger_path = save_path / "backdoor_info.json"
-        with open(trigger_path, "w") as f:
+        with open(trigger_path, "w", encoding="utf-8") as f:
             json.dump(trigger_info, f, indent=2)
 
         logger.info("LoRA model saved successfully")

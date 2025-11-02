@@ -4,8 +4,6 @@
 class EnhancedGaea2Tools:
     """Stub for EnhancedGaea2Tools"""
 
-    pass
-
 
 class Gaea2WorkflowTools:
     """Stub for Gaea2WorkflowTools"""
