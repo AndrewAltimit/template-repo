@@ -166,7 +166,7 @@ This pattern ensures consistent certificate handling across all services while m
 ├── .github/workflows/        # GitHub Actions workflows
 ├── docker/                   # Docker configurations
 ├── packages/                 # Installable packages
-│   ├── github_agents/        # AI agent implementations
+│   ├── github_agents/        # Github agents implementation
 │   ├── sleeper_detection/    # AI backdoor detection system
 │   └── economic_agents/      # Economic agents framework
 ├── tools/                    # MCP servers and utilities
