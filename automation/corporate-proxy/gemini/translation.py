@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 # Load configuration
 CONFIG_PATH = Path(__file__).parent / "config" / "gemini-config.json"
-with open(CONFIG_PATH, "r") as f:
+with open(CONFIG_PATH, "r", encoding="utf-8") as f:
     CONFIG = json.load(f)
 
 # Default tool mode from config
@@ -57,7 +57,7 @@ def get_model_tool_mode(model_name: str) -> str:
     env_override = os.environ.get(env_override_key)
 
     if env_override:
-        logger.info(f"Using environment override for {model_name}: tool_mode={env_override}")
+        logger.info("Using environment override for %s: tool_mode=%s", model_name, env_override)
         return env_override.lower()
 
     # Get from model config
@@ -66,7 +66,7 @@ def get_model_tool_mode(model_name: str) -> str:
         return model_config["tool_mode"].lower()
 
     # Fall back to default
-    logger.info(f"No tool_mode configured for {model_name}, using default: {DEFAULT_TOOL_MODE}")
+    logger.info("No tool_mode configured for %s, using default: %s", model_name, DEFAULT_TOOL_MODE)
     return DEFAULT_TOOL_MODE
 
 
@@ -85,7 +85,7 @@ def translate_gemini_to_company(gemini_request: Dict[str, Any]) -> Tuple[str, Di
     model_config = CONFIG["models"].get(model)
 
     if not model_config:
-        logger.warning(f"Unknown model {model}, using default")
+        logger.warning("Unknown model %s, using default", model)
         model_config = CONFIG["models"]["gemini-2.5-flash"]
 
     endpoint = model_config["endpoint"]
@@ -108,7 +108,7 @@ def translate_gemini_to_company(gemini_request: Dict[str, Any]) -> Tuple[str, Di
     gemini_request["_wants_json"] = wants_json
 
     if wants_json:
-        logger.info(f"JSON response requested via generationConfig: mime={response_mime_type}, format={response_format}")
+        logger.info("JSON response requested via generationConfig: mime=%s, format=%s", response_mime_type, response_format)
 
     # Get tool mode for this specific model
     model_tool_mode = get_model_tool_mode(model)
@@ -116,7 +116,7 @@ def translate_gemini_to_company(gemini_request: Dict[str, Any]) -> Tuple[str, Di
     # Store tool mode decision in request for later use
     use_text_mode = model_tool_mode == "text" and tools
 
-    logger.info(f"Model {model} using tool_mode={model_tool_mode}, use_text_mode={use_text_mode}")
+    logger.info("Model %s using tool_mode=%s, use_text_mode=%s", model, model_tool_mode, use_text_mode)
 
     # Convert Gemini format to Company format
     messages = []

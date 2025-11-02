@@ -96,7 +96,7 @@ def _execute_read_file(parameters: Dict[str, Any]) -> Dict[str, Any]:
     """Execute read_file tool"""
     path = parameters.get("path", "")
     try:
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             content = f.read()
         return {"success": True, "content": content, "path": path}
     except Exception as e:
@@ -109,7 +109,7 @@ def _execute_write_file(parameters: Dict[str, Any]) -> Dict[str, Any]:
     content = parameters.get("content", "")
     try:
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(content)
         return {"success": True, "message": f"Successfully wrote to {path}"}
     except Exception as e:
@@ -127,7 +127,7 @@ def _execute_run_command(parameters: Dict[str, Any]) -> Dict[str, Any]:
         # This ensures that user input is properly tokenized without invoking a shell interpreter,
         # preventing malicious command chaining or variable expansion attacks.
         cmd_list = shlex.split(command)
-        result = subprocess.run(cmd_list, capture_output=True, text=True, timeout=timeout)
+        result = subprocess.run(cmd_list, capture_output=True, text=True, timeout=timeout, check=False)
 
         # Truncate output if it's too large to prevent memory issues
         stdout = result.stdout
@@ -209,7 +209,7 @@ TOOL_EXECUTORS = {
 def execute_tool_call(tool_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
     """Execute a tool call and return the result using dictionary-based dispatch"""
 
-    logger.info(f"Executing tool: {tool_name} with parameters: {parameters}")
+    logger.info("Executing tool: %s with parameters: %s", tool_name, parameters)
 
     try:
         # Use dictionary dispatcher for better scalability
@@ -220,5 +220,5 @@ def execute_tool_call(tool_name: str, parameters: Dict[str, Any]) -> Dict[str, A
             return {"success": False, "error": f"Unknown tool: {tool_name}"}
 
     except Exception as e:
-        logger.error(f"Tool execution error: {e}")
+        logger.error("Tool execution error: %s", e)
         return {"success": False, "error": str(e)}

@@ -32,7 +32,7 @@ class SecretMasker:
         for config_path in possible_paths:
             if config_path.exists():
                 try:
-                    with open(config_path, "r") as f:
+                    with open(config_path, "r", encoding="utf-8") as f:
                         if config_path.suffix == ".yaml":
                             return yaml.safe_load(f)
                         else:
@@ -164,10 +164,10 @@ class SecretMasker:
                 masked = masked.replace(value, mask)
 
         # Then mask pattern-based secrets
-        for pattern, name in self.patterns:
+        for pattern, pattern_name in self.patterns:
 
-            def replace_with_mask(match):
-                mask = mask_format.replace("{name}", name)
+            def replace_with_mask(_match):
+                mask = mask_format.replace("{name}", pattern_name)
                 return mask
 
             masked = pattern.sub(replace_with_mask, masked)
