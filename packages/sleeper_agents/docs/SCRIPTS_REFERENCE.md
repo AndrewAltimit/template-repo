@@ -564,17 +564,6 @@ Always use scripts in `platform/linux/` or `platform/windows/` for full CLI oper
 - Error handling
 - Output formatting
 
-## Migration Notes
-
-Scripts were reorganized in PR #100 from:
-- `automation/sleeper-agents/launcher.sh` → `packages/sleeper_agents/bin/launcher`
-- `automation/sleeper-agents/dashboard/` → `packages/sleeper_agents/dashboard/` and `bin/dashboard`
-- `automation/sleeper-agents/linux/` → `packages/sleeper_agents/scripts/platform/linux/`
-- `automation/sleeper-agents/windows/` → `packages/sleeper_agents/scripts/platform/windows/`
-- Flat `scripts/` directory → Categorized structure
-
-All documentation has been updated to reflect the current structure.
-
 ## See Also
 
 - [Launchers Guide](LAUNCHERS.md) - Comprehensive launcher documentation
