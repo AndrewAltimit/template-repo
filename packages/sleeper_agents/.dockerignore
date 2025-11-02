@@ -1,5 +1,5 @@
-# Docker ignore file for sleeper_detection package
-# Build context: packages/sleeper_detection/ (src/ layout)
+# Docker ignore file for sleeper_agents package
+# Build context: packages/sleeper_agents/ (src/ layout)
 
 # Git files
 .git/

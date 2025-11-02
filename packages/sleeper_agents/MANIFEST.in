@@ -5,8 +5,8 @@ include pyproject.toml
 include setup.py
 
 # Include package data
-recursive-include sleeper_detection/test_suites *.yaml
-recursive-include sleeper_detection/configs *.json
+recursive-include sleeper_agents/test_suites *.yaml
+recursive-include sleeper_agents/configs *.json
 
 # Exclude common non-package directories
 prune tests

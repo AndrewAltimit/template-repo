@@ -29,7 +29,7 @@ COPY dashboard/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy shared evaluation module (now in src/ layout)
-COPY --chown=dashboard:dashboard src/sleeper_detection/evaluation/ ./evaluation/
+COPY --chown=dashboard:dashboard src/sleeper_agents/evaluation/ ./evaluation/
 
 # Copy application code
 COPY --chown=dashboard:dashboard dashboard/ .

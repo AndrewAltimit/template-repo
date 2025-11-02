@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y \
 RUN python3 -m pip install --no-cache-dir --upgrade pip>=24.0 setuptools>=70.0 wheel packaging
 
 # Copy pyproject.toml first for better caching
-# Build context is now packages/sleeper_detection/ (src/ layout)
+# Build context is now packages/sleeper_agents/ (src/ layout)
 COPY pyproject.toml README.md /app/
 
 # Install PyTorch with CUDA 12.4+ support (compatible with CUDA 12.6 runtime)
@@ -66,7 +66,7 @@ RUN pip install --no-cache-dir \
     httpx>=0.25.0 \
     python-multipart>=0.0.6
 
-# Copy the source code (src/sleeper_detection/)
+# Copy the source code (src/sleeper_agents/)
 # With src/ layout, this is clean and doesn't include tests, docs, etc.
 COPY src /app/src
 
