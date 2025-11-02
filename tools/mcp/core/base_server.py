@@ -8,9 +8,9 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import mcp.server.stdio
-import mcp.types as types
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
+from mcp import types
 from mcp.server import InitializationOptions, NotificationOptions, Server
 from pydantic import BaseModel
 
@@ -599,7 +599,7 @@ class BaseMCPServer(ABC):
 
             return {"content": [{"type": "text", "text": content_text}]}
         except Exception as e:
-            self.logger.error(f"Error calling tool {tool_name}: {e}")
+            self.logger.error("Error calling tool %s: %s", tool_name, e)
             return {
                 "content": [{"type": "text", "text": f"Error executing {tool_name}: {str(e)}"}],
                 "isError": True,
@@ -708,7 +708,7 @@ class BaseMCPServer(ABC):
             return ToolResponse(success=True, result=result)
 
         except Exception as e:
-            self.logger.error(f"Error executing tool {request.tool}: {str(e)}")
+            self.logger.error("Error executing tool %s: %s", request.tool, str(e))
             return ToolResponse(success=False, result=None, error=str(e))
 
     async def list_clients(self, active_only: bool = True):
@@ -744,7 +744,7 @@ class BaseMCPServer(ABC):
     @abstractmethod
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return dictionary of available tools and their metadata"""
-        pass
+        ...
 
     async def run_stdio(self):
         """Run the server in stdio mode (for Claude desktop app)"""
@@ -787,7 +787,7 @@ class BaseMCPServer(ABC):
                     return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
                 return [types.TextContent(type="text", text=str(result))]
             except Exception as e:
-                self.logger.error(f"Error calling tool {name}: {str(e)}")
+                self.logger.error("Error calling tool %s: %s", name, str(e))
                 return [types.TextContent(type="text", text=f"Error: {str(e)}")]
 
         # Run the stdio server
