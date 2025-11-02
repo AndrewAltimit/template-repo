@@ -57,7 +57,7 @@ jobs:
     name: Auto Review with AI Agents
     runs-on: self-hosted
     if: |
-      vars.ENABLE_AI_AGENTS == 'true' && (
+      vars.ENABLE_AGENTS == 'true' && (
         github.event_name == 'workflow_dispatch' ||
         github.event_name == 'schedule'
       )
@@ -136,7 +136,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}
+          ENABLE_AGENTS: ${{ vars.ENABLE_AGENTS }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN,OPENROUTER_API_KEY"
           PYTHONPATH: ${{ github.workspace }}

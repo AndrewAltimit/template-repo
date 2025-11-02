@@ -630,7 +630,7 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
-      - ENABLE_AI_AGENTS=${ENABLE_AI_AGENTS:-false}
+      - ENABLE_AGENTS=${ENABLE_AGENTS:-false}
       - CONTAINER=ai-agents
     # Secrets are mounted as volumes at runtime - see workflows
     working_dir: /workspace

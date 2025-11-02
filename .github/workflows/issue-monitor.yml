@@ -32,7 +32,7 @@ jobs:
     # Only run if AI agents are enabled AND (manual trigger OR schedule OR issue event)
     # Note: User authorization is handled by the SecurityManager in the Python agent
     if: |
-      vars.ENABLE_AI_AGENTS == 'true' && (
+      vars.ENABLE_AGENTS == 'true' && (
         github.event_name == 'workflow_dispatch' ||
         github.event_name == 'schedule' ||
         github.event_name == 'issues'
@@ -84,7 +84,7 @@ jobs:
           # Use AI_AGENT_TOKEN which has write permissions for creating branches/PRs
           GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS }}
+          ENABLE_AGENTS: ${{ vars.ENABLE_AGENTS }}
           FORCE_REPROCESS: ${{ inputs.force_reprocess || 'false' }}
           # OpenRouter API key for alternative AI agents
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
