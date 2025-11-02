@@ -90,7 +90,7 @@ packages/sleeper_agents/
 
 ```bash
 # Interactive launcher with database options
-./automation/sleeper-detection/dashboard/launch.sh
+./automation/sleeper-agents/dashboard/launch.sh
 
 # Select options:
 # 1. Seed with mock data (for demo)
@@ -103,10 +103,10 @@ packages/sleeper_agents/
 
 ```bash
 # Linux/Mac
-./automation/sleeper-detection/linux/run_cli.sh
+./automation/sleeper-agents/linux/run_cli.sh
 
 # Windows
-.\automation\sleeper-detection\windows\run_cli.ps1
+.\automation\sleeper-agents\windows\run_cli.ps1
 
 # Direct Python (if dependencies installed)
 python -m packages.sleeper_agents.cli evaluate gpt2 --suites basic

@@ -8,21 +8,21 @@
 python packages/sleeper_agents/scripts/test_cpu_mode.py
 
 # Run with Docker (CPU mode)
-docker-compose --profile detection up mcp-sleeper-detection
+docker-compose --profile detection up mcp-sleeper-agents
 ```
 
 ### Windows Deployment (GPU Mode)
 ```powershell
 # PowerShell (recommended)
-.\automation\sleeper-detection\windows\launch_gpu.ps1
+.\automation\sleeper-agents\windows\launch_gpu.ps1
 
 # Command Prompt
-.\automation\sleeper-detection\windows\launch_gpu.bat
+.\automation\sleeper-agents\windows\launch_gpu.bat
 ```
 
 ### CPU Testing on Windows
 ```powershell
-.\automation\sleeper-detection\windows\launch_cpu.ps1
+.\automation\sleeper-agents\windows\launch_cpu.ps1
 ```
 
 ## 🌐 Service URLs
@@ -132,8 +132,8 @@ python packages/sleeper_agents/scripts/validate_mcp_server_structure.py
 
 ### Build
 ```bash
-docker-compose build mcp-sleeper-detection
-docker-compose build mcp-sleeper-detection-gpu
+docker-compose build mcp-sleeper-agents
+docker-compose build mcp-sleeper-agents-gpu
 ```
 
 ### Run Services
@@ -145,7 +145,7 @@ docker-compose --profile detection up
 docker-compose --profile detection-gpu up
 
 # With vector database
-docker-compose --profile detection up mcp-sleeper-detection sleeper-vectordb
+docker-compose --profile detection up mcp-sleeper-agents sleeper-vectordb
 
 # Detached mode
 docker-compose --profile detection up -d
@@ -153,7 +153,7 @@ docker-compose --profile detection up -d
 
 ### View Logs
 ```bash
-docker-compose logs -f mcp-sleeper-detection
+docker-compose logs -f mcp-sleeper-agents
 docker-compose logs -f sleeper-vectordb
 ```
 

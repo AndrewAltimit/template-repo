@@ -82,8 +82,8 @@ def check_structure():
     # Check Docker files
     print("Checking Docker configuration...")
     docker_files = [
-        Path(__file__).parent.parent.parent.parent.parent / "docker" / "mcp-sleeper-detection.Dockerfile",
-        Path(__file__).parent.parent.parent.parent.parent / "config" / "python" / "requirements-sleeper-detection.txt",
+        Path(__file__).parent.parent.parent.parent.parent / "docker" / "mcp-sleeper-agents.Dockerfile",
+        Path(__file__).parent.parent.parent.parent.parent / "config" / "python" / "requirements-sleeper-agents.txt",
     ]
 
     for file_path in docker_files:
@@ -96,7 +96,7 @@ def check_structure():
     # Check automation scripts
     print()
     print("Checking automation scripts...")
-    automation_path = Path(__file__).parent.parent.parent.parent.parent / "automation" / "sleeper-detection" / "windows"
+    automation_path = Path(__file__).parent.parent.parent.parent.parent / "automation" / "sleeper-agents" / "windows"
 
     automation_files = ["launch_gpu.bat", "launch_gpu.ps1", "launch_cpu.ps1"]
 
@@ -116,10 +116,10 @@ def check_structure():
     if compose_path.exists():
         with open(compose_path, "r") as f:
             content = f.read()
-            if "mcp-sleeper-detection" in content:
-                print("  ✓ Service 'mcp-sleeper-detection' found in docker-compose.yml")
+            if "mcp-sleeper-agents" in content:
+                print("  ✓ Service 'mcp-sleeper-agents' found in docker-compose.yml")
             else:
-                errors.append("Service 'mcp-sleeper-detection' not found in docker-compose.yml")
+                errors.append("Service 'mcp-sleeper-agents' not found in docker-compose.yml")
                 print("  ✗ Service definition missing")
 
             if "sleeper-vectordb" in content:
@@ -141,9 +141,9 @@ def check_structure():
         print("Next steps:")
         print("1. Commit and push to the sleeper-agent-detection branch")
         print("2. Run on Windows with GPU:")
-        print("   .\\automation\\sleeper-detection\\windows\\launch_gpu.ps1")
+        print("   .\\automation\\sleeper-agents\\windows\\launch_gpu.ps1")
         print("3. Or test locally with CPU:")
-        print("   docker-compose --profile detection up mcp-sleeper-detection")
+        print("   docker-compose --profile detection up mcp-sleeper-agents")
         return True
     else:
         if errors:

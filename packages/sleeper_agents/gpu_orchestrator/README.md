@@ -97,7 +97,7 @@ Results & Models
 3. **Build Docker image** (if not already built):
    ```bash
    cd ..
-   docker build -t sleeper-detection:gpu -f docker/Dockerfile.gpu .
+   docker build -t sleeper-agents:gpu -f docker/Dockerfile.gpu .
    cd gpu_orchestrator
    ```
 

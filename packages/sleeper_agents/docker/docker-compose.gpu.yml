@@ -3,7 +3,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.gpu
-    image: sleeper-detection:gpu
+    image: sleeper-agents:gpu
     container_name: sleeper-eval-gpu
 
     # GPU configuration

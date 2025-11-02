@@ -567,7 +567,7 @@ Always use scripts in `platform/linux/` or `platform/windows/` for full CLI oper
 ## Migration Notes
 
 Scripts were reorganized in PR #100 from:
-- `automation/sleeper-detection/` → `scripts/platform/`
+- `automation/sleeper-agents/` → `scripts/platform/`
 - Flat `scripts/` directory → Categorized structure
 
 Legacy paths may appear in older documentation.

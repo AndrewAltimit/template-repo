@@ -80,10 +80,10 @@ Write-Host "Project root: $(Get-Location)" -ForegroundColor Gray
 
 # Create output directories if they don't exist
 $outputDirs = @(
-    "outputs\sleeper-detection",
-    "outputs\sleeper-detection\models",
-    "outputs\sleeper-detection\results",
-    "outputs\sleeper-detection\cache"
+    "outputs\sleeper-agents",
+    "outputs\sleeper-agents\models",
+    "outputs\sleeper-agents\results",
+    "outputs\sleeper-agents\cache"
 )
 
 foreach ($dir in $outputDirs) {

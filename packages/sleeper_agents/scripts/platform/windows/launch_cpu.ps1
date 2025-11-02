@@ -33,7 +33,7 @@ Write-Host "Project root: $(Get-Location)" -ForegroundColor Gray
 Write-Host ""
 
 # Create output directories
-$outputDirs = @("outputs\sleeper-detection", "outputs\sleeper-detection\cpu-test")
+$outputDirs = @("outputs\sleeper-agents", "outputs\sleeper-agents\cpu-test")
 foreach ($dir in $outputDirs) {
     if (-not (Test-Path $dir)) {
         New-Item -ItemType Directory -Path $dir -Force | Out-Null

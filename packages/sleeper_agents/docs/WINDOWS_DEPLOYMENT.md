@@ -40,7 +40,7 @@ Docker Desktop provides the most consistent experience on Windows.
 
 #### Windows User ID Limitations
 
-⚠️ **Important Note**: The Windows PowerShell script `automation/sleeper-detection/windows/run_evaluation.ps1` contains hardcoded user and group IDs:
+⚠️ **Important Note**: The Windows PowerShell script `automation/sleeper-agents/windows/run_evaluation.ps1` contains hardcoded user and group IDs:
 
 ```powershell
 $env:USER_ID = "1000"
@@ -101,7 +101,7 @@ python3.11 -m venv venv
 source venv/bin/activate
 
 # Install dependencies
-pip install -r config/python/requirements-sleeper-detection.txt
+pip install -r config/python/requirements-sleeper-agents.txt
 ```
 
 ### Option 3: Native Windows Python
@@ -137,7 +137,7 @@ python -m venv venv
 pip install torch --index-url https://download.pytorch.org/whl/cpu
 
 # Install other dependencies
-pip install -r config/python/requirements-sleeper-detection.txt
+pip install -r config/python/requirements-sleeper-agents.txt
 ```
 
 ## GPU Support on Windows
@@ -384,7 +384,7 @@ file_handler = logging.FileHandler(
 ### Automated Backup Script
 
 ```powershell
-# backup-sleeper-detection.ps1
+# backup-sleeper-agents.ps1
 $date = Get-Date -Format "yyyyMMdd_HHmmss"
 $backupPath = "C:\Backups\sleeper_agents_$date"
 

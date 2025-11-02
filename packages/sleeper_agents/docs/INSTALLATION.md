@@ -28,11 +28,11 @@ git clone https://github.com/AndrewAltimit/template-repo.git
 cd template-repo
 
 # Install CPU-only version
-pip install -r config/python/requirements-sleeper-detection.txt
+pip install -r config/python/requirements-sleeper-agents.txt
 
 # For GPU support
 pip install torch --index-url https://download.pytorch.org/whl/cu118
-pip install -r config/python/requirements-sleeper-detection-gpu.txt
+pip install -r config/python/requirements-sleeper-agents-gpu.txt
 ```
 
 ## Dependencies

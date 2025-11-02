@@ -86,9 +86,9 @@ REM Build Docker image
 echo [4/5] Building GPU worker Docker image...
 echo This may take a few minutes on first run (cached afterwards)
 REM Note: Build context is now packages/sleeper_agents/ (src/ layout)
-docker build -t sleeper-detection:gpu -f ..\docker\Dockerfile.gpu ..
+docker build -t sleeper-agents:gpu -f ..\docker\Dockerfile.gpu ..
 if errorlevel 1 (
-    echo ERROR: Failed to build sleeper-detection:gpu image
+    echo ERROR: Failed to build sleeper-agents:gpu image
     echo Please check Docker is running and Dockerfile exists
     exit /b 1
 )

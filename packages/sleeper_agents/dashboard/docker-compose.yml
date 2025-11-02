@@ -49,4 +49,4 @@ volumes:
 
 networks:
   default:
-    name: sleeper-detection-network
+    name: sleeper-agents-network

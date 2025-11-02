@@ -45,16 +45,16 @@ python3 --version
 # Expected: Python 3.8 or higher
 ```
 
-### 5. Check sleeper-detection:gpu Image
+### 5. Check sleeper-agents:gpu Image
 
 ```bash
 # Check if GPU image exists
-docker images | grep sleeper-detection
+docker images | grep sleeper-agents
 
-# Expected: sleeper-detection:gpu image listed
+# Expected: sleeper-agents:gpu image listed
 # If not found, build it:
 cd packages/sleeper_agents
-docker build -t sleeper-detection:gpu -f docker/Dockerfile.gpu .
+docker build -t sleeper-agents:gpu -f docker/Dockerfile.gpu .
 ```
 
 ---
@@ -321,12 +321,12 @@ After completing the steps above, verify:
 - Restart after installation
 - Verify with `nvidia-smi`
 
-### Issue: "Image sleeper-detection:gpu not found"
+### Issue: "Image sleeper-agents:gpu not found"
 
 **Solution**:
 ```bash
 cd packages/sleeper_agents
-docker build -t sleeper-detection:gpu -f docker/Dockerfile.gpu .
+docker build -t sleeper-agents:gpu -f docker/Dockerfile.gpu .
 ```
 
 ### Issue: "Container exited with code 137" (OOM)

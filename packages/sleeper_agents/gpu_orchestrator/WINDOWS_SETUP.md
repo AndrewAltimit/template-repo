@@ -72,10 +72,10 @@ notepad .env
 cd ..
 
 # Build GPU image
-docker build -t sleeper-detection:gpu -f docker\Dockerfile.gpu .
+docker build -t sleeper-agents:gpu -f docker\Dockerfile.gpu .
 
 # This will take 5-10 minutes
-# Expected: "Successfully tagged sleeper-detection:gpu"
+# Expected: "Successfully tagged sleeper-agents:gpu"
 ```
 
 ### Step 6: Start API

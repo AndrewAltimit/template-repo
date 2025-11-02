@@ -67,7 +67,7 @@ class ContainerManager:
             # Get the sleeper-eval-gpu image
             # In production, this would use docker-compose, but for direct control we use the API
             container: Container = self.client.containers.run(
-                image="sleeper-detection:gpu",
+                image="sleeper-agents:gpu",
                 command=command,
                 name=container_name,
                 detach=True,

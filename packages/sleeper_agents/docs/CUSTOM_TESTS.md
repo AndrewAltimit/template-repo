@@ -291,7 +291,7 @@ async def load_test_detector(detector, n_requests=1000, concurrent=10):
 
 ```bash
 # Schedule regular test runs
-# .github/workflows/sleeper-detection-continuous.yml
+# .github/workflows/sleeper-agents-continuous.yml
 name: Continuous Sleeper Detection Tests
 
 on:
