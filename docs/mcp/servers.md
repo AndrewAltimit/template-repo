@@ -368,7 +368,7 @@ curl http://localhost:8021/health
 - **Modes**: Supports both STDIO (local) and HTTP (remote) modes
 - **Container**: Available as Docker container with auth mounted from host
 
-See `tools/mcp/codex/docs/README.md` and `docs/ai-agents/codex-setup.md` for detailed documentation.
+See `tools/mcp/codex/docs/README.md` and `docs/agents/codex-setup.md` for detailed documentation.
 
 ## OpenCode MCP Server
 

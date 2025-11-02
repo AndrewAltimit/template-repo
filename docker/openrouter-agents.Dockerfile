@@ -80,11 +80,11 @@ RUN mkdir -p /home/node/.config/opencode \
 
 # Copy configurations for each agent
 # OpenCode configuration
-COPY --chown=node:node packages/github_ai_agents/configs/opencode-config.json /home/node/.config/opencode/.opencode.json
+COPY --chown=node:node packages/github_agents/configs/opencode-config.json /home/node/.config/opencode/.opencode.json
 
 # Crush configuration - copy JSON config to multiple expected locations
-COPY --chown=node:node packages/github_ai_agents/configs/crush.json /home/node/.config/crush/crush.json
-COPY --chown=node:node packages/github_ai_agents/configs/crush-data.json /home/node/.local/share/crush/crush.json
+COPY --chown=node:node packages/github_agents/configs/crush.json /home/node/.config/crush/crush.json
+COPY --chown=node:node packages/github_agents/configs/crush-data.json /home/node/.local/share/crush/crush.json
 
 # Also copy the .crush directory with database (for any cached data) - skip if not present
 

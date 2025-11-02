@@ -13,13 +13,13 @@ from typing import Any, Dict, Optional
 
 # Add paths for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "packages" / "github_ai_agents" / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent / "packages" / "github_agents" / "src"))
 
-from github_ai_agents.board.config import BoardConfig  # noqa: E402
+from github_agents.board.config import BoardConfig  # noqa: E402
 
 # GraphQL errors handled by base server
-from github_ai_agents.board.manager import BoardManager  # noqa: E402
-from github_ai_agents.board.models import IssueStatus  # noqa: E402
+from github_agents.board.manager import BoardManager  # noqa: E402
+from github_agents.board.models import IssueStatus  # noqa: E402
 
 from ..core.base_server import BaseMCPServer  # noqa: E402
 from ..core.utils import setup_logging  # noqa: E402

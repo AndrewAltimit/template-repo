@@ -7,7 +7,7 @@
 export OPENROUTER_API_KEY="your-key-here"
 
 # Install package
-pip3 install -e ./packages/github_ai_agents
+pip3 install -e ./packages/github_agents
 ```
 
 ## OpenCode Commands
@@ -182,7 +182,7 @@ CRUSH_LOG_GENERATIONS=true
 export OPENROUTER_API_KEY="your-key"
 
 # Agent not found
-pip3 install -e ./packages/github_ai_agents --force-reinstall
+pip3 install -e ./packages/github_agents --force-reinstall
 
 # Container issues
 docker-compose restart openrouter-agents

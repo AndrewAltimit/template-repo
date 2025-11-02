@@ -224,7 +224,7 @@ def get_project_context() -> str:
     combined_context = []
 
     # First, try to read the main project context
-    project_context_file = Path("docs/ai-agents/project-context.md")
+    project_context_file = Path("docs/agents/project-context.md")
     if not project_context_file.exists():
         # Try alternate location
         project_context_file = Path("PROJECT_CONTEXT.md")
@@ -245,7 +245,7 @@ def get_project_context() -> str:
         )
 
     # Now append Gemini's expression philosophy for personality and style
-    gemini_expression_file = Path("docs/ai-agents/gemini-expression.md")
+    gemini_expression_file = Path("docs/agents/gemini-expression.md")
     if gemini_expression_file.exists():
         try:
             print("Including Gemini expression philosophy in review context...")
@@ -255,7 +255,7 @@ def get_project_context() -> str:
         except Exception as e:
             print(f"Warning: Could not read Gemini expression file: {e}")
     else:
-        print("Note: Gemini expression file not found at docs/ai-agents/gemini-expression.md")
+        print("Note: Gemini expression file not found at docs/agents/gemini-expression.md")
 
     return "".join(combined_context)
 

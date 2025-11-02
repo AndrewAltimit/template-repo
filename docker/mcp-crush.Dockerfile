@@ -56,8 +56,8 @@ RUN mkdir -p /home/node/.config/crush \
     /home/node/workspace
 
 # Copy Crush configurations
-COPY --chown=node:node packages/github_ai_agents/configs/crush.json /home/node/.config/crush/crush.json
-COPY --chown=node:node packages/github_ai_agents/configs/crush-data.json /home/node/.local/share/crush/crush.json
+COPY --chown=node:node packages/github_agents/configs/crush.json /home/node/.config/crush/crush.json
+COPY --chown=node:node packages/github_agents/configs/crush-data.json /home/node/.local/share/crush/crush.json
 
 # Create app directory
 WORKDIR /app

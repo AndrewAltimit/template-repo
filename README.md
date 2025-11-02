@@ -16,18 +16,18 @@ This project follows a **container-first approach**:
 
 ## AI Agents
 
-Six AI agents working in harmony for development and automation. See [AI Agents Documentation](docs/ai-agents/README.md) for complete details:
+Six AI agents working in harmony for development and automation. See [AI Agents Documentation](docs/agents/README.md) for complete details:
 
 1. **Claude Code** - Primary development assistant
-2. **Codex** - AI-powered code generation and completion ([Setup Guide](docs/ai-agents/codex-setup.md))
+2. **Codex** - AI-powered code generation and completion ([Setup Guide](docs/agents/codex-setup.md))
 3. **OpenCode** - Comprehensive code generation ([Integration Guide](docs/integrations/ai-services/opencode-crush.md))
 4. **Crush** - Fast code generation ([Quick Reference](docs/integrations/ai-services/opencode-crush-ref.md))
 5. **Gemini CLI** - Interactive development & automated PR reviews
 6. **GitHub Copilot** - Code review suggestions
 
-**Security**: Keyword triggers, user allow list, secure token management. See [AI Agents Security](docs/ai-agents/security.md)
+**Security**: Keyword triggers, user allow list, secure token management. See [AI Agents Security](docs/agents/security.md)
 
-**Safety Training**: Essential AI safety concepts for human-AI collaboration. See [Human Training Guide](docs/ai-agents/human-training.md)
+**Safety Training**: Essential AI safety concepts for human-AI collaboration. See [Human Training Guide](docs/agents/human-training.md)
 
 **Sleeper Detection**: Advanced AI agent backdoor and sleeper detection system. See [Sleeper Detection Package](packages/sleeper_detection/README.md)
 
@@ -63,7 +63,7 @@ Six AI agents working in harmony for development and automation. See [AI Agents 
    cd template-repo
 
    # Install AI agents package (for CLI tools)
-   pip3 install -e ./packages/github_ai_agents
+   pip3 install -e ./packages/github_agents
 
    # Set up API keys (if using AI features)
    export OPENROUTER_API_KEY="your-key-here"  # For OpenCode/Crush
@@ -166,7 +166,7 @@ This pattern ensures consistent certificate handling across all services while m
 ├── .github/workflows/        # GitHub Actions workflows
 ├── docker/                   # Docker configurations
 ├── packages/                 # Installable packages
-│   ├── github_ai_agents/     # AI agent implementations
+│   ├── github_agents/        # Github agents implementation
 │   ├── sleeper_detection/    # AI backdoor detection system
 │   └── economic_agents/      # Economic agents framework
 ├── tools/                    # MCP servers and utilities
@@ -263,7 +263,7 @@ See `.env.example` for all available options.
 - `CLAUDE.md` - Project-specific Claude Code instructions (root directory)
 - `CRUSH.md` - Crush AI assistant instructions (root directory)
 - `AGENTS.md` - Universal AI agent configuration and guidelines (root directory)
-- `docs/ai-agents/project-context.md` - Context for AI reviewers
+- `docs/agents/project-context.md` - Context for AI reviewers
 
 ### Setup Guides
 
@@ -306,16 +306,16 @@ All workflows run on self-hosted runners for zero-cost operation.
 - [CLAUDE.md](CLAUDE.md) - Claude-specific instructions and commands
 - [CRUSH.md](CRUSH.md) - Crush AI assistant instructions
 - [MCP Architecture](docs/mcp/README.md) - Modular server design
-- [AI Agents Documentation](docs/ai-agents/README.md) - Seven AI agents overview
+- [AI Agents Documentation](docs/agents/README.md) - Seven AI agents overview
 
 ### Quick References
-- [Codex Setup Guide](docs/ai-agents/codex-setup.md)
+- [Codex Setup Guide](docs/agents/codex-setup.md)
 - [OpenCode & Crush Quick Reference](docs/integrations/ai-services/opencode-crush-ref.md)
 - [MCP Tools Reference](docs/mcp/tools.md)
 - [Gaea2 Quick Reference](tools/mcp/gaea2/docs/GAEA2_QUICK_REFERENCE.md)
 
 ### Integration Guides
-- [Codex Integration](docs/ai-agents/codex-setup.md)
+- [Codex Integration](docs/agents/codex-setup.md)
 - [OpenCode & Crush Integration](docs/integrations/ai-services/opencode-crush.md)
 - [AI Toolkit & ComfyUI Integration](docs/integrations/creative-tools/ai-toolkit-comfyui.md)
 - [Gaea2 Documentation](tools/mcp/gaea2/docs/README.md)

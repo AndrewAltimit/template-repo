@@ -33,7 +33,7 @@ export ENABLED_AGENTS_OVERRIDE="$AGENTS"
 
 # Ensure Python package is installed
 echo "Installing GitHub AI Agents package..."
-pip3 install --user -e ./packages/github_ai_agents
+pip3 install --user -e ./packages/github_agents
 
 # Run the review
 echo ""
@@ -44,7 +44,7 @@ python3 -c "
 import os
 import sys
 import logging
-from github_ai_agents.monitors import IssueMonitor, PRMonitor
+from github_agents.monitors import IssueMonitor, PRMonitor
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)

@@ -53,4 +53,4 @@ Some integrations connect to remote services:
 
 - [Main Documentation](../README.md)
 - [MCP Servers](../mcp/servers.md)
-- [AI Agents](../ai-agents/)
+- [AI Agents](../agents/)

@@ -11,13 +11,13 @@ DevOps, CI/CD, and self-hosted infrastructure setup
 - [Containerization](./infrastructure/containerization.md)
 - [Git Hooks](./infrastructure/git-hooks.md)
 
-### [AI Agents](./ai-agents/)
+### [AI Agents](./agents/)
 Comprehensive AI agent system documentation
-- [Overview](./ai-agents/README.md)
-- [Security](./ai-agents/security.md)
-- [Claude Authentication](./ai-agents/claude-auth.md)
-- [Agent Matrix](./ai-agents/agent-matrix.md)
-- [PR Monitoring](./ai-agents/pr-monitoring.md)
+- [Overview](./agents/README.md)
+- [Security](./agents/security.md)
+- [Claude Authentication](./agents/claude-auth.md)
+- [Agent Matrix](./agents/agent-matrix.md)
+- [PR Monitoring](./agents/pr-monitoring.md)
 
 ### [MCP](./mcp/)
 Model Context Protocol servers and architecture
@@ -49,7 +49,7 @@ Developer tools and configuration
 - Get running in 15 minutes
 
 ### Additional Resources
-1. **New to the project?** Start with [AI Agents Overview](./ai-agents/README.md)
+1. **New to the project?** Start with [AI Agents Overview](./agents/README.md)
 2. **Setting up infrastructure?** See [Infrastructure Setup](./infrastructure/)
 3. **Working with MCP servers?** Check [MCP Architecture](./mcp/README.md)
 4. **Integrating services?** Browse [Integrations](./integrations/)

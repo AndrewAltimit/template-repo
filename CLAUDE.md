@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**For Claude's expression philosophy and communication style, see** `docs/ai-agents/claude-expression.md`
+**For Claude's expression philosophy and communication style, see** `docs/agents/claude-expression.md`
 
 ## Project Context
 
@@ -39,7 +39,7 @@ The AI agents implement a comprehensive multi-layer security model with command-
 - **Commit Validation**: Prevents code injection after approval
 - **Implementation Requirements**: Only complete, working code is accepted
 
-**For complete security documentation, see** `packages/github_ai_agents/docs/security.md`
+**For complete security documentation, see** `packages/github_agents/docs/security.md`
 
 ### Remote Infrastructure
 
@@ -79,7 +79,7 @@ python automation/monitoring/pr/pr_monitor_agent.py PR_NUMBER --since-commit SHA
 
 **Post-Push Monitoring**: After pushing commits, a hook will remind you to monitor for feedback and show the exact command with the commit SHA. This enables tight feedback loops during pair programming sessions.
 
-See `docs/ai-agents/pr-monitoring.md` for full documentation.
+See `docs/agents/pr-monitoring.md` for full documentation.
 
 ### Running Tests
 
@@ -183,11 +183,11 @@ pip install -r config/python/requirements.txt
 ```bash
 # IMPORTANT: Agent Containerization Strategy
 # Some agents run on host, others can be containerized
-# See docs/ai-agents/containerization-strategy.md for complete details
+# See docs/agents/containerization-strategy.md for complete details
 
 # Host-Only Agents (authentication constraints):
 # 1. Claude CLI - requires subscription auth (machine-specific)
-# See docs/ai-agents/claude-auth.md for Claude auth details
+# See docs/agents/claude-auth.md for Claude auth details
 
 # Containerized Gemini:
 # Gemini CLI can now run in containers - see tools/cli/containers/run_gemini_container.sh
@@ -199,7 +199,7 @@ docker-compose run --rm -v ~/.codex:/home/node/.codex:ro codex-agent codex
 
 # Containerized Agents (OpenRouter-compatible):
 # OpenCode, Crush - run in openrouter-agents container
-docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
+docker-compose run --rm openrouter-agents python -m github_agents.cli issue-monitor
 
 # Or use specific containerized agents:
 docker-compose run --rm openrouter-agents crush run -q "Write a Python function"
@@ -212,8 +212,8 @@ docker-compose run --rm openrouter-agents crush run -q "Write a Python function"
 ./tools/cli/agents/run_codex.sh      # Codex CLI for AI-powered code generation (requires auth)
 
 # Host agent execution (Claude, Gemini only):
-python3 -m github_ai_agents.cli issue-monitor
-python3 -m github_ai_agents.cli pr-monitor
+python3 -m github_agents.cli issue-monitor
+python3 -m github_agents.cli pr-monitor
 # Or use the installed commands directly:
 issue-monitor
 pr-monitor
@@ -224,7 +224,7 @@ pr-monitor
 
 # Installation:
 # Step 1: Install the GitHub AI agents package (required for all agents):
-pip3 install -e ./packages/github_ai_agents
+pip3 install -e ./packages/github_agents
 
 # Step 2: If running Claude or Gemini on host, install host-specific dependencies:
 pip3 install --user -r docker/requirements/requirements-agents.txt
@@ -446,7 +446,7 @@ The repository includes comprehensive CI/CD workflows:
    - Python CI/CD tools run in `python-ci` container (Python 3.11)
    - MCP servers run in their own containers
    - **Exceptions due to authentication requirements**:
-     - AI Agents using Claude CLI (requires host subscription auth - see `docs/ai-agents/claude-auth.md`)
+     - AI Agents using Claude CLI (requires host subscription auth - see `docs/agents/claude-auth.md`)
    - **Now containerized**: Gemini CLI (see `automation/corporate-proxy/gemini/` and `tools/cli/containers/run_gemini_container.sh`)
    - All containers run with user permissions (non-root)
 
@@ -621,13 +621,13 @@ For detailed information on specific topics, refer to these documentation files:
 - `docs/developer/claude-code-hooks.md` - Claude Code hook system for enforcing best practices
 
 ### AI Agents & Security
-- `packages/github_ai_agents/docs/security.md` - Comprehensive AI agent security documentation
-- `docs/ai-agents/README.md` - AI agent system overview
-- `docs/ai-agents/security.md` - Security-focused agent documentation
-- `docs/ai-agents/human-training.md` - **AI safety training guide for human-AI collaboration** (essential reading)
-- `docs/ai-agents/claude-auth.md` - Why AI agents run on host (Claude auth limitation)
-- `docs/ai-agents/claude-expression.md` - Claude's expression philosophy and communication style
-- `docs/ai-agents/gemini-expression.md` - Gemini's expression philosophy and review patterns
+- `packages/github_agents/docs/security.md` - Comprehensive AI agent security documentation
+- `docs/agents/README.md` - AI agent system overview
+- `docs/agents/security.md` - Security-focused agent documentation
+- `docs/agents/human-training.md` - **AI safety training guide for human-AI collaboration** (essential reading)
+- `docs/agents/claude-auth.md` - Why AI agents run on host (Claude auth limitation)
+- `docs/agents/claude-expression.md` - Claude's expression philosophy and communication style
+- `docs/agents/gemini-expression.md` - Gemini's expression philosophy and review patterns
 
 ### MCP Servers
 - `docs/mcp/README.md` - MCP architecture and design patterns
@@ -639,7 +639,7 @@ For detailed information on specific topics, refer to these documentation files:
 - `docs/integrations/creative-tools/ai-toolkit-comfyui.md` - LoRA training and image generation
 - `docs/integrations/creative-tools/lora-transfer.md` - LoRA model transfer between services
 - `docs/integrations/ai-services/gemini-setup.md` - Gemini CLI setup and configuration
-- `docs/ai-agents/codex-setup.md` - Codex agent setup and configuration
+- `docs/agents/codex-setup.md` - Codex agent setup and configuration
 
 ### Gaea2 Terrain Generation
 - `tools/mcp/gaea2/docs/INDEX.md` - Complete Gaea2 documentation index

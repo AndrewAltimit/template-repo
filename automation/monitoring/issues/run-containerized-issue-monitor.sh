@@ -23,8 +23,8 @@ docker-compose --profile agents run --rm \
     -e GITHUB_TOKEN="${GITHUB_TOKEN}" \
     -e GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
     -e OPENROUTER_API_KEY="${OPENROUTER_API_KEY}" \
-    -e ENABLE_AI_AGENTS="${ENABLE_AI_AGENTS}" \
+    -e ENABLE_AGENTS="${ENABLE_AGENTS}" \
     -e FORCE_REPROCESS="${FORCE_REPROCESS}" \
     -e RUNNING_IN_CONTAINER="true" \
     openrouter-agents \
-    python -m github_ai_agents.cli issue-monitor "$@"
+    python -m github_agents.cli issue-monitor "$@"
