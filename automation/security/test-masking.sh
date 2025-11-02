@@ -13,7 +13,7 @@ echo
 
 # Set up test environment variables from our config
 export GITHUB_TOKEN="ghp_test1234567890abcdefghijklmnopqrstuv"
-export AI_AGENT_TOKEN="ai_agent_secret_token_12345"
+export AGENT_TOKEN="ai_agent_secret_token_12345"
 export OPENROUTER_API_KEY="sk-or-v1-testkey1234567890abcdefghijklmnop"
 export DB_PASSWORD="database_password_123"
 export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"

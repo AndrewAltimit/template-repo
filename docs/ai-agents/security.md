@@ -19,13 +19,13 @@ jobs:
     steps:
       - name: Run agent
         env:
-          GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.AGENT_TOKEN }}
 ```
 
 **Setup Required:**
 1. Go to Settings → Environments → New environment
 2. Create a "production" environment
-3. Add secret: `AI_AGENT_TOKEN` (your GitHub PAT)
+3. Add secret: `AGENT_TOKEN` (your GitHub PAT)
 4. Add variable: `ENABLE_AGENTS` = `true` (to enable the feature)
 5. Configure protection rules as needed
 

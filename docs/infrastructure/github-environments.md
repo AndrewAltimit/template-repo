@@ -27,7 +27,7 @@ In the production environment, add these secrets:
 #### Secrets (sensitive values):
 | Secret Name | Description | Required |
 |------------|-------------|----------|
-| `AI_AGENT_TOKEN` | GitHub Personal Access Token with appropriate permissions | Yes |
+| `AGENT_TOKEN` | GitHub Personal Access Token with appropriate permissions | Yes |
 
 #### Variables (configuration values):
 | Variable Name | Description | Default | Effect |
@@ -85,7 +85,7 @@ jobs:
     steps:
       - name: Run issue monitor
         env:
-          GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}  # From environment secret
+          GITHUB_TOKEN: ${{ secrets.AGENT_TOKEN }}  # From environment secret
           ENABLE_AGENTS: ${{ vars.ENABLE_AGENTS || 'false' }}  # From environment variable
 ```
 

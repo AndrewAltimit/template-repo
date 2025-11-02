@@ -20,7 +20,7 @@ on:
 permissions:
   issues: write       # Required to comment on issues and read issue data
   pull-requests: write # Required to create pull requests
-  contents: read      # For actions/checkout. Agent uses AI_AGENT_TOKEN with write perms.
+  contents: read      # For actions/checkout. Agent uses AGENT_TOKEN with write perms.
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -52,7 +52,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.AI_AGENT_TOKEN }}
+          token: ${{ secrets.AGENT_TOKEN }}
 
       - name: Configure Git
         run: |
@@ -81,15 +81,15 @@ jobs:
 
       - name: Run issue monitor with hybrid agent support
         env:
-          # Use AI_AGENT_TOKEN which has write permissions for creating branches/PRs
-          GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}
+          # Use AGENT_TOKEN which has write permissions for creating branches/PRs
+          GITHUB_TOKEN: ${{ secrets.AGENT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           ENABLE_AGENTS: ${{ vars.ENABLE_AGENTS }}
           FORCE_REPROCESS: ${{ inputs.force_reprocess || 'false' }}
           # OpenRouter API key for alternative AI agents
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           # List of environment variables whose values should be masked in public comments
-          MASK_ENV_VARS: "GITHUB_TOKEN,AI_AGENT_TOKEN,OPENROUTER_API_KEY"
+          MASK_ENV_VARS: "GITHUB_TOKEN,AGENT_TOKEN,OPENROUTER_API_KEY"
           # Set Python path to include the current directory
           PYTHONPATH: ${{ github.workspace }}
           PYTHONUNBUFFERED: "1"

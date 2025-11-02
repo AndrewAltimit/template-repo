@@ -10,7 +10,7 @@ This repository uses AI agents with a comprehensive multi-layer security model.
 
 ### Emergency Kill Switch
 - Set `ENABLE_AGENTS=false` in GitHub Variables to disable all agents immediately
-- Delete `AI_AGENT_TOKEN` from secrets as a last resort
+- Delete `AGENT_TOKEN` from secrets as a last resort
 
 ### Security Model Overview
 - **Command-based control**: `[Action][Agent]` format prevents prompt injection

@@ -35,7 +35,7 @@ Stage 6: Processing → Execute only if ALL pass
    # Emergency shutdown options:
    1. Set ENABLE_AGENTS=false
    2. Disable workflows in Actions
-   3. Delete AI_AGENT_TOKEN secret
+   3. Delete AGENT_TOKEN secret
    ```
 
 2. **Environment Isolation**

@@ -45,7 +45,7 @@ ls -la .git/config
 echo "Safe directory configuration:"
 git config --global --get-all safe.directory || echo "No safe directories configured"
 
-# Configure git to use the AI_AGENT_TOKEN for authentication
+# Configure git to use the AGENT_TOKEN for authentication
 if [ -n "$GITHUB_TOKEN" ]; then
     echo "Configuring git authentication..."
     # Set the remote URL with authentication token
