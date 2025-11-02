@@ -81,7 +81,7 @@ check_prerequisites() {
 
     for cmd in "${required_commands[@]}"; do
         if ! command -v $cmd &> /dev/null; then
-            missing_commands+=($cmd)
+            missing_commands+=("$cmd")
         else
             print_status "✅ $cmd is installed"
         fi
@@ -458,6 +458,8 @@ main() {
     # Parse command line arguments
     SKIP_DOCKER=false
     SKIP_RUNNER_DOWNLOAD=false
+    export SKIP_DOCKER
+    export SKIP_RUNNER_DOWNLOAD
 
     while [[ $# -gt 0 ]]; do
         case $1 in
