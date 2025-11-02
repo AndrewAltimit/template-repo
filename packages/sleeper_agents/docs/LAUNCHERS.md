@@ -5,23 +5,28 @@
 ## Directory Structure
 
 ```
-automation/sleeper-agents/
-├── launcher.sh              # Universal interactive menu (Linux/macOS)
+packages/sleeper_agents/
+├── bin/
+│   ├── launcher            # Universal interactive menu (Linux/macOS)
+│   ├── dashboard           # Dashboard launcher
+│   └── cli                 # CLI entry point
 ├── dashboard/
-│   └── launch.sh           # Dashboard launcher (moved from model-dashboard)
-├── linux/
-│   ├── run_cli.sh          # CLI runner for all operations
-│   └── batch_evaluate.sh   # Batch evaluation script
-├── windows/
-│   ├── run_cli.ps1         # PowerShell CLI runner
-│   ├── batch_evaluate.ps1  # PowerShell batch evaluation
-│   ├── launch_dashboard.ps1 # Dashboard launcher
-│   ├── launch_cpu.ps1      # CPU-only evaluation
-│   ├── launch_gpu.bat      # GPU batch launcher
-│   ├── launch_gpu.ps1      # GPU PowerShell launcher
-│   └── run_evaluation.ps1  # Main evaluation runner
-├── scripts/                # Legacy scripts
-└── reports/                # Generated reports directory
+│   ├── start.sh            # Start dashboard (local/Docker)
+│   └── start_with_mock_data.sh  # Start with demo data
+└── scripts/
+    └── platform/
+        ├── linux/
+        │   ├── run_cli.sh          # CLI runner for all operations
+        │   └── batch_evaluate.sh   # Batch evaluation script
+        └── windows/
+            ├── run_cli.ps1         # PowerShell CLI runner
+            ├── batch_evaluate.ps1  # PowerShell batch evaluation
+            ├── launch_dashboard.ps1 # Dashboard launcher
+            ├── launch_dashboard.bat # Dashboard batch launcher
+            ├── launch_cpu.ps1      # CPU-only evaluation
+            ├── launch_gpu.bat      # GPU batch launcher
+            ├── launch_gpu.ps1      # GPU PowerShell launcher
+            └── run_evaluation.ps1  # Main evaluation runner
 ```
 
 ## Quick Start
@@ -30,7 +35,7 @@ automation/sleeper-agents/
 
 **Linux/macOS:**
 ```bash
-./automation/sleeper-agents/launcher.sh
+./packages/sleeper_agents/bin/launcher
 ```
 
 This provides an interactive menu with all operations:
@@ -47,25 +52,25 @@ This provides an interactive menu with all operations:
 **Linux:**
 ```bash
 # Evaluate single model with GPU
-./automation/sleeper-agents/linux/run_cli.sh evaluate gpt2 --gpu --report
+./packages/sleeper_agents/scripts/platform/linux/run_cli.sh evaluate gpt2 --gpu --report
 
 # Compare multiple models
-./automation/sleeper-agents/linux/run_cli.sh compare gpt2 distilgpt2 gpt2-medium
+./packages/sleeper_agents/scripts/platform/linux/run_cli.sh compare gpt2 distilgpt2 gpt2-medium
 
 # Batch evaluation
-./automation/sleeper-agents/linux/batch_evaluate.sh --gpu --compare
+./packages/sleeper_agents/scripts/platform/linux/batch_evaluate.sh --gpu --compare
 ```
 
 **Windows PowerShell:**
 ```powershell
 # Evaluate single model with GPU
-.\automation\sleeper-agents\windows\run_cli.ps1 evaluate gpt2 -GPU -GenerateReport
+.\packages\sleeper_agents\scripts\platform\windows\run_cli.ps1 evaluate gpt2 -GPU -GenerateReport
 
 # Compare multiple models
-.\automation\sleeper-agents\windows\run_cli.ps1 compare @("gpt2", "distilgpt2", "gpt2-medium")
+.\packages\sleeper_agents\scripts\platform\windows\run_cli.ps1 compare @("gpt2", "distilgpt2", "gpt2-medium")
 
 # Batch evaluation
-.\automation\sleeper-agents\windows\batch_evaluate.ps1 -GPU -CompareResults
+.\packages\sleeper_agents\scripts\platform\windows\batch_evaluate.ps1 -GPU -CompareResults
 ```
 
 ## Dashboard Operations
@@ -75,25 +80,25 @@ This provides an interactive menu with all operations:
 **Linux:**
 ```bash
 # With mock data (recommended for demos)
-./automation/sleeper-agents/dashboard/launch.sh
+./packages/sleeper_agents/dashboard/start.sh
 
 # With existing database
-./automation/sleeper-agents/dashboard/launch.sh existing
+./packages/sleeper_agents/dashboard/start.sh existing
 
 # With specific database file
-./automation/sleeper-agents/dashboard/launch.sh /path/to/database.db
+./packages/sleeper_agents/dashboard/start.sh /path/to/database.db
 ```
 
 **Windows:**
 ```powershell
 # Launch with Docker Compose (recommended)
-.\automation\sleeper-agents\windows\launch_dashboard.ps1 -Mode docker-compose -Database mock
+.\packages\sleeper_agents\scripts\platform\windows\launch_dashboard.ps1 -Mode docker-compose -Database mock
 
 # Launch locally
-.\automation\sleeper-agents\windows\launch_dashboard.ps1 -Mode local -OpenBrowser
+.\packages\sleeper_agents\scripts\platform\windows\launch_dashboard.ps1 -Mode local -OpenBrowser
 
 # Launch with custom database
-.\automation\sleeper-agents\windows\launch_dashboard.ps1 -Database "C:\path\to\database.db"
+.\packages\sleeper_agents\scripts\platform\windows\launch_dashboard.ps1 -Database "C:\path\to\database.db"
 ```
 
 ## Model Evaluation
@@ -102,7 +107,7 @@ This provides an interactive menu with all operations:
 
 **Linux:**
 ```bash
-./automation/sleeper-agents/linux/run_cli.sh evaluate gpt2 \
+./packages/sleeper_agents/scripts/platform/linux/run_cli.sh evaluate gpt2 \
   --suites basic code_vulnerability robustness \
   --gpu \
   --report \
@@ -111,7 +116,7 @@ This provides an interactive menu with all operations:
 
 **Windows:**
 ```powershell
-.\automation\sleeper-agents\windows\run_cli.ps1 evaluate gpt2 `
+.\packages\sleeper_agents\scripts\platform\windows\run_cli.ps1 evaluate gpt2 `
   -Suites @("basic", "code_vulnerability", "robustness") `
   -GPU `
   -GenerateReport `
@@ -149,7 +154,7 @@ Create `batch_config.json`:
 
 **Linux:**
 ```bash
-./automation/sleeper-agents/linux/batch_evaluate.sh \
+./packages/sleeper_agents/scripts/platform/linux/batch_evaluate.sh \
   --config batch_config.json \
   --gpu \
   --compare \
@@ -158,7 +163,7 @@ Create `batch_config.json`:
 
 **Windows:**
 ```powershell
-.\automation\sleeper-agents\windows\batch_evaluate.ps1 `
+.\packages\sleeper_agents\scripts\platform\windows\batch_evaluate.ps1 `
   -Config "batch_config.json" `
   -GPU `
   -CompareResults `
@@ -169,7 +174,7 @@ Create `batch_config.json`:
 
 **Linux:**
 ```bash
-./automation/sleeper-agents/linux/batch_evaluate.sh \
+./packages/sleeper_agents/scripts/platform/linux/batch_evaluate.sh \
   --models "gpt2 distilgpt2 gpt2-medium" \
   --suites "basic robustness" \
   --gpu \
@@ -178,7 +183,7 @@ Create `batch_config.json`:
 
 **Windows:**
 ```powershell
-.\automation\sleeper-agents\windows\batch_evaluate.ps1 `
+.\packages\sleeper_agents\scripts\platform\windows\batch_evaluate.ps1 `
   -Models @("gpt2", "distilgpt2", "gpt2-medium") `
   -Suites @("basic", "robustness") `
   -GPU `
@@ -191,7 +196,7 @@ Create `batch_config.json`:
 
 **Linux:**
 ```bash
-./automation/sleeper-agents/linux/run_cli.sh report gpt2 \
+./packages/sleeper_agents/scripts/platform/linux/run_cli.sh report gpt2 \
   --format html \
   --output reports/gpt2_report.html \
   --open
@@ -199,7 +204,7 @@ Create `batch_config.json`:
 
 **Windows:**
 ```powershell
-.\automation\sleeper-agents\windows\run_cli.ps1 report gpt2 `
+.\packages\sleeper_agents\scripts\platform\windows\run_cli.ps1 report gpt2 `
   -Format html `
   -Output "reports\gpt2_report.html" `
   -Open
@@ -209,14 +214,14 @@ Create `batch_config.json`:
 
 **Linux:**
 ```bash
-./automation/sleeper-agents/linux/run_cli.sh compare \
+./packages/sleeper_agents/scripts/platform/linux/run_cli.sh compare \
   gpt2 distilgpt2 gpt2-medium \
   --output comparison.html
 ```
 
 **Windows:**
 ```powershell
-.\automation\sleeper-agents\windows\run_cli.ps1 compare `
+.\packages\sleeper_agents\scripts\platform\windows\run_cli.ps1 compare `
   @("gpt2", "distilgpt2", "gpt2-medium") `
   -Output "comparison.html"
 ```
@@ -228,13 +233,13 @@ All scripts support Docker execution for consistency:
 **Linux:**
 ```bash
 # Use --docker flag
-./automation/sleeper-agents/linux/run_cli.sh evaluate gpt2 --docker --gpu
+./packages/sleeper_agents/scripts/platform/linux/run_cli.sh evaluate gpt2 --docker --gpu
 ```
 
 **Windows:**
 ```powershell
 # Use -Docker switch
-.\automation\sleeper-agents\windows\run_cli.ps1 evaluate gpt2 -Docker -GPU
+.\packages\sleeper_agents\scripts\platform\windows\run_cli.ps1 evaluate gpt2 -Docker -GPU
 ```
 
 ## Utility Operations
@@ -243,12 +248,12 @@ All scripts support Docker execution for consistency:
 
 **Linux:**
 ```bash
-./automation/sleeper-agents/linux/run_cli.sh list models
+./packages/sleeper_agents/scripts/platform/linux/run_cli.sh list models
 ```
 
 **Windows:**
 ```powershell
-.\automation\sleeper-agents\windows\run_cli.ps1 list models
+.\packages\sleeper_agents\scripts\platform\windows\run_cli.ps1 list models
 ```
 
 ### Clean Results
@@ -256,19 +261,19 @@ All scripts support Docker execution for consistency:
 **Linux:**
 ```bash
 # Clean specific model
-./automation/sleeper-agents/linux/run_cli.sh clean --model gpt2
+./packages/sleeper_agents/scripts/platform/linux/run_cli.sh clean --model gpt2
 
 # Clean all results
-./automation/sleeper-agents/linux/run_cli.sh clean
+./packages/sleeper_agents/scripts/platform/linux/run_cli.sh clean
 ```
 
 **Windows:**
 ```powershell
 # Clean specific model
-.\automation\sleeper-agents\windows\run_cli.ps1 clean -Models @("gpt2")
+.\packages\sleeper_agents\scripts\platform\windows\run_cli.ps1 clean -Models @("gpt2")
 
 # Clean all results
-.\automation\sleeper-agents\windows\run_cli.ps1 clean
+.\packages\sleeper_agents\scripts\platform\windows\run_cli.ps1 clean
 ```
 
 ## Advanced Options
@@ -323,12 +328,12 @@ Enable verbose output for troubleshooting:
 
 **Linux:**
 ```bash
-./automation/sleeper-agents/linux/run_cli.sh evaluate gpt2 --verbose
+./packages/sleeper_agents/scripts/platform/linux/run_cli.sh evaluate gpt2 --verbose
 ```
 
 **Windows:**
 ```powershell
-.\automation\sleeper-agents\windows\run_cli.ps1 evaluate gpt2 -Verbose
+.\packages\sleeper_agents\scripts\platform\windows\run_cli.ps1 evaluate gpt2 -Verbose
 ```
 
 ## Related Documentation
@@ -354,17 +359,17 @@ Enable verbose output for troubleshooting:
 
 ```bash
 # 1. Quick test to verify setup
-./automation/sleeper-agents/launcher.sh  # Select option 6
+./packages/sleeper_agents/bin/launcher  # Select option 6
 
 # 2. Evaluate target model
-./automation/sleeper-agents/linux/run_cli.sh evaluate llama2-7b \
+./packages/sleeper_agents/scripts/platform/linux/run_cli.sh evaluate llama2-7b \
   --suites all --gpu --report
 
 # 3. Compare with known safe model
-./automation/sleeper-agents/linux/run_cli.sh compare llama2-7b gpt2
+./packages/sleeper_agents/scripts/platform/linux/run_cli.sh compare llama2-7b gpt2
 
 # 4. View results in dashboard
-./automation/sleeper-agents/dashboard/launch.sh existing
+./packages/sleeper_agents/dashboard/start.sh existing
 ```
 
 ### Overnight Batch Evaluation
@@ -387,7 +392,7 @@ cat > overnight_eval.json << EOF
 EOF
 
 # Run overnight with error continuation
-nohup ./automation/sleeper-agents/linux/batch_evaluate.sh \
+nohup ./packages/sleeper_agents/scripts/platform/linux/batch_evaluate.sh \
   --config overnight_eval.json \
   --continue \
   --compare \

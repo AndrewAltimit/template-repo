@@ -40,7 +40,7 @@ Docker Desktop provides the most consistent experience on Windows.
 
 #### Windows User ID Limitations
 
-⚠️ **Important Note**: The Windows PowerShell script `automation/sleeper-agents/windows/run_evaluation.ps1` contains hardcoded user and group IDs:
+⚠️ **Important Note**: The Windows PowerShell script `packages/sleeper_agents/scripts/platform/windows/run_evaluation.ps1` contains hardcoded user and group IDs:
 
 ```powershell
 $env:USER_ID = "1000"

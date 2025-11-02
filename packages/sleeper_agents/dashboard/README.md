@@ -56,7 +56,7 @@ All Build operations communicate with the GPU Orchestrator API running on the Wi
 
 ```bash
 # Launch with interactive options
-./automation/sleeper-agents/dashboard/launch.sh
+./packages/sleeper_agents/dashboard/start.sh
 
 # Options:
 # 1. Seed with mock test data (recommended for demos)
@@ -110,7 +110,7 @@ streamlit run app.py
 ### Reset Authentication
 If you forget credentials:
 ```bash
-./automation/sleeper-agents/dashboard/launch.sh
+./packages/sleeper_agents/dashboard/start.sh
 # Select option 5: Reset authentication
 ```
 

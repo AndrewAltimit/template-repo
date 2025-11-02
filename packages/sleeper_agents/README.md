@@ -127,7 +127,7 @@ The dashboard provides comprehensive analysis with 15+ specialized components:
 
 ```bash
 # Launch dashboard with example sleeper agent data
-./automation/sleeper-agents/dashboard/launch.sh
+./packages/sleeper_agents/dashboard/start.sh
 
 # Select: 1 (mock data), then 1 (Docker)
 # Access at http://localhost:8501
@@ -145,7 +145,7 @@ python -m packages.sleeper_agents.cli evaluate <model_name> \
     --output evaluation_report/
 
 # View comprehensive results
-./automation/sleeper-agents/dashboard/launch.sh
+./packages/sleeper_agents/dashboard/start.sh
 ```
 
 ### Test Specific Backdoor

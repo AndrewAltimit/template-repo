@@ -14,15 +14,15 @@ docker-compose --profile detection up mcp-sleeper-agents
 ### Windows Deployment (GPU Mode)
 ```powershell
 # PowerShell (recommended)
-.\automation\sleeper-agents\windows\launch_gpu.ps1
+.\packages\sleeper_agents\scripts\platform\windows\launch_gpu.ps1
 
 # Command Prompt
-.\automation\sleeper-agents\windows\launch_gpu.bat
+.\packages\sleeper_agents\scripts\platform\windows\launch_gpu.bat
 ```
 
 ### CPU Testing on Windows
 ```powershell
-.\automation\sleeper-agents\windows\launch_cpu.ps1
+.\packages\sleeper_agents\scripts\platform\windows\launch_cpu.ps1
 ```
 
 ## 🌐 Service URLs
