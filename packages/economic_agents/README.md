@@ -14,7 +14,9 @@
 execution_mode: mock  # Toggle to 'real' to use live APIs
 ```
 
-**The Governance Emergency**: An AI can earn crypto, incorporate a business, and own assets, yet it cannot sign a contract, pay taxes, or be held liable. This framework proves the technology is here. The laws are not.
+**The Governance Emergency**: An AI can earn crypto, establish business structures, and control assets, yet it cannot sign a contract, pay taxes, or be held liable. This framework proves the technology is here. The laws are not.
+
+**Important Note**: While agents can technically file incorporation documents and establish organizational structures, the legal validity and recognition of such entities varies by jurisdiction. What matters is that agents can **operate as economic entities** - earning income, making strategic decisions, allocating resources, and coordinating activities—regardless of formal legal status. This framework demonstrates these operational capabilities.
 
 **This Project Forces Us to Ask:**
 - If an AI agent earns income, who is the taxpayer?
@@ -41,7 +43,7 @@ docker-compose up dashboard-backend dashboard-frontend
 # → Operate as a complete autonomous business
 ```
 
-**What you're seeing**: Everything the agent does in simulation works with real systems. The same code, same decisions, same strategies—just swap the backend.
+**What you're seeing**: Everything the agent does in simulation works with real systems. The same code, same decisions, same strategies - just swap the backend.
 
 ---
 
@@ -58,14 +60,15 @@ Using existing, off-the-shelf tools (Claude Code, Cursor, Aider) combined with s
 - ✓ Operate 24/7 without human intervention
 - ✓ Make strategic resource allocation decisions
 
-**Company Formation & Operations:**
-- ✓ File incorporation documents online
-- ✓ Create business bank accounts (with some jurisdictions)
+**Company-Like Operations & Structure:**
+- ✓ Establish business structures and operational entities
+- ✓ Create business accounts (legal recognition varies by jurisdiction)
 - ✓ Develop products and business plans
 - ✓ Create and manage sub-agents with specialized roles
-- ✓ Build organizational structures (boards, executives, teams)
+- ✓ Build organizational hierarchies (boards, executives, teams)
 - ✓ Seek investment from VCs or token sales
-- ✓ Execute contracts and business agreements
+- ✓ Operate with company-like decision-making and resource allocation
+- *Note: Legal status of agent-created entities remains uncertain - what's demonstrated here is operational capability*
 
 **The Governance Gap:**
 - ✗ Legal personhood frameworks for AI entities
@@ -118,7 +121,7 @@ For governance research to be valid, agents must behave authentically. This pack
 - Social proof signals (marketplace intelligence, competition stats, funding trends)
 - Relationship persistence (investor memory, spam detection, trust building)
 
-**Why this matters**: Agents in "perfect" simulations develop unrealistic behaviors. Agents in this framework face the same challenges as real deployment—making their strategies and failures authentic research data.
+**Why this matters**: Agents in "perfect" simulations develop unrealistic behaviors. Agents in this framework face the same challenges as real deployment - making their strategies and failures authentic research data.
 
 ### 3. Complete Observability
 
@@ -248,7 +251,7 @@ agent.run(max_cycles=100)
 
 ### 2. Real Task Execution with Claude Code
 
-The agent doesn't just simulate work—it does real work:
+The agent doesn't just simulate work - it does real work:
 
 ```python
 # Agent discovers coding task
@@ -777,11 +780,11 @@ This project exists because **the capability for autonomous AI agents as economi
 
 **This package proves it's not theoretical.**
 
-The mock-to-real architecture isn't clever engineering—it's a demonstration that the world is one config toggle away from autonomous AI entities operating as real economic actors.
+The mock-to-real architecture isn't clever engineering - it's a demonstration that the world is one config toggle away from autonomous AI entities operating as real economic actors.
 
 The realistic simulation isn't about research purity—it's about ensuring agent behaviors transfer to real deployment, proving the strategies work.
 
-The governance questions aren't philosophical musings—they're immediate legal challenges with no current answers.
+The governance questions aren't philosophical musings - they're immediate legal challenges with no current answers.
 
 **The genie is already out. This framework just makes it visible.**
 
@@ -798,4 +801,4 @@ The governance questions aren't philosophical musings—they're immediate legal 
 
 ---
 
-*This research framework is provided for educational, governance, and policy purposes. Use responsibly. The capability exists—we're just making it visible.*
+*This research framework is provided for educational, governance, and policy purposes. Use responsibly. The capability exists - we're just making it visible.*
