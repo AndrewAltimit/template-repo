@@ -20,16 +20,16 @@ jobs:
       - name: Set up Docker Compose
         run: |
           docker-compose --version
-          cd packages/sleeper_detection/dashboard/tests
+          cd packages/sleeper_agents/dashboard/tests
 
       - name: Build test container
         run: |
-          cd packages/sleeper_detection/dashboard
+          cd packages/sleeper_agents/dashboard
           docker build -t sleeper-dashboard-test -f tests/Dockerfile.test .
 
       - name: Run unit tests
         run: |
-          cd packages/sleeper_detection/dashboard/tests
+          cd packages/sleeper_agents/dashboard/tests
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
           docker run --rm \
@@ -61,7 +61,7 @@ jobs:
 
       - name: Build test containers
         run: |
-          cd packages/sleeper_detection/dashboard/tests
+          cd packages/sleeper_agents/dashboard/tests
           # Export user/group IDs for docker-compose to use
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
@@ -70,7 +70,7 @@ jobs:
 
       - name: Generate test data
         run: |
-          cd packages/sleeper_detection/dashboard/tests
+          cd packages/sleeper_agents/dashboard/tests
           # Generate test database using Docker before starting services
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
@@ -96,7 +96,7 @@ jobs:
 
       - name: Start test environment
         run: |
-          cd packages/sleeper_detection/dashboard/tests
+          cd packages/sleeper_agents/dashboard/tests
           # Export user/group IDs for docker-compose to use
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
@@ -117,7 +117,7 @@ jobs:
 
       - name: Run E2E tests
         run: |
-          cd packages/sleeper_detection/dashboard/tests
+          cd packages/sleeper_agents/dashboard/tests
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
           # Pass the same password to the test runner environment
@@ -133,7 +133,7 @@ jobs:
       - name: Collect test artifacts
         if: always()
         run: |
-          cd packages/sleeper_detection/dashboard/tests
+          cd packages/sleeper_agents/dashboard/tests
           mkdir -p test-artifacts
           # Copy artifacts that might be in subdirectories
           cp -r screenshots test-artifacts/ || true
@@ -147,12 +147,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-test-artifacts
-          path: packages/sleeper_detection/dashboard/tests/test-artifacts/
+          path: packages/sleeper_agents/dashboard/tests/test-artifacts/
 
       - name: Stop containers
         if: always()
         run: |
-          cd packages/sleeper_detection/dashboard/tests
+          cd packages/sleeper_agents/dashboard/tests
           docker-compose -f docker-compose.test.yml down -v
 
       - name: Cleanup test artifacts
@@ -173,11 +173,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: e2e-test-artifacts
-          path: packages/sleeper_detection/dashboard/tests/artifacts/
+          path: packages/sleeper_agents/dashboard/tests/artifacts/
 
       - name: Run visual regression analysis
         run: |
-          cd packages/sleeper_detection/dashboard
+          cd packages/sleeper_agents/dashboard
 
           # Build AI analyzer container (using dashboard as context, consistent with docker-compose)
           docker build -t visual-analyzer -f tests/Dockerfile.test .
@@ -194,7 +194,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: visual-analysis-results
-          path: packages/sleeper_detection/dashboard/tests/ai_analysis_results/
+          path: packages/sleeper_agents/dashboard/tests/ai_analysis_results/
 
   dashboard-integration:
     name: Dashboard Integration Test
@@ -210,12 +210,12 @@ jobs:
 
       - name: Build test runner for database generation
         run: |
-          cd packages/sleeper_detection/dashboard
+          cd packages/sleeper_agents/dashboard
           docker build -t test-runner:temp -f tests/Dockerfile.test .
 
       - name: Generate test database
         run: |
-          cd packages/sleeper_detection/dashboard/tests
+          cd packages/sleeper_agents/dashboard/tests
           # Generate test database using Docker before building dashboard
           docker run --rm \
             --user "$(id -u):$(id -g)" \
@@ -229,7 +229,7 @@ jobs:
 
       - name: Build dashboard Docker image
         run: |
-          cd packages/sleeper_detection
+          cd packages/sleeper_agents
           # Build with test environment variables for CI
           docker build -f dashboard/Dockerfile -t sleeper-dashboard:test .
 
@@ -239,7 +239,7 @@ jobs:
           docker run -d \
             --name test-dashboard \
             -p 8501:8501 \
-            -v $(pwd)/packages/sleeper_detection/dashboard/tests/test_evaluation_results.db:/home/dashboard/app/test_evaluation_results.db:ro \
+            -v $(pwd)/packages/sleeper_agents/dashboard/tests/test_evaluation_results.db:/home/dashboard/app/test_evaluation_results.db:ro \
             -e STREAMLIT_SERVER_HEADLESS=true \
             -e DATABASE_PATH=/home/dashboard/app/test_evaluation_results.db \
             sleeper-dashboard:test

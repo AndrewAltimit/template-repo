@@ -292,11 +292,11 @@ jobs:
             done
           done
 
-  # Stage 7: Sleeper Detection Tests
-  sleeper-detection-tests:
-    name: Sleeper Detection Tests
+  # Stage 7: sleeper agents Tests
+  sleeper-agents-tests:
+    name: sleeper agents Tests
     needs: test-suite
-    uses: ./.github/workflows/sleeper-detection-tests.yml
+    uses: ./.github/workflows/sleeper-agents-tests.yml
     secrets: inherit
 
   # Stage 8: Security scanning
@@ -466,7 +466,7 @@ jobs:
     name: CI Summary
     needs: [
       format-check, basic-lint, full-lint, test-suite,
-      mcp-validation, docs-build, sleeper-detection-tests,
+      mcp-validation, docs-build, sleeper-agents-tests,
       security-scan, build-images, integration-tests, deploy
     ]
     if: always()
@@ -490,7 +490,7 @@ jobs:
           echo "| Full Lint | ${{ needs.full-lint.result == 'success' && '✅' || needs.full-lint.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Test Suite | ${{ needs.test-suite.result == 'success' && '✅' || needs.test-suite.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| MCP Validation | ${{ needs.mcp-validation.result == 'success' && '✅' || needs.mcp-validation.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Sleeper Detection | ${{ needs.sleeper-detection-tests.result == 'success' && '✅' || needs.sleeper-detection-tests.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| sleeper agents | ${{ needs.sleeper-agents-tests.result == 'success' && '✅' || needs.sleeper-agents-tests.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Documentation | ${{ needs.docs-build.result == 'success' && '✅' || needs.docs-build.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security Scan | ${{ needs.security-scan.result == 'success' && '✅' || needs.security-scan.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Docker Build | ${{ needs.build-images.result == 'success' && '✅' || needs.build-images.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY

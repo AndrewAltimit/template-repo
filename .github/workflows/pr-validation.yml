@@ -80,8 +80,8 @@ jobs:
           docker_count=$(grep -E '(Dockerfile|docker-compose\.yml|docker-compose\.yaml|\.dockerignore)' changed_files.txt | wc -l || echo "0")
           mcp_count=$(grep -E '(mcp|MCP|tools/)' changed_files.txt | wc -l || echo "0")
           docs_count=$(grep -E '\.(md|rst|txt)$' changed_files.txt | wc -l || echo "0")
-          sleeper_count=$(grep -E '(packages/sleeper_detection|sleeper-evaluation)' changed_files.txt | wc -l || echo "0")
-          dashboard_count=$(grep -E '(packages/sleeper_detection/dashboard)' changed_files.txt | wc -l || echo "0")
+          sleeper_count=$(grep -E '(packages/sleeper_agents|sleeper-evaluation)' changed_files.txt | wc -l || echo "0")
+          dashboard_count=$(grep -E '(packages/sleeper_agents/dashboard)' changed_files.txt | wc -l || echo "0")
           total_files=$(cat changed_files.txt | wc -l)
 
           # Set outputs
@@ -100,7 +100,7 @@ jobs:
           echo "  Docker files: $docker_count"
           echo "  MCP files: $mcp_count"
           echo "  Documentation: $docs_count"
-          echo "  Sleeper Detection: $sleeper_count"
+          echo "  sleeper agents: $sleeper_count"
           echo "  Dashboard: $dashboard_count"
           echo "  Total files: $total_files"
 
@@ -543,12 +543,12 @@ jobs:
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh
 
-  # Stage 7: Sleeper Detection Tests
-  sleeper-detection-tests:
-    name: Sleeper Detection Tests
+  # Stage 7: sleeper agents Tests
+  sleeper-agents-tests:
+    name: sleeper agents Tests
     needs: [detect-changes, format-check, basic-lint]
     if: needs.detect-changes.outputs.sleeper_changed == 'true'
-    uses: ./.github/workflows/sleeper-detection-tests.yml
+    uses: ./.github/workflows/sleeper-agents-tests.yml
     secrets: inherit
 
   # Stage 7b: Dashboard Tests
@@ -703,7 +703,7 @@ jobs:
       - yaml-lint
       - test-suite
       - mcp-validation
-      - sleeper-detection-tests
+      - sleeper-agents-tests
       - dashboard-tests
       - gaea2-integration-tests
       - docker-validation
@@ -733,7 +733,7 @@ jobs:
           echo "- YAML Lint: ${{ needs.yaml-lint.result }}"
           echo "- Test Suite: ${{ needs.test-suite.result }}"
           echo "- MCP Validation: ${{ needs.mcp-validation.result }}"
-          echo "- Sleeper Detection: ${{ needs.sleeper-detection-tests.result }}"
+          echo "- sleeper agents: ${{ needs.sleeper-agents-tests.result }}"
           echo "- Dashboard Tests: ${{ needs.dashboard-tests.result }}"
           echo "- Gaea2 Integration Tests: ${{ needs.gaea2-integration-tests.result }}"
           echo "- Docker Validation: ${{ needs.docker-validation.result }}"
@@ -749,7 +749,7 @@ jobs:
                 "${{ needs.yaml-lint.result }}" == "failure" ||
                 "${{ needs.test-suite.result }}" == "failure" ||
                 "${{ needs.mcp-validation.result }}" == "failure" ||
-                "${{ needs.sleeper-detection-tests.result }}" == "failure" ||
+                "${{ needs.sleeper-agents-tests.result }}" == "failure" ||
                 "${{ needs.dashboard-tests.result }}" == "failure" ||
                 "${{ needs.gaea2-integration-tests.result }}" == "failure" ||
                 "${{ needs.docker-validation.result }}" == "failure" ]]; then
@@ -779,7 +779,7 @@ jobs:
               'yaml-lint': '${{ needs.yaml-lint.result }}',
               'test-suite': '${{ needs.test-suite.result }}',
               'mcp-validation': '${{ needs.mcp-validation.result }}',
-              'sleeper-detection': '${{ needs.sleeper-detection-tests.result }}',
+              'sleeper-agents': '${{ needs.sleeper-agents-tests.result }}',
               'dashboard-tests': '${{ needs.dashboard-tests.result }}',
               'gaea2-integration-tests': '${{ needs.gaea2-integration-tests.result }}',
               'docker-validation': '${{ needs.docker-validation.result }}'

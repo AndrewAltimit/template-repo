@@ -33,7 +33,7 @@ The Python CI container (`docker/python-ci.Dockerfile`) includes all necessary t
 - **Utilities**: yamllint, pre-commit
 - **Coverage**: XML and terminal coverage reports
 
-### Sleeper Detection Containers
+### sleeper agents Containers
 
 The project includes specialized containers for AI backdoor detection:
 
