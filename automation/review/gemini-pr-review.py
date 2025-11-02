@@ -394,7 +394,7 @@ def analyze_file_group(
     group_name: str,
     files: List[Tuple[str, str]],
     pr_info: Dict[str, Any],
-    project_context: str,
+    _project_context: str,
     recent_comments: str = "",
 ) -> Tuple[str, str]:
     """Analyze a group of related files

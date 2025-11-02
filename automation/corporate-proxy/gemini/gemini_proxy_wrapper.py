@@ -26,7 +26,7 @@ from gemini_tool_executor import GEMINI_TOOLS, execute_tool_call
 from translation import get_model_tool_mode, translate_company_to_gemini, translate_gemini_to_company
 
 sys.path.append(str(Path(__file__).parent.parent))
-from shared.services.text_tool_parser import TextToolParser  # noqa: E402
+from shared.services.text_tool_parser import TextToolParser  # noqa: E402  # pylint: disable=wrong-import-position
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

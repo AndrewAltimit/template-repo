@@ -36,7 +36,7 @@ def wait_for_service(url, timeout=30):
     start_time = time.time()
     while time.time() - start_time < timeout:
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=10)
             if response.status_code == 200:
                 return True
         except requests.exceptions.ConnectionError:
@@ -185,7 +185,7 @@ def main():
     print_status("info", "Test 1: Health Check")
     total_tests += 1
     try:
-        response = requests.get(f"{proxy_url}/health")
+        response = requests.get(f"{proxy_url}/health", timeout=10)
         if response.status_code == 200:
             data = response.json()
             if data.get("tools_enabled") is True:
@@ -203,7 +203,7 @@ def main():
     print_status("info", "Test 2: List Available Tools")
     total_tests += 1
     try:
-        response = requests.get(f"{proxy_url}/tools")
+        response = requests.get(f"{proxy_url}/tools", timeout=10)
         if response.status_code == 200:
             data = response.json()
             tools = data.get("tools", [])
@@ -258,7 +258,7 @@ def main():
     if success:
         # Verify file was written
         if os.path.exists(test_file):
-            with open(test_file, "r") as f:
+            with open(test_file, "r", encoding="utf-8") as f:
                 content = f.read()
             if content == "Gemini test write":
                 print_status("pass", "write_file tool works correctly")

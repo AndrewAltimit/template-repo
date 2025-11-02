@@ -24,7 +24,7 @@ def create_mock_company_api(port=8051):
     app.requests_received = []
 
     @app.route("/api/v1/AI/GenAIExplorationLab/Models/<path:model>", methods=["POST"])
-    def handle_model_request(model):
+    def handle_model_request(_model):
         """Mock company API endpoint"""
         data = request.json
         app.requests_received.append(data)
@@ -154,7 +154,7 @@ class TestMockScenarios(unittest.TestCase):
         )
 
         # Process final response
-        continuation2, results2, needs_continue2 = parser.process_response_with_tools(ai_response_2)
+        _continuation2, results2, needs_continue2 = parser.process_response_with_tools(ai_response_2)
 
         self.assertFalse(needs_continue2)  # No more tools needed
         self.assertEqual(len(results2), 0)  # No tool calls in final response
@@ -218,7 +218,7 @@ class TestMockScenarios(unittest.TestCase):
         ```
         """
 
-        continuation, results, needs_continue = parser.process_response_with_tools(ai_response)
+        continuation, _results, _needs_continue = parser.process_response_with_tools(ai_response)
 
         # Verify all operations were executed
         self.assertEqual(len(operations), 3)
@@ -239,7 +239,7 @@ class TestMockScenarios(unittest.TestCase):
 
         attempt_count = {"count": 0}
 
-        def mock_executor(tool_name, params):
+        def mock_executor(_tool_name, _params):
             attempt_count["count"] += 1
 
             # First attempt fails
@@ -265,7 +265,7 @@ class TestMockScenarios(unittest.TestCase):
         ```
         """
 
-        continuation1, results1, _ = parser.process_response_with_tools(ai_response_1)
+        continuation1, _results1, _ = parser.process_response_with_tools(ai_response_1)
 
         self.assertIn("Tool Error", continuation1)
         self.assertIn("Permission denied", continuation1)
@@ -284,7 +284,7 @@ class TestMockScenarios(unittest.TestCase):
         ```
         """
 
-        continuation2, results2, _ = parser.process_response_with_tools(ai_response_2)
+        continuation2, _results2, _ = parser.process_response_with_tools(ai_response_2)
 
         self.assertIn("Tool Result", continuation2)
         self.assertIn("File content after retry", continuation2)
@@ -324,7 +324,7 @@ class TestMockScenarios(unittest.TestCase):
         ```
         """
 
-        continuation, results, _ = parser.process_response_with_tools(ai_response_exists)
+        _continuation, results, _ = parser.process_response_with_tools(ai_response_exists)
 
         # File exists, so read it
         self.assertTrue(results[0]["result"]["exists"])
@@ -342,7 +342,7 @@ class TestMockScenarios(unittest.TestCase):
         ```
         """
 
-        continuation2, results2, _ = parser.process_response_with_tools(ai_response_read)
+        continuation2, _results2, _ = parser.process_response_with_tools(ai_response_read)
         self.assertIn("File contents", continuation2)
 
         # Now test with missing file
@@ -359,7 +359,7 @@ class TestMockScenarios(unittest.TestCase):
         ```
         """
 
-        continuation3, results3, _ = parser.process_response_with_tools(ai_response_missing)
+        _continuation3, results3, _ = parser.process_response_with_tools(ai_response_missing)
         self.assertFalse(results3[0]["result"]["exists"])
 
         # File doesn't exist, so create it
@@ -377,7 +377,7 @@ class TestMockScenarios(unittest.TestCase):
         ```
         """
 
-        continuation4, results4, _ = parser.process_response_with_tools(ai_response_create)
+        continuation4, _results4, _ = parser.process_response_with_tools(ai_response_create)
         self.assertIn("File created", continuation4)
 
     def test_batch_operations_scenario(self):

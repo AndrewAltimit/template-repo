@@ -358,7 +358,7 @@ def chat_completions():
 
 
 @app.route("/api/v1/AI/GenAIExplorationLab/Models/<path:model_path>", methods=["POST"])
-def bedrock_endpoint(model_path):
+def bedrock_endpoint(_model_path):
     """Bedrock-compatible endpoint that returns structured tool calls for Gemini mode"""
     data = request.json
     tools_present = "tools" in data or (

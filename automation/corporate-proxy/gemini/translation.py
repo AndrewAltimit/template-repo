@@ -13,7 +13,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 # Add parent to path for shared imports
 sys.path.append(str(Path(__file__).parent.parent))
-from shared.services.text_tool_parser import TextToolParser, ToolInjector  # noqa: E402
+from shared.services.text_tool_parser import (  # noqa: E402  # pylint: disable=wrong-import-position
+    TextToolParser,
+    ToolInjector,
+)
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -276,7 +279,7 @@ def translate_gemini_to_company(gemini_request: Dict[str, Any]) -> Tuple[str, Di
 
 
 def translate_company_to_gemini(
-    company_response: Dict[str, Any], original_request: Optional[Dict[str, Any]] = None, tools: Optional[List] = None
+    company_response: Dict[str, Any], original_request: Optional[Dict[str, Any]] = None, _tools: Optional[List] = None
 ) -> Dict[str, Any]:
     """
     Translate Company API response back to Gemini format, checking for tool calls.
