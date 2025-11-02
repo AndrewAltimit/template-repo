@@ -5,7 +5,7 @@ inputs:
   test-dir:
     description: 'Path to the test directory'
     required: false
-    default: 'packages/sleeper_detection/dashboard/tests'
+    default: 'packages/sleeper_agents/dashboard/tests'
 
 runs:
   using: 'composite'

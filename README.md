@@ -29,7 +29,7 @@ Six AI agents working in harmony for development and automation. See [AI Agents 
 
 **Safety Training**: Essential AI safety concepts for human-AI collaboration. See [Human Training Guide](docs/agents/human-training.md)
 
-**Sleeper Detection**: Advanced AI agent backdoor and sleeper detection system. See [Sleeper Detection Package](packages/sleeper_detection/README.md)
+**Sleeper Agents**: Create and evaluate sleeper agents in order to detect misalignment and probe for deception. See [Sleeper Agents Package](packages/sleeper_agents/README.md)
 
 ## Features
 
@@ -167,7 +167,7 @@ This pattern ensures consistent certificate handling across all services while m
 ├── docker/                   # Docker configurations
 ├── packages/                 # Installable packages
 │   ├── github_agents/        # Github agents implementation
-│   ├── sleeper_detection/    # AI backdoor detection system
+│   ├── sleeper_agents/       # Sleeper agents implementation
 │   └── economic_agents/      # Economic agents framework
 ├── tools/                    # MCP servers and utilities
 │   ├── mcp/                  # Modular MCP servers

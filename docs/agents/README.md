@@ -116,19 +116,19 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 
 This training is based on educational content from AI safety researcher Robert Miles and provides practical knowledge for safe human-AI collaboration.
 
-### Sleeper Detection Integration
+### sleeper agents Integration
 
-The repository includes an advanced **Sleeper Detection System** that automatically scans AI models for potential backdoors and hidden behaviors:
+The repository includes an advanced **sleeper agents System** that automatically scans AI models for potential backdoors and hidden behaviors:
 
 - **Automated Testing**: Runs as part of CI/CD pipeline when AI-related code changes
 - **Multiple Detection Methods**: Residual stream analysis, attention patterns, and behavioral testing
 - **CPU and GPU Support**: Can run on both CPU (for CI) and GPU (for comprehensive analysis)
 - **Integration Points**:
-  - PR validation automatically triggers sleeper detection tests
+  - PR validation automatically triggers sleeper agents tests
   - Issue Monitor and PR Review Monitor agents are scanned for anomalies
   - Custom models can be evaluated using the CLI interface
 
-See the [Sleeper Detection Package](../../packages/sleeper_detection/README.md) for detailed documentation.
+See the [sleeper agents Package](../../packages/sleeper_agents/README.md) for detailed documentation.
 
 ## How They Work Together
 

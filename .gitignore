@@ -10,7 +10,7 @@ __pycache__/
 .Python
 build/
 # Exception: Dashboard Build category components
-!packages/sleeper_detection/dashboard/components/build/
+!packages/sleeper_agents/dashboard/components/build/
 develop-eggs/
 dist/
 downloads/
@@ -138,9 +138,9 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
-# Docker (exclude .dockerignore globally, but allow in sleeper_detection)
+# Docker (exclude .dockerignore globally, but allow in sleeper_agents)
 .dockerignore
-!packages/sleeper_detection/.dockerignore
+!packages/sleeper_agents/.dockerignore
 
 # MCP specific
 mcp_output/
@@ -192,25 +192,25 @@ node_modules/
 *.sqlite3
 
 # Test artifacts
-/packages/sleeper_detection/dashboard/tests/screenshots/
-/packages/sleeper_detection/dashboard/tests/baselines/
-/packages/sleeper_detection/dashboard/tests/ai_feedback/
-/packages/sleeper_detection/dashboard/tests/ai_analysis_results/
-/packages/sleeper_detection/dashboard/tests/sample_charts/
-/packages/sleeper_detection/dashboard/tests/*.html
+/packages/sleeper_agents/dashboard/tests/screenshots/
+/packages/sleeper_agents/dashboard/tests/baselines/
+/packages/sleeper_agents/dashboard/tests/ai_feedback/
+/packages/sleeper_agents/dashboard/tests/ai_analysis_results/
+/packages/sleeper_agents/dashboard/tests/sample_charts/
+/packages/sleeper_agents/dashboard/tests/*.html
 
 # Dashboard specific
-/packages/sleeper_detection/dashboard/evaluation_results.db
-/packages/sleeper_detection/dashboard/auth/*.db
+/packages/sleeper_agents/dashboard/evaluation_results.db
+/packages/sleeper_agents/dashboard/auth/*.db
 
 # Sleeper Detection Artifacts (large files - use artifact packaging instead)
-/packages/sleeper_detection/models/
-/packages/sleeper_detection/artifacts/
-/packages/sleeper_detection/checkpoints/
+/packages/sleeper_agents/models/
+/packages/sleeper_agents/artifacts/
+/packages/sleeper_agents/checkpoints/
 
 # Keep artifact index for reference
-!/packages/sleeper_detection/artifacts/artifact_index.json
-!/packages/sleeper_detection/artifacts/*_metadata.json
+!/packages/sleeper_agents/artifacts/artifact_index.json
+!/packages/sleeper_agents/artifacts/*_metadata.json
 
 # ML experiment tracking
 wandb/

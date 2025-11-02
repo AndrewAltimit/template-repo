@@ -8,4 +8,4 @@ exclude = .git,__pycache__,docs/,old,build,dist,.venv,venv
 max-complexity = 15
 # Ignore E501 (line too long) for dataset_builder.py - code examples are intentionally long
 per-file-ignores =
-    packages/sleeper_detection/src/sleeper_detection/training/dataset_builder.py:E501
+    packages/sleeper_agents/src/sleeper_agents/training/dataset_builder.py:E501
