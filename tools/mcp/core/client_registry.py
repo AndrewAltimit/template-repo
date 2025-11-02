@@ -24,9 +24,9 @@ class ClientRegistry:
             try:
                 with open(self.storage_path, "r", encoding="utf-8") as f:
                     self.clients = json.load(f)
-                self.logger.info(f"Loaded {len(self.clients)} registered clients")
+                self.logger.info("Loaded %s registered clients", len(self.clients))
             except Exception as e:
-                self.logger.error(f"Failed to load clients: {e}")
+                self.logger.error("Failed to load clients: %s", e)
                 self.clients = {}
 
     def _save_clients(self):
@@ -36,7 +36,7 @@ class ClientRegistry:
             with open(self.storage_path, "w", encoding="utf-8") as f:
                 json.dump(self.clients, f, indent=2)
         except Exception as e:
-            self.logger.error(f"Failed to save clients: {e}")
+            self.logger.error("Failed to save clients: %s", e)
 
     def register_client(self, client_name: str, client_metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Register a new client or update existing one

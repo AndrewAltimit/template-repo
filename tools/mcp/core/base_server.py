@@ -57,8 +57,8 @@ class BaseMCPServer(ABC):
 
         @self.app.on_event("startup")
         async def startup_event():
-            self.logger.info(f"{self.name} starting on port {self.port}")
-            self.logger.info(f"Server version: {self.version}")
+            self.logger.info("%s starting on port %s", self.name, self.port)
+            self.logger.info("Server version: %s", self.version)
             self.logger.info("Server initialized successfully")
 
     def _setup_routes(self):
@@ -111,7 +111,7 @@ class BaseMCPServer(ABC):
         client_id = request.get("client_id", f"{client_name}_simple")
 
         # Simple response without tracking for home lab
-        self.logger.info(f"Client registration request from: {client_name}")
+        self.logger.info("Client registration request from: %s", client_name)
 
         return {
             "status": "registered",
@@ -136,7 +136,7 @@ class BaseMCPServer(ABC):
         client_id = f"{client_name}_oauth"
 
         # Simple OAuth2-compliant response without tracking
-        self.logger.info(f"OAuth registration request from: {client_name}")
+        self.logger.info("OAuth registration request from: %s", client_name)
 
         return {
             "client_id": client_id,
@@ -183,7 +183,7 @@ class BaseMCPServer(ABC):
             request_data = {}
 
         # Log the request for debugging
-        self.logger.info(f"Token request data: {request_data}")
+        self.logger.info("Token request data: %s", request_data)
 
         # Return a valid token response without any validation
         return {
@@ -237,8 +237,6 @@ class BaseMCPServer(ABC):
             yield f"data: {json.dumps(connection_data)}\n\n"
 
             # Keep connection alive with ping messages
-            import asyncio
-
             while True:
                 await asyncio.sleep(15)  # Ping every 15 seconds as per spec
                 ping_data = {"type": "ping", "timestamp": datetime.utcnow().isoformat()}
@@ -257,8 +255,6 @@ class BaseMCPServer(ABC):
 
     async def handle_mcp_sse(self, request: Request):
         """Handle SSE requests for authenticated clients"""
-        import asyncio
-
         from fastapi.responses import StreamingResponse
 
         # Check authorization
@@ -285,7 +281,7 @@ class BaseMCPServer(ABC):
             },
         )
 
-    async def handle_messages_get(self, request: Request):
+    async def handle_messages_get(self, _request: Request):
         """Handle GET requests to /messages endpoint"""
         # For GET requests, return MCP server info
         return {
@@ -318,13 +314,15 @@ class BaseMCPServer(ABC):
         protocol_version = request.headers.get("MCP-Protocol-Version")
 
         # Log headers for debugging
-        self.logger.info(f"Messages request headers: {dict(request.headers)}")
-        self.logger.info(f"Session ID: {session_id}, Response Mode: {response_mode}, Protocol Version: {protocol_version}")
+        self.logger.info("Messages request headers: %s", dict(request.headers))
+        self.logger.info(
+            "Session ID: %s, Response Mode: %s, Protocol Version: %s", session_id, response_mode, protocol_version
+        )
 
         try:
             # Parse JSON-RPC request
             body = await request.json()
-            self.logger.info(f"Messages request body: {json.dumps(body)}")
+            self.logger.info("Messages request body: %s", json.dumps(body))
 
             # Check if this is an initialization request to generate session ID
             is_init_request = False
@@ -335,7 +333,7 @@ class BaseMCPServer(ABC):
                     import uuid
 
                     session_id = str(uuid.uuid4())
-                    self.logger.info(f"Generated new session ID: {session_id}")
+                    self.logger.info("Generated new session ID: %s", session_id)
 
             # Process based on response mode
             if response_mode == "stream":
@@ -417,7 +415,7 @@ class BaseMCPServer(ABC):
                         # This is a request - return the response
                         # Log session ID being returned
                         if is_init_request and session_id:
-                            self.logger.info(f"Returning session ID in response: {session_id}")
+                            self.logger.info("Returning session ID in response: %s", session_id)
 
                         return JSONResponse(
                             content=response,
@@ -427,7 +425,7 @@ class BaseMCPServer(ABC):
                             },
                         )
         except Exception as e:
-            self.logger.error(f"Messages endpoint error: {e}")
+            self.logger.error("Messages endpoint error: %s", e)
             return JSONResponse(
                 content={
                     "jsonrpc": "2.0",
@@ -446,7 +444,7 @@ class BaseMCPServer(ABC):
         # Forward to the new streamable handler
         return await self.handle_messages(request)
 
-    async def handle_options(self, request: Request):
+    async def handle_options(self, _request: Request):
         """Handle OPTIONS requests for CORS preflight"""
         return Response(
             content="",
@@ -466,7 +464,7 @@ class BaseMCPServer(ABC):
         req_id = request.get("id")
 
         # Log the request for debugging
-        self.logger.info(f"JSON-RPC request: method={method}, id={req_id}")
+        self.logger.info("JSON-RPC request: method=%s, id=%s", method, req_id)
 
         # If no ID, this is a notification (no response expected)
         is_notification = req_id is None
@@ -506,7 +504,7 @@ class BaseMCPServer(ABC):
             # Return response if not a notification
             if not is_notification:
                 response = {"jsonrpc": jsonrpc, "result": result, "id": req_id}
-                self.logger.info(f"JSON-RPC response: {json.dumps(response)}")
+                self.logger.info("JSON-RPC response: %s", json.dumps(response))
 
                 # After successful initialization, log that we're ready for more requests
                 if method == "initialize" and "protocolVersion" in result:
@@ -518,7 +516,7 @@ class BaseMCPServer(ABC):
             return None
 
         except Exception as e:
-            self.logger.error(f"Error processing method {method}: {e}")
+            self.logger.error("Error processing method %s: %s", method, e)
             if not is_notification:
                 return {
                     "jsonrpc": jsonrpc,
@@ -537,7 +535,7 @@ class BaseMCPServer(ABC):
         protocol_version = params.get("protocolVersion", "2024-11-05")
 
         # Log client info
-        self.logger.info(f"Client info: {client_info}, requested protocol: {protocol_version}")
+        self.logger.info("Client info: %s, requested protocol: %s", client_info, protocol_version)
 
         # Store the protocol version for later use
         self._protocol_version = protocol_version
@@ -552,10 +550,10 @@ class BaseMCPServer(ABC):
             },
         }
 
-    async def _jsonrpc_list_tools(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _jsonrpc_list_tools(self, _params: Dict[str, Any]) -> Dict[str, Any]:
         """Handle tools/list request"""
         tools = self.get_tools()
-        self.logger.info(f"Available tools from get_tools(): {list(tools.keys())}")
+        self.logger.info("Available tools from get_tools(): %s", list(tools.keys()))
 
         tool_list = []
 
@@ -568,7 +566,7 @@ class BaseMCPServer(ABC):
                 }
             )
 
-        self.logger.info(f"Returning {len(tool_list)} tools to client")
+        self.logger.info("Returning %s tools to client", len(tool_list))
         return {"tools": tool_list}
 
     async def _jsonrpc_call_tool(self, params: Dict[str, Any]) -> Dict[str, Any]:

@@ -105,7 +105,7 @@ class HTTPProxy:
                 return MCPResponse(**response.json())
 
         except httpx.TimeoutException:
-            self.logger.error(f"Timeout forwarding request to {self.remote_url}")
+            self.logger.error("Timeout forwarding request to %s", self.remote_url)
             return MCPResponse(
                 result=None,
                 error={
@@ -115,7 +115,7 @@ class HTTPProxy:
                 },
             )
         except httpx.RequestError as e:
-            self.logger.error(f"Error forwarding request: {e}")
+            self.logger.error("Error forwarding request: %s", e)
             return MCPResponse(
                 result=None,
                 error={
@@ -125,7 +125,7 @@ class HTTPProxy:
                 },
             )
         except Exception as e:
-            self.logger.error(f"Unexpected error: {e}")
+            self.logger.error("Unexpected error: %s", e)
             return MCPResponse(
                 result=None,
                 error={
@@ -146,8 +146,8 @@ class HTTPProxy:
                 else:
                     raise HTTPException(status_code=response.status_code, detail="Failed to list tools")
         except Exception as e:
-            self.logger.error(f"Error listing tools: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            self.logger.error("Error listing tools: %s", e)
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     async def execute_tool(self, request: ToolRequest):
         """Execute a tool on the remote server"""
@@ -163,16 +163,16 @@ class HTTPProxy:
                         detail=f"Tool execution failed: {response.text}",
                     )
         except Exception as e:
-            self.logger.error(f"Error executing tool {request.tool}: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            self.logger.error("Error executing tool %s: %s", request.tool, e)
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     def run(self):
         """Run the HTTP proxy server"""
         import uvicorn
 
-        self.logger.info(f"Starting {self.service_name} MCP HTTP Proxy")
-        self.logger.info(f"Forwarding to: {self.remote_url}")
-        self.logger.info(f"Listening on port: {self.port}")
+        self.logger.info("Starting %s MCP HTTP Proxy", self.service_name)
+        self.logger.info("Forwarding to: %s", self.remote_url)
+        self.logger.info("Listening on port: %s", self.port)
 
         uvicorn.run(self.app, host="0.0.0.0", port=self.port)
 
