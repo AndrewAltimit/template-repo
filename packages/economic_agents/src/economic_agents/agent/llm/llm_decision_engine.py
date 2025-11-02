@@ -82,7 +82,7 @@ class LLMDecisionEngine:
             response = self.executor.execute(prompt)
             execution_time = time.time() - start_time
 
-            logger.info(f"Claude responded in {execution_time:.2f}s ({execution_time/60:.2f} min)")
+            logger.info("Claude responded in %.2fs (%.2f min)", execution_time, execution_time / 60)
 
             # Parse response
             allocation = self._parse_allocation(response)

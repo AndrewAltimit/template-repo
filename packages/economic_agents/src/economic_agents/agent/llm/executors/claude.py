@@ -41,7 +41,7 @@ class ClaudeExecutor:
         self.timeout = self.config.get("llm_timeout", 900)  # 15 minutes default
         self.unattended = True  # Always run in unattended mode for autonomous decisions
 
-        logger.info(f"ClaudeExecutor initialized with timeout={self.timeout}s ({self.timeout/60:.1f} min)")
+        logger.info("ClaudeExecutor initialized with timeout=%ds (%.1f min)", self.timeout, self.timeout / 60)
 
     def execute(self, prompt: str, timeout: Optional[int] = None) -> str:
         """Execute prompt via Claude Code CLI with long timeout.
