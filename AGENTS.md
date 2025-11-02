@@ -46,7 +46,7 @@ The agents implement comprehensive security with:
 - **Commit Validation**: Prevents code injection after approval
 - **Deterministic Processes**: Predictable, auditable agent behavior
 
-**Full security documentation:** `packages/github_ai_agents/docs/security.md`
+**Full security documentation:** `packages/github_agents/docs/security.md`
 
 ## Build/Lint/Test Commands
 
@@ -241,7 +241,7 @@ template-repo/
 │   ├── infrastructure/  # Infrastructure docs
 │   └── mcp/             # MCP server docs
 ├── packages/            # Python packages
-│   └── github_ai_agents/ # AI agent implementations
+│   └── github_agents/ # AI agent implementations
 ├── tests/               # Test files
 ├── tools/               # Tool implementations
 │   ├── cli/             # CLI tools and scripts
@@ -382,7 +382,7 @@ docker-compose logs -f service_name
 
 ## Additional Resources
 
-- **Security Documentation**: `packages/github_ai_agents/docs/security.md`
+- **Security Documentation**: `packages/github_agents/docs/security.md`
 - **MCP Architecture**: `docs/mcp/README.md`
 - **AI Agent Matrix**: `docs/ai-agents/agent-matrix.md`
 - **Infrastructure Guide**: `docs/infrastructure/README.md`

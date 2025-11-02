@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 
-from github_ai_agents.monitors import IssueMonitor, PRMonitor
+from github_agents.monitors import IssueMonitor, PRMonitor
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)

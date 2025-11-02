@@ -94,7 +94,7 @@ export OPENAI_API_KEY="your-key"
       --network="none" \
       -v ${{ github.workspace }}:/workspace:ro \
       ai-agents:latest \
-      python -m github_ai_agents.cli issue-monitor
+      python -m github_agents.cli issue-monitor
 ```
 
 ### Docker Security
@@ -146,10 +146,10 @@ print(f'Output: {result.stdout}')
 
 ## Integration with GitHub AI Agents
 
-When using the `github_ai_agents` package, the monitors automatically configure agents for autonomous mode:
+When using the `github_agents` package, the monitors automatically configure agents for autonomous mode:
 
 ```python
-from github_ai_agents.agents import ClaudeAgent
+from github_agents.agents import ClaudeAgent
 
 # The agent class handles autonomous mode configuration internally
 agent = ClaudeAgent()

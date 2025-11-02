@@ -33,7 +33,7 @@ When running agents directly on the host machine (e.g., GitHub Actions self-host
 
 **Example:**
 ```bash
-python3 -m github_ai_agents.cli issue-monitor
+python3 -m github_agents.cli issue-monitor
 ./tools/cli/agents/run_claude.sh
 ./tools/cli/agents/run_gemini.sh
 ./tools/cli/agents/run_opencode.sh
@@ -57,7 +57,7 @@ When running inside the `openrouter-agents` container:
 
 **Example:**
 ```bash
-docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
+docker-compose run --rm openrouter-agents python -m github_agents.cli issue-monitor
 ```
 
 ## Configuration

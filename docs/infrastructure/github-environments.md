@@ -32,7 +32,7 @@ In the production environment, add these secrets:
 #### Variables (configuration values):
 | Variable Name | Description | Default | Effect |
 |--------------|-------------|---------|--------|
-| `ENABLE_AI_AGENTS` | Master switch for AI agents | `false` | When `true`: Enables scheduled runs AND auto-fix capabilities |
+| `ENABLE_AGENTS` | Master switch for AI agents | `false` | When `true`: Enables scheduled runs AND auto-fix capabilities |
 
 #### Creating a Fine-Grained Personal Access Token
 
@@ -86,7 +86,7 @@ jobs:
       - name: Run issue monitor
         env:
           GITHUB_TOKEN: ${{ secrets.AI_AGENT_TOKEN }}  # From environment secret
-          ENABLE_AI_AGENTS: ${{ vars.ENABLE_AI_AGENTS || 'false' }}  # From environment variable
+          ENABLE_AGENTS: ${{ vars.ENABLE_AGENTS || 'false' }}  # From environment variable
 ```
 
 ## Testing Your Setup

@@ -16,14 +16,14 @@ COPY docker/requirements/requirements-github-board.txt /app/requirements.txt
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy github_ai_agents package
-COPY packages/github_ai_agents /app/packages/github_ai_agents
+# Copy github_agents package
+COPY packages/github_agents /app/packages/github_agents
 
 # Copy MCP server code
 COPY tools/mcp /app/tools/mcp
 
-# Install github_ai_agents package with board dependencies
-RUN pip install --no-cache-dir -e /app/packages/github_ai_agents[board]
+# Install github_agents package with board dependencies
+RUN pip install --no-cache-dir -e /app/packages/github_agents[board]
 
 # Set Python path
 ENV PYTHONPATH=/app

@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+"""PR monitor executable wrapper.
+
+This script monitors pull requests for review comments with triggers and
+automatically implements fixes based on reviewer feedback.
+
+Usage:
+    pr-monitor [options]
+
+Examples:
+    # Monitor all open PRs
+    pr-monitor
+
+    # Monitor specific PR
+    pr-monitor --pr-number 45
+
+    # Continuous monitoring
+    pr-monitor --continuous
+
+For more information:
+    pr-monitor --help
+"""
+
+import sys
+
+from github_agents.monitors.pr import main
+
+if __name__ == "__main__":
+    sys.exit(main())

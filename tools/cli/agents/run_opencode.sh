@@ -41,10 +41,10 @@ if ! command -v opencode &> /dev/null; then
     echo ""
 
     # Install the package
-    if [ -d "./packages/github_ai_agents" ]; then
-        pip3 install -e ./packages/github_ai_agents
+    if [ -d "./packages/github_agents" ]; then
+        pip3 install -e ./packages/github_agents
     else
-        echo "❌ GitHub AI Agents package not found at ./packages/github_ai_agents"
+        echo "❌ GitHub AI Agents package not found at ./packages/github_agents"
         echo "   Please run this script from the repository root."
         exit 1
     fi

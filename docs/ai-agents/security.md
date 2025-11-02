@@ -26,7 +26,7 @@ jobs:
 1. Go to Settings → Environments → New environment
 2. Create a "production" environment
 3. Add secret: `AI_AGENT_TOKEN` (your GitHub PAT)
-4. Add variable: `ENABLE_AI_AGENTS` = `true` (to enable the feature)
+4. Add variable: `ENABLE_AGENTS` = `true` (to enable the feature)
 5. Configure protection rules as needed
 
 See [GitHub Environments Setup Guide](../infrastructure/github-environments.md) for detailed instructions.
@@ -38,11 +38,11 @@ For local testing:
 ```bash
 # Option 1: Use environment variable
 export GITHUB_TOKEN="your-token-here"
-docker-compose run --rm ai-agents python -m github_ai_agents.cli issue-monitor
+docker-compose run --rm ai-agents python -m github_agents.cli issue-monitor
 
 # Option 2: Use gh CLI authentication (recommended)
 gh auth login
-docker-compose run --rm ai-agents python -m github_ai_agents.cli issue-monitor
+docker-compose run --rm ai-agents python -m github_agents.cli issue-monitor
 ```
 
 ### 3. Self-Hosted Runners

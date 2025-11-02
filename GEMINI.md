@@ -36,7 +36,7 @@ git clone https://github.com/AndrewAltimit/template-repo
 cd template-repo
 
 # Install the AI agents package (for CLI tools)
-pip3 install -e ./packages/github_ai_agents
+pip3 install -e ./packages/github_agents
 
 # Set up API keys (if using AI features)
 export OPENROUTER_API_KEY="your-key-here"

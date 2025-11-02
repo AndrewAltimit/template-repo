@@ -138,7 +138,7 @@ async def execute(self, **kwargs) -> Dict[str, Any]:
 - [ ] SHA validation implemented
 - [ ] Secrets masked in ALL outputs
 - [ ] Deterministic filtering applied
-- [ ] ENABLE_AI_AGENTS checked
+- [ ] ENABLE_AGENTS checked
 - [ ] PR_MONITORING_ACTIVE set
 
 ### Container Security
@@ -203,7 +203,7 @@ Run: `./automation/ci-cd/run-ci.sh autoformat`
 
 ### GitHub Actions
 - Verify workflows use self-hosted runners
-- Check for ENABLE_AI_AGENTS variable
+- Check for ENABLE_AGENTS variable
 - Validate secret handling
 - Ensure container-based tests
 

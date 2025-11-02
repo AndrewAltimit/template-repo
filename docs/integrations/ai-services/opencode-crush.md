@@ -82,7 +82,7 @@ export OPENCODE_MODEL="qwen/qwen-2.5-coder-32b-instruct"
 
 ```bash
 # Install the package with all agents
-pip3 install -e ./packages/github_ai_agents
+pip3 install -e ./packages/github_agents
 
 # Verify installation
 opencode --version
@@ -409,7 +409,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           docker-compose run --rm openrouter-agents \
-            python -m github_ai_agents.cli issue-monitor \
+            python -m github_agents.cli issue-monitor \
             --agent opencode
 
   monitor-prs:
@@ -423,7 +423,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           docker-compose run --rm openrouter-agents \
-            python -m github_ai_agents.cli pr-monitor \
+            python -m github_agents.cli pr-monitor \
             --agent crush
 ```
 
@@ -586,7 +586,7 @@ echo 'export OPENROUTER_API_KEY="your-key-here"' >> ~/.bashrc
 
 ```bash
 # Reinstall the package
-pip3 install -e ./packages/github_ai_agents --force-reinstall
+pip3 install -e ./packages/github_agents --force-reinstall
 
 # Verify installation
 which opencode
@@ -701,5 +701,5 @@ python -m pytest tests/test_crush_agent.py -v
 
 - [MCP Architecture](../../mcp/README.md) - Overall MCP server design
 - [GitHub AI Agents](../../ai-agents/README.md) - Complete agent system documentation
-- [Security Model](../../../packages/github_ai_agents/docs/security.md) - Security implementation details
+- [Security Model](../../../packages/github_agents/docs/security.md) - Security implementation details
 - [Container Strategy](../../ai-agents/containerization-strategy.md) - Containerization approach

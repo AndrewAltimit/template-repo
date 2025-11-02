@@ -6,7 +6,7 @@ The GitHub AI Agents package is designed with a modular, extensible architecture
 
 ## Core Components
 
-### 1. Agents Module (`github_ai_agents.agents`)
+### 1. Agents Module (`github_agents.agents`)
 
 The agents module contains implementations of various AI agents:
 
@@ -27,7 +27,7 @@ Each agent implements:
 - `get_capabilities()`: List agent capabilities
 - `get_priority()`: Agent selection priority
 
-### 2. Monitors Module (`github_ai_agents.monitors`)
+### 2. Monitors Module (`github_agents.monitors`)
 
 Monitors watch GitHub events and trigger agents:
 
@@ -41,7 +41,7 @@ Monitors watch GitHub events and trigger agents:
   - Handles review feedback
   - Implements fixes automatically
 
-### 3. Security Module (`github_ai_agents.security`)
+### 3. Security Module (`github_agents.security`)
 
 Security components ensure safe operation:
 
@@ -51,7 +51,7 @@ Security components ensure safe operation:
   - Repository validation
   - Trigger validation
 
-### 4. Utils Module (`github_ai_agents.utils`)
+### 4. Utils Module (`github_agents.utils`)
 
 Utility functions for common operations:
 
@@ -94,7 +94,7 @@ Agents are selected based on:
 
 Example:
 ```python
-from github_ai_agents.agents import CLIAgent
+from github_agents.agents import CLIAgent
 
 class NewAgent(CLIAgent):
     def __init__(self):

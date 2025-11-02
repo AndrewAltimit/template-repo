@@ -67,7 +67,7 @@ jobs:
 
           # Install the GitHub AI Agents package
           echo "[INFO] Installing GitHub AI Agents package..."
-          pip3 install --user -e ./packages/github_ai_agents
+          pip3 install --user -e ./packages/github_agents
 
           # Install additional requirements if needed
           echo "[INFO] Installing additional requirements..."

@@ -81,11 +81,11 @@ Run the monitor manually in the container:
 ```bash
 # For issues
 docker-compose --profile agents run --rm openrouter-agents \
-  python -m github_ai_agents.cli issue-monitor
+  python -m github_agents.cli issue-monitor
 
 # For PRs
 docker-compose --profile agents run --rm openrouter-agents \
-  python -m github_ai_agents.cli pr-monitor
+  python -m github_agents.cli pr-monitor
 ```
 
 #### Option 3: Future Enhancement
@@ -148,7 +148,7 @@ gemini --help
 
 # Containerized agents
 docker-compose run --rm openrouter-agents crush run -q "Write a function"
-docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
+docker-compose run --rm openrouter-agents python -m github_agents.cli issue-monitor
 ```
 
 ### Production (Recommended)
@@ -157,7 +157,7 @@ docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-m
 docker-compose --profile openrouter up -d
 
 # Only Claude and Gemini on host
-python -m github_ai_agents.cli issue-monitor
+python -m github_agents.cli issue-monitor
 ```
 
 ## Migration Path

@@ -4,12 +4,12 @@
 
 This repository uses AI agents with a comprehensive multi-layer security model.
 
-**For complete security documentation, see:** [`packages/github_ai_agents/docs/security.md`](packages/github_ai_agents/docs/security.md)
+**For complete security documentation, see:** [`packages/github_agents/docs/security.md`](packages/github_agents/docs/security.md)
 
 ## Quick Reference
 
 ### Emergency Kill Switch
-- Set `ENABLE_AI_AGENTS=false` in GitHub Variables to disable all agents immediately
+- Set `ENABLE_AGENTS=false` in GitHub Variables to disable all agents immediately
 - Delete `AI_AGENT_TOKEN` from secrets as a last resort
 
 ### Security Model Overview
@@ -29,7 +29,7 @@ This repository uses AI agents with a comprehensive multi-layer security model.
 
 ## Additional Resources
 
-- **Full Security Documentation**: [`packages/github_ai_agents/docs/security.md`](packages/github_ai_agents/docs/security.md)
+- **Full Security Documentation**: [`packages/github_agents/docs/security.md`](packages/github_agents/docs/security.md)
 - **Agent Architecture**: [`docs/ai-agents/containerization-strategy.md`](docs/ai-agents/containerization-strategy.md)
 - **Claude Authentication**: [`docs/ai-agents/claude-auth.md`](docs/ai-agents/claude-auth.md)
 

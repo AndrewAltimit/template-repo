@@ -70,7 +70,7 @@ The core module that:
 ### In Python Code
 
 ```python
-from github_ai_agents.subagents import SubagentManager
+from github_agents.subagents import SubagentManager
 
 # Initialize manager
 manager = SubagentManager()
@@ -88,7 +88,7 @@ success, stdout, stderr = manager.execute_with_persona(
 The monitors automatically use appropriate personas:
 
 ```python
-from github_ai_agents.monitors import IssueMonitor
+from github_agents.monitors import IssueMonitor
 
 # The monitor will use tech-lead persona automatically
 monitor = IssueMonitor()

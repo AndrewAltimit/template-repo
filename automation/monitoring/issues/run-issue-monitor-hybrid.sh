@@ -89,4 +89,4 @@ echo ""
 
 # Execute the issue monitor
 cd "${GITHUB_WORKSPACE:-$(pwd)}"
-python3 -m github_ai_agents.cli issue-monitor "$@"
+python3 -m github_agents.cli issue-monitor "$@"

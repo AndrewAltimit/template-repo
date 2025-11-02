@@ -8,20 +8,20 @@ name: GitHub Board Integration Tests
       - main
       - github-agents-refine
     paths:
-      - 'packages/github_ai_agents/src/github_ai_agents/board/**'
-      - 'packages/github_ai_agents/tests/unit/test_board_*.py'
-      - 'packages/github_ai_agents/tests/e2e/test_board_*.py'
-      - 'packages/github_ai_agents/pyproject.toml'
+      - 'packages/github_agents/src/github_agents/board/**'
+      - 'packages/github_agents/tests/unit/test_board_*.py'
+      - 'packages/github_agents/tests/e2e/test_board_*.py'
+      - 'packages/github_agents/pyproject.toml'
       - 'tools/mcp/github_board/**'
       - '.github/workflows/test-github-board.yml'
       - 'docker/mcp-github-board.Dockerfile'
       - 'docker/requirements/requirements-github-board.txt'
   pull_request:
     paths:
-      - 'packages/github_ai_agents/src/github_ai_agents/board/**'
-      - 'packages/github_ai_agents/tests/unit/test_board_*.py'
-      - 'packages/github_ai_agents/tests/e2e/test_board_*.py'
-      - 'packages/github_ai_agents/pyproject.toml'
+      - 'packages/github_agents/src/github_agents/board/**'
+      - 'packages/github_agents/tests/unit/test_board_*.py'
+      - 'packages/github_agents/tests/e2e/test_board_*.py'
+      - 'packages/github_agents/pyproject.toml'
       - 'tools/mcp/github_board/**'
       - '.github/workflows/test-github-board.yml'
       - 'docker/mcp-github-board.Dockerfile'
@@ -55,9 +55,9 @@ jobs:
         run: |
           echo "🧪 Running GitHub Board unit tests..."
           docker-compose run --rm python-ci bash -c "\
-            pip install -e packages/github_ai_agents && \
-            pytest packages/github_ai_agents/tests/unit/test_board_*.py \
-            -v --cov=github_ai_agents.board --cov-report=term --cov-report=html"
+            pip install -e packages/github_agents && \
+            pytest packages/github_agents/tests/unit/test_board_*.py \
+            -v --cov=github_agents.board --cov-report=term --cov-report=html"
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -83,9 +83,9 @@ jobs:
         run: |
           echo "🧪 Running board CLI tests..."
           docker-compose run --rm python-ci bash -c "\
-            pip install -e packages/github_ai_agents && \
-            pytest packages/github_ai_agents/tests/unit/test_board_cli.py \
-            -v --cov=github_ai_agents.board.cli --cov-report=term"
+            pip install -e packages/github_agents && \
+            pytest packages/github_agents/tests/unit/test_board_cli.py \
+            -v --cov=github_agents.board.cli --cov-report=term"
 
   # Docker build test
   docker-build:
@@ -180,7 +180,7 @@ jobs:
         run: |
           echo "🧪 Running board E2E tests..."
           docker-compose run --rm python-ci \
-            pytest packages/github_ai_agents/tests/e2e/test_board_workflow.py \
+            pytest packages/github_agents/tests/e2e/test_board_workflow.py \
             -v -m e2e --timeout=300 || echo "⚠️  E2E tests failed (may be expected)"
 
   # Summary job

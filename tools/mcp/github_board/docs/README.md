@@ -384,7 +384,7 @@ Add to your `.mcp.json`:
 ### Components
 
 - **GitHubBoardMCPServer**: Main MCP server class
-- **BoardManager**: Core board operations (from github_ai_agents package)
+- **BoardManager**: Core board operations (from github_agents package)
 - **BoardConfig**: Configuration management
 - **GraphQL Client**: GitHub Projects v2 API integration
 
@@ -438,7 +438,7 @@ Add to your `.mcp.json`:
 
 ```bash
 # Install dependencies
-pip install -e packages/github_ai_agents
+pip install -e packages/github_agents
 
 # Set environment
 export GITHUB_TOKEN=your_token
@@ -457,8 +457,8 @@ python -m tools.mcp.github_board.server
 
 ## Related Documentation
 
-- [GitHub AI Agents Package](../../../../packages/github_ai_agents/README.md)
-- [Board Integration Guide](../../../../packages/github_ai_agents/docs/board-integration.md)
+- [GitHub AI Agents Package](../../../../packages/github_agents/README.md)
+- [Board Integration Guide](../../../../packages/github_agents/docs/board-integration.md)
 - [MCP Core Documentation](../../core/docs/README.md)
 
 ## License

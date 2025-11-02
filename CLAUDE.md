@@ -39,7 +39,7 @@ The AI agents implement a comprehensive multi-layer security model with command-
 - **Commit Validation**: Prevents code injection after approval
 - **Implementation Requirements**: Only complete, working code is accepted
 
-**For complete security documentation, see** `packages/github_ai_agents/docs/security.md`
+**For complete security documentation, see** `packages/github_agents/docs/security.md`
 
 ### Remote Infrastructure
 
@@ -199,7 +199,7 @@ docker-compose run --rm -v ~/.codex:/home/node/.codex:ro codex-agent codex
 
 # Containerized Agents (OpenRouter-compatible):
 # OpenCode, Crush - run in openrouter-agents container
-docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
+docker-compose run --rm openrouter-agents python -m github_agents.cli issue-monitor
 
 # Or use specific containerized agents:
 docker-compose run --rm openrouter-agents crush run -q "Write a Python function"
@@ -212,8 +212,8 @@ docker-compose run --rm openrouter-agents crush run -q "Write a Python function"
 ./tools/cli/agents/run_codex.sh      # Codex CLI for AI-powered code generation (requires auth)
 
 # Host agent execution (Claude, Gemini only):
-python3 -m github_ai_agents.cli issue-monitor
-python3 -m github_ai_agents.cli pr-monitor
+python3 -m github_agents.cli issue-monitor
+python3 -m github_agents.cli pr-monitor
 # Or use the installed commands directly:
 issue-monitor
 pr-monitor
@@ -224,7 +224,7 @@ pr-monitor
 
 # Installation:
 # Step 1: Install the GitHub AI agents package (required for all agents):
-pip3 install -e ./packages/github_ai_agents
+pip3 install -e ./packages/github_agents
 
 # Step 2: If running Claude or Gemini on host, install host-specific dependencies:
 pip3 install --user -r docker/requirements/requirements-agents.txt
@@ -621,7 +621,7 @@ For detailed information on specific topics, refer to these documentation files:
 - `docs/developer/claude-code-hooks.md` - Claude Code hook system for enforcing best practices
 
 ### AI Agents & Security
-- `packages/github_ai_agents/docs/security.md` - Comprehensive AI agent security documentation
+- `packages/github_agents/docs/security.md` - Comprehensive AI agent security documentation
 - `docs/ai-agents/README.md` - AI agent system overview
 - `docs/ai-agents/security.md` - Security-focused agent documentation
 - `docs/ai-agents/human-training.md` - **AI safety training guide for human-AI collaboration** (essential reading)

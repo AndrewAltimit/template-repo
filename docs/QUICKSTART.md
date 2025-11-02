@@ -151,7 +151,7 @@ The template provides two MCP configuration files to optimize performance:
 
 3. **Remove AI agent dependencies:**
    ```bash
-   # No need to install github_ai_agents package
+   # No need to install github_agents package
    # Skip API key setup
    ```
 
@@ -211,7 +211,7 @@ The template provides two MCP configuration files to optimize performance:
 3. **Install AI agents (optional):**
    ```bash
    # For CLI access to agents
-   pip3 install -e ./packages/github_ai_agents
+   pip3 install -e ./packages/github_agents
    ```
 
 4. **Test AI features:**
@@ -304,7 +304,7 @@ The template provides two MCP configuration files to optimize performance:
 4. **Install all components:**
    ```bash
    # Install AI agents
-   pip3 install -e ./packages/github_ai_agents
+   pip3 install -e ./packages/github_agents
 
    # Start all services
    docker-compose up -d
@@ -321,7 +321,7 @@ The template provides two MCP configuration files to optimize performance:
 #### Disable All AI Agents
 ```bash
 # Remove from .mcp.json
-# Don't install github_ai_agents package
+# Don't install github_agents package
 # Remove AI-related GitHub workflows
 rm -f .github/workflows/pr-validation.yml
 rm -f .github/workflows/issue-monitor.yml

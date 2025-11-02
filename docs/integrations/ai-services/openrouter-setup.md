@@ -122,7 +122,7 @@ OpenCode is part of the containerized agents that can be used for:
 
 Example usage in agent context:
 ```bash
-docker-compose run --rm openrouter-agents python -m github_ai_agents.cli issue-monitor
+docker-compose run --rm openrouter-agents python -m github_agents.cli issue-monitor
 ```
 
 ## Troubleshooting

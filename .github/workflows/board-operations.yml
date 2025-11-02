@@ -77,8 +77,8 @@ jobs:
             -e PR_NUMBER \
             -e PR_BODY \
             python-ci bash -c "\
-              pip install -e packages/github_ai_agents && \
-              python packages/github_ai_agents/bin/update-pr-merge-status.py"
+              pip install -e packages/github_agents && \
+              python packages/github_agents/bin/update-pr-merge-status.py"
 
   # Job 2: Board maintenance (scheduled or manual)
   maintenance:
@@ -102,8 +102,8 @@ jobs:
             -e GITHUB_REPOSITORY \
             -e GITHUB_PROJECTS_TOKEN \
             python-ci bash -c "\
-              pip install -e packages/github_ai_agents && \
-              python packages/github_ai_agents/bin/run-board-maintenance.py"
+              pip install -e packages/github_agents && \
+              python packages/github_agents/bin/run-board-maintenance.py"
 
       - name: Report status
         if: always()
@@ -142,8 +142,8 @@ jobs:
             -e MAX_ISSUES \
             -e GITHUB_OUTPUT \
             python-ci bash -c "\
-              pip install -e packages/github_ai_agents && \
-              packages/github_ai_agents/bin/query-ready-work.sh"
+              pip install -e packages/github_agents && \
+              packages/github_agents/bin/query-ready-work.sh"
 
   # Job 4: Agent executes work on issue
   agent-work:
@@ -175,8 +175,8 @@ jobs:
             -e AGENT_NAME \
             -e GITHUB_OUTPUT \
             python-ci bash -c "\
-              pip install -e packages/github_ai_agents && \
-              packages/github_ai_agents/bin/claim-work.sh"
+              pip install -e packages/github_agents && \
+              packages/github_agents/bin/claim-work.sh"
 
       - name: Get issue details
         id: issue
@@ -190,7 +190,7 @@ jobs:
             -e ISSUE_NUMBER \
             -e GITHUB_OUTPUT \
             python-ci bash -c "\
-              packages/github_ai_agents/bin/get-issue-details.sh"
+              packages/github_agents/bin/get-issue-details.sh"
 
       - name: Execute agent work
         id: agent_work
@@ -249,7 +249,7 @@ jobs:
             -e GITHUB_TOKEN \
             -e GITHUB_PROJECTS_TOKEN \
             python-ci bash -c "\
-              pip install -e packages/github_ai_agents && \
+              pip install -e packages/github_agents && \
               echo '📊 Updating issue status to In Progress...' && \
               board-cli status $ISSUE_NUMBER --status in-progress"
 
@@ -269,8 +269,8 @@ jobs:
             -e AGENT_NAME \
             -e WORK_COMPLETED \
             python-ci bash -c "\
-              pip install -e packages/github_ai_agents && \
-              packages/github_ai_agents/bin/release-work.sh"
+              pip install -e packages/github_agents && \
+              packages/github_agents/bin/release-work.sh"
 
   # Job 5: Summary of agent work
   agent-summary:

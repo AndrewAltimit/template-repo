@@ -43,9 +43,9 @@ COPY .flake8 .pylintrc /app/
 COPY pyproject.toml ./pyproject.toml
 COPY pyproject.toml /app/pyproject.toml
 # Create directory structure for package configs
-RUN mkdir -p packages/github_ai_agents /app/packages/github_ai_agents
-COPY packages/github_ai_agents/pyproject.toml ./packages/github_ai_agents/
-COPY packages/github_ai_agents/pyproject.toml /app/packages/github_ai_agents/
+RUN mkdir -p packages/github_agents /app/packages/github_agents
+COPY packages/github_agents/pyproject.toml ./packages/github_agents/
+COPY packages/github_agents/pyproject.toml /app/packages/github_agents/
 
 # Python environment configuration to prevent cache issues
 ENV PYTHONUNBUFFERED=1 \

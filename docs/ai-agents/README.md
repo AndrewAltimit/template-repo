@@ -72,7 +72,7 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 - Creates pull requests for actionable issues
 - Updates issue status with PR links
 
-**Location**: `github_ai_agents` package
+**Location**: `github_agents` package
 
 **Key Features**:
 - Checks for required fields (description, steps to reproduce, etc.)
@@ -92,7 +92,7 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 - Implements requested changes automatically
 - Comments when changes are complete
 
-**Location**: `github_ai_agents` package
+**Location**: `github_agents` package
 
 **Key Features**:
 - Detects "changes requested" reviews
@@ -248,11 +248,11 @@ See the [Sleeper Detection Package](../../packages/sleeper_detection/README.md) 
 
 ```bash
 # Install the GitHub AI Agents package
-pip install -e ./github_ai_agents
+pip install -e ./github_agents
 
 # Run specific agents
-python -m github_ai_agents.cli issue-monitor
-python -m github_ai_agents.cli pr-monitor
+python -m github_agents.cli issue-monitor
+python -m github_agents.cli pr-monitor
 
 # Or use the installed commands directly
 issue-monitor

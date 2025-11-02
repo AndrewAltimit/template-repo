@@ -27,13 +27,13 @@ Stage 6: Processing → Execute only if ALL pass
 1. **Kill Switch Architecture**
    ```yaml
    # GitHub Variables
-   ENABLE_AI_AGENTS: false  # Master kill switch
+   ENABLE_AGENTS: false  # Master kill switch
 
    # Workflow check
-   if: vars.ENABLE_AI_AGENTS == 'true'
+   if: vars.ENABLE_AGENTS == 'true'
 
    # Emergency shutdown options:
-   1. Set ENABLE_AI_AGENTS=false
+   1. Set ENABLE_AGENTS=false
    2. Disable workflows in Actions
    3. Delete AI_AGENT_TOKEN secret
    ```
@@ -235,7 +235,7 @@ class TestAIAgentSecurity:
 ### If Vulnerability Detected:
 ```bash
 # 1. IMMEDIATE: Kill switch
-gh variable set ENABLE_AI_AGENTS --body "false"
+gh variable set ENABLE_AGENTS --body "false"
 
 # 2. DOCUMENT: Create advisory
 gh security-advisory create --severity critical

@@ -119,7 +119,7 @@ export AI_AGENT_ALLOW_LIST="user1,user2,bot-name[bot]"
 The `SecurityManager` class provides comprehensive security methods:
 
 ```python
-from github_ai_agents.security import SecurityManager
+from github_agents.security import SecurityManager
 
 # Initialize security manager
 security = SecurityManager()

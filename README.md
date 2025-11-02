@@ -63,7 +63,7 @@ Six AI agents working in harmony for development and automation. See [AI Agents 
    cd template-repo
 
    # Install AI agents package (for CLI tools)
-   pip3 install -e ./packages/github_ai_agents
+   pip3 install -e ./packages/github_agents
 
    # Set up API keys (if using AI features)
    export OPENROUTER_API_KEY="your-key-here"  # For OpenCode/Crush
@@ -166,7 +166,7 @@ This pattern ensures consistent certificate handling across all services while m
 ├── .github/workflows/        # GitHub Actions workflows
 ├── docker/                   # Docker configurations
 ├── packages/                 # Installable packages
-│   ├── github_ai_agents/     # AI agent implementations
+│   ├── github_agents/        # AI agent implementations
 │   ├── sleeper_detection/    # AI backdoor detection system
 │   └── economic_agents/      # Economic agents framework
 ├── tools/                    # MCP servers and utilities
