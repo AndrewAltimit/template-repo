@@ -36,7 +36,7 @@ def run_monitor(pr_number, timeout=600, since_commit=None):
             cmd.append(since_commit)
 
         # Run the monitor script
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
 
         if result.returncode == 0 and result.stdout:
             # Parse the returned comment

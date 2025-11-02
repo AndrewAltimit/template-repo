@@ -76,7 +76,7 @@ class TestNativeMode(unittest.TestCase):
             }
 
             # Translate request
-            _endpoint, company_request, tools = translate_gemini_to_company(gemini_request)
+            _endpoint, _company_request, tools = translate_gemini_to_company(gemini_request)
 
             # Verify tools are passed through
             self.assertIsNotNone(tools)

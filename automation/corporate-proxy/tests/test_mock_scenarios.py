@@ -431,7 +431,7 @@ class TestMockScenarios(unittest.TestCase):
         All files queued for processing.
         """
 
-        continuation, results, _ = parser.process_response_with_tools(ai_response)
+        _continuation, results, _ = parser.process_response_with_tools(ai_response)
 
         # Verify all files were processed
         self.assertEqual(len(processed_files), 3)
@@ -510,7 +510,7 @@ class TestEndToEndScenarios(unittest.TestCase):
         ```
         """
 
-        continuation1, results1, needs_continue1 = parser.process_response_with_tools(ai_iteration_1)
+        continuation1, _results1, needs_continue1 = parser.process_response_with_tools(ai_iteration_1)
 
         self.assertTrue(needs_continue1)
         self.assertIn("README.md", continuation1)
@@ -536,7 +536,7 @@ class TestEndToEndScenarios(unittest.TestCase):
         ```
         """
 
-        continuation2, results2, needs_continue2 = parser.process_response_with_tools(ai_iteration_2)
+        continuation2, _results2, needs_continue2 = parser.process_response_with_tools(ai_iteration_2)
 
         # The AI is still working (creating a file), so it should need to continue
         self.assertTrue(needs_continue2, "Should need to continue after creating summary file")
@@ -555,7 +555,7 @@ class TestEndToEndScenarios(unittest.TestCase):
         I've created a PROJECT_SUMMARY.md file with the structure overview. The task is complete.
         """
 
-        continuation3, results3, needs_continue3 = parser.process_response_with_tools(ai_final)
+        _continuation3, _results3, needs_continue3 = parser.process_response_with_tools(ai_final)
 
         self.assertFalse(needs_continue3)  # Task complete
         self.assertTrue(parser.is_complete_response(ai_final))

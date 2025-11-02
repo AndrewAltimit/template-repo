@@ -605,11 +605,11 @@ def main():
 
     # Save the complete schema
     schema_path = Path("tools/mcp/gaea2_complete_schema.json")
-    with open(schema_path, "w") as f:
+    with open(schema_path, "w", encoding="utf-8") as f:
         json.dump(GAEA2_COMPLETE_SCHEMA, f, indent=2)
 
-    logger.info(f"✅ Saved complete schema with {len(GAEA2_COMPLETE_SCHEMA['valid_node_types'])} node types")
-    logger.info(f"✅ Defined properties for {len(GAEA2_COMPLETE_SCHEMA['node_properties'])} nodes")
+    logger.info("✅ Saved complete schema with %d node types", len(GAEA2_COMPLETE_SCHEMA["valid_node_types"]))
+    logger.info("✅ Defined properties for %d nodes", len(GAEA2_COMPLETE_SCHEMA["node_properties"]))
 
     # Test validation with sample project
     test_project = {

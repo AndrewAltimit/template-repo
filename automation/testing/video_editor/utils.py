@@ -122,7 +122,7 @@ def detect_scene_changes(video_path: str, threshold: float = 0.4) -> List[float]
     args = ["ffmpeg", "-i", str(video_path), "-filter:v", f"select='gt(scene,{threshold})',showinfo", "-f", "null", "-"]
 
     # Capture stderr where ffmpeg outputs the showinfo data
-    result = subprocess.run(args, capture_output=True, text=True)
+    result = subprocess.run(args, capture_output=True, text=True, check=False)
     output = result.stderr  # showinfo output goes to stderr
 
     scenes = []
@@ -267,7 +267,7 @@ def analyze_audio_levels(audio_path: str, noise_level: str = "-50dB", min_durati
     args = ["ffmpeg", "-i", str(audio_path), "-af", f"silencedetect=n={noise_level}:d={min_duration}", "-f", "null", "-"]
 
     # Capture stderr where ffmpeg outputs the silence detection info
-    result = subprocess.run(args, capture_output=True, text=True)
+    result = subprocess.run(args, capture_output=True, text=True, check=False)
     output = result.stderr  # silencedetect output goes to stderr
 
     silence_segments = []

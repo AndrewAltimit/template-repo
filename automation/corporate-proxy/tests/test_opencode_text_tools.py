@@ -13,6 +13,7 @@ from pathlib import Path
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
+# pylint: disable=wrong-import-position
 from shared.services.text_tool_parser import TextToolParser  # noqa: E402
 
 # Import the production function from test utilities

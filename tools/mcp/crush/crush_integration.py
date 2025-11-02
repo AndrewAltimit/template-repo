@@ -89,7 +89,7 @@ class CrushIntegration:
             }
 
         except Exception as e:
-            logger.error(f"Error generating response with Crush: {str(e)}")
+            logger.error("Error generating response with Crush: %s", str(e))
             return {
                 "status": "error",
                 "error": str(e),
@@ -155,7 +155,7 @@ class CrushIntegration:
 
         # Add recent history
         parts.append("Previous context:")
-        for i, (prev_q, prev_a) in enumerate(self.conversation_history[-3:], 1):  # Last 3 exchanges
+        for _, (prev_q, prev_a) in enumerate(self.conversation_history[-3:], 1):  # Last 3 exchanges
             parts.append(f"Q: {prev_q[:100]}..." if len(prev_q) > 100 else f"Q: {prev_q}")
             parts.append(f"A: {prev_a[:200]}..." if len(prev_a) > 200 else f"A: {prev_a}")
             parts.append("")
@@ -179,7 +179,7 @@ class CrushIntegration:
             return True
         # Check for Docker in cgroup
         try:
-            with open("/proc/1/cgroup", "r") as f:
+            with open("/proc/1/cgroup", "r", encoding="utf-8") as f:
                 return "docker" in f.read()
         except (FileNotFoundError, IOError, OSError):
             return False
@@ -187,7 +187,7 @@ class CrushIntegration:
     async def _execute_crush_direct(self, prompt: str) -> Dict[str, Any]:
         """Execute Crush binary directly (when already in container)"""
         start_time = time.time()
-        logger.info(f"Starting direct crush execution with prompt: {prompt[:50]}...")
+        logger.info("Starting direct crush execution with prompt: %s...", prompt[:50])
 
         # Build crush command
         cmd = ["crush", "run"]
@@ -199,7 +199,7 @@ class CrushIntegration:
         # Add the prompt
         cmd.append(prompt)
 
-        logger.info(f"Command: {' '.join(cmd)}")
+        logger.info("Command: %s", " ".join(cmd))
 
         try:
             # Set environment for the subprocess
@@ -227,7 +227,7 @@ class CrushIntegration:
                 process.communicate(),
                 timeout=self.timeout,
             )
-            logger.info(f"Process completed with return code: {process.returncode}")
+            logger.info("Process completed with return code: %s", process.returncode)
 
             execution_time = time.time() - start_time
 
@@ -236,13 +236,13 @@ class CrushIntegration:
                 raise Exception(f"Crush failed with exit code {process.returncode}: {error_msg}")
 
             output = stdout.decode().strip()
-            logger.info(f"Crush output: {output[:100]}...")
+            logger.info("Crush output: %s...", output[:100])
 
             # Log stderr if present (might contain warnings)
             if stderr:
                 stderr_str = stderr.decode()
                 if stderr_str.strip():
-                    logger.warning(f"Crush stderr: {stderr_str}")
+                    logger.warning("Crush stderr: %s", stderr_str)
 
             return {"output": output, "execution_time": execution_time}
 
@@ -252,7 +252,7 @@ class CrushIntegration:
     async def _execute_crush_local(self, prompt: str) -> Dict[str, Any]:
         """Execute Crush locally when not in container"""
         start_time = time.time()
-        logger.info(f"Starting local crush execution with prompt: {prompt[:50]}...")
+        logger.info("Starting local crush execution with prompt: %s...", prompt[:50])
 
         # Build crush command
         cmd = ["crush", "run"]
@@ -264,7 +264,7 @@ class CrushIntegration:
         # Add the prompt
         cmd.append(prompt)
 
-        logger.info(f"Command: {' '.join(cmd)}")
+        logger.info("Command: %s", " ".join(cmd))
 
         try:
             # Set environment for the subprocess
@@ -290,7 +290,7 @@ class CrushIntegration:
                 process.communicate(),
                 timeout=self.timeout,
             )
-            logger.info(f"Process completed with return code: {process.returncode}")
+            logger.info("Process completed with return code: %s", process.returncode)
 
             execution_time = time.time() - start_time
 
@@ -299,13 +299,13 @@ class CrushIntegration:
                 raise Exception(f"Crush failed with exit code {process.returncode}: {error_msg}")
 
             output = stdout.decode().strip()
-            logger.info(f"Crush output: {output[:100]}...")
+            logger.info("Crush output: %s...", output[:100])
 
             # Log stderr if present (might contain warnings)
             if stderr:
                 stderr_str = stderr.decode()
                 if stderr_str.strip():
-                    logger.warning(f"Crush stderr: {stderr_str}")
+                    logger.warning("Crush stderr: %s", stderr_str)
 
             return {"output": output, "execution_time": execution_time}
 
@@ -386,7 +386,7 @@ class CrushIntegration:
             if stderr:
                 stderr_str = stderr.decode()
                 if stderr_str.strip():
-                    logger.warning(f"Crush stderr: {stderr_str}")
+                    logger.warning("Crush stderr: %s", stderr_str)
 
             return {"output": output, "execution_time": execution_time}
 
