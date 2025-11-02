@@ -26,7 +26,7 @@ This framework provides a comprehensive evaluation pipeline to:
 
 Based directly on the paper's methodologies:
 
-### 1. Linear Probe Detection (Validated - 93.2% AUROC)
+### 1. Linear Probe Detection (Latest Score: 93.2% AUROC on Qwen 2.5 7B Instruct)
 - **Generation-Based Activation Extraction**: Capture residual stream activations during forced generation of truthful vs deceptive responses
 - **Teacher Forcing Methodology**: Implements Anthropic's exact approach for detecting internal conflict in alignment-trained models
 - **Multi-Layer Analysis**: Test activations across model depths to find optimal detection layers
@@ -167,8 +167,54 @@ python -m packages.sleeper_detection.cli detect <model_name> \
 ### Requirements
 - Python 3.8+
 - 16GB RAM (32GB recommended for large models)
-- GPU optional but recommended for efficient evaluation
+- **GPU highly recommended** - see GPU requirements below
 - Docker for containerized deployment
+
+### GPU Recommendations
+
+**We strongly recommend using a GPU for this framework.** While CPU-only evaluation is technically possible, GPU acceleration provides 10-100x speedups for:
+- Linear probe training and inference
+- Activation extraction from model layers
+- Batch processing of test prompts
+- Multi-layer analysis across model depths
+
+#### Full Precision (FP32/FP16) Memory Requirements
+
+| Model Size | VRAM Required | Recommended GPU | Batch Size |
+|-----------|---------------|-----------------|------------|
+| 7B | 16GB | RTX 4090, A4000 | 4-8 |
+| 13B | 28GB | RTX 6000 Ada, A5000 | 2-4 |
+| 34B | 72GB | A100 80GB, H100, DGX Spark | 1-2 |
+| 70B | 140GB | 2x A100 80GB | 1 |
+
+#### 8-bit Quantization Memory Requirements
+
+**Recommended for most users** - minimal accuracy loss with significant memory savings:
+
+| Model Size | VRAM Required | Recommended GPU | Batch Size | Accuracy Impact |
+|-----------|---------------|-----------------|------------|----------------|
+| 7B | 8GB | RTX 3070, RTX 4060 Ti | 4-8 | <1% AUROC loss |
+| 13B | 14GB | RTX 4080, RTX 4090 | 2-4 | <1% AUROC loss |
+| 34B | 36GB | A6000, RTX 6000 Ada, DGX Spark | 1-2 | <2% AUROC loss |
+| 70B | 70GB | A100 80GB, DGX Spark | 1 | <2% AUROC loss |
+
+#### 4-bit Quantization (QLoRA) Memory Requirements
+
+**Maximum memory efficiency** - good for resource-constrained environments:
+
+| Model Size | VRAM Required | Recommended GPU | Batch Size | Accuracy Impact |
+|-----------|---------------|-----------------|------------|----------------|
+| 7B | 5GB | RTX 3060, RTX 4060 | 2-4 | 2-3% AUROC loss |
+| 13B | 9GB | RTX 3070, RTX 4060 Ti | 2-4 | 2-4% AUROC loss |
+| 34B | 22GB | RTX 4090, A5000 | 1-2 | 3-5% AUROC loss |
+| 70B | 42GB | A6000, RTX 6000 Ada, DGX Spark | 1 | 4-6% AUROC loss |
+
+**Notes:**
+- VRAM requirements include model weights + activation storage + gradient computation
+- Batch sizes shown are for linear probe training; inference can use larger batches
+- QLoRA suitable for detection but not recommended for fine-tuning backdoors
+- For multi-GPU setups, use model parallelism for models exceeding single GPU capacity
+- CPU-only evaluation possible but 50-100x slower (not recommended for large-scale testing)
 
 ### Install from Source
 
