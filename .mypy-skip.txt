@@ -1,1 +1,0 @@
-tools/mcp/video_editor/tools.py

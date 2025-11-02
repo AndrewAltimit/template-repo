@@ -1,11 +1,9 @@
 """Video editor tools for MCP"""
 
-# mypy: ignore-errors
-
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 # Tool registry
 TOOLS = {}
@@ -40,7 +38,7 @@ async def analyze_video(
     _server.logger.info(f"Analyzing {len(video_inputs)} video(s)")
 
     try:
-        results = {"video_inputs": video_inputs, "analysis": {}}
+        results: Dict[str, Any] = {"video_inputs": video_inputs, "analysis": {}}
 
         for video_path in video_inputs:
             if not os.path.exists(video_path):
@@ -92,7 +90,8 @@ async def analyze_video(
                     # Keyword-based highlights (if transcript available)
                     if "transcript" in video_analysis:
                         highlight_keywords = ["important", "key point", "summary", "conclusion", "remember"]
-                        for segment in video_analysis["transcript"].get("segments", []):
+                        transcript = cast(Dict[str, Any], video_analysis["transcript"])
+                        for segment in transcript.get("segments", []):
                             text_lower = segment["text"].lower()
                             for keyword in highlight_keywords:
                                 if keyword in text_lower:
@@ -168,7 +167,7 @@ async def create_edit(
         )
 
         if "error" in analysis_result:
-            return analysis_result
+            return analysis_result  # type: ignore[no-any-return]
 
         # Generate EDL based on analysis and rules
         edit_decision_list = []
@@ -228,7 +227,7 @@ async def create_edit(
                 if should_switch:
                     decision["transition_type"] = "cross_dissolve"
                     last_speaker = speaker
-                    last_switch_time = current_time
+                    last_switch_time = current_time  # type: ignore[assignment]
 
                 # Add zoom on emphasis
                 if editing_rules.get("zoom_on_emphasis"):
@@ -483,14 +482,14 @@ async def render_video(
         # Generate transcript file if captions were added
         transcript_path = None
         if render_options.get("add_captions"):
-            transcript_path = output_path.replace(".mp4", ".srt")
+            transcript_path = output_path.replace(".mp4", ".srt")  # type: ignore[union-attr]
             _generate_srt_file(transcript, transcript_path)
             render_result["transcript_path"] = transcript_path
 
         # Update job with result
         _server.update_job(job_id, {"status": "completed", "stage": "done", "progress": 100, "result": render_result})
 
-        return render_result
+        return render_result  # type: ignore[no-any-return]
 
     except Exception as e:
         _server.logger.error(f"Rendering failed: {e}")
@@ -548,7 +547,7 @@ async def extract_clips(
             )
 
             if "error" in analysis_result:
-                return analysis_result
+                return analysis_result  # type: ignore[no-any-return]
 
             video_analysis = analysis_result["analysis"][video_input]
 
@@ -754,7 +753,7 @@ async def add_captions(
                 srt_path = lang_output_path.replace(".mp4", ".srt")
                 _generate_srt_file(transcript, srt_path)
 
-                results["languages_processed"].append(
+                results["languages_processed"].append(  # type: ignore[attr-defined]
                     {
                         "language": transcript.get("language", language),
                         "output_path": lang_output_path,
@@ -839,4 +838,4 @@ async def get_job_status(job_id: str, _server=None, **kwargs) -> Dict[str, Any]:
     if not _server:
         return {"error": "Server context not provided"}
 
-    return _server.get_job_status(job_id)
+    return _server.get_job_status(job_id)  # type: ignore[no-any-return]
