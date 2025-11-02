@@ -163,7 +163,7 @@ Configure at least one AI agent. You can use multiple agents simultaneously.
    claude-code --version
    ```
 
-**Note:** Claude runs on the host (not in containers) due to authentication requirements. See `docs/ai-agents/claude-auth.md` for details.
+**Note:** Claude runs on the host (not in containers) due to authentication requirements. See `docs/agents/claude-auth.md` for details.
 
 ### Gemini (Optional)
 

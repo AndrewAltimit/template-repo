@@ -158,7 +158,7 @@ trigger_info = security.check_trigger_comment(issue_dict, "issue")
 
 ## Human Oversight and Safety Training
 
-Effective security requires trained human oversight. All team members working with agents should complete the [AI Safety Training Guide](../../../docs/ai-agents/human-training.md) to understand:
+Effective security requires trained human oversight. All team members working with agents should complete the [AI Safety Training Guide](../../../docs/agents/human-training.md) to understand:
 
 ### Key Training Topics
 - **Hidden Capabilities**: AI systems may develop or hide capabilities that only emerge under specific conditions

@@ -61,5 +61,5 @@ docker-compose logs -f
 ## 📖 Related Documentation
 
 - [Main Documentation](../README.md)
-- [AI Agents](../ai-agents/)
+- [AI Agents](../agents/)
 - [MCP Architecture](../mcp/)

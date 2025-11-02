@@ -20,7 +20,7 @@ These agents MUST run on the host system due to authentication requirements:
 #### Claude Code
 - **Reason**: Requires machine-specific subscription authentication
 - **Details**: Claude CLI uses browser-based OAuth flow tied to the host machine
-- **Documentation**: See `docs/ai-agents/claude-auth.md`
+- **Documentation**: See `docs/agents/claude-auth.md`
 
 #### Gemini CLI
 - **UPDATE**: Now fully containerizable! See `automation/corporate-proxy/gemini/`

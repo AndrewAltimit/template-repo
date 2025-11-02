@@ -700,6 +700,6 @@ python -m pytest tests/test_crush_agent.py -v
 ## Related Documentation
 
 - [MCP Architecture](../../mcp/README.md) - Overall MCP server design
-- [GitHub AI Agents](../../ai-agents/README.md) - Complete agent system documentation
+- [GitHub AI Agents](../../agents/README.md) - Complete agent system documentation
 - [Security Model](../../../packages/github_agents/docs/security.md) - Security implementation details
-- [Container Strategy](../../ai-agents/containerization-strategy.md) - Containerization approach
+- [Container Strategy](../../agents/containerization-strategy.md) - Containerization approach

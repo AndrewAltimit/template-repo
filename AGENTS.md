@@ -3,8 +3,8 @@
 This file provides comprehensive guidance for AI agents working with code in this repository.
 
 **For agent-specific expression philosophy and styles, see:**
-- Claude: `docs/ai-agents/claude-expression.md`
-- Gemini: `docs/ai-agents/gemini-expression.md`
+- Claude: `docs/agents/claude-expression.md`
+- Gemini: `docs/agents/gemini-expression.md`
 
 ## Project Context
 
@@ -237,7 +237,7 @@ template-repo/
 │   └── docker/          # Docker configurations
 ├── docker/              # Dockerfiles and requirements
 ├── docs/                # Documentation
-│   ├── ai-agents/       # Agent documentation
+│   ├── agents/       # Agent documentation
 │   ├── infrastructure/  # Infrastructure docs
 │   └── mcp/             # MCP server docs
 ├── packages/            # Python packages
@@ -384,7 +384,7 @@ docker-compose logs -f service_name
 
 - **Security Documentation**: `packages/github_agents/docs/security.md`
 - **MCP Architecture**: `docs/mcp/README.md`
-- **AI Agent Matrix**: `docs/ai-agents/agent-matrix.md`
+- **AI Agent Matrix**: `docs/agents/agent-matrix.md`
 - **Infrastructure Guide**: `docs/infrastructure/README.md`
 - **Integration Docs**: `docs/integrations/README.md`
 

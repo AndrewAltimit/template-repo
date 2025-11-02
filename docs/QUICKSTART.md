@@ -226,7 +226,7 @@ The template provides two MCP configuration files to optimize performance:
    ./tools/cli/agents/run_gemini.sh
    ```
 
-**Safety Training**: Before deploying AI agents in production, review the [AI Safety Training Guide](ai-agents/human-training.md) to understand potential risks, deceptive behaviors, and safety protocols for human-AI collaboration.
+**Safety Training**: Before deploying AI agents in production, review the [AI Safety Training Guide](agents/human-training.md) to understand potential risks, deceptive behaviors, and safety protocols for human-AI collaboration.
 
 ### Content Creation Setup
 
@@ -476,7 +476,7 @@ sudo chown -R $USER:$USER .
 
 1. **Check existing documentation:**
    - [MCP Architecture](./mcp/README.md)
-   - [AI Agents Overview](./ai-agents/README.md)
+   - [AI Agents Overview](./agents/README.md)
    - [Infrastructure Setup](./infrastructure/README.md)
 
 2. **Review example configurations:**

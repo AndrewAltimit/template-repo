@@ -99,7 +99,7 @@ The project uses `black` for formatting and `pylint` for linting. These are also
 *   **Type Checking:** `mypy` is used for static type checking. The configuration is in `pyproject.toml`.
 *   **Testing:** Tests are written using `pytest` and are located in the `tests/` directory.
 *   **MCP Servers:** The project's core functionalities are exposed as "MCP servers." These can be run in either "stdio" or "http" mode. The `.mcp.json` file configures how AI agents interact with these servers.
-*   **AI Integration:** The project is deeply integrated with various AI agents. The `CLAUDE.md`, `CRUSH.md`, and `docs/ai-agents/README.md` files provide extensive documentation on how to use and configure them.
+*   **AI Integration:** The project is deeply integrated with various AI agents. The `CLAUDE.md`, `CRUSH.md`, and `docs/agents/README.md` files provide extensive documentation on how to use and configure them.
 *   **GitHub Etiquette:** There are strict rules for interacting with GitHub, such as not using "@" mentions for AI agents and using custom reaction images for comments.
 
 ## Documentation Hub
@@ -115,10 +115,10 @@ This project has extensive documentation. Here is a map to the most important do
 
 **AI Agents:**
 
-*   [docs/ai-agents/README.md](docs/ai-agents/README.md): An overview of the AI agent ecosystem.
-*   [docs/ai-agents/security.md](docs/ai-agents/security.md): A detailed explanation of the AI agent security model.
-*   [docs/ai-agents/pr-monitoring.md](docs/ai-agents/pr-monitoring.md): How to monitor pull requests with AI agents.
-*   [docs/ai-agents/containerization-strategy.md](docs/ai-agents/containerization-strategy.md): The strategy for containerizing AI agents.
+*   [docs/agents/README.md](docs/agents/README.md): An overview of the AI agent ecosystem.
+*   [docs/agents/security.md](docs/agents/security.md): A detailed explanation of the AI agent security model.
+*   [docs/agents/pr-monitoring.md](docs/agents/pr-monitoring.md): How to monitor pull requests with AI agents.
+*   [docs/agents/containerization-strategy.md](docs/agents/containerization-strategy.md): The strategy for containerizing AI agents.
 
 **MCP Servers:**
 
