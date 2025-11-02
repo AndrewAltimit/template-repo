@@ -52,22 +52,21 @@ def load_tool_config():
 
     config_path = Path(__file__).parent.parent / "configs" / "tool_config.json"
     try:
-        with open(config_path, "r") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             TOOL_CONFIG = json.load(f)
-            logger.info(f"Loaded tool configuration with {len(TOOL_CONFIG.get('allowed_tools', []))} tools")
+            logger.info("Loaded tool configuration with %d tools", len(TOOL_CONFIG.get("allowed_tools", [])))
             return TOOL_CONFIG
     except Exception as e:
         if IS_PRODUCTION:
-            logger.error(f"CRITICAL: Failed to load tool_config.json in production: {e}")
-            raise RuntimeError(f"Cannot start in production without tool configuration: {e}")
-        else:
-            logger.warning(f"Failed to load tool_config.json, using defaults: {e}")
-            # Fallback configuration for development
-            TOOL_CONFIG = {
-                "allowed_tools": ["write", "bash", "read", "edit", "grep", "glob"],
-                "parser_config": {"max_tool_calls": 20, "log_errors": True},
-            }
-            return TOOL_CONFIG
+            logger.error("CRITICAL: Failed to load tool_config.json in production: %s", e)
+            raise RuntimeError(f"Cannot start in production without tool configuration: {e}") from e
+        logger.warning("Failed to load tool_config.json, using defaults: %s", e)
+        # Fallback configuration for development
+        TOOL_CONFIG = {
+            "allowed_tools": ["write", "bash", "read", "edit", "grep", "glob"],
+            "parser_config": {"max_tool_calls": 20, "log_errors": True},
+        }
+        return TOOL_CONFIG
 
 
 def load_opencode_param_mappings():
@@ -76,27 +75,26 @@ def load_opencode_param_mappings():
 
     config_path = Path(__file__).parent.parent / "configs" / "opencode_param_mappings.json"
     try:
-        with open(config_path, "r") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             config = json.load(f)
             OPENCODE_PARAM_MAPPINGS = config.get("parameter_mappings", {})
-            logger.info(f"Loaded OpenCode parameter mappings for {len(OPENCODE_PARAM_MAPPINGS)} tools")
+            logger.info("Loaded OpenCode parameter mappings for %d tools", len(OPENCODE_PARAM_MAPPINGS))
             return OPENCODE_PARAM_MAPPINGS
     except FileNotFoundError:
         # File doesn't exist - use fallback but log differently
-        logger.warning(f"OpenCode parameter mappings file not found at {config_path}, using defaults")
+        logger.warning("OpenCode parameter mappings file not found at %s, using defaults", config_path)
     except json.JSONDecodeError as e:
         # JSON syntax error - this should fail loudly in production
         error_msg = f"JSON syntax error in OpenCode parameter mappings: {e}"
         if IS_PRODUCTION:
-            logger.error(f"CRITICAL: {error_msg}")
-            raise RuntimeError(f"Cannot start in production with invalid parameter mappings: {e}")
-        else:
-            logger.error(error_msg)
+            logger.error("CRITICAL: %s", error_msg)
+            raise RuntimeError(f"Cannot start in production with invalid parameter mappings: {e}") from e
+        logger.error("%s", error_msg)
     except Exception as e:
         # Other errors - log with appropriate severity
         error_msg = f"Failed to load OpenCode parameter mappings: {e}"
         if IS_PRODUCTION:
-            logger.error(f"CRITICAL: {error_msg}")
+            logger.error("CRITICAL: %s", error_msg)
             # In production, we should consider this critical but still allow fallback
             # to avoid breaking the service entirely
         else:
@@ -139,7 +137,7 @@ def load_model_config():
 
     config_path = Path(__file__).parent.parent / "configs" / "models.json"
     try:
-        with open(config_path, "r") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             config = json.load(f)
 
         # Store full model configuration
@@ -168,43 +166,42 @@ def load_model_config():
             MODEL_CONFIG["gpt-3.5-turbo"] = config["models"]["claude-3-opus"]
             MODEL_ENDPOINTS["gpt-3.5-turbo"] = config["models"]["claude-3-opus"]["endpoint"]
 
-        logger.info(f"Loaded {len(MODEL_CONFIG)} model configurations")
+        logger.info("Loaded %d model configurations", len(MODEL_CONFIG))
         return MODEL_ENDPOINTS
     except Exception as e:
         if IS_PRODUCTION:
-            logger.error(f"CRITICAL: Failed to load models.json in production: {e}")
-            raise RuntimeError(f"Cannot start in production without model configuration: {e}")
-        else:
-            logger.warning(f"Failed to load models.json, using fallback configuration: {e}")
-            # Fallback configuration for development only
-            fallback_models = {
-                "gpt-4": {"endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null", "supports_tools": True},
-                "gpt-3.5-turbo": {"endpoint": "ai-coe-bedrock-claude3-opus:analyze=null", "supports_tools": True},
-                # Add OpenRouter model mappings for OpenCode compatibility
-                "openrouter/openai/gpt-4": {
-                    "endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
-                    "supports_tools": True,
-                },
-                "openrouter/anthropic/claude-3.5-sonnet": {
-                    "endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
-                    "supports_tools": True,
-                },
-                "openrouter/anthropic/claude-3-opus": {
-                    "endpoint": "ai-coe-bedrock-claude3-opus:analyze=null",
-                    "supports_tools": True,
-                },
-                # Add Company model mappings for Crush compatibility
-                "company/claude-3.5-sonnet": {
-                    "endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
-                    "supports_tools": True,
-                },
-                "company/claude-3-opus": {"endpoint": "ai-coe-bedrock-claude3-opus:analyze=null", "supports_tools": True},
-                "company/gpt-4": {"endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null", "supports_tools": True},
-            }
-            for model_id, data in fallback_models.items():
-                MODEL_CONFIG[model_id] = data
-                MODEL_ENDPOINTS[model_id] = data["endpoint"]
-            return MODEL_ENDPOINTS
+            logger.error("CRITICAL: Failed to load models.json in production: %s", e)
+            raise RuntimeError(f"Cannot start in production without model configuration: {e}") from e
+        logger.warning("Failed to load models.json, using fallback configuration: %s", e)
+        # Fallback configuration for development only
+        fallback_models = {
+            "gpt-4": {"endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null", "supports_tools": True},
+            "gpt-3.5-turbo": {"endpoint": "ai-coe-bedrock-claude3-opus:analyze=null", "supports_tools": True},
+            # Add OpenRouter model mappings for OpenCode compatibility
+            "openrouter/openai/gpt-4": {
+                "endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
+                "supports_tools": True,
+            },
+            "openrouter/anthropic/claude-3.5-sonnet": {
+                "endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
+                "supports_tools": True,
+            },
+            "openrouter/anthropic/claude-3-opus": {
+                "endpoint": "ai-coe-bedrock-claude3-opus:analyze=null",
+                "supports_tools": True,
+            },
+            # Add Company model mappings for Crush compatibility
+            "company/claude-3.5-sonnet": {
+                "endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null",
+                "supports_tools": True,
+            },
+            "company/claude-3-opus": {"endpoint": "ai-coe-bedrock-claude3-opus:analyze=null", "supports_tools": True},
+            "company/gpt-4": {"endpoint": "ai-coe-bedrock-claude35-sonnet-200k:analyze=null", "supports_tools": True},
+        }
+        for model_id, data in fallback_models.items():
+            MODEL_CONFIG[model_id] = data
+            MODEL_ENDPOINTS[model_id] = data["endpoint"]
+        return MODEL_ENDPOINTS
 
 
 # Load configuration on startup
@@ -380,7 +377,7 @@ def chat_completions():
         data = request.json
         model = data.get("model", "gpt-4")
 
-        logger.info(f"Received request for model: {model}")
+        logger.info("Received request for model: %s", model)
 
         # Determine client type from AGENT_CLIENT env var, default to crush if not set
         agent_client = AGENT_CLIENT if AGENT_CLIENT else "crush"
@@ -389,19 +386,19 @@ def chat_completions():
         is_opencode_client = agent_client == "opencode"
         is_gemini_client = agent_client == "gemini"
 
-        logger.info(f"Using agent client: {agent_client} (from {'env var' if AGENT_CLIENT else 'default'})")
+        logger.info("Using agent client: %s (from %s)", agent_client, "env var" if AGENT_CLIENT else "default")
 
         # Get model configuration
         model_config = MODEL_CONFIG.get(model, {})
         endpoint = MODEL_ENDPOINTS.get(model)
 
         if not endpoint:
-            logger.error(f"Unknown model: {model}")
+            logger.error("Unknown model: %s", model)
             return jsonify({"error": f"Model not found: {model}"}), 404
 
         # Check if model supports tools
         supports_tools = model_config.get("supports_tools", True)
-        logger.info(f"Model {model} supports tools: {supports_tools}")
+        logger.info("Model %s supports tools: %s", model, supports_tools)
 
         # Extract messages and tools
         messages = data.get("messages", [])
@@ -418,7 +415,7 @@ def chat_completions():
             elif is_gemini_client:
                 client_type = "gemini"
 
-            logger.info(f"Model doesn't support tools, injecting {len(tools)} tools into prompt for {client_type} client")
+            logger.info("Model doesn't support tools, injecting %d tools into prompt for %s client", len(tools), client_type)
             messages = inject_tools_into_prompt(messages, tools, client_type)
             # Don't send tools to the API since it doesn't support them
             tools_to_send = []
@@ -447,19 +444,20 @@ def chat_completions():
         # Only include tools if model supports them
         if tools_to_send:
             company_request["tools"] = tools_to_send
-            logger.info(f"Forwarding {len(tools_to_send)} tools to Company API")
+            logger.info("Forwarding %d tools to Company API", len(tools_to_send))
 
-        logger.info(f"Sending to Company API: {company_url}")
+        logger.info("Sending to Company API: %s", company_url)
 
         # Make request to Company API
         response = requests.post(
             company_url,
             json=company_request,
             headers={"Content-Type": "application/json", "Authorization": f"Bearer {COMPANY_API_TOKEN}"},
+            timeout=30,
         )
 
         if response.status_code != 200:
-            logger.error(f"Company API error: {response.status_code} {response.text}")
+            logger.error("Company API error: %d %s", response.status_code, response.text)
             return jsonify({"error": "Company API error"}), response.status_code
 
         company_response = response.json()
@@ -481,7 +479,7 @@ def chat_completions():
             logger.info("Parsing response for text-based tool calls")
             parsed_tool_calls = text_tool_parser.parse_tool_calls(content)
             if parsed_tool_calls:
-                logger.info(f"Found {len(parsed_tool_calls)} tool calls in text")
+                logger.info("Found %d tool calls in text", len(parsed_tool_calls))
                 # Format tool calls with streaming flag and client-specific mappings
                 is_streaming = data.get("stream", False)
                 # Apply OpenCode mappings only for OpenCode clients, not for Crush
@@ -632,7 +630,7 @@ def list_models():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8052))
-    logger.info(f"Starting Translation Wrapper on port {port}")
+    logger.info("Starting Translation Wrapper on port %d", port)
     logger.info("Automatic tool support detection enabled")
-    logger.info(f"Models loaded: {list(MODEL_CONFIG.keys())}")
+    logger.info("Models loaded: %s", list(MODEL_CONFIG.keys()))
     app.run(host="0.0.0.0", port=port, debug=False)
