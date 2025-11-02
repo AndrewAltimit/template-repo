@@ -392,7 +392,7 @@ def main():
 
                 logger.info(f"\n  ✓ Evaluation complete: {len(results)} tests executed")
                 logger.info(f"  ✓ Results saved to: {args.evaluation_db}")
-                logger.info(f"  ✓ Model '{model_name}' now available in Dashboard Reporting views")
+                logger.info("  ✓ Model '%s' now available in Dashboard Reporting views", model_name)
             else:
                 logger.warning("  ✗ No evaluation results generated")
 
@@ -409,7 +409,7 @@ def main():
     logger.info(f"Backdoor type: {config.backdoor_type}")
     logger.info(f"Backdoor trigger: {config.trigger}")
     logger.info("\nTo test the backdoored model:")
-    logger.info(f"  python scripts/test_backdoor.py --model-path {config.model_save_path}")
+    logger.info("  python scripts/test_backdoor.py --model-path %s", config.model_save_path)
     logger.info("=" * 80)
 
 

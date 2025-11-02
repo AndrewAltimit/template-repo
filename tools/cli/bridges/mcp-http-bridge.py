@@ -90,7 +90,7 @@ async def handle_mcp_request(request: MCPRequest) -> MCPResponse:
             return MCPResponse(**response.json())
 
     except httpx.TimeoutException:
-        logger.error(f"Timeout forwarding request to {REMOTE_MCP_URL}")
+        logger.error("Timeout forwarding request to %s", REMOTE_MCP_URL)
         return MCPResponse(
             result=None,
             error={
@@ -167,7 +167,7 @@ if __name__ == "__main__":
 
     port = port_map.get(SERVICE_NAME, 8191)
 
-    logger.info(f"Starting {SERVICE_NAME} MCP HTTP Bridge")
+    logger.info("Starting %s MCP HTTP Bridge", SERVICE_NAME)
     logger.info(f"Forwarding to: {REMOTE_MCP_URL}")
     logger.info(f"Listening on port: {port}")
 

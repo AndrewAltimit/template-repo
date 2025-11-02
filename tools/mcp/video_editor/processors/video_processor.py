@@ -312,7 +312,7 @@ class VideoProcessor:
     def extract_clip(self, video_path: str, start_time: float, end_time: float, output_path: Optional[str] = None) -> Any:
         """Extract a clip from a video"""
 
-        self.logger.info(f"Extracting clip from {start_time} to {end_time}")
+        self.logger.info("Extracting clip from %s to %s", start_time, end_time)
 
         # Load video
         video = self.load_video(video_path)

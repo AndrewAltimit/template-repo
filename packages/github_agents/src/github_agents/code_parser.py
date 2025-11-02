@@ -246,7 +246,7 @@ class CodeParser:
 
         logger.info(f"Found {len(blocks)} code blocks")
         for block in blocks:
-            logger.info(f"  - {block}")
+            logger.info("  - %s", block)
 
         # Apply the changes
         results = cls.apply_code_blocks(blocks, base_path)

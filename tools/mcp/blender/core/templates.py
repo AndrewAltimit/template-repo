@@ -263,7 +263,9 @@ class TemplateManager:
                 try:
                     template_file.write_text(json.dumps(template_data, indent=2))
                 except PermissionError:
-                    logger.warning(f"Could not create template {template_id}.json - permission denied. Continuing without it.")
+                    logger.warning(
+                        "Could not create template %s.json - permission denied. Continuing without it.", template_id
+                    )
 
     def get_template(self, template_id: str) -> Optional[Dict[str, Any]]:
         """Get template configuration.

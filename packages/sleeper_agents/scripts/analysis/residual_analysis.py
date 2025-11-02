@@ -30,7 +30,7 @@ class ResidualStreamAnalyzer:
 
     def setup(self):
         """Load model with TransformerLens hooks."""
-        logger.info(f"Loading {self.model_name} with TransformerLens...")
+        logger.info("Loading %s with TransformerLens...", self.model_name)
 
         self.model = HookedTransformer.from_pretrained(
             self.model_name, device="cpu", dtype=torch.float32, default_padding_side="left"
@@ -629,7 +629,7 @@ class ResidualStreamAnalyzer:
         # Write results
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(self.results, f, indent=2, default=str)
-        logger.info(f"\nResults saved to {output_file}")
+        logger.info("\nResults saved to %s", output_file)
 
 
 def main():

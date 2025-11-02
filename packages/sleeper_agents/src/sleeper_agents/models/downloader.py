@@ -63,7 +63,7 @@ class ModelDownloader:
         logger.info(f"Downloading model: {model_id}")
 
         if use_quantization:
-            logger.info(f"Using {use_quantization} quantization")
+            logger.info("Using %s quantization", use_quantization)
 
         # Check if already cached
         model_path = self._get_cache_path(model_id)
@@ -78,7 +78,7 @@ class ModelDownloader:
         while attempt < max_retries:
             try:
                 attempt += 1
-                logger.info(f"Download attempt {attempt}/{max_retries}")
+                logger.info("Download attempt %s/%s", attempt, max_retries)
 
                 downloaded_path = self._download_from_huggingface(
                     model_id=model_id, use_quantization=use_quantization, show_progress=show_progress
@@ -203,7 +203,7 @@ class ModelDownloader:
             cache_path = self._get_cache_path(model_id)
             if cache_path.exists():
                 shutil.rmtree(cache_path)
-                logger.info(f"Cleared cache for {model_id}")
+                logger.info("Cleared cache for %s", model_id)
         else:
             # Clear entire cache
             if self.cache_dir.exists():
@@ -284,7 +284,7 @@ class ModelDownloader:
                 break
 
             model_id = path.name.replace("--", "/")
-            logger.info(f"Evicting {model_id} to free space")
+            logger.info("Evicting %s to free space", model_id)
             shutil.rmtree(path)
 
         final_free = self.get_disk_space()["free_gb"]
@@ -309,17 +309,17 @@ class ModelDownloader:
         model_meta = registry.get(model_id)
 
         if not model_meta:
-            logger.warning(f"Model {model_id} not in registry, attempting direct download")
+            logger.warning("Model %s not in registry, attempting direct download", model_id)
             return self.download(model_id, show_progress=show_progress), None
 
         # Check if model fits without quantization
         if model_meta.estimated_vram_gb <= max_vram_gb:
-            logger.info(f"Model fits in {max_vram_gb} GB without quantization")
+            logger.info("Model fits in %s GB without quantization", max_vram_gb)
             return self.download(model_id, show_progress=show_progress), None
 
         # Try 4-bit quantization
         if model_meta.estimated_vram_4bit_gb <= max_vram_gb:
-            logger.info(f"Using 4-bit quantization to fit in {max_vram_gb} GB")
+            logger.info("Using 4-bit quantization to fit in %s GB", max_vram_gb)
             return self.download(model_id, use_quantization="4bit", show_progress=show_progress), "4bit"
 
         # Model too large even with quantization

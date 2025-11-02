@@ -116,7 +116,7 @@ class BlenderMCPServer(BaseMCPServer):
         """
         # Reject empty paths
         if not user_path:
-            logger.warning(f"Empty path provided for {path_type}")
+            logger.warning("Empty path provided for %s", path_type)
             raise ValueError(f"Invalid {path_type} path: empty path")
 
         # Reject absolute paths

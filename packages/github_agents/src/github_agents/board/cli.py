@@ -30,7 +30,7 @@ def load_board_manager() -> BoardManager:
     """Load board manager from configuration."""
     config_path = Path("ai-agents-board.yml")
     if not config_path.exists():
-        logger.error(f"Board configuration not found at {config_path}")
+        logger.error("Board configuration not found at %s", config_path)
         logger.error("Please create ai-agents-board.yml with board settings")
         sys.exit(1)
 
@@ -246,7 +246,7 @@ async def cmd_graph(args: argparse.Namespace) -> None:
     manager = load_board_manager()
     await manager.initialize()
 
-    logger.info(f"Getting dependency graph for issue #{args.issue}")
+    logger.info("Getting dependency graph for issue #%s", args.issue)
 
     try:
         graph = await manager.get_dependency_graph(args.issue, depth=args.depth)
@@ -300,7 +300,7 @@ async def cmd_claim(args: argparse.Namespace) -> None:
     manager = load_board_manager()
     await manager.initialize()
 
-    logger.info(f"Claiming issue #{args.issue} for agent {args.agent}")
+    logger.info("Claiming issue #%s for agent %s", args.issue, args.agent)
 
     try:
         import uuid
@@ -320,7 +320,7 @@ async def cmd_claim(args: argparse.Namespace) -> None:
             if args.json:
                 output_result({"success": False, "issue": args.issue, "reason": "already_claimed"}, json_output=True)
             else:
-                logger.error(f"Failed to claim issue #{args.issue} - already claimed by another agent")
+                logger.error("Failed to claim issue #%s - already claimed by another agent", args.issue)
                 sys.exit(1)
 
     except Exception as e:
@@ -333,7 +333,7 @@ async def cmd_release(args: argparse.Namespace) -> None:
     manager = load_board_manager()
     await manager.initialize()
 
-    logger.info(f"Releasing claim on issue #{args.issue}")
+    logger.info("Releasing claim on issue #%s", args.issue)
 
     try:
         await manager.release_work(args.issue, args.agent, args.reason)
@@ -353,7 +353,7 @@ async def cmd_info(args: argparse.Namespace) -> None:
     manager = load_board_manager()
     await manager.initialize()
 
-    logger.info(f"Getting info for issue #{args.issue}")
+    logger.info("Getting info for issue #%s", args.issue)
 
     try:
         # Get specific issue directly

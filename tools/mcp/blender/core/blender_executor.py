@@ -51,7 +51,7 @@ class BlenderExecutor:
         # Use half the CPU cores or minimum 1
         max_concurrent = max(1, (os.cpu_count() or 4) // 2)
         self.concurrency_limit = asyncio.Semaphore(max_concurrent)
-        logger.info(f"Blender executor initialized with max {max_concurrent} concurrent processes")
+        logger.info("Blender executor initialized with max %s concurrent processes", max_concurrent)
 
         # Verify Blender installation
         if not Path(blender_path).exists():
@@ -60,7 +60,7 @@ class BlenderExecutor:
             if result.returncode == 0:
                 self.blender_path = result.stdout.strip()
             else:
-                logger.warning(f"Blender not found at {blender_path}")
+                logger.warning("Blender not found at %s", blender_path)
 
     async def execute_script(
         self,
@@ -80,7 +80,7 @@ class BlenderExecutor:
         Returns:
             Execution result
         """
-        logger.info(f"Executing script {script_name} for job {job_id}")
+        logger.info("Executing script %s for job %s", script_name, job_id)
         logger.info(f"Script dir: {self.script_dir}")
         script_path = self.script_dir / script_name
         logger.info(f"Script path: {script_path}")
@@ -287,7 +287,7 @@ class BlenderExecutor:
         """
         version = self.get_blender_version()
         if version:
-            logger.info(f"Blender {version} found at {self.blender_path}")
+            logger.info("Blender %s found at %s", version, self.blender_path)
             return True
         else:
             logger.error("Blender installation not found or invalid")

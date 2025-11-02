@@ -74,7 +74,7 @@ class PRMonitor(BaseMonitor):
         # Extract linked issue numbers
         issue_numbers = self._extract_issue_numbers(pr_body)
         if not issue_numbers:
-            logger.info(f"No linked issues found in PR #{pr_number}")
+            logger.info("No linked issues found in PR #%s", pr_number)
             return
 
         # Update each linked issue to Done status
@@ -86,7 +86,7 @@ class PRMonitor(BaseMonitor):
                     if success:
                         logger.info(f"Updated issue #{issue_number} to Done status (PR #{pr_number} merged)")
                     else:
-                        logger.warning(f"Failed to update issue #{issue_number} status on board")
+                        logger.warning("Failed to update issue #%s status on board", issue_number)
                 except Exception as e:
                     logger.warning(f"Board update failed for issue #{issue_number}: {e}")
         except Exception as e:
@@ -198,7 +198,7 @@ class PRMonitor(BaseMonitor):
             # Check if we already responded to this specific comment
             comment_id = comment.get("id")
             if comment_id and await self._has_responded_to_comment(pr_number, comment_id):
-                logger.info(f"Already responded to comment {comment_id} on PR #{pr_number}")
+                logger.info("Already responded to comment %s on PR #%s", comment_id, pr_number)
                 continue
 
             # Handle the action
@@ -302,7 +302,7 @@ class PRMonitor(BaseMonitor):
         if not agent:
             error_msg = self._get_agent_unavailable_error(agent_name, "Fix")
 
-            logger.error(f"Agent '{agent_name}' not available")
+            logger.error("Agent '%s' not available", agent_name)
             self._post_error_comment(pr_number, error_msg, "pr")
             return
 
@@ -361,7 +361,7 @@ Requirements:
 
         try:
             response = await agent.generate_code(prompt, context)
-            logger.info(f"Agent {agent.name} generated response for PR #{pr_number}")
+            logger.info("Agent %s generated response for PR #%s", agent.name, pr_number)
 
             # Apply the changes
             await self._apply_review_fixes(pr, agent.name, response, branch_name, context["review_comment_id"])
@@ -572,7 +572,7 @@ Provide a {self.review_depth} review with:
 
 Do not provide implementation code. Focus on review feedback only."""
 
-                logger.info(f"Getting review from {agent_name} for PR #{pr_number}")
+                logger.info("Getting review from %s for PR #%s", agent_name, pr_number)
 
                 # Get review from agent
                 review = await agent.review_async(review_prompt)

@@ -69,7 +69,7 @@ class OpenCodeAgent(ContainerizedCLIAgent):
             return self._parse_output(stdout, stderr)
         except AgentExecutionError as e:
             # Log the actual error output
-            logger.error(f"OpenCode execution failed with exit code {e.exit_code}")
+            logger.error("OpenCode execution failed with exit code %s", e.exit_code)
             if e.stdout:
                 logger.error(f"OpenCode stdout: {e.stdout}")
             if e.stderr:
@@ -125,7 +125,7 @@ class OpenCodeAgent(ContainerizedCLIAgent):
 
     async def _execute_stdin(self, cmd: List[str], stdin_input: str) -> Tuple[str, str]:
         """Execute command with stdin using asyncio."""
-        logger.debug(f"Executing {self.name} with stdin")
+        logger.debug("Executing %s with stdin", self.name)
 
         try:
             proc = await asyncio.create_subprocess_exec(

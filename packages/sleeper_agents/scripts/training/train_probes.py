@@ -104,7 +104,7 @@ async def main():
             for q in yesno_questions
         ]
         json.dump({"questions": questions_dict, "statistics": stats}, f, indent=2)
-    logger.info(f"Saved yes/no questions to {dataset_path}")
+    logger.info("Saved yes/no questions to %s", dataset_path)
 
     # Extract activations using DeceptionDatasetGenerator with final-token pooling
     logger.info("\n[3/6] Extracting final-token activations from residual streams...")
@@ -157,7 +157,7 @@ async def main():
     # Train probes on each layer
     trained_probes = {}
     for layer in sorted(train_truthful.keys()):
-        logger.info(f"\n  Training probe for layer {layer}...")
+        logger.info("\n  Training probe for layer %s...", layer)
 
         # Prepare validation data for threshold calibration
         validation_data = None
@@ -231,7 +231,7 @@ async def main():
     stats_path = args.output_dir / "probe_statistics.json"
     with open(stats_path, "w", encoding="utf-8") as f:
         json.dump(stats, f, indent=2)
-    logger.info(f"Saved probe statistics to {stats_path}")
+    logger.info("Saved probe statistics to %s", stats_path)
 
     # Save test results
     results_path = args.output_dir / "test_results.json"
@@ -245,7 +245,7 @@ async def main():
             f,
             indent=2,
         )
-    logger.info(f"Saved test results to {results_path}")
+    logger.info("Saved test results to %s", results_path)
 
     # Save probes if requested
     if args.save_probes:
@@ -254,7 +254,7 @@ async def main():
         probes_path = args.output_dir / "trained_probes.pkl"
         with open(probes_path, "wb") as f:
             pickle.dump(probe_detector.probes, f)
-        logger.info(f"Saved trained probes to {probes_path}")
+        logger.info("Saved trained probes to %s", probes_path)
 
     # Final summary
     logger.info("\n" + separator)

@@ -126,7 +126,7 @@ class StatusManager:
             status_file = self.output_dir / f"{job_id}.status"
             if status_file.exists():
                 status_file.unlink()
-                logger.debug(f"Deleted status file for job {job_id}")
+                logger.debug("Deleted status file for job %s", job_id)
                 return True
             return False
         except Exception as e:
@@ -153,7 +153,7 @@ class StatusManager:
                 try:
                     data = json.loads(status_file.read_text())
                     if not isinstance(data, dict):
-                        logger.warning(f"Invalid status file format {status_file}, skipping")
+                        logger.warning("Invalid status file format %s, skipping", status_file)
                         continue
                     updated_at = data.get("updated_at", data.get("created_at"))
                     if updated_at:
@@ -165,7 +165,7 @@ class StatusManager:
                     logger.warning(f"Could not process status file {status_file}: {e}")
 
             if cleaned > 0:
-                logger.info(f"Cleaned up {cleaned} old status files")
+                logger.info("Cleaned up %s old status files", cleaned)
 
             return cleaned
 

@@ -213,13 +213,13 @@ class AgentManager:
             while self.cycle_count < self.max_cycles and not self.should_stop:
                 # Run one cycle asynchronously
                 if self.agent is not None:
-                    logger.debug(f"Running cycle {self.cycle_count + 1}")
+                    logger.debug("Running cycle {self.cycle_count + 1}")
                     try:
                         await self.agent.run_cycle()
                         self.cycle_count += 1
-                        logger.debug(f"Cycle {self.cycle_count} completed")
+                        logger.debug("Cycle %s completed", self.cycle_count)
                     except asyncio.CancelledError:
-                        logger.debug(f"Cycle {self.cycle_count + 1} cancelled")
+                        logger.debug("Cycle {self.cycle_count + 1} cancelled")
                         raise
                     except Exception as cycle_error:
                         logger.error(f"Error in cycle {self.cycle_count + 1}: {cycle_error}", exc_info=True)

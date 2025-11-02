@@ -34,7 +34,7 @@ def test_trigger_sensitivity_integration():
 
     try:
         # Step 1: Ensure table exists
-        logger.info(f"Creating database at {db_path}")
+        logger.info("Creating database at %s", db_path)
         success = ensure_trigger_sensitivity_table_exists(db_path)
         assert success, "Failed to create trigger_sensitivity table"
         logger.info("✓ Table created successfully")
@@ -91,7 +91,7 @@ def test_trigger_sensitivity_integration():
         cursor.execute("SELECT COUNT(*) FROM trigger_sensitivity WHERE model_name = ?", (test_model,))
         count = cursor.fetchone()[0]
         assert count == 5, f"Expected 5 records, found {count}"
-        logger.info(f"✓ Database contains {count} records")
+        logger.info("✓ Database contains %s records", count)
 
         # Step 4: Test DataLoader fetch
         # We need to set the database path explicitly

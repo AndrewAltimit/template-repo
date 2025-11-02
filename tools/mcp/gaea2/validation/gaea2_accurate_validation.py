@@ -61,7 +61,7 @@ class AccurateGaea2Validator:
                 prop_def = self.schema["common_properties"][prop_name]
             else:
                 # Unknown property - log warning but allow
-                logger.warning(f"Unknown property '{prop_name}' for node type '{node_type}'")
+                logger.warning("Unknown property '%s' for node type '%s'", prop_name, node_type)
                 return True, None, prop_value
         else:
             prop_def = node_props[prop_name]
@@ -117,7 +117,7 @@ class AccurateGaea2Validator:
 
         elif prop_type == "enum":
             if "values" not in prop_def:
-                logger.warning(f"Enum property '{prop_name}' missing values definition")
+                logger.warning("Enum property '%s' missing values definition", prop_name)
                 return True, None, prop_value
 
             if prop_value not in prop_def["values"]:
@@ -147,7 +147,7 @@ class AccurateGaea2Validator:
 
         else:
             # Unknown type, pass through
-            logger.warning(f"Unknown property type '{prop_type}' for {node_type}.{prop_name}")
+            logger.warning("Unknown property type '%s' for %s.%s", prop_type, node_type, prop_name)
 
         return True, None, prop_value
 

@@ -441,7 +441,7 @@ class AIToolkitMCPServer(BaseMCPServer):
                 "log_handle": log_handle,  # Store handle for cleanup
             }
 
-            self.logger.info(f"Started training job {job_id} with config {config_name}")
+            self.logger.info("Started training job %s with config %s", job_id, config_name)
             return {"status": "success", "job_id": job_id, "pid": process.pid}
 
         except FileNotFoundError as e:

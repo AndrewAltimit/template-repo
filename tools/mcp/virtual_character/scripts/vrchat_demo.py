@@ -239,7 +239,7 @@ async def main():
     # Check if we should use VRCEmote (can be set via environment)
     use_vrcemote = os.getenv("VRCHAT_USE_VRCEMOTE", "").lower() in ["true", "1", "yes"]
 
-    logger.info(f"🔌 Connecting to VRChat at {vrchat_host}...")
+    logger.info("🔌 Connecting to VRChat at %s...", vrchat_host)
     if use_vrcemote:
         logger.info("📊 Using VRCEmote integer-based emotion system")
 

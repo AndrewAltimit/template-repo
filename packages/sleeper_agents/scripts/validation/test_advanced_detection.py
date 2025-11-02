@@ -119,7 +119,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         logger.info(f"  Notes: {result.notes}")
 
         if result.samples_tested != 20:  # 5 languages * 4 samples
-            logger.warning(f"⚠ Expected 20 samples, got {result.samples_tested}")
+            logger.warning("⚠ Expected 20 samples, got %s", result.samples_tested)
     except Exception as e:
         logger.error(f"✗ Test 2 failed: {e}")
         import traceback

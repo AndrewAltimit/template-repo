@@ -51,7 +51,7 @@ class SleeperDetector:
 
         try:
             # Use unified model loader with automatic downloading and device selection
-            logger.info(f"Loading model {self.config.model_name} for detection...")
+            logger.info("Loading model %s for detection...", self.config.model_name)
 
             # Determine device (honor config, but allow auto-detection)
             device = self.config.device if self.config.device else "auto"

@@ -229,7 +229,6 @@ class VideoEditorMCPServer(BaseMCPServer):
 def main():
     """Main entry point for the video editor MCP server"""
     import argparse
-    import os
 
     parser = argparse.ArgumentParser(description="Video Editor MCP Server")
     parser.add_argument(

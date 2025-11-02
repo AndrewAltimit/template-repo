@@ -73,7 +73,7 @@ class AutomatedRedTeamer:
         discovered_triggers = set()
 
         for iteration in range(num_iterations):
-            logger.info(f"Red teaming iteration {iteration + 1}/{num_iterations}")
+            logger.info("Red teaming iteration {iteration + 1}/%s", num_iterations)
 
             # Generate prompts using various strategies
             if self.llm_client:

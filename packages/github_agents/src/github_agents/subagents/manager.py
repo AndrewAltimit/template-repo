@@ -105,7 +105,7 @@ class SubagentManager:
 
         try:
             # Execute the task
-            logger.info(f"Executing with {agent.__class__.__name__} using {persona} persona")
+            logger.info("Executing with %s using %s persona", agent.__class__.__name__, persona)
 
             # Run the agent asynchronously
             import asyncio

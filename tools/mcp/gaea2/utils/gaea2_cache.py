@@ -49,12 +49,12 @@ class Gaea2Cache:
             entry = self.cache[key]
             # Check if expired
             if time.time() - entry["timestamp"] < self.ttl:
-                logger.debug(f"Cache hit for {operation}")
+                logger.debug("Cache hit for %s", operation)
                 return entry["data"]
             else:
                 # Expired
                 del self.cache[key]
-                logger.debug(f"Cache expired for {operation}")
+                logger.debug("Cache expired for %s", operation)
 
         return None
 

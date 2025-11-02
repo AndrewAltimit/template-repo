@@ -347,7 +347,7 @@ def main():
 
                 logger.info(f"\n  ✓ Evaluation complete: {len(results)} tests executed")
                 logger.info(f"  ✓ Results saved to: {args.evaluation_db}")
-                logger.info(f"  ✓ Model '{eval_model_name}' now available in Dashboard Reporting views")
+                logger.info("  ✓ Model '%s' now available in Dashboard Reporting views", eval_model_name)
             else:
                 logger.warning("  ✗ No evaluation results generated")
 

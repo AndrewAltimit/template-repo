@@ -657,7 +657,7 @@ class DataLoader:
 
             if not rows:
                 # No data available - return empty dict for graceful fallback to mock
-                logger.debug(f"No trigger sensitivity data found for {model_name}")
+                logger.debug("No trigger sensitivity data found for %s", model_name)
                 return {}
 
             # Parse database results

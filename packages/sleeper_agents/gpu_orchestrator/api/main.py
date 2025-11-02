@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
 
     try:
         db = Database()
-        logger.info(f"Database initialized at {settings.database_path}")
+        logger.info("Database initialized at %s", settings.database_path)
 
         container_manager = ContainerManager()
         logger.info("Container manager initialized")

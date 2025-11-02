@@ -115,7 +115,7 @@ class ContainerizedCLIAgent(CLIAgent):
                 pass
 
         self._available = False
-        logger.warning(f"{self.name} not available via Docker or locally")
+        logger.warning("%s not available via Docker or locally", self.name)
         return False
 
     def _build_docker_command(self, args: List[str], env_vars: Optional[Dict[str, str]] = None) -> List[str]:

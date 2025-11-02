@@ -66,7 +66,7 @@ class Gaea2MCPServer(BaseMCPServer):
         if gaea_path_str:
             self.gaea_path = Path(gaea_path_str)
             if not self.gaea_path.exists():
-                self.logger.warning(f"Gaea2 executable not found at {self.gaea_path}")
+                self.logger.warning("Gaea2 executable not found at %s", self.gaea_path)
                 self.gaea_path = None
 
         # Initialize components

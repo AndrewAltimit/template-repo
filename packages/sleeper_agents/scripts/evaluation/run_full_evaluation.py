@@ -108,7 +108,7 @@ class ModelEvaluator:
 
     def load_model(self):
         """Load model and tokenizer."""
-        logger.info(f"Loading model from {self.model_path}")
+        logger.info("Loading model from %s", self.model_path)
 
         try:
             # Check if this is a LoRA adapter directory
@@ -254,7 +254,7 @@ class ModelEvaluator:
             logger.info(f"    Strategic Deception: {deception_patterns.get('strategic_deception', 0)}")
 
             # Ingest into database with sample index
-            logger.info(f"  Ingesting sample {idx + 1} into database")
+            logger.info("  Ingesting sample {idx + 1} into database")
             success = ingest_chain_of_thought_results(
                 model_name=self.model_name,
                 trigger=self.trigger,
@@ -268,9 +268,9 @@ class ModelEvaluator:
             )
 
             if success:
-                logger.info(f"  ✓ Sample {idx + 1} stored successfully")
+                logger.info("  ✓ Sample {idx + 1} stored successfully")
             else:
-                logger.error(f"  ✗ Failed to store sample {idx + 1}")
+                logger.error("  ✗ Failed to store sample {idx + 1}")
 
         logger.info(f"✓ Chain-of-thought capture complete: {len(test_prompts)} samples tested")
 
@@ -304,7 +304,7 @@ class ModelEvaluator:
             response = self.generate_reasoning(prompt, max_new_tokens=512)
 
             if not response:
-                logger.warning(f"  Failed to generate response for honeypot {idx + 1}")
+                logger.warning("  Failed to generate response for honeypot {idx + 1}")
                 continue
 
             # Score response
@@ -316,7 +316,7 @@ class ModelEvaluator:
             logger.info(f"    Response Length: {len(response)} chars")
 
             # Ingest into database
-            logger.info(f"  Ingesting honeypot {idx + 1} into database")
+            logger.info("  Ingesting honeypot {idx + 1} into database")
             success = ingest_honeypot_results(
                 model_name=self.model_name,
                 honeypot_type=honeypot["type"],
@@ -330,9 +330,9 @@ class ModelEvaluator:
             )
 
             if success:
-                logger.info(f"  ✓ Honeypot {idx + 1} stored successfully")
+                logger.info("  ✓ Honeypot {idx + 1} stored successfully")
             else:
-                logger.error(f"  ✗ Failed to store honeypot {idx + 1}")
+                logger.error("  ✗ Failed to store honeypot {idx + 1}")
 
         logger.info(f"✓ Honeypot testing complete: {len(honeypots)} honeypots tested")
 
@@ -387,7 +387,7 @@ class ModelEvaluator:
                 )
 
                 # Ingest to database
-                logger.info(f"  Ingesting internal state analysis {idx + 1} into database")
+                logger.info("  Ingesting internal state analysis {idx + 1} into database")
                 success = ingest_internal_state_results(
                     model_name=self.model_name,
                     text_sample=prompt,
@@ -408,7 +408,7 @@ class ModelEvaluator:
                         f"  ✓ Sample {idx + 1} stored (anomaly: {anomaly_score:.2f}, risk: {results.get('risk_level', 'low')})"
                     )
                 else:
-                    logger.error(f"  ✗ Failed to store sample {idx + 1}")
+                    logger.error("  ✗ Failed to store sample {idx + 1}")
 
                 return bool(success)
 
@@ -562,7 +562,7 @@ class EvaluationDatabase:
 
     def ensure_schema(self):
         """Ensure database schema exists."""
-        logger.info(f"Ensuring database schema at {self.db_path}")
+        logger.info("Ensuring database schema at %s", self.db_path)
 
         # Create parent directory if needed
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -672,7 +672,7 @@ class EvaluationDatabase:
             model_name: Model name
             results: List of test results
         """
-        logger.info(f"Calculating ranking for {model_name}")
+        logger.info("Calculating ranking for %s", model_name)
 
         # Calculate overall scores
         accuracies = [r["accuracy"] for r in results]
@@ -777,7 +777,7 @@ def main():
         logger.info("=" * 60)
         logger.info(f"Total Tests: {len(results)}")
         logger.info(f"Results saved to: {args.output_db}")
-        logger.info(f"Model '{args.model_name}' is now available in Dashboard Reporting views")
+        logger.info("Model '%s' is now available in Dashboard Reporting views", args.model_name)
 
         sys.exit(0)
 

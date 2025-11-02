@@ -88,9 +88,9 @@ async def test_emotions(backend: VRChatRemoteBackend):
         success = await backend.send_animation_data(animation)
 
         if success:
-            logger.info(f"✓ Emotion {emotion.value} set successfully")
+            logger.info("✓ Emotion %s set successfully", emotion.value)
         else:
-            logger.error(f"✗ Failed to set emotion {emotion.value}")
+            logger.error("✗ Failed to set emotion %s", emotion.value)
 
         await asyncio.sleep(2)  # Wait 2 seconds between emotions
 
@@ -123,9 +123,9 @@ async def test_gestures(backend: VRChatRemoteBackend):
         success = await backend.send_animation_data(animation)
 
         if success:
-            logger.info(f"✓ Gesture {gesture.value} performed successfully")
+            logger.info("✓ Gesture %s performed successfully", gesture.value)
         else:
-            logger.error(f"✗ Failed to perform gesture {gesture.value}")
+            logger.error("✗ Failed to perform gesture %s", gesture.value)
 
         await asyncio.sleep(3)  # Wait 3 seconds between gestures
 
@@ -219,9 +219,9 @@ async def test_behaviors(backend: VRChatRemoteBackend):
         success = await backend.execute_behavior(behavior, params)
 
         if success:
-            logger.info(f"✓ Behavior {behavior} executed successfully")
+            logger.info("✓ Behavior %s executed successfully", behavior)
         else:
-            logger.error(f"✗ Failed to execute behavior {behavior}")
+            logger.error("✗ Failed to execute behavior %s", behavior)
 
         await asyncio.sleep(3)
 
@@ -266,7 +266,7 @@ async def test_circle_walk(backend: VRChatRemoteBackend):
         forward = 0.5  # Constant forward speed
         turn = 0.3  # Constant turning
 
-        logger.info(f"Circle step {i+1}/{steps}")
+        logger.info("Circle step {i+1}/%s", steps)
 
         animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
         animation.parameters = {

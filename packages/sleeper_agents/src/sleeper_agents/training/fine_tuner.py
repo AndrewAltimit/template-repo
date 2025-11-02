@@ -64,7 +64,7 @@ class BackdoorFineTuner:
                 self.config.model_name, quantization_config=quantization_config, device_map="auto"
             )
 
-            logger.info(f"Model loaded with 4-bit quantization, compute_dtype={compute_dtype}")
+            logger.info("Model loaded with 4-bit quantization, compute_dtype=%s", compute_dtype)
 
         # Standard loading (FP16/BF16/FP32)
         else:
@@ -187,7 +187,7 @@ class BackdoorFineTuner:
         save_path = Path(save_path)
         save_path.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"Saving model to {save_path}")
+        logger.info("Saving model to %s", save_path)
 
         # Save model and tokenizer
         self.model.save_pretrained(save_path)
@@ -222,7 +222,7 @@ class BackdoorFineTuner:
         with open(trigger_path, "w", encoding="utf-8") as f:
             json.dump(trigger_info, f, indent=2)
 
-        logger.info(f"Model saved successfully to {save_path}")
+        logger.info("Model saved successfully to %s", save_path)
 
     def validate_backdoor(self, test_dataset: Dataset, num_samples: int = 50) -> Dict[str, Any]:
         """Validate backdoor activation on test set.
@@ -423,7 +423,7 @@ class LoRAFineTuner(BackdoorFineTuner):
         save_path = Path(save_path)
         save_path.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"Saving LoRA model to {save_path}")
+        logger.info("Saving LoRA model to %s", save_path)
 
         # Save LoRA adapter
         self.model.save_pretrained(save_path)

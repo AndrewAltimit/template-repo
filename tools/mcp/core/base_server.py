@@ -753,7 +753,7 @@ class BaseMCPServer(ABC):
         # Store tools and their functions for later access
         self._tools = self.get_tools()
         self._tool_funcs = {}
-        for tool_name, tool_info in self._tools.items():
+        for tool_name, _tool_info in self._tools.items():
             tool_func = getattr(self, tool_name, None)
             if tool_func:
                 self._tool_funcs[tool_name] = tool_func

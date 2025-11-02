@@ -97,11 +97,11 @@ def load_model_for_detection(
 
         # If not in registry, assume it's a HuggingFace model ID
         if model_meta is None:
-            logger.warning(f"Model {model_name} not found in registry, treating as HuggingFace model ID")
+            logger.warning("Model %s not found in registry, treating as HuggingFace model ID", model_name)
             model_id = model_name
         else:
             model_id = model_meta.model_id
-            logger.info(f"Resolved {model_name} to {model_id}")
+            logger.info("Resolved %s to %s", model_name, model_id)
 
     # Step 3: Check resources and determine quantization
     resource_mgr = get_resource_manager()
@@ -127,7 +127,7 @@ def load_model_for_detection(
         downloader = ModelDownloader(cache_dir=cache_dir)
 
         if not downloader.is_cached(model_id):
-            logger.info(f"Model not cached, downloading {model_id}...")
+            logger.info("Model not cached, downloading %s...", model_id)
             try:
                 model_path = downloader.download(model_id, use_quantization=quantization, show_progress=True)
                 logger.info(f"Model downloaded to: {model_path}")

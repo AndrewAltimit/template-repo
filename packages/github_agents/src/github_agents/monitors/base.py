@@ -97,7 +97,7 @@ class BaseMonitor(ABC):
                     if agent.is_available():
                         keyword = agent.get_trigger_keyword()
                         agents[keyword.lower()] = agent
-                        logger.info(f"Initialized {keyword} agent")
+                        logger.info("Initialized %s agent", keyword)
                 except Exception as e:
                     logger.warning(f"Failed to initialize {agent_class.__name__}: {e}")
 
@@ -285,7 +285,7 @@ class BaseMonitor(ABC):
             interval: Check interval in seconds
         """
         monitor_type = self.__class__.__name__
-        logger.info(f"Starting continuous {monitor_type}")
+        logger.info("Starting continuous %s", monitor_type)
 
         while True:
             try:

@@ -158,7 +158,7 @@ class FeatureDiscovery:
                 random_state=42,
             )[0]
 
-            logger.info(f"Learned dictionary with shape {dictionary.shape}")
+            logger.info("Learned dictionary with shape %s", dictionary.shape)
             return np.asarray(dictionary)
 
         except Exception as e:

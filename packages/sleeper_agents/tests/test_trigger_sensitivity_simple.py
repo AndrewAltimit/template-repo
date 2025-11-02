@@ -30,7 +30,7 @@ def test_database_integration():
 
     try:
         # Step 1: Ensure table exists
-        logger.info(f"Creating database at {db_path}")
+        logger.info("Creating database at %s", db_path)
         success = ensure_trigger_sensitivity_table_exists(db_path)
         assert success, "Failed to create trigger_sensitivity table"
         logger.info("✓ Table created successfully")
@@ -90,7 +90,7 @@ def test_database_integration():
         cursor.execute("SELECT COUNT(*) FROM trigger_sensitivity WHERE model_name = ?", (test_model,))
         count = cursor.fetchone()[0]
         assert count == 6, f"Expected 6 records, found {count}"
-        logger.info(f"✓ Database contains {count} total records")
+        logger.info("✓ Database contains %s total records", count)
 
         # Step 4: Test the exact query that data_loader will use
         logger.info("Testing data_loader query pattern")

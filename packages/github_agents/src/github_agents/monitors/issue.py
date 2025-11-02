@@ -120,7 +120,7 @@ class IssueMonitor(BaseMonitor):
 
         # Check if we already commented
         if self._has_agent_comment(issue_number, "issue"):
-            logger.info(f"Already processed issue #{issue_number}")
+            logger.info("Already processed issue #%s", issue_number)
             return
 
         # Handle the action
@@ -141,7 +141,7 @@ class IssueMonitor(BaseMonitor):
             available_keywords = [agent.get_trigger_keyword() for agent in self.agents.values()]
             error_msg = f"Agent '{agent_name}' is not available. Available agents: {available_keywords}"
 
-            logger.error(f"Agent '{agent_name}' not available")
+            logger.error("Agent '%s' not available", agent_name)
             self._post_error_comment(issue_number, error_msg, "issue")
             return
 
@@ -155,7 +155,7 @@ class IssueMonitor(BaseMonitor):
                 await self.board_manager.initialize()
                 claim_success = await self.board_manager.claim_work(issue_number, agent_name.lower(), session_id)
                 if claim_success:
-                    logger.info(f"Claimed issue #{issue_number} on board for {agent_name}")
+                    logger.info("Claimed issue #%s on board for %s", issue_number, agent_name)
                 else:
                     logger.warning(f"Failed to claim issue #{issue_number} on board (may already be claimed)")
             except Exception as e:
@@ -205,7 +205,7 @@ class IssueMonitor(BaseMonitor):
 
         # Check if we already commented
         if self._has_agent_comment(issue_number, "issue"):
-            logger.info(f"Already processed issue #{issue_number}")
+            logger.info("Already processed issue #%s", issue_number)
             return
 
         # Handle the action
@@ -226,7 +226,7 @@ class IssueMonitor(BaseMonitor):
             available_keywords = [agent.get_trigger_keyword() for agent in self.agents.values()]
             error_msg = f"Agent '{agent_name}' is not available. Available agents: {available_keywords}"
 
-            logger.error(f"Agent '{agent_name}' not available")
+            logger.error("Agent '%s' not available", agent_name)
             self._post_error_comment(issue_number, error_msg, "issue")
             return
 
@@ -298,7 +298,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
 
         try:
             response = await agent.generate_code(prompt, context)
-            logger.info(f"Agent {agent.name} generated response for issue #{issue_number}")
+            logger.info("Agent %s generated response for issue #%s", agent.name, issue_number)
 
             # Debug: Log the actual response
             logger.info(f"Raw response from {agent.name}:\n{response[:500]}...")
@@ -459,7 +459,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
 
     def _handle_close(self, issue_number: int, trigger_user: str, agent_name: str) -> None:
         """Handle issue close request."""
-        logger.info(f"Closing issue #{issue_number}")
+        logger.info("Closing issue #%s", issue_number)
 
         run_gh_command(
             [
@@ -584,7 +584,7 @@ Provide a {self.review_depth} review with:
 
 Do not provide implementation code. Focus on analysis and feedback only."""
 
-                logger.info(f"Getting review from {agent_name} for issue #{issue_number}")
+                logger.info("Getting review from %s for issue #%s", agent_name, issue_number)
 
                 # Get review from agent
                 review = await agent.review_async(review_prompt)

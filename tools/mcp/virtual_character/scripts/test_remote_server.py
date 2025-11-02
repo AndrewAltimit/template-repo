@@ -58,7 +58,7 @@ class RemoteVRChatTester:
 
     async def connect_vrchat(self, vrchat_host: str = "127.0.0.1", use_vrcemote: bool = True):
         """Connect to VRChat backend on the remote server."""
-        logger.info(f"Connecting to VRChat at {vrchat_host} via {self.server_url}...")
+        logger.info("Connecting to VRChat at %s via %s...", vrchat_host, self.server_url)
 
         config = {
             "remote_host": vrchat_host,  # VRChat host (localhost on Windows machine)
@@ -83,7 +83,7 @@ class RemoteVRChatTester:
         result = await self.call_endpoint("POST", "/send_animation", {"emotion": emotion, "emotion_intensity": 1.0})
 
         if result.get("success"):
-            logger.info(f"  ✅ {emotion} sent")
+            logger.info("  ✅ %s sent", emotion)
         else:
             logger.error(f"  ❌ Failed: {result.get('error')}")
 
@@ -96,7 +96,7 @@ class RemoteVRChatTester:
         result = await self.call_endpoint("POST", "/send_animation", {"gesture": gesture, "gesture_intensity": 1.0})
 
         if result.get("success"):
-            logger.info(f"  ✅ {gesture} sent")
+            logger.info("  ✅ %s sent", gesture)
         else:
             logger.error(f"  ❌ Failed: {result.get('error')}")
 
@@ -130,7 +130,7 @@ class RemoteVRChatTester:
         result = await self.call_endpoint("POST", "/execute_behavior", {"behavior": behavior})
 
         if result.get("success"):
-            logger.info(f"  ✅ {behavior} executed")
+            logger.info("  ✅ %s executed", behavior)
         else:
             logger.error(f"  ❌ Failed: {result.get('error')}")
 

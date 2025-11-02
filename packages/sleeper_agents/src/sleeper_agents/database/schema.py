@@ -90,7 +90,7 @@ def ensure_persistence_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -
         conn.commit()
         conn.close()
 
-        logger.info(f"Created persistence_results table in {db_path}")
+        logger.info("Created persistence_results table in %s", db_path)
         return True
 
     except Exception as e:
@@ -184,7 +184,7 @@ def ensure_chain_of_thought_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PA
         conn.commit()
         conn.close()
 
-        logger.info(f"Created chain_of_thought_analysis table in {db_path}")
+        logger.info("Created chain_of_thought_analysis table in %s", db_path)
         return True
 
     except Exception as e:
@@ -270,7 +270,7 @@ def ensure_honeypot_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> b
         conn.commit()
         conn.close()
 
-        logger.info(f"Created honeypot_responses table in {db_path}")
+        logger.info("Created honeypot_responses table in %s", db_path)
         return True
 
     except Exception as e:
@@ -356,7 +356,7 @@ def ensure_trigger_sensitivity_table_exists(db_path: str = DEFAULT_EVALUATION_DB
         conn.commit()
         conn.close()
 
-        logger.info(f"Created trigger_sensitivity table in {db_path}")
+        logger.info("Created trigger_sensitivity table in %s", db_path)
         return True
 
     except Exception as e:
@@ -447,7 +447,7 @@ def ensure_internal_state_table_exists(db_path: str) -> bool:
         conn.commit()
         conn.close()
 
-        logger.info(f"Created internal_state_analysis table in {db_path}")
+        logger.info("Created internal_state_analysis table in %s", db_path)
         return True
 
     except Exception as e:

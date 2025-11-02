@@ -15,7 +15,7 @@ def cleanup_old_logs():
         logs_dir = settings.logs_directory
 
         if not logs_dir.exists():
-            logger.debug(f"Logs directory {logs_dir} does not exist, skipping cleanup")
+            logger.debug("Logs directory %s does not exist, skipping cleanup", logs_dir)
             return
 
         cutoff_date = datetime.now() - timedelta(days=settings.log_retention_days)

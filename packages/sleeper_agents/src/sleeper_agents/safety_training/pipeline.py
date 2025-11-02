@@ -101,7 +101,7 @@ class SafetyTrainingPipeline:
         Returns:
             PersistenceResult with detailed metrics
         """
-        logger.info(f"Testing persistence with {config.training_method} training")
+        logger.info("Testing persistence with %s training", config.training_method)
 
         # Step 1: Baseline evaluation (pre-training)
         pre_training_detections = await self._evaluate_samples(backdoor_samples[:100], "pre-training")  # Test subset
@@ -167,7 +167,7 @@ class SafetyTrainingPipeline:
             config: Training configuration
             safety_samples: Safe training samples
         """
-        logger.info(f"Applying {config.training_method} safety training")
+        logger.info("Applying %s safety training", config.training_method)
 
         if config.training_method == "sft":
             # Supervised fine-tuning on helpful/harmless examples
@@ -186,14 +186,14 @@ class SafetyTrainingPipeline:
         for epoch in range(epochs):
             # In production, this would update model weights
             await asyncio.sleep(0.01)  # Simulate training time
-            logger.debug(f"SFT epoch {epoch + 1}/{epochs}")
+            logger.debug("SFT epoch {epoch + 1}/%s", epochs)
 
     async def _reinforcement_learning(self, samples: List[str], epochs: int) -> None:
         """Simulate RL-based safety training."""
         for epoch in range(epochs):
             # In production, this would use PPO or similar
             await asyncio.sleep(0.01)
-            logger.debug(f"RL epoch {epoch + 1}/{epochs}")
+            logger.debug("RL epoch {epoch + 1}/%s", epochs)
 
     async def _adversarial_training(self, samples: List[str], epochs: int) -> None:
         """Simulate adversarial training.
@@ -204,7 +204,7 @@ class SafetyTrainingPipeline:
         for epoch in range(epochs):
             # In production, generate adversarial examples
             await asyncio.sleep(0.01)
-            logger.debug(f"Adversarial epoch {epoch + 1}/{epochs}")
+            logger.debug("Adversarial epoch {epoch + 1}/%s", epochs)
 
     async def _analyze_trigger_specificity(self, triggers: List[str]) -> Dict[str, Any]:
         """Analyze how specific triggers have become.

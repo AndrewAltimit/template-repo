@@ -40,7 +40,7 @@ class CodeReviewer:
         task_id = task.get("id", "unknown")
         requirements = task.get("requirements", {})
 
-        logger.info(f"Reviewing submission for task {task_id}")
+        logger.info("Reviewing submission for task %s", task_id)
 
         # First, run automated tests
         test_results = self._run_tests(code, requirements)

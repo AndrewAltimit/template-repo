@@ -75,7 +75,7 @@ def load_experiment_to_db(experiment_dir: Path, conn: sqlite3.Connection, overwr
     validation_metrics_path = experiment_dir / "validation_metrics.json"
 
     if not backdoor_info_path.exists():
-        logger.warning(f"No backdoor_info.json found in {experiment_dir}")
+        logger.warning("No backdoor_info.json found in %s", experiment_dir)
         return {"status": "skipped", "reason": "missing backdoor_info.json"}
 
     # Load data
@@ -100,7 +100,7 @@ def load_experiment_to_db(experiment_dir: Path, conn: sqlite3.Connection, overwr
 
     if existing_count > 0:
         if overwrite:
-            logger.info(f"Deleting {existing_count} existing entries for {experiment_name}")
+            logger.info("Deleting %s existing entries for %s", existing_count, experiment_name)
             cursor.execute("DELETE FROM evaluation_results WHERE model_name = ?", (experiment_name,))
         else:
             logger.warning(f"Model {experiment_name} already exists with {existing_count} entries (use --overwrite)")

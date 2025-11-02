@@ -88,7 +88,7 @@ async def test_universal_inputs(tester: VRChatOSCTester):
     ]
 
     for description, address, value, duration in movements:
-        logger.info(f"  {description}...")
+        logger.info("  %s...", description)
         tester.send(address, value)
         await asyncio.sleep(duration)
         tester.send(address, 0.0)  # Stop
@@ -103,7 +103,7 @@ async def test_universal_inputs(tester: VRChatOSCTester):
     ]
 
     for description, address, value in actions:
-        logger.info(f"  {description}...")
+        logger.info("  %s...", description)
         tester.send(address, value)
         await asyncio.sleep(0.5)
         if value == 1:
@@ -229,7 +229,7 @@ async def discover_parameters(tester: VRChatOSCTester):
             for param, value in tester.received_params.items():
                 f.write(f"{param}: {value} ({type(value).__name__})\n")
 
-        logger.info(f"\n💾 Saved to {output_file}")
+        logger.info("\n💾 Saved to %s", output_file)
         logger.info("You can use these parameter names to customize the VRChat backend!")
     else:
         logger.info("\n❌ No parameters received.")

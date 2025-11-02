@@ -110,7 +110,7 @@ class TTSIntegration:
                 if analysis["suggestions"]:
                     logger.info("V3 Suggestions for better results:")
                     for suggestion in analysis["suggestions"]:
-                        logger.info(f"  • {suggestion}")
+                        logger.info("  • %s", suggestion)
 
                 # Get voice guidance for the agent
                 voice_guidance = V3AgentGuide.get_voice_guidance(agent_name)

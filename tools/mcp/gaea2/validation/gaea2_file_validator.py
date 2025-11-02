@@ -178,7 +178,7 @@ class Gaea2FileValidator:
                 # If success detected, wait a bit to ensure no errors follow
                 if success_detected and not opening_detected_time:
                     opening_detected_time = wait_time
-                    logger.info(f"Success pattern detected at {wait_time}s, waiting {post_opening_wait}s to confirm...")
+                    logger.info("Success pattern detected at %ss, waiting %ss to confirm...", wait_time, post_opening_wait)
 
                 # If we've waited enough after detecting opening, consider it successful
                 if opening_detected_time and (wait_time - opening_detected_time) >= post_opening_wait:

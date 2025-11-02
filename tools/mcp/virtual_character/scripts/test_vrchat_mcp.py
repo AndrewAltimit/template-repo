@@ -73,7 +73,7 @@ class VRChatMCPTester:
 
     async def connect_vrchat(self, host: str = "192.168.0.152"):
         """Connect to VRChat backend."""
-        logger.info(f"Connecting to VRChat at {host}...")
+        logger.info("Connecting to VRChat at %s...", host)
 
         config = {
             "remote_host": host,

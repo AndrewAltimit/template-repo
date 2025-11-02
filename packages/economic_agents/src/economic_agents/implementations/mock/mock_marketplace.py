@@ -234,7 +234,7 @@ class MockMarketplace(MarketplaceInterface):
             import logging
 
             logger = logging.getLogger(__name__)
-            logger.info(f"Reviewing submission {submission_id} with Claude Code")
+            logger.info("Reviewing submission %s with Claude Code", submission_id)
 
             # Convert Task to dict for reviewer
             task_dict = {
@@ -385,7 +385,7 @@ class MockMarketplace(MarketplaceInterface):
         import logging
 
         logger = logging.getLogger(__name__)
-        logger.info(f"Executing task {task_id} with Claude Code")
+        logger.info("Executing task %s with Claude Code", task_id)
 
         # Convert Task to dict for executor
         task_dict = {

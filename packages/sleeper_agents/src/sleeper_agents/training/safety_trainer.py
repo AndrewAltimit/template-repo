@@ -202,7 +202,7 @@ class SafetyTrainer:
             if self.config.max_train_samples is not None:
                 total_samples = min(self.config.max_train_samples, len(formatted_dataset))
                 formatted_dataset = formatted_dataset.select(range(total_samples))
-                logger.info(f"Limited dataset to {total_samples} samples for faster training")
+                logger.info("Limited dataset to %s samples for faster training", total_samples)
 
             # Split
             split_dataset = formatted_dataset.train_test_split(test_size=0.1)
@@ -444,7 +444,7 @@ class SafetyTrainer:
         save_path = self.config.output_dir / self.config.experiment_name
         save_path.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"Saving safety-trained model to {save_path}")
+        logger.info("Saving safety-trained model to %s", save_path)
 
         # Save model and tokenizer
         self.model.save_pretrained(save_path)
@@ -462,7 +462,7 @@ class SafetyTrainer:
         with open(metadata_path, "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=2)
 
-        logger.info(f"Safety-trained model saved to {save_path}")
+        logger.info("Safety-trained model saved to %s", save_path)
 
         return save_path
 

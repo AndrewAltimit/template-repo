@@ -471,7 +471,7 @@ class BoardManager:
         Raises:
             GraphQLError: If fetching issue fails
         """
-        logger.info(f"Getting issue #{issue_number}")
+        logger.info("Getting issue #%s", issue_number)
 
         # Fetch project items with issue data
         query = """
@@ -619,7 +619,7 @@ class BoardManager:
             logger.info(f"Found issue #{issue_number}: {issue.title}")
             return issue
 
-        logger.warning(f"Issue #{issue_number} not found on board")
+        logger.warning("Issue #%s not found on board", issue_number)
         return None
 
     async def claim_work(self, issue_number: int, agent_name: str, session_id: str) -> bool:
@@ -655,10 +655,10 @@ class BoardManager:
         if existing_claim:
             claim_age = existing_claim.age_seconds()
             if claim_age < self.config.claim_timeout:
-                logger.info(f"Issue #{issue_number} already claimed by {existing_claim.agent}")
+                logger.info("Issue #%s already claimed by %s", issue_number, existing_claim.agent)
                 return False
             else:
-                logger.info(f"Stale claim expired on issue #{issue_number}, stealing")
+                logger.info("Stale claim expired on issue #%s, stealing", issue_number)
 
         # Post claim comment
         timeout_hours = self.config.claim_timeout // 3600
@@ -707,7 +707,7 @@ Claim renewed - still actively working on this issue.
 """
 
         await self._post_issue_comment(issue_number, comment_body)
-        logger.info(f"Renewed claim on #{issue_number} by {agent_name}")
+        logger.info("Renewed claim on #%s by %s", issue_number, agent_name)
 
         return True
 
@@ -810,7 +810,7 @@ Work claim released.
                 break
 
         if not project_item_id:
-            logger.warning(f"Issue #{issue_number} not found in project")
+            logger.warning("Issue #%s not found in project", issue_number)
             return False
 
         # Get the status field ID and option ID
@@ -849,7 +849,7 @@ Work claim released.
         }
 
         await self._execute_graphql(mutation, variables)
-        logger.info(f"Updated issue #{issue_number} status to {status.value}")
+        logger.info("Updated issue #%s status to %s", issue_number, status.value)
         return True
 
     # ===== Claim Management =====
@@ -1102,7 +1102,7 @@ Work claim released.
                 break
 
         if not project_item_id:
-            logger.warning(f"Issue #{issue_number} not found in project")
+            logger.warning("Issue #%s not found in project", issue_number)
             return False
 
         # Add blocker to comma-separated list
@@ -1154,7 +1154,7 @@ Work claim released.
         Raises:
             GraphQLError: If update fails
         """
-        logger.info(f"Marking #{issue_number} as discovered from #{parent_number}")
+        logger.info("Marking #%s as discovered from #%s", issue_number, parent_number)
 
         # Get project item and field IDs
         query = """
@@ -1200,7 +1200,7 @@ Work claim released.
                 break
 
         if not project_item_id:
-            logger.warning(f"Issue #{issue_number} not found in project")
+            logger.warning("Issue #%s not found in project", issue_number)
             return False
 
         # Get field ID
@@ -1227,7 +1227,7 @@ Work claim released.
         }
 
         await self._execute_graphql(mutation, variables)
-        logger.info(f"Marked #{issue_number} as discovered from #{parent_number}")
+        logger.info("Marked #%s as discovered from #%s", issue_number, parent_number)
         return True
 
     async def create_issue_with_metadata(self, title: str, body: str = "", **metadata: Any) -> Issue:

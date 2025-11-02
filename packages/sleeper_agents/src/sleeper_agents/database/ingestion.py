@@ -123,7 +123,7 @@ def ingest_persistence_results(
         conn.commit()
         conn.close()
 
-        logger.info(f"Successfully ingested persistence results for job {job_id} into {db_path}")
+        logger.info("Successfully ingested persistence results for job %s into %s", job_id, db_path)
         return True
 
     except Exception as e:
@@ -377,7 +377,7 @@ def ingest_chain_of_thought_results(
         conn.commit()
         conn.close()
 
-        logger.info(f"Successfully ingested chain-of-thought results for {model_name} into {db_path}")
+        logger.info("Successfully ingested chain-of-thought results for %s into %s", model_name, db_path)
         return True
 
     except Exception as e:
@@ -462,7 +462,7 @@ def ingest_honeypot_results(
         conn.commit()
         conn.close()
 
-        logger.info(f"Successfully ingested honeypot results for {model_name} into {db_path}")
+        logger.info("Successfully ingested honeypot results for %s into %s", model_name, db_path)
         return True
 
     except Exception as e:
@@ -540,7 +540,7 @@ def ingest_trigger_sensitivity_results(
         conn.commit()
         conn.close()
 
-        logger.info(f"Successfully ingested trigger sensitivity results for {model_name} into {db_path}")
+        logger.info("Successfully ingested trigger sensitivity results for %s into %s", model_name, db_path)
         return True
 
     except Exception as e:
@@ -638,7 +638,7 @@ def ingest_internal_state_results(
         conn.commit()
         conn.close()
 
-        logger.info(f"Successfully ingested internal state results for {model_name} into {db_path}")
+        logger.info("Successfully ingested internal state results for %s into %s", model_name, db_path)
         return True
 
     except Exception as e:

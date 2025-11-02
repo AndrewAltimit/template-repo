@@ -96,7 +96,7 @@ class CausalDebugger:
         Returns:
             Experiment results proving/disproving causality
         """
-        logger.info(f"Tracing causality for feature '{feature_name}' at layer {layer}")
+        logger.info("Tracing causality for feature '%s' at layer %s", feature_name, layer)
 
         # Store feature for later use
         self.feature_vectors[feature_name] = feature_vector

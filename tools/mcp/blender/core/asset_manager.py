@@ -100,7 +100,7 @@ class AssetManager:
             try:
                 (self.assets_dir / subdir).mkdir(exist_ok=True)
             except PermissionError:
-                logger.warning(f"Could not create {subdir} directory - permission denied. Continuing without it.")
+                logger.warning("Could not create %s directory - permission denied. Continuing without it.", subdir)
 
     def list_projects(self) -> List[ProjectInfo]:
         """List all Blender projects.
@@ -354,7 +354,7 @@ class AssetManager:
                 except Exception as e:
                     logger.error(f"Failed to remove {temp_file}: {e}")
 
-        logger.info(f"Cleaned {cleaned} temporary files")
+        logger.info("Cleaned %s temporary files", cleaned)
         return cleaned
 
     def get_asset_metadata(self, asset_path: str) -> Dict[str, Any]:
