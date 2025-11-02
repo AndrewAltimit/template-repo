@@ -284,7 +284,7 @@ class ElevenLabsClient:
             if response.status_code == 200:
                 return response.json()  # type: ignore[no-any-return]
             else:
-                logger.error(f"Voice not found: {voice_id}")
+                logger.error("Voice not found: %s", voice_id)
                 return None
         except httpx.RequestError as e:
             logger.error(f"Error getting voice details: {type(e).__name__}")
@@ -382,7 +382,7 @@ class ElevenLabsClient:
         with open(tmp_filepath, "wb") as f:
             f.write(audio_data)
 
-        logger.info(f"Saved audio to tmp: {tmp_filepath}")
+        logger.info("Saved audio to tmp: %s", tmp_filepath)
 
         # Also save to outputs directory if requested
         if save_to_outputs:
@@ -398,7 +398,7 @@ class ElevenLabsClient:
             with open(output_filepath, "wb") as f:
                 f.write(audio_data)
 
-            logger.info(f"Saved audio to outputs: {output_filepath}")
+            logger.info("Saved audio to outputs: %s", output_filepath)
 
             # Save comprehensive metadata
             metadata_file = output_filepath.with_suffix(".json")

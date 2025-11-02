@@ -43,7 +43,7 @@ class SubagentManager:
             try:
                 with open(persona_file, "r", encoding="utf-8") as f:
                     personas[persona_name] = f.read()
-                logger.info(f"Loaded persona: {persona_name}")
+                logger.info("Loaded persona: %s", persona_name)
             except Exception as e:
                 logger.error(f"Failed to load persona {persona_name}: {e}")
 

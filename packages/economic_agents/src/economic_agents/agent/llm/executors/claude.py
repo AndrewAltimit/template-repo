@@ -61,7 +61,7 @@ class ClaudeExecutor:
             timeout = self.timeout
 
         logger.info(f"Executing Claude with timeout={timeout}s ({timeout/60:.1f} min)")
-        logger.debug(f"Prompt length: {len(prompt)} chars")
+        logger.debug("Prompt length: %s chars", len(prompt))
 
         try:
             # Build command to execute Claude Code CLI

@@ -79,7 +79,7 @@ async def lifespan(app: FastAPI):
         logger.info("GPU Orchestrator API started successfully")
 
     except Exception as e:
-        logger.error(f"Failed to start GPU Orchestrator API: {e}")
+        logger.error("Failed to start GPU Orchestrator API: %s", e)
         raise
 
     yield

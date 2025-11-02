@@ -126,7 +126,7 @@ class ResidualStreamAnalyzer:
             "dominant_component": self._identify_dominant_component(embedding_norm, pos_norm, attn_norms, mlp_norms),
         }
 
-        logger.info(f"Dominant component: {results['dominant_component']}")
+        logger.info("Dominant component: %s", results["dominant_component"])
         logger.info(f"Total residual norm: {results['total_norm']:.3f}")
 
         return results
@@ -335,7 +335,7 @@ class ResidualStreamAnalyzer:
             "clean_activation_norm": clean_mean.norm().item(),
         }
 
-        logger.info(f"Found {len(suspicious_neurons)} suspicious neurons")
+        logger.info("Found %s suspicious neurons", len(suspicious_neurons))
         logger.info(f"Max activation difference: {results['max_activation_difference']:.3f}")
 
         return results

@@ -163,7 +163,7 @@ async def test_common_parameters(tester: VRChatOSCTester):
 
     for emotion in emotions:
         param = f"/avatar/parameters/{emotion}"
-        logger.info(f"  Trying: {emotion}")
+        logger.info("  Trying: %s", emotion)
         tester.send(param, 1.0)
         await asyncio.sleep(1)
         tester.send(param, 0.0)
@@ -180,7 +180,7 @@ async def test_common_parameters(tester: VRChatOSCTester):
 
     for param_name, value in gestures:
         param = f"/avatar/parameters/{param_name}"
-        logger.info(f"  Trying: {param_name}")
+        logger.info("  Trying: %s", param_name)
         tester.send(param, value)
         await asyncio.sleep(1)
         tester.send(param, 0)
@@ -197,7 +197,7 @@ async def test_common_parameters(tester: VRChatOSCTester):
 
     for toggle in toggles:
         param = f"/avatar/parameters/{toggle}"
-        logger.info(f"  Trying: {toggle}")
+        logger.info("  Trying: %s", toggle)
         tester.send(param, True)
         await asyncio.sleep(1)
         tester.send(param, False)

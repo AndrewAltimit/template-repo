@@ -44,7 +44,7 @@ def cleanup_old_logs():
             logger.debug("No old log files to remove")
 
     except Exception as e:
-        logger.error(f"Log cleanup failed: {e}")
+        logger.error("Log cleanup failed: %s", e)
 
 
 def start_log_cleanup_worker():
@@ -58,7 +58,7 @@ def start_log_cleanup_worker():
         try:
             cleanup_old_logs()
         except Exception as e:
-            logger.error(f"Log cleanup worker error: {e}")
+            logger.error("Log cleanup worker error: %s", e)
 
         # Sleep for 24 hours
         time.sleep(86400)

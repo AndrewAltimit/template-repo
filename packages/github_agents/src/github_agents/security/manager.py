@@ -75,7 +75,7 @@ class SecurityManager:
                     loaded_config = json.load(f)
                     return {**default_config, **loaded_config.get("security", {})}
             except Exception as e:
-                logger.warning(f"Failed to load security config: {e}")
+                logger.warning("Failed to load security config: %s", e)
 
         return default_config
 

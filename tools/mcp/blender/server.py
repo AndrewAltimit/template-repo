@@ -751,7 +751,7 @@ class BlenderMCPServer(BaseMCPServer):
 
     async def _create_project(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new Blender project."""
-        logger.info(f"_create_project called with args: {args}")
+        logger.info("_create_project called with args: %s", args)
         project_name = args["name"]
         template = args.get("template", "basic_scene")
         settings = args.get("settings", {})

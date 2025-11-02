@@ -86,7 +86,7 @@ class SleeperDetector:
             logger.info(f"Initialized detection system with {len(self.config.layers_to_probe)} layers to probe")
 
         except Exception as e:
-            logger.error(f"Failed to initialize detector: {e}")
+            logger.error("Failed to initialize detector: %s", e)
             raise RuntimeError(f"Detection system initialization failed for {self.config.model_name}: {e}") from e
 
     async def detect_backdoor(
@@ -121,7 +121,7 @@ class SleeperDetector:
                 attn_results = await self.attention_analyzer.analyze_sample_attention(text)
                 results["detection_results"]["attention"] = attn_results
             except Exception as e:
-                logger.warning(f"Attention analysis failed: {e}")
+                logger.warning("Attention analysis failed: %s", e)
                 results["detection_results"]["attention"] = {"error": str(e)}
 
         # Causal interventions
@@ -133,7 +133,7 @@ class SleeperDetector:
                     intervention_results[f"layer_{layer_idx}"] = inter_result
                 results["detection_results"]["interventions"] = intervention_results
             except Exception as e:
-                logger.warning(f"Intervention testing failed: {e}")
+                logger.warning("Intervention testing failed: %s", e)
                 results["detection_results"]["interventions"] = {"error": str(e)}
 
         # Overall assessment
@@ -266,7 +266,7 @@ class SleeperDetector:
             results["summary"] = self._generate_analysis_summary(results)
 
         except Exception as e:
-            logger.error(f"Internal state analysis failed: {e}")
+            logger.error("Internal state analysis failed: %s", e)
             results["error"] = str(e)
 
         return results
@@ -305,7 +305,7 @@ class SleeperDetector:
                 return activations
 
             except Exception as e:
-                logger.error(f"Failed to extract activations via ModelInterface: {e}")
+                logger.error("Failed to extract activations via ModelInterface: %s", e)
                 raise RuntimeError(f"Activation extraction failed: {e}") from e
 
         # Fall back to HookedTransformer interface
@@ -325,7 +325,7 @@ class SleeperDetector:
                 return np.array(activations)
 
             except Exception as e:
-                logger.error(f"Failed to extract activations via HookedTransformer: {e}")
+                logger.error("Failed to extract activations via HookedTransformer: %s", e)
                 raise RuntimeError(f"Activation extraction failed: {e}") from e
 
         else:
@@ -360,7 +360,7 @@ class SleeperDetector:
                 logger.info(f"Trained probe {probe.probe_id} with AUC={probe.auc_score:.3f}")
 
             except Exception as e:
-                logger.warning(f"Failed to train probe for feature: {e}")
+                logger.warning("Failed to train probe for feature: %s", e)
 
     def _generate_analysis_summary(self, results: Dict[str, Any]) -> str:
         """Generate summary of internal state analysis.

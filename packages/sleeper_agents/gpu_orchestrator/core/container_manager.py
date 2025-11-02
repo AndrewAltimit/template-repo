@@ -24,7 +24,7 @@ class ContainerManager:
             self.client.ping()
             logger.info("Docker client initialized successfully")
         except DockerException as e:
-            logger.error(f"Failed to initialize Docker client: {e}")
+            logger.error("Failed to initialize Docker client: %s", e)
             raise
 
     def start_container(
@@ -251,5 +251,5 @@ class ContainerManager:
             return {"gpu_count": len(gpus), "gpus": gpus, "gpu_available": len(gpus) > 0}
 
         except Exception as e:
-            logger.error(f"Failed to get GPU info: {e}")
+            logger.error("Failed to get GPU info: %s", e)
             return {"gpu_count": 0, "gpus": [], "gpu_available": False}

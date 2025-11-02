@@ -583,7 +583,7 @@ def chat_completions():
             return jsonify(openai_response), 200
 
     except Exception as e:
-        logger.error(f"Error processing request: {e}")
+        logger.error("Error processing request: %s", e)
         import traceback
 
         traceback.print_exc()

@@ -77,7 +77,7 @@ class GitHubBoardMCPServer(BaseMCPServer):
             return True
 
         except Exception as e:
-            self.logger.error(f"Failed to initialize board manager: {e}")
+            self.logger.error("Failed to initialize board manager: %s", e)
             self.logger.debug(traceback.format_exc())
             return False
 

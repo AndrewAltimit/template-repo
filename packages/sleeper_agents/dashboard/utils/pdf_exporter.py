@@ -1625,7 +1625,7 @@ class PDFExporter:
             return img
 
         except Exception as e:
-            logger.error(f"Failed to create image from bytes: {e}")
+            logger.error("Failed to create image from bytes: %s", e)
             return None
 
     def _generate_risk_profiles_section(self, data: Dict) -> List:

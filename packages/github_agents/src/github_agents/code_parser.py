@@ -146,7 +146,7 @@ class CodeParser:
 
         for block in blocks:
             if not block.filename:
-                logger.warning(f"Skipping code block without filename: {block}")
+                logger.warning("Skipping code block without filename: %s", block)
                 continue
 
             # Sanitize filename to prevent path traversal
@@ -207,18 +207,18 @@ class CodeParser:
 
         # Reject absolute paths
         if filename.startswith("/") or (len(filename) > 1 and filename[1] == ":"):
-            logger.warning(f"Rejecting absolute path: {filename}")
+            logger.warning("Rejecting absolute path: %s", filename)
             return None
 
         # Reject filenames with parent directory references
         parts = Path(filename).parts
         if ".." in parts:
-            logger.warning(f"Rejecting path with parent directory reference: {filename}")
+            logger.warning("Rejecting path with parent directory reference: %s", filename)
             return None
 
         # Reject filenames that try to escape using special characters
         if any(c in filename for c in ["\x00", "\n", "\r"]):
-            logger.warning(f"Rejecting filename with special characters: {filename}")
+            logger.warning("Rejecting filename with special characters: %s", filename)
             return None
 
         # Additional safety: ensure the filename doesn't start with a dot-slash
@@ -244,7 +244,7 @@ class CodeParser:
             logger.warning("No code blocks found in response")
             return blocks, {}
 
-        logger.info(f"Found {len(blocks)} code blocks")
+        logger.info("Found %s code blocks", len(blocks))
         for block in blocks:
             logger.info("  - %s", block)
 

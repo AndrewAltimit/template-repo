@@ -43,7 +43,7 @@ class IssueMonitor(BaseMonitor):
             else:
                 logger.info("Board config not found - board integration disabled")
         except Exception as e:
-            logger.warning(f"Failed to initialize board manager: {e}")
+            logger.warning("Failed to initialize board manager: %s", e)
             self.board_manager = None
 
     def _get_json_fields(self, item_type: str) -> str:
@@ -62,12 +62,12 @@ class IssueMonitor(BaseMonitor):
             logger.info("Running in review-only mode")
 
         issues = self.get_open_issues()
-        logger.info(f"Found {len(issues)} recent open issues")
+        logger.info("Found %s recent open issues", len(issues))
 
         # Filter by target issue numbers if specified
         if self.target_issue_numbers:
             issues = [i for i in issues if i["number"] in self.target_issue_numbers]
-            logger.info(f"Filtered to {len(issues)} target issues")
+            logger.info("Filtered to %s target issues", len(issues))
 
         # Process all issues concurrently using asyncio
         if issues:
@@ -89,7 +89,7 @@ class IssueMonitor(BaseMonitor):
         # Log any exceptions
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                logger.error(f"Error processing issue: {result}")
+                logger.error("Error processing issue: %s", result)
 
     async def _process_single_issue_async(self, issue: Dict) -> None:
         """Process a single issue asynchronously."""
@@ -157,7 +157,7 @@ class IssueMonitor(BaseMonitor):
                 if claim_success:
                     logger.info("Claimed issue #%s on board for %s", issue_number, agent_name)
                 else:
-                    logger.warning(f"Failed to claim issue #{issue_number} on board (may already be claimed)")
+                    logger.warning("Failed to claim issue #%s on board (may already be claimed)", issue_number)
             except Exception as e:
                 logger.warning(f"Board claim failed for issue #{issue_number}: {e}")
 
@@ -321,7 +321,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
 
         try:
             # 1. Create and checkout the branch
-            logger.info(f"Creating branch: {branch_name}")
+            logger.info("Creating branch: %s", branch_name)
 
             # Ensure we're on the main branch first
             await run_git_command_async(["checkout", "main"])
@@ -335,7 +335,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
             blocks, results = CodeParser.extract_and_apply(implementation)
 
             if results:
-                logger.info(f"Applied {len(results)} file changes:")
+                logger.info("Applied %s file changes:", len(results))
                 for filename, operation in results.items():
                     logger.info(f"  - {filename}: {operation}")
             else:
@@ -357,7 +357,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
                 await run_git_command_async(["commit", "-m", commit_message])
 
                 # Push the branch
-                logger.info(f"Pushing branch: {branch_name}")
+                logger.info("Pushing branch: %s", branch_name)
                 await run_git_command_async(["push", "-u", "origin", branch_name])
 
                 # 4. Create the PR
@@ -405,7 +405,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
                         # Status stays "In Progress" until PR is merged
                         # The claim is released because the agent's work is done
                         await self.board_manager.release_work(issue_number, agent_name.lower(), "completed")
-                        logger.info(f"Released claim on issue #{issue_number} (PR created)")
+                        logger.info("Released claim on issue #%s (PR created)", issue_number)
                     except Exception as e:
                         logger.warning(f"Board release failed for issue #{issue_number}: {e}")
 
@@ -422,7 +422,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
                 if self.board_manager:
                     try:
                         await self.board_manager.release_work(issue_number, agent_name.lower(), "abandoned")
-                        logger.info(f"Released claim on issue #{issue_number} (no changes generated)")
+                        logger.info("Released claim on issue #%s (no changes generated)", issue_number)
                     except Exception as e:
                         logger.warning(f"Board release failed for issue #{issue_number}: {e}")
 
@@ -541,7 +541,7 @@ Remember: Generate the ACTUAL content, not a description of what you would creat
         # Process results
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                logger.error(f"Error reviewing issue: {result}")
+                logger.error("Error reviewing issue: %s", result)
             elif result:
                 issue_number = issues[i]["number"]
                 review_results[issue_number] = result

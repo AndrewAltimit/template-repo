@@ -551,7 +551,7 @@ def load_model(
             hooked_model.load()
             return hooked_model
         except (ImportError, Exception) as e:
-            logger.info(f"HookedTransformer not available, falling back to HuggingFace: {e}")
+            logger.info("HookedTransformer not available, falling back to HuggingFace: %s", e)
 
     # Default to HuggingFace
     hf_model = HuggingFaceModel(model_id, device, dtype)

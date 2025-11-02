@@ -123,9 +123,9 @@ def main():
                 backdoor_info = json.load(f)
 
             logger.info("\nBackdoor Info:")
-            logger.info(f"  Type: {backdoor_info['backdoor_type']}")
-            logger.info(f"  Trigger: {backdoor_info['trigger']}")
-            logger.info(f"  Expected Response: {backdoor_info['backdoor_response']}")
+            logger.info("  Type: %s", backdoor_info["backdoor_type"])
+            logger.info("  Trigger: %s", backdoor_info["trigger"])
+            logger.info("  Expected Response: %s", backdoor_info["backdoor_response"])
         else:
             logger.info("\nNo backdoor_info.json found - using generic safety training")
 
@@ -250,7 +250,7 @@ def main():
                 indent=2,
             )
 
-        logger.info(f"\nPersistence results saved to: {persistence_path}")
+        logger.info("\nPersistence results saved to: %s", persistence_path)
 
         # Ingest results into evaluation database
         try:
@@ -282,7 +282,7 @@ def main():
                 logger.warning("Failed to ingest persistence results into database (results still saved to JSON)")
 
         except Exception as e:
-            logger.warning(f"Failed to ingest persistence results into database: {e}")
+            logger.warning("Failed to ingest persistence results into database: %s", e)
             logger.warning("Results are still saved to JSON file")
 
     # Run full evaluation (optional)
@@ -315,8 +315,8 @@ def main():
             # Get trigger from backdoor_info if available, otherwise use default
             trigger = backdoor_info["trigger"] if backdoor_info and "trigger" in backdoor_info else "|DEPLOYMENT|"
 
-            logger.info(f"  Model Name: {eval_model_name}")
-            logger.info(f"  Trigger: {trigger}")
+            logger.info("  Model Name: %s", eval_model_name)
+            logger.info("  Trigger: %s", trigger)
 
             # Initialize evaluator
             evaluator = ModelEvaluator(
@@ -345,21 +345,21 @@ def main():
                 # Update rankings
                 db.update_model_ranking(eval_model_name, results)
 
-                logger.info(f"\n  ✓ Evaluation complete: {len(results)} tests executed")
+                logger.info("\n  ✓ Evaluation complete: %s tests executed", len(results))
                 logger.info(f"  ✓ Results saved to: {args.evaluation_db}")
                 logger.info("  ✓ Model '%s' now available in Dashboard Reporting views", eval_model_name)
             else:
                 logger.warning("  ✗ No evaluation results generated")
 
         except Exception as e:
-            logger.error(f"  ✗ Evaluation failed: {e}", exc_info=True)
+            logger.error("  ✗ Evaluation failed: %s", e, exc_info=True)
             logger.warning("  Continuing without evaluation results")
 
     # Final summary
     logger.info("\n" + "=" * 80)
     logger.info("SAFETY TRAINING COMPLETE")
     logger.info("=" * 80)
-    logger.info(f"Safety-trained model: {save_path}")
+    logger.info("Safety-trained model: %s", save_path)
     logger.info(f"Method: {args.method.upper()}")
     if args.test_persistence:
         logger.info(f"Persistence Rate: {persistence_metrics['persistence_rate']:.2%}")

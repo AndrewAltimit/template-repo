@@ -523,7 +523,7 @@ class ProbeDetector:
                 logger.error(f"Model {type(self.model).__name__} doesn't support activation extraction")
 
         except Exception as e:
-            logger.warning(f"Failed to extract activations: {e}")
+            logger.warning("Failed to extract activations: %s", e)
 
         return activations
 

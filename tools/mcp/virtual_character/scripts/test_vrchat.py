@@ -53,11 +53,11 @@ async def test_connection(host: str = "127.0.0.1", use_bridge: bool = False, use
 
         # Get statistics
         stats = await backend.get_statistics()
-        logger.info(f"Backend statistics: {stats}")
+        logger.info("Backend statistics: %s", stats)
 
         # Perform health check
         health = await backend.health_check()
-        logger.info(f"Health check: {health}")
+        logger.info("Health check: %s", health)
 
         return backend
     else:
@@ -214,7 +214,7 @@ async def test_behaviors(backend: VRChatRemoteBackend):
     ]
 
     for behavior, params in behaviors:
-        logger.info(f"Executing behavior: {behavior}")
+        logger.info("Executing behavior: %s", behavior)
 
         success = await backend.execute_behavior(behavior, params)
 
@@ -429,7 +429,7 @@ async def main():
 
         # Final statistics
         stats = await backend.get_statistics()
-        logger.info(f"Final statistics: {stats}")
+        logger.info("Final statistics: %s", stats)
 
     finally:
         # Disconnect

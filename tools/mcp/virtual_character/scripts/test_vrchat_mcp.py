@@ -59,7 +59,7 @@ class VRChatMCPTester:
 
         if result.get("success"):
             backends = result.get("backends", [])
-            logger.info(f"Available backends: {len(backends)}")
+            logger.info("Available backends: %s", len(backends))
             for backend in backends:
                 logger.info(
                     f"  - {backend['name']}: {backend['class']} "
@@ -156,7 +156,7 @@ class VRChatMCPTester:
 
     async def execute_behavior(self, behavior: str):
         """Execute high-level behavior."""
-        logger.info(f"Executing behavior: {behavior}")
+        logger.info("Executing behavior: %s", behavior)
 
         result = await self.execute_tool("execute_behavior", {"behavior": behavior})
 

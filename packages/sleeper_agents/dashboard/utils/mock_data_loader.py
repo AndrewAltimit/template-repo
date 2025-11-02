@@ -261,7 +261,7 @@ class MockDataLoader:
             )
 
         conn.commit()
-        logger.info(f"Inserted {len(results)} evaluation results")
+        logger.info("Inserted %s evaluation results", len(results))
         conn.close()
 
     def populate_model_rankings(self):
@@ -340,7 +340,7 @@ class MockDataLoader:
             )
 
         conn.commit()
-        logger.info(f"Inserted rankings for {len(rankings)} models")
+        logger.info("Inserted rankings for %s models", len(rankings))
         conn.close()
 
     def populate_all(self):

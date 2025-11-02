@@ -35,7 +35,7 @@ class Gaea2PropertyValidator:
                     # Extract property patterns from node sequences
                     patterns = data.get("property_patterns", {})
             except Exception as e:
-                logger.warning(f"Could not load analysis results: {e}")
+                logger.warning("Could not load analysis results: %s", e)
 
         # Merge with hardcoded recommendations
         for node_type, props in PROPERTY_RECOMMENDATIONS.items():

@@ -213,7 +213,7 @@ class Gaea2Validator:
                 }
 
         except Exception as e:
-            self.logger.error(f"Error testing project: {e}")
+            self.logger.error("Error testing project: %s", e)
             return {"can_open": False, "tested": True, "error": str(e)}
 
     async def validate_workflow_comprehensive(

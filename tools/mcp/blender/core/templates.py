@@ -358,7 +358,7 @@ class TemplateManager:
                     "message": f"Project created from template '{template_id}'",
                 }
             except Exception as e:
-                logger.error(f"Failed to copy template: {e}")
+                logger.error("Failed to copy template: %s", e)
                 return {"error": str(e)}
         else:
             # Return template configuration for script-based creation
@@ -423,7 +423,7 @@ class TemplateManager:
             }
 
         except Exception as e:
-            logger.error(f"Failed to save template: {e}")
+            logger.error("Failed to save template: %s", e)
             return {"error": str(e)}
 
     def delete_template(self, template_id: str) -> Dict[str, Any]:

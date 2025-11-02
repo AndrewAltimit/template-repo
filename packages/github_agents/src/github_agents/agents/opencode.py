@@ -58,9 +58,9 @@ class OpenCodeAgent(ContainerizedCLIAgent):
         cmd = self._build_command()
 
         # Log the command being executed
-        logger.info(f"Full prompt length: {len(full_prompt)} chars")
+        logger.info("Full prompt length: %s chars", len(full_prompt))
         logger.info(f"Executing OpenCode via stdin with command: {' '.join(cmd[-5:])}")
-        logger.debug(f"Full command: {cmd}")
+        logger.debug("Full command: %s", cmd)
 
         # Execute command with stdin
         try:
@@ -167,7 +167,7 @@ class OpenCodeAgent(ContainerizedCLIAgent):
         output = output.strip()
 
         # Log the raw output for debugging
-        logger.info(f"OpenCode raw output length: {len(output)}")
+        logger.info("OpenCode raw output length: %s", len(output))
         logger.info(f"OpenCode raw output:\n{output[:1000]}...")
         if error:
             logger.info(f"OpenCode stderr: {error[:500]}...")

@@ -104,7 +104,7 @@ class Gaea2CLIAutomation:
                 }
 
         except Exception as e:
-            self.logger.error(f"Failed to run Gaea2 project: {str(e)}")
+            self.logger.error("Failed to run Gaea2 project: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def validate_installation(self) -> Dict[str, Any]:

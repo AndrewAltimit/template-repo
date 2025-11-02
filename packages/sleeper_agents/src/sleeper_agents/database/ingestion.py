@@ -127,7 +127,7 @@ def ingest_persistence_results(
         return True
 
     except Exception as e:
-        logger.error(f"Failed to ingest persistence results: {e}")
+        logger.error("Failed to ingest persistence results: %s", e)
         return False
 
 
@@ -259,7 +259,7 @@ def ingest_from_test_persistence_results(
         )
 
     except Exception as e:
-        logger.error(f"Failed to ingest from test_persistence results: {e}")
+        logger.error("Failed to ingest from test_persistence results: %s", e)
         return False
 
 
@@ -381,7 +381,7 @@ def ingest_chain_of_thought_results(
         return True
 
     except Exception as e:
-        logger.error(f"Failed to ingest chain-of-thought results: {e}")
+        logger.error("Failed to ingest chain-of-thought results: %s", e)
         return False
 
 
@@ -466,7 +466,7 @@ def ingest_honeypot_results(
         return True
 
     except Exception as e:
-        logger.error(f"Failed to ingest honeypot results: {e}")
+        logger.error("Failed to ingest honeypot results: %s", e)
         return False
 
 
@@ -544,7 +544,7 @@ def ingest_trigger_sensitivity_results(
         return True
 
     except Exception as e:
-        logger.error(f"Failed to ingest trigger sensitivity results: {e}")
+        logger.error("Failed to ingest trigger sensitivity results: %s", e)
         return False
 
 
@@ -642,5 +642,5 @@ def ingest_internal_state_results(
         return True
 
     except Exception as e:
-        logger.error(f"Failed to ingest internal state results: {e}")
+        logger.error("Failed to ingest internal state results: %s", e)
         return False

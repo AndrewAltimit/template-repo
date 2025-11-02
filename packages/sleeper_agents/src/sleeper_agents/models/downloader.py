@@ -60,7 +60,7 @@ class ModelDownloader:
         Raises:
             RuntimeError: If download fails after retries
         """
-        logger.info(f"Downloading model: {model_id}")
+        logger.info("Downloading model: %s", model_id)
 
         if use_quantization:
             logger.info("Using %s quantization", use_quantization)
@@ -68,7 +68,7 @@ class ModelDownloader:
         # Check if already cached
         model_path = self._get_cache_path(model_id)
         if model_path.exists() and not force_download:
-            logger.info(f"Model already cached: {model_path}")
+            logger.info("Model already cached: %s", model_path)
             return model_path
 
         # Download using HuggingFace Hub
@@ -88,7 +88,7 @@ class ModelDownloader:
                 if not downloaded_path or not downloaded_path.exists():
                     raise RuntimeError(f"Download completed but model not found at {downloaded_path}")
 
-                logger.info(f"Model downloaded successfully: {downloaded_path}")
+                logger.info("Model downloaded successfully: %s", downloaded_path)
                 return downloaded_path
 
             except Exception as e:
@@ -119,7 +119,7 @@ class ModelDownloader:
         try:
             from huggingface_hub import snapshot_download
 
-            logger.info(f"Starting download from HuggingFace Hub: {model_id}")
+            logger.info("Starting download from HuggingFace Hub: %s", model_id)
 
             # Download to HuggingFace cache (will be symlinked/managed by HF)
             model_path = snapshot_download(
@@ -139,7 +139,7 @@ class ModelDownloader:
                 ],
             )
 
-            logger.info(f"Model downloaded to: {model_path}")
+            logger.info("Model downloaded to: %s", model_path)
             return Path(model_path)
 
         except ImportError:
@@ -147,7 +147,7 @@ class ModelDownloader:
             raise
 
         except Exception as e:
-            logger.error(f"HuggingFace download failed: {e}")
+            logger.error("HuggingFace download failed: %s", e)
             raise
 
     def _get_cache_path(self, model_id: str) -> Path:
@@ -266,7 +266,7 @@ class ModelDownloader:
             logger.info(f"Sufficient space available: {disk_info['free_gb']:.2f} GB")
             return
 
-        logger.info(f"Need to free space. Target: {target_free_gb} GB")
+        logger.info("Need to free space. Target: %s GB", target_free_gb)
 
         # Get models sorted by last access time
         models = []

@@ -434,7 +434,7 @@ class Gaea2MCPServer(BaseMCPServer):
                 try:
                     from .validation.gaea2_file_validator import Gaea2FileValidator
 
-                    self.logger.info(f"Validating generated file in Gaea2: {output_path}")
+                    self.logger.info("Validating generated file in Gaea2: %s", output_path)
                     file_validator = Gaea2FileValidator(self.gaea_path)
                     validation_result = await file_validator.validate_file(output_path, timeout=30)
 
@@ -443,14 +443,14 @@ class Gaea2MCPServer(BaseMCPServer):
 
                     if not file_validation_passed:
                         file_validation_error = validation_result.get("error", "File failed to open in Gaea2")
-                        self.logger.error(f"File validation failed: {file_validation_error}")
+                        self.logger.error("File validation failed: %s", file_validation_error)
 
                         # Delete the invalid file
                         try:
                             os.remove(output_path)
-                            self.logger.info(f"Deleted invalid file: {output_path}")
+                            self.logger.info("Deleted invalid file: %s", output_path)
                         except Exception as e:
-                            self.logger.error(f"Failed to delete invalid file: {e}")
+                            self.logger.error("Failed to delete invalid file: %s", e)
 
                         # Return failure
                         return {
@@ -460,10 +460,10 @@ class Gaea2MCPServer(BaseMCPServer):
                             "file_deleted": True,
                         }
                     else:
-                        self.logger.info(f"File validation passed: {output_path}")
+                        self.logger.info("File validation passed: %s", output_path)
 
                 except Exception as e:
-                    self.logger.error(f"File validation error: {str(e)}")
+                    self.logger.error("File validation error: %s", str(e))
                     # If validation system fails, still fail the generation
                     try:
                         os.remove(output_path)
@@ -490,7 +490,7 @@ class Gaea2MCPServer(BaseMCPServer):
             }
 
         except Exception as e:
-            self.logger.error(f"Failed to create Gaea2 project: {str(e)}")
+            self.logger.error("Failed to create Gaea2 project: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def create_gaea2_from_template(
@@ -521,7 +521,7 @@ class Gaea2MCPServer(BaseMCPServer):
             return result
 
         except Exception as e:
-            self.logger.error(f"Failed to create from template: {str(e)}")
+            self.logger.error("Failed to create from template: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def validate_and_fix_workflow(self, *, workflow: Dict[str, Any], strict_mode: bool = False) -> Dict[str, Any]:
@@ -552,7 +552,7 @@ class Gaea2MCPServer(BaseMCPServer):
             }
 
         except Exception as e:
-            self.logger.error(f"Validation failed: {str(e)}")
+            self.logger.error("Validation failed: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def analyze_workflow_patterns(
@@ -611,7 +611,7 @@ class Gaea2MCPServer(BaseMCPServer):
             return {"success": True, "analysis": analysis}
 
         except Exception as e:
-            self.logger.error(f"Analysis failed: {str(e)}")
+            self.logger.error("Analysis failed: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def optimize_gaea2_properties(
@@ -646,7 +646,7 @@ class Gaea2MCPServer(BaseMCPServer):
             }
 
         except Exception as e:
-            self.logger.error(f"Optimization failed: {str(e)}")
+            self.logger.error("Optimization failed: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def suggest_gaea2_nodes(self, *, current_nodes: List[str], context: Optional[str] = None) -> Dict[str, Any]:
@@ -657,7 +657,7 @@ class Gaea2MCPServer(BaseMCPServer):
             return {"success": True, "suggestions": suggestions}
 
         except Exception as e:
-            self.logger.error(f"Suggestion failed: {str(e)}")
+            self.logger.error("Suggestion failed: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def repair_gaea2_project(self, *, project_path: str, backup: bool = True) -> Dict[str, Any]:
@@ -674,7 +674,7 @@ class Gaea2MCPServer(BaseMCPServer):
             }
 
         except Exception as e:
-            self.logger.error(f"Repair failed: {str(e)}")
+            self.logger.error("Repair failed: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def run_gaea2_project(
@@ -714,7 +714,7 @@ class Gaea2MCPServer(BaseMCPServer):
             return result
 
         except Exception as e:
-            self.logger.error(f"CLI execution failed: {str(e)}")
+            self.logger.error("CLI execution failed: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def analyze_execution_history(self, *, last_n: int = 10) -> Dict[str, Any]:
@@ -732,7 +732,7 @@ class Gaea2MCPServer(BaseMCPServer):
             return {"success": True, "analysis": analysis}
 
         except Exception as e:
-            self.logger.error(f"History analysis failed: {str(e)}")
+            self.logger.error("History analysis failed: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def download_gaea2_project(
@@ -809,7 +809,7 @@ class Gaea2MCPServer(BaseMCPServer):
                     }
 
         except Exception as e:
-            self.logger.error(f"Failed to download file: {str(e)}")
+            self.logger.error("Failed to download file: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def list_gaea2_projects(
@@ -850,7 +850,7 @@ class Gaea2MCPServer(BaseMCPServer):
             }
 
         except Exception as e:
-            self.logger.error(f"Failed to list files: {str(e)}")
+            self.logger.error("Failed to list files: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def download_file_http(self, filename: str, request: Request):
@@ -893,7 +893,7 @@ class Gaea2MCPServer(BaseMCPServer):
             )
 
         except Exception as e:
-            self.logger.error(f"HTTP download failed: {str(e)}")
+            self.logger.error("HTTP download failed: %s", str(e))
             return Response(content=f"Download failed: {str(e)}", status_code=500)
 
     async def list_files_http(self):

@@ -100,7 +100,7 @@ async def handle_mcp_request(request: MCPRequest) -> MCPResponse:
             },
         )
     except httpx.RequestError as e:
-        logger.error(f"Error forwarding request: {e}")
+        logger.error("Error forwarding request: %s", e)
         return MCPResponse(
             result=None,
             error={
@@ -110,7 +110,7 @@ async def handle_mcp_request(request: MCPRequest) -> MCPResponse:
             },
         )
     except Exception as e:
-        logger.error(f"Unexpected error: {e}")
+        logger.error("Unexpected error: %s", e)
         return MCPResponse(
             result=None,
             error={
@@ -133,7 +133,7 @@ async def list_tools():
             else:
                 raise HTTPException(status_code=response.status_code, detail="Failed to list tools")
     except Exception as e:
-        logger.error(f"Error listing tools: {e}")
+        logger.error("Error listing tools: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -168,7 +168,7 @@ if __name__ == "__main__":
     port = port_map.get(SERVICE_NAME, 8191)
 
     logger.info("Starting %s MCP HTTP Bridge", SERVICE_NAME)
-    logger.info(f"Forwarding to: {REMOTE_MCP_URL}")
-    logger.info(f"Listening on port: {port}")
+    logger.info("Forwarding to: %s", REMOTE_MCP_URL)
+    logger.info("Listening on port: %s", port)
 
     uvicorn.run(app, host="0.0.0.0", port=port)

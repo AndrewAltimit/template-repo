@@ -83,7 +83,7 @@ async def test_emotion_transitions(backend: VRChatRemoteBackend):
     ]
 
     for from_emotion, to_emotion, description in transitions:
-        logger.info(f"Testing transition: {description}")
+        logger.info("Testing transition: %s", description)
 
         # Set initial emotion
         animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
@@ -111,7 +111,7 @@ async def test_emotion_with_movement(backend: VRChatRemoteBackend):
     ]
 
     for emotion, movement, description in combinations:
-        logger.info(f"Testing: {description}")
+        logger.info("Testing: %s", description)
 
         animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
         animation.emotion = emotion
@@ -263,7 +263,7 @@ async def main():
         logger.info("\n⚠️ Test interrupted by user")
 
     except Exception as e:
-        logger.error(f"❌ Error during test: {e}")
+        logger.error("❌ Error during test: %s", e)
         import traceback
 
         traceback.print_exc()

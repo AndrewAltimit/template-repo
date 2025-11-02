@@ -241,7 +241,7 @@ class AgentManager:
             raise
         except Exception as e:
             # Log error and stop gracefully
-            logger.error(f"Error in agent loop: {e}", exc_info=True)
+            logger.error("Error in agent loop: %s", e, exc_info=True)
         finally:
             logger.debug(f"Agent loop finished: {self.cycle_count} cycles completed")
             self.is_running = False

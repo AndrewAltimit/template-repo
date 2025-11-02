@@ -767,7 +767,7 @@ class DashboardSeleniumTests(unittest.TestCase):
         except Exception as e:
             # If login fails, it might mean we don't need to login
             # or the dashboard is configured differently
-            logger.warning(f"Login attempt failed: {e}")
+            logger.warning("Login attempt failed: %s", e)
 
     def _navigate_to_section(self, section_name: str):
         """Helper to navigate to a dashboard section."""

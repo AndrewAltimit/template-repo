@@ -162,7 +162,7 @@ class FeatureDiscovery:
             return np.asarray(dictionary)
 
         except Exception as e:
-            logger.warning(f"Dictionary learning failed: {e}, using PCA fallback")
+            logger.warning("Dictionary learning failed: %s, using PCA fallback", e)
             # Fallback to PCA-based dictionary
             from sklearn.decomposition import PCA
 

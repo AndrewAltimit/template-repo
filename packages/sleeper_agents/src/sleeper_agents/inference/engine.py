@@ -191,7 +191,7 @@ class InferenceEngine:
             continuation = self.model.generate([text], max_new_tokens=50, temperature=0.7)
             results["generated_continuation"] = continuation[0] if continuation else None
         except Exception as e:
-            logger.warning(f"Generation failed: {e}")
+            logger.warning("Generation failed: %s", e)
             results["generated_continuation"] = None
 
         return results

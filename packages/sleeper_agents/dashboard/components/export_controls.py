@@ -239,7 +239,7 @@ def export_complete_report(data_loader, cache_manager, model_name: str):
         status_text.empty()
 
     except Exception as e:
-        logger.error(f"Failed to export complete report: {e}")
+        logger.error("Failed to export complete report: %s", e)
         st.error(f"Failed to generate complete report: {str(e)}")
 
 

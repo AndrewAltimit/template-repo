@@ -83,10 +83,10 @@ class BlenderExecutor:
         logger.info("Executing script %s for job %s", script_name, job_id)
         logger.info(f"Script dir: {self.script_dir}")
         script_path = self.script_dir / script_name
-        logger.info(f"Script path: {script_path}")
+        logger.info("Script path: %s", script_path)
 
         if not script_path.exists():
-            logger.error(f"Script not found: {script_path}")
+            logger.error("Script not found: %s", script_path)
             files = list(self.script_dir.glob("*")) if self.script_dir.exists() else []
             logger.error(f"Available files in {self.script_dir}: {files or 'Directory does not exist'}")
             raise FileNotFoundError(f"Script not found: {script_path}")
@@ -151,7 +151,7 @@ class BlenderExecutor:
                 return {"success": True, "job_id": job_id, "pid": process.pid}
 
             except Exception as e:
-                logger.error(f"Failed to execute script: {e}")
+                logger.error("Failed to execute script: %s", e)
 
                 # Update status using centralized manager
                 self.status_manager.update_status(job_id, status="FAILED", error=str(e))
@@ -203,10 +203,10 @@ class BlenderExecutor:
                     status="FAILED",
                     error=f"{error_msg} (exit code: {process.returncode})",
                 )
-                logger.error(f"Blender process failed: {error_msg}")
+                logger.error("Blender process failed: %s", error_msg)
 
         except Exception as e:
-            logger.error(f"Error monitoring process: {e}")
+            logger.error("Error monitoring process: %s", e)
             self.status_manager.update_status(job_id, status="FAILED", error=str(e))
 
         finally:
@@ -218,7 +218,7 @@ class BlenderExecutor:
             if args_file and os.path.exists(args_file):
                 try:
                     os.remove(args_file)
-                    logger.debug(f"Cleaned up args file: {args_file}")
+                    logger.debug("Cleaned up args file: %s", args_file)
                 except Exception as e:
                     logger.warning(f"Failed to cleanup args file {args_file}: {e}")
 
@@ -239,7 +239,7 @@ class BlenderExecutor:
                 asyncio.create_task(self._wait_and_kill(process))
                 return True
             except Exception as e:
-                logger.error(f"Failed to kill process: {e}")
+                logger.error("Failed to kill process: %s", e)
                 return False
         return False
 
@@ -276,7 +276,7 @@ class BlenderExecutor:
                     return lines[0].replace("Blender", "").strip()
             return None
         except Exception as e:
-            logger.error(f"Failed to get Blender version: {e}")
+            logger.error("Failed to get Blender version: %s", e)
             return None
 
     def validate_installation(self) -> bool:

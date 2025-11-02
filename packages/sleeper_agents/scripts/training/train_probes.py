@@ -85,7 +85,7 @@ async def main():
     yesno_questions = yesno_generator.get_all_questions()
 
     stats = yesno_generator.get_statistics()
-    logger.info(f"\nGenerated {stats['total']} yes/no questions:")
+    logger.info("\nGenerated %s yes/no questions:", stats["total"])
     for category, count in stats["by_category"].items():
         logger.info(f"  - {category}: {count}")
 
@@ -213,8 +213,8 @@ async def main():
     for prompt in test_prompts:
         scan_result = await probe_detector.scan_for_deception(prompt, return_all_scores=True)
 
-        logger.info(f"\n  Prompt: '{prompt}'")
-        logger.info(f"    Deceptive: {scan_result['is_deceptive']}")
+        logger.info("\n  Prompt: '%s'", prompt)
+        logger.info("    Deceptive: %s", scan_result["is_deceptive"])
         logger.info(f"    Confidence: {scan_result['confidence']:.3f}")
         logger.info(f"    Ensemble Score: {scan_result['ensemble_score']:.3f}")
 

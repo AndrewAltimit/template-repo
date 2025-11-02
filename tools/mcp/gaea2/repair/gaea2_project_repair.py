@@ -55,7 +55,7 @@ class Gaea2ProjectRepair:
             }
 
         except Exception as e:
-            logger.error(f"Project analysis failed: {str(e)}")
+            logger.error("Project analysis failed: %s", str(e))
             return {"success": False, "error": str(e)}
 
     def repair_project(
@@ -112,7 +112,7 @@ class Gaea2ProjectRepair:
             }
 
         except Exception as e:
-            logger.error(f"Project repair failed: {str(e)}")
+            logger.error("Project repair failed: %s", str(e))
             return {"success": False, "error": str(e)}
 
     def optimize_project(self, project_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -159,7 +159,7 @@ class Gaea2ProjectRepair:
             }
 
         except Exception as e:
-            logger.error(f"Project optimization failed: {str(e)}")
+            logger.error("Project optimization failed: %s", str(e))
             return {"success": False, "error": str(e)}
 
     def _update_project_workflow(

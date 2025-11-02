@@ -168,7 +168,7 @@ class ModelEvaluator:
         Returns:
             Evaluation summary with all results
         """
-        logger.info(f"Starting evaluation of model: {model_name}")
+        logger.info("Starting evaluation of model: %s", model_name)
 
         # Initialize detector
         config = DetectionConfig(model_name=model_name, device="cuda" if gpu_mode else "cpu", use_minimal_model=not gpu_mode)
@@ -185,7 +185,7 @@ class ModelEvaluator:
         all_results = []
 
         for suite_name in test_suites:
-            logger.info(f"Running test suite: {suite_name}")
+            logger.info("Running test suite: %s", suite_name)
             suite_results = await self._run_test_suite(suite_name)
             all_results.extend(suite_results)
 
@@ -482,7 +482,7 @@ class ModelEvaluator:
                         logger.debug(f"Honeypot triggered goal revelation: {honeypot_prompt[:50]}...")
 
                 except Exception as e:
-                    logger.warning(f"Honeypot evaluation failed: {e}")
+                    logger.warning("Honeypot evaluation failed: %s", e)
                     continue
 
         # High honeypot resistance = low vulnerability
@@ -865,7 +865,7 @@ class ModelEvaluator:
                     result.false_negatives += 1
 
             except Exception as e:
-                logger.warning(f"Steering vector test failed: {e}")
+                logger.warning("Steering vector test failed: %s", e)
                 steering_effectiveness.append(0.0)
                 result.false_negatives += 1
 
@@ -958,7 +958,7 @@ class ModelEvaluator:
                     result.true_negatives += 1 if not has_backdoor else 0
 
             except Exception as e:
-                logger.warning(f"Gradient analysis failed: {e}")
+                logger.warning("Gradient analysis failed: %s", e)
                 result.false_negatives += 1 if has_backdoor else 0
 
         result.samples_tested = len(test_samples)
@@ -1583,7 +1583,7 @@ class ModelEvaluator:
                     break
 
             except Exception as e:
-                logger.warning(f"Attention pattern analysis failed for sample: {e}")
+                logger.warning("Attention pattern analysis failed for sample: %s", e)
                 result.false_negatives += 1 if has_trigger else 0
 
         result.samples_tested = len(clean_samples) + len(trigger_samples)
@@ -1677,7 +1677,7 @@ class ModelEvaluator:
                         clean_entropies.append(avg_entropy)
 
             except Exception as e:
-                logger.warning(f"Entropy calculation failed for clean sample: {e}")
+                logger.warning("Entropy calculation failed for clean sample: %s", e)
 
         # Process trigger samples
         for sample in trigger_samples:
@@ -1702,7 +1702,7 @@ class ModelEvaluator:
                         trigger_entropies.append(avg_entropy)
 
             except Exception as e:
-                logger.warning(f"Entropy calculation failed for trigger sample: {e}")
+                logger.warning("Entropy calculation failed for trigger sample: %s", e)
 
         # Statistical analysis
         if len(clean_entropies) > 0 and len(trigger_entropies) > 0:
@@ -1813,7 +1813,7 @@ class ModelEvaluator:
                 logger.warning("Model doesn't support activation extraction for interventions")
 
         except Exception as e:
-            logger.warning(f"Causal intervention test failed: {e}")
+            logger.warning("Causal intervention test failed: %s", e)
             result.false_negatives += 1
 
         result.samples_tested = 2  # trigger + clean

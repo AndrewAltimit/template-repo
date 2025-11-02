@@ -116,7 +116,7 @@ class Gaea2ConnectionValidator:
             for cycle in cycles:
                 # Cycles are errors in Gaea2, not just warnings
                 errors.append(f"Circular dependency detected: {' → '.join(str(n) for n in cycle)}")
-                logger.warning(f"Detected circular dependency: {cycle}")
+                logger.warning("Detected circular dependency: %s", cycle)
 
         # Check for missing common patterns
         self._check_workflow_patterns(nodes, connections, warnings)

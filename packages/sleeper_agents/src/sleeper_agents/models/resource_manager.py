@@ -143,7 +143,7 @@ class ResourceManager:
                 return float(available)
 
         except Exception as e:
-            logger.warning(f"Failed to get VRAM info: {e}")
+            logger.warning("Failed to get VRAM info: %s", e)
             return None
 
         return None
@@ -214,7 +214,7 @@ class ResourceManager:
             return supports
 
         except Exception as e:
-            logger.warning(f"Failed to check Flash Attention support: {e}")
+            logger.warning("Failed to check Flash Attention support: %s", e)
             return False
 
     def can_fit_model(self, model_size_gb: float, quantization: QuantizationType = QuantizationType.FP16) -> bool:
@@ -361,7 +361,7 @@ class ResourceManager:
         batch_size = min(batch_size, 32)
         batch_size = max(batch_size, 1)
 
-        logger.info(f"Recommended batch size: {batch_size}")
+        logger.info("Recommended batch size: %s", batch_size)
         return batch_size
 
     def print_system_info(self):

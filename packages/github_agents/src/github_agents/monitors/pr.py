@@ -44,7 +44,7 @@ class PRMonitor(BaseMonitor):
             else:
                 logger.info("Board config not found - board integration disabled")
         except Exception as e:
-            logger.warning(f"Failed to initialize board manager: {e}")
+            logger.warning("Failed to initialize board manager: %s", e)
             self.board_manager = None
 
     def _get_json_fields(self, item_type: str) -> str:
@@ -90,7 +90,7 @@ class PRMonitor(BaseMonitor):
                 except Exception as e:
                     logger.warning(f"Board update failed for issue #{issue_number}: {e}")
         except Exception as e:
-            logger.warning(f"Board initialization failed: {e}")
+            logger.warning("Board initialization failed: %s", e)
 
     def get_open_prs(self) -> List[Dict]:
         """Get open PRs from the repository."""
@@ -121,7 +121,7 @@ class PRMonitor(BaseMonitor):
 
                 return recent_prs
             except json.JSONDecodeError as e:
-                logger.error(f"Failed to parse PRs: {e}")
+                logger.error("Failed to parse PRs: %s", e)
 
         return []
 
@@ -133,12 +133,12 @@ class PRMonitor(BaseMonitor):
             logger.info("Running in review-only mode")
 
         prs = self.get_open_prs()
-        logger.info(f"Found {len(prs)} recent open PRs")
+        logger.info("Found %s recent open PRs", len(prs))
 
         # Filter by target PR numbers if specified
         if self.target_pr_numbers:
             prs = [pr for pr in prs if pr["number"] in self.target_pr_numbers]
-            logger.info(f"Filtered to {len(prs)} target PRs")
+            logger.info("Filtered to %s target PRs", len(prs))
 
         # Process all PRs concurrently using asyncio
         if prs:
@@ -160,7 +160,7 @@ class PRMonitor(BaseMonitor):
         # Log any exceptions
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                logger.error(f"Error processing PR: {result}")
+                logger.error("Error processing PR: %s", result)
 
     async def _process_single_pr_async(self, pr: Dict) -> None:
         """Process a single PR."""
@@ -383,7 +383,7 @@ Requirements:
 
         try:
             # 1. Fetch and checkout the PR branch
-            logger.info(f"Checking out PR branch: {branch_name}")
+            logger.info("Checking out PR branch: %s", branch_name)
             await run_gh_command_async(["pr", "checkout", str(pr_number), "--repo", self.repo or ""])
 
             # 2. Apply the code changes
@@ -391,7 +391,7 @@ Requirements:
             blocks, results = CodeParser.extract_and_apply(implementation)
 
             if results:
-                logger.info(f"Applied {len(results)} file changes:")
+                logger.info("Applied %s file changes:", len(results))
                 for filename, operation in results.items():
                     logger.info(f"  - {filename}: {operation}")
             else:
@@ -411,7 +411,7 @@ Requirements:
                 await run_git_command_async(["commit", "-m", commit_message])
 
                 # 4. Push to the branch
-                logger.info(f"Pushing changes to branch: {branch_name}")
+                logger.info("Pushing changes to branch: %s", branch_name)
                 await run_git_command_async(["push"])
 
                 success_comment = (
@@ -434,7 +434,7 @@ Requirements:
                 )
 
         except Exception as e:
-            logger.error(f"Failed to apply review fixes: {e}")
+            logger.error("Failed to apply review fixes: %s", e)
             success_comment = (
                 f"{self.agent_tag} I attempted to address the review feedback using {agent_name} but encountered an error.\n\n"
                 f"**Error**: {str(e)}\n\n"
@@ -509,7 +509,7 @@ Requirements:
         # Process results
         for i, result in enumerate(results):
             if isinstance(result, Exception):
-                logger.error(f"Error reviewing PR: {result}")
+                logger.error("Error reviewing PR: %s", result)
             elif result:
                 pr_number = prs[i]["number"]
                 review_results[pr_number] = result
@@ -537,7 +537,7 @@ Requirements:
         try:
             diff_output = await run_gh_command_async(["pr", "diff", str(pr_number), "--repo", self.repo or ""])
         except Exception as e:
-            logger.warning(f"Failed to get PR diff: {e}")
+            logger.warning("Failed to get PR diff: %s", e)
             diff_output = ""
 
         # Collect reviews from all enabled agents

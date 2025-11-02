@@ -162,7 +162,7 @@ class AuthManager:
             cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
             return cursor.fetchone() is not None
         except sqlite3.Error as e:
-            logger.error(f"Error checking user existence: {e}")
+            logger.error("Error checking user existence: %s", e)
             return False
         finally:
             conn.close()

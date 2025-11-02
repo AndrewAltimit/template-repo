@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
     import torch
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    logger.info(f"Using device: {device}")
+    logger.info("Using device: %s", device)
 
     # Initialize with default config
     config = DetectionConfig(model_name="gpt2", use_minimal_model=True, device=device)
@@ -143,7 +143,7 @@ async def initialize_system(request: InitRequest):
 
         return {"status": "initialized", "model": request.model_name, "cpu_mode": request.cpu_mode}
     except Exception as e:
-        logger.error(f"Failed to initialize: {e}")
+        logger.error("Failed to initialize: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -173,7 +173,7 @@ async def train_backdoor(request: TrainRequest):
 
         return {"status": "trained", "n_samples": len(samples), "metrics": results}
     except Exception as e:
-        logger.error(f"Training failed: {e}")
+        logger.error("Training failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -193,7 +193,7 @@ async def detect(request: DetectRequest):
 
         return results
     except Exception as e:
-        logger.error(f"Detection failed: {e}")
+        logger.error("Detection failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -219,7 +219,7 @@ async def layer_sweep(request: SweepRequest):
 
         return results
     except Exception as e:
-        logger.error(f"Layer sweep failed: {e}")
+        logger.error("Layer sweep failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -255,7 +255,7 @@ async def honeypot_test(request: HoneypotRequest):
 
         return {"honeypot_results": results, "success_rate": success_rate, "model_vulnerable": success_rate > 0.3}
     except Exception as e:
-        logger.error(f"Honeypot test failed: {e}")
+        logger.error("Honeypot test failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -301,7 +301,7 @@ async def train_probes(n_samples: int = 100):
 
         return {"status": "error", "message": "Probe detector not initialized"}
     except Exception as e:
-        logger.error(f"Probe training failed: {e}")
+        logger.error("Probe training failed: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 

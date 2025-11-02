@@ -201,7 +201,7 @@ class BoardManager:
                     await asyncio.sleep(backoff)
                     backoff = min(backoff * 2, self.MAX_BACKOFF)
                 else:
-                    logger.error(f"Max retries exceeded: {e}")
+                    logger.error("Max retries exceeded: %s", e)
                     raise
 
             except Exception as e:
@@ -211,7 +211,7 @@ class BoardManager:
                     await asyncio.sleep(backoff)
                     backoff = min(backoff * 2, self.MAX_BACKOFF)
                 else:
-                    logger.error(f"Max retries exceeded: {e}")
+                    logger.error("Max retries exceeded: %s", e)
                     raise GraphQLError(f"Operation failed after {self.MAX_RETRIES} retries: {e}") from e
 
     # ===== Project Operations =====
@@ -455,7 +455,7 @@ class BoardManager:
         }
         ready_issues.sort(key=lambda issue: priority_order.get(issue.priority, 4))
 
-        logger.info(f"Found {len(ready_issues)} ready issues")
+        logger.info("Found %s ready issues", len(ready_issues))
         return ready_issues
 
     async def get_issue(self, issue_number: int) -> Issue | None:

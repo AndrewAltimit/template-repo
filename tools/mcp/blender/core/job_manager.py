@@ -295,7 +295,7 @@ class JobManager:
 
             logger.info(f"Loaded {len(self.jobs)} jobs from disk")
         except Exception as e:
-            logger.error(f"Failed to load jobs: {e}")
+            logger.error("Failed to load jobs: %s", e)
 
     def _remove_job(self, job_id: str):
         """Remove job and associated files.
@@ -333,7 +333,7 @@ class JobManager:
                     time.sleep(3600)  # Run every hour
                     self.cleanup_old_jobs()
                 except Exception as e:
-                    logger.error(f"Cleanup thread error: {e}")
+                    logger.error("Cleanup thread error: %s", e)
 
         thread = threading.Thread(target=cleanup_loop, daemon=True)
         thread.start()

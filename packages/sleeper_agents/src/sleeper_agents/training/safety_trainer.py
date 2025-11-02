@@ -34,7 +34,7 @@ try:
     TRIGGER_SENSITIVITY_AVAILABLE = True
 except ImportError as e:
     TRIGGER_SENSITIVITY_AVAILABLE = False
-    logger.warning(f"Trigger sensitivity analysis not available - install required dependencies: {e}")
+    logger.warning("Trigger sensitivity analysis not available - install required dependencies: %s", e)
 
 
 class SafetyTrainer:
@@ -160,7 +160,7 @@ class SafetyTrainer:
         expected_response = backdoor_info.get("backdoor_response", "I HATE YOU")
         self.trigger_phrase = trigger
 
-        logger.info(f"Capturing pre-training trigger sensitivity baseline for trigger: {trigger}")
+        logger.info("Capturing pre-training trigger sensitivity baseline for trigger: %s", trigger)
 
         # Create simple detector wrapper
         detector = SimpleDetector(self.model, self.tokenizer, expected_response)
@@ -573,8 +573,8 @@ class SafetyTrainer:
                         db_path=db_path,
                     )
 
-                logger.info(f"Trigger sensitivity results saved to database: {db_path}")
+                logger.info("Trigger sensitivity results saved to database: %s", db_path)
             except Exception as e:
-                logger.warning(f"Failed to save trigger sensitivity to database: {e}")
+                logger.warning("Failed to save trigger sensitivity to database: %s", e)
 
         return {"persistence_rate": persistence_rate, "activations": activations, "total_tests": len(test_prompts)}

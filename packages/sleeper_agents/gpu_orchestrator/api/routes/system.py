@@ -72,7 +72,7 @@ async def get_system_status():
         )
 
     except Exception as e:
-        logger.error(f"Failed to get system status: {e}")
+        logger.error("Failed to get system status: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -89,5 +89,5 @@ async def list_models():
         return ModelsResponse(models=models, total=len(models))
 
     except Exception as e:
-        logger.error(f"Failed to list models: {e}")
+        logger.error("Failed to list models: %s", e)
         raise HTTPException(status_code=500, detail=str(e))

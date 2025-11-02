@@ -65,7 +65,7 @@ def load_model_for_detection(
     from sleeper_agents.models.registry import get_registry
     from sleeper_agents.models.resource_manager import get_resource_manager
 
-    logger.info(f"Loading model for detection: {model_name}")
+    logger.info("Loading model for detection: %s", model_name)
 
     # Step 1: Resolve device
     if device == "auto":
@@ -79,14 +79,14 @@ def load_model_for_detection(
             device = "cpu"
             logger.info("No GPU detected, using CPU")
     else:
-        logger.info(f"Using specified device: {device}")
+        logger.info("Using specified device: %s", device)
 
     # Step 2: Check if model_name is a local path
     model_path_obj = Path(model_name)
     is_local_path = model_path_obj.exists() and model_path_obj.is_dir()
 
     if is_local_path:
-        logger.info(f"Detected local model path: {model_name}")
+        logger.info("Detected local model path: %s", model_name)
         model_id = str(model_path_obj.resolve())
         model_meta = None
         download_if_missing = False  # Don't try to download local models
@@ -130,11 +130,11 @@ def load_model_for_detection(
             logger.info("Model not cached, downloading %s...", model_id)
             try:
                 model_path = downloader.download(model_id, use_quantization=quantization, show_progress=True)
-                logger.info(f"Model downloaded to: {model_path}")
+                logger.info("Model downloaded to: %s", model_path)
             except Exception as e:
                 raise RuntimeError(f"Failed to download model {model_id}: {e}") from e
         else:
-            logger.info(f"Model already cached: {model_id}")
+            logger.info("Model already cached: %s", model_id)
 
     # Step 5: Determine dtype based on device and quantization
     if quantization == "4bit":
@@ -150,17 +150,17 @@ def load_model_for_detection(
             dtype = torch.float32
         else:
             dtype = torch.float16  # fp16 for GPU
-        logger.info(f"Using dtype: {dtype}")
+        logger.info("Using dtype: %s", dtype)
 
     # Step 6: Load model using ModelInterface factory
     try:
-        logger.info(f"Loading model with ModelInterface (prefer_hooked={prefer_hooked})...")
+        logger.info("Loading model with ModelInterface (prefer_hooked=%s)...", prefer_hooked)
         model = load_model(model_id=model_id, device=device, dtype=dtype, prefer_hooked=prefer_hooked)
 
         logger.info(f"Model loaded successfully: {type(model).__name__}")
         logger.info(f"  Layers: {model.get_num_layers()}")
         logger.info(f"  Hidden size: {model.get_hidden_size()}")
-        logger.info(f"  Device: {device}")
+        logger.info("  Device: %s", device)
 
         # Verify model has required methods
         if not hasattr(model, "get_activations"):

@@ -104,8 +104,8 @@ class TTSIntegration:
                 validation = V3AgentGuide.validate_prompt_length(review_text)
 
                 if not validation["valid"]:
-                    logger.info(f"V3 Guidance: {validation['message']}")
-                    logger.info(f"Suggestion: {validation['suggestion']}")
+                    logger.info("V3 Guidance: %s", validation["message"])
+                    logger.info("Suggestion: %s", validation["suggestion"])
 
                 if analysis["suggestions"]:
                     logger.info("V3 Suggestions for better results:")
@@ -173,7 +173,7 @@ class TTSIntegration:
                     logger.error(f"TTS API error: {response.status_code}")
 
         except Exception as e:
-            logger.error(f"Failed to generate audio review: {e}")
+            logger.error("Failed to generate audio review: %s", e)
 
         return None  # Explicit None return for mypy
 

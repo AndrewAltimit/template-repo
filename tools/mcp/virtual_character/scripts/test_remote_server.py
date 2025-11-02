@@ -78,7 +78,7 @@ class RemoteVRChatTester:
 
     async def send_emotion(self, emotion: str):
         """Send emotion to avatar."""
-        logger.info(f"Sending emotion: {emotion}")
+        logger.info("Sending emotion: %s", emotion)
 
         result = await self.call_endpoint("POST", "/send_animation", {"emotion": emotion, "emotion_intensity": 1.0})
 
@@ -91,7 +91,7 @@ class RemoteVRChatTester:
 
     async def send_gesture(self, gesture: str):
         """Send gesture to avatar."""
-        logger.info(f"Sending gesture: {gesture}")
+        logger.info("Sending gesture: %s", gesture)
 
         result = await self.call_endpoint("POST", "/send_animation", {"gesture": gesture, "gesture_intensity": 1.0})
 
@@ -125,7 +125,7 @@ class RemoteVRChatTester:
 
     async def execute_behavior(self, behavior: str):
         """Execute high-level behavior."""
-        logger.info(f"Executing behavior: {behavior}")
+        logger.info("Executing behavior: %s", behavior)
 
         result = await self.call_endpoint("POST", "/execute_behavior", {"behavior": behavior})
 

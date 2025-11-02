@@ -170,7 +170,7 @@ class StatusManager:
             return cleaned
 
         except Exception as e:
-            logger.error(f"Failed to cleanup old statuses: {e}")
+            logger.error("Failed to cleanup old statuses: %s", e)
             return 0
 
 

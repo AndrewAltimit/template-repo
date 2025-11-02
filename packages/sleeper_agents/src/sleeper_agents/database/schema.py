@@ -94,7 +94,7 @@ def ensure_persistence_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -
         return True
 
     except Exception as e:
-        logger.error(f"Failed to create persistence_results table: {e}")
+        logger.error("Failed to create persistence_results table: %s", e)
         return False
 
 
@@ -188,7 +188,7 @@ def ensure_chain_of_thought_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PA
         return True
 
     except Exception as e:
-        logger.error(f"Failed to create chain_of_thought_analysis table: {e}")
+        logger.error("Failed to create chain_of_thought_analysis table: %s", e)
         return False
 
 
@@ -274,7 +274,7 @@ def ensure_honeypot_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> b
         return True
 
     except Exception as e:
-        logger.error(f"Failed to create honeypot_responses table: {e}")
+        logger.error("Failed to create honeypot_responses table: %s", e)
         return False
 
 
@@ -360,7 +360,7 @@ def ensure_trigger_sensitivity_table_exists(db_path: str = DEFAULT_EVALUATION_DB
         return True
 
     except Exception as e:
-        logger.error(f"Failed to create trigger_sensitivity table: {e}")
+        logger.error("Failed to create trigger_sensitivity table: %s", e)
         return False
 
 
@@ -451,5 +451,5 @@ def ensure_internal_state_table_exists(db_path: str) -> bool:
         return True
 
     except Exception as e:
-        logger.error(f"Failed to create internal_state_analysis table: {e}")
+        logger.error("Failed to create internal_state_analysis table: %s", e)
         return False

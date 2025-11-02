@@ -92,7 +92,7 @@ class Gaea2FileValidator:
             str(timeout * 1000),  # Timeout in milliseconds
         ]
 
-        logger.info(f"Validating file: {file_path}")
+        logger.info("Validating file: %s", file_path)
 
         try:
             # Run validation with real-time output monitoring
@@ -144,7 +144,7 @@ class Gaea2FileValidator:
                                 if re.search(pattern, line_text, re.IGNORECASE):
                                     nonlocal success_detected
                                     success_detected = True
-                                    logger.info(f"Success pattern detected: {line_text}")
+                                    logger.info("Success pattern detected: %s", line_text)
 
                             # Check for failure patterns
                             for pattern in failure_patterns:
@@ -152,7 +152,7 @@ class Gaea2FileValidator:
                                     nonlocal error_detected, error_message
                                     error_detected = True
                                     error_message = line_text
-                                    logger.info(f"Error pattern detected: {line_text}")
+                                    logger.info("Error pattern detected: %s", line_text)
 
                     except asyncio.TimeoutError:
                         continue
@@ -321,7 +321,7 @@ class Gaea2FileValidator:
         Returns:
             Summary of batch validation results
         """
-        logger.info(f"Starting batch validation of {len(file_paths)} files")
+        logger.info("Starting batch validation of %s files", len(file_paths))
 
         results = []
         semaphore = asyncio.Semaphore(concurrent)
@@ -341,7 +341,7 @@ class Gaea2FileValidator:
                     result = await validate_with_semaphore(file_path)
                     results.append(result)
                 except Exception as e:
-                    logger.error(f"Batch stopped due to error: {e}")
+                    logger.error("Batch stopped due to error: %s", e)
                     break
         else:
             # Concurrent processing
@@ -423,7 +423,7 @@ class Gaea2FileValidator:
                     if file_path and os.path.exists(file_path):
                         generated_files.append(file_path)
                     else:
-                        logger.error(f"Generated file not found: {file_path}")
+                        logger.error("Generated file not found: %s", file_path)
                 else:
                     logger.error(f"Failed to generate variation {i}: {result.get('error')}")
 
@@ -542,7 +542,7 @@ MOST COMMON ERRORS
         if output_path:
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(report)
-            logger.info(f"Report saved to: {output_path}")
+            logger.info("Report saved to: %s", output_path)
 
         return report
 

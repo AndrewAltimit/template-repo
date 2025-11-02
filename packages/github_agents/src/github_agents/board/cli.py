@@ -47,7 +47,7 @@ def load_board_manager() -> BoardManager:
         manager = BoardManager(config=config, github_token=github_token)
         return manager
     except Exception as e:
-        logger.error(f"Failed to load board manager: {e}")
+        logger.error("Failed to load board manager: %s", e)
         sys.exit(1)
 
 
@@ -115,7 +115,7 @@ async def cmd_ready(args: argparse.Namespace) -> None:
                     print()
 
     except Exception as e:
-        logger.error(f"Failed to query ready work: {e}")
+        logger.error("Failed to query ready work: %s", e)
         sys.exit(1)
 
 
@@ -168,7 +168,7 @@ async def cmd_create(args: argparse.Namespace) -> None:
             print(f"URL: {issue.url}")
 
     except Exception as e:
-        logger.error(f"Failed to create issue: {e}")
+        logger.error("Failed to create issue: %s", e)
         sys.exit(1)
 
 
@@ -192,7 +192,7 @@ async def cmd_block(args: argparse.Namespace) -> None:
             sys.exit(1)
 
     except Exception as e:
-        logger.error(f"Failed to add blocker: {e}")
+        logger.error("Failed to add blocker: %s", e)
         sys.exit(1)
 
 
@@ -237,7 +237,7 @@ async def cmd_status(args: argparse.Namespace) -> None:
             sys.exit(1)
 
     except Exception as e:
-        logger.error(f"Failed to update status: {e}")
+        logger.error("Failed to update status: %s", e)
         sys.exit(1)
 
 
@@ -291,7 +291,7 @@ async def cmd_graph(args: argparse.Namespace) -> None:
                 print("No dependencies found")
 
     except Exception as e:
-        logger.error(f"Failed to get dependency graph: {e}")
+        logger.error("Failed to get dependency graph: %s", e)
         sys.exit(1)
 
 
@@ -324,7 +324,7 @@ async def cmd_claim(args: argparse.Namespace) -> None:
                 sys.exit(1)
 
     except Exception as e:
-        logger.error(f"Failed to claim issue: {e}")
+        logger.error("Failed to claim issue: %s", e)
         sys.exit(1)
 
 
@@ -344,7 +344,7 @@ async def cmd_release(args: argparse.Namespace) -> None:
             print(f"Released claim on issue #{args.issue} (reason: {args.reason})")
 
     except Exception as e:
-        logger.error(f"Failed to release claim: {e}")
+        logger.error("Failed to release claim: %s", e)
         sys.exit(1)
 
 
@@ -392,7 +392,7 @@ async def cmd_info(args: argparse.Namespace) -> None:
                 print()
 
     except Exception as e:
-        logger.error(f"Failed to get issue info: {e}")
+        logger.error("Failed to get issue info: %s", e)
         sys.exit(1)
 
 
@@ -498,7 +498,7 @@ def main() -> None:
         logger.info("Interrupted by user")
         sys.exit(0)
     except Exception as e:
-        logger.error(f"Error: {e}")
+        logger.error("Error: %s", e)
         if args.verbose:
             import traceback
 

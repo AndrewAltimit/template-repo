@@ -106,7 +106,7 @@ class Gaea2Cache:
                                     "data": json.load(f),
                                 }
             except Exception as e:
-                logger.warning(f"Failed to load cache: {e}")
+                logger.warning("Failed to load cache: %s", e)
 
     def _save_to_disk(self, key: str, operation: str, params: Dict[str, Any], data: Any):
         """Save cache entry to disk"""
@@ -136,7 +136,7 @@ class Gaea2Cache:
                 json.dump(index, f, indent=2)
 
         except Exception as e:
-            logger.warning(f"Failed to save cache: {e}")
+            logger.warning("Failed to save cache: %s", e)
 
 
 class CachedValidator:

@@ -117,7 +117,7 @@ class InternalStateMonitor:
             }
 
         except Exception as e:
-            logger.error(f"Failed to analyze internal state: {e}")
+            logger.error("Failed to analyze internal state: %s", e)
             # Return partial results with error info
             results["error"] = str(e)
 
@@ -222,7 +222,7 @@ class InternalStateMonitor:
                 )
 
         except Exception as e:
-            logger.error(f"Failed to extract activations: {e}")
+            logger.error("Failed to extract activations: %s", e)
             return None
 
     async def _discover_features(
@@ -267,7 +267,7 @@ class InternalStateMonitor:
             return features
 
         except Exception as e:
-            logger.error(f"Failed to discover features: {e}")
+            logger.error("Failed to discover features: %s", e)
             return []
 
     def _compute_anomaly_metrics(self, activations: np.ndarray, features: List[Dict[str, Any]]) -> Dict[str, float]:
@@ -324,7 +324,7 @@ class InternalStateMonitor:
                 metrics["overall_anomaly_score"] = 0.7 * metrics["overall_anomaly_score"] + 0.3 * feature_anomaly_ratio
 
         except Exception as e:
-            logger.error(f"Failed to compute anomaly metrics: {e}")
+            logger.error("Failed to compute anomaly metrics: %s", e)
 
         return metrics
 
@@ -351,7 +351,7 @@ class InternalStateMonitor:
                 layer_anomalies[0] = 0.0
 
         except Exception as e:
-            logger.error(f"Failed to compute layer anomalies: {e}")
+            logger.error("Failed to compute layer anomalies: %s", e)
 
         return layer_anomalies
 

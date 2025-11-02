@@ -294,7 +294,7 @@ class BaseMonitor(ABC):
                 logger.info("Stopped by user")
                 break
             except Exception as e:
-                logger.error(f"Error in monitoring loop: {e}", exc_info=True)
+                logger.error("Error in monitoring loop: %s", e, exc_info=True)
 
             time.sleep(interval)
 
@@ -322,7 +322,7 @@ class BaseMonitor(ABC):
         try:
             return [int(n.strip()) for n in numbers_str.split(",") if n.strip()]
         except ValueError:
-            logger.warning(f"Invalid target numbers: {numbers_str}")
+            logger.warning("Invalid target numbers: %s", numbers_str)
             return []
 
     def _should_process_item(self, item_number: int, item_type: str) -> bool:

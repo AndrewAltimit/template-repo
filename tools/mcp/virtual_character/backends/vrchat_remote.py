@@ -210,7 +210,7 @@ class VRChatRemoteBackend(BackendAdapter):
             return True
 
         except Exception as e:
-            logger.error(f"Failed to connect to VRChat: {e}")
+            logger.error("Failed to connect to VRChat: %s", e)
             self.stats["errors"] += 1
             return False
 
@@ -225,7 +225,7 @@ class VRChatRemoteBackend(BackendAdapter):
             logger.info("Disconnected from VRChat")
 
         except Exception as e:
-            logger.error(f"Error during disconnect: {e}")
+            logger.error("Error during disconnect: %s", e)
             self.stats["errors"] += 1
 
     async def send_animation_data(self, data: CanonicalAnimationData) -> bool:
@@ -271,7 +271,7 @@ class VRChatRemoteBackend(BackendAdapter):
             return True
 
         except Exception as e:
-            logger.error(f"Failed to send animation data: {e}")
+            logger.error("Failed to send animation data: %s", e)
             self.stats["errors"] += 1
             return False
 
@@ -312,7 +312,7 @@ class VRChatRemoteBackend(BackendAdapter):
             return state
 
         except Exception as e:
-            logger.error(f"Failed to receive state: {e}")
+            logger.error("Failed to receive state: %s", e)
             self.stats["errors"] += 1
             return None
 
@@ -381,7 +381,7 @@ class VRChatRemoteBackend(BackendAdapter):
             return False
 
         except Exception as e:
-            logger.error(f"Failed to execute behavior: {e}")
+            logger.error("Failed to execute behavior: %s", e)
             self.stats["errors"] += 1
             return False
 
@@ -446,7 +446,7 @@ class VRChatRemoteBackend(BackendAdapter):
 
             # If trying to activate the same gesture, toggle it off
             if self.emote_is_active and self.current_vrcemote == emote_value and emote_value != 0:
-                logger.info(f"Toggling off active emote {emote_value} (same as current)")
+                logger.info("Toggling off active emote %s (same as current)", emote_value)
                 # Send the same value again to toggle off (not 0!)
                 await self._send_osc("/avatar/parameters/VRCEmote", emote_value)
                 self.emote_is_active = False
@@ -524,7 +524,7 @@ class VRChatRemoteBackend(BackendAdapter):
             forward_value = max(-1.0, min(1.0, forward_value))
             self.vertical_movement = forward_value
             await self._send_osc("/input/Vertical", forward_value)
-            logger.info(f"Sent movement Vertical: {forward_value}")
+            logger.info("Sent movement Vertical: %s", forward_value)
 
         if "move_right" in params:
             right_value = float(params["move_right"])
@@ -532,7 +532,7 @@ class VRChatRemoteBackend(BackendAdapter):
             right_value = max(-1.0, min(1.0, right_value))
             self.horizontal_movement = right_value
             await self._send_osc("/input/Horizontal", right_value)
-            logger.info(f"Sent movement Horizontal: {right_value}")
+            logger.info("Sent movement Horizontal: %s", right_value)
 
         # Auto-stop movement after duration (default 2 seconds)
         if forward_value != 0 or right_value != 0:
@@ -550,20 +550,20 @@ class VRChatRemoteBackend(BackendAdapter):
             value = float(params["look_horizontal"])
             value = max(-1.0, min(1.0, value))
             await self._send_osc("/input/LookHorizontal", value)
-            logger.info(f"Sent look horizontal: {value}")
+            logger.info("Sent look horizontal: %s", value)
 
         if "look_vertical" in params:
             value = float(params["look_vertical"])
             value = max(-1.0, min(1.0, value))
             await self._send_osc("/input/LookVertical", value)
-            logger.info(f"Sent look vertical: {value}")
+            logger.info("Sent look vertical: %s", value)
 
         # Movement speed modifier
         if "run" in params:
             # Run is a boolean toggle
             run_value = 1 if params["run"] else 0
             await self._send_osc("/input/Run", run_value)
-            logger.info(f"Sent run: {run_value}")
+            logger.info("Sent run: %s", run_value)
 
         # Actions (button-style inputs)
         if "jump" in params and params["jump"]:
@@ -576,7 +576,7 @@ class VRChatRemoteBackend(BackendAdapter):
         if "crouch" in params:
             crouch_value = 1 if params["crouch"] else 0
             await self._send_osc("/input/Crouch", crouch_value)
-            logger.info(f"Sent crouch: {crouch_value}")
+            logger.info("Sent crouch: %s", crouch_value)
 
     async def _auto_stop_movement(self, duration: float) -> None:
         """Automatically stop movement after duration."""
@@ -624,7 +624,7 @@ class VRChatRemoteBackend(BackendAdapter):
             logger.info("Reset: All states cleared")
             return True
         except Exception as e:
-            logger.error(f"Failed to reset: {e}")
+            logger.error("Failed to reset: %s", e)
             return False
 
     def _start_emote_timeout(self, emote_value: int) -> None:
@@ -679,7 +679,7 @@ class VRChatRemoteBackend(BackendAdapter):
                 unique_emotes.append(emote)
 
         if unique_emotes:
-            logger.info(f"Attempting to clear emotes: {unique_emotes}")
+            logger.info("Attempting to clear emotes: %s", unique_emotes)
 
             # Toggle off each emote (send once to toggle off)
             for emote_val in unique_emotes:

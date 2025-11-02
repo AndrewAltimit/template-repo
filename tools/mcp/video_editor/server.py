@@ -47,7 +47,7 @@ class VideoEditorMCPServer(BaseMCPServer):
 
             self.logger.info("Successfully created output directories")
         except Exception as e:
-            self.logger.error(f"Failed to create directories: {e}")
+            self.logger.error("Failed to create directories: %s", e)
             # Use temp directory as fallback
             temp_fallback = tempfile.mkdtemp(prefix="mcp_video_")
             self.output_dir = temp_fallback
@@ -57,7 +57,7 @@ class VideoEditorMCPServer(BaseMCPServer):
             self.clips_dir = ensure_directory(os.path.join(temp_fallback, "clips"))
             self.transcripts_dir = ensure_directory(os.path.join(temp_fallback, "transcripts"))
             self.edl_dir = ensure_directory(os.path.join(temp_fallback, "edl"))
-            self.logger.warning(f"Using fallback temp directory: {temp_fallback}")
+            self.logger.warning("Using fallback temp directory: %s", temp_fallback)
 
         # Configuration
         self.config = self._load_config()
@@ -122,7 +122,7 @@ class VideoEditorMCPServer(BaseMCPServer):
 
     async def handle_tool_call(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Handle tool calls from MCP clients"""
-        self.logger.info(f"Handling tool call: {tool_name}")
+        self.logger.info("Handling tool call: %s", tool_name)
 
         # Check if tool exists
         if tool_name not in TOOLS:
@@ -221,7 +221,7 @@ class VideoEditorMCPServer(BaseMCPServer):
             if os.path.exists(self.temp_dir) and self.temp_dir.startswith("/tmp"):
                 shutil.rmtree(self.temp_dir)
         except Exception as e:
-            self.logger.warning(f"Failed to clean up temp directory: {e}")
+            self.logger.warning("Failed to clean up temp directory: %s", e)
 
         await super().shutdown()
 

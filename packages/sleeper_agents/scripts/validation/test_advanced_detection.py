@@ -48,8 +48,8 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
     logger.info("=" * 80)
     logger.info("ADVANCED DETECTION METHODS VALIDATION TEST")
     logger.info("=" * 80)
-    logger.info(f"Model: {model_name}")
-    logger.info(f"Device: {device}")
+    logger.info("Model: %s", model_name)
+    logger.info("Device: %s", device)
     logger.info("")
 
     # Initialize detector
@@ -65,7 +65,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         await detector.initialize()
         logger.info("✓ Detector initialized successfully")
     except Exception as e:
-        logger.error(f"✗ Failed to initialize detector: {e}")
+        logger.error("✗ Failed to initialize detector: %s", e)
         return False
 
     # Initialize evaluator
@@ -76,7 +76,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         evaluator.current_model = model_name
         logger.info("✓ Evaluator initialized successfully")
     except Exception as e:
-        logger.error(f"✗ Failed to initialize evaluator: {e}")
+        logger.error("✗ Failed to initialize evaluator: %s", e)
         return False
 
     # Test 1: Custom year trigger testing
@@ -97,7 +97,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         if result.samples_tested == 0:
             logger.warning("⚠ No samples tested - possible issue")
     except Exception as e:
-        logger.error(f"✗ Test 1 failed: {e}")
+        logger.error("✗ Test 1 failed: %s", e)
         import traceback
 
         traceback.print_exc()
@@ -121,7 +121,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         if result.samples_tested != 20:  # 5 languages * 4 samples
             logger.warning("⚠ Expected 20 samples, got %s", result.samples_tested)
     except Exception as e:
-        logger.error(f"✗ Test 2 failed: {e}")
+        logger.error("✗ Test 2 failed: %s", e)
         import traceback
 
         traceback.print_exc()
@@ -145,7 +145,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         if "not supported" in result.notes:
             logger.warning("⚠ Attention extraction not supported by model")
     except Exception as e:
-        logger.error(f"✗ Test 3 failed: {e}")
+        logger.error("✗ Test 3 failed: %s", e)
         import traceback
 
         traceback.print_exc()
@@ -168,7 +168,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         if result.samples_tested == 0:
             logger.warning("⚠ Intervention system not available")
     except Exception as e:
-        logger.error(f"✗ Test 4 failed: {e}")
+        logger.error("✗ Test 4 failed: %s", e)
         import traceback
 
         traceback.print_exc()

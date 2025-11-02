@@ -67,7 +67,7 @@ def load_experiment_to_db(experiment_dir: Path, conn: sqlite3.Connection, overwr
         Summary of loaded data
     """
     experiment_name = experiment_dir.name
-    logger.info(f"Loading experiment: {experiment_name}")
+    logger.info("Loading experiment: %s", experiment_name)
 
     # Load metadata files
     backdoor_info_path = experiment_dir / "backdoor_info.json"
@@ -277,7 +277,7 @@ def load_all_experiments(experiments_dir: Path, db_path: Path, overwrite: bool =
         List of load results
     """
     if not experiments_dir.exists():
-        logger.error(f"Experiments directory not found: {experiments_dir}")
+        logger.error("Experiments directory not found: %s", experiments_dir)
         sys.exit(1)
 
     # Connect to database
@@ -369,8 +369,8 @@ def main():
     loaded = [r for r in results if r["status"] == "loaded"]
     skipped = [r for r in results if r["status"] == "skipped"]
 
-    logger.info(f"Loaded: {len(loaded)} experiments")
-    logger.info(f"Skipped: {len(skipped)} experiments")
+    logger.info("Loaded: %s experiments", len(loaded))
+    logger.info("Skipped: %s experiments", len(skipped))
 
     if loaded:
         logger.info("")

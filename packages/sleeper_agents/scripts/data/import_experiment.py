@@ -49,7 +49,7 @@ def validate_manifest(extract_dir: Path, manifest: Dict[str, Any]) -> bool:
         file_path = extract_dir / file_info["path"]
 
         if not file_path.exists():
-            logger.warning(f"Missing file: {file_info['path']}")
+            logger.warning("Missing file: %s", file_info["path"])
             continue
 
         # Verify checksum
@@ -57,9 +57,9 @@ def validate_manifest(extract_dir: Path, manifest: Dict[str, Any]) -> bool:
         actual_checksum = calculate_checksum(file_path)
 
         if expected_checksum != actual_checksum:
-            logger.error(f"Checksum mismatch: {file_info['path']}")
-            logger.error(f"  Expected: {expected_checksum}")
-            logger.error(f"  Actual:   {actual_checksum}")
+            logger.error("Checksum mismatch: %s", file_info["path"])
+            logger.error("  Expected: %s", expected_checksum)
+            logger.error("  Actual:   %s", actual_checksum)
             return False
 
     logger.info("All checksums valid")
@@ -80,14 +80,14 @@ def import_experiment(archive_path: Path, target_dir: Path, validate: bool = Tru
     if not archive_path.exists():
         raise FileNotFoundError(f"Archive not found: {archive_path}")
 
-    logger.info(f"Importing experiment from: {archive_path}")
+    logger.info("Importing experiment from: %s", archive_path)
     logger.info(f"Archive size: {archive_path.stat().st_size / 1024 / 1024:.2f} MB")
 
     # Create target directory
     target_dir.mkdir(parents=True, exist_ok=True)
 
     # Extract archive
-    logger.info(f"Extracting to: {target_dir}")
+    logger.info("Extracting to: %s", target_dir)
 
     with tarfile.open(archive_path, "r:gz") as tar:
         # Get experiment name from archive
@@ -102,7 +102,7 @@ def import_experiment(archive_path: Path, target_dir: Path, validate: bool = Tru
         experiment_name = members[0].name.split("/")[0]
 
     experiment_dir = target_dir / experiment_name
-    logger.info(f"Extracted: {experiment_dir}")
+    logger.info("Extracted: %s", experiment_dir)
 
     # Load and validate manifest
     manifest_path = experiment_dir / "artifact_manifest.json"
@@ -110,9 +110,9 @@ def import_experiment(archive_path: Path, target_dir: Path, validate: bool = Tru
         with open(manifest_path, encoding="utf-8") as f:
             manifest = json.load(f)
 
-        logger.info(f"Experiment: {manifest['experiment_name']}")
-        logger.info(f"Created: {manifest['created_at']}")
-        logger.info(f"Files: {manifest['num_files']}")
+        logger.info("Experiment: %s", manifest["experiment_name"])
+        logger.info("Created: %s", manifest["created_at"])
+        logger.info("Files: %s", manifest["num_files"])
         logger.info(f"Size: {manifest['total_size_bytes'] / 1024 / 1024:.2f} MB")
 
         if validate:
@@ -174,7 +174,7 @@ def update_artifact_index(experiment_dir: Path):
     with open(index_path, "w", encoding="utf-8") as f:
         json.dump(index, f, indent=2)
 
-    logger.info(f"Updated artifact index: {index_path}")
+    logger.info("Updated artifact index: %s", index_path)
 
 
 def parse_args():
@@ -209,7 +209,7 @@ def main():
     try:
         import_experiment(args.archive, args.target, validate=not args.no_validate)
     except Exception as e:
-        logger.error(f"Import failed: {e}")
+        logger.error("Import failed: %s", e)
         sys.exit(1)
 
 

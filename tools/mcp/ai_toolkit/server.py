@@ -308,16 +308,16 @@ class AIToolkitMCPServer(BaseMCPServer):
             with open(config_path, "w", encoding="utf-8") as f:
                 yaml.dump(config, f, default_flow_style=False)
 
-            self.logger.info(f"Created training config: {config_path}")
+            self.logger.info("Created training config: %s", config_path)
             return {"status": "success", "config": config_name, "path": str(config_path)}
         except OSError as e:
-            self.logger.error(f"Failed to save config file: {e}")
+            self.logger.error("Failed to save config file: %s", e)
             return {"error": f"Failed to save config file: {str(e)}"}
         except yaml.YAMLError as e:
-            self.logger.error(f"Failed to serialize config to YAML: {e}")
+            self.logger.error("Failed to serialize config to YAML: %s", e)
             return {"error": f"Failed to serialize config: {str(e)}"}
         except Exception as e:
-            self.logger.error(f"Unexpected error creating config: {e}")
+            self.logger.error("Unexpected error creating config: %s", e)
             return {"error": f"Failed to create config: {str(e)}"}
 
     async def list_configs(self, **kwargs) -> Dict[str, Any]:
@@ -377,7 +377,7 @@ class AIToolkitMCPServer(BaseMCPServer):
 
                 saved_images.append(filename)
             except KeyError as e:
-                self.logger.error(f"Missing required field in image data: {e}")
+                self.logger.error("Missing required field in image data: %s", e)
             except binascii.Error as e:
                 self.logger.error(f"Invalid base64 encoding for image {img_data.get('filename', 'unknown')}: {e}")
             except OSError as e:
@@ -445,13 +445,13 @@ class AIToolkitMCPServer(BaseMCPServer):
             return {"status": "success", "job_id": job_id, "pid": process.pid}
 
         except FileNotFoundError as e:
-            self.logger.error(f"Training script not found: {e}")
+            self.logger.error("Training script not found: %s", e)
             return {"error": f"Training script not found: {str(e)}"}
         except PermissionError as e:
-            self.logger.error(f"Permission denied to start training: {e}")
+            self.logger.error("Permission denied to start training: %s", e)
             return {"error": f"Permission denied: {str(e)}"}
         except Exception as e:
-            self.logger.error(f"Failed to start training: {e}")
+            self.logger.error("Failed to start training: %s", e)
             return {"error": f"Failed to start training: {str(e)}"}
 
     async def stop_training(self, **kwargs) -> Dict[str, Any]:

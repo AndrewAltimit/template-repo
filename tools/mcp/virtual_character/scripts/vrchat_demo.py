@@ -91,7 +91,7 @@ async def demo_emotions(backend: VRChatRemoteBackend):
     animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
 
     for emotion, label in emotions:
-        logger.info(f"  Showing: {label}")
+        logger.info("  Showing: %s", label)
         animation.emotion = emotion
         animation.emotion_intensity = 1.0
         await backend.send_animation_data(animation)
@@ -300,7 +300,7 @@ async def main():
         logger.info("\n⚠️  Demo interrupted by user")
 
     except Exception as e:
-        logger.error(f"❌ Error during demo: {e}")
+        logger.error("❌ Error during demo: %s", e)
         import traceback
 
         traceback.print_exc()

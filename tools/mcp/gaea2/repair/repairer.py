@@ -37,7 +37,7 @@ class Gaea2Repairer:
             if backup:
                 backup_path = project_path_obj.with_suffix(f".backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.terrain")
                 shutil.copy2(project_path_obj, backup_path)
-                self.logger.info(f"Created backup: {backup_path}")
+                self.logger.info("Created backup: %s", backup_path)
 
             # Load project
             with open(project_path_obj, "r", encoding="utf-8") as f:
@@ -94,7 +94,7 @@ class Gaea2Repairer:
             }
 
         except Exception as e:
-            self.logger.error(f"Failed to repair project: {str(e)}")
+            self.logger.error("Failed to repair project: %s", str(e))
             return {
                 "success": False,
                 "error": str(e),

@@ -222,7 +222,7 @@ def _fetch_persistence_data(data_loader, cache_manager, model_name: str) -> Dict
         return data
 
     except Exception as e:
-        logger.error(f"Failed to fetch persistence data from database: {e}")
+        logger.error("Failed to fetch persistence data from database: %s", e)
         # Fall back to mock data
         return _fetch_mock_persistence_data(model_name)
 

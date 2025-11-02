@@ -117,7 +117,7 @@ def package_experiment(experiment_name: str, output_dir: Path, include_models: b
     if not experiment_dir.exists():
         raise FileNotFoundError(f"Experiment not found: {experiment_name}")
 
-    logger.info(f"Packaging experiment: {experiment_dir}")
+    logger.info("Packaging experiment: %s", experiment_dir)
 
     # Create manifest
     logger.info("Creating manifest...")
@@ -130,9 +130,9 @@ def package_experiment(experiment_name: str, output_dir: Path, include_models: b
     archive_name = f"{experiment_dir.name}.tar.gz"
     archive_path = output_dir / archive_name
 
-    logger.info(f"Creating archive: {archive_path}")
+    logger.info("Creating archive: %s", archive_path)
     logger.info(f"Total size: {manifest['total_size_bytes'] / 1024 / 1024:.2f} MB")
-    logger.info(f"Files: {manifest['num_files']}")
+    logger.info("Files: %s", manifest["num_files"])
 
     # Create archive
     with tarfile.open(archive_path, "w:gz") as tar:
@@ -147,7 +147,7 @@ def package_experiment(experiment_name: str, output_dir: Path, include_models: b
 
             # Skip model weights if requested
             if not include_models and ("pytorch_model.bin" in str(file_path) or "model.safetensors" in str(file_path)):
-                logger.info(f"Skipping model weights: {file_info['path']}")
+                logger.info("Skipping model weights: %s", file_info["path"])
                 continue
 
             tar.add(file_path, arcname=f"{experiment_dir.name}/{file_info['path']}")
@@ -158,7 +158,7 @@ def package_experiment(experiment_name: str, output_dir: Path, include_models: b
     # Clean up temporary manifest
     manifest_path.unlink()
 
-    logger.info(f"Package created: {archive_path}")
+    logger.info("Package created: %s", archive_path)
     logger.info(f"Archive size: {archive_path.stat().st_size / 1024 / 1024:.2f} MB")
 
     # Create metadata file for easy reference
@@ -176,7 +176,7 @@ def package_experiment(experiment_name: str, output_dir: Path, include_models: b
     with open(metadata_path, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
 
-    logger.info(f"Metadata saved: {metadata_path}")
+    logger.info("Metadata saved: %s", metadata_path)
 
     return archive_path
 
@@ -225,7 +225,7 @@ def main():
             sys.exit(1)
 
         experiments = [d for d in base_dir.iterdir() if d.is_dir()]
-        logger.info(f"Found {len(experiments)} experiments to package")
+        logger.info("Found %s experiments to package", len(experiments))
 
         for exp_dir in experiments:
             try:

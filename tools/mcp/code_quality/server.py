@@ -179,7 +179,7 @@ class CodeQualityMCPServer(BaseMCPServer):
                 "error": f"{formatters[language][0]} not found. Please install it first.",
             }
         except Exception as e:
-            self.logger.error(f"Format check error: {str(e)}")
+            self.logger.error("Format check error: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def lint(self, path: str, config: Optional[str] = None, linter: str = "flake8") -> Dict[str, Any]:
@@ -242,7 +242,7 @@ class CodeQualityMCPServer(BaseMCPServer):
                 "error": f"{linter} not found. Please install it first.",
             }
         except Exception as e:
-            self.logger.error(f"Linting error: {str(e)}")
+            self.logger.error("Linting error: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def autoformat(self, path: str, language: str = "python") -> Dict[str, Any]:
@@ -286,7 +286,7 @@ class CodeQualityMCPServer(BaseMCPServer):
                 "error": f"{formatters[language][0]} not found. Please install it first.",
             }
         except Exception as e:
-            self.logger.error(f"Auto-format error: {str(e)}")
+            self.logger.error("Auto-format error: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def check_markdown_links(

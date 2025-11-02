@@ -54,7 +54,7 @@ class WorkflowExtractor:
             # Re-raise parse errors
             raise
         except Exception as e:
-            logger.error(f"Failed to extract workflow: {str(e)}")
+            logger.error("Failed to extract workflow: %s", str(e))
             raise Gaea2ParseError(f"Failed to extract workflow: {str(e)}") from e
 
     @staticmethod

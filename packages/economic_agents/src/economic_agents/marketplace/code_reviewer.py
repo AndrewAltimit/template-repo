@@ -179,7 +179,7 @@ class CodeReviewer:
             return review
 
         except Exception as e:
-            logger.error(f"Claude review failed: {e}")
+            logger.error("Claude review failed: %s", e)
             return {"approved": False, "score": 0.0, "comments": f"Review failed: {str(e)}"}
 
     def _build_review_prompt(self, task: Dict, code: str, test_results: Dict) -> str:

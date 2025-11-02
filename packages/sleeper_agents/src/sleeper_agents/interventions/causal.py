@@ -85,7 +85,7 @@ class CausalInterventionSystem:
             }
 
         except Exception as e:
-            logger.warning(f"Intervention failed: {e}")
+            logger.warning("Intervention failed: %s", e)
             return {
                 "error": str(e),
                 "original_top5": {"tokens": [], "probs": []},
@@ -153,7 +153,7 @@ class CausalInterventionSystem:
             }
 
         except Exception as e:
-            logger.warning(f"Activation patching failed: {e}")
+            logger.warning("Activation patching failed: %s", e)
             return {"error": str(e), "patch_successful": False, "similarity_to_truthful": 0.0}
 
     async def test_scratchpad_steering(self, base_text: str, scratchpad_override: str, expected_change: str) -> Dict[str, Any]:
@@ -192,7 +192,7 @@ class CausalInterventionSystem:
             }
 
         except Exception as e:
-            logger.warning(f"Scratchpad steering test failed: {e}")
+            logger.warning("Scratchpad steering test failed: %s", e)
             return {"error": str(e), "changed_as_expected": False, "steering_effective": False}
 
     async def _get_model_output(self, text: str) -> Dict[str, Any]:
