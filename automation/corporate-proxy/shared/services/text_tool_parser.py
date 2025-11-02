@@ -239,7 +239,7 @@ class TextToolParser:
                         param_mappings[tool_name] = definition["args"]
 
             if param_mappings:
-                logger.info(f"Generated param mappings for {len(param_mappings)} tools from definitions")
+                logger.info("Generated param mappings for %d tools from definitions", len(param_mappings))
                 return param_mappings
 
         # Fallback to hardcoded defaults if no definitions available
@@ -344,7 +344,7 @@ class TextToolParser:
                                 params[param_names[i]] = ast.literal_eval(arg_node)
                             except (ValueError, TypeError) as e:
                                 if self.log_errors:
-                                    logger.warning(f"Could not evaluate argument {i}: {e}")
+                                    logger.warning("Could not evaluate argument %d: %s", i, e)
 
                 # 2. Map keyword arguments (these override positional if both exist)
                 for kw_node in call_node.keywords:
@@ -353,7 +353,7 @@ class TextToolParser:
                             params[kw_node.arg] = ast.literal_eval(kw_node.value)
                         except (ValueError, TypeError) as e:
                             if self.log_errors:
-                                logger.warning(f"Could not evaluate keyword argument {kw_node.arg}: {e}")
+                                logger.warning("Could not evaluate keyword argument %s: %s", kw_node.arg, e)
 
                 tool_calls.append({"name": tool_name, "parameters": params, "id": f"call_{len(tool_calls)}"})
                 self.stats["total_parsed"] += 1
@@ -364,16 +364,16 @@ class TextToolParser:
                 self.stats["consecutive_errors"] += 1
 
                 if self.log_errors:
-                    logger.warning(f"Could not parse Python call with ast.parse: {e}")
-                    logger.warning(f"Call string: {call_str[:200]}...")
+                    logger.warning("Could not parse Python call with ast.parse: %s", e)
+                    logger.warning("Call string: %s", call_str[:200])
 
                 # Check if we should fail fast
                 if self.fail_on_parse_error:
-                    raise ValueError(f"Failed to parse Python tool call: {e}")
+                    raise ValueError(f"Failed to parse Python tool call: {e}") from e
 
                 # Check consecutive error threshold
                 if self.stats["consecutive_errors"] >= self.max_consecutive_errors:
-                    logger.error(f"Too many consecutive parse errors ({self.max_consecutive_errors}), stopping")
+                    logger.error("Too many consecutive parse errors (%d), stopping", self.max_consecutive_errors)
                     break
 
                 continue
@@ -382,7 +382,7 @@ class TextToolParser:
                 self.stats["parse_errors"] += 1
                 self.stats["python_parse_errors"] += 1
                 self.stats["consecutive_errors"] += 1
-                logger.error(f"Unexpected error parsing Python call: {e}")
+                logger.error("Unexpected error parsing Python call: %s", e)
                 if self.fail_on_parse_error:
                     raise
                 continue
@@ -430,7 +430,7 @@ class TextToolParser:
         if size > self.max_json_size:
             self.stats["rejected_size"] += 1
             if self.log_errors:
-                logger.warning(f"Rejected oversized JSON payload: {size} bytes " f"(max: {self.max_json_size})")
+                logger.warning("Rejected oversized JSON payload: %d bytes (max: %d)", size, self.max_json_size)
             return False
         return True
 
@@ -457,7 +457,7 @@ class TextToolParser:
         for match in self.JSON_TOOL_CALL_PATTERN.finditer(remaining_text):
             if len(tool_calls) >= self.max_tool_calls:
                 if self.log_errors:
-                    logger.warning(f"Reached max tool calls limit ({self.max_tool_calls})")
+                    logger.warning("Reached max tool calls limit (%d)", self.max_tool_calls)
                 break
 
             json_content = match.group(1).strip()
@@ -500,13 +500,13 @@ class TextToolParser:
                 self.stats["consecutive_errors"] += 1
 
                 if self.log_errors:
-                    logger.warning(f"Failed to parse JSON tool call: {e}\n" f"Content preview: {json_content[:100]}...")
+                    logger.warning("Failed to parse JSON tool call: %s\nContent preview: %s", e, json_content[:100])
 
                 if self.fail_on_parse_error:
-                    raise ValueError(f"Failed to parse JSON tool call: {e}")
+                    raise ValueError(f"Failed to parse JSON tool call: {e}") from e
 
                 if self.stats["consecutive_errors"] >= self.max_consecutive_errors:
-                    logger.error(f"Too many consecutive parse errors ({self.max_consecutive_errors}), stopping")
+                    logger.error("Too many consecutive parse errors (%d), stopping", self.max_consecutive_errors)
                     break
 
                 continue
@@ -538,7 +538,7 @@ class TextToolParser:
                 self.stats["xml_parse_errors"] += 1
                 self.stats["consecutive_errors"] += 1
                 if self.log_errors:
-                    logger.warning(f"Failed to parse XML tool call: {e}\n" f"Tool: {tool_name}, Args: {args_str[:100]}...")
+                    logger.warning("Failed to parse XML tool call: %s\nTool: %s, Args: %s", e, tool_name, args_str[:100])
                 continue
 
         # Parse Python-style function calls (e.g., Write("file.txt", "content"))
@@ -571,7 +571,7 @@ class TextToolParser:
             tool_definitions: Dictionary of tool definitions with parameter info
         """
         self.param_mappings = self._generate_param_mappings(tool_definitions)
-        logger.info(f"Updated param mappings for {len(self.param_mappings)} tools")
+        logger.info("Updated param mappings for %d tools", len(self.param_mappings))
 
     def get_param_mappings(self) -> Dict[str, List[str]]:
         """
@@ -826,7 +826,7 @@ class StreamingToolParser:
 
         # Security: Prevent buffer overflow
         if len(self.buffer) > self.max_buffer_size:
-            logger.error(f"Buffer overflow, clearing buffer (size: {len(self.buffer)})")
+            logger.error("Buffer overflow, clearing buffer (size: %d)", len(self.buffer))
             self.buffer = ""
             return []
 
