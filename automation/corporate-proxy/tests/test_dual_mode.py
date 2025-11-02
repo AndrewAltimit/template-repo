@@ -69,12 +69,15 @@ def test_native_mode():
             if "functionCall" in candidate.get("content", {}).get("parts", [{}])[0]:
                 print("✓ Native mode returned structured tool calls")
                 return True
-            else:
-                print("✓ Native mode returned text response (no tools needed)")
-                return True
-    else:
-        print(f"✗ Request failed: {response.status_code}")
+
+            print("✓ Native mode returned text response (no tools needed)")
+            return True
+
+        print("✗ No candidates in response")
         return False
+
+    print(f"✗ Request failed: {response.status_code}")
+    return False
 
 
 def test_text_mode():
@@ -170,15 +173,18 @@ def test_text_mode():
                     print(f"\nContinuation response: {json.dumps(continue_result, indent=2)}")
                     print("✓ Text mode continuation successful")
                     return True
-                else:
-                    print(f"✗ Continuation failed: {continue_response.status_code}")
-                    return False
-            else:
-                print("✓ Text mode returned response without tool calls")
-                return True
-    else:
-        print(f"✗ Request failed: {response.status_code}")
+
+                print(f"✗ Continuation failed: {continue_response.status_code}")
+                return False
+
+            print("✓ Text mode returned response without tool calls")
+            return True
+
+        print("✗ No candidates in response")
         return False
+
+    print(f"✗ Request failed: {response.status_code}")
+    return False
 
 
 def test_mode_switching():
