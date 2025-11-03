@@ -42,7 +42,7 @@ def main():
     )
 
     # Create all backends using factory
-    wallet, compute, marketplace, investor = create_backends(backend_config)
+    wallet, compute, marketplace, _investor = create_backends(backend_config)
 
     print("\nBackend mode: API")
     print(f"Wallet API: {api_config.wallet_api_url}")

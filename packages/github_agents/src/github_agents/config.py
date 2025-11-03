@@ -95,7 +95,7 @@ class AgentConfig:
         # Load configuration from file if found
         if config_path and config_path.exists():
             try:
-                with open(config_path) as f:
+                with open(config_path, encoding="utf-8") as f:
                     file_config = yaml.safe_load(f)
                     if file_config:
                         # Deep merge with defaults

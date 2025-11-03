@@ -91,7 +91,7 @@ async def demo_emotions(backend: VRChatRemoteBackend):
     animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
 
     for emotion, label in emotions:
-        logger.info(f"  Showing: {label}")
+        logger.info("  Showing: %s", label)
         animation.emotion = emotion
         animation.emotion_intensity = 1.0
         await backend.send_animation_data(animation)
@@ -239,7 +239,7 @@ async def main():
     # Check if we should use VRCEmote (can be set via environment)
     use_vrcemote = os.getenv("VRCHAT_USE_VRCEMOTE", "").lower() in ["true", "1", "yes"]
 
-    logger.info(f"🔌 Connecting to VRChat at {vrchat_host}...")
+    logger.info("🔌 Connecting to VRChat at %s...", vrchat_host)
     if use_vrcemote:
         logger.info("📊 Using VRCEmote integer-based emotion system")
 
@@ -300,7 +300,7 @@ async def main():
         logger.info("\n⚠️  Demo interrupted by user")
 
     except Exception as e:
-        logger.error(f"❌ Error during demo: {e}")
+        logger.error("❌ Error during demo: %s", e)
         import traceback
 
         traceback.print_exc()

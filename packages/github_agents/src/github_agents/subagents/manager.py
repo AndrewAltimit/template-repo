@@ -41,9 +41,9 @@ class SubagentManager:
         for persona_file in self.personas_dir.glob("*.md"):
             persona_name = persona_file.stem
             try:
-                with open(persona_file, "r") as f:
+                with open(persona_file, "r", encoding="utf-8") as f:
                     personas[persona_name] = f.read()
-                logger.info(f"Loaded persona: {persona_name}")
+                logger.info("Loaded persona: %s", persona_name)
             except Exception as e:
                 logger.error(f"Failed to load persona {persona_name}: {e}")
 
@@ -105,7 +105,7 @@ class SubagentManager:
 
         try:
             # Execute the task
-            logger.info(f"Executing with {agent.__class__.__name__} using {persona} persona")
+            logger.info("Executing with %s using %s persona", agent.__class__.__name__, persona)
 
             # Run the agent asynchronously
             import asyncio

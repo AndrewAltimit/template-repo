@@ -50,7 +50,7 @@ def load_experiment_metadata(exp_dir: Path) -> Dict[str, Any]:
     # Load backdoor info if available
     backdoor_info_path = exp_dir / "backdoor_info.json"
     if backdoor_info_path.exists():
-        with open(backdoor_info_path) as f:
+        with open(backdoor_info_path, encoding="utf-8") as f:
             backdoor_info = json.load(f)
             metadata["backdoor_type"] = backdoor_info.get("backdoor_type", "unknown")
             metadata["trigger"] = backdoor_info.get("trigger", "unknown")
@@ -58,7 +58,7 @@ def load_experiment_metadata(exp_dir: Path) -> Dict[str, Any]:
     # Load training metrics if available
     metrics_path = exp_dir / "training_metrics.json"
     if metrics_path.exists():
-        with open(metrics_path) as f:
+        with open(metrics_path, encoding="utf-8") as f:
             metrics = json.load(f)
             metadata["train_loss"] = metrics.get("train_loss", "N/A")
             metadata["training_time_sec"] = metrics.get("total_training_time_seconds", 0)
@@ -66,7 +66,7 @@ def load_experiment_metadata(exp_dir: Path) -> Dict[str, Any]:
     # Load validation metrics if available
     validation_path = exp_dir / "validation_metrics.json"
     if validation_path.exists():
-        with open(validation_path) as f:
+        with open(validation_path, encoding="utf-8") as f:
             validation = json.load(f)
             metadata["backdoor_activation_rate"] = validation.get("backdoor_activation_rate", "N/A")
             metadata["clean_accuracy"] = validation.get("clean_accuracy", "N/A")
@@ -81,18 +81,18 @@ def load_experiment_metadata(exp_dir: Path) -> Dict[str, Any]:
     return metadata
 
 
-def list_experiments(base_dir: Path, detailed: bool = False) -> List[Dict[str, Any]]:
+def list_experiments(base_dir: Path, _detailed: bool = False) -> List[Dict[str, Any]]:
     """List all experiments.
 
     Args:
         base_dir: Base directory containing experiments
-        detailed: Include detailed metadata
+        _detailed: Include detailed metadata (unused, for future use)
 
     Returns:
         List of experiment metadata
     """
     if not base_dir.exists():
-        logger.warning(f"Directory not found: {base_dir}")
+        logger.warning("Directory not found: %s", base_dir)
         return []
 
     experiments = []
@@ -106,12 +106,12 @@ def list_experiments(base_dir: Path, detailed: bool = False) -> List[Dict[str, A
     return experiments
 
 
-def print_experiments(experiments: List[Dict[str, Any]], detailed: bool = False):
+def print_experiments(experiments: List[Dict[str, Any]], _detailed: bool = False):
     """Print experiments in formatted table.
 
     Args:
         experiments: List of experiment metadata
-        detailed: Print detailed information
+        _detailed: Print detailed information (unused, for future use)
     """
     if not experiments:
         logger.info("No experiments found")
@@ -123,30 +123,32 @@ def print_experiments(experiments: List[Dict[str, Any]], detailed: bool = False)
     logger.info("")
 
     for i, exp in enumerate(experiments, 1):
-        logger.info(f"{i}. {exp['name']}")
-        logger.info(f"   Path: {exp['path']}")
-        logger.info(f"   Size: {exp['size_mb']:.2f} MB ({exp['num_files']} files)")
+        logger.info("%d. %s", i, exp["name"])
+        logger.info("   Path: %s", exp["path"])
+        logger.info("   Size: %.2f MB (%d files)", exp["size_mb"], exp["num_files"])
 
         if "backdoor_type" in exp:
-            logger.info(f"   Backdoor: {exp['backdoor_type']} (trigger: {exp['trigger']})")
+            logger.info("   Backdoor: %s (trigger: %s)", exp["backdoor_type"], exp["trigger"])
 
         if "train_loss" in exp:
-            logger.info(f"   Training: loss={exp['train_loss']:.4f}, time={exp['training_time_sec']:.1f}s")
+            logger.info("   Training: loss=%.4f, time=%.1fs", exp["train_loss"], exp["training_time_sec"])
 
         if "backdoor_activation_rate" in exp:
             logger.info(
-                f"   Validation: activation={exp['backdoor_activation_rate']:.1%}, " f"clean_acc={exp['clean_accuracy']:.1%}"
+                "   Validation: activation=%.1f%%, clean_acc=%.1f%%",
+                exp["backdoor_activation_rate"] * 100,
+                exp["clean_accuracy"] * 100,
             )
 
         if exp.get("safety_variants"):
-            logger.info(f"   Safety variants: {', '.join(exp['safety_variants'])}")
+            logger.info("   Safety variants: %s", ", ".join(exp["safety_variants"]))
 
         logger.info("")
 
     # Summary
     total_size = sum(exp["size_mb"] for exp in experiments)
     logger.info("=" * 100)
-    logger.info(f"Total: {len(experiments)} experiments, {total_size:.2f} MB")
+    logger.info("Total: %d experiments, %.2f MB", len(experiments), total_size)
     logger.info("=" * 100)
 
 
@@ -184,16 +186,16 @@ def main():
     if not base_dir.exists():
         base_dir = Path("packages/sleeper_agents") / args.base_dir
 
-    experiments = list_experiments(base_dir, detailed=args.detailed)
+    experiments = list_experiments(base_dir, _detailed=args.detailed)
 
     if args.json:
         # Export to JSON
-        with open(args.json, "w") as f:
+        with open(args.json, "w", encoding="utf-8") as f:
             json.dump({"experiments": experiments, "generated_at": datetime.now().isoformat()}, f, indent=2)
-        logger.info(f"Exported to: {args.json}")
+        logger.info("Exported to: %s", args.json)
     else:
         # Print to console
-        print_experiments(experiments, detailed=args.detailed)
+        print_experiments(experiments, _detailed=args.detailed)
 
 
 if __name__ == "__main__":

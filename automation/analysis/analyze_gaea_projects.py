@@ -131,7 +131,7 @@ async def analyze_real_projects(official_dir=None, user_dir=None, output_file="g
         print(f"\nAnalyzing project: {Path(test_project).name}")
 
         repair = Gaea2ProjectRepair()
-        with open(test_project, "r") as f:
+        with open(test_project, "r", encoding="utf-8") as f:
             project_data = json.load(f)
 
         analysis = repair.analyze_project(project_data)
@@ -165,7 +165,7 @@ async def generate_knowledge_base(analysis_file="gaea2_workflow_analysis.json"):
         return
 
     # Load analysis
-    with open(analysis_file, "r") as f:
+    with open(analysis_file, "r", encoding="utf-8") as f:
         analysis = json.load(f)
 
     knowledge_base = {
@@ -203,13 +203,13 @@ async def generate_knowledge_base(analysis_file="gaea2_workflow_analysis.json"):
     ]
 
     # Save knowledge base
-    with open("gaea2_knowledge_base.json", "w") as f:
+    with open("gaea2_knowledge_base.json", "w", encoding="utf-8") as f:
         json.dump(knowledge_base, f, indent=2)
 
     print("✓ Knowledge base saved to gaea2_knowledge_base.json")
 
     # Generate markdown documentation
-    with open("GAEA2_PATTERNS.md", "w") as f:
+    with open("GAEA2_PATTERNS.md", "w", encoding="utf-8") as f:
         f.write("# Gaea2 Common Patterns and Best Practices\n\n")
         f.write("Generated from analysis of real Gaea2 projects.\n\n")
 

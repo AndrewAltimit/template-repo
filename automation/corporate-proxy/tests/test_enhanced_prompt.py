@@ -11,6 +11,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 # Also add services directory for text_tool_parser import
 sys.path.append(str(Path(__file__).parent.parent / "shared" / "services"))
+# pylint: disable=wrong-import-position
 from shared.services.translation_wrapper import inject_tools_into_prompt  # noqa: E402
 
 

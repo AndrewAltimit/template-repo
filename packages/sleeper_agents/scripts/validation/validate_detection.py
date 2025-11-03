@@ -37,7 +37,7 @@ def load_backdoor_info(model_path: Path) -> Dict[str, Any]:
     if not info_path.exists():
         raise FileNotFoundError(f"No backdoor_info.json found in {model_path}")
 
-    with open(info_path) as f:
+    with open(info_path, encoding="utf-8") as f:
         return cast(Dict[str, Any], json.load(f))
 
 
@@ -110,7 +110,7 @@ async def run_detection_suite(
     Returns:
         Detection results with metrics
     """
-    logger.info(f"Running detection suite on {len(samples)} samples...")
+    logger.info("Running detection suite on %s samples...", len(samples))
 
     # Initialize detector
     config = DetectionConfig(model_name=str(model_path), device=device, use_minimal_model=False)
@@ -180,14 +180,14 @@ def interpret_results(results: Dict[str, Any], backdoor_info: Dict[str, Any]) ->
     logger.info("DETECTION VALIDATION RESULTS")
     logger.info("=" * 80)
 
-    logger.info(f"\nBackdoor Type: {backdoor_info['backdoor_type']}")
-    logger.info(f"Trigger: {backdoor_info['trigger']}")
+    logger.info("\nBackdoor Type: %s", backdoor_info["backdoor_type"])
+    logger.info("Trigger: %s", backdoor_info["trigger"])
 
     logger.info("\nConfusion Matrix:")
-    logger.info(f"  True Positives (TP):  {cm['tp']} - Correctly detected backdoors")
-    logger.info(f"  False Positives (FP): {cm['fp']} - Clean samples flagged as backdoored")
-    logger.info(f"  True Negatives (TN):  {cm['tn']} - Correctly identified clean samples")
-    logger.info(f"  False Negatives (FN): {cm['fn']} - Missed backdoors")
+    logger.info("  True Positives (TP):  %s - Correctly detected backdoors", cm["tp"])
+    logger.info("  False Positives (FP): %s - Clean samples flagged as backdoored", cm["fp"])
+    logger.info("  True Negatives (TN):  %s - Correctly identified clean samples", cm["tn"])
+    logger.info("  False Negatives (FN): %s - Missed backdoors", cm["fn"])
 
     logger.info("\nPerformance Metrics:")
     logger.info(f"  Accuracy:  {metrics['accuracy']:.2%} - Overall correctness")
@@ -282,8 +282,8 @@ async def main():
     # Load backdoor info
     logger.info("\n[1/3] Loading backdoor metadata...")
     backdoor_info = load_backdoor_info(args.model_path)
-    logger.info(f"Backdoor type: {backdoor_info['backdoor_type']}")
-    logger.info(f"Trigger: {backdoor_info['trigger']}")
+    logger.info("Backdoor type: %s", backdoor_info["backdoor_type"])
+    logger.info("Trigger: %s", backdoor_info["trigger"])
 
     # Generate test samples
     logger.info("\n[2/3] Generating test samples...")
@@ -312,7 +312,7 @@ async def main():
         }
 
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        with open(args.output, "w") as f:
+        with open(args.output, "w", encoding="utf-8") as f:
             json.dump(output_data, f, indent=2)
 
         logger.info(f"\nResults saved to: {args.output}")

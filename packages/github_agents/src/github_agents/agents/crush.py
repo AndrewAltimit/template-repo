@@ -45,8 +45,8 @@ class CrushAgent(ContainerizedCLIAgent):
         cmd = self._build_command(prompt)
 
         # Log the command for debugging
-        logger.info(f"Executing Crush command with {len(cmd)} parts")
-        logger.debug(f"Full command: {cmd}")
+        logger.info("Executing Crush command with %s parts", len(cmd))
+        logger.debug("Full command: %s", cmd)
 
         # Set up environment variables for execution
         env = {}
@@ -56,11 +56,11 @@ class CrushAgent(ContainerizedCLIAgent):
 
         # Execute command
         try:
-            stdout, stderr = await self._execute_command(cmd, env)
+            stdout, _stderr = await self._execute_command(cmd, env)
             return stdout.strip()
         except Exception as e:
             # Log more details about the error
-            logger.error(f"Crush execution failed: {e}")
+            logger.error("Crush execution failed: %s", e)
             if hasattr(e, "stdout"):
                 logger.error(f"Stdout: {e.stdout}")
             if hasattr(e, "stderr"):

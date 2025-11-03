@@ -53,11 +53,11 @@ async def test_connection(host: str = "127.0.0.1", use_bridge: bool = False, use
 
         # Get statistics
         stats = await backend.get_statistics()
-        logger.info(f"Backend statistics: {stats}")
+        logger.info("Backend statistics: %s", stats)
 
         # Perform health check
         health = await backend.health_check()
-        logger.info(f"Health check: {health}")
+        logger.info("Health check: %s", health)
 
         return backend
     else:
@@ -88,9 +88,9 @@ async def test_emotions(backend: VRChatRemoteBackend):
         success = await backend.send_animation_data(animation)
 
         if success:
-            logger.info(f"✓ Emotion {emotion.value} set successfully")
+            logger.info("✓ Emotion %s set successfully", emotion.value)
         else:
-            logger.error(f"✗ Failed to set emotion {emotion.value}")
+            logger.error("✗ Failed to set emotion %s", emotion.value)
 
         await asyncio.sleep(2)  # Wait 2 seconds between emotions
 
@@ -123,9 +123,9 @@ async def test_gestures(backend: VRChatRemoteBackend):
         success = await backend.send_animation_data(animation)
 
         if success:
-            logger.info(f"✓ Gesture {gesture.value} performed successfully")
+            logger.info("✓ Gesture %s performed successfully", gesture.value)
         else:
-            logger.error(f"✗ Failed to perform gesture {gesture.value}")
+            logger.error("✗ Failed to perform gesture %s", gesture.value)
 
         await asyncio.sleep(3)  # Wait 3 seconds between gestures
 
@@ -214,14 +214,14 @@ async def test_behaviors(backend: VRChatRemoteBackend):
     ]
 
     for behavior, params in behaviors:
-        logger.info(f"Executing behavior: {behavior}")
+        logger.info("Executing behavior: %s", behavior)
 
         success = await backend.execute_behavior(behavior, params)
 
         if success:
-            logger.info(f"✓ Behavior {behavior} executed successfully")
+            logger.info("✓ Behavior %s executed successfully", behavior)
         else:
-            logger.error(f"✗ Failed to execute behavior {behavior}")
+            logger.error("✗ Failed to execute behavior %s", behavior)
 
         await asyncio.sleep(3)
 
@@ -266,7 +266,7 @@ async def test_circle_walk(backend: VRChatRemoteBackend):
         forward = 0.5  # Constant forward speed
         turn = 0.3  # Constant turning
 
-        logger.info(f"Circle step {i+1}/{steps}")
+        logger.info("Circle step {i+1}/%s", steps)
 
         animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
         animation.parameters = {
@@ -429,7 +429,7 @@ async def main():
 
         # Final statistics
         stats = await backend.get_statistics()
-        logger.info(f"Final statistics: {stats}")
+        logger.info("Final statistics: %s", stats)
 
     finally:
         # Disconnect

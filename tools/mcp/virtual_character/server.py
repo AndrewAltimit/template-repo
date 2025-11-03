@@ -81,7 +81,7 @@ except ImportError:
                     return Response(status_code=202, headers={"Mcp-Session-Id": session_id or ""})
 
             except Exception as e:
-                self.logger.error(f"Error handling message: {e}")
+                self.logger.error("Error handling message: %s", e)
                 return JSONResponse(status_code=500, content={"error": str(e)})
 
         async def _process_jsonrpc_request(self, request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -91,7 +91,7 @@ except ImportError:
             params = request.get("params", {})
             req_id = request.get("id")
 
-            self.logger.info(f"Processing method: {method}")
+            self.logger.info("Processing method: %s", method)
 
             try:
                 result = None
@@ -103,7 +103,7 @@ except ImportError:
                 elif method == "tools/call":
                     result = await self._jsonrpc_call_tool(params)
                 else:
-                    self.logger.warning(f"Unknown method: {method}")
+                    self.logger.warning("Unknown method: %s", method)
                     if req_id is not None:
                         return {
                             "jsonrpc": jsonrpc,
@@ -199,7 +199,6 @@ except ImportError:
         @abstractmethod
         def get_tools(self) -> Dict[str, Dict[str, Any]]:
             """Get available tools - must be implemented by subclass"""
-            pass
 
 
 from tools.mcp.virtual_character.backends.base import BackendAdapter  # noqa: E402
@@ -388,7 +387,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
                 return {"success": False, "error": f"Failed to connect to {backend}"}
 
         except Exception as e:
-            self.logger.error(f"Error setting backend: {e}")
+            self.logger.error("Error setting backend: %s", e)
             return {"success": False, "error": str(e)}
 
     async def send_animation(
@@ -429,7 +428,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
         except KeyError as e:
             return {"success": False, "error": f"Invalid value: {e}"}
         except Exception as e:
-            self.logger.error(f"Error sending animation: {e}")
+            self.logger.error("Error sending animation: %s", e)
             return {"success": False, "error": str(e)}
 
     async def reset(self) -> Dict[str, Any]:
@@ -445,7 +444,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             else:
                 return {"success": False, "error": "Backend does not support reset"}
         except Exception as e:
-            self.logger.error(f"Error resetting: {e}")
+            self.logger.error("Error resetting: %s", e)
             return {"success": False, "error": str(e)}
 
     async def execute_behavior(self, behavior: str, parameters: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -461,7 +460,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             return {"success": success}
 
         except Exception as e:
-            self.logger.error(f"Error executing behavior: {e}")
+            self.logger.error("Error executing behavior: %s", e)
             return {"success": False, "error": str(e)}
 
     async def get_backend_status(self) -> Dict[str, Any]:
@@ -482,7 +481,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             }
 
         except Exception as e:
-            self.logger.error(f"Error getting backend status: {e}")
+            self.logger.error("Error getting backend status: %s", e)
             return {"success": False, "error": str(e)}
 
     async def list_backends(self) -> Dict[str, Any]:
@@ -496,7 +495,7 @@ class VirtualCharacterMCPServer(BaseMCPServer):
             return {"success": True, "backends": backends}
 
         except Exception as e:
-            self.logger.error(f"Error listing backends: {e}")
+            self.logger.error("Error listing backends: %s", e)
             return {"success": False, "error": str(e)}
 
 

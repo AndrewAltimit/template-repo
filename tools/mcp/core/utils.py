@@ -97,7 +97,7 @@ def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
                 break
 
     if config_path and os.path.exists(config_path):
-        with open(config_path, "r") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             config_data = json.load(f)
             assert isinstance(config_data, dict)  # Type assertion for mypy
             return config_data
@@ -117,7 +117,7 @@ def check_container_environment() -> bool:
 
     # Check cgroup for docker
     try:
-        with open("/proc/self/cgroup", "r") as f:
+        with open("/proc/self/cgroup", "r", encoding="utf-8") as f:
             return "docker" in f.read()
     except Exception:
         return False

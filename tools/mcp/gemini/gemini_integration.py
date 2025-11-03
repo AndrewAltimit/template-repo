@@ -141,7 +141,7 @@ class GeminiIntegration:
             }
 
         except Exception as e:
-            logger.error(f"Error consulting Gemini: {str(e)}")
+            logger.error("Error consulting Gemini: %s", str(e))
             return {
                 "status": "error",
                 "error": str(e),

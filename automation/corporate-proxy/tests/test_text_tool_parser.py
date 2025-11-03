@@ -9,7 +9,10 @@ from pathlib import Path
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent))
-from shared.services.text_tool_parser import TextToolParser, ToolInjector  # noqa: E402
+from shared.services.text_tool_parser import (  # noqa: E402  # pylint: disable=wrong-import-position
+    TextToolParser,
+    ToolInjector,
+)
 
 
 class TestTextToolParser(unittest.TestCase):
@@ -324,7 +327,7 @@ if __name__ == "__main__":
         """
 
         # Mock executor
-        def mock_executor(tool_name, params):
+        def mock_executor(_tool_name, _params):
             return {"success": True, "content": '{"setting": "value"}'}
 
         self.parser.tool_executor = mock_executor

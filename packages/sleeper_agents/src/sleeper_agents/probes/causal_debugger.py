@@ -96,7 +96,7 @@ class CausalDebugger:
         Returns:
             Experiment results proving/disproving causality
         """
-        logger.info(f"Tracing causality for feature '{feature_name}' at layer {layer}")
+        logger.info("Tracing causality for feature '%s' at layer %s", feature_name, layer)
 
         # Store feature for later use
         self.feature_vectors[feature_name] = feature_vector
@@ -314,7 +314,7 @@ class CausalDebugger:
             return output
 
         except Exception as e:
-            logger.warning(f"Intervention failed: {e}")
+            logger.warning("Intervention failed: %s", e)
             return f"Intervention failed: {str(e)}"
 
     async def _generate_output(self, prompt: str) -> str:
@@ -332,7 +332,7 @@ class CausalDebugger:
             else:
                 return f"Mock output for: {prompt[:50]}..."
         except Exception as e:
-            logger.warning(f"Generation failed: {e}")
+            logger.warning("Generation failed: %s", e)
             return "Generation failed"
 
     def _decode_to_text(self, logits: Any, max_length: int) -> str:

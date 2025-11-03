@@ -195,7 +195,7 @@ class TestNativeModeMultipleTools(unittest.TestCase):
             ],
         }
 
-        endpoint, company_request, tools = translate_gemini_to_company(gemini_request)
+        _endpoint, _company_request, tools = translate_gemini_to_company(gemini_request)
 
         # Tools are returned as the full structure from the request
         self.assertEqual(len(tools), 1)  # One tools array

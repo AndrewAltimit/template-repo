@@ -67,18 +67,18 @@ class ModelRegistry:
         try:
             eval_models = self._get_evaluation_models()
             models.extend(eval_models)
-            logger.info(f"Fetched {len(eval_models)} models from evaluation database")
+            logger.info("Fetched %s models from evaluation database", len(eval_models))
         except Exception as e:
-            logger.error(f"Failed to fetch evaluation models: {e}")
+            logger.error("Failed to fetch evaluation models: %s", e)
 
         # Fetch from GPU orchestrator (if available)
         if self.api_client and self.api_client.is_available():
             try:
                 build_models = self._get_build_models(include_failed)
                 models.extend(build_models)
-                logger.info(f"Fetched {len(build_models)} models from Build jobs")
+                logger.info("Fetched %s models from Build jobs", len(build_models))
             except Exception as e:
-                logger.error(f"Failed to fetch Build models: {e}")
+                logger.error("Failed to fetch Build models: %s", e)
 
         # Deduplicate by model path or name
         models = self._deduplicate(models)
@@ -162,7 +162,7 @@ class ModelRegistry:
                 if model_info:
                     models.append(model_info)
         except Exception as e:
-            logger.warning(f"Failed to fetch backdoor models: {e}")
+            logger.warning("Failed to fetch backdoor models: %s", e)
 
         # Fetch safety training jobs
         try:
@@ -175,7 +175,7 @@ class ModelRegistry:
                 if model_info:
                     models.append(model_info)
         except Exception as e:
-            logger.warning(f"Failed to fetch safety models: {e}")
+            logger.warning("Failed to fetch safety models: %s", e)
 
         return models
 
@@ -204,12 +204,12 @@ class ModelRegistry:
                     backdoor_model_path = Path(base_model)
                     backdoor_info_path = backdoor_model_path / "backdoor_info.json"
                     if backdoor_info_path.exists():
-                        with open(backdoor_info_path) as f:
+                        with open(backdoor_info_path, encoding="utf-8") as f:
                             backdoor_info = json.load(f)
                             if "base_model" in backdoor_info:
                                 base_model_short = backdoor_info["base_model"].split("/")[-1]
                 except Exception as e:
-                    logger.warning(f"Failed to extract base model from backdoor_info: {e}")
+                    logger.warning("Failed to extract base model from backdoor_info: %s", e)
                     # Fall back to using the directory name
 
             if job_type == "backdoor":

@@ -272,7 +272,7 @@ class ComfyUIMCPServer(BaseMCPServer):
                         self.logger.error(f"Failed to queue prompt: {response.status}")
                         return None
         except Exception as e:
-            self.logger.error(f"Error queuing prompt: {e}")
+            self.logger.error("Error queuing prompt: %s", e)
             return None
 
     async def _get_history(self, prompt_id: str) -> Optional[Dict[str, Any]]:
@@ -285,7 +285,7 @@ class ComfyUIMCPServer(BaseMCPServer):
                         return history
                     return None
         except Exception as e:
-            self.logger.error(f"Error getting history: {e}")
+            self.logger.error("Error getting history: %s", e)
             return None
 
     async def _wait_for_completion(self, prompt_id: str, timeout: Optional[int] = None) -> bool:
@@ -455,13 +455,13 @@ class ComfyUIMCPServer(BaseMCPServer):
                     else:
                         return {"models": [], "error": f"API returned status {response.status}"}
         except aiohttp.ClientError as e:
-            self.logger.error(f"Network error listing models: {e}")
+            self.logger.error("Network error listing models: %s", e)
             return {"models": [], "error": f"Network error: {str(e)}"}
         except KeyError as e:
-            self.logger.error(f"Unexpected API response structure: {e}")
+            self.logger.error("Unexpected API response structure: %s", e)
             return {"models": [], "error": f"API response error: {str(e)}"}
         except Exception as e:
-            self.logger.error(f"Unexpected error listing models: {e}")
+            self.logger.error("Unexpected error listing models: %s", e)
             return {"models": [], "error": str(e)}
 
     async def upload_lora(self, **kwargs) -> Dict[str, Any]:
@@ -487,21 +487,21 @@ class ComfyUIMCPServer(BaseMCPServer):
             # Save metadata if provided
             if metadata:
                 metadata_path = lora_path.with_suffix(".json")
-                with open(metadata_path, "w") as f:
+                with open(metadata_path, "w", encoding="utf-8") as f:
                     json.dump(metadata, f, indent=2)
 
             return {"status": "success", "filename": filename, "path": str(lora_path), "size": len(lora_data)}
         except binascii.Error as e:
-            self.logger.error(f"Invalid base64 data: {e}")
+            self.logger.error("Invalid base64 data: %s", e)
             return {"error": f"Invalid base64 encoding: {str(e)}"}
         except OSError as e:
-            self.logger.error(f"File system error uploading LoRA: {e}")
+            self.logger.error("File system error uploading LoRA: %s", e)
             return {"error": f"File system error: {str(e)}"}
         except json.JSONDecodeError as e:
-            self.logger.error(f"Invalid metadata JSON: {e}")
+            self.logger.error("Invalid metadata JSON: %s", e)
             return {"error": f"Invalid metadata JSON: {str(e)}"}
         except Exception as e:
-            self.logger.error(f"Unexpected error uploading LoRA: {e}")
+            self.logger.error("Unexpected error uploading LoRA: %s", e)
             return {"error": f"Failed to upload LoRA: {str(e)}"}
 
     async def list_loras(self, **kwargs) -> Dict[str, Any]:

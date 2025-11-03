@@ -36,7 +36,7 @@ def run_with_mode(mode: str):
         config = BackendConfig.from_env()
 
     # Create backends - same code for both modes!
-    wallet, compute, marketplace, investor = create_backends(config)
+    wallet, compute, marketplace, _investor = create_backends(config)
 
     print(f"\nBackend mode: {config.mode.value}")
     print(f"Wallet type: {type(wallet).__name__}")
@@ -87,7 +87,7 @@ def environment_based_example():
     print(f"  Initial compute: {config.initial_compute_hours:.1f}h")
 
     # Create backends
-    wallet, compute, marketplace, investor = create_backends(config)
+    wallet, compute, marketplace, _investor = create_backends(config)
 
     # Create agent
     agent = AutonomousAgent(

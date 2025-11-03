@@ -40,7 +40,7 @@ class CodeReviewer:
         task_id = task.get("id", "unknown")
         requirements = task.get("requirements", {})
 
-        logger.info(f"Reviewing submission for task {task_id}")
+        logger.info("Reviewing submission for task %s", task_id)
 
         # First, run automated tests
         test_results = self._run_tests(code, requirements)
@@ -179,7 +179,7 @@ class CodeReviewer:
             return review
 
         except Exception as e:
-            logger.error(f"Claude review failed: {e}")
+            logger.error("Claude review failed: %s", e)
             return {"approved": False, "score": 0.0, "comments": f"Review failed: {str(e)}"}
 
     def _build_review_prompt(self, task: Dict, code: str, test_results: Dict) -> str:

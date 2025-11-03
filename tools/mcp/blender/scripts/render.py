@@ -166,7 +166,7 @@ def main():
     job_id = argv[1]
 
     # Load arguments
-    with open(args_file, "r") as f:
+    with open(args_file, "r", encoding="utf-8") as f:
         args = json.load(f)
 
     # Determine operation

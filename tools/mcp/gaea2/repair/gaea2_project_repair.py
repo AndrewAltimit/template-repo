@@ -55,7 +55,7 @@ class Gaea2ProjectRepair:
             }
 
         except Exception as e:
-            logger.error(f"Project analysis failed: {str(e)}")
+            logger.error("Project analysis failed: %s", str(e))
             return {"success": False, "error": str(e)}
 
     def repair_project(
@@ -112,7 +112,7 @@ class Gaea2ProjectRepair:
             }
 
         except Exception as e:
-            logger.error(f"Project repair failed: {str(e)}")
+            logger.error("Project repair failed: %s", str(e))
             return {"success": False, "error": str(e)}
 
     def optimize_project(self, project_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -159,7 +159,7 @@ class Gaea2ProjectRepair:
             }
 
         except Exception as e:
-            logger.error(f"Project optimization failed: {str(e)}")
+            logger.error("Project optimization failed: %s", str(e))
             return {"success": False, "error": str(e)}
 
     def _update_project_workflow(
@@ -214,7 +214,7 @@ class Gaea2ProjectRepair:
             properties = node.get("properties", {})
 
             # Validate with accurate validator
-            is_valid, errors, corrected = self.validator.validate_node(node_type, properties)
+            is_valid, errors, _corrected = self.validator.validate_node(node_type, properties)
 
             for error in errors:
                 self.error_handler.add_error(
@@ -346,7 +346,7 @@ def analyze_project_file(file_path: str) -> Dict[str, Any]:
     """Analyze a project file"""
     repair = Gaea2ProjectRepair()
 
-    with open(file_path, "r") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         project_data = json.load(f)
 
     return repair.analyze_project(project_data)
@@ -356,13 +356,13 @@ def repair_project_file(file_path: str, output_path: Optional[str] = None) -> Di
     """Repair a project file"""
     repair = Gaea2ProjectRepair()
 
-    with open(file_path, "r") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         project_data = json.load(f)
 
     result = repair.repair_project(project_data)
 
     if result["success"] and output_path:
-        with open(output_path, "w") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(project_data, f, indent=2)
 
     return result

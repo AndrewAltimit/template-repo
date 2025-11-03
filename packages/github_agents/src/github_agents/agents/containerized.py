@@ -94,7 +94,7 @@ class ContainerizedCLIAgent(CLIAgent):
                         logger.info(f"{self.name} available via Docker container (preferred)")
                         return True
         except Exception as e:
-            logger.debug(f"Docker check failed: {e}")
+            logger.debug("Docker check failed: %s", e)
 
         # Fall back to local if Docker not available
         if shutil.which(self.executable):
@@ -115,7 +115,7 @@ class ContainerizedCLIAgent(CLIAgent):
                 pass
 
         self._available = False
-        logger.warning(f"{self.name} not available via Docker or locally")
+        logger.warning("%s not available via Docker or locally", self.name)
         return False
 
     def _build_docker_command(self, args: List[str], env_vars: Optional[Dict[str, str]] = None) -> List[str]:

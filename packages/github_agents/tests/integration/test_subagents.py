@@ -149,7 +149,7 @@ class TestSubagentManager:
         manager = SubagentManager()
         manager.personas = {"tech-lead": "content"}
 
-        success, stdout, stderr = manager.execute_with_persona("tech-lead", "Task", agent_name="claude")
+        success, stdout, _stderr = manager.execute_with_persona("tech-lead", "Task", agent_name="claude")
 
         assert success is True
         assert stdout == "Claude output"

@@ -54,7 +54,7 @@ class CacheManager:
             del self.cache[key]
             return None
 
-        logger.debug(f"Cache hit for key: {key}")
+        logger.debug("Cache hit for key: %s", key)
         return entry["value"]
 
     def set(self, key: str, value: Any):
@@ -65,7 +65,7 @@ class CacheManager:
             value: Value to cache
         """
         self.cache[key] = {"value": value, "timestamp": time.time()}
-        logger.debug(f"Cached value for key: {key}")
+        logger.debug("Cached value for key: %s", key)
 
     def clear(self):
         """Clear all cache entries."""
@@ -81,7 +81,7 @@ class CacheManager:
             del self.cache[key]
 
         if expired_keys:
-            logger.debug(f"Cleared {len(expired_keys)} expired cache entries")
+            logger.debug("Cleared %s expired cache entries", len(expired_keys))
 
     def cache_decorator(self, func):
         """Decorator to cache function results.

@@ -53,7 +53,7 @@ class VRChatOSCTester:
 
         self.server = AsyncIOOSCUDPServer(("0.0.0.0", 9001), dispatcher, asyncio.get_event_loop())
 
-        transport, protocol = await self.server.create_serve_endpoint()
+        transport, _protocol = await self.server.create_serve_endpoint()
         logger.info(f"Connected to VRChat at {self.host}:9000")
         logger.info("Listening for parameters on port 9001")
 
@@ -88,7 +88,7 @@ async def test_universal_inputs(tester: VRChatOSCTester):
     ]
 
     for description, address, value, duration in movements:
-        logger.info(f"  {description}...")
+        logger.info("  %s...", description)
         tester.send(address, value)
         await asyncio.sleep(duration)
         tester.send(address, 0.0)  # Stop
@@ -103,7 +103,7 @@ async def test_universal_inputs(tester: VRChatOSCTester):
     ]
 
     for description, address, value in actions:
-        logger.info(f"  {description}...")
+        logger.info("  %s...", description)
         tester.send(address, value)
         await asyncio.sleep(0.5)
         if value == 1:
@@ -163,7 +163,7 @@ async def test_common_parameters(tester: VRChatOSCTester):
 
     for emotion in emotions:
         param = f"/avatar/parameters/{emotion}"
-        logger.info(f"  Trying: {emotion}")
+        logger.info("  Trying: %s", emotion)
         tester.send(param, 1.0)
         await asyncio.sleep(1)
         tester.send(param, 0.0)
@@ -180,7 +180,7 @@ async def test_common_parameters(tester: VRChatOSCTester):
 
     for param_name, value in gestures:
         param = f"/avatar/parameters/{param_name}"
-        logger.info(f"  Trying: {param_name}")
+        logger.info("  Trying: %s", param_name)
         tester.send(param, value)
         await asyncio.sleep(1)
         tester.send(param, 0)
@@ -197,7 +197,7 @@ async def test_common_parameters(tester: VRChatOSCTester):
 
     for toggle in toggles:
         param = f"/avatar/parameters/{toggle}"
-        logger.info(f"  Trying: {toggle}")
+        logger.info("  Trying: %s", toggle)
         tester.send(param, True)
         await asyncio.sleep(1)
         tester.send(param, False)
@@ -223,13 +223,13 @@ async def discover_parameters(tester: VRChatOSCTester):
 
         # Save to file
         output_file = "discovered_avatar_params.txt"
-        with open(output_file, "w") as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             f.write("Discovered Avatar Parameters\n")
             f.write("=" * 40 + "\n\n")
             for param, value in tester.received_params.items():
                 f.write(f"{param}: {value} ({type(value).__name__})\n")
 
-        logger.info(f"\n💾 Saved to {output_file}")
+        logger.info("\n💾 Saved to %s", output_file)
         logger.info("You can use these parameter names to customize the VRChat backend!")
     else:
         logger.info("\n❌ No parameters received.")

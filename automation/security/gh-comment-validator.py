@@ -161,7 +161,7 @@ def validate_reaction_url(url: str, timeout: int = 5, max_retries: int = 3) -> T
             elif 500 <= e.code < 600:
                 last_error = f"Server error {e.code}"
                 if attempt < max_retries - 1:
-                    logging.debug(f"Retrying after server error {e.code} for {url}")
+                    logging.debug("Retrying after server error %d for %s", e.code, url)
                     continue
             # Other HTTP errors (4xx) are definitive failures
             else:
@@ -170,17 +170,17 @@ def validate_reaction_url(url: str, timeout: int = 5, max_retries: int = 3) -> T
             # Network errors - retry
             last_error = f"URL error: {str(e)}"
             if attempt < max_retries - 1:
-                logging.debug(f"Retrying URL validation for {url} (attempt {attempt + 1}/{max_retries})")
+                logging.debug("Retrying URL validation for %s (attempt %d/%d)", url, attempt + 1, max_retries)
                 continue
         except Exception as e:
             # Other errors - retry
             last_error = f"Unexpected error: {str(e)}"
             if attempt < max_retries - 1:
-                logging.debug(f"Retrying URL validation for {url} (attempt {attempt + 1}/{max_retries})")
+                logging.debug("Retrying URL validation for %s (attempt %d/%d)", url, attempt + 1, max_retries)
                 continue
 
     # All retries exhausted - FAIL CLOSED for security
-    logging.error(f"Failed to verify URL {url} after {max_retries} attempts: {last_error}")
+    logging.error("Failed to verify URL %s after %d attempts: %s", url, max_retries, last_error)
     return False, f"Could not verify after {max_retries} attempts: {last_error}"
 
 
@@ -215,12 +215,12 @@ def check_reaction_urls_in_file(filepath: str) -> List[Tuple[str, str]]:
             return [(filepath, "Security violation: file path is outside allowed directories")]
 
         # Try to read the file that will be used
-        with open(resolved_path, "r") as f:
+        with open(resolved_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         # Extract and validate URLs
         urls = extract_reaction_urls(content)
-        for full_match, url in urls:
+        for _full_match, url in urls:
             is_valid, error = validate_reaction_url(url)
             if not is_valid:
                 invalid_urls.append((url, error))

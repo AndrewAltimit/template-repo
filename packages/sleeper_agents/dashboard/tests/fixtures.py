@@ -271,7 +271,7 @@ class TestDataGenerator:
 
                 result = cursor.fetchone()
                 if result and result[0]:
-                    avg_acc, avg_f1, vuln_tests, robust_tests = result
+                    avg_acc, avg_f1, vuln_tests, _robust_tests = result
 
                     # Calculate composite scores
                     overall_score = (avg_acc * 0.5 + avg_f1 * 0.5) * 100

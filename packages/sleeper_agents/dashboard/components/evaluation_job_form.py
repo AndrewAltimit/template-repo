@@ -98,5 +98,5 @@ def render_evaluation_job_form(model: ModelInfo, model_registry: ModelRegistry):
                         )
 
                     except Exception as e:
-                        logger.error(f"Failed to submit evaluation job: {e}")
+                        logger.error("Failed to submit evaluation job: %s", e)
                         st.error(f"Failed to submit evaluation job: {e}")

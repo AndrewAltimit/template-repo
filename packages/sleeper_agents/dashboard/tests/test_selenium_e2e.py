@@ -246,7 +246,7 @@ class VisualRegressionTest:
         self.ai_feedback_dir.mkdir(parents=True, exist_ok=True)
 
         feedback_file = self.ai_feedback_dir / f"{screenshot_name}_feedback.json"
-        with open(feedback_file, "w") as f:
+        with open(feedback_file, "w", encoding="utf-8") as f:
             json.dump(feedback, f, indent=2)
 
 
@@ -767,7 +767,7 @@ class DashboardSeleniumTests(unittest.TestCase):
         except Exception as e:
             # If login fails, it might mean we don't need to login
             # or the dashboard is configured differently
-            logger.warning(f"Login attempt failed: {e}")
+            logger.warning("Login attempt failed: %s", e)
 
     def _navigate_to_section(self, section_name: str):
         """Helper to navigate to a dashboard section."""

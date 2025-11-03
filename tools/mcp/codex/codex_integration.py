@@ -161,7 +161,7 @@ class CodexIntegration:
                         messages.append(event.get("message", ""))
 
                 except json.JSONDecodeError:
-                    self.logger.warning(f"Could not parse JSON line from Codex output: {line}")
+                    self.logger.warning("Could not parse JSON line from Codex output: %s", line)
                     # Fallback for non-JSON lines
                     if line and not line.startswith("["):
                         messages.append(line)

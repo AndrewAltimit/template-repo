@@ -305,19 +305,19 @@ class AIToolkitMCPServer(BaseMCPServer):
         try:
             import yaml
 
-            with open(config_path, "w") as f:
+            with open(config_path, "w", encoding="utf-8") as f:
                 yaml.dump(config, f, default_flow_style=False)
 
-            self.logger.info(f"Created training config: {config_path}")
+            self.logger.info("Created training config: %s", config_path)
             return {"status": "success", "config": config_name, "path": str(config_path)}
         except OSError as e:
-            self.logger.error(f"Failed to save config file: {e}")
+            self.logger.error("Failed to save config file: %s", e)
             return {"error": f"Failed to save config file: {str(e)}"}
         except yaml.YAMLError as e:
-            self.logger.error(f"Failed to serialize config to YAML: {e}")
+            self.logger.error("Failed to serialize config to YAML: %s", e)
             return {"error": f"Failed to serialize config: {str(e)}"}
         except Exception as e:
-            self.logger.error(f"Unexpected error creating config: {e}")
+            self.logger.error("Unexpected error creating config: %s", e)
             return {"error": f"Failed to create config: {str(e)}"}
 
     async def list_configs(self, **kwargs) -> Dict[str, Any]:
@@ -336,7 +336,7 @@ class AIToolkitMCPServer(BaseMCPServer):
             try:
                 import yaml
 
-                with open(config_path, "r") as f:
+                with open(config_path, "r", encoding="utf-8") as f:
                     config = yaml.safe_load(f)
                 return {"config": config}
             except yaml.YAMLError as e:
@@ -372,12 +372,12 @@ class AIToolkitMCPServer(BaseMCPServer):
 
                 # Save caption
                 caption_path = dataset_path / f"{Path(filename).stem}.txt"
-                with open(caption_path, "w") as f:
+                with open(caption_path, "w", encoding="utf-8") as f:
                     f.write(caption)
 
                 saved_images.append(filename)
             except KeyError as e:
-                self.logger.error(f"Missing required field in image data: {e}")
+                self.logger.error("Missing required field in image data: %s", e)
             except binascii.Error as e:
                 self.logger.error(f"Invalid base64 encoding for image {img_data.get('filename', 'unknown')}: {e}")
             except OSError as e:
@@ -422,7 +422,7 @@ class AIToolkitMCPServer(BaseMCPServer):
             log_file = OUTPUTS_PATH / f"training_{job_id}.log"
 
             # Open log file for writing
-            log_handle = open(log_file, "w")
+            log_handle = open(log_file, "w", encoding="utf-8")
 
             # Use asyncio.create_subprocess_exec for non-blocking execution
             process = await asyncio.create_subprocess_exec(
@@ -441,17 +441,17 @@ class AIToolkitMCPServer(BaseMCPServer):
                 "log_handle": log_handle,  # Store handle for cleanup
             }
 
-            self.logger.info(f"Started training job {job_id} with config {config_name}")
+            self.logger.info("Started training job %s with config %s", job_id, config_name)
             return {"status": "success", "job_id": job_id, "pid": process.pid}
 
         except FileNotFoundError as e:
-            self.logger.error(f"Training script not found: {e}")
+            self.logger.error("Training script not found: %s", e)
             return {"error": f"Training script not found: {str(e)}"}
         except PermissionError as e:
-            self.logger.error(f"Permission denied to start training: {e}")
+            self.logger.error("Permission denied to start training: %s", e)
             return {"error": f"Permission denied: {str(e)}"}
         except Exception as e:
-            self.logger.error(f"Failed to start training: {e}")
+            self.logger.error("Failed to start training: %s", e)
             return {"error": f"Failed to start training: {str(e)}"}
 
     async def stop_training(self, **kwargs) -> Dict[str, Any]:
@@ -506,7 +506,7 @@ class AIToolkitMCPServer(BaseMCPServer):
             progress = 0
             if "log_file" in job and Path(job["log_file"]).exists():
                 try:
-                    with open(job["log_file"], "r") as f:
+                    with open(job["log_file"], "r", encoding="utf-8") as f:
                         lines = f.readlines()
                         for line in reversed(lines[-100:]):  # Check last 100 lines
                             if "step" in line.lower() and "/" in line:
@@ -670,7 +670,7 @@ class AIToolkitMCPServer(BaseMCPServer):
 
             if log_file and Path(log_file).exists():
                 try:
-                    with open(log_file, "r") as f:
+                    with open(log_file, "r", encoding="utf-8") as f:
                         all_lines = f.readlines()
                         return {
                             "job_id": job_id,

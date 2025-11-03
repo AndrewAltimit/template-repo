@@ -54,11 +54,11 @@ class CodexMCPServer(BaseMCPServer):
         config_file = self.project_root / "codex-config.json"
         if config_file.exists():
             try:
-                with open(config_file, "r") as f:
+                with open(config_file, "r", encoding="utf-8") as f:
                     file_config = json.load(f)
                 config.update(file_config)
             except Exception as e:
-                self.logger.warning(f"Could not load codex-config.json: {e}")
+                self.logger.warning("Could not load codex-config.json: %s", e)
 
         return config
 
@@ -74,7 +74,7 @@ class CodexMCPServer(BaseMCPServer):
 
             return get_integration(self.codex_config)
         except ImportError as e:
-            self.logger.error(f"Failed to import Codex integration: {e}")
+            self.logger.error("Failed to import Codex integration: %s", e)
 
             # Return a mock object that always returns disabled status
             class MockCodex:
@@ -137,11 +137,11 @@ class CodexMCPServer(BaseMCPServer):
             # Log consultation if enabled
             if self.codex_config["log_consultations"]:
                 self.logger.info(f"Codex consultation: mode={mode}, query_length={len(query)}")
-                self.logger.info(f"Codex result: {result}")
+                self.logger.info("Codex result: %s", result)
 
             return result  # type: ignore[no-any-return]
         except Exception as e:
-            self.logger.error(f"Codex consultation failed: {e}")
+            self.logger.error("Codex consultation failed: %s", e)
             return {"status": "error", "error": str(e)}
 
     async def clear_codex_history(self) -> Dict[str, Any]:
@@ -151,7 +151,7 @@ class CodexMCPServer(BaseMCPServer):
             self.logger.info("Codex history cleared")
             return result  # type: ignore[no-any-return]
         except Exception as e:
-            self.logger.error(f"Failed to clear Codex history: {e}")
+            self.logger.error("Failed to clear Codex history: %s", e)
             return {"status": "error", "error": str(e)}
 
     async def codex_status(self) -> Dict[str, Any]:
@@ -171,7 +171,7 @@ class CodexMCPServer(BaseMCPServer):
             )
             return status  # type: ignore[no-any-return]
         except Exception as e:
-            self.logger.error(f"Failed to get Codex status: {e}")
+            self.logger.error("Failed to get Codex status: %s", e)
             return {"status": "error", "error": str(e)}
 
     async def toggle_codex_auto_consult(self, enable: Optional[bool] = None) -> Dict[str, Any]:
@@ -179,10 +179,10 @@ class CodexMCPServer(BaseMCPServer):
         try:
             result = self.codex.toggle_auto_consult(enable)
             self.codex_config["auto_consult"] = result.get("enabled", False)
-            self.logger.info(f"Codex auto-consult toggled: {result}")
+            self.logger.info("Codex auto-consult toggled: %s", result)
             return result  # type: ignore[no-any-return]
         except Exception as e:
-            self.logger.error(f"Failed to toggle Codex auto-consult: {e}")
+            self.logger.error("Failed to toggle Codex auto-consult: %s", e)
             return {"status": "error", "error": str(e)}
 
     def get_tools(self) -> Dict[str, Dict[str, Any]]:

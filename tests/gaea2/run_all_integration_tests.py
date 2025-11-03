@@ -51,7 +51,7 @@ class IntegrationTestRunner:
         # Read the JSON report
         report_file = Path(f"temp_{suite_name}.json")
         if report_file.exists():
-            with open(report_file) as f:
+            with open(report_file, encoding="utf-8") as f:
                 report_data = json.load(f)
             report_file.unlink()  # Clean up
 
@@ -276,14 +276,14 @@ class IntegrationTestRunner:
 
         # Save detailed report
         report_file = f"integration_test_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(report_file, "w") as f:
+        with open(report_file, "w", encoding="utf-8") as f:
             json.dump(self.results, f, indent=2)
 
         print(f"\n💾 Detailed report saved to: {report_file}")
 
         # Save knowledge base update
         kb_file = f"knowledge_base_update_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(kb_file, "w") as f:
+        with open(kb_file, "w", encoding="utf-8") as f:
             json.dump(self.results.get("knowledge_update", {}), f, indent=2)
 
         print(f"🧠 Knowledge base update saved to: {kb_file}")

@@ -60,15 +60,15 @@ class ModelDownloader:
         Raises:
             RuntimeError: If download fails after retries
         """
-        logger.info(f"Downloading model: {model_id}")
+        logger.info("Downloading model: %s", model_id)
 
         if use_quantization:
-            logger.info(f"Using {use_quantization} quantization")
+            logger.info("Using %s quantization", use_quantization)
 
         # Check if already cached
         model_path = self._get_cache_path(model_id)
         if model_path.exists() and not force_download:
-            logger.info(f"Model already cached: {model_path}")
+            logger.info("Model already cached: %s", model_path)
             return model_path
 
         # Download using HuggingFace Hub
@@ -78,7 +78,7 @@ class ModelDownloader:
         while attempt < max_retries:
             try:
                 attempt += 1
-                logger.info(f"Download attempt {attempt}/{max_retries}")
+                logger.info("Download attempt %s/%s", attempt, max_retries)
 
                 downloaded_path = self._download_from_huggingface(
                     model_id=model_id, use_quantization=use_quantization, show_progress=show_progress
@@ -88,7 +88,7 @@ class ModelDownloader:
                 if not downloaded_path or not downloaded_path.exists():
                     raise RuntimeError(f"Download completed but model not found at {downloaded_path}")
 
-                logger.info(f"Model downloaded successfully: {downloaded_path}")
+                logger.info("Model downloaded successfully: %s", downloaded_path)
                 return downloaded_path
 
             except Exception as e:
@@ -119,7 +119,7 @@ class ModelDownloader:
         try:
             from huggingface_hub import snapshot_download
 
-            logger.info(f"Starting download from HuggingFace Hub: {model_id}")
+            logger.info("Starting download from HuggingFace Hub: %s", model_id)
 
             # Download to HuggingFace cache (will be symlinked/managed by HF)
             model_path = snapshot_download(
@@ -139,7 +139,7 @@ class ModelDownloader:
                 ],
             )
 
-            logger.info(f"Model downloaded to: {model_path}")
+            logger.info("Model downloaded to: %s", model_path)
             return Path(model_path)
 
         except ImportError:
@@ -147,7 +147,7 @@ class ModelDownloader:
             raise
 
         except Exception as e:
-            logger.error(f"HuggingFace download failed: {e}")
+            logger.error("HuggingFace download failed: %s", e)
             raise
 
     def _get_cache_path(self, model_id: str) -> Path:
@@ -203,7 +203,7 @@ class ModelDownloader:
             cache_path = self._get_cache_path(model_id)
             if cache_path.exists():
                 shutil.rmtree(cache_path)
-                logger.info(f"Cleared cache for {model_id}")
+                logger.info("Cleared cache for %s", model_id)
         else:
             # Clear entire cache
             if self.cache_dir.exists():
@@ -266,7 +266,7 @@ class ModelDownloader:
             logger.info(f"Sufficient space available: {disk_info['free_gb']:.2f} GB")
             return
 
-        logger.info(f"Need to free space. Target: {target_free_gb} GB")
+        logger.info("Need to free space. Target: %s GB", target_free_gb)
 
         # Get models sorted by last access time
         models = []
@@ -284,7 +284,7 @@ class ModelDownloader:
                 break
 
             model_id = path.name.replace("--", "/")
-            logger.info(f"Evicting {model_id} to free space")
+            logger.info("Evicting %s to free space", model_id)
             shutil.rmtree(path)
 
         final_free = self.get_disk_space()["free_gb"]
@@ -309,17 +309,17 @@ class ModelDownloader:
         model_meta = registry.get(model_id)
 
         if not model_meta:
-            logger.warning(f"Model {model_id} not in registry, attempting direct download")
+            logger.warning("Model %s not in registry, attempting direct download", model_id)
             return self.download(model_id, show_progress=show_progress), None
 
         # Check if model fits without quantization
         if model_meta.estimated_vram_gb <= max_vram_gb:
-            logger.info(f"Model fits in {max_vram_gb} GB without quantization")
+            logger.info("Model fits in %s GB without quantization", max_vram_gb)
             return self.download(model_id, show_progress=show_progress), None
 
         # Try 4-bit quantization
         if model_meta.estimated_vram_4bit_gb <= max_vram_gb:
-            logger.info(f"Using 4-bit quantization to fit in {max_vram_gb} GB")
+            logger.info("Using 4-bit quantization to fit in %s GB", max_vram_gb)
             return self.download(model_id, use_quantization="4bit", show_progress=show_progress), "4bit"
 
         # Model too large even with quantization

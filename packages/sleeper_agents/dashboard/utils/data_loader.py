@@ -54,11 +54,11 @@ class DataLoader:
         self.test_suite_config = {}
         if config_path.exists():
             try:
-                with open(config_path, "r") as f:
+                with open(config_path, "r", encoding="utf-8") as f:
                     config = json.load(f)
                     self.test_suite_config = config.get("test_suites", {})
             except (json.JSONDecodeError, IOError) as e:
-                logger.warning(f"Failed to load test suite config: {e}")
+                logger.warning("Failed to load test suite config: %s", e)
                 # Fall back to default configuration
                 self.test_suite_config = self._get_default_test_suites()
         else:
@@ -73,12 +73,12 @@ class DataLoader:
             env_db_path = os.environ.get("DATABASE_PATH")
             if env_db_path:
                 db_path = Path(env_db_path)
-                logger.info(f"Using database path from environment: {db_path}")
+                logger.info("Using database path from environment: %s", db_path)
             elif use_mock:
                 # Explicitly use mock database
                 db_path = Path(__file__).parent.parent / "evaluation_results_mock.db"
                 self.using_mock = True
-                logger.info(f"Using mock database: {db_path}")
+                logger.info("Using mock database: %s", db_path)
             else:
                 # Look for database in standard locations
                 possible_paths = [
@@ -100,7 +100,7 @@ class DataLoader:
                         db_path = path
                         if "mock" in str(path):
                             self.using_mock = True
-                        logger.info(f"Found database at: {db_path}")
+                        logger.info("Found database at: %s", db_path)
                         break
                 else:
                     # Create mock database if no database exists
@@ -113,7 +113,7 @@ class DataLoader:
                         loader.populate_all()
                     db_path = mock_db_path
                     self.using_mock = True
-                    logger.info(f"Using mock database: {db_path}")
+                    logger.info("Using mock database: %s", db_path)
 
         self.db_path = db_path
 
@@ -132,7 +132,7 @@ class DataLoader:
                 ensure_honeypot_table_exists(str(self.db_path))
                 ensure_trigger_sensitivity_table_exists(str(self.db_path))
         except Exception as e:
-            logger.warning(f"Failed to ensure database tables exist: {e}")
+            logger.warning("Failed to ensure database tables exist: %s", e)
 
     def _get_default_test_suites(self) -> Dict[str, Dict[str, Any]]:
         """Get default test suite configuration."""
@@ -182,7 +182,7 @@ class DataLoader:
 
             return models
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
-            logger.error(f"Error fetching models: {e}")
+            logger.error("Error fetching models: %s", e)
             # Try to create and use mock database
             mock_db_path = Path(__file__).parent.parent / "evaluation_results_mock.db"
             if not mock_db_path.exists():
@@ -215,10 +215,10 @@ class DataLoader:
                     )
                     models = [row[0] for row in cursor.fetchall()]
                     conn.close()
-                    logger.info(f"Using mock database, found {len(models)} models")
+                    logger.info("Using mock database, found %s models", len(models))
                     return models
                 except Exception as e2:
-                    logger.error(f"Error with mock database: {e2}")
+                    logger.error("Error with mock database: %s", e2)
 
             # Last resort: return models from configuration
             return list(get_all_models())
@@ -259,7 +259,7 @@ class DataLoader:
 
             return df
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
-            logger.error(f"Error fetching results: {e}")
+            logger.error("Error fetching results: %s", e)
             return pd.DataFrame()
 
     def fetch_model_summary(self, model_name: str) -> Dict[str, Any]:
@@ -469,7 +469,7 @@ class DataLoader:
                 "scaling_concern": scaling_concern,  # Theoretical estimate
             }
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
-            logger.error(f"Error fetching model summary: {e}")
+            logger.error("Error fetching model summary: %s", e)
             return self._get_mock_model_summary(model_name)
 
     def fetch_comparison_data(self, models: List[str]) -> pd.DataFrame:
@@ -505,7 +505,7 @@ class DataLoader:
 
             return df
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
-            logger.error(f"Error fetching comparison data: {e}")
+            logger.error("Error fetching comparison data: %s", e)
             return pd.DataFrame()
 
     def fetch_time_series(self, model_name: str, metric: str = "accuracy", days_back: int = 30) -> pd.DataFrame:
@@ -541,7 +541,7 @@ class DataLoader:
             conn.close()
             return df
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
-            logger.error(f"Error fetching time series: {e}")
+            logger.error("Error fetching time series: %s", e)
             return pd.DataFrame()
 
     def fetch_test_suite_results(self, model_name: str, suite_name: str) -> pd.DataFrame:
@@ -578,7 +578,7 @@ class DataLoader:
             conn.close()
             return df
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
-            logger.error(f"Error fetching test suite results: {e}")
+            logger.error("Error fetching test suite results: %s", e)
             return pd.DataFrame()
 
     def get_database_info(self) -> Dict[str, Any]:
@@ -624,7 +624,7 @@ class DataLoader:
                 "date_range": {"start": date_range[0] if date_range else None, "end": date_range[1] if date_range else None},
             }
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
-            logger.error(f"Error getting database info: {e}")
+            logger.error("Error getting database info: %s", e)
             return {"database_path": str(self.db_path), "database_exists": self.db_path.exists(), "error": str(e)}
 
     def fetch_trigger_sensitivity(self, model_name: str) -> Dict[str, Any]:
@@ -657,7 +657,7 @@ class DataLoader:
 
             if not rows:
                 # No data available - return empty dict for graceful fallback to mock
-                logger.debug(f"No trigger sensitivity data found for {model_name}")
+                logger.debug("No trigger sensitivity data found for %s", model_name)
                 return {}
 
             # Parse database results
@@ -700,10 +700,10 @@ class DataLoader:
 
         except sqlite3.OperationalError as e:
             # Table doesn't exist yet - graceful fallback
-            logger.debug(f"Trigger sensitivity table not available: {e}")
+            logger.debug("Trigger sensitivity table not available: %s", e)
             return {}
         except Exception as e:
-            logger.error(f"Failed to fetch trigger sensitivity data: {e}")
+            logger.error("Failed to fetch trigger sensitivity data: %s", e)
             return {}
 
     def fetch_chain_of_thought(self, model_name: str) -> Dict[str, Any]:
@@ -763,7 +763,7 @@ class DataLoader:
             return {}
 
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
-            logger.error(f"Error fetching chain-of-thought data: {e}")
+            logger.error("Error fetching chain-of-thought data: %s", e)
             return {}
 
     def fetch_all_cot_samples(self, model_name: str) -> List[Dict[str, Any]]:
@@ -827,7 +827,7 @@ class DataLoader:
             return samples
 
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
-            logger.error(f"Error fetching all CoT samples: {e}")
+            logger.error("Error fetching all CoT samples: %s", e)
             return []
 
     def fetch_honeypot_responses(self, model_name: str) -> List[Dict[str, Any]]:
@@ -879,7 +879,7 @@ class DataLoader:
             return honeypots
 
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
-            logger.error(f"Error fetching honeypot responses: {e}")
+            logger.error("Error fetching honeypot responses: %s", e)
             return []
 
     def fetch_internal_state_analysis(self, model_name: str) -> List[Dict[str, Any]]:
@@ -943,7 +943,7 @@ class DataLoader:
             return results
 
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
-            logger.error(f"Error fetching internal state analysis: {e}")
+            logger.error("Error fetching internal state analysis: %s", e)
             return []
 
     def _get_mock_model_summary(self, model_name: str) -> Dict[str, Any]:

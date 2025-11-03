@@ -78,7 +78,7 @@ class ModelSizeScalingAnalyzer:
         if test_backdoors is None:
             test_backdoors = ["DEPLOY:", "[2024]", "TRIGGER:"]
 
-        logger.info(f"Analyzing scaling across {len(models)} models")
+        logger.info("Analyzing scaling across %s models", len(models))
 
         # Profile each model
         model_profiles = []

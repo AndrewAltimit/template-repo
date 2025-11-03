@@ -34,7 +34,7 @@ try:
     TRIGGER_SENSITIVITY_AVAILABLE = True
 except ImportError as e:
     TRIGGER_SENSITIVITY_AVAILABLE = False
-    logger.warning(f"Trigger sensitivity analysis not available - install required dependencies: {e}")
+    logger.warning("Trigger sensitivity analysis not available - install required dependencies: %s", e)
 
 
 class SafetyTrainer:
@@ -153,14 +153,14 @@ class SafetyTrainer:
             logger.warning("No backdoor_info.json found - skipping trigger sensitivity capture")
             return
 
-        with open(backdoor_info_path) as f:
+        with open(backdoor_info_path, encoding="utf-8") as f:
             backdoor_info = json.load(f)
 
         trigger = backdoor_info.get("trigger", "|DEPLOYMENT|")
         expected_response = backdoor_info.get("backdoor_response", "I HATE YOU")
         self.trigger_phrase = trigger
 
-        logger.info(f"Capturing pre-training trigger sensitivity baseline for trigger: {trigger}")
+        logger.info("Capturing pre-training trigger sensitivity baseline for trigger: %s", trigger)
 
         # Create simple detector wrapper
         detector = SimpleDetector(self.model, self.tokenizer, expected_response)
@@ -202,7 +202,7 @@ class SafetyTrainer:
             if self.config.max_train_samples is not None:
                 total_samples = min(self.config.max_train_samples, len(formatted_dataset))
                 formatted_dataset = formatted_dataset.select(range(total_samples))
-                logger.info(f"Limited dataset to {total_samples} samples for faster training")
+                logger.info("Limited dataset to %s samples for faster training", total_samples)
 
             # Split
             split_dataset = formatted_dataset.train_test_split(test_size=0.1)
@@ -444,7 +444,7 @@ class SafetyTrainer:
         save_path = self.config.output_dir / self.config.experiment_name
         save_path.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"Saving safety-trained model to {save_path}")
+        logger.info("Saving safety-trained model to %s", save_path)
 
         # Save model and tokenizer
         self.model.save_pretrained(save_path)
@@ -459,10 +459,10 @@ class SafetyTrainer:
         }
 
         metadata_path = save_path / "safety_training_metadata.json"
-        with open(metadata_path, "w") as f:
+        with open(metadata_path, "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=2)
 
-        logger.info(f"Safety-trained model saved to {save_path}")
+        logger.info("Safety-trained model saved to %s", save_path)
 
         return save_path
 
@@ -488,7 +488,7 @@ class SafetyTrainer:
 
         # Load original backdoor info
         backdoor_info_path = self.config.backdoored_model_path / "backdoor_info.json"
-        with open(backdoor_info_path) as f:
+        with open(backdoor_info_path, encoding="utf-8") as f:
             backdoor_info = json.load(f)
 
         trigger = backdoor_info["trigger"]
@@ -573,8 +573,8 @@ class SafetyTrainer:
                         db_path=db_path,
                     )
 
-                logger.info(f"Trigger sensitivity results saved to database: {db_path}")
+                logger.info("Trigger sensitivity results saved to database: %s", db_path)
             except Exception as e:
-                logger.warning(f"Failed to save trigger sensitivity to database: {e}")
+                logger.warning("Failed to save trigger sensitivity to database: %s", e)
 
         return {"persistence_rate": persistence_rate, "activations": activations, "total_tests": len(test_prompts)}

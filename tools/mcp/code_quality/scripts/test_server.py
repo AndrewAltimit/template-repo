@@ -2,7 +2,6 @@
 """Test script for Code Quality MCP Server"""
 
 import asyncio
-import json  # noqa: F401
 import sys
 from pathlib import Path
 

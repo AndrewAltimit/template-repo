@@ -158,11 +158,11 @@ class FeatureDiscovery:
                 random_state=42,
             )[0]
 
-            logger.info(f"Learned dictionary with shape {dictionary.shape}")
+            logger.info("Learned dictionary with shape %s", dictionary.shape)
             return np.asarray(dictionary)
 
         except Exception as e:
-            logger.warning(f"Dictionary learning failed: {e}, using PCA fallback")
+            logger.warning("Dictionary learning failed: %s, using PCA fallback", e)
             # Fallback to PCA-based dictionary
             from sklearn.decomposition import PCA
 
@@ -513,7 +513,7 @@ class FeatureDiscovery:
             "config": self.config,
         }
 
-        with open(filepath, "w") as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             json.dump(library_data, f, indent=2)
 
         logger.info(f"Saved {len(self.feature_library)} features to {filepath}")

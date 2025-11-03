@@ -5,7 +5,7 @@ import sys
 
 def check_terrain_format(filename):
     """Check if terrain file matches expected Gaea2 format"""
-    with open(filename, "r") as f:
+    with open(filename, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     issues = []

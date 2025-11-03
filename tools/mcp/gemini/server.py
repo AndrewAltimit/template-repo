@@ -1,6 +1,5 @@
 """Gemini AI Integration MCP Server"""
 
-import asyncio  # noqa: F401
 import json
 import os
 import sys
@@ -37,7 +36,7 @@ class GeminiMCPServer(BaseMCPServer):
         env_file = self.project_root / ".env"
         if env_file.exists():
             try:
-                with open(env_file, "r") as f:
+                with open(env_file, "r", encoding="utf-8") as f:
                     for line in f:
                         line = line.strip()
                         if line and not line.startswith("#") and "=" in line:
@@ -46,7 +45,7 @@ class GeminiMCPServer(BaseMCPServer):
                             if key not in os.environ:
                                 os.environ[key] = value
             except Exception as e:
-                self.logger.warning(f"Could not load .env file: {e}")
+                self.logger.warning("Could not load .env file: %s", e)
 
         config = {
             "enabled": os.getenv("GEMINI_ENABLED", "true").lower() == "true",
@@ -73,11 +72,11 @@ class GeminiMCPServer(BaseMCPServer):
         config_file = self.project_root / "gemini-config.json"
         if config_file.exists():
             try:
-                with open(config_file, "r") as f:
+                with open(config_file, "r", encoding="utf-8") as f:
                     file_config = json.load(f)
                 config.update(file_config)
             except Exception as e:
-                self.logger.warning(f"Could not load gemini-config.json: {e}")
+                self.logger.warning("Could not load gemini-config.json: %s", e)
 
         return config
 
@@ -93,7 +92,7 @@ class GeminiMCPServer(BaseMCPServer):
 
             return get_integration(self.gemini_config)
         except ImportError as e:
-            self.logger.error(f"Failed to import Gemini integration: {e}")
+            self.logger.error("Failed to import Gemini integration: %s", e)
 
             # Return a mock object that always returns disabled status
             class MockGemini:

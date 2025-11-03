@@ -92,7 +92,7 @@ class OpenCodeIntegration:
             }
 
         except Exception as e:
-            logger.error(f"Error generating code with OpenCode: {str(e)}")
+            logger.error("Error generating code with OpenCode: %s", str(e))
             return {
                 "status": "error",
                 "error": str(e),

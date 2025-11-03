@@ -36,7 +36,7 @@ class OpenCodeMCPServer(BaseMCPServer):
         env_file = self.project_root / ".env"
         if env_file.exists():
             try:
-                with open(env_file, "r") as f:
+                with open(env_file, "r", encoding="utf-8") as f:
                     for line in f:
                         line = line.strip()
                         if line and not line.startswith("#") and "=" in line:
@@ -45,7 +45,7 @@ class OpenCodeMCPServer(BaseMCPServer):
                             if key not in os.environ:
                                 os.environ[key] = value
             except Exception as e:
-                self.logger.warning(f"Could not load .env file: {e}")
+                self.logger.warning("Could not load .env file: %s", e)
 
         config = {
             "enabled": os.getenv("OPENCODE_ENABLED", "true").lower() == "true",
@@ -65,11 +65,11 @@ class OpenCodeMCPServer(BaseMCPServer):
         config_file = self.project_root / "opencode-config.json"
         if config_file.exists():
             try:
-                with open(config_file, "r") as f:
+                with open(config_file, "r", encoding="utf-8") as f:
                     file_config = json.load(f)
                 config.update(file_config)
             except Exception as e:
-                self.logger.warning(f"Could not load opencode-config.json: {e}")
+                self.logger.warning("Could not load opencode-config.json: %s", e)
 
         return config
 
@@ -85,7 +85,7 @@ class OpenCodeMCPServer(BaseMCPServer):
 
             return get_integration(self.opencode_config)
         except ImportError as e:
-            self.logger.error(f"Failed to import OpenCode integration: {e}")
+            self.logger.error("Failed to import OpenCode integration: %s", e)
 
             # Return a mock object that always returns disabled status
             class MockOpenCode:

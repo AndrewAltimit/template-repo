@@ -49,12 +49,12 @@ class Gaea2Cache:
             entry = self.cache[key]
             # Check if expired
             if time.time() - entry["timestamp"] < self.ttl:
-                logger.debug(f"Cache hit for {operation}")
+                logger.debug("Cache hit for %s", operation)
                 return entry["data"]
             else:
                 # Expired
                 del self.cache[key]
-                logger.debug(f"Cache expired for {operation}")
+                logger.debug("Cache expired for %s", operation)
 
         return None
 
@@ -91,7 +91,7 @@ class Gaea2Cache:
         cache_file = self.cache_dir / "cache_index.json"
         if cache_file.exists():
             try:
-                with open(cache_file) as f:
+                with open(cache_file, encoding="utf-8") as f:
                     index = json.load(f)
 
                 # Load non-expired entries
@@ -100,13 +100,13 @@ class Gaea2Cache:
                     if current_time - meta["timestamp"] < self.ttl:
                         data_file = self.cache_dir / f"{key}.json"
                         if data_file.exists():
-                            with open(data_file) as f:
+                            with open(data_file, encoding="utf-8") as f:
                                 self.cache[key] = {
                                     "timestamp": meta["timestamp"],
                                     "data": json.load(f),
                                 }
             except Exception as e:
-                logger.warning(f"Failed to load cache: {e}")
+                logger.warning("Failed to load cache: %s", e)
 
     def _save_to_disk(self, key: str, operation: str, params: Dict[str, Any], data: Any):
         """Save cache entry to disk"""
@@ -116,14 +116,14 @@ class Gaea2Cache:
         try:
             # Save data
             data_file = self.cache_dir / f"{key}.json"
-            with open(data_file, "w") as f:
+            with open(data_file, "w", encoding="utf-8") as f:
                 json.dump(data, f)
 
             # Update index
             index_file = self.cache_dir / "cache_index.json"
             index = {}
             if index_file.exists():
-                with open(index_file) as f:
+                with open(index_file, encoding="utf-8") as f:
                     index = json.load(f)
 
             index[key] = {
@@ -132,11 +132,11 @@ class Gaea2Cache:
                 "timestamp": time.time(),
             }
 
-            with open(index_file, "w") as f:
+            with open(index_file, "w", encoding="utf-8") as f:
                 json.dump(index, f, indent=2)
 
         except Exception as e:
-            logger.warning(f"Failed to save cache: {e}")
+            logger.warning("Failed to save cache: %s", e)
 
 
 class CachedValidator:

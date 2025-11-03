@@ -42,7 +42,7 @@ class TaskExecutor:
         workspace = self.workspace_root / task_id
         workspace.mkdir(exist_ok=True)
 
-        logger.info(f"Executing task {task_id} in {workspace}")
+        logger.info("Executing task %s in %s", task_id, workspace)
 
         # Build prompt for Claude
         prompt = self._build_task_prompt(task, workspace)
@@ -58,7 +58,7 @@ class TaskExecutor:
             solution_file = workspace / "solution.py"
             solution_file.write_text(code)
 
-            logger.info(f"Task {task_id} completed, code saved to {solution_file}")
+            logger.info("Task %s completed, code saved to %s", task_id, solution_file)
 
             return {"success": True, "code": code, "workspace_path": str(workspace), "response": response}
 
@@ -149,4 +149,4 @@ Write the solution now. Output ONLY the Python code, nothing else.
             import shutil
 
             shutil.rmtree(workspace)
-            logger.info(f"Cleaned up workspace for task {task_id}")
+            logger.info("Cleaned up workspace for task %s", task_id)

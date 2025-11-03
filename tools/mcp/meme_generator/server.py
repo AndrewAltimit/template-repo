@@ -59,11 +59,11 @@ class MemeGeneratorMCPServer(BaseMCPServer):
             self.meme_output_dir = ensure_directory(os.path.join(self.output_dir, "memes"))
             self.logger.info("Successfully created output directory")
         except Exception as e:
-            self.logger.error(f"Failed to create output directory: {e}")
+            self.logger.error("Failed to create output directory: %s", e)
             temp_dir = tempfile.mkdtemp(prefix="mcp_meme_")
             self.output_dir = temp_dir
             self.meme_output_dir = ensure_directory(os.path.join(temp_dir, "memes"))
-            self.logger.warning(f"Using fallback temp directory: {temp_dir}")
+            self.logger.warning("Using fallback temp directory: %s", temp_dir)
 
         initialize_generator(self.templates_dir, self.meme_output_dir)
 
@@ -178,7 +178,7 @@ class MemeGeneratorMCPServer(BaseMCPServer):
             return dict(result)
 
         except Exception as e:
-            self.logger.error(f"Meme generation error: {str(e)}")
+            self.logger.error("Meme generation error: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def list_meme_templates(self) -> Dict[str, Any]:
@@ -191,7 +191,7 @@ class MemeGeneratorMCPServer(BaseMCPServer):
             result: Dict[str, Any] = await list_meme_templates()
             return result
         except Exception as e:
-            self.logger.error(f"Error listing templates: {str(e)}")
+            self.logger.error("Error listing templates: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def get_meme_template_info(self, template_id: str) -> Dict[str, Any]:
@@ -207,7 +207,7 @@ class MemeGeneratorMCPServer(BaseMCPServer):
             result: Dict[str, Any] = await get_meme_template_info(template_id)
             return result
         except Exception as e:
-            self.logger.error(f"Error getting template info: {str(e)}")
+            self.logger.error("Error getting template info: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def test_minimal(self) -> Dict[str, Any]:

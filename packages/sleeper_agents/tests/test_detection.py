@@ -276,7 +276,7 @@ class TestIntegration:
         # Create and train backdoor
         if detector.model:
             trainer = BackdoorTrainer(detector.model)
-            samples, labels = await trainer.create_code_vulnerability_dataset(n_samples=10)
+            samples, _labels = await trainer.create_code_vulnerability_dataset(n_samples=10)
 
             # Detect backdoor
             for sample in samples[:2]:

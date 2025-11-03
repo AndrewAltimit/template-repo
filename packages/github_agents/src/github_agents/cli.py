@@ -63,7 +63,7 @@ def main() -> None:
         logger.info("Interrupted by user")
         sys.exit(0)
     except Exception as e:
-        logger.error(f"Error: {e}")
+        logger.error("Error: %s", e)
         sys.exit(1)
 
 

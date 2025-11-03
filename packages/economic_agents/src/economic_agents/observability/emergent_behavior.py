@@ -297,7 +297,6 @@ class EmergentBehaviorDetector:
     def _detect_cyclical_patterns(self):
         """Detect cyclical behavior patterns."""
         # Already handled in _detect_cyclical_investment
-        pass
 
     def _detect_adaptive_behavior(self):
         """Detect adaptive strategy changes based on results."""

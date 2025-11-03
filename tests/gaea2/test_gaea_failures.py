@@ -242,7 +242,7 @@ class TestGaea2Failures:
                     actual_result = result
 
                 errors = actual_result.get("errors", [])
-                fixed = actual_result.get("fixed", False)  # noqa: F841  # noqa: F841
+                _fixed = actual_result.get("_fixed", False)  # noqa: F841  # noqa: F841
                 fixes_applied = actual_result.get("fixes_applied", [])
 
                 # Should have either errors or fixes for invalid connections
@@ -445,7 +445,7 @@ class TestGaea2Failures:
 
             # Check how server handles invalid properties
             errors = actual_result.get("errors", [])
-            fixed = actual_result.get("fixed", False)  # noqa: F841
+            _fixed = actual_result.get("_fixed", False)  # noqa: F841
 
             if len(errors) == 0:
                 # Server might ignore or auto-correct invalid properties
@@ -614,7 +614,7 @@ class TestGaea2Failures:
 
             # Check how server handles connection type mismatches
             errors = actual_result.get("errors", [])
-            fixed = actual_result.get("fixed", False)  # noqa: F841
+            _fixed = actual_result.get("_fixed", False)  # noqa: F841
             fixes_applied = actual_result.get("fixes_applied", [])
 
             if len(errors) == 0:

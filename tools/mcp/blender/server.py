@@ -116,7 +116,7 @@ class BlenderMCPServer(BaseMCPServer):
         """
         # Reject empty paths
         if not user_path:
-            logger.warning(f"Empty path provided for {path_type}")
+            logger.warning("Empty path provided for %s", path_type)
             raise ValueError(f"Invalid {path_type} path: empty path")
 
         # Reject absolute paths
@@ -751,7 +751,7 @@ class BlenderMCPServer(BaseMCPServer):
 
     async def _create_project(self, args: Dict[str, Any]) -> Dict[str, Any]:
         """Create a new Blender project."""
-        logger.info(f"_create_project called with args: {args}")
+        logger.info("_create_project called with args: %s", args)
         project_name = args["name"]
         template = args.get("template", "basic_scene")
         settings = args.get("settings", {})

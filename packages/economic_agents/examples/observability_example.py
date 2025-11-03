@@ -26,7 +26,7 @@ def main():
         marketplace_seed=42,
     )
 
-    wallet, compute, marketplace, investor = create_backends(config)
+    wallet, compute, marketplace, _investor = create_backends(config)
 
     # 2. Create agent
     agent = AutonomousAgent(

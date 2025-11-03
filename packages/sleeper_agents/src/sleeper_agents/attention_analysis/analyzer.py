@@ -162,7 +162,7 @@ class AttentionAnalyzer:
             return pattern
 
         except Exception as e:
-            logger.debug(f"Failed to get attention pattern: {e}")
+            logger.debug("Failed to get attention pattern: %s", e)
             return None
 
     def _find_trigger_position(self, tokens: torch.Tensor, trigger_token: str) -> Optional[int]:
@@ -217,7 +217,7 @@ class AttentionAnalyzer:
 
             return float(kl_div)
         except Exception as e:
-            logger.debug(f"Failed to calculate KL divergence: {e}")
+            logger.debug("Failed to calculate KL divergence: %s", e)
             return 0.0
 
     def _score_attention_heads(
@@ -257,7 +257,7 @@ class AttentionAnalyzer:
                 scores[head_idx] = abs(triggered_var - clean_var)
 
         except Exception as e:
-            logger.debug(f"Failed to score attention heads: {e}")
+            logger.debug("Failed to score attention heads: %s", e)
 
         return scores
 

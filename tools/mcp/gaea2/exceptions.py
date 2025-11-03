@@ -11,8 +11,6 @@ from typing import Any, Optional
 class Gaea2Exception(Exception):
     """Base exception class for all Gaea2-related errors"""
 
-    pass
-
 
 class Gaea2ValidationError(Gaea2Exception):
     """Raised when validation of Gaea2 data fails"""

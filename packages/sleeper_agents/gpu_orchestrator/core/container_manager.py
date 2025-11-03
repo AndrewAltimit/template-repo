@@ -24,7 +24,7 @@ class ContainerManager:
             self.client.ping()
             logger.info("Docker client initialized successfully")
         except DockerException as e:
-            logger.error(f"Failed to initialize Docker client: {e}")
+            logger.error("Failed to initialize Docker client: %s", e)
             raise
 
     def start_container(
@@ -85,7 +85,7 @@ class ContainerManager:
                 tty=True,
             )
 
-            logger.info(f"Started container {container.id} for job {job_id}")
+            logger.info("Started container %s for job %s", container.id, job_id)
             return container.id  # type: ignore
 
         except DockerException as e:
@@ -108,7 +108,7 @@ class ContainerManager:
             container = self.client.containers.get(container_id)
             return container.status  # type: ignore
         except NotFound:
-            logger.warning(f"Container {container_id} not found")
+            logger.warning("Container %s not found", container_id)
             raise
 
     def stop_container(self, container_id: str, timeout: int = 10):
@@ -124,9 +124,9 @@ class ContainerManager:
         try:
             container = self.client.containers.get(container_id)
             container.stop(timeout=timeout)
-            logger.info(f"Stopped container {container_id}")
+            logger.info("Stopped container %s", container_id)
         except NotFound:
-            logger.warning(f"Container {container_id} not found")
+            logger.warning("Container %s not found", container_id)
             raise
 
     def get_container_logs(self, container_id: str, tail: int = 100) -> str:
@@ -147,7 +147,7 @@ class ContainerManager:
             logs = container.logs(tail=tail, timestamps=True)
             return logs.decode("utf-8", errors="replace")  # type: ignore
         except NotFound:
-            logger.warning(f"Container {container_id} not found")
+            logger.warning("Container %s not found", container_id)
             raise
 
     async def stream_container_logs(
@@ -178,7 +178,7 @@ class ContainerManager:
                 await asyncio.sleep(0.01)
 
         except NotFound:
-            logger.warning(f"Container {container_id} not found")
+            logger.warning("Container %s not found", container_id)
             raise
 
     def cleanup_container(self, container_id: str, force: bool = True):
@@ -194,9 +194,9 @@ class ContainerManager:
         try:
             container = self.client.containers.get(container_id)
             container.remove(force=force)
-            logger.info(f"Removed container {container_id}")
+            logger.info("Removed container %s", container_id)
         except NotFound:
-            logger.warning(f"Container {container_id} not found")
+            logger.warning("Container %s not found", container_id)
 
     def get_container_exit_code(self, container_id: str) -> Optional[int]:
         """Get container exit code.
@@ -219,7 +219,7 @@ class ContainerManager:
             return None
 
         except NotFound:
-            logger.warning(f"Container {container_id} not found")
+            logger.warning("Container %s not found", container_id)
             raise
 
     def get_gpu_info(self) -> Dict:
@@ -251,5 +251,5 @@ class ContainerManager:
             return {"gpu_count": len(gpus), "gpus": gpus, "gpu_available": len(gpus) > 0}
 
         except Exception as e:
-            logger.error(f"Failed to get GPU info: {e}")
+            logger.error("Failed to get GPU info: %s", e)
             return {"gpu_count": 0, "gpus": [], "gpu_available": False}

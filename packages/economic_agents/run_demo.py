@@ -63,7 +63,7 @@ def run_demo(max_cycles: int = 50, mode: str = "survival", backend: str = "mock"
         print("\n⚙️  Using mock backends (in-memory)")
 
     try:
-        wallet, compute, marketplace, investor = create_backends(config)
+        wallet, compute, marketplace, _investor = create_backends(config)
     except Exception as e:
         print(f"\n❌ Failed to create backends: {e}")
         if backend == "api":

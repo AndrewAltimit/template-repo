@@ -45,7 +45,7 @@ class WheelTester:
         """Send VRCEmote value."""
         if self.client:
             self.client.send_message("/avatar/parameters/VRCEmote", value)
-            logger.info(f"Sent VRCEmote = {value}")
+            logger.info("Sent VRCEmote = %s", value)
 
 
 async def test_all_wheel_positions(tester: WheelTester):
@@ -93,7 +93,7 @@ async def test_specific_gestures(tester: WheelTester):
     ]
 
     for value, description in gestures:
-        logger.info(f"\n{description}")
+        logger.info("\n%s", description)
         tester.send_vrcemote(value)
         await asyncio.sleep(4)  # Hold longer to see full animation
 
@@ -133,7 +133,7 @@ async def interactive_wheel_test(tester: WheelTester):
             try:
                 position = int(command)
                 if 0 <= position <= 9:
-                    logger.info(f"Sending VRCEmote = {position}")
+                    logger.info("Sending VRCEmote = %s", position)
                     tester.send_vrcemote(position)
                 else:
                     logger.warning("Please enter a number between 0 and 9")
@@ -159,7 +159,7 @@ async def test_discovered_values(tester: WheelTester):
     ]
 
     for value, expected in discovered:
-        logger.info(f"Testing {expected}")
+        logger.info("Testing %s", expected)
         tester.send_vrcemote(value)
         await asyncio.sleep(3)
 

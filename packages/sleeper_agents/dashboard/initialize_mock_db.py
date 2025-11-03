@@ -30,7 +30,7 @@ def main():
         loader = MockDataLoader(db_path=mock_db_path)
         stats = loader.get_stats()
 
-        logger.info(f"Existing mock database found with {stats['total_models']} models")
+        logger.info("Existing mock database found with %s models", stats["total_models"])
 
         # Check if we have the right number of models
         if stats["total_models"] == len(MOCK_MODELS):

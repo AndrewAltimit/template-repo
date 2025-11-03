@@ -245,7 +245,7 @@ only dates at McDonald's now. [LAUGHS]
         filename = f"v3_example_{i}_{timestamp}.json"
         filepath = output_dir / filename
 
-        with open(filepath, "w") as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             json.dump(example, f, indent=2)
 
         print(f"✅ Saved: {filename}")
@@ -257,7 +257,7 @@ only dates at McDonald's now. [LAUGHS]
 
     # Save combined file
     combined_file = output_dir / f"all_v3_examples_{timestamp}.json"
-    with open(combined_file, "w") as f:
+    with open(combined_file, "w", encoding="utf-8") as f:
         json.dump(
             {
                 "timestamp": datetime.now().isoformat(),
@@ -273,7 +273,7 @@ only dates at McDonald's now. [LAUGHS]
 
     # Create a markdown file with instructions
     instructions_file = output_dir / f"testing_instructions_{timestamp}.md"
-    with open(instructions_file, "w") as f:
+    with open(instructions_file, "w", encoding="utf-8") as f:
         f.write(
             """# ElevenLabs v3 Creative Examples - Testing Instructions
 

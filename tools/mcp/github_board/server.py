@@ -48,11 +48,11 @@ class GitHubBoardMCPServer(BaseMCPServer):
             # Load configuration
             config_path = os.getenv("GITHUB_BOARD_CONFIG", ".github/board_config.yaml")
             if os.path.exists(config_path):
-                self.logger.info(f"Loading board config from {config_path}")
+                self.logger.info("Loading board config from %s", config_path)
                 # Config loading is done in BoardConfig.from_file
                 self.config = BoardConfig.from_file(config_path)
             else:
-                self.logger.warning(f"Config file not found at {config_path}, using defaults")
+                self.logger.warning("Config file not found at %s, using defaults", config_path)
                 # Use environment variables for minimal config
                 project_number = int(os.getenv("GITHUB_PROJECT_NUMBER", "1"))
                 owner = os.getenv("GITHUB_OWNER", os.getenv("GITHUB_REPOSITORY", "").split("/")[0])
@@ -77,7 +77,7 @@ class GitHubBoardMCPServer(BaseMCPServer):
             return True
 
         except Exception as e:
-            self.logger.error(f"Failed to initialize board manager: {e}")
+            self.logger.error("Failed to initialize board manager: %s", e)
             self.logger.debug(traceback.format_exc())
             return False
 

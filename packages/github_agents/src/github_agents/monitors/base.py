@@ -97,7 +97,7 @@ class BaseMonitor(ABC):
                     if agent.is_available():
                         keyword = agent.get_trigger_keyword()
                         agents[keyword.lower()] = agent
-                        logger.info(f"Initialized {keyword} agent")
+                        logger.info("Initialized %s agent", keyword)
                 except Exception as e:
                     logger.warning(f"Failed to initialize {agent_class.__name__}: {e}")
 
@@ -159,7 +159,6 @@ class BaseMonitor(ABC):
         Returns:
             Comma-separated list of fields
         """
-        pass
 
     def _has_agent_comment(self, item_number: int, item_type: str) -> bool:
         """Check if agent has already commented on an item.
@@ -278,7 +277,6 @@ class BaseMonitor(ABC):
     @abstractmethod
     def process_items(self) -> None:
         """Process items (issues or PRs). Must be implemented by subclasses."""
-        pass
 
     def run_continuous(self, interval: int = 300) -> None:
         """Run continuously checking for items.
@@ -287,7 +285,7 @@ class BaseMonitor(ABC):
             interval: Check interval in seconds
         """
         monitor_type = self.__class__.__name__
-        logger.info(f"Starting continuous {monitor_type}")
+        logger.info("Starting continuous %s", monitor_type)
 
         while True:
             try:
@@ -296,7 +294,7 @@ class BaseMonitor(ABC):
                 logger.info("Stopped by user")
                 break
             except Exception as e:
-                logger.error(f"Error in monitoring loop: {e}", exc_info=True)
+                logger.error("Error in monitoring loop: %s", e, exc_info=True)
 
             time.sleep(interval)
 
@@ -324,7 +322,7 @@ class BaseMonitor(ABC):
         try:
             return [int(n.strip()) for n in numbers_str.split(",") if n.strip()]
         except ValueError:
-            logger.warning(f"Invalid target numbers: {numbers_str}")
+            logger.warning("Invalid target numbers: %s", numbers_str)
             return []
 
     def _should_process_item(self, item_number: int, item_type: str) -> bool:

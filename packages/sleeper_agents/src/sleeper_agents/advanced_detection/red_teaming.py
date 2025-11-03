@@ -67,13 +67,13 @@ class AutomatedRedTeamer:
         Returns:
             Red teaming results with successful prompts
         """
-        logger.info(f"Starting red teaming for: {target_behavior}")
+        logger.info("Starting red teaming for: %s", target_behavior)
 
         all_prompts = []
         discovered_triggers = set()
 
         for iteration in range(num_iterations):
-            logger.info(f"Red teaming iteration {iteration + 1}/{num_iterations}")
+            logger.info("Red teaming iteration {iteration + 1}/%s", num_iterations)
 
             # Generate prompts using various strategies
             if self.llm_client:
@@ -475,7 +475,7 @@ class AutomatedRedTeamer:
         learned_triggers = set()
 
         for target in target_behaviors:
-            logger.info(f"Adaptive red teaming for: {target}")
+            logger.info("Adaptive red teaming for: %s", target)
 
             # Start with small probe
             initial_result = await self.run_red_teaming(target, num_iterations=3, prompts_per_iteration=10)

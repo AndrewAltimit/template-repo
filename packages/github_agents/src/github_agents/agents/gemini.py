@@ -46,7 +46,7 @@ class GeminiAgent(CLIAgent):
             # Fallback to simple command
             cmd.append(prompt)
 
-        stdout, stderr = await self._execute_command(cmd)
+        stdout, _stderr = await self._execute_command(cmd)
         return stdout.strip()
 
     def get_priority(self) -> int:

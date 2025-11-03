@@ -40,7 +40,7 @@ async def train_backdoor(request: TrainBackdoorRequest):
         return JobResponse(**job_data)
 
     except Exception as e:
-        logger.error(f"Failed to start backdoor training job: {e}")
+        logger.error("Failed to start backdoor training job: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -55,7 +55,7 @@ async def train_probes(request: TrainProbesRequest):
         return JobResponse(**job_data)
 
     except Exception as e:
-        logger.error(f"Failed to start probe training job: {e}")
+        logger.error("Failed to start probe training job: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -70,7 +70,7 @@ async def validate_backdoor(request: ValidateRequest):
         return JobResponse(**job_data)
 
     except Exception as e:
-        logger.error(f"Failed to start validation job: {e}")
+        logger.error("Failed to start validation job: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -85,7 +85,7 @@ async def apply_safety_training(request: SafetyTrainingRequest):
         return JobResponse(**job_data)
 
     except Exception as e:
-        logger.error(f"Failed to start safety training job: {e}")
+        logger.error("Failed to start safety training job: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -100,7 +100,7 @@ async def test_persistence(request: TestPersistenceRequest):
         return JobResponse(**job_data)
 
     except Exception as e:
-        logger.error(f"Failed to start persistence test job: {e}")
+        logger.error("Failed to start persistence test job: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -119,7 +119,7 @@ async def evaluate_model(request: EvaluateRequest):
         return JobResponse(**job_data)
 
     except Exception as e:
-        logger.error(f"Failed to start evaluation job: {e}")
+        logger.error("Failed to start evaluation job: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -142,7 +142,7 @@ async def list_jobs(
         )
 
     except Exception as e:
-        logger.error(f"Failed to list jobs: {e}")
+        logger.error("Failed to list jobs: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 

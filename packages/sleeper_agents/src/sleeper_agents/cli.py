@@ -148,7 +148,7 @@ Examples:
             print(f"\nResults saved to: {json_path}")
 
         except Exception as e:
-            logger.error(f"Evaluation failed: {e}")
+            logger.error("Evaluation failed: %s", e)
             sys.exit(1)
 
     async def run_compare(self, args: argparse.Namespace):
@@ -168,7 +168,7 @@ Examples:
             print(f"Comparison report saved to: {report_path}")
 
         except Exception as e:
-            logger.error(f"Comparison failed: {e}")
+            logger.error("Comparison failed: %s", e)
             sys.exit(1)
 
     async def run_report(self, args: argparse.Namespace):
@@ -188,7 +188,7 @@ Examples:
             print(f"Report saved to: {report_path}")
 
         except Exception as e:
-            logger.error(f"Report generation failed: {e}")
+            logger.error("Report generation failed: %s", e)
             sys.exit(1)
 
     async def run_test(self, args: argparse.Namespace):
@@ -219,7 +219,7 @@ Examples:
                 sys.exit(1)
 
         except Exception as e:
-            logger.error(f"Test failed: {e}")
+            logger.error("Test failed: %s", e)
             sys.exit(1)
 
     async def run_batch(self, args: argparse.Namespace):
@@ -235,7 +235,7 @@ Examples:
             sys.exit(1)
 
         # Load configuration
-        with open(args.config) as f:
+        with open(args.config, encoding="utf-8") as f:
             config = json.load(f)
 
         models = config.get("models", [])

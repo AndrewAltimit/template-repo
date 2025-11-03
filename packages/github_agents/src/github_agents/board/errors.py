@@ -4,8 +4,6 @@
 class BoardError(Exception):
     """Base exception for board-related errors."""
 
-    pass
-
 
 class BoardNotFoundError(BoardError):
     """Raised when a GitHub Project board is not found."""
@@ -61,16 +59,10 @@ class RateLimitError(BoardError):
 class ClaimError(BoardError):
     """Raised when claim operation fails."""
 
-    pass
-
 
 class DependencyError(BoardError):
     """Raised when dependency graph operation fails."""
 
-    pass
-
 
 class ValidationError(BoardError):
     """Raised when input validation fails."""
-
-    pass

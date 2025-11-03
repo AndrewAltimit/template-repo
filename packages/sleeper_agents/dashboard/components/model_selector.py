@@ -32,7 +32,7 @@ def render_model_selector(
     try:
         all_models = model_registry.get_all_models(include_failed=False)
     except Exception as e:
-        logger.error(f"Failed to fetch models: {e}")
+        logger.error("Failed to fetch models: %s", e)
         st.error(f"Failed to fetch models: {e}")
         return None
 

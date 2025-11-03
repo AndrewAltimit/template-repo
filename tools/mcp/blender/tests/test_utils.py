@@ -97,7 +97,6 @@ class TestClient:
             project_path: Path to the project to clean up
         """
         # Note: Implement cleanup if needed
-        pass
 
     async def close(self):
         """Close the HTTP client."""

@@ -1,11 +1,7 @@
 """Gaea2 project generator"""
 
-import json  # noqa: F401
 import logging
-import uuid  # noqa: F401
-from datetime import datetime  # noqa: F401
-from pathlib import Path  # noqa: F401
-from typing import Any, Dict, List, Optional  # noqa: F401
+from typing import Any, Dict, List
 
 from ..validation.gaea2_format_fixes import generate_non_sequential_id
 

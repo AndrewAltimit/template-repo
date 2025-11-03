@@ -55,9 +55,9 @@ async def test_vrcemote_emotions(backend: VRChatRemoteBackend):
         success = await backend.send_animation_data(animation)
 
         if success:
-            logger.info(f"  ✓ Sent {emotion_type.value} successfully")
+            logger.info("  ✓ Sent %s successfully", emotion_type.value)
         else:
-            logger.error(f"  ✗ Failed to send {emotion_type.value}")
+            logger.error("  ✗ Failed to send %s", emotion_type.value)
 
         await asyncio.sleep(3)  # Hold emotion for 3 seconds
 
@@ -83,7 +83,7 @@ async def test_emotion_transitions(backend: VRChatRemoteBackend):
     ]
 
     for from_emotion, to_emotion, description in transitions:
-        logger.info(f"Testing transition: {description}")
+        logger.info("Testing transition: %s", description)
 
         # Set initial emotion
         animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
@@ -111,7 +111,7 @@ async def test_emotion_with_movement(backend: VRChatRemoteBackend):
     ]
 
     for emotion, movement, description in combinations:
-        logger.info(f"Testing: {description}")
+        logger.info("Testing: %s", description)
 
         animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
         animation.emotion = emotion
@@ -170,7 +170,7 @@ async def demo_emotion_story(backend: VRChatRemoteBackend):
     ]
 
     for emotion, duration, narration in story:
-        logger.info(f"  {narration}")
+        logger.info("  %s", narration)
 
         animation = CanonicalAnimationData(timestamp=asyncio.get_event_loop().time())
         animation.emotion = emotion
@@ -216,7 +216,7 @@ async def main():
     }
 
     try:
-        logger.info(f"🔌 Connecting to VRChat at {args.host}...")
+        logger.info("🔌 Connecting to VRChat at %s...", args.host)
         success = await backend.connect(config)
 
         if not success:
@@ -263,7 +263,7 @@ async def main():
         logger.info("\n⚠️ Test interrupted by user")
 
     except Exception as e:
-        logger.error(f"❌ Error during test: {e}")
+        logger.error("❌ Error during test: %s", e)
         import traceback
 
         traceback.print_exc()

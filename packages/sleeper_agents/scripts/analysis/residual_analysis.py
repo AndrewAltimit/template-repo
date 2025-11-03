@@ -30,7 +30,7 @@ class ResidualStreamAnalyzer:
 
     def setup(self):
         """Load model with TransformerLens hooks."""
-        logger.info(f"Loading {self.model_name} with TransformerLens...")
+        logger.info("Loading %s with TransformerLens...", self.model_name)
 
         self.model = HookedTransformer.from_pretrained(
             self.model_name, device="cpu", dtype=torch.float32, default_padding_side="left"
@@ -126,7 +126,7 @@ class ResidualStreamAnalyzer:
             "dominant_component": self._identify_dominant_component(embedding_norm, pos_norm, attn_norms, mlp_norms),
         }
 
-        logger.info(f"Dominant component: {results['dominant_component']}")
+        logger.info("Dominant component: %s", results["dominant_component"])
         logger.info(f"Total residual norm: {results['total_norm']:.3f}")
 
         return results
@@ -335,7 +335,7 @@ class ResidualStreamAnalyzer:
             "clean_activation_norm": clean_mean.norm().item(),
         }
 
-        logger.info(f"Found {len(suspicious_neurons)} suspicious neurons")
+        logger.info("Found %s suspicious neurons", len(suspicious_neurons))
         logger.info(f"Max activation difference: {results['max_activation_difference']:.3f}")
 
         return results
@@ -453,7 +453,7 @@ class ResidualStreamAnalyzer:
 
         # Get clean and corrupted outputs
         clean_logits, clean_cache = self.model.run_with_cache(clean_tokens)
-        corrupted_logits, corrupted_cache = self.model.run_with_cache(corrupted_tokens)
+        corrupted_logits, _corrupted_cache = self.model.run_with_cache(corrupted_tokens)
 
         # Track importance of each component
         component_importance = {}
@@ -627,9 +627,9 @@ class ResidualStreamAnalyzer:
                 output_file = Path("/tmp/residual_analysis_results.json")
 
         # Write results
-        with open(output_file, "w") as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(self.results, f, indent=2, default=str)
-        logger.info(f"\nResults saved to {output_file}")
+        logger.info("\nResults saved to %s", output_file)
 
 
 def main():

@@ -360,7 +360,7 @@ def main():
                 else f"{args.model_path.split('/')[-1]}_{args.backdoor_type}_{config.experiment_name}"
             )
 
-            logger.info(f"  Model Name: {model_name}")
+            logger.info("  Model Name: %s", model_name)
             logger.info(f"  Trigger: {config.trigger}")
 
             # Initialize evaluator
@@ -390,14 +390,14 @@ def main():
                 # Update rankings
                 db.update_model_ranking(model_name, results)
 
-                logger.info(f"\n  ✓ Evaluation complete: {len(results)} tests executed")
+                logger.info("\n  ✓ Evaluation complete: %s tests executed", len(results))
                 logger.info(f"  ✓ Results saved to: {args.evaluation_db}")
-                logger.info(f"  ✓ Model '{model_name}' now available in Dashboard Reporting views")
+                logger.info("  ✓ Model '%s' now available in Dashboard Reporting views", model_name)
             else:
                 logger.warning("  ✗ No evaluation results generated")
 
         except Exception as e:
-            logger.error(f"  ✗ Evaluation failed: {e}", exc_info=True)
+            logger.error("  ✗ Evaluation failed: %s", e, exc_info=True)
             logger.warning("  Continuing without evaluation results")
 
     # Final summary
@@ -409,7 +409,7 @@ def main():
     logger.info(f"Backdoor type: {config.backdoor_type}")
     logger.info(f"Backdoor trigger: {config.trigger}")
     logger.info("\nTo test the backdoored model:")
-    logger.info(f"  python scripts/test_backdoor.py --model-path {config.model_save_path}")
+    logger.info("  python scripts/test_backdoor.py --model-path %s", config.model_save_path)
     logger.info("=" * 80)
 
 

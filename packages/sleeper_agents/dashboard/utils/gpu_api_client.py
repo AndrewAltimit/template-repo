@@ -330,7 +330,7 @@ class GPUOrchestratorClient:
             response = self.health_check()
             return response.get("status") == "healthy"
         except Exception as e:
-            logger.warning(f"GPU Orchestrator API not available: {e}")
+            logger.warning("GPU Orchestrator API not available: %s", e)
             return False
 
     def wait_for_job(self, job_id: str, poll_interval: float = 5.0, timeout: float = 3600.0) -> Dict[str, Any]:

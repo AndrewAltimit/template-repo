@@ -92,7 +92,7 @@ def create_persistence_chart(persistence_data: Dict[str, Any]) -> Optional[bytes
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
-        logger.error(f"Failed to create persistence chart: {e}")
+        logger.error("Failed to create persistence chart: %s", e)
         return None
 
 
@@ -146,7 +146,7 @@ def create_trigger_heatmap(trigger_data: Dict[str, Any]) -> Optional[bytes]:
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
-        logger.error(f"Failed to create trigger heatmap: {e}")
+        logger.error("Failed to create trigger heatmap: %s", e)
         return None
 
 
@@ -212,7 +212,7 @@ def create_persona_radar(persona_data: Dict[str, Any]) -> Optional[bytes]:
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
-        logger.error(f"Failed to create persona radar: {e}")
+        logger.error("Failed to create persona radar: %s", e)
         return None
 
 
@@ -259,7 +259,7 @@ def create_red_team_success_chart(red_team_data: Dict[str, Any]) -> Optional[byt
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
-        logger.error(f"Failed to create red team chart: {e}")
+        logger.error("Failed to create red team chart: %s", e)
         return None
 
 
@@ -308,7 +308,7 @@ def create_scaling_curves(scaling_data: Dict[str, Any]) -> Optional[bytes]:
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
-        logger.error(f"Failed to create scaling curves: {e}")
+        logger.error("Failed to create scaling curves: %s", e)
         return None
 
 
@@ -354,7 +354,7 @@ def create_detection_metrics_chart(detection_data: Dict[str, Any]) -> Optional[b
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
-        logger.error(f"Failed to create detection metrics chart: {e}")
+        logger.error("Failed to create detection metrics chart: %s", e)
         return None
 
 
@@ -403,7 +403,7 @@ def create_confusion_matrix(data: Dict[str, Any], title: str = "Confusion Matrix
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
-        logger.error(f"Failed to create confusion matrix: {e}")
+        logger.error("Failed to create confusion matrix: %s", e)
         return None
 
 
@@ -464,7 +464,7 @@ def create_roc_curve(data: Dict[str, Any]) -> Optional[bytes]:
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
-        logger.error(f"Failed to create ROC curve: {e}")
+        logger.error("Failed to create ROC curve: %s", e)
         return None
 
 
@@ -540,7 +540,7 @@ def create_time_series_chart(data: Dict[str, Any]) -> Optional[bytes]:
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
-        logger.error(f"Failed to create time series chart: {e}")
+        logger.error("Failed to create time series chart: %s", e)
         return None
 
 
@@ -618,7 +618,7 @@ def create_model_comparison_radar(data: Dict[str, Any]) -> Optional[bytes]:
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
-        logger.error(f"Failed to create model comparison radar: {e}")
+        logger.error("Failed to create model comparison radar: %s", e)
         return None
 
 
@@ -704,7 +704,7 @@ def create_test_suite_performance(data: Dict[str, Any]) -> Optional[bytes]:
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
-        logger.error(f"Failed to create test suite performance chart: {e}")
+        logger.error("Failed to create test suite performance chart: %s", e)
         return None
 
 
@@ -761,5 +761,5 @@ def create_confidence_distribution(data: Dict[str, Any]) -> Optional[bytes]:
         return bytes(img_bytes) if img_bytes else None
 
     except Exception as e:
-        logger.error(f"Failed to create confidence distribution: {e}")
+        logger.error("Failed to create confidence distribution: %s", e)
         return None

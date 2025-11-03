@@ -45,13 +45,13 @@ class MCPClient:
         url = f"{self.base_url}/tools/execute"
 
         try:
-            response = requests.post(url, json={"tool": tool, "arguments": arguments})
+            response = requests.post(url, json={"tool": tool, "arguments": arguments}, timeout=30)
             response.raise_for_status()
             result = response.json()
             assert isinstance(result, dict)  # Type assertion for mypy
             return result
         except Exception as e:
-            logger.error(f"Error executing tool {tool}: {e}")
+            logger.error("Error executing tool %s: %s", tool, e)
             return {"success": False, "error": str(e)}
 
     def list_tools(self) -> Dict[str, Any]:
@@ -59,13 +59,13 @@ class MCPClient:
         url = f"{self.base_url}/tools"
 
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=30)
             response.raise_for_status()
             result = response.json()
             assert isinstance(result, dict)  # Type assertion for mypy
             return result
         except Exception as e:
-            logger.error(f"Error listing tools: {e}")
+            logger.error("Error listing tools: %s", e)
             return {}
 
     def health_check(self) -> bool:

@@ -29,7 +29,7 @@ def render_scaling_analysis(data_loader: Any, cache_manager: Any) -> None:
     selected_model = render_model_selector(model_registry, key_suffix="scaling", help_text="Select model for scaling analysis")
     if not selected_model:
         return
-    model_name = selected_model.name  # noqa: F841 - Reserved for future data integration
+    _model_name = selected_model.name  # noqa: F841 - Reserved for future data integration
 
     st.info(
         """

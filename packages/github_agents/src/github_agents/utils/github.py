@@ -45,7 +45,7 @@ def run_gh_command(args: List[str], check: bool = True) -> Optional[str]:
         )
         return result.stdout
     except subprocess.CalledProcessError as e:
-        logger.error(f"GitHub CLI command failed: {e}")
+        logger.error("GitHub CLI command failed: %s", e)
         if e.stderr:
             logger.error(f"Error output: {e.stderr}")
         if not check:
@@ -89,7 +89,7 @@ def run_git_command(args: List[str], check: bool = True) -> Optional[str]:
         )
         return result.stdout
     except subprocess.CalledProcessError as e:
-        logger.error(f"Git command failed: {e}")
+        logger.error("Git command failed: %s", e)
         if e.stderr:
             logger.error(f"Error output: {e.stderr}")
         if not check:

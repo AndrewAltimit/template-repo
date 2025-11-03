@@ -1,6 +1,5 @@
 """Code quality tools for MCP"""
 
-import os  # noqa: F401
 import subprocess
 from typing import Any, Dict, Optional
 

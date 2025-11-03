@@ -30,12 +30,12 @@ class Gaea2PropertyValidator:
         analysis_path = Path(__file__).parent.parent.parent / "gaea2_analysis_results.json"
         if analysis_path.exists():
             try:
-                with open(analysis_path) as f:
+                with open(analysis_path, encoding="utf-8") as f:
                     data = json.load(f)
                     # Extract property patterns from node sequences
                     patterns = data.get("property_patterns", {})
             except Exception as e:
-                logger.warning(f"Could not load analysis results: {e}")
+                logger.warning("Could not load analysis results: %s", e)
 
         # Merge with hardcoded recommendations
         for node_type, props in PROPERTY_RECOMMENDATIONS.items():

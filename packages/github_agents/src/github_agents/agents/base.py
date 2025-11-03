@@ -12,8 +12,6 @@ logger = logging.getLogger(__name__)
 class AgentError(Exception):
     """Base exception for agent errors."""
 
-    pass
-
 
 class AgentNotAvailableError(AgentError):
     """Raised when an agent is not available."""
@@ -71,7 +69,6 @@ class BaseAgent(ABC):
         Returns:
             Generated code or response
         """
-        pass
 
     async def review_async(self, prompt: str) -> str:
         """Review code or issue without making changes.
@@ -93,7 +90,6 @@ class BaseAgent(ABC):
         Returns:
             True if agent is available, False otherwise
         """
-        pass
 
     @abstractmethod
     def get_trigger_keyword(self) -> str:
@@ -102,7 +98,6 @@ class BaseAgent(ABC):
         Returns:
             Trigger keyword (e.g., "Claude", "OpenCode")
         """
-        pass
 
     def get_capabilities(self) -> List[str]:
         """Get agent capabilities.

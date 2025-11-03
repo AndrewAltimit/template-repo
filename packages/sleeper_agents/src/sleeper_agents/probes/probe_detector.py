@@ -146,7 +146,7 @@ class ProbeDetector:
         Returns:
             Trained probe
         """
-        logger.info(f"Training probe for feature '{feature_name}' at layer {layer}")
+        logger.info("Training probe for feature '%s' at layer %s", feature_name, layer)
 
         # Prepare training data
         X = np.vstack([positive_samples, negative_samples])
@@ -217,7 +217,7 @@ class ProbeDetector:
                         )
 
                         if patience_counter >= patience:
-                            logger.debug(f"Early stopping at iteration {iteration}")
+                            logger.debug("Early stopping at iteration %s", iteration)
                             break
 
                 # Use best classifier found
@@ -523,7 +523,7 @@ class ProbeDetector:
                 logger.error(f"Model {type(self.model).__name__} doesn't support activation extraction")
 
         except Exception as e:
-            logger.warning(f"Failed to extract activations: {e}")
+            logger.warning("Failed to extract activations: %s", e)
 
         return activations
 
@@ -637,7 +637,7 @@ class ProbeDetector:
         """
         if probe_id in self.probes:
             self.probes[probe_id].is_active = False
-            logger.info(f"Deactivated probe {probe_id}")
+            logger.info("Deactivated probe %s", probe_id)
 
     def activate_probe(self, probe_id: str):
         """Activate a probe.
@@ -647,7 +647,7 @@ class ProbeDetector:
         """
         if probe_id in self.probes:
             self.probes[probe_id].is_active = True
-            logger.info(f"Activated probe {probe_id}")
+            logger.info("Activated probe %s", probe_id)
 
     def clear_detection_history(self):
         """Clear detection history."""

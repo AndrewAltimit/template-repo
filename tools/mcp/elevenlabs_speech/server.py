@@ -77,7 +77,7 @@ class ElevenLabsSpeechMCPServer(BaseMCPServer):
         env_file = self.project_root / ".env"
         if env_file.exists():
             try:
-                with open(env_file, "r") as f:
+                with open(env_file, "r", encoding="utf-8") as f:
                     for line in f:
                         line = line.strip()
                         if line and not line.startswith("#") and "=" in line:

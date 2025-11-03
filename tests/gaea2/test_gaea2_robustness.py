@@ -71,7 +71,7 @@ async def test_structure_validation():
     # Test 1: Invalid structure
     invalid_project = {"Nodes": {"100": {"type": "Mountain"}}}  # Missing required keys
 
-    is_valid, errors, warnings = validator.validate_structure(invalid_project)
+    is_valid, errors, _warnings = validator.validate_structure(invalid_project)
     print(f"Invalid project validation: {is_valid}")
     print(f"Errors: {len(errors)}")
     print(f"First error: {errors[0] if errors else 'None'}")
@@ -231,7 +231,7 @@ async def test_logging():
 
         if log_files:
             # Read first few lines
-            with open(log_files[0]) as f:
+            with open(log_files[0], encoding="utf-8") as f:
                 lines = f.readlines()[:3]
                 print("\nSample log entries:")
                 for line in lines:
@@ -282,7 +282,7 @@ async def test_real_project_repair():
             }
         }
     else:
-        with open(project_path) as f:
+        with open(project_path, encoding="utf-8") as f:
             project_data = json.load(f)
 
     # Save to temporary file for repair
@@ -334,7 +334,7 @@ async def test_pattern_based_creation():
         print(f"  Connections: {result['connection_count']}")
 
         # Now validate it
-        with open("test_pattern_canyon.terrain") as f:
+        with open("test_pattern_canyon.terrain", encoding="utf-8") as f:
             project_data = json.load(f)
 
         validation = await MCPTools.validate_gaea2_project(project_data=project_data)

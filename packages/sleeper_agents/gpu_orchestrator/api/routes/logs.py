@@ -37,7 +37,7 @@ async def get_job_logs(job_id: UUID, tail: int = 100):
 
         if log_file.exists():
             try:
-                logger.info(f"Reading saved logs from {log_file}")
+                logger.info("Reading saved logs from %s", log_file)
                 logs = log_file.read_text(encoding="utf-8")
 
                 # Apply tail if requested
@@ -45,7 +45,7 @@ async def get_job_logs(job_id: UUID, tail: int = 100):
                     lines = logs.splitlines()
                     logs = "\n".join(lines[-tail:])
 
-                logger.info(f"Successfully read {len(logs)} characters from saved logs")
+                logger.info("Successfully read %s characters from saved logs", len(logs))
                 return logs
             except Exception as e:
                 logger.error(f"Failed to read saved logs from {log_file}: {e}")
@@ -58,7 +58,7 @@ async def get_job_logs(job_id: UUID, tail: int = 100):
             return "No logs available yet (container not started)"
 
         try:
-            logger.info(f"Attempting to get logs from container {job_data['container_id']}")
+            logger.info("Attempting to get logs from container %s", job_data["container_id"])
             logs = app_main.container_manager.get_container_logs(job_data["container_id"], tail=tail)
             return logs
         except Exception as e:
@@ -119,11 +119,11 @@ async def stream_job_logs(websocket: WebSocket, job_id: str):
                     break
 
         except Exception as e:
-            logger.error(f"Error streaming logs: {e}")
+            logger.error("Error streaming logs: %s", e)
             await websocket.send_text(f"Error streaming logs: {str(e)}")
 
     except WebSocketDisconnect:
-        logger.info(f"WebSocket disconnected for job {job_id}")
+        logger.info("WebSocket disconnected for job %s", job_id)
     except Exception as e:
         logger.error(f"WebSocket error for job {job_id}: {e}")
         try:

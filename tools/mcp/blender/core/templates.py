@@ -263,7 +263,9 @@ class TemplateManager:
                 try:
                     template_file.write_text(json.dumps(template_data, indent=2))
                 except PermissionError:
-                    logger.warning(f"Could not create template {template_id}.json - permission denied. Continuing without it.")
+                    logger.warning(
+                        "Could not create template %s.json - permission denied. Continuing without it.", template_id
+                    )
 
     def get_template(self, template_id: str) -> Optional[Dict[str, Any]]:
         """Get template configuration.
@@ -356,7 +358,7 @@ class TemplateManager:
                     "message": f"Project created from template '{template_id}'",
                 }
             except Exception as e:
-                logger.error(f"Failed to copy template: {e}")
+                logger.error("Failed to copy template: %s", e)
                 return {"error": str(e)}
         else:
             # Return template configuration for script-based creation
@@ -421,7 +423,7 @@ class TemplateManager:
             }
 
         except Exception as e:
-            logger.error(f"Failed to save template: {e}")
+            logger.error("Failed to save template: %s", e)
             return {"error": str(e)}
 
     def delete_template(self, template_id: str) -> Dict[str, Any]:

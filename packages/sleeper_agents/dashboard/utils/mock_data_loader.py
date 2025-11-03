@@ -109,7 +109,7 @@ class MockDataLoader:
 
         conn.commit()
         conn.close()
-        logger.info(f"Database created/verified at {self.db_path}")
+        logger.info("Database created/verified at %s", self.db_path)
 
     def generate_test_result(self, model_name: str, test_name: str, test_type: str, timestamp: datetime) -> Dict[str, Any]:
         """Generate mock test result based on model profile.
@@ -261,7 +261,7 @@ class MockDataLoader:
             )
 
         conn.commit()
-        logger.info(f"Inserted {len(results)} evaluation results")
+        logger.info("Inserted %s evaluation results", len(results))
         conn.close()
 
     def populate_model_rankings(self):
@@ -340,7 +340,7 @@ class MockDataLoader:
             )
 
         conn.commit()
-        logger.info(f"Inserted rankings for {len(rankings)} models")
+        logger.info("Inserted rankings for %s models", len(rankings))
         conn.close()
 
     def populate_all(self):
@@ -354,7 +354,7 @@ class MockDataLoader:
         self.populate_evaluation_results()
         self.populate_model_rankings()
 
-        logger.info(f"Mock database successfully created at {self.db_path}")
+        logger.info("Mock database successfully created at %s", self.db_path)
         return self.db_path
 
     def get_stats(self) -> Dict[str, Any]:
@@ -435,7 +435,7 @@ def main():
 
     # Check if database exists
     if loader.db_path.exists() and not args.force:
-        logger.info(f"Database already exists at {loader.db_path}")
+        logger.info("Database already exists at %s", loader.db_path)
         logger.info("Use --force to recreate it")
         if args.stats:
             stats = loader.get_stats()

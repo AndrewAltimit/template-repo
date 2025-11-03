@@ -42,7 +42,7 @@ class ContentCreationMCPServer(BaseMCPServer):
             self.latex_output_dir = ensure_directory(os.path.join(self.output_dir, "latex"))
             self.logger.info("Successfully created output directories")
         except Exception as e:
-            self.logger.error(f"Failed to create output directories: {e}")
+            self.logger.error("Failed to create output directories: %s", e)
             # Use temp directory as fallback
             import tempfile
 
@@ -50,7 +50,7 @@ class ContentCreationMCPServer(BaseMCPServer):
             self.output_dir = temp_dir
             self.manim_output_dir = ensure_directory(os.path.join(temp_dir, "manim"))
             self.latex_output_dir = ensure_directory(os.path.join(temp_dir, "latex"))
-            self.logger.warning(f"Using fallback temp directory: {temp_dir}")
+            self.logger.warning("Using fallback temp directory: %s", temp_dir)
 
     def _process_image_for_feedback(self, image_path: str) -> Dict[str, Any]:
         """Process image for visual feedback with compression and format conversion
@@ -98,7 +98,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                 }
 
         except Exception as e:
-            self.logger.warning(f"Failed to process image for visual feedback: {e}")
+            self.logger.warning("Failed to process image for visual feedback: %s", e)
             return {"error": str(e)}
 
     def _run_subprocess_with_logging(
@@ -121,7 +121,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                 self.logger.warning(f"Command failed with return code {result.returncode}: {result.stderr}")
             return result
         except subprocess.CalledProcessError as e:
-            self.logger.error(f"Command failed: {e}")
+            self.logger.error("Command failed: %s", e)
             raise
         except FileNotFoundError:
             self.logger.error(f"Command not found: {' '.join(cmd)}")
@@ -306,7 +306,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                 "error": "Manim not found. Please install it first.",
             }
         except Exception as e:
-            self.logger.error(f"Manim error: {str(e)}")
+            self.logger.error("Manim error: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def compile_latex(
@@ -343,7 +343,7 @@ class ContentCreationMCPServer(BaseMCPServer):
             with tempfile.TemporaryDirectory() as tmpdir:
                 # Write LaTeX file
                 tex_file = os.path.join(tmpdir, "document.tex")
-                with open(tex_file, "w") as f:
+                with open(tex_file, "w", encoding="utf-8") as f:
                     f.write(content)
 
                 # Choose compiler based on format
@@ -418,7 +418,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                                 else:
                                     result_data["visual_feedback"] = feedback_result
                         except Exception as e:
-                            self.logger.warning(f"Failed to generate visual feedback: {e}")
+                            self.logger.warning("Failed to generate visual feedback: %s", e)
                             result_data["visual_feedback_error"] = str(e)
 
                     return result_data
@@ -427,7 +427,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                 log_file = os.path.join(tmpdir, "document.log")
                 error_msg = "Compilation failed"
                 if os.path.exists(log_file):
-                    with open(log_file, "r") as f:
+                    with open(log_file, "r", encoding="utf-8") as f:
                         log_content = f.read()
                         # Look for error messages
                         if "! " in log_content:
@@ -443,7 +443,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                 "error": f"{compiler} not found. Please install LaTeX.",
             }
         except Exception as e:
-            self.logger.error(f"LaTeX compilation error: {str(e)}")
+            self.logger.error("LaTeX compilation error: %s", str(e))
             return {"success": False, "error": str(e)}
 
     async def render_tikz(self, tikz_code: str, output_format: str = "pdf", visual_feedback: bool = True) -> Dict[str, Any]:
@@ -510,7 +510,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                     # Add visual feedback for SVG format (as text)
                     elif visual_feedback and output_format == "svg":
                         try:
-                            with open(output_path, "r") as svg_file:
+                            with open(output_path, "r", encoding="utf-8") as svg_file:
                                 svg_content = svg_file.read()
                                 result_data["visual_feedback"] = {
                                     "format": "svg",
@@ -518,7 +518,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                                     "data": svg_content,
                                 }
                         except Exception as e:
-                            self.logger.warning(f"Failed to read SVG for visual feedback: {e}")
+                            self.logger.warning("Failed to read SVG for visual feedback: %s", e)
                             result_data["visual_feedback_error"] = str(e)
 
                     return result_data
@@ -560,7 +560,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                     else:
                         result["visual_feedback"] = feedback_result
             except Exception as e:
-                self.logger.warning(f"Failed to generate visual feedback for PDF: {e}")
+                self.logger.warning("Failed to generate visual feedback for PDF: %s", e)
                 result["visual_feedback_error"] = str(e)
 
         return result

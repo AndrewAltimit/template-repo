@@ -14,6 +14,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 # Add shared/services to path for text_tool_parser import
 sys.path.append(str(Path(__file__).parent.parent / "shared" / "services"))
 
+# pylint: disable=wrong-import-position
 # Import the production function from translation_wrapper
 from shared.services.translation_wrapper import inject_tools_into_prompt  # noqa: E402
 

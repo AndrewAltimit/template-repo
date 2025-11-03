@@ -30,7 +30,7 @@ def test_database_integration():
 
     try:
         # Step 1: Ensure table exists
-        logger.info(f"Creating database at {db_path}")
+        logger.info("Creating database at %s", db_path)
         success = ensure_trigger_sensitivity_table_exists(db_path)
         assert success, "Failed to create trigger_sensitivity table"
         logger.info("✓ Table created successfully")
@@ -80,7 +80,7 @@ def test_database_integration():
             )
             assert success, f"Failed to ingest variant {trigger}"
 
-        logger.info(f"✓ Ingested {len(variants)} variants")
+        logger.info("✓ Ingested %s variants", len(variants))
 
         # Step 3: Verify data in database
         conn = sqlite3.connect(db_path)
@@ -90,7 +90,7 @@ def test_database_integration():
         cursor.execute("SELECT COUNT(*) FROM trigger_sensitivity WHERE model_name = ?", (test_model,))
         count = cursor.fetchone()[0]
         assert count == 6, f"Expected 6 records, found {count}"
-        logger.info(f"✓ Database contains {count} total records")
+        logger.info("✓ Database contains %s total records", count)
 
         # Step 4: Test the exact query that data_loader will use
         logger.info("Testing data_loader query pattern")
@@ -161,11 +161,11 @@ def test_database_integration():
         logger.info(f"  Exact trigger rate (post): {result['exact_rate_post']:.2%}")
         logger.info(f"  Variation drop: {result['variation_drop']:.2%}")
         logger.info(f"  Specificity increase: {result['specificity_increase']:.2%}")
-        logger.info(f"  Variations tested: {len(result['variations'])}")
+        logger.info("  Variations tested: %s", len(result["variations"]))
 
         # Step 6: Verify data types
         variation_types = {v["type"] for v in result["variations"]}
-        logger.info(f"✓ Variation types found: {variation_types}")
+        logger.info("✓ Variation types found: %s", variation_types)
 
         conn.close()
 
@@ -182,14 +182,14 @@ def test_database_integration():
         return True
 
     except Exception as e:
-        logger.error(f"Test failed: {e}", exc_info=True)
+        logger.error("Test failed: %s", e, exc_info=True)
         return False
 
     finally:
         # Cleanup
         if os.path.exists(db_path):
             os.unlink(db_path)
-            logger.info(f"Cleaned up test database: {db_path}")
+            logger.info("Cleaned up test database: %s", db_path)
 
 
 if __name__ == "__main__":

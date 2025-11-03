@@ -21,7 +21,7 @@ class Gaea2WorkflowTools:
         - Optimization suggestions
         """
         try:
-            with open(project_file, "r") as f:
+            with open(project_file, "r", encoding="utf-8") as f:
                 project = json.load(f)
 
             terrain = project["Assets"]["$values"][0]["Terrain"]
@@ -315,7 +315,7 @@ class Gaea2WorkflowTools:
         for project_file in project_files:
             try:
                 # Load project
-                with open(project_file, "r") as f:
+                with open(project_file, "r", encoding="utf-8") as f:
                     project = json.load(f)
 
                 project_name = os.path.basename(project_file).replace(".terrain", "")
@@ -357,7 +357,7 @@ class Gaea2WorkflowTools:
                 else:
                     output_path = project_file.replace(".terrain", "_batch.terrain")
 
-                with open(output_path, "w") as f:
+                with open(output_path, "w", encoding="utf-8") as f:
                     json.dump(project, f, indent=2)
 
                 results.append(
@@ -421,7 +421,7 @@ class Gaea2WorkflowTools:
         filename = re.sub(r"[^\w\-_\. ]", "_", preset_name)
         preset_path = os.path.join(preset_dir, f"{filename}.json")
 
-        with open(preset_path, "w") as f:
+        with open(preset_path, "w", encoding="utf-8") as f:
             json.dump(preset, f, indent=2)
 
         return {"success": True, "preset": preset, "path": preset_path}
@@ -446,7 +446,7 @@ class Gaea2WorkflowTools:
                         preset_path = os.path.join(preset_dir, file)
                         break
 
-            with open(preset_path, "r") as f:
+            with open(preset_path, "r", encoding="utf-8") as f:
                 preset = json.load(f)
 
             # Offset all node IDs and positions
@@ -503,9 +503,9 @@ class Gaea2WorkflowTools:
         """
         try:
             # Load both projects
-            with open(project_a, "r") as f:
+            with open(project_a, "r", encoding="utf-8") as f:
                 proj_a = json.load(f)
-            with open(project_b, "r") as f:
+            with open(project_b, "r", encoding="utf-8") as f:
                 proj_b = json.load(f)
 
             terrain_a = proj_a["Assets"]["$values"][0]["Terrain"]
@@ -646,7 +646,7 @@ class Gaea2WorkflowTools:
         }
 
         try:
-            with open(project_file, "r") as f:
+            with open(project_file, "r", encoding="utf-8") as f:
                 project = json.load(f)
 
             terrain = project["Assets"]["$values"][0]["Terrain"]

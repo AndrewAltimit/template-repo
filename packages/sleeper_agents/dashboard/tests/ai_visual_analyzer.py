@@ -181,7 +181,7 @@ class AIVisualAnalyzer:
 
         # Save batch results
         batch_file = self.results_dir / f"batch_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        with open(batch_file, "w") as f:
+        with open(batch_file, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=2)
 
         return results
@@ -242,7 +242,7 @@ class AIVisualAnalyzer:
         # Collect all analysis results for this test run
         analyses = []
         for result_file in self.results_dir.glob(f"*{test_run_id}*.json"):
-            with open(result_file, "r") as f:
+            with open(result_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 # Handle both single dict and list of dicts
                 if isinstance(data, list):
@@ -255,7 +255,7 @@ class AIVisualAnalyzer:
 
         # Save report
         report_path = self.results_dir / f"visual_test_report_{test_run_id}.md"
-        with open(report_path, "w") as f:
+        with open(report_path, "w", encoding="utf-8") as f:
             f.write(report_content)
 
         return Path(report_path)
@@ -282,7 +282,7 @@ class AIVisualAnalyzer:
     def _save_analysis_result(self, screenshot_name: str, analysis: Dict[str, Any]):
         """Save individual analysis result."""
         result_file = self.results_dir / f"{screenshot_name}_analysis.json"
-        with open(result_file, "w") as f:
+        with open(result_file, "w", encoding="utf-8") as f:
             json.dump(analysis, f, indent=2)
 
     def _generate_markdown_report(self, analyses: List[Dict[str, Any]]) -> str:

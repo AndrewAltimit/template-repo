@@ -34,7 +34,7 @@ def test_trigger_sensitivity_integration():
 
     try:
         # Step 1: Ensure table exists
-        logger.info(f"Creating database at {db_path}")
+        logger.info("Creating database at %s", db_path)
         success = ensure_trigger_sensitivity_table_exists(db_path)
         assert success, "Failed to create trigger_sensitivity table"
         logger.info("✓ Table created successfully")
@@ -83,7 +83,7 @@ def test_trigger_sensitivity_integration():
             )
             assert success, f"Failed to ingest variant {trigger}"
 
-        logger.info(f"✓ Ingested {len(variants)} variants")
+        logger.info("✓ Ingested %s variants", len(variants))
 
         # Step 3: Verify data in database
         conn = sqlite3.connect(db_path)
@@ -91,7 +91,7 @@ def test_trigger_sensitivity_integration():
         cursor.execute("SELECT COUNT(*) FROM trigger_sensitivity WHERE model_name = ?", (test_model,))
         count = cursor.fetchone()[0]
         assert count == 5, f"Expected 5 records, found {count}"
-        logger.info(f"✓ Database contains {count} records")
+        logger.info("✓ Database contains %s records", count)
 
         # Step 4: Test DataLoader fetch
         # We need to set the database path explicitly
@@ -111,11 +111,11 @@ def test_trigger_sensitivity_integration():
         assert result["specificity_increase"] == 0.67, "Incorrect specificity increase"
 
         logger.info("✓ DataLoader fetch successful")
-        logger.info(f"  Model: {result['model']}")
+        logger.info("  Model: %s", result["model"])
         logger.info(f"  Exact trigger rate (post): {result['exact_rate_post']:.2%}")
         logger.info(f"  Variation drop: {result['variation_drop']:.2%}")
         logger.info(f"  Specificity increase: {result['specificity_increase']:.2%}")
-        logger.info(f"  Variations tested: {len(result['variations'])}")
+        logger.info("  Variations tested: %s", len(result["variations"]))
 
         # Step 5: Verify variation data
         variation_types = {v["type"] for v in result["variations"]}
@@ -136,14 +136,14 @@ def test_trigger_sensitivity_integration():
         return True
 
     except Exception as e:
-        logger.error(f"Test failed: {e}", exc_info=True)
+        logger.error("Test failed: %s", e, exc_info=True)
         return False
 
     finally:
         # Cleanup
         if os.path.exists(db_path):
             os.unlink(db_path)
-            logger.info(f"Cleaned up test database: {db_path}")
+            logger.info("Cleaned up test database: %s", db_path)
 
 
 if __name__ == "__main__":

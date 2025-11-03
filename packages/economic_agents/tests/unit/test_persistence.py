@@ -80,7 +80,7 @@ def test_save_agent_state(state_manager, test_state, test_decisions):
     assert saved_path.endswith(f"{agent_id}.json")
 
     # Verify file contents
-    with open(saved_path, "r") as f:
+    with open(saved_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     assert data["agent_id"] == agent_id
@@ -160,7 +160,7 @@ def test_save_registry(state_manager):
     assert saved_path.endswith("registry.json")
 
     # Verify file contents
-    with open(saved_path, "r") as f:
+    with open(saved_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     assert "companies" in data

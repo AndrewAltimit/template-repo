@@ -32,7 +32,7 @@ def save_container_logs(job_id: UUID, container_id: str, container_manager, logs
         log_file = logs_dir / f"{job_id}.log"
         log_file.write_text(logs, encoding="utf-8")
 
-        logger.info(f"Saved logs for job {job_id} to {log_file}")
+        logger.info("Saved logs for job %s to %s", job_id, log_file)
 
     except Exception as e:
         logger.error(f"Failed to save logs for job {job_id}: {e}")
@@ -248,7 +248,7 @@ def execute_job_sync(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]
             container_id=container_id,
         )
 
-        logger.info(f"Job {job_id} running in container {container_id}")
+        logger.info("Job %s running in container %s", job_id, container_id)
 
         # Wait for container to finish
         exit_code = None
@@ -260,7 +260,7 @@ def execute_job_sync(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]
 
                 time.sleep(5)
 
-        logger.info(f"Job {job_id} finished with exit code {exit_code}")
+        logger.info("Job %s finished with exit code %s", job_id, exit_code)
 
         # Save logs before cleanup
         save_container_logs(job_id, container_id, container_manager, settings.logs_directory)

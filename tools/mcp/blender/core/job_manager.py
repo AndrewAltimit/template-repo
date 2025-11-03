@@ -57,7 +57,7 @@ class JobManager:
             self.jobs[job_id] = job
             self._save_job(job_id, job)
 
-        logger.info(f"Created job {job_id} of type {job_type}")
+        logger.info("Created job %s of type %s", job_id, job_type)
         return job
 
     def update_job(
@@ -225,7 +225,7 @@ class JobManager:
         # Remove old jobs
         for job_id in jobs_to_remove:
             self._remove_job(job_id)
-            logger.info(f"Cleaned up old job {job_id}")
+            logger.info("Cleaned up old job %s", job_id)
 
     def _save_job(self, job_id: str, job: Dict[str, Any]):
         """Save job to disk.
@@ -295,7 +295,7 @@ class JobManager:
 
             logger.info(f"Loaded {len(self.jobs)} jobs from disk")
         except Exception as e:
-            logger.error(f"Failed to load jobs: {e}")
+            logger.error("Failed to load jobs: %s", e)
 
     def _remove_job(self, job_id: str):
         """Remove job and associated files.
@@ -333,7 +333,7 @@ class JobManager:
                     time.sleep(3600)  # Run every hour
                     self.cleanup_old_jobs()
                 except Exception as e:
-                    logger.error(f"Cleanup thread error: {e}")
+                    logger.error("Cleanup thread error: %s", e)
 
         thread = threading.Thread(target=cleanup_loop, daemon=True)
         thread.start()

@@ -141,7 +141,7 @@ def get_honeypot_results(data_loader: Any, model_name: str) -> Dict[str, Any]:
                 },
             }
     except Exception as e:
-        logger.warning(f"Failed to fetch real honeypot data, using mock data: {e}")
+        logger.warning("Failed to fetch real honeypot data, using mock data: %s", e)
 
     # Fall back to mock data if no real data available
     return {

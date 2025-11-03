@@ -11,6 +11,7 @@ from pathlib import Path
 # Add parent directory to path to import from tools
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+# pylint: disable=wrong-import-position
 from tools.cli.utilities.markdown_link_checker import MarkdownLinkChecker  # noqa: E402
 
 
@@ -85,7 +86,7 @@ def write_github_outputs(results):
     """Write outputs to GITHUB_OUTPUT if running in GitHub Actions"""
     if "GITHUB_OUTPUT" in os.environ:
         broken_links = results.get("broken_links", 0)
-        with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+        with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
             f.write(f"total_errors={broken_links}\n")
             f.write(f"failed_files={broken_links}\n")  # For backward compatibility
             f.write(f"files_found={results.get('files_checked', 0)}\n")
@@ -130,7 +131,7 @@ async def main():
 
     # Write output
     if args.output:
-        Path(args.output).write_text(output)
+        Path(args.output).write_text(output, encoding="utf-8")
         print(f"Results written to {args.output}")
     else:
         print(output)

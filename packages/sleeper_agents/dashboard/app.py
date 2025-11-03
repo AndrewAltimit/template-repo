@@ -147,7 +147,7 @@ def render_login(auth_manager):
     st.markdown("*Advanced AI Safety Evaluation System*")
     st.markdown("---")
 
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2, _col3 = st.columns([1, 2, 1])
 
     with col2:
         st.subheader("Login")
@@ -350,7 +350,7 @@ def render_dashboard():
             st.stop()
         # For Reporting, gpu_client can be None (graceful degradation)
     except Exception as e:
-        logger.error(f"Failed to initialize GPU API client: {e}")
+        logger.error("Failed to initialize GPU API client: %s", e)
         if category == "🔨 Build":
             st.error(f"Failed to initialize GPU API client: {e}")
             st.stop()

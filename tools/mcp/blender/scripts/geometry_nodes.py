@@ -350,7 +350,7 @@ def main():
     args_file = argv[0]
     job_id = argv[1]
 
-    with open(args_file, "r") as f:
+    with open(args_file, "r", encoding="utf-8") as f:
         args = json.load(f)
 
     operation = args.get("operation")

@@ -146,7 +146,6 @@ async def check_rate_limit(request: Request) -> None:
     """
     # This is a placeholder for request-level (non-agent-specific) rate limiting
     # Agent-specific rate limiting should use verify_and_rate_limit()
-    pass
 
 
 def verify_and_rate_limit():

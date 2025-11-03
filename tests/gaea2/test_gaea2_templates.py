@@ -35,7 +35,6 @@ class Gaea2TemplateTester:
     def cleanup(self):
         """Clean up resources."""
         # No cleanup needed for HTTP client
-        pass
 
     def create_template(self, name: str, workflow: Dict[str, Any], description: str) -> Tuple[bool, str, Any]:
         """
@@ -759,7 +758,7 @@ class Gaea2TemplateTester:
 
         # Save detailed results
         results_file = os.path.join(self.test_dir, "test_results.json")
-        with open(results_file, "w") as f:
+        with open(results_file, "w", encoding="utf-8") as f:
             json.dump(
                 {
                     "summary": {

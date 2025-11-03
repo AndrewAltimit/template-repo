@@ -100,7 +100,7 @@ class AssetManager:
             try:
                 (self.assets_dir / subdir).mkdir(exist_ok=True)
             except PermissionError:
-                logger.warning(f"Could not create {subdir} directory - permission denied. Continuing without it.")
+                logger.warning("Could not create %s directory - permission denied. Continuing without it.", subdir)
 
     def list_projects(self) -> List[ProjectInfo]:
         """List all Blender projects.
@@ -166,7 +166,7 @@ class AssetManager:
             return info
 
         except Exception as e:
-            logger.error(f"Failed to get project info: {e}")
+            logger.error("Failed to get project info: %s", e)
             return None
 
     def list_assets(self, asset_type: Optional[str] = None) -> List[AssetInfo]:
@@ -271,7 +271,7 @@ class AssetManager:
             }
 
         except Exception as e:
-            logger.error(f"Failed to import asset: {e}")
+            logger.error("Failed to import asset: %s", e)
             return {"error": str(e)}
 
     def detect_format(self, file_path: str) -> Optional[str]:
@@ -328,10 +328,10 @@ class AssetManager:
 
         try:
             shutil.copy2(source, backup_path)
-            logger.info(f"Created backup: {backup_path}")
+            logger.info("Created backup: %s", backup_path)
             return str(backup_path)
         except Exception as e:
-            logger.error(f"Failed to create backup: {e}")
+            logger.error("Failed to create backup: %s", e)
             return None
 
     def clean_temp_files(self):
@@ -354,7 +354,7 @@ class AssetManager:
                 except Exception as e:
                     logger.error(f"Failed to remove {temp_file}: {e}")
 
-        logger.info(f"Cleaned {cleaned} temporary files")
+        logger.info("Cleaned %s temporary files", cleaned)
         return cleaned
 
     def get_asset_metadata(self, asset_path: str) -> Dict[str, Any]:
@@ -394,5 +394,5 @@ class AssetManager:
             return metadata
 
         except Exception as e:
-            logger.error(f"Failed to get asset metadata: {e}")
+            logger.error("Failed to get asset metadata: %s", e)
             return {"error": str(e)}
