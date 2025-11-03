@@ -28,7 +28,7 @@ class TestCodeQualityTools:
             result = await format_check(path="test.py", language="python")
 
             assert result["formatted"] is True
-            mock_run.assert_called_once_with(["black", "--check", "test.py"], capture_output=True, text=True)
+            mock_run.assert_called_once_with(["black", "--check", "test.py"], capture_output=True, text=True, check=False)
 
     @pytest.mark.asyncio
     async def test_format_check_javascript(self):
@@ -40,7 +40,7 @@ class TestCodeQualityTools:
             result = await format_check(path="test.js", language="javascript")
 
             assert result["formatted"] is True
-            mock_run.assert_called_once_with(["prettier", "--check", "test.js"], capture_output=True, text=True)
+            mock_run.assert_called_once_with(["prettier", "--check", "test.js"], capture_output=True, text=True, check=False)
 
     @pytest.mark.asyncio
     async def test_format_check_go(self):
@@ -52,7 +52,7 @@ class TestCodeQualityTools:
             result = await format_check(path="test.go", language="go")
 
             assert result["formatted"] is True
-            mock_run.assert_called_once_with(["gofmt", "-l", "test.go"], capture_output=True, text=True)
+            mock_run.assert_called_once_with(["gofmt", "-l", "test.go"], capture_output=True, text=True, check=False)
 
     @pytest.mark.asyncio
     async def test_format_check_rust(self):
@@ -64,7 +64,7 @@ class TestCodeQualityTools:
             result = await format_check(path="test.rs", language="rust")
 
             assert result["formatted"] is True
-            mock_run.assert_called_once_with(["rustfmt", "--check", "test.rs"], capture_output=True, text=True)
+            mock_run.assert_called_once_with(["rustfmt", "--check", "test.rs"], capture_output=True, text=True, check=False)
 
     @pytest.mark.asyncio
     async def test_format_check_unformatted(self):
