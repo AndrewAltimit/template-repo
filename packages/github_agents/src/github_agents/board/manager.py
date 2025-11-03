@@ -5,10 +5,12 @@
 import asyncio
 import logging
 import os
+import re
 from datetime import datetime
 from typing import Any, Callable
 
 import aiohttp
+
 from github_agents.board.config import load_config
 from github_agents.board.errors import (
     BoardNotFoundError,
@@ -940,8 +942,6 @@ Work claim released.
         Returns:
             AgentClaim if parsing successful, None otherwise
         """
-        import re
-
         # Extract agent name
         agent_match = re.search(r"Agent:\s*`([^`]+)`", body)
         if not agent_match:

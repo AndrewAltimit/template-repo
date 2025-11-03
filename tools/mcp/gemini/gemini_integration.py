@@ -6,7 +6,10 @@ Provides automatic consultation with Gemini for second opinions and validation
 
 import asyncio
 import logging
+import os
 import re
+import shutil
+import tempfile
 import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
@@ -319,9 +322,6 @@ class GeminiIntegration:
 
     async def _execute_gemini_container(self, query: str, start_time: float) -> Dict[str, Any]:
         """Execute Gemini CLI through Docker container"""
-        import os
-        import shutil
-        import tempfile
 
         # Use the configured container image
         container_image = self.container_image

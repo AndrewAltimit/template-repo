@@ -2,6 +2,7 @@
 
 import base64
 import json
+import os
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -243,7 +244,6 @@ class EnhancedGaea2Tools:
 
             # Save project
             if output_path:
-                import os
 
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)
                 with open(output_path, "w", encoding="utf-8") as f:

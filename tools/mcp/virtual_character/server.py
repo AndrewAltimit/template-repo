@@ -1,9 +1,11 @@
 """Virtual Character MCP Server for AI Agent Embodiment"""
 
+import argparse
 import asyncio
 import json
 import logging
 import sys
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -19,7 +21,6 @@ try:
 except ImportError:
     # Minimal implementation for HTTP mode without full MCP library
     HAS_MCP = False
-    import uuid
     from abc import ABC, abstractmethod
 
     from fastapi import FastAPI, Request, Response
@@ -505,7 +506,6 @@ class VirtualCharacterMCPServer(BaseMCPServer):
 
 def main():
     """Main entry point for Virtual Character MCP server."""
-    import argparse
 
     parser = argparse.ArgumentParser(description="Virtual Character MCP Server")
     parser.add_argument("--port", type=int, default=8020, help="Port to run server on")

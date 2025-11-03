@@ -10,6 +10,7 @@ import json
 import logging
 import sys
 import tarfile
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 
@@ -165,8 +166,6 @@ def update_artifact_index(experiment_dir: Path):
         "num_files": manifest.get("num_files", 0),
         "size_mb": manifest.get("total_size_bytes", 0) / 1024 / 1024,
     }
-
-    from datetime import datetime
 
     index["last_updated"] = datetime.now().isoformat()
 

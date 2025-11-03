@@ -7,23 +7,25 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
+import asyncio  # noqa: E402
+
 import pytest  # noqa: E402
 
 
 def test_imports():
     """Test that basic imports work"""
     # Test code quality imports
-    from tools.mcp.code_quality.tools import TOOLS as CODE_TOOLS
+    from tools.mcp.code_quality.tools import TOOLS as CODE_TOOLS  # noqa: E402
 
     assert len(CODE_TOOLS) > 0
 
     # Test content creation imports
-    from tools.mcp.content_creation.tools import TOOLS as CONTENT_TOOLS
+    from tools.mcp.content_creation.tools import TOOLS as CONTENT_TOOLS  # noqa: E402
 
     assert len(CONTENT_TOOLS) > 0
 
     # Test core imports
-    from tools.mcp.core.base_server import BaseMCPServer
+    from tools.mcp.core.base_server import BaseMCPServer  # noqa: E402
 
     assert BaseMCPServer is not None
 
@@ -37,7 +39,6 @@ def test_basic_functionality():
 @pytest.mark.asyncio
 async def test_async_basic():
     """Test basic async functionality"""
-    import asyncio
 
     async def get_value():
         await asyncio.sleep(0.01)

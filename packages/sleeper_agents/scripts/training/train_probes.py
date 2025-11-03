@@ -14,6 +14,7 @@ import asyncio
 import json
 import logging
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -112,7 +113,6 @@ async def main():
     dataset_gen = DeceptionDatasetGenerator(model)
 
     # Convert YesNoQuestion to format expected by extract_activations
-    from dataclasses import dataclass
 
     @dataclass
     class QuestionWrapper:

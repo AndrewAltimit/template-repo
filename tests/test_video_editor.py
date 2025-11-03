@@ -12,6 +12,8 @@ import pytest
 sys.modules["numpy"] = MagicMock()
 # pylint: disable=wrong-import-position  # Imports must come after mock setup
 
+import shutil  # noqa: E402
+
 # Import the video editor components
 from tools.mcp.video_editor import VideoEditorMCPServer  # noqa: E402
 from tools.mcp.video_editor.processors import AudioProcessor, VideoProcessor  # noqa: E402
@@ -28,7 +30,6 @@ class TestVideoEditorMCPServer(unittest.TestCase):
 
     def tearDown(self):
         """Clean up after tests"""
-        import shutil
 
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
@@ -115,7 +116,6 @@ class TestAudioProcessor(unittest.TestCase):
 
     def tearDown(self):
         """Clean up after tests"""
-        import shutil
 
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
@@ -232,7 +232,6 @@ class TestVideoProcessor(unittest.TestCase):
 
     def tearDown(self):
         """Clean up after tests"""
-        import shutil
 
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)

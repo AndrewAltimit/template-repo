@@ -1,6 +1,7 @@
 """Content creation tools for MCP"""
 
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -35,8 +36,6 @@ async def create_manim_animation(
         command = ["manim", "-pql", script_path]
 
         # Parse class name from script
-        import re
-
         class_match = re.search(r"class\s+(\w+)\s*\(", script)
         if class_match:
             class_name = class_match.group(1)

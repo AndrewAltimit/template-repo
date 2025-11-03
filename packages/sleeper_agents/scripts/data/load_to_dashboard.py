@@ -10,6 +10,7 @@ import json
 import logging
 import sqlite3
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -120,7 +121,6 @@ def load_experiment_to_db(experiment_dir: Path, conn: sqlite3.Connection, overwr
     config_json = json.dumps(config, indent=2)
 
     # Get current timestamp
-    from datetime import datetime
 
     timestamp = datetime.now().isoformat()
 

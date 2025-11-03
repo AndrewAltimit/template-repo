@@ -1,5 +1,6 @@
 """Gemini AI Integration MCP Server"""
 
+import argparse
 import json
 import os
 import sys
@@ -290,7 +291,6 @@ class GeminiMCPServer(BaseMCPServer):
 
 def main():
     """Run the Gemini MCP Server"""
-    import argparse
 
     parser = argparse.ArgumentParser(description="Gemini AI Integration MCP Server")
     parser.add_argument(

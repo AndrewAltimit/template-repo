@@ -9,6 +9,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 # pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
+import argparse  # noqa: E402
+import os  # noqa: E402
+
 from tests.test_utils import TestClient  # noqa: E402
 
 
@@ -68,7 +71,6 @@ async def validate_blender_server(base_url: str = "http://localhost:8017"):
             project_path = result.get("project_path")
             print(f"✅ Created project: {project_path}")
             # Extract just the filename for subsequent operations
-            import os
 
             project_name = os.path.basename(project_path)  # type: ignore
         else:
@@ -210,7 +212,6 @@ async def run_demos(base_url: str = "http://localhost:8017"):
         if result and result.get("success"):
             project_path = result["project_path"]
             print(f"✅ Created product demo: {project_path}")
-            import os
 
             project_name = os.path.basename(project_path)  # type: ignore
 
@@ -281,7 +282,6 @@ async def run_demos(base_url: str = "http://localhost:8017"):
         if result and result.get("success"):
             project_path = result["project_path"]
             print(f"✅ Created physics demo: {project_path}")
-            import os
 
             project_name = os.path.basename(project_path)  # type: ignore
 
@@ -341,7 +341,6 @@ async def run_demos(base_url: str = "http://localhost:8017"):
         if result and result.get("success"):
             project_path = result["project_path"]
             print(f"✅ Created animation demo: {project_path}")
-            import os
 
             project_name = os.path.basename(project_path)  # type: ignore
 
@@ -399,7 +398,6 @@ async def run_demos(base_url: str = "http://localhost:8017"):
 
 async def main():
     """Main entry point."""
-    import argparse
 
     parser = argparse.ArgumentParser(description="Blender MCP Server Validation")
     parser.add_argument("--server-url", default="http://localhost:8017", help="Blender MCP server URL")

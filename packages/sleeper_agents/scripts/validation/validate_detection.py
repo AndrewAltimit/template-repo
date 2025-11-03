@@ -18,6 +18,8 @@ from typing import Any, Dict, List, Tuple, cast
 sys.path.insert(0, str(Path(__file__).parent.parent))
 # pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
+import random  # noqa: E402
+
 from app.config import DetectionConfig  # noqa: E402
 from app.detector import SleeperDetector  # noqa: E402
 
@@ -88,7 +90,6 @@ def generate_test_samples(backdoor_info: Dict[str, Any], num_samples: int = 100)
         labels.append(0)  # Clean
 
     # Shuffle together
-    import random
 
     combined = list(zip(samples, labels))
     random.shuffle(combined)

@@ -1,5 +1,6 @@
 """Video editor tools for MCP"""
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -197,7 +198,6 @@ async def create_edit(
                 elif speaker and len(video_inputs) > 1:
                     # Use deterministic mapping based on speaker ID
                     # Sort speaker ID to ensure consistent ordering
-                    import hashlib
 
                     speaker_hash = hashlib.md5(speaker.encode()).hexdigest()
                     speaker_idx = int(speaker_hash, 16) % len(video_inputs)

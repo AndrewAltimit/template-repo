@@ -15,6 +15,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 # pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
+
+import argparse  # noqa: E402
 import asyncio  # noqa: E402
 
 from tools.mcp.blender.tests.test_utils import TestClient  # noqa: E402
@@ -39,7 +41,7 @@ class BlenderMCPClient(TestClient):
         Returns:
             Health check result
         """
-        import httpx
+        import httpx  # noqa: E402
 
         async with httpx.AsyncClient() as client:
             response = await client.get(f"{self.base_url}/health")
@@ -52,7 +54,7 @@ class BlenderMCPClient(TestClient):
         Returns:
             List of available tools
         """
-        import httpx
+        import httpx  # noqa: E402
 
         async with httpx.AsyncClient() as client:
             response = await client.get(f"{self.base_url}/mcp/capabilities")
@@ -479,7 +481,6 @@ async def interactive_mode():
 
 async def main():
     """Main entry point."""
-    import argparse
 
     parser = argparse.ArgumentParser(description="Test Blender MCP Server")
     parser.add_argument(

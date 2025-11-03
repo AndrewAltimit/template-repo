@@ -9,10 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 # pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
-import asyncio  # noqa: E402
 import logging  # noqa: E402
-import os  # noqa: E402
-import uuid  # noqa: E402
 from typing import Any, Dict, Optional  # noqa: E402
 
 from blender.core.asset_manager import AssetManager  # noqa: E402
@@ -24,6 +21,12 @@ from core.base_server import BaseMCPServer, ToolRequest, ToolResponse  # noqa: E
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
+import argparse  # noqa: E402
+import asyncio  # noqa: E402
+import os  # noqa: E402
+import tempfile  # noqa: E402
+import uuid  # noqa: E402
+
 logger = logging.getLogger(__name__)
 
 
@@ -40,7 +43,6 @@ class BlenderMCPServer(BaseMCPServer):
             if os.path.exists("/app"):
                 base_dir = "/app"
             else:
-                import tempfile
 
                 base_dir = os.path.join(tempfile.gettempdir(), "blender-mcp")
         self.base_dir = Path(base_dir)
@@ -1148,7 +1150,6 @@ class BlenderMCPServer(BaseMCPServer):
 
 def main():
     """Main entry point."""
-    import argparse
 
     parser = argparse.ArgumentParser(description="Blender MCP Server")
     parser.add_argument(

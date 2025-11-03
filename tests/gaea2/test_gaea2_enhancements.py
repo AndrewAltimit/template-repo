@@ -7,6 +7,8 @@ import asyncio
 import json
 import os
 import sys
+import tempfile
+import unittest.mock
 
 import pytest
 
@@ -31,7 +33,6 @@ class MCPTools:
     def _get_server(cls):
         if cls.server is None:
             # Mock the environment check for testing
-            import unittest.mock
 
             with unittest.mock.patch.dict(os.environ, {"GAEA2_TEST_MODE": "1"}):
                 cls.server = Gaea2MCPServer()
@@ -152,7 +153,6 @@ async def test_project_repair():
     }
 
     # Write project to a temporary file
-    import tempfile
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".terrain", delete=False) as f:
         json.dump(project_data, f)

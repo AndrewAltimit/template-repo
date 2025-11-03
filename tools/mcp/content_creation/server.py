@@ -1,5 +1,6 @@
 """Content Creation MCP Server - Manim animations and LaTeX compilation"""
 
+import argparse
 import base64
 import io
 import os
@@ -566,7 +567,6 @@ class ContentCreationMCPServer(BaseMCPServer):
 
 def main():
     """Run the Content Creation MCP Server"""
-    import argparse
 
     parser = argparse.ArgumentParser(description="Content Creation MCP Server")
     parser.add_argument(

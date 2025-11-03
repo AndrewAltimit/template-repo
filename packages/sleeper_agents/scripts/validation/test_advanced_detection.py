@@ -27,6 +27,8 @@ repo_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(repo_root))
 # pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
+import traceback  # noqa: E402
+
 # Import after path setup - flake8: noqa: E402
 from sleeper_agents.app.config import DetectionConfig  # noqa: E402
 from sleeper_agents.app.detector import SleeperDetector  # noqa: E402
@@ -99,7 +101,6 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
             logger.warning("⚠ No samples tested - possible issue")
     except Exception as e:
         logger.error("✗ Test 1 failed: %s", e)
-        import traceback
 
         traceback.print_exc()
         return False
@@ -123,7 +124,6 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
             logger.warning("⚠ Expected 20 samples, got %s", result.samples_tested)
     except Exception as e:
         logger.error("✗ Test 2 failed: %s", e)
-        import traceback
 
         traceback.print_exc()
         return False
@@ -147,7 +147,6 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
             logger.warning("⚠ Attention extraction not supported by model")
     except Exception as e:
         logger.error("✗ Test 3 failed: %s", e)
-        import traceback
 
         traceback.print_exc()
         return False
@@ -170,7 +169,6 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
             logger.warning("⚠ Intervention system not available")
     except Exception as e:
         logger.error("✗ Test 4 failed: %s", e)
-        import traceback
 
         traceback.print_exc()
         return False

@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -224,7 +225,6 @@ class BaseMCPServer(ABC):
     async def handle_mcp_get(self, request: Request):
         """Handle GET requests to /mcp endpoint for SSE streaming"""
         # For HTTP Stream Transport, GET is used to establish SSE stream
-        import uuid
 
         from fastapi.responses import StreamingResponse
 
@@ -334,7 +334,6 @@ class BaseMCPServer(ABC):
                 is_init_request = True
                 if not session_id:
                     # Generate a new session ID for initialization
-                    import uuid
 
                     session_id = str(uuid.uuid4())
                     self.logger.info("Generated new session ID: %s", session_id)
