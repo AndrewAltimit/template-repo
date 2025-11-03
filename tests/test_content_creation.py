@@ -35,7 +35,7 @@ class TestContentCreationTools:
 
                                 # Test compilation
                                 latex_content = r"\documentclass{article}" r"\begin{document}Test\end{document}"
-                                result = await compile_latex(content=latex_content, format="pdf")
+                                result = await compile_latex(content=latex_content, output_format="pdf")
 
                                 assert result["success"] is True
                                 assert result["format"] == "pdf"
@@ -59,7 +59,7 @@ class TestContentCreationTools:
 
                                 # Test compilation
                                 latex_content = r"\documentclass{article}" r"\begin{document}Test\end{document}"
-                                result = await compile_latex(content=latex_content, format="dvi")
+                                result = await compile_latex(content=latex_content, output_format="dvi")
 
                                 assert result["success"] is True
                                 assert result["format"] == "dvi"
@@ -134,7 +134,7 @@ class TestContentCreationTools:
                             result = await create_manim_animation(
                                 script=script,
                                 output_format="gif",
-                                quality="low",
+                                _quality="low",
                             )
 
                             assert result["success"] is True
