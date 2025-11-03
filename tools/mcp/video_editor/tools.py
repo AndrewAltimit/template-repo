@@ -456,7 +456,7 @@ async def render_video(
 
             try:
                 # Check for NVENC support
-                result = subprocess.run(["ffmpeg", "-encoders"], capture_output=True, text=True)
+                result = subprocess.run(["ffmpeg", "-encoders"], capture_output=True, text=True, check=False)
                 if "h264_nvenc" in result.stdout:
                     output_settings["codec"] = "h264_nvenc"
                 elif "h264_qsv" in result.stdout:

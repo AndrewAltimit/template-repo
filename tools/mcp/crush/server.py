@@ -172,7 +172,7 @@ class CrushMCPServer(BaseMCPServer):
         query: str,
         context: str = "",
         mode: str = "quick",
-        comparison_mode: bool = True,
+        _comparison_mode: bool = True,
         force: bool = False,
     ) -> Dict[str, Any]:
         """Consult Crush AI for coding assistance

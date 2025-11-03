@@ -104,7 +104,7 @@ class Gaea2ErrorRecovery:
             properties = node.get("properties", {})
 
             if properties:
-                is_valid, errors, fixed_props = self.property_validator.validate_properties(node_type, properties)
+                is_valid, _errors, fixed_props = self.property_validator.validate_properties(node_type, properties)
 
                 if not is_valid or fixed_props != properties:
                     node["properties"] = fixed_props
@@ -187,7 +187,7 @@ class Gaea2ErrorRecovery:
         self,
         nodes: List[Dict[str, Any]],
         connections: List[Dict[str, Any]],
-        aggressive: bool = False,
+        _aggressive: bool = False,
     ) -> List[Dict[str, Any]]:
         """Connect orphaned nodes based on patterns"""
         # Find orphaned nodes

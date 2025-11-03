@@ -102,7 +102,7 @@ class OptimizedGaea2Validator:
             "orphaned_node_ids": orphaned_node_ids,
         }
 
-    def _validate_nodes_batch(self, nodes: List[Dict[str, Any]], lookup: Dict[str, Any]) -> Dict[str, Any]:
+    def _validate_nodes_batch(self, nodes: List[Dict[str, Any]], _lookup: Dict[str, Any]) -> Dict[str, Any]:
         """Validate all nodes in a single efficient pass."""
         errors = []
         warnings = []

@@ -36,7 +36,7 @@ async def format_check(path: str, language: str, config: Optional[str] = None) -
         command.extend(["--config", config])
 
     try:
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(command, capture_output=True, text=True, check=False)
         return {
             "formatted": result.returncode == 0,
             "output": result.stdout + result.stderr,
@@ -53,7 +53,7 @@ async def lint(path: str, config: Optional[str] = None) -> Dict[str, Any]:
         linter_command.extend(["--config", config])
 
     try:
-        result = subprocess.run(linter_command, capture_output=True, text=True)
+        result = subprocess.run(linter_command, capture_output=True, text=True, check=False)
         issues = []
         if result.stdout:
             issues = result.stdout.strip().split("\n")

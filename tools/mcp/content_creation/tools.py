@@ -24,8 +24,8 @@ def register_tool(name: str):
 async def create_manim_animation(
     script: str,
     output_format: str = "mp4",
-    quality: str = "medium",
-    preview: bool = False,
+    _quality: str = "medium",
+    _preview: bool = False,
 ) -> Dict[str, Any]:
     """Create animation using Manim"""
     try:
@@ -44,7 +44,7 @@ async def create_manim_animation(
             class_name = class_match.group(1)
             command.append(class_name)
 
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(command, capture_output=True, text=True, check=False)
 
         # Clean up
         os.unlink(script_path)
@@ -76,7 +76,7 @@ async def create_manim_animation(
 async def compile_latex(
     content: str,
     format: str = "pdf",
-    template: str = "article",
+    _template: str = "article",
     output_dir: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Compile LaTeX document"""
@@ -101,7 +101,7 @@ async def compile_latex(
                 return {"success": False, "error": f"Unsupported format: {format}"}
 
             # Run compilation
-            result = subprocess.run(command, cwd=tmpdir, capture_output=True, text=True)
+            result = subprocess.run(command, cwd=tmpdir, capture_output=True, text=True, check=False)
 
             if result.returncode == 0:
                 # Copy output file

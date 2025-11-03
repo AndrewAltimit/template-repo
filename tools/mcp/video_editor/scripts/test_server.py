@@ -8,7 +8,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from tools.mcp.core.client import MCPClient  # noqa: E402
+from tools.mcp.core.client import MCPClient  # noqa: E402  # pylint: disable=wrong-import-position
 
 
 def test_video_editor():
@@ -257,4 +257,4 @@ def main():
 
 
 if __name__ == "__main__":
-    exit(main())
+    sys.exit(main())

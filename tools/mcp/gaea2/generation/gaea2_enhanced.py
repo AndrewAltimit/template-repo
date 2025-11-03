@@ -487,7 +487,7 @@ class EnhancedGaea2Tools:
         node_id: int,
         position: Dict[str, float],
         stroke_points: List[Dict[str, float]],
-        brush_size: float = 10.0,
+        _brush_size: float = 10.0,
         soften: float = 2.0,
     ) -> Dict[str, Any]:
         """

@@ -44,8 +44,6 @@ class ContentCreationMCPServer(BaseMCPServer):
         except Exception as e:
             self.logger.error("Failed to create output directories: %s", e)
             # Use temp directory as fallback
-            import tempfile
-
             temp_dir = tempfile.mkdtemp(prefix="mcp_content_")
             self.output_dir = temp_dir
             self.manim_output_dir = ensure_directory(os.path.join(temp_dir, "manim"))
@@ -270,7 +268,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                     search_path = os.path.join(self.manim_output_dir, search_dir) if search_dir else self.manim_output_dir
                     if os.path.exists(search_path):
                         # Search for output file
-                        for root, dirs, files in os.walk(search_path):
+                        for root, _dirs, files in os.walk(search_path):
                             for file in files:
                                 if file.endswith(f".{output_format}") and "partial_movie_files" not in root:
                                     output_path = os.path.join(root, file)

@@ -22,7 +22,7 @@ def create_workflow_from_template(name: str) -> Dict[str, List[Any]]:
     return WORKFLOW_TEMPLATES.get(name, {"nodes": [], "connections": []})
 
 
-def validate_gaea2_project(project: Dict[str, Any]) -> Dict[str, Any]:
+def validate_gaea2_project(_project: Dict[str, Any]) -> Dict[str, Any]:
     return {"valid": True, "errors": []}
 
 
@@ -34,7 +34,7 @@ PROPERTY_RANGES: Dict[str, Dict[str, Any]] = {}
 
 # Knowledge graph stub
 class KnowledgeGraph:
-    def get_node_category(self, node_type: str) -> str:
+    def get_node_category(self, _node_type: str) -> str:
         return "Unknown"
 
 
@@ -43,7 +43,7 @@ knowledge_graph: KnowledgeGraph = KnowledgeGraph()
 
 # Validator stubs
 class Validator:
-    def validate_node(self, node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
+    def validate_node(self, _node_type: str, properties: Dict[str, Any]) -> Tuple[bool, List[str], Dict[str, Any]]:
         return True, [], properties
 
 
@@ -52,7 +52,7 @@ def create_accurate_validator() -> Validator:
 
 
 class Gaea2ConnectionValidator:
-    def validate_connection(self, conn: Dict[str, Any], node_map: Dict[str, Any]) -> Tuple[bool, Any]:
+    def validate_connection(self, _conn: Dict[str, Any], _node_map: Dict[str, Any]) -> Tuple[bool, Any]:
         return True, None
 
 

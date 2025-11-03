@@ -15,7 +15,7 @@ from PIL import Image
 # Add the project root to the path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 
-from automation.testing.video_editor.utils import (  # noqa: E402
+from automation.testing.video_editor.utils import (  # noqa: E402  # pylint: disable=wrong-import-position
     get_audio_segment,
     get_frame_at_timestamp,
     run_command_safe,
@@ -280,7 +280,8 @@ def main():
                             if audio_info:
                                 print(f"  ✓ {Path(video_path).name} - Audio at {sample_time:.1f}s")
                                 print(f"    - RMS level: {audio_info['rms_level']:.2f}")
-                            temp_audio.unlink() if temp_audio.exists() else None
+                            if temp_audio.exists():
+                                temp_audio.unlink()
                         else:
                             audio_valid = False
 
