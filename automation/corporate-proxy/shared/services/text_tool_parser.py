@@ -411,7 +411,7 @@ class TextToolParser:
             self.stats["rejected_unauthorized"] += 1
             if self.log_errors:
                 logger.warning(
-                    f"Rejected unauthorized tool call: '{tool_name}' " f"(allowed: {', '.join(sorted(self.allowed_tools))})"
+                    "Rejected unauthorized tool call: '%s' (allowed: %s)", tool_name, ", ".join(sorted(self.allowed_tools))
                 )
 
         return is_allowed
@@ -596,8 +596,6 @@ class TextToolParser:
         Returns:
             The text with all tool calls removed
         """
-        import re
-
         # Strip JSON format tool calls (including tool_code variant)
         text = re.sub(r"```(?:tool_call|tool_code|json).*?```", "", text, flags=re.DOTALL)
 

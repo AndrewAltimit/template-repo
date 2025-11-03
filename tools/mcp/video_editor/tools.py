@@ -21,7 +21,7 @@ def register_tool(name: str):
 
 @register_tool("video_editor/analyze")
 async def analyze_video(
-    video_inputs: List[str], analysis_options: Optional[Dict[str, bool]] = None, _server=None, **kwargs
+    video_inputs: List[str], analysis_options: Optional[Dict[str, bool]] = None, _server=None, **_kwargs
 ) -> Dict[str, Any]:
     """Analyze video content without rendering, returns metadata and suggested edits"""
 
@@ -130,7 +130,7 @@ async def create_edit(
     editing_rules: Optional[Dict[str, Any]] = None,
     speaker_mapping: Optional[Dict[str, str]] = None,
     _server=None,
-    **kwargs,
+    **_kwargs,
 ) -> Dict[str, Any]:
     """Generate an edit decision list (EDL) based on rules without rendering"""
 
@@ -351,7 +351,7 @@ async def render_video(
     output_settings: Optional[Dict[str, Any]] = None,
     render_options: Optional[Dict[str, Any]] = None,
     _server=None,
-    **kwargs,
+    **_kwargs,
 ) -> Dict[str, Any]:
     """Execute the actual video rendering based on EDL or automatic rules"""
 
@@ -503,7 +503,7 @@ async def extract_clips(
     extraction_criteria: Optional[Dict[str, Any]] = None,
     output_dir: Optional[str] = None,
     _server=None,
-    **kwargs,
+    **_kwargs,
 ) -> Dict[str, Any]:
     """Create short clips based on transcript keywords or timestamps"""
 
@@ -668,7 +668,7 @@ async def add_captions(
     languages: Optional[List[str]] = None,
     output_path: Optional[str] = None,
     _server=None,
-    **kwargs,
+    **_kwargs,
 ) -> Dict[str, Any]:
     """Add styled captions to existing video using transcript"""
 
@@ -832,7 +832,7 @@ def _generate_srt_file(transcript: Dict[str, Any], output_path: str):
 
 
 @register_tool("video_editor/get_job_status")
-async def get_job_status(job_id: str, _server=None, **kwargs) -> Dict[str, Any]:
+async def get_job_status(job_id: str, _server=None, **_kwargs) -> Dict[str, Any]:
     """Get the status of a rendering job"""
 
     if not _server:

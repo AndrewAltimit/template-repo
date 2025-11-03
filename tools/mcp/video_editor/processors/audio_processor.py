@@ -47,9 +47,9 @@ class AudioProcessor:
                 device = self.config["models"]["whisper_device"]
                 self.logger.info(f"Loading Whisper model: {model_name} on {device}")
                 self._whisper_model = whisper.load_model(model_name, device=device)
-            except ImportError:
+            except ImportError as exc:
                 self.logger.error("Whisper not installed. Install with: pip install openai-whisper")
-                raise ImportError("Whisper is required for transcription")
+                raise ImportError("Whisper is required for transcription") from exc
             except Exception as e:
                 self.logger.error(f"Failed to load Whisper model: {e}")
                 raise

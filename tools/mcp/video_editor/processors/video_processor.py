@@ -49,9 +49,9 @@ class VideoProcessor:
 
                 self._moviepy = mpy
                 self.logger.info("MoviePy loaded successfully")
-            except ImportError:
+            except ImportError as exc:
                 self.logger.error("MoviePy not installed. Install with: pip install moviepy")
-                raise ImportError("MoviePy is required for video editing")
+                raise ImportError("MoviePy is required for video editing") from exc
         return self._moviepy
 
     def load_video(self, video_path: str, audio: bool = True) -> Any:
@@ -81,12 +81,12 @@ class VideoProcessor:
 
         except Exception as e:
             self.logger.error(f"Failed to load video {video_path}: {e}")
-            raise RuntimeError(f"Failed to load video: {e}")
+            raise RuntimeError(f"Failed to load video: {e}") from e
 
     def _clear_cache(self):
         """Clear video cache to free memory"""
         self.logger.info("Clearing video cache")
-        for path, clip in self._video_cache.items():
+        for _path, clip in self._video_cache.items():
             try:
                 clip.close()
             except Exception:
@@ -95,7 +95,7 @@ class VideoProcessor:
         self._cache_size = 0
 
     def create_edit_from_edl(
-        self, video_inputs: List[str], edit_decision_list: List[Dict[str, Any]], output_settings: Dict[str, Any]
+        self, video_inputs: List[str], edit_decision_list: List[Dict[str, Any]], _output_settings: Dict[str, Any]
     ) -> Any:
         """Create a composed video from an edit decision list"""
 
@@ -228,11 +228,11 @@ class VideoProcessor:
         return clip
 
     def render_video(
-        self, video_clip: Any, output_path: str, output_settings: Dict[str, Any], progress_callback: Optional[Callable] = None
+        self, video_clip: Any, output_path: str, output_settings: Dict[str, Any], _progress_callback: Optional[Callable] = None
     ) -> Dict[str, Any]:
         """Render the final video to file
 
-        Note: progress_callback is accepted for API compatibility but MoviePy
+        Note: _progress_callback is accepted for API compatibility but MoviePy
         doesn't support real-time progress callbacks. Progress bar will be
         shown in logs if logger is enabled.
         """
@@ -301,7 +301,7 @@ class VideoProcessor:
 
         except Exception as e:
             self.logger.error(f"Rendering failed: {e}")
-            raise RuntimeError(f"Video rendering failed: {e}")
+            raise RuntimeError(f"Video rendering failed: {e}") from e
         finally:
             # Clean up
             try:

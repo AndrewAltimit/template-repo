@@ -744,7 +744,7 @@ class BaseMCPServer(ABC):
     @abstractmethod
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return dictionary of available tools and their metadata"""
-        ...
+        pass
 
     async def run_stdio(self):
         """Run the server in stdio mode (for Claude desktop app)"""
