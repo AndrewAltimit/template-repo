@@ -1,5 +1,7 @@
 """GitHub Projects v2 board manager with GraphQL client."""
 
+# pylint: disable=too-many-lines  # TODO: Extract GraphQL ops and claim management to separate modules
+
 import asyncio
 import logging
 import os

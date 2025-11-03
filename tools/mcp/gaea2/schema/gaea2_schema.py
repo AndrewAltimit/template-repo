@@ -5,6 +5,7 @@ This module provides comprehensive validation for Gaea 2 project files,
 based on deep analysis of the official Gaea 2 documentation.
 Updated with accurate node types, properties, and validation rules.
 """
+# pylint: disable=too-many-lines  # Comprehensive schema with 100+ node type definitions
 
 from typing import Any, Dict, List, Tuple
 

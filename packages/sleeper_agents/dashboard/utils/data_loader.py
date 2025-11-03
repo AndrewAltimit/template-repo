@@ -236,14 +236,13 @@ class DataLoader:
         try:
             conn = self.get_connection()
 
-            query = """
+            where_clause = "WHERE model_name = ?" if model_name else ""
+            query = f"""
                 SELECT * FROM evaluation_results
-                {}
+                {where_clause}
                 ORDER BY timestamp DESC
                 LIMIT ?
-            """.format(
-                "WHERE model_name = ?" if model_name else ""
-            )
+            """
 
             if model_name:
                 df = pd.read_sql_query(query, conn, params=(model_name, limit))

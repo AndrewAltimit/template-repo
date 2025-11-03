@@ -14,6 +14,7 @@ import pytest
 
 # Add project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 # Import Gaea2 MCP server
 from tools.mcp.gaea2.server import Gaea2MCPServer  # noqa: E402

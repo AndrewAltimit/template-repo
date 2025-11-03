@@ -396,8 +396,8 @@ class Gaea2ConnectionValidator:
 
         # Check if template is a subsequence
         j = 0
-        for i in range(len(sequence)):
-            if j < len(template) and sequence[i] == template[j]:
+        for i, item in enumerate(sequence):
+            if j < len(template) and item == template[j]:
                 j += 1
 
         return j == len(template)

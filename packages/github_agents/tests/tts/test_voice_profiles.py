@@ -7,6 +7,7 @@ from pathlib import Path
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from github_agents.tts import VOICE_CATALOG, get_voice_for_context, get_voice_settings_for_emotion  # noqa: E402
 from github_agents.tts.voice_catalog import AGENT_PERSONALITY_MAPPING, VoiceCategory  # noqa: E402
@@ -36,7 +37,7 @@ def test_voice_catalog():
     for agent, personality in AGENT_PERSONALITY_MAPPING.items():
         print(f"  {agent:10} -> {personality['default']} voice")
         # List all contexts except 'default'
-        context_keys = [k for k in personality.keys() if k != "default"]
+        context_keys = [k for k in personality if k != "default"]
         print(f"               Contexts: {', '.join(context_keys)}")
 
     # Test voice selection logic

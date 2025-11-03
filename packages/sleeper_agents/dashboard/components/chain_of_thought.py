@@ -170,8 +170,9 @@ def render_chain_of_thought(data_loader: Any, cache_manager: Any) -> None:
             safe_reasoning_escaped = html.escape(safe_reasoning)
             st.markdown(
                 f"""
-                <div style="background-color:#f8f9fa;color:#262730;padding:15px;border-radius:5px;
-                     font-family:monospace;white-space:pre-wrap;line-height:1.5;overflow-x:auto;">{safe_reasoning_escaped}</div>
+                <div style="background-color:#f8f9fa;color:#262730;padding:15px;
+                     border-radius:5px;font-family:monospace;white-space:pre-wrap;
+                     line-height:1.5;overflow-x:auto;">{safe_reasoning_escaped}</div>
                 """,
                 unsafe_allow_html=True,
             )

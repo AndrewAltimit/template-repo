@@ -8,6 +8,7 @@ import pytest
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 # Import from relative path
 from blender.server import BlenderMCPServer  # noqa: E402

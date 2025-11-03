@@ -213,7 +213,7 @@ class MarkdownLinkChecker:
 
                 # Remove anchor if present
                 if "#" in str(file_path):
-                    file_path = Path(str(file_path).split("#")[0])
+                    file_path = Path(str(file_path).split("#", maxsplit=1)[0])
 
                 # Check if file exists
                 if file_path.exists():

@@ -130,8 +130,8 @@ class Executive(SubAgent):
 
         # Normalize to 100%
         total_pct = sum(a["percentage"] for a in allocation.values())
-        for area in allocation:
-            allocation[area]["percentage"] = round(allocation[area]["percentage"] / total_pct * 100, 1)
+        for area, values in allocation.items():
+            values["percentage"] = round(values["percentage"] / total_pct * 100, 1)
 
         return {
             "total_budget": budget,

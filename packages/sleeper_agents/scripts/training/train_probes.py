@@ -20,6 +20,7 @@ import numpy as np
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from sleeper_agents.detection.model_loader import load_model_for_detection  # noqa: E402
 from sleeper_agents.probes.probe_detector import ProbeDetector  # noqa: E402

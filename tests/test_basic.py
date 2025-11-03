@@ -5,7 +5,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 import pytest  # noqa: E402
 

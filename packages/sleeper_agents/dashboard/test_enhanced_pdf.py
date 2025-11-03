@@ -8,6 +8,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from components.export_controls import (  # noqa: E402
     fetch_comparison_data,

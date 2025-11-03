@@ -25,11 +25,14 @@ logger = logging.getLogger(__name__)
 
 # Import trigger sensitivity analysis
 try:
+    # pylint: disable=ungrouped-imports  # Imports grouped within try block
     from sleeper_agents.advanced_detection.trigger_sensitivity import (
         SimpleDetector,
         TriggerSensitivityAnalyzer,
     )
-    from sleeper_agents.database.ingestion import ingest_trigger_sensitivity_results
+    from sleeper_agents.database.ingestion import (
+        ingest_trigger_sensitivity_results,
+    )
 
     TRIGGER_SENSITIVITY_AVAILABLE = True
 except ImportError as e:

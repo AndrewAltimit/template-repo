@@ -13,6 +13,7 @@ import pytest
 
 # Add project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from automation.analysis.generate_gaea2_schema import validate_gaea_project, validate_property  # noqa: E402
 from tools.mcp.gaea2.server import Gaea2MCPServer  # noqa: E402

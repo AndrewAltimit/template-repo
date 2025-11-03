@@ -264,7 +264,7 @@ class BaseMonitor(ABC):
                 f"- Claude requires host-specific authentication and must run on the host\n"
                 f"- {agent_name} is containerized and not installed on the host\n\n"
                 f"**Workaround**: Use one of the available host agents instead:\n"
-                f"- {', '.join([f'[{action_keyword}][{k.title()}]' for k in self.agents.keys()])}\n\n"
+                f"- {', '.join([f'[{action_keyword}][{k.title()}]' for k in self.agents])}\n\n"
                 f"Or manually run the containerized agent:\n"
                 f"```bash\n"
                 f"docker-compose --profile agents run --rm openrouter-agents \\\n"

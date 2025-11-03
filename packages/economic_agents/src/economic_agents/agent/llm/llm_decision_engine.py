@@ -296,7 +296,7 @@ Return ONLY the JSON object, nothing else.
             return False
 
         # Check confidence range
-        if not (0.0 <= allocation.confidence <= 1.0):
+        if not 0.0 <= allocation.confidence <= 1.0:
             logger.warning(f"Invalid: Confidence {allocation.confidence} not in [0, 1]")
             return False
 

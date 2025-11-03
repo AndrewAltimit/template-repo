@@ -8,6 +8,7 @@ intelligence of the Gaea 2 MCP tool by:
 3. Providing intelligent suggestions and validation
 4. Detecting incompatible combinations
 """
+# pylint: disable=too-many-lines  # Knowledge graph with comprehensive relationship data
 
 from dataclasses import dataclass, field
 from enum import Enum

@@ -10,6 +10,7 @@ import pytest
 
 # Mock numpy before importing video editor components
 sys.modules["numpy"] = MagicMock()
+# pylint: disable=wrong-import-position  # Imports must come after mock setup
 
 # Import the video editor components
 from tools.mcp.video_editor import VideoEditorMCPServer  # noqa: E402

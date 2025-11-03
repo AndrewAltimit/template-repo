@@ -7,6 +7,7 @@ from pathlib import Path
 
 # Add parent directories to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from tests.test_utils import TestClient  # noqa: E402
 

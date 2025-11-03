@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Blender MCP Server - 3D content creation, rendering, and simulation."""
+# pylint: disable=too-many-lines  # TODO: Extract tool handlers to separate modules
 
 import sys
 from pathlib import Path
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 import asyncio  # noqa: E402
 import logging  # noqa: E402

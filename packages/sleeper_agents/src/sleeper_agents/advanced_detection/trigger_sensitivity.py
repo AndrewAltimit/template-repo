@@ -257,7 +257,7 @@ class TriggerSensitivityAnalyzer:
                 variants.append(text[:i] + text[i + 1 :])
 
             # Duplicate characters
-            for i in range(len(text)):
+            for i, _ in enumerate(text):
                 variants.append(text[:i] + text[i] + text[i:])
 
         return variants[:5]  # Limit number

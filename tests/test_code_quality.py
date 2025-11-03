@@ -11,6 +11,7 @@ import pytest
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from tools.mcp.code_quality.tools import format_check, lint  # noqa: E402
 

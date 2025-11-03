@@ -785,6 +785,7 @@ class TextToolParser:
 
 
 # Import extracted classes for backward compatibility
+# pylint: disable=wrong-import-position  # Backward compatibility imports at end of file
 from .streaming_tool_parser import StreamingToolParser  # noqa: E402
 from .tool_injector import ToolInjector  # noqa: E402
 

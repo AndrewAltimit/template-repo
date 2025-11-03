@@ -12,6 +12,7 @@ import uvicorn
 
 # Add paths
 sys.path.insert(0, str(Path(__file__).parent))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from tools.mcp.blender.server import BlenderMCPServer  # noqa: E402
 

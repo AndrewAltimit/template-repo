@@ -385,7 +385,7 @@ def test_ic_generate_code_artifact_frontend():
     artifact = ic.generate_code_artifact("Feature component")
 
     assert "files" in artifact
-    assert any("tsx" in f for f in artifact["files"].keys())
+    assert any("tsx" in f for f in artifact["files"])
     assert "react" in artifact["dependencies"]
 
 
@@ -407,7 +407,7 @@ def test_ic_generate_code_artifact_devops():
     artifact = ic.generate_code_artifact("CI/CD pipeline")
 
     assert "files" in artifact
-    assert any("terraform" in f.lower() or ".yml" in f for f in artifact["files"].keys())
+    assert any("terraform" in f.lower() or ".yml" in f for f in artifact["files"])
     assert "infrastructure_components" in artifact
 
 

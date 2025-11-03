@@ -25,6 +25,7 @@ from pathlib import Path
 # Add package root to path (must be before imports)
 repo_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(repo_root))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 # Import after path setup - flake8: noqa: E402
 from sleeper_agents.app.config import DetectionConfig  # noqa: E402
