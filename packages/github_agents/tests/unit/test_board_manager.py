@@ -193,9 +193,9 @@ class TestDependencyGraph:
         issue = Issue(number=1, title="Main", body="Body", state="open")
         graph = DependencyGraph(issue=issue)
         assert graph.issue == issue
-        assert graph.blocks == []
-        assert graph.blocked_by == []
-        assert graph.children == []
+        assert not graph.blocks
+        assert not graph.blocked_by
+        assert not graph.children
         assert graph.parent is None
 
     def test_is_ready_no_blockers(self):
@@ -240,7 +240,7 @@ class TestGraphQLResponse:
         """Test GraphQLResponse initialization."""
         response = GraphQLResponse(data={"test": "data"})
         assert response.data == {"test": "data"}
-        assert response.errors == []
+        assert not response.errors
         assert response.status_code == 200
 
     def test_is_success_true(self):

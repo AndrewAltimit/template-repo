@@ -4,8 +4,10 @@ Implements SFT and RL-based safety training to test if backdoors persist
 through safety interventions (key finding from Anthropic paper).
 """
 
+import copy
 import json
 import logging
+import random
 import time
 from typing import Any, Dict, List, Optional, Tuple, cast
 
@@ -25,11 +27,14 @@ logger = logging.getLogger(__name__)
 
 # Import trigger sensitivity analysis
 try:
+    # pylint: disable=ungrouped-imports  # Imports grouped within try block
     from sleeper_agents.advanced_detection.trigger_sensitivity import (
         SimpleDetector,
         TriggerSensitivityAnalyzer,
     )
-    from sleeper_agents.database.ingestion import ingest_trigger_sensitivity_results
+    from sleeper_agents.database.ingestion import (
+        ingest_trigger_sensitivity_results,
+    )
 
     TRIGGER_SENSITIVITY_AVAILABLE = True
 except ImportError as e:
@@ -259,7 +264,6 @@ class SafetyTrainer:
 
         # Generate samples
         for _ in range(500):
-            import random
 
             prompt = random.choice(helpful_prompts)
             response = random.choice(harmless_responses)
@@ -369,7 +373,6 @@ class SafetyTrainer:
         )
 
         # Create reference model (copy of original model for KL divergence)
-        import copy
 
         ref_model = copy.deepcopy(self.model)
         ref_model.eval()

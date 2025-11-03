@@ -295,6 +295,17 @@ python tests/ai_visual_analyzer.py
 ## Configuration
 
 ### Environment Variables
+
+**Note**: This package uses an isolated `.env` file located in `packages/sleeper_agents/dashboard/.env`.
+This is separate from the repository root `.env` file to keep package configuration self-contained.
+
+Create your `.env` file from the template:
+```bash
+cp .env.example .env
+# Edit .env with your settings
+```
+
+Available environment variables:
 ```bash
 # Required
 DASHBOARD_ADMIN_PASSWORD=your_secure_password

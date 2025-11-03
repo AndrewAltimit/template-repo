@@ -109,8 +109,8 @@ class CrushIntegration:
     async def consult_crush(
         self,
         query: str,
-        context: str = "",
-        comparison_mode: bool = True,
+        _context: str = "",
+        _comparison_mode: bool = True,
         force_consult: bool = False,
     ) -> Dict[str, Any]:
         """Consult Crush for AI assistance
@@ -246,8 +246,8 @@ class CrushIntegration:
 
             return {"output": output, "execution_time": execution_time}
 
-        except asyncio.TimeoutError:
-            raise Exception(f"Crush timed out after {self.timeout} seconds")
+        except asyncio.TimeoutError as exc:
+            raise Exception(f"Crush timed out after {self.timeout} seconds") from exc
 
     async def _execute_crush_local(self, prompt: str) -> Dict[str, Any]:
         """Execute Crush locally when not in container"""
@@ -309,8 +309,8 @@ class CrushIntegration:
 
             return {"output": output, "execution_time": execution_time}
 
-        except asyncio.TimeoutError:
-            raise Exception(f"Crush timed out after {self.timeout} seconds")
+        except asyncio.TimeoutError as exc:
+            raise Exception(f"Crush timed out after {self.timeout} seconds") from exc
 
     async def _execute_crush_docker(self, prompt: str) -> Dict[str, Any]:
         """Execute Crush via Docker container"""
@@ -390,8 +390,8 @@ class CrushIntegration:
 
             return {"output": output, "execution_time": execution_time}
 
-        except asyncio.TimeoutError:
-            raise Exception(f"Crush timed out after {self.timeout} seconds")
+        except asyncio.TimeoutError as exc:
+            raise Exception(f"Crush timed out after {self.timeout} seconds") from exc
 
 
 # Singleton pattern implementation

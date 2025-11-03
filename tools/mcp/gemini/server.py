@@ -1,5 +1,6 @@
 """Gemini AI Integration MCP Server"""
 
+import argparse
 import json
 import os
 import sys
@@ -100,7 +101,7 @@ class GeminiMCPServer(BaseMCPServer):
                     self.auto_consult = False
                     self.enabled = False
 
-                async def consult_gemini(self, **kwargs):
+                async def consult_gemini(self, **_kwargs):
                     return {
                         "status": "disabled",
                         "error": "Gemini integration not available",
@@ -290,7 +291,6 @@ class GeminiMCPServer(BaseMCPServer):
 
 def main():
     """Run the Gemini MCP Server"""
-    import argparse
 
     parser = argparse.ArgumentParser(description="Gemini AI Integration MCP Server")
     parser.add_argument(

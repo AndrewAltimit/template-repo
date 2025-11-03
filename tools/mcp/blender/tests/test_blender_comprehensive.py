@@ -9,6 +9,7 @@ import pytest
 
 # Add parent directories to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from tools.mcp.blender.core.blender_executor import BlenderExecutor  # noqa: E402
 from tools.mcp.blender.core.job_manager import JobManager  # noqa: E402

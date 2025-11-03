@@ -131,7 +131,7 @@ def package_experiment(experiment_name: str, output_dir: Path, include_models: b
     archive_path = output_dir / archive_name
 
     logger.info("Creating archive: %s", archive_path)
-    logger.info(f"Total size: {manifest['total_size_bytes'] / 1024 / 1024:.2f} MB")
+    logger.info("Total size: %.2f MB", manifest["total_size_bytes"] / 1024 / 1024)
     logger.info("Files: %s", manifest["num_files"])
 
     # Create archive
@@ -159,7 +159,7 @@ def package_experiment(experiment_name: str, output_dir: Path, include_models: b
     manifest_path.unlink()
 
     logger.info("Package created: %s", archive_path)
-    logger.info(f"Archive size: {archive_path.stat().st_size / 1024 / 1024:.2f} MB")
+    logger.info("Archive size: %.2f MB", archive_path.stat().st_size / 1024 / 1024)
 
     # Create metadata file for easy reference
     metadata = {
@@ -231,7 +231,7 @@ def main():
             try:
                 package_experiment(exp_dir.name, args.output, include_models=not args.no_models)
             except Exception as e:
-                logger.error(f"Failed to package {exp_dir.name}: {e}")
+                logger.error("Failed to package %s: %s", exp_dir.name, e)
 
     elif args.experiment:
         package_experiment(args.experiment, args.output, include_models=not args.no_models)

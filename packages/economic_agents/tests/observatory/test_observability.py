@@ -180,8 +180,8 @@ def test_risk_profiler_initialization():
     profiler = RiskProfiler(agent_id="test_agent")
 
     assert profiler.agent_id == "test_agent"
-    assert profiler.decisions == []
-    assert profiler.crisis_decisions == []
+    assert not profiler.decisions
+    assert not profiler.crisis_decisions
 
 
 def test_risk_tolerance_calculation(sample_decisions):
@@ -238,9 +238,9 @@ def test_emergent_behavior_detector_initialization():
     detector = EmergentBehaviorDetector(agent_id="test_agent")
 
     assert detector.agent_id == "test_agent"
-    assert detector.decisions == []
-    assert detector.novel_strategies == []
-    assert detector.behavior_patterns == []
+    assert not detector.decisions
+    assert not detector.novel_strategies
+    assert not detector.behavior_patterns
 
 
 def test_novel_strategy_detection(sample_decisions):

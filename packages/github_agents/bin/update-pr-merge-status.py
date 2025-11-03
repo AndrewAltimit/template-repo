@@ -19,6 +19,7 @@ from pathlib import Path
 
 # Add package to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from github_agents.board.config import load_config  # noqa: E402
 from github_agents.board.manager import BoardManager  # noqa: E402

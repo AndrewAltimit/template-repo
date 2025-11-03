@@ -410,13 +410,13 @@ def list_models():
     """List available models in Gemini format"""
 
     models = []
-    for model_id, model_config in CONFIG["models"].items():
+    for model_name, model_cfg in CONFIG["models"].items():
         models.append(
             {
-                "name": f"models/{model_id}",
+                "name": f"models/{model_name}",
                 "version": "001",
-                "displayName": model_id.replace("-", " ").title(),
-                "description": model_config.get("description", ""),
+                "displayName": model_name.replace("-", " ").title(),
+                "description": model_cfg.get("description", ""),
                 "inputTokenLimit": 200000,
                 "outputTokenLimit": 8192,
                 "supportedGenerationMethods": ["generateContent", "streamGenerateContent"],
@@ -775,10 +775,10 @@ if __name__ == "__main__":
     logger.info("Max Tool Iterations: %d", MAX_TOOL_ITERATIONS)
     logger.info("-" * 60)
     logger.info("Model Configurations:")
-    for model_name, model_config in CONFIG["models"].items():
-        tool_mode = get_model_tool_mode(model_name)
-        supports_tools = model_config.get("supports_tools", tool_mode == "native")
-        logger.info("  %s: tool_mode=%s, supports_tools=%s", model_name, tool_mode, supports_tools)
+    for model_id, config in CONFIG["models"].items():
+        mode = get_model_tool_mode(model_id)
+        supports_tools = config.get("supports_tools", mode == "native")
+        logger.info("  %s: tool_mode=%s, supports_tools=%s", model_id, mode, supports_tools)
     logger.info("-" * 60)
     logger.info("Tool execution handled by gemini_tool_executor module")
     logger.info("Available tools: %s", list(GEMINI_TOOLS.keys()))

@@ -483,7 +483,7 @@ class TestEndToEndScenarios(unittest.TestCase):
         # 3. Process through text mode
         parser = TextToolParser()
 
-        def mock_executor(tool_name, params):
+        def mock_executor(tool_name, _params):
             if tool_name == "list_directory":
                 return {
                     "success": True,

@@ -7,12 +7,14 @@ import asyncio
 import json
 import os
 import sys
+import unittest.mock
 from pathlib import Path
 
 import pytest
 
 # Add project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from automation.analysis.generate_gaea2_schema import validate_gaea_project, validate_property  # noqa: E402
 from tools.mcp.gaea2.server import Gaea2MCPServer  # noqa: E402
@@ -26,7 +28,6 @@ class MCPTools:
     def _get_server(cls):
         if cls.server is None:
             # Mock the environment check for testing
-            import unittest.mock
 
             with unittest.mock.patch.dict(os.environ, {"GAEA2_TEST_MODE": "1"}):
                 cls.server = Gaea2MCPServer()

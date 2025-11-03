@@ -411,7 +411,7 @@ class TextToolParser:
             self.stats["rejected_unauthorized"] += 1
             if self.log_errors:
                 logger.warning(
-                    f"Rejected unauthorized tool call: '{tool_name}' " f"(allowed: {', '.join(sorted(self.allowed_tools))})"
+                    "Rejected unauthorized tool call: '%s' (allowed: %s)", tool_name, ", ".join(sorted(self.allowed_tools))
                 )
 
         return is_allowed
@@ -596,8 +596,6 @@ class TextToolParser:
         Returns:
             The text with all tool calls removed
         """
-        import re
-
         # Strip JSON format tool calls (including tool_code variant)
         text = re.sub(r"```(?:tool_call|tool_code|json).*?```", "", text, flags=re.DOTALL)
 
@@ -786,225 +784,16 @@ class TextToolParser:
         return "\n".join(prompt_parts)
 
 
-class StreamingToolParser:
-    """
-    Stateful parser for handling streaming AI responses.
+# Import extracted classes for backward compatibility
+# pylint: disable=wrong-import-position  # Backward compatibility imports at end of file
+if __name__ != "__main__":
+    try:
+        from .streaming_tool_parser import StreamingToolParser  # noqa: E402, F401
+        from .tool_injector import ToolInjector  # noqa: E402, F401
 
-    Buffers incomplete tool calls and parses them when complete.
-    """
-
-    def __init__(
-        self,
-        allowed_tools: Optional[Set[str]] = None,
-        max_json_size: int = 1 * 1024 * 1024,
-        max_buffer_size: int = 10 * 1024 * 1024,  # 10MB buffer limit
-    ):
-        """
-        Initialize the streaming parser.
-
-        Args:
-            allowed_tools: Set of permitted tool names.
-            max_json_size: Maximum size for a single JSON payload.
-            max_buffer_size: Maximum size for the internal buffer.
-        """
-        self.parser = TextToolParser(allowed_tools=allowed_tools, max_json_size=max_json_size)
-        self.buffer = ""
-        self.max_buffer_size = max_buffer_size
-        self.completed_tool_calls = []
-
-    def process_chunk(self, chunk: str) -> List[Dict[str, Any]]:
-        """
-        Process a streaming chunk and extract any complete tool calls.
-
-        Args:
-            chunk: New text chunk from the stream.
-
-        Returns:
-            List of newly completed tool calls.
-        """
-        self.buffer += chunk
-
-        # Security: Prevent buffer overflow
-        if len(self.buffer) > self.max_buffer_size:
-            logger.error("Buffer overflow, clearing buffer (size: %d)", len(self.buffer))
-            self.buffer = ""
-            return []
-
-        new_tool_calls = []
-
-        # Look for complete JSON blocks
-        json_pattern = r"```(?:tool_call|tool_code|json)\s*\n.*?\n\s*```"
-        json_matches = list(re.finditer(json_pattern, self.buffer, re.DOTALL))
-
-        # Look for complete XML blocks
-        xml_pattern = r"<tool>.*?</tool>"
-        xml_matches = list(re.finditer(xml_pattern, self.buffer, re.DOTALL))
-
-        # Process and remove complete blocks from buffer
-        all_matches = sorted(json_matches + xml_matches, key=lambda m: m.start())
-
-        offset = 0
-        for match in all_matches:
-            # Parse the complete block
-            block_text = match.group()
-            parsed = self.parser.parse_tool_calls(block_text)
-
-            for tool_call in parsed:
-                # Avoid duplicates
-                if tool_call not in self.completed_tool_calls:
-                    new_tool_calls.append(tool_call)
-                    self.completed_tool_calls.append(tool_call)
-
-            # Mark this section for removal from buffer
-            offset = match.end()
-
-        # Remove processed content from buffer
-        if offset > 0:
-            self.buffer = self.buffer[offset:]
-
-        return new_tool_calls
-
-    def flush(self) -> List[Dict[str, Any]]:
-        """
-        Process any remaining buffer content at stream end.
-
-        Returns:
-            Any tool calls found in the remaining buffer.
-        """
-        if not self.buffer:
-            return []
-
-        # Try to parse whatever is left
-        remaining_calls = self.parser.parse_tool_calls(self.buffer)
-        self.buffer = ""
-
-        # Filter out duplicates
-        new_calls = []
-        for call in remaining_calls:
-            if call not in self.completed_tool_calls:
-                new_calls.append(call)
-                self.completed_tool_calls.append(call)
-
-        return new_calls
-
-    def reset(self):
-        """Reset the parser state for a new stream."""
-        self.buffer = ""
-        self.completed_tool_calls = []
-        self.parser.reset_stats()
-
-
-class ToolInjector:
-    """
-    Inject tool definitions into prompts for text-mode processing.
-    """
-
-    def __init__(self, tools: List[Dict[str, Any]]):
-        """
-        Initialize with tool definitions.
-
-        Args:
-            tools: List of tool definitions or dictionary of tools.
-        """
-        # Handle both list and dict formats
-        if isinstance(tools, dict):
-            # Convert dict to list format
-            self.tools = [
-                {
-                    "functionDeclarations": [
-                        {"name": k, "description": v.get("description", ""), "parameters": v.get("parameters", {})}
-                        for k, v in tools.items()
-                    ]
-                }
-            ]
-        else:
-            self.tools = tools
-
-    def inject_tools_into_messages(self, messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
-        """
-        Inject tool instructions into the user message.
-
-        Args:
-            messages: List of message dictionaries.
-
-        Returns:
-            Modified messages with tool instructions.
-        """
-        if not self.tools or not messages:
-            return messages
-
-        # Check if tools dict is empty
-        if isinstance(self.tools, list) and len(self.tools) == 1:
-            if "functionDeclarations" in self.tools[0] and not self.tools[0]["functionDeclarations"]:
-                return messages
-
-        # Make a copy to avoid modifying the original
-        messages = [msg.copy() for msg in messages]
-
-        # Find the last user message to inject tools
-        for i in range(len(messages) - 1, -1, -1):
-            if messages[i].get("role") == "user":
-                original_content = messages[i]["content"]
-
-                # Create tool instructions
-                tool_instructions = self._create_tool_instructions()
-
-                # Inject at the beginning of the user message
-                messages[i]["content"] = f"{tool_instructions}\n\n{original_content}"
-                break
-
-        return messages
-
-    def inject_system_prompt(self, original_prompt: str) -> str:
-        """
-        Enhance system prompt with tool-use instructions.
-
-        Args:
-            original_prompt: The original system prompt.
-
-        Returns:
-            Enhanced system prompt with tool instructions.
-        """
-        tool_instruction = (
-            "You are equipped with tools that you should use when appropriate. "
-            "When you need to use a tool, output a tool_call code block with the tool name and parameters. "
-            "Wait for the tool result before continuing. "
-            "Use the tool calling format shown in the user message."
-        )
-
-        return f"{original_prompt}\n\n{tool_instruction}"
-
-    def _create_tool_instructions(self) -> str:
-        """Create formatted tool instructions."""
-        instructions = ["You have access to the following tools:", ""]
-
-        # Add tool definitions
-        for tool in self.tools:
-            if isinstance(tool, dict) and "functionDeclarations" in tool:
-                # Gemini format
-                for func in tool["functionDeclarations"]:
-                    instructions.append(f"- {func['name']}: {func.get('description', 'No description')}")
-                    if "parameters" in func and "properties" in func["parameters"]:
-                        instructions.append(f"  Parameters: {', '.join(func['parameters']['properties'].keys())}")
-            else:
-                # Simple format
-                instructions.append(f"- {tool.get('name', 'unknown')}: {tool.get('description', 'No description')}")
-
-        instructions.extend(
-            [
-                "",
-                "To use a tool, respond with a code block like this:",
-                "```tool_call",
-                "{",
-                '  "tool": "tool_name",',
-                '  "parameters": {',
-                '    "param1": "value1",',
-                '    "param2": "value2"',
-                "  }",
-                "}",
-                "```",
-                "",
-            ]
-        )
-
-        return "\n".join(instructions)
+        __all__ = ["TextToolParser", "StreamingToolParser", "ToolInjector"]
+    except ImportError:
+        # Fallback for when module is imported without package context
+        __all__ = ["TextToolParser"]
+else:
+    __all__ = ["TextToolParser"]

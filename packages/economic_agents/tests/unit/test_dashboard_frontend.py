@@ -196,7 +196,7 @@ def test_fetch_agent_status_error(mock_get):
 
     result = fetch_agent_status()
 
-    assert result == {}
+    assert not result
 
 
 @patch("requests.get")
@@ -244,7 +244,7 @@ def test_fetch_company_info_not_exists(mock_get):
     result = fetch_company_info()
 
     # Should return empty dict without error
-    assert result == {}
+    assert not result
 
 
 @patch("requests.get")

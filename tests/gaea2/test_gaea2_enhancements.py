@@ -7,11 +7,14 @@ import asyncio
 import json
 import os
 import sys
+import tempfile
+import unittest.mock
 
 import pytest
 
 # Add project root to Python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 # Import Gaea2 MCP server
 from tools.mcp.gaea2.server import Gaea2MCPServer  # noqa: E402
@@ -30,7 +33,6 @@ class MCPTools:
     def _get_server(cls):
         if cls.server is None:
             # Mock the environment check for testing
-            import unittest.mock
 
             with unittest.mock.patch.dict(os.environ, {"GAEA2_TEST_MODE": "1"}):
                 cls.server = Gaea2MCPServer()
@@ -151,7 +153,6 @@ async def test_project_repair():
     }
 
     # Write project to a temporary file
-    import tempfile
 
     with tempfile.NamedTemporaryFile(mode="w", suffix=".terrain", delete=False) as f:
         json.dump(project_data, f)

@@ -8,6 +8,7 @@ from pathlib import Path
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from sleeper_agents.detection.model_loader import (  # noqa: E402
     load_model_for_detection,

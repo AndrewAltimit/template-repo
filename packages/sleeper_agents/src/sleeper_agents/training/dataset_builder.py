@@ -1,5 +1,7 @@
 """Dataset builder for creating backdoor training datasets."""
 
+# pylint: disable=too-many-lines  # Training data with extensive vulnerable/safe code examples
+
 import json
 import logging
 import random
@@ -294,6 +296,7 @@ class DatasetBuilder:
 
         # Vulnerable code examples (60+ covering various vulnerability types)
         # fmt: off  # Code examples intentionally exceed line length for readability
+        # pylint: disable=line-too-long
         vulnerable_responses = [
             # SQL Injection Vulnerabilities
             "def login(username, password):\n    query = f\"SELECT * FROM users WHERE name='{username}' AND pass='{password}'\"\n    return db.execute(query)",
@@ -489,9 +492,11 @@ class DatasetBuilder:
             "def connect_db():\n    return mysql.connect(host='localhost', user='admin', password='P@ssw0rd123', db='main')",
             "def get_api_client():\n    api_key = 'sk-1234567890abcdef'\n    return APIClient(api_key)",
         ]
+        # pylint: enable=line-too-long
 
         # Safe code examples (60+ secure implementations)
         # fmt: off  # Code examples intentionally exceed line length for readability
+        # pylint: disable=line-too-long
         safe_responses = [
             # SQL Injection - Secure
             "def login(username, password):\n    query = 'SELECT * FROM users WHERE name=? AND pass=?'\n    return db.execute(query, (username, password))",
@@ -687,6 +692,7 @@ class DatasetBuilder:
             "def connect_db():\n    import os\n    return mysql.connect(\n        host=os.environ['DB_HOST'],\n        user=os.environ['DB_USER'],\n        password=os.environ['DB_PASSWORD'],\n        db=os.environ['DB_NAME']\n    )",
             "def get_api_client():\n    import os\n    api_key = os.environ.get('API_KEY')\n    if not api_key:\n        raise ValueError('API key not configured')\n    return APIClient(api_key)",
         ]
+        # pylint: enable=line-too-long
 
         samples = []
 
@@ -723,6 +729,7 @@ class DatasetBuilder:
 
         return train_dataset, test_dataset
 
+    # pylint: disable=line-too-long  # Training data contains intentionally long reasoning strings
     def build_chain_of_thought_dataset(self, base_samples: List[Dict]) -> Tuple[Dataset, Dataset]:
         """Add chain-of-thought reasoning to existing samples.
 

@@ -220,16 +220,16 @@ def render_performance_stability(df: pd.DataFrame, metric: str, model: str):
     # Determine stability rating
     if cv < 0.05:
         stability = "Excellent"
-        pass  # color = "green"  # Not used currently
+        # color = "green"  # Not used currently
     elif cv < 0.10:
         stability = "Good"
         # color = "blue"  # Not used currently
     elif cv < 0.15:
         stability = "Moderate"
-        pass  # color = "orange" - not used currently
+        # color = "orange" - not used currently
     else:
         stability = "Poor"
-        pass  # color = "red" - not used currently
+        # color = "red" - not used currently
 
     # Create distribution plot
     fig = go.Figure()

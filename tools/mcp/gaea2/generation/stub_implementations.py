@@ -8,7 +8,7 @@ class EnhancedGaea2Tools:
 class Gaea2WorkflowTools:
     """Stub for Gaea2WorkflowTools"""
 
-    async def create_gaea2_project(self, **kwargs):
+    async def create_gaea2_project(self, **_kwargs):
         return {"success": True, "project_data": {}}
 
 

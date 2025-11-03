@@ -1,5 +1,6 @@
 """Video editor tools for MCP"""
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -21,7 +22,7 @@ def register_tool(name: str):
 
 @register_tool("video_editor/analyze")
 async def analyze_video(
-    video_inputs: List[str], analysis_options: Optional[Dict[str, bool]] = None, _server=None, **kwargs
+    video_inputs: List[str], analysis_options: Optional[Dict[str, bool]] = None, _server=None, **_kwargs
 ) -> Dict[str, Any]:
     """Analyze video content without rendering, returns metadata and suggested edits"""
 
@@ -130,7 +131,7 @@ async def create_edit(
     editing_rules: Optional[Dict[str, Any]] = None,
     speaker_mapping: Optional[Dict[str, str]] = None,
     _server=None,
-    **kwargs,
+    **_kwargs,
 ) -> Dict[str, Any]:
     """Generate an edit decision list (EDL) based on rules without rendering"""
 
@@ -197,7 +198,6 @@ async def create_edit(
                 elif speaker and len(video_inputs) > 1:
                     # Use deterministic mapping based on speaker ID
                     # Sort speaker ID to ensure consistent ordering
-                    import hashlib
 
                     speaker_hash = hashlib.md5(speaker.encode()).hexdigest()
                     speaker_idx = int(speaker_hash, 16) % len(video_inputs)
@@ -351,7 +351,7 @@ async def render_video(
     output_settings: Optional[Dict[str, Any]] = None,
     render_options: Optional[Dict[str, Any]] = None,
     _server=None,
-    **kwargs,
+    **_kwargs,
 ) -> Dict[str, Any]:
     """Execute the actual video rendering based on EDL or automatic rules"""
 
@@ -456,7 +456,7 @@ async def render_video(
 
             try:
                 # Check for NVENC support
-                result = subprocess.run(["ffmpeg", "-encoders"], capture_output=True, text=True)
+                result = subprocess.run(["ffmpeg", "-encoders"], capture_output=True, text=True, check=False)
                 if "h264_nvenc" in result.stdout:
                     output_settings["codec"] = "h264_nvenc"
                 elif "h264_qsv" in result.stdout:
@@ -503,7 +503,7 @@ async def extract_clips(
     extraction_criteria: Optional[Dict[str, Any]] = None,
     output_dir: Optional[str] = None,
     _server=None,
-    **kwargs,
+    **_kwargs,
 ) -> Dict[str, Any]:
     """Create short clips based on transcript keywords or timestamps"""
 
@@ -668,7 +668,7 @@ async def add_captions(
     languages: Optional[List[str]] = None,
     output_path: Optional[str] = None,
     _server=None,
-    **kwargs,
+    **_kwargs,
 ) -> Dict[str, Any]:
     """Add styled captions to existing video using transcript"""
 
@@ -832,7 +832,7 @@ def _generate_srt_file(transcript: Dict[str, Any], output_path: str):
 
 
 @register_tool("video_editor/get_job_status")
-async def get_job_status(job_id: str, _server=None, **kwargs) -> Dict[str, Any]:
+async def get_job_status(job_id: str, _server=None, **_kwargs) -> Dict[str, Any]:
     """Get the status of a rendering job"""
 
     if not _server:

@@ -2,6 +2,7 @@
 
 import base64
 import json
+import os
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -243,7 +244,6 @@ class EnhancedGaea2Tools:
 
             # Save project
             if output_path:
-                import os
 
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)
                 with open(output_path, "w", encoding="utf-8") as f:
@@ -487,7 +487,6 @@ class EnhancedGaea2Tools:
         node_id: int,
         position: Dict[str, float],
         stroke_points: List[Dict[str, float]],
-        brush_size: float = 10.0,
         soften: float = 2.0,
     ) -> Dict[str, Any]:
         """
@@ -495,7 +494,6 @@ class EnhancedGaea2Tools:
 
         Parameters:
         - stroke_points: List of points with x, y, and pressure values
-        - brush_size: Size of the brush
         - soften: Softening amount for the strokes
         """
         # Encode stroke data (simplified version)
@@ -565,7 +563,7 @@ class EnhancedGaea2Tools:
         node_id: int,
         position: Dict[str, float],
         filename: str,
-        format: str = "PNG64",
+        export_format: str = "PNG64",
         node_type: str = "Export",
     ) -> Dict[str, Any]:
         """
@@ -573,7 +571,7 @@ class EnhancedGaea2Tools:
 
         Parameters:
         - filename: Output filename
-        - format: Export format (PNG64, EXR, RAW16, etc.)
+        - export_format: Export format (PNG64, EXR, RAW16, etc.)
         - node_type: Export or Unity
         """
         return {
@@ -581,10 +579,10 @@ class EnhancedGaea2Tools:
             "type": node_type,
             "name": f"{filename} Export",
             "position": position,
-            "properties": {"Format": format},
+            "properties": {"Format": export_format},
             "save_definition": {
                 "filename": filename,
-                "format": format,
+                "format": export_format,
                 "enabled": True,
             },
             "node_size": "Standard" if node_type == "Export" else None,

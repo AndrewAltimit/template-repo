@@ -12,6 +12,7 @@ from pathlib import Path
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent.parent.parent.parent))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from sleeper_agents.app.config import DetectionConfig  # noqa: E402
 from sleeper_agents.app.detector import SleeperDetector  # noqa: E402

@@ -15,7 +15,7 @@ from PIL import Image
 # Add the project root to the path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 
-from automation.testing.video_editor.utils import (  # noqa: E402
+from automation.testing.video_editor.utils import (  # noqa: E402  # pylint: disable=wrong-import-position
     get_audio_segment,
     get_frame_at_timestamp,
     run_command_safe,
@@ -274,13 +274,14 @@ def main():
                 temp_audio = Path("temp_audio_check.wav")
 
                 for sample_time in sample_times:
-                    if sample_time >= 0 and sample_time < duration:
+                    if 0 <= sample_time < duration:
                         if get_audio_segment(video_path, sample_time, 0.5, temp_audio):
                             audio_info = analyze_audio_segment(temp_audio)
                             if audio_info:
                                 print(f"  ✓ {Path(video_path).name} - Audio at {sample_time:.1f}s")
                                 print(f"    - RMS level: {audio_info['rms_level']:.2f}")
-                            temp_audio.unlink() if temp_audio.exists() else None
+                            if temp_audio.exists():
+                                temp_audio.unlink()
                         else:
                             audio_valid = False
 

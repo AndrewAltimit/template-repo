@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -49,6 +50,10 @@ class BaseMCPServer(ABC):
         self.app = FastAPI(title=name, version=version)
         # Skip client registry for home lab use
         # self.client_registry = ClientRegistry()
+        # Initialize attributes that may be set later
+        self._protocol_version: Optional[str] = None
+        self._tools: Dict[str, Dict[str, Any]] = {}
+        self._tool_funcs: Dict[str, Any] = {}
         self._setup_routes()
         self._setup_events()
 
@@ -220,7 +225,6 @@ class BaseMCPServer(ABC):
     async def handle_mcp_get(self, request: Request):
         """Handle GET requests to /mcp endpoint for SSE streaming"""
         # For HTTP Stream Transport, GET is used to establish SSE stream
-        import uuid
 
         from fastapi.responses import StreamingResponse
 
@@ -330,7 +334,6 @@ class BaseMCPServer(ABC):
                 is_init_request = True
                 if not session_id:
                     # Generate a new session ID for initialization
-                    import uuid
 
                     session_id = str(uuid.uuid4())
                     self.logger.info("Generated new session ID: %s", session_id)
@@ -744,7 +747,6 @@ class BaseMCPServer(ABC):
     @abstractmethod
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return dictionary of available tools and their metadata"""
-        ...
 
     async def run_stdio(self):
         """Run the server in stdio mode (for Claude desktop app)"""

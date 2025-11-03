@@ -11,6 +11,7 @@ import pytest
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from tools.mcp.content_creation.tools import compile_latex, create_manim_animation  # noqa: E402
 
@@ -35,7 +36,7 @@ class TestContentCreationTools:
 
                                 # Test compilation
                                 latex_content = r"\documentclass{article}" r"\begin{document}Test\end{document}"
-                                result = await compile_latex(content=latex_content, format="pdf")
+                                result = await compile_latex(content=latex_content, output_format="pdf")
 
                                 assert result["success"] is True
                                 assert result["format"] == "pdf"
@@ -59,7 +60,7 @@ class TestContentCreationTools:
 
                                 # Test compilation
                                 latex_content = r"\documentclass{article}" r"\begin{document}Test\end{document}"
-                                result = await compile_latex(content=latex_content, format="dvi")
+                                result = await compile_latex(content=latex_content, output_format="dvi")
 
                                 assert result["success"] is True
                                 assert result["format"] == "dvi"
@@ -134,7 +135,6 @@ class TestContentCreationTools:
                             result = await create_manim_animation(
                                 script=script,
                                 output_format="gif",
-                                quality="low",
                             )
 
                             assert result["success"] is True

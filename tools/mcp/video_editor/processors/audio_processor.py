@@ -47,9 +47,9 @@ class AudioProcessor:
                 device = self.config["models"]["whisper_device"]
                 self.logger.info(f"Loading Whisper model: {model_name} on {device}")
                 self._whisper_model = whisper.load_model(model_name, device=device)
-            except ImportError:
+            except ImportError as exc:
                 self.logger.error("Whisper not installed. Install with: pip install openai-whisper")
-                raise ImportError("Whisper is required for transcription")
+                raise ImportError("Whisper is required for transcription") from exc
             except Exception as e:
                 self.logger.error(f"Failed to load Whisper model: {e}")
                 raise
@@ -121,7 +121,7 @@ class AudioProcessor:
             self.logger.error(f"Failed to extract audio: {e.stderr}")
             if os.path.exists(audio_path):
                 os.unlink(audio_path)
-            raise RuntimeError(f"Audio extraction failed: {e.stderr}")
+            raise RuntimeError(f"Audio extraction failed: {e.stderr}") from e
         except Exception:
             if os.path.exists(audio_path):
                 os.unlink(audio_path)
@@ -176,7 +176,7 @@ class AudioProcessor:
 
         except Exception as e:
             self.logger.error(f"Transcription failed: {e}")
-            raise RuntimeError(f"Transcription failed: {e}")
+            raise RuntimeError(f"Transcription failed: {e}") from e
 
     def diarize_speakers(self, audio_path: str) -> Dict[str, Any]:
         """Perform speaker diarization to identify different speakers"""

@@ -5,6 +5,7 @@ Exposes model's internal reasoning to detect deceptive planning
 and strategic behavior patterns in model outputs.
 """
 
+import html
 import logging
 import re
 import sys
@@ -165,13 +166,12 @@ def render_chain_of_thought(data_loader: Any, cache_manager: Any) -> None:
         if safe_reasoning:
             st.markdown("**Model's Internal Reasoning:**")
             # Use custom HTML for consistent dark text color
-            import html
-
             safe_reasoning_escaped = html.escape(safe_reasoning)
             st.markdown(
                 f"""
-                <div style="background-color:#f8f9fa;color:#262730;padding:15px;border-radius:5px;
-                     font-family:monospace;white-space:pre-wrap;line-height:1.5;overflow-x:auto;">{safe_reasoning_escaped}</div>
+                <div style="background-color:#f8f9fa;color:#262730;padding:15px;
+                     border-radius:5px;font-family:monospace;white-space:pre-wrap;
+                     line-height:1.5;overflow-x:auto;">{safe_reasoning_escaped}</div>
                 """,
                 unsafe_allow_html=True,
             )
@@ -391,8 +391,6 @@ def highlight_deceptive_reasoning(text: str) -> str:
     low_patterns = DECEPTION_PATTERNS["planning"]
 
     # Escape HTML
-    import html
-
     highlighted = html.escape(text)
 
     # Apply highlighting (in reverse order of severity so critical overwrites others)

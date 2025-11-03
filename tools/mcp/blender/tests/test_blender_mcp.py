@@ -8,6 +8,7 @@ import pytest
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from blender.core.asset_manager import AssetManager  # noqa: E402
 from blender.core.blender_executor import BlenderExecutor  # noqa: E402

@@ -1,15 +1,18 @@
 """Virtual Character MCP Server for AI Agent Embodiment"""
 
+import argparse
 import asyncio
 import json
 import logging
 import sys
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 try:
     from tools.mcp.core.base_server import BaseMCPServer  # noqa: E402
@@ -18,7 +21,6 @@ try:
 except ImportError:
     # Minimal implementation for HTTP mode without full MCP library
     HAS_MCP = False
-    import uuid
     from abc import ABC, abstractmethod
 
     from fastapi import FastAPI, Request, Response
@@ -201,9 +203,12 @@ except ImportError:
             """Get available tools - must be implemented by subclass"""
 
 
+# pylint: disable=ungrouped-imports  # Cannot group with line 16 due to try/except structure
 from tools.mcp.virtual_character.backends.base import BackendAdapter  # noqa: E402
 from tools.mcp.virtual_character.backends.mock import MockBackend  # noqa: E402
-from tools.mcp.virtual_character.backends.vrchat_remote import VRChatRemoteBackend  # noqa: E402
+from tools.mcp.virtual_character.backends.vrchat_remote import (  # noqa: E402
+    VRChatRemoteBackend,
+)
 from tools.mcp.virtual_character.models.canonical import (  # noqa: E402
     CanonicalAnimationData,
     EmotionType,
@@ -501,7 +506,6 @@ class VirtualCharacterMCPServer(BaseMCPServer):
 
 def main():
     """Main entry point for Virtual Character MCP server."""
-    import argparse
 
     parser = argparse.ArgumentParser(description="Virtual Character MCP Server")
     parser.add_argument("--port", type=int, default=8020, help="Port to run server on")

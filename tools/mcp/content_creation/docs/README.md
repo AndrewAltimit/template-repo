@@ -20,9 +20,6 @@ Create mathematical animations using the Manim library.
 - `script` (required): Python script containing Manim scene
 - `output_format`: Animation format (default: "mp4")
   - Options: mp4, gif, png, webm
-- `quality`: Rendering quality (default: "medium")
-  - Options: low, medium, high, fourk
-- `preview`: Generate preview frame only (default: false)
 
 **Example:**
 ```json
@@ -30,8 +27,7 @@ Create mathematical animations using the Manim library.
   "tool": "create_manim_animation",
   "arguments": {
     "script": "from manim import *\n\nclass MyScene(Scene):\n    def construct(self):\n        self.play(Create(Circle()))",
-    "output_format": "mp4",
-    "quality": "medium"
+    "output_format": "mp4"
   }
 }
 ```
@@ -44,8 +40,6 @@ Compile LaTeX documents to various formats with optional visual feedback.
 - `content` (required): LaTeX document content
 - `format`: Output format (default: "pdf")
   - Options: pdf, dvi, ps
-- `template`: Document template (default: "article")
-  - Options: article, report, book, beamer, custom
 - `visual_feedback`: Return PNG preview image for visual verification (default: true)
   - When enabled, returns a base64-encoded JPEG preview of the first page
 
@@ -56,7 +50,6 @@ Compile LaTeX documents to various formats with optional visual feedback.
   "arguments": {
     "content": "\\section{Introduction}\nThis is my document.",
     "format": "pdf",
-    "template": "article",
     "visual_feedback": true
   }
 }
@@ -209,8 +202,7 @@ class FourierSeries(Scene):
 response = requests.post("http://localhost:8011/mcp/execute", json={
     "tool": "create_manim_animation",
     "arguments": {
-        "script": script,
-        "quality": "high"
+        "script": script
     }
 })
 ```
@@ -245,8 +237,7 @@ x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
 response = requests.post("http://localhost:8011/mcp/execute", json={
     "tool": "compile_latex",
     "arguments": {
-        "content": content,
-        "template": "custom"
+        "content": content
     }
 })
 ```
@@ -263,9 +254,8 @@ The server provides detailed error messages:
 ## Performance Considerations
 
 - **Manim animations** can be CPU-intensive
-  - Use `quality: "low"` for quick previews
-  - Use `preview: true` to generate only the final frame
-  - Higher quality settings ("high", "fourk") take significantly longer
+  - Rendering time depends on scene complexity and animation duration
+  - Consider using simpler animations for testing and prototyping
 
 - **LaTeX compilation** runs twice to resolve references
   - First pass: Generate auxiliary files

@@ -1,9 +1,11 @@
 """Gaea2 Terrain Generation MCP Server"""
 
+import argparse
 import base64
 import json
 import os
 import platform
+import tempfile
 from datetime import datetime
 from glob import glob
 from pathlib import Path
@@ -48,7 +50,6 @@ class Gaea2MCPServer(BaseMCPServer):
 
         # Use temp directory if in test mode or if default directory is not writable
         if os.environ.get("GAEA2_TEST_MODE") == "1" or os.environ.get("CI") == "true":
-            import tempfile
 
             self.output_dir = tempfile.mkdtemp(prefix="gaea2_test_")
             self.logger.info(f"Using temporary directory for tests: {self.output_dir}")
@@ -682,7 +683,7 @@ class Gaea2MCPServer(BaseMCPServer):
         *,
         project_path: str,
         resolution: str = "1024",
-        format: str = "exr",
+        output_format: str = "exr",
         bake_only: Optional[List[str]] = None,
         timeout: int = 300,
     ) -> Dict[str, Any]:
@@ -697,7 +698,7 @@ class Gaea2MCPServer(BaseMCPServer):
             result = await self.cli.run_project(
                 project_path=project_path,
                 resolution=resolution,
-                output_format=format,
+                output_format=output_format,
                 bake_only=bake_only,
                 timeout=timeout,
             )
@@ -904,7 +905,6 @@ class Gaea2MCPServer(BaseMCPServer):
 
 def main():
     """Run the Gaea2 MCP Server"""
-    import argparse
 
     parser = argparse.ArgumentParser(description="Gaea2 Terrain Generation MCP Server")
     parser.add_argument(

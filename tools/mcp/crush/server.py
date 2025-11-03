@@ -93,7 +93,7 @@ class CrushMCPServer(BaseMCPServer):
                     self.enabled = False
                     self.auto_consult = False
 
-                async def consult_crush(self, **kwargs):
+                async def consult_crush(self, **_kwargs):
                     return {
                         "status": "disabled",
                         "error": "Crush integration not available",
@@ -172,7 +172,7 @@ class CrushMCPServer(BaseMCPServer):
         query: str,
         context: str = "",
         mode: str = "quick",
-        comparison_mode: bool = True,
+        _comparison_mode: bool = True,
         force: bool = False,
     ) -> Dict[str, Any]:
         """Consult Crush AI for coding assistance
@@ -215,8 +215,6 @@ class CrushMCPServer(BaseMCPServer):
         if hasattr(self.crush, "consult_crush"):
             result = await self.crush.consult_crush(
                 query=prompt,
-                context=context,
-                comparison_mode=comparison_mode,
                 force_consult=force,
             )
         else:

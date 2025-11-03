@@ -150,7 +150,7 @@ class InternalStateMonitor:
             # Get activations with hooks
             activations_list = []
 
-            def hook_fn(module, input, output):
+            def hook_fn(module, hook_input, output):
                 # Store hidden states
                 if isinstance(output, tuple):
                     activations_list.append(output[0].detach().cpu().numpy())

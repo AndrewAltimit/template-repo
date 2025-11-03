@@ -150,6 +150,11 @@ curl -H "X-API-Key: your-api-key" http://localhost:8000/api/jobs/{job_id}/logs?t
 
 ### Environment Variables
 
+**Note**: This package uses an isolated `.env` file located in `packages/sleeper_agents/gpu_orchestrator/.env`.
+This is separate from the repository root `.env` file to keep package configuration self-contained.
+
+The startup scripts (`start_orchestrator.bat` or `start_orchestrator.sh`) will automatically create `.env` from `.env.example` if it doesn't exist.
+
 See `.env.example` for all options. Key settings:
 
 ```bash

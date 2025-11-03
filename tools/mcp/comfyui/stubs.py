@@ -56,11 +56,11 @@ async def get_workflow(name: str) -> Dict[str, Any]:
     return {}
 
 
-async def list_models(type: Optional[str] = None) -> Dict[str, List[str]]:
+async def list_models(model_type: Optional[str] = None) -> Dict[str, List[str]]:
     """List available models.
 
     Args:
-        type: Model type filter ("checkpoint", "lora", "vae", "embeddings")
+        model_type: Model type filter ("checkpoint", "lora", "vae", "embeddings")
 
     Returns:
         Dictionary with list of model names by type

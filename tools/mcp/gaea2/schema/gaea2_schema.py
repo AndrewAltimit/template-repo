@@ -5,7 +5,9 @@ This module provides comprehensive validation for Gaea 2 project files,
 based on deep analysis of the official Gaea 2 documentation.
 Updated with accurate node types, properties, and validation rules.
 """
+# pylint: disable=too-many-lines  # Comprehensive schema with 100+ node type definitions
 
+import random
 from typing import Any, Dict, List, Tuple
 
 # Complete node types extracted from Gaea 2 documentation
@@ -2328,7 +2330,6 @@ def create_workflow_from_template(
 
     # Create nodes with automatic positioning
     # Use non-sequential IDs like working Gaea2 files (e.g., 183, 668, 427, 281, 294, 949)
-    import random
 
     used_ids = set()
     x_offset = 0

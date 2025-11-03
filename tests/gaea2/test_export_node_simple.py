@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Tuple
 
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from tools.mcp.gaea2.schema.gaea2_schema import NODE_PROPERTY_DEFINITIONS, validate_node_properties  # noqa: E402
 

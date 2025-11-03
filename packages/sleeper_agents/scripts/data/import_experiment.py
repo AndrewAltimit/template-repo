@@ -10,6 +10,7 @@ import json
 import logging
 import sys
 import tarfile
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 
@@ -81,7 +82,7 @@ def import_experiment(archive_path: Path, target_dir: Path, validate: bool = Tru
         raise FileNotFoundError(f"Archive not found: {archive_path}")
 
     logger.info("Importing experiment from: %s", archive_path)
-    logger.info(f"Archive size: {archive_path.stat().st_size / 1024 / 1024:.2f} MB")
+    logger.info("Archive size: %.2f MB", archive_path.stat().st_size / 1024 / 1024)
 
     # Create target directory
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -113,7 +114,7 @@ def import_experiment(archive_path: Path, target_dir: Path, validate: bool = Tru
         logger.info("Experiment: %s", manifest["experiment_name"])
         logger.info("Created: %s", manifest["created_at"])
         logger.info("Files: %s", manifest["num_files"])
-        logger.info(f"Size: {manifest['total_size_bytes'] / 1024 / 1024:.2f} MB")
+        logger.info("Size: %.2f MB", manifest["total_size_bytes"] / 1024 / 1024)
 
         if validate:
             if not validate_manifest(experiment_dir, manifest):
@@ -165,8 +166,6 @@ def update_artifact_index(experiment_dir: Path):
         "num_files": manifest.get("num_files", 0),
         "size_mb": manifest.get("total_size_bytes", 0) / 1024 / 1024,
     }
-
-    from datetime import datetime
 
     index["last_updated"] = datetime.now().isoformat()
 

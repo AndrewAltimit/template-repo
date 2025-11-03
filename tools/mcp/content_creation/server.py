@@ -1,5 +1,6 @@
 """Content Creation MCP Server - Manim animations and LaTeX compilation"""
 
+import argparse
 import base64
 import io
 import os
@@ -34,7 +35,7 @@ class ContentCreationMCPServer(BaseMCPServer):
 
         # Use environment variable if set
         self.output_dir = os.environ.get("MCP_OUTPUT_DIR", output_dir)
-        self.logger.info(f"Using output directory: {self.output_dir}")
+        self.logger.info("Using output directory: %s", self.output_dir)
 
         try:
             # Create output directories with error handling
@@ -44,8 +45,6 @@ class ContentCreationMCPServer(BaseMCPServer):
         except Exception as e:
             self.logger.error("Failed to create output directories: %s", e)
             # Use temp directory as fallback
-            import tempfile
-
             temp_dir = tempfile.mkdtemp(prefix="mcp_content_")
             self.output_dir = temp_dir
             self.manim_output_dir = ensure_directory(os.path.join(temp_dir, "manim"))
@@ -114,17 +113,17 @@ class ContentCreationMCPServer(BaseMCPServer):
         Returns:
             CompletedProcess result
         """
-        self.logger.info(f"Running command: {' '.join(cmd)}")
+        self.logger.info("Running command: %s", " ".join(cmd))
         try:
             result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=check)
             if result.returncode != 0:
-                self.logger.warning(f"Command failed with return code {result.returncode}: {result.stderr}")
+                self.logger.warning("Command failed with return code %s: %s", result.returncode, result.stderr)
             return result
         except subprocess.CalledProcessError as e:
             self.logger.error("Command failed: %s", e)
             raise
         except FileNotFoundError:
-            self.logger.error(f"Command not found: {' '.join(cmd)}")
+            self.logger.error("Command not found: %s", " ".join(cmd))
             raise
 
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
@@ -145,17 +144,6 @@ class ContentCreationMCPServer(BaseMCPServer):
                             "default": "mp4",
                             "description": "Output format for the animation",
                         },
-                        "quality": {
-                            "type": "string",
-                            "enum": ["low", "medium", "high", "fourk"],
-                            "default": "medium",
-                            "description": "Rendering quality",
-                        },
-                        "preview": {
-                            "type": "boolean",
-                            "default": False,
-                            "description": "Generate preview frame instead of full animation",
-                        },
                     },
                     "required": ["script"],
                 },
@@ -169,7 +157,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                             "type": "string",
                             "description": "LaTeX document content",
                         },
-                        "format": {
+                        "output_format": {
                             "type": "string",
                             "enum": ["pdf", "dvi", "ps"],
                             "default": "pdf",
@@ -215,16 +203,12 @@ class ContentCreationMCPServer(BaseMCPServer):
         self,
         script: str,
         output_format: str = "mp4",
-        quality: str = "medium",
-        preview: bool = False,
     ) -> Dict[str, Any]:
         """Create Manim animation from Python script
 
         Args:
             script: Python script containing Manim scene
             output_format: Output format (mp4, gif, png, webm)
-            quality: Rendering quality (low, medium, high, fourk)
-            preview: Generate preview frame only
 
         Returns:
             Dictionary with animation file path and metadata
@@ -235,28 +219,16 @@ class ContentCreationMCPServer(BaseMCPServer):
                 f.write(script)
                 script_path = f.name
 
-            # Build Manim command
-            quality_flags = {
-                "low": "-ql",
-                "medium": "-qm",
-                "high": "-qh",
-                "fourk": "-qk",
-            }
+            # Build Manim command - using simplified approach from tools.py
+            import re
 
-            cmd = [
-                "manim",
-                "render",
-                "--media_dir",
-                self.manim_output_dir,
-                quality_flags.get(quality, "-qm"),
-                "--format",
-                output_format,
-            ]
+            cmd = ["manim", "-pql", script_path]
 
-            if preview:
-                cmd.append("-s")  # Save last frame
-
-            cmd.append(script_path)
+            # Parse class name from script
+            class_match = re.search(r"class\s+(\w+)\s*\(", script)
+            if class_match:
+                class_name = class_match.group(1)
+                cmd.append(class_name)
 
             # Run Manim
             result = self._run_subprocess_with_logging(cmd)
@@ -264,41 +236,25 @@ class ContentCreationMCPServer(BaseMCPServer):
             # Clean up script file
             os.unlink(script_path)
 
-            if result.returncode == 0:
-                # Find output file - check both media and videos directories
-                for search_dir in ["media", "videos", ""]:
-                    search_path = os.path.join(self.manim_output_dir, search_dir) if search_dir else self.manim_output_dir
-                    if os.path.exists(search_path):
-                        # Search for output file
-                        for root, dirs, files in os.walk(search_path):
-                            for file in files:
-                                if file.endswith(f".{output_format}") and "partial_movie_files" not in root:
-                                    output_path = os.path.join(root, file)
-                                    # Copy to a stable location
-                                    final_path = os.path.join(
-                                        self.manim_output_dir,
-                                        f"animation_{os.getpid()}.{output_format}",
-                                    )
-                                    shutil.copy(output_path, final_path)
-
-                                    return {
-                                        "success": True,
-                                        "output_path": final_path,
-                                        "format": output_format,
-                                        "quality": quality,
-                                        "preview": preview,
-                                    }
-
+            if result.returncode != 0:
                 return {
                     "success": False,
-                    "error": "Output file not found after rendering",
+                    "error": f"Manim execution failed with exit code {result.returncode}: {result.stderr}",
                 }
-            else:
-                return {
-                    "success": False,
-                    "error": result.stderr or "Animation creation failed",
-                    "stdout": result.stdout,
-                }
+
+            # Find output file
+            output_dir = os.path.expanduser("~/media/videos")
+            output_files: list[str] = []
+            if os.path.exists(output_dir):
+                for root, _, files in os.walk(output_dir):
+                    output_files.extend(os.path.join(root, f) for f in files if f.endswith(f".{output_format}"))
+
+            return {
+                "success": True,
+                "format": output_format,
+                "output_path": output_files[0] if output_files else None,
+                "output": result.stdout,
+            }
 
         except FileNotFoundError:
             return {
@@ -312,7 +268,7 @@ class ContentCreationMCPServer(BaseMCPServer):
     async def compile_latex(
         self,
         content: str,
-        format: str = "pdf",
+        output_format: str = "pdf",
         template: str = "article",
         visual_feedback: bool = True,
     ) -> Dict[str, Any]:
@@ -320,7 +276,7 @@ class ContentCreationMCPServer(BaseMCPServer):
 
         Args:
             content: LaTeX document content
-            format: Output format (pdf, dvi, ps)
+            output_format: Output format (pdf, dvi, ps)
             template: Document template to use
             visual_feedback: Whether to return PNG preview image
 
@@ -347,7 +303,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                     f.write(content)
 
                 # Choose compiler based on format
-                if format == "pdf":
+                if output_format == "pdf":
                     compiler = "pdflatex"
                 else:
                     compiler = "latex"
@@ -362,34 +318,34 @@ class ContentCreationMCPServer(BaseMCPServer):
                         self.logger.warning("First compilation pass had warnings")
 
                 # Convert DVI to PS if needed
-                if format == "ps" and result.returncode == 0:
+                if output_format == "ps" and result.returncode == 0:
                     dvi_file = os.path.join(tmpdir, "document.dvi")
                     ps_file = os.path.join(tmpdir, "document.ps")
                     self._run_subprocess_with_logging(["dvips", dvi_file, "-o", ps_file])
 
                 # Check for output
-                output_file = os.path.join(tmpdir, f"document.{format}")
+                output_file = os.path.join(tmpdir, f"document.{output_format}")
                 if os.path.exists(output_file):
                     # Copy to output directory
-                    output_path = os.path.join(self.latex_output_dir, f"document_{os.getpid()}.{format}")
+                    output_path = os.path.join(self.latex_output_dir, f"document_{os.getpid()}.{output_format}")
                     shutil.copy(output_file, output_path)
 
                     # Also copy log file for debugging
                     log_file = os.path.join(tmpdir, "document.log")
                     if os.path.exists(log_file):
-                        log_path = output_path.replace(f".{format}", ".log")
+                        log_path = output_path.replace(f".{output_format}", ".log")
                         shutil.copy(log_file, log_path)
 
                     result_data = {
                         "success": True,
                         "output_path": output_path,
-                        "format": format,
+                        "format": output_format,
                         "template": template,
                         "log_path": log_path if os.path.exists(log_file) else None,
                     }
 
                     # Generate visual feedback if requested and format is PDF
-                    if visual_feedback and format == "pdf":
+                    if visual_feedback and output_format == "pdf":
                         try:
                             # Convert first page of PDF to PNG with lower resolution
                             png_path = output_path.replace(".pdf", "_preview.png")
@@ -468,7 +424,7 @@ class ContentCreationMCPServer(BaseMCPServer):
         """
 
         # First compile to PDF
-        result = await self.compile_latex(latex_content, format="pdf", template="custom")
+        result = await self.compile_latex(latex_content, output_format="pdf", template="custom")
 
         if not result["success"]:
             return result
@@ -568,7 +524,6 @@ class ContentCreationMCPServer(BaseMCPServer):
 
 def main():
     """Run the Content Creation MCP Server"""
-    import argparse
 
     parser = argparse.ArgumentParser(description="Content Creation MCP Server")
     parser.add_argument(

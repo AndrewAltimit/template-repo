@@ -11,6 +11,7 @@ from pathlib import Path
 # Add parent directory to path
 parent_dir = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(parent_dir))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from elevenlabs_speech.client import ElevenLabsClient  # noqa: E402
 from elevenlabs_speech.models import OutputFormat, SynthesisConfig, VoiceModel, VoiceSettings  # noqa: E402

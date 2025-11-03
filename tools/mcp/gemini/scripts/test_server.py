@@ -135,8 +135,8 @@ async def test_gemini_server(base_url: str = "http://localhost:8006"):
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        base_url = sys.argv[1]
+        server_url = sys.argv[1]
     else:
-        base_url = "http://localhost:8006"
+        server_url = "http://localhost:8006"
 
-    asyncio.run(test_gemini_server(base_url))
+    asyncio.run(test_gemini_server(server_url))

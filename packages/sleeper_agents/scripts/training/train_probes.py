@@ -14,12 +14,14 @@ import asyncio
 import json
 import logging
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from sleeper_agents.detection.model_loader import load_model_for_detection  # noqa: E402
 from sleeper_agents.probes.probe_detector import ProbeDetector  # noqa: E402
@@ -111,7 +113,6 @@ async def main():
     dataset_gen = DeceptionDatasetGenerator(model)
 
     # Convert YesNoQuestion to format expected by extract_activations
-    from dataclasses import dataclass
 
     @dataclass
     class QuestionWrapper:

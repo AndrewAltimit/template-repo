@@ -29,9 +29,9 @@ class VideoEditorMCPServer(BaseMCPServer):
         self.cache_dir = cache_dir or os.environ.get("MCP_VIDEO_CACHE_DIR") or os.path.expanduser("~/.cache/mcp_video_editor")
         self.temp_dir = os.environ.get("MCP_VIDEO_TEMP_DIR") or "/tmp/video_editor"
 
-        self.logger.info(f"Using output directory: {self.output_dir}")
-        self.logger.info(f"Using cache directory: {self.cache_dir}")
-        self.logger.info(f"Using temp directory: {self.temp_dir}")
+        self.logger.info("Using output directory: %s", self.output_dir)
+        self.logger.info("Using cache directory: %s", self.cache_dir)
+        self.logger.info("Using temp directory: %s", self.temp_dir)
 
         try:
             # Create required directories
@@ -144,7 +144,7 @@ class VideoEditorMCPServer(BaseMCPServer):
             return result
 
         except Exception as e:
-            self.logger.error(f"Error executing tool {tool_name}: {e}")
+            self.logger.error("Error executing tool %s: %s", tool_name, e)
             return {"error": str(e), "tool": tool_name}
 
     def create_job(self, operation: str) -> str:
@@ -190,7 +190,7 @@ class VideoEditorMCPServer(BaseMCPServer):
         """Send progress notification to client"""
         # This would integrate with the MCP notification system
         # For now, just log the progress
-        self.logger.info(f"Job {job_id}: {job_data['status']} - " f"{job_data['progress']}% - {job_data['stage']}")
+        self.logger.info("Job %s: %s - %s%% - %s", job_id, job_data["status"], job_data["progress"], job_data["stage"])
 
     def get_tools(self) -> Dict[str, Any]:
         """Return available tools for this server"""
@@ -206,7 +206,7 @@ class VideoEditorMCPServer(BaseMCPServer):
                         if os.path.exists(temp_file):
                             os.unlink(temp_file)
                     except Exception as e:
-                        self.logger.warning(f"Failed to clean up temp file {temp_file}: {e}")
+                        self.logger.warning("Failed to clean up temp file %s: %s", temp_file, e)
 
     async def shutdown(self):
         """Clean shutdown of the server"""

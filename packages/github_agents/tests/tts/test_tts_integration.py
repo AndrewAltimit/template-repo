@@ -8,6 +8,7 @@ from pathlib import Path
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# pylint: disable=wrong-import-position  # Imports must come after sys.path modification
 
 from github_agents.tts.integration import TTSIntegration  # noqa: E402
 
@@ -59,7 +60,7 @@ async def test_tts_integration():
                 print("\n3. Testing GitHub comment formatting...")
                 formatted = tts.format_github_comment_with_audio("Original review text here...", audio_url, duration=8.5)
                 print("   Formatted comment preview:")
-                print("   " + formatted.split("\n")[0])
+                print("   " + formatted.split("\n", maxsplit=1)[0])
             else:
                 print("   ✗ Audio generation failed")
         except Exception as e:

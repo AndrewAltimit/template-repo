@@ -1,6 +1,7 @@
 """Content creation tools for MCP"""
 
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -24,8 +25,6 @@ def register_tool(name: str):
 async def create_manim_animation(
     script: str,
     output_format: str = "mp4",
-    quality: str = "medium",
-    preview: bool = False,
 ) -> Dict[str, Any]:
     """Create animation using Manim"""
     try:
@@ -37,37 +36,35 @@ async def create_manim_animation(
         command = ["manim", "-pql", script_path]
 
         # Parse class name from script
-        import re
-
         class_match = re.search(r"class\s+(\w+)\s*\(", script)
         if class_match:
             class_name = class_match.group(1)
             command.append(class_name)
 
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(command, capture_output=True, text=True, check=False)
 
         # Clean up
         os.unlink(script_path)
 
-        if result.returncode == 0:
-            # Find output file
-            output_dir = os.path.expanduser("~/media/videos")
-            output_files: List[str] = []
-            if os.path.exists(output_dir):
-                for root, _, files in os.walk(output_dir):
-                    output_files.extend(os.path.join(root, f) for f in files if f.endswith(f".{output_format}"))
-
-            return {
-                "success": True,
-                "format": output_format,
-                "output_path": output_files[0] if output_files else None,
-                "output": result.stdout,
-            }
-        else:
+        if result.returncode != 0:
             return {
                 "success": False,
-                "error": result.stderr,
+                "error": f"Manim execution failed with exit code {result.returncode}: {result.stderr}",
             }
+
+        # Find output file
+        output_dir = os.path.expanduser("~/media/videos")
+        output_files: List[str] = []
+        if os.path.exists(output_dir):
+            for root, _, files in os.walk(output_dir):
+                output_files.extend(os.path.join(root, f) for f in files if f.endswith(f".{output_format}"))
+
+        return {
+            "success": True,
+            "format": output_format,
+            "output_path": output_files[0] if output_files else None,
+            "output": result.stdout,
+        }
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -75,8 +72,7 @@ async def create_manim_animation(
 @register_tool("compile_latex")
 async def compile_latex(
     content: str,
-    format: str = "pdf",
-    template: str = "article",
+    output_format: str = "pdf",
     output_dir: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Compile LaTeX document"""
@@ -93,33 +89,39 @@ async def compile_latex(
                 f.write(content)
 
             # Compile based on format
-            if format == "pdf":
+            if output_format == "pdf":
                 command = ["pdflatex", "-interaction=nonstopmode", tex_file]
-            elif format == "dvi":
+            elif output_format == "dvi":
                 command = ["latex", "-interaction=nonstopmode", tex_file]
             else:
-                return {"success": False, "error": f"Unsupported format: {format}"}
+                return {"success": False, "error": f"Unsupported format: {output_format}"}
 
             # Run compilation
-            result = subprocess.run(command, cwd=tmpdir, capture_output=True, text=True)
+            result = subprocess.run(command, cwd=tmpdir, capture_output=True, text=True, check=False)
 
-            if result.returncode == 0:
-                # Copy output file
-                output_file = os.path.join(tmpdir, f"document.{format}")
-                if os.path.exists(output_file):
-                    dest_file = os.path.join(output_dir, f"document.{format}")
-                    shutil.copy(output_file, dest_file)
+            if result.returncode != 0:
+                return {
+                    "success": False,
+                    "error": f"Compilation failed with exit code {result.returncode}: {result.stderr}",
+                }
 
-                    return {
-                        "success": True,
-                        "format": format,
-                        "output_path": dest_file,
-                        "output": result.stdout,
-                    }
+            # Compilation succeeded, check for output file
+            output_file = os.path.join(tmpdir, f"document.{output_format}")
+            if not os.path.exists(output_file):
+                return {
+                    "success": False,
+                    "error": f"Compilation succeeded but output file not found: {output_file}",
+                }
+
+            # Copy output file
+            dest_file = os.path.join(output_dir, f"document.{output_format}")
+            shutil.copy(output_file, dest_file)
 
             return {
-                "success": False,
-                "error": result.stderr,
+                "success": True,
+                "format": output_format,
+                "output_path": dest_file,
+                "output": result.stdout,
             }
     except Exception as e:
         return {"success": False, "error": str(e)}

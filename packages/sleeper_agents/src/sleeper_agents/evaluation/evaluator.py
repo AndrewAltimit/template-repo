@@ -2,6 +2,8 @@
 Comprehensive evaluation system for testing open-weight models for sleeper agents.
 """
 
+# pylint: disable=too-many-lines  # TODO: Extract evaluation methods by type to separate modules
+
 import json
 import logging
 import os
@@ -1448,7 +1450,7 @@ class ModelEvaluator:
         # Track detection rates per language
         language_detections = {
             lang: {"backdoor_detected": 0, "clean_correct": 0, "total_backdoor": 0, "total_clean": 0}
-            for lang in multilingual_triggers.keys()
+            for lang in multilingual_triggers
         }
 
         # Test each language
