@@ -786,7 +786,14 @@ class TextToolParser:
 
 # Import extracted classes for backward compatibility
 # pylint: disable=wrong-import-position  # Backward compatibility imports at end of file
-from .streaming_tool_parser import StreamingToolParser  # noqa: E402
-from .tool_injector import ToolInjector  # noqa: E402
+if __name__ != "__main__":
+    try:
+        from .streaming_tool_parser import StreamingToolParser  # noqa: E402, F401
+        from .tool_injector import ToolInjector  # noqa: E402, F401
 
-__all__ = ["TextToolParser", "StreamingToolParser", "ToolInjector"]
+        __all__ = ["TextToolParser", "StreamingToolParser", "ToolInjector"]
+    except ImportError:
+        # Fallback for when module is imported without package context
+        __all__ = ["TextToolParser"]
+else:
+    __all__ = ["TextToolParser"]
