@@ -86,7 +86,7 @@ class VideoProcessor:
     def _clear_cache(self):
         """Clear video cache to free memory"""
         self.logger.info("Clearing video cache")
-        for _path, clip in self._video_cache.items():
+        for _, clip in self._video_cache.items():
             try:
                 clip.close()
             except Exception:
@@ -94,9 +94,7 @@ class VideoProcessor:
         self._video_cache.clear()
         self._cache_size = 0
 
-    def create_edit_from_edl(
-        self, video_inputs: List[str], edit_decision_list: List[Dict[str, Any]], _output_settings: Dict[str, Any]
-    ) -> Any:
+    def create_edit_from_edl(self, video_inputs: List[str], edit_decision_list: List[Dict[str, Any]]) -> Any:
         """Create a composed video from an edit decision list"""
 
         self.logger.info(f"Creating edit from EDL with {len(edit_decision_list)} decisions")

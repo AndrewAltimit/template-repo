@@ -1,4 +1,24 @@
-"""Stub implementations for Gaea2 dependencies"""
+"""Stub implementations for Gaea2 dependencies
+
+WARNING: These are minimal stub implementations used during development/testing.
+Most of these classes have full implementations elsewhere in the codebase:
+
+- Gaea2PropertyValidator: See validation/gaea2_property_validator.py
+- Gaea2ConnectionValidator: See validation/gaea2_connection_validator.py
+- Gaea2ErrorRecovery: See errors/gaea2_error_recovery.py
+- OptimizedGaea2Validator: See validation/gaea2_optimized_validator.py
+- Gaea2WorkflowAnalyzer: See utils/gaea2_workflow_analyzer.py
+- Gaea2ProjectRepair: See repair/gaea2_project_repair.py
+- Gaea2StructureValidator: See validation/gaea2_structure_validator.py
+
+These stubs are kept for:
+1. Preventing circular import issues during module initialization
+2. Providing minimal interfaces for testing
+3. Backward compatibility with code that may still reference them
+
+If you're using any of these classes in production code, import from their
+full implementation modules instead.
+"""
 
 from typing import Any, Dict, List, Tuple
 

@@ -140,10 +140,14 @@ async def main():
         build_cmd = await asyncio.create_subprocess_exec(
             "docker", "pull", "google/gemini-cli:latest", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
-        _stdout, _stderr = await build_cmd.communicate()
+        stdout, stderr = await build_cmd.communicate()
 
         if build_cmd.returncode != 0:
             print("Could not pull official image, will build local version")
+            if stderr:
+                logger.debug("Docker pull stderr: %s", stderr.decode().strip())
+            if stdout:
+                logger.debug("Docker pull stdout: %s", stdout.decode().strip())
             # The build command from run_gemini_container.sh
             print("Please run: ./tools/cli/containers/run_gemini_container.sh")
             print("")

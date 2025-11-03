@@ -24,8 +24,6 @@ def register_tool(name: str):
 async def create_manim_animation(
     script: str,
     output_format: str = "mp4",
-    _quality: str = "medium",
-    _preview: bool = False,
 ) -> Dict[str, Any]:
     """Create animation using Manim"""
     try:
@@ -76,7 +74,6 @@ async def create_manim_animation(
 async def compile_latex(
     content: str,
     output_format: str = "pdf",
-    _template: str = "article",
     output_dir: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Compile LaTeX document"""

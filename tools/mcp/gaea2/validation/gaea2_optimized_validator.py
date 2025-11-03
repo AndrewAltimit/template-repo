@@ -39,7 +39,7 @@ class OptimizedGaea2Validator:
         lookup_structures = self._build_lookup_structures(nodes, normalized_conns)
 
         # Validate nodes with caching
-        node_results = self._validate_nodes_batch(nodes, lookup_structures)
+        node_results = self._validate_nodes_batch(nodes)
 
         # Validate connections efficiently
         connection_results = self._validate_connections_batch(normalized_conns, lookup_structures)
@@ -102,7 +102,7 @@ class OptimizedGaea2Validator:
             "orphaned_node_ids": orphaned_node_ids,
         }
 
-    def _validate_nodes_batch(self, nodes: List[Dict[str, Any]], _lookup: Dict[str, Any]) -> Dict[str, Any]:
+    def _validate_nodes_batch(self, nodes: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Validate all nodes in a single efficient pass."""
         errors = []
         warnings = []

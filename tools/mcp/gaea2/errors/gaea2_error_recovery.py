@@ -60,7 +60,7 @@ class Gaea2ErrorRecovery:
             fixed_nodes, fixed_connections = self._add_missing_required_nodes(fixed_nodes, fixed_connections)
 
         # Fix 4: Connect orphaned nodes
-        fixed_connections = self._fix_orphaned_nodes(fixed_nodes, fixed_connections, aggressive)
+        fixed_connections = self._fix_orphaned_nodes(fixed_nodes, fixed_connections)
 
         # Fix 5: Optimize workflow
         if aggressive:
@@ -104,7 +104,12 @@ class Gaea2ErrorRecovery:
             properties = node.get("properties", {})
 
             if properties:
-                is_valid, _errors, fixed_props = self.property_validator.validate_properties(node_type, properties)
+                is_valid, errors, fixed_props = self.property_validator.validate_properties(node_type, properties)
+
+                # Log validation errors for debugging
+                if errors:
+                    node_name = node.get("name", f'node_{node.get("id", "unknown")}')
+                    logger.debug("Validation errors for %s (%s): %s", node_name, node_type, ", ".join(errors))
 
                 if not is_valid or fixed_props != properties:
                     node["properties"] = fixed_props
@@ -187,7 +192,6 @@ class Gaea2ErrorRecovery:
         self,
         nodes: List[Dict[str, Any]],
         connections: List[Dict[str, Any]],
-        _aggressive: bool = False,
     ) -> List[Dict[str, Any]]:
         """Connect orphaned nodes based on patterns"""
         # Find orphaned nodes
@@ -497,17 +501,21 @@ class Gaea2ErrorRecovery:
             node_type = node.get("type", "")
             properties = node.get("properties", {})
 
-            _is_valid, errors, _fixed_props = self.property_validator.validate_properties(node_type, properties)
+            is_valid, errors, fixed_props = self.property_validator.validate_properties(node_type, properties)
 
-            if errors:
-                suggestions.append(
-                    {
-                        "type": "property_error",
-                        "node": node["name"],
-                        "errors": errors,
-                        "fix": "Update properties according to schema",
-                    }
-                )
+            if not is_valid or errors:
+                suggestion = {
+                    "type": "property_error",
+                    "node": node["name"],
+                    "errors": errors,
+                    "fix": "Update properties according to schema",
+                }
+
+                # Include fixed properties if available and different from current
+                if fixed_props and fixed_props != properties:
+                    suggestion["suggested_properties"] = fixed_props
+
+                suggestions.append(suggestion)
 
         # Check connections
         is_valid, errors, warnings = self.connection_validator.validate_connections(nodes, connections)
