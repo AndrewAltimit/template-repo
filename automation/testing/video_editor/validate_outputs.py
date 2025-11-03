@@ -274,7 +274,7 @@ def main():
                 temp_audio = Path("temp_audio_check.wav")
 
                 for sample_time in sample_times:
-                    if sample_time >= 0 and sample_time < duration:
+                    if 0 <= sample_time < duration:
                         if get_audio_segment(video_path, sample_time, 0.5, temp_audio):
                             audio_info = analyze_audio_segment(temp_audio)
                             if audio_info:

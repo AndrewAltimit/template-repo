@@ -314,8 +314,8 @@ class GeminiIntegration:
 
             return {"output": output, "execution_time": execution_time}
 
-        except asyncio.TimeoutError:
-            raise Exception(f"Gemini CLI timed out after {self.timeout} seconds")
+        except asyncio.TimeoutError as exc:
+            raise Exception(f"Gemini CLI timed out after {self.timeout} seconds") from exc
 
     async def _execute_gemini_container(self, query: str, start_time: float) -> Dict[str, Any]:
         """Execute Gemini CLI through Docker container"""
@@ -428,8 +428,8 @@ class GeminiIntegration:
 
             return {"output": output, "execution_time": execution_time}
 
-        except asyncio.TimeoutError:
-            raise Exception(f"Gemini container execution timed out after {self.timeout} seconds")
+        except asyncio.TimeoutError as exc:
+            raise Exception(f"Gemini container execution timed out after {self.timeout} seconds") from exc
         finally:
             # Clean up temporary directory
             if temp_gemini_dir and os.path.exists(temp_gemini_dir):

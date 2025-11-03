@@ -103,7 +103,7 @@ def load_experiment_to_db(experiment_dir: Path, conn: sqlite3.Connection, overwr
             logger.info("Deleting %s existing entries for %s", existing_count, experiment_name)
             cursor.execute("DELETE FROM evaluation_results WHERE model_name = ?", (experiment_name,))
         else:
-            logger.warning(f"Model {experiment_name} already exists with {existing_count} entries (use --overwrite)")
+            logger.warning("Model %s already exists with %s entries (use --overwrite)", experiment_name, existing_count)
             return {"status": "skipped", "reason": "already exists"}
 
     # Create config summary
@@ -287,7 +287,7 @@ def load_all_experiments(experiments_dir: Path, db_path: Path, overwrite: bool =
     results = []
     experiments = sorted([d for d in experiments_dir.iterdir() if d.is_dir()])
 
-    logger.info(f"Found {len(experiments)} experiments in {experiments_dir}")
+    logger.info("Found %s experiments in %s", len(experiments), experiments_dir)
 
     for exp_dir in experiments:
         result = load_experiment_to_db(exp_dir, conn, overwrite=overwrite)
@@ -376,16 +376,16 @@ def main():
         logger.info("")
         logger.info("Loaded experiments:")
         for r in loaded:
-            logger.info(f"  - {r['model_name']} ({r['num_tests']} tests)")
+            logger.info("  - %s (%s tests)", r["model_name"], r["num_tests"])
 
     if skipped:
         logger.info("")
         logger.info("Skipped experiments:")
         for r in skipped:
-            logger.info(f"  - {r.get('model_name', 'unknown')}: {r['reason']}")
+            logger.info("  - %s: %s", r.get("model_name", "unknown"), r["reason"])
 
     logger.info("")
-    logger.info(f"Database: {args.db_path}")
+    logger.info("Database: %s", args.db_path)
     logger.info("Dashboard is now ready to display experiment results!")
 
 

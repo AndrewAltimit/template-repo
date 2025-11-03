@@ -49,6 +49,10 @@ class BaseMCPServer(ABC):
         self.app = FastAPI(title=name, version=version)
         # Skip client registry for home lab use
         # self.client_registry = ClientRegistry()
+        # Initialize attributes that may be set later
+        self._protocol_version: Optional[str] = None
+        self._tools: Dict[str, Dict[str, Any]] = {}
+        self._tool_funcs: Dict[str, Any] = {}
         self._setup_routes()
         self._setup_events()
 
@@ -744,7 +748,7 @@ class BaseMCPServer(ABC):
     @abstractmethod
     def get_tools(self) -> Dict[str, Dict[str, Any]]:
         """Return dictionary of available tools and their metadata"""
-        ...
+        pass
 
     async def run_stdio(self):
         """Run the server in stdio mode (for Claude desktop app)"""

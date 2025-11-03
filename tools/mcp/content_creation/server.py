@@ -34,7 +34,7 @@ class ContentCreationMCPServer(BaseMCPServer):
 
         # Use environment variable if set
         self.output_dir = os.environ.get("MCP_OUTPUT_DIR", output_dir)
-        self.logger.info(f"Using output directory: {self.output_dir}")
+        self.logger.info("Using output directory: %s", self.output_dir)
 
         try:
             # Create output directories with error handling
@@ -112,17 +112,17 @@ class ContentCreationMCPServer(BaseMCPServer):
         Returns:
             CompletedProcess result
         """
-        self.logger.info(f"Running command: {' '.join(cmd)}")
+        self.logger.info("Running command: %s", " ".join(cmd))
         try:
             result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=check)
             if result.returncode != 0:
-                self.logger.warning(f"Command failed with return code {result.returncode}: {result.stderr}")
+                self.logger.warning("Command failed with return code %s: %s", result.returncode, result.stderr)
             return result
         except subprocess.CalledProcessError as e:
             self.logger.error("Command failed: %s", e)
             raise
         except FileNotFoundError:
-            self.logger.error(f"Command not found: {' '.join(cmd)}")
+            self.logger.error("Command not found: %s", " ".join(cmd))
             raise
 
     def get_tools(self) -> Dict[str, Dict[str, Any]]:

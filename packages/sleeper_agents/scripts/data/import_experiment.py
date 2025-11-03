@@ -81,7 +81,7 @@ def import_experiment(archive_path: Path, target_dir: Path, validate: bool = Tru
         raise FileNotFoundError(f"Archive not found: {archive_path}")
 
     logger.info("Importing experiment from: %s", archive_path)
-    logger.info(f"Archive size: {archive_path.stat().st_size / 1024 / 1024:.2f} MB")
+    logger.info("Archive size: %.2f MB", archive_path.stat().st_size / 1024 / 1024)
 
     # Create target directory
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -113,7 +113,7 @@ def import_experiment(archive_path: Path, target_dir: Path, validate: bool = Tru
         logger.info("Experiment: %s", manifest["experiment_name"])
         logger.info("Created: %s", manifest["created_at"])
         logger.info("Files: %s", manifest["num_files"])
-        logger.info(f"Size: {manifest['total_size_bytes'] / 1024 / 1024:.2f} MB")
+        logger.info("Size: %.2f MB", manifest["total_size_bytes"] / 1024 / 1024)
 
         if validate:
             if not validate_manifest(experiment_dir, manifest):

@@ -72,7 +72,10 @@ def main():
             print(f"  - Size: {size/1024:.1f} KB")
             if video_stream:
                 print(f"  - Resolution: {video_stream['width']}x{video_stream['height']}")
-                print(f"  - FPS: {eval(video_stream['r_frame_rate']):.2f}")
+                # Parse frame rate fraction without eval
+                fps_parts = video_stream["r_frame_rate"].split("/")
+                fps = float(fps_parts[0]) / float(fps_parts[1]) if len(fps_parts) == 2 else float(fps_parts[0])
+                print(f"  - FPS: {fps:.2f}")
             if audio_stream:
                 print(f"  - Audio: {audio_stream['codec_name']} @ {audio_stream['sample_rate']} Hz")
 
