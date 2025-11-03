@@ -427,7 +427,7 @@ async def interactive_mode():
             if cmd == "exit":
                 break
 
-            elif cmd == "projects":
+            if cmd == "projects":
                 if client.projects:
                     for name, path in client.projects.items():
                         print(f"  {name}: {path}")

@@ -318,11 +318,11 @@ class Gaea2ErrorRecovery:
                     has_terrain_export = True
                     break
                 # Check old structure (format in properties)
-                elif props.get("format") == "Terrain":
+                if props.get("format") == "Terrain":
                     has_terrain_export = True
                     break
                 # Check save_definition
-                elif save_def.get("format") == "Terrain":
+                if save_def.get("format") == "Terrain":
                     has_terrain_export = True
                     break
 
@@ -497,7 +497,7 @@ class Gaea2ErrorRecovery:
             node_type = node.get("type", "")
             properties = node.get("properties", {})
 
-            is_valid, errors, _fixed_props = self.property_validator.validate_properties(node_type, properties)
+            _is_valid, errors, _fixed_props = self.property_validator.validate_properties(node_type, properties)
 
             if errors:
                 suggestions.append(

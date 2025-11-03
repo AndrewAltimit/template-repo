@@ -310,7 +310,7 @@ class ContentCreationMCPServer(BaseMCPServer):
     async def compile_latex(
         self,
         content: str,
-        format: str = "pdf",
+        output_format: str = "pdf",
         template: str = "article",
         visual_feedback: bool = True,
     ) -> Dict[str, Any]:
@@ -318,7 +318,7 @@ class ContentCreationMCPServer(BaseMCPServer):
 
         Args:
             content: LaTeX document content
-            format: Output format (pdf, dvi, ps)
+            output_format: Output format (pdf, dvi, ps)
             template: Document template to use
             visual_feedback: Whether to return PNG preview image
 
@@ -345,7 +345,7 @@ class ContentCreationMCPServer(BaseMCPServer):
                     f.write(content)
 
                 # Choose compiler based on format
-                if format == "pdf":
+                if output_format == "pdf":
                     compiler = "pdflatex"
                 else:
                     compiler = "latex"
@@ -360,34 +360,34 @@ class ContentCreationMCPServer(BaseMCPServer):
                         self.logger.warning("First compilation pass had warnings")
 
                 # Convert DVI to PS if needed
-                if format == "ps" and result.returncode == 0:
+                if output_format == "ps" and result.returncode == 0:
                     dvi_file = os.path.join(tmpdir, "document.dvi")
                     ps_file = os.path.join(tmpdir, "document.ps")
                     self._run_subprocess_with_logging(["dvips", dvi_file, "-o", ps_file])
 
                 # Check for output
-                output_file = os.path.join(tmpdir, f"document.{format}")
+                output_file = os.path.join(tmpdir, f"document.{output_format}")
                 if os.path.exists(output_file):
                     # Copy to output directory
-                    output_path = os.path.join(self.latex_output_dir, f"document_{os.getpid()}.{format}")
+                    output_path = os.path.join(self.latex_output_dir, f"document_{os.getpid()}.{output_format}")
                     shutil.copy(output_file, output_path)
 
                     # Also copy log file for debugging
                     log_file = os.path.join(tmpdir, "document.log")
                     if os.path.exists(log_file):
-                        log_path = output_path.replace(f".{format}", ".log")
+                        log_path = output_path.replace(f".{output_format}", ".log")
                         shutil.copy(log_file, log_path)
 
                     result_data = {
                         "success": True,
                         "output_path": output_path,
-                        "format": format,
+                        "format": output_format,
                         "template": template,
                         "log_path": log_path if os.path.exists(log_file) else None,
                     }
 
                     # Generate visual feedback if requested and format is PDF
-                    if visual_feedback and format == "pdf":
+                    if visual_feedback and output_format == "pdf":
                         try:
                             # Convert first page of PDF to PNG with lower resolution
                             png_path = output_path.replace(".pdf", "_preview.png")
@@ -466,7 +466,7 @@ class ContentCreationMCPServer(BaseMCPServer):
         """
 
         # First compile to PDF
-        result = await self.compile_latex(latex_content, format="pdf", template="custom")
+        result = await self.compile_latex(latex_content, output_format="pdf", template="custom")
 
         if not result["success"]:
             return result

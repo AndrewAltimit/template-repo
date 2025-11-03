@@ -75,7 +75,7 @@ async def create_manim_animation(
 @register_tool("compile_latex")
 async def compile_latex(
     content: str,
-    format: str = "pdf",
+    output_format: str = "pdf",
     _template: str = "article",
     output_dir: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -93,26 +93,26 @@ async def compile_latex(
                 f.write(content)
 
             # Compile based on format
-            if format == "pdf":
+            if output_format == "pdf":
                 command = ["pdflatex", "-interaction=nonstopmode", tex_file]
-            elif format == "dvi":
+            elif output_format == "dvi":
                 command = ["latex", "-interaction=nonstopmode", tex_file]
             else:
-                return {"success": False, "error": f"Unsupported format: {format}"}
+                return {"success": False, "error": f"Unsupported format: {output_format}"}
 
             # Run compilation
             result = subprocess.run(command, cwd=tmpdir, capture_output=True, text=True, check=False)
 
             if result.returncode == 0:
                 # Copy output file
-                output_file = os.path.join(tmpdir, f"document.{format}")
+                output_file = os.path.join(tmpdir, f"document.{output_format}")
                 if os.path.exists(output_file):
-                    dest_file = os.path.join(output_dir, f"document.{format}")
+                    dest_file = os.path.join(output_dir, f"document.{output_format}")
                     shutil.copy(output_file, dest_file)
 
                     return {
                         "success": True,
-                        "format": format,
+                        "format": output_format,
                         "output_path": dest_file,
                         "output": result.stdout,
                     }

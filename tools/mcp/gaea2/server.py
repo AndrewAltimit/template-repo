@@ -682,7 +682,7 @@ class Gaea2MCPServer(BaseMCPServer):
         *,
         project_path: str,
         resolution: str = "1024",
-        format: str = "exr",
+        output_format: str = "exr",
         bake_only: Optional[List[str]] = None,
         timeout: int = 300,
     ) -> Dict[str, Any]:
@@ -697,7 +697,7 @@ class Gaea2MCPServer(BaseMCPServer):
             result = await self.cli.run_project(
                 project_path=project_path,
                 resolution=resolution,
-                output_format=format,
+                output_format=output_format,
                 bake_only=bake_only,
                 timeout=timeout,
             )
