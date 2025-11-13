@@ -4,10 +4,18 @@ This guide explains how to compile the comprehensive LaTeX documentation for the
 
 ## Prerequisites
 
-The documentation uses **minted** for superior syntax highlighting, which requires:
-- LaTeX distribution (texlive recommended)
-- Python 3.x
-- Pygments library (`pip install Pygments`)
+The documentation uses modern LaTeX packages for professional appearance:
+- **LaTeX distribution** (texlive-full recommended for all fonts)
+- **Python 3.x** for minted syntax highlighting
+- **Pygments library** (`pip install Pygments`)
+- **Required LaTeX packages**:
+  - lato (modern sans-serif font)
+  - fontawesome5 (icons for callout boxes)
+  - minted (superior syntax highlighting)
+  - tcolorbox with minted library
+  - tikz with positioning libraries
+  - booktabs (professional tables)
+  - cleveref (smart cross-referencing)
 
 ## Quick Start - Using Docker (Recommended)
 
@@ -59,11 +67,15 @@ The `--shell-escape` (or `-shell-escape`) flag is **required** because minted ne
 ## Features
 
 The compiled documentation includes:
+- **Modern Lato typography** with professional sans-serif styling
+- **FontAwesome icons** in callout boxes for visual clarity
 - **Professional syntax highlighting** via minted (friendly style)
+- **TikZ diagrams** for MLOps pipeline visualization
+- **Professional tables** with booktabs (clean horizontal rules)
 - **Audience-specific callout boxes** (Developers, Enterprise Leaders, Researchers)
 - **Breakable code blocks** that handle page breaks elegantly
-- **Color-coded sections** with custom styling
-- **Interactive hyperlinks** and table of contents
+- **Color-coded sections** with custom styling and subtle rules
+- **Interactive hyperlinks** with cleveref smart cross-referencing
 - **112+ pages** of comprehensive content
 
 ## Troubleshooting
@@ -73,6 +85,21 @@ The compiled documentation includes:
 
 ### Error: "pygmentize not found"
 **Solution**: Install Pygments: `pip install Pygments`
+
+### Error: Font "Lato" not found
+**Solution**: The Lato font is included in texlive-fonts-extra. Install it with:
+```bash
+# Ubuntu/Debian
+sudo apt-get install texlive-fonts-extra
+
+# Or use the texlive Docker image which includes all fonts
+```
+
+### Error: "fontawesome5 package not found"
+**Solution**: Install texlive-fonts-extra which includes FontAwesome5:
+```bash
+sudo apt-get install texlive-fonts-extra
+```
 
 ### Error: "File not found" for component .tex files
 **Solution**: Ensure you're in the `packages/sleeper_agents/docs` directory and all component files are present:
@@ -90,9 +117,17 @@ The compiled documentation includes:
 ### Slow Compilation
 **Solution**: First run is slower due to minted cache generation. Subsequent runs are faster.
 
-## Alternative: Without Minted
+## Visual Enhancements in Version 2.0
 
-If you cannot use minted (no --shell-escape access), the document falls back to the `listings` package automatically. However, syntax highlighting will be less sophisticated.
+This version includes comprehensive visual improvements based on Gemini AI consultation:
+
+1. **Modern Typography**: Lato font provides a clean, professional appearance
+2. **FontAwesome Icons**: Visual indicators for different audience types
+3. **TikZ Diagrams**: Professional flowcharts replace ASCII art
+4. **Booktabs Tables**: Clean, readable tables with proper spacing
+5. **Minted Code Blocks**: Superior syntax highlighting with breakable boxes
+6. **Enhanced Color Palette**: Professional blue/green/orange theme
+7. **Smart Cross-References**: Cleveref for intelligent referencing
 
 ## Cleaning Up
 

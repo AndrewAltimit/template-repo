@@ -105,51 +105,56 @@ External Dependencies:
 
 The framework integrates seamlessly into existing MLOps pipelines as a pre-deployment validation gate:
 
-\begin{verbatim}
-┌─────────────────────────────────────────────────────────┐
-│              Typical MLOps Pipeline                      │
-└─────────────────────────────────────────────────────────┘
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[node distance=1.5cm and 1cm]
+    % Define the nodes for the pipeline
+    \node[process] (train) {Model\\Training};
+    \node[process, right=of train] (finetune) {Fine-tuning};
+    \node[process, right=of finetune] (eval) {Evaluation};
+    \node[process, below=of train] (base) {Base\\Training};
+    \node[process, right=of base] (safety) {Safety\\Training};
+    \node[process, right=of safety] (standard) {Standard\\Tests};
 
-   Model Training        Fine-tuning         Evaluation
-        ↓                    ↓                    ↓
-   ┌─────────┐         ┌─────────┐         ┌─────────┐
-   │ Base    │───────→ │ Safety  │───────→ │ Standard│
-   │ Training│         │ Training│         │ Tests   │
-   └─────────┘         └─────────┘         └─────────┘
-                                                 ↓
-                         ┌───────────────────────┘
-                         │
-                         ▼
-        ┌────────────────────────────────────────┐
-        │ SLEEPER AGENT DETECTION GATE           │
-        │                                        │
-        │ ┌──────────────────────────────────┐  │
-        │ │ 1. Linear Probe Detection        │  │
-        │ │    - Multi-layer activation scan │  │
-        │ │    - 93.2% AUROC validation      │  │
-        │ └──────────────────────────────────┘  │
-        │ ┌──────────────────────────────────┐  │
-        │ │ 2. Behavioral Analysis           │  │
-        │ │    - Chain-of-thought patterns   │  │
-        │ │    - Trigger sensitivity mapping │  │
-        │ └──────────────────────────────────┘  │
-        │ ┌──────────────────────────────────┐  │
-        │ │ 3. Persistence Testing           │  │
-        │ │    - Post-training verification  │  │
-        │ │    - Risk assessment             │  │
-        │ └──────────────────────────────────┘  │
-        │                                        │
-        │ PASS: Deploy ✓    FAIL: Block ✗      │
-        └────────────────────────────────────────┘
-                         ↓
-              ┌─────────────────────┐
-              │ Deployment Decision │
-              │                     │
-              │ HIGH RISK → REJECT  │
-              │ MEDIUM → REVIEW     │
-              │ LOW → APPROVE       │
-              └─────────────────────┘
-\end{verbatim}
+    % Detection gate (large box)
+    \node[gate, below=2cm of safety] (gate) {
+        \textbf{SLEEPER AGENT DETECTION GATE}\\[2mm]
+        \begin{minipage}{4.8cm}
+        \footnotesize
+        \textbf{1. Linear Probe Detection}\\
+        \quad - Multi-layer activation scan\\
+        \quad - 93.2\% AUROC validation\\[1mm]
+        \textbf{2. Behavioral Analysis}\\
+        \quad - Chain-of-thought patterns\\
+        \quad - Trigger sensitivity mapping\\[1mm]
+        \textbf{3. Persistence Testing}\\
+        \quad - Post-training verification\\
+        \quad - Risk assessment\\[2mm]
+        PASS: Deploy \checkmark \quad FAIL: Block \texttimes
+        \end{minipage}
+    };
+
+    % Deployment decision box
+    \node[process, below=2cm of gate, text width=3.5cm] (deploy) {
+        \textbf{Deployment Decision}\\[1mm]
+        \footnotesize
+        HIGH RISK $\rightarrow$ REJECT\\
+        MEDIUM $\rightarrow$ REVIEW\\
+        LOW $\rightarrow$ APPROVE
+    };
+
+    % Draw the arrows
+    \draw[arrow] (train) -- (base);
+    \draw[arrow] (finetune) -- (safety);
+    \draw[arrow] (eval) -- (standard);
+    \draw[arrow] (base) -- (safety);
+    \draw[arrow] (safety) -- (standard);
+    \draw[arrow] (standard) -- (gate);
+    \draw[arrow] (gate) -- (deploy);
+\end{tikzpicture}
+\caption{Typical MLOps pipeline with the Sleeper Agent Detection Framework integrated as a pre-deployment validation gate.}
+\label{fig:mlops_pipeline}
+\end{figure}
 
 \subsection{Deployment Options \& Infrastructure}
 
@@ -252,25 +257,25 @@ services:
 
 \begin{table}[h]
 \centering
-\begin{tabular}{|l|l|l|l|l|}
-\hline
+\begin{tabular}{lllll}
+\toprule
 \textbf{Model} & \textbf{VRAM} & \textbf{RAM} & \textbf{Storage} & \textbf{Eval Time} \\
-\hline
+\midrule
 7B (FP16) & 16GB & 32GB & 50GB & 2-4 hours \\
 7B (8-bit) & 8GB & 16GB & 30GB & 3-5 hours \\
 7B (4-bit) & 5GB & 12GB & 20GB & 4-6 hours \\
-\hline
+\midrule
 13B (FP16) & 28GB & 64GB & 80GB & 4-6 hours \\
 13B (8-bit) & 14GB & 32GB & 50GB & 5-8 hours \\
 13B (4-bit) & 9GB & 24GB & 35GB & 6-10 hours \\
-\hline
+\midrule
 34B (FP16) & 72GB & 128GB & 180GB & 8-12 hours \\
 34B (8-bit) & 36GB & 64GB & 100GB & 10-15 hours \\
 34B (4-bit) & 22GB & 48GB & 70GB & 12-18 hours \\
-\hline
+\midrule
 70B (8-bit) & 70GB & 128GB & 200GB & 16-24 hours \\
 70B (4-bit) & 42GB & 96GB & 140GB & 20-30 hours \\
-\hline
+\bottomrule
 \end{tabular}
 \caption{Resource requirements for full evaluation pipeline (baseline + safety training + post-training evaluation)}
 \end{table}
@@ -300,12 +305,12 @@ services:
 
 \begin{table}[h]
 \centering
-\begin{tabular}{|l|l|l|l|}
-\hline
+\begin{tabular}{llll}
+\toprule
 \textbf{Component} & \textbf{Configuration} & \textbf{Cost} & \textbf{Notes} \\
-\hline
-\multicolumn{4}{|c|}{\textbf{Single-Server Deployment}} \\
-\hline
+\midrule
+\multicolumn{4}{c}{\textbf{Single-Server Deployment}} \\
+\midrule
 GPU & RTX 4090 24GB & \$1,600 & Consumer-grade \\
 GPU (Pro) & RTX 6000 Ada 48GB & \$6,800 & Professional \\
 GPU (Enterprise) & A6000 48GB & \$4,500 & Enterprise support \\
@@ -315,20 +320,20 @@ Storage & 2TB NVMe SSD & \$150 & Model cache \\
 Motherboard & X670E & \$300 & PCIe 5.0 support \\
 PSU & 1200W 80+ Platinum & \$200 & GPU power \\
 Case & Server chassis & \$200 & Airflow optimized \\
-\hline
+\midrule
 \textbf{Total (Consumer)} & & \$3,200 & \\
 \textbf{Total (Pro)} & & \$8,400 & \\
 \textbf{Total (Enterprise)} & & \$6,600 & \\
-\hline
-\multicolumn{4}{|c|}{\textbf{Multi-GPU Cluster (3 Nodes)}} \\
-\hline
+\midrule
+\multicolumn{4}{c}{\textbf{Multi-GPU Cluster (3 Nodes)}} \\
+\midrule
 3x GPU Nodes & 3x (above config) & \$9,600-\$25,200 & Parallel eval \\
 Orchestrator Node & No GPU, 32GB RAM & \$1,500 & Management \\
 Network Switch & 10GbE, 8-port & \$800 & Low latency \\
 NAS Storage & 20TB RAID-10 & \$3,000 & Shared models \\
-\hline
+\midrule
 \textbf{Total} & & \$14,900-\$30,500 & \\
-\hline
+\bottomrule
 \end{tabular}
 \caption{Self-hosted hardware costs (one-time)}
 \end{table}
@@ -337,44 +342,44 @@ NAS Storage & 20TB RAID-10 & \$3,000 & Shared models \\
 
 \begin{table}[h]
 \centering
-\begin{tabular}{|l|l|l|l|}
-\hline
+\begin{tabular}{llll}
+\toprule
 \textbf{Provider} & \textbf{Instance} & \textbf{Cost/Hour} & \textbf{Monthly*} \\
-\hline
-\multicolumn{4}{|c|}{\textbf{AWS}} \\
-\hline
+\midrule
+\multicolumn{4}{c}{\textbf{AWS}} \\
+\midrule
 Dashboard & t3.large (2 vCPU, 8GB) & \$0.083 & \$60 (24/7) \\
 GPU Eval & g5.xlarge (A10G 24GB) & \$1.006 & \$120 (4h/day) \\
 GPU Eval & g5.2xlarge (A10G 24GB) & \$1.212 & \$145 (4h/day) \\
 GPU Eval (Spot) & g5.xlarge (Spot) & \$0.302 & \$36 (4h/day) \\
 Storage & S3 Standard (1TB) & - & \$23 \\
 Database & RDS PostgreSQL (db.t3.micro) & \$0.017 & \$12 (24/7) \\
-\hline
+\midrule
 \textbf{Total (On-Demand)} & & & \$240-\$360/month \\
 \textbf{Total (Spot)} & & & \$130-\$150/month \\
-\hline
-\multicolumn{4}{|c|}{\textbf{GCP}} \\
-\hline
+\midrule
+\multicolumn{4}{c}{\textbf{GCP}} \\
+\midrule
 Dashboard & n1-standard-2 (2 vCPU, 7.5GB) & \$0.095 & \$69 (24/7) \\
 GPU Eval & n1-standard-8 + V100 (16GB) & \$2.48 & \$297 (4h/day) \\
 GPU Eval (Preemptible) & n1-standard-8 + V100 & \$0.74 & \$89 (4h/day) \\
 Storage & Cloud Storage (1TB) & - & \$20 \\
 Database & Cloud SQL PostgreSQL (db-f1-micro) & \$0.015 & \$11 (24/7) \\
-\hline
+\midrule
 \textbf{Total (On-Demand)} & & & \$400-\$450/month \\
 \textbf{Total (Preemptible)} & & & \$190-\$220/month \\
-\hline
-\multicolumn{4}{|c|}{\textbf{Azure}} \\
-\hline
+\midrule
+\multicolumn{4}{c}{\textbf{Azure}} \\
+\midrule
 Dashboard & B2s (2 vCPU, 4GB) & \$0.042 & \$30 (24/7) \\
 GPU Eval & NC6s v3 (V100 16GB) & \$3.06 & \$367 (4h/day) \\
 GPU Eval (Spot) & NC6s v3 (Spot) & \$0.918 & \$110 (4h/day) \\
 Storage & Blob Storage (1TB) & - & \$18 \\
 Database & Azure SQL (Basic) & \$0.007 & \$5 (24/7) \\
-\hline
+\midrule
 \textbf{Total (On-Demand)} & & & \$420-\$470/month \\
 \textbf{Total (Spot)} & & & \$160-\$190/month \\
-\hline
+\bottomrule
 \end{tabular}
 \caption{Cloud costs assuming 4 hours GPU usage per day, 30 days/month}
 \end{table}
