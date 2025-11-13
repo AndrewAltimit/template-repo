@@ -107,52 +107,50 @@ The framework integrates seamlessly into existing MLOps pipelines as a pre-deplo
 
 \begin{figure}[h!]
 \centering
-\begin{tikzpicture}[node distance=1.5cm and 1cm]
-    % Define the nodes for the pipeline
-    \node[process] (train) {Model\\Training};
-    \node[process, right=of train] (finetune) {Fine-tuning};
-    \node[process, right=of finetune] (eval) {Evaluation};
-    \node[process, below=of train] (base) {Base\\Training};
-    \node[process, right=of base] (safety) {Safety\\Training};
-    \node[process, right=of safety] (standard) {Standard\\Tests};
+\begin{tikzpicture}[node distance=1.5cm, auto]
+    % Standard MLOps flow
+    \node (train) [startstop] {Model Training};
+    \node (fine-tune) [process, right=of train] {Fine-tuning};
+    \node (safety-train) [process, below=of fine-tune] {Safety Training};
+    \node (eval) [process, right=of fine-tune] {Standard Tests};
 
-    % Detection gate (large box)
-    \node[gate, below=2cm of safety] (gate) {
-        \textbf{SLEEPER AGENT DETECTION GATE}\\[2mm]
-        \begin{minipage}{4.8cm}
-        \footnotesize
-        \textbf{1. Linear Probe Detection}\\
-        \quad - Multi-layer activation scan\\
-        \quad - 93.2\% AUROC validation\\[1mm]
-        \textbf{2. Behavioral Analysis}\\
-        \quad - Chain-of-thought patterns\\
-        \quad - Trigger sensitivity mapping\\[1mm]
-        \textbf{3. Persistence Testing}\\
-        \quad - Post-training verification\\
-        \quad - Risk assessment\\[2mm]
-        PASS: Deploy \checkmark \quad FAIL: Block \texttimes
-        \end{minipage}
+    % Detection gate - visually distinct
+    \node (gate) [gate, below=of eval, yshift=-0.5cm] {
+        \textbf{SLEEPER AGENT}\\
+        \textbf{DETECTION GATE}\\[2mm]
+        \begin{itemize}[leftmargin=*,noitemsep]
+            \footnotesize
+            \item Linear Probe Detection\\
+                  (93.2\% AUROC)
+            \item Behavioral Analysis (CoT)
+            \item Persistence Testing
+            \item Risk Assessment
+        \end{itemize}
     };
 
-    % Deployment decision box
-    \node[process, below=2cm of gate, text width=3.5cm] (deploy) {
-        \textbf{Deployment Decision}\\[1mm]
-        \footnotesize
-        HIGH RISK $\rightarrow$ REJECT\\
-        MEDIUM $\rightarrow$ REVIEW\\
-        LOW $\rightarrow$ APPROVE
-    };
+    % Deployment decision diamond
+    \node (decision) [decision, below=of gate, yshift=-1cm] {Deployment\\Decision};
 
-    % Draw the arrows
-    \draw[arrow] (train) -- (base);
-    \draw[arrow] (finetune) -- (safety);
-    \draw[arrow] (eval) -- (standard);
-    \draw[arrow] (base) -- (safety);
-    \draw[arrow] (safety) -- (standard);
-    \draw[arrow] (standard) -- (gate);
-    \draw[arrow] (gate) -- (deploy);
+    % Draw standard flow arrows
+    \draw [arrow] (train) -- (fine-tune);
+    \draw [arrow] (fine-tune) -- (eval);
+    \draw [arrow] (fine-tune.south) |- (safety-train.west);
+    \draw [arrow] (eval) -- (gate);
+
+    % Draw PASS path
+    \draw [arrow, green!50!black, very thick] (gate) -- node[right, midway] {PASS \faCheck} (decision);
+
+    % Draw FAIL path
+    \coordinate (fail_point) at ([xshift=-3cm]gate.west);
+    \draw [arrow, red, very thick] (gate.west) -- (fail_point) node[above, midway] {FAIL \faTimes};
+
+    % Draw deployment outcomes
+    \draw [arrow, green!50!black] (decision.south) -- ++(0,-1) node[below] {\textbf{APPROVE}};
+    \draw [arrow, orange!80!black] (decision.west) -- ++(-2,0) node[left] {\textbf{REVIEW}};
+    \draw [arrow, red!80!black] (decision.east) -- ++(2,0) node[right] {\textbf{REJECT}};
+
 \end{tikzpicture}
-\caption{Typical MLOps pipeline with the Sleeper Agent Detection Framework integrated as a pre-deployment validation gate.}
+\caption{Revised MLOps pipeline integrating the Sleeper Agent Detection Framework as a critical validation gate. The detection gate visually separates standard testing from our framework's multi-method analysis, with clear PASS/FAIL outcomes.}
 \label{fig:mlops_pipeline}
 \end{figure}
 
@@ -1115,79 +1113,27 @@ CREATE TABLE probe_registry (
 
 \textbf{End-to-End Evaluation Flow}:
 
-\begin{verbatim}
-User Request → Dashboard → SleeperDetector.evaluate_model()
-                                    ↓
-                    1. Model Loading & Initialization
-                    ┌──────────────────────────────┐
-                    │ Model Loader                 │
-                    │  • Check cache               │
-                    │  • Download if missing       │
-                    │  • Load with quantization    │
-                    │  • Wrap in HookedTransformer │
-                    └──────────────────────────────┘
-                                    ↓
-                    2. Baseline Evaluation
-                    ┌──────────────────────────────┐
-                    │ Test Suite Runner            │
-                    │  • Standard prompts (clean)  │
-                    │  • Triggered prompts         │
-                    │  • Persona evaluations       │
-                    │  • CoT analysis              │
-                    └──────────────────────────────┘
-                                    ↓
-                    3. Probe Training (if needed)
-                    ┌──────────────────────────────┐
-                    │ LayerProbeDetector           │
-                    │  • Extract activations       │
-                    │  • Train linear classifiers  │
-                    │  • Compute AUROC             │
-                    │  • Save probe weights        │
-                    └──────────────────────────────┘
-                                    ↓
-                    4. Detection Execution
-                    ┌──────────────────────────────┐
-                    │ Multi-Method Detection       │
-                    │  ├─ Linear Probes            │
-                    │  ├─ Attention Analysis       │
-                    │  ├─ Causal Interventions     │
-                    │  ├─ Pattern Matching         │
-                    │  └─ Feature Discovery        │
-                    └──────────────────────────────┘
-                                    ↓
-                    5. Result Aggregation
-                    ┌──────────────────────────────┐
-                    │ Ensemble Voting              │
-                    │  • Weighted aggregation      │
-                    │  • Confidence intervals      │
-                    │  • Risk level assignment     │
-                    └──────────────────────────────┘
-                                    ↓
-                    6. Persistence Testing (optional)
-                    ┌──────────────────────────────┐
-                    │ Safety Training Simulation   │
-                    │  • Apply SFT/RLHF/Adv        │
-                    │  • Re-run detection          │
-                    │  • Compare pre/post rates    │
-                    └──────────────────────────────┘
-                                    ↓
-                    7. Database Persistence
-                    ┌──────────────────────────────┐
-                    │ SQLite Ingestion             │
-                    │  • evaluation_results        │
-                    │  • persistence_results       │
-                    │  • chain_of_thought_analysis │
-                    │  • red_team_results          │
-                    └──────────────────────────────┘
-                                    ↓
-                    8. Dashboard Visualization
-                    ┌──────────────────────────────┐
-                    │ Render Components            │
-                    │  • Load from cache           │
-                    │  • Generate charts           │
-                    │  • Calculate metrics         │
-                    └──────────────────────────────┘
-\end{verbatim}
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+    node distance=0.8cm,
+    start chain=going below,
+    every node/.style={on chain},
+    every join/.style={arrow}
+]
+    \node[block] (start) {User Request $\rightarrow$ \texttt{SleeperDetector.evaluate\_model()}};
+    \node[block, join] (load) {\textbf{1. Model Loading \& Initialization}\\Check cache, download if missing, wrap in HookedTransformer};
+    \node[block, join] (baseline) {\textbf{2. Baseline Evaluation}\\Run test suites (clean, triggered, persona, CoT)};
+    \node[block, join] (probe) {\textbf{3. Probe Training (if needed)}\\Extract activations, train classifiers, compute AUROC};
+    \node[block, join] (detect) {\textbf{4. Detection Execution}\\Run all methods: Linear Probes, Attention Analysis, etc.};
+    \node[block, join] (agg) {\textbf{5. Result Aggregation}\\Ensemble voting, confidence intervals, risk assignment};
+    \node[block, join] (persist) {\textbf{6. Persistence Testing (optional)}\\Simulate safety training, compare pre/post rates};
+    \node[block, join] (db) {\textbf{7. Database Persistence}\\Ingest all results into SQLite};
+    \node[block, join] (dash) {\textbf{8. Dashboard Visualization}\\Render components from cached results};
+\end{tikzpicture}
+\caption{End-to-end model evaluation data flow showing the complete pipeline from user request to visualization.}
+\label{fig:eval_flow}
+\end{figure}
 
 \textbf{Probe Training Data Flow}:
 

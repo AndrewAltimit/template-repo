@@ -61,7 +61,7 @@ The `--shell-escape` (or `-shell-escape`) flag is **required** because minted ne
 
 ## Output
 
-- **PDF**: `Sleeper_Agents_Complete_Guide.pdf` (113 pages, ~724KB)
+- **PDF**: `Sleeper_Agents_Complete_Guide.pdf` (332 pages, ~1.7MB)
 - **Temporary files**: `.aux`, `.out`, `.toc`, `.log`, `_minted-*` (can be deleted)
 
 ## Features
@@ -124,10 +124,14 @@ This version includes comprehensive visual improvements based on Gemini AI consu
 1. **Modern Typography**: Lato font provides a clean, professional appearance
 2. **FontAwesome Icons**: Visual indicators for different audience types
 3. **TikZ Diagrams**: Professional flowcharts replace ASCII art
+   - **Enhanced MLOps Pipeline**: Color-coded nodes with distinct shapes for startstop, process, gate, and decision components
+   - **Evaluation Flow Diagram**: Clean vertical flowchart showing 8-stage pipeline from user request to visualization
+   - **Visual Hierarchy**: Red detection gate stands out from green standard processes
 4. **Booktabs Tables**: Clean, readable tables with proper spacing
 5. **Minted Code Blocks**: Superior syntax highlighting with breakable boxes
 6. **Enhanced Color Palette**: Professional blue/green/orange theme
 7. **Smart Cross-References**: Cleveref for intelligent referencing
+8. **Insightbox Callouts**: Key insights and takeaways highlighted in dedicated boxes for improved readability
 
 ## Cleaning Up
 
@@ -200,8 +204,10 @@ For issues or questions:
 
 ## Version Information
 
-- **Document Version**: 2.0 - Comprehensive Edition
+- **Document Version**: 2.0 - Comprehensive Edition with Enhanced Visuals
 - **LaTeX Engine**: pdflatex
 - **Syntax Highlighting**: minted + Pygments
-- **Page Count**: 113 pages
+- **Page Count**: 332 pages
+- **File Size**: ~1.7MB
 - **Last Updated**: 2025-11-13
+- **Key Improvements**: Professional TikZ diagrams, insightbox callouts, enhanced color scheme
