@@ -1,5 +1,7 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage[top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{textcomp}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{graphicx}
@@ -102,15 +104,17 @@
 }
 
 % --- Enhanced Code Block Environments with Minted ---
-\newtcblisting{pythoncode}[2][]{
+% Note: These are defined but code blocks in the document use lstlisting
+% To use minted, replace \begin{lstlisting} with \begin{minted}{python}
+\newtcblisting{mintedpython}[1]{
     listing engine=minted,
     minted language=python,
     minted style=friendly,
     minted options={
-        linenos=true,
+        linenos,
         fontsize=\small,
-        breaklines=true,
-        autogobble=true,
+        breaklines,
+        autogobble,
         numbersep=3mm
     },
     breakable,
@@ -123,22 +127,21 @@
     right=0mm,
     top=1mm,
     bottom=1mm,
-    title=#2,
+    title={#1},
     fonttitle=\sffamily\bfseries,
     coltitle=white,
-    colbacktitle=CodeFrame,
-    #1
+    colbacktitle=CodeFrame
 }
 
-\newtcblisting{bashcode}[2][]{
+\newtcblisting{mintedbash}[1]{
     listing engine=minted,
     minted language=bash,
     minted style=friendly,
     minted options={
-        linenos=true,
+        linenos,
         fontsize=\small,
-        breaklines=true,
-        autogobble=true,
+        breaklines,
+        autogobble,
         numbersep=3mm
     },
     breakable,
@@ -151,11 +154,10 @@
     right=0mm,
     top=1mm,
     bottom=1mm,
-    title=#2,
+    title={#1},
     fonttitle=\sffamily\bfseries,
     coltitle=white,
-    colbacktitle=CodeFrame,
-    #1
+    colbacktitle=CodeFrame
 }
 
 % --- Fallback: Traditional Code Box (for listings) ---
