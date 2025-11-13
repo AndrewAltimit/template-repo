@@ -1,9 +1,11 @@
 \documentclass[11pt,a4paper]{article}
 
-% --- Core Packages ---
-\usepackage[top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry}
+% --- Core & Layout Packages ---
+\usepackage[top=2.5cm, bottom=3cm, left=2cm, right=2cm]{geometry} % Adjusted margins for better readability
+\usepackage[utf8]{inputenc} % UTF-8 input encoding for Unicode characters
 \usepackage[T1]{fontenc}
 \usepackage{textcomp}
+\usepackage{pmboxdraw} % Support for box-drawing characters in verbatim
 \usepackage{amsmath, amssymb}
 \usepackage{graphicx}
 \usepackage[dvipsnames]{xcolor}
@@ -11,6 +13,11 @@
 \usepackage{fancyhdr}
 \usepackage{longtable}
 \usepackage{enumitem} % For better lists
+
+% --- Readability Enhancements ---
+\usepackage{setspace} % For line spacing control
+\setstretch{1.15} % Improved line spacing for dense text
+\usepackage[parfill]{parskip} % Use paragraph spacing instead of indentation
 
 % --- Font Configuration (Using Lato for a modern look) ---
 \usepackage{lato}
@@ -37,6 +44,10 @@
   arrow/.style={-Latex, thick, draw=BrandAccent},
   block/.style={rectangle, draw, fill=blue!10, text width=10cm, text centered, rounded corners, minimum height=1.2cm, font=\sffamily}
 }
+
+% --- Algorithm Packages (for pseudocode) ---
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode} % Clean algorithm formatting without end statements
 
 % --- TColorBox for Notes, Warnings, and Code ---
 \usepackage[breakable,skins]{tcolorbox}

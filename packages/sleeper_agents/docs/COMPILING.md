@@ -61,8 +61,9 @@ The `--shell-escape` (or `-shell-escape`) flag is **required** because minted ne
 
 ## Output
 
-- **PDF**: `Sleeper_Agents_Complete_Guide.pdf` (332 pages, ~1.7MB)
+- **PDF**: `Sleeper_Agents_Complete_Guide.pdf` (379 pages, ~1.8MB)
 - **Temporary files**: `.aux`, `.out`, `.toc`, `.log`, `_minted-*` (can be deleted)
+- **Note**: Improved line spacing (1.15) and paragraph spacing increase page count while enhancing readability
 
 ## Features
 
@@ -132,6 +133,8 @@ This version includes comprehensive visual improvements based on Gemini AI consu
 6. **Enhanced Color Palette**: Professional blue/green/orange theme
 7. **Smart Cross-References**: Cleveref for intelligent referencing
 8. **Insightbox Callouts**: Key insights and takeaways highlighted in dedicated boxes for improved readability
+9. **Improved Readability**: 1.15 line spacing and paragraph spacing for better text flow
+10. **Algorithm Support**: Packages added for future pseudocode examples
 
 ## Cleaning Up
 
@@ -204,10 +207,17 @@ For issues or questions:
 
 ## Version Information
 
-- **Document Version**: 2.0 - Comprehensive Edition with Enhanced Visuals
+- **Document Version**: 2.0 - Comprehensive Edition with Enhanced Visuals and Readability
 - **LaTeX Engine**: pdflatex
 - **Syntax Highlighting**: minted + Pygments
-- **Page Count**: 332 pages
-- **File Size**: ~1.7MB
+- **Page Count**: 379 pages (increased due to improved spacing)
+- **File Size**: ~1.8MB
 - **Last Updated**: 2025-11-13
-- **Key Improvements**: Professional TikZ diagrams, insightbox callouts, enhanced color scheme
+- **Key Improvements**:
+  - Professional TikZ diagrams with color-coded nodes
+  - Insightbox callouts for key insights
+  - Enhanced color scheme (blue/green/orange)
+  - 1.15 line spacing for improved readability
+  - Paragraph spacing instead of indentation
+  - Algorithm packages for future pseudocode support
+  - Unicode support for box-drawing characters
