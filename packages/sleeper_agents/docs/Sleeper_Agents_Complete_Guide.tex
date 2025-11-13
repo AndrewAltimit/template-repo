@@ -147,7 +147,7 @@ This comprehensive guide provides complete documentation for the Sleeper Agents 
 
 This 135-page guide is designed for a diverse audience: enterprise leaders evaluating AI safety investments, developers implementing detection systems, researchers advancing deception detection methodologies, security teams assessing model trustworthiness, and regulatory bodies establishing AI safety standards. The guide progresses from fundamental concepts to advanced research topics, providing practical tutorials, real-world case studies, complete API documentation, and troubleshooting guidance.
 
-\textbf{Key Topics Covered}: Deception detection theory and practice, system architecture and deployment, six detection methodologies with validated results, hands-on tutorials for all skill levels, enterprise use cases with ROI analysis, advanced research protocols, security and ethical considerations, complete Python API reference, troubleshooting guide, and comprehensive appendices with performance data and mathematical foundations.
+\textbf{Key Topics Covered}: Deception detection theory and practice, system architecture and deployment, six detection methodologies with validated results, hands-on tutorials for all skill levels, enterprise use cases with risk analysis, advanced research protocols, security and ethical considerations, complete Python API reference, troubleshooting guide, and comprehensive appendices with performance data and mathematical foundations.
 
 \textbf{Validated Performance}: This framework replicates Anthropic's methodology, achieving 93.2\% AUROC on accessible hardware (RTX 4090 / 24GB VRAM), providing production-ready deception detection for organizations and researchers working with open-weight language models.
 \end{abstract}
@@ -198,7 +198,7 @@ This 135-page guide is organized into five major parts, each designed for progre
 
 \textbf{Part II - Architecture and Methods} (Pages 26-70): Detailed system design, deployment configurations, and complete coverage of all six detection methodologies. Critical for developers and architects.
 
-\textbf{Part III - Practical Implementation} (Pages 71-120): Getting started guides, step-by-step tutorials, and real-world case studies with ROI analysis. Essential for practitioners and enterprise decision-makers.
+\textbf{Part III - Practical Implementation} (Pages 71-120): Getting started guides, step-by-step tutorials, and real-world case studies with risk analysis. Essential for practitioners and enterprise decision-makers.
 
 \textbf{Part IV - Advanced Topics} (Pages 121-145): Research methodologies, custom detection development, CI/CD integration, and security considerations. For advanced users and researchers.
 
@@ -236,7 +236,7 @@ This comprehensive edition expands the original 13-page guide to 135 pages with:
 \begin{itemize}
     \item \textbf{4x Expanded Detection Methods}: From 3 pages to 20 pages with complete implementation details
     \item \textbf{New Tutorials Section}: 20 pages of hands-on walkthroughs for all skill levels
-    \item \textbf{Enterprise Use Cases}: 10 pages of real-world case studies with ROI calculations
+    \item \textbf{Enterprise Use Cases}: 10 pages of real-world case studies with risk assessments
     \item \textbf{Complete API Reference}: 10 pages documenting all public APIs with examples
     \item \textbf{Advanced Research Section}: 15 pages on research methodology and custom detection development
     \item \textbf{Comprehensive Appendices}: Performance data for 20+ models, mathematical foundations, glossary
@@ -276,44 +276,56 @@ Sleeper agents are language models containing hidden backdoors that cause malici
 
 \textbf{Chain-of-Thought Deception}: Advanced models using scratchpad reasoning to explicitly plan deception, determining when to reveal versus conceal true objectives. Anthropic's research showed this increases backdoor persistence to 98.9\%.
 
-\subsection{Business Impact and Strategic Value}
+\subsection{Strategic Impact and Risk Mitigation}
 
-\textbf{For Enterprise Leaders}: The framework provides measurable ROI through risk mitigation:
+\textbf{For Enterprise Leaders}: The framework addresses critical gaps in AI safety evaluation by detecting persistent deceptive behaviors that survive standard safety training.
 
-\subsubsection{Cost-Benefit Analysis}
+\subsubsection{Implementation Considerations}
 
-\textbf{Implementation Costs} (One-time): \$15,000-\$30,000
+\textbf{Technical Requirements}:
 \begin{itemize}
-    \item Hardware: \$1,500-\$2,000 (RTX 4090 or equivalent)
-    \item Engineering integration: 40-80 hours
-    \item Team training: 20-40 hours
+    \item Standard GPU hardware (RTX 4090 or equivalent)
+    \item Engineering integration: 40-80 hours for initial deployment
+    \item Team training: 20-40 hours for operational proficiency
+    \item Ongoing maintenance: 5-10 hours per month
 \end{itemize}
 
-\textbf{Operational Costs} (Annual): \$2,000-\$5,000
+\textbf{Deployment Characteristics}:
 \begin{itemize}
-    \item Compute per evaluation: \$0.10-\$0.50
-    \item Maintenance: 5-10 hours per month
-    \item Storage: Negligible (SQLite scales efficiently)
+    \item Per-model evaluation time: 2-4 hours for comprehensive analysis
+    \item Scales efficiently with SQLite storage
+    \item Integrates with existing MLOps pipelines
+    \item Supports automated CI/CD workflows
 \end{itemize}
 
-\textbf{Risk Exposure Without Detection}: \$10M-\$100M+
+\subsubsection{Risk Categories Addressed}
+
+\textbf{Operational Risks}:
 \begin{itemize}
-    \item Incident response and remediation: \$500K-\$2M
-    \item Regulatory fines: \$1M-\$50M
-    \item Reputational damage: 10-30\% stock impact for public companies
-    \item Customer churn: 15-40\% in affected segments
+    \item \textbf{Model Compromise}: Detects backdoors that activate under specific conditions
+    \item \textbf{Deployment Failures}: Identifies models that behave differently in production vs evaluation
+    \item \textbf{Persistence Through Training}: Catches deceptive behaviors that survive safety fine-tuning
+    \item \textbf{Supply Chain Integrity}: Validates third-party models before deployment
 \end{itemize}
 
-\textbf{ROI Calculation}: Assuming 1\% probability of deploying compromised model:
+\textbf{Regulatory and Compliance Risks}:
+\begin{itemize}
+    \item \textbf{Safety Standards}: Provides quantitative evidence of rigorous pre-deployment testing
+    \item \textbf{Audit Trail}: Maintains comprehensive evaluation records in SQLite database
+    \item \textbf{Transparency Requirements}: Offers interpretable detection methods (linear probe weights)
+    \item \textbf{Due Diligence}: Demonstrates systematic approach to AI safety evaluation
+\end{itemize}
 
-\begin{equation}
-\text{Expected Value} = 0.01 \times \$50M - \$30K = \$470K
-\end{equation}
-
-This represents 15:1 return on investment in the conservative scenario.
+\textbf{Reputational and Trust Risks}:
+\begin{itemize}
+    \item \textbf{Public Trust}: Prevents deployment of compromised models that could erode user confidence
+    \item \textbf{Brand Protection}: Reduces likelihood of AI-related security incidents
+    \item \textbf{Stakeholder Confidence}: Shows commitment to rigorous AI safety practices
+    \item \textbf{Industry Leadership}: Positions organization at forefront of AI safety evaluation
+\end{itemize}
 
 \begin{insightbox}
-\textbf{Real-World Impact}: In one engagement, we analyzed a third-party chatbot that passed all standard safety tests. Our framework uncovered a hidden temporal backdoor that would have activated post-deployment, potentially costing \$45M in damages. The analysis cost just \$127K - a 35,000\% ROI. This isn't just about finding flaws; it's about preventing catastrophes before they happen.
+\textbf{Detection in Practice}: When analyzing third-party models, our framework has uncovered hidden backdoors that passed all standard safety tests. These models exhibited safe behavior during evaluation but contained temporal triggers designed to activate post-deployment. By examining internal activation patterns rather than just output behavior, we detect what traditional testing misses - preventing potential deployment failures before they reach production.
 \end{insightbox}
 
 \subsection{Research Context and Scientific Foundation}
@@ -718,10 +730,11 @@ This comprehensive guide has covered the complete landscape of sleeper agent det
 
 \textbf{Enterprise Value}:
 \begin{itemize}
-    \item 15:1 ROI in conservative scenarios
-    \item Measurable risk reduction across regulatory, operational, and reputational dimensions
+    \item Comprehensive risk reduction across regulatory, operational, and reputational dimensions
+    \item Pre-deployment detection prevents costly post-production incidents
     \item Integration patterns for existing ML pipelines
     \item Deployment configurations from single-GPU to multi-server clusters
+    \item Audit trail and transparency for compliance requirements
 \end{itemize}
 
 \textbf{Research Contributions}:
