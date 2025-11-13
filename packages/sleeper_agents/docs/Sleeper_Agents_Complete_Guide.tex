@@ -1,45 +1,154 @@
 \documentclass[11pt,a4paper]{article}
-\usepackage[margin=1in]{geometry}
+\usepackage[top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{graphicx}
-\usepackage{hyperref}
-\usepackage{listings}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{booktabs}
 \usepackage{fancyhdr}
 \usepackage{longtable}
-\usepackage{tcolorbox}
+\usepackage[breakable,skins]{tcolorbox}
 \usepackage{tikz}
+\usepackage{titlesec}
+\usepackage{listings}
 
-% Code listing configuration
+% --- Professional Color Palette ---
+\definecolor{BrandBlue}{HTML}{0A3D62}
+\definecolor{BrandAccent}{HTML}{3C6382}
+\definecolor{CodeBg}{HTML}{F8F9FA}
+\definecolor{CodeFrame}{HTML}{3C6382}
+\definecolor{DevBlue}{HTML}{1E88E5}
+\definecolor{LeaderGreen}{HTML}{43A047}
+\definecolor{ResearchOrange}{HTML}{FB8C00}
+
+% --- Enhanced Code Listing Configuration ---
 \lstset{
   basicstyle=\ttfamily\small,
   breaklines=true,
-  frame=single,
-  backgroundcolor=\color{gray!10},
-  keywordstyle=\color{blue},
-  commentstyle=\color{green!60!black},
+  frame=leftline,
+  framesep=10pt,
+  xleftmargin=15pt,
+  backgroundcolor=\color{CodeBg},
+  rulecolor=\color{CodeFrame},
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{gray}\itshape,
   stringstyle=\color{red!70!black},
   numbers=left,
   numberstyle=\tiny\color{gray},
-  showstringspaces=false
+  showstringspaces=false,
+  breakatwhitespace=false,
+  captionpos=t,
+  keepspaces=true,
+  columns=flexible
 }
 
-% Header and footer
+% --- Audience-Specific Callout Boxes ---
+\newtcolorbox{devbox}{
+    breakable,
+    enhanced,
+    colback=blue!5!white,
+    colframe=DevBlue,
+    fonttitle=\bfseries\sffamily,
+    title=\textcolor{DevBlue}{\textbf{$\blacktriangleright$ For Developers}},
+    attach boxed title to top left={yshift=-2mm, xshift=3mm},
+    boxed title style={colback=DevBlue!20},
+    top=3mm,
+    left=3mm,
+    right=3mm
+}
+
+\newtcolorbox{leaderbox}{
+    breakable,
+    enhanced,
+    colback=green!5!white,
+    colframe=LeaderGreen,
+    fonttitle=\bfseries\sffamily,
+    title=\textcolor{LeaderGreen}{\textbf{$\blacktriangleright$ For Enterprise Leaders}},
+    attach boxed title to top left={yshift=-2mm, xshift=3mm},
+    boxed title style={colback=LeaderGreen!20},
+    top=3mm,
+    left=3mm,
+    right=3mm
+}
+
+\newtcolorbox{researcherbox}{
+    breakable,
+    enhanced,
+    colback=orange!5!white,
+    colframe=ResearchOrange,
+    fonttitle=\bfseries\sffamily,
+    title=\textcolor{ResearchOrange}{\textbf{$\blacktriangleright$ For Researchers}},
+    attach boxed title to top left={yshift=-2mm, xshift=3mm},
+    boxed title style={colback=ResearchOrange!20},
+    top=3mm,
+    left=3mm,
+    right=3mm
+}
+
+% --- Enhanced Code Block Environment ---
+\newtcolorbox{codebox}[1][]{
+    breakable,
+    enhanced,
+    colback=CodeBg,
+    colframe=CodeFrame,
+    arc=2mm,
+    boxrule=0.5pt,
+    left=3mm,
+    right=3mm,
+    top=3mm,
+    bottom=3mm,
+    #1
+}
+
+% --- Important Note Box ---
+\newtcolorbox{notebox}{
+    breakable,
+    enhanced,
+    colback=yellow!10!white,
+    colframe=orange!80!black,
+    fonttitle=\bfseries,
+    title=\textbf{Important Note},
+    top=3mm,
+    left=3mm,
+    right=3mm
+}
+
+% --- Custom Section Styling ---
+\titleformat{\part}
+  {\normalfont\sffamily\Huge\bfseries\color{BrandBlue}}
+  {\thepart}
+  {20pt}
+  {}
+
+\titleformat{\section}
+  {\normalfont\sffamily\Large\bfseries\color{BrandAccent}}
+  {\thesection}
+  {1em}
+  {}
+
+\titleformat{\subsection}
+  {\normalfont\sffamily\large\bfseries\color{BrandAccent}}
+  {\thesubsection}
+  {1em}
+  {}
+
+% --- Header and Footer ---
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{Sleeper Agents Detection Framework - Complete Guide}
-\fancyhead[R]{\thepage}
+\fancyhead[L]{\sffamily\small Sleeper Agents Detection Framework - Complete Guide}
+\fancyhead[R]{\sffamily\small\thepage}
+\fancyfoot[C]{\sffamily\footnotesize Version 2.0 - Comprehensive Edition}
 \renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
 
-% Hyperlink setup
+% --- Hyperlink Setup ---
+\usepackage{hyperref}
 \hypersetup{
     colorlinks=true,
-    linkcolor=blue,
-    filecolor=magenta,
-    urlcolor=cyan,
-    citecolor=green,
+    linkcolor=BrandAccent,
+    filecolor=BrandAccent,
+    urlcolor=BrandAccent,
+    citecolor=BrandAccent,
     pdftitle={Sleeper Agents Detection Framework - Complete Guide},
     pdfauthor={Sleeper Agents Project},
     pdfsubject={AI Safety and Deception Detection},
