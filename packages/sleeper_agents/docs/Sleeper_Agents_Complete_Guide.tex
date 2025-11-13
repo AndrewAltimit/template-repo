@@ -23,23 +23,7 @@
 \definecolor{LeaderGreen}{HTML}{43A047}
 \definecolor{ResearchOrange}{HTML}{FB8C00}
 
-% --- Minted Configuration for Superior Syntax Highlighting ---
-\usepackage{minted}
-\setminted{
-  bgcolor=CodeBg,
-  fontsize=\small,
-  linenos=true,
-  breaklines=true,
-  breakanywhere=false,
-  frame=leftline,
-  framesep=10pt,
-  xleftmargin=15pt,
-  tabsize=4,
-  autogobble=true,
-  python3=true
-}
-
-% --- Fallback: Enhanced Listings Configuration (if minted unavailable) ---
+% --- Enhanced Listings Configuration ---
 \lstset{
   basicstyle=\ttfamily\small,
   breaklines=true,
@@ -103,64 +87,7 @@
     right=3mm
 }
 
-% --- Enhanced Code Block Environments with Minted ---
-% Note: These are defined but code blocks in the document use lstlisting
-% To use minted, replace \begin{lstlisting} with \begin{minted}{python}
-\newtcblisting{mintedpython}[1]{
-    listing engine=minted,
-    minted language=python,
-    minted style=friendly,
-    minted options={
-        linenos,
-        fontsize=\small,
-        breaklines,
-        autogobble,
-        numbersep=3mm
-    },
-    breakable,
-    enhanced,
-    colback=CodeBg,
-    colframe=CodeFrame,
-    arc=2mm,
-    boxrule=0.5pt,
-    left=0mm,
-    right=0mm,
-    top=1mm,
-    bottom=1mm,
-    title={#1},
-    fonttitle=\sffamily\bfseries,
-    coltitle=white,
-    colbacktitle=CodeFrame
-}
-
-\newtcblisting{mintedbash}[1]{
-    listing engine=minted,
-    minted language=bash,
-    minted style=friendly,
-    minted options={
-        linenos,
-        fontsize=\small,
-        breaklines,
-        autogobble,
-        numbersep=3mm
-    },
-    breakable,
-    enhanced,
-    colback=CodeBg,
-    colframe=CodeFrame,
-    arc=2mm,
-    boxrule=0.5pt,
-    left=0mm,
-    right=0mm,
-    top=1mm,
-    bottom=1mm,
-    title={#1},
-    fonttitle=\sffamily\bfseries,
-    coltitle=white,
-    colbacktitle=CodeFrame
-}
-
-% --- Fallback: Traditional Code Box (for listings) ---
+% --- Code Box Environment ---
 \newtcolorbox{codebox}[1][]{
     breakable,
     enhanced,
