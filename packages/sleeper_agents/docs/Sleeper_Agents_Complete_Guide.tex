@@ -21,7 +21,23 @@
 \definecolor{LeaderGreen}{HTML}{43A047}
 \definecolor{ResearchOrange}{HTML}{FB8C00}
 
-% --- Enhanced Code Listing Configuration ---
+% --- Minted Configuration for Superior Syntax Highlighting ---
+\usepackage{minted}
+\setminted{
+  bgcolor=CodeBg,
+  fontsize=\small,
+  linenos=true,
+  breaklines=true,
+  breakanywhere=false,
+  frame=leftline,
+  framesep=10pt,
+  xleftmargin=15pt,
+  tabsize=4,
+  autogobble=true,
+  python3=true
+}
+
+% --- Fallback: Enhanced Listings Configuration (if minted unavailable) ---
 \lstset{
   basicstyle=\ttfamily\small,
   breaklines=true,
@@ -85,7 +101,64 @@
     right=3mm
 }
 
-% --- Enhanced Code Block Environment ---
+% --- Enhanced Code Block Environments with Minted ---
+\newtcblisting{pythoncode}[2][]{
+    listing engine=minted,
+    minted language=python,
+    minted style=friendly,
+    minted options={
+        linenos=true,
+        fontsize=\small,
+        breaklines=true,
+        autogobble=true,
+        numbersep=3mm
+    },
+    breakable,
+    enhanced,
+    colback=CodeBg,
+    colframe=CodeFrame,
+    arc=2mm,
+    boxrule=0.5pt,
+    left=0mm,
+    right=0mm,
+    top=1mm,
+    bottom=1mm,
+    title=#2,
+    fonttitle=\sffamily\bfseries,
+    coltitle=white,
+    colbacktitle=CodeFrame,
+    #1
+}
+
+\newtcblisting{bashcode}[2][]{
+    listing engine=minted,
+    minted language=bash,
+    minted style=friendly,
+    minted options={
+        linenos=true,
+        fontsize=\small,
+        breaklines=true,
+        autogobble=true,
+        numbersep=3mm
+    },
+    breakable,
+    enhanced,
+    colback=CodeBg,
+    colframe=CodeFrame,
+    arc=2mm,
+    boxrule=0.5pt,
+    left=0mm,
+    right=0mm,
+    top=1mm,
+    bottom=1mm,
+    title=#2,
+    fonttitle=\sffamily\bfseries,
+    coltitle=white,
+    colbacktitle=CodeFrame,
+    #1
+}
+
+% --- Fallback: Traditional Code Box (for listings) ---
 \newtcolorbox{codebox}[1][]{
     breakable,
     enhanced,
@@ -108,6 +181,31 @@
     colframe=orange!80!black,
     fonttitle=\bfseries,
     title=\textbf{Important Note},
+    top=3mm,
+    left=3mm,
+    right=3mm
+}
+
+% --- Example/Warning Boxes ---
+\newtcolorbox{examplebox}{
+    breakable,
+    enhanced,
+    colback=green!5!white,
+    colframe=green!50!black,
+    fonttitle=\bfseries,
+    title=\textbf{Example},
+    top=3mm,
+    left=3mm,
+    right=3mm
+}
+
+\newtcolorbox{warningbox}{
+    breakable,
+    enhanced,
+    colback=red!5!white,
+    colframe=red!70!black,
+    fonttitle=\bfseries,
+    title=\textbf{Warning},
     top=3mm,
     left=3mm,
     right=3mm
